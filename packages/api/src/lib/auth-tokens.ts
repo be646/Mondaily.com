@@ -36,6 +36,24 @@ export async function verifyAccessToken(token: string): Promise<AccessClaims | n
   }
 }
 
+// ── Activation tokens — single-use, email-delivered proof of email ownership ──────
+// A short-lived signed token bound to (user_id, email). Activation requires presenting
+// one of these, so possessing a member's email is NOT enough to set their password.
+const ACTIVATION_TTL_SECONDS = 30 * 60;
+export async function signActivationToken(userId: string, email: string): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  return sign({ sub: userId, email, type: "activation", iat: now, exp: now + ACTIVATION_TTL_SECONDS }, jwtSecret());
+}
+export async function verifyActivationToken(token: string): Promise<{ sub: string; email: string } | null> {
+  try {
+    const p = (await verify(token, jwtSecret(), "HS256")) as Record<string, unknown>;
+    if (p.type !== "activation" || typeof p.sub !== "string" || typeof p.email !== "string") return null;
+    return { sub: p.sub, email: p.email };
+  } catch {
+    return null;
+  }
+}
+
 export function sha256(s: string): string {
   return createHash("sha256").update(s).digest("hex");
 }

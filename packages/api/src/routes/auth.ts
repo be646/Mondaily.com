@@ -8,8 +8,10 @@ import { hashPassword, verifyPassword } from "../lib/password";
 import { ensureWorkspaceForUser } from "../lib/bootstrap";
 import {
   signAccessToken, verifyAccessToken, newRefreshToken, refreshExpiry, sha256,
+  signActivationToken, verifyActivationToken,
   ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE,
 } from "../lib/auth-tokens";
+import { sendWorkspaceEmail } from "../lib/mail";
 
 /**
  * Sovereign Auth — native email/password identity, mounted at /api/v1/auth/*. Runs ALONGSIDE
@@ -43,11 +45,11 @@ async function issueSession(c: Parameters<typeof setCookie>[0], userId: string, 
 }
 
 // Look up a workspace_members row by email (case-insensitive) → the canonical user_… id.
-async function memberByEmail(email: string): Promise<{ user_id: string; name: string | null } | null> {
+async function memberByEmail(email: string): Promise<{ user_id: string; name: string | null; workspace_id: string | null } | null> {
   const { data } = await supabase
-    .from("workspace_members").select("user_id, name, email")
+    .from("workspace_members").select("user_id, name, email, workspace_id")
     .ilike("email", email).limit(1).maybeSingle();
-  return data ? { user_id: data.user_id as string, name: (data.name as string) ?? null } : null;
+  return data ? { user_id: data.user_id as string, name: (data.name as string) ?? null, workspace_id: (data.workspace_id as string) ?? null } : null;
 }
 async function credByEmail(email: string) {
   const { data } = await supabase.from("auth_credentials").select("*").ilike("email", email).maybeSingle();
@@ -77,6 +79,8 @@ router.post("/register", zValidator("json", credSchema.extend({ name: z.string()
   if (error) return c.json({ error: error.message }, 400);
 
   // Native workspace bootstrap: new workspace + owner membership + cached profile.
+  // Atomic-ish: if the workspace bootstrap fails, roll back the credential so the email
+  // isn't left permanently stuck (can't re-register, but has no workspace).
   const displayName = name?.trim() || email;
   let workspaceId: string | null = null;
   try {
@@ -84,6 +88,7 @@ router.post("/register", zValidator("json", credSchema.extend({ name: z.string()
     workspaceId = ws.workspaceId;
     await supabase.from("workspace_members").update({ name: displayName, email }).eq("workspace_id", workspaceId).eq("user_id", userId);
   } catch (e) {
+    await supabase.from("auth_credentials").delete().eq("user_id", userId).then(() => {}, () => {});
     return c.json({ error: e instanceof Error ? e.message : "Failed to initialize workspace" }, 500);
   }
 
@@ -108,16 +113,42 @@ router.post("/login", zValidator("json", credSchema), async (c) => {
 });
 
 // POST /auth/activate — legacy bridge: bind a new password to an existing user_… id.
-router.post("/activate", zValidator("json", credSchema), async (c) => {
-  const { email, password } = c.req.valid("json");
-  if (await credByEmail(email)) return c.json({ error: "This account is already activated — please log in." }, 409);
+// POST /auth/request-activation — legacy bridge step 1. Emails a one-time activation link to
+// the address ON FILE (proving email ownership), so possessing an email alone can't set a
+// password. Always returns a generic ok (no account enumeration).
+router.post("/request-activation", zValidator("json", z.object({ email: z.string().email() })), async (c) => {
+  const { email } = c.req.valid("json");
+  const generic = { ok: true, message: "If that email has a Mondaily account awaiting activation, we've sent a link." };
+  if (await credByEmail(email)) return c.json(generic);
   const member = await memberByEmail(email);
-  if (!member) return c.json({ error: "No Mondaily account is associated with this email." }, 404);
+  if (!member) return c.json(generic);
+  const token = await signActivationToken(member.user_id, email);
+  const appUrl = process.env.APP_URL ?? "https://app.mondaily.com";
+  const link = `${appUrl}/auth/shadow-activate?token=${encodeURIComponent(token)}`;
+  if (member.workspace_id) {
+    await sendWorkspaceEmail(member.workspace_id, {
+      to: [{ email }],
+      subject: "Activate your Mondaily account",
+      body: `<p>Mondaily has upgraded to our own secure sign-in. Set your password to activate your account:</p>
+             <p><a href="${link}">Activate my account</a></p>
+             <p>This link expires in 30 minutes. If you didn't request this, you can ignore it.</p>`,
+    }).catch(() => {});
+  }
+  return c.json(generic);
+});
+
+// POST /auth/activate — legacy bridge step 2. Requires the emailed token (proof of email
+// ownership), then binds the password to the existing user_… id.
+router.post("/activate", zValidator("json", z.object({ token: z.string().min(1), password: z.string().min(PW_MIN).max(200) })), async (c) => {
+  const { token, password } = c.req.valid("json");
+  const claims = await verifyActivationToken(token);
+  if (!claims) return c.json({ error: "This activation link is invalid or has expired. Request a new one." }, 400);
+  if (await credByEmail(claims.email)) return c.json({ error: "This account is already activated — please log in." }, 409);
   const password_hash = await hashPassword(password);
-  const { error } = await supabase.from("auth_credentials").insert({ user_id: member.user_id, email, password_hash });
+  const { error } = await supabase.from("auth_credentials").insert({ user_id: claims.sub, email: claims.email, password_hash });
   if (error) return c.json({ error: error.message }, 400);
-  await issueSession(c, member.user_id, email, c.req.header("user-agent"));
-  return c.json({ userId: member.user_id, email, activated: true, ...(await sessionProfile(member.user_id)) }, 201);
+  await issueSession(c, claims.sub, claims.email, c.req.header("user-agent"));
+  return c.json({ userId: claims.sub, email: claims.email, activated: true, ...(await sessionProfile(claims.sub)) }, 201);
 });
 
 // POST /auth/refresh — rotate the refresh token, mint a new access token.
@@ -155,6 +186,52 @@ router.get("/me", async (c) => {
   const claims = at ? await verifyAccessToken(at) : null;
   if (!claims) return c.json({ error: "Not authenticated." }, 401);
   return c.json({ userId: claims.sub, email: claims.email, ...(await sessionProfile(claims.sub)) });
+});
+
+// Resolve the signed-in user id from the access cookie (for the authed self-service routes below).
+async function sessionUserId(c: Parameters<typeof getCookie>[0]): Promise<string | null> {
+  const at = getCookie(c, ACCESS_COOKIE);
+  const claims = at ? await verifyAccessToken(at) : null;
+  return claims?.sub ?? null;
+}
+
+// POST /auth/change-password — verify the current password, set a new one, revoke other sessions.
+router.post("/change-password", zValidator("json", z.object({ currentPassword: z.string().min(1), newPassword: z.string().min(PW_MIN).max(200) })), async (c) => {
+  const userId = await sessionUserId(c);
+  if (!userId) return c.json({ error: "Not authenticated." }, 401);
+  const { currentPassword, newPassword } = c.req.valid("json");
+  const { data: cred } = await supabase.from("auth_credentials").select("password_hash").eq("user_id", userId).maybeSingle();
+  if (!cred || !(await verifyPassword(cred.password_hash as string, currentPassword))) {
+    return c.json({ error: "Current password is incorrect." }, 400);
+  }
+  const password_hash = await hashPassword(newPassword);
+  await supabase.from("auth_credentials").update({ password_hash, updated_at: new Date().toISOString() }).eq("user_id", userId);
+  // Revoke every existing refresh token (force re-auth elsewhere), then re-issue THIS session.
+  await supabase.from("auth_refresh_tokens").update({ revoked_at: new Date().toISOString() }).eq("user_id", userId).is("revoked_at", null);
+  const { data: emailRow } = await supabase.from("auth_credentials").select("email").eq("user_id", userId).maybeSingle();
+  await issueSession(c, userId, (emailRow?.email as string) ?? "", c.req.header("user-agent"));
+  return c.json({ ok: true });
+});
+
+// DELETE /auth/account — permanently delete the caller's account: purge workspaces they OWN
+// (and their data), drop all their memberships, then remove credentials + refresh tokens.
+router.delete("/account", async (c) => {
+  const userId = await sessionUserId(c);
+  if (!userId) return c.json({ error: "Not authenticated." }, 401);
+  // Workspaces this user owns → purge their data + the workspace.
+  const { data: owned } = await supabase.from("workspace_members").select("workspace_id").eq("user_id", userId).eq("role", "owner");
+  const ownedIds = (owned ?? []).map((r) => r.workspace_id as string);
+  const wsTables = ["activities", "agent_jobs", "decision_queue", "notifications", "ai_usage", "discovered_leads", "chat_threads", "email_connections", "workflows", "sequences", "lists", "notes", "invoices", "credit_notes", "quotes", "expenses", "reports", "dashboards", "edges", "nodes", "workspace_members"];
+  for (const ws of ownedIds) {
+    for (const t of wsTables) await supabase.from(t).delete().eq("workspace_id", ws).then(() => {}, () => {});
+    await supabase.from("workspaces").delete().eq("id", ws).then(() => {}, () => {});
+  }
+  // Drop any remaining memberships (workspaces they only belonged to), then the identity itself.
+  await supabase.from("workspace_members").delete().eq("user_id", userId).then(() => {}, () => {});
+  await supabase.from("auth_refresh_tokens").delete().eq("user_id", userId).then(() => {}, () => {});
+  await supabase.from("auth_credentials").delete().eq("user_id", userId).then(() => {}, () => {});
+  clearSessionCookies(c);
+  return c.json({ ok: true });
 });
 
 export { router as authRouter };

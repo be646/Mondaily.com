@@ -349,16 +349,18 @@ router.get("/settings/workspace", async (c) => {
   });
 });
 router.patch("/settings/workspace", async (c) => {
-  const body = await c.req.json<{ name?: string; timezone?: string; modules?: string[] }>();
+  const body = await c.req.json<{ name?: string; timezone?: string; modules?: string[]; logo_url?: string }>();
   const settings = await workspaceSettings(c.get("workspaceId"));
-  await supabase.from("workspaces").update({
-    name: body.name,
+  const update: Record<string, unknown> = {
     settings: {
       ...settings,
       ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
       ...(body.modules !== undefined ? { modules: body.modules } : {}),
     },
-  }).eq("id", c.get("workspaceId"));
+  };
+  if (body.name !== undefined) update.name = body.name;
+  if (body.logo_url !== undefined) update.logo_url = body.logo_url || null; // native workspace logo (data URL or hosted URL)
+  await supabase.from("workspaces").update(update).eq("id", c.get("workspaceId"));
   return c.json({ ok: true });
 });
 

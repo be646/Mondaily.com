@@ -51,10 +51,11 @@ router.post("/sync", requireJwt, async (c) => {
     .upsert({ id: workspaceId, name: name || email || "My Workspace", slug: workspaceId }, { onConflict: "id", ignoreDuplicates: true });
   if (wsError) return c.json({ error: `workspace upsert: ${wsError.message}` }, 500);
 
-  // Check if already a member — preserve existing role
+  // Check if already a member — preserve existing role + profile so a sparse sync call
+  // never overwrites real name/email/avatar (and never stamps the user_id as a fake email).
   const { data: existing } = await supabase
     .from("workspace_members")
-    .select("role")
+    .select("role, email, name, avatar_url")
     .eq("workspace_id", workspaceId)
     .eq("user_id", userId)
     .maybeSingle();
@@ -64,9 +65,9 @@ router.post("/sync", requireJwt, async (c) => {
     .upsert({
       workspace_id: workspaceId,
       user_id: userId,
-      email: email || userId,
-      name: name || email || userId,
-      avatar_url,
+      email: email || (existing?.email as string) || "",
+      name: name || (existing?.name as string) || email || "",
+      avatar_url: avatar_url ?? (existing?.avatar_url as string) ?? null,
       role: existing?.role ?? "owner",
     }, { onConflict: "workspace_id,user_id" })
     .select()

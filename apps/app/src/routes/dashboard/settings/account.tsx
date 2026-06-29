@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Check, KeyRound, LogOut, Monitor, Moon, Sun, Trash2 } from "lucide-react";
+import { Camera, Check, KeyRound, LogOut, Loader2, Monitor, Moon, Sun, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
@@ -76,6 +76,21 @@ export function AccountSettings() {
 
   const [name, setName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNext, setPwNext] = useState("");
+  const [pwBusy, setPwBusy] = useState(false);
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  async function changePassword() {
+    if (pwNext.length < 8 || pwBusy) { setPwMsg({ ok: false, text: "New password must be at least 8 characters." }); return; }
+    setPwBusy(true); setPwMsg(null);
+    try {
+      await apiClient.post("/auth/change-password", { currentPassword: pwCurrent, newPassword: pwNext });
+      setPwMsg({ ok: true, text: "Password updated." }); setPwCurrent(""); setPwNext(""); setPwOpen(false);
+    } catch (e) {
+      setPwMsg({ ok: false, text: e instanceof Error ? e.message : "Could not change password." });
+    } finally { setPwBusy(false); }
+  }
   const [appearance, setAppearance] = useState<Appearance>(
     () => (localStorage.getItem("mondaily_appearance") as Appearance | null) ?? "light",
   );
@@ -154,7 +169,7 @@ export function AccountSettings() {
 
   async function deleteAccount() {
     if (deleteText !== "DELETE") return;
-    await sov?.logout();
+    await apiClient.delete("/auth/account").catch(() => {}); // purges data + clears cookies server-side
     localStorage.removeItem("mondaily_workspace_id");
     navigate("/auth/register");
   }
@@ -205,7 +220,6 @@ export function AccountSettings() {
               <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Email</span>
               <div className="flex h-9 items-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3">
                 <span className="min-w-0 flex-1 truncate text-sm text-stone-400">{me.email ?? ""}</span>
-                <button onClick={() => {}} className="text-xs text-stone-400 hover:text-stone-300 transition-colors">Change</button>
               </div>
             </label>
             <label className="block">
@@ -270,13 +284,27 @@ export function AccountSettings() {
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Password</h2>
           </div>
           <div className="p-5">
-            <p className="mb-4 text-sm text-stone-500">Update your password through the secure identity profile.</p>
-            <button
-              onClick={() => {}}
-              className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
-            >
-              <KeyRound size={14} /> Change password
-            </button>
+            {!pwOpen ? (
+              <button
+                onClick={() => { setPwOpen(true); setPwMsg(null); }}
+                className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                <KeyRound size={14} /> Change password
+              </button>
+            ) : (
+              <div className="max-w-sm space-y-3">
+                <input type="password" autoComplete="current-password" placeholder="Current password" value={pwCurrent} onChange={e => setPwCurrent(e.target.value)} className="key-input h-9 w-full px-3 text-sm" />
+                <input type="password" autoComplete="new-password" placeholder="New password (8+ chars)" value={pwNext} onChange={e => setPwNext(e.target.value)} className="key-input h-9 w-full px-3 text-sm" />
+                <div className="flex items-center gap-2">
+                  <button onClick={changePassword} disabled={pwBusy || !pwCurrent || pwNext.length < 8}
+                    className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50">
+                    {pwBusy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} Update password
+                  </button>
+                  <button onClick={() => { setPwOpen(false); setPwCurrent(""); setPwNext(""); setPwMsg(null); }} className="text-sm text-stone-500 hover:text-stone-300">Cancel</button>
+                </div>
+              </div>
+            )}
+            {pwMsg && <p className={`mt-3 text-xs ${pwMsg.ok ? "text-emerald-400" : "text-rose-400"}`}>{pwMsg.text}</p>}
           </div>
         </section>
       )}

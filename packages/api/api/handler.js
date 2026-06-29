@@ -11872,7 +11872,9 @@ __export(auth_tokens_exports, {
   refreshExpiry: () => refreshExpiry,
   sha256: () => sha2565,
   signAccessToken: () => signAccessToken,
-  verifyAccessToken: () => verifyAccessToken
+  signActivationToken: () => signActivationToken,
+  verifyAccessToken: () => verifyAccessToken,
+  verifyActivationToken: () => verifyActivationToken
 });
 function jwtSecret() {
   const s2 = process.env.AUTH_JWT_SECRET;
@@ -11892,6 +11894,19 @@ async function verifyAccessToken(token) {
     return null;
   }
 }
+async function signActivationToken(userId, email) {
+  const now = Math.floor(Date.now() / 1e3);
+  return sign2({ sub: userId, email, type: "activation", iat: now, exp: now + ACTIVATION_TTL_SECONDS }, jwtSecret());
+}
+async function verifyActivationToken(token) {
+  try {
+    const p2 = await verify2(token, jwtSecret(), "HS256");
+    if (p2.type !== "activation" || typeof p2.sub !== "string" || typeof p2.email !== "string") return null;
+    return { sub: p2.sub, email: p2.email };
+  } catch {
+    return null;
+  }
+}
 function sha2565(s2) {
   return (0, import_node_crypto.createHash)("sha256").update(s2).digest("hex");
 }
@@ -11902,7 +11917,7 @@ function newRefreshToken() {
 function refreshExpiry() {
   return new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1e3);
 }
-var import_node_crypto, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE;
+var import_node_crypto, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS;
 var init_auth_tokens = __esm({
   "src/lib/auth-tokens.ts"() {
     "use strict";
@@ -11912,6 +11927,7 @@ var init_auth_tokens = __esm({
     REFRESH_TTL_DAYS = 30;
     ACCESS_COOKIE = "md_at";
     REFRESH_COOKIE = "md_rt";
+    ACTIVATION_TTL_SECONDS = 30 * 60;
   }
 });
 
@@ -59478,8 +59494,8 @@ async function issueSession(c2, userId, email, userAgent) {
   setSessionCookies(c2, access, raw2);
 }
 async function memberByEmail(email) {
-  const { data } = await supabase.from("workspace_members").select("user_id, name, email").ilike("email", email).limit(1).maybeSingle();
-  return data ? { user_id: data.user_id, name: data.name ?? null } : null;
+  const { data } = await supabase.from("workspace_members").select("user_id, name, email, workspace_id").ilike("email", email).limit(1).maybeSingle();
+  return data ? { user_id: data.user_id, name: data.name ?? null, workspace_id: data.workspace_id ?? null } : null;
 }
 async function credByEmail(email) {
   const { data } = await supabase.from("auth_credentials").select("*").ilike("email", email).maybeSingle();
@@ -59507,6 +59523,9 @@ router11.post("/register", zValidator("json", credSchema.extend({ name: external
     workspaceId = ws.workspaceId;
     await supabase.from("workspace_members").update({ name: displayName, email }).eq("workspace_id", workspaceId).eq("user_id", userId);
   } catch (e2) {
+    await supabase.from("auth_credentials").delete().eq("user_id", userId).then(() => {
+    }, () => {
+    });
     return c2.json({ error: e2 instanceof Error ? e2.message : "Failed to initialize workspace" }, 500);
   }
   await issueSession(c2, userId, email, c2.req.header("user-agent"));
@@ -59525,16 +59544,37 @@ router11.post("/login", zValidator("json", credSchema), async (c2) => {
   await issueSession(c2, cred.user_id, cred.email, c2.req.header("user-agent"));
   return c2.json({ userId: cred.user_id, email: cred.email, ...await sessionProfile(cred.user_id) });
 });
-router11.post("/activate", zValidator("json", credSchema), async (c2) => {
-  const { email, password } = c2.req.valid("json");
-  if (await credByEmail(email)) return c2.json({ error: "This account is already activated \u2014 please log in." }, 409);
+router11.post("/request-activation", zValidator("json", external_exports.object({ email: external_exports.string().email() })), async (c2) => {
+  const { email } = c2.req.valid("json");
+  const generic = { ok: true, message: "If that email has a Mondaily account awaiting activation, we've sent a link." };
+  if (await credByEmail(email)) return c2.json(generic);
   const member = await memberByEmail(email);
-  if (!member) return c2.json({ error: "No Mondaily account is associated with this email." }, 404);
+  if (!member) return c2.json(generic);
+  const token = await signActivationToken(member.user_id, email);
+  const appUrl2 = process.env.APP_URL ?? "https://app.mondaily.com";
+  const link = `${appUrl2}/auth/shadow-activate?token=${encodeURIComponent(token)}`;
+  if (member.workspace_id) {
+    await sendWorkspaceEmail(member.workspace_id, {
+      to: [{ email }],
+      subject: "Activate your Mondaily account",
+      body: `<p>Mondaily has upgraded to our own secure sign-in. Set your password to activate your account:</p>
+             <p><a href="${link}">Activate my account</a></p>
+             <p>This link expires in 30 minutes. If you didn't request this, you can ignore it.</p>`
+    }).catch(() => {
+    });
+  }
+  return c2.json(generic);
+});
+router11.post("/activate", zValidator("json", external_exports.object({ token: external_exports.string().min(1), password: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
+  const { token, password } = c2.req.valid("json");
+  const claims = await verifyActivationToken(token);
+  if (!claims) return c2.json({ error: "This activation link is invalid or has expired. Request a new one." }, 400);
+  if (await credByEmail(claims.email)) return c2.json({ error: "This account is already activated \u2014 please log in." }, 409);
   const password_hash = await hashPassword(password);
-  const { error } = await supabase.from("auth_credentials").insert({ user_id: member.user_id, email, password_hash });
+  const { error } = await supabase.from("auth_credentials").insert({ user_id: claims.sub, email: claims.email, password_hash });
   if (error) return c2.json({ error: error.message }, 400);
-  await issueSession(c2, member.user_id, email, c2.req.header("user-agent"));
-  return c2.json({ userId: member.user_id, email, activated: true, ...await sessionProfile(member.user_id) }, 201);
+  await issueSession(c2, claims.sub, claims.email, c2.req.header("user-agent"));
+  return c2.json({ userId: claims.sub, email: claims.email, activated: true, ...await sessionProfile(claims.sub) }, 201);
 });
 router11.post("/refresh", async (c2) => {
   const raw2 = getCookie(c2, REFRESH_COOKIE);
@@ -59563,6 +59603,52 @@ router11.get("/me", async (c2) => {
   const claims = at2 ? await verifyAccessToken(at2) : null;
   if (!claims) return c2.json({ error: "Not authenticated." }, 401);
   return c2.json({ userId: claims.sub, email: claims.email, ...await sessionProfile(claims.sub) });
+});
+async function sessionUserId(c2) {
+  const at2 = getCookie(c2, ACCESS_COOKIE);
+  const claims = at2 ? await verifyAccessToken(at2) : null;
+  return claims?.sub ?? null;
+}
+router11.post("/change-password", zValidator("json", external_exports.object({ currentPassword: external_exports.string().min(1), newPassword: external_exports.string().min(PW_MIN).max(200) })), async (c2) => {
+  const userId = await sessionUserId(c2);
+  if (!userId) return c2.json({ error: "Not authenticated." }, 401);
+  const { currentPassword, newPassword } = c2.req.valid("json");
+  const { data: cred } = await supabase.from("auth_credentials").select("password_hash").eq("user_id", userId).maybeSingle();
+  if (!cred || !await verifyPassword(cred.password_hash, currentPassword)) {
+    return c2.json({ error: "Current password is incorrect." }, 400);
+  }
+  const password_hash = await hashPassword(newPassword);
+  await supabase.from("auth_credentials").update({ password_hash, updated_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("user_id", userId);
+  await supabase.from("auth_refresh_tokens").update({ revoked_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("user_id", userId).is("revoked_at", null);
+  const { data: emailRow } = await supabase.from("auth_credentials").select("email").eq("user_id", userId).maybeSingle();
+  await issueSession(c2, userId, emailRow?.email ?? "", c2.req.header("user-agent"));
+  return c2.json({ ok: true });
+});
+router11.delete("/account", async (c2) => {
+  const userId = await sessionUserId(c2);
+  if (!userId) return c2.json({ error: "Not authenticated." }, 401);
+  const { data: owned } = await supabase.from("workspace_members").select("workspace_id").eq("user_id", userId).eq("role", "owner");
+  const ownedIds = (owned ?? []).map((r2) => r2.workspace_id);
+  const wsTables = ["activities", "agent_jobs", "decision_queue", "notifications", "ai_usage", "discovered_leads", "chat_threads", "email_connections", "workflows", "sequences", "lists", "notes", "invoices", "credit_notes", "quotes", "expenses", "reports", "dashboards", "edges", "nodes", "workspace_members"];
+  for (const ws of ownedIds) {
+    for (const t2 of wsTables) await supabase.from(t2).delete().eq("workspace_id", ws).then(() => {
+    }, () => {
+    });
+    await supabase.from("workspaces").delete().eq("id", ws).then(() => {
+    }, () => {
+    });
+  }
+  await supabase.from("workspace_members").delete().eq("user_id", userId).then(() => {
+  }, () => {
+  });
+  await supabase.from("auth_refresh_tokens").delete().eq("user_id", userId).then(() => {
+  }, () => {
+  });
+  await supabase.from("auth_credentials").delete().eq("user_id", userId).then(() => {
+  }, () => {
+  });
+  clearSessionCookies(c2);
+  return c2.json({ ok: true });
 });
 
 // src/routes/webhooks.ts
@@ -60003,14 +60089,16 @@ router14.get("/settings/workspace", async (c2) => {
 router14.patch("/settings/workspace", async (c2) => {
   const body = await c2.req.json();
   const settings = await workspaceSettings(c2.get("workspaceId"));
-  await supabase.from("workspaces").update({
-    name: body.name,
+  const update = {
     settings: {
       ...settings,
       ...body.timezone !== void 0 ? { timezone: body.timezone } : {},
       ...body.modules !== void 0 ? { modules: body.modules } : {}
     }
-  }).eq("id", c2.get("workspaceId"));
+  };
+  if (body.name !== void 0) update.name = body.name;
+  if (body.logo_url !== void 0) update.logo_url = body.logo_url || null;
+  await supabase.from("workspaces").update(update).eq("id", c2.get("workspaceId"));
   return c2.json({ ok: true });
 });
 router14.patch("/settings/profile", async (c2) => {
@@ -61392,13 +61480,13 @@ router24.post("/sync", requireJwt, async (c2) => {
   const avatar_url = body.avatar_url || null;
   const { error: wsError } = await supabase.from("workspaces").upsert({ id: workspaceId, name: name || email || "My Workspace", slug: workspaceId }, { onConflict: "id", ignoreDuplicates: true });
   if (wsError) return c2.json({ error: `workspace upsert: ${wsError.message}` }, 500);
-  const { data: existing } = await supabase.from("workspace_members").select("role").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle();
+  const { data: existing } = await supabase.from("workspace_members").select("role, email, name, avatar_url").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle();
   const { data, error } = await supabase.from("workspace_members").upsert({
     workspace_id: workspaceId,
     user_id: userId,
-    email: email || userId,
-    name: name || email || userId,
-    avatar_url,
+    email: email || existing?.email || "",
+    name: name || existing?.name || email || "",
+    avatar_url: avatar_url ?? existing?.avatar_url ?? null,
     role: existing?.role ?? "owner"
   }, { onConflict: "workspace_id,user_id" }).select().single();
   if (error) return c2.json({ error: error.message }, 500);

@@ -392,13 +392,13 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   }
 
   // Workspace title from our own Postgres (workspace settings) — not Clerk's organization.
-  const { data: wsSettings } = useQuery<{ name?: string }>({
+  const { data: wsSettings } = useQuery<{ name?: string; logo_url?: string | null }>({
     queryKey: ["workspace-settings"],
-    queryFn: () => apiClient.get<{ name?: string }>("/settings/workspace"),
+    queryFn: () => apiClient.get<{ name?: string; logo_url?: string | null }>("/settings/workspace"),
     staleTime: 300_000,
   });
   const workspaceName    = wsSettings?.name || (me.name ? `${me.name.split(" ")[0]}'s Workspace` : "My Workspace");
-  const workspaceLogo: string | null = null;
+  const workspaceLogo: string | null = wsSettings?.logo_url ?? null;
   const workspaceInitial = workspaceName[0]?.toUpperCase() || "M";
 
   const { data: notifications = [] } = useQuery<{ read_at: string | null }[]>({

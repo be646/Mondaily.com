@@ -591,9 +591,15 @@ export function WorkspaceSettings() {
   });
 
   async function uploadLogo(file?: File) {
-    if (!file) return;
-    setLogoPreview(URL.createObjectURL(file));
-    // TODO: native workspace logo upload endpoint
+    if (!file || file.size > 2 * 1024 * 1024) return; // cap at 2 MB (stored as a data URL)
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(file);
+    });
+    setLogoPreview(dataUrl);
+    setForm({ ...form, logo_url: dataUrl }); // persisted by the existing Save button (PATCH /settings/workspace)
   }
 
   if (query.isLoading) return <PageSkeleton rows={6} />;

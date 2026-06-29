@@ -31,7 +31,10 @@ interface SovereignAuthValue {
   login: (email: string, password: string) => Promise<{ requiresActivation?: boolean }>;
   /** New account: creates credentials + a fresh workspace (owner). */
   register: (email: string, password: string, name?: string) => Promise<void>;
-  activate: (email: string, password: string) => Promise<void>;
+  /** Legacy bridge step 1: email a one-time activation link to the address on file. */
+  requestActivation: (email: string) => Promise<void>;
+  /** Legacy bridge step 2: set the password using the emailed token. */
+  activate: (token: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<boolean>;
   /** Re-fetch /me and update the cached profile (e.g. after an avatar/name change). */
@@ -86,9 +89,13 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     throw new Error(r.data.error || "Registration failed.");
   }, []);
 
-  const activate = useCallback(async (email: string, password: string) => {
-    const r = await authCall<MeResp & { error?: string }>("/activate", { email, password });
-    if (r.status === 201 && r.data.userId) { setAuthed(toUser(r.data, email), r.data.workspaceId); return; }
+  const requestActivation = useCallback(async (email: string) => {
+    await authCall("/request-activation", { email });
+  }, []);
+
+  const activate = useCallback(async (token: string, password: string) => {
+    const r = await authCall<MeResp & { error?: string }>("/activate", { token, password });
+    if (r.status === 201 && r.data.userId) { setAuthed(toUser(r.data), r.data.workspaceId); return; }
     throw new Error(r.data.error || "Activation failed.");
   }, []);
 
@@ -102,7 +109,7 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     if (me.status === 200 && me.data.userId) setAuthed(toUser(me.data), me.data.workspaceId);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <Ctx.Provider value={{ status, user, login, register, activate, logout, refresh, reloadProfile }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ status, user, login, register, requestActivation, activate, logout, refresh, reloadProfile }}>{children}</Ctx.Provider>;
 }
 
 export function useSovereignAuth(): SovereignAuthValue {
