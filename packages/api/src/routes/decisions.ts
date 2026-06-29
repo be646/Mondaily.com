@@ -264,4 +264,25 @@ router.post("/:id/snooze", zValidator("json", z.object({ until: z.string().optio
   return resolve(c, "snoozed", { snoozed_until: until });
 });
 
+// Bulk resolve — clear a whole group at once (the queue had 300+ pending items with no way
+// to triage in bulk). Approve executes each decision's real action; reject/snooze just resolve.
+router.post("/bulk", zValidator("json", z.object({
+  ids: z.array(z.string().uuid()).min(1).max(500),
+  action: z.enum(["approve", "reject", "snooze"]),
+})), async (c) => {
+  const { ids, action } = c.req.valid("json");
+  const ws = c.get("workspaceId");
+  const status = action === "approve" ? "approved" : action === "reject" ? "rejected" : "snoozed";
+  const extra = action === "snooze" ? { snoozed_until: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() } : {};
+  if (action === "approve") {
+    const { data: decisions } = await supabase.from("decision_queue").select("*").eq("workspace_id", ws).in("id", ids).eq("status", "pending");
+    for (const d of decisions ?? []) await executeApprovedAction(ws, d).catch((e) => console.error("[bulk-approve] swallowed:", e));
+  }
+  const { data, error } = await supabase.from("decision_queue")
+    .update({ status, resolved_at: new Date().toISOString(), resolved_by: c.get("userId"), ...extra })
+    .eq("workspace_id", ws).in("id", ids).eq("status", "pending").select("id");
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json({ ok: true, count: data?.length ?? 0 });
+});
+
 export { router as decisionsRouter };
