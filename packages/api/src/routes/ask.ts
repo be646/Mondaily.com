@@ -528,31 +528,43 @@ async function executeTool(
         const filter = input.filter || "mine";
         let taskQuery = supabase
           .from("tasks")
-          .select("id, title, priority, status, due_date, completed, assignee_id, created_by")
-          .eq("workspace_id", workspaceId)
-          .eq("completed", false);
+          .select("id, title, priority, status, due_date, completed, assignee_id, created_by, created_at")
+          .eq("workspace_id", workspaceId);
 
-        if (filter === "mine") {
+        if (filter === "mine" || filter === "overdue") {
           taskQuery = taskQuery.or(`assignee_id.eq.${userId},created_by.eq.${userId}`);
         }
-        if (filter === "overdue") {
-          taskQuery = taskQuery
-            .or(`assignee_id.eq.${userId},created_by.eq.${userId}`)
-            .lt("due_date", new Date().toISOString());
+        if (filter === "review") {
+          taskQuery = taskQuery.eq("status", "review");
         }
 
         const { data, error } = await taskQuery
           .order("created_at", { ascending: false })
-          .limit(20);
+          .limit(60);
         if (error) return `Error fetching tasks: ${error.message}`;
-        if (!data?.length) return "No tasks found.";
-        for (const t of data.slice(0, 8)) {
+
+        const now = Date.now();
+        // A task is OPEN unless completed=true OR status=done. The two fields can
+        // drift (a task marked done via status without completed being set), so we
+        // must check BOTH — otherwise a done task wrongly shows up as overdue.
+        const isDone = (t: { completed?: boolean | null; status?: string | null }) => t.completed === true || t.status === "done";
+        let rows = (data ?? []) as Array<{ id: string; title: string; priority?: string; status?: string; due_date?: string | null; completed?: boolean }>;
+        if (filter !== "all" && filter !== "review") rows = rows.filter(t => !isDone(t));
+        if (filter === "overdue") rows = rows.filter(t => t.due_date && new Date(t.due_date).getTime() < now);
+        rows = rows.slice(0, 20);
+
+        if (!rows.length) {
+          return filter === "overdue"
+            ? "No overdue tasks — nothing open is past its due date."
+            : "No open tasks found.";
+        }
+        for (const t of rows.slice(0, 8)) {
           sources.push({ type: "task", title: t.title, node_id: t.id, match_reason: `status: ${t.status || "todo"}`, timestamp: t.due_date ?? undefined });
         }
-        const list = data.map((t: any) =>
+        const list = rows.map((t) =>
           `- [${t.id}] ${t.title} | priority: ${t.priority || "medium"} | status: ${t.status || "todo"}${t.due_date ? ` | due: ${new Date(t.due_date).toLocaleDateString()}` : ""}`
         ).join("\n");
-        return `Found ${data.length} task(s):\n${list}`;
+        return `Found ${rows.length} ${filter === "overdue" ? "overdue" : "open"} task(s):\n${list}`;
       }
 
       case "create_task": {

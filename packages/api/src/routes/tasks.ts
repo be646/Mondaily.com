@@ -67,6 +67,16 @@ tasks.patch("/:id", async (c) => {
   const userName = body._user_name || "Someone";
   const { _user_name, ...updateBody } = body;
 
+  // Keep `status` and `completed` in sync — they drifted before (a task marked
+  // "done" via status without `completed` being set), which made finished tasks
+  // show up as overdue in the chat. Mirror whichever side changed.
+  if (updateBody.status !== undefined) {
+    if (updateBody.status === "done") updateBody.completed = true;
+    else if (updateBody.completed === undefined) updateBody.completed = false;
+  }
+  if (updateBody.completed === true && updateBody.status === undefined) updateBody.status = "done";
+  if (updateBody.completed === false && updateBody.status === "done") updateBody.status = "todo";
+
   // Get old values for activity logging
   const { data: oldTask } = await supabase.from("tasks").select("status,priority,assignee_id,assignee_email").eq("id", id).single();
 
