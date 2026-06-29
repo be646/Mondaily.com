@@ -421,7 +421,22 @@ router.get("/activity", async (c) => {
       completed_at: j.completed_at,
     };
   });
-  return c.json({ activity: rows });
+
+  // REAL stats from the full table (not the capped list) so the KPIs are accurate.
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+  const since = todayStart.toISOString();
+  const [runsToday, errorsToday, todayNames] = await Promise.all([
+    supabase.from("agent_jobs").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).gte("started_at", since),
+    supabase.from("agent_jobs").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("status", "failed").gte("started_at", since),
+    supabase.from("agent_jobs").select("agent_name").eq("workspace_id", workspaceId).gte("started_at", since),
+  ]);
+  const stats = {
+    runs_today: runsToday.count ?? 0,
+    errors_today: errorsToday.count ?? 0,
+    agents_today: Array.from(new Set((todayNames.data ?? []).map(r => r.agent_name))), // raw names; UI maps to real agents
+  };
+
+  return c.json({ activity: rows, stats });
 });
 
 export { router as agentsRouter };

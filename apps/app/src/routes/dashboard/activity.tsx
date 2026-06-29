@@ -94,7 +94,7 @@ export function AgentActivityPage() {
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["agent-activity"],
-    queryFn: () => apiClient.get<{ activity: ActivityItem[] }>(`/agents/activity?limit=120`),
+    queryFn: () => apiClient.get<{ activity: ActivityItem[]; stats: { runs_today: number; errors_today: number; agents_today: string[] } }>(`/agents/activity?limit=120`),
     refetchInterval: 30_000,
   });
   const all = data?.activity ?? [];
@@ -103,14 +103,17 @@ export function AgentActivityPage() {
   const rows = all
     .filter(a => !statusFilter || a.status === statusFilter)
     .filter(a => !agentFilter || agentOf(a.agent).label === agentFilter);
-  const errors = all.filter(a => a.status === "failed").length;
-  const runsToday = all.filter(a => new Date(a.started_at).toDateString() === new Date().toDateString()).length;
   const statusCount = (k: string | null) => (k ? all.filter(a => a.status === k).length : all.length);
 
+  // REAL totals from the server (whole table, today) — not the capped feed.
+  const runsToday = data?.stats?.runs_today ?? 0;
+  const errors = data?.stats?.errors_today ?? 0;
+  const agentsReportingToday = Array.from(new Set((data?.stats?.agents_today ?? []).map(raw => agentOf(raw).label))).length;
+
   const segBox = "flex gap-0.5 rounded-xl border p-0.5";
-  const segBoxStyle = { borderColor: "var(--border-soft)", background: "var(--surface-hover)" } as const;
+  const segBoxStyle = { borderColor: "var(--border-soft)", background: "var(--surface-card)" } as const;
   const segBtn = (active: boolean) => `flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${active ? "" : "hover:opacity-80"}`;
-  const segBtnStyle = (active: boolean) => (active ? { background: "var(--surface-card)", color: "var(--text-primary)", boxShadow: "0 1px 2px rgba(15,23,42,0.06)" } : { color: "var(--text-muted)" });
+  const segBtnStyle = (active: boolean) => (active ? { background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" } : { color: "var(--text-muted)" });
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -126,16 +129,16 @@ export function AgentActivityPage() {
         </button>
       </div>
 
-      {/* KPIs — clean inline metric strip */}
-      <div className="mb-6 flex flex-wrap items-stretch gap-2.5">
+      {/* KPIs — clean metric tiles on the page surface (real totals from the server) */}
+      <div className="mb-6 grid grid-cols-3 gap-2.5">
         {[
           { label: "Runs today", value: runsToday },
-          { label: "Agents reporting", value: agentLabels.length },
-          { label: "Errors", value: errors, danger: errors > 0 },
+          { label: "Agents reporting today", value: agentsReportingToday },
+          { label: "Errors today", value: errors, danger: errors > 0 },
         ].map(t => (
-          <div key={t.label} className="flex-1 rounded-xl px-4 py-2.5" style={{ background: "var(--surface-hover)" }}>
-            <div className="text-[20px] font-semibold leading-none tabular-nums" style={{ color: t.danger ? "#ef4444" : "var(--text-primary)" }}>{t.value}</div>
-            <div className="mt-1 text-[11px]" style={{ color: "var(--text-muted)" }}>{t.label}</div>
+          <div key={t.label} className="rounded-xl border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="text-[22px] font-semibold leading-none tabular-nums" style={{ color: t.danger ? "#ef4444" : "var(--text-primary)" }}>{t.value}</div>
+            <div className="mt-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>{t.label}</div>
           </div>
         ))}
       </div>
@@ -205,7 +208,7 @@ export function AgentActivityPage() {
                   <ChevronDown size={15} className={`shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} style={{ color: "var(--text-faint)" }}/>
                 </button>
                 {isOpen && (
-                  <div className="px-4 pb-4 pt-0.5" style={{ background: "var(--surface-hover)" }}>
+                  <div className="border-t px-4 pb-4 pt-3" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--accent) 3%, var(--surface-card))" }}>
                     <div className="ml-11 grid gap-x-8 gap-y-2 sm:grid-cols-2">
                       <Field label="Trigger" value={a.trigger} />
                       <Field label="Duration" value={duration(a.started_at, a.completed_at) || "—"} />
