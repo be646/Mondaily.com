@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Workflow, Users, Receipt, ShieldAlert, MessageCircle, TrendingUp, Briefcase, Building2, GitBranch, Search } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useModules } from "../../hooks/useModules";
+import { agentById } from "../../lib/agents";
 
 /**
  * Agent Dock / Constellation data — backed by the real Agent Registry at
@@ -37,21 +37,6 @@ export const CONSTELLATION_STATE_LABEL: Record<ConstellationState, string> = {
   issue: "Issue found",
   disabled: "Module disabled",
   not_configured: "Not configured",
-};
-
-const AGENT_ICON: Record<string, React.ElementType> = {
-  "ask-mondaily": MessageCircle,
-  operations: Workflow,
-  relationship: Users,
-  finance: Receipt,
-  signal: ShieldAlert,
-  "graph-enrichment": GitBranch,
-  prospecting: Search,
-  workflow: Workflow,
-  opportunity: TrendingUp,
-  people: Briefcase,
-  portfolio: TrendingUp,
-  asset: Building2,
 };
 
 interface TaskLite { id: string; due_date?: string; completed: boolean; status?: string; }
@@ -107,8 +92,8 @@ export function useAgentData() {
 
   const constellation: ConstellationAgent[] = registryAgents.map(a => ({
     id: a.id,
-    name: a.name,
-    icon: AGENT_ICON[a.id] ?? Workflow,
+    name: agentById(a.id).name,
+    icon: agentById(a.id).Icon,
     category: a.category,
     state: a.state,
     note: a.last_action || a.status,

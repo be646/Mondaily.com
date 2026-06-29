@@ -1,11 +1,9 @@
 import { useState } from "react";
 import type { ElementType } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  CheckCircle2, Loader2, XCircle, RefreshCw, ChevronDown,
-  Receipt, Users, ShieldAlert, Search, TrendingUp, GitBranch, Workflow, Briefcase, Building2, Bot,
-} from "lucide-react";
+import { CheckCircle2, Loader2, XCircle, RefreshCw, ChevronDown, Bot } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
+import { agentByRaw, AGENTS } from "../../lib/agents";
 
 type ActivityItem = {
   id: string;
@@ -22,43 +20,10 @@ type ActivityItem = {
 // Raw agent_jobs.agent_name → real, user-facing agent identity (matches the Agent
 // Constellation). Several internal jobs roll up to one real agent (e.g. invoice_chaser
 // + recurring_invoices = Finance Agent), so we group by LABEL, never raw job name.
-// Canonical agent identity → ONE icon per real agent, matching the Home constellation
-// (agent-dock AGENT_ICON), so an agent looks identical everywhere.
-const LABEL_ICON: Record<string, ElementType> = {
-  "Graph Enrichment Agent": GitBranch,
-  "Finance Agent": Receipt,
-  "Relationship Agent": Users,
-  "Signal Agent": ShieldAlert,
-  "Operations Agent": Workflow,
-  "Prospecting Agent": Search,
-  "People Agent": Briefcase,
-  "Asset Agent": Building2,
-  "Portfolio Agent": TrendingUp,
-  "Opportunity Agent": TrendingUp,
-  "Workflow Agent": Workflow,
-};
-const RAW_LABEL: Record<string, string> = {
-  crm_enricher: "Graph Enrichment Agent",
-  invoice_chaser: "Finance Agent",
-  recurring_invoices: "Finance Agent",
-  credit_note_dispute_handler: "Finance Agent",
-  relationship_health: "Relationship Agent",
-  deal_alerts: "Signal Agent",
-  lead_scoring: "Operations Agent",
-  operations: "Operations Agent",
-  overdue_task_decisions: "Operations Agent",
-  prospecting: "Prospecting Agent",
-  people: "People Agent",
-  asset: "Asset Agent",
-  portfolio: "Portfolio Agent",
-  opportunity: "Opportunity Agent",
-  workflow: "Workflow Agent",
-};
-const iconForLabel = (label: string): ElementType => LABEL_ICON[label] ?? Bot;
-const agentOf = (raw: string) => {
-  const label = RAW_LABEL[raw] ?? raw.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-  return { label, Icon: iconForLabel(label) };
-};
+// Agent identity comes from THE shared registry (lib/agents) — never defined locally,
+// so the control panel matches Home + everywhere. agentOf returns { label, Icon }.
+const agentOf = (raw: string) => { const a = agentByRaw(raw); return { label: a.name, Icon: a.Icon }; };
+const iconForLabel = (label: string): ElementType => Object.values(AGENTS).find(a => a.name === label)?.Icon ?? Bot;
 
 function relAgo(iso?: string | null): string {
   if (!iso) return "never";

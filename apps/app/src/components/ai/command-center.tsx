@@ -8,6 +8,7 @@ import {
   CheckCircle2, XCircle, ChevronDown,
 } from "lucide-react";
 import { useAgentData } from "./agent-dock";
+import { agentById } from "../../lib/agents";
 import { useDecisionQueue, mapEvidence, RISK_STYLE } from "./decision-queue";
 import { apiClient } from "../../lib/api-client";
 import { SourceCard } from "./ask-shared";
@@ -101,8 +102,8 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
   const { constellation, isError: agentError } = useAgentData();
   const registryActivity = constellation
     .filter(a => a.lastRunAt)
-    .map(a => ({ id: `agent-${a.id}`, agentName: a.name, title: a.note, created_at: a.lastRunAt as string, fromRegistry: true as const, type: "" }));
-  const notificationActivity = notifications.slice(0, 5).map(n => ({ id: n.id, agentName: AGENT_LABEL[n.type] ?? "Workspace", title: n.title, created_at: n.created_at, fromRegistry: false as const, type: n.type }));
+    .map(a => ({ id: `agent-${a.id}`, agentName: agentById(a.id).name, icon: agentById(a.id).Icon, title: a.note, created_at: a.lastRunAt as string, type: "" }));
+  const notificationActivity = notifications.slice(0, 5).map(n => ({ id: n.id, agentName: AGENT_LABEL[n.type] ?? "Workspace", icon: AGENT_ICON[n.type] ?? Receipt, title: n.title, created_at: n.created_at, type: n.type }));
   const recentActivity = [...registryActivity, ...notificationActivity]
     .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
     .slice(0, 4);
@@ -113,7 +114,7 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
       title: n.title, meta: relTime(n.created_at), to: "/notifications", tone: "rose" as const,
     })),
     ...recentActivity.map(a => ({
-      id: a.id, icon: a.fromRegistry ? Workflow : (AGENT_ICON[a.type] ?? Receipt), agentLabel: a.agentName,
+      id: a.id, icon: a.icon, agentLabel: a.agentName,
       title: a.title, meta: relTime(a.created_at), to: "/notifications", tone: "default" as const,
     })),
   ].slice(0, 6);
