@@ -103,7 +103,7 @@ export function AgentActivityPage() {
   type RosterRaw = { agent: string; last_run: string; last_status: string; runs_today: number; errors_today: number };
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["agent-activity"],
-    queryFn: () => apiClient.get<{ activity: ActivityItem[]; stats: { runs_today: number; errors_today: number; agents_today: string[] }; roster: RosterRaw[] }>(`/agents/activity?limit=120`),
+    queryFn: () => apiClient.get<{ activity: ActivityItem[]; stats: { runs_today: number; errors_today: number; agents_today: string[] }; roster: RosterRaw[]; timeline: { label: string; completed: number; failed: number }[] }>(`/agents/activity?limit=120`),
     refetchInterval: 30_000,
   });
   const all = data?.activity ?? [];
@@ -165,6 +165,48 @@ export function AgentActivityPage() {
           </div>
         ))}
       </div>
+
+      {/* Live operations graph — real 24h throughput (completed vs failed per hour) */}
+      {(() => {
+        const tl = data?.timeline ?? [];
+        const max = Math.max(1, ...tl.map(t => t.completed + t.failed));
+        const totalRuns = tl.reduce((s, t) => s + t.completed + t.failed, 0);
+        if (tl.length === 0) return null;
+        return (
+          <div className="mb-6 rounded-2xl border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="mb-3 flex items-end justify-between">
+              <div>
+                <p className="home-section-kicker">Operations · last 24h</p>
+                <div className="mt-0.5 flex items-baseline gap-2">
+                  <span className="text-[20px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{totalRuns}</span>
+                  <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>agent runs</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: "var(--accent)" }}/> completed</span>
+                <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: "#ef4444" }}/> failed</span>
+              </div>
+            </div>
+            <div className="flex h-28 items-end gap-[3px]">
+              {tl.map((t, i) => {
+                const total = t.completed + t.failed;
+                const h = (total / max) * 100;
+                return (
+                  <div key={i} className="group relative flex flex-1 flex-col justify-end" style={{ height: "100%" }} title={`${t.label}: ${t.completed} ok${t.failed ? `, ${t.failed} failed` : ""}`}>
+                    <div className="w-full overflow-hidden rounded-sm" style={{ height: `${Math.max(total ? 4 : 0, h)}%`, minHeight: total ? 3 : 0 }}>
+                      {t.failed > 0 && <div style={{ height: `${(t.failed / total) * 100}%`, background: "#ef4444" }}/>}
+                      {t.completed > 0 && <div style={{ height: `${(t.completed / total) * 100}%`, background: "var(--accent)" }}/>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-1.5 flex justify-between text-[10px]" style={{ color: "var(--text-faint)" }}>
+              <span>{tl[0]?.label}</span><span>12h</span><span>now</span>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Agent roster — concrete proof each agent is running (last run + today's counts) */}
       {rosterByLabel.length > 0 && (

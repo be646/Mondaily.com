@@ -449,7 +449,26 @@ router.get("/activity", async (c) => {
   }
   const roster = Object.values(byAgent);
 
-  return c.json({ activity: rows, stats, roster });
+  // Real 24h throughput timeline — runs bucketed per hour (completed vs failed),
+  // so the UI can draw a live operations graph from genuine data.
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const { data: tl } = await supabase
+    .from("agent_jobs").select("status, started_at")
+    .eq("workspace_id", workspaceId).gte("started_at", dayAgo.toISOString()).limit(4000);
+  const nowMs = Date.now();
+  const timeline = Array.from({ length: 24 }, (_, i) => {
+    const end = nowMs - i * 3_600_000;
+    const start = end - 3_600_000;
+    const label = new Date(end).toLocaleTimeString(undefined, { hour: "2-digit" });
+    let completed = 0, failed = 0;
+    for (const r of tl ?? []) {
+      const t = new Date(r.started_at).getTime();
+      if (t > start && t <= end) { if (r.status === "failed") failed++; else completed++; }
+    }
+    return { label, completed, failed };
+  }).reverse(); // oldest → newest
+
+  return c.json({ activity: rows, stats, roster, timeline });
 });
 
 export { router as agentsRouter };
