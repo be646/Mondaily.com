@@ -86,6 +86,7 @@ export function AgentActivityPage() {
     .filter(a => !agentFilter || agentOf(a.agent).label === agentFilter);
   const errors = all.filter(a => a.status === "failed").length;
   const runsToday = all.filter(a => new Date(a.started_at).toDateString() === new Date().toDateString()).length;
+  const statusCount = (k: string | null) => (k ? all.filter(a => a.status === k).length : all.length);
 
   const segBox = "flex gap-0.5 rounded-xl border p-0.5";
   const segBoxStyle = { borderColor: "var(--border-soft)", background: "var(--surface-hover)" } as const;
@@ -110,7 +111,7 @@ export function AgentActivityPage() {
       <div className="mb-6 flex flex-wrap items-stretch gap-2.5">
         {[
           { label: "Runs today", value: runsToday },
-          { label: "Active agents", value: agentLabels.length },
+          { label: "Agents reporting", value: agentLabels.length },
           { label: "Errors", value: errors, danger: errors > 0 },
         ].map(t => (
           <div key={t.label} className="flex-1 rounded-xl px-4 py-2.5" style={{ background: "var(--surface-hover)" }}>
@@ -124,7 +125,9 @@ export function AgentActivityPage() {
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <div className={segBox} style={segBoxStyle}>
           {([{ k: null, l: "All" }, { k: "completed", l: "Completed" }, { k: "failed", l: "Failed" }, { k: "running", l: "Running" }]).map(s => (
-            <button key={s.l} onClick={() => setStatusFilter(s.k)} className={segBtn(statusFilter === s.k)} style={segBtnStyle(statusFilter === s.k)}>{s.l}</button>
+            <button key={s.l} onClick={() => setStatusFilter(s.k)} className={segBtn(statusFilter === s.k)} style={segBtnStyle(statusFilter === s.k)}>
+              {s.l}<span className="tabular-nums opacity-60">{statusCount(s.k)}</span>
+            </button>
           ))}
         </div>
         {agentLabels.length > 0 && (
@@ -141,7 +144,11 @@ export function AgentActivityPage() {
       {isLoading ? (
         <div className="flex items-center gap-2 py-10 text-sm" style={{ color: "var(--text-muted)" }}><Loader2 size={15} className="animate-spin"/> Loading…</div>
       ) : rows.length === 0 ? (
-        <div className="rounded-xl border px-4 py-10 text-center text-sm" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>No runs match this filter.</div>
+        <div className="rounded-xl border px-4 py-10 text-center text-sm" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+          {statusFilter === "running"
+            ? "No agents are running right now — they run on a schedule and on events. Completed runs are below."
+            : "No runs match this filter."}
+        </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
           {rows.map((a, i) => {
