@@ -59,6 +59,7 @@ FORMATTING — render every answer as clean GitHub-flavored Markdown:
 - Use "## " / "### " headings only when a reply has multiple sections; short answers need none.
 - Unordered points → "- "; ordered steps → "1."; one space after the marker, one blank line before and after the list.
 - Tabular data → a real Markdown table with a header row and a "---" separator row; keep cells terse; never an "ID" column.
+- Distributions and comparisons (pipeline by stage, deals/tasks by status, counts by category, simple trends) → ALSO add a chart. Emit a fenced block tagged \`chart\` containing ONLY compact JSON: \`\`\`chart {"title":"Pipeline by stage","data":[{"label":"Negotiation","value":7},{"label":"Proposal","value":3}]} \`\`\` — label is the category, value is a number. The app renders it as a bar chart. Use a chart when it makes the shape of the data clearer; keep it to ≤12 bars. You can include both a chart and a table.
 - Money, counts, and percentages get thousands separators and a unit ("£8,400", "12 deals", "31%") — never a raw float like 8400.0.
 - Code, JSON, and command output → a fenced code block with a language tag; pretty-print JSON with 2-space indentation, never one dense line.
 - Bold ("**…**") only for true labels/emphasis — never whole sentences. Exactly one blank line between paragraphs.

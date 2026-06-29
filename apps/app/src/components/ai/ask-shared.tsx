@@ -92,6 +92,20 @@ export function Markdown({ text, links }: { text: string; links?: EntityLink[] }
     const raw = lines[idx] ?? "";
     const line = raw.trimEnd();
 
+    // ── Chart block: ```chart { JSON } ``` → a clean bar chart (no chart lib). ──
+    if (line.trim().startsWith("```chart")) {
+      flush();
+      const inline = line.trim().slice("```chart".length).trim();
+      const buf: string[] = inline ? [inline] : [];
+      let j = idx + 1;
+      while (j < lines.length && !(lines[j] ?? "").trim().startsWith("```")) { buf.push(lines[j] ?? ""); j++; }
+      let rawJson = buf.join("\n").trim();
+      if (rawJson.endsWith("```")) rawJson = rawJson.slice(0, -3).trim();
+      blocks.push(<ChartBlock key={`c-${idx}`} raw={rawJson}/>);
+      idx = j; // skip the closing ```
+      continue;
+    }
+
     // ── Tables: header row + separator + body → a clean, horizontally-scrollable
     //    bordered container (never raw pipe text). ──
     if (isTableRow(line) && isTableSep(lines[idx + 1] ?? "")) {
@@ -144,6 +158,35 @@ export function Markdown({ text, links }: { text: string; links?: EntityLink[] }
   }
   flush();
   return <div className="space-y-0.5">{blocks}</div>;
+}
+
+/**
+ * Dependency-free chart for a ```chart JSON block the model emits, e.g.
+ *   {"type":"bar","title":"Pipeline by stage","data":[{"label":"Negotiation","value":7}]}
+ * Renders clean horizontal sage bars. Falls back to nothing on bad JSON / empty data.
+ */
+export function ChartBlock({ raw }: { raw: string }) {
+  let spec: { title?: string; data?: Array<{ label?: string; value?: number }> } | null = null;
+  try { spec = JSON.parse(raw); } catch { return null; }
+  const data = (spec?.data ?? []).filter(d => d && typeof d.value === "number").slice(0, 12) as Array<{ label: string; value: number }>;
+  if (data.length === 0) return null;
+  const max = Math.max(...data.map(d => d.value), 1);
+  return (
+    <div className="my-2 rounded-xl border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      {spec?.title && <div className="mb-2 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{spec.title}</div>}
+      <div className="space-y-1.5">
+        {data.map((d, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="w-28 shrink-0 truncate text-[11px]" style={{ color: "var(--text-secondary)" }} title={String(d.label ?? "")}>{d.label}</span>
+            <div className="h-4 flex-1 overflow-hidden rounded" style={{ background: "var(--surface-hover)" }}>
+              <div className="h-full rounded" style={{ width: `${Math.max(2, (d.value / max) * 100)}%`, background: "var(--accent)" }}/>
+            </div>
+            <span className="w-14 shrink-0 text-right text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>{d.value.toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /**
