@@ -1,7 +1,7 @@
 import { useUser } from "@clerk/react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText, Paperclip, X, Search } from "lucide-react";
+import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText, Paperclip, X, Search, Square, RotateCcw, Copy, Check } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
@@ -200,6 +200,8 @@ export function HomePage() {
   const [attachments, setAttachments] = useState<AttachItem[]>([]);
   const [attachOpen, setAttachOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const copyMessage = (text: string, i: number) => { navigator.clipboard?.writeText(text).then(() => { setCopiedIdx(i); setTimeout(() => setCopiedIdx(null), 1500); }).catch(() => {}); };
   const [attachQuery, setAttachQuery] = useState("");
   const [attachResults, setAttachResults] = useState<{ id: string; object_type: string; data: Record<string, unknown> }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -242,7 +244,7 @@ export function HomePage() {
   // sources. Home's context is general workspace scope.
   const {
     messages, setMessages, currentThreadId, setCurrentThreadId, loading,
-    suggestions, setSuggestions, messageMeta, doSend, buildChipText,
+    suggestions, setSuggestions, messageMeta, doSend, buildChipText, stop, regenerate,
   } = useAskEngine({ context: { scope_label: "the Home dashboard (general workspace)", ...attachContext }, onAssistantMessage: startStreaming });
 
   useEffect(() => {
@@ -628,6 +630,18 @@ export function HomePage() {
                             <EvidenceStrip sources={meta.sources}/>
                           </div>
                         )}
+                        {!isStreaming && meta && (
+                          <div className="flex items-center gap-1 mt-1.5 pl-3.5">
+                            <button onClick={() => copyMessage(m.content, i)} title="Copy" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: copiedIdx === i ? "var(--accent)" : "var(--text-faint)" }}>
+                              {copiedIdx === i ? <Check size={12}/> : <Copy size={12}/>}
+                            </button>
+                            {i === messages.length - 1 && !loading && (
+                              <button onClick={regenerate} title="Regenerate" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: "var(--text-faint)" }}>
+                                <RotateCcw size={12}/>
+                              </button>
+                            )}
+                          </div>
+                        )}
                         {!isStreaming && meta?.usage && (
                           <div className="pl-4"><TokenLedger usage={meta.usage}/></div>
                         )}
@@ -794,13 +808,16 @@ export function HomePage() {
             <button disabled title="Voice coming soon" className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full cursor-not-allowed opacity-40" style={{ color: "var(--text-faint)" }}>
               <Mic size={15}/>
             </button>
-            {/* Send — circular accent button with an arrow */}
-            <button onClick={send} disabled={loading || !input.trim()}
+            {/* Send while idle; Stop (square) while generating */}
+            <button onClick={loading ? stop : send} disabled={!loading && !input.trim()}
+              title={loading ? "Stop generating" : "Send"}
               className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-150 disabled:cursor-not-allowed"
-              style={input.trim() && !loading
+              style={loading
                 ? { background: "var(--accent)", color: "#fff" }
-                : { background: "var(--surface-hover)", color: "var(--text-faint)" }}>
-              {loading ? <Loader2 size={15} className="animate-spin"/> : <ArrowUp size={17} strokeWidth={2.5}/>}
+                : input.trim()
+                  ? { background: "var(--accent)", color: "#fff" }
+                  : { background: "var(--surface-hover)", color: "var(--text-faint)" }}>
+              {loading ? <Square size={13} strokeWidth={3} fill="currentColor"/> : <ArrowUp size={17} strokeWidth={2.5}/>}
             </button>
           </div>
         </div>

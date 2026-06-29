@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { getThreads, saveThreads, createThread, addMessageToThread, type ChatMessage, type ChatThread } from "../../lib/chat-store";
 import { getAuthHeaders } from "../../lib/api-client";
 import {
@@ -60,6 +60,9 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>(initial?.messages ?? []);
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(initial?.id ?? null);
   const [loading, setLoading] = useState(false);
+  // Live abort handle for the in-flight request (for Stop) + last user prompt (for Regenerate).
+  const abortRef = useRef<AbortController | null>(null);
+  const lastUserTextRef = useRef<string>("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [messageMeta, setMessageMeta] = useState<MessageMeta>(() => metaFromMessages(initial?.messages ?? []));
   /** Live token count of the answer currently streaming (resets each send). */
@@ -78,6 +81,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
 
   const doSend = useCallback(async (text: string) => {
     if (!text || loading) return;
+    lastUserTextRef.current = text;
     let tid = currentThreadId;
     if (!tid) {
       const thread = createThread(text);
@@ -115,6 +119,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     // Abort the stream if it stalls — the provider SDK timeout does NOT cut an
     // active-but-frozen stream, which caused "loading forever, then nothing".
     const controller = new AbortController();
+    abortRef.current = controller;
     let inactivityTimer: ReturnType<typeof setTimeout> | undefined;
     const bump = (ms: number) => { if (inactivityTimer) clearTimeout(inactivityTimer); inactivityTimer = setTimeout(() => controller.abort(), ms); };
     const overallTimer = setTimeout(() => controller.abort(), 120_000); // hard ceiling
@@ -262,12 +267,34 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     setMessageMeta({});
   }, []);
 
+  /** Stop the in-flight generation. The fetch loop's abort handler salvages any
+   *  partial text already streamed, so the user keeps what was produced. */
+  const stop = useCallback(() => {
+    abortRef.current?.abort();
+    setLoading(false);
+  }, []);
+
+  /** Regenerate the last answer: drop the last assistant turn and re-ask the last
+   *  user message (so it isn't duplicated in the thread). */
+  const regenerate = useCallback(() => {
+    if (loading || !lastUserTextRef.current) return;
+    setMessages(prev => {
+      const next = [...prev];
+      if (next[next.length - 1]?.role === "assistant") next.pop();
+      if (next[next.length - 1]?.role === "user") next.pop();
+      return next;
+    });
+    // Re-send on the next tick so the trimmed messages state is in effect.
+    const text = lastUserTextRef.current;
+    setTimeout(() => doSend(text), 0);
+  }, [loading, doSend]);
+
   return {
     messages, setMessages,
     currentThreadId, setCurrentThreadId,
     loading, suggestions, setSuggestions,
     messageMeta, setMessageMeta,
     tokenCount, streamStatus,
-    doSend, loadThread, buildChipText, clear,
+    doSend, loadThread, buildChipText, clear, stop, regenerate,
   };
 }
