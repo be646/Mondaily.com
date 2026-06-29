@@ -367,7 +367,19 @@ router.get("/settings/members", async (c) => {
     rows("nodes", workspaceId, { objectType: "workspace_invitation" })
   ]);
   return c.json({
-    members: (members ?? []).map((member) => ({ id: member.user_id, name: member.user_id, email: "", role: member.role, status: "active" })),
+    // Real profile fields are already cached on workspace_members (name/email/avatar_url were
+    // resolved from Clerk at add-time) — surface them instead of hardcoding blanks, so role
+    // gating and member lists across settings are accurate.
+    members: (members ?? []).map((member) => ({
+      id: member.user_id,
+      name: member.name || member.email || member.user_id,
+      email: member.email || "",
+      image_url: member.avatar_url ?? null,   // frontend Member type reads `image_url`
+      avatar_url: member.avatar_url ?? null,   // keep both for any other consumer
+      role: member.role,
+      position: member.position ?? null,
+      status: "active",
+    })),
     invitations: invites.map((node: Record<string, unknown>) => ({ id: node.id, ...((node.data as Record<string, unknown>) ?? {}) })),
     teams: (teams ?? []).map((team) => ({ id: team.id, name: team.name, member_count: team.team_members?.length ?? 0, member_ids: team.team_members?.map((item: { user_id: string }) => item.user_id) ?? [] }))
   });
