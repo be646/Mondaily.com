@@ -43,12 +43,13 @@ export function MembersSettings() {
 
   const members: Member[] = Array.isArray(query.data?.members) ? query.data!.members! : [];
   const invitations: Invitation[] = Array.isArray(query.data?.invitations) ? query.data!.invitations! : [];
-  // Match by user_id first (reliable), then email — matching by email alone wrongly demoted the
-  // owner to "member" (hiding the invite bar) whenever their member row had a blank/mismatched email.
-  const myRole = members.find(m =>
+  // Trust the backend's authoritative my_role first; fall back to client-side matching only if
+  // it's absent. This is what finally makes the invite bar appear for owners reliably.
+  const matchedRole = members.find(m =>
     (me.userId && m?.id === me.userId) ||
     (!!m?.email && m.email.toLowerCase() === me.email?.toLowerCase()),
-  )?.role ?? "member";
+  )?.role;
+  const myRole = (query.data as { my_role?: string } | undefined)?.my_role ?? matchedRole ?? "member";
   const isAdmin = myRole === "owner" || myRole === "admin";
 
   const changeRole = useMutation({ mutationFn: ({ id, role }: { id: string; role: string }) => apiClient.patch(`/settings/members/${id}`, { role }), onSuccess: refresh });

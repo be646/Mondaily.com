@@ -3,12 +3,23 @@ import { useEffect, useState } from "react";
 import { CreditCard, Download, Zap, Users, Wallet, RefreshCw } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
-import { PLANS, normalizePlan, priceLabel } from "../../../lib/plans";
+import { PLANS, PLAN_BY_ID, normalizePlan, priceLabel } from "../../../lib/plans";
 import { Check } from "lucide-react";
 
 interface AutoRefill { enabled: boolean; threshold: number; amount_usd: number }
 interface CreditBalance { enrolled: boolean; balance: number; granted: number; used: number; account_tier: string; trial_ends_at: string | null; auto_refill?: AutoRefill }
 interface LedgerRow { id: string; amount: number; transaction_type: "grant" | "usage" | "purchase"; description: string | null; created_at: string }
+
+// Friendly names for the raw model ids the gateway reports, so AI usage reads as the
+// engines we actually run rather than provider slugs.
+function prettyEngine(model: string): string {
+  const id = model.toLowerCase();
+  if (id.includes("120b")) return "Mondaily Reasoning";
+  if (id.includes("gpt-oss") || id.includes("20b") || id.includes("8b")) return "Mondaily Fast";
+  if (id.includes("llama") || id.includes("enrich")) return "Mondaily Enrichment";
+  if (id.includes("embed")) return "Mondaily Embeddings";
+  return model.replace(/^.*\//, "").replace(/[-_]/g, " ");
+}
 
 const errFrom = (e: unknown): string => {
   try { return JSON.parse((e as Error).message)?.error ?? "Something went wrong."; }
@@ -109,6 +120,14 @@ export function BillingSettings() {
   const [billingMsg, setBillingMsg] = useState<string | null>(null);
   const [billingBusy, setBillingBusy] = useState<string | null>(null);
   const currentPlanId = normalizePlan(billing.plan);
+  const currentPlan = PLAN_BY_ID[currentPlanId];
+  // Trial countdown derives from the actual end date (set at activation), NOT plan === "trial" —
+  // after onboarding the plan is e.g. "business" with a trial_ends_at, so the old check never fired.
+  const trialEndsAt = wallet?.trial_ends_at ?? billing.trial_ends_at ?? null;
+  const trialDaysLeft = trialEndsAt
+    ? Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86_400_000)
+    : null;
+  const trialActive = trialDaysLeft !== null && trialDaysLeft >= 0;
   async function pickPlan(planId: string) {
     setBillingMsg(null); setBillingBusy(planId);
     const err = planId === currentPlanId && billing.plan !== "free"
@@ -123,16 +142,14 @@ export function BillingSettings() {
     <div className="space-y-5">
       <PageHeader title="Billing" description="Manage your plan, payment details, and invoice history." />
 
-      {/* Trial banner — visible while the 14-day trial is running */}
-      {billing.plan === "trial" && typeof billing.trial_days_left === "number" && (
-        <div className="rounded-sm border px-5 py-3.5 text-sm" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-          {billing.trial_days_left > 0 ? (
-            <span style={{ color: "var(--text-primary)" }}>
-              <strong>{billing.trial_days_left} day{billing.trial_days_left === 1 ? "" : "s"} left</strong> in your free trial. Upgrade any time to keep full access.
-            </span>
-          ) : (
-            <span style={{ color: "var(--text-primary)" }}>Your free trial has ended — upgrade to keep full access.</span>
-          )}
+      {/* Trial banner — driven by the real end date, not a plan string */}
+      {trialActive && (
+        <div className="rounded-sm border px-5 py-3.5 text-sm" style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)" }}>
+          <span style={{ color: "var(--text-primary)" }}>
+            {trialDaysLeft! > 0
+              ? <><strong className="font-mono tabular-nums">{trialDaysLeft}</strong> day{trialDaysLeft === 1 ? "" : "s"} left in your trial. Upgrade any time to keep full access.</>
+              : "Your trial ends today — upgrade to keep full access."}
+          </span>
         </div>
       )}
 
@@ -140,16 +157,25 @@ export function BillingSettings() {
       <section className="settings-section">
         <div className="settings-section-header">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">Current plan</h2>
-          <span className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${PLAN_COLORS[billing.plan] ?? PLAN_COLORS.free}`}>
-            {billing.plan}
+          <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: "var(--surface-selected)", color: "var(--section-accent)" }}>
+            {currentPlan?.name ?? "Scout"}{trialActive ? " · trial" : ""}
           </span>
         </div>
         <div className="p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold capitalize text-[var(--text-primary)]">{billing.plan} plan</p>
+              <p className="text-sm font-semibold text-[var(--text-primary)]">
+                {currentPlan?.name ?? "Scout"}
+                {currentPlan && currentPlan.priceMonthly !== null && (
+                  <span className="ml-2 font-mono text-xs font-normal text-stone-500">
+                    {currentPlan.priceMonthly === 0 ? "free" : `$${currentPlan.priceMonthly}/mo`}
+                  </span>
+                )}
+              </p>
               <p className="mt-0.5 text-sm text-stone-500">
-                {billing.next_billing_date
+                {trialActive
+                  ? `Trial ends ${new Date(trialEndsAt!).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
+                  : billing.next_billing_date
                   ? `Next billing on ${new Date(billing.next_billing_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
                   : "No upcoming charge"}
               </p>
@@ -266,16 +292,22 @@ export function BillingSettings() {
                     </div>
                   ))}
                 </div>
-                {u && Object.keys(u.by_model).length > 0 && (
+                {u && Object.entries(u.by_model).filter(([, mt]) => mt.total_tokens > 0).length > 0 && (
                   <div className="mt-4">
-                    <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-stone-500">By model</div>
+                    <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-stone-500">By engine</div>
                     <div className="space-y-1.5">
-                      {Object.entries(u.by_model).map(([model, mt]) => (
-                        <div key={model} className="flex items-center justify-between text-sm">
-                          <span className="truncate text-stone-400">{model}</span>
-                          <span className="tabular-nums text-[var(--text-primary)]">{fmt(mt.total_tokens)} tokens</span>
-                        </div>
-                      ))}
+                      {Object.entries(u.by_model)
+                        .filter(([, mt]) => mt.total_tokens > 0)
+                        .sort((a, b) => b[1].total_tokens - a[1].total_tokens)
+                        .map(([model, mt]) => (
+                          <div key={model} className="flex items-center justify-between text-sm">
+                            <span className="flex items-center gap-2 truncate text-stone-400">
+                              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "var(--section-accent)" }} />
+                              {prettyEngine(model)}
+                            </span>
+                            <span className="font-mono tabular-nums text-[var(--text-primary)]">{fmt(mt.total_tokens)} tokens</span>
+                          </div>
+                        ))}
                     </div>
                   </div>
                 )}
@@ -287,7 +319,7 @@ export function BillingSettings() {
 
       {/* ── AI credit wallet + Pay-As-You-Go ── */}
       {wallet?.enrolled && (
-        <section className="settings-section font-mono">
+        <section className="settings-section">
           <div className="settings-section-header">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><Wallet size={14} className="text-stone-500" /> AI credit wallet</h2>
             <span className="text-xs capitalize text-stone-500">{wallet.account_tier} tier</span>
@@ -316,7 +348,7 @@ export function BillingSettings() {
                   disabled={charging}
                   className="flex shrink-0 items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-3.5 py-2 text-sm font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-600 disabled:opacity-70"
                 >
-                  {charging ? <span className="font-mono text-xs tracking-wider">[ CHARGING GATEWAY... ]</span> : <><RefreshCw size={13} /> Buy credits</>}
+                  {charging ? <span className="font-mono text-xs tracking-wider">Processing…</span> : <><RefreshCw size={13} /> Buy credits</>}
                 </button>
               </div>
               <div className="mt-3 flex items-center justify-between gap-4 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>
@@ -342,7 +374,7 @@ export function BillingSettings() {
 
       {/* ── Credit ledger history ── */}
       {wallet?.enrolled && (
-        <section className="settings-section font-mono">
+        <section className="settings-section">
           <div className="settings-section-header">
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Credit ledger</h2>
             <span className="text-xs text-stone-500">{ledger.length} transaction{ledger.length === 1 ? "" : "s"}</span>

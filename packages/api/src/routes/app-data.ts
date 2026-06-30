@@ -503,6 +503,9 @@ router.get("/settings/members", async (c) => {
     if (k && t && (!lastActiveBy.has(k) || t > lastActiveBy.get(k)!)) lastActiveBy.set(k, t);
   }
   return c.json({
+    // Authoritative role of the *requesting* user, straight from the auth context — so the UI
+    // never has to guess by matching ids/emails (which was hiding the invite bar for owners).
+    my_role: c.get("role"),
     members: (members ?? []).map((member) => ({
       id: member.user_id,
       name: member.name || member.email || member.user_id,
