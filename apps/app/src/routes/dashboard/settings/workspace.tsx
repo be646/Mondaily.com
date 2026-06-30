@@ -380,7 +380,13 @@ function ModulesSection({
                   : [...current, mod.id];
                 setForm({ ...form, modules: next });
               }}
-              className={`relative h-5 w-9 rounded-full transition-colors shrink-0 ${enabled ? "bg-stone-500" : "bg-[var(--surface-hover)]"}`}
+              className="relative h-5 w-9 shrink-0 rounded-full border transition-colors"
+              style={{
+                // off-state must NOT match the row bg (surface-hover) or it vanishes — use a distinct
+                // track + border; on-state uses the sage accent.
+                background: enabled ? "var(--accent)" : "var(--surface-card)",
+                borderColor: enabled ? "transparent" : "var(--border-strong, var(--border-soft))",
+              }}
             >
               <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-4" : "translate-x-0.5"}`} />
             </button>
