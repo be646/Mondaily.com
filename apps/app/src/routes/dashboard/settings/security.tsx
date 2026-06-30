@@ -139,10 +139,14 @@ export function SecuritySettings() {
           </label>
           <div className="flex flex-wrap items-center gap-3">
             <button onClick={() => save({ saml_enabled: true, saml_provider: data.saml_provider, saml_metadata: data.saml_metadata })}
-              className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all">
-              {data.saml_enabled ? "Update SSO" : "Configure SSO"}
+              disabled={update.isPending}
+              className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-stone-600 disabled:opacity-70">
+              {update.isPending ? <span className="font-mono text-xs tracking-wider">[ RUNNING CRYPTO EXCHANGER... ]</span> : (data.saml_enabled ? "Update SSO" : "Configure SSO")}
             </button>
-            <button className="rounded-lg border border-[var(--border-soft)] px-4 py-2 text-sm text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+            <button className="rounded-sm border px-4 py-2 text-sm text-stone-400 transition-colors hover:text-[var(--text-primary)]"
+              style={{ borderColor: "var(--border-soft)" }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--accent)")}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-soft)")}>
               Test SSO
             </button>
             <label className="ml-auto flex items-center gap-2 text-sm text-stone-300 cursor-pointer">

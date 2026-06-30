@@ -316,11 +316,14 @@ export function AccountSettings() {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Address me as</span>
-              <input value={aiAddress} onChange={e => setAiAddress(e.target.value)} placeholder={me.name?.split(" ")[0] || "First name"} className="key-input h-9 w-full px-3 text-sm" />
+              <div className="flex h-9 items-center rounded-sm border px-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-input)" }}>
+                <span className="mr-1.5 font-mono text-sm" style={{ color: "var(--accent)" }}>&gt;</span>
+                <input value={aiAddress} onChange={e => setAiAddress(e.target.value)} placeholder={me.name?.split(" ")[0] || "first_name"} className="h-full flex-1 bg-transparent font-mono text-sm outline-none" style={{ color: "var(--text-primary)" }} />
+              </div>
             </label>
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Expertise level</span>
-              <select value={aiExpertise} onChange={e => setAiExpertise(e.target.value as Expertise)} className="key-input h-9 w-full px-3 text-sm">
+              <select value={aiExpertise} onChange={e => setAiExpertise(e.target.value as Expertise)} className="key-input h-9 w-full px-3 font-mono text-sm">
                 <option value="novice">Novice — explain thoroughly</option>
                 <option value="intermediate">Intermediate — balanced</option>
                 <option value="expert">Expert — terse, assume fluency</option>

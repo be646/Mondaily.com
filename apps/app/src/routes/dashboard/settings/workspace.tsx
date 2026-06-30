@@ -73,7 +73,7 @@ function GeneralSection({
 
       {/* Logo */}
       <div className="flex items-center gap-4">
-        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+        <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
           {logoPreview || organization?.imageUrl
             ? <img src={logoPreview || organization?.imageUrl} alt="" className="h-full w-full object-cover" />
             : <span className="text-xl font-bold text-stone-400">{(form.name || "W").slice(0, 1).toUpperCase()}</span>}
@@ -86,6 +86,7 @@ function GeneralSection({
             <ImagePlus size={13} /> Upload logo
           </button>
           <p className="mt-1.5 text-[11px] text-stone-600">Square PNG or JPG, at least 256×256px.</p>
+          <p className="mt-0.5 font-mono text-[9px] uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>bucket: workspace-logos</p>
         </div>
         <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={e => onUploadLogo(e.target.files?.[0])} />
       </div>
@@ -157,7 +158,7 @@ function ModulesSection({
       {AVAILABLE_MODULES.map(mod => {
         const enabled = (form.modules ?? ["crm"]).includes(mod.id);
         return (
-          <div key={mod.id} className="flex items-center justify-between rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3">
+          <div key={mod.id} className="flex items-center justify-between rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3">
             <div>
               <p className="text-[12px] font-medium text-[var(--text-primary)]">{mod.label}</p>
               <p className="text-[11px] text-stone-500 mt-0.5">{mod.description}</p>
@@ -170,6 +171,8 @@ function ModulesSection({
                   ? current.filter(m => m !== mod.id)
                   : [...current, mod.id];
                 setForm({ ...form, modules: next });
+                // Instant persist — toggle updates the workspace scope immediately (no Save needed).
+                apiClient.patch("/settings/workspace", { modules: next }).catch(() => {});
               }}
               className="relative h-5 w-9 shrink-0 rounded-full border transition-colors"
               style={{
@@ -185,14 +188,11 @@ function ModulesSection({
         );
       })}
 
-      <div className="flex justify-end pt-2">
+      <div className="flex items-center justify-end gap-3 pt-2">
+        <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>toggles persist instantly</span>
         <button onClick={() => save.mutate()} disabled={save.isPending}
-          className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-[12px] font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50 ${
-            saved
-              ? "bg-emerald-600 border border-emerald-500/30"
-              : "border border-stone-500/30 bg-stone-600 hover:bg-stone-500"
-          }`}>
-          {saved ? <><Check size={13} /> Saved</> : save.isPending ? "Saving…" : "Save modules"}
+          className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-700 px-5 py-2.5 text-[12px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-stone-600 disabled:opacity-50">
+          {saved ? <><Check size={13} /> Saved</> : save.isPending ? "Saving…" : "Save all"}
         </button>
       </div>
     </div>
