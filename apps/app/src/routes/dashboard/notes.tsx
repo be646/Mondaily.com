@@ -267,9 +267,9 @@ function DraggableCard({ id, children }: { id: string; children: React.ReactNode
   );
 }
 
-function BoardView({ notes, colors, pinned, userId, onColorChange, onEdit, onDelete, onPin }: {
+function BoardView({ notes, colors, pinned, userId, isAdmin, onColorChange, onEdit, onDelete, onPin }: {
   notes: Note[]; colors: Record<string, string>; pinned: Set<string>;
-  userId: string | null | undefined;
+  userId: string | null | undefined; isAdmin: boolean;
   onColorChange: (id: string, c: string) => void;
   onEdit: (n: Note) => void; onDelete: (id: string) => void; onPin: (id: string) => void;
 }) {
@@ -303,7 +303,7 @@ function BoardView({ notes, colors, pinned, userId, onColorChange, onEdit, onDel
               <DroppableCol id={col.key}>
                 {colNotes.map(note => (
                   <DraggableCard key={note.id} id={note.id}>
-                    <NoteCard note={note} colorKey={colors[note.id] ?? "default"} compact isPinned={pinned.has(note.id)} isOwner={note.author_id === userId}
+                    <NoteCard note={note} colorKey={colors[note.id] ?? "default"} compact isPinned={pinned.has(note.id)} isOwner={note.author_id === userId || isAdmin}
                       onColorChange={c => onColorChange(note.id, c)} onEdit={() => onEdit(note)} onDelete={() => onDelete(note.id)} onPin={() => onPin(note.id)} />
                   </DraggableCard>
                 ))}
@@ -322,9 +322,9 @@ function BoardView({ notes, colors, pinned, userId, onColorChange, onEdit, onDel
 
 /* ── Timeline view ──────────────────────────────────────────── */
 
-function TimelineView({ notes, colors, pinned, userId, onColorChange, onEdit, onDelete, onPin }: {
+function TimelineView({ notes, colors, pinned, userId, isAdmin, onColorChange, onEdit, onDelete, onPin }: {
   notes: Note[]; colors: Record<string, string>; pinned: Set<string>;
-  userId: string | null | undefined;
+  userId: string | null | undefined; isAdmin: boolean;
   onColorChange: (id: string, c: string) => void;
   onEdit: (n: Note) => void; onDelete: (id: string) => void; onPin: (id: string) => void;
 }) {
@@ -396,7 +396,7 @@ function TimelineView({ notes, colors, pinned, userId, onColorChange, onEdit, on
                 </div>
                 {laneNotes.map(note => (
                   <div key={note.id} className="absolute" style={{ left: dayOffset(note.created_at), top: LANE_HEADER, width: CARD_W }}>
-                    <NoteCard note={note} colorKey={colors[note.id] ?? "default"} compact isPinned={pinned.has(note.id)} isOwner={note.author_id === userId}
+                    <NoteCard note={note} colorKey={colors[note.id] ?? "default"} compact isPinned={pinned.has(note.id)} isOwner={note.author_id === userId || isAdmin}
                       onColorChange={c => onColorChange(note.id, c)} onEdit={() => onEdit(note)} onDelete={() => onDelete(note.id)} onPin={() => onPin(note.id)} />
                   </div>
                 ))}
@@ -466,9 +466,13 @@ export function NotesPage() {
   });
   const membersQ = useQuery({
     queryKey: ["members"],
-    queryFn: () => apiClient.get<{ name: string }[]>("/members"),
-    enabled: modalOpen,
+    queryFn: () => apiClient.get<{ user_id?: string; id?: string; name: string; role?: string }[]>("/members"),
+    staleTime: 60_000,
   });
+  // Mirror the backend's edit rule (author OR workspace owner/admin) so the Edit/Delete
+  // buttons appear whenever the user can actually edit — not just for the original author.
+  const isAdmin = (membersQ.data ?? []).some(m =>
+    (m.user_id ?? m.id) === userId && ["owner", "admin"].includes(String(m.role)));
 
   /* mutations */
   const createNote = useMutation({
@@ -591,10 +595,10 @@ export function NotesPage() {
           }
         />
       ) : view === "board" ? (
-        <BoardView notes={allNotes} colors={colors} pinned={pinned} userId={userId}
+        <BoardView notes={allNotes} colors={colors} pinned={pinned} userId={userId} isAdmin={isAdmin}
           onColorChange={setColor} onEdit={openEdit} onDelete={id => deleteNote.mutate(id)} onPin={togglePin} />
       ) : view === "timeline" ? (
-        <TimelineView notes={allNotes} colors={colors} pinned={pinned} userId={userId}
+        <TimelineView notes={allNotes} colors={colors} pinned={pinned} userId={userId} isAdmin={isAdmin}
           onColorChange={setColor} onEdit={openEdit} onDelete={id => deleteNote.mutate(id)} onPin={togglePin} />
       ) : (
         /* ── Cards list view ── */
@@ -610,7 +614,7 @@ export function NotesPage() {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {pinnedNotes.map(note => (
                   <NoteCard key={note.id} note={note}
-                    colorKey={colors[note.id] ?? "default"} isPinned isOwner={note.author_id === userId}
+                    colorKey={colors[note.id] ?? "default"} isPinned isOwner={note.author_id === userId || isAdmin}
                     onColorChange={c => setColor(note.id, c)} onEdit={() => openEdit(note)}
                     onDelete={() => deleteNote.mutate(note.id)} onPin={() => togglePin(note.id)} />
                 ))}
@@ -629,7 +633,7 @@ export function NotesPage() {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {unpinnedNotes.map(note => (
                   <NoteCard key={note.id} note={note}
-                    colorKey={colors[note.id] ?? "default"} isPinned={false} isOwner={note.author_id === userId}
+                    colorKey={colors[note.id] ?? "default"} isPinned={false} isOwner={note.author_id === userId || isAdmin}
                     onColorChange={c => setColor(note.id, c)} onEdit={() => openEdit(note)}
                     onDelete={() => deleteNote.mutate(note.id)} onPin={() => togglePin(note.id)} />
                 ))}
