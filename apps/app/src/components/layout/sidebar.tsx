@@ -146,6 +146,16 @@ export function GettingStarted() {
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState(() => !!localStorage.getItem("gs_dismissed"));
 
+  // Guided first action: when onboarding just finished it sets mondaily_first_run, so the
+  // checklist auto-opens once instead of dropping the operator into a cold empty workspace.
+  useEffect(() => {
+    if (localStorage.getItem("mondaily_first_run")) {
+      localStorage.removeItem("mondaily_first_run");
+      const t = setTimeout(() => setOpen(true), 700);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
   const extensionInstalled = useMemo(() => !!localStorage.getItem("mondaily_extension_installed"), []);
 
   const { data: status } = useQuery({
