@@ -60493,9 +60493,12 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
     const last = lastAct.get(uid) ?? null;
     const hasSession2 = sessionUsers.has(uid);
     const taskCount = last ? (acts ?? []).filter((a2) => String(a2.actor_id) === uid).length : 0;
+    const complexityDelta = Math.round(u2.tokens / Math.max(1, taskCount));
     let verdict = "idle";
     if (u2.tokens === 0 && taskCount === 0) verdict = "inactive";
     else if (u2.tokens > 5e4 && taskCount > 20 && !hasSession2) verdict = "bot";
+    else if (hasSession2 && taskCount >= 5 && complexityDelta < 500) verdict = "low_engagement";
+    else if (hasSession2 && complexityDelta > 8e3) verdict = "high_complexity";
     else if (u2.tokens > 0 && hasSession2) verdict = "engaged";
     return {
       operator_id: uid,
@@ -60506,6 +60509,7 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
       tokens: u2.tokens,
       runs: u2.runs,
       task_count: taskCount,
+      complexity_delta: complexityDelta,
       last_task_id: last?.node_id ?? null,
       last_action: last?.action ?? null,
       last_active_at: last?.created_at ?? null,

@@ -10,7 +10,7 @@ import { agentByRaw } from "../../lib/agents";
  * A monospace operations-center grid over real per-operator telemetry (/activities/oversight-matrix):
  * compute velocity from ai_usage, task context from activities, behavioral verdict computed server-side.
  */
-type Verdict = "inactive" | "bot" | "engaged" | "idle";
+type Verdict = "inactive" | "bot" | "low_engagement" | "high_complexity" | "engaged" | "idle";
 interface Operator {
   operator_id: string;
   name: string;
@@ -20,6 +20,7 @@ interface Operator {
   tokens: number;
   runs: number;
   task_count: number;
+  complexity_delta: number;
   last_task_id: string | null;
   last_action: string | null;
   last_active_at: string | null;
@@ -45,6 +46,8 @@ function ago(iso: string | null) {
 const VERDICT: Record<Verdict, { label: string; color: string; bg: string }> = {
   inactive: { label: "⚠ INACTIVE OPERATOR", color: "#fb923c", bg: "rgba(251,146,60,0.10)" },
   bot: { label: "⚠ ANOMALOUS AUTOMATION / BOT DETECTED", color: "#f87171", bg: "rgba(248,113,113,0.12)" },
+  low_engagement: { label: "• LOW ENGAGEMENT", color: "#fbbf24", bg: "rgba(251,191,36,0.10)" },
+  high_complexity: { label: "✓ HIGH-COMPLEXITY DEEP-WORK", color: "var(--accent)", bg: "color-mix(in srgb, var(--accent) 12%, transparent)" },
   engaged: { label: "✓ HIGH-ENGAGEMENT EXECUTION", color: "var(--accent)", bg: "color-mix(in srgb, var(--accent) 12%, transparent)" },
   idle: { label: "• STANDBY", color: "#71717a", bg: "rgba(113,113,122,0.10)" },
 };
@@ -53,9 +56,11 @@ const VERDICT: Record<Verdict, { label: string; color: string; bg: string }> = {
 function warnings(op: Operator): string[] {
   const out: string[] = [];
   if (op.verdict === "inactive") out.push("Continuous system idling detected — zero ledger events in the 30-day window.");
-  if (op.verdict === "bot") out.push("Unverified automation signature — heavy compute with no native session token claim.");
+  if (op.verdict === "bot") out.push("Unverified automation signature — heavy compute with no native session token claim (botnetting).");
+  if (op.verdict === "low_engagement") out.push("Low compute-per-task — shallow / copy-paste interaction pattern detected.");
+  if (op.verdict === "high_complexity") out.push("Sustained high compute-per-task — strategic deep-work signature (nominal).");
   if (op.tokens > 0 && op.task_count === 0) out.push("Compute expenditure without completed task rows — output anomaly.");
-  if (op.tokens / Math.max(1, op.task_count) > 25_000) out.push("Disproportionate compute-to-output ratio — efficiency delta degrading.");
+  if (op.complexity_delta > 25_000) out.push("Disproportionate compute-to-output ratio — efficiency delta degrading.");
   if (!op.has_session && op.tokens > 0) out.push("No live client session bound to active compute stream.");
   if (out.length === 0) out.push("Nominal — no structural behavior warnings on record.");
   return out;
@@ -195,7 +200,7 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
   });
   const v = VERDICT[op.verdict];
   const timeline = Array.isArray(data?.activity) ? data!.activity : [];
-  const efficiency = Math.round(op.tokens / Math.max(1, op.task_count));
+  const efficiency = op.complexity_delta;
 
   return (
     <>

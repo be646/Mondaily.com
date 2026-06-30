@@ -105,13 +105,20 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
     const hasSession = sessionUsers.has(uid);
     const taskCount = last ? (acts ?? []).filter(a => String(a.actor_id) === uid).length : 0;
 
-    // ── Behavioral verdict (single source of truth) ──
-    // INACTIVE: no token events in the window at all.
-    // BOT: heavy token volume + high task throughput but NO verified native session claim.
-    // HIGH-ENGAGEMENT: actively transacting with a live session.
-    let verdict: "inactive" | "bot" | "engaged" | "idle" = "idle";
+    // ── Autonomous behavioral verdict (single source of truth) ──
+    // Compares task complexity (proxied by tokens-per-task — strategic deep-work burns more compute
+    // per action than shallow copy-paste) against execution volume + the native session claim:
+    //   inactive       — no compute + no tasks in the window.
+    //   bot            — heavy volume + high throughput with NO verified session (PoW/native) claim → botnetting.
+    //   low_engagement — many tasks but minimal compute each (shallow / copy-paste behavior).
+    //   high_complexity— high compute-per-task with a live session → strategic deep-work.
+    //   engaged        — actively transacting on a live session at a normal ratio.
+    const complexityDelta = Math.round(u.tokens / Math.max(1, taskCount)); // tokens per completed task
+    let verdict: "inactive" | "bot" | "low_engagement" | "high_complexity" | "engaged" | "idle" = "idle";
     if (u.tokens === 0 && taskCount === 0) verdict = "inactive";
     else if (u.tokens > 50_000 && taskCount > 20 && !hasSession) verdict = "bot";
+    else if (hasSession && taskCount >= 5 && complexityDelta < 500) verdict = "low_engagement";
+    else if (hasSession && complexityDelta > 8_000) verdict = "high_complexity";
     else if (u.tokens > 0 && hasSession) verdict = "engaged";
 
     return {
@@ -123,6 +130,7 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
       tokens: u.tokens,
       runs: u.runs,
       task_count: taskCount,
+      complexity_delta: complexityDelta,
       last_task_id: last?.node_id ?? null,
       last_action: last?.action ?? null,
       last_active_at: last?.created_at ?? null,
