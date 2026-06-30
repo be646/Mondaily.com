@@ -208,7 +208,7 @@ function CategoryCell({ value, onSave }: {
       {/* Picker portal */}
       {open && createPortal(
         <div style={{ position: "fixed", top: (ref.current?.getBoundingClientRect().bottom ?? 0) + 4, left: ref.current?.getBoundingClientRect().left ?? 0, zIndex: 9999 }}
-          className="w-52 rounded-sm border border-[var(--border-soft)] bg-[#121214] overflow-hidden" onClick={e => e.stopPropagation()}>
+          className="w-52 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden" onClick={e => e.stopPropagation()}>
           <div className="px-2 pt-2 pb-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               onKeyDown={e => { if (e.key === "Escape") setOpen(false); }}
@@ -319,7 +319,7 @@ function PortalDropdown({ triggerRef, onClose, align = "left", direction = "down
   return createPortal(
     <div
       ref={panelRef}
-      className={`fixed z-[9999] overflow-hidden rounded border border-stone-800/70 bg-[#0f1114] shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-sm ${className}`}
+      className={`fixed z-[9999] overflow-hidden rounded border border-stone-800/70 bg-[var(--surface-card)] shadow-[0_8px_32px_rgba(0,0,0,0.6)] backdrop-blur-sm ${className}`}
       style={style}
     >
       {children}
@@ -1130,7 +1130,7 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
       </div>
       {open && createPortal(
         <div style={{ position: "fixed", top: (ref.current?.getBoundingClientRect().bottom ?? 0) + 4, left: ref.current?.getBoundingClientRect().left ?? 0, zIndex: 9999 }}
-          className="w-52 rounded-sm border border-[var(--border-soft)] bg-[#121214] overflow-hidden" onClick={e => e.stopPropagation()}>
+          className="w-52 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden" onClick={e => e.stopPropagation()}>
           <div className="px-2 pt-2 pb-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && canCreate) createAndAdd(); if (e.key === "Escape") setOpen(false); }}
@@ -1157,7 +1157,7 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
                 {PRESET_TAG_COLORS.map(c => (
                   <button key={c} onClick={() => setNewColor(c)}
                     className="h-4 w-4 rounded-full shrink-0 transition-all"
-                    style={{ backgroundColor: c, boxShadow: newColor === c ? `0 0 0 2px #121214, 0 0 0 3px ${c}` : undefined }}/>
+                    style={{ backgroundColor: c, boxShadow: newColor === c ? `0 0 0 2px var(--surface-card), 0 0 0 3px ${c}` : undefined }}/>
                 ))}
               </div>
               <button onClick={createAndAdd} disabled={creating}
@@ -1294,7 +1294,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
       </button>
       {open && createPortal(
         <div ref={ref} style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 9999 }}
-          className="w-56 rounded-sm border border-[var(--border-soft)] bg-[#121214] shadow-2xl py-1">
+          className="w-56 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl py-1">
           <div className="px-2 pb-1 pt-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               placeholder={`Search ${targetSlug || "records"}…`}
@@ -2381,7 +2381,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {listPickerOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setListPickerOpen(false)} />
-                <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-sm border border-[var(--border-soft)] bg-[#121214] overflow-hidden">
+                <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
                   <div className="px-3 py-2 border-b border-[var(--border-soft)]">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Add {selected.size} to list</p>
                   </div>
@@ -2423,7 +2423,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {assignPickerOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => { setAssignPickerOpen(false); setAssignSearch(""); }} />
-                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-sm border border-[var(--border-soft)] bg-[#121214] overflow-hidden">
+                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
                   <div className="px-3 py-2 border-b border-[var(--border-soft)]">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Assign {selected.size} records</p>
                     <div className="relative">
@@ -2492,7 +2492,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {bulkEditField && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setBulkEditField(null)}/>
-                  <div className="absolute left-0 top-full z-50 mt-1 w-60 rounded-sm border border-[var(--border-soft)] bg-[#121214] overflow-hidden">
+                  <div className="absolute left-0 top-full z-50 mt-1 w-60 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
                     <div className="px-3 py-2 border-b border-[var(--border-soft)] flex items-center gap-2">
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] flex-1">Edit {selected.size} records</p>
                     </div>
@@ -2818,7 +2818,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       <>
         <div className="fixed inset-0 z-[9998]" onClick={() => setColCtxMenu(null)}/>
         <div
-          className="fixed z-[9999] rounded-sm border border-[var(--border-soft)] bg-[#121214] py-1 shadow-xl min-w-[160px]"
+          className="fixed z-[9999] rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] py-1 shadow-xl min-w-[160px]"
           style={{ left: colCtxMenu.x, top: colCtxMenu.y }}
         >
           <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-stone-600 border-b border-[var(--border-soft)] mb-1">
