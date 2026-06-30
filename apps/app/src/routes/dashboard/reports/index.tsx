@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { EmptyState, PageHeader, PageSkeletonCards } from "../../../components/ui/page-state";
+import { EmptyState, PageSkeletonCards } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 
@@ -83,10 +83,27 @@ export function ReportsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-      <PageHeader
-        title="Reports"
-        description="Live analytics built directly from your records."
-      />
+      {/* AI-engine signature header — the section's unique "well-tech" treatment */}
+      <div className="mb-7 overflow-hidden rounded-sm border" style={{ borderColor: "var(--section-accent-line)" }}>
+        <div className="flex items-center justify-between gap-3 px-4 py-3.5"
+          style={{ background: "linear-gradient(180deg, var(--section-accent-soft), transparent)" }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-sm border"
+              style={{ borderColor: "var(--section-accent-line)", color: "var(--section-accent)", background: "var(--surface-card)" }}>
+              <BarChart2 size={16}/>
+            </div>
+            <div className="min-w-0">
+              <div className="soul-kicker">// SIGNAL · AI ANALYTICS ENGINE</div>
+              <h1 className="mt-0.5 text-[17px] font-semibold" style={{ color: "var(--text-primary)" }}>Reports</h1>
+            </div>
+          </div>
+          <div className="hidden shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-wider sm:flex"
+            style={{ color: "var(--text-muted)" }}>
+            <span className="soul-dot"/> live · computed from records
+          </div>
+        </div>
+        <div className="soul-rule"/>
+      </div>
 
       {/* ── Live Reports ── */}
       <section className="mb-10">
