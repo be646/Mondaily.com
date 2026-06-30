@@ -102,7 +102,8 @@ export function InvoicesPage() {
       <div className="border-b border-stone-200 dark:border-stone-800 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-[15px] font-semibold text-[var(--text-primary)]">Invoices</h1>
+            <span className="soul-kicker">// LEDGER</span>
+            <h1 className="mt-1 text-[15px] font-semibold text-[var(--text-primary)]">Invoices</h1>
             <p className="text-[12px] text-stone-500 mt-0.5">Create, send, and track invoices</p>
           </div>
           <button

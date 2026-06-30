@@ -515,20 +515,25 @@ export function NotesPage() {
     <div className={`mx-auto px-6 py-8 ${view === "list" ? "max-w-6xl" : "max-w-full"}`}>
 
       {/* ── Header ── */}
-      <div className="mb-6 flex items-center justify-between gap-3 flex-wrap">
-        <p className="text-sm text-stone-500">
-          Notes linked to your contacts, companies, and deals.
-          {(notesQ.data ?? []).length > 0 && (
-            <span className="ml-2 text-stone-700">{(notesQ.data ?? []).length - aiCount} human · {aiCount} AI</span>
-          )}
-        </p>
+      <div className="mb-3 flex items-end justify-between gap-3 flex-wrap">
+        <div>
+          <span className="soul-kicker">// DRAFT</span>
+          <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Notes</h1>
+          <p className="mt-0.5 text-sm text-stone-500">
+            Notes linked to your contacts, companies, and deals.
+            {(notesQ.data ?? []).length > 0 && (
+              <span className="ml-2 text-stone-700">{(notesQ.data ?? []).length - aiCount} human · {aiCount} AI</span>
+            )}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-sm bg-stone-600 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
+            className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-stone-600 hover:border-[var(--section-accent)]">
             <Plus size={13} /> New Note
           </button>
         </div>
       </div>
+      <div className="soul-rule mb-5" />
 
       {/* ── Filter bar ── */}
       <div className="mb-5 flex items-center gap-2 flex-wrap">
