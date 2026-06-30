@@ -327,10 +327,7 @@ export function AutomationsPage() {
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-stone-200 dark:border-stone-800 px-6 py-3">
         <Zap size={16} style={{ color: "var(--section-accent)" }}/>
-        <div className="flex-1 leading-none">
-          <span className="soul-kicker">// FLOW</span>
-          <h1 className="mt-1 text-[15px] font-semibold text-[var(--text-primary)] tracking-tight">Automations</h1>
-        </div>
+        <h1 className="flex-1 text-[15px] font-semibold text-[var(--text-primary)] tracking-tight">Automations</h1>
         <button onClick={() => setAiOpen(true)}
           className="flex items-center gap-1.5 rounded-lg bg-stone-600/20 border border-stone-500/30 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-600/30 transition-colors">
           <AIMark size={12}/> Generate

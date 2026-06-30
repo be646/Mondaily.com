@@ -8,11 +8,11 @@ import { ErrorBoundary } from "../../components/ui/error-boundary";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
-import { sectionHue, sectionCallsign } from "../../lib/sections";
+import { sectionHue } from "../../lib/sections";
 import {
   Home, CheckSquare, Users, MessageCircle, Menu, Search,
   FileText, Bell, BarChart2, Zap, Phone, Mail, Settings,
-  List, Building2, TrendingUp, Activity, type LucideIcon,
+  List, Building2, TrendingUp, Activity, ShieldCheck, Radar, type LucideIcon,
 } from "lucide-react";
 
 // ─── Page icon + label derived from current path ─────────────────────────────
@@ -32,6 +32,10 @@ function getPageMeta(pathname: string): PageMeta {
     ["/notifications", { label: "Notifications",  Icon: Bell,        color: "text-stone-500 dark:text-stone-400" }],
     ["/reports",       { label: "Reports",        Icon: BarChart2,   color: "text-stone-500 dark:text-stone-400" }],
     ["/automations",   { label: "Automations",    Icon: Zap,         color: "text-stone-500 dark:text-stone-400" }],
+    ["/decisions",     { label: "Decisions",      Icon: ShieldCheck, color: "text-stone-500 dark:text-stone-400" }],
+    ["/discovery",     { label: "Discovery",      Icon: Radar,       color: "text-stone-500 dark:text-stone-400" }],
+    ["/activity",      { label: "Agent Activity", Icon: Zap,         color: "text-stone-500 dark:text-stone-400" }],
+    ["/team/oversight",{ label: "Team Oversight", Icon: Users,       color: "text-stone-500 dark:text-stone-400" }],
     ["/calls",         { label: "Calls",          Icon: Phone,       color: "text-stone-500 dark:text-stone-400" }],
     ["/emails",        { label: "Emails",         Icon: Mail,        color: "text-stone-500 dark:text-stone-400" }],
     ["/lists",         { label: "Lists",          Icon: List,        color: "text-stone-500 dark:text-stone-400" }],
@@ -142,9 +146,8 @@ export function DashboardLayout() {
               <Menu size={16}/>
             </button>
             <PageIcon size={16} className="shrink-0" style={{ color: "var(--section-accent)" }}/>
-            <span className="hidden select-none items-baseline gap-2 sm:inline-flex">
-              <span className="text-[13px] font-semibold text-[#111827] capitalize dark:text-[var(--text-secondary)]">{pageLabel}</span>
-              <span className="soul-kicker">// {sectionCallsign(location.pathname)}</span>
+            <span className="hidden select-none text-[13px] font-semibold capitalize text-[#111827] dark:text-[var(--text-secondary)] sm:inline">
+              {pageLabel}
             </span>
             {/* Search trigger */}
             <button
@@ -169,9 +172,6 @@ export function DashboardLayout() {
             <div id="mondaily-page-actions" className="flex items-center gap-1.5"/>
           </div>
         }/>
-
-        {/* per-section soul signature — a hairline in the active section's accent */}
-        <div className="h-px shrink-0" style={{ background: "linear-gradient(90deg, var(--section-accent-line), transparent 60%)" }} />
 
         <main className={`min-h-0 flex-1 pb-16 md:pb-0 overscroll-none ${isGrid ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"}`}>
           {/* key=pathname → the boundary RESETS on every navigation. Without this, one page throwing

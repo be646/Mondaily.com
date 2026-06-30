@@ -13,7 +13,7 @@ export const SECTION_HUE: [string, number][] = [
   ["/activity",         75], // blue / telemetry stream
   ["/reports",          30], // teal / AI signal
   ["/notifications",  -140], // orange / alert
-  ["/team-oversight",  130], // indigo / org
+  ["/team/oversight",  130], // indigo / org
   ["/notes",          -110], // sand / draft
   ["/ask",              15], // mint / Mondaily voice
   ["/search",          110], // violet (exploration, shares Discovery family)
@@ -31,7 +31,7 @@ export function sectionHue(pathname: string): number {
 export const SECTION_CALLSIGN: [string, string][] = [
   ["/finance", "LEDGER"], ["/settings", "SYSTEM"], ["/discovery", "SWEEP"],
   ["/automations", "FLOW"], ["/decisions", "GATE"], ["/activity", "STREAM"],
-  ["/reports", "SIGNAL"], ["/notifications", "ALERT"], ["/team-oversight", "ORG"],
+  ["/reports", "SIGNAL"], ["/notifications", "ALERT"], ["/team/oversight", "ORG"],
   ["/notes", "DRAFT"], ["/ask", "MONDAILY"], ["/search", "GRAPH"],
   ["/calls", "COMMS"], ["/emails", "RELAY"], ["/tasks", "QUEUE"],
   ["/objects", "RECORDS"], ["/lists", "SEGMENTS"], ["/home", "DECK"],

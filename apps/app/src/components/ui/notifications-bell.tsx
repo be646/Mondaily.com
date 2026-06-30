@@ -61,7 +61,10 @@ export function NotificationsBell() {
       >
         <Bell size={15}/>
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-stone-950 text-[9px] font-semibold text-[var(--text-primary)] flex items-center justify-center leading-none dark:bg-white dark:text-black">
+          <span
+            className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[9px] font-semibold leading-none"
+            style={{ background: "var(--section-accent)", color: "var(--surface-page)" }}
+          >
             {unread > 9 ? "9+" : unread}
           </span>
         )}

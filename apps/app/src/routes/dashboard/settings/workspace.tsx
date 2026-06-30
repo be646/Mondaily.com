@@ -182,7 +182,10 @@ function ModulesSection({
                 borderColor: enabled ? "transparent" : "var(--border-strong, var(--border-soft))",
               }}
             >
-              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-4" : "translate-x-0.5"}`} />
+              <span
+                className="absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-white shadow transition-all"
+                style={{ left: enabled ? "calc(100% - 0.875rem - 3px)" : "3px" }}
+              />
             </button>
           </div>
         );

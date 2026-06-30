@@ -517,8 +517,7 @@ export function NotesPage() {
       {/* ── Header ── */}
       <div className="mb-3 flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <span className="soul-kicker">// DRAFT</span>
-          <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Notes</h1>
+          <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Notes</h1>
           <p className="mt-0.5 text-sm text-stone-500">
             Notes linked to your contacts, companies, and deals.
             {(notesQ.data ?? []).length > 0 && (
@@ -533,7 +532,6 @@ export function NotesPage() {
           </button>
         </div>
       </div>
-      <div className="soul-rule mb-5" />
 
       {/* ── Filter bar ── */}
       <div className="mb-5 flex items-center gap-2 flex-wrap">
