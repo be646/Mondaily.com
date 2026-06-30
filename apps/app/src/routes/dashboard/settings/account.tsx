@@ -229,19 +229,40 @@ export function AccountSettings() {
         <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>Your profile, AI personalization, preferences, and personal security.</p>
       </div>
 
-      {/* ── Telemetry strip ── */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {([
-          ["Plan", walletQuery.data?.account_tier === "business" ? "Pro" : "Personal"],
-          ["AI credits", (walletQuery.data?.balance ?? 0).toLocaleString()],
-          ["Status", "Active"],
-          ["Identity", "Verified ✓"],
-        ] as const).map(([label, value]) => (
-          <div key={label} className="rounded-xl border px-3.5 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            <div className="text-[9px] uppercase tracking-widest text-stone-500">{label}</div>
-            <div className="mt-0.5 truncate text-[13px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{value}</div>
+      {/* ── Hero identity card ── */}
+      <div className="relative overflow-hidden rounded-2xl border p-6"
+        style={{ borderColor: "color-mix(in srgb, var(--accent) 25%, var(--border-soft))", background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--surface-card)) 0%, var(--surface-card) 55%)" }}>
+        {/* glow */}
+        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full" style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%)" }} />
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="relative shrink-0">
+            <img src={me.imageUrl ?? undefined} alt="" className="h-20 w-20 rounded-2xl object-cover ring-2" style={{ boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent)" }} />
+            <button onClick={() => fileRef.current?.click()} className="absolute -bottom-1.5 -right-1.5 grid h-7 w-7 place-items-center rounded-full border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
+              <Camera size={12} />
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => uploadAvatar(e.target.files?.[0])} />
           </div>
-        ))}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>{me.name || "Operator"}</h2>
+              <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 14%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 40%, transparent)" }}>Verified ✓</span>
+            </div>
+            <p className="mt-0.5 text-[12.5px] text-stone-500">{me.email}</p>
+            {jobTitle && <p className="text-[12px] text-stone-600">{jobTitle}</p>}
+          </div>
+          {/* stat chips */}
+          <div className="flex shrink-0 gap-2">
+            {([
+              ["PLAN", walletQuery.data?.account_tier === "business" ? "Pro" : "Personal"],
+              ["AI CREDITS", (walletQuery.data?.balance ?? 0).toLocaleString()],
+            ] as const).map(([label, value]) => (
+              <div key={label} className="rounded-xl border px-3.5 py-2.5 text-center" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-card) 60%, transparent)" }}>
+                <div className="text-[8.5px] uppercase tracking-widest text-stone-500">{label}</div>
+                <div className="mt-0.5 text-[15px] font-semibold tabular-nums" style={{ color: "var(--accent)" }}>{value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* ── Profile ── */}
