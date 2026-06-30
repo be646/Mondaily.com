@@ -87,7 +87,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
   if (["draft", "cancelled"].includes(invoice.status)) return null;
 
   return (
-    <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
+    <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
       <div className="border-b border-[var(--border-soft)] px-4 py-3 flex items-center justify-between">
         <span className="text-[12px] font-medium text-[var(--text-primary)]">Payments</span>
         <button
@@ -396,7 +396,7 @@ export function InvoiceDetailPage() {
             <button
               onClick={() => save({ status: "sent" })}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 rounded-xl border-x border-t border-blue-500/40 border-b-[3px] border-b-blue-700 bg-blue-600 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-blue-500 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-sm border-x border-t border-blue-500/40 border-b-[3px] border-b-blue-700 bg-blue-600 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-blue-500 transition-colors disabled:opacity-50"
             >
               <Send size={12}/> Send Invoice
             </button>
@@ -426,7 +426,7 @@ export function InvoiceDetailPage() {
           <FinanceAgentStrip invoiceId={invoiceId}/>
 
           {invoice.status === "overdue" && (
-            <div className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600/5 px-4 py-3 text-[12px] text-stone-400">
+            <div className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600/5 px-4 py-3 text-[12px] text-stone-400">
               <AlertTriangle size={13}/>
               This invoice is overdue. Consider sending a payment reminder.
             </div>
@@ -434,7 +434,7 @@ export function InvoiceDetailPage() {
 
           {/* Client + meta */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
+            <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
               <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">Bill To</div>
               <div>
                 <label className="text-[11px] text-stone-600">Client name *</label>
@@ -470,7 +470,7 @@ export function InvoiceDetailPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
+            <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
               <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">Details</div>
               <div>
                 <label className="text-[11px] text-stone-600">Invoice number</label>
@@ -504,7 +504,7 @@ export function InvoiceDetailPage() {
           </div>
 
           {/* Line items */}
-          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
+          <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
             <div className="border-b border-[var(--border-soft)] px-4 py-3 flex items-center justify-between">
               <span className="text-[12px] font-medium text-[var(--text-primary)]">Line Items</span>
               {isEditable && (

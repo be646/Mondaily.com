@@ -105,14 +105,14 @@ export function DecisionsPage() {
       </div>
 
       {isError ? (
-        <div className="surface-card rounded-2xl p-5 text-[13px]" style={{ color: "var(--text-faint)" }}>Couldn't load the Decision Queue right now. Refresh, or check back shortly.</div>
+        <div className="surface-card rounded-sm p-5 text-[13px]" style={{ color: "var(--text-faint)" }}>Couldn't load the Decision Queue right now. Refresh, or check back shortly.</div>
       ) : items.length === 0 ? (
         <EmptyDeck />
       ) : (
         <>
           {/* Risk filter + bulk */}
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <div className="inline-flex rounded-xl border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="inline-flex rounded-sm border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               {([{ k: null, l: "All", n: counts.all }, { k: "high" as const, l: "High", n: counts.high }, { k: "medium" as const, l: "Med", n: counts.medium }, { k: "low" as const, l: "Low", n: counts.low }]).map(s => {
                 const on = riskFilter === s.k;
                 return (
@@ -125,7 +125,7 @@ export function DecisionsPage() {
             </div>
             {counts.low > 0 && (
               <button onClick={bulkApproveLow} disabled={bulkBusy}
-                className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[12px] font-medium text-white transition-colors disabled:opacity-60" style={{ background: "#10b981" }}>
+                className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[12px] font-medium text-white transition-colors disabled:opacity-60" style={{ background: "#10b981" }}>
                 {bulkBusy ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />} Approve {counts.low} low-risk
               </button>
             )}
@@ -134,7 +134,7 @@ export function DecisionsPage() {
           {/* Split deck */}
           <div className="flex h-[calc(100vh-230px)] min-h-[460px] gap-4">
             {/* LEFT — dense stream (40%) */}
-            <div className="w-[40%] shrink-0 overflow-y-auto rounded-2xl border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="w-[40%] shrink-0 overflow-y-auto rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               <AnimatePresence initial={false}>
                 {visible.map((d, i) => {
                   const a = agentByRaw(d.agent_name);
@@ -161,7 +161,7 @@ export function DecisionsPage() {
             </div>
 
             {/* RIGHT — Impact Canvas (60%) */}
-            <div className="relative flex-1 overflow-y-auto rounded-2xl border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="relative flex-1 overflow-y-auto rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               {selected ? <ImpactCanvas key={selected.id} d={selected} acting={acting} onResolve={resolve} /> : (
                 <div className="flex h-full items-center justify-center text-[13px]" style={{ color: "var(--text-muted)" }}>Select a decision to review its impact.</div>
               )}
@@ -170,7 +170,7 @@ export function DecisionsPage() {
                 {banner && (
                   <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
                     className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--surface-card) 70%, transparent)" }}>
-                    <div className="flex items-center gap-2.5 rounded-2xl border px-5 py-3 text-[14px] font-semibold tracking-wide shadow-2xl"
+                    <div className="flex items-center gap-2.5 rounded-sm border px-5 py-3 text-[14px] font-semibold tracking-wide shadow-2xl"
                       style={banner.kind === "approved"
                         ? { borderColor: "#10b981", color: "#10b981", background: "color-mix(in srgb, #10b981 12%, var(--surface-card))", boxShadow: "0 0 30px color-mix(in srgb, #10b981 35%, transparent)" }
                         : { borderColor: banner.kind === "rejected" ? "#ef4444" : "var(--text-faint)", color: banner.kind === "rejected" ? "#ef4444" : "var(--text-muted)", background: "var(--surface-card)" }}>
@@ -203,7 +203,7 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
       <div className="flex-1 space-y-5 overflow-y-auto p-6">
         {/* header */}
         <div className="flex items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
             <a.Icon size={17} style={{ color: "var(--accent)" }} />
           </span>
           <div className="min-w-0 flex-1">
@@ -219,7 +219,7 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
         </div>
 
         {/* Proposed transformation widget — real target · real current → real proposed action */}
-        <div className="rounded-2xl border p-4" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--accent) 3%, transparent)" }}>
+        <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--accent) 3%, transparent)" }}>
           <div className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>
             <Zap size={12} style={{ color: "var(--accent)" }} /> Proposed transformation
           </div>
@@ -230,12 +230,12 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
             </Link>
           )}
           <div className="flex items-stretch gap-2">
-            <div className="flex-1 rounded-xl border px-3 py-2.5" style={{ borderColor: "#d9770633", background: "#d977060d" }}>
+            <div className="flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "#d9770633", background: "#d977060d" }}>
               <div className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "#d97706" }}>Current</div>
               <div className="mt-1 text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{currentState}</div>
             </div>
             <div className="flex shrink-0 items-center"><ArrowRight size={18} style={{ color: "var(--text-faint)" }} /></div>
-            <div className="flex-1 rounded-xl border px-3 py-2.5" style={{ borderColor: "#10b98133", background: "#10b9810d" }}>
+            <div className="flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "#10b98133", background: "#10b9810d" }}>
               <div className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "#10b981" }}>Proposed</div>
               <div className="mt-1 text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{proposed}</div>
             </div>
@@ -244,7 +244,7 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
 
         {/* why (clean, not shouty uppercase) */}
         {d.summary && (
-          <div className="rounded-2xl border p-4" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)" }}>
             <div className="mb-1 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>Why your agent raised this</div>
             <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{d.summary}</p>
           </div>
@@ -283,7 +283,7 @@ function ActionBtn({ label, Icon, loading, disabled, onClick, hoverColor }: { la
 
 function EmptyDeck() {
   return (
-    <div className="surface-card rounded-2xl px-5 py-16 text-center">
+    <div className="surface-card rounded-sm px-5 py-16 text-center">
       <Inbox size={22} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
       <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>You're all caught up</p>
       <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>No decisions are waiting. Agents will queue items here when they need your approval.</p>

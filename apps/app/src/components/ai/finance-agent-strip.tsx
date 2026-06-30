@@ -40,7 +40,7 @@ export function FinanceAgentStrip({ invoiceId }: { invoiceId?: string }) {
   if (financeDecisions.length === 0) return null;
 
   return (
-    <div className="mb-4 rounded-xl p-3" style={{ background: "var(--surface-hover)" }}>
+    <div className="mb-4 rounded-sm p-3" style={{ background: "var(--surface-hover)" }}>
       <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>
         <LogoMark size={11} className="text-stone-500"/> Finance Agent — {financeDecisions.length} awaiting your approval
       </div>

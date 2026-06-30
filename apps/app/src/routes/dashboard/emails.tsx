@@ -183,7 +183,7 @@ function SentTracker() {
           const clicked = email.click_count > 0;
           const date = email.sent_at || email.requested_at;
           return (
-            <div key={email.id} className="surface-card rounded-xl px-4 py-3">
+            <div key={email.id} className="surface-card rounded-sm px-4 py-3">
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>{email.subject || "(no subject)"}</p>

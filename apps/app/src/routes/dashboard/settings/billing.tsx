@@ -111,7 +111,7 @@ export function BillingSettings() {
 
       {/* Trial banner — visible while the 14-day trial is running */}
       {billing.plan === "trial" && typeof billing.trial_days_left === "number" && (
-        <div className="rounded-2xl border px-5 py-3.5 text-sm" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        <div className="rounded-sm border px-5 py-3.5 text-sm" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
           {billing.trial_days_left > 0 ? (
             <span style={{ color: "var(--text-primary)" }}>
               <strong>{billing.trial_days_left} day{billing.trial_days_left === 1 ? "" : "s"} left</strong> in your free trial. Upgrade any time to keep full access.
@@ -142,7 +142,7 @@ export function BillingSettings() {
             </div>
             <button
               onClick={() => { openBilling(billing.plan); }}
-              className="flex shrink-0 items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all"
+              className="flex shrink-0 items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all"
             >
               <Zap size={13} /> {billing.plan === "free" ? "Upgrade plan" : "Manage plan"}
             </button>
@@ -236,7 +236,7 @@ export function BillingSettings() {
               <>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {cells.map(([label, val]) => (
-                    <div key={label} className="rounded-xl border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
+                    <div key={label} className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
                       <div className="text-[11px] text-stone-500">{label}</div>
                       <div className="mt-0.5 text-lg font-semibold tabular-nums text-[var(--text-primary)]">{fmt(val)}</div>
                     </div>
@@ -281,7 +281,7 @@ export function BillingSettings() {
             </div>
 
             {/* Pay-As-You-Go refill module + auto-refill toggle (Stripe stub) */}
-            <div className="mt-5 rounded-xl border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
+            <div className="mt-5 rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium text-[var(--text-primary)]">Pay-As-You-Go refill</p>

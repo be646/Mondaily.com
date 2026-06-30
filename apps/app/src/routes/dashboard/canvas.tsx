@@ -38,7 +38,7 @@ function StickyNode({ data, selected }: NodeProps) {
           ? `0 0 0 1px ${p.accent}60, 0 8px 32px rgba(0,0,0,0.6)`
           : "0 4px 24px rgba(0,0,0,0.5)",
       }}
-      className="relative w-52 min-h-[130px] rounded-2xl border transition-all duration-150 cursor-default select-none overflow-hidden"
+      className="relative w-52 min-h-[130px] rounded-sm border transition-all duration-150 cursor-default select-none overflow-hidden"
     >
       {/* top accent bar */}
       <div style={{ background: `${p.accent}22`, borderBottomColor: `${p.accent}20` }}
@@ -146,7 +146,7 @@ function QuadrantNode({ data }: NodeProps) {
   ];
   return (
     <div
-      className="w-[520px] h-[420px] rounded-2xl overflow-hidden"
+      className="w-[520px] h-[420px] rounded-sm overflow-hidden"
       style={{ border: "1px solid rgba(255,255,255,0.08)", background: "#121214" }}
     >
       <div className="flex items-center justify-center py-2 border-b border-[var(--border-soft)]">
@@ -297,13 +297,13 @@ export default function Canvas() {
         {/* controls — minimal style */}
         <Controls
           showInteractive={false}
-          className="[&>button]:!bg-[var(--surface-card)] [&>button]:!border-[var(--border-soft)] [&>button]:!text-[var(--text-secondary)] [&>button:hover]:!bg-[var(--surface-hover)] [&>button:hover]:!text-[var(--text-secondary)] !shadow-none !border !border-[var(--border-soft)] !rounded-xl !overflow-hidden"
+          className="[&>button]:!bg-[var(--surface-card)] [&>button]:!border-[var(--border-soft)] [&>button]:!text-[var(--text-secondary)] [&>button:hover]:!bg-[var(--surface-hover)] [&>button:hover]:!text-[var(--text-secondary)] !shadow-none !border !border-[var(--border-soft)] !rounded-sm !overflow-hidden"
         />
 
         {/* ── Floating toolbar ── */}
         <Panel position="top-center" className="mt-3">
           <div
-            className="flex items-center gap-1 rounded-2xl px-2 py-1.5"
+            className="flex items-center gap-1 rounded-sm px-2 py-1.5"
             style={{
               background: "rgba(12,14,18,0.92)",
               border: "1px solid rgba(255,255,255,0.08)",
@@ -321,7 +321,7 @@ export default function Canvas() {
               <button
                 key={btn.label}
                 onClick={btn.onClick}
-                className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] transition-all duration-100"
+                className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] transition-all duration-100"
               >
                 {btn.icon}
                 {btn.label}
@@ -335,7 +335,7 @@ export default function Canvas() {
             <div className="relative">
               <button
                 onClick={() => setTemplateOpen(o => !o)}
-                className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] transition-all duration-100"
+                className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-secondary)] transition-all duration-100"
               >
                 <GitBranch size={13} />
                 Templates
@@ -346,7 +346,7 @@ export default function Canvas() {
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setTemplateOpen(false)} />
                   <div
-                    className="absolute left-1/2 -translate-x-1/2 top-full z-50 mt-2 w-56 rounded-2xl p-1.5"
+                    className="absolute left-1/2 -translate-x-1/2 top-full z-50 mt-2 w-56 rounded-sm p-1.5"
                     style={{
                       background: "rgba(10,12,16,0.96)",
                       border: "1px solid rgba(255,255,255,0.08)",
@@ -358,7 +358,7 @@ export default function Canvas() {
                       <button
                         key={key}
                         onClick={() => loadTemplate(key)}
-                        className="flex w-full flex-col items-start gap-0.5 rounded-xl px-3 py-2.5 text-left hover:bg-[var(--surface-hover)] transition-colors"
+                        className="flex w-full flex-col items-start gap-0.5 rounded-sm px-3 py-2.5 text-left hover:bg-[var(--surface-hover)] transition-colors"
                       >
                         <span className="text-[12px] font-semibold text-[var(--text-secondary)]">{t.label}</span>
                         <span className="text-[10px] text-[var(--text-secondary)]">{t.description}</span>
@@ -379,7 +379,7 @@ export default function Canvas() {
                 setEdges(es => es.filter(e => !e.selected));
               }}
               disabled={selectedCount === 0}
-              className="flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-stone-500/10 hover:text-stone-400 transition-all duration-100 disabled:pointer-events-none"
+              className="flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:bg-stone-500/10 hover:text-stone-400 transition-all duration-100 disabled:pointer-events-none"
             >
               <Trash2 size={13} />
               {selectedCount > 0 ? `Delete (${selectedCount})` : "Delete"}
@@ -392,7 +392,7 @@ export default function Canvas() {
           <Panel position="top-center" className="pointer-events-none" style={{ marginTop: "160px" }}>
             <div className="flex flex-col items-center gap-3 text-center">
               <div
-                className="flex h-14 w-14 items-center justify-center rounded-2xl"
+                className="flex h-14 w-14 items-center justify-center rounded-sm"
                 style={{
                   background: "rgba(99,102,241,0.08)",
                   border: "1px solid rgba(99,102,241,0.15)",

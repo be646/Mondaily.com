@@ -60,7 +60,7 @@ export function ShadowLoginPage() {
     return (
       <AuthShell kicker="Sovereign account upgrade" title="Check your email"
         subtitle="Mondaily upgraded to our own secure sign-in. We've emailed an activation link to set your password — it expires in 30 minutes.">
-        <div className="flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-3">
+        <div className="flex items-center gap-2.5 rounded-sm border border-zinc-800 bg-zinc-950 px-3.5 py-3">
           <MailCheck size={16} style={{ color: SAGE }} />
           <span className="truncate text-[12.5px] text-zinc-200">{email}</span>
         </div>

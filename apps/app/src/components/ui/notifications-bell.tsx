@@ -70,7 +70,7 @@ export function NotificationsBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)}/>
-          <div className="absolute right-0 top-9 z-50 w-80 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_16px_48px_rgba(0,0,0,0.6)] overflow-hidden">
+          <div className="absolute right-0 top-9 z-50 w-80 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_16px_48px_rgba(0,0,0,0.6)] overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-soft)]">
               <div className="flex items-center gap-2">

@@ -72,7 +72,7 @@ export function MembersSettings() {
   return (
     <div className="font-mono">
       {query.isError && (
-        <div className="mb-4 rounded-xl border px-4 py-3 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+        <div className="mb-4 rounded-sm border px-4 py-3 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
           Couldn't load members right now — showing what's cached. Try reloading.
         </div>
       )}
@@ -87,15 +87,15 @@ export function MembersSettings() {
         <div className="mb-5 flex flex-wrap items-center gap-2">
           <input
             value={emails} onChange={e => setEmails(e.target.value)} placeholder="teammate@company.com"
-            className="min-w-[220px] flex-1 rounded-xl border bg-transparent px-3 py-2 text-sm outline-none focus:border-stone-500"
+            className="min-w-[220px] flex-1 rounded-sm border bg-transparent px-3 py-2 text-sm outline-none focus:border-stone-500"
             style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}
           />
           <button onClick={() => sendInvite.mutate()} disabled={!emails.includes("@") || sendInvite.isPending}
-            className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3.5 py-2 text-sm font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50">
+            className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-3.5 py-2 text-sm font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50">
             <UserPlus size={14} /> Invite
           </button>
           <button onClick={copyInviteLink}
-            className="flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-colors hover:text-[var(--text-primary)]"
+            className="flex items-center gap-2 rounded-sm border px-3.5 py-2 text-sm font-medium transition-colors hover:text-[var(--text-primary)]"
             style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
             {copied ? <><Check size={14} className="text-emerald-400" /> Copied</> : <><Copy size={14} /> Copy link</>}
           </button>

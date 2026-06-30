@@ -95,7 +95,7 @@ export function TeamOversightPage() {
   if (forbidden) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center px-6 py-24 text-center font-mono">
-        <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900">
+        <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-sm border border-zinc-800 bg-zinc-900">
           <Lock size={20} style={{ color: "var(--accent)" }} />
         </span>
         <h1 className="text-lg font-semibold text-zinc-100">Manager access only</h1>
@@ -137,13 +137,13 @@ export function TeamOversightPage() {
         {isLoading ? (
           <div className="flex items-center gap-2 py-16 text-sm text-zinc-500"><Loader2 size={15} className="animate-spin" /> Synchronizing operator telemetry…</div>
         ) : operators.length === 0 ? (
-          <div className="rounded-xl border border-[#27272a] bg-[#18181b] px-5 py-12 text-center">
+          <div className="rounded-sm border border-[#27272a] bg-[#18181b] px-5 py-12 text-center">
             <Activity size={20} className="mx-auto mb-2 text-zinc-600" />
             <p className="text-sm text-zinc-300">No operators registered.</p>
             <p className="mt-1 text-xs text-zinc-600">Behavioral telemetry will populate as members transact.</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-[#27272a] bg-[#18181b]">
+          <div className="overflow-hidden rounded-sm border border-[#27272a] bg-[#18181b]">
             {/* grid header */}
             <div className="grid grid-cols-[1.6fr_1fr_1.2fr_2fr] gap-3 border-b border-[#27272a] px-4 py-2.5 text-[9px] uppercase tracking-widest text-zinc-600">
               <span>Operator</span><span>Task Context</span><span>Compute Velocity</span><span>Behavioral Evaluation</span>

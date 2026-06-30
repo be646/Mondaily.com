@@ -230,13 +230,13 @@ export function AccountSettings() {
       </div>
 
       {/* ── Hero identity card ── */}
-      <div className="relative overflow-hidden rounded-2xl border p-6"
+      <div className="relative overflow-hidden rounded-sm border p-6"
         style={{ borderColor: "color-mix(in srgb, var(--accent) 25%, var(--border-soft))", background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--surface-card)) 0%, var(--surface-card) 55%)" }}>
         {/* glow */}
         <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full" style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%)" }} />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
           <div className="relative shrink-0">
-            <img src={me.imageUrl ?? undefined} alt="" className="h-20 w-20 rounded-2xl object-cover ring-2" style={{ boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent)" }} />
+            <img src={me.imageUrl ?? undefined} alt="" className="h-20 w-20 rounded-sm object-cover ring-2" style={{ boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent)" }} />
             <button onClick={() => fileRef.current?.click()} className="absolute -bottom-1.5 -right-1.5 grid h-7 w-7 place-items-center rounded-full border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
               <Camera size={12} />
             </button>
@@ -256,7 +256,7 @@ export function AccountSettings() {
               ["PLAN", walletQuery.data?.account_tier === "business" ? "Pro" : "Personal"],
               ["AI CREDITS", (walletQuery.data?.balance ?? 0).toLocaleString()],
             ] as const).map(([label, value]) => (
-              <div key={label} className="rounded-xl border px-3.5 py-2.5 text-center" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-card) 60%, transparent)" }}>
+              <div key={label} className="rounded-sm border px-3.5 py-2.5 text-center" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-card) 60%, transparent)" }}>
                 <div className="text-[8.5px] uppercase tracking-widest text-stone-500">{label}</div>
                 <div className="mt-0.5 text-[15px] font-semibold tabular-nums" style={{ color: "var(--accent)" }}>{value}</div>
               </div>
@@ -360,7 +360,7 @@ export function AccountSettings() {
                 <button
                   key={mode}
                   onClick={() => setAppearance(mode)}
-                  className="relative flex flex-col items-center gap-2.5 rounded-xl border py-5 transition-all"
+                  className="relative flex flex-col items-center gap-2.5 rounded-sm border py-5 transition-all"
                   style={{
                     borderColor: active ? "var(--accent)" : "var(--border-soft)",
                     background: active ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
@@ -382,7 +382,7 @@ export function AccountSettings() {
                 <button
                   key={s}
                   onClick={() => chooseBtnStyle(s)}
-                  className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-all"
+                  className="flex items-center justify-between gap-3 rounded-sm border px-4 py-3 transition-all"
                   style={{
                     borderColor: btnStyle === s ? "var(--accent)" : "var(--border-soft)",
                     background: btnStyle === s ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
@@ -529,7 +529,7 @@ export function AccountSettings() {
         <button
           onClick={() => save.mutate()}
           disabled={save.isPending}
-          className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50 ${
+          className={`flex items-center gap-2 rounded-sm px-5 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50 ${
             saved
               ? "border border-[var(--accent)] bg-stone-700"
               : "border border-stone-500/30 bg-stone-600 hover:bg-stone-500"
@@ -543,7 +543,7 @@ export function AccountSettings() {
       {deleteOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setDeleteOpen(false)} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <h2 className="font-semibold text-[var(--text-primary)]">Delete account</h2>
             <p className="mt-2 text-sm text-stone-500">This permanently deletes your account and all data. Type <strong className="text-[var(--text-primary)]">DELETE</strong> to confirm.</p>
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder="DELETE" className="key-input mt-4 h-10 w-full px-3 text-sm" />

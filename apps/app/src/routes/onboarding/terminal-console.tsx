@@ -170,7 +170,7 @@ function PlanCards({ recommended, onSelect }: { recommended: "personal" | "busin
       {/* Card A — Personal */}
       <button
         onClick={() => onSelect("personal")}
-        className="group flex flex-col rounded-xl border border-[#27272a] bg-[#18181b] p-5 text-left transition-all hover:border-zinc-600"
+        className="group flex flex-col rounded-sm border border-[#27272a] bg-[#18181b] p-5 text-left transition-all hover:border-zinc-600"
         style={recommended === "personal" ? { borderColor: "var(--accent)" } : undefined}
       >
         <div className="text-[11px] uppercase tracking-widest text-zinc-600">License A</div>
@@ -187,7 +187,7 @@ function PlanCards({ recommended, onSelect }: { recommended: "personal" | "busin
       {/* Card B — Business Pro */}
       <button
         onClick={() => onSelect("business")}
-        className="group flex flex-col rounded-xl border bg-[#18181b] p-5 text-left transition-all"
+        className="group flex flex-col rounded-sm border bg-[#18181b] p-5 text-left transition-all"
         style={{
           borderColor: "var(--accent)",
           boxShadow: recommended === "business" ? "0 0 0 1px var(--accent), 0 0 28px color-mix(in srgb, var(--accent) 22%, transparent)" : undefined,

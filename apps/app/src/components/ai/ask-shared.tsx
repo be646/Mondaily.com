@@ -122,7 +122,7 @@ export function Markdown({ text, links }: { text: string; links?: EntityLink[] }
         return vals.length > 0 && vals.filter(isNumeric).length >= Math.ceil(vals.length / 2);
       });
       blocks.push(
-        <div key={`t-${idx}`} className="my-2 overflow-x-auto rounded-xl border" style={{ borderColor: "var(--border-soft)" }}>
+        <div key={`t-${idx}`} className="my-2 overflow-x-auto rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
           <table className="w-full border-collapse text-left text-[12.5px]">
             <thead>
               <tr style={{ background: "var(--surface-card-2)" }}>
@@ -172,7 +172,7 @@ export function ChartBlock({ raw }: { raw: string }) {
   if (data.length === 0) return null;
   const max = Math.max(...data.map(d => d.value), 1);
   return (
-    <div className="my-2 rounded-xl border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="my-2 rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       {spec?.title && <div className="mb-2 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{spec.title}</div>}
       <div className="space-y-1.5">
         {data.map((d, i) => (
@@ -400,7 +400,7 @@ export function sourcesToLinks(sources: SourceCardData[] | undefined): EntityLin
 export function SourceList({ sources }: { sources: SourceCardData[] }) {
   if (!sources.length) return null;
   return (
-    <div className="overflow-hidden rounded-xl border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       {sources.map((s, i) => <SourceCard key={i} source={s} divider={i > 0}/>)}
     </div>
   );

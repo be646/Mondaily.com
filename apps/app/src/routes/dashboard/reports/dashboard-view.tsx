@@ -34,7 +34,7 @@ function Sparkline({ values, height = 160 }: { values: number[]; height?: number
     }).join(" ");
 
   return (
-    <div className="rounded-xl bg-white p-4 dark:bg-stone-950/40" style={{ height }}>
+    <div className="rounded-sm bg-white p-4 dark:bg-stone-950/40" style={{ height }}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
         <polyline
           points={points}
@@ -64,7 +64,7 @@ function WidgetShell({ title, icon, link, linkLabel, size, className, onRemove, 
   return (
     <section
       draggable onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
-      className={`group relative rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 ${className ?? ""}`}
+      className={`group relative rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 ${className ?? ""}`}
     >
       <div className="mb-4 flex items-center gap-2 min-w-0">
         <GripVertical size={14} className="shrink-0 cursor-grab text-stone-600" />
@@ -349,7 +349,7 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
   ];
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="w-full max-w-md overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">Add widget</h2>
           <button onClick={onClose} className="text-stone-500 hover:text-[var(--text-primary)]"><X size={15}/></button>
@@ -554,7 +554,7 @@ export function DashboardViewPage() {
       {/* Delete confirm */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-stone-500/20 bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="w-full max-w-sm rounded-sm border border-stone-500/20 bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <h2 className="mb-2 text-sm font-semibold text-[var(--text-primary)]">Delete dashboard?</h2>
             <p className="mb-5 text-xs text-stone-400">This will permanently delete <strong className="text-[var(--text-primary)]">{dashboard.name || "this dashboard"}</strong> and all its widgets. This cannot be undone.</p>
             <div className="flex gap-2">

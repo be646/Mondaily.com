@@ -61,7 +61,7 @@ function Sparkline({ values, height = 220 }: { values: number[]; height?: number
     }).join(" ");
 
   return (
-    <div className="rounded-xl bg-white p-5 print:bg-white dark:bg-stone-950/40" style={{ height }}>
+    <div className="rounded-sm bg-white p-5 print:bg-white dark:bg-stone-950/40" style={{ height }}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
         <polyline
           points={points}
@@ -187,7 +187,7 @@ function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSe
   delta?: number | null; goal?: number | null; goalValue?: number; onSetGoal?: () => void;
 }) {
   return (
-    <div className={`relative overflow-hidden rounded-xl border p-5 print:border-gray-200 ${color}`}>
+    <div className={`relative overflow-hidden rounded-sm border p-5 print:border-gray-200 ${color}`}>
       <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl print:hidden" style={{ background:"currentColor" }}/>
       <div className="flex items-start justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-current opacity-60">{label}</p>
@@ -297,7 +297,7 @@ function AIModal({ title, onClose, onPrint, children }: { title: string; onClose
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"/>
       <div
-        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden"
+        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Modal header */}
@@ -398,8 +398,8 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
   return (
     <>
       {/* Compact trigger card — never stretches */}
-      <div className="rounded-2xl border border-stone-500/20 bg-[var(--surface-card)] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.07) 0%,rgba(59,130,246,0.04) 100%)"}}>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-500/15 ring-1 ring-stone-500/25">
+      <div className="rounded-sm border border-stone-500/20 bg-[var(--surface-card)] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.07) 0%,rgba(59,130,246,0.04) 100%)"}}>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-stone-500/15 ring-1 ring-stone-500/25">
           <LogoMark size={16} className="text-stone-400"/>
         </div>
         <div className="flex-1 min-w-0">
@@ -455,7 +455,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           </div>
           {/* Risk */}
           {result.risks && result.risks !== "None identified" && (
-            <div className="mx-6 my-4 flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[.06] px-4 py-3">
+            <div className="mx-6 my-4 flex items-start gap-3 rounded-sm border border-amber-500/20 bg-amber-500/[.06] px-4 py-3">
               <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5"/>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-500 mb-0.5">Risk</p>
@@ -469,7 +469,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
               <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-3">What to do now</p>
               <div className="space-y-2">
                 {result.actions.map((a, i) => (
-                  <div key={i} className="flex items-start gap-3 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3">
+                  <div key={i} className="flex items-start gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3">
                     <span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
                       a.impact === "high"   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" :
                       a.impact === "medium" ? "border-amber-500/30 bg-amber-500/10 text-amber-400" :
@@ -563,8 +563,8 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
   return (
     <>
       {/* Compact trigger card */}
-      <div className="rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 flex items-center gap-4 print:hidden">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-stone-500/15 ring-1 ring-stone-500/25">
+      <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 flex items-center gap-4 print:hidden">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-stone-500/15 ring-1 ring-stone-500/25">
           <LogoMark size={16} className="text-stone-400"/>
         </div>
         <div className="flex-1 min-w-0">
@@ -600,7 +600,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
               const cat = ins.category as Cat;
               const m = CATEGORY_META[cat] ?? fallbackMeta;
               return (
-                <div key={i} className={`rounded-xl border ${m.border} ${m.bg} p-4 flex flex-col gap-2`}>
+                <div key={i} className={`rounded-sm border ${m.border} ${m.bg} p-4 flex flex-col gap-2`}>
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${m.dot}`}/>
@@ -701,7 +701,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
       </button>
 
       {open && (
-        <div className="mt-3 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
+        <div className="mt-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
           <div className="px-5 py-4 border-b border-[var(--border-soft)]">
             <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-1">Scheduled email digests</h3>
             <p className="text-[11px] text-stone-500">Receive a KPI snapshot for <strong className="text-stone-400">{objName}</strong> on a schedule.</p>
@@ -1210,7 +1210,7 @@ export function SalesReportPage() {
 
         {/* Custom date range row — only shown when Custom period is active */}
         {period === "custom" && (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 print:hidden">
+          <div className="mb-4 flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 print:hidden">
             <span className="text-[11px] font-medium text-stone-500 shrink-0">Date range</span>
             <div className="flex items-center gap-2 ml-2">
               <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
@@ -1277,7 +1277,7 @@ export function SalesReportPage() {
 
         {/* Filter bar */}
         {hasFilters && (
-          <div className={`mb-4 print:hidden rounded-xl border transition-colors ${filtersActive ? "border-blue-500/20 bg-blue-500/[.03]" : "border-[var(--border-soft)] bg-[var(--surface-hover)]"}`}>
+          <div className={`mb-4 print:hidden rounded-sm border transition-colors ${filtersActive ? "border-blue-500/20 bg-blue-500/[.03]" : "border-[var(--border-soft)] bg-[var(--surface-hover)]"}`}>
             <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border-soft)]">
               <Filter size={11} className="text-stone-500 shrink-0"/>
               <span className="text-[11px] font-medium text-stone-500">Filters</span>
@@ -1340,7 +1340,7 @@ export function SalesReportPage() {
             {/* Goal dialog */}
             {editingGoal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <div className="w-72 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+                <div className="w-72 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
                   <h3 className="mb-3 text-sm font-semibold text-[var(--text-primary)]">Set a goal for {vocab.kpi1Label}</h3>
                   <input
                     autoFocus
@@ -1426,7 +1426,7 @@ export function SalesReportPage() {
 
             {/* Charts */}
             <div className="mb-6 grid gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-4">
-              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
+              <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-sm font-semibold print:text-black">{vocab.trendLabel}</h3>
                   <span className="text-[10px] text-stone-600 print:hidden">Clean trend</span>
@@ -1457,7 +1457,7 @@ export function SalesReportPage() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
+              <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
                 <h3 className="mb-4 text-sm font-semibold print:text-black">{vocab.stageLabel}</h3>
                 {stageData.length === 0 ? (
                   <div className="flex h-48 items-center justify-center text-xs text-stone-600">
@@ -1468,7 +1468,7 @@ export function SalesReportPage() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
+              <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
                 <h3 className="mb-4 text-sm font-semibold print:text-black">Activity Over Time</h3>
                 {trendData.length === 0 ? (
                   <div className="flex h-48 items-center justify-center text-xs text-stone-600">No data for this period</div>
@@ -1478,14 +1478,14 @@ export function SalesReportPage() {
               </div>
 
               {hasValue && hasStage && (
-                <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
+                <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
                   <h3 className="mb-4 text-sm font-semibold print:text-black">Value by {stageCol}</h3>
                   <Sparkline values={stageData.map(item => item.value)} />
                 </div>
               )}
 
               {hasValue && !hasStage && (
-                <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
+                <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-gray-200 print:bg-white">
                   <h3 className="mb-4 text-sm font-semibold print:text-black">{valueCol} Distribution</h3>
                   <Sparkline values={trendData.map(item => item.revenue)} />
                 </div>
@@ -1513,7 +1513,7 @@ export function SalesReportPage() {
                 { bar: "from-fuchsia-500 to-stone-400",badge: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/20" },
               ];
               return (
-                <div className="mb-6 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden print:border-gray-200 print:bg-white">
+                <div className="mb-6 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden print:border-gray-200 print:bg-white">
                   {/* Header */}
                   <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border-soft)]">
                     <h3 className="text-sm font-semibold text-[var(--text-primary)] print:text-black">{vocab.tableLabel}</h3>

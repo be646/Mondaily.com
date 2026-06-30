@@ -146,7 +146,7 @@ function NoteCard({
 
   return (
     <div
-      className={`group relative flex flex-col gap-3 rounded-2xl border p-4 ring-1 transition-all
+      className={`group relative flex flex-col gap-3 rounded-sm border p-4 ring-1 transition-all
         ${scheme.bg} ${scheme.ring}
         ${isPinned ? "border-orange-500/30" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}
         ${isAI ? "border-stone-500/20" : ""}`}
@@ -188,7 +188,7 @@ function NoteCard({
                 <span className={`h-2.5 w-2.5 rounded-full ${scheme.dot}`} />
               </button>
               {colorOpen && (
-                <div className="absolute right-0 top-8 z-30 flex gap-1.5 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-2 shadow-2xl">
+                <div className="absolute right-0 top-8 z-30 flex gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-2 shadow-2xl">
                   {COLOR_KEYS.map(c => (
                     <button
                       key={c}
@@ -251,7 +251,7 @@ function NoteCard({
 function DroppableCol({ id, children }: { id: string; children: React.ReactNode }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
-    <div ref={setNodeRef} className={`min-h-[100px] space-y-3 rounded-2xl border-2 border-dashed p-2 transition-colors ${isOver ? "border-stone-500/30 bg-stone-600/[.03]" : "border-transparent"}`}>
+    <div ref={setNodeRef} className={`min-h-[100px] space-y-3 rounded-sm border-2 border-dashed p-2 transition-colors ${isOver ? "border-stone-500/30 bg-stone-600/[.03]" : "border-transparent"}`}>
       {children}
     </div>
   );
@@ -365,7 +365,7 @@ function TimelineView({ notes, colors, pinned, userId, onColorChange, onEdit, on
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-stone-500">{sorted.length} notes across timeline</p>
-        <div className="flex gap-0.5 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
+        <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
           {(["week", "month", "quarter"] as const).map(z => (
             <button key={z} onClick={() => setZoom(z)}
               className={`rounded-lg px-3 py-1.5 text-xs capitalize transition-colors ${zoom === z ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}>
@@ -374,7 +374,7 @@ function TimelineView({ notes, colors, pinned, userId, onColorChange, onEdit, on
           ))}
         </div>
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)]">
+      <div className="overflow-x-auto rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]">
         {BOARD_COLUMNS.map((col, laneIdx) => {
           const laneNotes = sorted.filter(n => (BOARD_COLUMNS.some(c => c.key === n.record.object_type) ? n.record.object_type : "general") === col.key);
           return (
@@ -418,7 +418,7 @@ function TimelineView({ notes, colors, pinned, userId, onColorChange, onEdit, on
 function ModalShell({ title, subtitle, onClose, children }: { title: string; subtitle?: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl overflow-auto rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl max-h-[90vh]">
+      <div className="w-full max-w-2xl overflow-auto rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl max-h-[90vh]">
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
           <div>
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
@@ -524,7 +524,7 @@ export function NotesPage() {
         </p>
         <div className="flex items-center gap-2">
           <button onClick={() => setModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-stone-600 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
+            className="flex items-center gap-1.5 rounded-sm bg-stone-600 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
             <Plus size={13} /> New Note
           </button>
         </div>
@@ -532,7 +532,7 @@ export function NotesPage() {
 
       {/* ── Filter bar ── */}
       <div className="mb-5 flex items-center gap-2 flex-wrap">
-        <div className="flex gap-0.5 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
+        <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
           {([
             { key: "all",  label: "All"  },
             { key: "mine", label: "Mine" },
@@ -551,18 +551,18 @@ export function NotesPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-600" size={12} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search notes…"
-            className="h-8 w-48 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-stone-600 outline-none focus:border-[var(--border-soft)] transition-colors" />
+            className="h-8 w-48 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-stone-600 outline-none focus:border-[var(--border-soft)] transition-colors" />
         </label>
 
         <select value={sort} onChange={e => setSort(e.target.value as typeof sort)}
-          className="h-8 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 text-xs text-stone-400 outline-none">
+          className="h-8 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 text-xs text-stone-400 outline-none">
           <option value="newest">Newest</option>
           <option value="oldest">Oldest</option>
           <option value="updated">Updated</option>
         </select>
 
         {pinned.size > 0 && (
-          <span className="flex items-center gap-1 rounded-xl border border-orange-500/20 bg-orange-500/[.06] px-2.5 py-1 text-[11px] text-orange-400">
+          <span className="flex items-center gap-1 rounded-sm border border-orange-500/20 bg-orange-500/[.06] px-2.5 py-1 text-[11px] text-orange-400">
             <Pin size={10} className="fill-orange-400" /> {pinned.size} pinned
           </span>
         )}
@@ -580,7 +580,7 @@ export function NotesPage() {
           description="Capture meeting context, call summaries, and decisions linked to any record."
           action={
             <button onClick={() => setModalOpen(true)}
-              className="flex items-center gap-2 rounded-xl bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
+              className="flex items-center gap-2 rounded-sm bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
               <Plus size={14} /> Add first note
             </button>
           }
@@ -648,9 +648,9 @@ export function NotesPage() {
               <input value={recordSearch}
                 onChange={e => { setRecordSearch(e.target.value); setLinkedRecord(undefined); }}
                 placeholder="Link to a contact, company, deal…"
-                className="h-10 w-full rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder-stone-600 outline-none focus:border-[var(--border-soft)] transition-colors" />
+                className="h-10 w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder-stone-600 outline-none focus:border-[var(--border-soft)] transition-colors" />
               {recordSearch && !linkedRecord && (
-                <div className="absolute z-10 mt-1 max-h-52 w-full overflow-auto rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-1 shadow-2xl">
+                <div className="absolute z-10 mt-1 max-h-52 w-full overflow-auto rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-1 shadow-2xl">
                   {recordOptions.length === 0 ? (
                     <p className="px-3 py-4 text-center text-xs text-stone-600">No records found</p>
                   ) : recordOptions.map(r => (
@@ -665,7 +665,7 @@ export function NotesPage() {
               )}
             </div>
           ) : (
-            <div className="mb-4 flex items-center gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
+            <div className="mb-4 flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
               <Link2 size={12} className="text-stone-500" />
               <span className="text-xs text-stone-400">Linked to</span>
               <span className="text-xs font-medium text-[var(--text-primary)]">{linkedRecord?.data.name as string}</span>

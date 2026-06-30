@@ -152,7 +152,7 @@ export function QuickActions() {
   return (
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh] px-4" onClick={close}>
       <div
-        className="w-full max-w-lg overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl dark:border-stone-800 dark:bg-stone-950"
+        className="w-full max-w-lg overflow-hidden rounded-sm border border-stone-200 bg-white shadow-2xl dark:border-stone-800 dark:bg-stone-950"
         onClick={e => e.stopPropagation()}
       >
         {!activeCreate ? (

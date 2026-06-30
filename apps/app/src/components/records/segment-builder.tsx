@@ -117,7 +117,7 @@ export function SegmentBuilder({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-xl rounded-2xl border border-[var(--border-soft)] bg-[#121214] shadow-2xl flex flex-col max-h-[85vh]">
+      <div className="w-full max-w-xl rounded-sm border border-[var(--border-soft)] bg-[#121214] shadow-2xl flex flex-col max-h-[85vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)]">
@@ -136,7 +136,7 @@ export function SegmentBuilder({
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           {saved ? (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
-              <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-sm bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                 <Check size={22} className="text-emerald-400" />
               </div>
               <div>
@@ -222,7 +222,7 @@ export function SegmentBuilder({
               </button>
 
               {/* Preview */}
-              <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 flex items-center justify-between">
+              <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 flex items-center justify-between">
                 <span className="text-xs text-[var(--text-secondary)]">Matching records</span>
                 <span className={`text-sm font-semibold ${matched.length > 0 ? "text-stone-400" : "text-[var(--text-secondary)]"}`}>
                   {matched.length} / {records.length}
@@ -236,7 +236,7 @@ export function SegmentBuilder({
                   value={listName}
                   onChange={e => setListName(e.target.value)}
                   placeholder={`${cleanName} segment — ${new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" })}`}
-                  className="w-full h-9 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 text-sm text-[var(--text-secondary)] placeholder-white/20 outline-none focus:border-stone-500/40 transition-colors"
+                  className="w-full h-9 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 text-sm text-[var(--text-secondary)] placeholder-white/20 outline-none focus:border-stone-500/40 transition-colors"
                 />
               </div>
             </>
@@ -252,7 +252,7 @@ export function SegmentBuilder({
             <button
               onClick={saveSegment}
               disabled={matched.length === 0 || saving}
-              className="flex items-center gap-1.5 rounded-xl bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-sm bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-40"
             >
               {saving ? <><Loader2 size={12} className="animate-spin" /> Saving…</> : <><List size={12} /> Save {matched.length} records as list</>}
             </button>

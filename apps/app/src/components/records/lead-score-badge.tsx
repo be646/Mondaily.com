@@ -64,7 +64,7 @@ export function LeadScoreBadge({ score, size = "sm", signals }: Props) {
   const factors = signals ? factorsFrom(signals) : [];
 
   return (
-    <div className={`rounded-xl border ${colors.bg} px-4 py-3`}>
+    <div className={`rounded-sm border ${colors.bg} px-4 py-3`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <TrendingUp size={13} className={colors.text} />

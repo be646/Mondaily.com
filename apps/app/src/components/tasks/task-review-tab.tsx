@@ -29,7 +29,7 @@ function ReviewHistoryItem({ review }: { review: TaskReview }) {
   const actionLabel = review.action === "approved" ? "Approved" : review.action === "changes_requested" ? "Changes Requested" : review.action === "reassigned" ? "Reassigned" : "Pending";
 
   return (
-    <div className="surface-card space-y-3 rounded-xl p-4">
+    <div className="surface-card space-y-3 rounded-sm p-4">
       <div className="flex items-center justify-between">
         <RoundBadge round={review.round}/>
         <span className="text-xs font-medium" style={{ color: review.status === "pending" ? "#3b82f6" : actionColor }}>
@@ -144,7 +144,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
           <div className="space-y-1.5 max-h-48 overflow-auto">
             {members.map(m => (
               <button key={m.user_id} onClick={() => setSelectedReviewer(m)}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors"
+                className="flex w-full items-center gap-3 rounded-sm px-3 py-2.5 border transition-colors"
                 style={selectedReviewer?.user_id === m.user_id ? { borderColor: "var(--border-strong)", background: "var(--surface-selected)" } : { borderColor: "var(--border-soft)" }}>
                 <Avatar name={m.name || m.email}/>
                 <span className="flex-1 text-sm text-left" style={{ color: "var(--text-secondary)" }}>{m.name || m.email}</span>
@@ -172,7 +172,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
           <button onClick={() => setScreen("idle")} className="text-xs transition-colors hover:text-stone-600 dark:hover:text-stone-400" style={{ color: "var(--text-muted)" }}>Back</button>
         </div>
 
-        <div className="surface-card rounded-xl p-4">
+        <div className="surface-card rounded-sm p-4">
           <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>Reviewing</p>
           <p className="text-sm font-medium mb-3" style={{ color: "var(--text-primary)" }}>{pendingReview.context}</p>
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>Sent by <span style={{ color: "var(--text-secondary)" }}>{pendingReview.sent_by_name}</span></p>
@@ -187,7 +187,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
 
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => takeAction.mutate("approved")} disabled={takeAction.isPending}
-            className="flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 transition-colors"
+            className="flex items-center justify-center gap-2 h-10 rounded-sm text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 transition-colors"
             style={{ background: "#10b981" }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#059669"; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#10b981"; }}>
             <CheckCircle size={15}/> Approve
           </button>
@@ -218,7 +218,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
           <div className="space-y-1.5 max-h-48 overflow-auto">
             {members.filter(m => m.user_id !== userId).map(m => (
               <button key={m.user_id} onClick={() => setNewReviewer(m)}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors"
+                className="flex w-full items-center gap-3 rounded-sm px-3 py-2.5 border transition-colors"
                 style={newReviewer?.user_id === m.user_id ? { borderColor: "var(--border-strong)", background: "var(--surface-selected)" } : { borderColor: "var(--border-soft)" }}>
                 <Avatar name={m.name || m.email}/>
                 <span className="flex-1 text-sm text-left" style={{ color: "var(--text-secondary)" }}>{m.name || m.email}</span>
@@ -249,7 +249,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
 
       {/* Pending review card */}
       {pendingReview && (
-        <div className="surface-card space-y-3 rounded-xl p-4">
+        <div className="surface-card space-y-3 rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"/>
@@ -292,7 +292,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
 
       {/* Review result */}
       {task.review_result && !pendingReview && (
-        <div className="rounded-xl border p-4" style={task.review_result === "approved" ? { borderColor: "rgba(16,185,129,0.2)", background: "rgba(16,185,129,0.05)" } : { borderColor: "rgba(217,119,6,0.2)", background: "rgba(217,119,6,0.05)" }}>
+        <div className="rounded-sm border p-4" style={task.review_result === "approved" ? { borderColor: "rgba(16,185,129,0.2)", background: "rgba(16,185,129,0.05)" } : { borderColor: "rgba(217,119,6,0.2)", background: "rgba(217,119,6,0.05)" }}>
           <div className="flex items-center gap-2 mb-1">
             {task.review_result === "approved"
               ? <CheckCircle size={15} className="text-emerald-500 dark:text-emerald-400"/>

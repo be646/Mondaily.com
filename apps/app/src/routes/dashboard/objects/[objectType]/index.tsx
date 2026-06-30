@@ -196,7 +196,7 @@ function CreateRecordModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all duration-200 ${tab === "ai" && aiRecords.length ? "w-[680px]" : "w-[440px]"}`}>
+      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all duration-200 ${tab === "ai" && aiRecords.length ? "w-[680px]" : "w-[440px]"}`}>
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-3.5">
@@ -474,7 +474,7 @@ function AIFillModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[3px]" onClick={onClose}/>
-      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_32px_80px_rgba(0,0,0,0.8)] transition-all duration-200 ${records.length ? "w-[720px]" : "w-[500px]"}`}>
+      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_32px_80px_rgba(0,0,0,0.8)] transition-all duration-200 ${records.length ? "w-[720px]" : "w-[500px]"}`}>
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-6 py-4">
@@ -620,7 +620,7 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.8)]">
+      <div className="fixed left-1/2 top-1/2 z-50 w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.8)]">
         <div className="px-6 py-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-500/10 border border-stone-500/20 shrink-0">
@@ -817,7 +817,7 @@ export function ObjectIndexPage() {
           <div className="flex flex-1 flex-col items-center justify-center gap-6">
             <div className="text-center space-y-2 max-w-sm">
               <div className="flex justify-center mb-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-stone-100 border border-stone-300 dark:bg-stone-500/10 dark:border-stone-500/20">
+                <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-stone-100 border border-stone-300 dark:bg-stone-500/10 dark:border-stone-500/20">
                   <LogoMark size={22} className="text-[var(--accent)] dark:text-stone-400"/>
                 </div>
               </div>

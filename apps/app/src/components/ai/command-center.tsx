@@ -162,7 +162,7 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
 
       <div className="attention-stream-shell">
         {isLoading ? (
-          <div className="p-3"><div className="skeleton-shimmer h-12 rounded-xl"/></div>
+          <div className="p-3"><div className="skeleton-shimmer h-12 rounded-sm"/></div>
         ) : hasActivityError ? (
           <div className="px-4 py-5">
             <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>Could not load activity</p>
@@ -340,9 +340,9 @@ export function WorkspaceGraphPulse() {
         <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>real-time, not historical</span>
       </div>
       {pulse.isLoading ? (
-        <div className="skeleton-shimmer h-[140px] rounded-2xl"/>
+        <div className="skeleton-shimmer h-[140px] rounded-sm"/>
       ) : pulse.isError ? (
-        <div className="surface-card rounded-2xl px-4 py-8 text-center">
+        <div className="surface-card rounded-sm px-4 py-8 text-center">
           <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load agent status</p>
           <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>Workspace graph counts did not return from the API.</p>
         </div>

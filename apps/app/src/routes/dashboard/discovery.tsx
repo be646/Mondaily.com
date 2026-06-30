@@ -76,7 +76,7 @@ export function DiscoveryPage() {
 
       {/* Health banner — only when the self-hosted search stack is degraded */}
       {statusQ.data && statusQ.data.status === "DEGRADED" && (
-        <div className="flex items-start gap-3 rounded-2xl border px-4 py-3" style={{ borderColor: "#e9d8a6", background: "#fdfaf0" }}>
+        <div className="flex items-start gap-3 rounded-sm border px-4 py-3" style={{ borderColor: "#e9d8a6", background: "#fdfaf0" }}>
           <AlertTriangle size={15} className="mt-0.5 shrink-0 text-amber-600" />
           <div className="text-[12.5px] leading-relaxed text-amber-900">
             <span className="font-medium">Search stack is degraded.</span>{" "}
@@ -89,7 +89,7 @@ export function DiscoveryPage() {
 
       {/* ── Run a sweep ── */}
       <section
-        className="overflow-hidden rounded-2xl border bg-[var(--surface-card)]"
+        className="overflow-hidden rounded-sm border bg-[var(--surface-card)]"
         style={{ borderColor: "var(--border-soft)", boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 18px 40px -28px rgba(0,0,0,0.16)" }}
       >
         <div className="flex items-center gap-2.5 border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
@@ -103,7 +103,7 @@ export function DiscoveryPage() {
         </div>
 
         <div className="space-y-4 p-5">
-          <div className="inline-flex rounded-xl border p-1" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
+          <div className="inline-flex rounded-sm border p-1" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
             {(["INTENT_LEADS", "REVIEWS"] as SearchType[]).map((t) => (
               <button
                 key={t}
@@ -143,7 +143,7 @@ export function DiscoveryPage() {
       </section>
 
       {/* ── Results ── */}
-      <section className="overflow-hidden rounded-2xl border bg-[var(--surface-card)]" style={{ borderColor: "var(--border-soft)" }}>
+      <section className="overflow-hidden rounded-sm border bg-[var(--surface-card)]" style={{ borderColor: "var(--border-soft)" }}>
         <div className="flex flex-wrap items-center gap-1.5 border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
           {FILTERS.map(([k, l]) => (
             <button
@@ -163,7 +163,7 @@ export function DiscoveryPage() {
           <div className="p-5"><PageSkeleton rows={4} /></div>
         ) : rows.length === 0 ? (
           <div className="flex flex-col items-center px-6 py-16 text-center">
-            <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl" style={{ background: "#6f80681a" }}>
+            <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-sm" style={{ background: "#6f80681a" }}>
               <Radar size={20} className="text-[#6f8068]" />
             </span>
             <p className="text-[14px] font-medium text-[var(--text-primary)]">No discovered leads yet</p>

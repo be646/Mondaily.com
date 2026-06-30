@@ -160,7 +160,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                 </div>
               )}
               <div className={`flex flex-col gap-1 min-w-0 ${m.role === "user" ? "max-w-[85%]" : "flex-1"}`}>
-                <div className={`min-w-0 break-words rounded-xl px-3 py-2 text-[12px] leading-relaxed ${
+                <div className={`min-w-0 break-words rounded-sm px-3 py-2 text-[12px] leading-relaxed ${
                   m.role === "user"
                     ? "bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text-primary)] rounded-tr-sm whitespace-pre-wrap"
                     : "whitespace-pre-wrap"
@@ -246,7 +246,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
             <div className="flex h-5 w-5 shrink-0 items-center justify-center text-stone-400 mt-0.5">
               <LogoMark size={16} thinking/>
             </div>
-            <div className="rounded-xl bg-[var(--surface-hover)] border border-[var(--border-soft)] px-3 py-2 flex items-center gap-2">
+            <div className="rounded-sm bg-[var(--surface-hover)] border border-[var(--border-soft)] px-3 py-2 flex items-center gap-2">
               {streamStatus ? (
                 <span className="text-[10.5px] text-stone-400">{streamStatus}</span>
               ) : tokenCount > 0 ? (
@@ -270,7 +270,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
           <AttachPicker attach={attach}/>
           <AttachChips attach={attach}/>
         </div>
-        <div className="flex items-end gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 focus-within:border-[var(--border-soft)] transition-colors">
+        <div className="flex items-end gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 focus-within:border-[var(--border-soft)] transition-colors">
           <AttachButton attach={attach}/>
           {voice.supported && (
             <button onClick={voice.toggle} title={voice.listening ? "Stop dictation" : "Dictate"}
@@ -314,7 +314,7 @@ function ShareModal({ onClose }: { onClose: () => void }) {
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="fixed left-1/2 top-1/2 z-50 w-96 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Share2 size={14} className="text-stone-400"/>
@@ -330,7 +330,7 @@ function ShareModal({ onClose }: { onClose: () => void }) {
         <p className="mb-3 text-[11px] text-stone-600 leading-relaxed">
           Anyone with this link can view this page if they have access to this workspace.
         </p>
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
+        <div className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
           <span className="flex-1 truncate text-[11px] text-stone-500">{url}</span>
           <button onClick={copy} className="shrink-0 text-stone-500 hover:text-[var(--text-primary)] transition-colors">
             {copied ? <Check size={13} className="text-emerald-400"/> : <Copy size={13}/>}

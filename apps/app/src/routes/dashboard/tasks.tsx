@@ -61,7 +61,7 @@ const BTN_PRIMARY = "btn-primary flex-1 h-10 text-sm";
 function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
-      <div className="surface-modal w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+      <div className="surface-modal w-full max-w-md rounded-sm shadow-2xl overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border-soft)" }}>
           <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{title}</h2>
           <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15}/></button>
@@ -163,7 +163,7 @@ function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; 
           </select>
         </div>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-          className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm text-[#111827] resize-none outline-none focus:border-stone-500 focus:ring-2 focus:ring-stone-500/20 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:focus:border-[var(--border-soft)] dark:focus:ring-0 transition-colors"/>
+          className="w-full rounded-sm border border-stone-200 bg-white px-3 py-2 text-sm text-[#111827] resize-none outline-none focus:border-stone-500 focus:ring-2 focus:ring-stone-500/20 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:focus:border-[var(--border-soft)] dark:focus:ring-0 transition-colors"/>
         <div className="flex gap-2 pt-1">
           <button onClick={onClose} className={BTN_CANCEL}>Cancel</button>
           <button onClick={() => title.trim() && update.mutate()} disabled={!title.trim() || update.isPending} className={BTN_PRIMARY}>
@@ -189,9 +189,9 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}
-      className={`rounded-xl border p-3 transition-all ${isDragging ? "shadow-2xl opacity-80 border-stone-500/40 bg-white dark:bg-[#1a1d24]" : "border-stone-200 bg-white hover:border-stone-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"}`}>
+      className={`rounded-sm border p-3 transition-all ${isDragging ? "shadow-2xl opacity-80 border-stone-500/40 bg-white dark:bg-[#1a1d24]" : "border-stone-200 bg-white hover:border-stone-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"}`}>
       {/* Drag handle covers the background only */}
-      <div {...listeners} className="absolute inset-0 rounded-xl cursor-grab active:cursor-grabbing" style={{ zIndex: 0 }}/>
+      <div {...listeners} className="absolute inset-0 rounded-sm cursor-grab active:cursor-grabbing" style={{ zIndex: 0 }}/>
       <div className="relative" style={{ zIndex: 1 }}>
         <div className="flex items-start gap-2 mb-2">
           <button onPointerDown={e => e.stopPropagation()} onClick={() => onToggle(task)}
@@ -254,7 +254,7 @@ function BoardColumn({ col, tasks, onDetail, onEdit, onDelete, onToggle, current
         <span className="ml-auto rounded-full bg-[var(--surface-hover)] px-2 py-px text-[10px] text-stone-500">{tasks.length}</span>
       </div>
       <div ref={setNodeRef}
-        className={`flex-1 min-h-[120px] rounded-xl border-2 border-dashed p-2 space-y-2 transition-colors ${isOver ? "border-stone-500/30 bg-stone-600/[.03]" : "border-[var(--border-soft)] bg-[var(--surface-hover)]"}`}>
+        className={`flex-1 min-h-[120px] rounded-sm border-2 border-dashed p-2 space-y-2 transition-colors ${isOver ? "border-stone-500/30 bg-stone-600/[.03]" : "border-[var(--border-soft)] bg-[var(--surface-hover)]"}`}>
         {tasks.length === 0 && <div className="flex h-16 items-center justify-center text-xs text-stone-700">Drop here</div>}
         {tasks.map(task => (
           <div key={task.id} className="relative">
@@ -302,7 +302,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
-      <div className={`w-full rounded-2xl border border-stone-200 bg-white shadow-2xl overflow-hidden transition-all dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)] ${suggestions.length ? "max-w-2xl" : "max-w-md"}`}>
+      <div className={`w-full rounded-sm border border-stone-200 bg-white shadow-2xl overflow-hidden transition-all dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)] ${suggestions.length ? "max-w-2xl" : "max-w-md"}`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 dark:border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
             <LogoMark size={14} className="text-stone-600 dark:text-stone-400"/>
@@ -313,7 +313,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
 
         <div className="p-5 space-y-4">
           <textarea autoFocus value={prompt} onChange={e => setPrompt(e.target.value)} rows={3}
-            className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-[#111827] placeholder-[#9ca3af] resize-none outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-500/20 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:placeholder-stone-600 dark:focus:border-stone-500/40 dark:focus:ring-0 transition-colors"/>
+            className="w-full rounded-sm border border-stone-200 bg-white px-3 py-2.5 text-sm text-[#111827] placeholder-[#9ca3af] resize-none outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-500/20 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:placeholder-stone-600 dark:focus:border-stone-500/40 dark:focus:ring-0 transition-colors"/>
           <div className="flex items-center gap-3">
             <span className="text-xs text-stone-500 dark:text-stone-500">Suggest</span>
             <div className="flex gap-1">
@@ -361,7 +361,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
           <button onClick={onClose} className="text-sm text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-300 transition-colors">Cancel</button>
           {suggestions.length === 0 ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
-              className="flex items-center gap-2 rounded-xl bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
+              className="flex items-center gap-2 rounded-sm bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
               {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
             </button>
           ) : (
@@ -370,7 +370,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
                 {loading ? "Regenerating…" : "Regenerate"}
               </button>
               <button onClick={importSelected} disabled={selected.size === 0 || saving}
-                className="flex items-center gap-2 rounded-xl bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
+                className="flex items-center gap-2 rounded-sm bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
                 {saving ? <Loader2 size={13} className="animate-spin"/> : <Check size={13}/>}
                 Add {selected.size} task{selected.size !== 1 ? "s" : ""}
               </button>
@@ -510,7 +510,7 @@ export function TasksPage() {
         <p className="text-sm text-stone-500">Work assigned to you and your team.</p>
         <div className="flex items-center gap-2 flex-wrap">
           {/* View toggle */}
-          <div className="flex gap-0.5 rounded-xl border border-stone-200 bg-stone-50 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] p-0.5">
+          <div className="flex gap-0.5 rounded-sm border border-stone-200 bg-stone-50 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] p-0.5">
             {([["list","List",<List size={12}/>],["board","Board",<Columns3 size={12}/>],["sheet","Sheet",<Sheet size={12}/>]] as const).map(([mode, label, icon]) => (
               <button key={mode} onClick={() => setViewMode(mode as any)} title={label}
                 className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-stone-200 text-stone-900 dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-300"}`}>
@@ -519,11 +519,11 @@ export function TasksPage() {
             ))}
           </div>
           <button onClick={() => setShowAISuggest(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-stone-300 bg-stone-100 px-3 py-1.5 text-xs text-[var(--accent)] hover:bg-stone-200 dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
+            className="flex items-center gap-1.5 rounded-sm border border-stone-300 bg-stone-100 px-3 py-1.5 text-xs text-[var(--accent)] hover:bg-stone-200 dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
             <AIMark size={12}/> Suggest
           </button>
           <button onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-stone-600 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
+            className="flex items-center gap-1.5 rounded-sm bg-stone-600 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
             <Plus size={13}/> New Task
           </button>
         </div>
@@ -532,7 +532,7 @@ export function TasksPage() {
       {/* ── Filter bar ── */}
       <div className="mb-5 flex items-center gap-1.5 flex-wrap">
         {/* Status */}
-        <div className="flex gap-0.5 rounded-xl border border-stone-200 bg-stone-50 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] p-0.5">
+        <div className="flex gap-0.5 rounded-sm border border-stone-200 bg-stone-50 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] p-0.5">
           {([
             { key: "mine",    label: "Mine" },
             { key: "all",     label: "All" },
@@ -553,7 +553,7 @@ export function TasksPage() {
         <div className="relative">
           {labelOpen && <div className="fixed inset-0 z-40" onClick={() => setLabelOpen(false)}/>}
           <button onClick={() => { setLabelOpen(o => !o); setPriorityOpen(false); setSortOpen(false); }}
-            className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs transition-colors ${labelFilter ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:border-[var(--border-soft)]"}`}>
+            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${labelFilter ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:border-[var(--border-soft)]"}`}>
             <Tag size={11}/>{labelFilter || "Label"}<ChevronDown size={10} className={`transition-transform ${labelOpen ? "rotate-180" : ""}`}/>
           </button>
           {labelOpen && (
@@ -581,7 +581,7 @@ export function TasksPage() {
         <div className="relative">
           {priorityOpen && <div className="fixed inset-0 z-40" onClick={() => setPriorityOpen(false)}/>}
           <button onClick={() => { setPriorityOpen(o => !o); setLabelOpen(false); setSortOpen(false); }}
-            className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs transition-colors ${priorityFilter ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:border-[var(--border-soft)]"}`}>
+            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${priorityFilter ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:border-[var(--border-soft)]"}`}>
             <Flag size={11}/>{priorityFilter ? priorityFilter.charAt(0).toUpperCase()+priorityFilter.slice(1) : "Priority"}<ChevronDown size={10} className={`transition-transform ${priorityOpen ? "rotate-180" : ""}`}/>
           </button>
           {priorityOpen && (
@@ -607,7 +607,7 @@ export function TasksPage() {
         <div className="relative">
           {sortOpen && <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)}/>}
           <button onClick={() => { setSortOpen(o => !o); setLabelOpen(false); setPriorityOpen(false); }}
-            className={`flex items-center gap-1 rounded-xl border px-2.5 py-1 text-xs transition-colors ${(sortBy !== "created_at" || sortDir !== "desc") ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:border-[var(--border-soft)]"}`}>
+            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${(sortBy !== "created_at" || sortDir !== "desc") ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:border-[var(--border-soft)]"}`}>
             <ArrowUpDown size={11}/>
             {sortBy === "due_date" ? "Due date" : sortBy === "priority" ? "Priority" : sortBy === "assignee" ? "Assignee" : "Sort"}
             <ChevronDown size={10} className={`transition-transform ${sortOpen ? "rotate-180" : ""}`}/>
@@ -647,7 +647,7 @@ export function TasksPage() {
               const assigneeName = getMemberName(task);
               const sm = STATUS_META[task.status ?? "todo"] ?? STATUS_META["todo"]!;
               return (
-                <div key={task.id} id={`task-${task.id}`} className={`rounded-2xl border transition-all ${highlightId === task.id ? "ring-2 ring-offset-1" : ""} ${isOverdue ? "border-stone-200 bg-stone-50/60 dark:border-stone-500/20 dark:bg-stone-500/[.03]" : "border-stone-200 bg-white hover:border-stone-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"}`} style={highlightId === task.id ? { boxShadow: "0 0 0 2px var(--accent)", borderColor: "var(--accent)" } : undefined}>
+                <div key={task.id} id={`task-${task.id}`} className={`rounded-sm border transition-all ${highlightId === task.id ? "ring-2 ring-offset-1" : ""} ${isOverdue ? "border-stone-200 bg-stone-50/60 dark:border-stone-500/20 dark:bg-stone-500/[.03]" : "border-stone-200 bg-white hover:border-stone-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"}`} style={highlightId === task.id ? { boxShadow: "0 0 0 2px var(--accent)", borderColor: "var(--accent)" } : undefined}>
                   <div className="flex items-center gap-3 px-4 py-3">
                     {/* Checkbox */}
                     <button onClick={() => toggle.mutate(task)}
@@ -753,11 +753,11 @@ export function TasksPage() {
           <>
             <div className="flex justify-end mb-3">
               <button onClick={() => setShowDone(v => !v)}
-                className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs transition-colors ${showDone ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/[.06] dark:text-emerald-400" : "border-stone-200 text-stone-500 hover:text-stone-800 dark:border-[var(--border-soft)] dark:text-stone-500 dark:hover:text-stone-300"}`}>
+                className={`flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs transition-colors ${showDone ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/[.06] dark:text-emerald-400" : "border-stone-200 text-stone-500 hover:text-stone-800 dark:border-[var(--border-soft)] dark:text-stone-500 dark:hover:text-stone-300"}`}>
                 <Check size={11}/>{showDone ? "Hiding completed" : "Show completed"}
               </button>
             </div>
-            <div className="overflow-auto rounded-2xl border border-stone-200 dark:border-[var(--border-soft)]">
+            <div className="overflow-auto rounded-sm border border-stone-200 dark:border-[var(--border-soft)]">
               <table className="minimal-table min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-stone-200 bg-[#f9fafb] dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)]">
@@ -838,7 +838,7 @@ export function TasksPage() {
           {showDone && (
             <div className="space-y-1 opacity-50">
               {doneTasks.map(task => (
-                <div key={task.id} className="rounded-xl border border-[var(--border-soft)] p-3 flex items-center gap-3">
+                <div key={task.id} className="rounded-sm border border-[var(--border-soft)] p-3 flex items-center gap-3">
                   <button onClick={() => toggle.mutate(task)}
                     className="h-4 w-4 shrink-0 rounded border border-emerald-500/50 bg-emerald-500/20 flex items-center justify-center">
                     <Check size={9} className="text-emerald-400"/>
@@ -855,8 +855,8 @@ export function TasksPage() {
       {/* ── Delete confirm ── */}
       {confirmDeleteId && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-2xl dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-stone-50 dark:bg-stone-500/10 mb-4">
+          <div className="w-full max-w-sm rounded-sm border border-stone-200 bg-white p-6 shadow-2xl dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-stone-50 dark:bg-stone-500/10 mb-4">
               <Trash2 size={16} className="text-stone-600 dark:text-stone-400"/>
             </div>
             <h2 className="text-base font-semibold text-[#111827] dark:text-[var(--text-primary)] mb-1">Delete task?</h2>

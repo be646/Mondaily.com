@@ -45,7 +45,7 @@ function ModalShell({ title, close, children }: { title: string; close: () => vo
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={close} />
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-semibold text-[var(--text-primary)]">{title}</h2>
           <button onClick={close} className="rounded-md p-1 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"><X size={15} /></button>
@@ -253,7 +253,7 @@ export function IntegrationsSettings() {
             </>
           ) : (
             <button onClick={() => generateMcp.mutate()}
-              className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all">
+              className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all">
               <ExternalLink size={13} /> Generate token
             </button>
           )}
@@ -265,7 +265,7 @@ export function IntegrationsSettings() {
         <ModalShell title="Create API key" close={() => setKeyOpen(false)}>
           {createdKey ? (
             <div className="space-y-4">
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/[.05] p-3 text-xs text-amber-300">
+              <div className="rounded-sm border border-amber-500/20 bg-amber-500/[.05] p-3 text-xs text-amber-300">
                 This key is shown once. Store it securely — you won't be able to see it again.
               </div>
               <div>
@@ -276,7 +276,7 @@ export function IntegrationsSettings() {
                 </div>
               </div>
               <button onClick={() => setKeyOpen(false)}
-                className="w-full rounded-xl bg-[var(--surface-hover)] py-2.5 text-sm font-medium text-stone-300 hover:bg-[var(--surface-hover)] transition-colors">
+                className="w-full rounded-sm bg-[var(--surface-hover)] py-2.5 text-sm font-medium text-stone-300 hover:bg-[var(--surface-hover)] transition-colors">
                 Done
               </button>
             </div>
@@ -287,7 +287,7 @@ export function IntegrationsSettings() {
                 <input autoFocus value={keyName} onChange={e => setKeyName(e.target.value)} placeholder="e.g. Production, CI/CD" className="key-input h-10 w-full px-3 text-sm" />
               </label>
               <button type="submit" disabled={!keyName.trim() || createKey.isPending}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-all">
+                className="flex w-full items-center justify-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-all">
                 {createKey.isPending ? "Generating…" : "Generate key"}
               </button>
             </form>
@@ -325,7 +325,7 @@ export function IntegrationsSettings() {
               </div>
             </div>
             <button type="submit" disabled={!webhook.url.startsWith("https://") || createWebhook.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-all">
+              className="flex w-full items-center justify-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-all">
               {createWebhook.isPending ? "Creating…" : "Create webhook"}
             </button>
           </form>

@@ -47,7 +47,7 @@ export function NoteEditor({
 
   const charCount = editor?.getText().length ?? 0;
 
-  if (!editor) return <div className="h-40 animate-pulse rounded-xl bg-[var(--surface-hover)]" />;
+  if (!editor) return <div className="h-40 animate-pulse rounded-sm bg-[var(--surface-hover)]" />;
 
   function btn(active: boolean, onClick: () => void, icon: React.ReactNode, title: string) {
     return (
@@ -67,7 +67,7 @@ export function NoteEditor({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)]">
+    <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 border-b border-[var(--border-soft)] px-3 py-2">
         {btn(editor.isActive("bold"),     () => editor.chain().focus().toggleBold().run(),        <Bold size={13} />,        "Bold")}

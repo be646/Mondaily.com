@@ -50,7 +50,7 @@ function ModalShell({ onClose, children }: { onClose: () => void; children: Reac
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="surface-modal fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.22)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="surface-modal fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-sm px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.22)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         {children}
       </div>
     </>
@@ -349,7 +349,7 @@ export function ListPage() {
           {assignOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setAssignOpen(false)} />
-              <div className="surface-modal absolute left-0 top-full z-30 mt-1 w-64 rounded-2xl p-3 shadow-[0_16px_40px_rgba(0,0,0,0.22)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.7)]">
+              <div className="surface-modal absolute left-0 top-full z-30 mt-1 w-64 rounded-sm p-3 shadow-[0_16px_40px_rgba(0,0,0,0.22)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.7)]">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Assign to</p>
                 {membersQuery.isLoading ? (
                   <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin" style={{ color: "var(--text-faint)" }} /></div>
@@ -418,7 +418,7 @@ export function ListPage() {
           {shareOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setShareOpen(false)} />
-              <div className="surface-modal absolute left-0 top-full z-30 mt-1 w-64 rounded-2xl p-3 shadow-[0_16px_40px_rgba(0,0,0,0.22)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.7)]">
+              <div className="surface-modal absolute left-0 top-full z-30 mt-1 w-64 rounded-sm p-3 shadow-[0_16px_40px_rgba(0,0,0,0.22)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.7)]">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Visibility</p>
                 <div className="flex gap-1 mb-2">
                   {(["workspace", "shared", "private"] as const).map(v => (
@@ -537,7 +537,7 @@ export function ListPage() {
           <PageSkeleton rows={6} />
         ) : isEmpty ? (
           <div className="flex flex-col items-center justify-center gap-6 border-y py-24 text-center" style={{ borderColor: "var(--border-soft)" }}>
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: "var(--surface-hover)", color: "var(--accent)" }}>
+            <div className="flex h-12 w-12 items-center justify-center rounded-sm" style={{ background: "var(--surface-hover)", color: "var(--accent)" }}>
               <LogoMark size={24} />
             </div>
             <div>
@@ -734,7 +734,7 @@ export function ListPage() {
             onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) runAiMatch(); }}
             rows={3}
             placeholder={`e.g. "Companies in the US with ARR above $1M"`}
-            className="surface-input w-full resize-none rounded-xl p-3 text-[12px] outline-none transition-colors placeholder:text-stone-400 dark:placeholder:text-stone-600"
+            className="surface-input w-full resize-none rounded-sm p-3 text-[12px] outline-none transition-colors placeholder:text-stone-400 dark:placeholder:text-stone-600"
             style={{ color: "var(--text-primary)" }}
           />
           {aiMatched === null ? (
@@ -752,7 +752,7 @@ export function ListPage() {
               {aiReason && (
                 <p className="mt-3 text-[11px] italic" style={{ color: "var(--text-muted)" }}>"{aiReason}"</p>
               )}
-              <div className="mt-3 max-h-56 overflow-auto rounded-xl border" style={{ borderColor: "var(--border-soft)" }}>
+              <div className="mt-3 max-h-56 overflow-auto rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
                 {aiMatched.length === 0 ? (
                   <p className="py-8 text-center text-xs" style={{ color: "var(--text-muted)" }}>No matching records found. Try a different description.</p>
                 ) : (
@@ -815,7 +815,7 @@ export function ListPage() {
       {deleteConfirm && (
         <>
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setDeleteConfirm(false)}/>
-          <div className="surface-modal fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.22)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="surface-modal fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-sm px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.22)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <h2 className="mb-2 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Delete "{list.data.name}"?</h2>
             <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>The records themselves will not be deleted — only this list.</p>
             <div className="mt-5 flex justify-end gap-2">
@@ -839,7 +839,7 @@ export function ListPage() {
       {/* ── Enroll in Sequence ── */}
       {enrollOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-2xl border border-[var(--border-soft)] bg-[#121214] shadow-2xl flex flex-col max-h-[80vh]">
+          <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[#121214] shadow-2xl flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)]">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20">
@@ -853,7 +853,7 @@ export function ListPage() {
             <div className="flex-1 overflow-y-auto px-6 py-5">
               {enrollStep === "done" ? (
                 <div className="flex flex-col items-center gap-4 py-8 text-center">
-                  <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                  <div className="h-12 w-12 rounded-sm bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                     <Mail size={22} className="text-emerald-400" />
                   </div>
                   <div>
@@ -863,11 +863,11 @@ export function ListPage() {
                 </div>
               ) : enrollStep === "confirm" ? (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-4">
+                  <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-4">
                     <p className="text-xs text-[var(--text-secondary)] mb-1">Enrolling into</p>
                     <p className="text-sm font-semibold text-[var(--text-primary)]">{enrollSeqName}</p>
                   </div>
-                  <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 flex items-center justify-between">
+                  <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 flex items-center justify-between">
                     <span className="text-xs text-[var(--text-secondary)]">Records to enroll</span>
                     <span className="text-sm font-semibold text-emerald-400">{records.length}</span>
                   </div>
@@ -885,7 +885,7 @@ export function ListPage() {
                       <button
                         key={seq.id}
                         onClick={() => { setEnrollSeqId(seq.id); setEnrollSeqName(seq.name); setEnrollStep("confirm"); }}
-                        className="w-full flex items-center justify-between rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-colors text-left"
+                        className="w-full flex items-center justify-between rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-colors text-left"
                       >
                         <span className="text-sm text-[var(--text-primary)]">{seq.name}</span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${seq.status === "active" ? "bg-emerald-500/15 text-emerald-400" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"}`}>{seq.status}</span>

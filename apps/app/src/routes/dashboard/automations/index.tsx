@@ -59,7 +59,7 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className={`w-full rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-2xl" : "max-w-lg"}`}>
+      <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-2xl" : "max-w-lg"}`}>
         <div className="flex items-center justify-between p-5 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
             <LogoMark size={15} className="text-stone-400"/>
@@ -75,7 +75,7 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
             onChange={e => setPrompt(e.target.value)}
             rows={3}
             placeholder={`e.g. "Cold outreach to SaaS founders about our analytics tool" or "Follow-up sequence for leads who downloaded our whitepaper"`}
-            className="w-full rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder-stone-600 resize-none outline-none focus:border-stone-500/40 transition-colors"
+            className="w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder-stone-600 resize-none outline-none focus:border-stone-500/40 transition-colors"
           />
           <div className="flex items-center gap-3">
             <span className="text-xs text-stone-500">Steps</span>
@@ -252,12 +252,12 @@ export function AutomationsPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-[var(--border-soft)] px-6 py-8 text-center">
+        <div className="rounded-sm border border-dashed border-[var(--border-soft)] px-6 py-8 text-center">
           <Icon size={20} className="mx-auto mb-2 text-stone-700"/>
           <p className="text-xs text-stone-600">No {title.toLowerCase()} yet</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-[var(--border-soft)]">
+        <div className="overflow-hidden rounded-sm border border-[var(--border-soft)]">
           {items.map((item, i) => {
             const steps = (item.data as any)?.steps?.length ?? 0;
             const enrolled = (item.data as any)?.enrollments?.length ?? 0;

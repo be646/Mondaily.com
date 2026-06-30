@@ -122,13 +122,13 @@ export function NotificationsPage() {
             {[...Array(5)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-lg border border-[#27272a] bg-[#18181b]" />)}
           </div>
         ) : visible.length === 0 ? (
-          <div className="rounded-xl border border-[#27272a] bg-[#18181b] py-16 text-center">
+          <div className="rounded-sm border border-[#27272a] bg-[#18181b] py-16 text-center">
             <Bell size={28} className="mx-auto mb-3 text-zinc-700" />
             <p className="text-sm text-zinc-400">{filter === "unread" ? "No unread signals" : "No notifications yet"}</p>
             <p className="mt-1 text-xs text-zinc-700">Reviews, approvals, mentions, and agent events surface here.</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-[#27272a] bg-[#18181b]">
+          <div className="overflow-hidden rounded-sm border border-[#27272a] bg-[#18181b]">
             {visible.map((n, i) => {
               const isRisk = n.type === "ai_risk";
               return (

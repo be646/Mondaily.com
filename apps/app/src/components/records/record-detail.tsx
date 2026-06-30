@@ -135,7 +135,7 @@ function AvatarSection({ name, logoUrl, onSave, wrapClass = "mx-auto" }: { name:
     <div className={`relative ${wrapClass} w-14`}>
       <button
         onClick={() => setOpen(o => !o)}
-        className="relative group h-14 w-14 rounded-2xl overflow-hidden focus:outline-none"
+        className="relative group h-14 w-14 rounded-sm overflow-hidden focus:outline-none"
         title="Change logo"
       >
         {logoUrl ? (
@@ -145,7 +145,7 @@ function AvatarSection({ name, logoUrl, onSave, wrapClass = "mx-auto" }: { name:
             {initials(name)}
           </div>
         )}
-        <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl">
+        <div className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm">
           <Camera size={16} className="text-[var(--text-primary)]"/>
         </div>
       </button>
@@ -921,7 +921,7 @@ function NoteCard({ note, onUpdate, onDelete }: {
 
   return (
     <div
-      className="group rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 hover:border-[var(--border-soft)] transition-colors"
+      className="group rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 hover:border-[var(--border-soft)] transition-colors"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -992,9 +992,9 @@ function NotesTab({ recordId, vertical }: { recordId: string; vertical: string }
           <Plus size={12}/> New note
         </button>
       </div>
-      {createNote.isPending && <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 animate-pulse"><div className="h-3 w-32 rounded bg-[var(--surface-hover)] mb-2"/><div className="h-2 w-48 rounded bg-[var(--surface-hover)]"/></div>}
+      {createNote.isPending && <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 animate-pulse"><div className="h-3 w-32 rounded bg-[var(--surface-hover)] mb-2"/><div className="h-2 w-48 rounded bg-[var(--surface-hover)]"/></div>}
       {notes.length === 0 && !isLoading && !createNote.isPending ? (
-        <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
+        <div className="flex min-h-36 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
           <FileText size={18} className="mb-2 text-stone-700"/>
           <p className="text-xs text-stone-600">No notes yet. Click "New note" to get started.</p>
         </div>
@@ -1081,7 +1081,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
         </div>
       )}
       {tasks.length === 0 && !adding ? (
-        <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
+        <div className="flex min-h-36 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
           <CheckSquare size={18} className="mb-2 text-stone-700"/>
           <p className="text-xs text-stone-600">No tasks yet. Click "Add task" to get started.</p>
         </div>
@@ -1142,7 +1142,7 @@ function DescriptionField({ value, onSave }: { value: string; onSave: (v: string
   }
   useEffect(() => { autoGrow(); }, [draft]);
   return (
-    <div className="rounded-xl border border-stone-800/60 bg-stone-900/20 p-4">
+    <div className="rounded-sm border border-stone-800/60 bg-stone-900/20 p-4">
       <div className="flex items-center gap-1.5 mb-2">
         <AlignLeft size={11} className="text-stone-600"/>
         <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Description</p>
@@ -1218,7 +1218,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
       </div>
 
       {adding && (
-        <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
+        <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
           {/* Type picker */}
           <div className="flex gap-2">
             {CONTACT_LOG_TYPES.map(t => {
@@ -1264,9 +1264,9 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
         </div>
       )}
 
-      {isLoading && <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 rounded-xl bg-[var(--surface-hover)] animate-pulse"/>)}</div>}
+      {isLoading && <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>)}</div>}
       {!isLoading && logs.length === 0 && !adding && (
-        <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
+        <div className="flex min-h-36 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
           <PhoneCall size={18} className="mb-2 text-stone-700"/>
           <p className="text-xs text-stone-600">No contact logs yet.</p>
           <p className="mt-1 text-xs text-stone-700">Click "Log contact" to record a call, email, or meeting.</p>
@@ -1278,7 +1278,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
           const Icon = typeDef.icon;
           const loggedAt = log.data.logged_at ? relativeTime(String(log.data.logged_at)) : relativeTime(log.updated_at);
           return (
-            <div key={log.id} className="group flex items-start gap-3 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3.5 hover:border-[var(--border-soft)] transition-colors">
+            <div key={log.id} className="group flex items-start gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3.5 hover:border-[var(--border-soft)] transition-colors">
               <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${typeDef.bg}`}>
                 <Icon size={14} className={typeDef.color}/>
               </div>
@@ -1379,7 +1379,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
           { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-stone-400" },
           { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-stone-400" : "text-emerald-400" },
         ].map(card => (
-          <div key={card.label} className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
+          <div key={card.label} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-1.5">{card.label}</p>
             <p className={`text-lg font-bold ${card.accent}`}>{card.value}</p>
           </div>
@@ -1399,7 +1399,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
         </div>
 
         {showNewInvoice && (
-          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 mb-3 space-y-3">
+          <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 mb-3 space-y-3">
             <p className="text-xs font-medium text-[var(--text-primary)]">New Invoice for {recordName}</p>
             <div className="grid grid-cols-3 gap-3">
               <div>
@@ -1452,7 +1452,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
             <p className="text-xs text-stone-600">No invoices yet for this record.</p>
           </div>
         ) : (
-          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
+          <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--border-soft)]">
@@ -2008,10 +2008,10 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
                 {/* Notes + Tasks side-by-side */}
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="rounded-xl border border-stone-800/60 bg-stone-900/20 p-4">
+                  <div className="rounded-sm border border-stone-800/60 bg-stone-900/20 p-4">
                     <InlineNotesPanel recordId={recordId} vertical={record.vertical}/>
                   </div>
-                  <div className="rounded-xl border border-stone-800/60 bg-stone-900/20 p-4">
+                  <div className="rounded-sm border border-stone-800/60 bg-stone-900/20 p-4">
                     <InlineTasksPanel recordId={recordId} vertical={record.vertical}/>
                   </div>
                 </div>

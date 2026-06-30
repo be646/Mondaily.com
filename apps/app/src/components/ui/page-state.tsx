@@ -65,7 +65,7 @@ export function PageSkeletonCards({ count = 4, label }: { count?: number; label?
       )}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: count }).map((_, index) => (
-          <div key={index} className="surface-card rounded-xl p-4">
+          <div key={index} className="surface-card rounded-sm p-4">
             <div className="skeleton-shimmer mb-3 h-4 w-2/3 rounded" />
             <div className="skeleton-shimmer mb-2 h-24 rounded-lg" />
             <div className="skeleton-shimmer h-3 w-1/3 rounded" />

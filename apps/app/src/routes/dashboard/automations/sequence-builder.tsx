@@ -96,7 +96,7 @@ function StepCard({
         <div className="absolute left-[27px] top-full z-0 h-6 w-px bg-[var(--surface-hover)]"/>
       )}
 
-      <div className="relative z-10 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
+      <div className="relative z-10 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
         {/* Step header */}
         <div
           className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-[var(--surface-hover)] transition-colors"
@@ -410,7 +410,7 @@ export function SequenceBuilderPage() {
         {tab === "steps" && (
           <div className="max-w-xl mx-auto">
             {seq.steps.length === 0 ? (
-              <div className="mb-6 rounded-xl border border-dashed border-[var(--border-soft)] py-10 text-center">
+              <div className="mb-6 rounded-sm border border-dashed border-[var(--border-soft)] py-10 text-center">
                 <Mail size={20} className="mx-auto mb-2 text-stone-700"/>
                 <p className="text-sm font-medium text-stone-400">No steps yet</p>
                 <p className="mt-1 text-xs text-stone-600">Add an email or task step to build your sequence</p>
@@ -453,7 +453,7 @@ export function SequenceBuilderPage() {
         {tab === "enrollments" && (
           <div className="max-w-2xl mx-auto">
             {seq.enrollments.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-[var(--border-soft)] py-10 text-center">
+              <div className="rounded-sm border border-dashed border-[var(--border-soft)] py-10 text-center">
                 <Users size={20} className="mx-auto mb-2 text-stone-700"/>
                 <p className="text-sm font-medium text-stone-400">No contacts enrolled</p>
                 <p className="mt-1 text-xs text-stone-600">Go to a People or Company record and enroll them in this sequence</p>
@@ -563,7 +563,7 @@ export function SequenceBuilderPage() {
         {tab === "settings" && (
           <div className="max-w-lg mx-auto space-y-4">
             {/* Sending window */}
-            <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
+            <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
               <div className="border-b border-stone-200 dark:border-stone-800 px-4 py-3">
                 <p className="text-xs font-semibold text-[var(--text-primary)]">Sending window</p>
               </div>
@@ -621,7 +621,7 @@ export function SequenceBuilderPage() {
             </div>
 
             {/* Behavior */}
-            <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
+            <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
               <div className="border-b border-stone-200 dark:border-stone-800 px-4 py-3">
                 <p className="text-xs font-semibold text-[var(--text-primary)]">Behavior</p>
               </div>

@@ -67,7 +67,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-xs rounded-2xl border border-[var(--border-soft)] bg-[#121214] shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-xs rounded-sm border border-[var(--border-soft)] bg-[#121214] shadow-2xl" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
@@ -87,7 +87,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
           <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && canCreate) createAndAdd(); if (e.key === "Escape") onClose(); }}
             placeholder="Search or create tag…"
-            className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/40 placeholder:text-[var(--text-secondary)] transition-colors"/>
+            className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm px-3 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/40 placeholder:text-[var(--text-secondary)] transition-colors"/>
         </div>
 
         {/* Active tags */}
@@ -115,7 +115,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
             const active = nodeTagIds.has(tag.id);
             return (
               <button key={tag.id} onClick={() => active ? removeTag.mutate(tag.id) : addTag.mutate(tag.id)}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 hover:bg-[var(--surface-hover)] transition-colors">
+                className="flex w-full items-center gap-2.5 rounded-sm px-3 py-2 hover:bg-[var(--surface-hover)] transition-colors">
                 <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }}/>
                 <span className="flex-1 text-left text-xs text-[var(--text-secondary)]">{tag.name}</span>
                 {active
@@ -144,7 +144,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
               ))}
             </div>
             <button onClick={createAndAdd} disabled={creating}
-              className="flex w-full items-center gap-2 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] hover:bg-[var(--surface-hover)] px-3 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-40">
+              className="flex w-full items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] hover:bg-[var(--surface-hover)] px-3 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-40">
               <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: newColor }}/>
               {creating ? "Creating…" : `Create "${search.trim()}"`}
             </button>

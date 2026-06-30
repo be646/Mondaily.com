@@ -195,7 +195,7 @@ export function FinanceReportsPage() {
           </div>
 
           {/* Revenue by month chart */}
-          <div className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-950">
+          <div className="rounded-sm border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-950">
             <div className="mb-4">
               <div className="text-[13px] font-medium tracking-tight text-stone-900 dark:text-stone-50">Revenue by Month</div>
               <div className="text-[11px] text-stone-500 dark:text-stone-500">Last 6 months — billed vs collected</div>
@@ -216,7 +216,7 @@ export function FinanceReportsPage() {
           {/* Top clients + Status breakdown */}
           <div className="grid grid-cols-2 gap-4">
             {/* Top clients */}
-            <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
+            <div className="overflow-hidden rounded-sm border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
               <div className="border-b border-stone-200 px-4 py-3 dark:border-stone-800">
                 <div className="text-[12px] font-medium tracking-tight text-stone-900 dark:text-stone-50">Top Clients</div>
                 <div className="mt-0.5 text-[10px] text-stone-500 dark:text-stone-500">by total billed</div>
@@ -249,7 +249,7 @@ export function FinanceReportsPage() {
 
             {/* Status breakdown + credit note impact */}
             <div className="space-y-4">
-              <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
+              <div className="overflow-hidden rounded-sm border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
                 <div className="border-b border-stone-200 px-4 py-3 dark:border-stone-800">
                   <div className="text-[12px] font-medium tracking-tight text-stone-900 dark:text-stone-50">Invoice Status Breakdown</div>
                 </div>
@@ -268,7 +268,7 @@ export function FinanceReportsPage() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
+              <div className="overflow-hidden rounded-sm border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
                 <div className="border-b border-stone-200 px-4 py-3 dark:border-stone-800">
                   <div className="text-[12px] font-medium tracking-tight text-stone-900 dark:text-stone-50">Credit Note Impact</div>
                   <div className="mt-0.5 text-[10px] text-stone-500 dark:text-stone-500">by reason (executed only)</div>

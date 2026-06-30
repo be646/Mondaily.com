@@ -94,10 +94,10 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
   }
 
   return (
-    <div className="rounded-2xl border border-stone-200 bg-white p-4 text-stone-900 transition-colors hover:border-stone-300 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 dark:hover:border-stone-700">
+    <div className="rounded-sm border border-stone-200 bg-white p-4 text-stone-900 transition-colors hover:border-stone-300 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 dark:hover:border-stone-700">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border border-stone-200 bg-stone-50 dark:border-stone-800 dark:bg-stone-900">
             <ReceiptText size={15} className="text-stone-400"/>
           </div>
           <div>
@@ -126,7 +126,7 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
       </div>
 
       {cn.ai_summary && (
-        <div className="mb-3 flex items-start gap-1.5 rounded-xl border border-stone-200 bg-stone-50 px-3 py-2 dark:border-[var(--accent)]/20 dark:bg-[var(--accent)]/[.04]">
+        <div className="mb-3 flex items-start gap-1.5 rounded-sm border border-stone-200 bg-stone-50 px-3 py-2 dark:border-[var(--accent)]/20 dark:bg-[var(--accent)]/[.04]">
           <LogoMark size={10} className="text-stone-400 mt-0.5 shrink-0"/>
           <p className="text-[11px] leading-relaxed text-stone-600 dark:text-stone-300">{cn.ai_summary}</p>
         </div>
@@ -265,7 +265,7 @@ export function ApprovalsPage() {
       {/* Header */}
       <div className="shrink-0 border-b border-stone-200 px-6 py-4 dark:border-stone-800">
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-7 w-7 items-center justify-center rounded-xl border border-stone-200 bg-stone-50 dark:border-[var(--accent)]/20 dark:bg-[var(--accent)]/[.05]">
+          <div className="flex h-7 w-7 items-center justify-center rounded-sm border border-stone-200 bg-stone-50 dark:border-[var(--accent)]/20 dark:bg-[var(--accent)]/[.05]">
             <ShieldCheck size={14} className="text-stone-400"/>
           </div>
           <div>

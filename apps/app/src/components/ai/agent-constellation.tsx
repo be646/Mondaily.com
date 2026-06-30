@@ -153,7 +153,7 @@ export function AgentConstellationPanel() {
   if (isLoading) {
     return (
       <section className="mb-8">
-        <div className="skeleton-shimmer h-72 rounded-2xl"/>
+        <div className="skeleton-shimmer h-72 rounded-sm"/>
       </section>
     );
   }
@@ -165,7 +165,7 @@ export function AgentConstellationPanel() {
           <Network size={13} style={{ color: "var(--text-muted)" }}/>
           <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Agent Constellation</h2>
         </div>
-        <div className="surface-card rounded-2xl px-4 py-8 text-center">
+        <div className="surface-card rounded-sm px-4 py-8 text-center">
           <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load agent status</p>
           <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
             {isError ? "Agent telemetry failed to return. Refresh or check the API connection." : "No agents returned for this workspace yet."}

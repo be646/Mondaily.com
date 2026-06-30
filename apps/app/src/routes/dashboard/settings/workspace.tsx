@@ -126,7 +126,7 @@ function GeneralSection({
 
       <div className="flex justify-end">
         <button onClick={() => save.mutate()} disabled={save.isPending}
-          className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-[12px] font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50 ${
+          className={`flex items-center gap-2 rounded-sm px-5 py-2.5 text-[12px] font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50 ${
             saved
               ? "border border-[var(--accent)] bg-stone-700"
               : "border border-stone-500/30 bg-stone-600 hover:bg-stone-500"
@@ -227,7 +227,7 @@ function DangerZoneSection({ form }: { form: WorkspaceData }) {
         <p className="text-[11px] text-stone-500">Irreversible actions. Proceed with caution.</p>
       </div>
 
-      <div className="border border-stone-500/20 rounded-xl p-6 space-y-4">
+      <div className="border border-stone-500/20 rounded-sm p-6 space-y-4">
         <p className="text-[12px] text-stone-500">Export a portable copy of all workspace data, or permanently delete this workspace.</p>
         <div className="flex flex-wrap gap-3">
           <button onClick={exportData}
@@ -244,7 +244,7 @@ function DangerZoneSection({ form }: { form: WorkspaceData }) {
       {deleteOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setDeleteOpen(false)} />
-          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-semibold text-[var(--text-primary)]">Delete {form.name}</h2>
               <button onClick={() => setDeleteOpen(false)} className="text-stone-500 hover:text-[var(--text-primary)] transition-colors"><X size={15} /></button>

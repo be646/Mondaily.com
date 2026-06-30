@@ -209,7 +209,7 @@ export function DedupPanel({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl rounded-2xl border border-[var(--border-soft)] bg-[#121214] shadow-2xl flex flex-col max-h-[85vh]">
+      <div className="w-full max-w-2xl rounded-sm border border-[var(--border-soft)] bg-[#121214] shadow-2xl flex flex-col max-h-[85vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)]">
@@ -234,7 +234,7 @@ export function DedupPanel({
           {/* STEP: SCAN */}
           {step === "scan" && (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
-              <div className="h-14 w-14 rounded-2xl bg-stone-500/10 border border-stone-500/15 flex items-center justify-center">
+              <div className="h-14 w-14 rounded-sm bg-stone-500/10 border border-stone-500/15 flex items-center justify-center">
                 <LogoMark size={24} className="text-stone-400" />
               </div>
               <div>
@@ -244,7 +244,7 @@ export function DedupPanel({
               <button
                 onClick={scan}
                 disabled={scanning}
-                className="flex items-center gap-2 rounded-xl bg-stone-600 px-5 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-60"
+                className="flex items-center gap-2 rounded-sm bg-stone-600 px-5 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-60"
               >
                 {scanning ? <><Loader2 size={14} className="animate-spin" /> Scanning…</> : <><LogoMark size={14} /> Scan now</>}
               </button>
@@ -264,7 +264,7 @@ export function DedupPanel({
                 <div className="space-y-2">
                   <p className="text-xs text-[var(--text-secondary)] mb-3">Select which record to keep for each group. All other fields will be merged in.</p>
                   {groups.map((g, gi) => (
-                    <div key={gi} className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
+                    <div key={gi} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
                       <button
                         className="w-full flex items-center justify-between px-4 py-3 text-left"
                         onClick={() => setExpandedGroup(expandedGroup === gi ? null : gi)}
@@ -311,7 +311,7 @@ export function DedupPanel({
 
               {/* Missing info summary */}
               {missing && (missing.noEmail.length > 0 || missing.noPhone.length > 0 || missing.noBoth.length > 0) && (
-                <div className="rounded-xl border border-orange-400/15 bg-orange-400/5 p-4 space-y-2">
+                <div className="rounded-sm border border-orange-400/15 bg-orange-400/5 p-4 space-y-2">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle size={13} className="text-orange-400" />
                     <span className="text-xs font-semibold text-orange-400">Missing contact info</span>
@@ -327,7 +327,7 @@ export function DedupPanel({
           {/* STEP: LISTS */}
           {step === "lists" && !done && (
             <div className="flex flex-col items-center gap-4 py-6 text-center">
-              <div className="h-12 w-12 rounded-2xl bg-blue-500/10 border border-blue-500/15 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-sm bg-blue-500/10 border border-blue-500/15 flex items-center justify-center">
                 <List size={20} className="text-blue-400" />
               </div>
               <div>
@@ -352,7 +352,7 @@ export function DedupPanel({
           {/* DONE */}
           {done && (
             <div className="flex flex-col items-center gap-4 py-6 text-center">
-              <div className="h-12 w-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-sm bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
                 <Check size={22} className="text-emerald-400" />
               </div>
               <div>
@@ -382,7 +382,7 @@ export function DedupPanel({
               <>
                 <button
                   onClick={() => setStep("lists")}
-                  className="flex items-center gap-1.5 rounded-xl border border-[var(--border-soft)] px-4 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-soft)] transition-colors"
+                  className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] px-4 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--border-soft)] transition-colors"
                 >
                   Skip merge
                 </button>
@@ -390,7 +390,7 @@ export function DedupPanel({
                   <button
                     onClick={mergeAll}
                     disabled={merging}
-                    className="flex items-center gap-1.5 rounded-xl bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-60"
+                    className="flex items-center gap-1.5 rounded-sm bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-60"
                   >
                     {merging ? <><Loader2 size={12} className="animate-spin" /> Merging…</> : <><Merge size={12} /> Merge {groups.reduce((a, g) => a + g.records.length - 1, 0)} duplicates</>}
                   </button>

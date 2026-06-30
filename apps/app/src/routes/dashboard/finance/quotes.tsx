@@ -79,7 +79,7 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-[var(--border-soft)] bg-[#121214] shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[#121214] shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 dark:border-stone-800">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-blue-500/20 flex items-center justify-center"><ReceiptText size={12} className="text-blue-400"/></div>
@@ -121,7 +121,7 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
-              className="flex items-center gap-1.5 rounded-xl border border-stone-500/30 bg-stone-600 px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-600 px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-50">
               {loading ? "Creating…" : "Create Quote"}
             </button>
           </div>
@@ -160,7 +160,7 @@ export function QuotesPage() {
             <p className="text-[12px] text-stone-500 mt-0.5">Manage proposals and client quotes</p>
           </div>
           <button onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
+            className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
             <Plus size={13}/> New Quote
           </button>
         </div>

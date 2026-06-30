@@ -10,7 +10,7 @@ export function AuthShell({ kicker, title, subtitle, children, footer }: {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 font-mono text-zinc-300">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }}
-        className="w-full max-w-[400px] overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40 shadow-2xl">
+        className="w-full max-w-[400px] overflow-hidden rounded-sm border border-zinc-800 bg-zinc-900/40 shadow-2xl">
         <div className="border-b border-zinc-800 px-6 py-3.5">
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: SAGE, boxShadow: `0 0 8px ${SAGE}` }} />
@@ -35,7 +35,7 @@ export function CapsuleInput({ label, hint, error, ...props }: { label: string; 
       <span className="mb-1.5 block text-[10.5px] uppercase tracking-wider text-zinc-500">{label}</span>
       <input
         {...props}
-        className={`w-full rounded-xl border bg-zinc-950 px-3.5 py-2.5 text-[13px] text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 disabled:opacity-60 ${error ? "border-rose-400" : "border-zinc-800 focus:border-[#8fcf7f]"}`}
+        className={`w-full rounded-sm border bg-zinc-950 px-3.5 py-2.5 text-[13px] text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 disabled:opacity-60 ${error ? "border-rose-400" : "border-zinc-800 focus:border-[#8fcf7f]"}`}
       />
       {error ? <span className="mt-1 block text-[10.5px] text-rose-400">{error}</span>
         : hint ? <span className="mt-1 block text-[10.5px] text-zinc-600">{hint}</span> : null}
@@ -49,7 +49,7 @@ export function GlowButton({ children, loading, ...props }: { children: ReactNod
     <button
       {...props}
       disabled={props.disabled || loading}
-      className="flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-[12.5px] font-semibold tracking-wide transition-all hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex w-full items-center justify-center gap-2 rounded-sm border px-4 py-2.5 text-[12.5px] font-semibold tracking-wide transition-all hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-60"
       style={{ borderColor: SAGE, color: SAGE, background: `${SAGE}12`, boxShadow: `0 0 18px ${SAGE}22` }}
     >
       {children}

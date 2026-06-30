@@ -572,7 +572,7 @@ export function HomePage() {
       {/* ── Ask Mondaily — frameless console: suggestions/messages plus the
           actual input bar. No outer card around the whole area. ── */}
       {(notificationsQuery.isError || decisionsQuery.isError) && (
-        <div className="mb-4 rounded-2xl border border-amber-500/20 bg-amber-500/[.07] px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+        <div className="mb-4 rounded-sm border border-amber-500/20 bg-amber-500/[.07] px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
           Could not load activity. Some agent and decision signals may be missing.
         </div>
       )}
@@ -615,7 +615,7 @@ export function HomePage() {
                       </div>
                     )}
                     {m.role === "user" ? (
-                      <div className="ask-user-bubble max-w-[72%] min-w-0 break-words whitespace-pre-wrap rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-sm leading-relaxed">
+                      <div className="ask-user-bubble max-w-[72%] min-w-0 break-words whitespace-pre-wrap rounded-sm rounded-tr-sm px-3.5 py-2.5 text-sm leading-relaxed">
                         {m.content}
                       </div>
                     ) : (
@@ -693,7 +693,7 @@ export function HomePage() {
                                 Actions <span style={{ fontSize: 9, opacity: 0.7 }}>▾</span>
                               </button>
                               {actionsOpen && (
-                                <div className="absolute bottom-full left-0 z-40 mb-1.5 w-48 overflow-hidden rounded-xl border shadow-[0_8px_24px_rgba(15,23,42,0.1)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+                                <div className="absolute bottom-full left-0 z-40 mb-1.5 w-48 overflow-hidden rounded-sm border shadow-[0_8px_24px_rgba(15,23,42,0.1)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
                                   {([
                                     { key: "related", label: "Show related" },
                                     { key: "explain", label: "Explain reasoning" },
@@ -742,7 +742,7 @@ export function HomePage() {
         {/* Input — pinned at the bottom of the chat column while chatting */}
         <div className={`relative mx-auto w-full max-w-3xl ${isChatting ? "mt-3 shrink-0" : ""}`} ref={pickerRef}>
           {promptPickerOpen && (
-            <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-xl border shadow-[0_8px_24px_rgba(15,23,42,0.08)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+            <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-sm border shadow-[0_8px_24px_rgba(15,23,42,0.08)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
               <div className="border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
                 <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Quick prompts</p>
               </div>
@@ -765,7 +765,7 @@ export function HomePage() {
 
           {/* Attach picker — records (live search) + text files (read client-side) */}
           {attachOpen && (
-            <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-xl border shadow-[0_8px_24px_rgba(15,23,42,0.08)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+            <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-sm border shadow-[0_8px_24px_rgba(15,23,42,0.08)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
               <div className="flex items-center gap-2 border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
                 <Search size={13} style={{ color: "var(--text-faint)" }}/>
                 <input autoFocus value={attachQuery} onChange={e => setAttachQuery(e.target.value)}
@@ -1104,7 +1104,7 @@ export function HomePage() {
       {/* Scan report modal */}
       {(scanReport || scanLoading) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => { if (!scanLoading) setScanReport(null); }}>
-          <div className="relative flex max-h-[80vh] w-full max-w-lg flex-col rounded-2xl border shadow-2xl" style={{ background: "var(--surface-modal)", borderColor: "var(--border-soft)" }} onClick={e => e.stopPropagation()}>
+          <div className="relative flex max-h-[80vh] w-full max-w-lg flex-col rounded-sm border shadow-2xl" style={{ background: "var(--surface-modal)", borderColor: "var(--border-soft)" }} onClick={e => e.stopPropagation()}>
             <div className="flex shrink-0 items-center justify-between border-b px-5 py-4" style={{ borderColor: "var(--border-soft)" }}>
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full" style={{ background: "var(--surface-hover)" }}>

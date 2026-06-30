@@ -1294,7 +1294,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
       </button>
       {open && createPortal(
         <div ref={ref} style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 9999 }}
-          className="w-56 rounded-xl border border-[var(--border-soft)] bg-[#121214] shadow-2xl py-1">
+          className="w-56 rounded-sm border border-[var(--border-soft)] bg-[#121214] shadow-2xl py-1">
           <div className="px-2 pb-1 pt-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               placeholder={`Search ${targetSlug || "records"}…`}
@@ -2801,7 +2801,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     {cellTip && <CellTipPortal text={cellTip.text} x={cellTip.x} y={cellTip.y}/>}
 
     {undoToast && (
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] px-4 py-3 shadow-2xl">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-4 py-3 shadow-2xl">
         <span className="text-sm text-[var(--text-secondary)]">Record deleted</span>
         <button
           onClick={undoDelete}
@@ -2818,7 +2818,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       <>
         <div className="fixed inset-0 z-[9998]" onClick={() => setColCtxMenu(null)}/>
         <div
-          className="fixed z-[9999] rounded-xl border border-[var(--border-soft)] bg-[#121214] py-1 shadow-xl min-w-[160px]"
+          className="fixed z-[9999] rounded-sm border border-[var(--border-soft)] bg-[#121214] py-1 shadow-xl min-w-[160px]"
           style={{ left: colCtxMenu.x, top: colCtxMenu.y }}
         >
           <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-stone-600 border-b border-[var(--border-soft)] mb-1">

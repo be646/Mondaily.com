@@ -86,7 +86,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
       <div className={`flex flex-col gap-1 max-w-[78%] ${isMe ? "items-end" : "items-start"}`}>
         {!isMe && <span className="text-[11px] ml-1" style={{ color: "var(--text-muted)" }}>{comment.user_name}</span>}
 
-        <div className={`relative rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed border ${isMe ? "rounded-tr-sm" : "rounded-tl-sm"}`}
+        <div className={`relative rounded-sm px-3.5 py-2.5 text-sm leading-relaxed border ${isMe ? "rounded-tr-sm" : "rounded-tl-sm"}`}
           style={{ background: isMe ? "var(--surface-hover)" : "var(--surface-card)", borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
           <p className="whitespace-pre-wrap">{renderContent(comment.content)}</p>
           <span className="text-[10px] mt-0.5 block text-right" style={{ color: "var(--text-faint)" }}>{relTime(comment.created_at)}</span>
@@ -567,9 +567,9 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <textarea ref={commentRef} value={newComment} onChange={handleCommentInput}
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && newComment.trim()) { e.preventDefault(); addComment.mutate(); } }}
                     placeholder="Message… @ to mention" rows={1}
-                    className="key-input flex-1 rounded-2xl px-4 py-2.5 text-sm resize-none max-h-32"/>
+                    className="key-input flex-1 rounded-sm px-4 py-2.5 text-sm resize-none max-h-32"/>
                   <button onClick={() => newComment.trim() && addComment.mutate()} disabled={!newComment.trim()}
-                    className="btn-primary h-9 w-9 shrink-0 rounded-xl !px-0">
+                    className="btn-primary h-9 w-9 shrink-0 rounded-sm !px-0">
                     <Send size={13}/>
                   </button>
                 </div>
@@ -582,7 +582,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
           {activeTab === "checklist" && (
             <div className="px-4 py-4">
               {checklist.length > 0 && (
-                <div className="surface-card mb-4 rounded-xl p-3">
+                <div className="surface-card mb-4 rounded-sm p-3">
                   <div className="flex justify-between mb-2 text-xs">
                     <span style={{ color: "var(--text-muted)" }}>{completedCount} of {checklist.length} done</span>
                     <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{Math.round(checklist.length ? (completedCount/checklist.length)*100 : 0)}%</span>
@@ -596,7 +596,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
               <div className="space-y-1.5 mb-4">
                 {checklist.length === 0 && <p className="text-sm text-center py-8" style={{ color: "var(--text-faint)" }}>No checklist items yet</p>}
                 {checklist.map(item => (
-                  <div key={item.id} className="flex items-start gap-3 group rounded-xl px-3 py-2.5 transition-colors border border-transparent surface-hover">
+                  <div key={item.id} className="flex items-start gap-3 group rounded-sm px-3 py-2.5 transition-colors border border-transparent surface-hover">
                     <button onClick={() => toggleCheckItem.mutate({ itemId: item.id, completed: !item.completed })}
                       className="mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors"
                       style={item.completed ? { borderColor: "#10b981", background: "#10b981" } : { borderColor: "var(--border-strong)" }}>
@@ -621,7 +621,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   placeholder="Add item… Enter to save"
                   className="key-input flex-1 h-9 px-3 text-sm"/>
                 <button onClick={() => newCheckItem.trim() && addCheckItem.mutate()} disabled={!newCheckItem.trim()}
-                  className="btn-primary h-9 w-9 shrink-0 rounded-xl !px-0">
+                  className="btn-primary h-9 w-9 shrink-0 rounded-sm !px-0">
                   <Plus size={14}/>
                 </button>
               </div>
@@ -636,7 +636,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-faint)" }}>Assigned</p>
                   <div className="space-y-1.5">
                     {assignees.map(a => (
-                      <div key={a.user_id} className="surface-card flex items-center gap-3 rounded-xl px-3 py-2.5">
+                      <div key={a.user_id} className="surface-card flex items-center gap-3 rounded-sm px-3 py-2.5">
                         <Avatar name={a.name || a.email}/>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm truncate" style={{ color: "var(--text-primary)" }}>{a.name || a.email}</p>
@@ -656,7 +656,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-faint)" }}>Add collaborator</p>
                   <div className="space-y-1">
                     {unassignedMembers.map(m => (
-                      <div key={m.user_id} className="flex items-center gap-3 rounded-xl px-3 py-2 transition-colors surface-hover">
+                      <div key={m.user_id} className="flex items-center gap-3 rounded-sm px-3 py-2 transition-colors surface-hover">
                         <Avatar name={m.name || m.email}/>
                         <span className="flex-1 text-sm truncate" style={{ color: "var(--text-secondary)" }}>{m.name || m.email}</span>
                         <button onClick={() => addAssignee.mutate(m)} className="btn-secondary px-2.5 py-1 text-xs">
@@ -682,7 +682,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   const active = localLabels.includes(label);
                   return (
                     <button key={label} onClick={() => toggleLabel(label)}
-                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors border ${active ? LABEL_COLORS[label] : ""}`}
+                      className={`flex w-full items-center gap-3 rounded-sm px-3 py-2.5 text-sm transition-colors border ${active ? LABEL_COLORS[label] : ""}`}
                       style={!active ? { borderColor: "var(--border-soft)", color: "var(--text-muted)", background: "var(--surface-card)" } : undefined}>
                       <div className="h-4 w-4 rounded border flex items-center justify-center shrink-0" style={{ borderColor: active ? "currentColor" : "var(--border-strong)" }}>
                         {active && <Check size={10}/>}
@@ -703,7 +703,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
               )}
               <div className="space-y-2 mb-4">
                 {attachments.map(a => (
-                  <div key={a.id} className="surface-card flex items-center gap-3 rounded-xl px-3 py-2.5 group">
+                  <div key={a.id} className="surface-card flex items-center gap-3 rounded-sm px-3 py-2.5 group">
                     <Paperclip size={13} className="shrink-0" style={{ color: "var(--text-muted)" }}/>
                     <div className="flex-1 min-w-0">
                       {/\.(jpg|jpeg|png|gif|webp)$/i.test(a.file_name) && (
@@ -723,7 +723,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   </div>
                 ))}
               </div>
-              <label className="flex flex-col items-center justify-center rounded-xl border border-dashed px-4 py-8 cursor-pointer transition-colors"
+              <label className="flex flex-col items-center justify-center rounded-sm border border-dashed px-4 py-8 cursor-pointer transition-colors"
                 style={uploading ? { borderColor: "var(--border-soft)", opacity: 0.5 } : { borderColor: "var(--border-strong)" }}>
                 <Paperclip size={18} className="mb-2" style={{ color: "var(--text-faint)" }}/>
                 <p className="text-sm mb-1" style={{ color: "var(--text-muted)" }}>{uploading ? "Uploading…" : "Upload a file"}</p>

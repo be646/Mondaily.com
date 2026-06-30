@@ -311,7 +311,7 @@ export function AskMondaily() {
                 )}
 
                 {m.role === "user" ? (
-                  <div className="ask-user-bubble max-w-[72%] rounded-2xl rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed">
+                  <div className="ask-user-bubble max-w-[72%] rounded-sm rounded-tr-sm px-4 py-2.5 text-sm leading-relaxed">
                     {m.content}
                   </div>
                 ) : (
@@ -428,7 +428,7 @@ export function AskMondaily() {
 
           {/* Quick prompts picker */}
           {promptPickerOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-full rounded-xl border border-[#e5e7eb] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.10)] overflow-hidden z-50 dark:border-[var(--border-soft)] dark:bg-[#13151a] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+            <div className="absolute bottom-full left-0 mb-2 w-full rounded-sm border border-[#e5e7eb] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.10)] overflow-hidden z-50 dark:border-[var(--border-soft)] dark:bg-[#13151a] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
               <div className="px-4 py-2.5 border-b border-[#eef2f7] dark:border-[var(--border-soft)]">
                 <p className="text-[10px] font-semibold text-[#9ca3af] dark:text-stone-600 uppercase tracking-widest">Quick prompts</p>
               </div>
@@ -453,7 +453,7 @@ export function AskMondaily() {
           <AttachChips attach={attach}/>
 
           {/* Input */}
-          <div className="ask-input flex items-end gap-2 rounded-2xl px-4 py-3.5 transition-all">
+          <div className="ask-input flex items-end gap-2 rounded-sm px-4 py-3.5 transition-all">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-600 dark:bg-stone-500/20 dark:text-stone-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-stone-600 dark:hover:text-stone-300 dark:hover:bg-[var(--surface-hover)]"}`}>
               <Zap size={14}/>
@@ -480,7 +480,7 @@ export function AskMondaily() {
             )}
             <button onClick={loading ? stop : send} disabled={!loading && !input.trim()}
               title={loading ? "Stop generating" : "Send"}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-150 ${(input.trim() || loading) ? "bg-stone-600 text-[var(--text-primary)] hover:bg-stone-700 dark:hover:bg-stone-500 shadow-lg shadow-stone-900/10 dark:shadow-stone-900/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-[var(--surface-hover)] dark:text-stone-600"}`}>
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-sm transition-all duration-150 ${(input.trim() || loading) ? "bg-stone-600 text-[var(--text-primary)] hover:bg-stone-700 dark:hover:bg-stone-500 shadow-lg shadow-stone-900/10 dark:shadow-stone-900/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-[var(--surface-hover)] dark:text-stone-600"}`}>
               {loading ? <Square size={12} strokeWidth={3} fill="currentColor"/> : <Send size={14}/>}
             </button>
           </div>

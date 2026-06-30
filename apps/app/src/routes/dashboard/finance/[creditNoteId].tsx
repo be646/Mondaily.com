@@ -132,7 +132,7 @@ export function CreditNoteDetailPage() {
           <div className="p-5 space-y-5 border-b border-[var(--border-soft)]">
             {/* Icon + amount */}
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-stone-500/15 flex items-center justify-center shrink-0">
+              <div className="h-10 w-10 rounded-sm bg-stone-500/15 flex items-center justify-center shrink-0">
                 <ReceiptText size={18} className="text-stone-400"/>
               </div>
               <div>
@@ -228,7 +228,7 @@ export function CreditNoteDetailPage() {
         <main className="flex-1 overflow-auto p-6 space-y-6 max-w-2xl">
           {/* AI summary */}
           {cn.ai_summary && (
-            <div className="rounded-xl border border-stone-500/30 bg-stone-600/[.04] p-4">
+            <div className="rounded-sm border border-stone-500/30 bg-stone-600/[.04] p-4">
               <div className="flex items-center gap-2 mb-2">
                 <LogoMark size={12} className="text-stone-400"/>
                 <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">AI Summary</span>
@@ -268,7 +268,7 @@ function NoteEditor({ initialValue, onSave }: { initialValue: string; onSave: (v
       onBlur={() => { if (val !== initialValue) onSave(val); }}
       placeholder="Add internal notes here…"
       rows={5}
-      className="w-full resize-none rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 text-[13px] text-stone-300 placeholder-stone-700 outline-none focus:border-[var(--border-soft)] leading-relaxed transition-colors"
+      className="w-full resize-none rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 text-[13px] text-stone-300 placeholder-stone-700 outline-none focus:border-[var(--border-soft)] leading-relaxed transition-colors"
     />
   );
 }
@@ -285,7 +285,7 @@ function DraftEditor({ creditNote: cn, onSave }: { creditNote: CreditNote; onSav
   }
 
   return (
-    <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
+    <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-[10px] font-semibold uppercase tracking-wider text-stone-600 mb-1">Client name</label>

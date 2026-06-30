@@ -140,7 +140,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
       onDragLeave={() => setDragging(false)}
       onDrop={onDrop}
       onClick={() => inputRef.current?.click()}
-      className={`group relative flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-6 py-5 transition-all ${
+      className={`group relative flex cursor-pointer flex-col items-center gap-2 rounded-sm border-2 border-dashed px-6 py-5 transition-all ${
         dragging
           ? "border-stone-500/30 bg-stone-600/[.06]"
           : "border-[var(--border-soft)] hover:border-[var(--border-soft)] hover:bg-[var(--surface-hover)]"
@@ -160,7 +160,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
 
   // ── Inferring ────────────────────────────────────────────────────────────────
   if (phase === "inferring") return (
-    <div className="flex items-center gap-3 rounded-xl border border-stone-500/30 bg-stone-600/[.04] px-4 py-4">
+    <div className="flex items-center gap-3 rounded-sm border border-stone-500/30 bg-stone-600/[.04] px-4 py-4">
       <LogoMark size={16} className="shrink-0 animate-pulse text-stone-400"/>
       <div>
         <p className="text-xs font-medium text-stone-300">Inferring schema with Claude…</p>
@@ -172,7 +172,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
 
   // ── Preview / type editor ─────────────────────────────────────────────────────
   if (phase === "previewing") return (
-    <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
+    <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-[var(--border-soft)] px-4 py-3">
         <FileText size={14} className="shrink-0 text-stone-500"/>
@@ -261,7 +261,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
 
   // ── Importing ────────────────────────────────────────────────────────────────
   if (phase === "importing") return (
-    <div className="flex items-center gap-3 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-4">
+    <div className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-4">
       <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-stone-500/30 border-t-red-500"/>
       <div>
         <p className="text-xs font-medium text-[var(--text-primary)]">Importing {rows.length} rows…</p>
@@ -272,7 +272,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
 
   // ── Done ─────────────────────────────────────────────────────────────────────
   if (phase === "done" && result) return (
-    <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${result.errors.length > 0 ? "border-yellow-500/20 bg-yellow-500/[.04]" : "border-emerald-500/20 bg-emerald-500/[.04]"}`}>
+    <div className={`flex items-start gap-3 rounded-sm border px-4 py-3 ${result.errors.length > 0 ? "border-yellow-500/20 bg-yellow-500/[.04]" : "border-emerald-500/20 bg-emerald-500/[.04]"}`}>
       <CheckCircle2 size={16} className={`mt-0.5 shrink-0 ${result.errors.length > 0 ? "text-yellow-400" : "text-emerald-400"}`}/>
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold text-[var(--text-primary)]">

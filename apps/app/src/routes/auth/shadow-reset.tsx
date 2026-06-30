@@ -47,7 +47,7 @@ export function ShadowResetPage() {
       <AuthShell kicker="Sovereign auth" title="Link required"
         subtitle="Open the reset link we emailed you, or request a new one from the sign-in page."
         footer={<button onClick={() => navigate("/auth/forgot")} className="inline-flex items-center gap-1.5 transition-colors hover:text-zinc-300"><ArrowLeft size={12} /> Request a reset link</button>}>
-        <div className="flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-3 text-[12.5px] text-zinc-400">
+        <div className="flex items-center gap-2.5 rounded-sm border border-zinc-800 bg-zinc-950 px-3.5 py-3 text-[12.5px] text-zinc-400">
           <AlertTriangle size={16} className="text-amber-400" /> Missing reset token.
         </div>
       </AuthShell>

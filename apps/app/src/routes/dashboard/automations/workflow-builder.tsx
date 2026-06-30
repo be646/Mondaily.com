@@ -150,7 +150,7 @@ function WFNodeCard({ node, onDelete, onAddAfter, onUpdate }: {
 
   return (
     <div className="flex flex-col items-center">
-      <div className={`group w-72 rounded-xl border ${s.border} ${s.bg} overflow-hidden`}>
+      <div className={`group w-72 rounded-sm border ${s.border} ${s.bg} overflow-hidden`}>
         <button
           className="flex w-full items-center gap-3 px-4 py-3 text-left"
           onClick={() => setExpanded(e => !e)}
@@ -212,7 +212,7 @@ function NodePicker({ onPick, onClose }: {
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
+      <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-4 py-3">
           <p className="text-xs font-semibold text-[var(--text-primary)]">Add step</p>
           <button onClick={onClose} className="text-stone-600 hover:text-stone-300"><X size={14}/></button>
@@ -293,7 +293,7 @@ function AIWorkflowModal({ onClose, onApply }: {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className={`w-full rounded-2xl border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-lg" : "max-w-md"}`}>
+      <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-lg" : "max-w-md"}`}>
         <div className="flex items-center justify-between p-5 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
             <LogoMark size={15} className="text-stone-400"/>
@@ -309,7 +309,7 @@ function AIWorkflowModal({ onClose, onApply }: {
             onChange={e => setPrompt(e.target.value)}
             rows={3}
             placeholder={`e.g. "When a deal is marked as Won, create a follow-up task and notify the team" or "Send a welcome email when a contact form is submitted"`}
-            className="w-full rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder-stone-600 resize-none outline-none focus:border-stone-500/40 transition-colors"
+            className="w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder-stone-600 resize-none outline-none focus:border-stone-500/40 transition-colors"
           />
           {error && <p className="text-xs text-stone-400">{error}</p>}
         </div>
@@ -517,7 +517,7 @@ export function WorkflowBuilderPage() {
               return (
                 <div key={tn.id} className="flex flex-col items-center">
                   {i > 0 && <div className="my-1 text-[9px] font-semibold uppercase tracking-widest text-stone-500/70">or</div>}
-                  <div className="mb-2 w-72 rounded-xl border border-stone-500/30 bg-stone-600/[.06] overflow-hidden">
+                  <div className="mb-2 w-72 rounded-sm border border-stone-500/30 bg-stone-600/[.06] overflow-hidden">
                     <div className="flex items-center gap-3 px-4 py-3">
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-stone-500/30 bg-stone-600/[.08] text-stone-400">
                         <TIcon size={13}/>

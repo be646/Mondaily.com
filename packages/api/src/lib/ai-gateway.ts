@@ -157,15 +157,12 @@ export function redactPII(text: string): string {
     .replace(/\b\+?\d[\d ()-]{8,}\d\b/g, "[REDACTED_PHONE]");
 }
 
-/** Fireworks serverless models tried in order when the primary model 404s. */
-// Fallback model IDs tried in order on 404. Works for any OpenAI-compat provider
-// (Groq model IDs shown; Fireworks IDs also accepted if AI_AGENT_MODEL overrides).
-const PROVIDER_FALLBACK_MODELS = [
-  "accounts/fireworks/models/llama-v3p3-70b-instruct",
-  "accounts/fireworks/models/llama-v3p1-70b-instruct",
-  "accounts/fireworks/models/qwen2p5-72b-instruct",
-  "accounts/fireworks/models/mixtral-8x22b-instruct",
-];
+// 404 fallback models. Was a list of Fireworks IDs — but this gateway is Cerebras-ONLY, so those
+// would themselves 404 and just burn the retry budget before the graceful reply. Populate via
+// AI_FALLBACK_MODELS (comma-separated, real Cerebras model IDs) if you want a real fallback chain;
+// empty by default so a 404 degrades straight to the friendly message.
+const PROVIDER_FALLBACK_MODELS = (process.env.AI_FALLBACK_MODELS ?? "")
+  .split(",").map(s => s.trim()).filter(Boolean);
 
 /** Resolve the sovereign gateway credentials. Reads the canonical AI_GATEWAY_*
  *  names first, then CEREBRAS_* as a fallback so a naming mismatch can't silently

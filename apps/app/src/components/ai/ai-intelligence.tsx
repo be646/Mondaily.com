@@ -35,7 +35,7 @@ export function AIInsightBadge({ summary }: { summary?: string | null }) {
 export function AIHealthScore({ score, label = "AI health score", updatedAt }: { score?: number | null; label?: string; updatedAt?: string | null }) {
   if (score == null) {
     return (
-      <div className="rounded-xl p-3" style={{ background: "var(--surface-hover)" }}>
+      <div className="rounded-sm p-3" style={{ background: "var(--surface-hover)" }}>
         <p className="text-[11px] font-medium" style={{ color: "var(--text-faint)" }}>{label}</p>
         <p className="mt-1 text-[12px]" style={{ color: "var(--text-faint)" }}>{EMPTY_SCORE_COPY}</p>
       </div>
@@ -43,7 +43,7 @@ export function AIHealthScore({ score, label = "AI health score", updatedAt }: {
   }
   const color = score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#dc2626";
   return (
-    <div className="rounded-xl p-3" style={{ background: "var(--surface-hover)" }}>
+    <div className="rounded-sm p-3" style={{ background: "var(--surface-hover)" }}>
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-medium" style={{ color: "var(--text-faint)" }}>{label}</p>
         {updatedAt && <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>Updated {new Date(updatedAt).toLocaleDateString()}</p>}

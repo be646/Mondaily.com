@@ -28,7 +28,7 @@ function Sparkline({ values, height = 320 }: { values: number[]; height?: number
     }).join(" ");
 
   return (
-    <div className="rounded-2xl bg-white p-6 dark:bg-stone-950/40" style={{ height }}>
+    <div className="rounded-sm bg-white p-6 dark:bg-stone-950/40" style={{ height }}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
         <polyline
           points={points}
@@ -119,7 +119,7 @@ export function ReportBuilderPage() {
       </header>
       <div className="grid min-h-0 flex-1 lg:grid-cols-[1fr_320px]">
         <main className="min-w-0 p-4 sm:p-6">
-          <div className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5">
+          <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5">
             <h2 className="mb-5 text-sm font-medium text-[var(--text-primary)]">{report.name}</h2>
             {run.isLoading ? <PageSkeleton rows={5} /> : <ReportChart type={report.type} result={run.data} config={report.config} />}
           </div>

@@ -57,7 +57,7 @@ export function ToastHost() {
             exit={{ opacity: 0, x: 40, scale: 0.96 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
             onClick={() => { navigate(resolveNotificationLink(t)); dismiss(t.id); }}
-            className="pointer-events-auto flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-left shadow-lg"
+            className="pointer-events-auto flex cursor-pointer items-start gap-3 rounded-sm border p-3 text-left shadow-lg"
             style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
             <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
               <Bell size={14} style={{ color: "var(--accent)" }} />

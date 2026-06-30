@@ -138,13 +138,13 @@ export function StatusPage() {
           {data?.checked_at && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Last checked {new Date(data.checked_at).toLocaleTimeString()} · refreshes every 60s</span>}
         </div>
         {isLoading ? (
-          <div className="skeleton-shimmer h-48 rounded-2xl"/>
+          <div className="skeleton-shimmer h-48 rounded-sm"/>
         ) : isError ? (
-          <div className="surface-card rounded-2xl p-4 text-[12.5px]" style={{ color: "var(--text-faint)" }}>
+          <div className="surface-card rounded-sm p-4 text-[12.5px]" style={{ color: "var(--text-faint)" }}>
             Couldn't reach the status endpoint: {(error as Error)?.message ?? "unknown error"}. The API itself may be down — that's a real signal, not hidden.
           </div>
         ) : (
-          <div className="surface-card rounded-2xl">
+          <div className="surface-card rounded-sm">
             {data!.checks.map(check => {
               const meta = STATE_META[check.state];
               return (
@@ -167,7 +167,7 @@ export function StatusPage() {
       {/* ── 2. Feature Reality Matrix ── */}
       <section className="mb-10">
         <h2 className="mb-3 text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Feature reality matrix</h2>
-        <div className="surface-card overflow-x-auto rounded-2xl">
+        <div className="surface-card overflow-x-auto rounded-sm">
           <table className="minimal-table text-left text-[12px]">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border-soft)" }}>
@@ -204,13 +204,13 @@ export function StatusPage() {
           <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Live log · refreshes every 60s</span>
         </div>
         {logUnavailable ? (
-          <div className="surface-card rounded-2xl p-4 text-[12px]" style={{ color: "var(--text-faint)" }}>
+          <div className="surface-card rounded-sm p-4 text-[12px]" style={{ color: "var(--text-faint)" }}>
             Project log table not found — run migration <code>0017_project_log.sql</code> in Supabase to enable the live log.
           </div>
         ) : updates.length === 0 ? (
-          <div className="skeleton-shimmer h-28 rounded-2xl"/>
+          <div className="skeleton-shimmer h-28 rounded-sm"/>
         ) : (
-          <div className="surface-card rounded-2xl">
+          <div className="surface-card rounded-sm">
             {updates.map((u) => (
               <div key={u.id} className="stream-row">
                 <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--surface-selected)" }}>
@@ -235,11 +235,11 @@ export function StatusPage() {
       <section className="mb-10">
         <h2 className="mb-3 text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Migrations & setup required</h2>
         {isLoading ? (
-          <div className="skeleton-shimmer h-28 rounded-2xl"/>
+          <div className="skeleton-shimmer h-28 rounded-sm"/>
         ) : isError ? (
           <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>Could not check migration status — see Live system status above.</p>
         ) : (
-          <div className="surface-card rounded-2xl">
+          <div className="surface-card rounded-sm">
             {data!.migrations.map(m => (
               <div key={m.id} className="stream-row" style={{ borderLeft: `2px solid ${m.applied ? "#10b981" : "#dc2626"}` }}>
                 {m.applied ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" style={{ color: "#10b981" }}/> : <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "#dc2626" }}/>}
@@ -264,7 +264,7 @@ export function StatusPage() {
         </div>
         <div className="grid gap-2.5 sm:grid-cols-2">
           {AGENT_CAPABILITIES.map(a => (
-            <div key={a.name} className="surface-card rounded-2xl p-4">
+            <div key={a.name} className="surface-card rounded-sm p-4">
               <p className="text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{a.name}</p>
               <dl className="mt-2 space-y-1 text-[11px]">
                 <div className="flex gap-2"><dt className="shrink-0 font-medium" style={{ color: "var(--text-faint)" }}>Reads:</dt><dd style={{ color: "var(--text-secondary)" }}>{a.canRead}</dd></div>
@@ -291,7 +291,7 @@ export function StatusPage() {
           {ROADMAP_TIERS.map(tier => {
             const items = (log?.roadmap ?? []).filter(r => r.category === tier.key);
             return (
-              <div key={tier.key} className="surface-card rounded-2xl p-4">
+              <div key={tier.key} className="surface-card rounded-sm p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <StatusDot color={tier.tone}/>
                   <p className="text-[11.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{tier.label}</p>

@@ -180,7 +180,7 @@ export function GettingStarted() {
   return (
     <div className="fixed bottom-5 right-5 z-[200] flex flex-col items-end">
       {open && (
-        <div className="mb-3 w-72 overflow-hidden rounded-2xl border shadow-[0_16px_40px_-12px_rgba(0,0,0,0.35)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+        <div className="mb-3 w-72 overflow-hidden rounded-sm border shadow-[0_16px_40px_-12px_rgba(0,0,0,0.35)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
           <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
             <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Getting started</span>
             <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{doneCount}/{total} done</span>
@@ -205,7 +205,7 @@ export function GettingStarted() {
                   {/* Tooltip — pops left (FAB is on the right edge) */}
                   {hovered && !checked && (
                     <div className="absolute right-full top-0 z-[210] mr-2.5 w-56 pointer-events-none">
-                      <div className="rounded-xl border border-stone-200 bg-white px-3 py-3 shadow-lg dark:border-stone-800 dark:bg-black">
+                      <div className="rounded-sm border border-stone-200 bg-white px-3 py-3 shadow-lg dark:border-stone-800 dark:bg-black">
                         <div className="text-[12px] font-semibold text-[#111827] dark:text-[var(--text-primary)] mb-1.5">{item.label}</div>
                         <div className="text-[11px] text-stone-500 dark:text-[var(--text-secondary)] leading-relaxed">{item.hint}</div>
                         <div className="mt-2.5 text-[10px] font-semibold text-stone-950 dark:text-stone-50">→ Go there</div>
@@ -563,7 +563,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               {trialDaysLeft != null && (
                 <Link
                   to="/settings/billing"
-                  className="flex items-center justify-between rounded-xl px-3 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900"
+                  className="flex items-center justify-between rounded-sm px-3 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900"
                   style={{ background: "var(--surface-card)", border: "1px solid var(--border-soft)" }}
                 >
                   <span className="text-[11.5px] font-medium" style={{ color: "var(--text-secondary)" }}>
@@ -618,7 +618,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
       {newWorkspaceOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-[2px]" onClick={() => setNewWorkspaceOpen(false)}/>
-          <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-stone-200 bg-white p-6 shadow-[0_24px_48px_rgba(15,23,42,0.18)] dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-stone-200 bg-white p-6 shadow-[0_24px_48px_rgba(15,23,42,0.18)] dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-sm font-semibold text-[#111827] dark:text-[var(--text-primary)]">Create workspace</span>
               <button onClick={() => setNewWorkspaceOpen(false)} className="rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-500 dark:hover:bg-[var(--surface-hover)] dark:hover:text-[var(--text-primary)] transition-colors">
@@ -636,13 +636,13 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             {wsError && <p className="mb-3 text-[11px] text-rose-400">{wsError}</p>}
             <div className="flex gap-2">
               <button onClick={() => { setNewWorkspaceOpen(false); setNewWsName(""); }}
-                className="flex-1 rounded-xl border border-stone-200 px-4 py-2 text-xs text-stone-500 hover:bg-stone-100 dark:border-[var(--border-soft)] dark:text-stone-400 dark:hover:bg-[var(--surface-hover)] transition-colors">
+                className="flex-1 rounded-sm border border-stone-200 px-4 py-2 text-xs text-stone-500 hover:bg-stone-100 dark:border-[var(--border-soft)] dark:text-stone-400 dark:hover:bg-[var(--surface-hover)] transition-colors">
                 Cancel
               </button>
               <button
                 onClick={createWorkspace}
                 disabled={creatingWs || !newWsName.trim()}
-                className="flex-1 rounded-xl bg-stone-950 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-black transition-opacity"
+                className="flex-1 rounded-sm bg-stone-950 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-black transition-opacity"
               >
                 {creatingWs ? "Creating…" : "Create"}
               </button>

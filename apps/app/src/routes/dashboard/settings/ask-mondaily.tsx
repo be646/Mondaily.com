@@ -133,7 +133,7 @@ export function AskMondailySettings() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
       <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
+        <div className="flex h-9 w-9 items-center justify-center rounded-sm" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
           <LogoMark size={18} style={{ color: "var(--accent)" }}/>
         </div>
         <div>
@@ -143,7 +143,7 @@ export function AskMondailySettings() {
       </div>
 
       {/* General */}
-      <section className="mb-6 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+      <section className="mb-6 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
         <div className="border-b border-[var(--border-soft)] px-5 py-3">
           <h2 className="text-sm font-medium text-[var(--text-primary)]">General</h2>
         </div>
@@ -159,7 +159,7 @@ export function AskMondailySettings() {
       </section>
 
       {/* Model */}
-      <section className="mb-6 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+      <section className="mb-6 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
         <div className="border-b border-[var(--border-soft)] px-5 py-3">
           <h2 className="text-sm font-medium text-[var(--text-primary)]">Model</h2>
         </div>
@@ -169,7 +169,7 @@ export function AskMondailySettings() {
       </section>
 
       {/* Behavior — advanced response + autonomy controls */}
-      <section className="mb-6 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+      <section className="mb-6 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
         <div className="border-b border-[var(--border-soft)] px-5 py-3">
           <h2 className="text-sm font-medium text-[var(--text-primary)]">Behavior</h2>
         </div>
@@ -185,7 +185,7 @@ export function AskMondailySettings() {
       </section>
 
       {/* Credits */}
-      <section className="mb-6 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+      <section className="mb-6 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
         <div className="border-b border-[var(--border-soft)] px-5 py-3 flex items-center justify-between">
           <h2 className="text-sm font-medium text-[var(--text-primary)]">Credits</h2>
           <span className="text-xs text-stone-500">Resets on {resetStr}</span>
@@ -203,7 +203,7 @@ export function AskMondailySettings() {
       </section>
 
       {/* Chat history */}
-      <section className="rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+      <section className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
         <div className="border-b border-[var(--border-soft)] px-5 py-3 flex items-center justify-between">
           <h2 className="text-sm font-medium text-[var(--text-primary)]">Chat history</h2>
           {threads.length > 0 && (

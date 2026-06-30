@@ -250,7 +250,7 @@ export function AgentActivityPage() {
               { label: "agents_reporting", value: agentsReportingToday, color: "#e4e4e7" },
               { label: "errors_today", value: errors, color: errors > 0 ? RED : "#e4e4e7" },
             ].map(t => (
-              <div key={t.label} className="rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
+              <div key={t.label} className="rounded-sm border border-zinc-800 bg-zinc-900/40 px-4 py-3">
                 <div className="text-[26px] font-semibold leading-none tabular-nums" style={{ color: t.color }}>{t.value}</div>
                 <div className="mt-2 text-[11px] tracking-wide text-zinc-500">{t.label}</div>
               </div>
@@ -269,7 +269,7 @@ export function AgentActivityPage() {
 
           {/* 24h throughput — real runs per hour, completed vs failed */}
           {tl.length > 0 && (
-            <div className="mb-5 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+            <div className="mb-5 rounded-sm border border-zinc-800 bg-zinc-900/40 p-4">
               <div className="mb-3 flex items-end justify-between">
                 <div>
                   <div className="text-[11px] tracking-wider text-zinc-500">THROUGHPUT · 24H</div>
@@ -311,7 +311,7 @@ export function AgentActivityPage() {
                   const running = busy === id || state === "active";
                   return (
                     <div key={r.label}
-                      className="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 transition-all hover:border-zinc-700"
+                      className="flex items-center gap-2.5 rounded-sm border px-3 py-2.5 transition-all hover:border-zinc-700"
                       style={{ borderColor: active ? SAGE : "#27272a", background: active ? `${SAGE}12` : "rgba(24,24,27,0.4)" }}>
                       <button onClick={() => setAgentFilter(active ? null : r.label)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900">
@@ -362,7 +362,7 @@ export function AgentActivityPage() {
           </div>
 
           {/* Streaming execution console */}
-          <div className="rounded-xl border border-zinc-800 bg-black/30">
+          <div className="rounded-sm border border-zinc-800 bg-black/30">
             <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2">
               <span className="text-[11px] tracking-wider text-zinc-500">agent-runtime.log</span>
               <span className="text-[10px] text-zinc-600">{rows.length} events</span>
@@ -504,7 +504,7 @@ export function AgentActivityPage() {
 
 function Telem({ Icon, label, value, suffix, tone, hint }: { Icon: ElementType; label: string; value: string; suffix: string; tone: string; hint: string }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-900/40 px-3.5 py-2" title={hint}>
+    <div className="flex items-center gap-2.5 rounded-sm border border-zinc-800 bg-zinc-900/40 px-3.5 py-2" title={hint}>
       <Icon size={14} style={{ color: tone }} />
       <div>
         <div className="text-[15px] font-semibold leading-none tabular-nums" style={{ color: tone }}>{value}<span className="ml-0.5 text-[11px] font-normal text-zinc-500">{suffix}</span></div>

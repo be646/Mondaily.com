@@ -51,7 +51,7 @@ export function ShadowActivatePage() {
       <AuthShell kicker="Sovereign account upgrade" title="Link required"
         subtitle="Open the activation link we emailed you. From the sign-in page, entering your email re-sends it."
         footer={<button onClick={() => navigate("/auth/shadow-login")} className="inline-flex items-center gap-1.5 transition-colors hover:text-zinc-300"><ArrowLeft size={12} /> Back to sign in</button>}>
-        <div className="flex items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-3 text-[12.5px] text-zinc-400">
+        <div className="flex items-center gap-2.5 rounded-sm border border-zinc-800 bg-zinc-950 px-3.5 py-3 text-[12.5px] text-zinc-400">
           <AlertTriangle size={16} className="text-amber-400" /> Missing activation token.
         </div>
       </AuthShell>
@@ -61,7 +61,7 @@ export function ShadowActivatePage() {
   if (done) {
     return (
       <AuthShell kicker="Sovereign account" title="Account activated" subtitle="Your sovereign key is set — your history and permissions are fully intact.">
-        <div className="flex items-center gap-2.5 rounded-xl border px-3.5 py-3" style={{ borderColor: `${SAGE}44`, background: `${SAGE}10` }}>
+        <div className="flex items-center gap-2.5 rounded-sm border px-3.5 py-3" style={{ borderColor: `${SAGE}44`, background: `${SAGE}10` }}>
           <span className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: `${SAGE}22` }}><Check size={15} style={{ color: SAGE }} /></span>
           <span className="text-[12.5px] text-zinc-200">Signing you in…</span>
         </div>
