@@ -59868,6 +59868,16 @@ router11.delete("/account", async (c2) => {
   clearSessionCookies(c2);
   return c2.json({ ok: true });
 });
+router11.get("/mail-health", requireAuth, requireAdminRole, (c2) => {
+  const key = process.env.RESEND_API_KEY ?? process.env.TRANSACTIONAL_MAIL_API_KEY ?? "";
+  const sender = process.env.RESEND_FROM ?? process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily Networks <no-reply@mondaily.com>";
+  const keyConfigured = typeof key === "string" && key.length > 0;
+  const senderDefined = typeof sender === "string" && sender.length > 0;
+  if (!keyConfigured || !senderDefined) {
+    return c2.json({ status: "error", code: "MISSING_ENV_VARS", message: "Outbound transactional pipeline unassigned" }, 503);
+  }
+  return c2.json({ status: "ok", resend_api_key_configured: true, sender_identity: sender });
+});
 
 // src/routes/credits.ts
 var router12 = new Hono2();
