@@ -9,6 +9,7 @@ import {
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
+import { sectionHue } from "../../lib/sections";
 import { useModules } from "../../hooks/useModules";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useSovereignAuthOptional } from "../auth/sovereign-auth-context";
@@ -266,36 +267,47 @@ function Logo({ size = 24 }: { size?: number }) {
 
 // ─── Single nav item ──────────────────────────────────────────────────────────
 function NavItem({
-  to, label, icon: Icon, collapsed, badge, tint,
+  to, label, icon: Icon, collapsed, badge,
 }: { to: string; label: string; icon: React.ElementType; collapsed: boolean; badge?: number; tint?: string }) {
   const location = useLocation();
   const active = location.pathname.startsWith(to);
-  // Matte per-page tint: the icon carries a quiet natural colour. When the row is
-  // active it goes full-strength; otherwise it's softened so the nav stays calm.
-  const iconColor = tint ? (active ? tint : `color-mix(in srgb, ${tint} 70%, var(--text-faint))`) : undefined;
+  // Smart per-section colour: each row scopes its own --section-accent (derived from the
+  // route's hue, theme-aware). Active row goes full accent + an accent indicator bar;
+  // inactive rows stay calm (faint, lightly accent-tinted). This is where each section's
+  // colour lives — contextual to where you navigate, not a floating decorative line.
+  const scope = { "--section-hue": sectionHue(to) } as React.CSSProperties;
+  const iconColor = active ? "var(--section-accent)" : "color-mix(in srgb, var(--section-accent) 45%, var(--text-faint))";
+  const badgeEl = !!badge && (
+    <span
+      className={collapsed
+        ? "absolute top-0.5 right-0.5 flex h-3.5 min-w-[14px] items-center justify-center rounded-full px-1 text-[8px] font-bold leading-none"
+        : "ml-auto flex h-4 min-w-[16px] items-center justify-center rounded-full px-1.5 text-[9px] font-bold leading-none"}
+      style={{ background: "var(--section-accent)", color: "var(--surface-page)" }}>
+      {badge > 99 ? "99+" : badge > 9 && collapsed ? "9+" : badge}
+    </span>
+  );
 
   if (collapsed) {
     return (
       <Link
-        to={to}
-        title={label}
-        className={`mb-0.5 relative flex items-center justify-center rounded-md p-2 transition-colors ${active ? "text-stone-950 dark:text-stone-50" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
+        to={to} title={label} style={scope}
+        className={`section-soul mb-0.5 relative flex items-center justify-center rounded-md p-2 transition-colors ${active ? "text-stone-950 dark:text-stone-50" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
       >
-        {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-stone-950 dark:bg-stone-50"/>}
+        {active && <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full" style={{ background: "var(--section-accent)" }}/>}
         <Icon size={16} style={{ color: iconColor }}/>
-        {!!badge && <span className="absolute top-0.5 right-0.5 h-3.5 min-w-[14px] rounded-full bg-stone-950 px-1 text-[8px] font-bold text-[var(--text-primary)] flex items-center justify-center leading-none dark:bg-white dark:text-black">{badge > 9 ? "9+" : badge}</span>}
+        {badgeEl}
       </Link>
     );
   }
   return (
     <Link
-      to={to}
-      className={`relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] transition-colors ${active ? "font-medium text-stone-950 dark:text-stone-50" : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-stone-900 dark:hover:text-stone-100"}`}
+      to={to} style={scope}
+      className={`section-soul relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] transition-colors ${active ? "font-medium text-stone-950 dark:text-stone-50" : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-stone-900 dark:hover:text-stone-100"}`}
     >
-      {active && <span className="absolute left-0 top-1/2 h-4 w-px -translate-y-1/2 rounded-full bg-stone-950 dark:bg-stone-50"/>}
+      {active && <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full" style={{ background: "var(--section-accent)" }}/>}
       <Icon size={16} style={{ color: iconColor }}/>
       {label}
-      {!!badge && <span className="ml-auto h-4 min-w-[16px] rounded-full bg-stone-950 px-1.5 text-[9px] font-bold text-[var(--text-primary)] flex items-center justify-center leading-none dark:bg-white dark:text-black">{badge > 99 ? "99+" : badge}</span>}
+      {badgeEl}
     </Link>
   );
 }
