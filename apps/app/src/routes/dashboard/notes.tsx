@@ -503,9 +503,11 @@ export function NotesPage() {
 
   /* derived data */
   const allNotes = useMemo(() => {
-    const base = notesQ.data ?? [];
-    return filter === "ai" ? base.filter(n => n.actor_type === "ai_agent") : base;
-  }, [notesQ.data, filter]);
+    const base = filter === "ai" ? (notesQ.data ?? []).filter(n => n.actor_type === "ai_agent") : (notesQ.data ?? []);
+    // Pinned notes float to the top in every view (board/timeline included), so pinning
+    // gives immediate, visible feedback rather than only filling the pin icon.
+    return [...base].sort((a, b) => (pinned.has(b.id) ? 1 : 0) - (pinned.has(a.id) ? 1 : 0));
+  }, [notesQ.data, filter, pinned]);
 
   const pinnedNotes = allNotes.filter(n => pinned.has(n.id));
   const unpinnedNotes = allNotes.filter(n => !pinned.has(n.id));

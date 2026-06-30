@@ -451,7 +451,18 @@ export function TasksPage() {
 
   const toggle = useMutation({
     mutationFn: (task: Task) => apiClient.patch(`/tasks/${task.id}`, { completed: !task.completed, _user_name: me.name || "Someone" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] })
+    // Optimistic flip so the checkbox + line-through respond instantly (no "click does nothing,
+    // then it vanishes" lag). The row then settles into the Done section on refetch.
+    onMutate: async (task: Task) => {
+      const key = ["tasks", filter, labelFilter, priorityFilter, sortBy, sortDir];
+      await qc.cancelQueries({ queryKey: ["tasks"] });
+      const prev = qc.getQueryData(key);
+      qc.setQueryData(key, (old: any) =>
+        old?.map((t: Task) => t.id === task.id ? { ...t, completed: !task.completed, status: !task.completed ? "done" : "todo" } : t));
+      return { prev, key };
+    },
+    onError: (_e, _v, ctx: any) => { if (ctx?.prev) qc.setQueryData(ctx.key, ctx.prev); },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
   const remove = useMutation({
     mutationFn: (id: string) => apiClient.delete(`/tasks/${id}`),
