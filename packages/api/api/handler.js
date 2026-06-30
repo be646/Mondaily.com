@@ -59854,8 +59854,8 @@ router11.post("/request-activation", rateLimit(), requirePow, zValidator("json",
   const member = await memberByEmail(email);
   if (!member) return c2.json(generic);
   const token = await signActivationToken(member.user_id, email);
-  const appUrl3 = process.env.APP_URL ?? "https://app.mondaily.com";
-  const link = `${appUrl3}/auth/shadow-activate?token=${encodeURIComponent(token)}`;
+  const appUrl4 = process.env.APP_URL ?? "https://app.mondaily.com";
+  const link = `${appUrl4}/auth/shadow-activate?token=${encodeURIComponent(token)}`;
   {
     await sendTransactionalEmail({
       to: [{ email }],
@@ -59885,8 +59885,8 @@ router11.post("/request-password-reset", rateLimit(), requirePow, zValidator("js
   const cred = await credByEmail(email);
   if (!cred) return c2.json(generic);
   const token = await signResetToken(cred.user_id, cred.email);
-  const appUrl3 = process.env.APP_URL ?? "https://app.mondaily.com";
-  const link = `${appUrl3}/auth/reset?token=${encodeURIComponent(token)}`;
+  const appUrl4 = process.env.APP_URL ?? "https://app.mondaily.com";
+  const link = `${appUrl4}/auth/reset?token=${encodeURIComponent(token)}`;
   {
     await sendTransactionalEmail({
       to: [{ email: cred.email }],
@@ -60001,6 +60001,56 @@ router11.post("/pow-claim", requireAuth, async (c2) => {
   return c2.json({ ok: true });
 });
 
+// src/lib/credit-pack.ts
+var STRIPE_API2 = "https://api.stripe.com/v1";
+var appUrl2 = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
+var CREDIT_PACK = { credits: 1e5, amount_usd: 10 };
+function encodeForm2(params) {
+  return Object.entries(params).filter(([, v2]) => v2 !== void 0 && v2 !== "").map(([k2, v2]) => `${encodeURIComponent(k2)}=${encodeURIComponent(v2)}`).join("&");
+}
+async function stripePost(path, params) {
+  const key = process.env.STRIPE_SECRET_KEY;
+  const res = await fetch(`${STRIPE_API2}/${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" },
+    body: encodeForm2(params)
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error?.message ?? `Stripe HTTP ${res.status}`);
+  return json;
+}
+async function createCreditPackCheckout(workspaceId, userId) {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return { status: 503, error: "Billing isn't connected yet. Add STRIPE_SECRET_KEY to enable credit purchases." };
+  }
+  const [{ data: ws }, { data: member }] = await Promise.all([
+    supabase.from("workspaces").select("stripe_customer_id").eq("id", workspaceId).maybeSingle(),
+    supabase.from("workspace_members").select("email").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle()
+  ]);
+  const existingCustomer = ws?.stripe_customer_id;
+  try {
+    const session = await stripePost("checkout/sessions", {
+      mode: "payment",
+      "line_items[0][price_data][currency]": "usd",
+      "line_items[0][price_data][unit_amount]": String(CREDIT_PACK.amount_usd * 100),
+      "line_items[0][price_data][product_data][name]": `${CREDIT_PACK.credits.toLocaleString()} AI Token Operational Refill Pack`,
+      "line_items[0][quantity]": "1",
+      "payment_intent_data[setup_future_usage]": "off_session",
+      // attach card for auto-refill
+      success_url: `${appUrl2()}/settings/billing?credits=success`,
+      cancel_url: `${appUrl2()}/settings/billing?credits=cancelled`,
+      client_reference_id: workspaceId,
+      "metadata[workspace_id]": workspaceId,
+      "metadata[kind]": "credit_pack",
+      "metadata[credits]": String(CREDIT_PACK.credits),
+      ...existingCustomer ? { customer: existingCustomer } : { customer_creation: "always", customer_email: member?.email || void 0 }
+    });
+    return { status: 200, url: session.url };
+  } catch (e2) {
+    return { status: 500, error: e2 instanceof Error ? e2.message : "Could not start the credit purchase." };
+  }
+}
+
 // src/routes/credits.ts
 var router12 = new Hono2();
 router12.use("*", requireAuth);
@@ -60045,6 +60095,10 @@ router12.get("/ledger", async (c2) => {
   const ws = c2.get("workspaceId");
   const { data } = await supabase.from("ai_credits_ledger").select("id, amount, transaction_type, description, created_at").eq("workspace_id", ws).order("created_at", { ascending: false }).limit(100);
   return c2.json({ ledger: data ?? [] });
+});
+router12.post("/checkout-session", requireAdminRole, async (c2) => {
+  const r2 = await createCreditPackCheckout(c2.get("workspaceId"), c2.get("userId"));
+  return r2.url ? c2.json({ url: r2.url }) : c2.json({ error: r2.error }, r2.status);
 });
 
 // src/routes/webhooks.ts
@@ -60150,17 +60204,17 @@ router13.post("/stripe", async (c2) => {
 // src/routes/billing.ts
 var router14 = new Hono2();
 router14.use("*", requireAuth);
-var STRIPE_API2 = "https://api.stripe.com/v1";
-var appUrl2 = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
-function encodeForm2(params) {
+var STRIPE_API3 = "https://api.stripe.com/v1";
+var appUrl3 = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
+function encodeForm3(params) {
   return Object.entries(params).filter(([, v2]) => v2 !== void 0 && v2 !== "").map(([k2, v2]) => `${encodeURIComponent(k2)}=${encodeURIComponent(v2)}`).join("&");
 }
-async function stripePost(path, params) {
+async function stripePost2(path, params) {
   const key = process.env.STRIPE_SECRET_KEY;
-  const res = await fetch(`${STRIPE_API2}/${path}`, {
+  const res = await fetch(`${STRIPE_API3}/${path}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: encodeForm2(params)
+    body: encodeForm3(params)
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json?.error?.message ?? `Stripe HTTP ${res.status}`);
@@ -60184,12 +60238,12 @@ router14.post("/checkout", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const { data: member } = await supabase.from("workspace_members").select("email").eq("workspace_id", workspaceId).eq("user_id", c2.get("userId")).maybeSingle();
   try {
-    const session = await stripePost("checkout/sessions", {
+    const session = await stripePost2("checkout/sessions", {
       mode: "subscription",
       "line_items[0][price]": price,
       "line_items[0][quantity]": "1",
-      success_url: `${appUrl2()}/settings/billing?billing=success`,
-      cancel_url: `${appUrl2()}/settings/billing?billing=cancelled`,
+      success_url: `${appUrl3()}/settings/billing?billing=success`,
+      cancel_url: `${appUrl3()}/settings/billing?billing=cancelled`,
       client_reference_id: workspaceId,
       "metadata[workspace_id]": workspaceId,
       "metadata[plan]": plan,
@@ -60203,39 +60257,9 @@ router14.post("/checkout", async (c2) => {
     return c2.json({ error: e2 instanceof Error ? e2.message : "Could not start checkout." }, 500);
   }
 });
-var CREDIT_PACK = { credits: 1e5, amount_usd: 10 };
 router14.post("/credits-checkout", async (c2) => {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return c2.json({ error: "Billing isn't connected yet. Add STRIPE_SECRET_KEY to enable credit purchases.", configured: false }, 503);
-  }
-  const workspaceId = c2.get("workspaceId");
-  const [{ data: ws }, { data: member }] = await Promise.all([
-    supabase.from("workspaces").select("stripe_customer_id").eq("id", workspaceId).maybeSingle(),
-    supabase.from("workspace_members").select("email").eq("workspace_id", workspaceId).eq("user_id", c2.get("userId")).maybeSingle()
-  ]);
-  const existingCustomer = ws?.stripe_customer_id;
-  try {
-    const session = await stripePost("checkout/sessions", {
-      mode: "payment",
-      "line_items[0][price_data][currency]": "usd",
-      "line_items[0][price_data][unit_amount]": String(CREDIT_PACK.amount_usd * 100),
-      "line_items[0][price_data][product_data][name]": `${CREDIT_PACK.credits.toLocaleString()} AI credits`,
-      "line_items[0][quantity]": "1",
-      // Persist the card for off-session auto-refill charges.
-      "payment_intent_data[setup_future_usage]": "off_session",
-      success_url: `${appUrl2()}/settings/billing?credits=success`,
-      cancel_url: `${appUrl2()}/settings/billing?credits=cancelled`,
-      client_reference_id: workspaceId,
-      "metadata[workspace_id]": workspaceId,
-      "metadata[kind]": "credit_pack",
-      "metadata[credits]": String(CREDIT_PACK.credits),
-      // Reuse the saved customer if we have one; otherwise create one we can charge again later.
-      ...existingCustomer ? { customer: existingCustomer } : { customer_creation: "always", customer_email: member?.email || void 0 }
-    });
-    return c2.json({ url: session.url });
-  } catch (e2) {
-    return c2.json({ error: e2 instanceof Error ? e2.message : "Could not start the credit purchase." }, 500);
-  }
+  const r2 = await createCreditPackCheckout(c2.get("workspaceId"), c2.get("userId"));
+  return r2.url ? c2.json({ url: r2.url }) : c2.json({ error: r2.error, configured: r2.status !== 503 }, r2.status);
 });
 router14.post("/portal", async (c2) => {
   if (!process.env.STRIPE_SECRET_KEY) {
@@ -60248,9 +60272,9 @@ router14.post("/portal", async (c2) => {
     return c2.json({ error: "No active subscription yet \u2014 choose a plan to get started.", needs_checkout: true }, 400);
   }
   try {
-    const session = await stripePost("billing_portal/sessions", {
+    const session = await stripePost2("billing_portal/sessions", {
       customer,
-      return_url: `${appUrl2()}/settings/billing`
+      return_url: `${appUrl3()}/settings/billing`
     });
     return c2.json({ url: session.url });
   } catch (e2) {

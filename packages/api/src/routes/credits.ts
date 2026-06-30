@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
+import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
+import { createCreditPackCheckout } from "../lib/credit-pack";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string; financeRole: string } }>();
 router.use("*", requireAuth);
@@ -58,6 +60,14 @@ router.get("/ledger", async (c) => {
     .order("created_at", { ascending: false })
     .limit(100);
   return c.json({ ledger: data ?? [] });
+});
+
+// POST /credits/checkout-session — admin-gated alias of the one-time credit-pack checkout.
+// Launches a real Stripe Checkout (mode=payment, $10 → 100k pack) that attaches the card
+// off-session for the auto-refill engine. Returns { url } for the frontend to redirect to.
+router.post("/checkout-session", requireAdminRole, async (c) => {
+  const r = await createCreditPackCheckout(c.get("workspaceId"), c.get("userId"));
+  return r.url ? c.json({ url: r.url }) : c.json({ error: r.error }, r.status as 503 | 500);
 });
 
 export { router as creditsRouter };

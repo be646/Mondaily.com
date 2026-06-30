@@ -20,7 +20,8 @@ export function SettingsLayout() {
   const currentItem = items.find(([to]) => location.pathname.includes(to));
 
   return (
-    <div className="flex h-full">
+    // font-mono on the shell → unified monospace typography across every settings panel.
+    <div className="flex h-full font-mono">
       {/* Desktop sidebar — always visible */}
       {/* Mobile: show nav list when at /settings root, show back+content when in a sub-page */}
       
