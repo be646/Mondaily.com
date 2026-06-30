@@ -125,8 +125,9 @@ export function DecisionsPage() {
             </div>
             {counts.low > 0 && (
               <button onClick={bulkApproveLow} disabled={bulkBusy}
-                className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[12px] font-medium text-white transition-colors disabled:opacity-60" style={{ background: "#10b981" }}>
-                {bulkBusy ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />} Approve {counts.low} low-risk
+                className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[var(--section-accent)] disabled:opacity-60"
+                style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-secondary)" }}>
+                {bulkBusy ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} style={{ color: "var(--section-accent)" }} />} Approve {counts.low} low-risk
               </button>
             )}
           </div>
@@ -160,8 +161,8 @@ export function DecisionsPage() {
               {visible.length === 0 && <div className="px-4 py-10 text-center text-[12px]" style={{ color: "var(--text-muted)" }}>No {riskFilter} decisions.</div>}
             </div>
 
-            {/* RIGHT — Impact Canvas (60%) */}
-            <div className="relative flex-1 overflow-y-auto rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            {/* RIGHT — Impact Canvas (60%) — fits as a card; ImpactCanvas owns any inner scroll */}
+            <div className="relative flex-1 overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               {selected ? <ImpactCanvas key={selected.id} d={selected} acting={acting} onResolve={resolve} /> : (
                 <div className="flex h-full items-center justify-center text-[13px]" style={{ color: "var(--text-muted)" }}>Select a decision to review its impact.</div>
               )}
@@ -174,9 +175,9 @@ export function DecisionsPage() {
                       style={banner.kind === "approved"
                         ? { borderColor: "#10b981", color: "#10b981", background: "color-mix(in srgb, #10b981 12%, var(--surface-card))", boxShadow: "0 0 30px color-mix(in srgb, #10b981 35%, transparent)" }
                         : { borderColor: banner.kind === "rejected" ? "#ef4444" : "var(--text-faint)", color: banner.kind === "rejected" ? "#ef4444" : "var(--text-muted)", background: "var(--surface-card)" }}>
-                      {banner.kind === "approved" ? <><CheckCircle2 size={18} /> ✓ AUTOMATION INJECTED SECURELY</>
-                        : banner.kind === "rejected" ? <><XCircle size={18} /> ✕ DISMISSED</>
-                        : <><Clock size={18} /> ⏳ SNOOZED 24H</>}
+                      {banner.kind === "approved" ? <><CheckCircle2 size={18} /> Approved &amp; running</>
+                        : banner.kind === "rejected" ? <><XCircle size={18} /> Rejected</>
+                        : <><Clock size={18} /> Snoozed for 24h</>}
                     </div>
                   </motion.div>
                 )}
@@ -200,7 +201,7 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="flex h-full flex-col">
-      <div className="flex-1 space-y-5 overflow-y-auto p-6">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
         {/* header */}
         <div className="flex items-start gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm" style={{ background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}>
@@ -259,25 +260,25 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
         )}
       </div>
 
-      {/* action bar — tactical slate triggers, emerald/crimson border pulse on hover */}
-      <div className="flex flex-wrap items-center gap-2 border-t p-4" style={{ borderColor: "var(--border-soft)" }}>
-        <ActionBtn label="[ APPROVE AND COMMIT SYSTEM CLAIM ]" Icon={CheckCircle2} loading={busy && acting?.action === "approve"} disabled={busy} onClick={() => onResolve(d, "approve")} hoverColor="var(--section-accent)" />
-        <ActionBtn label="[ REJECT MISSION PROTOCOL ]" Icon={XCircle} loading={busy && acting?.action === "reject"} disabled={busy} onClick={() => onResolve(d, "reject")} hoverColor="#f43f5e" />
-        <ActionBtn label="[ SNOOZE ]" Icon={Clock} loading={busy && acting?.action === "snooze"} disabled={busy} onClick={() => onResolve(d, "snooze")} />
+      {/* action bar — clear, user-friendly: Approve is primary, Reject secondary, Snooze icon */}
+      <div className="flex items-center gap-2 border-t p-3" style={{ borderColor: "var(--border-soft)" }}>
+        <button onClick={() => onResolve(d, "approve")} disabled={busy}
+          className="flex flex-1 items-center justify-center gap-2 rounded-sm border px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-60"
+          style={{ borderColor: "var(--section-accent)", background: "var(--section-accent-soft)", color: "var(--section-accent-text)" }}>
+          {busy && acting?.action === "approve" ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Approve &amp; run
+        </button>
+        <button onClick={() => onResolve(d, "reject")} disabled={busy}
+          className="flex items-center gap-2 rounded-sm border px-4 py-2.5 text-[13px] font-medium transition-colors hover:border-[#f43f5e] hover:text-[#f43f5e] disabled:opacity-60"
+          style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-secondary)" }}>
+          {busy && acting?.action === "reject" ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Reject
+        </button>
+        <button onClick={() => onResolve(d, "snooze")} disabled={busy} title="Snooze for later"
+          className="flex items-center justify-center rounded-sm border px-3 py-2.5 transition-colors hover:text-[var(--text-primary)] disabled:opacity-60"
+          style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-muted)" }}>
+          {busy && acting?.action === "snooze" ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />}
+        </button>
       </div>
     </motion.div>
-  );
-}
-
-function ActionBtn({ label, Icon, loading, disabled, onClick, hoverColor }: { label: string; Icon: ElementType; loading: boolean; disabled: boolean; onClick: () => void; hoverColor?: string }) {
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-2 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-60"
-      style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-secondary)" }}
-      onMouseEnter={e => { if (hoverColor) e.currentTarget.style.borderColor = hoverColor; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; }}>
-      {loading ? <Loader2 size={13} className="animate-spin" /> : <Icon size={13} />} {label}
-    </button>
   );
 }
 
