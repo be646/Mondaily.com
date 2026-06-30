@@ -427,7 +427,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     <>
       <aside
         style={{ transition: "width 0.2s ease" }}
-        className={`relative flex h-full shrink-0 flex-col border-r border-stone-200 bg-white text-stone-900 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 ${collapsed ? "w-[56px] min-w-[56px]" : "w-[244px] min-w-[244px]"}`}
+        className={`relative flex h-full shrink-0 flex-col border-r border-stone-200 bg-white text-stone-900 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-50 ${collapsed ? "w-[56px] min-w-[56px]" : "w-64 min-w-[16rem]"}`}
       >
         {/* Collapse toggle */}
         <button

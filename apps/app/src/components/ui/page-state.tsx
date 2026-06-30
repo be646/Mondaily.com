@@ -3,6 +3,33 @@ import type { LucideIcon } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import type { ReactNode } from "react";
 
+/**
+ * Console wireframe loader — a thin-bordered, zero-radius grid mesh for data-heavy panels
+ * (objects, members). Renders a wireline placeholder while a query hydrates so a fast transition
+ * never flashes an empty black viewport. JetBrains-Mono header row to match the data aesthetic.
+ */
+export function ConsoleSkeleton({ rows = 7, cols = 4 }: { rows?: number; cols?: number }) {
+  return (
+    <div role="status" aria-label="Loading" className="overflow-hidden rounded-sm border font-mono" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="flex items-center gap-2 px-4 py-2.5 text-[9px] uppercase tracking-widest" style={{ borderBottom: "1px solid var(--border-soft)", color: "var(--text-faint)" }}>
+        <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />
+        loading stream…
+      </div>
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="grid items-center gap-3 px-4 py-3" style={{ gridTemplateColumns: `1.6fr repeat(${Math.max(1, cols - 1)}, 1fr)`, borderTop: i > 0 ? "1px solid var(--border-soft)" : undefined }}>
+          <div className="flex items-center gap-2.5">
+            <div className="skeleton-shimmer h-6 w-6 shrink-0 rounded-sm" />
+            <div className="skeleton-shimmer h-3 rounded-sm" style={{ width: `${44 + (i % 3) * 14}%` }} />
+          </div>
+          {Array.from({ length: Math.max(1, cols - 1) }).map((_, j) => (
+            <div key={j} className="skeleton-shimmer h-3 rounded-sm" style={{ width: `${40 + ((i + j) % 4) * 12}%` }} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function PageSkeleton({ rows = 6, label }: { rows?: number; label?: string }) {
   return (
     <div aria-label={label ?? "Loading"} role="status">

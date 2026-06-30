@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { apiClient, apiFetch, getAuthHeaders } from "../../../lib/api-client";
-import { EmptyState, PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { EmptyState, PageHeader, ConsoleSkeleton } from "../../../components/ui/page-state";
 
 type AttributeType = "text" | "long_text" | "number" | "currency" | "percentage" | "date" | "datetime" | "checkbox" | "select" | "multi_select" | "url" | "email" | "phone" | "relation" | "formula" | "file";
 interface Attribute { id?: string; name: string; type: AttributeType; required?: boolean; unique?: boolean }
@@ -327,7 +327,7 @@ export function ObjectsSettings() {
         </button>
       </div>
 
-      {query.isLoading ? <PageSkeleton rows={8} /> : objects.length === 0 ? (
+      {query.isLoading ? <ConsoleSkeleton rows={8} /> : objects.length === 0 ? (
         <EmptyState icon={Database} title="No object definitions" description="Create your first custom object or generate one with AI."
           action={
             <div className="flex gap-2">

@@ -3,7 +3,7 @@ import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { Check, Copy, Trash2, UserPlus, Cpu, Clock } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "../../../lib/api-client";
-import { PageSkeleton } from "../../../components/ui/page-state";
+import { ConsoleSkeleton } from "../../../components/ui/page-state";
 
 /**
  * Team Operators — the single home for everyone in the workspace: role, finance access, AI compute
@@ -67,7 +67,7 @@ export function MembersSettings() {
     } catch (e) { console.error("[invite-link]", e); }
   }
 
-  if (query.isLoading) return <PageSkeleton />;
+  if (query.isLoading) return <ConsoleSkeleton rows={6} cols={5} />;
 
   return (
     <div className="font-mono">

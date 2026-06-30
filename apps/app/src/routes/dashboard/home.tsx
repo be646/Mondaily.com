@@ -1022,7 +1022,7 @@ export function HomePage() {
 
           {/* Task AI footer */}
           <div className="flow-panel-footer" ref={taskPickerRef}>
-            <div className="relative flex items-center gap-2 rounded-xl px-3 py-2 transition-colors" style={{ background: "color-mix(in srgb, var(--surface-hover) 48%, transparent)" }}>
+            <div className="relative flex items-center gap-2 rounded-sm border px-3 py-2 transition-colors" style={{ background: "color-mix(in srgb, var(--surface-hover) 48%, transparent)", borderColor: "var(--border-soft)" }}>
               <LogoMark size={11} className="shrink-0" style={{ color: "var(--text-muted)" }}/>
               <input ref={taskWidgetInputRef} value={taskWidgetInput}
                 onChange={e => setTaskWidgetInput(e.target.value)}
