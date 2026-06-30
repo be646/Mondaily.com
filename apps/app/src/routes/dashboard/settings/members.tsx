@@ -44,7 +44,12 @@ export function MembersSettings() {
 
   const members: Member[] = Array.isArray(query.data?.members) ? query.data!.members! : [];
   const invitations: Invitation[] = Array.isArray(query.data?.invitations) ? query.data!.invitations! : [];
-  const myRole = members.find(m => m?.email?.toLowerCase() === me.email?.toLowerCase())?.role ?? "member";
+  // Match by user_id first (reliable), then email — matching by email alone wrongly demoted the
+  // owner to "member" (hiding the invite bar) whenever their member row had a blank/mismatched email.
+  const myRole = members.find(m =>
+    (me.userId && m?.id === me.userId) ||
+    (!!m?.email && m.email.toLowerCase() === me.email?.toLowerCase()),
+  )?.role ?? "member";
   const isAdmin = myRole === "owner" || myRole === "admin";
 
   const changeRole = useMutation({ mutationFn: ({ id, role }: { id: string; role: string }) => apiClient.patch(`/settings/members/${id}`, { role }), onSuccess: refresh });

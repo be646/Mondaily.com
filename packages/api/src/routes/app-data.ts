@@ -482,10 +482,15 @@ router.delete("/settings/workspace", async (c) => {
 router.get("/settings/members", async (c) => {
   const workspaceId = c.get("workspaceId");
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const [{ data: members }, { data: teams }, invites, { data: usage }, { data: sessions }] = await Promise.all([
+  const [{ data: members }, { data: teams }, { data: inviteRows }, { data: usage }, { data: sessions }] = await Promise.all([
     supabase.from("workspace_members").select("*").eq("workspace_id", workspaceId),
     supabase.from("teams").select("*, team_members(user_id)").eq("workspace_id", workspaceId),
-    rows("nodes", workspaceId, { objectType: "workspace_invitation" }),
+    // Read pending invites from the SAME table POST /invites writes to (workspace_invites) —
+    // previously this read from nodes/workspace_invitation, so sent invites never appeared.
+    supabase.from("workspace_invites")
+      .select("id, email, role, finance_role, created_at, expires_at")
+      .eq("workspace_id", workspaceId).is("accepted_at", null).gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false }),
     // Per-operator AI telemetry (30d) so the Members matrix shows real compute consumption.
     supabase.from("ai_usage").select("user_id, total_tokens").eq("workspace_id", workspaceId).gte("created_at", sinceIso),
     supabase.from("auth_refresh_tokens").select("user_id, last_active_at").is("revoked_at", null),
@@ -511,7 +516,11 @@ router.get("/settings/members", async (c) => {
       last_active: lastActiveBy.get(String(member.user_id)) ?? null,
       status: "active",
     })),
-    invitations: invites.map((node: Record<string, unknown>) => ({ id: node.id, ...((node.data as Record<string, unknown>) ?? {}) })),
+    invitations: (inviteRows ?? []).map((i) => ({
+      id: i.id, email: i.email, role: i.role,
+      finance_role: (i as Record<string, unknown>).finance_role ?? "none",
+      created_at: i.created_at,
+    })),
     teams: (teams ?? []).map((team) => ({ id: team.id, name: team.name, member_count: team.team_members?.length ?? 0, member_ids: team.team_members?.map((item: { user_id: string }) => item.user_id) ?? [] }))
   });
 });
