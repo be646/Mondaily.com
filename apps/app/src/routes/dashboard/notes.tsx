@@ -9,7 +9,7 @@ import {
   Bot, FileText, GitCommitHorizontal, Kanban, LayoutGrid,
   Link2, Pencil, Pin, Plus, Search, Trash2, X,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { NoteEditor } from "../../components/notes/note-editor";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
@@ -81,14 +81,30 @@ function useNoteColors() {
 }
 
 function usePinned() {
+  // localStorage gives instant render; the server (user_preferences.pinned_notes) makes pins
+  // persist across devices. localStorage stays a warm cache so there's no flash on load.
   const [pinned, setPinned] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem("mondaily:note-pins") ?? "[]")); } catch { return new Set(); }
   });
+  const { data: account } = useQuery({
+    queryKey: ["account-settings"],
+    queryFn: () => apiClient.get<{ pinned_notes?: string[] }>("/settings/account"),
+    staleTime: 60_000,
+  });
+  useEffect(() => {
+    if (Array.isArray(account?.pinned_notes)) {
+      const s = new Set(account!.pinned_notes);
+      setPinned(s);
+      try { localStorage.setItem("mondaily:note-pins", JSON.stringify([...s])); } catch { /* quota */ }
+    }
+  }, [account]);
   function toggle(id: string) {
     setPinned(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
-      localStorage.setItem("mondaily:note-pins", JSON.stringify([...next]));
+      const arr = [...next];
+      try { localStorage.setItem("mondaily:note-pins", JSON.stringify(arr)); } catch { /* quota */ }
+      apiClient.patch("/settings/account", { pinned_notes: arr }).catch(() => {}); // persist cross-device
       return next;
     });
   }
