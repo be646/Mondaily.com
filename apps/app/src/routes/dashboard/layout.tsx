@@ -8,6 +8,7 @@ import { ErrorBoundary } from "../../components/ui/error-boundary";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
+import { sectionHue, sectionCallsign } from "../../lib/sections";
 import {
   Home, CheckSquare, Users, MessageCircle, Menu, Search,
   FileText, Bell, BarChart2, Zap, Phone, Mail, Settings,
@@ -42,48 +43,6 @@ function getPageMeta(pathname: string): PageMeta {
     if (pathname.startsWith(prefix)) return meta;
   }
   return { label: "Mondaily", Icon: Home, color: "text-stone-400" };
-}
-
-// ─── Section soul: hue offset (deg) rotated off the active theme's base accent ─
-// Identity is RELATIONAL, not a fixed colour — styles.css derives --section-accent
-// from this via hsl(base-hue + offset * theme-spread). The console comment shows
-// roughly how each reads on the jet-black skin; other themes keep it tonal.
-const SECTION_HUE: [string, number][] = [
-  ["/finance",        -120], // gold / ledger
-  ["/settings",         60], // steel
-  ["/discovery",       110], // violet / sweep
-  ["/automations",      40], // cyan / flow
-  ["/decisions",       185], // rose / approval gate
-  ["/activity",         75], // blue / telemetry stream
-  ["/reports",          30], // teal / AI signal
-  ["/notifications",  -140], // orange / alert
-  ["/team-oversight",  130], // indigo / org
-  ["/notes",          -110], // sand / draft
-  ["/ask",              15], // mint / Mondaily voice
-  ["/search",          110], // violet (exploration, shares Discovery family)
-  ["/calls",           -80], // amber-rose
-  ["/emails",          -45], // warm
-  ["/tasks",            95], // cool teal-blue
-  // /home, /objects, /lists → 0 (base emerald — the CRM core)
-];
-function sectionHue(pathname: string): number {
-  for (const [prefix, hue] of SECTION_HUE) if (pathname.startsWith(prefix)) return hue;
-  return 0;
-}
-
-// Mono call-sign rendered in the section accent next to each page label — the
-// "instrument designation" that gives every section identity beyond just colour.
-const SECTION_CALLSIGN: [string, string][] = [
-  ["/finance", "LEDGER"], ["/settings", "SYSTEM"], ["/discovery", "SWEEP"],
-  ["/automations", "FLOW"], ["/decisions", "GATE"], ["/activity", "STREAM"],
-  ["/reports", "SIGNAL"], ["/notifications", "ALERT"], ["/team-oversight", "ORG"],
-  ["/notes", "DRAFT"], ["/ask", "MONDAILY"], ["/search", "GRAPH"],
-  ["/calls", "COMMS"], ["/emails", "RELAY"], ["/tasks", "QUEUE"],
-  ["/objects", "RECORDS"], ["/lists", "SEGMENTS"], ["/home", "DECK"],
-];
-function sectionCallsign(pathname: string): string {
-  for (const [prefix, sign] of SECTION_CALLSIGN) if (pathname.startsWith(prefix)) return sign;
-  return "MONDAILY";
 }
 
 function MobileNav() {

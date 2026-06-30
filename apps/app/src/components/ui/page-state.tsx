@@ -2,6 +2,8 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import type { ReactNode } from "react";
+import { useLocation } from "react-router-dom";
+import { sectionCallsign } from "@/lib/sections";
 
 /**
  * Console wireframe loader — a thin-bordered, zero-radius grid mesh for data-heavy panels
@@ -124,13 +126,18 @@ export function EmptyState({
 }
 
 export function PageHeader({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
+  const { pathname } = useLocation();
   return (
-    <header className="mb-6 flex items-start justify-between gap-4">
-      <div>
-        <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>{title}</h1>
-        {description ? <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>{description}</p> : null}
+    <header className="mb-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <span className="soul-kicker">// {sectionCallsign(pathname)}</span>
+          <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>{title}</h1>
+          {description ? <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>{description}</p> : null}
+        </div>
+        {action}
       </div>
-      {action}
+      <div className="soul-rule mt-3" />
     </header>
   );
 }
