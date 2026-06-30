@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
-import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
+import { PageSkeleton } from "../../components/ui/page-state";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useDecisionQueue, mapEvidence, RISK_STYLE, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -97,8 +97,12 @@ export function DecisionsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-      <PageHeader title="Decision Deck" description="Your agents' proposed actions. Pick one on the left; review and approve its full impact on the right." />
+    <div className="mx-auto max-w-6xl px-4 py-6 font-mono sm:px-6">
+      <div className="mb-5">
+        <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// AUTONOMOUS MISSION DECK · live</p>
+        <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Decision Deck</h1>
+        <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>Your agents' proposed actions. Pick one on the left; review and approve its full impact on the right.</p>
+      </div>
 
       {isError ? (
         <div className="surface-card rounded-2xl p-5 text-[13px]" style={{ color: "var(--text-faint)" }}>Couldn't load the Decision Queue right now. Refresh, or check back shortly.</div>

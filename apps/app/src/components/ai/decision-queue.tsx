@@ -54,6 +54,7 @@ export function useDecisionQueue() {
     queryKey: ["decisions", "pending"],
     queryFn: () => apiClient.get<Decision[]>("/decisions?status=pending"),
     staleTime: 30_000,
+    refetchInterval: 20_000, // live: new agent decisions surface without a manual refresh
     // The decision_queue table only exists once migration 0016 has been
     // applied — if it 404s/500s on a workspace that hasn't run it yet,
     // treat that as "no decisions" rather than breaking the page.
