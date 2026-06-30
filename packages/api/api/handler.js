@@ -64050,6 +64050,45 @@ router38.delete("/node/:nodeId/:tagId", requireAuth, async (c2) => {
 
 // src/routes/onboarding.ts
 var router39 = new Hono2();
+router39.post("/analyze", requireAuth, async (c2) => {
+  const ws = c2.get("workspaceId");
+  const { description } = await c2.req.json().catch(() => ({ description: "" }));
+  const text = (description ?? "").trim();
+  if (!text) return c2.json({ error: "Describe your operation to continue." }, 400);
+  const heuristic = () => {
+    const biz = /\b(team|company|agency|enterprise|fund|firm|operations|staff|employees|scale|pipeline|department|org|startup|saas)\b/i.test(text);
+    const num = text.match(/\b(\d{1,4})\b/)?.[1];
+    const concurrency = num ? Math.min(512, Math.max(1, Number(num))) : biz ? 8 : 1;
+    return { account_tier: biz ? "business" : "personal", industry_vertical: "General Operations", target_concurrency: concurrency };
+  };
+  let result = heuristic();
+  try {
+    const extracted = await aiGatewayToolUse({
+      system: "You are the Mondaily Workspace Architect. Extract a strict configuration profile from the operator's description. account_tier is 'business' for any team/company/agency/multi-operator deployment, else 'personal'. industry_vertical is a concise 1-4 word label (e.g. 'Quantitative Finance', 'Real Estate Ops'). target_concurrency is an integer estimate of simultaneous automated agents/operators implied (1 for a solo developer).",
+      prompt: text,
+      toolName: "configure_workspace",
+      toolDescription: "Return the inferred workspace architecture profile.",
+      toolSchema: {
+        type: "object",
+        properties: {
+          account_tier: { type: "string", enum: ["personal", "business"] },
+          industry_vertical: { type: "string" },
+          target_concurrency: { type: "integer", minimum: 1 }
+        },
+        required: ["account_tier", "industry_vertical", "target_concurrency"]
+      },
+      maxTokens: 256,
+      onUsage: (u2) => recordCreditUsage(ws, u2.total_tokens, "Onboarding semantic analysis")
+    });
+    const tier = extracted.account_tier === "business" ? "business" : extracted.account_tier === "personal" ? "personal" : result.account_tier;
+    const vertical = typeof extracted.industry_vertical === "string" && extracted.industry_vertical.trim() ? extracted.industry_vertical.trim() : result.industry_vertical;
+    const cNum = Number(extracted.target_concurrency);
+    const concurrency = Number.isFinite(cNum) && cNum > 0 ? Math.min(512, Math.round(cNum)) : result.target_concurrency;
+    result = { account_tier: tier, industry_vertical: vertical, target_concurrency: concurrency };
+  } catch {
+  }
+  return c2.json(result);
+});
 router39.post("/bootstrap", requireJwt, async (c2) => {
   const userId = c2.get("userId");
   const body = await c2.req.json().catch(() => ({}));
@@ -64100,7 +64139,7 @@ router39.post("/complete", requireAuth, async (c2) => {
   const ws = c2.get("workspaceId");
   const userId = c2.get("userId");
   const body = await c2.req.json().catch(() => ({}));
-  const track = body.track === "business" ? "business" : "solo";
+  const track = body.track === "business" || body.account_tier === "business" ? "business" : "solo";
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString();
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = wsRow?.settings ?? {};
@@ -64111,11 +64150,17 @@ router39.post("/complete", requireAuth, async (c2) => {
       track,
       ...body.industry ? { industry: body.industry } : {},
       ...body.team_size ? { team_size: body.team_size } : {},
+      ...typeof body.concurrency === "number" ? { target_concurrency: body.concurrency } : {},
       ...Array.isArray(body.goals) ? { goals: body.goals } : {},
       ...track === "business" ? { trial_ends_at: trialEndsAt } : {}
     }
   }).eq("id", ws);
-  if (track === "business") await grantCredits(ws, BUSINESS_TRIAL_GRANT, "grant", "14-day Pro trial credits");
+  if (track === "business") {
+    await grantCredits(ws, BUSINESS_TRIAL_GRANT, "grant", "14-day Pro trial credits");
+  } else {
+    const { enrolled } = await creditStatus(ws);
+    if (!enrolled) await grantCredits(ws, SOLO_GRANT, "grant", "Personal plan baseline credits");
+  }
   const { count } = await supabase.from("tasks").select("id", { count: "exact", head: true }).eq("workspace_id", ws);
   if ((count ?? 0) === 0) {
     await supabase.from("tasks").insert([

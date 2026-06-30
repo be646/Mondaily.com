@@ -8,15 +8,8 @@ import { ShadowForgotPage } from "./routes/auth/shadow-forgot";
 import { ShadowResetPage } from "./routes/auth/shadow-reset";
 import { WorkspaceSelectPage } from "./routes/auth/workspace-select";
 import { InviteAcceptPage } from "./routes/auth/invite-accept";
-import { OnboardingLayout } from "./routes/onboarding/onboarding-layout";
-import { StepProfile } from "./routes/onboarding/step-profile";
-import { StepWorkspace } from "./routes/onboarding/step-workspace";
-import { StepConnectEmail } from "./routes/onboarding/step-connect-email";
-import { StepInvite } from "./routes/onboarding/step-invite";
-import { StepImport } from "./routes/onboarding/step-import";
-import { StepPlan } from "./routes/onboarding/step-plan";
 import { OnboardingPage } from "./routes/onboarding";
-import { SetupWizardPage } from "./routes/onboarding/setup-wizard";
+import { TerminalOnboardingPage } from "./routes/onboarding/terminal-console";
 import { DashboardLayout } from "./routes/dashboard/layout";
 import { HomePage } from "./routes/dashboard/home";
 import { StatusPage } from "./routes/dashboard/status";
@@ -78,11 +71,12 @@ function DashboardRoute({ children }: { children: ReactNode }) {
   if (!isLoaded) return null;
   if (!isSignedIn) return <Navigate to="/auth/shadow-login" replace />;
   const hasWorkspace = typeof workspaceId === "string" && workspaceId.length === 36;
-  if (!hasWorkspace) return <Navigate to="/onboarding/profile" replace state={{ from: location }} />;
-  // New users (bootstrap returned is_new=true) go through onboarding before the dashboard
+  if (!hasWorkspace) return <Navigate to="/onboarding" replace state={{ from: location }} />;
+  // New users (bootstrap returned is_new=true) run the conversational onboarding console before the
+  // dashboard. The console clears this flag AND hard-redirects, so there's no SPA loop-back.
   if (localStorage.getItem("mondaily_needs_onboarding") === "1") {
     localStorage.removeItem("mondaily_needs_onboarding");
-    return <Navigate to="/onboarding/welcome" replace />;
+    return <Navigate to="/onboarding" replace />;
   }
   return <>{children}</>;
 }
@@ -105,16 +99,10 @@ export function App() {
         <Route path="reset" element={<ShadowResetPage />} />
       </Route>
       <Route path="/onboarding-setup" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-      <Route path="/onboarding/welcome" element={<ProtectedRoute><SetupWizardPage /></ProtectedRoute>} />
-      <Route path="/onboarding" element={<ProtectedRoute><OnboardingLayout /></ProtectedRoute>}>
-        <Route index element={<Navigate to="profile" replace />} />
-        <Route path="profile" element={<StepProfile />} />
-        <Route path="workspace" element={<StepWorkspace />} />
-        <Route path="connect-email" element={<StepConnectEmail />} />
-        <Route path="invite" element={<StepInvite />} />
-        <Route path="import" element={<StepImport />} />
-        <Route path="plan" element={<StepPlan />} />
-      </Route>
+      {/* Conversational AI Onboarding Console — single canonical path, no nested step router
+          (the old multi-step OnboardingLayout was the source of the loop-back defect). */}
+      <Route path="/onboarding" element={<ProtectedRoute><TerminalOnboardingPage /></ProtectedRoute>} />
+      <Route path="/onboarding/welcome" element={<Navigate to="/onboarding" replace />} />
       <Route path="/" element={<DashboardRoute><DashboardLayout /></DashboardRoute>}>
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="home" element={<HomePage />} />
