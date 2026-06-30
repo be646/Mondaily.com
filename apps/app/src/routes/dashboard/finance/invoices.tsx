@@ -123,14 +123,14 @@ export function InvoicesPage() {
               <DollarSign size={12} className="text-stone-500"/>
               <span className="text-[11px] text-stone-500">Outstanding</span>
             </div>
-            <div className="text-[18px] font-semibold text-[var(--text-primary)]">{formatCurrency(totalOwed, "GBP")}</div>
+            <div className="font-mono text-[18px] font-semibold tabular-nums text-[var(--text-primary)]">{formatCurrency(totalOwed, "GBP")}</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-2 mb-1">
               <CheckCircle size={12} className="text-emerald-400"/>
               <span className="text-[11px] text-stone-500">Collected</span>
             </div>
-            <div className="text-[18px] font-semibold text-emerald-400">{formatCurrency(totalPaid, "GBP")}</div>
+            <div className="font-mono text-[18px] font-semibold tabular-nums" style={{ color: "var(--accent)" }}>{formatCurrency(totalPaid, "GBP")}</div>
           </div>
         </div>
 
@@ -175,7 +175,7 @@ export function InvoicesPage() {
             </button>
           </div>
         ) : (
-          <table className="minimal-table">
+          <table className="minimal-table font-mono">
             <thead>
               <tr className="border-b border-[var(--border-soft)]">
                 {["Invoice", "Client", "Amount", "Status", "Due Date", ""].map(h => (
