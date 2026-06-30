@@ -556,7 +556,7 @@ export function HomePage() {
       </div>
 
       {showWorkspaceRecovery && populatedWorkspace && (
-        <div className="mb-4 rounded-2xl px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4" style={{ background: "color-mix(in srgb, #d97706 8%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 25%, var(--border-soft))" }}>
+        <div className="mb-4 rounded-sm px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4" style={{ background: "color-mix(in srgb, #d97706 8%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 25%, var(--border-soft))" }}>
           <div>
             <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>You may be viewing an empty workspace.</p>
             <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
@@ -974,7 +974,7 @@ export function HomePage() {
               <div className="py-4"><PageSkeleton rows={4} label="Loading tasks…"/></div>
             ) : tasksQuery.isError ? (
               <div className="py-4">
-                <div className="rounded-xl px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #d97706 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 24%, var(--border-soft))" }}>
+                <div className="rounded-sm px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #d97706 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 24%, var(--border-soft))" }}>
                   <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load tasks</p>
                   <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{(tasksQuery.error as Error)?.message || "The tasks API did not return data."}</p>
                   <button onClick={() => tasksQuery.refetch()} className="btn-suggested mt-3 !px-2.5 !py-1 !text-[11px]">Retry</button>
@@ -1061,7 +1061,7 @@ export function HomePage() {
               <div className="py-4"><PageSkeleton rows={3} label="Loading meetings…"/></div>
             ) : meetings.isError ? (
               <div className="py-4">
-                <div className="rounded-xl px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #d97706 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 24%, var(--border-soft))" }}>
+                <div className="rounded-sm px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #d97706 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 24%, var(--border-soft))" }}>
                   <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load meetings</p>
                   <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{(meetings.error as Error)?.message || "Calendar data did not return."}</p>
                   <button onClick={() => meetings.refetch()} className="btn-suggested mt-3 !px-2.5 !py-1 !text-[11px]">Retry</button>
@@ -1078,7 +1078,7 @@ export function HomePage() {
               </ul>
             ) : (
               <div className="flex flex-col items-center justify-center py-10 text-center px-5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl mb-3" style={{ background: "var(--surface-hover)", border: "1px solid var(--border-soft)" }}>
+                <div className="flex h-10 w-10 items-center justify-center rounded-sm mb-3" style={{ background: "var(--surface-hover)", border: "1px solid var(--border-soft)" }}>
                   <Calendar size={16} style={{ color: "var(--text-faint)" }}/>
                 </div>
                 <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>No meetings today</p>

@@ -35,15 +35,16 @@ body {
 
 .landing-shell.dark,
 .landing-shell[data-theme="dark"] {
-  --landing-canvas: #0d0d0d;
-  --landing-surface: #141414;
-  --landing-surface-raised: #1a1a1a;
+  /* aligned to the app's Cybernetic palette for cross-package parity (dark theme only) */
+  --landing-canvas: #09090b;
+  --landing-surface: #121214;
+  --landing-surface-raised: #161618;
   --landing-text: #e8e8e6;
   --landing-muted: #888884;
   --landing-faint: #4a4a48;
-  --landing-line: #202020;
-  --landing-line-strong: #2c2c2c;
-  --landing-hover: #181818;
+  --landing-line: #27272a;
+  --landing-line-strong: #34343a;
+  --landing-hover: #1a1a1c;
   color-scheme: dark;
 }
 
