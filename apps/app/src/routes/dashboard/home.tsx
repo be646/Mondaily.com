@@ -505,29 +505,11 @@ export function HomePage() {
   return (
     <div className="home-control-room ask-frame mx-auto max-w-6xl px-4 py-8 sm:px-6">
 
-      {/* ── Telemetry ticker — single-line running status at the peak of the portal ── */}
-      <div className="-mx-4 -mt-8 mb-0 overflow-x-auto border-b px-4 py-1.5 font-mono text-[10.5px] sm:-mx-6 sm:px-8" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-        <div className="flex items-center gap-3 whitespace-nowrap tracking-wide">
-          <span style={{ color: "var(--accent)" }}>● SYSTEM NOMINAL</span>
-          {([
-            ["OPEN TASKS", openTaskCount],
-            ["DECISIONS", pendingDecisionsCount],
-            ["UNREAD", unreadCount],
-            ["OVERDUE", overdueCount],
-            ["URGENT", urgentCount],
-          ] as const).map(([label, value]) => (
-            <span key={label} className="text-stone-600">
-              <span className="text-stone-500">{label}</span> <span className="tabular-nums" style={{ color: value > 0 ? "var(--text-secondary)" : "var(--text-faint)" }}>{value}</span>
-            </span>
-          ))}
-        </div>
-      </div>
-
       {/* ── Workspace Command Room — a full-width band, not a card. Bleeds
           past the page's own padding so it reads as the page's top zone,
           not another boxed panel stacked with the rest. Left-aligned, not
           centered — reads as a normal page header. ── */}
-      <div className="command-room relative -mx-4 mt-0 mb-7 border-b px-4 pb-3 pt-4 sm:-mx-6 sm:px-8" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="command-room relative -mx-4 -mt-8 mb-7 border-b px-4 pb-3 pt-4 sm:-mx-6 sm:px-8" style={{ borderColor: "var(--border-soft)" }}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           {/* Left — greeting + a clean cluster: frameless AI agents and the
               graph/source status. Collapses while chatting (notifications stay). */}

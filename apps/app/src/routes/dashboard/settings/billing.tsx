@@ -32,19 +32,6 @@ async function openBilling(plan: string) {
   }
 }
 
-// Buy a one-time credit pack — launches the admin-gated Stripe Checkout (also saves the card
-// off_session for auto-refill), then hands off to the secure payment sheet.
-async function buyCredits() {
-  try {
-    const session = await apiClient.post<{ url?: string; error?: string }>("/credits/checkout-session", {});
-    if (session.url) { window.location.assign(session.url); return; }
-    if (session.error) alert(session.error);
-  } catch (e) {
-    try { alert(JSON.parse((e as Error).message)?.error ?? "Could not start the credit purchase."); }
-    catch { alert("Could not start the credit purchase."); }
-  }
-}
-
 interface Invoice { id: string; date: string; amount: number; pdf_url: string }
 interface Billing {
   plan: string;
@@ -92,6 +79,22 @@ export function BillingSettings() {
     const next = !autoRefill;
     setAutoRefill(next);            // optimistic
     saveAutoRefill.mutate(next);    // persist to workspace.settings.auto_refill
+  }
+
+  // Buy a one-time credit pack — launches the admin-gated Stripe Checkout (saves the card
+  // off_session for auto-refill), shows a mono loading state, then hard-redirects to the sheet.
+  const [charging, setCharging] = useState(false);
+  async function handleBuyCredits() {
+    setCharging(true);
+    try {
+      const session = await apiClient.post<{ url?: string; error?: string }>("/credits/checkout-session", {});
+      if (session.url) { window.location.assign(session.url); return; } // redirecting away — keep loading
+      if (session.error) { alert(session.error); setCharging(false); }
+    } catch (e) {
+      try { alert(JSON.parse((e as Error).message)?.error ?? "Could not start the credit purchase."); }
+      catch { alert("Could not start the credit purchase."); }
+      setCharging(false);
+    }
   }
 
   if (query.isLoading) return <PageSkeleton />;
@@ -197,8 +200,11 @@ export function BillingSettings() {
                 <li>· Unlimited operators</li>
                 <li>· Priority compute</li>
               </ul>
-              <button onClick={() => { openBilling("free"); }} className="mt-4 w-full rounded-lg py-2 text-[12px] font-semibold transition-opacity hover:opacity-90" style={{ background: "var(--accent)", color: "#0a0a0a" }}>
-                Upgrade to Pro
+              <button onClick={() => { openBilling("free"); }} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-sm border py-2 text-[12px] font-semibold transition-colors"
+                style={{ background: "var(--surface-selected)", borderColor: "var(--border-strong)", color: "var(--text-primary)" }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--accent)")}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-strong)")}>
+                <span style={{ color: "var(--accent)" }}>▸</span> Upgrade to Pro
               </button>
             </div>
           </div>
@@ -282,10 +288,11 @@ export function BillingSettings() {
                   <p className="mt-0.5 text-xs text-stone-500">Top up 100,000 credits for <span className="tabular-nums text-stone-300">$10</span> via Stripe.</p>
                 </div>
                 <button
-                  onClick={() => { buyCredits(); }}
-                  className="flex shrink-0 items-center gap-1.5 rounded-xl border border-stone-500/30 bg-stone-600 px-3.5 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all"
+                  onClick={handleBuyCredits}
+                  disabled={charging}
+                  className="flex shrink-0 items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-3.5 py-2 text-sm font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-600 disabled:opacity-70"
                 >
-                  <RefreshCw size={13} /> Buy credits
+                  {charging ? <span className="font-mono text-xs tracking-wider">[ CHARGING GATEWAY... ]</span> : <><RefreshCw size={13} /> Buy credits</>}
                 </button>
               </div>
               <div className="mt-3 flex items-center justify-between gap-4 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>

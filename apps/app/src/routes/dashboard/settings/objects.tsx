@@ -377,14 +377,14 @@ export function ObjectsSettings() {
                 </button>
               </div>
 
-              {selected.attributes.length ? (
+              {(selected.attributes ?? []).length ? (
                 <div className="minimal-sheet overflow-hidden">
                   <table className="minimal-table text-left text-sm">
                     <thead>
                       <tr><th>Attribute name</th><th>Type</th><th>Required</th><th>Unique</th><th /></tr>
                     </thead>
                     <tbody>
-                      {selected.attributes.map((item) => (
+                      {(selected.attributes ?? []).map((item) => (
                         <tr key={item.id || item.name}>
                           <td className="font-medium">{item.name}</td>
                           <td className="capitalize text-stone-500 dark:text-stone-400">{item.type.replace("_", " ")}</td>

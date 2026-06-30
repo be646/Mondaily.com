@@ -569,7 +569,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                   <span className="text-[11.5px] font-medium" style={{ color: "var(--text-secondary)" }}>
                     Trial <span className="font-normal" style={{ color: "var(--text-faint)" }}>· {trialDaysLeft} {trialDaysLeft === 1 ? "day" : "days"} left</span>
                   </span>
-                  <span className="rounded-md px-2 py-0.5 text-[10.5px] font-semibold" style={{ background: "var(--accent)", color: "#0a0a0a" }}>Upgrade</span>
+                  <span className="rounded-sm border px-2 py-0.5 text-[10.5px] font-semibold" style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--accent)" }}>Upgrade</span>
                 </Link>
               )}
 
