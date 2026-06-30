@@ -81,7 +81,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(message || `${init?.method || "GET"} ${path} failed`);
   }
   if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+  // Parse defensively: a fast page transition can abort a request mid-flight, leaving an empty or
+  // truncated body. response.json() would THROW ("Unexpected end of JSON input") on that — instead
+  // read the text, and return undefined for an empty body / unparseable payload so callers degrade
+  // to their loading/empty guards rather than crashing the render tree.
+  const text = await response.text().catch(() => "");
+  if (!text) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return undefined as T;
+  }
 }
 
 export const apiClient = {
