@@ -8,6 +8,7 @@ import { ShadowForgotPage } from "./routes/auth/shadow-forgot";
 import { ShadowResetPage } from "./routes/auth/shadow-reset";
 import { WorkspaceSelectPage } from "./routes/auth/workspace-select";
 import { InviteAcceptPage } from "./routes/auth/invite-accept";
+import { VerifyEmailPage } from "./routes/auth/verify-email";
 import { TerminalOnboardingPage } from "./routes/onboarding/terminal-console";
 import { DashboardLayout } from "./routes/dashboard/layout";
 import { HomePage } from "./routes/dashboard/home";
@@ -96,6 +97,7 @@ export function App() {
         <Route path="shadow-activate" element={<ShadowActivatePage />} />
         <Route path="forgot" element={<ShadowForgotPage />} />
         <Route path="reset" element={<ShadowResetPage />} />
+        <Route path="verify-email" element={<VerifyEmailPage />} />
       </Route>
       {/* Conversational AI Onboarding Console — single canonical path, no nested step router
           (the old multi-step OnboardingLayout was the source of the loop-back defect). */}

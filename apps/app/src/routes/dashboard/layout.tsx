@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import { sectionHue } from "../../lib/sections";
+import { VerifyEmailBanner } from "../../components/ui/verify-email-banner";
 import {
   Home, CheckSquare, Users, MessageCircle, Menu, Search,
   FileText, Bell, BarChart2, Zap, Phone, Mail, Settings,
@@ -172,6 +173,8 @@ export function DashboardLayout() {
             <div id="mondaily-page-actions" className="flex items-center gap-1.5"/>
           </div>
         }/>
+
+        <VerifyEmailBanner />
 
         <main className={`min-h-0 flex-1 pb-16 md:pb-0 overscroll-none ${isGrid ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"}`}>
           {/* key=pathname → the boundary RESETS on every navigation. Without this, one page throwing

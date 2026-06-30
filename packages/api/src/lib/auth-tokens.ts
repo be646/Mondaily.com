@@ -54,6 +54,22 @@ export async function verifyActivationToken(token: string): Promise<{ sub: strin
   }
 }
 
+// ── Email-verification tokens — single-purpose, email-delivered (72h) ─────────────
+const VERIFY_TTL_SECONDS = 72 * 60 * 60;
+export async function signVerifyToken(userId: string, email: string): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  return sign({ sub: userId, email, type: "verify_email", iat: now, exp: now + VERIFY_TTL_SECONDS }, jwtSecret());
+}
+export async function verifyVerifyToken(token: string): Promise<{ sub: string; email: string } | null> {
+  try {
+    const p = (await verify(token, jwtSecret(), "HS256")) as Record<string, unknown>;
+    if (p.type !== "verify_email" || typeof p.sub !== "string" || typeof p.email !== "string") return null;
+    return { sub: p.sub, email: p.email };
+  } catch {
+    return null;
+  }
+}
+
 // ── Password-reset tokens — short-lived, single-purpose, email-delivered ──────────
 const RESET_TTL_SECONDS = 30 * 60;
 export async function signResetToken(userId: string, email: string): Promise<string> {

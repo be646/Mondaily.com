@@ -32,7 +32,7 @@ async function authCall<T = Record<string, unknown>>(path: string, body?: unknow
   return { status: res.status, data };
 }
 
-export interface SovereignUser { userId: string; email: string; name: string | null; imageUrl: string | null }
+export interface SovereignUser { userId: string; email: string; name: string | null; imageUrl: string | null; emailVerified: boolean }
 type Status = "loading" | "authenticated" | "unauthenticated";
 
 interface SovereignAuthValue {
@@ -70,8 +70,8 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
   const setAuthed = (u: SovereignUser, wsId?: string | null) => { persistWorkspace(wsId); setUser(u); setStatus("authenticated"); };
   const setGuest = () => { setUser(null); setStatus("unauthenticated"); };
 
-  type MeResp = { userId?: string; email?: string; name?: string | null; imageUrl?: string | null; workspaceId?: string };
-  const toUser = (d: MeResp, fallbackEmail = ""): SovereignUser => ({ userId: d.userId!, email: d.email ?? fallbackEmail, name: d.name ?? null, imageUrl: d.imageUrl ?? null });
+  type MeResp = { userId?: string; email?: string; name?: string | null; imageUrl?: string | null; workspaceId?: string; emailVerified?: boolean };
+  const toUser = (d: MeResp, fallbackEmail = ""): SovereignUser => ({ userId: d.userId!, email: d.email ?? fallbackEmail, name: d.name ?? null, imageUrl: d.imageUrl ?? null, emailVerified: d.emailVerified ?? true });
 
   const refresh = useCallback(async (): Promise<boolean> => {
     const r = await authCall<{ userId?: string }>("/refresh");

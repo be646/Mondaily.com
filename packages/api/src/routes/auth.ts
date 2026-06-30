@@ -10,6 +10,7 @@ import {
   signAccessToken, verifyAccessToken, newRefreshToken, refreshExpiry, sha256,
   signActivationToken, verifyActivationToken,
   signResetToken, verifyResetToken,
+  signVerifyToken, verifyVerifyToken,
   ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE,
 } from "../lib/auth-tokens";
 import { sendTransactionalEmail } from "../lib/mail";
@@ -83,14 +84,17 @@ async function credByEmail(email: string) {
 }
 // Session profile: a default workspace (so the SPA can set X-Workspace-Id) plus the cached
 // display name + avatar (the /settings/members fields), so profile components render natively.
-async function sessionProfile(userId: string): Promise<{ workspaceId: string | null; name: string | null; imageUrl: string | null }> {
-  const { data } = await supabase
-    .from("workspace_members").select("workspace_id, name, avatar_url")
-    .eq("user_id", userId).limit(1).maybeSingle();
+async function sessionProfile(userId: string): Promise<{ workspaceId: string | null; name: string | null; imageUrl: string | null; emailVerified: boolean }> {
+  const [{ data }, { data: cred }] = await Promise.all([
+    supabase.from("workspace_members").select("workspace_id, name, avatar_url").eq("user_id", userId).limit(1).maybeSingle(),
+    // email_verified may not exist pre-migration → default to true so no banner shows (graceful).
+    supabase.from("auth_credentials").select("email_verified").eq("user_id", userId).maybeSingle(),
+  ]);
   return {
     workspaceId: (data?.workspace_id as string) ?? null,
     name: (data?.name as string) ?? null,
     imageUrl: (data?.avatar_url as string) ?? null,
+    emailVerified: (cred as { email_verified?: boolean } | null)?.email_verified ?? true,
   };
 }
 
@@ -127,7 +131,47 @@ router.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.
   // verified cryptographic claim so the ABI matrix sees them as a legitimate human from day one.
   const pb = await c.req.json<{ pow_challenge?: string; pow_nonce?: string }>().catch(() => ({} as { pow_challenge?: string; pow_nonce?: string }));
   logPowClaim(userId, pb.pow_challenge ?? "", pb.pow_nonce ?? "", "register");
+  void sendVerificationEmail(userId, email); // best-effort; soft verification (non-blocking)
   return c.json({ userId, email, name: displayName, imageUrl: null, workspaceId }, 201);
+});
+
+// Best-effort verification email — never throws into the caller.
+async function sendVerificationEmail(userId: string, email: string): Promise<void> {
+  try {
+    const token = await signVerifyToken(userId, email);
+    const appUrl = process.env.APP_URL ?? "https://app.mondaily.com";
+    const link = `${appUrl}/auth/verify-email?token=${encodeURIComponent(token)}`;
+    await sendTransactionalEmail({
+      to: [{ email }],
+      subject: "Verify your Mondaily email",
+      body: `<p>Welcome to Mondaily. Confirm this is your email to secure your account:</p>
+             <p><a href="${link}">Verify my email</a></p>
+             <p>This link expires in 72 hours. You can keep using Mondaily in the meantime.</p>`,
+    });
+  } catch { /* email not configured / transient — the in-app banner still lets them resend */ }
+}
+
+// POST /auth/verify-email — confirm ownership via the emailed token. Public (the user may not
+// have an active session on the device they open the email link from).
+router.post("/verify-email", rateLimit(), zValidator("json", z.object({ token: z.string().min(1) })), async (c) => {
+  const { token } = c.req.valid("json");
+  const claims = await verifyVerifyToken(token);
+  if (!claims) return c.json({ error: "This verification link is invalid or has expired." }, 400);
+  const { error } = await supabase.from("auth_credentials")
+    .update({ email_verified: true, verified_at: new Date().toISOString() })
+    .eq("user_id", claims.sub);
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json({ ok: true, email: claims.email });
+});
+
+// POST /auth/resend-verification — authed; re-sends the verification email to the user on file.
+router.post("/resend-verification", requireAuth, rateLimit({ max: 3, windowMs: 10 * 60_000 }), async (c) => {
+  const userId = c.get("userId");
+  const { data } = await supabase.from("auth_credentials").select("email, email_verified").eq("user_id", userId).maybeSingle();
+  if (!data) return c.json({ ok: true }); // generic
+  if (data.email_verified) return c.json({ ok: true, already: true });
+  await sendVerificationEmail(userId, data.email as string);
+  return c.json({ ok: true });
 });
 
 // POST /auth/login — verify password, or flag legacy Clerk users for activation.
