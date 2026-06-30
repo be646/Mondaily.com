@@ -162,6 +162,12 @@ export function AccountSettings() {
     },
   });
 
+  // Notification toggles persist instantly (no need to hit Save) — the backend merges, so sending
+  // only { notifications } is safe and won't clobber other prefs.
+  const autosaveNotif = useMutation({
+    mutationFn: (next: Record<string, NotificationChannel>) => apiClient.patch("/settings/account", { notifications: next }),
+  });
+
   const disconnect = useMutation({
     mutationFn: (id: string) => apiClient.delete(`/settings/account/connections/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["account-settings"] }),
@@ -196,10 +202,13 @@ export function AccountSettings() {
   }
 
   function toggleNotif(key: string, channel: "in_app" | "email", value: boolean) {
-    setNotifications(cur => ({
+    const cur = notifications;
+    const next = {
       ...cur,
       [key]: { in_app: cur[key]?.in_app ?? true, email: cur[key]?.email ?? true, [channel]: value },
-    }));
+    };
+    setNotifications(next);          // optimistic
+    autosaveNotif.mutate(next);      // persist immediately
   }
 
   if (query.isLoading) return <PageSkeleton rows={8} />;
@@ -400,6 +409,7 @@ export function AccountSettings() {
       <section className="settings-section">
         <div className="settings-section-header">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">Notification preferences</h2>
+          <span className="text-xs text-stone-500">{autosaveNotif.isPending ? "Saving…" : "Saves automatically"}</span>
         </div>
         <div className="px-5">
           {/* Header row */}

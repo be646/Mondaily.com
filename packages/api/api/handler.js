@@ -46226,30 +46226,41 @@ async function sendWorkspaceEmail(workspaceId, msg) {
 // src/lib/notify.ts
 var appUrl = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
 var escapeHtml = (s2) => s2.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch] ?? ch);
-async function maybeEmailNotification(n2) {
+async function channelPrefs(n2) {
+  if (!n2.user_id) return { inApp: true, email: false };
   try {
-    if (!n2.user_id) return;
     const { data: ws } = await supabase.from("workspaces").select("settings").eq("id", n2.workspace_id).maybeSingle();
     const prefs = (ws?.settings ?? {}).user_preferences?.[n2.user_id] ?? {};
-    const perType = prefs.notifications?.[n2.type ?? "system"]?.email;
-    const emailEnabled = perType !== void 0 ? perType : prefs.email_notifications ?? true;
-    if (!emailEnabled) return;
-    const { data: member } = await supabase.from("workspace_members").select("email, name").eq("workspace_id", n2.workspace_id).eq("user_id", n2.user_id).maybeSingle();
-    const to = member?.email;
-    if (!to) return;
-    await sendTransactionalEmail({
-      to: [{ email: to, name: member?.name || void 0 }],
-      subject: n2.title,
-      body: `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:480px">
-        <p style="font-size:15px;font-weight:600;color:#111;margin:0 0 8px">${escapeHtml(n2.title)}</p>
-        ${n2.body ? `<p style="font-size:14px;color:#444;margin:0 0 16px">${escapeHtml(n2.body)}</p>` : ""}
-        <a href="${appUrl()}/notifications" style="display:inline-block;font-size:13px;color:#16a34a;text-decoration:none">Open in Mondaily \u2192</a>
-      </div>`
-    });
+    const perType = prefs.notifications?.[n2.type ?? "system"];
+    const inApp = perType?.in_app ?? true;
+    const email = perType?.email ?? prefs.email_notifications ?? true;
+    let to, name;
+    if (email) {
+      const { data: member } = await supabase.from("workspace_members").select("email, name").eq("workspace_id", n2.workspace_id).eq("user_id", n2.user_id).maybeSingle();
+      to = member?.email || void 0;
+      name = member?.name || void 0;
+    }
+    return { inApp, email, to, name };
   } catch {
+    return { inApp: true, email: false };
   }
 }
+function emailNotification(n2, to, name) {
+  void sendTransactionalEmail({
+    to: [{ email: to, name }],
+    subject: n2.title,
+    body: `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:480px">
+      <p style="font-size:15px;font-weight:600;color:#111;margin:0 0 8px">${escapeHtml(n2.title)}</p>
+      ${n2.body ? `<p style="font-size:14px;color:#444;margin:0 0 16px">${escapeHtml(n2.body)}</p>` : ""}
+      <a href="${appUrl()}/notifications" style="display:inline-block;font-size:13px;color:#16a34a;text-decoration:none">Open in Mondaily \u2192</a>
+    </div>`
+  }).catch(() => {
+  });
+}
 async function createNotification(n2) {
+  const ch = await channelPrefs(n2);
+  if (ch.email && ch.to) emailNotification(n2, ch.to, ch.name);
+  if (!ch.inApp) return true;
   const base = {
     workspace_id: n2.workspace_id,
     user_id: n2.user_id ?? null,
@@ -46273,7 +46284,6 @@ async function createNotification(n2) {
     console.error("[notify] failed to create notification:", error.message);
     return false;
   }
-  void maybeEmailNotification(n2);
   return true;
 }
 
