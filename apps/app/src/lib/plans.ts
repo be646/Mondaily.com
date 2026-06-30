@@ -8,6 +8,7 @@ export interface Plan {
   name: string;
   tagline: string;
   priceMonthly: number | null; // null = custom (contact)
+  priceAnnual: number | null;  // per-month price when billed annually (~20% off)
   operators: string;
   credits: string;
   highlight?: boolean;        // featured tier
@@ -20,7 +21,7 @@ export const PLANS: Plan[] = [
     id: "scout",
     name: "Scout",
     tagline: "Run your first autonomous operations.",
-    priceMonthly: 0,
+    priceMonthly: 0, priceAnnual: 0,
     operators: "1 operator",
     credits: "50k AI credits / mo",
     cta: "Start free",
@@ -35,7 +36,7 @@ export const PLANS: Plan[] = [
     id: "operator",
     name: "Operator",
     tagline: "Your full autonomous workspace.",
-    priceMonthly: 29,
+    priceMonthly: 29, priceAnnual: 23,
     operators: "1 operator",
     credits: "500k AI credits / mo",
     highlight: true,
@@ -53,7 +54,7 @@ export const PLANS: Plan[] = [
     id: "command",
     name: "Command",
     tagline: "Run a team of operators + agents.",
-    priceMonthly: 79,
+    priceMonthly: 79, priceAnnual: 63,
     operators: "Up to 10 operators",
     credits: "2M AI credits / mo",
     cta: "Upgrade to Command",
@@ -69,7 +70,7 @@ export const PLANS: Plan[] = [
     id: "sovereign",
     name: "Sovereign",
     tagline: "Autonomy at enterprise scale.",
-    priceMonthly: null,
+    priceMonthly: null, priceAnnual: null,
     operators: "Unlimited operators",
     credits: "Custom AI credits",
     cta: "Talk to us",

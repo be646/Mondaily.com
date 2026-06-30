@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { CreditCard, Download, Zap, Users, Wallet, RefreshCw } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
-import { PLANS, PLAN_BY_ID, normalizePlan, priceLabel } from "../../../lib/plans";
+import { PLANS, PLAN_BY_ID, normalizePlan } from "../../../lib/plans";
 import { Check } from "lucide-react";
 
 interface AutoRefill { enabled: boolean; threshold: number; amount_usd: number }
@@ -29,9 +29,9 @@ const errFrom = (e: unknown): string => {
 /** Start Stripe checkout for a specific plan id (operator/command/…). Returns an error
  *  string to show inline, or null on success (redirect). No plan is gated — anyone can
  *  buy any tier upfront; there is no forced trial. */
-async function checkoutPlan(plan: string): Promise<string | null> {
+async function checkoutPlan(plan: string, interval: "month" | "year"): Promise<string | null> {
   try {
-    const r = await apiClient.post<{ url?: string; error?: string }>("/billing/checkout", { plan, interval: "month" });
+    const r = await apiClient.post<{ url?: string; error?: string }>("/billing/checkout", { plan, interval });
     if (r.url) { window.location.href = r.url; return null; }
     return r.error ?? "Checkout isn't available yet.";
   } catch (e) { return errFrom(e); }
@@ -119,6 +119,7 @@ export function BillingSettings() {
   const billing = query.data ?? { plan: "free", seats_used: 1, seats_limit: 3, invoices: [] };
   const [billingMsg, setBillingMsg] = useState<string | null>(null);
   const [billingBusy, setBillingBusy] = useState<string | null>(null);
+  const [interval, setInterval] = useState<"month" | "year">("month");
   const currentPlanId = normalizePlan(billing.plan);
   const currentPlan = PLAN_BY_ID[currentPlanId];
   // Trial countdown derives from the actual end date (set at activation), NOT plan === "trial" —
@@ -132,7 +133,7 @@ export function BillingSettings() {
     setBillingMsg(null); setBillingBusy(planId);
     const err = planId === currentPlanId && billing.plan !== "free"
       ? await openPortal()
-      : await checkoutPlan(planId);
+      : await checkoutPlan(planId, interval);
     if (err) setBillingMsg(err);
     setBillingBusy(null);
   }
@@ -213,7 +214,18 @@ export function BillingSettings() {
       <section className="settings-section">
         <div className="settings-section-header">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">Plans</h2>
-          <span className="text-xs text-stone-500">Autonomous AI workspace · upgrade anytime</span>
+          {/* Monthly / Annual billing toggle */}
+          <div className="inline-flex rounded-full border p-0.5 text-[11px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            {(["month", "year"] as const).map(iv => (
+              <button key={iv} onClick={() => setInterval(iv)}
+                className="rounded-full px-2.5 py-1 font-medium transition-colors"
+                style={interval === iv
+                  ? { background: "var(--surface-selected)", color: "var(--section-accent)" }
+                  : { color: "var(--text-muted)" }}>
+                {iv === "month" ? "Monthly" : <>Annual <span style={{ color: "var(--section-accent)" }}>−20%</span></>}
+              </button>
+            ))}
+          </div>
         </div>
         {billingMsg && (
           <div className="mx-5 mt-4 rounded-sm border px-3 py-2 text-[12px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
@@ -232,8 +244,13 @@ export function BillingSettings() {
                   {plan.highlight && !isCurrent && <span className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>Popular</span>}
                 </div>
                 <div className="mt-1.5 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
-                  {priceLabel(plan)}{plan.priceMonthly !== null && plan.priceMonthly > 0 && <span className="text-sm text-stone-500"> /mo</span>}
+                  {plan.priceMonthly === null ? "Custom"
+                    : plan.priceMonthly === 0 ? "$0"
+                    : <>${interval === "year" ? plan.priceAnnual : plan.priceMonthly}<span className="text-sm text-stone-500"> /mo</span></>}
                 </div>
+                {interval === "year" && plan.priceAnnual !== null && plan.priceAnnual > 0 && (
+                  <p className="mt-0.5 font-mono text-[10px] text-stone-500">${plan.priceAnnual * 12} billed yearly</p>
+                )}
                 <p className="mt-1 text-[11px] text-stone-500">{plan.tagline}</p>
                 <div className="mt-3 space-y-1 text-[11px] text-stone-400">
                   <div className="font-mono text-[var(--text-secondary)]">{plan.operators}</div>
