@@ -34,7 +34,7 @@ function Sparkline({ values, height = 160 }: { values: number[]; height?: number
     }).join(" ");
 
   return (
-    <div className="rounded-sm bg-white p-4 dark:bg-stone-950/40" style={{ height }}>
+    <div className="rounded-sm border p-4" style={{ height, background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
         <polyline
           points={points}

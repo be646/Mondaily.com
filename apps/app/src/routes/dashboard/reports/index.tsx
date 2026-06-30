@@ -9,15 +9,6 @@ import { useAskContextStore } from "../../../lib/ask-context-store";
 interface DashboardItem { id: string; name?: string; updated_at: string; widgets?: unknown[] }
 interface ObjectType   { slug: string; name_plural: string }
 
-const OBJECT_ACCENTS: Record<string, { border: string; bg: string; icon: string; arrow: string }> = {
-  deals:      { border: "border-emerald-500/20", bg: "from-emerald-500/[.07] to-blue-500/[.04]",    icon: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400", arrow: "text-emerald-400" },
-  contacts:   { border: "border-blue-500/20",    bg: "from-blue-500/[.07] to-stone-500/[.04]",     icon: "bg-blue-500/10 border-blue-500/20 text-blue-400",          arrow: "text-blue-400"    },
-  companies:  { border: "border-stone-500/20",  bg: "from-stone-500/[.07] to-blue-500/[.04]",     icon: "bg-stone-500/10 border-stone-500/20 text-stone-400",    arrow: "text-stone-400"  },
-  properties: { border: "border-amber-500/20",   bg: "from-amber-500/[.07] to-orange-500/[.04]",    icon: "bg-amber-500/10 border-amber-500/20 text-amber-400",       arrow: "text-amber-400"   },
-  invoices:   { border: "border-[var(--section-accent)]/20",    bg: "from-cyan-500/[.07] to-blue-500/[.04]",       icon: "bg-[var(--section-accent)]/10 border-[var(--section-accent)]/20 text-[var(--section-accent)]",          arrow: "text-[var(--section-accent)]"    },
-  projects:   { border: "border-rose-500/20",    bg: "from-rose-500/[.07] to-pink-500/[.04]",       icon: "bg-rose-500/10 border-rose-500/20 text-rose-400",          arrow: "text-rose-400"    },
-};
-const DEFAULT_ACCENT = { border: "border-stone-500/20", bg: "from-stone-500/[.07] to-stone-700/[.04]", icon: "bg-stone-700/50 border-stone-600/30 text-stone-400", arrow: "text-stone-400" };
 
 function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) => void; onClose: () => void }) {
   const [name, setName] = useState("");
@@ -121,25 +112,24 @@ export function ReportsPage() {
           <p className="text-sm" style={{ color: "var(--text-faint)" }}>No object types found in this workspace.</p>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {objects.map(obj => {
-              const c = OBJECT_ACCENTS[obj.slug] ?? DEFAULT_ACCENT;
-              return (
-                <Link
-                  key={obj.slug}
-                  to={`/reports/sales?object=${obj.slug}`}
-                  className={`group flex items-center gap-4 overflow-hidden rounded-sm border ${c.border} bg-gradient-to-r ${c.bg} p-4 transition-all hover:brightness-105 dark:hover:brightness-110`}
-                >
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border ${c.icon}`}>
-                    <BarChart2 size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{obj.name_plural}</p>
-                    <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>KPIs · charts · AI insights · filters</p>
-                  </div>
-                  <ArrowRight size={14} className={`shrink-0 ${c.arrow} opacity-0 group-hover:opacity-100 transition-opacity`} />
-                </Link>
-              );
-            })}
+            {objects.map(obj => (
+              <Link
+                key={obj.slug}
+                to={`/reports/sales?object=${obj.slug}`}
+                className="group flex items-center gap-4 overflow-hidden rounded-sm border p-4 transition-colors hover:border-[var(--section-accent)]"
+                style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border"
+                  style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>
+                  <BarChart2 size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{obj.name_plural}</p>
+                  <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>KPIs · charts · AI insights · filters</p>
+                </div>
+                <ArrowRight size={14} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
+              </Link>
+            ))}
           </div>
         )}
       </section>

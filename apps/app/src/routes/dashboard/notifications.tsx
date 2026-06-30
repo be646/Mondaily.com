@@ -68,7 +68,7 @@ export function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-full bg-[#09090b] font-mono text-zinc-300">
+    <div className="min-h-full bg-[var(--surface-page)] font-mono text-zinc-300">
       <div className="mx-auto max-w-3xl px-6 py-8">
         {/* Header */}
         <div className="mb-6 flex items-end justify-between gap-4">
@@ -81,7 +81,7 @@ export function NotificationsPage() {
             <button
               onClick={() => markAll.mutate()}
               disabled={markAll.isPending}
-              className="flex items-center gap-1.5 rounded-lg border border-[#27272a] bg-[#18181b] px-3 py-2 text-[12px] text-zinc-300 transition-colors hover:border-zinc-600 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-[12px] text-zinc-300 transition-colors hover:border-zinc-600 disabled:opacity-50"
             >
               <CheckCheck size={13} /> Mark all read
             </button>
@@ -97,7 +97,7 @@ export function NotificationsPage() {
               className="rounded-lg border px-3 py-1.5 text-[11px] uppercase tracking-wide transition-colors"
               style={filter === f
                 ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 10%, transparent)" }
-                : { borderColor: "#27272a", color: "#71717a" }}
+                : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
             >
               {f === "all" ? "All" : `Unread · ${unread}`}
             </button>
@@ -108,8 +108,8 @@ export function NotificationsPage() {
               onClick={() => setTypeFilter(t)}
               className="rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-wide transition-colors"
               style={typeFilter === t
-                ? { borderColor: "#3f3f46", color: "#e4e4e7", background: "#18181b" }
-                : { borderColor: "#27272a", color: "#52525b" }}
+                ? { borderColor: "var(--text-faint)", color: "var(--text-primary)", background: "var(--surface-hover)" }
+                : { borderColor: "var(--border-soft)", color: "var(--text-faint)" }}
             >
               {t === "all" ? "All types" : (TYPE_LABELS[t] ?? t)}
             </button>
@@ -119,24 +119,24 @@ export function NotificationsPage() {
         {/* List */}
         {query.isLoading ? (
           <div className="space-y-2">
-            {[...Array(5)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-lg border border-[#27272a] bg-[#18181b]" />)}
+            {[...Array(5)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)]" />)}
           </div>
         ) : visible.length === 0 ? (
-          <div className="rounded-sm border border-[#27272a] bg-[#18181b] py-16 text-center">
+          <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] py-16 text-center">
             <Bell size={28} className="mx-auto mb-3 text-zinc-700" />
             <p className="text-sm text-zinc-400">{filter === "unread" ? "No unread signals" : "No notifications yet"}</p>
             <p className="mt-1 text-xs text-zinc-700">Reviews, approvals, mentions, and agent events surface here.</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-sm border border-[#27272a] bg-[#18181b]">
+          <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
             {visible.map((n, i) => {
               const isRisk = n.type === "ai_risk";
               return (
                 <div
                   key={n.id}
-                  className="group flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-[#202023]"
+                  className="group flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--surface-selected)]"
                   style={{
-                    ...(i > 0 ? { borderTop: "1px solid #27272a" } : {}),
+                    ...(i > 0 ? { borderTop: "1px solid var(--border-soft)" } : {}),
                     ...(!n.is_read ? { background: isRisk ? "rgba(251,191,36,0.05)" : "rgba(132,204,130,0.04)" } : {}),
                   }}
                 >
@@ -152,7 +152,7 @@ export function NotificationsPage() {
                           className="shrink-0 rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wide"
                           style={isRisk
                             ? { border: "1px solid rgba(251,191,36,0.3)", background: "rgba(251,191,36,0.1)", color: "#fbbf24" }
-                            : { border: "1px solid #27272a", background: "#0e0e10", color: "#71717a" }}
+                            : { border: "1px solid var(--border-soft)", background: "var(--surface-card)", color: "var(--text-muted)" }}
                         >
                           {TYPE_LABELS[n.type] ?? n.type}
                         </span>
