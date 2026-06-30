@@ -11957,7 +11957,7 @@ function secret3() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 function sign4(payload) {
-  return b64url2((0, import_node_crypto7.createHmac)("sha256", secret3()).update(payload).digest());
+  return b64url2((0, import_node_crypto8.createHmac)("sha256", secret3()).update(payload).digest());
 }
 function mintMcpToken(workspaceId) {
   const p2 = b64url2(`mcp:${workspaceId}`);
@@ -11973,7 +11973,7 @@ function verifyMcpToken(token) {
   const expected = sign4(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto7.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto8.timingSafeEqual)(a2, b2)) return null;
   try {
     const decoded = Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
     return decoded.startsWith("mcp:") ? decoded.slice(4) || null : null;
@@ -11981,11 +11981,11 @@ function verifyMcpToken(token) {
     return null;
   }
 }
-var import_node_crypto7, b64url2;
+var import_node_crypto8, b64url2;
 var init_mcp_token = __esm({
   "src/lib/mcp-token.ts"() {
     "use strict";
-    import_node_crypto7 = require("crypto");
+    import_node_crypto8 = require("crypto");
     b64url2 = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 });
@@ -54908,6 +54908,56 @@ var createMiddleware = (middleware) => middleware;
 
 // src/lib/credits.ts
 init_http_exception();
+
+// src/lib/auto-refill.ts
+var STRIPE_API = "https://api.stripe.com/v1";
+var REFILL_CREDITS = 1e5;
+function encodeForm(params) {
+  return Object.entries(params).map(([k2, v2]) => `${encodeURIComponent(k2)}=${encodeURIComponent(v2)}`).join("&");
+}
+async function maybeAutoRefill(workspaceId) {
+  try {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) return;
+    const { data: ws } = await supabase.from("workspaces").select("settings, stripe_customer_id").eq("id", workspaceId).maybeSingle();
+    if (!ws) return;
+    const settings = ws.settings ?? {};
+    const ar2 = settings.auto_refill ?? {};
+    const customer = ws.stripe_customer_id;
+    if (!ar2.enabled || !customer) return;
+    const threshold = Number(ar2.threshold ?? 5e3);
+    const amountUsd = Number(ar2.amount_usd ?? 10);
+    const { data: bal } = await supabase.rpc("ai_credit_balance", { ws: workspaceId });
+    if (Number(bal ?? 0) >= threshold) return;
+    const since = new Date(Date.now() - 2 * 60 * 1e3).toISOString();
+    const { data: recent } = await supabase.from("ai_credits_ledger").select("id").eq("workspace_id", workspaceId).eq("transaction_type", "purchase").gte("created_at", since).limit(1);
+    if (recent && recent.length > 0) return;
+    const res = await fetch(`${STRIPE_API}/payment_intents`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" },
+      body: encodeForm({
+        amount: String(Math.round(amountUsd * 100)),
+        currency: "usd",
+        customer,
+        confirm: "true",
+        off_session: "true",
+        description: "Mondaily AI credit auto-refill"
+      })
+    });
+    if (!res.ok) return;
+    await supabase.from("ai_credits_ledger").insert({
+      workspace_id: workspaceId,
+      amount: REFILL_CREDITS,
+      transaction_type: "purchase",
+      description: `Auto-refill \xB7 $${amountUsd} \u2192 ${REFILL_CREDITS.toLocaleString()} credits`
+    }).then(() => {
+    }, () => {
+    });
+  } catch {
+  }
+}
+
+// src/lib/credits.ts
 var SOLO_GRANT = 5e4;
 var BUSINESS_TRIAL_GRANT = 5e5;
 async function creditStatus(workspaceId) {
@@ -54925,8 +54975,7 @@ async function grantCredits(workspaceId, amount, type, description) {
 }
 function recordCreditUsage(workspaceId, tokens, description = "AI usage") {
   if (!workspaceId || !tokens || tokens <= 0) return;
-  void supabase.from("ai_credits_ledger").insert({ workspace_id: workspaceId, amount: -Math.round(tokens), transaction_type: "usage", description }).then(() => {
-  }, () => {
+  void supabase.from("ai_credits_ledger").insert({ workspace_id: workspaceId, amount: -Math.round(tokens), transaction_type: "usage", description }).then(() => maybeAutoRefill(workspaceId), () => {
   });
 }
 var verifyAiCredits = createMiddleware(async (c2, next) => {
@@ -60424,6 +60473,22 @@ router8.get("/activity", async (c2) => {
   return c2.json({ activity: rows2, stats, roster, timeline });
 });
 
+// src/lib/pow-claims.ts
+var import_node_crypto2 = require("crypto");
+function logPowClaim(userId, challenge, nonce, context2) {
+  if (!userId || !challenge || !nonce) return;
+  const challenge_hash = (0, import_node_crypto2.createHash)("sha256").update(challenge).digest("hex");
+  void supabase.from("pow_claims").insert({ user_id: userId, challenge_hash, nonce, context: context2 }).then(() => {
+  }, () => {
+  });
+}
+async function verifiedPowUserIds(sinceMs = 30 * 24 * 60 * 60 * 1e3) {
+  const sinceIso = new Date(Date.now() - sinceMs).toISOString();
+  const { data, error } = await supabase.from("pow_claims").select("user_id").gte("created_at", sinceIso);
+  if (error || !data) return /* @__PURE__ */ new Set();
+  return new Set(data.map((r2) => String(r2.user_id ?? "")));
+}
+
 // src/routes/activities.ts
 var router9 = new Hono2();
 router9.get("/oversight", requireAuth, requireAdminRole, async (c2) => {
@@ -60487,19 +60552,22 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
     lastAct.set(k2, { action: a2.action, node_id: a2.node_id ?? null, created_at: a2.created_at });
   }
   const sessionUsers = new Set((sessions ?? []).map((s2) => String(s2.user_id ?? "")));
+  const powUsers = await verifiedPowUserIds();
   const operators = (members ?? []).map((m2) => {
     const uid = String(m2.user_id ?? "");
     const u2 = usageBy.get(uid) ?? { tokens: 0, runs: 0 };
     const last = lastAct.get(uid) ?? null;
     const hasSession2 = sessionUsers.has(uid);
+    const verifiedPow = powUsers.has(uid);
     const taskCount = last ? (acts ?? []).filter((a2) => String(a2.actor_id) === uid).length : 0;
     const complexityDelta = Math.round(u2.tokens / Math.max(1, taskCount));
+    const legit = verifiedPow || hasSession2;
     let verdict = "idle";
     if (u2.tokens === 0 && taskCount === 0) verdict = "inactive";
-    else if (u2.tokens > 5e4 && taskCount > 20 && !hasSession2) verdict = "bot";
-    else if (hasSession2 && taskCount >= 5 && complexityDelta < 500) verdict = "low_engagement";
-    else if (hasSession2 && complexityDelta > 8e3) verdict = "high_complexity";
-    else if (u2.tokens > 0 && hasSession2) verdict = "engaged";
+    else if (u2.tokens > 5e4 && taskCount > 20 && !verifiedPow) verdict = "bot";
+    else if (legit && taskCount >= 5 && complexityDelta < 500) verdict = "low_engagement";
+    else if (legit && complexityDelta > 8e3) verdict = "high_complexity";
+    else if (u2.tokens > 0 && legit) verdict = "engaged";
     return {
       operator_id: uid,
       name: m2.name || m2.email || "Unknown Operator",
@@ -60514,6 +60582,7 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
       last_action: last?.action ?? null,
       last_active_at: last?.created_at ?? null,
       has_session: hasSession2,
+      verified_pow: verifiedPow,
       verdict
     };
   }).sort((a2, b2) => b2.tokens - a2.tokens);
@@ -60559,13 +60628,13 @@ router10.get("/token", async (c2) => {
 
 // src/routes/auth.ts
 init_cookie2();
-var import_node_crypto4 = require("crypto");
+var import_node_crypto5 = require("crypto");
 
 // src/lib/password.ts
-var import_node_crypto2 = require("crypto");
+var import_node_crypto3 = require("crypto");
 function scryptAsync(password, salt, keylen, options) {
   return new Promise((resolve2, reject) => {
-    (0, import_node_crypto2.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
+    (0, import_node_crypto3.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
   });
 }
 var N2 = 32768;
@@ -60574,7 +60643,7 @@ var P2 = 1;
 var KEYLEN = 64;
 var MAXMEM = 64 * 1024 * 1024;
 async function hashPassword(plain) {
-  const salt = (0, import_node_crypto2.randomBytes)(16);
+  const salt = (0, import_node_crypto3.randomBytes)(16);
   const dk = await scryptAsync(plain, salt, KEYLEN, { N: N2, r: R2, p: P2, maxmem: MAXMEM });
   return `scrypt$${N2}$${R2}$${P2}$${salt.toString("base64")}$${dk.toString("base64")}`;
 }
@@ -60586,7 +60655,7 @@ async function verifyPassword(stored, plain) {
     const salt = Buffer.from(saltB64, "base64");
     const expected = Buffer.from(hashB64, "base64");
     const dk = await scryptAsync(plain, salt, expected.length, { N: Number(n2), r: Number(r2), p: Number(p2), maxmem: MAXMEM });
-    return dk.length === expected.length && (0, import_node_crypto2.timingSafeEqual)(dk, expected);
+    return dk.length === expected.length && (0, import_node_crypto3.timingSafeEqual)(dk, expected);
   } catch {
     return false;
   }
@@ -60671,7 +60740,7 @@ function rateLimit(opts) {
 
 // src/lib/pow.ts
 init_jwt4();
-var import_node_crypto3 = require("crypto");
+var import_node_crypto4 = require("crypto");
 init_http_exception();
 var DIFFICULTY = "0000";
 var TTL_SECONDS = 300;
@@ -60682,7 +60751,7 @@ function secret() {
 }
 async function issuePowChallenge() {
   const now = Math.floor(Date.now() / 1e3);
-  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto3.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
+  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto4.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
   return { challenge, difficulty: DIFFICULTY.length };
 }
 async function verifyPow(challenge, nonce) {
@@ -60693,7 +60762,7 @@ async function verifyPow(challenge, nonce) {
   } catch {
     return false;
   }
-  return (0, import_node_crypto3.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
+  return (0, import_node_crypto4.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
 }
 var requirePow = createMiddleware(async (c2, next) => {
   let body = {};
@@ -60720,15 +60789,23 @@ function clearSessionCookies(c2) {
   deleteCookie(c2, ACCESS_COOKIE, { path: "/" });
   deleteCookie(c2, REFRESH_COOKIE, { path: "/api/v1/auth" });
 }
+function clientIp2(c2) {
+  const fwd = c2.req.header("x-forwarded-for") ?? c2.req.header("x-real-ip") ?? "";
+  return fwd.split(",")[0]?.trim() || null;
+}
+async function insertRefreshRow(userId, hash, userAgent, ip) {
+  const expires_at = refreshExpiry().toISOString();
+  const full = { user_id: userId, token_hash: hash, expires_at, user_agent: userAgent, ip_address: ip, last_active_at: (/* @__PURE__ */ new Date()).toISOString() };
+  let res = await supabase.from("auth_refresh_tokens").insert(full).select("id").single();
+  if (res.error) {
+    res = await supabase.from("auth_refresh_tokens").insert({ user_id: userId, token_hash: hash, expires_at, user_agent: userAgent }).select("id").single();
+  }
+  return res.data?.id ?? null;
+}
 async function issueSession(c2, userId, email, userAgent) {
   const access = await signAccessToken(userId, email);
   const { raw: raw2, hash } = newRefreshToken();
-  await supabase.from("auth_refresh_tokens").insert({
-    user_id: userId,
-    token_hash: hash,
-    expires_at: refreshExpiry().toISOString(),
-    user_agent: userAgent ?? null
-  });
+  await insertRefreshRow(userId, hash, userAgent ?? null, clientIp2(c2));
   setSessionCookies(c2, access, raw2);
 }
 async function memberByEmail(email) {
@@ -60751,7 +60828,7 @@ router11.get("/challenge", async (c2) => c2.json(await issuePowChallenge()));
 router11.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
   const { email, password, name } = c2.req.valid("json");
   if (await credByEmail(email)) return c2.json({ error: "An account with this email already exists." }, 409);
-  const userId = `usr_${(0, import_node_crypto4.randomBytes)(12).toString("hex")}`;
+  const userId = `usr_${(0, import_node_crypto5.randomBytes)(12).toString("hex")}`;
   const password_hash = await hashPassword(password);
   const { error } = await supabase.from("auth_credentials").insert({ user_id: userId, email, password_hash });
   if (error) return c2.json({ error: error.message }, 400);
@@ -60769,6 +60846,8 @@ router11.post("/register", rateLimit(), requirePow, zValidator("json", credSchem
     return c2.json({ error: e2 instanceof Error ? e2.message : "Failed to initialize workspace" }, 500);
   }
   await issueSession(c2, userId, email, c2.req.header("user-agent"));
+  const pb = await c2.req.json().catch(() => ({}));
+  logPowClaim(userId, pb.pow_challenge ?? "", pb.pow_nonce ?? "", "register");
   return c2.json({ userId, email, name: displayName, imageUrl: null, workspaceId }, 201);
 });
 router11.post("/login", rateLimit(), zValidator("json", credSchema), async (c2) => {
@@ -60858,8 +60937,8 @@ router11.post("/refresh", async (c2) => {
   const { data: cred } = await supabase.from("auth_credentials").select("email").eq("user_id", row.user_id).maybeSingle();
   const access = await signAccessToken(row.user_id, cred?.email ?? "");
   const next = newRefreshToken();
-  const { data: inserted } = await supabase.from("auth_refresh_tokens").insert({ user_id: row.user_id, token_hash: next.hash, expires_at: refreshExpiry().toISOString(), user_agent: c2.req.header("user-agent") ?? null }).select("id").single();
-  await supabase.from("auth_refresh_tokens").update({ revoked_at: (/* @__PURE__ */ new Date()).toISOString(), replaced_by: inserted?.id ?? null }).eq("id", row.id);
+  const insertedId = await insertRefreshRow(row.user_id, next.hash, c2.req.header("user-agent") ?? null, clientIp2(c2));
+  await supabase.from("auth_refresh_tokens").update({ revoked_at: (/* @__PURE__ */ new Date()).toISOString(), replaced_by: insertedId ?? null }).eq("id", row.id);
   setSessionCookies(c2, access, next.raw);
   return c2.json({ userId: row.user_id });
 });
@@ -60931,6 +61010,12 @@ router11.get("/mail-health", requireAuth, requireAdminRole, (c2) => {
   }
   return c2.json({ status: "ok", resend_api_key_configured: true, sender_identity: sender });
 });
+router11.post("/pow-claim", requireAuth, async (c2) => {
+  const { pow_challenge, pow_nonce } = await c2.req.json().catch(() => ({}));
+  if (!await verifyPow(pow_challenge ?? "", pow_nonce ?? "")) return c2.json({ ok: false }, 400);
+  logPowClaim(c2.get("userId"), pow_challenge, pow_nonce, "session");
+  return c2.json({ ok: true });
+});
 
 // src/routes/credits.ts
 var router12 = new Hono2();
@@ -60979,7 +61064,7 @@ router12.get("/ledger", async (c2) => {
 });
 
 // src/routes/webhooks.ts
-var import_node_crypto5 = require("crypto");
+var import_node_crypto6 = require("crypto");
 var router13 = new Hono2();
 router13.post("/nylas", async (c2) => {
   const challenge = c2.req.query("challenge");
@@ -60988,7 +61073,7 @@ router13.post("/nylas", async (c2) => {
   const sig = c2.req.header("x-nylas-signature") ?? "";
   const secret4 = process.env.NYLAS_WEBHOOK_SECRET ?? "";
   if (secret4 && sig) {
-    const expected = (0, import_node_crypto5.createHmac)("sha256", secret4).update(rawBody).digest("hex");
+    const expected = (0, import_node_crypto6.createHmac)("sha256", secret4).update(rawBody).digest("hex");
     if (sig !== expected) return c2.json({ error: "invalid signature" }, 401);
   }
   const payload = JSON.parse(rawBody);
@@ -61022,9 +61107,9 @@ router13.post("/stripe", async (c2) => {
     const age = Math.abs(Date.now() / 1e3 - parseInt(timestamp));
     if (age > 300) return c2.json({ error: "timestamp too old" }, 400);
     const payload = `${timestamp}.${rawBody}`;
-    const expected = (0, import_node_crypto5.createHmac)("sha256", secret4).update(payload).digest("hex");
+    const expected = (0, import_node_crypto6.createHmac)("sha256", secret4).update(payload).digest("hex");
     const provided = parts["v1"] ?? "";
-    if (!(0, import_node_crypto5.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
+    if (!(0, import_node_crypto6.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
       return c2.json({ error: "invalid signature" }, 401);
     }
   }
@@ -61065,17 +61150,17 @@ router13.post("/stripe", async (c2) => {
 // src/routes/billing.ts
 var router14 = new Hono2();
 router14.use("*", requireAuth);
-var STRIPE_API = "https://api.stripe.com/v1";
+var STRIPE_API2 = "https://api.stripe.com/v1";
 var appUrl = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
-function encodeForm(params) {
+function encodeForm2(params) {
   return Object.entries(params).filter(([, v2]) => v2 !== void 0 && v2 !== "").map(([k2, v2]) => `${encodeURIComponent(k2)}=${encodeURIComponent(v2)}`).join("&");
 }
 async function stripePost(path, params) {
   const key = process.env.STRIPE_SECRET_KEY;
-  const res = await fetch(`${STRIPE_API}/${path}`, {
+  const res = await fetch(`${STRIPE_API2}/${path}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" },
-    body: encodeForm(params)
+    body: encodeForm2(params)
   });
   const json2 = await res.json();
   if (!res.ok) throw new Error(json2?.error?.message ?? `Stripe HTTP ${res.status}`);
@@ -61143,13 +61228,13 @@ router14.post("/portal", async (c2) => {
 init_cookie2();
 
 // src/lib/tracking.ts
-var import_node_crypto6 = require("crypto");
+var import_node_crypto7 = require("crypto");
 function secret2() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 var b64url = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 function sign3(payload) {
-  return b64url((0, import_node_crypto6.createHmac)("sha256", secret2()).update(payload).digest());
+  return b64url((0, import_node_crypto7.createHmac)("sha256", secret2()).update(payload).digest());
 }
 function makeTrackingToken(nodeId) {
   const p2 = b64url(nodeId);
@@ -61163,7 +61248,7 @@ function verifyTrackingToken(token) {
   const expected = sign3(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto6.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto7.timingSafeEqual)(a2, b2)) return null;
   try {
     return Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8") || null;
   } catch {
@@ -61173,6 +61258,28 @@ function verifyTrackingToken(token) {
 
 // src/routes/app-data.ts
 init_auth_tokens();
+function parseUA(ua) {
+  const s2 = ua ?? "";
+  const device = /iphone|ipad|ipod/i.test(s2) ? "iOS" : /android/i.test(s2) ? "Android" : /mac os x|macintosh/i.test(s2) ? "macOS" : /windows/i.test(s2) ? "Windows" : /linux/i.test(s2) ? "Linux" : "Unknown device";
+  const browser = /edg\//i.test(s2) ? "Edge" : /chrome|crios/i.test(s2) ? "Chrome" : /firefox|fxios/i.test(s2) ? "Firefox" : /safari/i.test(s2) && !/chrome/i.test(s2) ? "Safari" : "Browser";
+  return { device, browser };
+}
+function maskIp(ip) {
+  if (!ip) return "Hidden";
+  if (ip.includes(":")) return ip.split(":").slice(0, 3).join(":") + ":\u2026";
+  const parts = ip.split(".");
+  return parts.length === 4 ? `${parts[0]}.${parts[1]}.${parts[2]}.XX` : ip;
+}
+function relTime(iso) {
+  if (!iso) return "Now";
+  const d2 = new Date(iso);
+  if (isNaN(d2.getTime())) return "Now";
+  const s2 = Math.floor((Date.now() - d2.getTime()) / 1e3);
+  if (s2 < 90) return "Just now";
+  if (s2 < 3600) return `${Math.floor(s2 / 60)}m ago`;
+  if (s2 < 86400) return `${Math.floor(s2 / 3600)}h ago`;
+  return `${Math.floor(s2 / 86400)}d ago`;
+}
 var router15 = new Hono2();
 router15.use("*", requireAuth);
 var ADMIN_SETTINGS_AREAS = [
@@ -61400,12 +61507,13 @@ router15.delete("/settings/account/connections/:id", async (c2) => {
 router15.get("/settings/workspace", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const [{ data }, { count: memberCount }] = await Promise.all([
-    supabase.from("workspaces").select("name, settings, onboarded, timezone, logo_url").eq("id", workspaceId).single(),
+    supabase.from("workspaces").select("name, slug, settings, onboarded, timezone, logo_url").eq("id", workspaceId).single(),
     supabase.from("workspace_members").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId)
   ]);
   const settings = data?.settings ?? {};
   return c2.json({
     name: data?.name ?? "",
+    slug: data?.slug ?? "",
     timezone: data?.timezone ?? settings.timezone ?? "UTC",
     logo_url: data?.logo_url ?? null,
     onboarded: data?.onboarded ?? false,
@@ -61413,9 +61521,23 @@ router15.get("/settings/workspace", async (c2) => {
     modules: settings.modules ?? ["crm"]
   });
 });
+async function persistLogo(workspaceId, dataUrl) {
+  const m2 = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUrl);
+  if (!m2) return null;
+  const contentType2 = m2[1] ?? "image/png";
+  const b64 = m2[2] ?? "";
+  const ext = contentType2.split("/")[1]?.replace("+xml", "").replace("jpeg", "jpg") ?? "png";
+  const buffer = new Uint8Array(Buffer.from(b64, "base64"));
+  const path = `${workspaceId}/logo.${ext}`;
+  const { error } = await supabase.storage.from("workspace-logos").upload(path, buffer, { contentType: contentType2, upsert: true });
+  if (error) return null;
+  const { data } = supabase.storage.from("workspace-logos").getPublicUrl(path);
+  return data?.publicUrl ? `${data.publicUrl}?v=${Date.now()}` : null;
+}
 router15.patch("/settings/workspace", async (c2) => {
+  const wid = c2.get("workspaceId");
   const body = await c2.req.json();
-  const settings = await workspaceSettings(c2.get("workspaceId"));
+  const settings = await workspaceSettings(wid);
   const update = {
     settings: {
       ...settings,
@@ -61424,9 +61546,23 @@ router15.patch("/settings/workspace", async (c2) => {
     }
   };
   if (body.name !== void 0) update.name = body.name;
-  if (body.logo_url !== void 0) update.logo_url = body.logo_url || null;
-  await supabase.from("workspaces").update(update).eq("id", c2.get("workspaceId"));
-  return c2.json({ ok: true });
+  if (body.slug !== void 0) {
+    const slug = body.slug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+    if (slug.length < 2) return c2.json({ error: "Workspace URL must be at least 2 characters." }, 400);
+    const { data: taken } = await supabase.from("workspaces").select("id").eq("slug", slug).neq("id", wid).maybeSingle();
+    if (taken) return c2.json({ error: `The URL "${slug}" is already taken. Choose another.` }, 409);
+    update.slug = slug;
+  }
+  if (body.logo_url !== void 0) {
+    if (body.logo_url?.startsWith("data:")) {
+      update.logo_url = await persistLogo(wid, body.logo_url) ?? body.logo_url;
+    } else {
+      update.logo_url = body.logo_url || null;
+    }
+  }
+  const { error } = await supabase.from("workspaces").update(update).eq("id", wid);
+  if (error) return c2.json({ error: error.message }, 500);
+  return c2.json({ ok: true, slug: update.slug ?? void 0, logo_url: update.logo_url ?? void 0 });
 });
 router15.patch("/settings/profile", async (c2) => {
   const userId = c2.get("userId");
@@ -61645,13 +61781,29 @@ router15.post("/settings/integrations/mcp-token", async (c2) => {
 });
 router15.get("/settings/security", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
-  const { data: sessions } = await supabase.from("auth_refresh_tokens").select("id, user_agent, created_at, expires_at").eq("user_id", c2.get("userId")).is("revoked_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("created_at", { ascending: false });
+  const { data: rows2 } = await supabase.from("auth_refresh_tokens").select("id, user_agent, ip_address, created_at, last_active_at, expires_at, token_hash").eq("user_id", c2.get("userId")).is("revoked_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("created_at", { ascending: false });
+  const rawRt = getCookie(c2, REFRESH_COOKIE);
+  const currentHash = rawRt ? sha2565(rawRt) : null;
+  const sessions = (rows2 ?? []).map((r2) => {
+    const { device, browser } = parseUA(r2.user_agent);
+    const ip = r2.ip_address;
+    return {
+      id: r2.id,
+      device,
+      browser,
+      // No third-party geo lookup (sovereignty) — private ranges are labelled, else region-unknown.
+      location: ip && /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.)/.test(ip) ? "Private network" : ip ? "Unknown region" : "\u2014",
+      ip: maskIp(ip),
+      last_active: relTime(r2.last_active_at ?? r2.created_at),
+      current: currentHash != null && r2.token_hash === currentHash
+    };
+  });
   return c2.json({
     saml_enabled: settings.saml_enabled ?? false,
     saml_domain: settings.saml_domain ?? "",
     export_restricted: settings.export_restricted ?? false,
     protected_recipients: settings.protected_recipients ?? [],
-    sessions: sessions ?? []
+    sessions
   });
 });
 router15.patch("/settings/security", async (c2) => {
@@ -61661,6 +61813,15 @@ router15.patch("/settings/security", async (c2) => {
 });
 router15.delete("/settings/security/sessions/:id", async (c2) => {
   const { error } = await supabase.from("auth_refresh_tokens").delete().eq("id", c2.req.param("id")).eq("user_id", c2.get("userId"));
+  if (error) return c2.json({ error: error.message }, 500);
+  return c2.json({ ok: true });
+});
+router15.delete("/settings/security/sessions", async (c2) => {
+  const rawRt = getCookie(c2, REFRESH_COOKIE);
+  const keepHash = rawRt ? sha2565(rawRt) : null;
+  let q2 = supabase.from("auth_refresh_tokens").delete().eq("user_id", c2.get("userId"));
+  if (keepHash) q2 = q2.neq("token_hash", keepHash);
+  const { error } = await q2;
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
@@ -61788,7 +61949,7 @@ router15.patch("/settings/general", requireAuth, async (c2) => {
 });
 
 // src/routes/invites.ts
-var import_node_crypto8 = require("crypto");
+var import_node_crypto9 = require("crypto");
 var inviteUrl = (token) => `${process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com"}/invite/${token}`;
 var router16 = new Hono2();
 var inviteSchema = external_exports.object({
@@ -61827,7 +61988,7 @@ router16.post("/link", requireAuth, async (c2) => {
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { data, error } = await supabase.from("workspace_invites").insert({
     workspace_id: c2.get("workspaceId"),
-    email: `link-${(0, import_node_crypto8.randomUUID)().slice(0, 8)}@invite.local`,
+    email: `link-${(0, import_node_crypto9.randomUUID)().slice(0, 8)}@invite.local`,
     // placeholder; the unique key is (workspace,email)
     role: "member",
     finance_role: "none",
@@ -65528,13 +65689,13 @@ router43.post("/", requireJwt, async (c2) => {
 });
 
 // src/routes/integrations.ts
-var import_node_crypto9 = require("crypto");
+var import_node_crypto10 = require("crypto");
 var router44 = new Hono2();
 var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
 var b64url3 = (b2) => Buffer.from(b2).toString("base64url");
 function signState(payload) {
   const body = b64url3(JSON.stringify(payload));
-  const sig = b64url3((0, import_node_crypto9.createHmac)("sha256", stateSecret()).update(body).digest());
+  const sig = b64url3((0, import_node_crypto10.createHmac)("sha256", stateSecret()).update(body).digest());
   return `${body}.${sig}`;
 }
 function verifyState(token) {
@@ -65542,10 +65703,10 @@ function verifyState(token) {
   if (i2 <= 0) return null;
   const body = token.slice(0, i2);
   const sig = token.slice(i2 + 1);
-  const expected = b64url3((0, import_node_crypto9.createHmac)("sha256", stateSecret()).update(body).digest());
+  const expected = b64url3((0, import_node_crypto10.createHmac)("sha256", stateSecret()).update(body).digest());
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto9.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto10.timingSafeEqual)(a2, b2)) return null;
   try {
     const obj = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     if (typeof obj.exp === "number" && obj.exp < Math.floor(Date.now() / 1e3)) return null;

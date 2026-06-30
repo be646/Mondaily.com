@@ -15,7 +15,8 @@ import {
 import { sendTransactionalEmail } from "../lib/mail";
 import { rateLimit } from "../middleware/rate-limit";
 import { grantCredits, SOLO_GRANT } from "../lib/credits";
-import { issuePowChallenge, requirePow } from "../lib/pow";
+import { issuePowChallenge, requirePow, verifyPow } from "../lib/pow";
+import { logPowClaim } from "../lib/pow-claims";
 import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 
@@ -40,13 +41,32 @@ function clearSessionCookies(c: Parameters<typeof deleteCookie>[0]) {
   deleteCookie(c, REFRESH_COOKIE, { path: "/api/v1/auth" });
 }
 
+// First forwarded hop = the real client IP behind Vercel's proxy.
+function clientIp(c: Parameters<typeof setCookie>[0]): string | null {
+  const fwd = c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "";
+  return fwd.split(",")[0]?.trim() || null;
+}
+
+// Insert a refresh-token row WITH session telemetry (ip_address/last_active_at). Login-safe: if
+// those columns don't exist yet (pre-migration), the insert is retried with the minimal column set
+// so authentication never breaks. Returns the new row id (for rotation audit) when available.
+async function insertRefreshRow(userId: string, hash: string, userAgent: string | null, ip: string | null): Promise<string | null> {
+  const expires_at = refreshExpiry().toISOString();
+  const full = { user_id: userId, token_hash: hash, expires_at, user_agent: userAgent, ip_address: ip, last_active_at: new Date().toISOString() };
+  let res = await supabase.from("auth_refresh_tokens").insert(full).select("id").single();
+  if (res.error) {
+    res = await supabase.from("auth_refresh_tokens")
+      .insert({ user_id: userId, token_hash: hash, expires_at, user_agent: userAgent })
+      .select("id").single();
+  }
+  return (res.data?.id as string) ?? null;
+}
+
 // Issue a fresh session: store the refresh hash, set both cookies. Never stores the raw token.
 async function issueSession(c: Parameters<typeof setCookie>[0], userId: string, email: string, userAgent?: string) {
   const access = await signAccessToken(userId, email);
   const { raw, hash } = newRefreshToken();
-  await supabase.from("auth_refresh_tokens").insert({
-    user_id: userId, token_hash: hash, expires_at: refreshExpiry().toISOString(), user_agent: userAgent ?? null,
-  });
+  await insertRefreshRow(userId, hash, userAgent ?? null, clientIp(c));
   setSessionCookies(c, access, raw);
 }
 
@@ -103,6 +123,10 @@ router.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.
   }
 
   await issueSession(c, userId, email, c.req.header("user-agent"));
+  // The registrant just solved a PoW (requirePow gated this route) — persist it as their first
+  // verified cryptographic claim so the ABI matrix sees them as a legitimate human from day one.
+  const pb = await c.req.json<{ pow_challenge?: string; pow_nonce?: string }>().catch(() => ({} as { pow_challenge?: string; pow_nonce?: string }));
+  logPowClaim(userId, pb.pow_challenge ?? "", pb.pow_nonce ?? "", "register");
   return c.json({ userId, email, name: displayName, imageUrl: null, workspaceId }, 201);
 });
 
@@ -210,10 +234,8 @@ router.post("/refresh", async (c) => {
   // Rotate: mint new, revoke old (pointing replaced_by at the new row for audit).
   const access = await signAccessToken(row.user_id as string, (cred?.email as string) ?? "");
   const next = newRefreshToken();
-  const { data: inserted } = await supabase.from("auth_refresh_tokens")
-    .insert({ user_id: row.user_id, token_hash: next.hash, expires_at: refreshExpiry().toISOString(), user_agent: c.req.header("user-agent") ?? null })
-    .select("id").single();
-  await supabase.from("auth_refresh_tokens").update({ revoked_at: new Date().toISOString(), replaced_by: inserted?.id ?? null }).eq("id", row.id as string);
+  const insertedId = await insertRefreshRow(row.user_id as string, next.hash, c.req.header("user-agent") ?? null, clientIp(c));
+  await supabase.from("auth_refresh_tokens").update({ revoked_at: new Date().toISOString(), replaced_by: insertedId ?? null }).eq("id", row.id as string);
   setSessionCookies(c, access, next.raw);
   return c.json({ userId: row.user_id });
 });
@@ -294,6 +316,16 @@ router.get("/mail-health", requireAuth, requireAdminRole, (c) => {
     return c.json({ status: "error", code: "MISSING_ENV_VARS", message: "Outbound transactional pipeline unassigned" }, 503);
   }
   return c.json({ status: "ok", resend_api_key_configured: true, sender_identity: sender });
+});
+
+// POST /auth/pow-claim — an authenticated session submits a freshly-solved PoW. We re-verify the
+// nonce server-side and persist it to pow_claims, giving the ABI matrix absolute cryptographic
+// proof this operator is a real human (not a headless/botnet client).
+router.post("/pow-claim", requireAuth, async (c) => {
+  const { pow_challenge, pow_nonce } = await c.req.json<{ pow_challenge?: string; pow_nonce?: string }>().catch(() => ({} as { pow_challenge?: string; pow_nonce?: string }));
+  if (!(await verifyPow(pow_challenge ?? "", pow_nonce ?? ""))) return c.json({ ok: false }, 400);
+  logPowClaim(c.get("userId") as string, pow_challenge as string, pow_nonce as string, "session");
+  return c.json({ ok: true });
 });
 
 export { router as authRouter };

@@ -1,6 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { supabase } from "@mondaily/db/client";
+import { maybeAutoRefill } from "./auto-refill";
 
 /**
  * AI credit wallet (ai_credits_ledger). Balance = SUM(amount): grant/purchase add, usage subtracts.
@@ -33,7 +34,8 @@ export function recordCreditUsage(workspaceId: string | undefined, tokens: numbe
   if (!workspaceId || !tokens || tokens <= 0) return;
   void supabase.from("ai_credits_ledger")
     .insert({ workspace_id: workspaceId, amount: -Math.round(tokens), transaction_type: "usage", description })
-    .then(() => {}, () => {});
+    // After the deduction lands, check whether auto-refill should top the wallet back up.
+    .then(() => maybeAutoRefill(workspaceId), () => {});
 }
 
 /**

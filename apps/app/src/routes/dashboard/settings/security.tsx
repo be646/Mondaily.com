@@ -70,6 +70,10 @@ export function SecuritySettings() {
     mutationFn: (id: string) => apiClient.delete(`/settings/security/sessions/${id}`),
     onSuccess: refresh,
   });
+  const revokeAll = useMutation({
+    mutationFn: () => apiClient.delete(`/settings/security/sessions`),
+    onSuccess: refresh,
+  });
 
   function save(patch: Partial<SecurityData>) {
     const next = { ...data, ...patch };
@@ -157,10 +161,11 @@ export function SecuritySettings() {
         <div className="settings-section-header">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><Smartphone size={14} /> Active sessions</h2>
           <button
-            onClick={() => Promise.all(data.sessions.filter(s => !s.current).map(s => revoke.mutateAsync(s.id)))}
-            className="text-xs text-stone-400 hover:text-stone-300 transition-colors"
+            onClick={() => revokeAll.mutate()}
+            disabled={revokeAll.isPending || data.sessions.filter(s => !s.current).length === 0}
+            className="text-xs text-stone-400 hover:text-stone-300 transition-colors disabled:opacity-40"
           >
-            Revoke all other sessions
+            {revokeAll.isPending ? "Revoking…" : "Revoke all other sessions"}
           </button>
         </div>
         {data.sessions.length ? (

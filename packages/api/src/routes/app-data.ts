@@ -1,12 +1,40 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { deleteCookie } from "hono/cookie";
+import { deleteCookie, getCookie } from "hono/cookie";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { makeTrackingToken } from "../lib/tracking";
 import { isWorkspaceAdmin } from "../middleware/rbac";
-import { ACCESS_COOKIE, REFRESH_COOKIE } from "../lib/auth-tokens";
+import { ACCESS_COOKIE, REFRESH_COOKIE, sha256 } from "../lib/auth-tokens";
+
+// Parse a coarse device + browser label out of a User-Agent string (no third-party UA lib).
+function parseUA(ua: string | null | undefined): { device: string; browser: string } {
+  const s = ua ?? "";
+  const device = /iphone|ipad|ipod/i.test(s) ? "iOS" : /android/i.test(s) ? "Android"
+    : /mac os x|macintosh/i.test(s) ? "macOS" : /windows/i.test(s) ? "Windows"
+    : /linux/i.test(s) ? "Linux" : "Unknown device";
+  const browser = /edg\//i.test(s) ? "Edge" : /chrome|crios/i.test(s) ? "Chrome"
+    : /firefox|fxios/i.test(s) ? "Firefox" : /safari/i.test(s) && !/chrome/i.test(s) ? "Safari"
+    : "Browser";
+  return { device, browser };
+}
+// Obfuscate the last octet of an IPv4 (privacy): 192.168.1.42 → 192.168.1.XX. IPv6 → truncate.
+function maskIp(ip: string | null | undefined): string {
+  if (!ip) return "Hidden";
+  if (ip.includes(":")) return ip.split(":").slice(0, 3).join(":") + ":…";
+  const parts = ip.split(".");
+  return parts.length === 4 ? `${parts[0]}.${parts[1]}.${parts[2]}.XX` : ip;
+}
+function relTime(iso: string | null | undefined): string {
+  if (!iso) return "Now";
+  const d = new Date(iso); if (isNaN(d.getTime())) return "Now";
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 90) return "Just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
 
 type AppVariables = { userId: string; workspaceId: string; role: string; financeRole: string };
 const router = new Hono<{ Variables: AppVariables }>();
@@ -335,12 +363,13 @@ router.delete("/settings/account/connections/:id", async (c) => {
 router.get("/settings/workspace", async (c) => {
   const workspaceId = c.get("workspaceId");
   const [{ data }, { count: memberCount }] = await Promise.all([
-    supabase.from("workspaces").select("name, settings, onboarded, timezone, logo_url").eq("id", workspaceId).single(),
+    supabase.from("workspaces").select("name, slug, settings, onboarded, timezone, logo_url").eq("id", workspaceId).single(),
     supabase.from("workspace_members").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
   ]);
   const settings = (data?.settings ?? {}) as Record<string, unknown>;
   return c.json({
     name: data?.name ?? "",
+    slug: (data as Record<string, unknown> | null)?.slug ?? "",
     timezone: (data as Record<string, unknown> | null)?.timezone ?? settings.timezone ?? "UTC",
     logo_url: (data as Record<string, unknown> | null)?.logo_url ?? null,
     onboarded: (data as Record<string, unknown> | null)?.onboarded ?? false,
@@ -348,9 +377,28 @@ router.get("/settings/workspace", async (c) => {
     modules: (settings.modules as string[] | undefined) ?? ["crm"],
   });
 });
+
+// Persist a data:-URL logo into Supabase Storage and return its public URL. Login-safe & resilient:
+// if the bucket is missing or upload fails, the caller falls back to storing the data URL inline.
+async function persistLogo(workspaceId: string, dataUrl: string): Promise<string | null> {
+  const m = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUrl);
+  if (!m) return null;
+  const contentType = m[1] ?? "image/png";
+  const b64 = m[2] ?? "";
+  const ext = contentType.split("/")[1]?.replace("+xml", "").replace("jpeg", "jpg") ?? "png";
+  const buffer = new Uint8Array(Buffer.from(b64, "base64"));
+  const path = `${workspaceId}/logo.${ext}`;
+  const { error } = await supabase.storage.from("workspace-logos").upload(path, buffer, { contentType, upsert: true });
+  if (error) return null;
+  // Cache-bust so the new logo shows immediately.
+  const { data } = supabase.storage.from("workspace-logos").getPublicUrl(path);
+  return data?.publicUrl ? `${data.publicUrl}?v=${Date.now()}` : null;
+}
+
 router.patch("/settings/workspace", async (c) => {
-  const body = await c.req.json<{ name?: string; timezone?: string; modules?: string[]; logo_url?: string }>();
-  const settings = await workspaceSettings(c.get("workspaceId"));
+  const wid = c.get("workspaceId");
+  const body = await c.req.json<{ name?: string; slug?: string; timezone?: string; modules?: string[]; logo_url?: string }>();
+  const settings = await workspaceSettings(wid);
   const update: Record<string, unknown> = {
     settings: {
       ...settings,
@@ -359,9 +407,28 @@ router.patch("/settings/workspace", async (c) => {
     },
   };
   if (body.name !== undefined) update.name = body.name;
-  if (body.logo_url !== undefined) update.logo_url = body.logo_url || null; // native workspace logo (data URL or hosted URL)
-  await supabase.from("workspaces").update(update).eq("id", c.get("workspaceId"));
-  return c.json({ ok: true });
+
+  // Slug: normalize, then enforce global uniqueness across tenants before committing.
+  if (body.slug !== undefined) {
+    const slug = body.slug.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+    if (slug.length < 2) return c.json({ error: "Workspace URL must be at least 2 characters." }, 400);
+    const { data: taken } = await supabase.from("workspaces").select("id").eq("slug", slug).neq("id", wid).maybeSingle();
+    if (taken) return c.json({ error: `The URL "${slug}" is already taken. Choose another.` }, 409);
+    update.slug = slug;
+  }
+
+  // Logo: upload data:-URLs to Storage; keep hosted URLs as-is; clear on empty.
+  if (body.logo_url !== undefined) {
+    if (body.logo_url?.startsWith("data:")) {
+      update.logo_url = (await persistLogo(wid, body.logo_url)) ?? body.logo_url; // fallback: inline data URL
+    } else {
+      update.logo_url = body.logo_url || null;
+    }
+  }
+
+  const { error } = await supabase.from("workspaces").update(update).eq("id", wid);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true, slug: update.slug ?? undefined, logo_url: update.logo_url ?? undefined });
 });
 
 // PATCH /settings/profile — the current user updates THEIR OWN name / avatar. Not an admin
@@ -577,19 +644,36 @@ router.post("/settings/integrations/mcp-token", async (c) => {
 router.get("/settings/security", async (c) => {
   const settings = await workspaceSettings(c.get("workspaceId"));
   // Real active sessions = the caller's live (non-revoked, unexpired) refresh tokens.
-  const { data: sessions } = await supabase
+  const { data: rows } = await supabase
     .from("auth_refresh_tokens")
-    .select("id, user_agent, created_at, expires_at")
+    .select("id, user_agent, ip_address, created_at, last_active_at, expires_at, token_hash")
     .eq("user_id", c.get("userId"))
     .is("revoked_at", null)
     .gt("expires_at", new Date().toISOString())
     .order("created_at", { ascending: false });
+  // The current device = the row whose hash matches this request's refresh cookie.
+  const rawRt = getCookie(c, REFRESH_COOKIE);
+  const currentHash = rawRt ? sha256(rawRt) : null;
+  const sessions = (rows ?? []).map((r) => {
+    const { device, browser } = parseUA(r.user_agent as string | null);
+    const ip = r.ip_address as string | null;
+    return {
+      id: r.id,
+      device,
+      browser,
+      // No third-party geo lookup (sovereignty) — private ranges are labelled, else region-unknown.
+      location: ip && /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|127\.)/.test(ip) ? "Private network" : ip ? "Unknown region" : "—",
+      ip: maskIp(ip),
+      last_active: relTime((r.last_active_at as string) ?? (r.created_at as string)),
+      current: currentHash != null && r.token_hash === currentHash,
+    };
+  });
   return c.json({
     saml_enabled: settings.saml_enabled ?? false,
     saml_domain: settings.saml_domain ?? "",
     export_restricted: settings.export_restricted ?? false,
     protected_recipients: settings.protected_recipients ?? [],
-    sessions: sessions ?? [],
+    sessions,
   });
 });
 router.patch("/settings/security", async (c) => {
@@ -605,6 +689,17 @@ router.delete("/settings/security/sessions/:id", async (c) => {
     .delete()
     .eq("id", c.req.param("id"))
     .eq("user_id", c.get("userId"));
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true });
+});
+// Revoke ALL of the caller's other sessions — delete every refresh-token row for this user EXCEPT
+// the one backing the current request, forcing every other device to de-authenticate on next use.
+router.delete("/settings/security/sessions", async (c) => {
+  const rawRt = getCookie(c, REFRESH_COOKIE);
+  const keepHash = rawRt ? sha256(rawRt) : null;
+  let q = supabase.from("auth_refresh_tokens").delete().eq("user_id", c.get("userId"));
+  if (keepHash) q = q.neq("token_hash", keepHash);
+  const { error } = await q;
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
 });

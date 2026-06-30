@@ -25,6 +25,7 @@ interface Operator {
   last_action: string | null;
   last_active_at: string | null;
   has_session: boolean;
+  verified_pow: boolean;
   verdict: Verdict;
 }
 interface MatrixResp { operators: Operator[]; totals: { operators: number; tokens: number; active_sessions: number } }
@@ -240,8 +241,9 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
                 </div>
               ))}
             </div>
-            <div className="mt-2 text-[10px] text-zinc-600">
-              Native session claim: {op.has_session ? <span style={{ color: "var(--accent)" }}>VERIFIED ✓</span> : <span className="text-orange-400">UNVERIFIED</span>}
+            <div className="mt-2 space-y-0.5 text-[10px] text-zinc-600">
+              <div>PoW crypto claim: {op.verified_pow ? <span style={{ color: "var(--accent)" }}>VERIFIED ✓</span> : <span className="text-orange-400">NONE</span>}</div>
+              <div>Native session: {op.has_session ? <span style={{ color: "var(--accent)" }}>ACTIVE ✓</span> : <span className="text-zinc-500">offline</span>}</div>
             </div>
           </section>
 

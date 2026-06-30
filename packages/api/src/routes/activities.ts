@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
+import { verifiedPowUserIds } from "../lib/pow-claims";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -97,29 +98,33 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
     lastAct.set(k, { action: a.action as string, node_id: (a.node_id as string) ?? null, created_at: a.created_at as string });
   }
   const sessionUsers = new Set((sessions ?? []).map(s => String(s.user_id ?? "")));
+  // Absolute cryptographic legitimacy: user_ids with a verified PoW claim in the window.
+  const powUsers = await verifiedPowUserIds();
 
   const operators = (members ?? []).map(m => {
     const uid = String(m.user_id ?? "");
     const u = usageBy.get(uid) ?? { tokens: 0, runs: 0 };
     const last = lastAct.get(uid) ?? null;
     const hasSession = sessionUsers.has(uid);
+    const verifiedPow = powUsers.has(uid);
     const taskCount = last ? (acts ?? []).filter(a => String(a.actor_id) === uid).length : 0;
 
     // ── Autonomous behavioral verdict (single source of truth) ──
     // Compares task complexity (proxied by tokens-per-task — strategic deep-work burns more compute
     // per action than shallow copy-paste) against execution volume + the native session claim:
     //   inactive       — no compute + no tasks in the window.
-    //   bot            — heavy volume + high throughput with NO verified session (PoW/native) claim → botnetting.
+    //   bot            — heavy volume + high throughput with NO verified PoW claim → botnetting.
     //   low_engagement — many tasks but minimal compute each (shallow / copy-paste behavior).
     //   high_complexity— high compute-per-task with a live session → strategic deep-work.
-    //   engaged        — actively transacting on a live session at a normal ratio.
+    //   engaged        — actively transacting with a verified human signal at a normal ratio.
     const complexityDelta = Math.round(u.tokens / Math.max(1, taskCount)); // tokens per completed task
+    const legit = verifiedPow || hasSession; // prefer absolute crypto proof; session as fallback
     let verdict: "inactive" | "bot" | "low_engagement" | "high_complexity" | "engaged" | "idle" = "idle";
     if (u.tokens === 0 && taskCount === 0) verdict = "inactive";
-    else if (u.tokens > 50_000 && taskCount > 20 && !hasSession) verdict = "bot";
-    else if (hasSession && taskCount >= 5 && complexityDelta < 500) verdict = "low_engagement";
-    else if (hasSession && complexityDelta > 8_000) verdict = "high_complexity";
-    else if (u.tokens > 0 && hasSession) verdict = "engaged";
+    else if (u.tokens > 50_000 && taskCount > 20 && !verifiedPow) verdict = "bot";
+    else if (legit && taskCount >= 5 && complexityDelta < 500) verdict = "low_engagement";
+    else if (legit && complexityDelta > 8_000) verdict = "high_complexity";
+    else if (u.tokens > 0 && legit) verdict = "engaged";
 
     return {
       operator_id: uid,
@@ -135,6 +140,7 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
       last_action: last?.action ?? null,
       last_active_at: last?.created_at ?? null,
       has_session: hasSession,
+      verified_pow: verifiedPow,
       verdict,
     };
   }).sort((a, b) => b.tokens - a.tokens);

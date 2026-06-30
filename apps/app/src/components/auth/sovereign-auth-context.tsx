@@ -71,13 +71,21 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     return false;
   }, []);
 
+  // Once authenticated, solve a PoW and register it as a verified cryptographic claim for this
+  // session — feeds the ABI oversight matrix's legitimacy signal. Fire-and-forget; never blocks UI.
+  const claimSessionPow = () => {
+    void (async () => {
+      try { const pow = await getPow(); if (pow.pow_challenge) await authCall("/pow-claim", pow); } catch { /* best-effort */ }
+    })();
+  };
+
   // Bootstrap once: /me → on 401 try a silent refresh → else guest. Guarded so it never loops.
   useEffect(() => {
     if (booted.current) return;
     booted.current = true;
     (async () => {
       const me = await authCall<MeResp>("/me", undefined, "GET");
-      if (me.status === 200 && me.data.userId) { setAuthed(toUser(me.data), me.data.workspaceId); return; }
+      if (me.status === 200 && me.data.userId) { setAuthed(toUser(me.data), me.data.workspaceId); claimSessionPow(); return; }
       if (!(await refresh())) setGuest();
     })().catch(setGuest);
   }, [refresh]);

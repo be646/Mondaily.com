@@ -589,6 +589,8 @@ export function WorkspaceSettings() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     },
+    // Surface the backend's slug-uniqueness 409 (or any save failure) instead of failing silently.
+    onError: (e: unknown) => alert(e instanceof Error ? e.message : "Could not save workspace settings."),
   });
 
   async function uploadLogo(file?: File) {
