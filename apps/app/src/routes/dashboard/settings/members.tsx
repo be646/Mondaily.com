@@ -1,21 +1,37 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
-import { Check, Copy, Trash2, UserPlus } from "lucide-react";
+import { Check, Copy, Trash2, UserPlus, Cpu, Clock } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "../../../lib/api-client";
-import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { PageSkeleton } from "../../../components/ui/page-state";
 
 /**
- * Members & Teams — a single, atomic, crash-proof table. Deliberately flat: no tabs, no nested
- * team/modal child views, no unguarded iterations. Every field is read with optional chaining and
- * a fallback string, and the row iterator is wrapped in an explicit Array.isArray + length guard,
- * so a malformed/empty member row can never throw and unmount the page (the old pitch-black bug).
+ * Team Operators — the single home for everyone in the workspace: role, finance access, AI compute
+ * consumption, and last-active, plus invites + pending invitations. Atomic and fully guarded — every
+ * field is read with optional chaining + fallback and the row iterator is explicitly length-checked,
+ * so a malformed/blank member row can never throw (the old pitch-black crash).
  */
-interface Member { id?: string; name?: string | null; email?: string | null; role?: string | null; status?: string | null }
-interface MembersData { members?: Member[] }
+interface Member {
+  id?: string; name?: string | null; email?: string | null; image_url?: string | null;
+  role?: string | null; finance_role?: string | null; tokens?: number | null; last_active?: string | null;
+}
+interface Invitation { id?: string; email?: string | null; role?: string | null }
+interface MembersData { members?: Member[]; invitations?: Invitation[] }
 
-const roleLabel = (r?: string | null): string =>
-  r === "owner" ? "Owner" : r === "admin" ? "Admin" : r === "viewer" ? "Viewer" : "Member";
+const roleLabel = (r?: string | null) => r === "owner" ? "Owner" : r === "admin" ? "Admin" : r === "viewer" ? "Viewer" : "Member";
+const ROLE_OPTIONS = ["admin", "member", "viewer"] as const;
+const FINANCE_OPTIONS: [string, string][] = [["none", "None"], ["viewer", "Viewer"], ["member", "Member"], ["reviewer", "Reviewer"], ["approver", "Approver"]];
+
+const fmt = (n: number) => n.toLocaleString();
+function ago(iso?: string | null) {
+  if (!iso) return "—";
+  const d = new Date(iso); if (isNaN(d.getTime())) return "—";
+  const s = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (s < 90) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
 
 export function MembersSettings() {
   const qc = useQueryClient();
@@ -27,18 +43,13 @@ export function MembersSettings() {
   const refresh = () => qc.invalidateQueries({ queryKey: ["members"] });
 
   const members: Member[] = Array.isArray(query.data?.members) ? query.data!.members! : [];
-  const myEmail = me.email?.toLowerCase();
-  const myRole = members.find(m => m?.email?.toLowerCase() === myEmail)?.role ?? "member";
+  const invitations: Invitation[] = Array.isArray(query.data?.invitations) ? query.data!.invitations! : [];
+  const myRole = members.find(m => m?.email?.toLowerCase() === me.email?.toLowerCase())?.role ?? "member";
   const isAdmin = myRole === "owner" || myRole === "admin";
 
-  const changeRole = useMutation({
-    mutationFn: ({ id, role }: { id: string; role: string }) => apiClient.patch(`/settings/members/${id}`, { role }),
-    onSuccess: refresh,
-  });
-  const remove = useMutation({
-    mutationFn: (id: string) => apiClient.delete(`/settings/members/${id}`),
-    onSuccess: refresh,
-  });
+  const changeRole = useMutation({ mutationFn: ({ id, role }: { id: string; role: string }) => apiClient.patch(`/settings/members/${id}`, { role }), onSuccess: refresh });
+  const changeFinance = useMutation({ mutationFn: ({ id, finance_role }: { id: string; finance_role: string }) => apiClient.patch(`/settings/members/${id}`, { finance_role }), onSuccess: refresh });
+  const remove = useMutation({ mutationFn: (id: string) => apiClient.delete(`/settings/members/${id}`), onSuccess: refresh });
   const sendInvite = useMutation({
     mutationFn: async () => {
       const list = emails.split(/[\s,]+/).filter(e => e.includes("@"));
@@ -46,95 +57,137 @@ export function MembersSettings() {
     },
     onSuccess: () => { setEmails(""); refresh(); },
   });
+  const revokeInvite = useMutation({ mutationFn: (id: string) => apiClient.delete(`/invites/${id}`), onSuccess: refresh });
 
-  // "Copy invite link" — bound to the native tokenized-link endpoint (never the raw workspace id).
   async function copyInviteLink() {
     try {
       const { invite_link } = await apiClient.post<{ invite_link: string }>("/invites/link", {});
       await navigator.clipboard.writeText(invite_link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      console.error("[invite-link]", e);
-    }
+      setCopied(true); setTimeout(() => setCopied(false), 2000);
+    } catch (e) { console.error("[invite-link]", e); }
   }
 
   if (query.isLoading) return <PageSkeleton />;
 
   return (
     <div className="font-mono">
-      <PageHeader title="Members & teams" description="Manage who can access this workspace." />
+      <div className="mb-5">
+        <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// TEAM OPERATORS</p>
+        <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Members &amp; Roles</h1>
+        <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>{members.length} operator{members.length === 1 ? "" : "s"} · workspace access, finance permissions, and AI compute.</p>
+      </div>
 
+      {/* Invite bar */}
       {isAdmin && (
         <div className="mb-5 flex flex-wrap items-center gap-2">
           <input
-            value={emails}
-            onChange={e => setEmails(e.target.value)}
-            placeholder="teammate@company.com"
+            value={emails} onChange={e => setEmails(e.target.value)} placeholder="teammate@company.com"
             className="min-w-[220px] flex-1 rounded-xl border bg-transparent px-3 py-2 text-sm outline-none focus:border-stone-500"
             style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}
           />
-          <button
-            onClick={() => sendInvite.mutate()}
-            disabled={!emails.includes("@") || sendInvite.isPending}
-            className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3.5 py-2 text-sm font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50"
-          >
+          <button onClick={() => sendInvite.mutate()} disabled={!emails.includes("@") || sendInvite.isPending}
+            className="flex items-center gap-2 rounded-xl border border-stone-500/30 bg-stone-600 px-3.5 py-2 text-sm font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50">
             <UserPlus size={14} /> Invite
           </button>
-          <button
-            onClick={copyInviteLink}
+          <button onClick={copyInviteLink}
             className="flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-colors hover:text-[var(--text-primary)]"
-            style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}
-          >
-            {copied ? <><Check size={14} className="text-emerald-400" /> Copied</> : <><Copy size={14} /> Copy invite link</>}
+            style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            {copied ? <><Check size={14} className="text-emerald-400" /> Copied</> : <><Copy size={14} /> Copy link</>}
           </button>
         </div>
       )}
 
+      {/* Operator matrix */}
       <div className="minimal-sheet overflow-x-auto">
-        <table className="minimal-table min-w-[560px] text-left text-sm">
+        <table className="minimal-table min-w-[720px] text-left text-sm">
           <thead>
             <tr>
-              {["Name", "Email", "Role", ""].map(h => (
-                <th key={h || "actions"} className={`text-xs uppercase tracking-wider text-stone-500 ${h === "" ? "text-right" : ""}`}>{h}</th>
+              {["Operator", "Role", "Finance access", "AI usage · 30d", "Last active", ""].map(h => (
+                <th key={h || "x"} className={`text-[10px] uppercase tracking-wider text-stone-500 ${h === "AI usage · 30d" ? "text-right" : ""}`}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {Array.isArray(members) && members.length > 0 ? members.map((m, i) => (
-              <tr key={m?.id ?? `row-${i}`} className="border-t" style={{ borderColor: "var(--border-soft)" }}>
-                <td className="py-3 font-medium text-stone-200">{m?.name || m?.email || "Unknown Operator"}</td>
-                <td className="py-3 text-stone-500">{m?.email || "—"}</td>
-                <td className="py-3">
-                  {isAdmin && m?.role !== "owner" && m?.id ? (
-                    <select
-                      value={m?.role ?? "member"}
-                      onChange={e => changeRole.mutate({ id: m.id!, role: e.target.value })}
-                      className="rounded-lg border bg-transparent px-2 py-1 text-xs outline-none"
-                      style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}
-                    >
-                      {["admin", "member", "viewer"].map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
-                    </select>
-                  ) : (
-                    <span className="rounded-full border px-2.5 py-1 text-xs" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                      {roleLabel(m?.role)}
+            {Array.isArray(members) && members.length > 0 ? members.map((m, i) => {
+              const isOwner = m?.role === "owner";
+              return (
+                <tr key={m?.id ?? `row-${i}`} className="border-t" style={{ borderColor: "var(--border-soft)" }}>
+                  <td className="py-3">
+                    <div className="flex items-center gap-2.5">
+                      {m?.image_url
+                        ? <img src={m.image_url} alt="" className="h-7 w-7 shrink-0 rounded-md object-cover" />
+                        : <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[11px] font-semibold text-stone-300">
+                            {(m?.name || m?.email || "?").trim().charAt(0).toUpperCase() || "?"}
+                          </span>}
+                      <div className="min-w-0">
+                        <div className="truncate text-[13px] text-stone-200">{m?.name || m?.email || "Unknown Operator"}</div>
+                        <div className="truncate text-[10.5px] text-stone-600">{m?.email || "—"}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3">
+                    {isAdmin && !isOwner && m?.id ? (
+                      <select value={m?.role ?? "member"} onChange={e => changeRole.mutate({ id: m.id!, role: e.target.value })}
+                        className="rounded-lg border bg-transparent px-2 py-1 text-xs outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                        {ROLE_OPTIONS.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
+                      </select>
+                    ) : (
+                      <span className="rounded-full border px-2.5 py-1 text-xs" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{roleLabel(m?.role)}</span>
+                    )}
+                  </td>
+                  <td className="py-3">
+                    {isAdmin && m?.id ? (
+                      <select value={m?.finance_role ?? "none"} onChange={e => changeFinance.mutate({ id: m.id!, finance_role: e.target.value })}
+                        className="rounded-lg border bg-transparent px-2 py-1 text-xs outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                        {FINANCE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                      </select>
+                    ) : (
+                      <span className="text-xs text-stone-500">{FINANCE_OPTIONS.find(([v]) => v === (m?.finance_role ?? "none"))?.[1] ?? "None"}</span>
+                    )}
+                  </td>
+                  <td className="py-3 text-right">
+                    <span className="inline-flex items-center gap-1 tabular-nums text-[12px]" style={{ color: (m?.tokens ?? 0) > 0 ? "var(--accent)" : "#52525b" }}>
+                      <Cpu size={11} /> {fmt(m?.tokens ?? 0)}
                     </span>
-                  )}
-                </td>
-                <td className="py-3 text-right">
-                  {isAdmin && m?.role !== "owner" && m?.id && (
-                    <button onClick={() => remove.mutate(m.id!)} className="text-stone-600 transition-colors hover:text-rose-400" title="Remove member">
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            )) : (
-              <tr><td colSpan={4} className="p-4 font-mono text-zinc-500">No team operators registered.</td></tr>
+                  </td>
+                  <td className="py-3">
+                    <span className="inline-flex items-center gap-1 text-[11.5px] text-stone-500"><Clock size={11} /> {ago(m?.last_active)}</span>
+                  </td>
+                  <td className="py-3 text-right">
+                    {isAdmin && !isOwner && m?.id && (
+                      <button onClick={() => remove.mutate(m.id!)} className="text-stone-600 transition-colors hover:text-rose-400" title="Remove operator">
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            }) : (
+              <tr><td colSpan={6} className="p-4 font-mono text-zinc-500">No team operators registered.</td></tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Pending invitations */}
+      {invitations.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-2 text-[10px] uppercase tracking-wider text-stone-500">Pending invitations</p>
+          <div className="minimal-sheet">
+            {invitations.map((inv, i) => (
+              <div key={inv?.id ?? `inv-${i}`} className="flex items-center justify-between border-t px-4 py-2.5 first:border-t-0" style={{ borderColor: "var(--border-soft)" }}>
+                <span className="text-[12.5px] text-stone-300">{inv?.email || "—"}</span>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide text-stone-500" style={{ borderColor: "var(--border-soft)" }}>{roleLabel(inv?.role)}</span>
+                  {isAdmin && inv?.id && (
+                    <button onClick={() => revokeInvite.mutate(inv.id!)} className="text-stone-600 transition-colors hover:text-rose-400" title="Revoke invite"><Trash2 size={13} /></button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -42,7 +42,9 @@ const FINANCE_ROLE_OPTIONS: { value: WorkspaceMember["finance_role"]; label: str
   { value: "approver", label: "Approver" },
 ];
 
-type Section = "general" | "members" | "modules" | "finance" | "danger";
+// Members & finance access were consolidated into the dedicated Members page (Settings → Members)
+// to remove the duplicate people/roles surface. Workspace settings = identity + modules + danger.
+type Section = "general" | "modules" | "danger";
 
 interface NavItem {
   key: Section;
@@ -52,11 +54,9 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { key: "general",  label: "General",        icon: Building2 },
-  { key: "members",  label: "Members & Roles", icon: Users },
-  { key: "modules",  label: "Modules",         icon: Zap },
-  { key: "finance",  label: "Finance Access",  icon: Shield },
-  { key: "danger",   label: "Danger Zone",     icon: AlertCircle, danger: true },
+  { key: "general",  label: "General",     icon: Building2 },
+  { key: "modules",  label: "Modules",     icon: Zap },
+  { key: "danger",   label: "Danger Zone", icon: AlertCircle, danger: true },
 ];
 
 // ─── General ─────────────────────────────────────────────────────────────────
@@ -647,11 +647,9 @@ export function WorkspaceSettings() {
             logoRef={logoRef}
           />
         )}
-        {section === "members" && <MembersSection />}
         {section === "modules" && (
           <ModulesSection form={form} setForm={setForm} save={save} saved={saved} />
         )}
-        {section === "finance" && <FinanceAccessSection hasFinance={hasFinance} />}
         {section === "danger" && <DangerZoneSection form={form} />}
       </div>
     </div>

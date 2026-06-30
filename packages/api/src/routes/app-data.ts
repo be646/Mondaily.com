@@ -475,32 +475,48 @@ router.delete("/settings/workspace", async (c) => {
 
 router.get("/settings/members", async (c) => {
   const workspaceId = c.get("workspaceId");
-  const [{ data: members }, { data: teams }, invites] = await Promise.all([
+  const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const [{ data: members }, { data: teams }, invites, { data: usage }, { data: sessions }] = await Promise.all([
     supabase.from("workspace_members").select("*").eq("workspace_id", workspaceId),
     supabase.from("teams").select("*, team_members(user_id)").eq("workspace_id", workspaceId),
-    rows("nodes", workspaceId, { objectType: "workspace_invitation" })
+    rows("nodes", workspaceId, { objectType: "workspace_invitation" }),
+    // Per-operator AI telemetry (30d) so the Members matrix shows real compute consumption.
+    supabase.from("ai_usage").select("user_id, total_tokens").eq("workspace_id", workspaceId).gte("created_at", sinceIso),
+    supabase.from("auth_refresh_tokens").select("user_id, last_active_at").is("revoked_at", null),
   ]);
+  const tokensBy = new Map<string, number>();
+  for (const u of usage ?? []) { const k = String(u.user_id ?? ""); if (k) tokensBy.set(k, (tokensBy.get(k) ?? 0) + Number(u.total_tokens ?? 0)); }
+  const lastActiveBy = new Map<string, string>();
+  for (const s of sessions ?? []) {
+    const k = String(s.user_id ?? ""); const t = s.last_active_at as string | null;
+    if (k && t && (!lastActiveBy.has(k) || t > lastActiveBy.get(k)!)) lastActiveBy.set(k, t);
+  }
   return c.json({
-    // Real profile fields are already cached on workspace_members (name/email/avatar_url were
-    // resolved from Clerk at add-time) — surface them instead of hardcoding blanks, so role
-    // gating and member lists across settings are accurate.
     members: (members ?? []).map((member) => ({
       id: member.user_id,
       name: member.name || member.email || member.user_id,
       email: member.email || "",
-      image_url: member.avatar_url ?? null,   // frontend Member type reads `image_url`
-      avatar_url: member.avatar_url ?? null,   // keep both for any other consumer
+      image_url: member.avatar_url ?? null,
+      avatar_url: member.avatar_url ?? null,
       role: member.role,
+      finance_role: member.finance_role ?? "none",
       position: member.position ?? null,
+      tokens: tokensBy.get(String(member.user_id)) ?? 0,
+      last_active: lastActiveBy.get(String(member.user_id)) ?? null,
       status: "active",
     })),
     invitations: invites.map((node: Record<string, unknown>) => ({ id: node.id, ...((node.data as Record<string, unknown>) ?? {}) })),
     teams: (teams ?? []).map((team) => ({ id: team.id, name: team.name, member_count: team.team_members?.length ?? 0, member_ids: team.team_members?.map((item: { user_id: string }) => item.user_id) ?? [] }))
   });
 });
+// Update a member's workspace role and/or finance access (consolidated — the Members page owns both).
 router.patch("/settings/members/:id", async (c) => {
-  const body = await c.req.json<{ role: string }>();
-  const { error } = await supabase.from("workspace_members").update({ role: body.role }).eq("workspace_id", c.get("workspaceId")).eq("user_id", c.req.param("id"));
+  const body = await c.req.json<{ role?: string; finance_role?: string }>().catch(() => ({} as { role?: string; finance_role?: string }));
+  const patch: Record<string, unknown> = {};
+  if (body.role) patch.role = body.role;
+  if (body.finance_role) patch.finance_role = body.finance_role;
+  if (Object.keys(patch).length === 0) return c.json({ error: "Nothing to update" }, 400);
+  const { error } = await supabase.from("workspace_members").update(patch).eq("workspace_id", c.get("workspaceId")).eq("user_id", c.req.param("id"));
   return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });
 });
 router.delete("/settings/members/:id", async (c) => {
