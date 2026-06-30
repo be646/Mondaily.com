@@ -1,47 +1,61 @@
 import { Building2, CreditCard, Database, Mail, Plug, Shield, Sparkles, User, Users, ChevronRight, ArrowLeft } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
-const items = [
-  ["account", User, "Account"],
-  ["workspace", Building2, "Workspace"],
-  ["members", Users, "Members & teams"],
-  ["billing", CreditCard, "Billing"],
-  ["objects", Database, "Objects & attributes"],
-  ["integrations", Plug, "Integrations & API"],
-  ["email", Mail, "Email & calendar"],
-  ["security", Shield, "Security"],
-  ["ask-mondaily", Sparkles, "Ask Mondaily"]
-] as const;
+// Grouped settings IA — You / Workspace / Plan — instead of a flat list, so the cluster reads as
+// a clear, friendly hierarchy. Members & finance now live under one "Members" entry (consolidated).
+type NavTuple = [path: string, icon: LucideIcon, label: string];
+const GROUPS: { title: string; items: NavTuple[] }[] = [
+  { title: "You", items: [
+    ["account", User, "Account"],
+    ["security", Shield, "Security"],
+  ] },
+  { title: "Workspace", items: [
+    ["workspace", Building2, "Workspace"],
+    ["members", Users, "Members"],
+    ["objects", Database, "Objects & attributes"],
+    ["integrations", Plug, "Integrations & API"],
+    ["email", Mail, "Email & calendar"],
+  ] },
+  { title: "Plan", items: [
+    ["billing", CreditCard, "Billing & Usage"],
+    ["ask-mondaily", Sparkles, "Ask Mondaily"],
+  ] },
+];
+
+const ALL_ITEMS: NavTuple[] = GROUPS.flatMap(g => g.items);
 
 export function SettingsLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const isRoot = location.pathname === "/settings" || location.pathname === "/settings/";
-  const currentItem = items.find(([to]) => location.pathname.includes(to));
+  const currentItem = ALL_ITEMS.find(([to]) => location.pathname.includes(to));
 
   return (
     // font-mono on the shell → unified monospace typography across every settings panel.
     <div className="flex h-full font-mono">
-      {/* Desktop sidebar — always visible */}
-      {/* Mobile: show nav list when at /settings root, show back+content when in a sub-page */}
-      
       {/* Sidebar nav */}
       <aside className={`w-full md:w-56 md:shrink-0 border-r border-[#e5e7eb] dark:border-[var(--border-soft)] px-3 py-6 ${!isRoot ? "hidden md:block" : "block"}`}>
-        <p className="mb-3 px-3 text-xs font-semibold uppercase text-[#9ca3af] dark:text-stone-600">Settings</p>
-        {items.map(([to, Icon, label]) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              `mb-1 flex items-center justify-between rounded-md px-3 py-2.5 text-sm ${isActive ? "bg-stone-200 text-stone-900 dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)]" : "text-[#52525b] hover:bg-[#f4f4f5] hover:text-[#18181b] dark:text-stone-500 dark:hover:text-stone-200 dark:hover:bg-transparent"}`
-            }
-          >
-            <div className="flex items-center gap-2">
-              <Icon size={14}/>
-              {label}
-            </div>
-            <ChevronRight size={13} className="md:hidden text-[#9ca3af] dark:text-stone-600"/>
-          </NavLink>
+        <p className="mb-4 px-3 text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// Settings</p>
+        {GROUPS.map(group => (
+          <div key={group.title} className="mb-4">
+            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-[#9ca3af] dark:text-stone-600">{group.title}</p>
+            {group.items.map(([to, Icon, label]) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `mb-0.5 flex items-center justify-between rounded-md px-3 py-2 text-sm ${isActive ? "bg-stone-200 text-stone-900 dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)]" : "text-[#52525b] hover:bg-[#f4f4f5] hover:text-[#18181b] dark:text-stone-500 dark:hover:text-stone-200 dark:hover:bg-transparent"}`
+                }
+              >
+                <div className="flex items-center gap-2">
+                  <Icon size={14}/>
+                  {label}
+                </div>
+                <ChevronRight size={13} className="md:hidden text-[#9ca3af] dark:text-stone-600"/>
+              </NavLink>
+            ))}
+          </div>
         ))}
       </aside>
 

@@ -11,14 +11,23 @@ interface AskSettings {
   webSearch: "allow" | "dont_allow" | "always_ask";
   shareDownvoted: "allow" | "dont_share" | "always_ask";
   model: "auto" | "fast" | "smart";
+  // Advanced behavior
+  tone: "concise" | "balanced" | "detailed";
+  scope: "workspace" | "both";
+  autonomy: "ask" | "auto";
 }
+
+const DEFAULTS: AskSettings = {
+  privacy: "always_ask", webSearch: "allow", shareDownvoted: "dont_share", model: "auto",
+  tone: "balanced", scope: "both", autonomy: "ask",
+};
 
 function loadSettings(): AskSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    return raw ? JSON.parse(raw) : { privacy: "always_ask", webSearch: "allow", shareDownvoted: "dont_share", model: "auto" };
+    return raw ? { ...DEFAULTS, ...JSON.parse(raw) } : DEFAULTS;
   } catch {
-    return { privacy: "always_ask", webSearch: "allow", shareDownvoted: "dont_share", model: "auto" };
+    return DEFAULTS;
   }
 }
 
@@ -31,7 +40,7 @@ function Dropdown({ value, onChange, options }: { value: string; onChange: (v: s
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
-      className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-1.5 text-sm text-[var(--text-primary)] focus:border-red-500/40 outline-none"
+      className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none focus:border-stone-500"
     >
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
@@ -107,15 +116,29 @@ export function AskMondailySettings() {
     { value: "fast", label: "Fast" },
     { value: "smart", label: "Smart" },
   ];
+  const toneOptions = [
+    { value: "concise", label: "Concise" },
+    { value: "balanced", label: "Balanced" },
+    { value: "detailed", label: "Detailed" },
+  ];
+  const scopeOptions = [
+    { value: "workspace", label: "Workspace only" },
+    { value: "both", label: "Workspace + web" },
+  ];
+  const autonomyOptions = [
+    { value: "ask", label: "Ask before acting" },
+    { value: "auto", label: "Act autonomously" },
+  ];
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8">
-      <div className="mb-8 flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10">
-          <LogoMark size={18} className="text-red-400"/>
+    <div className="mx-auto max-w-2xl px-6 py-8 font-mono">
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
+          <LogoMark size={18} style={{ color: "var(--accent)" }}/>
         </div>
         <div>
-          <p className="text-xs text-stone-500">Manage your Ask Mondaily settings, prompts and tool access.</p>
+          <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// ASK MONDAILY</p>
+          <p className="text-xs text-stone-500">Model, behavior, privacy, and conversation history for the AI console.</p>
         </div>
       </div>
 
@@ -145,6 +168,22 @@ export function AskMondailySettings() {
         </Row>
       </section>
 
+      {/* Behavior — advanced response + autonomy controls */}
+      <section className="mb-6 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+        <div className="border-b border-[var(--border-soft)] px-5 py-3">
+          <h2 className="text-sm font-medium text-[var(--text-primary)]">Behavior</h2>
+        </div>
+        <Row label="Response tone" description="How concise or thorough Mondaily's answers should be.">
+          <Dropdown value={settings.tone} onChange={v => update({ tone: v as AskSettings["tone"] })} options={toneOptions}/>
+        </Row>
+        <Row label="Default scope" description="Whether the AI reasons over your workspace only, or augments with web search.">
+          <Dropdown value={settings.scope} onChange={v => update({ scope: v as AskSettings["scope"] })} options={scopeOptions}/>
+        </Row>
+        <Row label="Agent autonomy" description="Whether agents ask for approval before taking actions, or act on their own.">
+          <Dropdown value={settings.autonomy} onChange={v => update({ autonomy: v as AskSettings["autonomy"] })} options={autonomyOptions}/>
+        </Row>
+      </section>
+
       {/* Credits */}
       <section className="mb-6 rounded-xl border border-[var(--border-soft)] bg-[var(--surface-hover)]">
         <div className="border-b border-[var(--border-soft)] px-5 py-3 flex items-center justify-between">
@@ -157,7 +196,7 @@ export function AskMondailySettings() {
             <span className="text-[var(--text-primary)] font-medium">{usedCredits} / {creditLimit}</span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-[var(--surface-hover)]">
-            <div className="h-1.5 rounded-full bg-red-500 transition-all" style={{ width: `${creditPct}%` }}/>
+            <div className="h-1.5 rounded-full transition-all" style={{ width: `${creditPct}%`, background: "var(--accent)" }}/>
           </div>
           <p className="mt-3 text-xs text-stone-600">Each message you send uses 1 credit. Workspace credits and higher limits available with Pro plan.</p>
         </div>

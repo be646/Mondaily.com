@@ -165,6 +165,45 @@ export function BillingSettings() {
         </div>
       </section>
 
+      {/* ── Plans / Upgrade ── */}
+      {billing.plan !== "business" && billing.plan !== "pro" && (
+        <section className="settings-section">
+          <div className="settings-section-header">
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Plans</h2>
+            <span className="text-xs text-stone-500">Choose your tier</span>
+          </div>
+          <div className="grid gap-3 p-5 sm:grid-cols-2">
+            {/* Personal */}
+            <div className="rounded-xl border p-4" style={{ borderColor: billing.plan === "free" ? "var(--accent)" : "var(--border-soft)" }}>
+              <div className="text-[11px] uppercase tracking-widest text-stone-500">Personal</div>
+              <div className="mt-1 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">$0<span className="text-sm text-stone-500"> /mo</span></div>
+              <ul className="mt-3 space-y-1.5 text-[12px] text-stone-400">
+                <li>· 50,000 AI credits</li>
+                <li>· Core workspace</li>
+                <li>· Solo operator</li>
+              </ul>
+              {billing.plan === "free"
+                ? <div className="mt-4 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--accent)" }}>✓ Current plan</div>
+                : <div className="mt-4 text-[11px] text-stone-600">Included</div>}
+            </div>
+            {/* Business Pro */}
+            <div className="rounded-xl border p-4" style={{ borderColor: "var(--accent)", boxShadow: "0 0 24px -10px color-mix(in srgb, var(--accent) 40%, transparent)" }}>
+              <div className="text-[11px] uppercase tracking-widest" style={{ color: "var(--accent)" }}>Business Pro</div>
+              <div className="mt-1 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">$49<span className="text-sm text-stone-500"> /mo</span></div>
+              <ul className="mt-3 space-y-1.5 text-[12px] text-stone-400">
+                <li>· 500,000 AI credits / month</li>
+                <li>· 14-day free trial</li>
+                <li>· Unlimited operators</li>
+                <li>· Priority compute</li>
+              </ul>
+              <button onClick={() => { openBilling("free"); }} className="mt-4 w-full rounded-lg py-2 text-[12px] font-semibold transition-opacity hover:opacity-90" style={{ background: "var(--accent)", color: "#0a0a0a" }}>
+                Upgrade to Pro
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── AI usage (token telemetry) ── */}
       <section className="settings-section">
         <div className="settings-section-header">
