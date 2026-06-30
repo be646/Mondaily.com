@@ -18,7 +18,15 @@ interface Preferences {
   email_notifications?: boolean;
   agent_notifications?: boolean;
   task_notifications?: boolean;
+  // AI personalization — how the assistant tailors itself to this operator.
+  ai_expertise?: "novice" | "intermediate" | "expert";
+  ai_response_length?: "concise" | "balanced" | "detailed";
+  ai_address?: string;
+  ai_context?: string;
 }
+
+type Expertise = "novice" | "intermediate" | "expert";
+type ResponseLength = "concise" | "balanced" | "detailed";
 
 const notificationTypes: [string, string][] = [
   ["mentions", "@mentions"],
@@ -107,6 +115,11 @@ export function AccountSettings() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteText, setDeleteText] = useState("");
   const [saved, setSaved] = useState(false);
+  // AI personalization
+  const [aiExpertise, setAiExpertise] = useState<Expertise>("intermediate");
+  const [aiLength, setAiLength] = useState<ResponseLength>("balanced");
+  const [aiAddress, setAiAddress] = useState("");
+  const [aiContext, setAiContext] = useState("");
 
   useEffect(() => {
     if (!query.data) return;
@@ -116,6 +129,10 @@ export function AccountSettings() {
       setAppearance(query.data.appearance ?? "dark");
     }
     setNotifications(defaultNotifications(query.data));
+    setAiExpertise(query.data.ai_expertise ?? "intermediate");
+    setAiLength(query.data.ai_response_length ?? "balanced");
+    setAiAddress(query.data.ai_address ?? "");
+    setAiContext(query.data.ai_context ?? "");
   }, [query.data, me.name]);
 
   // Apply theme on change and on mount
@@ -132,6 +149,10 @@ export function AccountSettings() {
         appearance,
         notifications,
         connected_accounts: query.data?.connected_accounts ?? [],
+        ai_expertise: aiExpertise,
+        ai_response_length: aiLength,
+        ai_address: aiAddress,
+        ai_context: aiContext,
       });
     },
     onSuccess: () => {
@@ -187,7 +208,11 @@ export function AccountSettings() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Account" description="Manage your profile, preferences, and personal security." />
+      <div className="mb-1">
+        <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// OPERATOR PROFILE</p>
+        <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Account</h1>
+        <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>Your profile, AI personalization, preferences, and personal security.</p>
+      </div>
 
       {/* ── Profile ── */}
       <section className="settings-section">
@@ -227,6 +252,43 @@ export function AccountSettings() {
               <input value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="Founder, Head of Sales…" className="key-input h-9 w-full px-3 text-sm" />
             </label>
           </div>
+        </div>
+      </section>
+
+      {/* ── AI Personalization ── */}
+      <section className="settings-section">
+        <div className="settings-section-header">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">AI personalization</h2>
+          <span className="text-xs text-stone-500">How Mondaily tailors itself to you</span>
+        </div>
+        <div className="space-y-4 p-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Address me as</span>
+              <input value={aiAddress} onChange={e => setAiAddress(e.target.value)} placeholder={me.name?.split(" ")[0] || "First name"} className="key-input h-9 w-full px-3 text-sm" />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Expertise level</span>
+              <select value={aiExpertise} onChange={e => setAiExpertise(e.target.value as Expertise)} className="key-input h-9 w-full px-3 text-sm">
+                <option value="novice">Novice — explain thoroughly</option>
+                <option value="intermediate">Intermediate — balanced</option>
+                <option value="expert">Expert — terse, assume fluency</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Preferred response length</span>
+              <select value={aiLength} onChange={e => setAiLength(e.target.value as ResponseLength)} className="key-input h-9 w-full px-3 text-sm">
+                <option value="concise">Concise</option>
+                <option value="balanced">Balanced</option>
+                <option value="detailed">Detailed</option>
+              </select>
+            </label>
+          </div>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Context for the assistant</span>
+            <textarea value={aiContext} onChange={e => setAiContext(e.target.value)} rows={3} placeholder="e.g. I run a B2B SaaS sales team; prioritize pipeline and revenue framing." className="key-input w-full resize-none p-3 text-sm" />
+            <p className="mt-1.5 text-[11px] text-stone-600">Mondaily uses this to personalize how it reasons, addresses you, and frames answers across the workspace.</p>
+          </label>
         </div>
       </section>
 

@@ -61582,6 +61582,10 @@ router15.get("/settings/account", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const userPreferences = settings.user_preferences?.[c2.get("userId")] ?? {};
   return c2.json({
+    // Return ALL stored prefs (job_title, notifications map, ai_* personalization, etc.) so every
+    // saved field hydrates back — previously only a fixed subset was returned, so job title and the
+    // notifications matrix silently reset on reload.
+    ...userPreferences,
     email_notifications: userPreferences.email_notifications ?? true,
     agent_notifications: userPreferences.agent_notifications ?? true,
     task_notifications: userPreferences.task_notifications ?? true,
@@ -61593,8 +61597,9 @@ router15.patch("/settings/account", async (c2) => {
   const body = await c2.req.json();
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const preferences = settings.user_preferences ?? {};
+  const existing = preferences[c2.get("userId")] ?? {};
   await mergeWorkspaceSettings(c2.get("workspaceId"), {
-    user_preferences: { ...preferences, [c2.get("userId")]: body }
+    user_preferences: { ...preferences, [c2.get("userId")]: { ...existing, ...body } }
   });
   return c2.json({ ok: true });
 });

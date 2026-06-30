@@ -331,6 +331,10 @@ router.get("/settings/account", async (c) => {
   const settings = await workspaceSettings(c.get("workspaceId"));
   const userPreferences = ((settings.user_preferences as Record<string, unknown> | undefined)?.[c.get("userId")] ?? {}) as Record<string, unknown>;
   return c.json({
+    // Return ALL stored prefs (job_title, notifications map, ai_* personalization, etc.) so every
+    // saved field hydrates back — previously only a fixed subset was returned, so job title and the
+    // notifications matrix silently reset on reload.
+    ...userPreferences,
     email_notifications: userPreferences.email_notifications ?? true,
     agent_notifications: userPreferences.agent_notifications ?? true,
     task_notifications: userPreferences.task_notifications ?? true,
@@ -342,8 +346,10 @@ router.patch("/settings/account", async (c) => {
   const body = await c.req.json<Record<string, unknown>>();
   const settings = await workspaceSettings(c.get("workspaceId"));
   const preferences = (settings.user_preferences ?? {}) as Record<string, unknown>;
+  const existing = (preferences[c.get("userId")] ?? {}) as Record<string, unknown>;
+  // MERGE into existing prefs (don't replace) so a partial save can't wipe other settings.
   await mergeWorkspaceSettings(c.get("workspaceId"), {
-    user_preferences: { ...preferences, [c.get("userId")]: body }
+    user_preferences: { ...preferences, [c.get("userId")]: { ...existing, ...body } }
   });
   return c.json({ ok: true });
 });
