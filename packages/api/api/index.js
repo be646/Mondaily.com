@@ -54932,6 +54932,12 @@ async function maybeAutoRefill(workspaceId) {
     const since = new Date(Date.now() - 2 * 60 * 1e3).toISOString();
     const { data: recent } = await supabase.from("ai_credits_ledger").select("id").eq("workspace_id", workspaceId).eq("transaction_type", "purchase").gte("created_at", since).limit(1);
     if (recent && recent.length > 0) return;
+    const pmRes = await fetch(`${STRIPE_API}/payment_methods?customer=${encodeURIComponent(customer)}&type=card&limit=1`, {
+      headers: { Authorization: `Bearer ${key}` }
+    });
+    const pmJson = await pmRes.json().catch(() => ({}));
+    const paymentMethod = pmJson?.data?.[0]?.id;
+    if (!paymentMethod) return;
     const res = await fetch(`${STRIPE_API}/payment_intents`, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" },
@@ -54939,6 +54945,7 @@ async function maybeAutoRefill(workspaceId) {
         amount: String(Math.round(amountUsd * 100)),
         currency: "usd",
         customer,
+        payment_method: paymentMethod,
         confirm: "true",
         off_session: "true",
         description: "Mondaily AI credit auto-refill"
@@ -61116,10 +61123,26 @@ router13.post("/stripe", async (c2) => {
   const event = JSON.parse(rawBody);
   if (event.type === "checkout.session.completed") {
     const s2 = event.data.object;
-    const workspaceId = s2.client_reference_id || s2.metadata?.workspace_id;
+    const meta = s2.metadata ?? {};
+    const workspaceId = s2.client_reference_id || meta.workspace_id;
     const customerId = s2.customer;
-    const plan = s2.metadata?.plan || "pro";
-    if (workspaceId) {
+    if (meta.kind === "credit_pack") {
+      const credits = Number(meta.credits ?? 0);
+      if (workspaceId && customerId) {
+        await supabase.from("workspaces").update({ stripe_customer_id: customerId }).eq("id", workspaceId);
+      }
+      if (workspaceId && credits > 0) {
+        await supabase.from("ai_credits_ledger").insert({
+          workspace_id: workspaceId,
+          amount: credits,
+          transaction_type: "purchase",
+          description: `Credit pack \xB7 ${credits.toLocaleString()} credits`
+        }).then(() => {
+        }, () => {
+        });
+      }
+    } else if (workspaceId) {
+      const plan = meta.plan || "pro";
       await supabase.from("workspaces").update({ ...customerId ? { stripe_customer_id: customerId } : {}, plan }).eq("id", workspaceId);
     }
   }
@@ -61201,6 +61224,40 @@ router14.post("/checkout", async (c2) => {
     return c2.json({ url: session.url });
   } catch (e2) {
     return c2.json({ error: e2 instanceof Error ? e2.message : "Could not start checkout." }, 500);
+  }
+});
+var CREDIT_PACK = { credits: 1e5, amount_usd: 10 };
+router14.post("/credits-checkout", async (c2) => {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return c2.json({ error: "Billing isn't connected yet. Add STRIPE_SECRET_KEY to enable credit purchases.", configured: false }, 503);
+  }
+  const workspaceId = c2.get("workspaceId");
+  const [{ data: ws }, { data: member }] = await Promise.all([
+    supabase.from("workspaces").select("stripe_customer_id").eq("id", workspaceId).maybeSingle(),
+    supabase.from("workspace_members").select("email").eq("workspace_id", workspaceId).eq("user_id", c2.get("userId")).maybeSingle()
+  ]);
+  const existingCustomer = ws?.stripe_customer_id;
+  try {
+    const session = await stripePost("checkout/sessions", {
+      mode: "payment",
+      "line_items[0][price_data][currency]": "usd",
+      "line_items[0][price_data][unit_amount]": String(CREDIT_PACK.amount_usd * 100),
+      "line_items[0][price_data][product_data][name]": `${CREDIT_PACK.credits.toLocaleString()} AI credits`,
+      "line_items[0][quantity]": "1",
+      // Persist the card for off-session auto-refill charges.
+      "payment_intent_data[setup_future_usage]": "off_session",
+      success_url: `${appUrl()}/settings/billing?credits=success`,
+      cancel_url: `${appUrl()}/settings/billing?credits=cancelled`,
+      client_reference_id: workspaceId,
+      "metadata[workspace_id]": workspaceId,
+      "metadata[kind]": "credit_pack",
+      "metadata[credits]": String(CREDIT_PACK.credits),
+      // Reuse the saved customer if we have one; otherwise create one we can charge again later.
+      ...existingCustomer ? { customer: existingCustomer } : { customer_creation: "always", customer_email: member?.email || void 0 }
+    });
+    return c2.json({ url: session.url });
+  } catch (e2) {
+    return c2.json({ error: e2 instanceof Error ? e2.message : "Could not start the credit purchase." }, 500);
   }
 });
 router14.post("/portal", async (c2) => {

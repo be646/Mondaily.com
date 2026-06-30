@@ -91,6 +91,46 @@ router.post("/checkout", async (c) => {
   }
 });
 
+// One-time AI credit pack. price_data is inline so no Stripe Price needs pre-creating.
+const CREDIT_PACK = { credits: 100_000, amount_usd: 10 };
+
+// POST /credits-checkout → { url } — buy a one-time credit pack AND save the card off-session so
+// the auto-refill engine can charge it later. mode=payment + setup_future_usage=off_session.
+router.post("/credits-checkout", async (c) => {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return c.json({ error: "Billing isn't connected yet. Add STRIPE_SECRET_KEY to enable credit purchases.", configured: false }, 503);
+  }
+  const workspaceId = c.get("workspaceId");
+  const [{ data: ws }, { data: member }] = await Promise.all([
+    supabase.from("workspaces").select("stripe_customer_id").eq("id", workspaceId).maybeSingle(),
+    supabase.from("workspace_members").select("email").eq("workspace_id", workspaceId).eq("user_id", c.get("userId")).maybeSingle(),
+  ]);
+  const existingCustomer = (ws as Record<string, unknown> | null)?.stripe_customer_id as string | undefined;
+
+  try {
+    const session = await stripePost("checkout/sessions", {
+      mode: "payment",
+      "line_items[0][price_data][currency]": "usd",
+      "line_items[0][price_data][unit_amount]": String(CREDIT_PACK.amount_usd * 100),
+      "line_items[0][price_data][product_data][name]": `${CREDIT_PACK.credits.toLocaleString()} AI credits`,
+      "line_items[0][quantity]": "1",
+      // Persist the card for off-session auto-refill charges.
+      "payment_intent_data[setup_future_usage]": "off_session",
+      success_url: `${appUrl()}/settings/billing?credits=success`,
+      cancel_url: `${appUrl()}/settings/billing?credits=cancelled`,
+      client_reference_id: workspaceId,
+      "metadata[workspace_id]": workspaceId,
+      "metadata[kind]": "credit_pack",
+      "metadata[credits]": String(CREDIT_PACK.credits),
+      // Reuse the saved customer if we have one; otherwise create one we can charge again later.
+      ...(existingCustomer ? { customer: existingCustomer } : { customer_creation: "always", customer_email: member?.email || undefined }),
+    });
+    return c.json({ url: session.url });
+  } catch (e: unknown) {
+    return c.json({ error: e instanceof Error ? e.message : "Could not start the credit purchase." }, 500);
+  }
+});
+
 // POST /portal → { url } — manage an existing subscription.
 router.post("/portal", async (c) => {
   if (!process.env.STRIPE_SECRET_KEY) {

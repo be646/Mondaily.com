@@ -80,10 +80,28 @@ router.post("/stripe", async (c) => {
   // so the portal and subsequent subscription webhooks can't find the workspace.
   if (event.type === "checkout.session.completed") {
     const s = event.data.object;
-    const workspaceId = (s.client_reference_id as string) || ((s.metadata as Record<string, unknown> | undefined)?.workspace_id as string | undefined);
+    const meta = (s.metadata as Record<string, unknown> | undefined) ?? {};
+    const workspaceId = (s.client_reference_id as string) || (meta.workspace_id as string | undefined);
     const customerId  = s.customer as string | undefined;
-    const plan        = ((s.metadata as Record<string, unknown> | undefined)?.plan as string | undefined) || "pro";
-    if (workspaceId) {
+
+    if (meta.kind === "credit_pack") {
+      // One-time AI credit purchase: save the customer (its card is now on file for auto-refill)
+      // and append the purchased credits to the ledger. Does NOT touch the subscription plan.
+      const credits = Number(meta.credits ?? 0);
+      if (workspaceId && customerId) {
+        await supabase.from("workspaces").update({ stripe_customer_id: customerId }).eq("id", workspaceId);
+      }
+      if (workspaceId && credits > 0) {
+        await supabase.from("ai_credits_ledger").insert({
+          workspace_id: workspaceId,
+          amount: credits,
+          transaction_type: "purchase",
+          description: `Credit pack · ${credits.toLocaleString()} credits`,
+        }).then(() => {}, () => {});
+      }
+    } else if (workspaceId) {
+      // Subscription checkout: link the Stripe customer + activate the chosen plan.
+      const plan = (meta.plan as string | undefined) || "pro";
       await supabase
         .from("workspaces")
         .update({ ...(customerId ? { stripe_customer_id: customerId } : {}), plan })

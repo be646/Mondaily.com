@@ -32,6 +32,18 @@ async function openBilling(plan: string) {
   }
 }
 
+// Buy a one-time credit pack — redirects to Stripe Checkout (also saves the card for auto-refill).
+async function buyCredits() {
+  try {
+    const r = await apiClient.post<{ url?: string; error?: string }>("/billing/credits-checkout", {});
+    if (r.url) { window.location.href = r.url; return; }
+    if (r.error) alert(r.error);
+  } catch (e) {
+    try { alert(JSON.parse((e as Error).message)?.error ?? "Could not start the credit purchase."); }
+    catch { alert("Could not start the credit purchase."); }
+  }
+}
+
 interface Invoice { id: string; date: string; amount: number; pdf_url: string }
 interface Billing {
   plan: string;
@@ -230,7 +242,7 @@ export function BillingSettings() {
                   <p className="mt-0.5 text-xs text-stone-500">Top up 100,000 credits for <span className="tabular-nums text-stone-300">$10</span> via Stripe.</p>
                 </div>
                 <button
-                  onClick={() => { openBilling(billing.plan); }}
+                  onClick={() => { buyCredits(); }}
                   className="flex shrink-0 items-center gap-1.5 rounded-xl border border-stone-500/30 bg-stone-600 px-3.5 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all"
                 >
                   <RefreshCw size={13} /> Buy credits

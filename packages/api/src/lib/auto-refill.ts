@@ -39,7 +39,15 @@ export async function maybeAutoRefill(workspaceId: string): Promise<void> {
       .eq("workspace_id", workspaceId).eq("transaction_type", "purchase").gte("created_at", since).limit(1);
     if (recent && recent.length > 0) return;
 
-    // Off-session charge against the customer's default payment method.
+    // Find the card saved on the customer (set up off-session during a credit-pack purchase).
+    const pmRes = await fetch(`${STRIPE_API}/payment_methods?customer=${encodeURIComponent(customer)}&type=card&limit=1`, {
+      headers: { Authorization: `Bearer ${key}` },
+    });
+    const pmJson = await pmRes.json().catch(() => ({})) as { data?: Array<{ id?: string }> };
+    const paymentMethod = pmJson?.data?.[0]?.id;
+    if (!paymentMethod) return; // no card on file yet — user must buy a pack once to enable auto-refill
+
+    // Off-session charge against the saved card.
     const res = await fetch(`${STRIPE_API}/payment_intents`, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/x-www-form-urlencoded" },
@@ -47,6 +55,7 @@ export async function maybeAutoRefill(workspaceId: string): Promise<void> {
         amount: String(Math.round(amountUsd * 100)),
         currency: "usd",
         customer,
+        payment_method: paymentMethod,
         confirm: "true",
         off_session: "true",
         description: "Mondaily AI credit auto-refill",
