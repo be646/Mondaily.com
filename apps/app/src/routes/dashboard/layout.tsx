@@ -117,8 +117,8 @@ export function DashboardLayout() {
   const isGrid = /^\/objects\/[^/]+$/.test(location.pathname);
 
   return (
-    // font-mono on the dashboard shell → the unified monospace hierarchy across every view.
-    <div className="flex h-screen w-screen overflow-hidden surface-page font-mono">
+    // Dual-font: the shell defaults to Geist Sans (UI/structure); data/AI surfaces opt into font-mono.
+    <div className="flex h-screen w-screen overflow-hidden surface-page">
       {/* Change toasts — slide-in pop-ups for new notifications/activity */}
       <ToastHost />
       {/* Desktop sidebar */}

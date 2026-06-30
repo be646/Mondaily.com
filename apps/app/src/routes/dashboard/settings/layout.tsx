@@ -32,8 +32,8 @@ export function SettingsLayout() {
   const currentItem = ALL_ITEMS.find(([to]) => location.pathname.includes(to));
 
   return (
-    // font-mono on the shell → unified monospace typography across every settings panel.
-    <div className="flex h-full font-mono">
+    // Dual-font: settings UI (tabs, labels, headers, buttons) uses Geist Sans; data values opt into mono.
+    <div className="flex h-full">
       {/* Sidebar nav */}
       <aside className={`w-full md:w-56 md:shrink-0 border-r border-[#e5e7eb] dark:border-[var(--border-soft)] px-3 py-6 ${!isRoot ? "hidden md:block" : "block"}`}>
         <p className="mb-4 px-3 text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// Settings</p>

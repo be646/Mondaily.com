@@ -131,7 +131,7 @@ export function AskMondailySettings() {
   ];
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8 font-mono">
+    <div className="mx-auto max-w-2xl px-6 py-8">
       <div className="mb-6 flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
           <LogoMark size={18} style={{ color: "var(--accent)" }}/>
