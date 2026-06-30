@@ -396,7 +396,7 @@ export function InvoiceDetailPage() {
             <button
               onClick={() => save({ status: "sent" })}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 rounded-sm border-x border-t border-blue-500/40 border-b-[3px] border-b-blue-700 bg-blue-600 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-blue-500 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-stone-600 hover:border-[var(--section-accent)] disabled:opacity-50"
             >
               <Send size={12}/> Send Invoice
             </button>

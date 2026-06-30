@@ -211,6 +211,9 @@ export function DashboardLayout() {
           </div>
         }/>
 
+        {/* per-section soul signature — a hairline in the active section's accent */}
+        <div className="h-px shrink-0" style={{ background: "linear-gradient(90deg, var(--section-accent-line), transparent 60%)" }} />
+
         <main className={`min-h-0 flex-1 pb-16 md:pb-0 overscroll-none ${isGrid ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"}`}>
           {/* key=pathname → the boundary RESETS on every navigation. Without this, one page throwing
               once leaves the boundary stuck, blanking every subsequent route until a full reload. */}
