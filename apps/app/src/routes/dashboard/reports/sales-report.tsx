@@ -1266,7 +1266,7 @@ export function SalesReportPage() {
                 />
                 <button onClick={() => { if (presetName.trim()) savePreset(presetName.trim()); }}
                   disabled={!presetName.trim()}
-                  className="h-6 rounded-md bg-blue-600 px-2 text-[10px] text-[var(--text-primary)] hover:bg-blue-500 disabled:opacity-40 transition-colors">
+                  className="h-6 rounded-sm border border-stone-500/30 bg-stone-700 px-2 text-[10px] text-[var(--text-primary)] transition-colors hover:bg-stone-600 hover:border-[var(--accent)] disabled:opacity-40">
                   Save
                 </button>
                 <button onClick={() => { setSavingPreset(false); setPresetName(""); }} className="text-stone-600 hover:text-[var(--text-primary)] transition-colors"><X size={11}/></button>

@@ -147,7 +147,7 @@ function QuadrantNode({ data }: NodeProps) {
   return (
     <div
       className="w-[520px] h-[420px] rounded-2xl overflow-hidden"
-      style={{ border: "1px solid rgba(255,255,255,0.08)", background: "#0f1117" }}
+      style={{ border: "1px solid rgba(255,255,255,0.08)", background: "#121214" }}
     >
       <div className="flex items-center justify-center py-2 border-b border-[var(--border-soft)]">
         <span className="text-[10px] font-semibold tracking-[0.18em] uppercase text-[var(--text-secondary)]">

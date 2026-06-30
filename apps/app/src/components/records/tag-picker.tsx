@@ -67,7 +67,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-xs rounded-2xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-xs rounded-2xl border border-[var(--border-soft)] bg-[#121214] shadow-2xl" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
@@ -140,7 +140,7 @@ export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => 
               {PRESET_COLORS.map(c => (
                 <button key={c} onClick={() => setNewColor(c)}
                   className="h-5 w-5 rounded-full shrink-0 transition-all"
-                  style={{ backgroundColor: c, boxShadow: newColor === c ? `0 0 0 2px #0f1117, 0 0 0 3.5px ${c}` : undefined }}/>
+                  style={{ backgroundColor: c, boxShadow: newColor === c ? `0 0 0 2px #121214, 0 0 0 3.5px ${c}` : undefined }}/>
               ))}
             </div>
             <button onClick={createAndAdd} disabled={creating}

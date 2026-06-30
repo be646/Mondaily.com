@@ -162,7 +162,7 @@ export function ReportsPage() {
                 <Link
                   key={dashboard.id}
                   to={`/reports/dashboards/${dashboard.id}`}
-                  className="surface-card group overflow-hidden rounded-xl transition-all hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/20"
+                  className="surface-card group overflow-hidden rounded-sm transition-colors hover:border-[var(--border-strong)]"
                   style={{ borderColor: "var(--border-soft)" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-strong)"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; }}

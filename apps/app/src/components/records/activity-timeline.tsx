@@ -56,7 +56,7 @@ export function ActivityTimeline({ nodeId, onClose }: { nodeId: string; onClose:
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/30 backdrop-blur-[1px] p-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm h-[70vh] rounded-2xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl flex flex-col"
+        className="w-full max-w-sm h-[70vh] rounded-2xl border border-[var(--border-soft)] bg-[#121214] shadow-2xl flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)] flex-shrink-0">

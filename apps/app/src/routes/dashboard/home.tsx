@@ -838,9 +838,9 @@ export function HomePage() {
               title={loading ? "Stop generating" : "Send"}
               className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-150 disabled:cursor-not-allowed"
               style={loading
-                ? { background: "var(--accent)", color: "#fff" }
+                ? { background: "var(--surface-selected)", color: "var(--accent)", border: "1px solid var(--accent)" }
                 : input.trim()
-                  ? { background: "var(--accent)", color: "#fff" }
+                  ? { background: "var(--surface-selected)", color: "var(--accent)", border: "1px solid var(--accent)" }
                   : { background: "var(--surface-hover)", color: "var(--text-faint)" }}>
               {loading ? <Square size={13} strokeWidth={3} fill="currentColor"/> : <ArrowUp size={17} strokeWidth={2.5}/>}
             </button>

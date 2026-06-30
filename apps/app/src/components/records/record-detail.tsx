@@ -593,7 +593,7 @@ function MemberPickerField({ label, currentName, members, onSelect }: {
 
 // ─── Activity feed ────────────────────────────────────────────────────────────
 function ActivityDot({ type }: { type: "create"|"update"|"system" }) {
-  const cls = type === "create" ? "bg-emerald-500" : type === "update" ? "bg-blue-500" : "bg-stone-600";
+  const cls = type === "create" ? "bg-emerald-500" : type === "update" ? "bg-amber-500" : "bg-stone-600";
   return <div className={`h-2 w-2 rounded-full shrink-0 mt-1.5 ${cls} ring-2 ring-[var(--surface-card)]`}/>;
 }
 

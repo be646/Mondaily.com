@@ -230,7 +230,7 @@ export function ProspectingModal({
                 <button
                   onClick={() => approveSelected.mutate()}
                   disabled={selected.size === 0 || approveSelected.isPending}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-[12.5px] font-medium text-[var(--text-primary)] hover:bg-emerald-500 transition-colors disabled:opacity-50"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-[12.5px] font-medium text-[var(--text-primary)] transition-colors hover:bg-stone-600 hover:border-[var(--accent)] disabled:opacity-50"
                 >
                   {approveSelected.isPending ? <Loader2 size={13} className="animate-spin" /> : <CheckCircle2 size={13} />}
                   Approve selected ({selected.size}) — create records{destinationListId ? " and add to list" : ""}

@@ -209,7 +209,7 @@ export function DedupPanel({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl rounded-2xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl flex flex-col max-h-[85vh]">
+      <div className="w-full max-w-2xl rounded-2xl border border-[var(--border-soft)] bg-[#121214] shadow-2xl flex flex-col max-h-[85vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)]">
@@ -401,7 +401,7 @@ export function DedupPanel({
               <button
                 onClick={createSmartLists}
                 disabled={creatingLists}
-                className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-blue-500 transition-colors disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:bg-stone-600 hover:border-[var(--accent)] disabled:opacity-60"
               >
                 {creatingLists ? <><Loader2 size={12} className="animate-spin" /> Creating lists…</> : <><List size={12} /> Create smart lists</>}
               </button>
@@ -409,7 +409,7 @@ export function DedupPanel({
             {done && (
               <button
                 onClick={onClose}
-                className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-emerald-500 transition-colors"
+                className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] transition-colors hover:bg-stone-600 hover:border-[var(--accent)]"
               >
                 <Check size={12} /> Done
               </button>

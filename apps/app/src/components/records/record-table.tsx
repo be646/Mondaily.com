@@ -1157,7 +1157,7 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
                 {PRESET_TAG_COLORS.map(c => (
                   <button key={c} onClick={() => setNewColor(c)}
                     className="h-4 w-4 rounded-full shrink-0 transition-all"
-                    style={{ backgroundColor: c, boxShadow: newColor === c ? `0 0 0 2px #0f1117, 0 0 0 3px ${c}` : undefined }}/>
+                    style={{ backgroundColor: c, boxShadow: newColor === c ? `0 0 0 2px #121214, 0 0 0 3px ${c}` : undefined }}/>
                 ))}
               </div>
               <button onClick={createAndAdd} disabled={creating}
@@ -1294,7 +1294,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
       </button>
       {open && createPortal(
         <div ref={ref} style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 9999 }}
-          className="w-56 rounded-xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl py-1">
+          className="w-56 rounded-xl border border-[var(--border-soft)] bg-[#121214] shadow-2xl py-1">
           <div className="px-2 pb-1 pt-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               placeholder={`Search ${targetSlug || "records"}…`}
@@ -2818,7 +2818,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       <>
         <div className="fixed inset-0 z-[9998]" onClick={() => setColCtxMenu(null)}/>
         <div
-          className="fixed z-[9999] rounded-xl border border-[var(--border-soft)] bg-[#0f1117] py-1 shadow-xl min-w-[160px]"
+          className="fixed z-[9999] rounded-xl border border-[var(--border-soft)] bg-[#121214] py-1 shadow-xl min-w-[160px]"
           style={{ left: colCtxMenu.x, top: colCtxMenu.y }}
         >
           <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-stone-600 border-b border-[var(--border-soft)] mb-1">
