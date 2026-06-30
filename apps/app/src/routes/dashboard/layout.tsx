@@ -117,7 +117,8 @@ export function DashboardLayout() {
   const isGrid = /^\/objects\/[^/]+$/.test(location.pathname);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden surface-page">
+    // font-mono on the dashboard shell → the unified monospace hierarchy across every view.
+    <div className="flex h-screen w-screen overflow-hidden surface-page font-mono">
       {/* Change toasts — slide-in pop-ups for new notifications/activity */}
       <ToastHost />
       {/* Desktop sidebar */}
