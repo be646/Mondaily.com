@@ -71,6 +71,21 @@ function sectionHue(pathname: string): number {
   return 0;
 }
 
+// Mono call-sign rendered in the section accent next to each page label — the
+// "instrument designation" that gives every section identity beyond just colour.
+const SECTION_CALLSIGN: [string, string][] = [
+  ["/finance", "LEDGER"], ["/settings", "SYSTEM"], ["/discovery", "SWEEP"],
+  ["/automations", "FLOW"], ["/decisions", "GATE"], ["/activity", "STREAM"],
+  ["/reports", "SIGNAL"], ["/notifications", "ALERT"], ["/team-oversight", "ORG"],
+  ["/notes", "DRAFT"], ["/ask", "MONDAILY"], ["/search", "GRAPH"],
+  ["/calls", "COMMS"], ["/emails", "RELAY"], ["/tasks", "QUEUE"],
+  ["/objects", "RECORDS"], ["/lists", "SEGMENTS"], ["/home", "DECK"],
+];
+function sectionCallsign(pathname: string): string {
+  for (const [prefix, sign] of SECTION_CALLSIGN) if (pathname.startsWith(prefix)) return sign;
+  return "MONDAILY";
+}
+
 function MobileNav() {
   const location = useLocation();
   const tabs = [
@@ -137,7 +152,7 @@ export function DashboardLayout() {
     }
   }, [wsSettings, navigate]);
 
-  const { label: pageLabel, Icon: PageIcon, color: pageColor } = getPageMeta(location.pathname);
+  const { label: pageLabel, Icon: PageIcon } = getPageMeta(location.pathname);
 
   // Spreadsheet grid routes own their scroll via internal flex — keep main overflow-hidden.
   // All other routes need native vertical scrolling.
@@ -167,9 +182,10 @@ export function DashboardLayout() {
             >
               <Menu size={16}/>
             </button>
-            <PageIcon size={16} className={`${pageColor} shrink-0`}/>
-            <span className="text-[13px] font-semibold text-[#111827] dark:text-[var(--text-secondary)] capitalize select-none hidden sm:inline">
-              {pageLabel}
+            <PageIcon size={16} className="shrink-0" style={{ color: "var(--section-accent)" }}/>
+            <span className="hidden select-none items-baseline gap-2 sm:inline-flex">
+              <span className="text-[13px] font-semibold text-[#111827] capitalize dark:text-[var(--text-secondary)]">{pageLabel}</span>
+              <span className="soul-kicker">// {sectionCallsign(location.pathname)}</span>
             </span>
             {/* Search trigger */}
             <button
