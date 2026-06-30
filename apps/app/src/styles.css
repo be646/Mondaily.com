@@ -21,9 +21,9 @@
   --text-secondary:   #b5b5b1;
   --text-muted:       #888884;
   --text-faint:       #5c5c58;
-  /* tactical sage green — the unified accent for state/validation markers */
-  --accent:           #4ade80;
-  --accent-hover:     #6ee79a;
+  /* surgical matte emerald — calmer than neon green-400; reserved for borders/dots/markers */
+  --accent:           #10b981;
+  --accent-hover:     #34d399;
 
   /* legacy aliases — kept so existing var() usages don't break */
   --md-bg:          var(--surface-page);

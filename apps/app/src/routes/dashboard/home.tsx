@@ -891,7 +891,7 @@ export function HomePage() {
               },
             ].map(s => (
               <button key={s.label} onClick={() => sendSuggestion(s.prompt)}
-                className="group flex items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all hover:-translate-y-px"
+                className="group flex items-start gap-3 rounded-sm border px-4 py-3 text-left transition-colors"
                 style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; }}>
