@@ -208,7 +208,7 @@ function CategoryCell({ value, onSave }: {
       {/* Picker portal */}
       {open && createPortal(
         <div style={{ position: "fixed", top: (ref.current?.getBoundingClientRect().bottom ?? 0) + 4, left: ref.current?.getBoundingClientRect().left ?? 0, zIndex: 9999 }}
-          className="w-52 rounded-xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          className="w-52 rounded-sm border border-[var(--border-soft)] bg-[#121214] overflow-hidden" onClick={e => e.stopPropagation()}>
           <div className="px-2 pt-2 pb-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               onKeyDown={e => { if (e.key === "Escape") setOpen(false); }}
@@ -1130,7 +1130,7 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
       </div>
       {open && createPortal(
         <div style={{ position: "fixed", top: (ref.current?.getBoundingClientRect().bottom ?? 0) + 4, left: ref.current?.getBoundingClientRect().left ?? 0, zIndex: 9999 }}
-          className="w-52 rounded-xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          className="w-52 rounded-sm border border-[var(--border-soft)] bg-[#121214] overflow-hidden" onClick={e => e.stopPropagation()}>
           <div className="px-2 pt-2 pb-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && canCreate) createAndAdd(); if (e.key === "Escape") setOpen(false); }}
@@ -2381,7 +2381,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {listPickerOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setListPickerOpen(false)} />
-                <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl overflow-hidden">
+                <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-sm border border-[var(--border-soft)] bg-[#121214] overflow-hidden">
                   <div className="px-3 py-2 border-b border-[var(--border-soft)]">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Add {selected.size} to list</p>
                   </div>
@@ -2423,7 +2423,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {assignPickerOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => { setAssignPickerOpen(false); setAssignSearch(""); }} />
-                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl overflow-hidden">
+                <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-sm border border-[var(--border-soft)] bg-[#121214] overflow-hidden">
                   <div className="px-3 py-2 border-b border-[var(--border-soft)]">
                     <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Assign {selected.size} records</p>
                     <div className="relative">
@@ -2492,7 +2492,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {bulkEditField && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setBulkEditField(null)}/>
-                  <div className="absolute left-0 top-full z-50 mt-1 w-60 rounded-xl border border-[var(--border-soft)] bg-[#0f1117] shadow-2xl overflow-hidden">
+                  <div className="absolute left-0 top-full z-50 mt-1 w-60 rounded-sm border border-[var(--border-soft)] bg-[#121214] overflow-hidden">
                     <div className="px-3 py-2 border-b border-[var(--border-soft)] flex items-center gap-2">
                       <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] flex-1">Edit {selected.size} records</p>
                     </div>
