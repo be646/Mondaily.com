@@ -44,6 +44,33 @@ function getPageMeta(pathname: string): PageMeta {
   return { label: "Mondaily", Icon: Home, color: "text-stone-400" };
 }
 
+// ─── Section soul: hue offset (deg) rotated off the active theme's base accent ─
+// Identity is RELATIONAL, not a fixed colour — styles.css derives --section-accent
+// from this via hsl(base-hue + offset * theme-spread). The console comment shows
+// roughly how each reads on the jet-black skin; other themes keep it tonal.
+const SECTION_HUE: [string, number][] = [
+  ["/finance",        -120], // gold / ledger
+  ["/settings",         60], // steel
+  ["/discovery",       110], // violet / sweep
+  ["/automations",      40], // cyan / flow
+  ["/decisions",       185], // rose / approval gate
+  ["/activity",         75], // blue / telemetry stream
+  ["/reports",          30], // teal / AI signal
+  ["/notifications",  -140], // orange / alert
+  ["/team-oversight",  130], // indigo / org
+  ["/notes",          -110], // sand / draft
+  ["/ask",              15], // mint / Mondaily voice
+  ["/search",          110], // violet (exploration, shares Discovery family)
+  ["/calls",           -80], // amber-rose
+  ["/emails",          -45], // warm
+  ["/tasks",            95], // cool teal-blue
+  // /home, /objects, /lists → 0 (base emerald — the CRM core)
+];
+function sectionHue(pathname: string): number {
+  for (const [prefix, hue] of SECTION_HUE) if (pathname.startsWith(prefix)) return hue;
+  return 0;
+}
+
 function MobileNav() {
   const location = useLocation();
   const tabs = [
@@ -129,7 +156,7 @@ export function DashboardLayout() {
       {/* Mobile sidebar drawer */}
       <MobileSidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}/>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="section-soul flex min-w-0 flex-1 flex-col" style={{ "--section-hue": sectionHue(location.pathname) } as React.CSSProperties}>
         {/* Top bar — logo · page label · actions slot · AI/user buttons */}
         <AgentStatusBar leftSlot={
           <div className="flex items-center gap-3 min-w-0">

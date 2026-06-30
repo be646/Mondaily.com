@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import { SovereignAuthProvider, useSovereignAuth } from "./components/auth/sovereign-auth-context";
 import { queryClient } from "./lib/query-client";
+import { applyTheme, getTheme } from "./lib/theme";
 import "./styles.css";
 
 /**
@@ -19,17 +20,12 @@ function SovereignGate({ children }: { children: React.ReactNode }) {
 
 // Apply saved theme before first render to avoid flash
 (function initTheme() {
-  // One-time migration: the elite dark monospace aesthetic is the default — reset existing devices
-  // once to dark (they can still switch back to light from Settings → Appearance).
+  // One-time migration: Console (jet black) is the default aesthetic — reset existing devices once.
   if (!localStorage.getItem("mondaily_theme_dark_reset")) {
-    localStorage.setItem("mondaily_appearance", "dark");
+    localStorage.setItem("mondaily_appearance", "console");
     localStorage.setItem("mondaily_theme_dark_reset", "1");
   }
-  const saved = localStorage.getItem("mondaily_appearance") as "dark" | "light" | "system" | null;
-  const mode = saved ?? "dark";
-  const dark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  document.documentElement.classList.toggle("dark", dark);
-  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  applyTheme(getTheme());
   // Primary-button colour: "dark" (default) or "accent" (sage green)
   const btn = localStorage.getItem("mondaily_btnstyle");
   if (btn === "accent") document.documentElement.dataset.btnstyle = "accent";

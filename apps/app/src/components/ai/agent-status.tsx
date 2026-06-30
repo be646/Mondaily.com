@@ -6,13 +6,14 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react
 import {
   MessageCircle, Settings, LogOut, User, X, Send, Share2,
   HelpCircle, MoreHorizontal, Copy, Check, Loader2,
-  ThumbsUp, ThumbsDown, Sun, Moon, ListChecks, Network, Brain, Square, RotateCcw, Mic,
+  ThumbsUp, ThumbsDown, Palette, ListChecks, Network, Brain, Square, RotateCcw, Mic,
 } from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
 import { LogoMark } from "../logo";
 import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { useAskEngine } from "./use-ask-engine";
 import { useAskContextStore } from "../../lib/ask-context-store";
+import { THEMES, getTheme, applyTheme as applyAppTheme, type ThemeId } from "../../lib/theme";
 import { EvidenceStrip, SourceList, Markdown, TokenLedger, sourcesToLinks } from "./ask-shared";
 import { useAttachments, AttachPicker, AttachChips, AttachButton } from "./use-attachments";
 import { useVoiceDictation } from "./use-voice";
@@ -344,16 +345,7 @@ function ShareModal({ onClose }: { onClose: () => void }) {
 
 const SHARE_PATHS = ["/objects/", "/lists/", "/search"];
 
-function getCurrentTheme() {
-  const theme = document.documentElement.dataset.theme;
-  return theme === "light" ? "light" : "dark";
-}
-
-function applyHeaderTheme(theme: "light" | "dark") {
-  localStorage.setItem("mondaily_appearance", theme);
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.classList.toggle("dark", theme === "dark");
-}
+// Header quick-switch cycles through the full theme lineup (Console → Paper → Daylight → Rosé).
 
 // ─── Top bar ──────────────────────────────────────────────────────────────────
 export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}) {
@@ -364,18 +356,18 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">(() => getCurrentTheme());
+  const [theme, setTheme] = useState<ThemeId>(() => getTheme());
 
   const initials = (me.name || me.email)?.[0]?.toUpperCase() ?? "U";
   const fullName = me.name || "Account";
   const avatarUrl = me.imageUrl ?? undefined;
   const showShare = SHARE_PATHS.some(p => location.pathname.includes(p));
-  const ThemeIcon = theme === "dark" ? Sun : Moon;
+  const themeIdx = THEMES.findIndex(t => t.id === theme);
+  const nextTheme = THEMES[(themeIdx + 1) % THEMES.length]!;
 
   function toggleTheme() {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    applyHeaderTheme(next);
+    setTheme(nextTheme.id);
+    applyAppTheme(nextTheme.id);
   }
 
   return (
@@ -409,10 +401,10 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
             type="button"
             onClick={toggleTheme}
             className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-50"
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            title={`Theme: ${THEMES[themeIdx]?.label ?? "Console"} · next: ${nextTheme.label}`}
+            aria-label={`Switch theme (next: ${nextTheme.label})`}
           >
-            <ThemeIcon size={15}/>
+            <Palette size={15}/>
           </button>
 
           <NotificationsBell/>

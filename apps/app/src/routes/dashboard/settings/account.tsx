@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Check, KeyRound, LogOut, Loader2, Monitor, Moon, Sun, Trash2 } from "lucide-react";
+import { Camera, Check, KeyRound, LogOut, Loader2, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { useSovereignAuthOptional } from "../../../components/auth/sovereign-auth-context";
+import { THEMES, type ThemeId, applyTheme as applyAppTheme, normalizeTheme } from "../../../lib/theme";
 
-type Appearance = "dark" | "light" | "system";
+type Appearance = string;
 type NotificationChannel = { in_app: boolean; email: boolean };
 
 interface Preferences {
@@ -50,12 +51,8 @@ const shortcuts = [
   ["Open AI chat", "⌘ ."],
 ];
 
-export function applyTheme(appearance: Appearance) {
-  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const isDark = appearance === "dark" || (appearance === "system" && prefersDark);
-  document.documentElement.dataset.theme = isDark ? "dark" : "light";
-  document.documentElement.classList.toggle("dark", isDark);
-}
+// Theme application now lives in lib/theme (applyAppTheme); re-exported for back-compat.
+export { applyTheme } from "../../../lib/theme";
 
 function defaultNotifications(data?: Preferences) {
   return Object.fromEntries(notificationTypes.map(([key]) => [
@@ -105,8 +102,8 @@ export function AccountSettings() {
       setPwMsg({ ok: false, text: e instanceof Error ? e.message : "Could not change password." });
     } finally { setPwBusy(false); }
   }
-  const [appearance, setAppearance] = useState<Appearance>(
-    () => (localStorage.getItem("mondaily_appearance") as Appearance | null) ?? "dark",
+  const [appearance, setAppearance] = useState<ThemeId>(
+    () => normalizeTheme(localStorage.getItem("mondaily_appearance")),
   );
   const [btnStyle, setBtnStyle] = useState<"dark" | "accent">(
     () => (localStorage.getItem("mondaily_btnstyle") as "dark" | "accent" | null) ?? "dark",
@@ -132,7 +129,7 @@ export function AccountSettings() {
     setName(me.name ?? "");
     setJobTitle(query.data.job_title ?? "");
     if (!localStorage.getItem("mondaily_appearance")) {
-      setAppearance(query.data.appearance ?? "dark");
+      setAppearance(normalizeTheme(query.data.appearance ?? null));
     }
     setNotifications(defaultNotifications(query.data));
     setAiExpertise(query.data.ai_expertise ?? "intermediate");
@@ -141,11 +138,8 @@ export function AccountSettings() {
     setAiContext(query.data.ai_context ?? "");
   }, [query.data, me.name]);
 
-  // Apply theme on change and on mount
-  useEffect(() => {
-    localStorage.setItem("mondaily_appearance", appearance);
-    applyTheme(appearance);
-  }, [appearance]);
+  // Apply theme on change and on mount (applyAppTheme persists to localStorage too)
+  useEffect(() => { applyAppTheme(appearance); }, [appearance]);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -353,23 +347,31 @@ export function AccountSettings() {
           <span className="text-xs text-stone-500">Changes apply instantly</span>
         </div>
         <div className="p-5">
-          <div className="grid grid-cols-3 gap-3">
-            {([["light", Sun, "Light"], ["dark", Moon, "Dark"], ["system", Monitor, "System"]] as const).map(([mode, Icon, label]) => {
-              const active = appearance === mode;
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {THEMES.map((t) => {
+              const active = appearance === t.id;
               return (
                 <button
-                  key={mode}
-                  onClick={() => setAppearance(mode)}
-                  className="relative flex flex-col items-center gap-2.5 rounded-sm border py-5 transition-all"
+                  key={t.id}
+                  onClick={() => setAppearance(t.id)}
+                  className="group relative flex flex-col gap-2.5 rounded-sm border p-3 text-left transition-all"
                   style={{
                     borderColor: active ? "var(--accent)" : "var(--border-soft)",
                     background: active ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
-                    color: active ? "var(--text-primary)" : "var(--text-muted)",
                   }}
                 >
-                  <Icon size={18} style={{ color: active ? "var(--accent)" : "var(--text-muted)" }}/>
-                  <span className="text-xs font-medium capitalize">{label}</span>
-                  {active && <Check size={11} className="absolute right-2.5 top-2.5" style={{ color: "var(--accent)" }} />}
+                  {/* mini canvas preview built from the theme's own swatch */}
+                  <div className="flex h-12 overflow-hidden rounded-[3px] border" style={{ borderColor: "var(--border-soft)", background: t.swatch[0] }}>
+                    <div className="m-1.5 flex flex-1 items-center gap-1.5 rounded-[2px] px-1.5" style={{ background: t.swatch[1] }}>
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: t.swatch[2] }} />
+                      <span className="h-1 w-7 rounded-full" style={{ background: t.swatch[2], opacity: 0.35 }} />
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs font-medium text-[var(--text-primary)]">{t.label}</span>
+                    <p className="mt-0.5 text-[10.5px] leading-tight text-stone-500">{t.blurb}</p>
+                  </div>
+                  {active && <Check size={11} className="absolute right-2 top-2" style={{ color: "var(--accent)" }} />}
                 </button>
               );
             })}

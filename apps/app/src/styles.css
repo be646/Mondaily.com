@@ -5,8 +5,18 @@
 /* ── Design tokens — shared surfaces, both themes ─────────────────────────────
    Premium grid system: pure paper in light mode, absolute black in dark mode,
    with separation carried by hairline dividers instead of nested cards. ── */
+/* ════════════════════════════════════════════════════════════════════════════
+   THEME ENGINE — user-selectable skins (Settings → Appearance), persisted per user.
+   Each theme sets only surfaces/text/borders + the accent as H S L *components*.
+   The accent + per-section "soul" accents are DERIVED from those components below,
+   so every theme stays internally harmonised and nothing is hardcoded per section.
+   Section identity is relational: a section carries a --section-hue offset, and its
+   accent rotates off the active theme's base hue, scaled by --theme-spread (so a
+   tightly-toned theme like Rosé keeps sections tonal, while Console lets them spread).
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Theme: Console (jet black) — DEFAULT ─────────────────────────────────── */
 :root {
-  /* dark (default) — Cybernetic AI Operations palette: deep canvas, wire-mesh borders, sage accent */
   --surface-page:     #09090b;
   --surface-sidebar:  #09090b;
   --surface-card:     #121214;
@@ -21,9 +31,25 @@
   --text-secondary:   #b5b5b1;
   --text-muted:       #888884;
   --text-faint:       #5c5c58;
-  /* surgical matte emerald — calmer than neon green-400; reserved for borders/dots/markers */
-  --accent:           #10b981;
-  --accent-hover:     #34d399;
+  /* accent as HSL components — the base hue every section rotates from */
+  --accent-h: 160;
+  --accent-s: 74%;
+  --accent-l: 43%;
+  --theme-spread: 1;   /* section hues rotate fully on the console skin */
+
+  /* ── Derived — do NOT hardcode; these recompute per theme automatically ── */
+  --accent:          hsl(var(--accent-h) var(--accent-s) var(--accent-l));
+  --accent-hover:    hsl(var(--accent-h) var(--accent-s) calc(var(--accent-l) + 13%));
+
+  /* per-section soul accent — default = base accent. The relational rotation is
+     declared on .section-soul (below) so it re-resolves at the element that sets
+     --section-hue; declaring it here would freeze --section-hue at :root. */
+  --section-hue: 0;
+  --section-accent:       var(--accent);
+  --section-accent-hover: var(--accent-hover);
+  --section-accent-soft:  hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 0.12);
+  --section-accent-line:  hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 0.24);
+  --section-accent-text:  hsl(var(--accent-h) calc(var(--accent-s) + 6%) calc(var(--accent-l) + 14%));
 
   /* legacy aliases — kept so existing var() usages don't break */
   --md-bg:          var(--surface-page);
@@ -32,32 +58,79 @@
   --md-text:        var(--text-primary);
   --md-text-muted:  var(--text-muted);
 }
+/* explicit alias so data-theme="console" and the legacy "dark" both map to root */
+html[data-theme="console"], html[data-theme="dark"] {
+  --accent-h: 160; --accent-s: 74%; --accent-l: 43%; --theme-spread: 1;
+}
 
-html[data-theme="light"] {
-  /* light — matte-neutral palette, matched to the landing page */
+/* Section-soul scope — layout.tsx puts this class + an inline --section-hue on the
+   route content wrapper. Declaring the derived accents HERE (not on :root) is what
+   makes the hue rotation actually take effect: the custom properties re-resolve on
+   this element using its own --section-hue, then inherit down to every child. */
+.section-soul {
+  --section-h: calc(var(--accent-h) + var(--section-hue) * var(--theme-spread));
+  --section-accent:       hsl(var(--section-h) var(--accent-s) var(--accent-l));
+  --section-accent-hover: hsl(var(--section-h) var(--accent-s) calc(var(--accent-l) + 13%));
+  --section-accent-soft:  hsl(var(--section-h) var(--accent-s) var(--accent-l) / 0.12);
+  --section-accent-line:  hsl(var(--section-h) var(--accent-s) var(--accent-l) / 0.24);
+  --section-accent-text:  hsl(var(--section-h) calc(var(--accent-s) + 6%) calc(var(--accent-l) + 14%));
+}
+
+/* ── Theme: Paper (warm cream) ────────────────────────────────────────────── */
+html[data-theme="paper"] {
+  --surface-page:     #f3ece0;
+  --surface-sidebar:  #efe7d9;
+  --surface-card:     #faf5ec;
+  --surface-card-2:   #f1e8d8;
+  --surface-input:    #faf5ec;
+  --surface-modal:    #faf5ec;
+  --surface-hover:    #ebe2d0;
+  --surface-selected: #e3d7c1;
+  --border-soft:      #ddd0b8;
+  --border-strong:    #c9b899;
+  --text-primary:     #38301f;
+  --text-secondary:   #5c503c;
+  --text-muted:       #8a7b62;
+  --text-faint:       #b3a384;
+  --accent-h: 150; --accent-s: 30%; --accent-l: 33%; --theme-spread: 0.35;
+}
+
+/* ── Theme: Daylight (pure white) — also the legacy "light" alias ─────────── */
+html[data-theme="daylight"], html[data-theme="light"] {
   --surface-page:     #ffffff;
-  --surface-sidebar:  #ffffff;
+  --surface-sidebar:  #fbfbfa;
   --surface-card:     #ffffff;
-  --surface-card-2:   #f8f7f5;
+  --surface-card-2:   #f7f7f5;
   --surface-input:    #ffffff;
   --surface-modal:    #ffffff;
-  --surface-hover:    #f5f5f5;
-  --surface-selected: #eeeeec;
-  --border-soft:      #ebebeb;
-  --border-strong:    #d8d8d8;
+  --surface-hover:    #f4f4f2;
+  --surface-selected: #eaeae7;
+  --border-soft:      #e8e8e4;
+  --border-strong:    #d6d6d0;
   --text-primary:     #0a0a0a;
   --text-secondary:   #404040;
-  --text-muted:       #737373;
-  --text-faint:       #a3a3a3;
-  /* sage-green accent — matched to the landing page */
-  --accent:           #6f8068;
-  --accent-hover:     #5c6b55;
+  --text-muted:       #6b6b6b;
+  --text-faint:       #9a9a9a;
+  --accent-h: 160; --accent-s: 60%; --accent-l: 33%; --theme-spread: 0.8;
+}
 
-  --md-bg:          var(--surface-page);
-  --md-bg-panel:    var(--surface-card);
-  --md-border:      var(--border-soft);
-  --md-text:        var(--text-primary);
-  --md-text-muted:  var(--text-muted);
+/* ── Theme: Rosé (soft pink) ──────────────────────────────────────────────── */
+html[data-theme="rose"] {
+  --surface-page:     #fbf0f1;
+  --surface-sidebar:  #f8eaec;
+  --surface-card:     #fdf6f7;
+  --surface-card-2:   #f7e9eb;
+  --surface-input:    #fdf6f7;
+  --surface-modal:    #fdf6f7;
+  --surface-hover:    #f4e0e3;
+  --surface-selected: #edd1d6;
+  --border-soft:      #ecd3d8;
+  --border-strong:    #dcb8bf;
+  --text-primary:     #3d2329;
+  --text-secondary:   #5f3c44;
+  --text-muted:       #8a626a;
+  --text-faint:       #b49199;
+  --accent-h: 345; --accent-s: 55%; --accent-l: 52%; --theme-spread: 0.25;
 }
 
 /* Solid primary-button colour — user-switchable (Settings → Appearance).
