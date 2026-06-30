@@ -169,7 +169,9 @@ export function DashboardLayout() {
         }/>
 
         <main className={`min-h-0 flex-1 pb-16 md:pb-0 overscroll-none ${isGrid ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"}`}>
-          <ErrorBoundary>
+          {/* key=pathname → the boundary RESETS on every navigation. Without this, one page throwing
+              once leaves the boundary stuck, blanking every subsequent route until a full reload. */}
+          <ErrorBoundary key={location.pathname}>
             <Outlet />
           </ErrorBoundary>
         </main>

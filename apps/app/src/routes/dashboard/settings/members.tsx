@@ -39,7 +39,7 @@ export function MembersSettings() {
   const [copied, setCopied] = useState(false);
   const [emails, setEmails] = useState("");
 
-  const query = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<MembersData>("/settings/members") });
+  const query = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<MembersData>("/settings/members"), retry: false });
   const refresh = () => qc.invalidateQueries({ queryKey: ["members"] });
 
   const members: Member[] = Array.isArray(query.data?.members) ? query.data!.members! : [];
@@ -71,6 +71,11 @@ export function MembersSettings() {
 
   return (
     <div className="font-mono">
+      {query.isError && (
+        <div className="mb-4 rounded-xl border px-4 py-3 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+          Couldn't load members right now — showing what's cached. Try reloading.
+        </div>
+      )}
       <div className="mb-5">
         <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// TEAM OPERATORS</p>
         <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Members &amp; Roles</h1>
