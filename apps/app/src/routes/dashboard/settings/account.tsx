@@ -92,7 +92,7 @@ export function AccountSettings() {
     } finally { setPwBusy(false); }
   }
   const [appearance, setAppearance] = useState<Appearance>(
-    () => (localStorage.getItem("mondaily_appearance") as Appearance | null) ?? "light",
+    () => (localStorage.getItem("mondaily_appearance") as Appearance | null) ?? "dark",
   );
   const [btnStyle, setBtnStyle] = useState<"dark" | "accent">(
     () => (localStorage.getItem("mondaily_btnstyle") as "dark" | "accent" | null) ?? "dark",

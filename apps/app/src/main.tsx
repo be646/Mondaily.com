@@ -19,14 +19,14 @@ function SovereignGate({ children }: { children: React.ReactNode }) {
 
 // Apply saved theme before first render to avoid flash
 (function initTheme() {
-  // One-time migration: light is the new default — reset existing devices once
-  // (they can switch back to dark from Settings → Appearance).
-  if (!localStorage.getItem("mondaily_theme_light_reset")) {
-    localStorage.setItem("mondaily_appearance", "light");
-    localStorage.setItem("mondaily_theme_light_reset", "1");
+  // One-time migration: the elite dark monospace aesthetic is the default — reset existing devices
+  // once to dark (they can still switch back to light from Settings → Appearance).
+  if (!localStorage.getItem("mondaily_theme_dark_reset")) {
+    localStorage.setItem("mondaily_appearance", "dark");
+    localStorage.setItem("mondaily_theme_dark_reset", "1");
   }
   const saved = localStorage.getItem("mondaily_appearance") as "dark" | "light" | "system" | null;
-  const mode = saved ?? "light";
+  const mode = saved ?? "dark";
   const dark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   document.documentElement.classList.toggle("dark", dark);
   document.documentElement.dataset.theme = dark ? "dark" : "light";
