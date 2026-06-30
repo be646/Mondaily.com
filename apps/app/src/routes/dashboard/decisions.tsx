@@ -260,22 +260,25 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
         )}
       </div>
 
-      {/* action bar — clear, user-friendly: Approve is primary, Reject secondary, Snooze icon */}
+      {/* action bar — semantic colours (matte): Approve = green, Reject = red, Snooze = neutral.
+          Never the section accent for these — approve must read as positive regardless of section. */}
       <div className="flex items-center gap-2 border-t p-3" style={{ borderColor: "var(--border-soft)" }}>
         <button onClick={() => onResolve(d, "approve")} disabled={busy}
-          className="flex flex-1 items-center justify-center gap-2 rounded-sm border px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-60"
-          style={{ borderColor: "var(--section-accent)", background: "var(--section-accent-soft)", color: "var(--section-accent-text)" }}>
+          className="flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-60"
+          style={{ borderColor: "color-mix(in srgb, #3f8f6e 55%, transparent)", background: "color-mix(in srgb, #3f8f6e 14%, transparent)", color: "#5fae8b" }}>
           {busy && acting?.action === "approve" ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Approve &amp; run
         </button>
         <button onClick={() => onResolve(d, "reject")} disabled={busy}
-          className="flex items-center gap-2 rounded-sm border px-4 py-2.5 text-[13px] font-medium transition-colors hover:border-[#f43f5e] hover:text-[#f43f5e] disabled:opacity-60"
-          style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-secondary)" }}>
+          className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
+          style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-secondary)" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#c2566a"; e.currentTarget.style.color = "#c2566a"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>
           {busy && acting?.action === "reject" ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Reject
         </button>
-        <button onClick={() => onResolve(d, "snooze")} disabled={busy} title="Snooze for later"
-          className="flex items-center justify-center rounded-sm border px-3 py-2.5 transition-colors hover:text-[var(--text-primary)] disabled:opacity-60"
+        <button onClick={() => onResolve(d, "snooze")} disabled={busy} title="Snooze 24h"
+          className="flex items-center gap-1.5 rounded-lg border px-3.5 py-2.5 text-[13px] font-medium transition-colors hover:text-[var(--text-primary)] disabled:opacity-60"
           style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-muted)" }}>
-          {busy && acting?.action === "snooze" ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />}
+          {busy && acting?.action === "snooze" ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />} Snooze
         </button>
       </div>
     </motion.div>

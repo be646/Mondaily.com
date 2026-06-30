@@ -31,11 +31,12 @@
   --text-secondary:   #b5b5b1;
   --text-muted:       #888884;
   --text-faint:       #5c5c58;
-  /* accent as HSL components — the base hue every section rotates from */
-  --accent-h: 160;
-  --accent-s: 74%;
-  --accent-l: 43%;
-  --theme-spread: 1;   /* section hues rotate fully on the console skin */
+  /* accent as HSL components — the base hue every section rotates from.
+     Kept deliberately LOW-saturation for a natural, matte feel (no neon). */
+  --accent-h: 158;
+  --accent-s: 32%;
+  --accent-l: 52%;
+  --theme-spread: 0.85;   /* section hues rotate, but matte so they read as earthy tints */
 
   /* ── Derived — do NOT hardcode; these recompute per theme automatically ── */
   --accent:          hsl(var(--accent-h) var(--accent-s) var(--accent-l));
@@ -60,7 +61,7 @@
 }
 /* explicit alias so data-theme="console" and the legacy "dark" both map to root */
 html[data-theme="console"], html[data-theme="dark"] {
-  --accent-h: 160; --accent-s: 74%; --accent-l: 43%; --theme-spread: 1;
+  --accent-h: 158; --accent-s: 32%; --accent-l: 52%; --theme-spread: 0.85;
 }
 
 /* Section-soul scope — layout.tsx puts this class + an inline --section-hue on the
@@ -115,7 +116,7 @@ html[data-theme="paper"] {
   --text-secondary:   #5c503c;
   --text-muted:       #8a7b62;
   --text-faint:       #b3a384;
-  --accent-h: 150; --accent-s: 30%; --accent-l: 33%; --theme-spread: 0.35;
+  --accent-h: 150; --accent-s: 24%; --accent-l: 34%; --theme-spread: 0.3;
 }
 
 /* ── Theme: Daylight (pure white) — also the legacy "light" alias ─────────── */
@@ -134,7 +135,7 @@ html[data-theme="daylight"], html[data-theme="light"] {
   --text-secondary:   #404040;
   --text-muted:       #6b6b6b;
   --text-faint:       #9a9a9a;
-  --accent-h: 160; --accent-s: 60%; --accent-l: 33%; --theme-spread: 0.8;
+  --accent-h: 158; --accent-s: 34%; --accent-l: 36%; --theme-spread: 0.7;
 }
 
 /* ── Theme: Rosé (soft pink) ──────────────────────────────────────────────── */
@@ -153,7 +154,7 @@ html[data-theme="rose"] {
   --text-secondary:   #5f3c44;
   --text-muted:       #8a626a;
   --text-faint:       #b49199;
-  --accent-h: 345; --accent-s: 55%; --accent-l: 52%; --theme-spread: 0.25;
+  --accent-h: 345; --accent-s: 36%; --accent-l: 52%; --theme-spread: 0.22;
 }
 
 /* Solid primary-button colour — user-switchable (Settings → Appearance).
