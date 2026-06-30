@@ -33,10 +33,10 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
 
   return (
     <form
-      className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 focus-within:border-stone-500/40 transition-colors"
+      className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 transition-colors focus-within:border-[var(--section-accent)]"
       onSubmit={(e) => { e.preventDefault(); void submit(); }}
     >
-      <span className="shrink-0 text-stone-400">
+      <span className="shrink-0" style={{ color: "var(--section-accent)" }}>
         <LogoMark size={16} thinking={loading}/>
       </span>
       <input

@@ -232,13 +232,17 @@ export function AskMondaily() {
   const isChatting = messages.length > 0;
 
   return (
-    <div className="ask-frame flex h-full flex-col">
+    // DEEP-CONTEXT soul — override to cyan so the full Ask page reads distinct from the
+    // emerald Home console and the section-tinted floating ask.
+    <div className="section-soul ask-frame flex h-full flex-col" style={{ "--section-hue": 40 } as React.CSSProperties}>
 
       {/* ── Header ── */}
       <div className="ask-header shrink-0">
         <div className="flex items-center justify-between px-6 py-3.5">
           <div className="flex items-center gap-3 text-[#111827] dark:text-[var(--text-primary)]">
             <LogoSymbol size={24} thinking={loading} />
+            <div className="leading-none">
+            <div className="soul-kicker mb-1">// MONDAILY · DEEP CONTEXT</div>
             <h1 className="flex items-center gap-2 text-[13px] font-semibold tracking-wide text-[#111827] dark:text-[var(--text-primary)]">
               Ask
               <span className="relative flex h-1.5 w-1.5">
@@ -253,6 +257,7 @@ export function AskMondaily() {
                 </span>
               )}
             </h1>
+            </div>
           </div>
           {isChatting && (
             <div className="flex items-center gap-3">
