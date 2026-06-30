@@ -2753,14 +2753,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               return rowsToRender;
             })()}
           </tbody>
-          <tfoot className="sticky bottom-0 z-20">
+          <tfoot className="sticky bottom-0 z-40">
             <tr>
-              <td className="w-8 min-w-[32px] max-w-[32px] bg-stone-50 dark:bg-[var(--surface-card)] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-0 z-30" />
-              {hasRecordIdCol && <td className="w-20 min-w-[80px] max-w-[80px] bg-stone-50 dark:bg-[var(--surface-card)] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-8 z-30"/>}
+              <td className="w-8 min-w-[32px] max-w-[32px] bg-stone-50 dark:bg-[var(--surface-card)] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-0 z-50" />
+              {hasRecordIdCol && <td className="w-20 min-w-[80px] max-w-[80px] bg-stone-50 dark:bg-[var(--surface-card)] border-t border-t-zinc-200 dark:border-t-zinc-800/60 sticky left-8 z-50"/>}
               {orderedColumns.map((col, colIdx) => (
                 <td
                   key={col}
-                  className={`px-3 py-3 bg-stone-50 dark:bg-[var(--surface-card)] border-t border-t-zinc-200 dark:border-t-zinc-800/60 text-[12px] text-stone-900 dark:text-inherit ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : "border-r border-r-zinc-200 dark:border-r-zinc-800/15"}`}
+                  className={`px-3 py-3 bg-stone-50 dark:bg-[var(--surface-card)] border-t border-t-zinc-200 dark:border-t-zinc-800/60 text-[12px] text-stone-900 dark:text-inherit ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-50 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : "border-r border-r-zinc-200 dark:border-r-zinc-800/15"}`}
                 >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}

@@ -49,7 +49,15 @@ export function getTheme(): ThemeId {
 export function applyTheme(id: ThemeId): void {
   const def = THEMES.find(t => t.id === id) ?? THEMES[0]!;
   const el = document.documentElement;
+  // Suppress all CSS transitions for one frame while the tokens flip, so elements snap to the
+  // new theme instead of animating through intermediate (often dark) colours mid-switch.
+  el.classList.add("theme-switching");
   el.dataset.theme = def.id;
   el.classList.toggle("dark", def.isDark);
   try { localStorage.setItem(STORAGE_KEY, def.id); } catch { /* ignore quota */ }
+  if (typeof requestAnimationFrame === "function") {
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove("theme-switching")));
+  } else {
+    el.classList.remove("theme-switching");
+  }
 }

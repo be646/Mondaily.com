@@ -77,6 +77,13 @@ html[data-theme="console"], html[data-theme="dark"] {
   --section-accent-text:  hsl(var(--section-h) calc(var(--accent-s) + 6%) calc(var(--accent-l) + 14%));
 }
 
+/* Kill all transitions/animations for the one frame a theme is switching, so nothing
+   animates through an intermediate colour (the "colours hit each other" flash). */
+html.theme-switching, html.theme-switching * , html.theme-switching *::before, html.theme-switching *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
 /* ── Global <select> normalisation ────────────────────────────────────────────
    UNLAYERED on purpose: cascade layers make unlayered rules win over Tailwind's
    @layer utilities, so this gives EVERY native select one chevron + arrow-spacing

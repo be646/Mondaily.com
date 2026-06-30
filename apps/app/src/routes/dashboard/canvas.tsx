@@ -147,7 +147,7 @@ function QuadrantNode({ data }: NodeProps) {
   return (
     <div
       className="w-[520px] h-[420px] rounded-sm overflow-hidden"
-      style={{ border: "1px solid rgba(255,255,255,0.08)", background: "#121214" }}
+      style={{ border: "1px solid rgba(255,255,255,0.08)", background: "var(--surface-card)" }}
     >
       <div className="flex items-center justify-center py-2 border-b border-[var(--border-soft)]">
         <span className="text-[10px] font-semibold tracking-[0.18em] uppercase text-[var(--text-secondary)]">
@@ -272,7 +272,7 @@ export default function Canvas() {
   const selectedCount = nodes.filter(n => n.selected).length + edges.filter(e => e.selected).length;
 
   return (
-    <div className="h-full w-full" style={{ background: "#080a0d" }}>
+    <div className="h-full w-full" style={{ background: "var(--surface-page)" }}>
       <ReactFlow
         nodes={nodes} edges={edges}
         onNodesChange={onNodesChange}
