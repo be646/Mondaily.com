@@ -498,7 +498,9 @@ export function HomePage() {
   const currentWorkspace = workspaceSummaries.find(w => w.workspace_id === currentWorkspaceId);
   const currentDataCount = currentWorkspace ? currentWorkspace.counts.tasks + currentWorkspace.counts.lists + currentWorkspace.counts.nodes : null;
   const populatedWorkspace = workspaceSummaries.find(w => w.workspace_id !== currentWorkspaceId && (w.counts.tasks + w.counts.lists + w.counts.nodes) > Math.max(currentDataCount ?? 0, 0));
-  const showWorkspaceRecovery = Boolean(populatedWorkspace && (currentDataCount === 0 || currentDataCount === null));
+  // Only ever suggest switching when the user genuinely belongs to MORE THAN ONE workspace — a
+  // brand-new single-workspace account can never be nudged toward another tenant's metrics.
+  const showWorkspaceRecovery = Boolean(workspaceSummaries.length > 1 && populatedWorkspace && (currentDataCount === 0 || currentDataCount === null));
 
   return (
     <div className="home-control-room ask-frame mx-auto max-w-6xl px-4 py-8 sm:px-6">

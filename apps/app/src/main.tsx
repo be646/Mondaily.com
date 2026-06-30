@@ -1,16 +1,11 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import { SovereignAuthProvider, useSovereignAuth } from "./components/auth/sovereign-auth-context";
+import { queryClient } from "./lib/query-client";
 import "./styles.css";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 60_000, retry: 1, refetchOnWindowFocus: false }
-  }
-});
 
 /**
  * Root gate — readiness comes entirely from our native cookie session. Nothing renders until

@@ -3,6 +3,16 @@ import type { ReactNode } from "react";
 import { BASE_URL } from "../../lib/api-client";
 import { getPow } from "../../lib/pow-client";
 import type { Pow } from "../../lib/pow-client";
+import { queryClient } from "../../lib/query-client";
+
+// Wipe ALL client state that belongs to a previous session: the cached react-query data (so a new
+// account never renders the prior user's tasks/workspace metrics) + the persisted workspace id +
+// the onboarding marker. Called on every account boundary (login / register / logout).
+function purgeSessionState() {
+  queryClient.clear();
+  localStorage.removeItem("mondaily_workspace_id");
+  localStorage.removeItem("mondaily_needs_onboarding");
+}
 
 /**
  * Client for Sovereign Auth (/api/v1/auth/*) — the app's sole authentication runtime. Owns a
@@ -93,14 +103,14 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const r = await authCall<MeResp & { requires_activation?: boolean; error?: string }>("/login", { email, password });
     if (r.status === 200 && r.data.requires_activation) return { requiresActivation: true };
-    if (r.status === 200 && r.data.userId) { setAuthed(toUser(r.data, email), r.data.workspaceId); return {}; }
+    if (r.status === 200 && r.data.userId) { purgeSessionState(); setAuthed(toUser(r.data, email), r.data.workspaceId); return {}; }
     throw new Error(r.data.error || "Invalid email or password.");
   }, []);
 
   const register = useCallback(async (email: string, password: string, name?: string, pow?: Pow) => {
     const solved = pow ?? await getPow();
     const r = await authCall<MeResp & { error?: string }>("/register", { email, password, name, ...solved });
-    if (r.status === 201 && r.data.userId) { setAuthed(toUser(r.data, email), r.data.workspaceId); return; }
+    if (r.status === 201 && r.data.userId) { purgeSessionState(); setAuthed(toUser(r.data, email), r.data.workspaceId); return; }
     throw new Error(r.data.error || "Registration failed.");
   }, []);
 
@@ -111,7 +121,7 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
 
   const activate = useCallback(async (token: string, password: string) => {
     const r = await authCall<MeResp & { error?: string }>("/activate", { token, password });
-    if (r.status === 201 && r.data.userId) { setAuthed(toUser(r.data), r.data.workspaceId); return; }
+    if (r.status === 201 && r.data.userId) { purgeSessionState(); setAuthed(toUser(r.data), r.data.workspaceId); return; }
     throw new Error(r.data.error || "Activation failed.");
   }, []);
 
@@ -125,7 +135,7 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     const r = await authCall<MeResp & { error?: string }>("/reset-password", { token, password, ...solved });
     if (r.status === 200 && (r.data as { ok?: boolean }).ok !== false) {
       const me = await authCall<MeResp>("/me", undefined, "GET");
-      if (me.status === 200 && me.data.userId) { setAuthed(toUser(me.data), me.data.workspaceId); return; }
+      if (me.status === 200 && me.data.userId) { purgeSessionState(); setAuthed(toUser(me.data), me.data.workspaceId); return; }
       return;
     }
     throw new Error(r.data.error || "Could not reset your password.");
@@ -133,6 +143,7 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await authCall("/logout").catch(() => {});
+    purgeSessionState();
     setGuest();
   }, []);
 

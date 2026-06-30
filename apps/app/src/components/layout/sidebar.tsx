@@ -380,7 +380,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
       if (res?.workspace_id) {
         localStorage.setItem("mondaily_workspace_id", res.workspace_id);
         localStorage.setItem("mondaily_needs_onboarding", "1");
-        window.location.href = "/onboarding/profile";
+        window.location.href = "/onboarding"; // unified terminal console (legacy step wizard removed)
         return;
       }
       setWsError("Could not create the workspace. Please try again.");

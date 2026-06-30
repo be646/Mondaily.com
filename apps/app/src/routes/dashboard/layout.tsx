@@ -106,7 +106,7 @@ export function DashboardLayout() {
     // AND only 1 member — the owner). This prevents existing workspaces from
     // being redirected after the onboarded column was added with DEFAULT false.
     if (wsSettings && wsSettings.onboarded === false && (wsSettings.member_count ?? 2) <= 1) {
-      navigate("/onboarding-setup", { replace: true });
+      navigate("/onboarding", { replace: true });
     }
   }, [wsSettings, navigate]);
 

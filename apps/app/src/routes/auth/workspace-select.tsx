@@ -56,7 +56,7 @@ export function WorkspaceSelectPage() {
           ))}
         </div>
 
-        <button onClick={() => navigate("/onboarding/workspace")} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border-soft)] p-3 text-sm text-stone-400 hover:text-[var(--text-primary)]">
+        <button onClick={() => navigate("/onboarding")} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border-soft)] p-3 text-sm text-stone-400 hover:text-[var(--text-primary)]">
           <Plus size={15} /> Create new workspace
         </button>
       </div>
