@@ -76,6 +76,29 @@ html[data-theme="console"], html[data-theme="dark"] {
   --section-accent-text:  hsl(var(--section-h) calc(var(--accent-s) + 6%) calc(var(--accent-l) + 14%));
 }
 
+/* ── Global <select> normalisation ────────────────────────────────────────────
+   UNLAYERED on purpose: cascade layers make unlayered rules win over Tailwind's
+   @layer utilities, so this gives EVERY native select one chevron + arrow-spacing
+   + a section-accent focus ring without touching 49 call sites. Background and
+   border are left to each select's own classes (most are already token-based, so
+   they re-skin across themes); we only normalise the parts that drift. */
+select {
+  -webkit-appearance: none; -moz-appearance: none; appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) calc(50% - 1px), calc(100% - 10px) calc(50% - 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 30px;
+}
+select:focus-visible {
+  outline: none;
+  border-color: var(--section-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--section-accent) 18%, transparent);
+}
+select option { background: var(--surface-modal); color: var(--text-primary); }
+
 /* ── Theme: Paper (warm cream) ────────────────────────────────────────────── */
 html[data-theme="paper"] {
   --surface-page:     #f3ece0;
@@ -1196,8 +1219,8 @@ html[data-theme="dark"] .minimal-sparkline {
   }
   .key-input::placeholder { color: var(--text-faint); }
   .key-input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 18%, transparent);
+    border-color: var(--section-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--section-accent) 18%, transparent);
   }
   .key-button {
     @apply rounded-lg transition-all;
@@ -1209,6 +1232,82 @@ html[data-theme="dark"] .minimal-sparkline {
     background: var(--surface-hover);
     color: var(--text-primary);
   }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     SHARED PRIMITIVES — one look for every dropdown / button / menu, themed by
+     tokens so all 4 skins + every section soul render consistently. Used by
+     components/ui/controls.tsx; also styles bare <select> app-wide.
+     ════════════════════════════════════════════════════════════════════════ */
+
+  /* Dropdowns — unify EVERY native select in one shot (app-wide chrome + chevron) */
+  select.ui-select, select.key-input {
+    -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    background-color: var(--surface-input);
+    background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+                      linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+    background-position: calc(100% - 15px) calc(50% - 1px), calc(100% - 10px) calc(50% - 1px);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    border: 1px solid var(--border-soft);
+    color: var(--text-primary);
+    border-radius: 4px;
+    padding: 0 30px 0 10px;
+    height: 34px;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  select.ui-select:hover, select.key-input:hover { border-color: var(--border-strong); }
+  select.ui-select:focus, select.key-input:focus {
+    outline: none;
+    border-color: var(--section-accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--section-accent) 18%, transparent);
+  }
+  select.ui-select option, select.key-input option { background: var(--surface-modal); color: var(--text-primary); }
+
+  /* Popover / custom-dropdown menus — consistent surface for non-native menus */
+  .ui-menu {
+    background: var(--surface-modal);
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.28);
+    overflow: hidden;
+  }
+  .ui-menu-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 11px; font-size: 12.5px; color: var(--text-secondary);
+    cursor: pointer; transition: background .12s, color .12s;
+  }
+  .ui-menu-item:hover { background: var(--surface-hover); color: var(--text-primary); }
+  .ui-menu-item[data-active="true"] { color: var(--section-accent); }
+
+  /* Buttons — slate base, section-accent halo on hover (never a solid colour fill) */
+  .ui-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    border-radius: 4px; font-size: 12px; font-weight: 500; line-height: 1;
+    padding: 0 12px; height: 32px; cursor: pointer;
+    border: 1px solid var(--border-strong);
+    background: var(--surface-selected); color: var(--text-secondary);
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .ui-btn:hover:not(:disabled) { border-color: var(--section-accent); color: var(--text-primary); }
+  .ui-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .ui-btn--primary { background: var(--surface-selected); color: var(--text-primary); }
+  .ui-btn--primary:hover:not(:disabled) { border-color: var(--section-accent); box-shadow: 0 0 0 1px var(--section-accent); }
+  .ui-btn--ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
+  .ui-btn--ghost:hover:not(:disabled) { background: var(--surface-hover); color: var(--text-primary); border-color: transparent; }
+  .ui-btn--danger:hover:not(:disabled) { border-color: #be123c; color: #fb7185; box-shadow: 0 0 0 1px color-mix(in srgb, #be123c 50%, transparent); }
+  .ui-btn--sm { height: 26px; font-size: 11px; padding: 0 9px; }
+
+  /* Section-soul header — mono call-sign + glyph + accent hairline rule */
+  .soul-kicker {
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase;
+    color: var(--section-accent);
+  }
+  .soul-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--section-accent); box-shadow: 0 0 0 3px var(--section-accent-soft); }
+  .soul-rule { height: 1px; background: linear-gradient(90deg, var(--section-accent-line), transparent); }
+  .soul-card { background: var(--surface-card); border: 1px solid var(--border-soft); border-radius: 4px; }
+  .soul-card--lit { border-color: var(--section-accent-line); }
 }
 
 /* ── Global border & radius tokens ───────────────────────────────────────── */
