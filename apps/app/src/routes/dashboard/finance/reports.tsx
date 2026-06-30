@@ -207,8 +207,8 @@ export function FinanceReportsPage() {
                   tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)}/>
                 <Tooltip {...TOOLTIP_STYLE} formatter={(v: number) => fmt(v, currency)}/>
                 <Legend wrapperStyle={{ fontSize: 11, color: "var(--text-muted)" }}/>
-                <Bar dataKey="Billed" fill="var(--text-muted)" radius={[3, 3, 0, 0]}/>
-                <Bar dataKey="Collected" fill="var(--text-primary)" radius={[3, 3, 0, 0]}/>
+                <Bar dataKey="Billed" fill="var(--text-muted)" radius={[0, 0, 0, 0]}/>
+                <Bar dataKey="Collected" fill="var(--text-primary)" radius={[0, 0, 0, 0]}/>
               </BarChart>
             </ResponsiveContainer>
           </div>

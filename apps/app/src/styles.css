@@ -940,6 +940,9 @@ html[data-theme="dark"] .minimal-sparkline {
   font-size: 0.95rem;
   font-weight: 600;
   line-height: 1;
+  /* surgical data-board alignment for the live counts */
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
 }
 @media (max-width: 640px) {
   .home-telemetry-strip {
