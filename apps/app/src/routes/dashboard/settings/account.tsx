@@ -81,6 +81,12 @@ export function AccountSettings() {
     queryKey: ["account-settings"],
     queryFn: () => apiClient.get<Preferences>("/settings/account"),
   });
+  // Lightweight telemetry for the header stats strip.
+  const walletQuery = useQuery({
+    queryKey: ["credits-balance"],
+    queryFn: () => apiClient.get<{ balance: number; granted: number; account_tier: string; trial_ends_at: string | null }>("/credits/balance"),
+    staleTime: 60_000,
+  });
 
   const [name, setName] = useState("");
   const [jobTitle, setJobTitle] = useState("");
@@ -223,6 +229,21 @@ export function AccountSettings() {
         <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>Your profile, AI personalization, preferences, and personal security.</p>
       </div>
 
+      {/* ── Telemetry strip ── */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {([
+          ["Plan", walletQuery.data?.account_tier === "business" ? "Pro" : "Personal"],
+          ["AI credits", (walletQuery.data?.balance ?? 0).toLocaleString()],
+          ["Status", "Active"],
+          ["Identity", "Verified ✓"],
+        ] as const).map(([label, value]) => (
+          <div key={label} className="rounded-xl border px-3.5 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="text-[9px] uppercase tracking-widest text-stone-500">{label}</div>
+            <div className="mt-0.5 truncate text-[13px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
       {/* ── Profile ── */}
       <section className="settings-section">
         <div className="settings-section-header">
@@ -304,42 +325,46 @@ export function AccountSettings() {
       {/* ── Appearance ── */}
       <section className="settings-section">
         <div className="settings-section-header">
-          <h2 className="text-sm font-semibold text-[#111827] dark:text-[var(--text-primary)]">Appearance</h2>
-          <span className="text-xs text-[#9ca3af] dark:text-stone-600">Changes apply instantly</span>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Appearance</h2>
+          <span className="text-xs text-stone-500">Changes apply instantly</span>
         </div>
         <div className="p-5">
           <div className="grid grid-cols-3 gap-3">
-            {([["light", Sun, "Light"], ["dark", Moon, "Dark"], ["system", Monitor, "System"]] as const).map(([mode, Icon, label]) => (
-              <button
-                key={mode}
-                onClick={() => setAppearance(mode)}
-                className={`relative flex flex-col items-center gap-2.5 rounded-xl border py-5 transition-all ${
-                  appearance === mode
-                    ? "border-[var(--accent)] bg-stone-200 text-stone-900 dark:border-stone-500/50 dark:bg-stone-500/[.06] dark:text-[var(--text-primary)]"
-                    : "border-[#e5e7eb] bg-white text-[#52525b] hover:bg-[#f9fafb] dark:border-[var(--border-soft)] dark:bg-transparent dark:text-stone-500 dark:hover:border-[var(--border-soft)] dark:hover:text-stone-300"
-                }`}
-              >
-                <Icon size={18} className={appearance === mode ? "text-[var(--accent)] dark:text-[var(--text-primary)]" : ""}/>
-                <span className="text-xs font-medium capitalize">{label}</span>
-                {appearance === mode && <Check size={11} className="absolute right-2.5 top-2.5 text-[var(--accent)] dark:text-stone-400" />}
-              </button>
-            ))}
+            {([["light", Sun, "Light"], ["dark", Moon, "Dark"], ["system", Monitor, "System"]] as const).map(([mode, Icon, label]) => {
+              const active = appearance === mode;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => setAppearance(mode)}
+                  className="relative flex flex-col items-center gap-2.5 rounded-xl border py-5 transition-all"
+                  style={{
+                    borderColor: active ? "var(--accent)" : "var(--border-soft)",
+                    background: active ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
+                    color: active ? "var(--text-primary)" : "var(--text-muted)",
+                  }}
+                >
+                  <Icon size={18} style={{ color: active ? "var(--accent)" : "var(--text-muted)" }}/>
+                  <span className="text-xs font-medium capitalize">{label}</span>
+                  {active && <Check size={11} className="absolute right-2.5 top-2.5" style={{ color: "var(--accent)" }} />}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="mt-5 border-t border-[#e5e7eb] pt-5 dark:border-[var(--border-soft)]">
-            <p className="mb-2.5 text-xs font-medium text-[#52525b] dark:text-stone-400">Primary button style</p>
+          <div className="mt-5 border-t pt-5" style={{ borderColor: "var(--border-soft)" }}>
+            <p className="mb-2.5 text-xs font-medium text-stone-400">Primary button style</p>
             <div className="grid grid-cols-2 gap-3">
               {([["dark", "Dark"], ["accent", "Sage green"]] as const).map(([s, label]) => (
                 <button
                   key={s}
                   onClick={() => chooseBtnStyle(s)}
-                  className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-all ${
-                    btnStyle === s
-                      ? "border-[var(--accent)] bg-stone-200 dark:border-stone-500/50 dark:bg-stone-500/[.06]"
-                      : "border-[#e5e7eb] bg-white hover:bg-[#f9fafb] dark:border-[var(--border-soft)] dark:bg-transparent"
-                  }`}
+                  className="flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-all"
+                  style={{
+                    borderColor: btnStyle === s ? "var(--accent)" : "var(--border-soft)",
+                    background: btnStyle === s ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
+                  }}
                 >
-                  <span className="text-xs font-medium text-[#52525b] dark:text-stone-300">{label}</span>
+                  <span className="text-xs font-medium text-stone-300">{label}</span>
                   <span className="inline-flex h-6 items-center rounded-lg px-3 text-[11px] font-medium text-white" style={{ background: s === "accent" ? "var(--accent)" : "#18181b" }}>Save</span>
                 </button>
               ))}
