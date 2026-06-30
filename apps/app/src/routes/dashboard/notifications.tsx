@@ -68,7 +68,7 @@ export function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-full bg-[var(--surface-page)] font-mono text-zinc-300">
+    <div className="min-h-full bg-[var(--surface-page)] text-zinc-300">
       <div className="mx-auto max-w-3xl px-6 py-8">
         {/* Header */}
         <div className="mb-6 flex items-end justify-between gap-4">

@@ -75,7 +75,7 @@ export function MembersSettings() {
   if (query.isLoading) return <ConsoleSkeleton rows={6} cols={5} />;
 
   return (
-    <div className="font-mono">
+    <div>
       {query.isError && (
         <div className="mb-4 rounded-sm border px-4 py-3 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
           Couldn't load members right now — showing what's cached. Try reloading.

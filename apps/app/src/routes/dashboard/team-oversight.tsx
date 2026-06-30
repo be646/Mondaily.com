@@ -94,7 +94,7 @@ export function TeamOversightPage() {
 
   if (forbidden) {
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center px-6 py-24 text-center font-mono">
+      <div className="mx-auto flex max-w-md flex-col items-center px-6 py-24 text-center">
         <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-sm border border-zinc-800 bg-zinc-900">
           <Lock size={20} style={{ color: "var(--section-accent)" }} />
         </span>
@@ -110,7 +110,7 @@ export function TeamOversightPage() {
   }
 
   return (
-    <div className="min-h-full bg-[#09090b] font-mono text-zinc-300">
+    <div className="min-h-full bg-[var(--surface-page)] text-zinc-300">
       <div className="mx-auto max-w-6xl px-6 py-8">
         {/* ── Header / readiness banner ── */}
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -125,7 +125,7 @@ export function TeamOversightPage() {
                 ["TOKENS · 30D", fmt(totals.tokens)],
                 ["LIVE SESSIONS", String(totals.active_sessions)],
               ].map(([k, v]) => (
-                <div key={k} className="rounded-lg border border-[#27272a] bg-[#18181b] px-3 py-2">
+                <div key={k} className="rounded-lg border border-[var(--border-soft)] bg-[#18181b] px-3 py-2">
                   <div className="text-[9px] uppercase tracking-widest text-zinc-600">{k}</div>
                   <div className="mt-0.5 tabular-nums text-zinc-200">{v}</div>
                 </div>
@@ -137,15 +137,15 @@ export function TeamOversightPage() {
         {isLoading ? (
           <div className="flex items-center gap-2 py-16 text-sm text-zinc-500"><Loader2 size={15} className="animate-spin" /> Synchronizing operator telemetry…</div>
         ) : operators.length === 0 ? (
-          <div className="rounded-sm border border-[#27272a] bg-[#18181b] px-5 py-12 text-center">
+          <div className="rounded-sm border border-[var(--border-soft)] bg-[#18181b] px-5 py-12 text-center">
             <Activity size={20} className="mx-auto mb-2 text-zinc-600" />
             <p className="text-sm text-zinc-300">No operators registered.</p>
             <p className="mt-1 text-xs text-zinc-600">Behavioral telemetry will populate as members transact.</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-sm border border-[#27272a] bg-[#18181b]">
+          <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[#18181b]">
             {/* grid header */}
-            <div className="grid grid-cols-[1.6fr_1fr_1.2fr_2fr] gap-3 border-b border-[#27272a] px-4 py-2.5 text-[9px] uppercase tracking-widest text-zinc-600">
+            <div className="grid grid-cols-[1.6fr_1fr_1.2fr_2fr] gap-3 border-b border-[var(--border-soft)] px-4 py-2.5 text-[9px] uppercase tracking-widest text-zinc-600">
               <span>Operator</span><span>Task Context</span><span>Compute Velocity</span><span>Behavioral Evaluation</span>
             </div>
             {operators.map((op, i) => {
@@ -155,7 +155,7 @@ export function TeamOversightPage() {
                   key={op.operator_id || i}
                   onClick={() => setSelected(op)}
                   className="grid w-full grid-cols-[1.6fr_1fr_1.2fr_2fr] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[#202023]"
-                  style={i > 0 ? { borderTop: "1px solid #27272a" } : undefined}
+                  style={i > 0 ? { borderTop: "1px solid var(--border-soft)" } : undefined}
                 >
                   {/* operator */}
                   <div className="flex min-w-0 items-center gap-2.5">
@@ -167,7 +167,7 @@ export function TeamOversightPage() {
                   </div>
                   {/* task context — short-hash capsule */}
                   <div>
-                    <span className="inline-block rounded border border-[#27272a] bg-[#0e0e10] px-2 py-0.5 text-[11px] tabular-nums text-zinc-400">#{shortHash(op.last_task_id)}</span>
+                    <span className="inline-block rounded border border-[var(--border-soft)] bg-[#0e0e10] px-2 py-0.5 text-[11px] tabular-nums text-zinc-400">#{shortHash(op.last_task_id)}</span>
                   </div>
                   {/* compute velocity */}
                   <div className="text-[12px] tabular-nums">
@@ -206,10 +206,10 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
-      <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-[#27272a] bg-[#09090b] font-mono shadow-[0_0_64px_rgba(0,0,0,0.8)] animate-[slideIn_.18s_ease-out]">
+      <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-[var(--border-soft)] bg-[var(--surface-page)] shadow-[0_0_64px_rgba(0,0,0,0.8)] animate-[slideIn_.18s_ease-out]">
         <style>{`@keyframes slideIn{from{transform:translateX(24px);opacity:.4}to{transform:translateX(0);opacity:1}}`}</style>
         {/* header */}
-        <div className="flex items-center justify-between border-b border-[#27272a] px-5 py-4">
+        <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
           <div className="flex items-center gap-3">
             <Avatar op={op} size={36} />
             <div>
@@ -235,7 +235,7 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
                 [<Activity size={12} key="a" />, "TASKS", String(op.task_count)],
                 [<Gauge size={12} key="g" />, "TOK / TASK", fmt(efficiency)],
               ].map(([icon, k, val], i) => (
-                <div key={i} className="rounded-lg border border-[#27272a] bg-[#18181b] px-3 py-2.5">
+                <div key={i} className="rounded-lg border border-[var(--border-soft)] bg-[#18181b] px-3 py-2.5">
                   <div className="flex items-center gap-1 text-[9px] uppercase tracking-widest text-zinc-600">{icon}{k}</div>
                   <div className="mt-1 tabular-nums text-[14px] text-zinc-100">{val}</div>
                 </div>
@@ -252,7 +252,7 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
             <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-zinc-600"><ShieldAlert size={11} /> Structural behavior log</div>
             <div className="space-y-1.5">
               {warnings(op).map((w, i) => (
-                <div key={i} className="rounded border border-[#27272a] bg-[#0e0e10] px-3 py-2 text-[11px] leading-snug text-zinc-400">
+                <div key={i} className="rounded border border-[var(--border-soft)] bg-[#0e0e10] px-3 py-2 text-[11px] leading-snug text-zinc-400">
                   <span className="text-zinc-700">›</span> {w}
                 </div>
               ))}
@@ -267,7 +267,7 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
             ) : timeline.length === 0 ? (
               <p className="py-3 text-[11px] text-zinc-600">No recorded agent runs in window.</p>
             ) : (
-              <div className="space-y-px overflow-hidden rounded-lg border border-[#27272a]">
+              <div className="space-y-px overflow-hidden rounded-lg border border-[var(--border-soft)]">
                 {timeline.slice(0, 20).map((a, i) => (
                   <div key={a.id || i} className="flex items-start gap-2 bg-[#18181b] px-3 py-2">
                     <span className="mt-0.5 shrink-0 text-[10px] tabular-nums text-zinc-600">{ago(a.created_at)}</span>

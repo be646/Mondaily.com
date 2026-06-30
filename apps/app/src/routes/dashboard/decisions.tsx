@@ -97,7 +97,7 @@ export function DecisionsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 font-mono sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
       <div className="mb-5">
         <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// AUTONOMOUS MISSION DECK · live</p>
         <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Decision Deck</h1>
