@@ -59,6 +59,82 @@ router.get("/oversight", requireAuth, requireAdminRole, async (c) => {
   return c.json({ activity: rows, actors: Object.values(tally).sort((a, b) => b.count - a.count) });
 });
 
+/**
+ * ABI Operator Matrix — per-operator behavioral telemetry for the Team Oversight dashboard.
+ * Admin-only. Everything is REAL, joined server-side:
+ *   • operators        ← workspace_members
+ *   • tokens / runs    ← ai_usage grouped by user_id (the per-operator mirror of ai_credits_ledger)
+ *   • last task / time ← most recent activities row per actor
+ *   • has_session      ← a live (non-revoked, unexpired) auth_refresh_token = a verified native client claim
+ * The behavioral verdict is computed here so the client and any future automation agree on one rule set.
+ */
+router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(); // 30-day window
+
+  const [{ data: members }, { data: usage }, { data: acts }, { data: sessions }] = await Promise.all([
+    supabase.from("workspace_members").select("user_id, name, email, avatar_url, role").eq("workspace_id", ws),
+    supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", sinceIso),
+    supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").order("created_at", { ascending: false }).limit(500),
+    supabase.from("auth_refresh_tokens").select("user_id").is("revoked_at", null).gt("expires_at", new Date().toISOString()),
+  ]);
+
+  // Aggregate real per-operator token spend + inference-run count from ai_usage.
+  const usageBy = new Map<string, { tokens: number; runs: number }>();
+  for (const u of usage ?? []) {
+    const k = String(u.user_id ?? "");
+    if (!k) continue;
+    const cur = usageBy.get(k) ?? { tokens: 0, runs: 0 };
+    cur.tokens += Number(u.total_tokens ?? 0);
+    cur.runs += 1;
+    usageBy.set(k, cur);
+  }
+  // Latest human activity per actor (acts already newest-first).
+  const lastAct = new Map<string, { action: string; node_id: string | null; created_at: string }>();
+  for (const a of acts ?? []) {
+    const k = String(a.actor_id ?? "");
+    if (!k || lastAct.has(k)) continue;
+    lastAct.set(k, { action: a.action as string, node_id: (a.node_id as string) ?? null, created_at: a.created_at as string });
+  }
+  const sessionUsers = new Set((sessions ?? []).map(s => String(s.user_id ?? "")));
+
+  const operators = (members ?? []).map(m => {
+    const uid = String(m.user_id ?? "");
+    const u = usageBy.get(uid) ?? { tokens: 0, runs: 0 };
+    const last = lastAct.get(uid) ?? null;
+    const hasSession = sessionUsers.has(uid);
+    const taskCount = last ? (acts ?? []).filter(a => String(a.actor_id) === uid).length : 0;
+
+    // ── Behavioral verdict (single source of truth) ──
+    // INACTIVE: no token events in the window at all.
+    // BOT: heavy token volume + high task throughput but NO verified native session claim.
+    // HIGH-ENGAGEMENT: actively transacting with a live session.
+    let verdict: "inactive" | "bot" | "engaged" | "idle" = "idle";
+    if (u.tokens === 0 && taskCount === 0) verdict = "inactive";
+    else if (u.tokens > 50_000 && taskCount > 20 && !hasSession) verdict = "bot";
+    else if (u.tokens > 0 && hasSession) verdict = "engaged";
+
+    return {
+      operator_id: uid,
+      name: (m.name as string) || (m.email as string) || "Unknown Operator",
+      email: (m.email as string) || null,
+      avatar_url: (m.avatar_url as string) ?? null,
+      role: (m.role as string) || "member",
+      tokens: u.tokens,
+      runs: u.runs,
+      task_count: taskCount,
+      last_task_id: last?.node_id ?? null,
+      last_action: last?.action ?? null,
+      last_active_at: last?.created_at ?? null,
+      has_session: hasSession,
+      verdict,
+    };
+  }).sort((a, b) => b.tokens - a.tokens);
+
+  const totalTokens = operators.reduce((s, o) => s + o.tokens, 0);
+  return c.json({ operators, totals: { operators: operators.length, tokens: totalTokens, active_sessions: sessionUsers.size } });
+});
+
 // Timeline for a specific node
 router.get("/node/:nodeId", requireAuth, async (c) => {
   const { data } = await supabase

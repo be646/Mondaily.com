@@ -59413,6 +59413,60 @@ router9.get("/oversight", requireAuth, requireAdminRole, async (c2) => {
   }
   return c2.json({ activity: rows2, actors: Object.values(tally).sort((a2, b2) => b2.count - a2.count) });
 });
+router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
+  const ws = c2.get("workspaceId");
+  const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString();
+  const [{ data: members }, { data: usage }, { data: acts }, { data: sessions }] = await Promise.all([
+    supabase.from("workspace_members").select("user_id, name, email, avatar_url, role").eq("workspace_id", ws),
+    supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", sinceIso),
+    supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").order("created_at", { ascending: false }).limit(500),
+    supabase.from("auth_refresh_tokens").select("user_id").is("revoked_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString())
+  ]);
+  const usageBy = /* @__PURE__ */ new Map();
+  for (const u2 of usage ?? []) {
+    const k2 = String(u2.user_id ?? "");
+    if (!k2) continue;
+    const cur = usageBy.get(k2) ?? { tokens: 0, runs: 0 };
+    cur.tokens += Number(u2.total_tokens ?? 0);
+    cur.runs += 1;
+    usageBy.set(k2, cur);
+  }
+  const lastAct = /* @__PURE__ */ new Map();
+  for (const a2 of acts ?? []) {
+    const k2 = String(a2.actor_id ?? "");
+    if (!k2 || lastAct.has(k2)) continue;
+    lastAct.set(k2, { action: a2.action, node_id: a2.node_id ?? null, created_at: a2.created_at });
+  }
+  const sessionUsers = new Set((sessions ?? []).map((s2) => String(s2.user_id ?? "")));
+  const operators = (members ?? []).map((m2) => {
+    const uid = String(m2.user_id ?? "");
+    const u2 = usageBy.get(uid) ?? { tokens: 0, runs: 0 };
+    const last = lastAct.get(uid) ?? null;
+    const hasSession2 = sessionUsers.has(uid);
+    const taskCount = last ? (acts ?? []).filter((a2) => String(a2.actor_id) === uid).length : 0;
+    let verdict = "idle";
+    if (u2.tokens === 0 && taskCount === 0) verdict = "inactive";
+    else if (u2.tokens > 5e4 && taskCount > 20 && !hasSession2) verdict = "bot";
+    else if (u2.tokens > 0 && hasSession2) verdict = "engaged";
+    return {
+      operator_id: uid,
+      name: m2.name || m2.email || "Unknown Operator",
+      email: m2.email || null,
+      avatar_url: m2.avatar_url ?? null,
+      role: m2.role || "member",
+      tokens: u2.tokens,
+      runs: u2.runs,
+      task_count: taskCount,
+      last_task_id: last?.node_id ?? null,
+      last_action: last?.action ?? null,
+      last_active_at: last?.created_at ?? null,
+      has_session: hasSession2,
+      verdict
+    };
+  }).sort((a2, b2) => b2.tokens - a2.tokens);
+  const totalTokens = operators.reduce((s2, o2) => s2 + o2.tokens, 0);
+  return c2.json({ operators, totals: { operators: operators.length, tokens: totalTokens, active_sessions: sessionUsers.size } });
+});
 router9.get("/node/:nodeId", requireAuth, async (c2) => {
   const { data } = await supabase.from("activities").select("*").eq("node_id", c2.req.param("nodeId")).eq("workspace_id", c2.get("workspaceId")).order("created_at", { ascending: false }).limit(50);
   return c2.json(data ?? []);
