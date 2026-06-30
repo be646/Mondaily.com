@@ -392,12 +392,14 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   }
 
   // Workspace title from our own Postgres (workspace settings) — not Clerk's organization.
-  const { data: wsSettings } = useQuery<{ name?: string; logo_url?: string | null }>({
+  const { data: wsSettings, isLoading: wsLoading } = useQuery<{ name?: string; logo_url?: string | null }>({
     queryKey: ["workspace-settings"],
     queryFn: () => apiClient.get<{ name?: string; logo_url?: string | null }>("/settings/workspace"),
     staleTime: 300_000,
   });
-  const workspaceName    = wsSettings?.name || (me.name ? `${me.name.split(" ")[0]}'s Workspace` : "My Workspace");
+  // Never fall back to the MEMBER's name — that caused the "Bassem's Workspace" → "Mondaily" flash on
+  // load. While the workspace name is still loading we render a skeleton (below) instead of a guess.
+  const workspaceName    = wsSettings?.name ?? (wsLoading ? "" : "My Workspace");
   const workspaceLogo: string | null = wsSettings?.logo_url ?? null;
   const workspaceInitial = workspaceName[0]?.toUpperCase() || "M";
 
@@ -448,7 +450,9 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             {!collapsed && (
               <>
                 <div className="flex-1 text-left min-w-0">
-                  <div className="truncate text-[14px] font-semibold text-stone-950 dark:text-stone-50 leading-tight">{workspaceName}</div>
+                  {workspaceName
+                    ? <div className="truncate text-[14px] font-semibold text-stone-950 dark:text-stone-50 leading-tight">{workspaceName}</div>
+                    : <div className="h-3.5 w-24 animate-pulse rounded bg-stone-200 dark:bg-stone-800" />}
                   <div className="text-[11px] text-stone-400 dark:text-stone-600">Pro workspace</div>
                 </div>
                 <ChevronsUpDown size={12} className="text-stone-400 dark:text-stone-700 shrink-0"/>
@@ -553,35 +557,33 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               </Link>
             </div>
           ) : (
-            <div className="relative px-2 pt-8 pb-2">
-              {/* Trial — a layer peeking from BEHIND the banner, sitting a bit higher,
-                  with a soft shadow for depth. */}
-              <Link
-                to="/settings/billing"
-                className="absolute inset-x-2 top-0 z-0 flex items-center justify-between rounded-xl px-3 pt-1.5 pb-9 transition-all hover:pt-1"
-                style={{ background: "var(--surface-card)", border: "1px solid var(--border-soft)", boxShadow: "0 6px 16px -8px rgba(0,0,0,0.4)" }}
-              >
-                <span className="text-[11.5px] font-medium" style={{ color: "var(--text-secondary)" }}>
-                  Trial <span className="font-normal" style={{ color: "var(--text-faint)" }}>· 14 days left</span>
-                </span>
-                <span className="rounded-md px-1.5 py-0.5 text-[10.5px] font-semibold" style={{ background: "var(--surface-selected)", color: "var(--text-primary)" }}>Upgrade</span>
-              </Link>
+            <div className="px-2 pt-2 pb-2 space-y-1.5">
+              {/* Trial + Upgrade — SINGLE source of truth: real days left from wallet.trial_ends_at,
+                  shown only during an active trial. Upgrade → billing plans. */}
+              {trialDaysLeft != null && (
+                <Link
+                  to="/settings/billing"
+                  className="flex items-center justify-between rounded-xl px-3 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900"
+                  style={{ background: "var(--surface-card)", border: "1px solid var(--border-soft)" }}
+                >
+                  <span className="text-[11.5px] font-medium" style={{ color: "var(--text-secondary)" }}>
+                    Trial <span className="font-normal" style={{ color: "var(--text-faint)" }}>· {trialDaysLeft} {trialDaysLeft === 1 ? "day" : "days"} left</span>
+                  </span>
+                  <span className="rounded-md px-2 py-0.5 text-[10.5px] font-semibold" style={{ background: "var(--accent)", color: "#0a0a0a" }}>Upgrade</span>
+                </Link>
+              )}
 
-              {/* User + invite — a full-width banner, part of the sidebar; opaque so it
-                  covers the trial's body. -mx-2 cancels the container padding so it
-                  spans edge to edge. */}
-              <div className="relative z-10 -mx-2 border-t border-stone-200 bg-white px-3 py-1 dark:border-stone-800 dark:bg-stone-950">
+              {/* User + invite banner */}
+              <div className="-mx-2 border-t border-stone-200 bg-white px-3 py-1 dark:border-stone-800 dark:bg-stone-950">
                 {wallet?.enrolled && (
                   <Link to="/settings/billing" className="block px-1.5 pt-1.5 font-mono">
                     <div className="flex items-center justify-between">
                       <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>
                         <span style={{ color: "var(--text-secondary)" }}>{wallet.balance.toLocaleString()}</span> / {wallet.granted.toLocaleString()} credits
                       </span>
-                      {trialDaysLeft != null && (
-                        <span className="rounded-full px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide" style={{ background: "color-mix(in srgb, var(--accent) 14%, transparent)", color: "var(--accent)" }}>
-                          {trialDaysLeft}d trial
-                        </span>
-                      )}
+                      <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
+                        {wallet.account_tier === "business" ? "Pro" : "Free"}
+                      </span>
                     </div>
                     <div className="mt-1 h-1 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
                       <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#ef4444" : "var(--accent)" }} />
