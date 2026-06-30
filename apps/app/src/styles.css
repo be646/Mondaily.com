@@ -571,8 +571,8 @@ html[data-theme="dark"] .minimal-sparkline {
   box-shadow: none;
 }
 .ask-input:focus-within {
-  border-color: color-mix(in srgb, var(--text-muted) 38%, var(--border-soft));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-muted) 8%, transparent);
+  border-color: var(--accent); /* emerald micro-outline on active */
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 .ask-suggestion-row {
   display: flex;

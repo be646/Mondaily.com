@@ -800,7 +800,7 @@ export function HomePage() {
           )}
           <input ref={fileInputRef} type="file" accept=".txt,.md,.csv,.json,.log,.tsv,text/plain" onChange={onFilePick} className="hidden"/>
 
-          <div className="ask-input chat-input-bar chat-input-orbit flex items-end gap-2 rounded-3xl px-2.5 py-2 transition-all sm:px-3"
+          <div className="ask-input chat-input-bar chat-input-orbit flex items-end gap-2 rounded-sm px-2.5 py-2 transition-all sm:px-3"
             style={isChatting ? { backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 -2px 24px -6px rgba(15,23,42,0.12), 0 8px 24px -8px rgba(15,23,42,0.14)" } : undefined}>
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-200" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
