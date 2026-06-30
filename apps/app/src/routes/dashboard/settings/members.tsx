@@ -3,7 +3,6 @@ import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { Check, Copy, Trash2, UserPlus, Cpu, Clock } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "../../../lib/api-client";
-import { ConsoleSkeleton } from "../../../components/ui/page-state";
 
 /**
  * Team Operators — the single home for everyone in the workspace: role, finance access, AI compute
@@ -71,8 +70,6 @@ export function MembersSettings() {
       setCopied(true); setTimeout(() => setCopied(false), 2000);
     } catch (e) { console.error("[invite-link]", e); }
   }
-
-  if (query.isLoading) return <ConsoleSkeleton rows={6} cols={5} />;
 
   return (
     <div>
@@ -173,7 +170,9 @@ export function MembersSettings() {
                 </tr>
               );
             }) : (
-              <tr><td colSpan={6} className="p-4 font-mono text-zinc-500">No team operators registered.</td></tr>
+              <tr><td colSpan={6} className="p-4 text-[12px]" style={{ color: "var(--text-muted)" }}>
+                {query.isLoading ? "Loading operators…" : "No team operators registered."}
+              </td></tr>
             )}
           </tbody>
         </table>
