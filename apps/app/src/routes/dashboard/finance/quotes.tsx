@@ -219,7 +219,7 @@ export function QuotesPage() {
             </thead>
             <tbody>
               {quotes.map(q => {
-                const cfg = STATUS_CONFIG[q.status];
+                const cfg = STATUS_CONFIG[q.status] ?? STATUS_CONFIG.draft;
                 const Icon = cfg.icon;
                 return (
                   <tr key={q.id}

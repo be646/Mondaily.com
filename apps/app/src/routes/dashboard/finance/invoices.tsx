@@ -185,7 +185,7 @@ export function InvoicesPage() {
             </thead>
             <tbody>
               {invoices.map(inv => {
-                const cfg = STATUS_CONFIG[inv.status];
+                const cfg = STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.draft;
                 const Icon = cfg.icon;
                 return (
                   <tr

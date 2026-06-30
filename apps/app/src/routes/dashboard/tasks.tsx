@@ -464,6 +464,15 @@ export function TasksPage() {
     onError: (_e, _v, ctx: any) => { if (ctx?.prev) qc.setQueryData(ctx.key, ctx.prev); },
     onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
+  // Keep a just-completed task on screen (checked + struck) for ~1.4s before it moves to Done.
+  const [keepVisible, setKeepVisible] = useState<Set<string>>(new Set());
+  function handleToggle(task: Task) {
+    if (!task.completed) {
+      setKeepVisible(s => new Set(s).add(task.id));
+      window.setTimeout(() => setKeepVisible(s => { const n = new Set(s); n.delete(task.id); return n; }), 1400);
+    }
+    toggle.mutate(task);
+  }
   const remove = useMutation({
     mutationFn: (id: string) => apiClient.delete(`/tasks/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] })
@@ -500,8 +509,10 @@ export function TasksPage() {
   }
 
   const allTasks   = query.data ?? [];
-  const tasks      = allTasks.filter(t => !t.completed && t.status !== "done");
-  const doneTasks  = allTasks.filter(t => t.completed || t.status === "done");
+  // A just-checked task lingers in the active list (checked + struck-through) for a beat so the
+  // tick is actually visible, instead of vanishing the instant it's marked done.
+  const tasks      = allTasks.filter(t => (!t.completed && t.status !== "done") || keepVisible.has(t.id));
+  const doneTasks  = allTasks.filter(t => (t.completed || t.status === "done") && !keepVisible.has(t.id));
   const overdueTasks = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date) < new Date());
 
   const getMemberName = (task: Task) => {
@@ -661,7 +672,7 @@ export function TasksPage() {
                 <div key={task.id} id={`task-${task.id}`} className={`rounded-sm border transition-all ${highlightId === task.id ? "ring-2 ring-offset-1" : ""} ${isOverdue ? "border-stone-200 bg-stone-50/60 dark:border-stone-500/20 dark:bg-stone-500/[.03]" : "border-stone-200 bg-white hover:border-stone-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"}`} style={highlightId === task.id ? { boxShadow: "0 0 0 2px var(--section-accent)", borderColor: "var(--section-accent)" } : undefined}>
                   <div className="flex items-center gap-3 px-4 py-3">
                     {/* Checkbox */}
-                    <button onClick={() => toggle.mutate(task)}
+                    <button onClick={() => handleToggle(task)}
                       className={`h-5 w-5 shrink-0 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : isOverdue ? "border-stone-400/60 hover:border-stone-400" : "border-stone-300 hover:border-stone-400 dark:border-[var(--border-soft)] dark:hover:border-[var(--border-soft)]"}`}>
                       {task.completed && <Check size={11} className="text-[var(--text-primary)]"/>}
                     </button>
@@ -696,7 +707,7 @@ export function TasksPage() {
                     {/* Actions */}
                     <div className="flex items-center gap-0.5 shrink-0">
                       {task.completed && (
-                        <button onClick={() => toggle.mutate(task)} title="Reactivate"
+                        <button onClick={() => handleToggle(task)} title="Reactivate"
                           className="rounded-lg p-1.5 text-stone-400 hover:text-stone-100 hover:bg-[var(--surface-hover)] transition-colors"><RotateCcw size={12}/></button>
                       )}
                       <button onClick={() => setExpandedId(expanded ? null : task.id)}
@@ -786,7 +797,7 @@ export function TasksPage() {
                     return (
                       <tr key={task.id} id={`task-${task.id}`} className="group bg-white hover:bg-[#f9fafb] dark:bg-transparent dark:hover:bg-[var(--surface-hover)] transition-colors" style={highlightId === task.id ? { boxShadow: "inset 2px 0 0 0 var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 7%, transparent)" } : undefined}>
                         <td className="px-4 py-3 w-8">
-                          <button onClick={() => toggle.mutate(task)}
+                          <button onClick={() => handleToggle(task)}
                             className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : "border-stone-300 hover:border-stone-400 dark:border-[var(--border-soft)] dark:hover:border-[var(--border-soft)]"}`}>
                             {task.completed && <Check size={9} className="text-[var(--text-primary)]"/>}
                           </button>
@@ -850,7 +861,7 @@ export function TasksPage() {
             <div className="space-y-1 opacity-50">
               {doneTasks.map(task => (
                 <div key={task.id} className="rounded-sm border border-[var(--border-soft)] p-3 flex items-center gap-3">
-                  <button onClick={() => toggle.mutate(task)}
+                  <button onClick={() => handleToggle(task)}
                     className="h-4 w-4 shrink-0 rounded border border-emerald-500/50 bg-emerald-500/20 flex items-center justify-center">
                     <Check size={9} className="text-emerald-400"/>
                   </button>

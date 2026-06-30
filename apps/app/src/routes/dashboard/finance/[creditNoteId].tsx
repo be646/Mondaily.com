@@ -107,9 +107,9 @@ export function CreditNoteDetailPage() {
   if (isLoading) return <div className="flex h-full items-center justify-center text-[12px] text-stone-600">Loading…</div>;
   if (isError || !cn) return <div className="flex h-full items-center justify-center text-[12px] text-stone-400">Credit note not found.</div>;
 
-  const cfg = STATUS_CONFIG[cn.status];
+  const cfg = STATUS_CONFIG[cn.status] ?? STATUS_CONFIG.draft;
   const Icon = cfg.icon;
-  const transitions = TRANSITIONS[cn.status];
+  const transitions = TRANSITIONS[cn.status] ?? [];
   const linkedInvoice = invoices.find(i => i.id === cn.edges?.["APPLIED_TO"]);
 
   return (

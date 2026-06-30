@@ -244,7 +244,7 @@ export function CreditNotesPage() {
             </thead>
             <tbody>
               {creditNotes.map(cn => {
-                const cfg = STATUS_CONFIG[cn.status];
+                const cfg = STATUS_CONFIG[cn.status] ?? STATUS_CONFIG.draft;
                 const Icon = cfg.icon;
                 return (
                   <tr key={cn.id}
