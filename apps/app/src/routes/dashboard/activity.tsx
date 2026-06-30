@@ -67,10 +67,10 @@ function liveState(lastStatus: string, lastRun: string): "active" | "idle" {
 
 // Map a real run's status → severity badge (truthful: derived from the DB status, not invented).
 function severityOf(status: string): { label: string; color: string } {
-  if (status === "completed") return { label: "SUCCESS", color: SAGE };
-  if (status === "failed") return { label: "ERROR", color: RED };
-  if (status === "running") return { label: "RUNNING", color: AMBER };
-  return { label: status.toUpperCase(), color: BLUE };
+  if (status === "completed") return { label: "[SUCCESS]", color: "#10b981" };
+  if (status === "failed") return { label: "[FAIL]", color: "#be123c" }; // low-profile burgundy
+  if (status === "running") return { label: "[RUNNING]", color: AMBER };
+  return { label: `[${status.toUpperCase()}]`, color: BLUE };
 }
 
 function SeverityBadge({ label, color }: { label: string; color: string }) {
@@ -220,7 +220,7 @@ export function AgentActivityPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <div className="overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 font-mono text-zinc-300 shadow-2xl">
+      <div className="overflow-hidden rounded-sm border border-zinc-800 bg-zinc-950 font-mono text-zinc-300">
         {/* Title bar */}
         <div className="flex items-center justify-between gap-3 border-b border-zinc-800 px-5 py-3.5">
           <div className="flex items-center gap-3">

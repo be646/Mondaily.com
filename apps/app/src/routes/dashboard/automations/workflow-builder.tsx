@@ -476,8 +476,8 @@ export function WorkflowBuilderPage() {
           </h1>
         )}
 
-        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${status === "active" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-stone-600/30 bg-stone-700/50 text-stone-400"}`}>
-          {status}
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider" style={{ color: status === "active" ? "var(--accent)" : "var(--text-faint)" }}>
+          [ STATE: {status === "active" ? "ACTIVE" : "UN-DEPLOYED"} ]
         </span>
 
         {currentId && (

@@ -259,23 +259,24 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
         )}
       </div>
 
-      {/* action bar */}
-      <div className="flex items-center gap-2 border-t p-4" style={{ borderColor: "var(--border-soft)" }}>
-        <ActionBtn label="Approve" Icon={CheckCircle2} loading={busy && acting?.action === "approve"} disabled={busy} onClick={() => onResolve(d, "approve")}
-          style={{ background: "#10b981", color: "#fff" }} />
-        <ActionBtn label="Reject" Icon={XCircle} loading={busy && acting?.action === "reject"} disabled={busy} onClick={() => onResolve(d, "reject")}
-          style={{ border: "1px solid var(--border-strong)", color: "var(--text-secondary)" }} />
-        <ActionBtn label="Snooze" Icon={Clock} loading={busy && acting?.action === "snooze"} disabled={busy} onClick={() => onResolve(d, "snooze")}
-          style={{ color: "var(--text-faint)" }} />
+      {/* action bar — tactical slate triggers, emerald/crimson border pulse on hover */}
+      <div className="flex flex-wrap items-center gap-2 border-t p-4" style={{ borderColor: "var(--border-soft)" }}>
+        <ActionBtn label="[ APPROVE AND COMMIT SYSTEM CLAIM ]" Icon={CheckCircle2} loading={busy && acting?.action === "approve"} disabled={busy} onClick={() => onResolve(d, "approve")} hoverColor="var(--accent)" />
+        <ActionBtn label="[ REJECT MISSION PROTOCOL ]" Icon={XCircle} loading={busy && acting?.action === "reject"} disabled={busy} onClick={() => onResolve(d, "reject")} hoverColor="#f43f5e" />
+        <ActionBtn label="[ SNOOZE ]" Icon={Clock} loading={busy && acting?.action === "snooze"} disabled={busy} onClick={() => onResolve(d, "snooze")} />
       </div>
     </motion.div>
   );
 }
 
-function ActionBtn({ label, Icon, loading, disabled, onClick, style }: { label: string; Icon: ElementType; loading: boolean; disabled: boolean; onClick: () => void; style: React.CSSProperties }) {
+function ActionBtn({ label, Icon, loading, disabled, onClick, hoverColor }: { label: string; Icon: ElementType; loading: boolean; disabled: boolean; onClick: () => void; hoverColor?: string }) {
   return (
-    <button onClick={onClick} disabled={disabled} className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-[12.5px] font-medium transition-all hover:-translate-y-px disabled:opacity-60" style={style}>
-      {loading ? <Loader2 size={14} className="animate-spin" /> : <Icon size={14} />} {label}
+    <button onClick={onClick} disabled={disabled}
+      className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-2 font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-60"
+      style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-secondary)" }}
+      onMouseEnter={e => { if (hoverColor) e.currentTarget.style.borderColor = hoverColor; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; }}>
+      {loading ? <Loader2 size={13} className="animate-spin" /> : <Icon size={13} />} {label}
     </button>
   );
 }

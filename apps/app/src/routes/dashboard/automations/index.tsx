@@ -141,15 +141,12 @@ interface Automation {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    active:   "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    draft:    "bg-stone-700/50 text-stone-400 border-stone-600/30",
-    paused:   "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    archived: "bg-stone-500/10 text-stone-400 border-stone-500/20",
-  };
+  // Surgical text-only state claim (no bubble fill) — emerald for active, muted for the rest.
+  const label: Record<string, string> = { active: "ACTIVE", draft: "UN-DEPLOYED", paused: "PAUSED", archived: "ARCHIVED" };
+  const color = status === "active" ? "var(--accent)" : status === "paused" ? "#fbbf24" : "var(--text-faint)";
   return (
-    <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${map[status] ?? map.draft}`}>
-      {status}
+    <span className="font-mono text-[10px] font-semibold uppercase tracking-wider" style={{ color }}>
+      [ STATE: {label[status] ?? "UN-DEPLOYED"} ]
     </span>
   );
 }

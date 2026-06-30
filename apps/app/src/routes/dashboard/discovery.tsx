@@ -128,11 +128,13 @@ export function DiscoveryPage() {
             <button
               onClick={() => run.mutate()}
               disabled={run.isPending || reviewsMissingSubject}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-[12.5px] font-medium text-white transition-opacity disabled:opacity-50"
-              style={{ background: "#18181b" }}
+              className="inline-flex items-center gap-2 rounded-sm border px-4 py-2 text-[12.5px] font-medium text-white transition-colors disabled:opacity-50"
+              style={{ background: "#18181b", borderColor: "var(--border-strong)" }}
+              onMouseEnter={e => { if (!run.isPending) e.currentTarget.style.borderColor = "var(--accent)"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; }}
             >
               {run.isPending ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-              {run.isPending ? "Queuing sweep…" : "Run sweep"}
+              {run.isPending ? <span className="font-mono text-[11px] tracking-wider">[ EXECUTING WEB SOURCE SNEAK SWEEP... ]</span> : "Run sweep"}
             </button>
             {reviewsMissingSubject && <span className="text-[12px] text-[var(--text-muted)]">Add a subject to run a reviews sweep.</span>}
             {run.isSuccess && !run.isPending && <span className="inline-flex items-center gap-1.5 text-[12px] text-[#6f8068]"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#6f8068]" />Sweep queued — results appear below as they land.</span>}
