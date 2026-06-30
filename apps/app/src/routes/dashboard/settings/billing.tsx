@@ -32,12 +32,13 @@ async function openBilling(plan: string) {
   }
 }
 
-// Buy a one-time credit pack — redirects to Stripe Checkout (also saves the card for auto-refill).
+// Buy a one-time credit pack — launches the admin-gated Stripe Checkout (also saves the card
+// off_session for auto-refill), then hands off to the secure payment sheet.
 async function buyCredits() {
   try {
-    const r = await apiClient.post<{ url?: string; error?: string }>("/billing/credits-checkout", {});
-    if (r.url) { window.location.href = r.url; return; }
-    if (r.error) alert(r.error);
+    const session = await apiClient.post<{ url?: string; error?: string }>("/credits/checkout-session", {});
+    if (session.url) { window.location.assign(session.url); return; }
+    if (session.error) alert(session.error);
   } catch (e) {
     try { alert(JSON.parse((e as Error).message)?.error ?? "Could not start the credit purchase."); }
     catch { alert("Could not start the credit purchase."); }
