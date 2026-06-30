@@ -431,7 +431,7 @@ async function tavilySearch(query: string): Promise<string> {
   } catch { return ""; }
 }
 
-async function enrichOne(nodeId: string, objectType: string, recordData: Record<string, unknown>): Promise<number> {
+async function enrichOne(nodeId: string, objectType: string, recordData: Record<string, unknown>, workspaceId?: string): Promise<number> {
   const normalizedType = objectType.toLowerCase();
   const isPerson = ["contact", "person", "people", "lead"].some((t) => normalizedType.includes(t));
   const name = (recordData.name ?? recordData.Name ?? recordData.company_name ?? recordData.full_name ?? "") as string;
@@ -453,7 +453,7 @@ async function enrichOne(nodeId: string, objectType: string, recordData: Record<
       : `Enrich this company. Name: "${name}", Domain: "${domain}"\n${webContext ? `Web context:\n${webContext}` : ""}`,
     toolName: isPerson ? "enrich_person" : "enrich_company",
     toolDescription: "Extract enrichment fields",
-    toolSchema: schema, maxTokens: 1024,
+    toolSchema: schema, maxTokens: 1024, workspaceId,
   }).catch(() => ({} as Record<string, unknown>));
 
   const fields = Object.fromEntries(Object.entries(raw).filter(([, v]) => v != null && v !== ""));
@@ -482,7 +482,7 @@ export async function runEnrichWorkspace(workspaceId: string, limit = 10): Promi
 
     let enrichedCount = 0;
     for (const n of enrichable) {
-      const added = await enrichOne(n.id, n.object_type, (n.data ?? {}) as Record<string, unknown>);
+      const added = await enrichOne(n.id, n.object_type, (n.data ?? {}) as Record<string, unknown>, workspaceId);
       if (added > 0) {
         enrichedCount++;
         await createNotification({

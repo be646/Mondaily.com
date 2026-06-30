@@ -307,8 +307,8 @@ export function SecuritySettings() {
                     <td className="px-4 py-3 text-stone-200">{entry.actor}</td>
                     <td className="px-4 py-3 font-mono text-xs text-stone-400">{entry.action}</td>
                     <td className="px-4 py-3 text-stone-600">{entry.target}</td>
-                    <td className="px-4 py-3 text-stone-600">{entry.timestamp}</td>
-                    <td className="px-4 py-3 text-stone-600">{entry.ip ?? "—"}</td>
+                    <td className="px-4 py-3 font-mono text-stone-600">{entry.timestamp}</td>
+                    <td className="px-4 py-3 font-mono tabular-nums text-stone-600">{entry.ip ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

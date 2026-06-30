@@ -907,7 +907,7 @@ export function ListPage() {
                 <button
                   onClick={enrollInSequence}
                   disabled={enrolling}
-                  className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-emerald-500 transition-colors disabled:opacity-40"
+                  className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-600 hover:border-[var(--accent)] transition-colors disabled:opacity-40"
                 >
                   {enrolling ? <><Loader2 size={12} className="animate-spin" /> Enrolling…</> : <><Mail size={12} /> Enroll {records.length} records</>}
                 </button>
@@ -915,7 +915,7 @@ export function ListPage() {
               {enrollStep === "done" && (
                 <button
                   onClick={() => setEnrollOpen(false)}
-                  className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-emerald-500 transition-colors"
+                  className="rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-600 hover:border-[var(--accent)] transition-colors"
                 >
                   Done
                 </button>

@@ -531,7 +531,7 @@ export function AccountSettings() {
           disabled={save.isPending}
           className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50 ${
             saved
-              ? "bg-emerald-600 border border-emerald-500/30"
+              ? "border border-[var(--accent)] bg-stone-700"
               : "border border-stone-500/30 bg-stone-600 hover:bg-stone-500"
           }`}
         >

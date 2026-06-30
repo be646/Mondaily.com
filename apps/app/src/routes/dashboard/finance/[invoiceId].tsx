@@ -180,7 +180,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
             <button
               onClick={() => recordPayment.mutate()}
               disabled={recordPayment.isPending || !amount || parseFloat(amount) <= 0}
-              className="flex items-center gap-1.5 rounded-xl border-x border-t border-emerald-500/40 border-b-[3px] border-b-emerald-700 bg-emerald-600 px-4 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-emerald-500 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-600 hover:border-[var(--accent)] transition-colors disabled:opacity-50"
             >
               <CheckCircle size={11}/> {recordPayment.isPending ? "Recording…" : "Record Payment"}
             </button>
@@ -240,7 +240,7 @@ function printInvoice(invoice: Invoice) {
     <table>
       <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Tax</th><th style="text-align:right">Total</th></tr></thead>
       <tbody>
-        ${invoice.line_items.map(item => `<tr><td>${item.description}</td><td>${item.quantity}</td><td>${formatCurrency(item.unit_price)}</td><td>${item.tax_rate}%</td><td style="text-align:right">${formatCurrency(item.quantity * item.unit_price * (1 + item.tax_rate / 100))}</td></tr>`).join("")}
+        ${(invoice.line_items ?? []).map(item => `<tr><td>${item.description}</td><td>${item.quantity}</td><td>${formatCurrency(item.unit_price)}</td><td>${item.tax_rate}%</td><td style="text-align:right">${formatCurrency(item.quantity * item.unit_price * (1 + item.tax_rate / 100))}</td></tr>`).join("")}
       </tbody>
     </table>
     <div class="totals">
@@ -405,7 +405,7 @@ export function InvoiceDetailPage() {
             <button
               onClick={() => save({ status: "paid" })}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 rounded-xl border-x border-t border-emerald-500/40 border-b-[3px] border-b-emerald-700 bg-emerald-600 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-emerald-500 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-600 hover:border-[var(--accent)] transition-colors disabled:opacity-50"
             >
               <CheckCircle size={12}/> Mark as Paid
             </button>

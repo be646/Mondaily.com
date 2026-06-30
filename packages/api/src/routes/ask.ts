@@ -817,6 +817,7 @@ async function executeTool(
             prompt: `Generate 5-10 useful fields for a "${input.name}" object. Context: ${input.description}. Use snake_case names, appropriate types (currency for money, date for dates, select for status fields, checkbox for yes/no). Always include a status or stage select field.`,
             toolName: "define_attributes",
             toolDescription: "Define the fields for a custom object type",
+            workspaceId,
             toolSchema: {
               type: "object",
               properties: {
@@ -1160,6 +1161,7 @@ async function executeTool(
         try {
           const gen = await aiGatewayToolUse({
             maxTokens: 1200,
+            workspaceId,
             system: "You design business automations. Return ONE trigger, optional conditions, and at least one action. Use exact field names where known (e.g. lead_score, deal_stage).",
             prompt: `Design an automation for: "${input.description}" (name: "${input.name}").`,
             toolName: "design_workflow",

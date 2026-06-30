@@ -59,6 +59,10 @@ export type GatewayToolRequest = {
   model?: string;
   /** Optional: receive the real provider token usage for this call (for per-job telemetry). */
   onUsage?: (u: { prompt_tokens: number; completion_tokens: number; total_tokens: number; reasoning_tokens: number }) => void;
+  /** When set, token usage is metered to ai_usage + the credit wallet automatically (default
+   *  metering for every background/agent tool call — no per-caller onUsage wiring needed). */
+  workspaceId?: string;
+  userId?: string;
 };
 
 // ── Internal routing ────────────────────────────────────────────────────────────
@@ -325,14 +329,18 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
     tool_choice: { type: "function", function: { name: req.toolName } },
   });
 
-  if (req.onUsage && completion.usage) {
+  if (completion.usage) {
     const u = completion.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
-    req.onUsage({
+    const usage = {
       prompt_tokens: u.prompt_tokens ?? 0,
       completion_tokens: u.completion_tokens ?? 0,
       total_tokens: u.total_tokens ?? 0,
       reasoning_tokens: u.completion_tokens_details?.reasoning_tokens ?? 0,
-    });
+    };
+    if (req.onUsage) req.onUsage(usage);
+    // Default metering: every tool call with a workspaceId records to ai_usage + the credit wallet,
+    // so background/agent inference (scoring, enrichment, generation) is no longer free/untracked.
+    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, { userId: req.userId });
   }
 
   const toolCall = completion.choices[0]?.message.tool_calls?.[0];
