@@ -85,16 +85,19 @@ export const PLANS: Plan[] = [
 
 export const PLAN_BY_ID = Object.fromEntries(PLANS.map(p => [p.id, p])) as Record<string, Plan>;
 
-/** Normalize legacy/backend tier names to a plan id. */
+/** Normalize legacy/backend tier names to a plan id. The backend stores account_tier as
+ *  personal|business|trial (onboarding) or scout|operator|command|sovereign (Stripe metadata). */
 export function normalizePlan(raw?: string | null): string {
   switch ((raw ?? "").toLowerCase()) {
-    case "operator": case "command": case "sovereign": case "scout":
+    case "scout": case "operator": case "command": case "sovereign":
       return (raw as string).toLowerCase();
-    case "pro": case "business": case "personal":
-      return raw === "business" ? "command" : "operator"; // legacy → closest tier
-    case "trial":
-      return "operator"; // trials sample the Operator tier
-    case "free": default:
+    case "free": case "personal":
+      return "scout";                 // personal = the free solo tier
+    case "pro": case "business": case "trial":
+      return "operator";              // business trial grants 500k credits = Operator
+    case "enterprise":
+      return "sovereign";
+    default:
       return "scout";
   }
 }
