@@ -46010,7 +46010,245 @@ async function logStep(id, step2) {
   await supabase.from("agent_jobs").update({ steps: [...steps, step2] }).eq("id", id);
 }
 
+// src/lib/google.ts
+var TOKEN_URL = "https://oauth2.googleapis.com/token";
+var AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+var GMAIL_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
+var GMAIL_SEND_URL = `${GMAIL_BASE}/messages/send`;
+var GOOGLE_SCOPES = [
+  "openid",
+  "email",
+  "profile",
+  "https://www.googleapis.com/auth/gmail.send",
+  "https://www.googleapis.com/auth/gmail.readonly"
+];
+function googleConfigured() {
+  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+}
+function googleAuthUrl(redirectUri, state) {
+  const u2 = new URL(AUTH_URL);
+  u2.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID ?? "");
+  u2.searchParams.set("redirect_uri", redirectUri);
+  u2.searchParams.set("response_type", "code");
+  u2.searchParams.set("scope", GOOGLE_SCOPES.join(" "));
+  u2.searchParams.set("access_type", "offline");
+  u2.searchParams.set("prompt", "consent");
+  u2.searchParams.set("include_granted_scopes", "true");
+  u2.searchParams.set("state", state);
+  return u2.toString();
+}
+function decodeJwtEmail(idToken) {
+  if (!idToken) return void 0;
+  try {
+    const payload = idToken.split(".")[1];
+    if (!payload) return void 0;
+    const json = JSON.parse(Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
+    return typeof json.email === "string" ? json.email : void 0;
+  } catch {
+    return void 0;
+  }
+}
+async function exchangeCode(code, redirectUri) {
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
+      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code"
+    })
+  });
+  if (!res.ok) {
+    console.error("[google] code exchange failed", res.status, await res.text().catch(() => ""));
+    return null;
+  }
+  const t2 = await res.json();
+  return { access_token: t2.access_token, refresh_token: t2.refresh_token, expires_in: t2.expires_in, email: decodeJwtEmail(t2.id_token) };
+}
+async function freshAccessToken(conn) {
+  const stillValid = conn.access_token && conn.token_expiry && new Date(conn.token_expiry).getTime() > Date.now() + 6e4;
+  if (stillValid) return conn.access_token;
+  if (!conn.refresh_token) return null;
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      refresh_token: conn.refresh_token,
+      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
+      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      grant_type: "refresh_token"
+    })
+  });
+  if (!res.ok) {
+    console.error("[google] token refresh failed", res.status, await res.text().catch(() => ""));
+    return null;
+  }
+  const t2 = await res.json();
+  await supabase.from("email_connections").update({
+    access_token: t2.access_token,
+    token_expiry: new Date(Date.now() + t2.expires_in * 1e3).toISOString()
+  }).eq("id", conn.id);
+  return t2.access_token;
+}
+async function gmailSend(accessToken, msg) {
+  const headers = [
+    `To: ${msg.to.join(", ")}`,
+    msg.from ? `From: ${msg.from}` : "",
+    `Subject: ${msg.subject}`,
+    msg.inReplyTo ? `In-Reply-To: ${msg.inReplyTo}` : "",
+    msg.inReplyTo ? `References: ${msg.inReplyTo}` : "",
+    "MIME-Version: 1.0",
+    'Content-Type: text/html; charset="UTF-8"',
+    "",
+    msg.html
+  ].filter(Boolean).join("\r\n");
+  const raw2 = Buffer.from(headers).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  try {
+    const res = await fetch(GMAIL_SEND_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(msg.threadId ? { raw: raw2, threadId: msg.threadId } : { raw: raw2 })
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+var header = (headers, name) => headers?.find((h2) => h2.name.toLowerCase() === name.toLowerCase())?.value ?? "";
+async function gmailThreads(accessToken, opts = {}) {
+  const params = new URLSearchParams({ maxResults: String(opts.max ?? 20) });
+  if (opts.q) params.set("q", opts.q);
+  const listRes = await fetch(`${GMAIL_BASE}/threads?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!listRes.ok) return [];
+  const list = await listRes.json();
+  const ids = (list.threads ?? []).map((t2) => t2.id);
+  const summaries = await Promise.all(ids.map(async (id) => {
+    const r2 = await fetch(`${GMAIL_BASE}/threads/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!r2.ok) return null;
+    const t2 = await r2.json();
+    const msgs = t2.messages ?? [];
+    const last = msgs[msgs.length - 1];
+    return {
+      id: t2.id,
+      subject: header(last?.payload?.headers, "Subject"),
+      from: header(last?.payload?.headers, "From"),
+      date: header(last?.payload?.headers, "Date"),
+      snippet: last?.snippet ?? "",
+      unread: msgs.some((m2) => (m2.labelIds ?? []).includes("UNREAD"))
+    };
+  }));
+  return summaries.filter((s2) => s2 !== null);
+}
+function decodeBody(payload) {
+  if (!payload) return "";
+  if (payload.body?.data) {
+    try {
+      return Buffer.from(payload.body.data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+    } catch {
+      return "";
+    }
+  }
+  for (const part of payload.parts ?? []) {
+    if (part.mimeType === "text/html" || part.mimeType === "text/plain") {
+      const b2 = decodeBody(part);
+      if (b2) return b2;
+    }
+  }
+  for (const part of payload.parts ?? []) {
+    const b2 = decodeBody(part);
+    if (b2) return b2;
+  }
+  return "";
+}
+async function gmailThread(accessToken, threadId) {
+  const r2 = await fetch(`${GMAIL_BASE}/threads/${threadId}?format=full`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!r2.ok) return [];
+  const t2 = await r2.json();
+  return (t2.messages ?? []).map((m2) => ({
+    id: m2.id,
+    messageId: header(m2.payload?.headers, "Message-ID"),
+    from: header(m2.payload?.headers, "From"),
+    to: header(m2.payload?.headers, "To"),
+    date: header(m2.payload?.headers, "Date"),
+    subject: header(m2.payload?.headers, "Subject"),
+    snippet: m2.snippet ?? "",
+    body: decodeBody(m2.payload)
+  }));
+}
+
+// src/lib/mail.ts
+async function sendViaGoogle(workspaceId, msg) {
+  try {
+    const { data: conn } = await supabase.from("email_connections").select("id, refresh_token, access_token, token_expiry, email").eq("workspace_id", workspaceId).eq("provider", "google").limit(1).maybeSingle();
+    if (!conn) return false;
+    const token = await freshAccessToken(conn);
+    if (!token) return false;
+    return gmailSend(token, {
+      to: msg.to.map((t2) => t2.email),
+      subject: msg.subject,
+      html: msg.body,
+      from: conn.email || void 0
+    });
+  } catch {
+    return false;
+  }
+}
+var CORPORATE_FROM = process.env.RESEND_FROM ?? process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily Networks <no-reply@mondaily.com>";
+async function sendViaTransactional(msg) {
+  const key = process.env.RESEND_API_KEY ?? process.env.TRANSACTIONAL_MAIL_API_KEY;
+  if (!key) return false;
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: CORPORATE_FROM,
+        to: msg.to.map((t2) => t2.email),
+        subject: msg.subject,
+        html: msg.body
+      })
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+async function sendTransactionalEmail(msg) {
+  return sendViaTransactional(msg);
+}
+async function sendWorkspaceEmail(workspaceId, msg) {
+  if (await sendViaGoogle(workspaceId, msg)) return true;
+  return sendViaTransactional(msg);
+}
+
 // src/lib/notify.ts
+var appUrl = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
+var escapeHtml = (s2) => s2.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch] ?? ch);
+async function maybeEmailNotification(n2) {
+  try {
+    if (!n2.user_id) return;
+    const { data: ws } = await supabase.from("workspaces").select("settings").eq("id", n2.workspace_id).maybeSingle();
+    const prefs = (ws?.settings ?? {}).user_preferences?.[n2.user_id] ?? {};
+    const perType = prefs.notifications?.[n2.type ?? "system"]?.email;
+    const emailEnabled = perType !== void 0 ? perType : prefs.email_notifications ?? true;
+    if (!emailEnabled) return;
+    const { data: member } = await supabase.from("workspace_members").select("email, name").eq("workspace_id", n2.workspace_id).eq("user_id", n2.user_id).maybeSingle();
+    const to = member?.email;
+    if (!to) return;
+    await sendTransactionalEmail({
+      to: [{ email: to, name: member?.name || void 0 }],
+      subject: n2.title,
+      body: `<div style="font-family:system-ui,-apple-system,sans-serif;max-width:480px">
+        <p style="font-size:15px;font-weight:600;color:#111;margin:0 0 8px">${escapeHtml(n2.title)}</p>
+        ${n2.body ? `<p style="font-size:14px;color:#444;margin:0 0 16px">${escapeHtml(n2.body)}</p>` : ""}
+        <a href="${appUrl()}/notifications" style="display:inline-block;font-size:13px;color:#16a34a;text-decoration:none">Open in Mondaily \u2192</a>
+      </div>`
+    });
+  } catch {
+  }
+}
 async function createNotification(n2) {
   const base = {
     workspace_id: n2.workspace_id,
@@ -46035,6 +46273,7 @@ async function createNotification(n2) {
     console.error("[notify] failed to create notification:", error.message);
     return false;
   }
+  void maybeEmailNotification(n2);
   return true;
 }
 
@@ -57197,219 +57436,6 @@ async function logDecisionTrainingExample(workspaceId, decision, action, editedO
   }
 }
 
-// src/lib/google.ts
-var TOKEN_URL = "https://oauth2.googleapis.com/token";
-var AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-var GMAIL_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
-var GMAIL_SEND_URL = `${GMAIL_BASE}/messages/send`;
-var GOOGLE_SCOPES = [
-  "openid",
-  "email",
-  "profile",
-  "https://www.googleapis.com/auth/gmail.send",
-  "https://www.googleapis.com/auth/gmail.readonly"
-];
-function googleConfigured() {
-  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
-}
-function googleAuthUrl(redirectUri, state) {
-  const u2 = new URL(AUTH_URL);
-  u2.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID ?? "");
-  u2.searchParams.set("redirect_uri", redirectUri);
-  u2.searchParams.set("response_type", "code");
-  u2.searchParams.set("scope", GOOGLE_SCOPES.join(" "));
-  u2.searchParams.set("access_type", "offline");
-  u2.searchParams.set("prompt", "consent");
-  u2.searchParams.set("include_granted_scopes", "true");
-  u2.searchParams.set("state", state);
-  return u2.toString();
-}
-function decodeJwtEmail(idToken) {
-  if (!idToken) return void 0;
-  try {
-    const payload = idToken.split(".")[1];
-    if (!payload) return void 0;
-    const json = JSON.parse(Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
-    return typeof json.email === "string" ? json.email : void 0;
-  } catch {
-    return void 0;
-  }
-}
-async function exchangeCode(code, redirectUri) {
-  const res = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      code,
-      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
-      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      redirect_uri: redirectUri,
-      grant_type: "authorization_code"
-    })
-  });
-  if (!res.ok) {
-    console.error("[google] code exchange failed", res.status, await res.text().catch(() => ""));
-    return null;
-  }
-  const t2 = await res.json();
-  return { access_token: t2.access_token, refresh_token: t2.refresh_token, expires_in: t2.expires_in, email: decodeJwtEmail(t2.id_token) };
-}
-async function freshAccessToken(conn) {
-  const stillValid = conn.access_token && conn.token_expiry && new Date(conn.token_expiry).getTime() > Date.now() + 6e4;
-  if (stillValid) return conn.access_token;
-  if (!conn.refresh_token) return null;
-  const res = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      refresh_token: conn.refresh_token,
-      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
-      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      grant_type: "refresh_token"
-    })
-  });
-  if (!res.ok) {
-    console.error("[google] token refresh failed", res.status, await res.text().catch(() => ""));
-    return null;
-  }
-  const t2 = await res.json();
-  await supabase.from("email_connections").update({
-    access_token: t2.access_token,
-    token_expiry: new Date(Date.now() + t2.expires_in * 1e3).toISOString()
-  }).eq("id", conn.id);
-  return t2.access_token;
-}
-async function gmailSend(accessToken, msg) {
-  const headers = [
-    `To: ${msg.to.join(", ")}`,
-    msg.from ? `From: ${msg.from}` : "",
-    `Subject: ${msg.subject}`,
-    msg.inReplyTo ? `In-Reply-To: ${msg.inReplyTo}` : "",
-    msg.inReplyTo ? `References: ${msg.inReplyTo}` : "",
-    "MIME-Version: 1.0",
-    'Content-Type: text/html; charset="UTF-8"',
-    "",
-    msg.html
-  ].filter(Boolean).join("\r\n");
-  const raw2 = Buffer.from(headers).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  try {
-    const res = await fetch(GMAIL_SEND_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify(msg.threadId ? { raw: raw2, threadId: msg.threadId } : { raw: raw2 })
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-var header = (headers, name) => headers?.find((h2) => h2.name.toLowerCase() === name.toLowerCase())?.value ?? "";
-async function gmailThreads(accessToken, opts = {}) {
-  const params = new URLSearchParams({ maxResults: String(opts.max ?? 20) });
-  if (opts.q) params.set("q", opts.q);
-  const listRes = await fetch(`${GMAIL_BASE}/threads?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!listRes.ok) return [];
-  const list = await listRes.json();
-  const ids = (list.threads ?? []).map((t2) => t2.id);
-  const summaries = await Promise.all(ids.map(async (id) => {
-    const r2 = await fetch(`${GMAIL_BASE}/threads/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!r2.ok) return null;
-    const t2 = await r2.json();
-    const msgs = t2.messages ?? [];
-    const last = msgs[msgs.length - 1];
-    return {
-      id: t2.id,
-      subject: header(last?.payload?.headers, "Subject"),
-      from: header(last?.payload?.headers, "From"),
-      date: header(last?.payload?.headers, "Date"),
-      snippet: last?.snippet ?? "",
-      unread: msgs.some((m2) => (m2.labelIds ?? []).includes("UNREAD"))
-    };
-  }));
-  return summaries.filter((s2) => s2 !== null);
-}
-function decodeBody(payload) {
-  if (!payload) return "";
-  if (payload.body?.data) {
-    try {
-      return Buffer.from(payload.body.data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
-    } catch {
-      return "";
-    }
-  }
-  for (const part of payload.parts ?? []) {
-    if (part.mimeType === "text/html" || part.mimeType === "text/plain") {
-      const b2 = decodeBody(part);
-      if (b2) return b2;
-    }
-  }
-  for (const part of payload.parts ?? []) {
-    const b2 = decodeBody(part);
-    if (b2) return b2;
-  }
-  return "";
-}
-async function gmailThread(accessToken, threadId) {
-  const r2 = await fetch(`${GMAIL_BASE}/threads/${threadId}?format=full`, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!r2.ok) return [];
-  const t2 = await r2.json();
-  return (t2.messages ?? []).map((m2) => ({
-    id: m2.id,
-    messageId: header(m2.payload?.headers, "Message-ID"),
-    from: header(m2.payload?.headers, "From"),
-    to: header(m2.payload?.headers, "To"),
-    date: header(m2.payload?.headers, "Date"),
-    subject: header(m2.payload?.headers, "Subject"),
-    snippet: m2.snippet ?? "",
-    body: decodeBody(m2.payload)
-  }));
-}
-
-// src/lib/mail.ts
-async function sendViaGoogle(workspaceId, msg) {
-  try {
-    const { data: conn } = await supabase.from("email_connections").select("id, refresh_token, access_token, token_expiry, email").eq("workspace_id", workspaceId).eq("provider", "google").limit(1).maybeSingle();
-    if (!conn) return false;
-    const token = await freshAccessToken(conn);
-    if (!token) return false;
-    return gmailSend(token, {
-      to: msg.to.map((t2) => t2.email),
-      subject: msg.subject,
-      html: msg.body,
-      from: conn.email || void 0
-    });
-  } catch {
-    return false;
-  }
-}
-var CORPORATE_FROM = process.env.RESEND_FROM ?? process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily Networks <no-reply@mondaily.com>";
-async function sendViaTransactional(msg) {
-  const key = process.env.RESEND_API_KEY ?? process.env.TRANSACTIONAL_MAIL_API_KEY;
-  if (!key) return false;
-  try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: CORPORATE_FROM,
-        to: msg.to.map((t2) => t2.email),
-        subject: msg.subject,
-        html: msg.body
-      })
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-async function sendTransactionalEmail(msg) {
-  return sendViaTransactional(msg);
-}
-async function sendWorkspaceEmail(workspaceId, msg) {
-  if (await sendViaGoogle(workspaceId, msg)) return true;
-  return sendViaTransactional(msg);
-}
-
 // src/routes/decisions.ts
 var router5 = new Hono2();
 router5.use("*", requireAuth);
@@ -59828,8 +59854,8 @@ router11.post("/request-activation", rateLimit(), requirePow, zValidator("json",
   const member = await memberByEmail(email);
   if (!member) return c2.json(generic);
   const token = await signActivationToken(member.user_id, email);
-  const appUrl2 = process.env.APP_URL ?? "https://app.mondaily.com";
-  const link = `${appUrl2}/auth/shadow-activate?token=${encodeURIComponent(token)}`;
+  const appUrl3 = process.env.APP_URL ?? "https://app.mondaily.com";
+  const link = `${appUrl3}/auth/shadow-activate?token=${encodeURIComponent(token)}`;
   {
     await sendTransactionalEmail({
       to: [{ email }],
@@ -59859,8 +59885,8 @@ router11.post("/request-password-reset", rateLimit(), requirePow, zValidator("js
   const cred = await credByEmail(email);
   if (!cred) return c2.json(generic);
   const token = await signResetToken(cred.user_id, cred.email);
-  const appUrl2 = process.env.APP_URL ?? "https://app.mondaily.com";
-  const link = `${appUrl2}/auth/reset?token=${encodeURIComponent(token)}`;
+  const appUrl3 = process.env.APP_URL ?? "https://app.mondaily.com";
+  const link = `${appUrl3}/auth/reset?token=${encodeURIComponent(token)}`;
   {
     await sendTransactionalEmail({
       to: [{ email: cred.email }],
@@ -60125,7 +60151,7 @@ router13.post("/stripe", async (c2) => {
 var router14 = new Hono2();
 router14.use("*", requireAuth);
 var STRIPE_API2 = "https://api.stripe.com/v1";
-var appUrl = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
+var appUrl2 = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
 function encodeForm2(params) {
   return Object.entries(params).filter(([, v2]) => v2 !== void 0 && v2 !== "").map(([k2, v2]) => `${encodeURIComponent(k2)}=${encodeURIComponent(v2)}`).join("&");
 }
@@ -60162,8 +60188,8 @@ router14.post("/checkout", async (c2) => {
       mode: "subscription",
       "line_items[0][price]": price,
       "line_items[0][quantity]": "1",
-      success_url: `${appUrl()}/settings/billing?billing=success`,
-      cancel_url: `${appUrl()}/settings/billing?billing=cancelled`,
+      success_url: `${appUrl2()}/settings/billing?billing=success`,
+      cancel_url: `${appUrl2()}/settings/billing?billing=cancelled`,
       client_reference_id: workspaceId,
       "metadata[workspace_id]": workspaceId,
       "metadata[plan]": plan,
@@ -60197,8 +60223,8 @@ router14.post("/credits-checkout", async (c2) => {
       "line_items[0][quantity]": "1",
       // Persist the card for off-session auto-refill charges.
       "payment_intent_data[setup_future_usage]": "off_session",
-      success_url: `${appUrl()}/settings/billing?credits=success`,
-      cancel_url: `${appUrl()}/settings/billing?credits=cancelled`,
+      success_url: `${appUrl2()}/settings/billing?credits=success`,
+      cancel_url: `${appUrl2()}/settings/billing?credits=cancelled`,
       client_reference_id: workspaceId,
       "metadata[workspace_id]": workspaceId,
       "metadata[kind]": "credit_pack",
@@ -60224,7 +60250,7 @@ router14.post("/portal", async (c2) => {
   try {
     const session = await stripePost("billing_portal/sessions", {
       customer,
-      return_url: `${appUrl()}/settings/billing`
+      return_url: `${appUrl2()}/settings/billing`
     });
     return c2.json({ url: session.url });
   } catch (e2) {

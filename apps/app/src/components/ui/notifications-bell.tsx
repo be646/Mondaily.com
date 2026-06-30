@@ -30,7 +30,7 @@ export function NotificationsBell() {
   const notifQ = useQuery({
     queryKey: ["notifications"],
     queryFn: () => apiClient.get<Notification[]>("/notifications"),
-    refetchInterval: 30_000,
+    refetchInterval: 15_000, // live: poll every 15s
   });
 
   const markRead = useMutation({
