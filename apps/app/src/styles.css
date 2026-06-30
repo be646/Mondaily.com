@@ -6,24 +6,24 @@
    Premium grid system: pure paper in light mode, absolute black in dark mode,
    with separation carried by hairline dividers instead of nested cards. ── */
 :root {
-  /* dark (default) — matte-neutral palette, matched to the landing page */
-  --surface-page:     #0d0d0d;
-  --surface-sidebar:  #0a0a0a;
-  --surface-card:     #141414;
-  --surface-card-2:   #1a1a1a;
-  --surface-input:    #141414;
-  --surface-modal:    #141414;
-  --surface-hover:    #181818;
-  --surface-selected: #1f1f1f;
-  --border-soft:      #202020;
-  --border-strong:    #2c2c2c;
+  /* dark (default) — Cybernetic AI Operations palette: deep canvas, wire-mesh borders, sage accent */
+  --surface-page:     #09090b;
+  --surface-sidebar:  #09090b;
+  --surface-card:     #121214;
+  --surface-card-2:   #161618;
+  --surface-input:    #121214;
+  --surface-modal:    #121214;
+  --surface-hover:    #1a1a1c;
+  --surface-selected: #222226;
+  --border-soft:      #27272a;
+  --border-strong:    #34343a;
   --text-primary:     #e8e8e6;
   --text-secondary:   #b5b5b1;
   --text-muted:       #888884;
   --text-faint:       #5c5c58;
-  /* matte accent — warm taupe, no blue/indigo (mono, landing-aligned) */
-  --accent:           #8a857d;
-  --accent-hover:     #a8a29a;
+  /* tactical sage green — the unified accent for state/validation markers */
+  --accent:           #4ade80;
+  --accent-hover:     #6ee79a;
 
   /* legacy aliases — kept so existing var() usages don't break */
   --md-bg:          var(--surface-page);
@@ -1179,7 +1179,7 @@ html[data-theme="dark"] .minimal-sparkline {
 
 /* ── Settings page layout ─────────────────────────────────────────────────── */
 .settings-section {
-  border-radius: 10px;
+  border-radius: 4px; /* sharp architectural corners — console grid, not floating rounded cards */
   border: 1px solid var(--border-soft);
   background: var(--surface-card);
   overflow: hidden;
