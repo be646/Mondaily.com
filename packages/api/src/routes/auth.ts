@@ -131,8 +131,33 @@ router.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.
 });
 
 // POST /auth/login — verify password, or flag legacy Clerk users for activation.
-router.post("/login", rateLimit(), zValidator("json", credSchema), async (c) => {
+// Escalating lockout on top of the rate limiter: after LOCK_THRESHOLD bad passwords for an
+// email, that account is locked for LOCK_MS regardless of IP — stops slow distributed
+// brute-force that stays under the per-minute rate limit. In-memory (per warm instance):
+// a solid second layer alongside the PoW gate; back with Postgres for a hard global lock.
+const failedLogins = new Map<string, { count: number; until: number }>();
+const LOCK_THRESHOLD = 6;
+const LOCK_MS = 15 * 60_000;
+function loginLockedSecs(email: string): number {
+  const rec = failedLogins.get(email);
+  return rec && rec.until > Date.now() ? Math.ceil((rec.until - Date.now()) / 1000) : 0;
+}
+function recordLoginFail(email: string) {
+  const rec = failedLogins.get(email) ?? { count: 0, until: 0 };
+  rec.count += 1;
+  if (rec.count >= LOCK_THRESHOLD) { rec.until = Date.now() + LOCK_MS; rec.count = 0; }
+  failedLogins.set(email, rec);
+}
+
+// requirePow: login now also demands a solved proof-of-work, so each attempt costs real CPU —
+// the same anti-bot gate register/reset use. (The frontend solves it transparently.)
+router.post("/login", rateLimit(), requirePow, zValidator("json", credSchema), async (c) => {
   const { email, password } = c.req.valid("json");
+  const lock = loginLockedSecs(email.toLowerCase());
+  if (lock > 0) {
+    c.header("Retry-After", String(lock));
+    return c.json({ error: `Too many failed attempts. Try again in ${Math.ceil(lock / 60)} min.` }, 429);
+  }
   const cred = await credByEmail(email);
   if (!cred) {
     // No native credential yet — is this a known (Clerk-era) user who needs to set a password?
@@ -141,7 +166,11 @@ router.post("/login", rateLimit(), zValidator("json", credSchema), async (c) => 
     return c.json({ error: "Invalid email or password." }, 401); // generic — no account enumeration
   }
   const ok = await verifyPassword(cred.password_hash as string, password);
-  if (!ok) return c.json({ error: "Invalid email or password." }, 401);
+  if (!ok) {
+    recordLoginFail(email.toLowerCase());
+    return c.json({ error: "Invalid email or password." }, 401);
+  }
+  failedLogins.delete(email.toLowerCase()); // clean slate on success
   await issueSession(c, cred.user_id as string, cred.email as string, c.req.header("user-agent"));
   return c.json({ userId: cred.user_id, email: cred.email, ...(await sessionProfile(cred.user_id as string)) });
 });

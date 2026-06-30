@@ -101,7 +101,9 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const login = useCallback(async (email: string, password: string) => {
-    const r = await authCall<MeResp & { requires_activation?: boolean; error?: string }>("/login", { email, password });
+    // Solve the anti-bot proof-of-work (same gate as register/reset). Transparent to the user.
+    const solved = await getPow();
+    const r = await authCall<MeResp & { requires_activation?: boolean; error?: string }>("/login", { email, password, ...solved });
     if (r.status === 200 && r.data.requires_activation) return { requiresActivation: true };
     if (r.status === 200 && r.data.userId) { purgeSessionState(); setAuthed(toUser(r.data, email), r.data.workspaceId); return {}; }
     throw new Error(r.data.error || "Invalid email or password.");
