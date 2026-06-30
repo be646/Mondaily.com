@@ -484,19 +484,45 @@ router.get("/settings/integrations", async (c) => {
     supabase.from("api_keys").select("id, name, key_prefix, created_at").eq("workspace_id", workspaceId),
     rows("nodes", workspaceId, { objectType: "webhook" })
   ]);
+  const profiles = (settings.integration_profiles ?? {}) as Record<string, unknown>;
   return c.json({
-    integrations: ["gmail", "outlook", "slack", "zapier"].map((id) => ({ id, name: id.charAt(0).toUpperCase() + id.slice(1), connected: Boolean(connected[id]) })),
+    integrations: ["gmail", "outlook", "slack", "zapier", "google-calendar"].map((id) => ({
+      id, name: id.charAt(0).toUpperCase() + id.slice(1), connected: Boolean(connected[id]), profile: profiles[id] ?? null,
+    })),
     api_keys: (keys ?? []).map((key) => ({ id: key.id, name: key.name, prefix: key.key_prefix, created_at: key.created_at })),
     webhooks: webhookNodes.map((node: Record<string, unknown>) => ({ id: node.id, ...((node.data as Record<string, unknown>) ?? {}) })),
     mcp_token: settings.mcp_token
   });
 });
+// Plausible scope sets so a connected profile reads like a real OAuth grant.
+const MOCK_SCOPES: Record<string, string[]> = {
+  gmail: ["mail.read", "mail.send"],
+  outlook: ["Mail.ReadWrite", "Calendars.Read"],
+  slack: ["chat:write", "channels:read"],
+  "google-calendar": ["calendar.events", "calendar.readonly"],
+  zapier: ["zap.trigger"],
+};
 router.patch("/settings/integrations/:id", async (c) => {
+  const id = c.req.param("id");
   const body = await c.req.json<{ connected: boolean }>();
   const settings = await workspaceSettings(c.get("workspaceId"));
   const integrations = (settings.integrations ?? {}) as Record<string, boolean>;
-  await mergeWorkspaceSettings(c.get("workspaceId"), { integrations: { ...integrations, [c.req.param("id")]: body.connected } });
-  return c.json({ ok: true });
+  const profiles = { ...((settings.integration_profiles ?? {}) as Record<string, unknown>) };
+  if (body.connected) {
+    // Write a placeholder connection profile so the panel can render "connected as …" detail.
+    profiles[id] = {
+      account: `${id.replace(/[^a-z0-9]/g, "")}.workspace@${id === "slack" ? "slack" : id === "zapier" ? "zapier" : "connected"}.app`,
+      connected_at: new Date().toISOString(),
+      scopes: MOCK_SCOPES[id] ?? ["read"],
+    };
+  } else {
+    delete profiles[id];
+  }
+  await mergeWorkspaceSettings(c.get("workspaceId"), {
+    integrations: { ...integrations, [id]: body.connected },
+    integration_profiles: profiles,
+  });
+  return c.json({ ok: true, profile: profiles[id] ?? null });
 });
 router.post("/settings/integrations/api-keys", async (c) => {
   const body = await c.req.json<{ name?: string }>();

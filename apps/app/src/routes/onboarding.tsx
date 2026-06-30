@@ -10,11 +10,13 @@ const TIMEZONES = [
   "Asia/Dubai","Asia/Singapore","Asia/Tokyo","Australia/Sydney",
 ];
 
+// NOTE: ids are persisted + referenced across the app — DO NOT rename them. Only the display
+// strings carry our deep-tech branding (Model-Alignment rename, structure untouched).
 const AVAILABLE_MODULES = [
-  { id: "crm",         name: "CRM",              description: "Contacts, companies, deals and pipelines" },
-  { id: "finance",     name: "Finance & Billing", description: "Invoices, credit notes, expenses and revenue reporting" },
-  { id: "investments", name: "Investments",       description: "Portfolio tracking and investor relations" },
-  { id: "hr",          name: "HR",                description: "Team management and people ops" },
+  { id: "crm",         name: "Sovereign Core Ingestion",        description: "Contacts, companies, deals and lead pipelines" },
+  { id: "finance",     name: "Finance & Billing",               description: "Invoices, credit notes, expenses and revenue reporting" },
+  { id: "investments", name: "Quantitative Asset Systems",      description: "Portfolio tracking and investor relations" },
+  { id: "hr",          name: "Autonomous Workforce",            description: "Operational intelligence and people ops" },
 ];
 
 function Label({ children }: { children: React.ReactNode }) {

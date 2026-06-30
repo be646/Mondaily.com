@@ -61487,19 +61487,46 @@ router15.get("/settings/integrations", async (c2) => {
     supabase.from("api_keys").select("id, name, key_prefix, created_at").eq("workspace_id", workspaceId),
     rows("nodes", workspaceId, { objectType: "webhook" })
   ]);
+  const profiles = settings.integration_profiles ?? {};
   return c2.json({
-    integrations: ["gmail", "outlook", "slack", "zapier"].map((id) => ({ id, name: id.charAt(0).toUpperCase() + id.slice(1), connected: Boolean(connected[id]) })),
+    integrations: ["gmail", "outlook", "slack", "zapier", "google-calendar"].map((id) => ({
+      id,
+      name: id.charAt(0).toUpperCase() + id.slice(1),
+      connected: Boolean(connected[id]),
+      profile: profiles[id] ?? null
+    })),
     api_keys: (keys ?? []).map((key) => ({ id: key.id, name: key.name, prefix: key.key_prefix, created_at: key.created_at })),
     webhooks: webhookNodes.map((node) => ({ id: node.id, ...node.data ?? {} })),
     mcp_token: settings.mcp_token
   });
 });
+var MOCK_SCOPES = {
+  gmail: ["mail.read", "mail.send"],
+  outlook: ["Mail.ReadWrite", "Calendars.Read"],
+  slack: ["chat:write", "channels:read"],
+  "google-calendar": ["calendar.events", "calendar.readonly"],
+  zapier: ["zap.trigger"]
+};
 router15.patch("/settings/integrations/:id", async (c2) => {
+  const id = c2.req.param("id");
   const body = await c2.req.json();
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const integrations = settings.integrations ?? {};
-  await mergeWorkspaceSettings(c2.get("workspaceId"), { integrations: { ...integrations, [c2.req.param("id")]: body.connected } });
-  return c2.json({ ok: true });
+  const profiles = { ...settings.integration_profiles ?? {} };
+  if (body.connected) {
+    profiles[id] = {
+      account: `${id.replace(/[^a-z0-9]/g, "")}.workspace@${id === "slack" ? "slack" : id === "zapier" ? "zapier" : "connected"}.app`,
+      connected_at: (/* @__PURE__ */ new Date()).toISOString(),
+      scopes: MOCK_SCOPES[id] ?? ["read"]
+    };
+  } else {
+    delete profiles[id];
+  }
+  await mergeWorkspaceSettings(c2.get("workspaceId"), {
+    integrations: { ...integrations, [id]: body.connected },
+    integration_profiles: profiles
+  });
+  return c2.json({ ok: true, profile: profiles[id] ?? null });
 });
 router15.post("/settings/integrations/api-keys", async (c2) => {
   const body = await c2.req.json();

@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 import { EmptyState, PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 
+interface IntegrationProfile { account: string; connected_at?: string; scopes?: string[] }
 interface IntegrationData {
-  integrations: { id: string; name: string; connected: boolean; description?: string }[];
+  integrations: { id: string; name: string; connected: boolean; description?: string; profile?: IntegrationProfile | null }[];
   api_keys: { id: string; name: string; prefix: string; created_at?: string; last_used_at?: string }[];
   webhooks: { id: string; url: string; events: string[]; status?: string; created_at?: string }[];
   mcp_token?: string;
@@ -66,10 +67,10 @@ export function IntegrationsSettings() {
   const refresh = () => qc.invalidateQueries({ queryKey: ["integrations"] });
   const data = query.data ?? { integrations: [], api_keys: [], webhooks: [] };
 
-  const integrations = useMemo(() => integrationCatalog.map(cat => ({
-    ...cat,
-    connected: data.integrations.find(i => i.id === cat.id)?.connected ?? false,
-  })), [data.integrations]);
+  const integrations = useMemo(() => integrationCatalog.map(cat => {
+    const live = data.integrations.find(i => i.id === cat.id);
+    return { ...cat, connected: live?.connected ?? false, profile: live?.profile ?? null };
+  }), [data.integrations]);
 
   const toggleIntegration = useMutation({
     mutationFn: ({ id, connected }: { id: string; connected: boolean }) =>
@@ -123,6 +124,11 @@ export function IntegrationsSettings() {
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-stone-600">{item.description}</p>
+                  {item.connected && item.profile && (
+                    <p className="mt-1 truncate font-mono text-[10.5px] text-emerald-400/80">
+                      ↳ {item.profile.account}{item.profile.scopes?.length ? ` · ${item.profile.scopes.join(" ")}` : ""}
+                    </p>
+                  )}
                 </div>
               </div>
               <button

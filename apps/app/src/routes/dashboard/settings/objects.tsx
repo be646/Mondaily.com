@@ -34,13 +34,13 @@ const apiType = (type: AttributeType) => type === "number" || type === "date" ||
 // ─── Example prompts ──────────────────────────────────────────────────────────
 const EXAMPLES = [
   "Accounting sheet for business taxes and costs",
-  "Employee HR records with salary and performance",
-  "Real estate property listings with price and status",
-  "Investor CRM with portfolio and check size",
+  "Autonomous Workforce records with salary and performance",
+  "Quantitative Asset Systems property listings with price and status",
+  "Sovereign Core Ingestion with portfolio and check size",
   "Product inventory with SKU, stock and pricing",
   "Client contracts with value, dates and status",
   "Marketing campaigns with budget and ROI tracking",
-  "Sales leads with source, score and qualification",
+  "Lead Analytics Engines with source, score and qualification",
 ];
 
 // ─── Call dedicated schema endpoint (uses Anthropic tool_use = guaranteed JSON) ─

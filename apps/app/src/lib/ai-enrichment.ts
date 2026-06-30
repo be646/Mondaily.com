@@ -21,7 +21,7 @@ const DB: Record<string, Record<string, unknown>> = {
   raycast:     { arr: 15_000_000,    funding_raised: 30_000_000,    employee_range: "50-100",    country: "USA",     description: "Blazingly fast productivity launcher" },
   calcom:      { arr: 6_000_000,     funding_raised: 32_000_000,    employee_range: "50-100",    country: "USA",     description: "Open-source scheduling infrastructure" },
   innova:      { arr: 5_000_000,     funding_raised: 2_000_000,     employee_range: "11-50",     country: "USA",     description: "Technology startup" },
-  mondaily:    { arr: 1_000_000,     funding_raised: 500_000,       employee_range: "1-10",      country: "UAE",     description: "AI-powered CRM platform" },
+  mondaily:    { arr: 1_000_000,     funding_raised: 500_000,       employee_range: "1-10",      country: "UAE",     description: "AI-powered Sovereign Core platform" },
 };
 
 function normalise(name: string) {

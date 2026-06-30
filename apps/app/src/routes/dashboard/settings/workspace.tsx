@@ -20,10 +20,11 @@ interface InviteResult {
   invite_link?: string;
 }
 
+// ids persisted/referenced elsewhere — keep stable; only labels/descriptions carry the rebrand.
 const AVAILABLE_MODULES = [
   { id: "finance", label: "Finance & Billing", description: "Invoices, credit notes, payments, approval workflows" },
-  { id: "investments", label: "Investments", description: "Track investment portfolios, rounds, and returns" },
-  { id: "hr", label: "HR & People Ops", description: "Headcount, contracts, onboarding workflows" },
+  { id: "investments", label: "Quantitative Asset Systems", description: "Track asset portfolios, rounds, and returns" },
+  { id: "hr", label: "Autonomous Workforce", description: "Headcount, contracts, operational intelligence vectors" },
 ];
 
 const timezones = [
