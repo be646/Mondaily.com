@@ -28,7 +28,7 @@ const LABEL_COLORS: Record<string, string> = {
   "Waiting":     "text-stone-400 bg-stone-400/10 border-stone-400/30",
   "Bug":         "text-red-500 bg-stone-500/10 border-stone-500/30",
   "Feature":     "text-stone-400 bg-stone-400/10 border-stone-400/30",
-  "Research":    "text-[var(--accent)] bg-[var(--accent)]/10 border-[var(--accent)]/30",
+  "Research":    "text-[var(--section-accent)] bg-[var(--section-accent)]/10 border-[var(--section-accent)]/30",
 };
 
 const PRIORITY_STYLE: Record<string, string> = {
@@ -519,7 +519,7 @@ export function TasksPage() {
             ))}
           </div>
           <button onClick={() => setShowAISuggest(true)}
-            className="flex items-center gap-1.5 rounded-sm border border-stone-300 bg-stone-100 px-3 py-1.5 text-xs text-[var(--accent)] hover:bg-stone-200 dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
+            className="flex items-center gap-1.5 rounded-sm border border-stone-300 bg-stone-100 px-3 py-1.5 text-xs text-[var(--section-accent)] hover:bg-stone-200 dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
             <AIMark size={12}/> Suggest
           </button>
           <button onClick={() => setShowCreate(true)}
@@ -565,7 +565,7 @@ export function TasksPage() {
                 { value: "Waiting",     label: "Waiting",     dot: "bg-stone-400" },
                 { value: "Bug",         label: "Bug",         dot: "bg-stone-500" },
                 { value: "Feature",     label: "Feature",     dot: "bg-stone-400" },
-                { value: "Research",    label: "Research",    dot: "bg-[var(--accent)]" },
+                { value: "Research",    label: "Research",    dot: "bg-[var(--section-accent)]" },
               ].map(opt => (
                 <button key={opt.value} onClick={() => { setLabelFilter(opt.value); setLabelOpen(false); }}
                   className={`dropdown-item ${labelFilter === opt.value ? "dropdown-item-active" : ""}`}>
@@ -647,7 +647,7 @@ export function TasksPage() {
               const assigneeName = getMemberName(task);
               const sm = STATUS_META[task.status ?? "todo"] ?? STATUS_META["todo"]!;
               return (
-                <div key={task.id} id={`task-${task.id}`} className={`rounded-sm border transition-all ${highlightId === task.id ? "ring-2 ring-offset-1" : ""} ${isOverdue ? "border-stone-200 bg-stone-50/60 dark:border-stone-500/20 dark:bg-stone-500/[.03]" : "border-stone-200 bg-white hover:border-stone-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"}`} style={highlightId === task.id ? { boxShadow: "0 0 0 2px var(--accent)", borderColor: "var(--accent)" } : undefined}>
+                <div key={task.id} id={`task-${task.id}`} className={`rounded-sm border transition-all ${highlightId === task.id ? "ring-2 ring-offset-1" : ""} ${isOverdue ? "border-stone-200 bg-stone-50/60 dark:border-stone-500/20 dark:bg-stone-500/[.03]" : "border-stone-200 bg-white hover:border-stone-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"}`} style={highlightId === task.id ? { boxShadow: "0 0 0 2px var(--section-accent)", borderColor: "var(--section-accent)" } : undefined}>
                   <div className="flex items-center gap-3 px-4 py-3">
                     {/* Checkbox */}
                     <button onClick={() => toggle.mutate(task)}
@@ -773,7 +773,7 @@ export function TasksPage() {
                     const assigneeName = getMemberName(task);
                     const sm = STATUS_META[task.status ?? "todo"] ?? STATUS_META["todo"]!;
                     return (
-                      <tr key={task.id} id={`task-${task.id}`} className="group bg-white hover:bg-[#f9fafb] dark:bg-transparent dark:hover:bg-[var(--surface-hover)] transition-colors" style={highlightId === task.id ? { boxShadow: "inset 2px 0 0 0 var(--accent)", background: "color-mix(in srgb, var(--accent) 7%, transparent)" } : undefined}>
+                      <tr key={task.id} id={`task-${task.id}`} className="group bg-white hover:bg-[#f9fafb] dark:bg-transparent dark:hover:bg-[var(--surface-hover)] transition-colors" style={highlightId === task.id ? { boxShadow: "inset 2px 0 0 0 var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 7%, transparent)" } : undefined}>
                         <td className="px-4 py-3 w-8">
                           <button onClick={() => toggle.mutate(task)}
                             className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : "border-stone-300 hover:border-stone-400 dark:border-[var(--border-soft)] dark:hover:border-[var(--border-soft)]"}`}>

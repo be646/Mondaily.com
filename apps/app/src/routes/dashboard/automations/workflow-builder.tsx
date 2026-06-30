@@ -476,7 +476,7 @@ export function WorkflowBuilderPage() {
           </h1>
         )}
 
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider" style={{ color: status === "active" ? "var(--accent)" : "var(--text-faint)" }}>
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-wider" style={{ color: status === "active" ? "var(--section-accent)" : "var(--text-faint)" }}>
           [ STATE: {status === "active" ? "ACTIVE" : "UN-DEPLOYED"} ]
         </span>
 

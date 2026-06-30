@@ -48,8 +48,8 @@ const VERDICT: Record<Verdict, { label: string; color: string; bg: string }> = {
   inactive: { label: "⚠ INACTIVE OPERATOR", color: "#fb923c", bg: "rgba(251,146,60,0.10)" },
   bot: { label: "⚠ ANOMALOUS AUTOMATION / BOT DETECTED", color: "#f87171", bg: "rgba(248,113,113,0.12)" },
   low_engagement: { label: "• LOW ENGAGEMENT", color: "#fbbf24", bg: "rgba(251,191,36,0.10)" },
-  high_complexity: { label: "✓ HIGH-COMPLEXITY DEEP-WORK", color: "var(--accent)", bg: "color-mix(in srgb, var(--accent) 12%, transparent)" },
-  engaged: { label: "✓ HIGH-ENGAGEMENT EXECUTION", color: "var(--accent)", bg: "color-mix(in srgb, var(--accent) 12%, transparent)" },
+  high_complexity: { label: "✓ HIGH-COMPLEXITY DEEP-WORK", color: "var(--section-accent)", bg: "color-mix(in srgb, var(--section-accent) 12%, transparent)" },
+  engaged: { label: "✓ HIGH-ENGAGEMENT EXECUTION", color: "var(--section-accent)", bg: "color-mix(in srgb, var(--section-accent) 12%, transparent)" },
   idle: { label: "• STANDBY", color: "#71717a", bg: "rgba(113,113,122,0.10)" },
 };
 
@@ -96,7 +96,7 @@ export function TeamOversightPage() {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center px-6 py-24 text-center font-mono">
         <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-sm border border-zinc-800 bg-zinc-900">
-          <Lock size={20} style={{ color: "var(--accent)" }} />
+          <Lock size={20} style={{ color: "var(--section-accent)" }} />
         </span>
         <h1 className="text-lg font-semibold text-zinc-100">Manager access only</h1>
         <p className="mt-2 text-[13px] text-zinc-500">
@@ -115,7 +115,7 @@ export function TeamOversightPage() {
         {/* ── Header / readiness banner ── */}
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// ABI · Autonomous Behavioral Intelligence</p>
+            <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// ABI · Autonomous Behavioral Intelligence</p>
             <h1 className="mt-1 text-xl font-semibold text-zinc-100">Operational Readiness Matrix</h1>
           </div>
           {totals && (
@@ -171,7 +171,7 @@ export function TeamOversightPage() {
                   </div>
                   {/* compute velocity */}
                   <div className="text-[12px] tabular-nums">
-                    <span style={{ color: "var(--accent)" }}>{fmt(op.tokens)}</span>
+                    <span style={{ color: "var(--section-accent)" }}>{fmt(op.tokens)}</span>
                     <span className="text-zinc-600"> tok · {op.runs} runs</span>
                   </div>
                   {/* behavioral evaluation */}
@@ -242,8 +242,8 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
               ))}
             </div>
             <div className="mt-2 space-y-0.5 text-[10px] text-zinc-600">
-              <div>PoW crypto claim: {op.verified_pow ? <span style={{ color: "var(--accent)" }}>VERIFIED ✓</span> : <span className="text-orange-400">NONE</span>}</div>
-              <div>Native session: {op.has_session ? <span style={{ color: "var(--accent)" }}>ACTIVE ✓</span> : <span className="text-zinc-500">offline</span>}</div>
+              <div>PoW crypto claim: {op.verified_pow ? <span style={{ color: "var(--section-accent)" }}>VERIFIED ✓</span> : <span className="text-orange-400">NONE</span>}</div>
+              <div>Native session: {op.has_session ? <span style={{ color: "var(--section-accent)" }}>ACTIVE ✓</span> : <span className="text-zinc-500">offline</span>}</div>
             </div>
           </section>
 

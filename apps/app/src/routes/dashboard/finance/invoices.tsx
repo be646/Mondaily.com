@@ -130,7 +130,7 @@ export function InvoicesPage() {
               <CheckCircle size={12} className="text-emerald-400"/>
               <span className="text-[11px] text-stone-500">Collected</span>
             </div>
-            <div className="font-mono text-[18px] font-semibold tabular-nums" style={{ color: "var(--accent)" }}>{formatCurrency(totalPaid, "GBP")}</div>
+            <div className="font-mono text-[18px] font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{formatCurrency(totalPaid, "GBP")}</div>
           </div>
         </div>
 

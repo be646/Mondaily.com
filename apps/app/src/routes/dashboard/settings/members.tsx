@@ -77,7 +77,7 @@ export function MembersSettings() {
         </div>
       )}
       <div className="mb-5">
-        <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// TEAM OPERATORS</p>
+        <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// TEAM OPERATORS</p>
         <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Members &amp; Roles</h1>
         <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>{members.length} operator{members.length === 1 ? "" : "s"} · workspace access, finance permissions, and AI compute.</p>
       </div>
@@ -151,7 +151,7 @@ export function MembersSettings() {
                     )}
                   </td>
                   <td className="py-3 text-right">
-                    <span className="inline-flex items-center gap-1 tabular-nums text-[12px]" style={{ color: (m?.tokens ?? 0) > 0 ? "var(--accent)" : "#52525b" }}>
+                    <span className="inline-flex items-center gap-1 tabular-nums text-[12px]" style={{ color: (m?.tokens ?? 0) > 0 ? "var(--section-accent)" : "#52525b" }}>
                       <Cpu size={11} /> {fmt(m?.tokens ?? 0)}
                     </span>
                   </td>

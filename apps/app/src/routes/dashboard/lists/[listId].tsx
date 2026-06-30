@@ -445,7 +445,7 @@ export function ListPage() {
                             </span>
                             <span className="truncate">{memberLabel(m)}</span>
                             {m.role && <span className="text-[9px] capitalize" style={{ color: "var(--text-faint)" }}>{m.role}</span>}
-                            {isShared && <span className="ml-auto text-[10px]" style={{ color: "var(--accent)" }}>shared</span>}
+                            {isShared && <span className="ml-auto text-[10px]" style={{ color: "var(--section-accent)" }}>shared</span>}
                           </button>
                         );
                       })}
@@ -537,7 +537,7 @@ export function ListPage() {
           <PageSkeleton rows={6} />
         ) : isEmpty ? (
           <div className="flex flex-col items-center justify-center gap-6 border-y py-24 text-center" style={{ borderColor: "var(--border-soft)" }}>
-            <div className="flex h-12 w-12 items-center justify-center rounded-sm" style={{ background: "var(--surface-hover)", color: "var(--accent)" }}>
+            <div className="flex h-12 w-12 items-center justify-center rounded-sm" style={{ background: "var(--surface-hover)", color: "var(--section-accent)" }}>
               <LogoMark size={24} />
             </div>
             <div>
@@ -907,7 +907,7 @@ export function ListPage() {
                 <button
                   onClick={enrollInSequence}
                   disabled={enrolling}
-                  className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-600 hover:border-[var(--accent)] transition-colors disabled:opacity-40"
+                  className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-600 hover:border-[var(--section-accent)] transition-colors disabled:opacity-40"
                 >
                   {enrolling ? <><Loader2 size={12} className="animate-spin" /> Enrolling…</> : <><Mail size={12} /> Enroll {records.length} records</>}
                 </button>
@@ -915,7 +915,7 @@ export function ListPage() {
               {enrollStep === "done" && (
                 <button
                   onClick={() => setEnrollOpen(false)}
-                  className="rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-600 hover:border-[var(--accent)] transition-colors"
+                  className="rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-600 hover:border-[var(--section-accent)] transition-colors"
                 >
                   Done
                 </button>

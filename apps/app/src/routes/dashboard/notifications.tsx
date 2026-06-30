@@ -73,7 +73,7 @@ export function NotificationsPage() {
         {/* Header */}
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// SIGNAL FEED</p>
+            <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// SIGNAL FEED</p>
             <h1 className="mt-1 text-xl font-semibold text-zinc-100">Notifications</h1>
             <p className="mt-0.5 text-[11px] text-zinc-600">{unread > 0 ? `${unread} unread · live` : "all caught up · live"}</p>
           </div>
@@ -96,7 +96,7 @@ export function NotificationsPage() {
               onClick={() => setFilter(f)}
               className="rounded-lg border px-3 py-1.5 text-[11px] uppercase tracking-wide transition-colors"
               style={filter === f
-                ? { borderColor: "var(--accent)", color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 10%, transparent)" }
+                ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 10%, transparent)" }
                 : { borderColor: "#27272a", color: "#71717a" }}
             >
               {f === "all" ? "All" : `Unread · ${unread}`}
@@ -142,7 +142,7 @@ export function NotificationsPage() {
                 >
                   {isRisk && !n.is_read
                     ? <ShieldAlert size={14} className="mt-1 shrink-0 text-amber-400" />
-                    : <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: !n.is_read ? "var(--accent)" : "transparent" }} />}
+                    : <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: !n.is_read ? "var(--section-accent)" : "transparent" }} />}
 
                   <button className="min-w-0 flex-1 text-left" onClick={() => handleClick(n)}>
                     <div className="flex items-center gap-2">

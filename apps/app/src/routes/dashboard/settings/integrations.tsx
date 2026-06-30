@@ -35,7 +35,7 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
       onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
       className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-2.5 py-1.5 text-xs text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
     >
-      {copied ? <Check size={12} style={{ color: "var(--accent)" }} /> : <Copy size={12} />}
+      {copied ? <Check size={12} style={{ color: "var(--section-accent)" }} /> : <Copy size={12} />}
       <span className="font-mono">{label ?? (copied ? "COPIED ✓" : "COPY")}</span>
     </button>
   );
@@ -166,7 +166,7 @@ export function IntegrationsSettings() {
                   <tr key={key.id} className="border-b border-[var(--border-soft)] last:border-0 hover:bg-[var(--surface-hover)] transition-colors">
                     <td className="px-4 py-3 font-medium text-stone-200">
                       {key.name}
-                      <div className="mt-0.5 font-mono text-[9px] uppercase tracking-wider" style={{ color: "var(--accent)" }}>[ STATE: ACTIVE · LATENCY: 0MS ]</div>
+                      <div className="mt-0.5 font-mono text-[9px] uppercase tracking-wider" style={{ color: "var(--section-accent)" }}>[ STATE: ACTIVE · LATENCY: 0MS ]</div>
                     </td>
                     <td className="px-4 py-3"><code className="font-mono text-xs text-stone-600">{key.prefix}••••••••</code></td>
                     <td className="px-4 py-3 text-stone-600">{key.created_at ? new Date(key.created_at).toLocaleDateString() : "Recently"}</td>

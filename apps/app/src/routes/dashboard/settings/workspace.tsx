@@ -128,7 +128,7 @@ function GeneralSection({
         <button onClick={() => save.mutate()} disabled={save.isPending}
           className={`flex items-center gap-2 rounded-sm px-5 py-2.5 text-[12px] font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50 ${
             saved
-              ? "border border-[var(--accent)] bg-stone-700"
+              ? "border border-[var(--section-accent)] bg-stone-700"
               : "border border-stone-500/30 bg-stone-600 hover:bg-stone-500"
           }`}>
           {saved ? <><Check size={13} /> Saved</> : save.isPending ? "Saving…" : "Save changes"}
@@ -178,7 +178,7 @@ function ModulesSection({
               style={{
                 // off-state must NOT match the row bg (surface-hover) or it vanishes — use a distinct
                 // track + border; on-state uses the sage accent.
-                background: enabled ? "var(--accent)" : "var(--surface-card)",
+                background: enabled ? "var(--section-accent)" : "var(--surface-card)",
                 borderColor: enabled ? "transparent" : "var(--border-strong, var(--border-soft))",
               }}
             >

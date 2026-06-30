@@ -145,7 +145,7 @@ export function SecuritySettings() {
             </button>
             <button className="rounded-sm border px-4 py-2 text-sm text-stone-400 transition-colors hover:text-[var(--text-primary)]"
               style={{ borderColor: "var(--border-soft)" }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--accent)")}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--section-accent)")}
               onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-soft)")}>
               Test SSO
             </button>
@@ -185,10 +185,10 @@ export function SecuritySettings() {
               </thead>
               <tbody>
                 {data.sessions.map(s => (
-                  <tr key={s.id} style={{ borderBottom: "1px solid var(--border-soft)", background: s.current ? "color-mix(in srgb, var(--accent) 5%, transparent)" : undefined }}>
+                  <tr key={s.id} style={{ borderBottom: "1px solid var(--border-soft)", background: s.current ? "color-mix(in srgb, var(--section-accent) 5%, transparent)" : undefined }}>
                     <td className="px-4 py-3">
                       <span className="text-stone-200">{s.device}</span>
-                      {s.current && <span className="ml-2 rounded-sm px-1.5 py-0.5 text-[9px] uppercase tracking-wide" style={{ background: "color-mix(in srgb, var(--accent) 14%, transparent)", color: "var(--accent)" }}>current</span>}
+                      {s.current && <span className="ml-2 rounded-sm px-1.5 py-0.5 text-[9px] uppercase tracking-wide" style={{ background: "color-mix(in srgb, var(--section-accent) 14%, transparent)", color: "var(--section-accent)" }}>current</span>}
                     </td>
                     <td className="px-4 py-3 text-stone-500">{s.browser ?? "Browser"}</td>
                     <td className="px-4 py-3 text-stone-500">{s.location}</td>

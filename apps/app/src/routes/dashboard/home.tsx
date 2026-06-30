@@ -584,8 +584,8 @@ export function HomePage() {
             <h2 className="text-[26px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {firstName || "there"}</h2>
             <p className="mt-1.5 text-[15px]" style={{ color: "var(--text-muted)" }}>What do you want to get done today?</p>
             <div className="mt-3 flex items-center gap-4">
-              <span className="status-line"><span className="live-dot" style={{ background: graphSynced ? "var(--accent)" : "#d97706" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
-              <span className="status-line"><span className="live-dot" style={{ background: sourcesChecked ? "var(--accent)" : "#d97706" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+              <span className="status-line"><span className="live-dot" style={{ background: graphSynced ? "var(--section-accent)" : "#d97706" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
+              <span className="status-line"><span className="live-dot" style={{ background: sourcesChecked ? "var(--section-accent)" : "#d97706" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
             </div>
           </div>
         )}
@@ -646,10 +646,10 @@ export function HomePage() {
                         )}
                         {!isStreaming && meta && (
                           <div className="flex items-center gap-1 mt-1.5 pl-3.5">
-                            <button onClick={() => copyMessage(m.content, i)} title="Copy" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: copiedIdx === i ? "var(--accent)" : "var(--text-faint)" }}>
+                            <button onClick={() => copyMessage(m.content, i)} title="Copy" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: copiedIdx === i ? "var(--section-accent)" : "var(--text-faint)" }}>
                               {copiedIdx === i ? <Check size={12}/> : <Copy size={12}/>}
                             </button>
-                            <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1, i)} title="Good response" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: feedbackGiven[i] === 1 ? "var(--accent)" : "var(--text-faint)" }}>
+                            <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1, i)} title="Good response" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: feedbackGiven[i] === 1 ? "var(--section-accent)" : "var(--text-faint)" }}>
                               <ThumbsUp size={12}/>
                             </button>
                             <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1, i)} title="Bad response" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: feedbackGiven[i] === -1 ? "var(--text-muted)" : "var(--text-faint)" }}>
@@ -730,7 +730,7 @@ export function HomePage() {
                     style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}
                   >
                     <span>{s}</span>
-                    <CornerDownLeft size={11} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--accent)" }}/>
+                    <CornerDownLeft size={11} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }}/>
                   </motion.button>
                 ))}
               </div>
@@ -791,7 +791,7 @@ export function HomePage() {
             <div className="mb-2 flex flex-wrap gap-1.5">
               {attachments.map(a => (
                 <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
-                  {a.kind === "file" ? <FileText size={11} style={{ color: "var(--accent)" }}/> : <Inbox size={11} style={{ color: "var(--accent)" }}/>}
+                  {a.kind === "file" ? <FileText size={11} style={{ color: "var(--section-accent)" }}/> : <Inbox size={11} style={{ color: "var(--section-accent)" }}/>}
                   <span className="max-w-[180px] truncate">{a.title}</span>
                   <button onClick={() => setAttachments(list => list.filter(x => x.id !== a.id))} title="Remove" style={{ color: "var(--text-faint)" }}><X size={11}/></button>
                 </span>
@@ -829,7 +829,7 @@ export function HomePage() {
             {voice.supported && (
               <button onClick={voice.toggle} title={voice.listening ? "Stop dictation" : "Dictate"}
                 className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${voice.listening ? "animate-pulse" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
-                style={{ color: voice.listening ? "var(--accent)" : "var(--text-muted)" }}>
+                style={{ color: voice.listening ? "var(--section-accent)" : "var(--text-muted)" }}>
                 <Mic size={15}/>
               </button>
             )}
@@ -838,9 +838,9 @@ export function HomePage() {
               title={loading ? "Stop generating" : "Send"}
               className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-150 disabled:cursor-not-allowed"
               style={loading
-                ? { background: "var(--surface-selected)", color: "var(--accent)", border: "1px solid var(--accent)" }
+                ? { background: "var(--surface-selected)", color: "var(--section-accent)", border: "1px solid var(--section-accent)" }
                 : input.trim()
-                  ? { background: "var(--surface-selected)", color: "var(--accent)", border: "1px solid var(--accent)" }
+                  ? { background: "var(--surface-selected)", color: "var(--section-accent)", border: "1px solid var(--section-accent)" }
                   : { background: "var(--surface-hover)", color: "var(--text-faint)" }}>
               {loading ? <Square size={13} strokeWidth={3} fill="currentColor"/> : <ArrowUp size={17} strokeWidth={2.5}/>}
             </button>
@@ -893,9 +893,9 @@ export function HomePage() {
               <button key={s.label} onClick={() => sendSuggestion(s.prompt)}
                 className="group flex items-start gap-3 rounded-sm border px-4 py-3 text-left transition-colors"
                 style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--accent)"; }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--section-accent)"; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; }}>
-                <s.Icon size={18} className="mt-0.5 shrink-0" style={{ color: "var(--accent)" }}/>
+                <s.Icon size={18} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }}/>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</span>
                   <span className="block text-[12.5px]" style={{ color: "var(--text-muted)" }}>{s.sub}</span>
@@ -913,7 +913,7 @@ export function HomePage() {
           and actions; this wrapper only gives the page a clearer hierarchy. ── */}
       <section className="home-section home-operating-picture">
         <div className="mb-4 flex items-center gap-2">
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--accent)" }} />
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--section-accent)" }} />
           <p className="home-section-kicker !mb-0">Live operations</p>
         </div>
         {/* Agents lead — the AI command center is the centerpiece, with the

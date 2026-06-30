@@ -218,19 +218,19 @@ export function AccountSettings() {
   return (
     <div className="space-y-5">
       <div className="mb-1">
-        <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// OPERATOR PROFILE</p>
+        <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// OPERATOR PROFILE</p>
         <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Account</h1>
         <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>Your profile, AI personalization, preferences, and personal security.</p>
       </div>
 
       {/* ── Hero identity card ── */}
       <div className="relative overflow-hidden rounded-sm border p-6"
-        style={{ borderColor: "color-mix(in srgb, var(--accent) 25%, var(--border-soft))", background: "linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--surface-card)) 0%, var(--surface-card) 55%)" }}>
+        style={{ borderColor: "color-mix(in srgb, var(--section-accent) 25%, var(--border-soft))", background: "linear-gradient(135deg, color-mix(in srgb, var(--section-accent) 10%, var(--surface-card)) 0%, var(--surface-card) 55%)" }}>
         {/* glow */}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full" style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%)" }} />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full" style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--section-accent) 22%, transparent), transparent 70%)" }} />
         <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
           <div className="relative shrink-0">
-            <img src={me.imageUrl ?? undefined} alt="" className="h-20 w-20 rounded-sm object-cover ring-2" style={{ boxShadow: "0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent)" }} />
+            <img src={me.imageUrl ?? undefined} alt="" className="h-20 w-20 rounded-sm object-cover ring-2" style={{ boxShadow: "0 0 0 2px color-mix(in srgb, var(--section-accent) 35%, transparent)" }} />
             <button onClick={() => fileRef.current?.click()} className="absolute -bottom-1.5 -right-1.5 grid h-7 w-7 place-items-center rounded-full border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
               <Camera size={12} />
             </button>
@@ -239,7 +239,7 @@ export function AccountSettings() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>{me.name || "Operator"}</h2>
-              <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 14%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 40%, transparent)" }}>Verified ✓</span>
+              <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 14%, transparent)", border: "1px solid color-mix(in srgb, var(--section-accent) 40%, transparent)" }}>Verified ✓</span>
             </div>
             <p className="mt-0.5 text-[12.5px] text-stone-500">{me.email}</p>
             {jobTitle && <p className="text-[12px] text-stone-600">{jobTitle}</p>}
@@ -252,7 +252,7 @@ export function AccountSettings() {
             ] as const).map(([label, value]) => (
               <div key={label} className="rounded-sm border px-3.5 py-2.5 text-center" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-card) 60%, transparent)" }}>
                 <div className="text-[8.5px] uppercase tracking-widest text-stone-500">{label}</div>
-                <div className="mt-0.5 text-[15px] font-semibold tabular-nums" style={{ color: "var(--accent)" }}>{value}</div>
+                <div className="mt-0.5 text-[15px] font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{value}</div>
               </div>
             ))}
           </div>
@@ -311,7 +311,7 @@ export function AccountSettings() {
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Address me as</span>
               <div className="flex h-9 items-center rounded-sm border px-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-input)" }}>
-                <span className="mr-1.5 font-mono text-sm" style={{ color: "var(--accent)" }}>&gt;</span>
+                <span className="mr-1.5 font-mono text-sm" style={{ color: "var(--section-accent)" }}>&gt;</span>
                 <input value={aiAddress} onChange={e => setAiAddress(e.target.value)} placeholder={me.name?.split(" ")[0] || "first_name"} className="h-full flex-1 bg-transparent font-mono text-sm outline-none" style={{ color: "var(--text-primary)" }} />
               </div>
             </label>
@@ -356,8 +356,8 @@ export function AccountSettings() {
                   onClick={() => setAppearance(t.id)}
                   className="group relative flex flex-col gap-2.5 rounded-sm border p-3 text-left transition-all"
                   style={{
-                    borderColor: active ? "var(--accent)" : "var(--border-soft)",
-                    background: active ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
+                    borderColor: active ? "var(--section-accent)" : "var(--border-soft)",
+                    background: active ? "color-mix(in srgb, var(--section-accent) 8%, transparent)" : "transparent",
                   }}
                 >
                   {/* mini canvas preview built from the theme's own swatch */}
@@ -371,7 +371,7 @@ export function AccountSettings() {
                     <span className="text-xs font-medium text-[var(--text-primary)]">{t.label}</span>
                     <p className="mt-0.5 text-[10.5px] leading-tight text-stone-500">{t.blurb}</p>
                   </div>
-                  {active && <Check size={11} className="absolute right-2 top-2" style={{ color: "var(--accent)" }} />}
+                  {active && <Check size={11} className="absolute right-2 top-2" style={{ color: "var(--section-accent)" }} />}
                 </button>
               );
             })}
@@ -386,12 +386,12 @@ export function AccountSettings() {
                   onClick={() => chooseBtnStyle(s)}
                   className="flex items-center justify-between gap-3 rounded-sm border px-4 py-3 transition-all"
                   style={{
-                    borderColor: btnStyle === s ? "var(--accent)" : "var(--border-soft)",
-                    background: btnStyle === s ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "transparent",
+                    borderColor: btnStyle === s ? "var(--section-accent)" : "var(--border-soft)",
+                    background: btnStyle === s ? "color-mix(in srgb, var(--section-accent) 8%, transparent)" : "transparent",
                   }}
                 >
                   <span className="text-xs font-medium text-stone-300">{label}</span>
-                  <span className="inline-flex h-6 items-center rounded-lg px-3 text-[11px] font-medium text-white" style={{ background: s === "accent" ? "var(--accent)" : "#18181b" }}>Save</span>
+                  <span className="inline-flex h-6 items-center rounded-lg px-3 text-[11px] font-medium text-white" style={{ background: s === "accent" ? "var(--section-accent)" : "#18181b" }}>Save</span>
                 </button>
               ))}
             </div>
@@ -448,7 +448,7 @@ export function AccountSettings() {
                 {account ? (
                   <button onClick={() => disconnect.mutate(account.id)} className="font-mono text-[10.5px] uppercase tracking-wider text-stone-500 transition-colors hover:text-rose-400">[ TERMINATE LINK ]</button>
                 ) : (
-                  <button onClick={() => connect(provider)} className="rounded-sm border px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-wider text-stone-400 transition-colors hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }} onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--accent)")} onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-soft)")}>[ ESTABLISH SECURE HANDSHAKE ]</button>
+                  <button onClick={() => connect(provider)} className="rounded-sm border px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-wider text-stone-400 transition-colors hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }} onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--section-accent)")} onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-soft)")}>[ ESTABLISH SECURE HANDSHAKE ]</button>
                 )}
               </div>
             );
@@ -533,7 +533,7 @@ export function AccountSettings() {
           disabled={save.isPending}
           className={`flex items-center gap-2 rounded-sm px-5 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50 ${
             saved
-              ? "border border-[var(--accent)] bg-stone-700"
+              ? "border border-[var(--section-accent)] bg-stone-700"
               : "border border-stone-500/30 bg-stone-600 hover:bg-stone-500"
           }`}
         >

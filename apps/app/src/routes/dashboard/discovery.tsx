@@ -130,7 +130,7 @@ export function DiscoveryPage() {
               disabled={run.isPending || reviewsMissingSubject}
               className="inline-flex items-center gap-2 rounded-sm border px-4 py-2 text-[12.5px] font-medium text-white transition-colors disabled:opacity-50"
               style={{ background: "#18181b", borderColor: "var(--border-strong)" }}
-              onMouseEnter={e => { if (!run.isPending) e.currentTarget.style.borderColor = "var(--accent)"; }}
+              onMouseEnter={e => { if (!run.isPending) e.currentTarget.style.borderColor = "var(--section-accent)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; }}
             >
               {run.isPending ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}

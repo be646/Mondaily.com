@@ -143,7 +143,7 @@ interface Automation {
 function StatusBadge({ status }: { status: string }) {
   // Surgical text-only state claim (no bubble fill) — emerald for active, muted for the rest.
   const label: Record<string, string> = { active: "ACTIVE", draft: "UN-DEPLOYED", paused: "PAUSED", archived: "ARCHIVED" };
-  const color = status === "active" ? "var(--accent)" : status === "paused" ? "#fbbf24" : "var(--text-faint)";
+  const color = status === "active" ? "var(--section-accent)" : status === "paused" ? "#fbbf24" : "var(--text-faint)";
   return (
     <span className="font-mono text-[10px] font-semibold uppercase tracking-wider" style={{ color }}>
       [ STATE: {label[status] ?? "UN-DEPLOYED"} ]

@@ -745,7 +745,7 @@ export function ObjectIndexPage() {
           </button>
           <button
             onClick={() => setShowAIFill(true)}
-            className="flex items-center gap-1.5 rounded-md border border-stone-300 bg-stone-100 px-2.5 py-1.5 text-[11px] font-medium text-[var(--accent)] transition-all hover:bg-stone-200 dark:border-stone-500/30 dark:bg-stone-500/8 dark:text-stone-400 dark:hover:border-stone-500/50 dark:hover:bg-stone-500/15 dark:hover:text-stone-300"
+            className="flex items-center gap-1.5 rounded-md border border-stone-300 bg-stone-100 px-2.5 py-1.5 text-[11px] font-medium text-[var(--section-accent)] transition-all hover:bg-stone-200 dark:border-stone-500/30 dark:bg-stone-500/8 dark:text-stone-400 dark:hover:border-stone-500/50 dark:hover:bg-stone-500/15 dark:hover:text-stone-300"
           >
             <AIMark size={11}/> Fill
           </button>
@@ -818,7 +818,7 @@ export function ObjectIndexPage() {
             <div className="text-center space-y-2 max-w-sm">
               <div className="flex justify-center mb-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-stone-100 border border-stone-300 dark:bg-stone-500/10 dark:border-stone-500/20">
-                  <LogoMark size={22} className="text-[var(--accent)] dark:text-stone-400"/>
+                  <LogoMark size={22} className="text-[var(--section-accent)] dark:text-stone-400"/>
                 </div>
               </div>
               <h3 className="text-[15px] font-semibold text-[#111827] dark:text-[var(--text-primary)] capitalize">
@@ -831,7 +831,7 @@ export function ObjectIndexPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowAIFill(true)}
-                className="flex items-center gap-2 rounded-lg border border-stone-300 bg-stone-100 px-5 py-2.5 text-[12px] font-semibold text-[var(--accent)] hover:bg-stone-200 dark:border-stone-400/40 dark:bg-stone-500 dark:text-[var(--text-primary)] dark:hover:bg-stone-400 transition-all"
+                className="flex items-center gap-2 rounded-lg border border-stone-300 bg-stone-100 px-5 py-2.5 text-[12px] font-semibold text-[var(--section-accent)] hover:bg-stone-200 dark:border-stone-400/40 dark:bg-stone-500 dark:text-[var(--text-primary)] dark:hover:bg-stone-400 transition-all"
               >
                 <AIMark size={13}/> Fill
               </button>

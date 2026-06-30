@@ -99,7 +99,7 @@ export function DecisionsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 font-mono sm:px-6">
       <div className="mb-5">
-        <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// AUTONOMOUS MISSION DECK · live</p>
+        <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// AUTONOMOUS MISSION DECK · live</p>
         <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Decision Deck</h1>
         <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>Your agents' proposed actions. Pick one on the left; review and approve its full impact on the right.</p>
       </div>
@@ -117,7 +117,7 @@ export function DecisionsPage() {
                 const on = riskFilter === s.k;
                 return (
                   <button key={s.l} onClick={() => setRiskFilter(s.k)} className="flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs transition-colors"
-                    style={on ? { background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" } : { color: "var(--text-muted)" }}>
+                    style={on ? { background: "color-mix(in srgb, var(--section-accent) 12%, transparent)", color: "var(--section-accent)" } : { color: "var(--text-muted)" }}>
                     {s.k && <span className="h-1.5 w-1.5 rounded-full" style={{ background: RISK_DOT[s.k] }} />}{s.l}<span className="tabular-nums opacity-60">{s.n}</span>
                   </button>
                 );
@@ -144,7 +144,7 @@ export function DecisionsPage() {
                       initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2 }} onClick={() => setSelectedId(d.id)}
                       className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors"
-                      style={{ borderTop: i > 0 ? "1px solid var(--border-soft)" : undefined, borderLeft: `2px solid ${on ? RISK_DOT[d.risk_level] : "transparent"}`, background: on ? "color-mix(in srgb, var(--accent) 7%, transparent)" : "transparent" }}>
+                      style={{ borderTop: i > 0 ? "1px solid var(--border-soft)" : undefined, borderLeft: `2px solid ${on ? RISK_DOT[d.risk_level] : "transparent"}`, background: on ? "color-mix(in srgb, var(--section-accent) 7%, transparent)" : "transparent" }}>
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: RISK_DOT[d.risk_level] }} title={`${d.risk_level} risk`} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{d.title}</p>
@@ -203,12 +203,12 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
       <div className="flex-1 space-y-5 overflow-y-auto p-6">
         {/* header */}
         <div className="flex items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
-            <a.Icon size={17} style={{ color: "var(--accent)" }} />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm" style={{ background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}>
+            <a.Icon size={17} style={{ color: "var(--section-accent)" }} />
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium" style={{ color: "var(--accent)" }}>{a.name}</span>
+              <span className="text-[11px] font-medium" style={{ color: "var(--section-accent)" }}>{a.name}</span>
               <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: `${RISK_DOT[d.risk_level]}1a`, color: RISK_DOT[d.risk_level] }}>
                 {d.risk_level === "high" && <ShieldAlert size={10} />} {d.risk_level} risk
               </span>
@@ -219,9 +219,9 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
         </div>
 
         {/* Proposed transformation widget — real target · real current → real proposed action */}
-        <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--accent) 3%, transparent)" }}>
+        <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--section-accent) 3%, transparent)" }}>
           <div className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-            <Zap size={12} style={{ color: "var(--accent)" }} /> Proposed transformation
+            <Zap size={12} style={{ color: "var(--section-accent)" }} /> Proposed transformation
           </div>
           {target?.node_id && (
             <Link to={`/objects/${encodeURIComponent(target.object_type ?? "deals")}/${target.node_id}`} className="mb-3 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11.5px] transition-colors hover:-translate-y-px" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
@@ -261,7 +261,7 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
 
       {/* action bar — tactical slate triggers, emerald/crimson border pulse on hover */}
       <div className="flex flex-wrap items-center gap-2 border-t p-4" style={{ borderColor: "var(--border-soft)" }}>
-        <ActionBtn label="[ APPROVE AND COMMIT SYSTEM CLAIM ]" Icon={CheckCircle2} loading={busy && acting?.action === "approve"} disabled={busy} onClick={() => onResolve(d, "approve")} hoverColor="var(--accent)" />
+        <ActionBtn label="[ APPROVE AND COMMIT SYSTEM CLAIM ]" Icon={CheckCircle2} loading={busy && acting?.action === "approve"} disabled={busy} onClick={() => onResolve(d, "approve")} hoverColor="var(--section-accent)" />
         <ActionBtn label="[ REJECT MISSION PROTOCOL ]" Icon={XCircle} loading={busy && acting?.action === "reject"} disabled={busy} onClick={() => onResolve(d, "reject")} hoverColor="#f43f5e" />
         <ActionBtn label="[ SNOOZE ]" Icon={Clock} loading={busy && acting?.action === "snooze"} disabled={busy} onClick={() => onResolve(d, "snooze")} />
       </div>

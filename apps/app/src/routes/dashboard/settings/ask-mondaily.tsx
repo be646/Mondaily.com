@@ -133,11 +133,11 @@ export function AskMondailySettings() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
       <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-sm" style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)" }}>
-          <LogoMark size={18} style={{ color: "var(--accent)" }}/>
+        <div className="flex h-9 w-9 items-center justify-center rounded-sm" style={{ background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}>
+          <LogoMark size={18} style={{ color: "var(--section-accent)" }}/>
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// ASK MONDAILY</p>
+          <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// ASK MONDAILY</p>
           <p className="text-xs text-stone-500">Model, behavior, privacy, and conversation history for the AI console.</p>
         </div>
       </div>
@@ -196,7 +196,7 @@ export function AskMondailySettings() {
             <span className="text-[var(--text-primary)] font-medium">{usedCredits} / {creditLimit}</span>
           </div>
           <div className="h-1.5 w-full rounded-full bg-[var(--surface-hover)]">
-            <div className="h-1.5 rounded-full transition-all" style={{ width: `${creditPct}%`, background: "var(--accent)" }}/>
+            <div className="h-1.5 rounded-full transition-all" style={{ width: `${creditPct}%`, background: "var(--section-accent)" }}/>
           </div>
           <p className="mt-3 text-xs text-stone-600">Each message you send uses 1 credit. Workspace credits and higher limits available with Pro plan.</p>
         </div>

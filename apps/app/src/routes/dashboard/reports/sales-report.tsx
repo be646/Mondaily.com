@@ -536,7 +536,7 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
     if (!insights) return;
     const cards = insights.map(ins => {
       const cat = ins.category as Cat;
-      const colors: Record<Cat, string> = { performance:"#059669", opportunity:"#2563eb", risk:"#dc2626", summary:"var(--accent)" };
+      const colors: Record<Cat, string> = { performance:"#059669", opportunity:"#2563eb", risk:"#dc2626", summary:"var(--section-accent)" };
       const c = colors[cat] ?? colors.summary;
       return `<div style="border:1px solid #e5e7eb;border-radius:10px;padding:16px 18px;break-inside:avoid">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${c};margin-bottom:4px">${ins.category}</div>
@@ -1068,7 +1068,7 @@ export function SalesReportPage() {
     .num { text-align: right; font-variant-numeric: tabular-nums; }
     .bar-cell { width: 100px; }
     .bar-track { height: 5px; background: #f3f4f6; border-radius: 99px; overflow: hidden; }
-    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent)); border-radius: 99px; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--section-accent), var(--section-accent)); border-radius: 99px; }
     .tfoot td { font-weight: 700; font-size: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb; border-bottom: none; }
     /* Trend table */
     .trend-table th, .trend-table td { padding: 7px 10px; }
@@ -1266,7 +1266,7 @@ export function SalesReportPage() {
                 />
                 <button onClick={() => { if (presetName.trim()) savePreset(presetName.trim()); }}
                   disabled={!presetName.trim()}
-                  className="h-6 rounded-sm border border-stone-500/30 bg-stone-700 px-2 text-[10px] text-[var(--text-primary)] transition-colors hover:bg-stone-600 hover:border-[var(--accent)] disabled:opacity-40">
+                  className="h-6 rounded-sm border border-stone-500/30 bg-stone-700 px-2 text-[10px] text-[var(--text-primary)] transition-colors hover:bg-stone-600 hover:border-[var(--section-accent)] disabled:opacity-40">
                   Save
                 </button>
                 <button onClick={() => { setSavingPreset(false); setPresetName(""); }} className="text-stone-600 hover:text-[var(--text-primary)] transition-colors"><X size={11}/></button>
@@ -1406,7 +1406,7 @@ export function SalesReportPage() {
                 label={hasStage ? "Open / Active" : "All Time"}
                 value={fmtNum(hasStage ? stats.openCount : records.length)}
                 sub={hasStage ? "in pipeline" : "records total"}
-                color="border-[var(--accent)]/20 bg-[var(--accent)]/[.06] text-[var(--accent)]"
+                color="border-[var(--section-accent)]/20 bg-[var(--section-accent)]/[.06] text-[var(--section-accent)]"
               />
             </div>
 
@@ -1509,7 +1509,7 @@ export function SalesReportPage() {
                 { bar: "from-stone-500 to-blue-400",   badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
                 { bar: "from-teal-500 to-emerald-400",  badge: "bg-teal-500/15 text-teal-300 border-teal-500/20" },
                 { bar: "from-orange-500 to-amber-400",  badge: "bg-orange-500/15 text-orange-300 border-orange-500/20" },
-                { bar: "from-cyan-500 to-sky-400",      badge: "bg-[var(--accent)]/15 text-[var(--accent)] border-[var(--accent)]/20" },
+                { bar: "from-cyan-500 to-sky-400",      badge: "bg-[var(--section-accent)]/15 text-[var(--section-accent)] border-[var(--section-accent)]/20" },
                 { bar: "from-fuchsia-500 to-stone-400",badge: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/20" },
               ];
               return (

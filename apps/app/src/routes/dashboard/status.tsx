@@ -40,7 +40,7 @@ const FEATURE_STATUS_META: Record<FeatureStatus, { label: string; color: string 
   live:                 { label: "Live",                 color: "#10b981" },
   partial:               { label: "Partial",              color: "#3b82f6" },
   needs_configuration:    { label: "Needs configuration",  color: "#d97706" },
-  planned:                { label: "Planned",              color: "var(--accent)" },
+  planned:                { label: "Planned",              color: "var(--section-accent)" },
   not_built:              { label: "Not built",            color: "var(--text-faint)" },
 };
 
@@ -80,7 +80,7 @@ interface ProjectLogResponse { available: boolean; reason?: string; updates: Pro
 const ROADMAP_TIERS: { key: string; label: string; tone: string }[] = [
   { key: "must_fix", label: "Must fix before clients", tone: "#dc2626" },
   { key: "should_improve", label: "Should improve", tone: "#d97706" },
-  { key: "future", label: "Future AI-native upgrades", tone: "var(--accent)" },
+  { key: "future", label: "Future AI-native upgrades", tone: "var(--section-accent)" },
 ];
 
 function useProjectLog() {
@@ -214,7 +214,7 @@ export function StatusPage() {
             {updates.map((u) => (
               <div key={u.id} className="stream-row">
                 <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--surface-selected)" }}>
-                  <LogoMark size={11} style={{ color: "var(--accent)" }}/>
+                  <LogoMark size={11} style={{ color: "var(--section-accent)" }}/>
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">

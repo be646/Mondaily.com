@@ -178,7 +178,7 @@ export function BillingSettings() {
           </div>
           <div className="grid gap-3 p-5 sm:grid-cols-2">
             {/* Personal */}
-            <div className="rounded-sm border p-4" style={{ borderColor: billing.plan === "free" ? "var(--accent)" : "var(--border-soft)", background: "var(--surface-card-2)" }}>
+            <div className="rounded-sm border p-4" style={{ borderColor: billing.plan === "free" ? "var(--section-accent)" : "var(--border-soft)", background: "var(--surface-card-2)" }}>
               <div className="text-[11px] uppercase tracking-widest text-stone-500">Personal</div>
               <div className="mt-1 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">$0<span className="text-sm text-stone-500"> /mo</span></div>
               <ul className="mt-3 space-y-1.5 text-[12px] text-stone-400">
@@ -187,12 +187,12 @@ export function BillingSettings() {
                 <li>· Solo operator</li>
               </ul>
               {billing.plan === "free"
-                ? <div className="mt-4 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--accent)" }}>✓ Current plan</div>
+                ? <div className="mt-4 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--section-accent)" }}>✓ Current plan</div>
                 : <div className="mt-4 text-[11px] text-stone-600">Included</div>}
             </div>
             {/* Business Pro */}
-            <div className="rounded-sm border p-4" style={{ borderColor: "var(--accent)", background: "var(--surface-card-2)" }}>
-              <div className="text-[11px] uppercase tracking-widest" style={{ color: "var(--accent)" }}>Business Pro</div>
+            <div className="rounded-sm border p-4" style={{ borderColor: "var(--section-accent)", background: "var(--surface-card-2)" }}>
+              <div className="text-[11px] uppercase tracking-widest" style={{ color: "var(--section-accent)" }}>Business Pro</div>
               <div className="mt-1 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">$49<span className="text-sm text-stone-500"> /mo</span></div>
               <ul className="mt-3 space-y-1.5 text-[12px] text-stone-400">
                 <li>· 500,000 AI credits / month</li>
@@ -202,9 +202,9 @@ export function BillingSettings() {
               </ul>
               <button onClick={() => { openBilling("free"); }} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-sm border py-2 text-[12px] font-semibold transition-colors"
                 style={{ background: "var(--surface-selected)", borderColor: "var(--border-strong)", color: "var(--text-primary)" }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--accent)")}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--section-accent)")}
                 onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-strong)")}>
-                <span style={{ color: "var(--accent)" }}>▸</span> Upgrade to Pro
+                <span style={{ color: "var(--section-accent)" }}>▸</span> Upgrade to Pro
               </button>
             </div>
           </div>
@@ -277,7 +277,7 @@ export function BillingSettings() {
               <span className="tabular-nums text-sm text-stone-400">{walletPct}%</span>
             </div>
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
-              <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#ef4444" : "var(--accent)" }} />
+              <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#ef4444" : "var(--section-accent)" }} />
             </div>
 
             {/* Pay-As-You-Go refill module + auto-refill toggle (Stripe stub) */}
@@ -305,7 +305,7 @@ export function BillingSettings() {
                   aria-checked={autoRefill}
                   onClick={toggleAutoRefill}
                   className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-                  style={{ background: autoRefill ? "var(--accent)" : "var(--surface-hover)" }}
+                  style={{ background: autoRefill ? "var(--section-accent)" : "var(--surface-hover)" }}
                 >
                   <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all" style={{ left: autoRefill ? "1.5rem" : "0.125rem" }} />
                 </button>

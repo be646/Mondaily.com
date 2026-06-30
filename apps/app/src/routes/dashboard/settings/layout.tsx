@@ -36,7 +36,7 @@ export function SettingsLayout() {
     <div className="flex h-full">
       {/* Sidebar nav */}
       <aside className={`w-full md:w-56 md:shrink-0 border-r border-[#e5e7eb] dark:border-[var(--border-soft)] px-3 py-6 ${!isRoot ? "hidden md:block" : "block"}`}>
-        <p className="mb-4 px-3 text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--accent)" }}>// Settings</p>
+        <p className="mb-4 px-3 text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// Settings</p>
         {GROUPS.map(group => (
           <div key={group.title} className="mb-4">
             <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-[#9ca3af] dark:text-stone-600">{group.title}</p>
