@@ -156,41 +156,46 @@ export function SecuritySettings() {
         </div>
       </section>
 
-      {/* ── Active Sessions ── */}
+      {/* ── Active Sessions — console matrix ── */}
       <section className="settings-section">
         <div className="settings-section-header">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><Smartphone size={14} /> Active sessions</h2>
           <button
             onClick={() => revokeAll.mutate()}
             disabled={revokeAll.isPending || data.sessions.filter(s => !s.current).length === 0}
-            className="text-xs text-stone-400 hover:text-stone-300 transition-colors disabled:opacity-40"
+            className="font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-40"
+            style={{ color: "#fb7185" }}
           >
-            {revokeAll.isPending ? "Revoking…" : "Revoke all other sessions"}
+            {revokeAll.isPending ? "[REVOKING…]" : "[REVOKE ALL OTHER]"}
           </button>
         </div>
         {data.sessions.length ? (
-          <div className="overflow-x-auto">
-            <table className="minimal-table min-w-[650px] text-left text-sm">
+          <div className="overflow-x-auto font-mono">
+            <table className="min-w-[650px] w-full text-left text-[12px]">
               <thead>
-                <tr className="border-b border-[var(--border-soft)] bg-[var(--surface-hover)]">
+                <tr style={{ borderBottom: "1px solid var(--border-soft)" }}>
                   {["Device", "Browser", "Location", "IP", "Last active", ""].map(h => (
-                    <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-600">{h}</th>
+                    <th key={h || "act"} className="px-4 py-2.5 text-[9px] font-semibold uppercase tracking-widest text-stone-600">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {data.sessions.map(s => (
-                  <tr key={s.id} className={`border-b border-[var(--border-soft)] last:border-0 ${s.current ? "bg-emerald-500/[.02]" : ""}`}>
-                    <td className="px-4 py-3.5">
+                  <tr key={s.id} style={{ borderBottom: "1px solid var(--border-soft)", background: s.current ? "color-mix(in srgb, var(--accent) 5%, transparent)" : undefined }}>
+                    <td className="px-4 py-3">
                       <span className="text-stone-200">{s.device}</span>
-                      {s.current && <span className="ml-2 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-400">Current</span>}
+                      {s.current && <span className="ml-2 rounded-sm px-1.5 py-0.5 text-[9px] uppercase tracking-wide" style={{ background: "color-mix(in srgb, var(--accent) 14%, transparent)", color: "var(--accent)" }}>current</span>}
                     </td>
-                    <td className="px-4 py-3.5 text-stone-600">{s.browser ?? "Browser"}</td>
-                    <td className="px-4 py-3.5 text-stone-600">{s.location}</td>
-                    <td className="px-4 py-3.5 text-stone-600">{s.ip ?? "Hidden"}</td>
-                    <td className="px-4 py-3.5 text-stone-600">{s.last_active ?? "Now"}</td>
-                    <td className="px-4 py-3.5 text-right">
-                      {!s.current && <button onClick={() => revoke.mutate(s.id)} className="text-xs text-stone-400 hover:text-stone-300 transition-colors">Revoke</button>}
+                    <td className="px-4 py-3 text-stone-500">{s.browser ?? "Browser"}</td>
+                    <td className="px-4 py-3 text-stone-500">{s.location}</td>
+                    <td className="px-4 py-3 tabular-nums text-stone-500">{s.ip ?? "Hidden"}</td>
+                    <td className="px-4 py-3 tabular-nums text-stone-500">{s.last_active ?? "Now"}</td>
+                    <td className="px-4 py-3 text-right">
+                      {!s.current && (
+                        <button onClick={() => revoke.mutate(s.id)} className="text-[10px] uppercase tracking-wider transition-colors hover:opacity-80" style={{ color: "#fb7185" }}>
+                          [REVOKE CLAIM]
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

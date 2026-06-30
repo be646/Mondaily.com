@@ -1113,7 +1113,7 @@ html[data-theme="dark"] .minimal-sparkline {
 /* ── Flat inputs and buttons (no 3D key effect) ─────────────────────────── */
 @layer components {
   .key-input {
-    @apply rounded-lg outline-none transition-all;
+    @apply rounded-sm outline-none transition-all; /* razor-sharp console corners */
     background: var(--surface-input);
     border: 1px solid var(--border-soft);
     color: var(--text-primary);
