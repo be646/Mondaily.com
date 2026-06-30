@@ -540,7 +540,11 @@ router.post("/settings/tax-codes", requireAuth, async (c) => {
   return c.json(newCode, 201);
 });
 router.post("/settings/integrations/mcp-token", async (c) => {
-  const token = `mcp_${crypto.randomUUID().replaceAll("-", "")}`;
+  // Mint a REAL HMAC-signed workspace token (msk_…) — the same minter the MCP server verifies, so
+  // the token this panel hands out actually authenticates external LLM clients (the old random
+  // `mcp_…` UUID was opaque and would never pass verifyMcpToken).
+  const { mintMcpToken } = await import("../lib/mcp-token");
+  const token = mintMcpToken(c.get("workspaceId"));
   await mergeWorkspaceSettings(c.get("workspaceId"), { mcp_token: token });
   return c.json({ token }, 201);
 });

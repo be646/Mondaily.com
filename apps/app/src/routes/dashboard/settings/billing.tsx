@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { CreditCard, Download, Zap, Users, Wallet, RefreshCw } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 
-interface CreditBalance { enrolled: boolean; balance: number; granted: number; used: number; account_tier: string; trial_ends_at: string | null }
+interface AutoRefill { enabled: boolean; threshold: number; amount_usd: number }
+interface CreditBalance { enrolled: boolean; balance: number; granted: number; used: number; account_tier: string; trial_ends_at: string | null; auto_refill?: AutoRefill }
 interface LedgerRow { id: string; amount: number; transaction_type: "grant" | "usage" | "purchase"; description: string | null; created_at: string }
 
 /** Open Stripe checkout (free plan → upgrade) or the customer portal (paying
@@ -64,7 +65,21 @@ export function BillingSettings() {
   const usageQuery = useQuery({ queryKey: ["ai-usage"], queryFn: () => apiClient.get<Usage>("/usage") });
   const balanceQuery = useQuery({ queryKey: ["credits-balance"], queryFn: () => apiClient.get<CreditBalance>("/credits/balance") });
   const ledgerQuery = useQuery({ queryKey: ["credits-ledger"], queryFn: () => apiClient.get<{ ledger: LedgerRow[] }>("/credits/ledger") });
+  const qc = useQueryClient();
   const [autoRefill, setAutoRefill] = useState(false);
+  // Hydrate the toggle from the persisted workspace policy once the balance loads.
+  useEffect(() => {
+    if (balanceQuery.data?.auto_refill) setAutoRefill(balanceQuery.data.auto_refill.enabled);
+  }, [balanceQuery.data?.auto_refill]);
+  const saveAutoRefill = useMutation({
+    mutationFn: (enabled: boolean) => apiClient.post("/credits/auto-refill", { enabled, threshold: 5000, amount_usd: 10 }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["credits-balance"] }),
+  });
+  function toggleAutoRefill() {
+    const next = !autoRefill;
+    setAutoRefill(next);            // optimistic
+    saveAutoRefill.mutate(next);    // persist to workspace.settings.auto_refill
+  }
 
   if (query.isLoading) return <PageSkeleton />;
   const wallet = balanceQuery.data;
@@ -229,7 +244,7 @@ export function BillingSettings() {
                 <button
                   role="switch"
                   aria-checked={autoRefill}
-                  onClick={() => setAutoRefill(v => !v)}
+                  onClick={toggleAutoRefill}
                   className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
                   style={{ background: autoRefill ? "var(--accent)" : "var(--surface-hover)" }}
                 >

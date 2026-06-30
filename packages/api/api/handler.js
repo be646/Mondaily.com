@@ -11957,7 +11957,7 @@ function secret3() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 function sign4(payload) {
-  return b64url2((0, import_node_crypto8.createHmac)("sha256", secret3()).update(payload).digest());
+  return b64url2((0, import_node_crypto7.createHmac)("sha256", secret3()).update(payload).digest());
 }
 function mintMcpToken(workspaceId) {
   const p2 = b64url2(`mcp:${workspaceId}`);
@@ -11973,7 +11973,7 @@ function verifyMcpToken(token) {
   const expected = sign4(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto8.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto7.timingSafeEqual)(a2, b2)) return null;
   try {
     const decoded = Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
     return decoded.startsWith("mcp:") ? decoded.slice(4) || null : null;
@@ -11981,11 +11981,11 @@ function verifyMcpToken(token) {
     return null;
   }
 }
-var import_node_crypto8, b64url2;
+var import_node_crypto7, b64url2;
 var init_mcp_token = __esm({
   "src/lib/mcp-token.ts"() {
     "use strict";
-    import_node_crypto8 = require("crypto");
+    import_node_crypto7 = require("crypto");
     b64url2 = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 });
@@ -59826,14 +59826,34 @@ router12.get("/balance", async (c2) => {
   const usedNeg = list.filter((r2) => r2.transaction_type === "usage").reduce((s2, r2) => s2 + Number(r2.amount), 0);
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
   const settings = wsRow?.settings ?? {};
+  const ar2 = settings.auto_refill ?? {};
   return c2.json({
     enrolled: list.length > 0,
     balance: granted + usedNeg,
     granted,
     used: Math.abs(usedNeg),
     account_tier: settings.track ?? "personal",
-    trial_ends_at: settings.trial_ends_at ?? null
+    trial_ends_at: settings.trial_ends_at ?? null,
+    auto_refill: {
+      enabled: Boolean(ar2.enabled),
+      threshold: Number(ar2.threshold ?? 5e3),
+      amount_usd: Number(ar2.amount_usd ?? 10)
+    }
   });
+});
+router12.post("/auto-refill", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const body = await c2.req.json().catch(() => ({}));
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const settings = wsRow?.settings ?? {};
+  const prev = settings.auto_refill ?? {};
+  const auto_refill = {
+    enabled: body.enabled ?? Boolean(prev.enabled),
+    threshold: Number(body.threshold ?? prev.threshold ?? 5e3),
+    amount_usd: Number(body.amount_usd ?? prev.amount_usd ?? 10)
+  };
+  const { error } = await supabase.from("workspaces").update({ settings: { ...settings, auto_refill } }).eq("id", ws);
+  return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true, auto_refill });
 });
 router12.get("/ledger", async (c2) => {
   const ws = c2.get("workspaceId");
@@ -60474,7 +60494,8 @@ router15.post("/settings/tax-codes", requireAuth, async (c2) => {
   return c2.json(newCode, 201);
 });
 router15.post("/settings/integrations/mcp-token", async (c2) => {
-  const token = `mcp_${crypto.randomUUID().replaceAll("-", "")}`;
+  const { mintMcpToken: mintMcpToken2 } = await Promise.resolve().then(() => (init_mcp_token(), mcp_token_exports));
+  const token = mintMcpToken2(c2.get("workspaceId"));
   await mergeWorkspaceSettings(c2.get("workspaceId"), { mcp_token: token });
   return c2.json({ token }, 201);
 });
@@ -60623,7 +60644,7 @@ router15.patch("/settings/general", requireAuth, async (c2) => {
 });
 
 // src/routes/invites.ts
-var import_node_crypto7 = require("crypto");
+var import_node_crypto8 = require("crypto");
 var inviteUrl = (token) => `${process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com"}/invite/${token}`;
 var router16 = new Hono2();
 var inviteSchema = external_exports.object({
@@ -60662,7 +60683,7 @@ router16.post("/link", requireAuth, async (c2) => {
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { data, error } = await supabase.from("workspace_invites").insert({
     workspace_id: c2.get("workspaceId"),
-    email: `link-${(0, import_node_crypto7.randomUUID)().slice(0, 8)}@invite.local`,
+    email: `link-${(0, import_node_crypto8.randomUUID)().slice(0, 8)}@invite.local`,
     // placeholder; the unique key is (workspace,email)
     role: "member",
     finance_role: "none",

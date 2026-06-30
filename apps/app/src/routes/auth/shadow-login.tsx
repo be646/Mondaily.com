@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, MailCheck } from "lucide-react";
 import { AuthShell, CapsuleInput, GlowButton, SAGE } from "../../components/auth/auth-shell";
 import { useSovereignAuth } from "../../components/auth/sovereign-auth-context";
+import { usePowShield, PowShieldLine } from "../../lib/pow-client";
 
 // Where to land after auth — preserves an invite/deep-link target (?next=), defaults to /home.
 function safeNext(raw: string | null): string {
@@ -22,8 +23,16 @@ export function ShadowLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activationSent, setActivationSent] = useState(false);
+  const shield = usePowShield();
+  // Arm + solve the PoW HUD once on mount so the shield reads VALIDATED by the time the user submits.
+  const armed = useRef(false);
+  useEffect(() => {
+    if (armed.current) return;
+    armed.current = true;
+    shield.solve().catch(() => {});
+  }, [shield]);
 
-  const valid = /\S+@\S+\.\S+/.test(email) && password.length > 0;
+  const valid = /\S+@\S+\.\S+/.test(email) && password.length > 0 && shield.status === "validated";
 
   // Already signed in → straight to the target (or dashboard).
   if (status === "authenticated") return <Navigate to={next} replace />;
@@ -65,6 +74,7 @@ export function ShadowLoginPage() {
       <form onSubmit={onSubmit} className="space-y-3.5">
         <CapsuleInput label="Email" type="email" autoComplete="username" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
         <CapsuleInput label="Password" type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
+        <PowShieldLine status={shield.status} />
         {error && <p className="text-[11px] text-rose-400">{error}</p>}
         <GlowButton type="submit" disabled={!valid} loading={loading}>
           {loading ? <><Loader2 size={14} className="animate-spin" /> Verifying…</> : "Sign in"}
