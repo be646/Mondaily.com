@@ -441,9 +441,9 @@ export function AccountSettings() {
                   <p className="mt-0.5 text-xs text-stone-500">{account?.email ?? "Not connected"}</p>
                 </div>
                 {account ? (
-                  <button onClick={() => disconnect.mutate(account.id)} className="text-xs text-stone-400 hover:text-stone-300 transition-colors">Disconnect</button>
+                  <button onClick={() => disconnect.mutate(account.id)} className="font-mono text-[10.5px] uppercase tracking-wider text-stone-500 transition-colors hover:text-rose-400">[ TERMINATE LINK ]</button>
                 ) : (
-                  <button onClick={() => connect(provider)} className="rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-xs text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">Connect</button>
+                  <button onClick={() => connect(provider)} className="rounded-sm border px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-wider text-stone-400 transition-colors hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }} onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--accent)")} onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-soft)")}>[ ESTABLISH SECURE HANDSHAKE ]</button>
                 )}
               </div>
             );

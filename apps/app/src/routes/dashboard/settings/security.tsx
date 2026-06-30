@@ -166,7 +166,7 @@ export function SecuritySettings() {
             className="font-mono text-[10px] uppercase tracking-wider transition-colors disabled:opacity-40"
             style={{ color: "#fb7185" }}
           >
-            {revokeAll.isPending ? "[REVOKING…]" : "[REVOKE ALL OTHER]"}
+            {revokeAll.isPending ? "[ TERMINATING… ]" : "[ TERMINATE ALL OTHER NODES ]"}
           </button>
         </div>
         {data.sessions.length ? (
@@ -193,7 +193,7 @@ export function SecuritySettings() {
                     <td className="px-4 py-3 text-right">
                       {!s.current && (
                         <button onClick={() => revoke.mutate(s.id)} className="text-[10px] uppercase tracking-wider transition-colors hover:opacity-80" style={{ color: "#fb7185" }}>
-                          [REVOKE CLAIM]
+                          [ REVOKE SYSTEM CLAIM ]
                         </button>
                       )}
                     </td>

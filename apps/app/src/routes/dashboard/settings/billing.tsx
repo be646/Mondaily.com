@@ -178,7 +178,7 @@ export function BillingSettings() {
           </div>
           <div className="grid gap-3 p-5 sm:grid-cols-2">
             {/* Personal */}
-            <div className="rounded-xl border p-4" style={{ borderColor: billing.plan === "free" ? "var(--accent)" : "var(--border-soft)" }}>
+            <div className="rounded-sm border p-4" style={{ borderColor: billing.plan === "free" ? "var(--accent)" : "var(--border-soft)", background: "var(--surface-card-2)" }}>
               <div className="text-[11px] uppercase tracking-widest text-stone-500">Personal</div>
               <div className="mt-1 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">$0<span className="text-sm text-stone-500"> /mo</span></div>
               <ul className="mt-3 space-y-1.5 text-[12px] text-stone-400">
@@ -191,7 +191,7 @@ export function BillingSettings() {
                 : <div className="mt-4 text-[11px] text-stone-600">Included</div>}
             </div>
             {/* Business Pro */}
-            <div className="rounded-xl border p-4" style={{ borderColor: "var(--accent)", boxShadow: "0 0 24px -10px color-mix(in srgb, var(--accent) 40%, transparent)" }}>
+            <div className="rounded-sm border p-4" style={{ borderColor: "var(--accent)", background: "var(--surface-card-2)" }}>
               <div className="text-[11px] uppercase tracking-widest" style={{ color: "var(--accent)" }}>Business Pro</div>
               <div className="mt-1 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">$49<span className="text-sm text-stone-500"> /mo</span></div>
               <ul className="mt-3 space-y-1.5 text-[12px] text-stone-400">
