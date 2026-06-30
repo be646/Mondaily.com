@@ -173,14 +173,14 @@ function PlanCards({ recommended, onSelect }: { recommended: "personal" | "busin
         className="group flex flex-col rounded-sm border border-[#27272a] bg-[#18181b] p-5 text-left transition-all hover:border-zinc-600"
         style={recommended === "personal" ? { borderColor: "var(--accent)" } : undefined}
       >
-        <div className="text-[11px] uppercase tracking-widest text-zinc-600">License A</div>
-        <div className="mt-1 text-base text-zinc-100">Personal Developer</div>
+        <div className="text-[11px] uppercase tracking-widest text-zinc-600">Tier · Scout</div>
+        <div className="mt-1 text-base text-zinc-100">Scout</div>
         <div className="mt-2 text-2xl font-semibold tabular-nums text-zinc-100">$0<span className="text-sm text-zinc-600"> / month</span></div>
         <span className="mt-4 inline-block w-fit rounded border border-[#27272a] bg-[#0e0e10] px-2.5 py-1 text-[11px] text-zinc-400">
-          50,000 baseline credits included
+          1 operator · 50k AI credits / mo
         </span>
         <span className="mt-5 text-[12px] font-semibold tracking-wide" style={{ color: "var(--accent)" }}>
-          {recommended === "personal" ? "› RECOMMENDED — DEPLOY" : "› SELECT"}
+          {recommended === "personal" ? "› RECOMMENDED — START FREE" : "› START FREE"}
         </span>
       </button>
 
@@ -193,17 +193,17 @@ function PlanCards({ recommended, onSelect }: { recommended: "personal" | "busin
           boxShadow: recommended === "business" ? "0 0 0 1px var(--accent), 0 0 28px color-mix(in srgb, var(--accent) 22%, transparent)" : undefined,
         }}
       >
-        <div className="text-[11px] uppercase tracking-widest" style={{ color: "var(--accent)" }}>License B</div>
-        <div className="mt-1 text-base text-zinc-100">Business Pro</div>
-        <div className="mt-2 text-2xl font-semibold tabular-nums text-zinc-100">$49<span className="text-sm text-zinc-600"> / month</span></div>
+        <div className="text-[11px] uppercase tracking-widest" style={{ color: "var(--accent)" }}>Tier · Operator</div>
+        <div className="mt-1 text-base text-zinc-100">Operator</div>
+        <div className="mt-2 text-2xl font-semibold tabular-nums text-zinc-100">$29<span className="text-sm text-zinc-600"> / month</span></div>
         <span
           className="mt-4 inline-block w-fit rounded-full px-2.5 py-1 text-[11px] font-medium"
           style={{ color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 45%, transparent)" }}
         >
-          Activate 14-Day Free Trial + 500,000 Pre-Paid Credits Applied
+          500k AI credits · unlimited agents · upgrade now or later
         </span>
         <span className="mt-5 text-[12px] font-semibold tracking-wide" style={{ color: "var(--accent)" }}>
-          {recommended === "business" ? "› RECOMMENDED — START TRIAL" : "› START TRIAL"}
+          {recommended === "business" ? "› RECOMMENDED — GO OPERATOR" : "› GO OPERATOR"}
         </span>
       </button>
     </div>

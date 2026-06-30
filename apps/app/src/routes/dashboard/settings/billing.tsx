@@ -3,33 +3,36 @@ import { useEffect, useState } from "react";
 import { CreditCard, Download, Zap, Users, Wallet, RefreshCw } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { PLANS, normalizePlan, priceLabel } from "../../../lib/plans";
+import { Check } from "lucide-react";
 
 interface AutoRefill { enabled: boolean; threshold: number; amount_usd: number }
 interface CreditBalance { enrolled: boolean; balance: number; granted: number; used: number; account_tier: string; trial_ends_at: string | null; auto_refill?: AutoRefill }
 interface LedgerRow { id: string; amount: number; transaction_type: "grant" | "usage" | "purchase"; description: string | null; created_at: string }
 
-/** Open Stripe checkout (free plan → upgrade) or the customer portal (paying
- *  plan → manage). Both are authed POSTs that return a Stripe URL we redirect
- *  to; errors (e.g. billing not yet configured) surface a clear message. */
-async function openBilling(plan: string) {
-  const errFrom = (e: unknown) => {
-    try { return JSON.parse((e as Error).message)?.error as string; } catch { return undefined; }
-  };
+const errFrom = (e: unknown): string => {
+  try { return JSON.parse((e as Error).message)?.error ?? "Something went wrong."; }
+  catch { return (e as Error)?.message || "Something went wrong."; }
+};
+
+/** Start Stripe checkout for a specific plan id (operator/command/…). Returns an error
+ *  string to show inline, or null on success (redirect). No plan is gated — anyone can
+ *  buy any tier upfront; there is no forced trial. */
+async function checkoutPlan(plan: string): Promise<string | null> {
   try {
-    if (plan === "free") {
-      const r = await apiClient.post<{ url?: string }>("/billing/checkout", { plan: "pro", interval: "month" });
-      if (r.url) { window.location.href = r.url; return; }
-    } else {
-      const r = await apiClient.post<{ url?: string; needs_checkout?: boolean }>("/billing/portal", {});
-      if (r.url) { window.location.href = r.url; return; }
-      if (r.needs_checkout) {
-        const cr = await apiClient.post<{ url?: string }>("/billing/checkout", { plan: "pro", interval: "month" });
-        if (cr.url) { window.location.href = cr.url; return; }
-      }
-    }
-  } catch (e) {
-    console.warn("Billing action failed:", errFrom(e));
-  }
+    const r = await apiClient.post<{ url?: string; error?: string }>("/billing/checkout", { plan, interval: "month" });
+    if (r.url) { window.location.href = r.url; return null; }
+    return r.error ?? "Checkout isn't available yet.";
+  } catch (e) { return errFrom(e); }
+}
+
+/** Open the Stripe customer portal to manage an existing subscription. */
+async function openPortal(): Promise<string | null> {
+  try {
+    const r = await apiClient.post<{ url?: string; error?: string }>("/billing/portal", {});
+    if (r.url) { window.location.href = r.url; return null; }
+    return r.error ?? "Billing portal isn't available yet.";
+  } catch (e) { return errFrom(e); }
 }
 
 interface Invoice { id: string; date: string; amount: number; pdf_url: string }
@@ -103,6 +106,17 @@ export function BillingSettings() {
   const walletPct = wallet && wallet.granted > 0 ? Math.max(0, Math.min(100, Math.round((wallet.balance / wallet.granted) * 100))) : 0;
   const fmtCredits = (n: number) => n.toLocaleString();
   const billing = query.data ?? { plan: "free", seats_used: 1, seats_limit: 3, invoices: [] };
+  const [billingMsg, setBillingMsg] = useState<string | null>(null);
+  const [billingBusy, setBillingBusy] = useState<string | null>(null);
+  const currentPlanId = normalizePlan(billing.plan);
+  async function pickPlan(planId: string) {
+    setBillingMsg(null); setBillingBusy(planId);
+    const err = planId === currentPlanId && billing.plan !== "free"
+      ? await openPortal()
+      : await checkoutPlan(planId);
+    if (err) setBillingMsg(err);
+    setBillingBusy(null);
+  }
   const seatPct = Math.min(Math.round((billing.seats_used / billing.seats_limit) * 100), 100);
 
   return (
@@ -141,7 +155,7 @@ export function BillingSettings() {
               </p>
             </div>
             <button
-              onClick={() => { openBilling(billing.plan); }}
+              onClick={() => { void pickPlan(billing.plan === "free" ? "operator" : currentPlanId); }}
               className="flex shrink-0 items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all"
             >
               <Zap size={13} /> {billing.plan === "free" ? "Upgrade plan" : "Manage plan"}
@@ -169,47 +183,57 @@ export function BillingSettings() {
         </div>
       </section>
 
-      {/* ── Plans / Upgrade ── */}
-      {billing.plan !== "business" && billing.plan !== "pro" && (
-        <section className="settings-section">
-          <div className="settings-section-header">
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Plans</h2>
-            <span className="text-xs text-stone-500">Choose your tier</span>
+      {/* ── Plans — every tier is directly purchasable; no plan is gated, no forced trial ── */}
+      <section className="settings-section">
+        <div className="settings-section-header">
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Plans</h2>
+          <span className="text-xs text-stone-500">Autonomous AI workspace · upgrade anytime</span>
+        </div>
+        {billingMsg && (
+          <div className="mx-5 mt-4 rounded-sm border px-3 py-2 text-[12px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
+            {billingMsg}
           </div>
-          <div className="grid gap-3 p-5 sm:grid-cols-2">
-            {/* Personal */}
-            <div className="rounded-sm border p-4" style={{ borderColor: billing.plan === "free" ? "var(--section-accent)" : "var(--border-soft)", background: "var(--surface-card-2)" }}>
-              <div className="text-[11px] uppercase tracking-widest text-stone-500">Personal</div>
-              <div className="mt-1 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">$0<span className="text-sm text-stone-500"> /mo</span></div>
-              <ul className="mt-3 space-y-1.5 text-[12px] text-stone-400">
-                <li>· 50,000 AI credits</li>
-                <li>· Core workspace</li>
-                <li>· Solo operator</li>
-              </ul>
-              {billing.plan === "free"
-                ? <div className="mt-4 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--section-accent)" }}>✓ Current plan</div>
-                : <div className="mt-4 text-[11px] text-stone-600">Included</div>}
-            </div>
-            {/* Business Pro */}
-            <div className="rounded-sm border p-4" style={{ borderColor: "var(--section-accent)", background: "var(--surface-card-2)" }}>
-              <div className="text-[11px] uppercase tracking-widest" style={{ color: "var(--section-accent)" }}>Business Pro</div>
-              <div className="mt-1 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">$49<span className="text-sm text-stone-500"> /mo</span></div>
-              <ul className="mt-3 space-y-1.5 text-[12px] text-stone-400">
-                <li>· 500,000 AI credits / month</li>
-                <li>· 14-day free trial</li>
-                <li>· Unlimited operators</li>
-                <li>· Priority compute</li>
-              </ul>
-              <button onClick={() => { openBilling("free"); }} className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-sm border py-2 text-[12px] font-semibold transition-colors"
-                style={{ background: "var(--surface-selected)", borderColor: "var(--border-strong)", color: "var(--text-primary)" }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--section-accent)")}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-strong)")}>
-                <span style={{ color: "var(--section-accent)" }}>▸</span> Upgrade to Pro
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
+        )}
+        <div className="grid gap-3 p-5 lg:grid-cols-4 sm:grid-cols-2">
+          {PLANS.map(plan => {
+            const isCurrent = plan.id === currentPlanId;
+            const lit = plan.highlight || isCurrent;
+            return (
+              <div key={plan.id} className="flex flex-col rounded-sm border p-4"
+                style={{ borderColor: lit ? "var(--section-accent)" : "var(--border-soft)", background: "var(--surface-card-2)" }}>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] uppercase tracking-widest" style={{ color: lit ? "var(--section-accent)" : "var(--text-muted)" }}>{plan.name}</span>
+                  {plan.highlight && !isCurrent && <span className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>Popular</span>}
+                </div>
+                <div className="mt-1.5 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
+                  {priceLabel(plan)}{plan.priceMonthly !== null && plan.priceMonthly > 0 && <span className="text-sm text-stone-500"> /mo</span>}
+                </div>
+                <p className="mt-1 text-[11px] text-stone-500">{plan.tagline}</p>
+                <div className="mt-3 space-y-1 text-[11px] text-stone-400">
+                  <div className="font-mono text-[var(--text-secondary)]">{plan.operators}</div>
+                  <div className="font-mono text-[var(--text-secondary)]">{plan.credits}</div>
+                </div>
+                <ul className="mt-3 flex-1 space-y-1.5 text-[11.5px] text-stone-400">
+                  {plan.features.map(f => (
+                    <li key={f} className="flex items-start gap-1.5">
+                      <Check size={11} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />{f}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  disabled={isCurrent || billingBusy === plan.id}
+                  onClick={() => { plan.priceMonthly === null ? (window.location.href = "mailto:sales@mondaily.com?subject=Sovereign%20plan") : void pickPlan(plan.id); }}
+                  className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-sm border py-2 text-[12px] font-semibold transition-colors disabled:opacity-60"
+                  style={{ background: "var(--surface-selected)", borderColor: lit ? "var(--section-accent)" : "var(--border-strong)", color: "var(--text-primary)" }}
+                  onMouseEnter={e => !isCurrent && (e.currentTarget.style.borderColor = "var(--section-accent)")}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = lit ? "var(--section-accent)" : "var(--border-strong)")}>
+                  {isCurrent ? <><Check size={12} style={{ color: "var(--section-accent)" }} /> Current plan</> : billingBusy === plan.id ? "Opening…" : plan.cta}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
       {/* ── AI usage (token telemetry) ── */}
       <section className="settings-section">
@@ -371,7 +395,7 @@ export function BillingSettings() {
               <p className="text-xs text-stone-500">Billing currency: USD</p>
             </div>
             <button
-              onClick={() => { openBilling(billing.plan); }}
+              onClick={() => { void openPortal().then(err => err && setBillingMsg(err)); }}
               className="ml-auto text-xs text-stone-400 hover:text-stone-300 transition-colors"
             >
               Update
