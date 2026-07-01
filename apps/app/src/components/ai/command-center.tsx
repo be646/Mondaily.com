@@ -81,6 +81,11 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
 }) {
   const { data: decisionsData, isLoading: decisionsLoading, isError: decisionsError } = useDecisionQueue();
   const decisions = decisionsData ?? [];
+  // Home is a TRIAGE glance, not the full queue — show only the top few highest-risk decisions
+  // inline; the complete list lives on the Decision Deck. (Expanding used to dump the whole queue.)
+  const HOME_DECISION_CAP = 5;
+  const RISK_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 };
+  const topDecisions = [...decisions].sort((a, b) => (RISK_ORDER[a.risk_level] ?? 3) - (RISK_ORDER[b.risk_level] ?? 3)).slice(0, HOME_DECISION_CAP);
   const qc = useQueryClient();
   const [openId, setOpenId] = useState<string | null>(null);
   // Collapsed by default — a wide summary bar that expands on click,
@@ -220,7 +225,7 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
                   className="overflow-hidden border-t"
                   style={{ borderColor: "var(--border-soft)" }}
                 >
-            {!decisionsError && decisions.map(d => {
+            {!decisionsError && topDecisions.map(d => {
               const open = openId === d.id;
               const sources = mapEvidence(d.evidence ?? []);
               const act = acting?.id === d.id ? acting.action : null;
@@ -275,6 +280,11 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
                 </div>
               );
             })}
+            {decisions.length > HOME_DECISION_CAP && (
+              <Link to="/decisions" className="flex items-center justify-center gap-1 px-3 py-2.5 text-[11.5px] font-medium transition-colors hover:opacity-80" style={{ color: "var(--section-accent)" }}>
+                View all {decisions.length} in the Decision Deck <ArrowUpRight size={12} />
+              </Link>
+            )}
             {stream.map(item => (
               <Link key={item.id} to={item.to} className="stream-row" style={{ borderLeft: `2px solid ${TONE_COLOR[item.tone]}` }}>
                 <item.icon size={13} className="mt-0.5 shrink-0" style={{ color: TONE_COLOR[item.tone] }}/>
