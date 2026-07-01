@@ -122,6 +122,17 @@ router.get("/", async (c) => {
   return c.json(data ?? []);
 });
 
+// Clear results — a single lead or the whole feed (fresh start between searches).
+router.delete("/all", async (c) => {
+  const { error } = await supabase.from("discovered_leads").delete().eq("workspace_id", c.get("workspaceId"));
+  return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });
+});
+router.delete("/:id", async (c) => {
+  const { error } = await supabase.from("discovered_leads").delete()
+    .eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id"));
+  return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });
+});
+
 // Lightweight setup probe so the UI can show a clear "configure discovery" state
 // instead of a silently-empty feed. Reports whether the web-search key is set.
 // Read-only diagnostic probe for the self-hosted search stack. Two shallow GETs

@@ -20,7 +20,10 @@ type SearchResult = { hits: SearchHit[]; unreachable: boolean };
 
 async function searxng(query: string): Promise<SearchResult> {
   try {
-    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json`;
+    // language=en-US — the appliance sits on a German Hetzner IP, so without this bing geo-localizes
+    // every query to Germany (verified live: "real estate agents London" returned German supermarket
+    // pages). Discovery queries are English; pin the locale.
+    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&language=en-US`;
     const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
     if (!res.ok) {
       // 5xx → the index itself is down/unreachable; treat as an infra timeout.
@@ -41,22 +44,25 @@ async function searxng(query: string): Promise<SearchResult> {
 }
 
 // Wide-net query set per search type. Casting a broad net across the open web (general queries,
-// directories, review sites, forums) massively out-performs a couple of narrow site: operators —
-// that's what made earlier sweeps return "2 results then nothing". We over-generate queries; the
-// dedupe + extraction stages downstream trim the noise.
+// directories, review sites, forums, AND every major social network via site: operators — the
+// engines index social pages even when the platforms block direct crawling) massively
+// out-performs a couple of narrow queries. We over-generate; dedupe + per-page extraction
+// downstream trim the noise.
 function buildQueries(searchType: "INTENT_LEADS" | "REVIEWS", sector?: string, region?: string, targetSubject?: string): string[] {
   const loc = region ? ` ${region}` : "";
   if (searchType === "REVIEWS") {
     const subj = (targetSubject ?? sector ?? "").trim();
     return [
       `${subj} reviews${loc}`,
-      `${subj} review${loc}`,
       `"${subj}" complaints OR scam OR "bad experience"`,
-      `${subj} trustpilot`,
-      `${subj} google reviews${loc}`,
-      `${subj} customer feedback${loc}`,
-      `${subj} testimonials${loc}`,
+      `${subj} trustpilot OR google reviews${loc}`,
+      `${subj} customer feedback OR testimonials${loc}`,
       `site:reddit.com ${subj} review`,
+      `site:x.com OR site:twitter.com ${subj}`,
+      `site:facebook.com ${subj} review`,
+      `site:instagram.com ${subj}`,
+      `site:linkedin.com ${subj}`,
+      `site:youtube.com ${subj} review`,
     ].filter(q => q.replace(/["']/g, "").trim().length > 6);
   }
   // INTENT_LEADS = find real people/businesses in a sector + region (leads/prospects).
@@ -65,12 +71,32 @@ function buildQueries(searchType: "INTENT_LEADS" | "REVIEWS", sector?: string, r
     `${s}${loc}`,
     `top ${s}${loc}`,
     `best ${s}${loc}`,
-    `${s}${loc} contact email`,
+    `${s}${loc} contact email OR phone`,
     `${s}${loc} directory`,
     `list of ${s}${loc}`,
-    `${s}${loc} "get in touch" OR "contact us"`,
+    `site:linkedin.com ${s}${loc}`,
+    `site:x.com OR site:twitter.com ${s}${loc}`,
+    `site:instagram.com ${s}${loc}`,
+    `site:facebook.com ${s}${loc}`,
     `site:reddit.com ${s}${loc} recommendation OR "looking for"`,
   ].filter(q => q.replace(/["']/g, "").trim().length > 4);
+}
+
+// Human-readable platform from a URL's host — real attribution, not model guesswork.
+function platformOf(url: string): string {
+  try {
+    const host = new URL(url).host.replace(/^www\./, "").toLowerCase();
+    if (host.includes("linkedin.")) return "LinkedIn";
+    if (host.includes("x.com") || host.includes("twitter.")) return "X";
+    if (host.includes("facebook.")) return "Facebook";
+    if (host.includes("instagram.")) return "Instagram";
+    if (host.includes("reddit.")) return "Reddit";
+    if (host.includes("youtube.")) return "YouTube";
+    if (host.includes("trustpilot.")) return "Trustpilot";
+    if (host.includes("glassdoor.")) return "Glassdoor";
+    if (host.includes("tiktok.")) return "TikTok";
+    return host;
+  } catch { return "web"; }
 }
 
 interface ExtractedLead {
@@ -89,34 +115,6 @@ interface ExtractedLead {
   summary?: string;
 }
 
-const LEAD_TOOL_SCHEMA: GatewayToolRequest["toolSchema"] = {
-  type: "object",
-  properties: {
-    leads: {
-      type: "array",
-      description: "Only genuine, on-topic results. Drop ads, listicles, and anything off-topic or out-of-region.",
-      items: {
-        type: "object",
-        properties: {
-          source_url: { type: "string", description: "Exact URL the result came from (must be one of the provided URLs)" },
-          platform: { type: "string", description: "X | Reddit | Google Reviews | other" },
-          author_name: { type: "string", description: "The person's name if identifiable" },
-          raw_content: { type: "string", description: "The relevant quote/snippet/review, verbatim" },
-          intent_type: { type: "string", description: "BUY_SIGNAL | REVIEW | COMPLAINT" },
-          target_subject: { type: "string", description: "The person/company being reviewed, if any" },
-          region: { type: "string" },
-          confidence_score: { type: "number", description: "0-100 how clearly this matches the search intent + region" },
-          contact_email: { type: "string", description: "Email ONLY if it appears verbatim in the source text — else omit" },
-          contact_phone: { type: "string", description: "Phone ONLY if it appears verbatim in the source text — else omit" },
-          handle: { type: "string", description: "Social handle/username if present (e.g. @name)" },
-          summary: { type: "string", description: "One-sentence note: who this is and why they're a lead" },
-        },
-        required: ["source_url", "intent_type"],
-      },
-    },
-  },
-};
-
 export type DiscoveryParams = { workspaceId: string; region?: string; sector?: string; searchType: "INTENT_LEADS" | "REVIEWS"; targetSubject?: string };
 
 // Core sweep — callable directly (from POST /discovery/run, so results don't depend on Inngest
@@ -124,9 +122,17 @@ export type DiscoveryParams = { workspaceId: string; region?: string; sector?: s
 export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<string, unknown>> {
     const { workspaceId, region, sector, searchType, targetSubject } = data;
 
-    // 1) Parallel web sweep across the query operators (private SearXNG index).
+    // 1) Web sweep across the query operators (private SearXNG index). STAGGERED in small batches —
+    //    firing 10+ queries at bing/qwant simultaneously from one IP trips their rate limits, which
+    //    SearXNG then reports as "Suspended: too many requests" and every later query returns 0.
+    //    Verified live: rapid-fire parallel queries suspended qwant + wikipedia within seconds.
     const queries = buildQueries(searchType, sector, region, targetSubject);
-    const sweep = await Promise.all(queries.map((q) => searxng(q)));
+    const sweep: SearchResult[] = [];
+    for (let i = 0; i < queries.length; i += 3) {
+      const batch = queries.slice(i, i + 3);
+      sweep.push(...await Promise.all(batch.map((q) => searxng(q))));
+      if (i + 3 < queries.length) await new Promise((r) => setTimeout(r, 700));
+    }
     // Short-circuit on a connection drop / infra timeout rather than proceeding
     // with an empty payload.
     if (sweep.some((s) => s.unreachable)) {
@@ -136,130 +142,130 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
     const hits = sweep.flatMap((s) => s.hits);
     if (hits.length === 0) return { discovered: 0, reason: "no search results", diag: { queries: queries.length, hits: 0, unique: 0, extracted: 0, matched: 0 } };
 
-    // Dedupe the raw hits by URL before extraction.
+    // Dedupe the raw hits by URL before extraction. Prefer scraping social/review pages first —
+    // they're where the actual people/reviews live; generic pages fill the remaining slots.
     const seen = new Set<string>();
-    const unique = hits.filter((h) => (seen.has(h.url) ? false : (seen.add(h.url), true))).slice(0, 36);
-
-    // Scrape the TOP pages to full text — SearXNG snippets alone are too thin for the model to find
-    // real reviews/people/contacts (that was the "gateway ok → 0 extracted" dead-end). Best-effort:
-    // any page that fails to render just falls back to its snippet.
-    const SCRAPE_TOP = 12;
-    const scraped = await Promise.all(unique.slice(0, SCRAPE_TOP).map((h) => sovereignScrape(h.url).catch(() => "")));
-    const fullText = new Map<string, string>();
-    unique.slice(0, SCRAPE_TOP).forEach((h, i) => { const md = scraped[i]; if (md) fullText.set(h.url, md.slice(0, 3500)); });
-
-    // 2) Grounded extraction through the sovereign Cerebras gateway. Strict: the
-    //    model may only return results built from the provided hits + URLs, must
-    //    verify the region match, and must drop noise.
-    const context = unique.map((h, i) => `[${i}] ${h.title}\n${fullText.get(h.url) || h.content}\nURL: ${h.url}`).join("\n\n");
-    const wantReviews = searchType === "REVIEWS";
-    // The AI gateway is rate-limited (shared per-minute quota with chat + enrichment). A single 429
-    // used to zero the whole sweep — retry once after a short pause so a transient limit recovers.
-    const runExtraction = () => aiGatewayToolUse({
-      toolName: "extract_discovered_leads",
-      toolDescription: "Extract clean, on-topic social-listening results from the search hits",
-      toolSchema: LEAD_TOOL_SCHEMA,
-      maxTokens: 2048,
-      system:
-        `You extract ${wantReviews ? "reviews, opinions, and complaints" : "buyer-intent signals and prospects"} from web pages. Be USEFUL — return every plausibly-relevant result, not just perfect ones. ` +
-        `RULES: (1) every result's source_url MUST be copied verbatim from one of the provided URLs — never invent one. ` +
-        `(2) Skip only pure ads and navigation/boilerplate. A ${wantReviews ? "review, testimonial, forum comment, or opinion about the subject" : "person or business showing interest or a need"} all count — include them. ` +
-        `(3) ${region ? `Region "${region}" is a PREFERENCE, not a filter: keep results even if the region is unclear, just give them a lower confidence_score. Only drop a result if it clearly belongs to a different region.` : "Region is optional."} ` +
-        `(4) intent_type is COMPLAINT for negative reviews, REVIEW for neutral/positive reviews/opinions, BUY_SIGNAL for purchase intent. ` +
-        `(5) confidence_score (0-100) reflects how clearly the result matches. Include lower-confidence results too — do not return an empty array unless the pages truly contain nothing on-topic. ` +
-        `(6) Fill contact_email / contact_phone / handle ONLY when they appear verbatim in the text — NEVER guess. Always write a one-sentence summary noting who this is and why they're relevant.`,
-      prompt:
-        `Search type: ${searchType}. Sector: "${sector ?? ""}". Region: "${region ?? ""}".` +
-        `${targetSubject ? ` Target subject: "${targetSubject}".` : ""}\n\nSearch hits:\n${context}`,
+    const uniqueAll = hits.filter((h) => (seen.has(h.url) ? false : (seen.add(h.url), true)));
+    const socialFirst = [...uniqueAll].sort((a, b) => {
+      const rank = (u: string) => (platformOf(u) === "web" || platformOf(u).includes(".") ? 1 : 0);
+      return rank(a.url) - rank(b.url);
     });
-    let extracted: Record<string, unknown> = {};
-    let gatewayReturned = false;
-    let gatewayError: string | null = null;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        extracted = await runExtraction();
-        gatewayReturned = Object.keys(extracted).length > 0;
-        if (gatewayReturned) { gatewayError = null; break; }
-      } catch (err: any) {
-        gatewayError = (err?.message ?? String(err)).slice(0, 200); // surface the REAL reason in diag
-        console.error(`[social-discovery] extraction gateway failed (attempt ${attempt + 1}):`, gatewayError);
-      }
-      if (attempt === 0) await new Promise((r) => setTimeout(r, 4000)); // let any transient limit recover
-    }
-    const leads = Array.isArray((extracted as { leads?: unknown }).leads)
-      ? ((extracted as { leads: ExtractedLead[] }).leads)
-      : [];
+    const unique = socialFirst.slice(0, 40);
 
-    // Anti-hallucination: every lead's source_url must resolve to a URL we actually scanned. But
-    // the model routinely returns a near-miss (adds/drops a trailing slash, http↔https, www.,
-    // fragment) which previously nuked EVERY result. Normalize both sides and fuzzy-map back to
-    // the exact scanned URL so genuine extractions survive.
-    const normUrl = (u: string) => {
+    // 2) Scrape the top pages to full text, then run ONE FOCUSED extraction call PER PAGE, in
+    //    parallel batches. This replaces the old single-blob call (36 concatenated pages in one
+    //    prompt), which overwhelmed the model into returning 1-2 results — and because WE bind each
+    //    extraction to its page's URL, the model never writes a source_url at all: hallucinated or
+    //    mismatched URLs are structurally impossible, so nothing gets dropped by URL-matching.
+    const SCRAPE_TOP = 18;
+    const toScrape = unique.slice(0, SCRAPE_TOP);
+    const scraped = await Promise.all(toScrape.map((h) => sovereignScrape(h.url).catch(() => "")));
+    const pages = unique.map((h, i) => ({
+      url: h.url,
+      title: h.title,
+      text: (i < SCRAPE_TOP && scraped[i] ? scraped[i]! : h.content).slice(0, 6000),
+    })).filter((p) => p.text.trim().length > 60); // nothing meaningful to extract from
+
+    const wantReviews = searchType === "REVIEWS";
+    const perPageSchema: GatewayToolRequest["toolSchema"] = {
+      type: "object",
+      properties: {
+        leads: {
+          type: "array",
+          description: "Every genuine, on-topic result found ON THIS PAGE. Empty array if the page has none.",
+          items: {
+            type: "object",
+            properties: {
+              author_name: { type: "string", description: "The person's or business's name if identifiable on the page" },
+              raw_content: { type: "string", description: wantReviews ? "The review/opinion text, verbatim (the WHOLE review, not a fragment)" : "The relevant quote/snippet, verbatim" },
+              intent_type: { type: "string", description: "BUY_SIGNAL | REVIEW | COMPLAINT" },
+              target_subject: { type: "string", description: "The person/company being reviewed, if any" },
+              region: { type: "string" },
+              confidence_score: { type: "number", description: "0-100 how clearly this matches the search intent" },
+              contact_email: { type: "string", description: "Email ONLY if it appears verbatim on the page — else omit" },
+              contact_phone: { type: "string", description: "Phone ONLY if it appears verbatim on the page — else omit" },
+              handle: { type: "string", description: "Social handle/username if present (e.g. @name)" },
+              summary: { type: "string", description: "One sentence: who this is and why they're relevant" },
+            },
+            required: ["intent_type"],
+          },
+        },
+      },
+    };
+    const ask = wantReviews
+      ? `Extract EVERY review, opinion, testimonial, or complaint${targetSubject ? ` about "${targetSubject}"` : ""} from this page — the full review text verbatim, with the reviewer's name when shown.`
+      : `Extract EVERY real person or business on this page that fits: sector "${sector ?? ""}"${region ? `, region "${region}"` : ""} — prospects, providers, or people showing interest. Include name + any email/phone/handle that appears verbatim.`;
+
+    let gatewayFailures = 0;
+    let lastGatewayError: string | null = null;
+    const extractPage = async (p: { url: string; title: string; text: string }): Promise<(ExtractedLead & { source_url: string })[]> => {
       try {
-        const p = new URL(u.trim());
-        const host = p.host.replace(/^www\./, "").toLowerCase();
-        const path = p.pathname.replace(/\/+$/, "");
-        return `${host}${path}`.toLowerCase(); // ignore query params — they vary and shouldn't gate a match
-      } catch {
-        return u.trim().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/[?#].*$/, "").replace(/\/+$/, "").toLowerCase();
+        const out = await aiGatewayToolUse({
+          toolName: "extract_from_page",
+          toolDescription: "Extract real leads/reviews from one web page",
+          toolSchema: perPageSchema,
+          maxTokens: 1600,
+          system:
+            `You extract REAL ${wantReviews ? "reviews and opinions" : "leads and prospects"} from a single web page. ` +
+            `ABSOLUTE RULES: only report what is literally on the page — never invent names, emails, phones, or review text. ` +
+            `Contact details ONLY when they appear verbatim. ${region ? `Region "${region}" is a preference, not a hard filter — keep unclear-region results at lower confidence.` : ""} ` +
+            `Return an empty array if the page genuinely has nothing on-topic. Do not pad.`,
+          prompt: `${ask}\n\nPAGE TITLE: ${p.title}\nPAGE URL: ${p.url}\n\nPAGE CONTENT:\n${p.text}`,
+        });
+        const leads = Array.isArray((out as { leads?: unknown }).leads) ? (out as { leads: ExtractedLead[] }).leads : [];
+        return leads.filter((l) => l.intent_type).map((l) => ({ ...l, source_url: p.url }));
+      } catch (err: any) {
+        gatewayFailures++;
+        lastGatewayError = (err?.message ?? String(err)).slice(0, 200);
+        return [];
       }
     };
-    const hostOf = (u: string) => {
-      try { return new URL(u.trim()).host.replace(/^www\./, "").toLowerCase(); }
-      catch { return (u.split("/")[2] ?? u).replace(/^www\./, "").toLowerCase(); }
-    };
-    const byNorm = new Map(unique.map((h) => [normUrl(h.url), h.url]));
-    // Host fallback: the model often cites a slightly different path (or a link found ON the page)
-    // rather than the exact scanned URL — but the DOMAIN was genuinely scanned, so resolving to that
-    // domain's scanned URL keeps it grounded while recovering the '32 extracted → 0 matched' losses.
-    const scannedHosts = new Set(unique.map((h) => hostOf(h.url)));
-    // Exact scanned URL wins (canonical). Otherwise, if the lead's host was genuinely scanned, keep
-    // the lead's OWN url — distinct per page/review — so multiple real results survive instead of
-    // collapsing to one host URL. Anything on an un-scanned host is dropped (anti-hallucination).
-    const resolveUrl = (u: string): string | undefined => {
-      const exact = byNorm.get(normUrl(u));
-      if (exact) return exact;
-      return scannedHosts.has(hostOf(u)) ? u.trim() : undefined;
-    };
-    const rows = leads
-      .map((l) => ({ l, resolved: l.source_url ? resolveUrl(l.source_url) : undefined }))
-      .filter((x) => x.resolved && x.l.intent_type)
-      .map(({ l, resolved }) => ({
-        workspace_id: workspaceId,
-        source_url: resolved!,
-        fingerprint: leadFingerprint(resolved!, l.author_name || "Anonymous", l.raw_content || ""),
-        // NOT NULL columns — always provide a value.
-        platform: l.platform || "web",
-        author_name: l.author_name || "Anonymous",
-        raw_content: l.raw_content || "",
-        intent_type: l.intent_type!,
-        target_subject: l.target_subject ?? targetSubject ?? null,
-        region: l.region ?? region ?? null,
-        confidence_score: typeof l.confidence_score === "number" ? Math.max(0, Math.min(100, Math.round(l.confidence_score))) : 0,
-        // Structured contact block (needs the `contact jsonb` column — 20260701 migration).
-        contact: {
-          email: l.contact_email?.trim() || null,
-          phone: l.contact_phone?.trim() || null,
-          handle: l.handle?.trim() || null,
-          summary: l.summary?.trim() || null,
-        },
-      }));
+
+    // Parallel in batches of 6 — fast without slamming the AI provider all at once.
+    const allLeads: (ExtractedLead & { source_url: string })[] = [];
+    for (let i = 0; i < pages.length; i += 6) {
+      const batch = pages.slice(i, i + 6);
+      const results = await Promise.all(batch.map(extractPage));
+      for (const r of results) allLeads.push(...r);
+    }
+
+    const rows = allLeads.map((l) => ({
+      workspace_id: workspaceId,
+      source_url: l.source_url,
+      fingerprint: leadFingerprint(l.source_url, l.author_name || "Anonymous", l.raw_content || ""),
+      // NOT NULL columns — always provide a value. Platform is derived from the REAL url host.
+      platform: platformOf(l.source_url),
+      author_name: l.author_name || "Anonymous",
+      raw_content: l.raw_content || "",
+      intent_type: l.intent_type!,
+      target_subject: l.target_subject ?? targetSubject ?? null,
+      region: l.region ?? region ?? null,
+      confidence_score: typeof l.confidence_score === "number" ? Math.max(0, Math.min(100, Math.round(l.confidence_score))) : 0,
+      // Structured contact block (needs the `contact jsonb` column — 20260701 migration).
+      contact: {
+        email: l.contact_email?.trim() || null,
+        phone: l.contact_phone?.trim() || null,
+        handle: l.handle?.trim() || null,
+        summary: l.summary?.trim() || null,
+      },
+    }));
 
     // Diagnostics so a thin result is explainable without prod logs: where did the pipeline drop?
+    const gatewayReturned = gatewayFailures < pages.length; // at least one extraction call succeeded
     const diag = {
       queries: queries.length,
       hits: hits.length,
       unique: unique.length,
-      scraped: fullText.size,     // pages we rendered to full text (vs snippet-only)
-      gateway: gatewayReturned,   // false → the AI extraction call failed
-      gateway_error: gatewayError, // the ACTUAL error (rate limit / timeout / payload) when it fails
-      extracted: leads.length,    // leads the model returned
-      matched: rows.length,       // survived the URL-resolution + intent filter
+      scraped: scraped.filter(Boolean).length, // pages rendered to full text (vs snippet-only)
+      pages_analyzed: pages.length,            // pages that had enough content to extract from
+      gateway: gatewayReturned,                // false → EVERY per-page extraction call failed
+      gateway_error: gatewayFailures > 0 ? lastGatewayError : null,
+      extracted: allLeads.length,              // leads the per-page extractions returned
+      matched: rows.length,                    // same as extracted now — URLs are bound, never dropped
     };
     if (rows.length === 0) {
-      const reason = !gatewayReturned ? `extraction failed${gatewayError ? `: ${gatewayError}` : ""}`
-        : leads.length === 0 ? "model found no on-topic results in the scanned pages"
-        : "extracted results didn't resolve to scanned URLs";
+      const reason = !gatewayReturned ? `extraction failed${lastGatewayError ? `: ${lastGatewayError}` : ""}`
+        : "no on-topic results found in the analyzed pages";
       return { discovered: 0, scanned: unique.length, reason, diag };
     }
 

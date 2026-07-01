@@ -38,6 +38,10 @@ engines:
     engine: wikipedia
     shortcut: wp
     disabled: false
+  - name: google
+    engine: google
+    shortcut: go
+    disabled: true   # confirmed blocked from this IP ("Suspended: CAPTCHA") — left on by defaults before
   - name: brave
     engine: brave
     shortcut: br

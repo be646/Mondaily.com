@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download, Send, X, Inbox, ArrowUpRight } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
-import { DonutChart } from "../../components/charts/charts";
 
 interface DiscoveredLead {
   id: string;
@@ -105,6 +104,15 @@ export function DiscoveryPage() {
       for (const r of list) if (!added[r.id]) { try { await addLead.mutateAsync(r); } catch { /* skip failures */ } }
     },
     onSuccess: () => setSelected(new Set()),
+  });
+  // Clear stale results — the whole feed (fresh start) or one lead.
+  const clearAll = useMutation({
+    mutationFn: () => apiClient.delete("/discovery/all"),
+    onSuccess: () => { setSelected(new Set()); qc.invalidateQueries({ queryKey: ["discovery"] }); },
+  });
+  const removeLead = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/discovery/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["discovery"] }),
   });
   // Compose + send an email to a lead — through our own system (Gmail/Resend), not mailto.
   const [compose, setCompose] = useState<{ lead: DiscoveredLead; subject: string; body: string } | null>(null);
@@ -239,33 +247,23 @@ export function DiscoveryPage() {
         )}
       </section>
 
-      {/* ── Stats + real intent-mix breakdown ── */}
+      {/* ── Google-style results summary — one quiet line, not KPI cards ── */}
       {all.length > 0 && (
-        <div className="grid gap-3 lg:grid-cols-[1fr_1.3fr]">
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
-            {[
-              { label: "Total leads", value: all.length },
-              { label: "With contact", value: withContact },
-              { label: "Buy signals", value: counts.BUY_SIGNAL ?? 0 },
-              { label: "Avg confidence", value: avgConf },
-            ].map((s) => (
-              <div key={s.label} className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-                <div className="font-mono text-xl font-semibold tabular-nums text-[var(--text-primary)]">{s.value}</div>
-                <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{s.label}</div>
-              </div>
-            ))}
-          </div>
-          <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Intent mix</div>
-            <DonutChart
-              height={140}
-              data={[
-                { label: "Buy signals", value: counts.BUY_SIGNAL ?? 0 },
-                { label: "Reviews", value: counts.REVIEW ?? 0 },
-                { label: "Complaints", value: counts.COMPLAINT ?? 0 },
-              ].filter((d) => d.value > 0)}
-            />
-          </div>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
+          <span>About <strong className="font-medium" style={{ color: "var(--text-secondary)" }}>{all.length}</strong> result{all.length === 1 ? "" : "s"}</span>
+          <span aria-hidden>·</span>
+          <span><strong className="font-medium" style={{ color: "var(--text-secondary)" }}>{withContact}</strong> with contact details</span>
+          <span aria-hidden>·</span>
+          <span>avg confidence <strong className="font-medium" style={{ color: "var(--text-secondary)" }}>{avgConf}</strong></span>
+          <button
+            onClick={() => clearAll.mutate()}
+            disabled={clearAll.isPending}
+            className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] transition-colors hover:text-rose-400 disabled:opacity-60"
+            style={{ color: "var(--text-faint)" }}
+            title="Clear all results"
+          >
+            {clearAll.isPending ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />} Clear results
+          </button>
         </div>
       )}
 
@@ -376,12 +374,22 @@ export function DiscoveryPage() {
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
-                      <span
-                        className="rounded-md px-2 py-0.5 text-[12px] font-semibold tabular-nums"
-                        style={{ color: conf >= 70 ? "#15803d" : conf >= 40 ? "#b45309" : "#71717a", background: "var(--surface-card-2)" }}
-                      >
-                        {conf}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="rounded-md px-2 py-0.5 text-[12px] font-semibold tabular-nums"
+                          style={{ color: conf >= 70 ? "#15803d" : conf >= 40 ? "#b45309" : "#71717a", background: "var(--surface-card-2)" }}
+                        >
+                          {conf}
+                        </span>
+                        <button
+                          onClick={() => removeLead.mutate(r.id)}
+                          title="Remove this result"
+                          className="rounded-md p-1 transition-colors hover:bg-rose-500/10 hover:text-rose-400"
+                          style={{ color: "var(--text-faint)" }}
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
                       <span className="text-[9.5px] uppercase tracking-wide text-[var(--text-faint)]">confidence</span>
                     </div>
                   </div>

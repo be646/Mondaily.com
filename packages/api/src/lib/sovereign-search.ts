@@ -12,7 +12,9 @@ const SCRAPE_URL = () => process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3
 /** SearXNG JSON search → result URLs (empty on any failure — never throws). */
 export async function sovereignSearchUrls(query: string, limit = 4): Promise<string[]> {
   try {
-    const url = `${SEARCH_URL()}?q=${encodeURIComponent(query)}&format=json`;
+    // language=en-US — the appliance's German Hetzner IP makes engines geo-localize results to
+    // Germany otherwise (verified live). All enrichment/web-search queries are English.
+    const url = `${SEARCH_URL()}?q=${encodeURIComponent(query)}&format=json&language=en-US`;
     const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
     if (!res.ok) return [];
     const data = await res.json() as { results?: { url?: string }[] };
