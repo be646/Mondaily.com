@@ -138,9 +138,17 @@ export function DedupPanel({
         }
       }
 
-      await apiClient.patch(`/nodes/${keeper.id}`, { data: mergedData }).catch((e) => console.error("[bg-task] swallowed error:", e));
+      // CRITICAL: only delete the duplicates AFTER the keeper's merged data is safely saved.
+      // Previously the patch error was swallowed and the dupes were deleted regardless — so a failed
+      // merge lost the duplicates' data. Now a failed patch aborts this group (dupes are kept).
+      try {
+        await apiClient.patch(`/nodes/${keeper.id}`, { data: mergedData });
+      } catch (e) {
+        console.error("[dedup] merge patch failed — keeping duplicates for this group:", e);
+        continue; // do NOT delete the dupes if we couldn't save the merge
+      }
       for (const dupe of dupes) {
-        await apiClient.delete(`/nodes/${dupe.id}`).catch((e) => console.error("[bg-task] swallowed error:", e));
+        await apiClient.delete(`/nodes/${dupe.id}`).catch((e) => console.error("[dedup] delete dupe failed:", e));
       }
     }
     qc.invalidateQueries({ queryKey: ["records", objectType] });
