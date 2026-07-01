@@ -1,0 +1,17 @@
+# Minimal SearXNG config for Mondaily Discovery/enrichment.
+# The app calls: GET /search?q=...&format=json&engines=google,reddit
+# so the JSON format MUST be enabled (it's off by default).
+use_default_settings: true
+
+server:
+  # Generate a real one: `openssl rand -hex 32` and paste it here.
+  secret_key: "CHANGE_ME_TO_A_RANDOM_64_CHAR_HEX"
+  bind_address: "0.0.0.0"
+  limiter: false            # no per-IP rate limiting (single trusted caller = the API)
+  image_proxy: false
+
+search:
+  # THIS is the important bit — expose the JSON API the app consumes.
+  formats:
+    - html
+    - json

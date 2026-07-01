@@ -1,0 +1,21 @@
+services:
+  searxng:
+    image: searxng/searxng:latest
+    container_name: mondaily-searxng
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    restart: unless-stopped
+
+  scraper:
+    build: ./scraper
+    container_name: mondaily-scraper
+    ports:
+      - "3002:3002"
+    environment:
+      # Optional shared secret. Leave empty for open access (fine behind a firewall).
+      - SCRAPER_API_KEY=${SCRAPER_API_KEY:-}
+    restart: unless-stopped
