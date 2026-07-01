@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle } from "lucide-react";
+import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
 
@@ -15,6 +15,7 @@ interface DiscoveredLead {
   region: string | null;
   confidence_score: number | null;
   created_at: string;
+  contact?: { email?: string | null; phone?: string | null; handle?: string | null; summary?: string | null } | null;
 }
 
 type SearchType = "INTENT_LEADS" | "REVIEWS";
@@ -55,6 +56,25 @@ export function DiscoveryPage() {
         targetSubject: targetSubject.trim() || undefined,
       }),
     onSuccess: () => setTimeout(() => qc.invalidateQueries({ queryKey: ["discovery"] }), 4000),
+  });
+
+  // Promote a discovered lead into a real People record (name + email + phone + note + source).
+  const [added, setAdded] = useState<Record<string, boolean>>({});
+  const addLead = useMutation({
+    mutationFn: (r: DiscoveredLead) => apiClient.post("/nodes", {
+      vertical: "shared",
+      object_type: "people",
+      data: {
+        name: r.author_name && r.author_name !== "Anonymous" ? r.author_name : (r.contact?.handle || r.target_subject || "Discovered lead"),
+        email: r.contact?.email || undefined,
+        phone: r.contact?.phone || undefined,
+        handle: r.contact?.handle || undefined,
+        notes: [r.contact?.summary, r.raw_content && `“${r.raw_content}”`, r.source_url && `Source: ${r.source_url}`].filter(Boolean).join("\n\n"),
+        source: "discovery",
+        lead_type: r.intent_type,
+      },
+    }),
+    onSuccess: (_d, r) => setAdded((m) => ({ ...m, [r.id]: true })),
   });
 
   const reviewsMissingSubject = searchType === "REVIEWS" && !targetSubject.trim();
@@ -190,12 +210,30 @@ export function DiscoveryPage() {
                         {r.region && <span className="text-[11px] text-[var(--text-muted)]">· {r.region}</span>}
                         {r.target_subject && <span className="text-[11px] text-[var(--text-muted)]">· re: {r.target_subject}</span>}
                       </div>
-                      {r.raw_content && <p className="mt-1.5 line-clamp-3 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">{r.raw_content}</p>}
-                      {r.source_url && (
-                        <a href={r.source_url} target="_blank" rel="noreferrer" className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-[#6f8068] hover:underline">
-                          <ExternalLink size={10} /> View source
-                        </a>
+                      {r.contact?.summary && <p className="mt-1.5 text-[12px] italic leading-relaxed text-[var(--text-muted)]">{r.contact.summary}</p>}
+                      {r.raw_content && <p className="mt-1 line-clamp-3 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">{r.raw_content}</p>}
+                      {/* Contact chips — only what was actually found in the source */}
+                      {(r.contact?.email || r.contact?.phone || r.contact?.handle) && (
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          {r.contact?.email && <a href={`mailto:${r.contact.email}`} className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] text-[var(--text-secondary)] hover:border-[var(--section-accent)]" style={{ borderColor: "var(--border-soft)" }}><Mail size={10} />{r.contact.email}</a>}
+                          {r.contact?.phone && <a href={`tel:${r.contact.phone}`} className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] text-[var(--text-secondary)] hover:border-[var(--section-accent)]" style={{ borderColor: "var(--border-soft)" }}><Phone size={10} />{r.contact.phone}</a>}
+                          {r.contact?.handle && <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] text-[var(--text-muted)]" style={{ borderColor: "var(--border-soft)" }}>{r.contact.handle}</span>}
+                        </div>
                       )}
+                      <div className="mt-2 flex flex-wrap items-center gap-3">
+                        {r.source_url && (
+                          <a href={r.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-medium text-[#6f8068] hover:underline">
+                            <ExternalLink size={10} /> View source
+                          </a>
+                        )}
+                        <button
+                          onClick={() => !added[r.id] && addLead.mutate(r)}
+                          disabled={added[r.id] || (addLead.isPending && addLead.variables?.id === r.id)}
+                          className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[11px] font-medium transition-colors hover:border-[var(--section-accent)] disabled:opacity-60"
+                          style={{ borderColor: "var(--border-strong)", color: added[r.id] ? "#15803d" : "var(--text-secondary)" }}>
+                          {added[r.id] ? <><Check size={11} /> Added to People</> : <><UserPlus size={11} /> Add as lead</>}
+                        </button>
+                      </div>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
                       <span

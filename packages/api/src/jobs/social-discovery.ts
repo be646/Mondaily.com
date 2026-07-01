@@ -62,6 +62,11 @@ interface ExtractedLead {
   target_subject?: string;
   region?: string;
   confidence_score?: number;
+  // Contact details, extracted ONLY when present verbatim in the source (never invented).
+  contact_email?: string;
+  contact_phone?: string;
+  handle?: string;
+  summary?: string;
 }
 
 const LEAD_TOOL_SCHEMA: GatewayToolRequest["toolSchema"] = {
@@ -75,12 +80,16 @@ const LEAD_TOOL_SCHEMA: GatewayToolRequest["toolSchema"] = {
         properties: {
           source_url: { type: "string", description: "Exact URL the result came from (must be one of the provided URLs)" },
           platform: { type: "string", description: "X | Reddit | Google Reviews | other" },
-          author_name: { type: "string" },
-          raw_content: { type: "string", description: "The relevant quote/snippet, verbatim" },
+          author_name: { type: "string", description: "The person's name if identifiable" },
+          raw_content: { type: "string", description: "The relevant quote/snippet/review, verbatim" },
           intent_type: { type: "string", description: "BUY_SIGNAL | REVIEW | COMPLAINT" },
           target_subject: { type: "string", description: "The person/company being reviewed, if any" },
           region: { type: "string" },
           confidence_score: { type: "number", description: "0-100 how clearly this matches the search intent + region" },
+          contact_email: { type: "string", description: "Email ONLY if it appears verbatim in the source text — else omit" },
+          contact_phone: { type: "string", description: "Phone ONLY if it appears verbatim in the source text — else omit" },
+          handle: { type: "string", description: "Social handle/username if present (e.g. @name)" },
+          summary: { type: "string", description: "One-sentence note: who this is and why they're a lead" },
         },
         required: ["source_url", "intent_type"],
       },
@@ -126,7 +135,8 @@ export const socialDiscoveryWorker = inngest.createFunction(
         `(2) Drop ads, SEO listicles, vendor pages, and anything that is not a genuine ${wantReviews ? "review or complaint" : "person expressing buying intent"}. ` +
         `(3) ${region ? `Only keep results that plausibly match the region "${region}"; drop the rest.` : "Region is optional."} ` +
         `(4) intent_type is COMPLAINT for negative reviews, REVIEW for neutral/positive reviews, BUY_SIGNAL for purchase intent. ` +
-        `(5) confidence_score reflects how clearly the hit matches the intent and region. Return an empty array if nothing qualifies — never pad.`,
+        `(5) confidence_score reflects how clearly the hit matches the intent and region. Return an empty array if nothing qualifies — never pad. ` +
+        `(6) Fill contact_email / contact_phone / handle ONLY when they appear verbatim in the hit text — NEVER guess or construct them. Always write a one-sentence summary noting who the person is and why they're a lead.`,
       prompt:
         `Search type: ${searchType}. Sector: "${sector ?? ""}". Region: "${region ?? ""}".` +
         `${targetSubject ? ` Target subject: "${targetSubject}".` : ""}\n\nSearch hits:\n${context}`,
@@ -154,12 +164,25 @@ export const socialDiscoveryWorker = inngest.createFunction(
         target_subject: l.target_subject ?? targetSubject ?? null,
         region: l.region ?? region ?? null,
         confidence_score: typeof l.confidence_score === "number" ? Math.max(0, Math.min(100, Math.round(l.confidence_score))) : 0,
+        // Structured contact block (needs the `contact jsonb` column — 20260701 migration).
+        contact: {
+          email: l.contact_email?.trim() || null,
+          phone: l.contact_phone?.trim() || null,
+          handle: l.handle?.trim() || null,
+          summary: l.summary?.trim() || null,
+        },
       }));
 
     if (rows.length === 0) return { discovered: 0, scanned: unique.length };
 
     // 3) Upsert, deduping on source_url (a result seen before is refreshed, not duplicated).
-    const { error } = await supabase.from("discovered_leads").upsert(rows, { onConflict: "source_url" });
+    let { error } = await supabase.from("discovered_leads").upsert(rows, { onConflict: "source_url" });
+    // Graceful degrade: if the `contact` column isn't migrated yet, retry without it so
+    // discovery keeps working (the enriched fields just won't persist until the migration runs).
+    if (error && /contact/i.test(error.message)) {
+      const bare = rows.map(({ contact, ...r }) => r);
+      ({ error } = await supabase.from("discovered_leads").upsert(bare, { onConflict: "source_url" }));
+    }
     if (error) {
       console.error("[social-discovery] upsert failed:", error.message);
       return { discovered: 0, scanned: unique.length, error: error.message };
