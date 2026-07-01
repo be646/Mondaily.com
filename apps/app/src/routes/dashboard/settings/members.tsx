@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
-import { Check, Copy, Trash2, UserPlus, Cpu, Clock } from "lucide-react";
-import { useState } from "react";
+import { Check, Copy, Trash2, UserPlus, Cpu, Clock, SlidersHorizontal } from "lucide-react";
+import { Fragment, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 
 /**
@@ -13,13 +13,16 @@ import { apiClient } from "../../../lib/api-client";
 interface Member {
   id?: string; name?: string | null; email?: string | null; image_url?: string | null;
   role?: string | null; finance_role?: string | null; tokens?: number | null; last_active?: string | null;
+  module_access?: Record<string, string> | null;
 }
 interface Invitation { id?: string; email?: string | null; role?: string | null }
-interface MembersData { members?: Member[]; invitations?: Invitation[] }
+interface ModuleDef { key: string; label: string; hint?: string }
+interface MembersData { members?: Member[]; invitations?: Invitation[]; modules?: ModuleDef[] }
 
 const roleLabel = (r?: string | null) => r === "owner" ? "Owner" : r === "admin" ? "Admin" : r === "viewer" ? "Viewer" : "Member";
 const ROLE_OPTIONS = ["admin", "member", "viewer"] as const;
-const FINANCE_OPTIONS: [string, string][] = [["none", "None"], ["viewer", "Viewer"], ["member", "Member"], ["reviewer", "Reviewer"], ["approver", "Approver"]];
+const LEVELS: [string, string][] = [["none", "None"], ["view", "View"], ["edit", "Edit"]];
+const LEVEL_COLOR: Record<string, string> = { none: "#52525b", view: "#a1a1aa", edit: "var(--section-accent)" };
 
 const fmt = (n: number) => n.toLocaleString();
 function ago(iso?: string | null) {
@@ -37,12 +40,16 @@ export function MembersSettings() {
   const me = useCurrentUser();
   const [copied, setCopied] = useState(false);
   const [emails, setEmails] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   const query = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<MembersData>("/settings/members"), retry: false });
   const refresh = () => qc.invalidateQueries({ queryKey: ["members"] });
 
   const members: Member[] = Array.isArray(query.data?.members) ? query.data!.members! : [];
   const invitations: Invitation[] = Array.isArray(query.data?.invitations) ? query.data!.invitations! : [];
+  const modules: ModuleDef[] = Array.isArray(query.data?.modules) && query.data!.modules!.length
+    ? query.data!.modules!
+    : [{ key: "crm", label: "CRM" }, { key: "discovery", label: "Discovery" }, { key: "automations", label: "Automations" }, { key: "campaigns", label: "Campaigns" }, { key: "finance", label: "Finance" }, { key: "analytics", label: "Analytics" }];
   // Trust the backend's authoritative my_role first; fall back to client-side matching only if
   // it's absent. This is what finally makes the invite bar appear for owners reliably.
   const matchedRole = members.find(m =>
@@ -53,7 +60,7 @@ export function MembersSettings() {
   const isAdmin = myRole === "owner" || myRole === "admin";
 
   const changeRole = useMutation({ mutationFn: ({ id, role }: { id: string; role: string }) => apiClient.patch(`/settings/members/${id}`, { role }), onSuccess: refresh });
-  const changeFinance = useMutation({ mutationFn: ({ id, finance_role }: { id: string; finance_role: string }) => apiClient.patch(`/settings/members/${id}`, { finance_role }), onSuccess: refresh });
+  const changeModule = useMutation({ mutationFn: ({ id, module, level }: { id: string; module: string; level: string }) => apiClient.patch(`/settings/members/${id}`, { module, level }), onSuccess: refresh });
   const remove = useMutation({ mutationFn: (id: string) => apiClient.delete(`/settings/members/${id}`), onSuccess: refresh });
   const sendInvite = useMutation({
     mutationFn: async () => {
@@ -82,7 +89,7 @@ export function MembersSettings() {
       <div className="mb-5">
         <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// TEAM OPERATORS</p>
         <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Members &amp; Roles</h1>
-        <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>{members.length} operator{members.length === 1 ? "" : "s"} · workspace access, finance permissions, and AI compute.</p>
+        <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>{members.length} operator{members.length === 1 ? "" : "s"} · roles, per-module access, and AI compute.</p>
       </div>
 
       {/* Invite bar */}
@@ -110,7 +117,7 @@ export function MembersSettings() {
         <table className="minimal-table min-w-[720px] text-left text-sm">
           <thead>
             <tr>
-              {["Operator", "Role", "Finance access", "AI usage · 30d", "Last active", ""].map(h => (
+              {["Operator", "Role", "Module access", "AI usage · 30d", "Last active", ""].map(h => (
                 <th key={h || "x"} className={`text-[10px] uppercase tracking-wider text-stone-500 ${h === "AI usage · 30d" ? "text-right" : ""}`}>{h}</th>
               ))}
             </tr>
@@ -118,8 +125,10 @@ export function MembersSettings() {
           <tbody>
             {Array.isArray(members) && members.length > 0 ? members.map((m, i) => {
               const isOwner = m?.role === "owner";
+              const isExpanded = expanded === m?.id && !!m?.id;
               return (
-                <tr key={m?.id ?? `row-${i}`} className="border-t" style={{ borderColor: "var(--border-soft)" }}>
+                <Fragment key={m?.id ?? `row-${i}`}>
+                <tr className="border-t" style={{ borderColor: "var(--border-soft)" }}>
                   <td className="py-3">
                     <div className="flex items-center gap-2.5">
                       {m?.image_url
@@ -144,14 +153,22 @@ export function MembersSettings() {
                     )}
                   </td>
                   <td className="py-3">
-                    {isAdmin && m?.id ? (
-                      <select value={m?.finance_role ?? "none"} onChange={e => changeFinance.mutate({ id: m.id!, finance_role: e.target.value })}
-                        className="rounded-lg border bg-transparent px-2 py-1 text-xs outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                        {FINANCE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                      </select>
-                    ) : (
-                      <span className="text-xs text-stone-500">{FINANCE_OPTIONS.find(([v]) => v === (m?.finance_role ?? "none"))?.[1] ?? "None"}</span>
-                    )}
+                    {(() => {
+                      const acc = m?.module_access ?? {};
+                      const editable = modules.filter(md => (acc[md.key] ?? "edit") === "edit").length;
+                      const viewable = modules.filter(md => (acc[md.key] ?? "edit") === "view").length;
+                      return (
+                        <button
+                          onClick={() => setExpanded(expanded === m?.id ? null : (m?.id ?? null))}
+                          disabled={!m?.id}
+                          className="inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs transition-colors hover:text-[var(--text-primary)]"
+                          style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}
+                        >
+                          <SlidersHorizontal size={12} />
+                          <span className="tabular-nums">{editable} edit · {viewable} view</span>
+                        </button>
+                      );
+                    })()}
                   </td>
                   <td className="py-3 text-right">
                     <span className="inline-flex items-center gap-1 tabular-nums text-[12px]" style={{ color: (m?.tokens ?? 0) > 0 ? "var(--section-accent)" : "#52525b" }}>
@@ -169,6 +186,43 @@ export function MembersSettings() {
                     )}
                   </td>
                 </tr>
+                {isExpanded && (
+                  <tr className="border-t" style={{ borderColor: "var(--border-soft)" }}>
+                    <td colSpan={6} className="px-3 py-4" style={{ background: "var(--surface-hover)" }}>
+                      <p className="mb-3 text-[10px] uppercase tracking-wider text-stone-500">
+                        Per-module access for {m?.name || m?.email || "this operator"}{isOwner ? " · owners always have full access" : ""}
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {modules.map(md => {
+                          const level = m?.module_access?.[md.key] ?? "edit";
+                          return (
+                            <div key={md.key} className="flex items-center justify-between gap-2 rounded-sm border px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
+                              <div className="min-w-0">
+                                <div className="text-[12px] text-stone-200">{md.label}</div>
+                                {md.hint && <div className="truncate text-[10px] text-stone-600">{md.hint}</div>}
+                              </div>
+                              {isAdmin && !isOwner && m?.id ? (
+                                <select
+                                  value={level}
+                                  onChange={e => changeModule.mutate({ id: m.id!, module: md.key, level: e.target.value })}
+                                  className="shrink-0 rounded-lg border bg-transparent px-2 py-1 text-xs outline-none"
+                                  style={{ borderColor: "var(--border-soft)", color: LEVEL_COLOR[level] ?? "var(--text-secondary)" }}
+                                >
+                                  {LEVELS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                                </select>
+                              ) : (
+                                <span className="shrink-0 text-xs" style={{ color: LEVEL_COLOR[level] ?? "#52525b" }}>
+                                  {LEVELS.find(([v]) => v === level)?.[1] ?? "Edit"}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               );
             }) : (
               <tr><td colSpan={6} className="p-4 text-[12px]" style={{ color: "var(--text-muted)" }}>

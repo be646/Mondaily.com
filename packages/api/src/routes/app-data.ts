@@ -7,6 +7,17 @@ import { supabase } from "@mondaily/db/client";
 import { makeTrackingToken } from "../lib/tracking";
 import { isWorkspaceAdmin } from "../middleware/rbac";
 import { ACCESS_COOKIE, REFRESH_COOKIE, sha256 } from "../lib/auth-tokens";
+import { MODULES, MODULE_KEYS, resolveModuleMatrix } from "../lib/modules";
+
+// Keep only known module keys with a valid level — never trust arbitrary jsonb from the client.
+function sanitizeModuleAccess(input: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const k of MODULE_KEYS) {
+    const v = input[k];
+    if (v === "none" || v === "view" || v === "edit") out[k] = v;
+  }
+  return out;
+}
 
 // Parse a coarse device + browser label out of a User-Agent string (no third-party UA lib).
 function parseUA(ua: string | null | undefined): { device: string; browser: string } {
@@ -506,22 +517,30 @@ router.get("/settings/members", async (c) => {
     // Authoritative role of the *requesting* user, straight from the auth context — so the UI
     // never has to guess by matching ids/emails (which was hiding the invite bar for owners).
     my_role: c.get("role"),
-    members: (members ?? []).map((member) => ({
-      id: member.user_id,
-      name: member.name || member.email || member.user_id,
-      email: member.email || "",
-      image_url: member.avatar_url ?? null,
-      avatar_url: member.avatar_url ?? null,
-      role: member.role,
-      finance_role: member.finance_role ?? "none",
-      position: member.position ?? null,
-      tokens: tokensBy.get(String(member.user_id)) ?? 0,
-      last_active: lastActiveBy.get(String(member.user_id)) ?? null,
-      status: "active",
-    })),
+    // Catalog of feature-modules so the Members matrix can render columns without hardcoding.
+    modules: MODULES,
+    members: (members ?? []).map((member) => {
+      const access = (member as Record<string, unknown>).module_access as Record<string, string> | null;
+      return {
+        id: member.user_id,
+        name: member.name || member.email || member.user_id,
+        email: member.email || "",
+        image_url: member.avatar_url ?? null,
+        avatar_url: member.avatar_url ?? null,
+        role: member.role,
+        finance_role: member.finance_role ?? "none",
+        // Effective per-module levels (role defaults + finance_role folded in + explicit overrides).
+        module_access: resolveModuleMatrix(member.role, access, (member.finance_role ?? "none") as string),
+        position: member.position ?? null,
+        tokens: tokensBy.get(String(member.user_id)) ?? 0,
+        last_active: lastActiveBy.get(String(member.user_id)) ?? null,
+        status: "active",
+      };
+    }),
     invitations: (inviteRows ?? []).map((i) => ({
       id: i.id, email: i.email, role: i.role,
       finance_role: (i as Record<string, unknown>).finance_role ?? "none",
+      module_access: resolveModuleMatrix(i.role as string, (i as Record<string, unknown>).module_access as Record<string, string> | null, ((i as Record<string, unknown>).finance_role ?? "none") as string),
       created_at: i.created_at,
     })),
     teams: (teams ?? []).map((team) => ({ id: team.id, name: team.name, member_count: team.team_members?.length ?? 0, member_ids: team.team_members?.map((item: { user_id: string }) => item.user_id) ?? [] }))
@@ -529,10 +548,20 @@ router.get("/settings/members", async (c) => {
 });
 // Update a member's workspace role and/or finance access (consolidated — the Members page owns both).
 router.patch("/settings/members/:id", async (c) => {
-  const body = await c.req.json<{ role?: string; finance_role?: string }>().catch(() => ({} as { role?: string; finance_role?: string }));
+  // Only owners/admins can change roles or module access.
+  if (!["owner", "admin"].includes(c.get("role"))) return c.json({ error: "Only owners and admins can update members" }, 403);
+  const body = await c.req.json<{ role?: string; finance_role?: string; module_access?: Record<string, string>; module?: string; level?: string }>().catch(() => ({} as Record<string, never>));
   const patch: Record<string, unknown> = {};
   if (body.role) patch.role = body.role;
   if (body.finance_role) patch.finance_role = body.finance_role;
+  // Accept either a full module_access map, or a single {module, level} cell update (merged in).
+  if (body.module_access && typeof body.module_access === "object") {
+    patch.module_access = sanitizeModuleAccess(body.module_access);
+  } else if (body.module && MODULE_KEYS.includes(body.module) && ["none", "view", "edit"].includes(body.level ?? "")) {
+    const { data: cur } = await supabase.from("workspace_members").select("module_access").eq("workspace_id", c.get("workspaceId")).eq("user_id", c.req.param("id")).maybeSingle();
+    const merged = { ...((cur?.module_access as Record<string, string>) ?? {}), [body.module]: body.level! };
+    patch.module_access = sanitizeModuleAccess(merged);
+  }
   if (Object.keys(patch).length === 0) return c.json({ error: "Nothing to update" }, 400);
   const { error } = await supabase.from("workspace_members").update(patch).eq("workspace_id", c.get("workspaceId")).eq("user_id", c.req.param("id"));
   return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });

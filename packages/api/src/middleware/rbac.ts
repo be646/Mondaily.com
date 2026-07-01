@@ -10,6 +10,7 @@
  */
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
+import { moduleAllows, type AccessLevel } from "../lib/modules";
 
 export type WorkspaceRole = "owner" | "admin" | "member" | "viewer";
 
@@ -43,3 +44,15 @@ export const denyViewerWrites = createMiddleware<RbacVars>(async (c, next) => {
   }
   await next();
 });
+
+/**
+ * Gate a route by per-module access. `need` defaults to "view"; pass "edit" for mutations.
+ * Reads role + finance_role + module_access from the auth context (set by requireAuth).
+ */
+export function requireModule(moduleKey: string, need: AccessLevel = "view") {
+  return createMiddleware<{ Variables: { role: string; financeRole: string; moduleAccess: Record<string, string> } }>(async (c, next) => {
+    const ok = moduleAllows(c.get("role"), moduleKey, need, c.get("moduleAccess"), c.get("financeRole"));
+    if (!ok) throw new HTTPException(403, { message: `No ${need} access to ${moduleKey}.` });
+    await next();
+  });
+}

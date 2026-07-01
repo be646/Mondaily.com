@@ -21,6 +21,8 @@ const inviteSchema = z.object({
   email: z.string().email(),
   role: z.enum(["admin","member","viewer","guest"]).default("member"),
   finance_role: z.enum(["none","viewer","member","reviewer","approver"]).default("none"),
+  // Per-module access matrix { crm: "edit", finance: "view", ... }. Empty → role defaults apply.
+  module_access: z.record(z.enum(["none","view","edit"])).default({}),
 });
 
 // LIST pending invites
@@ -42,19 +44,30 @@ router.post("/", requireAuth, zValidator("json", inviteSchema), async (c) => {
   if (!["admin","owner"].includes(callerRole)) return c.json({ error: "Forbidden" }, 403);
   const body = c.req.valid("json");
   // Upsert invite (unique on workspace+email where not accepted)
-  const { data, error } = await supabase
+  const inviteRow = {
+    workspace_id: c.get("workspaceId"),
+    email: body.email,
+    role: body.role,
+    finance_role: body.finance_role,
+    module_access: body.module_access,
+    invited_by: c.get("userId"),
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  };
+  let { data, error } = await supabase
     .from("workspace_invites")
-    .upsert({
-      workspace_id: c.get("workspaceId"),
-      email: body.email,
-      role: body.role,
-      finance_role: body.finance_role,
-      invited_by: c.get("userId"),
-      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    }, { onConflict: "workspace_id,email", ignoreDuplicates: false })
+    .upsert(inviteRow, { onConflict: "workspace_id,email", ignoreDuplicates: false })
     .select("id,email,role,finance_role,token,expires_at,created_at")
     .single();
-  if (error) return c.json({ error: error.message }, 500);
+  // Graceful degrade if module_access column isn't migrated yet.
+  if (error && /module_access/i.test(error.message)) {
+    const { module_access, ...bare } = inviteRow;
+    ({ data, error } = await supabase
+      .from("workspace_invites")
+      .upsert(bare, { onConflict: "workspace_id,email", ignoreDuplicates: false })
+      .select("id,email,role,finance_role,token,expires_at,created_at")
+      .single());
+  }
+  if (error || !data) return c.json({ error: error?.message ?? "Invite failed" }, 500);
   // Deliver the invite to the incoming teammate from the workspace's connected
   // inbox. Best-effort: if no inbox is connected we still return the link so the
   // inviter can share it manually (email_sent flags which happened).
@@ -124,12 +137,18 @@ router.post("/accept", requireJwt, async (c) => {
   if (inviteErr || !invite) return c.json({ error: "Invalid or expired invite" }, 404);
 
   // Add to workspace_members
-  const { error: memberErr } = await supabase.from("workspace_members").upsert({
+  const memberRow = {
     workspace_id: invite.workspace_id,
     user_id: userId,
     role: invite.role,
     finance_role: invite.finance_role,
-  }, { onConflict: "workspace_id,user_id" });
+    module_access: (invite as Record<string, unknown>).module_access ?? {},
+  };
+  let { error: memberErr } = await supabase.from("workspace_members").upsert(memberRow, { onConflict: "workspace_id,user_id" });
+  if (memberErr && /module_access/i.test(memberErr.message)) {
+    const { module_access, ...bare } = memberRow;
+    ({ error: memberErr } = await supabase.from("workspace_members").upsert(bare, { onConflict: "workspace_id,user_id" }));
+  }
   if (memberErr) return c.json({ error: memberErr.message }, 500);
 
   // Mark accepted
