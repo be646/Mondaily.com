@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { verifyTrackingToken } from "../lib/tracking";
 import { freshAccessToken, gmailThreads, gmailThread, gmailSend } from "../lib/google";
+import { sendWorkspaceEmail } from "../lib/mail";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 type WorkspaceSettings = {
@@ -267,6 +268,27 @@ router.post("/threads/:id/reply", zValidator("json", z.object({ body: z.string()
 
   // No direct-Google inbox connected → can't send (Nylas removed for sovereignty).
   return c.json({ error: "Connect a Gmail inbox in Settings → Email before replying." }, 400);
+});
+
+// ── Compose + send a fresh email (from Discovery, a record, anywhere) ─────────
+// Sends through the workspace's own system: connected Gmail if present, else Resend.
+router.post("/compose", zValidator("json", z.object({
+  to: z.string().email(),
+  subject: z.string().min(1).max(300),
+  body: z.string().min(1),
+  name: z.string().max(160).optional(),
+})), async (c) => {
+  const { to, subject, body, name } = c.req.valid("json");
+  // Outbox node so the send is tracked (opens/clicks) and shows in the outbox.
+  const { data: trackNode } = await supabase.from("nodes").insert({
+    workspace_id: c.get("workspaceId"), vertical: "sales", object_type: "email_outbox",
+    data: { to, subject, status: "sent", sent_at: new Date().toISOString(), opens: [], clicks: [] },
+    created_by: c.get("userId"),
+  }).select("id").single();
+  const html = trackNode ? injectTracking(body, trackNode.id) : body;
+  const ok = await sendWorkspaceEmail(c.get("workspaceId"), { subject, body: html, to: [{ email: to, name }] });
+  if (!ok) return c.json({ error: "Couldn't send — connect a Gmail inbox in Settings → Email, or set RESEND_API_KEY on the API." }, 502);
+  return c.json({ ok: true, tracking_id: trackNode?.id }, 201);
 });
 
 // ── List outbox (sent + tracked emails) ──────────────────────────────────────

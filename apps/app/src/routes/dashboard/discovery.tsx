@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download } from "lucide-react";
+import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download, Send, X } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
 
@@ -99,6 +99,16 @@ export function DiscoveryPage() {
     },
     onSuccess: () => setSelected(new Set()),
   });
+  // Compose + send an email to a lead — through our own system (Gmail/Resend), not mailto.
+  const [compose, setCompose] = useState<{ lead: DiscoveredLead; subject: string; body: string } | null>(null);
+  const [sendMsg, setSendMsg] = useState<string | null>(null);
+  const sendEmail = useMutation({
+    mutationFn: (c: { to: string; subject: string; body: string; name?: string }) =>
+      apiClient.post("/emails/compose", { to: c.to, subject: c.subject, body: c.body.replace(/\n/g, "<br>"), name: c.name }),
+    onSuccess: () => { setSendMsg("Sent ✓"); setTimeout(() => { setCompose(null); setSendMsg(null); }, 1200); },
+    onError: (e) => setSendMsg(e instanceof Error ? e.message : "Couldn't send."),
+  });
+
   function exportCSV(list: DiscoveredLead[]) {
     const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""').replace(/\n/g, " ")}"`;
     const header = ["name", "type", "email", "phone", "handle", "note", "review", "subject", "region", "confidence", "source_url", "found_at"];
@@ -296,6 +306,14 @@ export function DiscoveryPage() {
                           style={{ borderColor: "var(--border-strong)", color: added[r.id] ? "#15803d" : "var(--text-secondary)" }}>
                           {added[r.id] ? <><Check size={11} /> Added to People</> : <><UserPlus size={11} /> Add as lead</>}
                         </button>
+                        {r.contact?.email && (
+                          <button
+                            onClick={() => { setSendMsg(null); setCompose({ lead: r, subject: r.target_subject ? `Regarding ${r.target_subject}` : "Hello from Mondaily", body: `Hi ${r.author_name && r.author_name !== "Anonymous" ? r.author_name : "there"},\n\n` }); }}
+                            className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--section-accent)]"
+                            style={{ borderColor: "var(--border-strong)" }}>
+                            <Send size={11} /> Message
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">
@@ -314,6 +332,33 @@ export function DiscoveryPage() {
           </ul>
         )}
       </section>
+
+      {/* Compose modal — sends through our own system (Gmail/Resend), not mailto */}
+      {compose && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setCompose(null)}>
+          <div className="w-full max-w-lg rounded-sm border shadow-2xl" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+              <span className="text-sm font-semibold text-[var(--text-primary)]">Message {compose.lead.author_name && compose.lead.author_name !== "Anonymous" ? compose.lead.author_name : "lead"}</span>
+              <button onClick={() => setCompose(null)} className="text-stone-500 hover:text-[var(--text-primary)]"><X size={15} /></button>
+            </div>
+            <div className="space-y-3 p-4">
+              <div className="flex items-center gap-2 text-[12px]"><span className="text-[var(--text-muted)]">To</span><span className="font-mono text-[var(--text-primary)]">{compose.lead.contact?.email}</span></div>
+              <input value={compose.subject} onChange={(e) => setCompose({ ...compose, subject: e.target.value })} placeholder="Subject" className="key-input h-9 w-full px-3 text-sm" />
+              <textarea value={compose.body} onChange={(e) => setCompose({ ...compose, body: e.target.value })} rows={7} placeholder="Write your message…" className="key-input w-full resize-none px-3 py-2 text-sm" />
+              {sendMsg && <p className="text-[12px]" style={{ color: sendMsg.includes("✓") ? "#15803d" : "#be123c" }}>{sendMsg}</p>}
+              <div className="flex items-center justify-end gap-2">
+                <button onClick={() => setCompose(null)} className="rounded-sm px-3 py-1.5 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)]">Cancel</button>
+                <button
+                  onClick={() => compose.lead.contact?.email && sendEmail.mutate({ to: compose.lead.contact.email, subject: compose.subject, body: compose.body, name: compose.lead.author_name ?? undefined })}
+                  disabled={sendEmail.isPending || !compose.subject.trim() || !compose.body.trim()}
+                  className="inline-flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-stone-600 disabled:opacity-60">
+                  {sendEmail.isPending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />} Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
