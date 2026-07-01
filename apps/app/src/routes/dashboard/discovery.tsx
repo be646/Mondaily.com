@@ -80,9 +80,8 @@ export function DiscoveryPage() {
           <AlertTriangle size={15} className="mt-0.5 shrink-0 text-amber-600" />
           <div className="text-[12.5px] leading-relaxed text-amber-900">
             <span className="font-medium">Search stack is degraded.</span>{" "}
-            {!statusQ.data.services.searxng_reachable && "The SearXNG index is unreachable. "}
-            {!statusQ.data.services.scraper_reachable && "The page scraper is unreachable. "}
-            Sweeps will return nothing until the self-hosted appliance is back online.
+            {(statusQ.data as { diagnostic?: string }).diagnostic
+              ?? "Sweeps will return nothing until the self-hosted appliance is reachable."}
           </div>
         </div>
       )}

@@ -74,18 +74,16 @@ router.get("/", async (c) => {
 // with a hard 3s timeout each so a down service can't block the request. Any
 // connection error / timeout → that service is `false` and the overall status is
 // DEGRADED; the route never throws.
-async function probe(url: string): Promise<boolean> {
+// Returns the outcome so /status can distinguish "can't connect" (env/network) from
+// "401 auth failing" (SOVEREIGN_SEARCH_KEY missing/mismatched) — very different fixes.
+async function probe(url: string): Promise<{ reachable: boolean; ok: boolean; code: number }> {
   const ctrl = new AbortController();
-  // 8s: a real SearXNG search takes 1–5s (it hits live engines) and Vercel↔appliance is
-  // cross-region, so the old 3s aborted a healthy box. We probe the instant /healthz path
-  // below anyway, but keep headroom.
   const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
     const res = await fetch(url, { method: "GET", signal: ctrl.signal, headers: sovereignHeaders() });
-    // Any HTTP response (even 401/4xx) means the container is up and answering.
-    return res.status > 0;
+    return { reachable: true, ok: res.ok, code: res.status };
   } catch {
-    return false;
+    return { reachable: false, ok: false, code: 0 };
   } finally {
     clearTimeout(timer);
   }
@@ -94,19 +92,28 @@ async function probe(url: string): Promise<boolean> {
 router.get("/status", async (c) => {
   const searchUrl = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
   const scrapeUrl = process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3002/v1/scrape";
-  // Probe the appliance's instant health endpoints, NOT a full search — a live search hits
-  // external engines (slow) and made the status flap to DEGRADED even when the box was fine.
   const searchHealth = searchUrl.replace(/\/search\/?$/, "/healthz");
   const scrapeHealth = scrapeUrl.replace(/\/v[12]\/scrape\/?$/, "/health").replace(/\/scrape\/?$/, "/health");
 
-  const [searxng_reachable, scraper_reachable] = await Promise.all([
-    probe(searchHealth),
-    probe(scrapeHealth),
-  ]);
+  const [search, scrape] = await Promise.all([probe(searchHealth), probe(scrapeHealth)]);
+  // "reachable" for the UI = actually usable (200). A 401 or a connection failure both mean
+  // sweeps won't work, so both surface as degraded (with a precise diagnostic below).
+  const searxng_reachable = search.ok;
+  const scraper_reachable = scrape.ok;
+
+  const diagnostic =
+    !search.reachable ? "Can't reach the appliance — check SOVEREIGN_SEARCH_URL in the API env (it may be falling back to localhost) and that the box is online."
+    : search.code === 401 ? "Appliance is up but rejecting requests (401) — SOVEREIGN_SEARCH_KEY is missing or doesn't match the appliance's token. Set it in the API env and redeploy."
+    : searxng_reachable && scraper_reachable ? "All systems operational."
+    : `Search ${search.code}, scrape ${scrape.code}.`;
 
   return c.json({
     status: searxng_reachable && scraper_reachable ? "HEALTHY" : "DEGRADED",
     services: { searxng_reachable, scraper_reachable },
+    // Env-configured flags + codes so the exact failure is visible from the client/logs.
+    configured: { search_url: Boolean(process.env.SOVEREIGN_SEARCH_URL), scrape_url: Boolean(process.env.SOVEREIGN_SCRAPE_URL), search_key: Boolean(process.env.SOVEREIGN_SEARCH_KEY) },
+    codes: { search: search.code, scrape: scrape.code },
+    diagnostic,
   });
 });
 
