@@ -197,6 +197,31 @@ export async function executeApprovedAction(workspaceId: string, decision: any):
     return;
   }
 
+  // Discovery Agent: approving a discovered lead creates a real, agent-marked person/lead record.
+  if (decision.agent_name === "discovery" && decision.source_type === "discovered_lead") {
+    const lead = ((decision.evidence ?? [])[0] as { lead?: Record<string, any> } | undefined)?.lead;
+    if (!lead?.name && !lead?.email) return;
+    const node = await ubc.createNode({
+      workspace_id: workspaceId,
+      vertical: "sales",
+      object_type: "person",
+      created_by: "agent:discovery",   // agent-icon marking in the UI
+      data: {
+        name: lead.name || lead.email || "Discovered lead",
+        email: lead.email ?? undefined,
+        phone: lead.phone ?? undefined,
+        twitter: lead.handle ?? undefined,
+        notes: lead.summary ?? undefined,
+        region: lead.region ?? undefined,
+        source_url: lead.source_url ?? undefined,
+        discovered: true,
+      },
+    });
+    await ubc.logActivity(node.id!, workspaceId, "ai_agent", "discovery", "created", undefined, "Approved from Decision Queue (Discovery)");
+    inngest.send({ name: "crm/record.created", data: { workspaceId, nodeId: node.id!, objectType: "person", vertical: "sales" } }).catch(() => {});
+    return;
+  }
+
   if (decision.agent_name === "invoice_chaser" && decision.source_type === "invoice") {
     const { data: invoice } = await supabase
       .from("nodes")

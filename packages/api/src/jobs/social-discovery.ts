@@ -241,19 +241,54 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       return { discovered: 0, scanned: unique.length, error: error.message };
     }
 
-    // Agent notifies the workspace that Discovery found real leads (best-effort, never blocks).
+    // 4) Agent-driven: auto-queue the STRONGEST leads (high confidence + a real contact) into the
+    //    Decision Queue for one-click bulk approval — same pattern the prospecting agent uses.
+    //    Approving one creates a real, agent-marked lead record. Weaker/contactless leads stay in
+    //    the Discovery list for manual review (they don't spam the queue).
+    let queued = 0;
+    if (searchType !== "REVIEWS") {
+      const strong = rows.filter((r) => (r.confidence_score ?? 0) >= 70 && (r.contact?.email || r.contact?.phone));
+      if (strong.length) {
+        // Dedup against already-pending discovery decisions (by source_url in their evidence).
+        const { data: pending } = await supabase.from("decision_queue")
+          .select("evidence").eq("workspace_id", workspaceId).eq("agent_name", "discovery").eq("status", "pending");
+        const seenUrls = new Set((pending ?? []).flatMap((d) => Array.isArray(d.evidence) ? d.evidence.map((e: any) => e?.lead?.source_url) : []));
+        for (const r of strong) {
+          if (seenUrls.has(r.source_url)) continue;
+          await supabase.from("decision_queue").insert({
+            workspace_id: workspaceId,
+            source_type: "discovered_lead",
+            source_id: null,
+            agent_name: "discovery",
+            title: `Add ${r.author_name || "lead"} from Discovery?`,
+            summary: r.contact?.summary || (r.raw_content || "").slice(0, 160) || "Discovered from the web",
+            recommended_action: `Add "${r.author_name || "this lead"}" as a lead record`,
+            risk_level: "low",
+            evidence: [{
+              type: "discovered_lead",
+              title: r.author_name || "Lead",
+              match_reason: `Confidence ${r.confidence_score ?? 0}${r.contact?.email ? ` · ${r.contact.email}` : ""}`,
+              lead: { name: r.author_name, email: r.contact?.email ?? null, phone: r.contact?.phone ?? null, handle: r.contact?.handle ?? null, summary: r.contact?.summary ?? null, source_url: r.source_url, region: r.region, subject: r.target_subject },
+            }],
+          }).then(() => { queued++; }, () => {});
+        }
+      }
+    }
+
+    // 5) Agent notifies the workspace (best-effort, never blocks).
     if (rows.length > 0) {
       const what = searchType === "REVIEWS" ? "reviews/mentions" : "leads";
       await createNotification({
         workspace_id: workspaceId,
         type: "agent",
         title: `Discovery Agent found ${rows.length} ${what}`,
-        body: `From ${unique.length} sources${sector ? ` for "${sector}"` : ""}${region ? ` in ${region}` : ""}${targetSubject ? ` about "${targetSubject}"` : ""}. Review them in Discovery.`,
-        metadata: { source: "discovery", count: rows.length, search_type: searchType },
+        body: `From ${unique.length} sources${sector ? ` for "${sector}"` : ""}${region ? ` in ${region}` : ""}${targetSubject ? ` about "${targetSubject}"` : ""}.` +
+          (queued > 0 ? ` ${queued} strong lead${queued === 1 ? "" : "s"} queued in your Decision Queue for approval.` : " Review them in Discovery."),
+        metadata: { source: "discovery", count: rows.length, queued, search_type: searchType },
       }).catch(() => {});
     }
 
-    return { discovered: rows.length, scanned: unique.length, diag };
+    return { discovered: rows.length, scanned: unique.length, queued, diag };
 }
 
 export const socialDiscoveryWorker = inngest.createFunction(
