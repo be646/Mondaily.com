@@ -33,8 +33,17 @@ export function useModules() {
     hasHR: canSee("hr"),
     canSee,
     access: mine?.access ?? {},
+    role: mine?.role,
+    // Viewer = read-only (backend enforces via denyViewerWrites). Undefined while /me/access loads,
+    // so we never flash controls disabled for non-viewers.
+    isViewer: mine?.role === "viewer",
     modules,
   };
+}
+
+/** Lightweight read-only check for gating write controls in the UI (backend still enforces). */
+export function useIsViewer(): boolean {
+  return useModules().isViewer;
 }
 
 export interface WorkspaceMember {

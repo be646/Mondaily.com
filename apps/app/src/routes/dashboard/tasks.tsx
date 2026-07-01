@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { DndContext, useDroppable, useDraggable, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { useIsViewer } from "../../hooks/useModules";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { apiClient } from "../../lib/api-client";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
@@ -386,6 +387,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
 export function TasksPage() {
   const qc = useQueryClient();
   const me = useCurrentUser();
+  const isViewer = useIsViewer();   // read-only member — gate write controls (backend also enforces)
   const location = useLocation();
 
   useEffect(() => { apiClient.post("/tasks/check-overdue", {}).catch((e) => console.error("[bg-task] swallowed error:", e)); }, []);
@@ -467,6 +469,7 @@ export function TasksPage() {
   // Keep a just-completed task on screen (checked + struck) for ~1.4s before it moves to Done.
   const [keepVisible, setKeepVisible] = useState<Set<string>>(new Set());
   function handleToggle(task: Task) {
+    if (isViewer) return;   // viewers are read-only
     if (!task.completed) {
       setKeepVisible(s => new Set(s).add(task.id));
       window.setTimeout(() => setKeepVisible(s => { const n = new Set(s); n.delete(task.id); return n; }), 1400);
@@ -540,14 +543,19 @@ export function TasksPage() {
               </button>
             ))}
           </div>
-          <button onClick={() => setShowAISuggest(true)}
-            className="flex items-center gap-1.5 rounded-sm border border-stone-300 bg-stone-100 px-3 py-1.5 text-xs text-[var(--section-accent)] hover:bg-stone-200 dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
-            <AIMark size={12}/> Suggest
-          </button>
-          <button onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 rounded-sm bg-stone-600 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
-            <Plus size={13}/> New Task
-          </button>
+          {!isViewer && (
+            <>
+              <button onClick={() => setShowAISuggest(true)}
+                className="flex items-center gap-1.5 rounded-sm border border-stone-300 bg-stone-100 px-3 py-1.5 text-xs text-[var(--section-accent)] hover:bg-stone-200 dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
+                <AIMark size={12}/> Suggest
+              </button>
+              <button onClick={() => setShowCreate(true)}
+                className="flex items-center gap-1.5 rounded-sm bg-stone-600 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
+                <Plus size={13}/> New Task
+              </button>
+            </>
+          )}
+          {isViewer && <span className="text-[11px] text-stone-500">Read-only access</span>}
         </div>
       </div>
 
@@ -760,7 +768,7 @@ export function TasksPage() {
                     ? (t.completed || t.status === "done")
                     : (t.status === col.key && !t.completed)
                 );
-                return <BoardColumn key={col.key} col={col} tasks={colTasks} onDetail={setDetailTask} onEdit={setEditTask} onDelete={setConfirmDeleteId} onToggle={t => toggle.mutate(t)} currentUserId={currentUserId} getMemberName={getMemberName} flaggedTaskIds={flaggedTaskIds}/>;
+                return <BoardColumn key={col.key} col={col} tasks={colTasks} onDetail={setDetailTask} onEdit={setEditTask} onDelete={setConfirmDeleteId} onToggle={t => { if (!isViewer) toggle.mutate(t); }} currentUserId={currentUserId} getMemberName={getMemberName} flaggedTaskIds={flaggedTaskIds}/>;
               })}
             </div>
           </DndContext>
