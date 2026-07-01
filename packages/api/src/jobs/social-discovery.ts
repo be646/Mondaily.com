@@ -147,7 +147,9 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
     //    verify the region match, and must drop noise.
     const context = unique.map((h, i) => `[${i}] ${h.title}\n${fullText.get(h.url) || h.content}\nURL: ${h.url}`).join("\n\n");
     const wantReviews = searchType === "REVIEWS";
-    const extracted = await aiGatewayToolUse({
+    // The AI gateway is rate-limited (shared per-minute quota with chat + enrichment). A single 429
+    // used to zero the whole sweep — retry once after a short pause so a transient limit recovers.
+    const runExtraction = () => aiGatewayToolUse({
       toolName: "extract_discovered_leads",
       toolDescription: "Extract clean, on-topic social-listening results from the search hits",
       toolSchema: LEAD_TOOL_SCHEMA,
@@ -163,12 +165,19 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       prompt:
         `Search type: ${searchType}. Sector: "${sector ?? ""}". Region: "${region ?? ""}".` +
         `${targetSubject ? ` Target subject: "${targetSubject}".` : ""}\n\nSearch hits:\n${context}`,
-    }).catch((err: any) => {
-      console.error("[social-discovery] extraction gateway call failed (non-fatal):", err?.message ?? err);
-      return {} as Record<string, unknown>;
     });
-
-    const gatewayReturned = Object.keys(extracted as object).length > 0;
+    let extracted: Record<string, unknown> = {};
+    let gatewayReturned = false;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        extracted = await runExtraction();
+        gatewayReturned = Object.keys(extracted).length > 0;
+        if (gatewayReturned) break;
+      } catch (err: any) {
+        console.error(`[social-discovery] extraction gateway failed (attempt ${attempt + 1}):`, err?.message ?? err);
+      }
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 4000)); // let the per-minute quota recover
+    }
     const leads = Array.isArray((extracted as { leads?: unknown }).leads)
       ? ((extracted as { leads: ExtractedLead[] }).leads)
       : [];
