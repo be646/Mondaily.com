@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 import * as ubc from "@mondaily/db/ubc";
 import { inngest } from "../lib/inngest";
 import { aiGateway } from "../lib/ai-gateway";
@@ -11,12 +12,15 @@ const router = new Hono<{ Variables: { userId: string; workspaceId: string; role
 const importBodySchema = z.object({
   headers: z.array(z.string()),
   samples: z.array(z.array(z.string())), // first 3 rows for schema inference
-  rows: z.array(z.array(z.string())),    // all rows to insert
+  // Cap the batch — rows are inserted serially, so an unbounded CSV would time out the serverless
+  // function mid-import (silent partial import). 1000/request keeps it under the timeout; the client
+  // should chunk larger files.
+  rows: z.array(z.array(z.string())).max(1000),
   object_type: z.string().min(1),
   vertical: z.enum(["sales", "realestate", "hr", "finance", "investments", "tasks", "shared"]).default("shared"),
 });
 
-router.post("/", requireAuth, zValidator("json", importBodySchema), async (c) => {
+router.post("/", requireAuth, denyViewerWrites, zValidator("json", importBodySchema), async (c) => {
   const { headers, samples, rows, object_type, vertical } = c.req.valid("json");
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");

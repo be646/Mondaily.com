@@ -2,12 +2,15 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
+router.use("*", requireAuth);
+router.use("*", denyViewerWrites); // viewers are read-only
 
 // List all tags for workspace
-router.get("/", requireAuth, async (c) => {
+router.get("/", async (c) => {
   const { data } = await supabase
     .from("tags")
     .select("*")

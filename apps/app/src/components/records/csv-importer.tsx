@@ -42,6 +42,7 @@ interface ImportResult {
   created: number;
   errors: Array<{ row: number; error: string }>;
   column_types: Record<string, string>;
+  auto_enriching?: boolean;
 }
 
 export function CsvImporter({ objectType, onImported }: { objectType: string; onImported?: () => void }) {
@@ -117,13 +118,26 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
     setPhase("importing");
     try {
       const safeType = objectType.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
-      const res = await apiClient.post<ImportResult>("/import", {
-        headers,
-        samples: rows.slice(0, 3),
-        rows,
-        object_type: safeType,
-      });
-      setResult(res);
+      // Chunk to the server's per-request cap (1000) — the backend inserts serially, so a huge CSV
+      // must be split or it times out. Aggregate results across chunks.
+      const CHUNK = 1000;
+      let created = 0;
+      const errors: ImportResult["errors"] = [];
+      let column_types: ImportResult["column_types"] = {};
+      let auto_enriching = false;
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const res = await apiClient.post<ImportResult>("/import", {
+          headers,
+          samples: rows.slice(0, 3),
+          rows: rows.slice(i, i + CHUNK),
+          object_type: safeType,
+        });
+        created += res.created ?? 0;
+        if (Array.isArray(res.errors)) errors.push(...res.errors.map(e => ({ ...e, row: e.row + i })));
+        column_types = res.column_types ?? column_types;
+        auto_enriching = auto_enriching || !!res.auto_enriching;
+      }
+      setResult({ created, errors, column_types, auto_enriching });
       setPhase("done");
       qc.invalidateQueries({ queryKey: ["records", objectType] });
       onImported?.();
