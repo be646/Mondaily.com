@@ -435,6 +435,13 @@ export function friendlyAskError(err: unknown): string {
   if (lower.includes("no workspace") || lower.includes("workspace not found") || lower.includes("workspaceid")) {
     return "No workspace was found. Finish onboarding or select a workspace.";
   }
+  // The backend's own user-facing messages (credits exhausted, burst/throughput limit) are already
+  // clear and actionable — show them AS-IS instead of masking them behind a generic "unavailable"
+  // string. This was hiding the real reason (and even in production, previously never surfaced at
+  // all unless import.meta.env.DEV) — the fix for chat silently "not working" with no explanation.
+  if (lower.includes("credits exhausted") || lower.includes("usage limit") || lower.includes("throughput limit") || lower.includes("resets around")) {
+    return message;
+  }
   if (lower.includes("api key") || lower.includes("503") || lower.includes("unavailable") || lower.includes("ai error")) {
     return "The AI service is unavailable right now. Please try again shortly.";
   }

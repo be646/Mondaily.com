@@ -39,13 +39,21 @@ export async function grantTierCredits(workspaceId: string, tier: string, descri
  * have plenty of credits left but still hit a short-window ceiling that RESETS, so a runaway
  * agent loop can't drain a month of credits in minutes. The window slides — the cap frees up as
  * the oldest usage in the window ages out. Caps are tier-scaled (~a few hours of heavy use).
+ *
+ * SIZING (revised 2026-07-01 — the original caps were too tight and made chat feel "broken"):
+ * Ask's system prompt alone is ~3,000 tokens, tool schemas add more, and a single question can run
+ * up to 5 agentic rounds (each round resends the growing context) — so ONE substantive chat turn
+ * can legitimately cost 8,000-25,000 tokens. The old scout cap (12,000) could be exhausted by a
+ * single message, presenting as "AI chat not working." Caps are now sized as a large fraction of
+ * the monthly wallet (so the ONLY thing they stop is draining an entire month in one sitting), not
+ * a ceiling on normal single-session use.
  */
 export const BURST_WINDOW_HOURS = 5;
 const BURST_CAP: Record<string, number> = {
-  scout: 12_000,
-  operator: 90_000,
-  command: 320_000,
-  sovereign: 1_000_000,
+  scout: 40_000,      // 80% of the 50k monthly wallet
+  operator: 250_000,  // 50% of the 500k monthly wallet
+  command: 800_000,   // 40% of the 2M monthly wallet
+  sovereign: 1_500_000,
 };
 
 async function resolveTier(workspaceId: string): Promise<string> {

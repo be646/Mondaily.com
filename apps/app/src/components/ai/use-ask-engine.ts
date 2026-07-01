@@ -129,7 +129,10 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       // ── Streaming path (SSE): tokens render live, like Claude.ai ──
       bump(25_000); // up to 20s to first byte
       const res = await apiFetch(`${apiUrl}/api/v1/ask/stream`, { method: "POST", headers, body, signal: controller.signal });
-      if (!res.ok || !res.body) throw new Error(`AI error: ${res.status}`);
+      // Read the REAL backend message (e.g. credits-exhausted / burst-limit text) instead of
+      // discarding it — the old bare `AI error: ${status}` made every failure look like a generic
+      // outage, hiding specific, actionable reasons like "resets around 3:40 PM".
+      if (!res.ok || !res.body) throw new Error((await res.text().catch(() => "")) || `AI error: ${res.status}`);
 
       // Seed an empty assistant message we fill as tokens arrive.
       setMessages([...withUser, { role: "assistant", content: "" }]);
@@ -211,7 +214,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
         const t2 = setTimeout(() => ctrl2.abort(), 45_000);
         const res = await apiFetch(`${apiUrl}/api/v1/ask`, { method: "POST", headers, body, signal: ctrl2.signal });
         clearTimeout(t2);
-        if (!res.ok) throw new Error(`AI error: ${res.status}`);
+        if (!res.ok) throw new Error((await res.text().catch(() => "")) || `AI error: ${res.status}`);
         const data = await res.json() as { reply?: string; suggestions?: string[]; sources?: BackendSourceMeta[]; usage?: TokenUsage };
         const reply = data.reply || "I couldn't generate a response just now — please try again.";
         // Persist sources too, so reopening the thread keeps source attribution
