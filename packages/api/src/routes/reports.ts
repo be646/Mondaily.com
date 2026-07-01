@@ -58,8 +58,23 @@ export async function runReportData(
   const type = input.type ?? stored.type ?? "insight";
   const config = { ...(stored.config ?? {}), ...(input.config ?? {}) };
   const objectType = String(config.object_type ?? "deal");
-  const { data: nodes, error } = await supabase.from("nodes").select("id,data,created_at,updated_at").eq("workspace_id", workspaceId).eq("object_type", objectType).order("created_at", { ascending: true });
-  if (error) return { error: error.message };
+  // Object types drift between singular/plural ("invoice" vs "invoices", "deal" vs "deals"), which
+  // left many reports matching ZERO records → blank charts. Try the configured type first, then the
+  // singular/plural variant, then a case-insensitive match, so a legit report still finds its data.
+  const variants = Array.from(new Set([
+    objectType,
+    objectType.endsWith("s") ? objectType.slice(0, -1) : `${objectType}s`,
+  ]));
+  type ReportNode = { id: string; data: Record<string, any> | null; created_at: string; updated_at: string };
+  let nodes: ReportNode[] = [];
+  let error: { message: string } | null = null;
+  for (const v of variants) {
+    const r = await supabase.from("nodes").select("id,data,created_at,updated_at").eq("workspace_id", workspaceId).eq("object_type", v).order("created_at", { ascending: true });
+    if (r.error) { error = r.error; continue; }
+    nodes = (r.data ?? []) as ReportNode[];
+    if (nodes.length) break; // found real data for this variant
+  }
+  if (!nodes.length && error) return { error: error.message };
 
   if (type === "funnel") {
     const stages: string[] = Array.isArray(config.stages) ? config.stages.map(String) : [];
