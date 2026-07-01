@@ -9,6 +9,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
+import { AutoChart } from "../../../components/charts/charts";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LiveWidget   { id: string; type: "live";   slug: string;      title?: string; size?: "small"|"large" }
@@ -251,7 +252,7 @@ function ReportWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
           {reportId && <Link to={`/reports/${reportId}`} className="text-xs text-stone-400 hover:text-stone-300">Configure report →</Link>}
         </div>
       ) : (
-        <Sparkline values={data.map(item => item.value)} height={200} />
+        <AutoChart chartType={chartType} data={data} height={200} />
       )}
     </WidgetShell>
   );

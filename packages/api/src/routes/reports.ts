@@ -3,12 +3,13 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { aiGateway } from "../lib/ai-gateway";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
 
-const reportType = z.enum(["insight", "funnel", "time_in_stage", "historical"]);
+const reportType = z.enum(["insight", "funnel", "time_in_stage", "historical", "forecast"]);
 const reportInput = z.object({ name: z.string().min(1), type: reportType, config: z.record(z.unknown()) });
 
 function unpack(node: { id: string; data: Record<string, unknown>; created_by?: string | null; updated_at: string }) {
@@ -51,7 +52,7 @@ export async function runReportData(
   workspaceId: string,
   reportId: string,
   input: { type?: string; config?: Record<string, unknown> } = {}
-): Promise<{ error: string } | { data: { label: string; value: number; previous?: number; dropoff?: number; average_days?: number }[]; total?: number; change?: number; chart_type: string }> {
+): Promise<{ error: string } | { data: { label: string; value: number; previous?: number; dropoff?: number; average_days?: number; forecast?: boolean }[]; total?: number; change?: number; chart_type: string; forecast_from?: number; slope?: number }> {
   const { data: reportNode } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).eq("object_type", "report").eq("id", reportId).maybeSingle();
   if (!reportNode) return { error: "Report not found" };
   const stored = reportNode.data as { type?: string; config?: Record<string, unknown> };
@@ -121,6 +122,28 @@ export async function runReportData(
   }
   const data = [...groups].map(([label, values]) => ({ label, value: metric === "count" ? values.length : metric === "average" ? Number((values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)).toFixed(2)) : values.reduce((sum, value) => sum + value, 0) }));
   const total = metric === "average" ? Number((data.reduce((sum, item) => sum + item.value, 0) / Math.max(data.length, 1)).toFixed(2)) : data.reduce((sum, item) => sum + item.value, 0);
+
+  // FORECAST — project the next N periods from the REAL historical trend via least-squares linear
+  // regression on the actual grouped values (never fabricated: it's a transparent projection).
+  if (type === "forecast" && data.length >= 3) {
+    const ys = data.map((d) => d.value);
+    const n = ys.length;
+    const xs = ys.map((_, i) => i);
+    const meanX = (n - 1) / 2;
+    const meanY = ys.reduce((s, v) => s + v, 0) / n;
+    let num = 0, den = 0;
+    for (let i = 0; i < n; i++) { num += (xs[i]! - meanX) * (ys[i]! - meanY); den += (xs[i]! - meanX) ** 2; }
+    const slope = den === 0 ? 0 : num / den;
+    const intercept = meanY - slope * meanX;
+    const horizon = Math.max(1, Math.min(6, Number(config.horizon ?? 3)));
+    const projected = Array.from({ length: horizon }, (_, k) => ({
+      label: `+${k + 1}`,
+      value: Math.max(0, Number((intercept + slope * (n + k)).toFixed(2))),
+      forecast: true,
+    }));
+    return { data: [...data, ...projected], total, change: 0, chart_type: "line", forecast_from: data.length, slope: Number(slope.toFixed(3)) };
+  }
+
   return { data, total, change: 0, chart_type: String(config.chart_type ?? "line") };
 }
 
@@ -129,6 +152,38 @@ router.post("/:id/run", async (c) => {
   const result = await runReportData(c.get("workspaceId"), c.req.param("id"), input);
   if ("error" in result) return c.json({ error: result.error }, result.error === "Report not found" ? 404 : 400);
   return c.json(result);
+});
+
+// AI insight — a GROUNDED narrative computed strictly from the report's REAL data points. The model
+// is given the actual numbers and told to describe only what they show (trend, peak, change,
+// forecast direction) — never to invent figures. Empty/thin data → an honest "not enough data yet".
+router.post("/:id/insight", async (c) => {
+  const ws = c.get("workspaceId");
+  const input: { type?: string; config?: Record<string, unknown> } = await c.req.json<{ type?: string; config?: Record<string, unknown> }>().catch(() => ({}));
+  const result = await runReportData(ws, c.req.param("id"), input);
+  if ("error" in result) return c.json({ error: result.error }, 400);
+  const data = result.data ?? [];
+  if (data.length < 2) return c.json({ insight: "Not enough data yet to draw a meaningful insight — add more records or widen the date range." });
+
+  // Give the model the real series only.
+  const series = data.map((d) => `${d.label}: ${d.value}${(d as { forecast?: boolean }).forecast ? " (projected)" : ""}`).join("; ");
+  const first = data[0]!.value, last = data[data.length - 1]!.value;
+  const peak = data.reduce((m, d) => (d.value > m.value ? d : m), data[0]!);
+  try {
+    const { text } = await aiGateway({
+      system:
+        "You are a business analyst. Describe ONLY what the provided numbers show — trend direction, the peak, the overall change, and (if projected points are present) where the forecast is heading. " +
+        "NEVER invent figures not in the data. Be concrete and specific, cite the real numbers, 2-3 short sentences, plain language, no preamble.",
+      prompt: `Report data points — ${series}. First=${first}, last=${last}, peak=${peak.label} (${peak.value}).`,
+      maxTokens: 220,
+    });
+    return c.json({ insight: (text || "").trim() || "The data shows the values above; no strong trend detected." });
+  } catch {
+    // Deterministic fallback so the panel always has something real (no fabrication).
+    const dir = last > first ? "up" : last < first ? "down" : "flat";
+    const pct = first ? Math.round(((last - first) / Math.abs(first)) * 100) : 0;
+    return c.json({ insight: `Trend is ${dir} — from ${first} to ${last}${first ? ` (${pct >= 0 ? "+" : ""}${pct}%)` : ""}. Peak was ${peak.value} at ${peak.label}.` });
+  }
 });
 
 export { router as reportsRouter };

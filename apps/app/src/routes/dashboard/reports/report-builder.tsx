@@ -1,45 +1,40 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { GripVertical, Plus, Save, Trash2 } from "lucide-react";
+import { Save, Sparkles, Loader2, GripVertical, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
+import { AutoChart, type Point } from "../../../components/charts/charts";
 
-type ReportType = "insight" | "funnel" | "time_in_stage" | "historical";
-interface ReportConfig { object_type: string; metric: string; field?: string; group_by: string; chart_type: "line" | "bar" | "number"; compare: boolean; stage_field: string; stages: string[]; record_id?: string; range: string }
+type ReportType = "insight" | "funnel" | "time_in_stage" | "historical" | "forecast";
+type ChartType = "line" | "bar" | "donut" | "number";
+interface ReportConfig { object_type: string; metric: string; field?: string; group_by: string; chart_type: ChartType; compare: boolean; stage_field: string; stages: string[]; record_id?: string; range: string; horizon?: number }
 interface Report { id: string; name: string; type: ReportType; config: ReportConfig }
-interface RunData { data: { label: string; value: number; previous?: number; average_days?: number; dropoff?: number }[]; total?: number; change?: number; chart_type?: "line" | "bar" | "number" }
+interface RunData { data: (Point & { average_days?: number; dropoff?: number; forecast?: boolean })[]; total?: number; change?: number; chart_type?: ChartType; forecast_from?: number; slope?: number }
 interface ObjectType { slug: string; name_plural: string }
 
 const defaults: ReportConfig = { object_type: "", metric: "count", group_by: "month", chart_type: "line", compare: false, stage_field: "stage", stages: ["Lead", "Qualified", "Proposal", "Negotiation", "Closed won"], range: "90d" };
 
-function Sparkline({ values, height = 320 }: { values: number[]; height?: number }) {
-  const clean = values.map(v => Number.isFinite(v) ? v : 0);
-  const min = Math.min(...clean, 0);
-  const max = Math.max(...clean, 1);
-  const range = Math.max(max - min, 1);
-  const points = clean.length <= 1
-    ? "0,50 100,50"
-    : clean.map((value, index) => {
-      const x = (index / (clean.length - 1)) * 100;
-      const y = 88 - ((value - min) / range) * 76;
-      return `${x.toFixed(2)},${y.toFixed(2)}`;
-    }).join(" ");
-
+// AI insight panel — grounded narrative computed from the report's REAL data (server-side).
+function InsightPanel({ reportId, type, config }: { reportId: string; type: ReportType; config: ReportConfig }) {
+  const insight = useMutation({
+    mutationFn: () => apiClient.post<{ insight: string }>(`/reports/${reportId}/insight`, { type, config }),
+  });
   return (
-    <div className="rounded-sm bg-white p-6 dark:bg-stone-950/40" style={{ height }}>
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full overflow-visible">
-        <polyline
-          points={points}
-          fill="none"
-          vectorEffect="non-scaling-stroke"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="minimal-sparkline stroke-current"
-          strokeWidth="1.6"
-        />
-      </svg>
+    <div className="mt-4 rounded-sm border p-4" style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)" }}>
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--section-accent)" }}>
+          <Sparkles size={13} /> AI insight
+        </span>
+        <button onClick={() => insight.mutate()} disabled={insight.isPending}
+          className="rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-60"
+          style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          {insight.isPending ? <Loader2 size={11} className="inline animate-spin" /> : insight.data ? "Regenerate" : "Analyze"}
+        </button>
+      </div>
+      {insight.data && <p className="mt-2 text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{insight.data.insight}</p>}
+      {!insight.data && !insight.isPending && <p className="mt-2 text-[11.5px]" style={{ color: "var(--text-faint)" }}>Generate a grounded read of this report's real numbers — trend, peak, and direction.</p>}
     </div>
   );
 }
@@ -106,6 +101,7 @@ export function ReportBuilderPage() {
           className="h-9 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 text-sm text-[var(--text-primary)] outline-none focus:border-stone-500/40"
         >
           <option value="insight">Insight</option>
+          <option value="forecast">Forecast</option>
           <option value="funnel">Funnel</option>
           <option value="time_in_stage">Time in stage</option>
           <option value="historical">Historical values</option>
@@ -123,6 +119,10 @@ export function ReportBuilderPage() {
             <h2 className="mb-5 text-sm font-medium text-[var(--text-primary)]">{report.name}</h2>
             {run.isLoading ? <PageSkeleton rows={5} /> : <ReportChart type={report.type} result={run.data} config={report.config} />}
           </div>
+          {/* Grounded AI insight over the report's real numbers */}
+          {!run.isLoading && (run.data?.data?.length ?? 0) >= 2 && (
+            <InsightPanel reportId={id} type={report.type} config={report.config} />
+          )}
         </main>
         <aside className="border-t border-[var(--border-soft)] p-5 lg:border-l lg:border-t-0">
           <h2 className="mb-5 text-sm font-semibold text-[var(--text-primary)]">Configuration</h2>
@@ -153,7 +153,7 @@ function ConfigPanel({ report, update, objects }: {
         </select>
       </Field>
 
-      {report.type === "insight" && <>
+      {(report.type === "insight" || report.type === "forecast") && <>
         <Field label="Metric">
           <select value={config.metric} onChange={e => update({ metric: e.target.value })} className="key-input w-full">
             <option value="count">Count of records</option>
@@ -174,16 +174,25 @@ function ConfigPanel({ report, update, objects }: {
             <option value="quarter">Quarter</option>
           </select>
         </Field>
-        <Field label="Chart type">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
-            {(["line","bar","number"] as const).map(t => (
-              <button key={t} onClick={() => update({ chart_type: t })}
-                className={`rounded-md border px-2 py-2 text-xs capitalize ${config.chart_type === t ? "border-stone-500 bg-stone-500/10 text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400"}`}>
-                {t}
-              </button>
-            ))}
-          </div>
-        </Field>
+        {report.type !== "forecast" && (
+          <Field label="Chart type">
+            <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
+              {(["line","bar","donut","number"] as const).map(t => (
+                <button key={t} onClick={() => update({ chart_type: t })}
+                  className={`rounded-md border px-2 py-2 text-xs capitalize ${config.chart_type === t ? "border-stone-500 bg-stone-500/10 text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400"}`}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </Field>
+        )}
+        {report.type === "forecast" && (
+          <Field label="Forecast periods ahead">
+            <select value={config.horizon ?? 3} onChange={e => update({ horizon: Number(e.target.value) })} className="key-input w-full">
+              {[1,2,3,4,6].map(h => <option key={h} value={h}>{h} period{h === 1 ? "" : "s"}</option>)}
+            </select>
+          </Field>
+        )}
         <label className="flex items-center justify-between text-sm text-stone-400">
           Compare previous period
           <input type="checkbox" checked={config.compare} onChange={e => update({ compare: e.target.checked })} className="accent-red-500" />
@@ -283,5 +292,19 @@ function ReportChart({ type, result, config }: { type: ReportType; result?: RunD
     </div>
   );
 
-  return <Sparkline values={data.map(item => item.value)} height={type === "funnel" || type === "time_in_stage" ? 360 : 320} />;
+  // Pick the chart for the report type: funnel→funnel bars; time_in_stage→bar; forecast→line with a
+  // shaded projection band; otherwise the configured chart type. Real data only.
+  const chartType = type === "funnel" ? "funnel"
+    : type === "time_in_stage" ? "bar"
+    : type === "forecast" ? "line"
+    : config.chart_type === "number" ? "line"
+    : config.chart_type;
+  return (
+    <AutoChart
+      chartType={chartType}
+      data={data}
+      height={type === "funnel" || type === "time_in_stage" ? Math.max(300, data.length * 46) : 320}
+      forecastFrom={result?.forecast_from}
+    />
+  );
 }
