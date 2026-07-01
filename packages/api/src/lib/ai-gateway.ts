@@ -648,12 +648,13 @@ export async function aiGatewayAgentStream(
     // AI_FAST_MODEL — e.g. one that 400s — non-fatal instead of breaking chat.
     const fb = resolveModel(CEREBRAS_DEFAULT_SPEC);
     const r = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
-    // Rate-limit-aware message: a 429 means the Cerebras per-minute quota is spent,
-    // not that the service is down. Tell the user plainly so they wait, not retry-spam.
+    // Rate-limit-aware message: a 429 means the per-minute AI quota is spent, not that the service
+    // is down. Tell the user plainly so they wait, not retry-spam. NEVER name the AI provider — the
+    // system is our own; infrastructure suppliers are not surfaced to users.
     const rateLimited = err?.status === 429 || /\b429\b|rate limit/i.test(String(err?.message ?? ""));
     const reply = r?.reply || (rateLimited
-      ? "⏳ The AI hit its per-minute request limit (current plan: 5 requests/min). Give it ~60 seconds, then try again — or upgrade the Cerebras plan for higher throughput."
-      : "I'm having trouble connecting to the AI service right now. Please try again in a moment.");
+      ? "⏳ Mondaily AI is at its current throughput limit — give it about a minute and try again. High-volume plans get higher limits."
+      : "I'm having trouble reaching Mondaily AI right now. Please try again in a moment.");
     await onEvent({ type: "token", text: reply });
     return r ?? { reply, provider: "none", model: "none", rounds: 0 };
   }
