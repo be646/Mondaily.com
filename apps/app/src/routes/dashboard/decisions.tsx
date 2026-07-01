@@ -132,10 +132,10 @@ export function DecisionsPage() {
             )}
           </div>
 
-          {/* Split deck */}
-          <div className="flex h-[calc(100vh-230px)] min-h-[460px] gap-4">
+          {/* Split deck — stacks vertically on mobile, side-by-side from md up */}
+          <div className="flex h-[calc(100vh-230px)] min-h-[460px] flex-col gap-4 md:flex-row">
             {/* LEFT — dense stream (40%) */}
-            <div className="w-[40%] shrink-0 overflow-y-auto rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="h-2/5 w-full shrink-0 overflow-y-auto rounded-sm border md:h-auto md:w-[40%]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               <AnimatePresence initial={false}>
                 {visible.map((d, i) => {
                   const a = agentByRaw(d.agent_name);
