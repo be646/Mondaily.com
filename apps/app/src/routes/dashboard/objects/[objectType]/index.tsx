@@ -196,7 +196,7 @@ function CreateRecordModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all duration-200 ${tab === "ai" && aiRecords.length ? "w-[680px]" : "w-[440px]"}`}>
+      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all duration-200 ${tab === "ai" && aiRecords.length ? "w-[min(680px,92vw)]" : "w-[min(440px,92vw)]"}`}>
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-3.5">
@@ -276,7 +276,7 @@ function CreateRecordModal({
         {tab === "ai" && (
           <div className="flex gap-0">
             {/* Left: prompt panel */}
-            <div className="flex flex-col w-[440px] shrink-0">
+            <div className="flex flex-col w-[min(440px,92vw)] shrink-0">
               <div className="px-5 py-4 space-y-3">
                 <p className="text-[11px] text-stone-500 leading-relaxed">
                   Describe the records you want. AI will generate realistic data matching your <strong className="text-stone-400">{objectType.replace(/[-_]/g, " ")}</strong> columns.
@@ -474,7 +474,7 @@ function AIFillModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[3px]" onClick={onClose}/>
-      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_32px_80px_rgba(0,0,0,0.8)] transition-all duration-200 ${records.length ? "w-[720px]" : "w-[500px]"}`}>
+      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_32px_80px_rgba(0,0,0,0.8)] transition-all duration-200 ${records.length ? "w-[min(720px,92vw)]" : "w-[min(500px,92vw)]"}`}>
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-6 py-4">
@@ -620,7 +620,7 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.8)]">
+      <div className="fixed left-1/2 top-1/2 z-50 w-[min(400px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.8)]">
         <div className="px-6 py-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-stone-500/10 border border-stone-500/20 shrink-0">

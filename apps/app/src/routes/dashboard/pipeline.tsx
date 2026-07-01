@@ -323,7 +323,7 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.18)]">
+      <div className="fixed left-1/2 top-1/2 z-50 w-[min(440px,92vw)] -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.18)]">
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
             <span className="text-[13px] font-semibold text-[var(--text-primary)] tracking-tight">New Deal</span>
