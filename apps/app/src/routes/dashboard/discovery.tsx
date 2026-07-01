@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download, Send, X } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download, Send, X, Inbox, ArrowUpRight } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
+import { DonutChart } from "../../components/charts/charts";
 
 interface DiscoveredLead {
   id: string;
@@ -46,6 +48,14 @@ export function DiscoveryPage() {
     queryFn: () => apiClient.get<{ status: "HEALTHY" | "DEGRADED"; services: { searxng_reachable: boolean; scraper_reachable: boolean } }>("/discovery/status"),
     staleTime: 60_000,
   });
+  // The strongest leads (confidence >=70 + real contact) auto-queue in the Decision Queue for
+  // one-click approval — surface that count here so it's obvious where they went.
+  const queuedQ = useQuery({
+    queryKey: ["decisions", "pending"],
+    queryFn: () => apiClient.get<{ agent_name: string; status: string }[]>("/decisions?status=pending"),
+    staleTime: 20_000,
+  });
+  const queuedCount = (queuedQ.data ?? []).filter((d) => d.agent_name === "discovery").length;
 
   const run = useMutation({
     mutationFn: () =>
@@ -120,11 +130,33 @@ export function DiscoveryPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8 space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
         title="Discovery"
         description="Sweep the open web for buyer-intent signals and reviews — grounded, source-backed, and deduplicated."
       />
+
+      {/* Strong leads already routed to the Decision Queue for one-click approval */}
+      {queuedCount > 0 && (
+        <Link
+          to="/decisions"
+          className="flex items-center justify-between gap-3 rounded-sm border px-4 py-3 transition-colors hover:border-[color:var(--section-accent)]"
+          style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)" }}
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: "var(--section-accent)", color: "#000" }}>
+              <Inbox size={15} />
+            </span>
+            <div>
+              <div className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>
+                {queuedCount} strong lead{queuedCount === 1 ? "" : "s"} queued for your approval
+              </div>
+              <div className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>High confidence + a real contact — the Discovery Agent already found these, review in the Decision Deck.</div>
+            </div>
+          </div>
+          <ArrowUpRight size={16} className="shrink-0" style={{ color: "var(--section-accent)" }} />
+        </Link>
+      )}
 
       {/* Health banner — only when the self-hosted search stack is degraded */}
       {statusQ.data && statusQ.data.status === "DEGRADED" && (
@@ -209,20 +241,33 @@ export function DiscoveryPage() {
         </div>
       </section>
 
-      {/* ── Stats strip ── */}
+      {/* ── Stats + real intent-mix breakdown ── */}
       {all.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {[
-            { label: "Total leads", value: all.length },
-            { label: "With contact", value: withContact },
-            { label: "Buy signals", value: counts.BUY_SIGNAL ?? 0 },
-            { label: "Avg confidence", value: avgConf },
-          ].map((s) => (
-            <div key={s.label} className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-              <div className="font-mono text-xl font-semibold tabular-nums text-[var(--text-primary)]">{s.value}</div>
-              <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{s.label}</div>
-            </div>
-          ))}
+        <div className="grid gap-3 lg:grid-cols-[1fr_1.3fr]">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
+            {[
+              { label: "Total leads", value: all.length },
+              { label: "With contact", value: withContact },
+              { label: "Buy signals", value: counts.BUY_SIGNAL ?? 0 },
+              { label: "Avg confidence", value: avgConf },
+            ].map((s) => (
+              <div key={s.label} className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+                <div className="font-mono text-xl font-semibold tabular-nums text-[var(--text-primary)]">{s.value}</div>
+                <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{s.label}</div>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>Intent mix</div>
+            <DonutChart
+              height={140}
+              data={[
+                { label: "Buy signals", value: counts.BUY_SIGNAL ?? 0 },
+                { label: "Reviews", value: counts.REVIEW ?? 0 },
+                { label: "Complaints", value: counts.COMPLAINT ?? 0 },
+              ].filter((d) => d.value > 0)}
+            />
+          </div>
         </div>
       )}
 
