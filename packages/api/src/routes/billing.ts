@@ -6,21 +6,25 @@ import { createCreditPackCheckout } from "../lib/credit-pack";
 import { activateTier, normalizeTier } from "../lib/billing-tiers";
 
 /**
- * Billing — Stripe Checkout + Customer Portal.
+ * Billing — embedded Stripe Payment Element (primary) + Customer Portal + one-time credit packs.
  *
- * These are authed POST endpoints that return a Stripe-hosted URL ({ url }),
- * which the frontend then redirects to. (A plain GET/window.location can't
- * carry the Clerk token, so checkout must be an authenticated POST.)
+ * The actual card entry lives on OUR OWN page: /setup-intent + /subscribe + /confirm-subscription
+ * back the embedded flow (apps/app/src/components/billing/stripe-payment-form.tsx) — never a
+ * redirect to checkout.stripe.com. /portal still opens Stripe's HOSTED customer portal (cancel,
+ * invoice history, update card) — that's the one intentional exception, matching normal SaaS
+ * practice. /checkout (hosted Checkout Session) remains only for one-time credit-pack purchases
+ * (lib/credit-pack.ts), not for choosing a subscription plan.
  *
- * Everything degrades gracefully: if Stripe isn't configured yet
- * (STRIPE_SECRET_KEY / price IDs missing), the endpoints return a clear,
+ * Everything degrades gracefully: if Stripe isn't configured yet, endpoints return a clear,
  * actionable message instead of 500ing — so the billing UI never dead-ends.
  *
  * Required env to go live:
- *   STRIPE_SECRET_KEY            sk_live_… / sk_test_…
- *   STRIPE_PRICE_PRO_MONTH       price_…   (and _YEAR / BUSINESS variants)
- *   STRIPE_WEBHOOK_SECRET        whsec_…   (for the /webhooks/stripe handler)
- *   APP_URL                      e.g. https://app.mondaily.com (success/return)
+ *   STRIPE_SECRET_KEY            sk_live_… / sk_test_…            (server-side API calls)
+ *   STRIPE_PUBLISHABLE_KEY       pk_live_… / pk_test_…            (embedded Payment Element)
+ *   STRIPE_PRICE_OPERATOR_MONTH  price_…   (+ _YEAR)
+ *   STRIPE_PRICE_COMMAND_MONTH   price_…   (+ _YEAR)              — Sovereign is contact-sales only
+ *   STRIPE_WEBHOOK_SECRET        whsec_…   (for POST /webhooks/stripe — activates the real tier)
+ *   APP_URL                      e.g. https://app.mondaily.com (portal return_url)
  */
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
