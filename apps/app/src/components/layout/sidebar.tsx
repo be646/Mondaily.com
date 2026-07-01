@@ -425,6 +425,19 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const workspaceLogo: string | null = wsSettings?.logo_url ?? null;
   const workspaceInitial = workspaceName[0]?.toUpperCase() || "M";
 
+  // Every workspace this user belongs to — powers the switcher in the workspace dropdown.
+  const activeWorkspaceId = typeof localStorage !== "undefined" ? localStorage.getItem("mondaily_workspace_id") : null;
+  const { data: myWorkspaces = [] } = useQuery<{ workspace_id: string; name: string; role: string }[]>({
+    queryKey: ["my-workspaces"],
+    queryFn: async () => (await apiClient.get<{ workspaces?: { workspace_id: string; name: string; role: string }[] }>("/workspaces/mine")).workspaces ?? [],
+    staleTime: 300_000,
+  });
+  function switchWorkspace(id: string) {
+    if (id === activeWorkspaceId) { setWorkspaceOpen(false); return; }
+    localStorage.setItem("mondaily_workspace_id", id);
+    window.location.assign("/"); // hard reload so every query refetches against the new workspace
+  }
+
   const { data: notifications = [] } = useQuery<{ read_at: string | null }[]>({
     queryKey: ["notifications"],
     queryFn: () => apiClient.get("/notifications"),
@@ -501,6 +514,19 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                   </div>
                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0"/>
                 </div>
+                {/* Switch between the workspaces this user belongs to */}
+                {myWorkspaces.filter(w => w.workspace_id !== activeWorkspaceId).length > 0 && (
+                  <div className="border-b border-stone-100 py-1 dark:border-[var(--border-soft)]">
+                    <div className="px-3 py-1 text-[9px] uppercase tracking-wider text-stone-400 dark:text-stone-600">Switch workspace</div>
+                    {myWorkspaces.filter(w => w.workspace_id !== activeWorkspaceId).map(w => (
+                      <button key={w.workspace_id} onClick={() => switchWorkspace(w.workspace_id)} className="dropdown-item">
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-stone-100 text-[9px] font-semibold text-stone-950 dark:bg-stone-900 dark:text-stone-50">{(w.name || "?")[0]?.toUpperCase()}</span>
+                        <span className="flex-1 truncate text-left">{w.name || "Untitled workspace"}</span>
+                        <span className="text-[9px] uppercase text-stone-400 dark:text-stone-600">{w.role}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <button onClick={() => { setWorkspaceOpen(false); setNewWorkspaceOpen(true); }} className="dropdown-item">
                   <Plus size={12}/> Create workspace
                 </button>
