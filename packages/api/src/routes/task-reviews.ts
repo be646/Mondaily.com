@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
+router.use("*", denyViewerWrites); // viewers are read-only
 
 async function assertTaskOwnership(taskId: string, workspaceId: string) {
   const { data } = await supabase.from("tasks").select("id").eq("id", taskId).eq("workspace_id", workspaceId).single();

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import * as ubc from "@mondaily/db/ubc";
 import { inngest } from "../lib/inngest";
@@ -12,6 +13,7 @@ import { sendWorkspaceEmail } from "../lib/mail";
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
+router.use("*", denyViewerWrites); // viewers are read-only
 
 /**
  * Decision Queue — the real backing store for "agents recommend, humans

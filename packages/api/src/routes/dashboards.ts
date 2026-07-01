@@ -3,10 +3,12 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
+router.use("*", denyViewerWrites); // viewers are read-only
 
 function unpack(node: { id: string; data: Record<string, unknown>; updated_at: string }) {
   return { id: node.id, ...node.data, updated_at: node.updated_at };

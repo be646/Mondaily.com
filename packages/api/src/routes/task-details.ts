@@ -1,10 +1,12 @@
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { HTTPException } from "hono/http-exception";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
+router.use("*", denyViewerWrites); // viewers are read-only
 
 // Verify a task belongs to the current workspace before any child-table access.
 async function assertTaskOwnership(taskId: string, workspaceId: string) {

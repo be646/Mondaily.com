@@ -3,11 +3,13 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 type SequenceData = Record<string, unknown> & { name?: string; settings?: Record<string, unknown>; steps?: Record<string, unknown>[]; enrollments?: Record<string, unknown>[] };
 const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
+router.use("*", denyViewerWrites); // viewers are read-only
 
 const stepSchema = z.object({
   id: z.string().optional(), type: z.enum(["email", "task"]), label: z.string(), position: z.number(),

@@ -3,6 +3,7 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 import { aiGateway } from "../lib/ai-gateway";
 
 type Variables = { userId: string; workspaceId: string; role: string };
@@ -17,6 +18,7 @@ type CallNode = {
 
 const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
+router.use("*", denyViewerWrites); // viewers are read-only
 
 function normalizeCall(node: CallNode) {
   const data = node.data ?? {};

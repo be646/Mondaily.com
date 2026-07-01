@@ -3,6 +3,7 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 type NoteEvent = {
@@ -19,6 +20,7 @@ type NoteEvent = {
 
 const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
+router.use("*", denyViewerWrites); // viewers are read-only
 
 const noteBody = z.object({
   content: z.string().min(1),
