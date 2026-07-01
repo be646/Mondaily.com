@@ -327,6 +327,8 @@ export interface BackendSourceMeta {
  *  invoices → /finance/invoices/:id, tasks → /tasks (no per-task route). */
 function hrefForSource(s: BackendSourceMeta): string | undefined {
   const type = s.type === "related_object" ? "record" : s.type;
+  // Web sources carry the external URL in node_id → link straight out to the page.
+  if (type === "web" && s.node_id) return /^https?:\/\//.test(s.node_id) ? s.node_id : `https://${s.node_id}`;
   if (type === "report" && s.node_id) return `/reports/${s.node_id}`;
   if ((type === "invoice" || type === "finance") && s.node_id) return `/finance/invoices/${s.node_id}`;
   // Deep-link straight to the focused task (matches resolveNotificationLink) rather

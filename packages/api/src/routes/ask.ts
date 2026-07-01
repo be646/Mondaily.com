@@ -8,6 +8,7 @@ import { supabase } from "@mondaily/db/client";
 import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
 import { runProspecting } from "./prospecting";
+import { sovereignSearchUrls, sovereignScrape } from "../lib/sovereign-search";
 import { executeApprovedAction } from "./decisions";
 import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway, gatewayHealthCheck, getLastGatewayError } from "../lib/ai-gateway";
 
@@ -33,6 +34,8 @@ You can create_note (a standalone note, optionally linked to a record), create_d
 For the Decision Queue itself: list_decisions reads what's actually pending, and resolve_decision approves/rejects/snoozes one by id. If the user says "approve all pending decisions" or similar, call list_decisions first, then call resolve_decision once per id returned — never say the queue is empty without having called list_decisions, and never claim you approved something without actually calling resolve_decision for it.
 
 You also have discover_web_prospects — the Prospecting Agent. Use it whenever the user asks you to find new candidates from the web: people, organizations, investors, partners, suppliers, or any other object type the workspace tracks (this is not limited to sales leads). It searches the live web, extracts real source-backed candidates, deduplicates them against the workspace graph, and either queues them in the Decision Queue for approval or creates records directly, exactly as the user specifies. Every candidate it returns has a real source URL — never invent a candidate yourself; always call this tool instead.
+
+You also have web_search — a general LIVE WEB search that reads the top pages and returns their real content. Use it WHENEVER the user asks for anything external the workspace can't answer: reviews or ratings of a company/product ("search Vivacy reviews", "what do people say about X"), news, current facts, background research, prices, "look up X online". You CAN search the web — never tell the user you're "unable to perform an external web search" or that you "don't have the tools"; you DO have web_search, so call it and summarise the results WITH their source URLs. web_search is read-only (no records created); use discover_web_prospects instead only when the user wants the results saved as records.
 
 Key tool-chaining patterns:
 - "Create a list of [records matching criteria]" → search_records first to find the IDs, then create_list, then add_to_list in sequence.
@@ -415,6 +418,17 @@ const TOOLS = [
       },
       required: ["query", "object_type"]
     }
+  },
+  {
+    name: "web_search",
+    description: "Search the LIVE WEB and read the top pages — for reviews, ratings, articles, news, background research, or any question needing current external info the workspace doesn't have. Use whenever the user asks to 'search the web', 'find reviews of X', 'what do people say about X', 'look up X online', or any factual/current question you can't answer from workspace records. Returns source-backed excerpts you then summarize WITH the source URLs. This does NOT create records — use discover_web_prospects for that.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "The web search query, e.g. 'Vivacy reviews' or 'ACME funding news 2026'" }
+      },
+      required: ["query"]
+    }
   }
 ];
 
@@ -436,6 +450,7 @@ const TOOL_GROUPS: { tools: string[]; keywords: RegExp }[] = [
   { tools: ["list_decisions", "resolve_decision", "create_decision"], keywords: /\b(decision|approve|reject|snooze|queue|recommendation|sign.?off|flag.*approval)\b/i },
   { tools: ["create_workflow_draft", "set_workflow_enabled", "list_workflows"], keywords: /\b(workflow|automat|trigger|sequence|when .* then|enable|disable|activate|turn on|turn off|pause)\b/i },
   { tools: ["discover_web_prospects"], keywords: /\b(prospect|discover|scrape|outreach|web|online|internet)\b|\bfind (new |more )?(lead|compan|people|investor|prospect)/i },
+  { tools: ["web_search"], keywords: /\b(search|reviews?|rating|reputation|news|article|look ?up|google|what do people say|online|web|current|latest|price of|who is|find out about)\b/i },
 ];
 /** Pick the tools a query plausibly needs: CORE + any keyword-matched group.
  *  Also scans the last couple turns so a vague follow-up ("chase them") still
@@ -1265,6 +1280,20 @@ async function executeTool(
         ].filter(Boolean).join(", ");
         if (!result.candidates.length) return `No real candidates found for "${input.query}" — the web search returned nothing usable. Try a more specific query.`;
         return `Searched the web for "${input.query}" (${input.object_type}): ${parts || "no new candidates"}. Every candidate is source-backed — see the source cards for the page each one came from.`;
+      }
+
+      case "web_search": {
+        const query = String(input.query ?? "").trim();
+        if (!query) return "No search query provided.";
+        const urls = await sovereignSearchUrls(query, 5);
+        if (!urls.length) return `No web results for "${query}" — the sovereign search appliance returned nothing (it may be unreachable, or there are genuinely no results).`;
+        // Read the top pages so the answer is grounded in real content, not just links.
+        const pages = await Promise.all(urls.slice(0, 3).map(async (u) => ({ url: u, text: (await sovereignScrape(u)).slice(0, 2500) })));
+        const withText = pages.filter((p) => p.text.trim());
+        // Surface every result as a clickable source card in the UI.
+        for (const u of urls) sources.push({ type: "web", title: u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0], node_id: u, match_reason: query });
+        if (!withText.length) return `Found ${urls.length} web result(s) for "${query}" but couldn't read their contents. Links:\n${urls.map((u) => `- ${u}`).join("\n")}`;
+        return `Live web results for "${query}". Summarize these for the user and cite the source URLs:\n\n${withText.map((p) => `SOURCE: ${p.url}\n${p.text}`).join("\n\n---\n\n")}`;
       }
 
       default:
