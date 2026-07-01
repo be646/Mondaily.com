@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import type { ElementType } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton } from "../../components/ui/page-state";
@@ -136,28 +135,24 @@ export function DecisionsPage() {
           <div className="flex h-[calc(100vh-230px)] min-h-[460px] flex-col gap-4 md:flex-row">
             {/* LEFT — dense stream (40%) */}
             <div className="h-2/5 w-full shrink-0 overflow-y-auto rounded-sm border md:h-auto md:w-[40%]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-              <AnimatePresence initial={false}>
-                {visible.map((d, i) => {
-                  const a = agentByRaw(d.agent_name);
-                  const on = selectedId === d.id;
-                  return (
-                    <motion.button key={d.id}
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }} onClick={() => setSelectedId(d.id)}
-                      className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors"
-                      style={{ borderTop: i > 0 ? "1px solid var(--border-soft)" : undefined, borderLeft: `2px solid ${on ? RISK_DOT[d.risk_level] : "transparent"}`, background: on ? "color-mix(in srgb, var(--section-accent) 7%, transparent)" : "transparent" }}>
-                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: RISK_DOT[d.risk_level] }} title={`${d.risk_level} risk`} />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{d.title}</p>
-                        <div className="mt-0.5 flex items-center gap-1.5">
-                          <a.Icon size={11} style={{ color: "var(--text-faint)" }} />
-                          <span className="truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>{a.name.replace(" Agent", "")} · {relTime(d.created_at)} ago</span>
-                        </div>
+              {visible.map((d, i) => {
+                const a = agentByRaw(d.agent_name);
+                const on = selectedId === d.id;
+                return (
+                  <button key={d.id} onClick={() => setSelectedId(d.id)}
+                    className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors"
+                    style={{ borderTop: i > 0 ? "1px solid var(--border-soft)" : undefined, borderLeft: `2px solid ${on ? RISK_DOT[d.risk_level] : "transparent"}`, background: on ? "color-mix(in srgb, var(--section-accent) 7%, transparent)" : "transparent" }}>
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: RISK_DOT[d.risk_level] }} title={`${d.risk_level} risk`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }} title={d.title}>{d.title}</p>
+                      <div className="mt-0.5 flex items-center gap-1.5">
+                        <a.Icon size={11} style={{ color: "var(--text-faint)" }} />
+                        <span className="truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>{a.name.replace(" Agent", "")} · {relTime(d.created_at)} ago</span>
                       </div>
-                    </motion.button>
-                  );
-                })}
-              </AnimatePresence>
+                    </div>
+                  </button>
+                );
+              })}
               {visible.length === 0 && <div className="px-4 py-10 text-center text-[12px]" style={{ color: "var(--text-muted)" }}>No {riskFilter} decisions.</div>}
             </div>
 
@@ -167,22 +162,19 @@ export function DecisionsPage() {
               {selected ? <ImpactCanvas key={selected.id} d={selected} acting={acting} onResolve={resolve} /> : (
                 <div className="flex h-full items-center justify-center text-[13px]" style={{ color: "var(--text-muted)" }}>Select a decision to review its impact.</div>
               )}
-              {/* verification banner */}
-              <AnimatePresence>
-                {banner && (
-                  <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
-                    className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--surface-card) 70%, transparent)" }}>
-                    <div className="flex items-center gap-2.5 rounded-sm border px-5 py-3 text-[14px] font-semibold tracking-wide shadow-2xl"
-                      style={banner.kind === "approved"
-                        ? { borderColor: "#10b981", color: "#10b981", background: "color-mix(in srgb, #10b981 12%, var(--surface-card))", boxShadow: "0 0 30px color-mix(in srgb, #10b981 35%, transparent)" }
-                        : { borderColor: banner.kind === "rejected" ? "#ef4444" : "var(--text-faint)", color: banner.kind === "rejected" ? "#ef4444" : "var(--text-muted)", background: "var(--surface-card)" }}>
-                      {banner.kind === "approved" ? <><CheckCircle2 size={18} /> Approved &amp; running</>
-                        : banner.kind === "rejected" ? <><XCircle size={18} /> Rejected</>
-                        : <><Clock size={18} /> Snoozed for 24h</>}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* verification banner (static — no animation) */}
+              {banner && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--surface-card) 70%, transparent)" }}>
+                  <div className="flex items-center gap-2.5 rounded-sm border px-5 py-3 text-[14px] font-semibold tracking-wide shadow-2xl"
+                    style={banner.kind === "approved"
+                      ? { borderColor: "#10b981", color: "#10b981", background: "color-mix(in srgb, #10b981 12%, var(--surface-card))" }
+                      : { borderColor: banner.kind === "rejected" ? "#ef4444" : "var(--text-faint)", color: banner.kind === "rejected" ? "#ef4444" : "var(--text-muted)", background: "var(--surface-card)" }}>
+                    {banner.kind === "approved" ? <><CheckCircle2 size={18} /> Approved &amp; running</>
+                      : banner.kind === "rejected" ? <><XCircle size={18} /> Rejected</>
+                      : <><Clock size={18} /> Snoozed for 24h</>}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </>
@@ -201,7 +193,7 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
   const proposed = d.recommended_action || "Apply the agent's recommendation";
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} className="flex h-full flex-col">
+    <div className="flex h-full flex-col">
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
         {/* header */}
         <div className="flex items-start gap-3">
@@ -282,7 +274,7 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
           {busy && acting?.action === "snooze" ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />} Snooze
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
