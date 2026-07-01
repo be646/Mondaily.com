@@ -149,7 +149,7 @@ export function DiscoveryPage() {
           </span>
           <div>
             <div className="text-[13px] font-semibold text-[var(--text-primary)]">Run a web sweep</div>
-            <div className="text-[11px] text-[var(--text-muted)]">Live search across Reddit, X, and public forums</div>
+            <div className="text-[11px] text-[var(--text-muted)]">Live search across the open web — directories, review sites &amp; forums</div>
           </div>
         </div>
 
@@ -185,7 +185,7 @@ export function DiscoveryPage() {
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; }}
             >
               {run.isPending ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-              {run.isPending ? <span className="font-mono text-[11px] tracking-wider">[ EXECUTING WEB SOURCE SNEAK SWEEP... ]</span> : "Run sweep"}
+              {run.isPending ? <span className="font-mono text-[11px] tracking-wider">[ SWEEPING THE WEB... ]</span> : "Run sweep"}
             </button>
             {reviewsMissingSubject && <span className="text-[12px] text-[var(--text-muted)]">Add a subject to run a reviews sweep.</span>}
             {run.isError && <span className="text-[12px] text-[#be123c]">Sweep failed: {run.error instanceof Error ? run.error.message : "unknown error"}</span>}
