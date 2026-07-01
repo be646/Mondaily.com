@@ -20,7 +20,7 @@ router.get("/oversight", requireAuth, requireAdminRole, async (c) => {
 
   let q = supabase
     .from("activities")
-    .select("id, actor_type, actor_id, action, ai_summary, node_id, created_at, nodes(object_type, data)")
+    .select("id, actor_type, actor_id, action, ai_summary, node_id, created_at, diff, nodes(object_type, data)")
     .eq("workspace_id", ws)
     .order("created_at", { ascending: false })
     .limit(limit);
@@ -32,6 +32,21 @@ router.get("/oversight", requireAuth, requireAdminRole, async (c) => {
     .select("user_id, name, email, avatar_url, role")
     .eq("workspace_id", ws);
   const byUser = new Map((members ?? []).map(m => [m.user_id as string, m]));
+
+  // Turn the raw diff into a readable "field → value" change list so admins see EXACTLY what changed.
+  const readableChanges = (diff: unknown): { field: string; value: string }[] => {
+    if (!diff || typeof diff !== "object") return [];
+    // Activities store the patch payload; the real field changes live under diff.data (node updates).
+    const d = diff as Record<string, unknown>;
+    const src = (d.data && typeof d.data === "object" ? d.data : d) as Record<string, unknown>;
+    return Object.entries(src)
+      .filter(([k]) => !["type", "data"].includes(k))
+      .slice(0, 8)
+      .map(([field, v]) => ({
+        field: field.replace(/_/g, " "),
+        value: v == null ? "—" : typeof v === "object" ? JSON.stringify(v).slice(0, 60) : String(v).slice(0, 80),
+      }));
+  };
 
   const rows = (acts ?? []).map((a) => {
     const m = a.actor_type === "human" ? byUser.get(a.actor_id as string) : undefined;
@@ -46,6 +61,7 @@ router.get("/oversight", requireAuth, requireAdminRole, async (c) => {
       action: a.action,
       ai_summary: a.ai_summary ?? null,
       object: node?.object_type ? { type: node.object_type, name: nodeName ?? null } : null,
+      changes: readableChanges((a as { diff?: unknown }).diff),   // exactly what changed
       created_at: a.created_at,
     };
   });

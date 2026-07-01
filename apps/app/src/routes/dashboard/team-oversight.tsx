@@ -30,7 +30,8 @@ interface Operator {
 }
 interface MatrixResp { operators: Operator[]; totals: { operators: number; tokens: number; active_sessions: number } }
 
-interface ActivityRow { id: string; action: string; ai_summary: string | null; object: { type: string; name: string | null } | null; created_at: string }
+interface ActivityRow { id: string; action: string; ai_summary: string | null; object: { type: string; name: string | null } | null; changes?: { field: string; value: string }[]; created_at: string }
+const exactTime = (iso: string) => { const d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }); };
 
 const shortHash = (id: string | null) => (id ? id.replace(/-/g, "").slice(0, 8).toUpperCase() : "——————");
 const fmt = (n: number) => n.toLocaleString();
@@ -196,7 +197,7 @@ export function TeamOversightPage() {
 function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
   const { data, isLoading } = useQuery<{ activity: ActivityRow[] }>({
     queryKey: ["oversight-actor", op.operator_id],
-    queryFn: () => apiClient.get<{ activity: ActivityRow[] }>(`/activities/oversight?actor=${encodeURIComponent(op.operator_id)}&limit=40`),
+    queryFn: () => apiClient.get<{ activity: ActivityRow[] }>(`/activities/oversight?actor=${encodeURIComponent(op.operator_id)}&limit=100`),
     retry: false,
   });
   const v = VERDICT[op.verdict];
@@ -259,23 +260,36 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
             </div>
           </section>
 
-          {/* automated run timeline */}
+          {/* full activity timeline — exact time + what changed, so admins can judge 100% of behaviour */}
           <section>
-            <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-zinc-600"><Activity size={11} /> Automated run timeline</div>
+            <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-zinc-600"><Activity size={11} /> Full activity timeline</div>
             {isLoading ? (
-              <div className="flex items-center gap-2 py-4 text-[11px] text-zinc-600"><Loader2 size={12} className="animate-spin" /> Loading run history…</div>
+              <div className="flex items-center gap-2 py-4 text-[11px] text-zinc-600"><Loader2 size={12} className="animate-spin" /> Loading activity…</div>
             ) : timeline.length === 0 ? (
-              <p className="py-3 text-[11px] text-zinc-600">No recorded agent runs in window.</p>
+              <p className="py-3 text-[11px] text-zinc-600">No recorded activity in window.</p>
             ) : (
-              <div className="space-y-px overflow-hidden rounded-lg border border-[var(--border-soft)]">
-                {timeline.slice(0, 20).map((a, i) => (
-                  <div key={a.id || i} className="flex items-start gap-2 bg-[var(--surface-hover)] px-3 py-2">
-                    <span className="mt-0.5 shrink-0 text-[10px] tabular-nums text-zinc-600">{ago(a.created_at)}</span>
-                    <div className="min-w-0">
-                      <span className="text-[11.5px] text-zinc-300">{(a.action || "action").replace(/_/g, " ")}</span>
-                      {a.object?.name && <span className="text-[11px] text-zinc-600"> · {a.object.name}</span>}
-                      {a.ai_summary && <p className="mt-0.5 text-[10.5px] leading-snug text-zinc-600">{a.ai_summary}</p>}
+              <div className="space-y-2">
+                {timeline.slice(0, 40).map((a, i) => (
+                  <div key={a.id || i} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-[11.5px] font-medium text-zinc-200 capitalize">
+                        {(a.action || "action").replace(/_/g, " ")}
+                        {a.object?.type && <span className="font-normal text-zinc-500"> · {a.object.type}</span>}
+                        {a.object?.name && <span className="font-normal text-zinc-400"> "{a.object.name}"</span>}
+                      </span>
+                      <span className="shrink-0 text-[10px] tabular-nums text-zinc-600" title={new Date(a.created_at).toISOString()}>{exactTime(a.created_at)}</span>
                     </div>
+                    {a.changes && a.changes.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {a.changes.map((ch, j) => (
+                          <span key={j} className="inline-flex items-center gap-1 rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-0.5 text-[10px]">
+                            <span className="text-zinc-500 capitalize">{ch.field}:</span>
+                            <span className="max-w-[140px] truncate text-zinc-300">{ch.value}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {a.ai_summary && <p className="mt-1 text-[10.5px] leading-snug text-zinc-600">{a.ai_summary}</p>}
                   </div>
                 ))}
               </div>

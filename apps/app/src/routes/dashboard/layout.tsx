@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import { sectionHue } from "../../lib/sections";
+import { agentForRoute } from "../../lib/agents";
 import { VerifyEmailBanner } from "../../components/ui/verify-email-banner";
 import {
   Home, CheckSquare, Users, MessageCircle, Menu, Search,
@@ -131,6 +132,7 @@ export function DashboardLayout() {
   }, [wsSettings, navigate]);
 
   const { label: pageLabel, Icon: PageIcon } = getPageMeta(location.pathname);
+  const sectionAgent = agentForRoute(location.pathname); // which agent operates this section
 
   // Spreadsheet grid routes own their scroll via internal flex — keep main overflow-hidden.
   // All other routes need native vertical scrolling.
@@ -167,6 +169,17 @@ export function DashboardLayout() {
             <span className="hidden select-none text-[13px] font-semibold capitalize text-[#111827] dark:text-[var(--text-secondary)] sm:inline">
               {pageLabel}
             </span>
+            {/* Which agent operates this section — real attribution from the agent registry */}
+            {sectionAgent && (
+              <span
+                title={`Operated by ${sectionAgent.name}`}
+                className="hidden items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-medium lg:inline-flex"
+                style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)", background: "var(--section-accent-soft)" }}
+              >
+                <sectionAgent.Icon size={11} />
+                {sectionAgent.name}
+              </span>
+            )}
             {/* Search trigger */}
             <button
               onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))}

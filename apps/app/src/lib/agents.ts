@@ -36,6 +36,33 @@ export function agentById(id: string): AgentIdentity {
   return AGENTS[id] ?? { ...FALLBACK, id, name: id.replace(/[-_]/g, " ").replace(/\b\w/g, c => c.toUpperCase()) };
 }
 
+/** Which agent operates a given app section — so every section can show who's running it.
+ *  Longest-prefix match wins (e.g. /finance/reports → finance before any /reports rule). */
+const ROUTE_TO_AGENT: [string, string][] = [
+  ["/finance", "finance"],
+  ["/approvals", "finance"],
+  ["/discovery", "prospecting"],
+  ["/automations", "workflow"],
+  ["/reports", "insights"],
+  ["/team/oversight", "signal"],
+  ["/activity", "signal"],
+  ["/decisions", "operations"],
+  ["/tasks", "operations"],
+  ["/search", "graph-enrichment"],
+  ["/graph", "graph-enrichment"],
+  ["/emails", "relationship"],
+  ["/calls", "relationship"],
+  ["/notes", "relationship"],
+  ["/ask", "ask-mondaily"],
+  ["/home", "ask-mondaily"],
+];
+export function agentForRoute(pathname: string): AgentIdentity | null {
+  const hit = ROUTE_TO_AGENT
+    .filter(([prefix]) => pathname === prefix || pathname.startsWith(prefix + "/") || pathname.startsWith(prefix))
+    .sort((a, b) => b[0].length - a[0].length)[0];
+  return hit ? agentById(hit[1]) : null;
+}
+
 /** Map a raw backend job name (agent_jobs.agent_name) → canonical agent. Several
  *  internal jobs roll up to one real agent (e.g. invoice_chaser → Finance Agent). */
 const RAW_TO_ID: Record<string, string> = {
