@@ -44,8 +44,12 @@ export function MembersSettings() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [inviteResults, setInviteResults] = useState<{ email: string; link: string | null; sent: boolean; error: string | null }[]>([]);
 
-  const query = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<MembersData>("/settings/members"), retry: false });
-  const refresh = () => qc.invalidateQueries({ queryKey: ["members"] });
+  // IMPORTANT: distinct key. This endpoint returns an OBJECT {members, invitations, modules,...},
+  // whereas the app-wide ["members"] key returns an ARRAY (/members). Sharing the key overwrote the
+  // array cache with an object, and array consumers (sidebar-lists, board, tasks...) threw on
+  // .map/.filter — which crashed the sidebar into its fallback when this page loaded.
+  const query = useQuery({ queryKey: ["settings-members"], queryFn: () => apiClient.get<MembersData>("/settings/members"), retry: false });
+  const refresh = () => qc.invalidateQueries({ queryKey: ["settings-members"] });
 
   const members: Member[] = Array.isArray(query.data?.members) ? query.data!.members! : [];
   const invitations: Invitation[] = Array.isArray(query.data?.invitations) ? query.data!.invitations! : [];
