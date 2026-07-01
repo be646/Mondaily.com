@@ -13,7 +13,7 @@ type SearchResult = { hits: SearchHit[]; unreachable: boolean };
 
 async function searxng(query: string): Promise<SearchResult> {
   try {
-    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&engines=google,reddit`;
+    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json`;
     const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
     if (!res.ok) {
       // 5xx → the index itself is down/unreachable; treat as an infra timeout.

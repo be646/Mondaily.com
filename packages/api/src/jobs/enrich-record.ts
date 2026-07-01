@@ -44,7 +44,7 @@ const SOVEREIGN_SCRAPE_URL = process.env.SOVEREIGN_SCRAPE_URL || "http://localho
 /** Query the private SearXNG index → top result URLs. */
 async function searxngUrls(query: string, limit = 4): Promise<string[]> {
   try {
-    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&engines=google,reddit`;
+    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json`;
     const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
     if (!res.ok) {
       console.error(`[search] searxng HTTP ${res.status}`);
