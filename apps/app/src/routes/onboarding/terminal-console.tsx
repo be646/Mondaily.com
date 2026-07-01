@@ -42,6 +42,8 @@ export function TerminalOnboardingPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [inviteText, setInviteText] = useState("");
   const [sending, setSending] = useState(false);
+  const [inviteLinks, setInviteLinks] = useState<{ email: string; link: string | null }[]>([]);
+  const [copied, setCopied] = useState<string | null>(null);
   const idRef = useRef(100);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -124,19 +126,33 @@ export function TerminalOnboardingPage() {
     setPhase("invite");
   }
 
-  // Final step — fire optional invites, then clear the trigger and hand off to the
-  // dashboard with a first-run flag so Home can guide the first action.
-  async function finishOnboarding() {
-    if (sending) return;
-    setSending(true);
-    const list = inviteText.split(/[\s,]+/).map(e => e.trim()).filter(e => e.includes("@"));
-    if (list.length) {
-      push(`> Dispatching ${list.length} operator invite${list.length === 1 ? "" : "s"}...`, "amber");
-      await Promise.all(list.map(email => apiClient.post("/invites", { email, role: "member" }).catch(() => {})));
-    }
+  function enterWorkspace() {
     localStorage.removeItem("mondaily_needs_onboarding");
     localStorage.setItem("mondaily_first_run", "1");
     window.location.assign("/");
+  }
+
+  // Create the invites and SHOW their shareable links (works with zero email config — the link
+  // is the invite). Email is also attempted, but the link is what guarantees delivery today.
+  async function finishOnboarding() {
+    if (sending) return;
+    const list = inviteText.split(/[\s,]+/).map(e => e.trim()).filter(e => e.includes("@"));
+    if (!list.length) { enterWorkspace(); return; }
+    setSending(true);
+    push(`> Creating ${list.length} invite${list.length === 1 ? "" : "s"}...`, "amber");
+    const links: { email: string; link: string | null }[] = [];
+    for (const email of list) {
+      try {
+        const r = await apiClient.post<{ invite_link?: string }>("/invites", { email, role: "member" });
+        links.push({ email, link: r.invite_link ?? null });
+        push(`  ✓ ${email}`, "ok");
+      } catch {
+        links.push({ email, link: null });
+        push(`  ✕ ${email} — could not create invite`, "amber");
+      }
+    }
+    setInviteLinks(links);
+    setSending(false);
   }
 
   return (
@@ -162,29 +178,52 @@ export function TerminalOnboardingPage() {
         {phase === "invite" && (
           <div className="mt-6 max-w-xl rounded-sm border border-[#27272a] bg-[#18181b] p-5">
             <div className="text-[11px] uppercase tracking-widest" style={{ color: "var(--accent)" }}>// FINAL STEP · INVITE OPERATORS</div>
-            <p className="mt-2 text-[13px] text-zinc-300">Add teammates by email — they&apos;ll get a secure invite link. You can always do this later from Settings → Members.</p>
-            <textarea
-              autoFocus
-              value={inviteText}
-              onChange={e => setInviteText(e.target.value)}
-              placeholder="alex@company.com, sam@company.com"
-              rows={3}
-              className="mt-3 w-full resize-none rounded-sm border border-[#27272a] bg-[#0e0e10] px-3 py-2 text-[13px] text-zinc-100 outline-none placeholder:text-zinc-700 focus:border-[color:var(--accent)]"
-            />
-            <div className="mt-4 flex items-center gap-3">
-              <button
-                onClick={finishOnboarding} disabled={sending}
-                className="rounded-sm px-4 py-2 text-[12px] font-semibold text-black disabled:opacity-60"
-                style={{ background: "var(--accent)" }}>
-                {sending ? "Finishing…" : inviteText.includes("@") ? "Send invites & enter workspace ›" : "Enter workspace ›"}
-              </button>
-              {inviteText.includes("@") && (
-                <button onClick={() => { setInviteText(""); finishOnboarding(); }} disabled={sending}
-                  className="text-[12px] text-zinc-500 transition-colors hover:text-zinc-300 disabled:opacity-60">
-                  Skip for now
+
+            {inviteLinks.length === 0 ? (
+              <>
+                <p className="mt-2 text-[13px] text-zinc-300">Add teammates by email — each gets a secure invite link (and an email once your domain is verified). You can always do this later in Settings → Members.</p>
+                <textarea
+                  autoFocus
+                  value={inviteText}
+                  onChange={e => setInviteText(e.target.value)}
+                  placeholder="alex@company.com, sam@company.com"
+                  rows={3}
+                  className="mt-3 w-full resize-none rounded-sm border border-[#27272a] bg-[#0e0e10] px-3 py-2 text-[13px] text-zinc-100 outline-none placeholder:text-zinc-700 focus:border-[color:var(--accent)]"
+                />
+                <div className="mt-4 flex items-center gap-3">
+                  <button onClick={finishOnboarding} disabled={sending}
+                    className="rounded-sm px-4 py-2 text-[12px] font-semibold text-black disabled:opacity-60" style={{ background: "var(--accent)" }}>
+                    {sending ? "Creating…" : inviteText.includes("@") ? "Create invite links ›" : "Enter workspace ›"}
+                  </button>
+                  {inviteText.includes("@") && (
+                    <button onClick={enterWorkspace} disabled={sending} className="text-[12px] text-zinc-500 transition-colors hover:text-zinc-300 disabled:opacity-60">Skip for now</button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="mt-2 text-[13px] text-zinc-300">Invites created. Share each link with your teammate — it works right now, no email needed:</p>
+                <div className="mt-3 space-y-2">
+                  {inviteLinks.map((iv) => (
+                    <div key={iv.email} className="flex items-center gap-2 rounded-sm border border-[#27272a] bg-[#0e0e10] px-3 py-2">
+                      <span className="w-40 shrink-0 truncate text-[12px] text-zinc-400">{iv.email}</span>
+                      {iv.link ? (
+                        <>
+                          <span className="min-w-0 flex-1 truncate text-[11px] text-zinc-500">{iv.link}</span>
+                          <button onClick={() => { navigator.clipboard.writeText(iv.link!); setCopied(iv.email); setTimeout(() => setCopied(null), 1500); }}
+                            className="shrink-0 rounded-sm border border-[#34343a] px-2 py-0.5 text-[11px] text-zinc-300 hover:border-[color:var(--accent)]">
+                            {copied === iv.email ? "Copied ✓" : "Copy link"}
+                          </button>
+                        </>
+                      ) : <span className="text-[11px] text-amber-400">failed — retry in Settings → Members</span>}
+                    </div>
+                  ))}
+                </div>
+                <button onClick={enterWorkspace} className="mt-4 rounded-sm px-4 py-2 text-[12px] font-semibold text-black" style={{ background: "var(--accent)" }}>
+                  Enter workspace ›
                 </button>
-              )}
-            </div>
+              </>
+            )}
           </div>
         )}
       </div>
