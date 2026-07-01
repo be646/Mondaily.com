@@ -119,24 +119,18 @@ export function IntegrationsSettings() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-stone-200">{item.name}</p>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${item.connected ? "bg-emerald-500/10 text-emerald-400" : "bg-[var(--surface-hover)] text-stone-600"}`}>
-                      {item.connected ? "Connected" : "Not connected"}
+                    <span className="rounded-full bg-[var(--surface-hover)] px-2 py-0.5 text-[10px] font-medium text-stone-500">
+                      Coming soon
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-stone-600">{item.description}</p>
-                  {item.connected && item.profile && (
-                    <p className="mt-1 truncate font-mono text-[10.5px] text-emerald-400/80">
-                      ↳ {item.profile.account}{item.profile.scopes?.length ? ` · ${item.profile.scopes.join(" ")}` : ""}
-                    </p>
-                  )}
                 </div>
               </div>
-              <button
-                onClick={() => toggleIntegration.mutate({ id: item.id, connected: !item.connected })}
-                className={`mt-auto self-start text-xs transition-colors ${item.connected ? "text-stone-400 hover:text-stone-300" : "text-emerald-400 hover:text-emerald-300"}`}
-              >
-                {item.connected ? "Disconnect" : "Connect"}
-              </button>
+              {/* Honest state: these don't connect yet (no fake "connected"). Email connect
+                  is real and lives in Settings → Email (direct Google OAuth, read-only). */}
+              <span className="mt-auto self-start text-xs text-stone-600">
+                {item.id === "gmail" ? "Connect in Settings → Email" : "Not available yet"}
+              </span>
             </article>
           ))}
         </div>
