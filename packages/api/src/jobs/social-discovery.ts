@@ -193,14 +193,30 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
         const p = new URL(u.trim());
         const host = p.host.replace(/^www\./, "").toLowerCase();
         const path = p.pathname.replace(/\/+$/, "");
-        return `${host}${path}${p.search}`.toLowerCase();
+        return `${host}${path}`.toLowerCase(); // ignore query params — they vary and shouldn't gate a match
       } catch {
-        return u.trim().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/+$/, "").toLowerCase();
+        return u.trim().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/[?#].*$/, "").replace(/\/+$/, "").toLowerCase();
       }
     };
+    const hostOf = (u: string) => {
+      try { return new URL(u.trim()).host.replace(/^www\./, "").toLowerCase(); }
+      catch { return (u.split("/")[2] ?? u).replace(/^www\./, "").toLowerCase(); }
+    };
     const byNorm = new Map(unique.map((h) => [normUrl(h.url), h.url]));
+    // Host fallback: the model often cites a slightly different path (or a link found ON the page)
+    // rather than the exact scanned URL — but the DOMAIN was genuinely scanned, so resolving to that
+    // domain's scanned URL keeps it grounded while recovering the '32 extracted → 0 matched' losses.
+    const scannedHosts = new Set(unique.map((h) => hostOf(h.url)));
+    // Exact scanned URL wins (canonical). Otherwise, if the lead's host was genuinely scanned, keep
+    // the lead's OWN url — distinct per page/review — so multiple real results survive instead of
+    // collapsing to one host URL. Anything on an un-scanned host is dropped (anti-hallucination).
+    const resolveUrl = (u: string): string | undefined => {
+      const exact = byNorm.get(normUrl(u));
+      if (exact) return exact;
+      return scannedHosts.has(hostOf(u)) ? u.trim() : undefined;
+    };
     const rows = leads
-      .map((l) => ({ l, resolved: l.source_url ? byNorm.get(normUrl(l.source_url)) : undefined }))
+      .map((l) => ({ l, resolved: l.source_url ? resolveUrl(l.source_url) : undefined }))
       .filter((x) => x.resolved && x.l.intent_type)
       .map(({ l, resolved }) => ({
         workspace_id: workspaceId,
