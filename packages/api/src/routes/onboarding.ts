@@ -8,46 +8,60 @@ import { recordCreditUsage } from "../lib/credits";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string; financeRole: string } }>();
 
-// POST /onboarding/analyze — Cerebras semantic extraction of the operator's free-text description
-// into a strict config object { account_tier, industry_vertical, target_concurrency }. Never blocks:
-// if the gateway is unconfigured or errors, a deterministic heuristic keeps onboarding flowing.
+// POST /onboarding/analyze — the smart brain of onboarding. Takes the survey answers (purpose,
+// team size, goals) plus any free text and returns an AI-inferred sector, a short tailored setup
+// summary, and which optional product modules to switch on (finance / investments / hr — Mondaily
+// vocabulary, NEVER "CRM"). Never blocks: a deterministic heuristic keeps onboarding flowing if the
+// gateway is unconfigured or errors.
 router.post("/analyze", requireAuth, async (c) => {
   const ws = c.get("workspaceId");
-  const { description } = await c.req.json<{ description?: string }>().catch(() => ({ description: "" }));
-  const text = (description ?? "").trim();
-  if (!text) return c.json({ error: "Describe your operation to continue." }, 400);
+  const body = await c.req.json<{ description?: string; purpose?: string; team_size?: string; goals?: string[] }>().catch(() => ({} as Record<string, never>));
+  const purpose = (body.purpose ?? "").trim();
+  const goals = Array.isArray(body.goals) ? body.goals : [];
+  const teamSize = (body.team_size ?? "").trim();
+  // Compose a single description from whatever the survey collected + optional free text.
+  const text = [body.description, purpose && `Purpose: ${purpose}`, teamSize && `Team size: ${teamSize}`, goals.length && `Goals: ${goals.join(", ")}`]
+    .filter(Boolean).join(". ").trim();
+  if (!text) return c.json({ error: "Tell us a little about your operation to continue." }, 400);
 
   const heuristic = () => {
-    const biz = /\b(team|company|agency|enterprise|fund|firm|operations|staff|employees|scale|pipeline|department|org|startup|saas)\b/i.test(text);
-    const num = text.match(/\b(\d{1,4})\b/)?.[1];
-    const concurrency = num ? Math.min(512, Math.max(1, Number(num))) : biz ? 8 : 1;
-    return { account_tier: biz ? "business" : "personal", industry_vertical: "General Operations", target_concurrency: concurrency };
+    const t = text.toLowerCase();
+    const modules: string[] = [];
+    if (/(invoice|billing|payment|quote|finance|revenue|account)/.test(t)) modules.push("finance");
+    if (/(asset|portfolio|fund|invest|round|return|capital|equity)/.test(t)) modules.push("investments");
+    if (/(headcount|hire|recruit|contract|hr|payroll|workforce|staff)/.test(t)) modules.push("hr");
+    return { industry_vertical: purpose || "General Operations", recommended_modules: modules, summary: "" };
   };
 
   let result = heuristic();
   try {
     const extracted = await aiGatewayToolUse({
-      system: "You are the Mondaily Workspace Architect. Extract a strict configuration profile from the operator's description. account_tier is 'business' for any team/company/agency/multi-operator deployment, else 'personal'. industry_vertical is a concise 1-4 word label (e.g. 'Quantitative Finance', 'Real Estate Ops'). target_concurrency is an integer estimate of simultaneous automated agents/operators implied (1 for a solo developer).",
+      system:
+        "You are the Mondaily Workspace Architect onboarding a new operator. Mondaily is an autonomous AI workspace (operators + AI agents) — it is NOT a CRM; never use that word. " +
+        "From the operator's answers, return: industry_vertical (a concise 1-4 word label, e.g. 'Quantitative Finance', 'Real Estate Ops'); " +
+        "recommended_modules — a subset of ['finance','investments','hr'] to switch on, where finance='Finance & Billing' (invoicing/payments), investments='Quantitative Asset Systems' (portfolios/funds), hr='Autonomous Workforce' (headcount/contracts). Only include modules the operation clearly needs; empty is fine. " +
+        "summary — ONE friendly sentence (<=22 words) telling the operator how their Mondaily workspace will be set up, referencing their sector and goals.",
       prompt: text,
       toolName: "configure_workspace",
       toolDescription: "Return the inferred workspace architecture profile.",
       toolSchema: {
         type: "object",
         properties: {
-          account_tier: { type: "string", enum: ["personal", "business"] },
           industry_vertical: { type: "string" },
-          target_concurrency: { type: "integer", minimum: 1 },
+          recommended_modules: { type: "array", items: { type: "string", enum: ["finance", "investments", "hr"] } },
+          summary: { type: "string" },
         },
-        required: ["account_tier", "industry_vertical", "target_concurrency"],
+        required: ["industry_vertical"],
       },
-      maxTokens: 256,
+      maxTokens: 320,
       onUsage: (u) => recordCreditUsage(ws, u.total_tokens, "Onboarding semantic analysis"),
     });
-    const tier = extracted.account_tier === "business" ? "business" : extracted.account_tier === "personal" ? "personal" : result.account_tier;
     const vertical = typeof extracted.industry_vertical === "string" && extracted.industry_vertical.trim() ? extracted.industry_vertical.trim() : result.industry_vertical;
-    const cNum = Number(extracted.target_concurrency);
-    const concurrency = Number.isFinite(cNum) && cNum > 0 ? Math.min(512, Math.round(cNum)) : result.target_concurrency;
-    result = { account_tier: tier, industry_vertical: vertical, target_concurrency: concurrency };
+    const mods = Array.isArray(extracted.recommended_modules)
+      ? (extracted.recommended_modules as unknown[]).filter((m): m is string => ["finance", "investments", "hr"].includes(m as string))
+      : result.recommended_modules;
+    const summary = typeof extracted.summary === "string" ? extracted.summary.trim() : "";
+    result = { industry_vertical: vertical, recommended_modules: mods, summary };
   } catch { /* keep heuristic — onboarding must never hard-fail */ }
 
   return c.json(result);
@@ -120,7 +134,9 @@ router.get("/status", requireAuth, async (c) => {
 router.post("/complete", requireAuth, async (c) => {
   const ws = c.get("workspaceId");
   const userId = c.get("userId");
-  const body = await c.req.json<{ plan?: string; track?: string; account_tier?: string; industry?: string; team_size?: string; concurrency?: number; goals?: string[] }>().catch(() => ({} as Record<string, never>));
+  const body = await c.req.json<{ plan?: string; track?: string; account_tier?: string; industry?: string; team_size?: string; concurrency?: number; goals?: string[]; modules?: string[] }>().catch(() => ({} as Record<string, never>));
+  // Optional product modules to switch on (finance/investments/hr) — from the AI recommendation.
+  const enabledMods = Array.isArray(body.modules) ? body.modules.filter((m) => ["finance", "investments", "hr"].includes(m)) : [];
   // Resolve the chosen tier. Prefer the explicit `plan`; fall back to legacy track/account_tier.
   const plan = ["scout", "operator", "command", "sovereign"].includes(body.plan ?? "")
     ? (body.plan as string)
@@ -144,6 +160,7 @@ router.post("/complete", requireAuth, async (c) => {
       ...(body.team_size ? { team_size: body.team_size } : {}),
       ...(typeof body.concurrency === "number" ? { target_concurrency: body.concurrency } : {}),
       ...(Array.isArray(body.goals) ? { goals: body.goals } : {}),
+      ...(enabledMods.length ? { modules: enabledMods } : {}),
       ...(trialEndsAt ? { trial_ends_at: trialEndsAt } : {}),
     },
   }).eq("id", ws);

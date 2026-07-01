@@ -89,6 +89,8 @@ export function TerminalOnboardingPage() {
   const [step, setStep] = useState(0);                    // survey question index
   const [answers, setAnswers] = useState<{ purpose?: string; team_size?: string; goals: string[] }>({ goals: [] });
   const [recommended, setRecommended] = useState<PlanId>("operator");
+  const [aiModules, setAiModules] = useState<string[]>([]);   // AI-recommended product modules
+  const [freeText, setFreeText] = useState("");                // optional "anything else" input
   const [inviteText, setInviteText] = useState("");
   const [sending, setSending] = useState(false);
   const [inviteLinks, setInviteLinks] = useState<{ email: string; link: string | null }[]>([]);
@@ -132,20 +134,34 @@ export function TerminalOnboardingPage() {
     void compile();
   }
 
-  // Compile the survey into a profile + recommendation, then reveal the plan cards.
+  // Compile the survey into a profile + recommendation via the AI architect, then reveal plan cards.
   async function compile() {
     setPhase("compiling");
-    push("[...COMPILING WORKSPACE PROFILE...]", "amber");
-    await sleep(650);
-    if (!mounted.current) return;
-    setLines(prev => prev.filter(l => l.text !== "[...COMPILING WORKSPACE PROFILE...]"));
+    push("[...MONDAILY ARCHITECT ANALYZING YOUR OPERATION...]", "amber");
 
+    // Smart step: Cerebras infers the sector, a tailored summary, and which product modules to
+    // switch on — from the survey answers + any free text. Falls back gracefully if it errors.
+    let ai: { industry_vertical?: string; recommended_modules?: string[]; summary?: string } = {};
+    try {
+      ai = await apiClient.post("/onboarding/analyze", {
+        purpose: answers.purpose, team_size: answers.team_size, goals: answers.goals, description: freeText.trim(),
+      });
+    } catch { /* heuristic-free fallback below */ }
+    if (!mounted.current) return;
+    setLines(prev => prev.filter(l => l.text !== "[...MONDAILY ARCHITECT ANALYZING YOUR OPERATION...]"));
+
+    const sector = ai.industry_vertical || answers.purpose || "General Operations";
+    const mods = Array.isArray(ai.recommended_modules) ? ai.recommended_modules : [];
+    setAiModules(mods);
     const rec = recommendPlan(answers.team_size ?? "1");
     setRecommended(rec);
+
+    const MOD_LABEL: Record<string, string> = { finance: "Finance & Billing", investments: "Quantitative Asset Systems", hr: "Autonomous Workforce" };
     const out: Line[] = [
-      { id: ++idRef.current, text: `-> Sector Inferred: ${answers.purpose ?? "General Operations"}`, tone: "accent" },
+      { id: ++idRef.current, text: `-> Sector Inferred: ${sector}`, tone: "accent" },
       { id: ++idRef.current, text: `-> Team Size: ${answers.team_size ?? "1"} operator(s)`, tone: "accent" },
-      { id: ++idRef.current, text: `-> Focus: ${answers.goals.length ? answers.goals.join(", ") : "broad"}`, tone: "dim" },
+      ...(mods.length ? [{ id: ++idRef.current, text: `-> Modules Recommended: ${mods.map(m => MOD_LABEL[m] ?? m).join(", ")}`, tone: "accent" as Tone }] : []),
+      ...(ai.summary ? [{ id: ++idRef.current, text: `   ${ai.summary}`, tone: "system" as Tone }] : []),
       { id: ++idRef.current, text: "[✓ ENVIRONMENT COMPILED — WORKSPACE INITIALIZED]", tone: "ok" },
     ];
     for (const l of out) {
@@ -170,6 +186,7 @@ export function TerminalOnboardingPage() {
         industry: answers.purpose,
         team_size: answers.team_size,
         goals: answers.goals,
+        modules: aiModules,   // switch on the AI-recommended product modules
       });
     } catch { /* even if persistence hiccups, do not trap the user in onboarding */ }
     push("[✓ WORKSPACE PROVISIONED]", "ok");
@@ -250,13 +267,22 @@ export function TerminalOnboardingPage() {
               })}
             </div>
             {q.multi && (
-              <button
-                onClick={() => advance(step + 1)}
-                className="mt-4 rounded-sm px-4 py-1.5 text-[12px] font-semibold text-black"
-                style={{ background: "var(--accent)" }}
-              >
-                {answers.goals.length ? "Continue ›" : "Skip ›"}
-              </button>
+              <>
+                <input
+                  value={freeText}
+                  onChange={e => setFreeText(e.target.value)}
+                  placeholder="Anything specific about your operation? (optional — helps the AI tailor your setup)"
+                  className="mt-4 w-full rounded-sm border bg-[#0e0e10] px-3 py-2 text-[12px] text-zinc-100 outline-none placeholder:text-zinc-700 focus:border-[color:var(--accent)]"
+                  style={{ borderColor: "#27272a" }}
+                />
+                <button
+                  onClick={() => advance(step + 1)}
+                  className="mt-3 rounded-sm px-4 py-1.5 text-[12px] font-semibold text-black"
+                  style={{ background: "var(--accent)" }}
+                >
+                  {answers.goals.length || freeText.trim() ? "Compile with AI ›" : "Skip ›"}
+                </button>
+              </>
             )}
           </div>
         )}
