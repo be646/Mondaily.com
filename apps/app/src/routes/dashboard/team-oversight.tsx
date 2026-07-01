@@ -229,7 +229,7 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
           {/* efficiency delta */}
           <section>
             <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-zinc-600"><Gauge size={11} /> Efficiency delta</div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
                 [<Cpu size={12} key="c" />, "TOKENS", fmt(op.tokens)],
                 [<Activity size={12} key="a" />, "TASKS", String(op.task_count)],

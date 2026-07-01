@@ -165,7 +165,7 @@ export function QuotesPage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Send size={11} className="text-blue-400"/><span className="text-[11px] text-stone-500">Sent</span></div>
             <div className="text-[17px] font-semibold text-blue-400">{fmt(totalPending, currency)}</div>

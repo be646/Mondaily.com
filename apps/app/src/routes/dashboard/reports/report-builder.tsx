@@ -175,7 +175,7 @@ function ConfigPanel({ report, update, objects }: {
           </select>
         </Field>
         <Field label="Chart type">
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
             {(["line","bar","number"] as const).map(t => (
               <button key={t} onClick={() => update({ chart_type: t })}
                 className={`rounded-md border px-2 py-2 text-xs capitalize ${config.chart_type === t ? "border-stone-500 bg-stone-500/10 text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400"}`}>

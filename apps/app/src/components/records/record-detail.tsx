@@ -633,7 +633,7 @@ function ActivityFeed({ activities, createdAt }: { activities?: Activity[]; crea
 // ─── Highlight grids ──────────────────────────────────────────────────────────
 function CompanyHighlights({ data, onSave }: { data: Record<string, unknown>; onSave: (f: string, v: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       <HighlightCard icon={Wifi}       label="Connection"   value={data.connection_strength ?? "Not set"}     accent="emerald"/>
       <HighlightCard icon={Calendar}   label="Next meeting"  value={data.next_interaction ?? "Not scheduled"} accent="blue"/>
       <HighlightCard icon={Users2}     label="Team size"     value={data.employee_range ?? "—"}               accent="slate"  onSave={v => onSave("employee_range", v)}/>
@@ -645,7 +645,7 @@ function CompanyHighlights({ data, onSave }: { data: Record<string, unknown>; on
 }
 function PeopleHighlights({ data, onSave }: { data: Record<string, unknown>; onSave: (f: string, v: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       <HighlightCard icon={Wifi}      label="Connection"   value={data.connection_strength ?? "Not set"}     accent="emerald"/>
       <HighlightCard icon={Calendar}  label="Next meeting"  value={data.next_interaction ?? "Not scheduled"} accent="blue"/>
       <HighlightCard icon={Building2} label="Company"       value={data.company ?? "—"}                     accent="purple" onSave={v => onSave("company", v)}/>
@@ -671,7 +671,7 @@ function DealHighlights({ data, onSave }: { data: Record<string, unknown>; onSav
 
 function InvestmentHighlights({ data, onSave }: { data: Record<string,unknown>; onSave: (f: string, v: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       <HighlightCard icon={DollarSign} label="Amount"       value={data.amount ?? data.investment_amount ?? "—"}       accent="emerald" onSave={v => onSave("amount", v)} numeric/>
       <HighlightCard icon={TrendingUp} label="Round"        value={data.round ?? data.investment_round ?? "—"}         accent="blue"    onSave={v => onSave("round", v)}/>
       <HighlightCard icon={Briefcase}  label="Investor"     value={data.investor ?? data.investor_name ?? "—"}         accent="purple"  onSave={v => onSave("investor", v)}/>
@@ -684,7 +684,7 @@ function InvestmentHighlights({ data, onSave }: { data: Record<string,unknown>; 
 
 function ExpenseHighlights({ data, onSave }: { data: Record<string,unknown>; onSave: (f: string, v: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       <HighlightCard icon={DollarSign}  label="Amount"       value={data.amount ?? "—"}                              accent="red"     onSave={v => onSave("amount", v)} numeric/>
       <HighlightCard icon={Calendar}    label="Date"         value={data.date ?? data.expense_date ?? "—"}           accent="slate"   onSave={v => onSave("date", v)}/>
       <HighlightCard icon={Tag}         label="Category"     value={data.category ?? "—"}                            accent="blue"    onSave={v => onSave("category", v)}/>
@@ -697,7 +697,7 @@ function ExpenseHighlights({ data, onSave }: { data: Record<string,unknown>; onS
 
 function TaxHighlights({ data, onSave }: { data: Record<string,unknown>; onSave: (f: string, v: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       <HighlightCard icon={DollarSign} label="Amount"    value={data.amount ?? data.cost ?? "—"}             accent="red"     onSave={v => onSave("amount", v)} numeric/>
       <HighlightCard icon={Calendar}   label="Tax Year"  value={data.tax_year ?? data.year ?? "—"}           accent="slate"   onSave={v => onSave("tax_year", v)}/>
       <HighlightCard icon={Receipt}    label="Type"      value={data.type ?? data.entry_type ?? "—"}         accent="blue"    onSave={v => onSave("type", v)}/>
@@ -710,7 +710,7 @@ function TaxHighlights({ data, onSave }: { data: Record<string,unknown>; onSave:
 
 function TaskHighlights({ data, onSave }: { data: Record<string,unknown>; onSave: (f: string, v: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       <HighlightCard icon={Calendar}   label="Due Date"  value={data.due_date ?? "—"}                                   accent="red"     onSave={v => onSave("due_date", v)}/>
       <HighlightCard icon={Star}       label="Priority"  value={data.priority ?? "Normal"}                              accent="amber"   onSave={v => onSave("priority", v)}/>
       <HighlightCard icon={CheckSquare} label="Status"   value={data.done ? "Done ✓" : (String(data.status ?? "Open"))} accent="emerald"/>
@@ -723,7 +723,7 @@ function TaskHighlights({ data, onSave }: { data: Record<string,unknown>; onSave
 
 function VisitPaymentHighlights({ data, onSave }: { data: Record<string,unknown>; onSave: (f: string, v: string) => void }) {
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
       <HighlightCard icon={DollarSign} label="Amount"   value={data.amount ?? data.payment_amount ?? "—"}        accent="emerald" onSave={v => onSave("amount", v)} numeric/>
       <HighlightCard icon={Calendar}   label="Date"     value={data.date ?? data.visit_date ?? data.payment_date ?? "—"} accent="blue" onSave={v => onSave("date", v)}/>
       <HighlightCard icon={Star}       label="Status"   value={data.status ?? "—"}                               accent="amber"   onSave={v => onSave("status", v)}/>
@@ -1373,7 +1373,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
   return (
     <div className="space-y-6 max-w-3xl">
       {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
           { label: "Total Billed", value: fmtCcy(totalBilled, defaultCurrency), accent: "text-[var(--text-primary)]" },
           { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-stone-400" },
@@ -1401,7 +1401,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
         {showNewInvoice && (
           <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 mb-3 space-y-3">
             <p className="text-xs font-medium text-[var(--text-primary)]">New Invoice for {recordName}</p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div>
                 <label className="text-[10px] text-stone-600 mb-1 block">Amount</label>
                 <input
@@ -1998,7 +1998,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                   {isTaskType    && <TaskHighlights         data={data} onSave={save}/>}
                   {isVisitPayment && <VisitPaymentHighlights data={data} onSave={save}/>}
                   {!isCompany && !isPeople && !isDeals && !isInvestment && !isExpense && !isTax && !isTaskType && !isVisitPayment && (
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       <HighlightCard icon={Clock}  label="Updated"    value={new Date(record.updated_at).toLocaleDateString()} accent="slate"/>
                       <HighlightCard icon={Star}   label="Object"     value={record.object_type} accent="blue"/>
                       <HighlightCard icon={Users}  label="Vertical"   value={record.vertical}    accent="purple"/>

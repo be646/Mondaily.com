@@ -244,7 +244,7 @@ export function AgentActivityPage() {
 
         <div className="p-5">
           {/* Real KPI aggregates from the DB (COUNT over agent_jobs, today) */}
-          <div className="mb-5 grid grid-cols-3 gap-3">
+          <div className="mb-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
               { label: "runs_today", value: runsToday, color: "#e4e4e7" },
               { label: "agents_reporting", value: agentsReportingToday, color: "#e4e4e7" },

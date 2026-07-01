@@ -739,7 +739,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
           <div className="px-5 py-4 space-y-3">
             <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-600">New schedule</p>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {(["daily","weekly","monthly"] as const).map(f => (
                 <button key={f} onClick={() => setFreq(f)}
                   className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-stone-500/30 bg-stone-600/10 text-stone-400" : "border-[var(--border-soft)] text-stone-500 hover:text-[var(--text-primary)]"}`}>
