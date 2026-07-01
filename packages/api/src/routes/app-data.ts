@@ -828,15 +828,9 @@ router.get("/billing", async (c) => {
   });
 });
 
-router.post("/invites", async (c) => {
-  const { data: membership } = await supabase.from("workspace_members").select("role").eq("workspace_id", c.get("workspaceId")).eq("user_id", c.get("userId")).single();
-  if (!membership || !["owner", "admin"].includes(membership.role)) return c.json({ error: "Admin authorization required." }, 403);
-  const body = await c.req.json<{ email: string; role: string }>();
-  const token = crypto.randomUUID();
-  const invitation = { email: body.email, role: body.role, status: "pending", token, expires_at: new Date(Date.now() + 86_400_000).toISOString() };
-  const { data, error } = await supabase.from("nodes").insert({ workspace_id: c.get("workspaceId"), vertical: "shared", object_type: "workspace_invitation", data: invitation, created_by: c.get("userId") }).select().single();
-  return error ? c.json({ error: error.message }, 400) : c.json({ id: data.id, ...invitation }, 201);
-});
+// NOTE: POST /invites lives in routes/invites.ts (mounted at /api/v1/invites, which shadows this
+// path). The old nodes-based invite handler that used to be here was dead code and was removed.
+
 // ─── Finance role: list members with finance_role ─────────────────────────────
 router.get("/workspace/members", async (c) => {
   const { data, error } = await supabase

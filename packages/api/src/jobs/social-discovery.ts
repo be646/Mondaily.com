@@ -139,13 +139,13 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       toolSchema: LEAD_TOOL_SCHEMA,
       maxTokens: 2048,
       system:
-        `You extract ${wantReviews ? "reviews/complaints" : "buyer-intent signals"} from raw web search hits. ` +
-        `STRICT RULES: (1) every result's source_url MUST be copied verbatim from one of the provided URLs — never invent one. ` +
-        `(2) Drop ads, SEO listicles, vendor pages, and anything that is not a genuine ${wantReviews ? "review or complaint" : "person expressing buying intent"}. ` +
-        `(3) ${region ? `Only keep results that plausibly match the region "${region}"; drop the rest.` : "Region is optional."} ` +
-        `(4) intent_type is COMPLAINT for negative reviews, REVIEW for neutral/positive reviews, BUY_SIGNAL for purchase intent. ` +
-        `(5) confidence_score reflects how clearly the hit matches the intent and region. Return an empty array if nothing qualifies — never pad. ` +
-        `(6) Fill contact_email / contact_phone / handle ONLY when they appear verbatim in the hit text — NEVER guess or construct them. Always write a one-sentence summary noting who the person is and why they're a lead.`,
+        `You extract ${wantReviews ? "reviews, opinions, and complaints" : "buyer-intent signals and prospects"} from web pages. Be USEFUL — return every plausibly-relevant result, not just perfect ones. ` +
+        `RULES: (1) every result's source_url MUST be copied verbatim from one of the provided URLs — never invent one. ` +
+        `(2) Skip only pure ads and navigation/boilerplate. A ${wantReviews ? "review, testimonial, forum comment, or opinion about the subject" : "person or business showing interest or a need"} all count — include them. ` +
+        `(3) ${region ? `Region "${region}" is a PREFERENCE, not a filter: keep results even if the region is unclear, just give them a lower confidence_score. Only drop a result if it clearly belongs to a different region.` : "Region is optional."} ` +
+        `(4) intent_type is COMPLAINT for negative reviews, REVIEW for neutral/positive reviews/opinions, BUY_SIGNAL for purchase intent. ` +
+        `(5) confidence_score (0-100) reflects how clearly the result matches. Include lower-confidence results too — do not return an empty array unless the pages truly contain nothing on-topic. ` +
+        `(6) Fill contact_email / contact_phone / handle ONLY when they appear verbatim in the text — NEVER guess. Always write a one-sentence summary noting who this is and why they're relevant.`,
       prompt:
         `Search type: ${searchType}. Sector: "${sector ?? ""}". Region: "${region ?? ""}".` +
         `${targetSubject ? ` Target subject: "${targetSubject}".` : ""}\n\nSearch hits:\n${context}`,
