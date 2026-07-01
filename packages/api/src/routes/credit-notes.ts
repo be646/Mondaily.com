@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { HTTPException } from "hono/http-exception";
 import { requireAuth } from "../middleware/auth";
+import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { inngest } from "../lib/inngest";
 import { createNotification } from "../lib/notify";
@@ -10,6 +11,7 @@ import { createNotification } from "../lib/notify";
 type Variables = { userId: string; workspaceId: string; role: string; financeRole: string };
 const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
+router.use("*", requireModuleRW("finance")); // per-member Finance & Billing access
 
 // ─── State machine ────────────────────────────────────────────────────────────
 const VALID_TRANSITIONS: Record<string, string[]> = {

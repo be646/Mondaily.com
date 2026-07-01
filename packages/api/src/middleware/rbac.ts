@@ -56,3 +56,17 @@ export function requireModule(moduleKey: string, need: AccessLevel = "view") {
     await next();
   });
 }
+
+/**
+ * Read/write-aware module gate: GET/HEAD need "view", any mutation needs "edit". Mount AFTER
+ * requireAuth. One line per module router gives full per-member enforcement.
+ */
+export function requireModuleRW(moduleKey: string) {
+  return createMiddleware<{ Variables: { role: string; financeRole: string; moduleAccess: Record<string, string> } }>(async (c, next) => {
+    const m = c.req.method;
+    const need: AccessLevel = (m === "GET" || m === "HEAD" || m === "OPTIONS") ? "view" : "edit";
+    const ok = moduleAllows(c.get("role"), moduleKey, need, c.get("moduleAccess"), c.get("financeRole"));
+    if (!ok) throw new HTTPException(403, { message: `You don't have ${need} access to this module.` });
+    await next();
+  });
+}

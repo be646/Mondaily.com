@@ -2,12 +2,14 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 
 const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
+router.use("*", requireModuleRW("finance")); // per-member Finance & Billing access
 
 const lineItemSchema = z.object({
   description: z.string(),
