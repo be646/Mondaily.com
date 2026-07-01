@@ -8,6 +8,13 @@ import { makeTrackingToken } from "../lib/tracking";
 import { isWorkspaceAdmin } from "../middleware/rbac";
 import { ACCESS_COOKIE, REFRESH_COOKIE, sha256 } from "../lib/auth-tokens";
 import { MODULE_KEYS, resolveModuleMatrix, enabledModules } from "../lib/modules";
+import { creditStatus, grantCredits } from "../lib/credits";
+
+// Seat limits per tier — Scout & Operator are SINGLE-operator; only Command/Sovereign are teams.
+// The single source used by both /settings/members (can_invite) and /billing (seats_limit).
+const SEAT_LIMIT: Record<string, number> = { scout: 1, operator: 1, command: 10, sovereign: 999, business: 1, personal: 1, free: 1, trial: 1 };
+const seatLimitFor = (settings: Record<string, unknown> | null | undefined) =>
+  SEAT_LIMIT[(settings?.account_tier as string) ?? (settings?.track as string) ?? "scout"] ?? 1;
 
 // Keep only known module keys with a valid level — never trust arbitrary jsonb from the client.
 function sanitizeModuleAccess(input: Record<string, string>): Record<string, string> {
@@ -555,6 +562,9 @@ router.get("/settings/members", async (c) => {
     // Authoritative role of the *requesting* user, straight from the auth context — so the UI
     // never has to guess by matching ids/emails (which was hiding the invite bar for owners).
     my_role: c.get("role"),
+    // Invites only make sense on multi-operator tiers (Command/Sovereign). Scout/Operator are single.
+    can_invite: seatLimitFor(wsRow?.settings as Record<string, unknown> | null) > 1,
+    seats_limit: seatLimitFor(wsRow?.settings as Record<string, unknown> | null),
     // Catalog of ENABLED feature-modules so the Members matrix renders columns without hardcoding
     // and never shows a module the workspace has switched off.
     modules: activeModules,
@@ -832,22 +842,47 @@ router.get("/billing", async (c) => {
   // The plan the user actually chose lives in settings.account_tier; fall back to the legacy column.
   const tier = (settings.account_tier as string) ?? (data?.plan as string) ?? "scout";
   // Seat allowance per tier (matches lib/plans.ts + credit tiers).
-  const SEAT_LIMIT: Record<string, number> = { scout: 1, operator: 5, command: 10, sovereign: 999, business: 5, personal: 1, free: 1, trial: 5 };
   const trialEndsAt = settings.trial_ends_at as string | undefined;
   const trialDaysLeft = trialEndsAt
     ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86_400_000))
     : null;
+  const trialUsed = Boolean(settings.trial_used);
   return c.json({
     plan: tier,
     // A tier the user selected at onboarding but hasn't paid for yet (Command/Sovereign). Billing
     // surfaces this as "activate <plan> — payment required" rather than granting it for free.
     pending_plan: (settings.pending_plan as string) ?? null,
     seats_used: memberCount ?? 1,
-    seats_limit: SEAT_LIMIT[tier] ?? 1,
+    seats_limit: seatLimitFor(settings),
     invoices: [],
     trial_ends_at: trialEndsAt ?? null,
     trial_days_left: trialDaysLeft,
+    trial_used: trialUsed,
+    // The 14-day Operator trial is a one-time offer, available anytime UNTIL USED — but only to a
+    // free Scout workspace (paid tiers don't need it).
+    trial_eligible: !trialUsed && tier === "scout",
   });
+});
+
+// POST /start-trial — activate the one-time 14-day Operator trial on demand (the "decide later"
+// path). Idempotent-guarded by trial_used so it can never be restarted.
+router.post("/start-trial", async (c) => {
+  if (!["owner", "admin"].includes(c.get("role"))) return c.json({ error: "Only owners/admins can start the trial." }, 403);
+  const ws = c.get("workspaceId");
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
+  const settings = (data?.settings as Record<string, unknown> | null) ?? {};
+  if (settings.trial_used) return c.json({ error: "Your Operator trial has already been used." }, 409);
+  const tier = (settings.account_tier as string) ?? (settings.track as string) ?? "scout";
+  if (tier !== "scout") return c.json({ error: "Trials are only available on the free Scout plan." }, 409);
+  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+  await supabase.from("workspaces").update({
+    settings: { ...settings, account_tier: "operator", plan: "operator", track: "business", trial_ends_at: trialEndsAt, trial_used: true },
+  }).eq("id", ws);
+  // Top credits up to the Operator allotment (shortfall only — never stack).
+  const { balance } = await creditStatus(ws);
+  const delta = 500_000 - balance;
+  if (delta > 0) await grantCredits(ws, delta, "grant", "Operator trial credits");
+  return c.json({ ok: true, trial_ends_at: trialEndsAt });
 });
 
 // NOTE: POST /invites lives in routes/invites.ts (mounted at /api/v1/invites, which shadows this

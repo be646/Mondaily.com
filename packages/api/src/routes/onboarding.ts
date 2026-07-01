@@ -173,7 +173,7 @@ router.post("/complete", requireAuth, async (c) => {
       ...(typeof body.concurrency === "number" ? { target_concurrency: body.concurrency } : {}),
       ...(Array.isArray(body.goals) ? { goals: body.goals } : {}),
       ...(enabledMods.length ? { modules: enabledMods } : {}),
-      ...(trialEndsAt ? { trial_ends_at: trialEndsAt } : {}),
+      ...(trialEndsAt ? { trial_ends_at: trialEndsAt, trial_used: true } : {}),
     },
   }).eq("id", ws);
 

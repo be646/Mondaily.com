@@ -9,6 +9,7 @@ export interface Plan {
   tagline: string;
   priceMonthly: number | null; // null = custom (contact)
   priceAnnual: number | null;  // per-month price when billed annually (~20% off)
+  seats: number;               // max operators (invites only make sense when > 1)
   operators: string;
   credits: string;
   highlight?: boolean;        // featured tier
@@ -22,6 +23,7 @@ export const PLANS: Plan[] = [
     name: "Scout",
     tagline: "Run your first autonomous operations.",
     priceMonthly: 0, priceAnnual: 0,
+    seats: 1,
     operators: "1 operator",
     credits: "50k AI credits / mo",
     cta: "Start free",
@@ -37,6 +39,7 @@ export const PLANS: Plan[] = [
     name: "Operator",
     tagline: "Your full autonomous workspace.",
     priceMonthly: 29, priceAnnual: 23,
+    seats: 1,
     operators: "1 operator",
     credits: "500k AI credits / mo",
     highlight: true,
@@ -55,6 +58,7 @@ export const PLANS: Plan[] = [
     name: "Command",
     tagline: "Run a team of operators + agents.",
     priceMonthly: 79, priceAnnual: 63,
+    seats: 10,
     operators: "Up to 10 operators",
     credits: "2M AI credits / mo",
     cta: "Upgrade to Command",
@@ -71,6 +75,7 @@ export const PLANS: Plan[] = [
     name: "Sovereign",
     tagline: "Autonomy at enterprise scale.",
     priceMonthly: null, priceAnnual: null,
+    seats: 999,
     operators: "Unlimited operators",
     credits: "Custom AI credits",
     cta: "Talk to us",

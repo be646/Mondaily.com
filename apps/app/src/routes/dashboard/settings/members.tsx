@@ -17,7 +17,7 @@ interface Member {
 }
 interface Invitation { id?: string; email?: string | null; role?: string | null }
 interface ModuleDef { key: string; label: string; hint?: string }
-interface MembersData { members?: Member[]; invitations?: Invitation[]; modules?: ModuleDef[] }
+interface MembersData { members?: Member[]; invitations?: Invitation[]; modules?: ModuleDef[]; can_invite?: boolean }
 
 const roleLabel = (r?: string | null) => r === "owner" ? "Owner" : r === "admin" ? "Admin" : r === "viewer" ? "Viewer" : "Member";
 const ROLE_OPTIONS = ["admin", "member", "viewer"] as const;
@@ -60,6 +60,8 @@ export function MembersSettings() {
   )?.role;
   const myRole = (query.data as { my_role?: string } | undefined)?.my_role ?? matchedRole ?? "member";
   const isAdmin = myRole === "owner" || myRole === "admin";
+  // Invites only on multi-operator tiers (Command/Sovereign). Single-operator plans can't add members.
+  const canInvite = query.data?.can_invite ?? false;
 
   const changeRole = useMutation({ mutationFn: ({ id, role }: { id: string; role: string }) => apiClient.patch(`/settings/members/${id}`, { role }), onSuccess: refresh });
   const changeModule = useMutation({ mutationFn: ({ id, module, level }: { id: string; module: string; level: string }) => apiClient.patch(`/settings/members/${id}`, { module, level }), onSuccess: refresh });
@@ -107,8 +109,15 @@ export function MembersSettings() {
         <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>{members.length} operator{members.length === 1 ? "" : "s"} · roles, per-module access, and AI compute.</p>
       </div>
 
+      {/* Single-operator plans can't invite — nudge to upgrade instead of showing a dead invite box. */}
+      {isAdmin && !canInvite && (
+        <div className="mb-5 rounded-sm border px-4 py-3 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+          Your plan is for a single operator. <a href="/settings/billing" className="underline" style={{ color: "var(--section-accent)" }}>Upgrade to Command</a> to invite your team.
+        </div>
+      )}
+
       {/* Invite bar */}
-      {isAdmin && (
+      {isAdmin && canInvite && (
         <div className="mb-5 flex flex-wrap items-center gap-2">
           <input
             value={emails} onChange={e => setEmails(e.target.value)} placeholder="teammate@company.com"

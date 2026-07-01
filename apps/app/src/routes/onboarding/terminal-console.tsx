@@ -192,15 +192,38 @@ export function TerminalOnboardingPage() {
     push("[✓ WORKSPACE PROVISIONED]", "ok");
     await sleep(300);
     if (!mounted.current) return;
-    push("[SYSTEM]: Invite your operators, or skip and bring them later.", "system");
-    setPhase("invite");
+    // Invites only make sense on multi-operator tiers. Scout/Operator are single-operator — skip
+    // the invite step and go straight into the workspace.
+    const isTeamPlan = plan === "command" || plan === "sovereign";
+    if (isTeamPlan) {
+      push("[SYSTEM]: Invite your operators, or skip and bring them later.", "system");
+      setPhase("invite");
+    } else {
+      push("[SYSTEM]: Single-operator workspace ready. Entering...", "system");
+      await sleep(600);
+      enterWorkspace();
+    }
   }
 
   function enterWorkspace() {
     localStorage.removeItem("mondaily_needs_onboarding");
+    localStorage.removeItem("mondaily_prev_workspace_id");
     localStorage.setItem("mondaily_first_run", "1");
     window.location.assign("/");
   }
+
+  // Abandon onboarding — if we came here from "create workspace", restore the workspace the user
+  // was in before, so they're never trapped in setup for a workspace they changed their mind about.
+  function exitSetup() {
+    localStorage.removeItem("mondaily_needs_onboarding");
+    const prev = localStorage.getItem("mondaily_prev_workspace_id");
+    if (prev) {
+      localStorage.setItem("mondaily_workspace_id", prev);
+      localStorage.removeItem("mondaily_prev_workspace_id");
+    }
+    window.location.assign("/");
+  }
+  const canExit = typeof localStorage !== "undefined" && !!localStorage.getItem("mondaily_prev_workspace_id");
 
   // Create the invites and SHOW their shareable links (works with zero email config — the link
   // is the invite). Email is also attempted, but the link is what guarantees delivery today.
@@ -235,6 +258,11 @@ export function TerminalOnboardingPage() {
         <span className="h-2.5 w-2.5 rounded-full bg-[#3f3f46]" />
         <span className="h-2.5 w-2.5 rounded-full" style={{ background: "var(--accent)" }} />
         <span className="ml-2 text-[11px] uppercase tracking-[0.2em] text-zinc-600">mondaily — workspace architect</span>
+        {canExit && (
+          <button onClick={exitSetup} className="ml-auto rounded-sm border border-[#27272a] px-2.5 py-1 text-[11px] text-zinc-400 transition-colors hover:text-zinc-200">
+            ✕ Cancel &amp; go back
+          </button>
+        )}
       </div>
 
       {/* scrolling log */}

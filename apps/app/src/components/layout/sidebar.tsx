@@ -400,6 +400,9 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     try {
       const res = await apiClient.post<{ workspace_id?: string }>("/workspaces", { name });
       if (res?.workspace_id) {
+        // Remember the workspace we're leaving so onboarding can offer "cancel & go back".
+        const prev = localStorage.getItem("mondaily_workspace_id");
+        if (prev) localStorage.setItem("mondaily_prev_workspace_id", prev);
         localStorage.setItem("mondaily_workspace_id", res.workspace_id);
         localStorage.setItem("mondaily_needs_onboarding", "1");
         window.location.href = "/onboarding"; // unified terminal console (legacy step wizard removed)

@@ -57,6 +57,8 @@ interface Billing {
   trial_ends_at?: string | null;
   trial_days_left?: number | null;
   pending_plan?: string | null;
+  trial_used?: boolean;
+  trial_eligible?: boolean;
 }
 
 interface UsageTotals { messages: number; prompt_tokens: number; completion_tokens: number; total_tokens: number }
@@ -104,6 +106,11 @@ export function BillingSettings() {
   const [billingMsg, setBillingMsg] = useState<string | null>(null);
   const [billingBusy, setBillingBusy] = useState<string | null>(null);
   const [interval, setInterval] = useState<"month" | "year">("month");
+  const startTrial = useMutation({
+    mutationFn: () => apiClient.post("/start-trial", {}),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["billing"] }); qc.invalidateQueries({ queryKey: ["credits-balance"] }); },
+    onError: (e) => { try { setBillingMsg(JSON.parse((e as Error).message)?.error ?? "Could not start the trial."); } catch { setBillingMsg("Could not start the trial."); } },
+  });
   async function handleBuyCredits() {
     setCharging(true);
     try {
@@ -167,6 +174,19 @@ export function BillingSettings() {
         </div>
       )}
 
+      {/* One-time 14-day Operator trial — offered anytime until used (the "decide later" path). */}
+      {billing.trial_eligible && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border px-5 py-3.5 text-sm" style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)" }}>
+          <span style={{ color: "var(--text-primary)" }}>
+            Try <strong>Operator</strong> free for 14 days — full autonomous workspace, 500k credits. No card required.
+          </span>
+          <button onClick={() => startTrial.mutate()} disabled={startTrial.isPending}
+            className="shrink-0 rounded-sm px-4 py-2 text-[12px] font-semibold text-black disabled:opacity-60" style={{ background: "var(--accent)" }}>
+            {startTrial.isPending ? "Starting…" : "Start 14-day trial"}
+          </button>
+        </div>
+      )}
+
       {/* ── Plan ── */}
       <section className="settings-section">
         <div className="settings-section-header">
@@ -202,22 +222,29 @@ export function BillingSettings() {
             </button>
           </div>
 
-          {/* Seats */}
-          <div className="telemetry-strip mt-5">
-            <div className="mb-2 flex items-center justify-between">
+          {/* Seats — single-operator tiers (Scout/Operator) have no team, so we show a clear line and
+              an upgrade nudge instead of an empty progress bar. */}
+          <div className="mt-5 rounded-sm border p-4" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-sm text-stone-300">
-                <Users size={14} className="text-stone-500" /> Seats used
+                <Users size={14} className="text-stone-500" /> {billing.seats_limit > 1 ? "Seats used" : "Operators"}
               </div>
               <span className="text-sm font-medium text-[var(--text-primary)]">{billing.seats_used} / {billing.seats_limit}</span>
             </div>
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
-              <div
-                className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-stone-500" : seatPct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`}
-                style={{ width: `${seatPct}%` }}
-              />
-            </div>
-            {seatPct >= 90 && (
-              <p className="mt-2 text-xs text-stone-400">You're nearly at your seat limit. Upgrade to add more members.</p>
+            {billing.seats_limit > 1 ? (
+              <>
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
+                  <div
+                    className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-stone-500" : seatPct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`}
+                    style={{ width: `${Math.max(seatPct, 3)}%` }}
+                  />
+                </div>
+                {seatPct >= 90 && (
+                  <p className="mt-2 text-xs text-stone-400">You're nearly at your seat limit. Upgrade to add more members.</p>
+                )}
+              </>
+            ) : (
+              <p className="mt-1.5 text-xs text-stone-500">This plan is for a single operator. Upgrade to Command to invite your team.</p>
             )}
           </div>
         </div>
@@ -248,7 +275,9 @@ export function BillingSettings() {
         <div className="grid gap-3 p-5 lg:grid-cols-4 sm:grid-cols-2">
           {PLANS.map(plan => {
             const isCurrent = plan.id === currentPlanId;
-            const lit = plan.highlight || isCurrent;
+            // Only the CURRENT plan gets the accent border. "Popular" shows a badge, not a border —
+            // otherwise Scout (current) + Operator (popular) both looked selected.
+            const lit = isCurrent;
             return (
               <div key={plan.id} className="flex flex-col rounded-sm border p-4"
                 style={{ borderColor: lit ? "var(--section-accent)" : "var(--border-soft)", background: "var(--surface-card-2)" }}>
