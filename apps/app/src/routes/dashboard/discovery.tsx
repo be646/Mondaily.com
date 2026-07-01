@@ -49,7 +49,7 @@ export function DiscoveryPage() {
 
   const run = useMutation({
     mutationFn: () =>
-      apiClient.post<{ ok?: boolean; discovered?: number; scanned?: number; error?: string; reason?: string; status?: string; diag?: { queries: number; hits: number; unique: number; gateway: boolean; extracted: number; matched: number } }>("/discovery/run", {
+      apiClient.post<{ ok?: boolean; discovered?: number; scanned?: number; error?: string; reason?: string; status?: string; diag?: { queries: number; hits: number; unique: number; scraped?: number; gateway: boolean; extracted: number; matched: number } }>("/discovery/run", {
         searchType,
         sector: sector.trim() || undefined,
         region: region.trim() || undefined,
@@ -199,7 +199,7 @@ export function DiscoveryPage() {
                   Scanned {d?.scanned ?? 0} sources — no on-topic {searchType === "REVIEWS" ? "reviews" : "leads"} matched. {d?.reason ? <span className="text-[var(--text-faint)]">({d.reason})</span> : null} Try a broader sector/region, or a different subject.
                   {d?.diag && (
                     <span className="mt-1 block font-mono text-[10px] text-[var(--text-faint)]">
-                      pipeline: {d.diag.queries} queries → {d.diag.hits} hits → {d.diag.unique} unique → gateway {d.diag.gateway ? "ok" : "FAILED"} → {d.diag.extracted} extracted → {d.diag.matched} matched
+                      pipeline: {d.diag.queries} queries → {d.diag.hits} hits → {d.diag.unique} unique → {d.diag.scraped ?? 0} scraped → gateway {d.diag.gateway ? "ok" : "FAILED"} → {d.diag.extracted} extracted → {d.diag.matched} matched
                     </span>
                   )}
                 </span>

@@ -1,7 +1,7 @@
 import { inngest } from "../lib/inngest";
 import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
-import { sovereignHeaders } from "../lib/sovereign-search";
+import { sovereignHeaders, sovereignScrape } from "../lib/sovereign-search";
 
 // ── Sovereign SearXNG search (private metasearch JSON → result rows) ──────────
 interface SearchHit { title: string; content: string; url: string }
@@ -120,10 +120,18 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
     const seen = new Set<string>();
     const unique = hits.filter((h) => (seen.has(h.url) ? false : (seen.add(h.url), true))).slice(0, 24);
 
+    // Scrape the TOP pages to full text — SearXNG snippets alone are too thin for the model to find
+    // real reviews/people/contacts (that was the "gateway ok → 0 extracted" dead-end). Best-effort:
+    // any page that fails to render just falls back to its snippet.
+    const SCRAPE_TOP = 8;
+    const scraped = await Promise.all(unique.slice(0, SCRAPE_TOP).map((h) => sovereignScrape(h.url).catch(() => "")));
+    const fullText = new Map<string, string>();
+    unique.slice(0, SCRAPE_TOP).forEach((h, i) => { const md = scraped[i]; if (md) fullText.set(h.url, md.slice(0, 3500)); });
+
     // 2) Grounded extraction through the sovereign Cerebras gateway. Strict: the
     //    model may only return results built from the provided hits + URLs, must
     //    verify the region match, and must drop noise.
-    const context = unique.map((h, i) => `[${i}] ${h.title}\n${h.content}\nURL: ${h.url}`).join("\n\n");
+    const context = unique.map((h, i) => `[${i}] ${h.title}\n${fullText.get(h.url) || h.content}\nURL: ${h.url}`).join("\n\n");
     const wantReviews = searchType === "REVIEWS";
     const extracted = await aiGatewayToolUse({
       toolName: "extract_discovered_leads",
@@ -194,6 +202,7 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       queries: queries.length,
       hits: hits.length,
       unique: unique.length,
+      scraped: fullText.size,     // pages we rendered to full text (vs snippet-only)
       gateway: gatewayReturned,   // false → Cerebras extraction call failed (env/gateway issue)
       extracted: leads.length,    // leads the model returned
       matched: rows.length,       // survived the URL-resolution + intent filter

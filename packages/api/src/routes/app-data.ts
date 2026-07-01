@@ -804,15 +804,25 @@ router.get("/settings/email", async (c) => {
   ] });
 });
 router.get("/billing", async (c) => {
-  const { data } = await supabase.from("workspaces").select("plan, settings").eq("id", c.get("workspaceId")).single();
+  const workspaceId = c.get("workspaceId");
+  const [{ data }, { count: memberCount }] = await Promise.all([
+    supabase.from("workspaces").select("plan, settings").eq("id", workspaceId).single(),
+    supabase.from("workspace_members").select("user_id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+  ]);
   const settings = (data?.settings as Record<string, unknown> | null) ?? {};
+  // The plan the user actually chose lives in settings.account_tier; fall back to the legacy column.
+  const tier = (settings.account_tier as string) ?? (data?.plan as string) ?? "scout";
+  // Seat allowance per tier (matches lib/plans.ts + credit tiers).
+  const SEAT_LIMIT: Record<string, number> = { scout: 1, operator: 5, command: 10, sovereign: 999, business: 5, personal: 1, free: 1, trial: 5 };
   const trialEndsAt = settings.trial_ends_at as string | undefined;
   const trialDaysLeft = trialEndsAt
     ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86_400_000))
     : null;
   return c.json({
-    plan: data?.plan ?? "free",
-    seats_used: 1, seats_limit: 3, invoices: [],
+    plan: tier,
+    seats_used: memberCount ?? 1,
+    seats_limit: SEAT_LIMIT[tier] ?? 1,
+    invoices: [],
     trial_ends_at: trialEndsAt ?? null,
     trial_days_left: trialDaysLeft,
   });

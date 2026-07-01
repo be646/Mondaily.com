@@ -98,6 +98,11 @@ export function BillingSettings() {
   // Buy a one-time credit pack — launches the admin-gated Stripe Checkout (saves the card
   // off_session for auto-refill), shows a mono loading state, then hard-redirects to the sheet.
   const [charging, setCharging] = useState(false);
+  // These MUST be declared before any early return below — otherwise the hook count changes between
+  // the loading and loaded renders (Rules of Hooks), which crashed the Billing page.
+  const [billingMsg, setBillingMsg] = useState<string | null>(null);
+  const [billingBusy, setBillingBusy] = useState<string | null>(null);
+  const [interval, setInterval] = useState<"month" | "year">("month");
   async function handleBuyCredits() {
     setCharging(true);
     try {
@@ -117,9 +122,6 @@ export function BillingSettings() {
   const walletPct = wallet && wallet.granted > 0 ? Math.max(0, Math.min(100, Math.round((wallet.balance / wallet.granted) * 100))) : 0;
   const fmtCredits = (n: number) => n.toLocaleString();
   const billing = query.data ?? { plan: "free", seats_used: 1, seats_limit: 3, invoices: [] };
-  const [billingMsg, setBillingMsg] = useState<string | null>(null);
-  const [billingBusy, setBillingBusy] = useState<string | null>(null);
-  const [interval, setInterval] = useState<"month" | "year">("month");
   const currentPlanId = normalizePlan(billing.plan);
   const currentPlan = PLAN_BY_ID[currentPlanId];
   // Trial countdown derives from the actual end date (set at activation), NOT plan === "trial" —

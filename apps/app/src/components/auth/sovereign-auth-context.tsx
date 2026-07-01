@@ -66,7 +66,13 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
 
   // Persist the session's workspace so the existing apiClient (X-Workspace-Id header) works
   // unchanged in sovereign mode — mirrors what AuthGate does in the Clerk flow.
-  const persistWorkspace = (wsId?: string | null) => { if (wsId) localStorage.setItem("mondaily_workspace_id", wsId); };
+  // Only seed the workspace id when NONE is stored — never overwrite an explicit choice. Login/
+  // register/activate call purgeSessionState() first (clearing it), so fresh sessions still get the
+  // backend default; but a plain page-load boot must PRESERVE whatever workspace the user switched
+  // to (otherwise every reload snapped back to the primary workspace).
+  const persistWorkspace = (wsId?: string | null) => {
+    if (wsId && !localStorage.getItem("mondaily_workspace_id")) localStorage.setItem("mondaily_workspace_id", wsId);
+  };
   const setAuthed = (u: SovereignUser, wsId?: string | null) => { persistWorkspace(wsId); setUser(u); setStatus("authenticated"); };
   const setGuest = () => { setUser(null); setStatus("unauthenticated"); };
 

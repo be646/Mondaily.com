@@ -43,29 +43,38 @@ router.post("/", requireAuth, zValidator("json", inviteSchema), async (c) => {
   const callerRole = c.get("role");
   if (!["admin","owner"].includes(callerRole)) return c.json({ error: "Forbidden" }, 403);
   const body = c.req.valid("json");
-  // Upsert invite (unique on workspace+email where not accepted)
-  const inviteRow = {
-    workspace_id: c.get("workspaceId"),
-    email: body.email,
-    role: body.role,
-    finance_role: body.finance_role,
-    module_access: body.module_access,
-    invited_by: c.get("userId"),
-    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-  };
-  let { data, error } = await supabase
-    .from("workspace_invites")
-    .upsert(inviteRow, { onConflict: "workspace_id,email", ignoreDuplicates: false })
-    .select("id,email,role,finance_role,token,expires_at,created_at")
-    .single();
-  // Graceful degrade if module_access column isn't migrated yet.
-  if (error && /module_access/i.test(error.message)) {
-    const { module_access, ...bare } = inviteRow;
-    ({ data, error } = await supabase
-      .from("workspace_invites")
-      .upsert(bare, { onConflict: "workspace_id,email", ignoreDuplicates: false })
-      .select("id,email,role,finance_role,token,expires_at,created_at")
-      .single());
+  const workspaceId = c.get("workspaceId");
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const cols = "id,email,role,finance_role,token,expires_at,created_at";
+
+  // Guard: if this email is ALREADY a member, there's nothing to invite.
+  const { data: already } = await supabase
+    .from("workspace_members").select("user_id").eq("workspace_id", workspaceId).eq("email", body.email).maybeSingle();
+  if (already) return c.json({ error: "That person is already a member of this workspace." }, 409);
+
+  // NOTE: the unique index on (workspace_id, email) is PARTIAL (WHERE accepted_at IS NULL), which
+  // Postgres can't use for ON CONFLICT — so we must NOT upsert. Look up an existing pending invite
+  // and UPDATE it, otherwise INSERT a fresh one. (This was the "could not create invite" bug.)
+  const { data: pending } = await supabase
+    .from("workspace_invites").select("id")
+    .eq("workspace_id", workspaceId).eq("email", body.email).is("accepted_at", null)
+    .maybeSingle();
+
+  const fields = { role: body.role, finance_role: body.finance_role, module_access: body.module_access, invited_by: c.get("userId"), expires_at: expiresAt };
+  const bare = { role: body.role, finance_role: body.finance_role, invited_by: c.get("userId"), expires_at: expiresAt };
+
+  let data: Record<string, unknown> | null = null;
+  let error: { message: string } | null = null;
+  if (pending?.id) {
+    ({ data, error } = await supabase.from("workspace_invites").update(fields).eq("id", pending.id).select(cols).single());
+    if (error && /module_access/i.test(error.message)) ({ data, error } = await supabase.from("workspace_invites").update(bare).eq("id", pending.id).select(cols).single());
+  } else {
+    const row = { workspace_id: workspaceId, email: body.email, ...fields };
+    ({ data, error } = await supabase.from("workspace_invites").insert(row).select(cols).single());
+    if (error && /module_access/i.test(error.message)) {
+      const { module_access, ...noMod } = row;
+      ({ data, error } = await supabase.from("workspace_invites").insert(noMod).select(cols).single());
+    }
   }
   if (error || !data) return c.json({ error: error?.message ?? "Invite failed" }, 500);
   // Deliver the invite to the incoming teammate from the workspace's connected
@@ -73,7 +82,7 @@ router.post("/", requireAuth, zValidator("json", inviteSchema), async (c) => {
   // inviter can share it manually (email_sent flags which happened).
   const inviteLink = inviteUrl(data.token as string);
   const emailSent = await sendWorkspaceEmail(c.get("workspaceId"), {
-    to: [{ email: data.email }],
+    to: [{ email: data.email as string }],
     subject: "You've been invited to a Mondaily workspace",
     body:
       `<p>You've been invited to collaborate in a Mondaily workspace.</p>` +

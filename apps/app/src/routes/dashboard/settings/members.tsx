@@ -42,7 +42,7 @@ export function MembersSettings() {
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [emails, setEmails] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [inviteResults, setInviteResults] = useState<{ email: string; link: string | null; sent: boolean }[]>([]);
+  const [inviteResults, setInviteResults] = useState<{ email: string; link: string | null; sent: boolean; error: string | null }[]>([]);
 
   const query = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<MembersData>("/settings/members"), retry: false });
   const refresh = () => qc.invalidateQueries({ queryKey: ["members"] });
@@ -72,9 +72,12 @@ export function MembersSettings() {
       const results = await Promise.all(list.map(async (email) => {
         try {
           const r = await apiClient.post<{ invite_link?: string; email_sent?: boolean }>("/invites", { email, role: "member" });
-          return { email, link: r.invite_link ?? null, sent: !!r.email_sent };
-        } catch {
-          return { email, link: null, sent: false };
+          return { email, link: r.invite_link ?? null, sent: !!r.email_sent, error: null as string | null };
+        } catch (e) {
+          // The API returns { error: "..." } as the body — surface it instead of a blank failure.
+          let msg = e instanceof Error ? e.message : "could not create invite";
+          try { msg = (JSON.parse(msg) as { error?: string }).error ?? msg; } catch { /* keep raw */ }
+          return { email, link: null, sent: false, error: msg };
         }
       }));
       return results;
@@ -145,7 +148,7 @@ export function MembersSettings() {
                       {copiedLink === iv.email ? "Copied ✓" : "Copy"}
                     </button>
                   </>
-                ) : <span className="text-[11px] text-rose-400">could not create invite</span>}
+                ) : <span className="text-[11px] text-rose-400">{iv.error ?? "could not create invite"}</span>}
               </div>
             ))}
           </div>
