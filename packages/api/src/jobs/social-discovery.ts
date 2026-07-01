@@ -240,12 +240,23 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       return { discovered: 0, scanned: unique.length, reason, diag };
     }
 
+    // Collapse rows that share a source_url — discovered_leads is UNIQUE on source_url, and Postgres
+    // rejects an upsert that hits the same conflict target twice in one statement ("ON CONFLICT DO
+    // UPDATE command cannot affect row a second time"). The model often returns several leads from
+    // one page; keep the highest-confidence one per URL.
+    const byUrl = new Map<string, typeof rows[number]>();
+    for (const r of rows) {
+      const prev = byUrl.get(r.source_url);
+      if (!prev || (r.confidence_score ?? 0) > (prev.confidence_score ?? 0)) byUrl.set(r.source_url, r);
+    }
+    const dedupedRows = [...byUrl.values()];
+
     // 3) Upsert, deduping on source_url (a result seen before is refreshed, not duplicated).
-    let { error } = await supabase.from("discovered_leads").upsert(rows, { onConflict: "source_url" });
+    let { error } = await supabase.from("discovered_leads").upsert(dedupedRows, { onConflict: "source_url" });
     // Graceful degrade: if the `contact` column isn't migrated yet, retry without it so
     // discovery keeps working (the enriched fields just won't persist until the migration runs).
     if (error && /contact/i.test(error.message)) {
-      const bare = rows.map(({ contact, ...r }) => r);
+      const bare = dedupedRows.map(({ contact, ...r }) => r);
       ({ error } = await supabase.from("discovered_leads").upsert(bare, { onConflict: "source_url" }));
     }
     if (error) {
@@ -259,7 +270,7 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
     //    the Discovery list for manual review (they don't spam the queue).
     let queued = 0;
     if (searchType !== "REVIEWS") {
-      const strong = rows.filter((r) => (r.confidence_score ?? 0) >= 70 && (r.contact?.email || r.contact?.phone));
+      const strong = dedupedRows.filter((r) => (r.confidence_score ?? 0) >= 70 && (r.contact?.email || r.contact?.phone));
       if (strong.length) {
         // Dedup against already-pending discovery decisions (by source_url in their evidence).
         const { data: pending } = await supabase.from("decision_queue")
@@ -288,19 +299,19 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
     }
 
     // 5) Agent notifies the workspace (best-effort, never blocks).
-    if (rows.length > 0) {
+    if (dedupedRows.length > 0) {
       const what = searchType === "REVIEWS" ? "reviews/mentions" : "leads";
       await createNotification({
         workspace_id: workspaceId,
         type: "agent",
-        title: `Discovery Agent found ${rows.length} ${what}`,
+        title: `Discovery Agent found ${dedupedRows.length} ${what}`,
         body: `From ${unique.length} sources${sector ? ` for "${sector}"` : ""}${region ? ` in ${region}` : ""}${targetSubject ? ` about "${targetSubject}"` : ""}.` +
           (queued > 0 ? ` ${queued} strong lead${queued === 1 ? "" : "s"} queued in your Decision Queue for approval.` : " Review them in Discovery."),
-        metadata: { source: "discovery", count: rows.length, queued, search_type: searchType },
+        metadata: { source: "discovery", count: dedupedRows.length, queued, search_type: searchType },
       }).catch(() => {});
     }
 
-    return { discovered: rows.length, scanned: unique.length, queued, diag };
+    return { discovered: dedupedRows.length, scanned: unique.length, queued, diag };
 }
 
 export const socialDiscoveryWorker = inngest.createFunction(
