@@ -43,6 +43,7 @@ export function MembersSettings() {
   const [emails, setEmails] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [inviteResults, setInviteResults] = useState<{ email: string; link: string | null; sent: boolean; error: string | null }[]>([]);
+  const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
 
   // IMPORTANT: distinct key. This endpoint returns an OBJECT {members, invitations, modules,...},
   // whereas the app-wide ["members"] key returns an ARRAY (/members). Sharing the key overwrote the
@@ -125,16 +126,16 @@ export function MembersSettings() {
         <div className="mb-5 flex flex-wrap items-center gap-2">
           <input
             value={emails} onChange={e => setEmails(e.target.value)} placeholder="teammate@company.com"
-            className="min-w-[220px] flex-1 rounded-sm border bg-transparent px-3 py-2 text-sm outline-none focus:border-stone-500"
+            className="h-9 min-w-[220px] flex-1 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-[color:var(--section-accent)]"
             style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}
           />
           <button onClick={() => sendInvite.mutate()} disabled={!emails.includes("@") || sendInvite.isPending}
-            className="flex items-center gap-2 rounded-sm px-3.5 py-2 text-sm font-semibold text-black transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-9 items-center gap-2 rounded-md px-4 text-sm font-semibold text-black transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             style={{ background: "var(--accent)" }}>
             <UserPlus size={14} /> {sendInvite.isPending ? "Inviting…" : "Invite"}
           </button>
           <button onClick={copyInviteLink}
-            className="flex items-center gap-2 rounded-sm border px-3.5 py-2 text-sm font-medium transition-colors hover:text-[var(--text-primary)]"
+            className="flex h-9 items-center gap-2 rounded-md border px-4 text-sm font-medium transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]"
             style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
             {copied ? <><Check size={14} className="text-emerald-400" /> Copied</> : <><Copy size={14} /> Copy link</>}
           </button>
@@ -219,8 +220,8 @@ export function MembersSettings() {
                         <button
                           onClick={() => setExpanded(expanded === m?.id ? null : (m?.id ?? null))}
                           disabled={!m?.id}
-                          className="inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-xs transition-colors hover:text-[var(--text-primary)]"
-                          style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}
+                          className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]"
+                          style={{ borderColor: expanded === m?.id ? "var(--section-accent)" : "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}
                         >
                           <SlidersHorizontal size={12} />
                           <span className="tabular-nums">{editable} edit · {viewable} view</span>
@@ -238,9 +239,19 @@ export function MembersSettings() {
                   </td>
                   <td className="py-3 text-right">
                     {isAdmin && !isOwner && m?.id && (
-                      <button onClick={() => remove.mutate(m.id!)} className="text-stone-600 transition-colors hover:text-rose-400" title="Remove operator">
-                        <Trash2 size={14} />
-                      </button>
+                      confirmRemove === m.id ? (
+                        <span className="inline-flex items-center gap-1.5 text-[11px]">
+                          <span className="text-stone-400">Remove?</span>
+                          <button onClick={() => { remove.mutate(m.id!); setConfirmRemove(null); }}
+                            className="rounded-md border border-rose-500/40 px-2 py-1 font-medium text-rose-400 hover:bg-rose-500/10">Yes, remove</button>
+                          <button onClick={() => setConfirmRemove(null)}
+                            className="rounded-md border px-2 py-1 text-stone-400 hover:text-stone-200" style={{ borderColor: "var(--border-soft)" }}>Cancel</button>
+                        </span>
+                      ) : (
+                        <button onClick={() => setConfirmRemove(m.id!)} className="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-rose-500/10 hover:text-rose-400" title="Remove operator">
+                          <Trash2 size={14} />
+                        </button>
+                      )
                     )}
                   </td>
                 </tr>
