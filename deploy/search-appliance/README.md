@@ -5,8 +5,28 @@ Discovery + record enrichment. Deploy on your Hetzner box, then point the app at
 env vars in Vercel.
 
 ## Contract (what the app calls)
-- Search: `GET  $SOVEREIGN_SEARCH_URL?q=...&format=json&engines=google,reddit` → `{ results: [{ url }] }`
+- Search: `GET  $SOVEREIGN_SEARCH_URL?q=...&format=json` (no `engines=` param — the engine list is
+  fixed server-side in `searxng/settings.yml`) → `{ results: [{ url }] }`
 - Scrape: `POST $SOVEREIGN_SCRAPE_URL` with `{ url, formats: ["markdown"] }` → `{ markdown }`
+
+## Engine health (check this if Discovery goes thin)
+SearXNG's stock defaults (brave/duckduckgo/startpage) get CAPTCHA'd/rate-limited from most
+datacenter IPs — confirmed live on this box 2026-07-01 (`unresponsive_engines` showed all three
+blocked, meaning searches were silently returning ~0 results). `searxng/settings.yml` now pins
+explicit working engines (bing, qwant, wikipedia) verified live from this exact IP, with the
+blocked ones disabled. If results go thin again (a provider can start blocking any IP over time),
+re-run this probe from your machine to find what still works:
+```
+for eng in bing qwant google mojeek yahoo brave duckduckgo startpage; do
+  echo "=== $eng ==="
+  curl -s --max-time 8 "$SOVEREIGN_SEARCH_URL?q=test&format=json&engines=$eng" \
+    -H "Authorization: Bearer $SOVEREIGN_SEARCH_KEY" | python3 -c "
+import json,sys; d=json.load(sys.stdin)
+print('results:', len(d.get('results',[])), 'unresponsive:', d.get('unresponsive_engines',[]))"
+done
+```
+Then update the `engines:` list in `searxng/settings.yml`, `scp` it to the box, and
+`docker compose restart searxng`.
 
 ## Deploy
 1. Install Docker + compose (Ubuntu): `curl -fsSL https://get.docker.com | sh`

@@ -1,6 +1,6 @@
 # Minimal SearXNG config for Mondaily Discovery/enrichment.
-# The app calls: GET /search?q=...&format=json&engines=google,reddit
-# so the JSON format MUST be enabled (it's off by default).
+# The app calls: GET /search?q=...&format=json  (no `engines=` param — engines are fixed here).
+# So the JSON format MUST be enabled (it's off by default).
 use_default_settings: true
 
 server:
@@ -15,3 +15,38 @@ search:
   formats:
     - html
     - json
+
+# EXPLICIT engine list — verified live from this exact box's IP (2026-07-01). SearXNG's stock
+# defaults for the "general" category are brave/duckduckgo/startpage, and ALL THREE are blocked
+# from this server (Hetzner datacenter IPs get CAPTCHA'd / rate-limited by consumer search
+# engines) — confirmed via `unresponsive_engines: [brave "Suspended: too many requests",
+# duckduckgo "CAPTCHA", startpage "Suspended: CAPTCHA"]` on every query, meaning sweeps were
+# silently returning near-zero results. bing + qwant were tested live and return real results
+# with zero errors — they become the general-purpose engines. Re-verify with the same curl probe
+# (see deploy/search-appliance/README.md) if results go thin again; blocklists shift over time.
+engines:
+  - name: bing
+    engine: bing
+    shortcut: bi
+    disabled: false
+  - name: qwant
+    engine: qwant
+    shortcut: qw
+    categories: general
+    disabled: false
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: wp
+    disabled: false
+  - name: brave
+    engine: brave
+    shortcut: br
+    disabled: true   # confirmed blocked from this IP ("Suspended: too many requests")
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+    disabled: true   # confirmed blocked from this IP ("CAPTCHA")
+  - name: startpage
+    engine: startpage
+    shortcut: sp
+    disabled: true   # confirmed blocked from this IP ("Suspended: CAPTCHA")
