@@ -1254,7 +1254,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
   const targetSlug = relatedObjectType || objectDefs[0]?.slug || "";
   const { data: targetRecords = [] } = useQuery<{ id: string; data: Record<string, unknown> }[]>({
     queryKey: ["relation-records", targetSlug],
-    queryFn: () => apiClient.get(`/nodes?object_type=${targetSlug}`),
+    queryFn: () => apiClient.get(`/nodes?object_type=${targetSlug}&limit=1000`),
     enabled: open && !!targetSlug,
     staleTime: 30_000,
   });
@@ -1382,7 +1382,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: ["records", objectType],
-    queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
+    queryFn: () => apiClient.get<NodeRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}&limit=1000`),
   });
 
   const records = query.data ?? [];

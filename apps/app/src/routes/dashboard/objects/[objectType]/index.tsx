@@ -675,7 +675,9 @@ export function ObjectIndexPage() {
 
   const recordsQuery = useQuery({
     queryKey: ["records", objectType],
-    queryFn: () => apiClient.get<{ id: string; object_type: string; data: Record<string, unknown>; updated_at: string }[]>(`/nodes?object_type=${encodeURIComponent(objectType)}`),
+    // limit=1000 — the backend defaults to 50, which truncated the list (showed 50 while the count
+    // said 90). Request the full set so the table reflects the real record count.
+    queryFn: () => apiClient.get<{ id: string; object_type: string; data: Record<string, unknown>; updated_at: string }[]>(`/nodes?object_type=${encodeURIComponent(objectType)}&limit=1000`),
     staleTime: 30_000,
     refetchInterval: hasActiveEnrichment ? 3000 : false,
   });
