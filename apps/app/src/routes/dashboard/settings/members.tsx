@@ -198,7 +198,8 @@ export function MembersSettings() {
                   <td className="py-3">
                     {isAdmin && !isOwner && m?.id ? (
                       <select value={m?.role ?? "member"} onChange={e => changeRole.mutate({ id: m.id!, role: e.target.value })}
-                        className="rounded-lg border bg-transparent px-2 py-1 text-xs outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                        className="cursor-pointer rounded-md border px-2.5 py-1.5 text-xs font-medium outline-none transition-colors hover:border-[color:var(--section-accent)] focus:border-[color:var(--section-accent)]"
+                        style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-primary)" }}>
                         {ROLE_OPTIONS.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
                       </select>
                     ) : (
@@ -258,8 +259,8 @@ export function MembersSettings() {
                                 <select
                                   value={level}
                                   onChange={e => changeModule.mutate({ id: m.id!, module: md.key, level: e.target.value })}
-                                  className="shrink-0 rounded-lg border bg-transparent px-2 py-1 text-xs outline-none"
-                                  style={{ borderColor: "var(--border-soft)", color: LEVEL_COLOR[level] ?? "var(--text-secondary)" }}
+                                  className="shrink-0 cursor-pointer rounded-md border px-2.5 py-1.5 text-xs font-medium outline-none transition-colors hover:border-[color:var(--section-accent)] focus:border-[color:var(--section-accent)]"
+                                  style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: LEVEL_COLOR[level] ?? "var(--text-primary)" }}
                                 >
                                   {LEVELS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                                 </select>

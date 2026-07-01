@@ -17,17 +17,32 @@ export function InviteAcceptPage() {
     }
   }, [isLoaded, isSignedIn, token, navigate]);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("This invitation is invalid or expired.");
+  const [mismatch, setMismatch] = useState(false);
 
   async function acceptInvite() {
-    setStatus("loading");
+    setStatus("loading"); setMismatch(false);
     try {
       const result = await apiClient.post<{ workspace_id: string }>("/invites/accept", { token });
       localStorage.setItem("mondaily_workspace_id", result.workspace_id);
       setStatus("success");
       window.setTimeout(() => navigate("/home"), 1200);
-    } catch {
+    } catch (e) {
+      // Surface the real reason — especially "this invite was sent to X, you're signed in as Y".
+      let msg = e instanceof Error ? e.message : "";
+      let isMismatch = false;
+      try { const p = JSON.parse(msg) as { error?: string; email_mismatch?: boolean }; msg = p.error ?? msg; isMismatch = !!p.email_mismatch; } catch { /* raw */ }
+      setErrorMsg(msg || "This invitation is invalid or expired.");
+      setMismatch(isMismatch);
       setStatus("error");
     }
+  }
+
+  function switchAccount() {
+    // Sign out and return to login, preserving the invite target so they land back here as the
+    // correct (invited) user.
+    localStorage.removeItem("mondaily_workspace_id");
+    navigate(`/auth/shadow-login?next=${encodeURIComponent(`/invite/${token}`)}`, { replace: true });
   }
 
   return (
@@ -42,7 +57,16 @@ export function InviteAcceptPage() {
             <button onClick={() => navigate("/auth/shadow-login")} className="rounded-md border border-[var(--border-soft)] px-5 py-2 text-sm">Decline</button>
           </div>
         ) : null}
-        {status === "error" ? <p className="mt-4 text-sm text-red-400">This invitation is invalid or expired.</p> : null}
+        {status === "error" ? (
+          <div className="mt-4">
+            <p className="text-sm text-red-400">{errorMsg}</p>
+            {mismatch && (
+              <button onClick={switchAccount} className="mt-3 rounded-md bg-red-600 px-5 py-2 text-sm font-medium">
+                Sign in as the invited address
+              </button>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );

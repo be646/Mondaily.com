@@ -1,9 +1,13 @@
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 
 const tasks = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 tasks.use("*", requireAuth);
+// Viewers are read-only — block any task create/update/delete (was unenforced: a "view" member
+// could still complete tasks).
+tasks.use("*", denyViewerWrites);
 
 tasks.get("/", async (c) => {
   const workspaceId = c.get("workspaceId");
@@ -75,7 +79,9 @@ tasks.patch("/:id", async (c) => {
     else if (updateBody.completed === undefined) updateBody.completed = false;
   }
   if (updateBody.completed === true && updateBody.status === undefined) updateBody.status = "done";
-  if (updateBody.completed === false && updateBody.status === "done") updateBody.status = "todo";
+  // Un-completing via the checkbox sends only { completed: false } (no status) — mirror it back to
+  // "todo" so the row doesn't stay stuck in "done" (which required a manual refresh to clear).
+  if (updateBody.completed === false && updateBody.status === undefined) updateBody.status = "todo";
 
   // Get old values for activity logging
   const { data: oldTask } = await supabase.from("tasks").select("status,priority,assignee_id,assignee_email").eq("id", id).single();

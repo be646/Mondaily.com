@@ -148,10 +148,31 @@ router.post("/accept", requireJwt, async (c) => {
     .maybeSingle();
   if (inviteErr || !invite) return c.json({ error: "Invalid or expired invite" }, 404);
 
+  // Who is accepting? Their email comes from their credentials (verified session), never the body.
+  const { data: cred } = await supabase.from("auth_credentials").select("email").eq("user_id", userId).maybeSingle();
+  const myEmail = ((cred?.email as string) ?? "").toLowerCase();
+  const inviteEmail = String(invite.email ?? "").toLowerCase();
+  // Shareable link-invites use a link-xxxx@invite.local placeholder — any signed-in user may accept
+  // those. Email invites are BOUND to the invited address: reject if the signed-in user differs, so
+  // an already-signed-in owner can't accept (and get demoted by) an invite meant for someone else.
+  const isLinkInvite = inviteEmail.endsWith("@invite.local");
+  if (!isLinkInvite && myEmail && inviteEmail && myEmail !== inviteEmail) {
+    return c.json({ error: `This invitation was sent to ${invite.email}. You're signed in as ${cred?.email}. Sign out and sign in (or register) with ${invite.email} to accept.`, email_mismatch: true }, 403);
+  }
+
+  // Never DOWNGRADE an existing membership (e.g. the owner clicking a member/viewer invite).
+  const { data: existing } = await supabase.from("workspace_members").select("role").eq("workspace_id", invite.workspace_id).eq("user_id", userId).maybeSingle();
+  const RANK: Record<string, number> = { owner: 4, admin: 3, member: 2, viewer: 1, guest: 1 };
+  if (existing && (RANK[existing.role as string] ?? 0) >= (RANK[invite.role as string] ?? 0)) {
+    await supabase.from("workspace_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
+    return c.json({ workspace_id: invite.workspace_id, role: existing.role, already_member: true });
+  }
+
   // Add to workspace_members
   const memberRow = {
     workspace_id: invite.workspace_id,
     user_id: userId,
+    email: cred?.email ?? invite.email,   // populate so Members shows a real address, not the usr_ id
     role: invite.role,
     finance_role: invite.finance_role,
     module_access: (invite as Record<string, unknown>).module_access ?? {},

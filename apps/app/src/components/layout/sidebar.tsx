@@ -456,7 +456,8 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
     staleTime: 60_000,
     refetchInterval: 120_000,
   });
-  const TIER_LABEL: Record<string, string> = { scout: "Scout", operator: "Operator", command: "Command", sovereign: "Sovereign", business: "Pro", personal: "Free" };
+  const TIER_LABEL: Record<string, string> = { scout: "Scout", operator: "Operator", command: "Command", sovereign: "Sovereign", business: "Operator", personal: "Scout", free: "Scout", trial: "Operator" };
+  const tierLabel = TIER_LABEL[wallet?.account_tier ?? ""] ?? "Scout";
   const burstReset = wallet?.burst?.resets_at
     ? new Date(wallet.burst.resets_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
     : null;
@@ -495,7 +496,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                   {workspaceName
                     ? <div className="truncate text-[14px] font-semibold text-stone-950 dark:text-stone-50 leading-tight">{workspaceName}</div>
                     : <div className="h-3.5 w-24 animate-pulse rounded bg-stone-200 dark:bg-stone-800" />}
-                  <div className="text-[11px] text-stone-400 dark:text-stone-600">Pro workspace</div>
+                  <div className="text-[11px] text-stone-400 dark:text-stone-600">{tierLabel} workspace</div>
                 </div>
                 <ChevronsUpDown size={12} className="text-stone-400 dark:text-stone-700 shrink-0"/>
               </>
@@ -513,7 +514,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                   }
                   <div className="flex-1 min-w-0">
                     <div className="truncate text-[12px] font-medium text-[#18181b] dark:text-[var(--text-primary)]">{workspaceName}</div>
-                    <div className="text-[10px] text-stone-500 dark:text-stone-600">Pro</div>
+                    <div className="text-[10px] text-stone-500 dark:text-stone-600">{tierLabel}</div>
                   </div>
                   <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0"/>
                 </div>
