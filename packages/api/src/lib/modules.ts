@@ -9,23 +9,39 @@
 export type AccessLevel = "none" | "view" | "edit";
 export const ACCESS_RANK: Record<AccessLevel, number> = { none: 0, view: 1, edit: 2 };
 
-export interface ModuleDef { key: string; label: string; hint: string }
+export interface ModuleDef { key: string; label: string; hint: string; optional?: boolean }
+// THE single module registry (business-model vocabulary — never "CRM"). Core modules are always
+// present; optional modules only appear once enabled in Settings → Workspace → Modules. The
+// optional keys (finance/investments/hr) MATCH the workspace-settings toggle ids so the two
+// surfaces share one taxonomy instead of duplicating it.
 export const MODULES: ModuleDef[] = [
-  { key: "crm", label: "CRM", hint: "Contacts, companies, deals, pipeline" },
+  { key: "graph", label: "Graph", hint: "Contacts, companies, deals, pipeline" },
   { key: "discovery", label: "Discovery", hint: "Lead & review discovery" },
   { key: "automations", label: "Automations", hint: "Workflows & agents" },
-  { key: "campaigns", label: "Campaigns", hint: "Email & outreach sends" },
-  { key: "finance", label: "Finance", hint: "Invoices, quotes, credit notes" },
-  { key: "analytics", label: "Analytics", hint: "Dashboards & reports" },
+  { key: "communications", label: "Communications", hint: "Emails, calls, notes" },
+  { key: "reports", label: "Reports", hint: "Dashboards & reports" },
+  { key: "finance", label: "Finance & Billing", hint: "Invoices, quotes, credit notes, approvals", optional: true },
+  { key: "investments", label: "Quantitative Asset Systems", hint: "Asset portfolios, rounds, returns", optional: true },
+  { key: "hr", label: "Autonomous Workforce", hint: "Headcount, contracts, operational intelligence", optional: true },
 ];
 export const MODULE_KEYS = MODULES.map((m) => m.key);
+export const OPTIONAL_MODULE_KEYS = MODULES.filter((m) => m.optional).map((m) => m.key);
 
+/** The modules a workspace actually exposes: all core + the optional ones it has enabled. */
+export function enabledModules(settingsModules: string[] | null | undefined): ModuleDef[] {
+  const enabled = new Set(settingsModules ?? []);
+  return MODULES.filter((m) => !m.optional || enabled.has(m.key));
+}
+
+const OPTIONAL = new Set(OPTIONAL_MODULE_KEYS);
 // Per-role defaults when a member has no explicit override for a module.
 function roleDefault(role: string, moduleKey: string): AccessLevel {
   if (role === "owner" || role === "admin") return "edit";
-  if (role === "viewer") return moduleKey === "finance" ? "none" : "view";
-  // member: operate everything except finance (finance is opt-in via override / finance_role).
-  return moduleKey === "finance" ? "none" : "edit";
+  // Optional modules (Finance & Billing, Quantitative Asset Systems, Autonomous Workforce) are
+  // opt-in: no access until explicitly granted, regardless of role.
+  if (OPTIONAL.has(moduleKey)) return "none";
+  if (role === "viewer") return "view";
+  return "edit"; // member: edit on the core modules
 }
 
 // Legacy finance_role → finance-module level, used only when there's no explicit finance override.

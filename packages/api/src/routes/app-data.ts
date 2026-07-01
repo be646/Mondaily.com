@@ -7,7 +7,7 @@ import { supabase } from "@mondaily/db/client";
 import { makeTrackingToken } from "../lib/tracking";
 import { isWorkspaceAdmin } from "../middleware/rbac";
 import { ACCESS_COOKIE, REFRESH_COOKIE, sha256 } from "../lib/auth-tokens";
-import { MODULES, MODULE_KEYS, resolveModuleMatrix } from "../lib/modules";
+import { MODULE_KEYS, resolveModuleMatrix, enabledModules } from "../lib/modules";
 
 // Keep only known module keys with a valid level — never trust arbitrary jsonb from the client.
 function sanitizeModuleAccess(input: Record<string, string>): Record<string, string> {
@@ -493,7 +493,7 @@ router.delete("/settings/workspace", async (c) => {
 router.get("/settings/members", async (c) => {
   const workspaceId = c.get("workspaceId");
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const [{ data: members }, { data: teams }, { data: inviteRows }, { data: usage }, { data: sessions }] = await Promise.all([
+  const [{ data: members }, { data: teams }, { data: inviteRows }, { data: usage }, { data: sessions }, { data: wsRow }] = await Promise.all([
     supabase.from("workspace_members").select("*").eq("workspace_id", workspaceId),
     supabase.from("teams").select("*, team_members(user_id)").eq("workspace_id", workspaceId),
     // Read pending invites from the SAME table POST /invites writes to (workspace_invites) —
@@ -505,7 +505,12 @@ router.get("/settings/members", async (c) => {
     // Per-operator AI telemetry (30d) so the Members matrix shows real compute consumption.
     supabase.from("ai_usage").select("user_id, total_tokens").eq("workspace_id", workspaceId).gte("created_at", sinceIso),
     supabase.from("auth_refresh_tokens").select("user_id, last_active_at").is("revoked_at", null),
+    supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle(),
   ]);
+  // Only expose modules this workspace actually has enabled (core + enabled optional) so the
+  // Members matrix and the Workspace → Modules toggles stay in lockstep (one taxonomy).
+  const wsModules = ((wsRow?.settings as { modules?: string[] } | null)?.modules) ?? [];
+  const activeModules = enabledModules(wsModules);
   const tokensBy = new Map<string, number>();
   for (const u of usage ?? []) { const k = String(u.user_id ?? ""); if (k) tokensBy.set(k, (tokensBy.get(k) ?? 0) + Number(u.total_tokens ?? 0)); }
   const lastActiveBy = new Map<string, string>();
@@ -517,8 +522,9 @@ router.get("/settings/members", async (c) => {
     // Authoritative role of the *requesting* user, straight from the auth context — so the UI
     // never has to guess by matching ids/emails (which was hiding the invite bar for owners).
     my_role: c.get("role"),
-    // Catalog of feature-modules so the Members matrix can render columns without hardcoding.
-    modules: MODULES,
+    // Catalog of ENABLED feature-modules so the Members matrix renders columns without hardcoding
+    // and never shows a module the workspace has switched off.
+    modules: activeModules,
     members: (members ?? []).map((member) => {
       const access = (member as Record<string, unknown>).module_access as Record<string, string> | null;
       return {

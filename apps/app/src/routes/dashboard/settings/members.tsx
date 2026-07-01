@@ -39,8 +39,10 @@ export function MembersSettings() {
   const qc = useQueryClient();
   const me = useCurrentUser();
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [emails, setEmails] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [inviteResults, setInviteResults] = useState<{ email: string; link: string | null; sent: boolean }[]>([]);
 
   const query = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<MembersData>("/settings/members"), retry: false });
   const refresh = () => qc.invalidateQueries({ queryKey: ["members"] });
@@ -49,7 +51,7 @@ export function MembersSettings() {
   const invitations: Invitation[] = Array.isArray(query.data?.invitations) ? query.data!.invitations! : [];
   const modules: ModuleDef[] = Array.isArray(query.data?.modules) && query.data!.modules!.length
     ? query.data!.modules!
-    : [{ key: "crm", label: "CRM" }, { key: "discovery", label: "Discovery" }, { key: "automations", label: "Automations" }, { key: "campaigns", label: "Campaigns" }, { key: "finance", label: "Finance" }, { key: "analytics", label: "Analytics" }];
+    : [{ key: "graph", label: "Graph" }, { key: "discovery", label: "Discovery" }, { key: "automations", label: "Automations" }, { key: "communications", label: "Communications" }, { key: "reports", label: "Reports" }];
   // Trust the backend's authoritative my_role first; fall back to client-side matching only if
   // it's absent. This is what finally makes the invite bar appear for owners reliably.
   const matchedRole = members.find(m =>
@@ -65,9 +67,19 @@ export function MembersSettings() {
   const sendInvite = useMutation({
     mutationFn: async () => {
       const list = emails.split(/[\s,]+/).filter(e => e.includes("@"));
-      await Promise.all(list.map(email => apiClient.post("/invites", { email, role: "member" })));
+      // Capture each invite's shareable link + whether the email actually sent, so the UI can
+      // ALWAYS surface a working link even when no verified mail domain is configured.
+      const results = await Promise.all(list.map(async (email) => {
+        try {
+          const r = await apiClient.post<{ invite_link?: string; email_sent?: boolean }>("/invites", { email, role: "member" });
+          return { email, link: r.invite_link ?? null, sent: !!r.email_sent };
+        } catch {
+          return { email, link: null, sent: false };
+        }
+      }));
+      return results;
     },
-    onSuccess: () => { setEmails(""); refresh(); },
+    onSuccess: (results) => { setEmails(""); setInviteResults(results); refresh(); },
   });
   const revokeInvite = useMutation({ mutationFn: (id: string) => apiClient.delete(`/invites/${id}`), onSuccess: refresh });
 
@@ -109,6 +121,34 @@ export function MembersSettings() {
             style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
             {copied ? <><Check size={14} className="text-emerald-400" /> Copied</> : <><Copy size={14} /> Copy link</>}
           </button>
+        </div>
+      )}
+
+      {/* Invite results — ALWAYS show a shareable link (works with zero mail config); note whether
+          the email was also delivered. This is what was missing: invites created but no link shown. */}
+      {isAdmin && inviteResults.length > 0 && (
+        <div className="mb-5 rounded-sm border p-3" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] uppercase tracking-wider text-stone-500">Invites created · share each link</span>
+            <button onClick={() => setInviteResults([])} className="text-[11px] text-stone-500 hover:text-stone-300">Dismiss</button>
+          </div>
+          <div className="space-y-1.5">
+            {inviteResults.map(iv => (
+              <div key={iv.email} className="flex items-center gap-2 rounded-sm border px-2.5 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
+                <span className="w-44 shrink-0 truncate text-[12px] text-stone-300">{iv.email}</span>
+                {iv.link ? (
+                  <>
+                    <span className="min-w-0 flex-1 truncate text-[11px] text-stone-500">{iv.link}</span>
+                    <span className="shrink-0 text-[10px]" style={{ color: iv.sent ? "#34d399" : "#a1a1aa" }}>{iv.sent ? "emailed ✓" : "link only"}</span>
+                    <button onClick={() => { navigator.clipboard.writeText(iv.link!); setCopiedLink(iv.email); setTimeout(() => setCopiedLink(null), 1500); }}
+                      className="shrink-0 rounded-sm border px-2 py-0.5 text-[11px] text-stone-300 hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>
+                      {copiedLink === iv.email ? "Copied ✓" : "Copy"}
+                    </button>
+                  </>
+                ) : <span className="text-[11px] text-rose-400">could not create invite</span>}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

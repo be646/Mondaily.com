@@ -150,13 +150,27 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       ? ((extracted as { leads: ExtractedLead[] }).leads)
       : [];
 
-    // Only keep results whose source_url is one we actually searched (anti-hallucination).
-    const validUrls = new Set(unique.map((h) => h.url));
+    // Anti-hallucination: every lead's source_url must resolve to a URL we actually scanned. But
+    // the model routinely returns a near-miss (adds/drops a trailing slash, http↔https, www.,
+    // fragment) which previously nuked EVERY result. Normalize both sides and fuzzy-map back to
+    // the exact scanned URL so genuine extractions survive.
+    const normUrl = (u: string) => {
+      try {
+        const p = new URL(u.trim());
+        const host = p.host.replace(/^www\./, "").toLowerCase();
+        const path = p.pathname.replace(/\/+$/, "");
+        return `${host}${path}${p.search}`.toLowerCase();
+      } catch {
+        return u.trim().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/+$/, "").toLowerCase();
+      }
+    };
+    const byNorm = new Map(unique.map((h) => [normUrl(h.url), h.url]));
     const rows = leads
-      .filter((l) => l.source_url && validUrls.has(l.source_url) && l.intent_type)
-      .map((l) => ({
+      .map((l) => ({ l, resolved: l.source_url ? byNorm.get(normUrl(l.source_url)) : undefined }))
+      .filter((x) => x.resolved && x.l.intent_type)
+      .map(({ l, resolved }) => ({
         workspace_id: workspaceId,
-        source_url: l.source_url!,
+        source_url: resolved!,
         // NOT NULL columns — always provide a value.
         platform: l.platform || "web",
         author_name: l.author_name || "Anonymous",
