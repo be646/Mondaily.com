@@ -507,7 +507,7 @@ router.delete("/settings/workspace", async (c) => {
 router.get("/settings/members", async (c) => {
   const workspaceId = c.get("workspaceId");
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const [{ data: members }, { data: teams }, { data: inviteRows }, { data: usage }, { data: sessions }, { data: wsRow }] = await Promise.all([
+  const [{ data: members }, { data: teams }, { data: inviteRows }, { data: usage }, { data: wsRow }] = await Promise.all([
     supabase.from("workspace_members").select("*").eq("workspace_id", workspaceId),
     supabase.from("teams").select("*, team_members(user_id)").eq("workspace_id", workspaceId),
     // Read pending invites from the SAME table POST /invites writes to (workspace_invites) —
@@ -518,9 +518,14 @@ router.get("/settings/members", async (c) => {
       .order("created_at", { ascending: false }),
     // Per-operator AI telemetry (30d) so the Members matrix shows real compute consumption.
     supabase.from("ai_usage").select("user_id, total_tokens").eq("workspace_id", workspaceId).gte("created_at", sinceIso),
-    supabase.from("auth_refresh_tokens").select("user_id, last_active_at").is("revoked_at", null),
     supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle(),
   ]);
+  // Last-active per member — filtered to THIS workspace's members (was an unfiltered full-table scan
+  // of every session system-wide, which made this endpoint slow).
+  const memberIds = (members ?? []).map((m) => String(m.user_id));
+  const { data: sessions } = memberIds.length
+    ? await supabase.from("auth_refresh_tokens").select("user_id, last_active_at").is("revoked_at", null).in("user_id", memberIds)
+    : { data: [] as { user_id: string; last_active_at: string | null }[] };
   // Only expose modules this workspace actually has enabled (core + enabled optional) so the
   // Members matrix and the Workspace → Modules toggles stay in lockstep (one taxonomy).
   const wsModules = ((wsRow?.settings as { modules?: string[] } | null)?.modules) ?? [];

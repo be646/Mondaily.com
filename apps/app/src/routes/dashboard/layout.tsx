@@ -84,6 +84,20 @@ function MobileNav() {
   );
 }
 
+// Minimal always-works nav shown if the full Sidebar throws — keeps the app usable (never black).
+function SidebarFallback() {
+  const links: [string, string][] = [["/home", "Home"], ["/search", "Graph"], ["/tasks", "Tasks"], ["/discovery", "Discovery"], ["/settings/members", "Settings"]];
+  return (
+    <nav className="flex h-full w-56 flex-col gap-1 border-r p-3" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="px-2 py-2 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Mondaily</div>
+      {links.map(([to, label]) => (
+        <Link key={to} to={to} className="rounded-lg px-2 py-1.5 text-sm hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: "var(--text-secondary)" }}>{label}</Link>
+      ))}
+      <button onClick={() => window.location.reload()} className="mt-auto rounded-lg px-2 py-1.5 text-left text-xs" style={{ color: "var(--text-faint)" }}>Reload</button>
+    </nav>
+  );
+}
+
 function MobileSidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   if (!open) return null;
   return (
@@ -127,9 +141,12 @@ export function DashboardLayout() {
     <div className="flex h-screen w-screen overflow-hidden surface-page">
       {/* Change toasts — slide-in pop-ups for new notifications/activity */}
       <ToastHost />
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — wrapped so a sidebar render error can never black-screen the whole app
+          (it lives outside the page ErrorBoundary below). Falls back to a minimal nav on failure. */}
       <div className="hidden md:flex">
-        <Sidebar />
+        <ErrorBoundary fallback={<SidebarFallback />}>
+          <Sidebar />
+        </ErrorBoundary>
       </div>
 
       {/* Mobile sidebar drawer */}
