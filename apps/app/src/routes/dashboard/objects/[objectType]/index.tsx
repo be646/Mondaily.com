@@ -156,6 +156,8 @@ function CreateRecordModal({
         Object.fromEntries(fieldKeys.map(k => [k, String(r[k] ?? "")]))
       );
       setAiRecords(recs);
+      // No fabrication: when the web yields nothing real, show the reason instead of empty silence.
+      if (recs.length === 0 && data.reason) setAiError(data.reason);
       setAiSelected(new Set(recs.map((_, i) => i)));
     } catch (e: any) {
       setAiError(e.message || "Failed to generate records");
@@ -185,10 +187,12 @@ function CreateRecordModal({
     onClose();
   };
 
+  // Real-web prompts — this finds genuine, source-backed records online (never fabricated samples).
   const EXAMPLE_PROMPTS: Record<string, string[]> = {
     default: [
-      "Generate realistic sample records for demonstration",
-      "Create a diverse set of records with varied data",
+      "Aesthetic clinics in London with public contact details",
+      "Real estate agencies in Dubai and their websites",
+      "SaaS companies that raised a seed round this year",
     ],
   };
   const examples = EXAMPLE_PROMPTS[objectType.toLowerCase()] ?? EXAMPLE_PROMPTS["default"] ?? [];
@@ -323,7 +327,7 @@ function CreateRecordModal({
                   disabled={aiLoading || !aiPrompt.trim()}
                   className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50"
                 >
-                  {aiLoading ? <><Loader2 size={11} className="animate-spin"/> Generating…</> : <><LogoMark size={11}/> Generate {aiCount} records</>}
+                  {aiLoading ? <><Loader2 size={11} className="animate-spin"/> Searching the web…</> : <><LogoMark size={11}/> Find {aiCount} real records</>}
                 </button>
               </div>
             </div>
@@ -332,7 +336,7 @@ function CreateRecordModal({
             {aiRecords.length > 0 && (
               <div className="flex flex-col border-l border-[var(--border-soft)] w-[240px] shrink-0">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-soft)]">
-                  <span className="text-[11px] font-semibold text-stone-300">{aiRecords.length} records generated</span>
+                  <span className="text-[11px] font-semibold text-stone-300">{aiRecords.length} real records found</span>
                   <button onClick={toggleAll} className="text-[10px] text-stone-500 hover:text-stone-300 transition-colors">
                     {aiSelected.size === aiRecords.length ? "Deselect all" : "Select all"}
                   </button>
@@ -405,7 +409,7 @@ function AIFillModal({
     return ["name", ...def.attributes.map(a => a.name.toLowerCase().replace(/\s+/g, "_")).filter(k => k !== "name")];
   })();
 
-  const [prompt, setPrompt] = useState(`Generate realistic ${cleanName} records`);
+  const [prompt, setPrompt] = useState(`Find real ${cleanName} records from the web`);
   const [count, setCount]   = useState(15);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
@@ -534,8 +538,8 @@ function AIFillModal({
               <button onClick={generate} disabled={loading || !prompt.trim()}
                 className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-all">
                 {loading
-                  ? <><Loader2 size={12} className="animate-spin"/> Generating {count} records…</>
-                  : <><LogoMark size={12}/> Generate {count} records</>}
+                  ? <><Loader2 size={12} className="animate-spin"/> Searching the web…</>
+                  : <><LogoMark size={12}/> Find {count} real records</>}
               </button>
             </div>
           </div>

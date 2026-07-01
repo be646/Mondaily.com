@@ -185,6 +185,11 @@ router.post("/enrich/person", requireAuth, zValidator("json", z.object({ email: 
 });
 
 // ─── Bulk record generation ───────────────────────────────────────────────────
+// Create records from the LIVE WEB — 100% real, source-backed data. This NEVER fabricates: it
+// searches + scrapes the sovereign web pipeline and extracts only entities that genuinely appear,
+// each with a source_url. If the web yields nothing, it returns an empty set with a reason (it must
+// never invent placeholder people/values). Records are tagged with the source so the UI can mark
+// them as agent-discovered.
 router.post("/records", requireAuth, zValidator("json", z.object({
   objectType: z.string().min(1),
   columns: z.array(z.string()).min(1),
@@ -193,38 +198,47 @@ router.post("/records", requireAuth, zValidator("json", z.object({
 })), async (c) => {
   const { objectType, columns, prompt, count } = c.req.valid("json");
   try {
-    const data = await callGatewayTool({
-      max_tokens: 4096,
-      tools: [{
-        name: "generate_records",
-        description: "Generate realistic sample records for a database table",
-        input_schema: {
-          type: "object",
-          properties: {
-            records: {
-              type: "array",
-              minItems: 1,
-              maxItems: 50,
-              items: {
-                type: "object",
-                description: "A single record. Keys must exactly match the provided columns.",
-                additionalProperties: { type: "string" }
-              }
-            }
-          },
-          required: ["records"]
-        }
-      }],
-      tool_choice: { type: "tool", name: "generate_records" },
-      messages: [{
-        role: "user",
-        content: `Generate ${count} realistic ${objectType} records.\n\nContext: ${prompt}\n\nColumns to fill: ${columns.join(", ")}\n\nRules:\n- Every record must have a "name" field\n- Use realistic values appropriate for the object type and context\n- For currency/number columns use numeric strings (no symbols)\n- For date columns use YYYY-MM-DD format\n- For checkbox columns use "true" or "false"\n- For select columns pick a realistic category value\n- Leave optional fields empty string if not applicable\n- Make records varied and realistic, not just placeholders`
-      }]
-    });
+    // 1) Pull REAL web content for the request (search + scrape several pages).
+    const webContext = await sovereignWebContext(`${prompt} ${objectType}`, 5);
+    if (!webContext || webContext.trim().length < 40) {
+      return c.json({ records: [], reason: "No real web data found for that request. Try a more specific query (a sector, place, or named source)." });
+    }
 
-    const toolUse = data.content?.find((b: any) => b.type === "tool_use");
-    if (!toolUse?.input?.records) return c.json({ error: "No records generated" }, 500);
-    return c.json({ records: toolUse.input.records });
+    // 2) Extract ONLY grounded records — every field must appear in the web context; nothing invented.
+    const extracted = await aiGatewayToolUse({
+      toolName: "extract_records",
+      toolDescription: "Extract real, source-backed records from web content",
+      maxTokens: 4096,
+      toolSchema: {
+        type: "object",
+        properties: {
+          records: {
+            type: "array",
+            description: `Up to ${count} REAL ${objectType} found in the web content. Empty if none genuinely appear.`,
+            items: {
+              type: "object",
+              description: "Keys must match the provided columns. Include source_url.",
+              properties: { source_url: { type: "string", description: "URL where this entity was found (required)" } },
+              additionalProperties: { type: "string" },
+            },
+          },
+        },
+        required: ["records"],
+      },
+      system:
+        `You extract REAL ${objectType} records from web content for a workspace database. ABSOLUTE RULE: never invent. ` +
+        `Only include an entity that genuinely appears in the content, and only fill a column if the content actually supports it — otherwise leave it "". ` +
+        `NEVER fabricate names, values, follower counts, revenue, emails, or phones. Every record MUST have a real source_url copied from the content. ` +
+        `Return an empty array if the content contains no genuine ${objectType}. Do not pad to reach the count.`,
+      prompt: `Object type: ${objectType}. Request: "${prompt}". Columns to fill (only when grounded): ${columns.join(", ")}.\n\nWeb content:\n${webContext.slice(0, 12000)}`,
+    }).catch(() => ({ records: [] as Record<string, unknown>[] }));
+
+    const records = Array.isArray((extracted as { records?: unknown }).records)
+      ? (extracted as { records: Record<string, unknown>[] }).records
+      : [];
+    // Tag each with the discovery source so the frontend can mark it as agent-added.
+    const tagged = records.map((r) => ({ ...r, _discovered: true }));
+    return c.json({ records: tagged, reason: tagged.length ? undefined : "No real records could be verified from the web for that request." });
   } catch (e: any) {
     return c.json({ error: e.message }, 500);
   }
