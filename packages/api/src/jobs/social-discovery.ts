@@ -3,6 +3,12 @@ import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignHeaders, sovereignScrape } from "../lib/sovereign-search";
 import { createNotification } from "../lib/notify";
+import { createHash } from "node:crypto";
+
+// Stable per-review fingerprint — url + author + content snippet. Distinct reviews (different text)
+// get different fingerprints and are all kept; a re-scan of the same review updates in place.
+const leadFingerprint = (url: string, author: string, content: string) =>
+  createHash("md5").update(`${url}|${author}|${(content || "").slice(0, 200)}`).digest("hex");
 
 // ── Sovereign SearXNG search (private metasearch JSON → result rows) ──────────
 interface SearchHit { title: string; content: string; url: string }
@@ -221,6 +227,7 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       .map(({ l, resolved }) => ({
         workspace_id: workspaceId,
         source_url: resolved!,
+        fingerprint: leadFingerprint(resolved!, l.author_name || "Anonymous", l.raw_content || ""),
         // NOT NULL columns — always provide a value.
         platform: l.platform || "web",
         author_name: l.author_name || "Anonymous",
@@ -260,21 +267,33 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
     // rejects an upsert that hits the same conflict target twice in one statement ("ON CONFLICT DO
     // UPDATE command cannot affect row a second time"). The model often returns several leads from
     // one page; keep the highest-confidence one per URL.
-    const byUrl = new Map<string, typeof rows[number]>();
+    // De-dupe within THIS batch by fingerprint (distinct reviews survive; identical ones collapse).
+    const byFp = new Map<string, typeof rows[number]>();
     for (const r of rows) {
-      const prev = byUrl.get(r.source_url);
-      if (!prev || (r.confidence_score ?? 0) > (prev.confidence_score ?? 0)) byUrl.set(r.source_url, r);
+      const prev = byFp.get(r.fingerprint);
+      if (!prev || (r.confidence_score ?? 0) > (prev.confidence_score ?? 0)) byFp.set(r.fingerprint, r);
     }
-    const dedupedRows = [...byUrl.values()];
+    const dedupedRows = [...byFp.values()];
 
-    // 3) Upsert, deduping on source_url (a result seen before is refreshed, not duplicated).
-    let { error } = await supabase.from("discovered_leads").upsert(dedupedRows, { onConflict: "source_url" });
-    // Graceful degrade: if the `contact` column isn't migrated yet, retry without it so
-    // discovery keeps working (the enriched fields just won't persist until the migration runs).
-    if (error && /contact/i.test(error.message)) {
-      const bare = dedupedRows.map(({ contact, ...r }) => r);
-      ({ error } = await supabase.from("discovered_leads").upsert(bare, { onConflict: "source_url" }));
-    }
+    // 3) Upsert on the per-workspace fingerprint so every distinct review is kept. Falls back through
+    //    older shapes if a migration hasn't run yet, so discovery keeps working during rollout.
+    const upsertLeads = async (batch: typeof dedupedRows) => {
+      // Preferred: per-workspace fingerprint (20260702 migration).
+      let r = await supabase.from("discovered_leads").upsert(batch, { onConflict: "workspace_id,fingerprint" });
+      // Pre-migration: no fingerprint column/index yet → drop it and fall back to source_url dedupe.
+      if (r.error && /fingerprint/i.test(r.error.message)) {
+        const collapsed = [...new Map(batch.map((x) => [x.source_url, x])).values()].map(({ fingerprint, ...x }) => x);
+        r = await supabase.from("discovered_leads").upsert(collapsed, { onConflict: "source_url" });
+        // Older still: no contact column.
+        if (r.error && /contact/i.test(r.error.message)) {
+          r = await supabase.from("discovered_leads").upsert(collapsed.map(({ contact, ...x }) => x), { onConflict: "source_url" });
+        }
+      } else if (r.error && /contact/i.test(r.error.message)) {
+        r = await supabase.from("discovered_leads").upsert(batch.map(({ contact, ...x }) => x), { onConflict: "workspace_id,fingerprint" });
+      }
+      return r.error;
+    };
+    let error = await upsertLeads(dedupedRows);
     if (error) {
       console.error("[social-discovery] upsert failed:", error.message);
       return { discovered: 0, scanned: unique.length, error: error.message };
