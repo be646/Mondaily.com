@@ -56,6 +56,13 @@ import { FinanceReportsPage } from "./routes/dashboard/finance/reports";
 import { QuotesPage } from "./routes/dashboard/finance/quotes";
 import { ExpensesPage } from "./routes/dashboard/finance/expenses";
 
+// Plain <Navigate to="/x" /> drops the query string — this preserves it, so a marketing link like
+// /sign-up?plan=operator survives the legacy-path redirect instead of losing the plan selection.
+function RedirectKeepingQuery({ to }: { to: string }) {
+  const location = useLocation();
+  return <Navigate to={`${to}${location.search}`} replace />;
+}
+
 function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn } = useCurrentUser();
   if (!isLoaded) return null;
@@ -85,8 +92,8 @@ export function App() {
   return (
     <Routes>
       {/* Legacy Clerk auth paths → native login */}
-      <Route path="/sign-in/*" element={<Navigate to="/auth/shadow-login" replace />} />
-      <Route path="/sign-up/*" element={<Navigate to="/auth/register" replace />} />
+      <Route path="/sign-in/*" element={<RedirectKeepingQuery to="/auth/shadow-login" />} />
+      <Route path="/sign-up/*" element={<RedirectKeepingQuery to="/auth/register" />} />
       <Route path="/sso-callback" element={<Navigate to="/auth/shadow-login" replace />} />
       <Route path="/workspaces" element={<WorkspaceSelectPage />} />
       <Route path="/invite/:token" element={<InviteAcceptPage />} />

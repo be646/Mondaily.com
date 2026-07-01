@@ -22,6 +22,12 @@ export function ShadowRegisterPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const next = safeNext(params.get("next"));
+  // Carry a plan chosen on the marketing pricing page (/sign-up?plan=operator) through to
+  // onboarding — the /onboarding redirect drops query strings, so stash it now.
+  const planParam = params.get("plan");
+  if (planParam && ["scout", "operator", "command", "sovereign"].includes(planParam)) {
+    localStorage.setItem("mondaily_preselect_plan", planParam);
+  }
   const { register } = useSovereignAuth();
   const shield = usePowShield();
   const [name, setName] = useState("");

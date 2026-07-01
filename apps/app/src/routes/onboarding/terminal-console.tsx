@@ -153,15 +153,23 @@ export function TerminalOnboardingPage() {
     const sector = ai.industry_vertical || answers.purpose || "General Operations";
     const mods = Array.isArray(ai.recommended_modules) ? ai.recommended_modules : [];
     setAiModules(mods);
-    const rec = recommendPlan(answers.team_size ?? "1");
+
+    // A plan chosen on the marketing pricing page (/sign-up?plan=operator) wins over the team-size
+    // heuristic — the operator explicitly picked it, so honor that instead of second-guessing them.
+    const preselect = localStorage.getItem("mondaily_preselect_plan") as PlanId | null;
+    localStorage.removeItem("mondaily_preselect_plan");
+    const validPreselect = preselect && ["scout", "operator", "command", "sovereign"].includes(preselect) ? preselect : null;
+    const rec = validPreselect ?? recommendPlan(answers.team_size ?? "1");
     setRecommended(rec);
 
+    const PLAN_LABEL: Record<PlanId, string> = { scout: "Scout", operator: "Operator", command: "Command", sovereign: "Sovereign" };
     const MOD_LABEL: Record<string, string> = { finance: "Finance & Billing", investments: "Quantitative Asset Systems", hr: "Autonomous Workforce" };
     const out: Line[] = [
       { id: ++idRef.current, text: `-> Sector Inferred: ${sector}`, tone: "accent" },
       { id: ++idRef.current, text: `-> Team Size: ${answers.team_size ?? "1"} operator(s)`, tone: "accent" },
       ...(mods.length ? [{ id: ++idRef.current, text: `-> Modules Recommended: ${mods.map(m => MOD_LABEL[m] ?? m).join(", ")}`, tone: "accent" as Tone }] : []),
       ...(ai.summary ? [{ id: ++idRef.current, text: `   ${ai.summary}`, tone: "system" as Tone }] : []),
+      ...(validPreselect ? [{ id: ++idRef.current, text: `-> Using your selected plan: ${PLAN_LABEL[validPreselect]}`, tone: "accent" as Tone }] : []),
       { id: ++idRef.current, text: "[✓ ENVIRONMENT COMPILED — WORKSPACE INITIALIZED]", tone: "ok" },
     ];
     for (const l of out) {
