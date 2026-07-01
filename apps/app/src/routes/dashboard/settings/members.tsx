@@ -188,7 +188,7 @@ export function MembersSettings() {
           <thead>
             <tr>
               {["Operator", "Role", "Module access", "AI usage · 30d", "Last active", ""].map(h => (
-                <th key={h || "x"} className={`text-[10px] uppercase tracking-wider text-stone-500 ${h === "AI usage · 30d" ? "text-right" : ""}`}>{h}</th>
+                <th key={h || "x"} className={`whitespace-nowrap text-[10px] uppercase tracking-wider text-stone-500 ${h === "AI usage · 30d" ? "text-right" : ""}`}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -206,7 +206,7 @@ export function MembersSettings() {
                         : <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[11px] font-semibold text-stone-300">
                             {(m?.name || m?.email || "?").trim().charAt(0).toUpperCase() || "?"}
                           </span>}
-                      <div className="min-w-0">
+                      <div className="min-w-0 max-w-[240px]">
                         <div className="truncate text-[13px] text-stone-200">{m?.name || m?.email || "Unknown Operator"}</div>
                         <div className="truncate text-[10.5px] text-stone-600">{m?.email || "—"}</div>
                       </div>
@@ -232,10 +232,10 @@ export function MembersSettings() {
                         <button
                           onClick={() => setExpanded(expanded === m?.id ? null : (m?.id ?? null))}
                           disabled={!m?.id}
-                          className="inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]"
+                          className="inline-flex w-max shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]"
                           style={{ borderColor: expanded === m?.id ? "var(--section-accent)" : "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}
                         >
-                          <SlidersHorizontal size={12} />
+                          <SlidersHorizontal size={12} className="shrink-0" />
                           <span className="tabular-nums">{editable} edit · {viewable} view</span>
                         </button>
                       );

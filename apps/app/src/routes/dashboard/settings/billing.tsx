@@ -308,11 +308,11 @@ export function BillingSettings() {
                 <button
                   disabled={isCurrent || billingBusy === plan.id}
                   onClick={() => { plan.priceMonthly === null ? (window.location.href = "mailto:sales@mondaily.com?subject=Sovereign%20plan") : void pickPlan(plan.id); }}
-                  className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-sm border py-2 text-[12px] font-semibold transition-colors disabled:opacity-60"
+                  className="mt-4 flex min-h-[40px] w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-sm border px-2 py-2 text-[12px] font-semibold transition-colors disabled:opacity-60"
                   style={{ background: "var(--surface-selected)", borderColor: lit ? "var(--section-accent)" : "var(--border-strong)", color: "var(--text-primary)" }}
                   onMouseEnter={e => !isCurrent && (e.currentTarget.style.borderColor = "var(--section-accent)")}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = lit ? "var(--section-accent)" : "var(--border-strong)")}>
-                  {isCurrent ? <><Check size={12} style={{ color: "var(--section-accent)" }} /> Current plan</> : billingBusy === plan.id ? "Opening…" : plan.cta}
+                  {isCurrent ? <><Check size={12} className="shrink-0" style={{ color: "var(--section-accent)" }} /> Current plan</> : billingBusy === plan.id ? "Opening…" : <span className="truncate">{plan.cta}</span>}
                 </button>
               </div>
             );
