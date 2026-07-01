@@ -168,15 +168,17 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
     });
     let extracted: Record<string, unknown> = {};
     let gatewayReturned = false;
+    let gatewayError: string | null = null;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         extracted = await runExtraction();
         gatewayReturned = Object.keys(extracted).length > 0;
-        if (gatewayReturned) break;
+        if (gatewayReturned) { gatewayError = null; break; }
       } catch (err: any) {
-        console.error(`[social-discovery] extraction gateway failed (attempt ${attempt + 1}):`, err?.message ?? err);
+        gatewayError = (err?.message ?? String(err)).slice(0, 200); // surface the REAL reason in diag
+        console.error(`[social-discovery] extraction gateway failed (attempt ${attempt + 1}):`, gatewayError);
       }
-      if (attempt === 0) await new Promise((r) => setTimeout(r, 4000)); // let the per-minute quota recover
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 4000)); // let any transient limit recover
     }
     const leads = Array.isArray((extracted as { leads?: unknown }).leads)
       ? ((extracted as { leads: ExtractedLead[] }).leads)
@@ -226,12 +228,13 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       hits: hits.length,
       unique: unique.length,
       scraped: fullText.size,     // pages we rendered to full text (vs snippet-only)
-      gateway: gatewayReturned,   // false → Cerebras extraction call failed (env/gateway issue)
+      gateway: gatewayReturned,   // false → the AI extraction call failed
+      gateway_error: gatewayError, // the ACTUAL error (rate limit / timeout / payload) when it fails
       extracted: leads.length,    // leads the model returned
       matched: rows.length,       // survived the URL-resolution + intent filter
     };
     if (rows.length === 0) {
-      const reason = !gatewayReturned ? "extraction gateway unavailable"
+      const reason = !gatewayReturned ? `extraction failed${gatewayError ? `: ${gatewayError}` : ""}`
         : leads.length === 0 ? "model found no on-topic results in the scanned pages"
         : "extracted results didn't resolve to scanned URLs";
       return { discovered: 0, scanned: unique.length, reason, diag };
