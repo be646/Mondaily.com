@@ -120,10 +120,16 @@ router.get("/status", requireAuth, async (c) => {
 router.post("/complete", requireAuth, async (c) => {
   const ws = c.get("workspaceId");
   const userId = c.get("userId");
-  const body = await c.req.json<{ track?: string; account_tier?: string; industry?: string; team_size?: string; concurrency?: number; goals?: string[] }>().catch(() => ({} as Record<string, never>));
-  // Accept either `track` (solo|business) or `account_tier` (personal|business).
-  const track = (body.track === "business" || body.account_tier === "business") ? "business" : "solo";
-  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+  const body = await c.req.json<{ plan?: string; track?: string; account_tier?: string; industry?: string; team_size?: string; concurrency?: number; goals?: string[] }>().catch(() => ({} as Record<string, never>));
+  // Resolve the chosen tier. Prefer the explicit `plan`; fall back to legacy track/account_tier.
+  const plan = ["scout", "operator", "command", "sovereign"].includes(body.plan ?? "")
+    ? (body.plan as string)
+    : (body.track === "business" || body.account_tier === "business") ? "operator" : "scout";
+  const isPaid = plan !== "scout";
+  const trialEndsAt = isPaid ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null;
+  // Monthly credit allotment per tier.
+  const GRANTS: Record<string, number> = { scout: SOLO_GRANT, operator: BUSINESS_TRIAL_GRANT, command: 2_000_000, sovereign: 2_000_000 };
+  const target = GRANTS[plan] ?? SOLO_GRANT;
 
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
@@ -131,23 +137,23 @@ router.post("/complete", requireAuth, async (c) => {
     onboarded: true,
     settings: {
       ...settings,
-      track,
+      plan,
+      account_tier: plan,                       // billing reads this
+      track: isPaid ? "business" : "solo",      // legacy back-compat
       ...(body.industry ? { industry: body.industry } : {}),
       ...(body.team_size ? { team_size: body.team_size } : {}),
       ...(typeof body.concurrency === "number" ? { target_concurrency: body.concurrency } : {}),
       ...(Array.isArray(body.goals) ? { goals: body.goals } : {}),
-      ...(track === "business" ? { trial_ends_at: trialEndsAt } : {}),
+      ...(trialEndsAt ? { trial_ends_at: trialEndsAt } : {}),
     },
   }).eq("id", ws);
 
-  // Bring credits up to EXACTLY the plan's allotment — never stack the plan grant on top of the
-  // register-time baseline (that produced 50k + 500k = 550k). Grant only the shortfall, so the
-  // total lands on the target and re-running onboarding is idempotent (delta ≤ 0 → no-op).
-  const target = track === "business" ? BUSINESS_TRIAL_GRANT : SOLO_GRANT;
+  // Bring credits up to EXACTLY the tier's allotment — grant only the shortfall (target − current),
+  // so we never stack on the register-time baseline and re-running onboarding is idempotent.
   const { balance } = await creditStatus(ws);
   const delta = target - balance;
   if (delta > 0) {
-    await grantCredits(ws, delta, "grant", track === "business" ? "Operator trial credits" : "Free plan credits");
+    await grantCredits(ws, delta, "grant", `${plan} plan credits`);
   }
 
   // Seed a few starter tasks (only if the workspace has none yet).
@@ -160,7 +166,7 @@ router.post("/complete", requireAuth, async (c) => {
     ]).then(() => {}, () => {});
   }
 
-  return c.json({ ok: true, track, trial_ends_at: track === "business" ? trialEndsAt : null });
+  return c.json({ ok: true, plan, trial_ends_at: trialEndsAt });
 });
 
 export { router as onboardingRouter };

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/dannynicolaos/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/pnpm", "--filter", "@mondaily/web", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "app",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/dannynicolaos/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/pnpm", "--filter", "@mondaily/app", "dev"],
+      "port": 10000
+    }
+  ]
+}

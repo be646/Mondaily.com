@@ -11874,9 +11874,11 @@ __export(auth_tokens_exports, {
   signAccessToken: () => signAccessToken,
   signActivationToken: () => signActivationToken,
   signResetToken: () => signResetToken,
+  signVerifyToken: () => signVerifyToken,
   verifyAccessToken: () => verifyAccessToken,
   verifyActivationToken: () => verifyActivationToken,
-  verifyResetToken: () => verifyResetToken
+  verifyResetToken: () => verifyResetToken,
+  verifyVerifyToken: () => verifyVerifyToken
 });
 function jwtSecret() {
   const s2 = process.env.AUTH_JWT_SECRET;
@@ -11909,6 +11911,19 @@ async function verifyActivationToken(token) {
     return null;
   }
 }
+async function signVerifyToken(userId, email) {
+  const now = Math.floor(Date.now() / 1e3);
+  return sign2({ sub: userId, email, type: "verify_email", iat: now, exp: now + VERIFY_TTL_SECONDS }, jwtSecret());
+}
+async function verifyVerifyToken(token) {
+  try {
+    const p2 = await verify2(token, jwtSecret(), "HS256");
+    if (p2.type !== "verify_email" || typeof p2.sub !== "string" || typeof p2.email !== "string") return null;
+    return { sub: p2.sub, email: p2.email };
+  } catch {
+    return null;
+  }
+}
 async function signResetToken(userId, email) {
   const now = Math.floor(Date.now() / 1e3);
   return sign2({ sub: userId, email, type: "reset", iat: now, exp: now + RESET_TTL_SECONDS }, jwtSecret());
@@ -11932,7 +11947,7 @@ function newRefreshToken() {
 function refreshExpiry() {
   return new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1e3);
 }
-var import_node_crypto, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS, RESET_TTL_SECONDS;
+var import_node_crypto, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS, VERIFY_TTL_SECONDS, RESET_TTL_SECONDS;
 var init_auth_tokens = __esm({
   "src/lib/auth-tokens.ts"() {
     "use strict";
@@ -11943,6 +11958,7 @@ var init_auth_tokens = __esm({
     ACCESS_COOKIE = "md_at";
     REFRESH_COOKIE = "md_rt";
     ACTIVATION_TTL_SECONDS = 30 * 60;
+    VERIFY_TTL_SECONDS = 72 * 60 * 60;
     RESET_TTL_SECONDS = 30 * 60;
   }
 });
@@ -25042,6 +25058,45 @@ var inngest = new Inngest({
   id: "mondaily",
   eventKey: process.env.INNGEST_EVENT_KEY
 });
+
+// src/lib/sovereign-search.ts
+function sovereignHeaders() {
+  const key = process.env.SOVEREIGN_SEARCH_KEY;
+  return key ? { Authorization: `Bearer ${key}` } : {};
+}
+var SEARCH_URL = () => process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
+var SCRAPE_URL = () => process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3002/v1/scrape";
+async function sovereignSearchUrls(query, limit2 = 4) {
+  try {
+    const url = `${SEARCH_URL()}?q=${encodeURIComponent(query)}&format=json`;
+    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.results ?? []).map((r2) => r2.url).filter((u2) => typeof u2 === "string" && u2.length > 0).slice(0, limit2);
+  } catch {
+    return [];
+  }
+}
+async function sovereignScrape(targetUrl) {
+  try {
+    const res = await fetch(SCRAPE_URL(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...sovereignHeaders() },
+      body: JSON.stringify({ url: targetUrl, formats: ["markdown"] })
+    });
+    if (!res.ok) return "";
+    const data = await res.json();
+    return data.markdown ?? data.data?.markdown ?? data.content ?? data.data?.content ?? "";
+  } catch {
+    return "";
+  }
+}
+async function sovereignWebContext(query, maxPages = 2) {
+  const urls = await sovereignSearchUrls(query, maxPages);
+  if (!urls.length) return "";
+  const pages = await Promise.all(urls.map((u2) => sovereignScrape(u2)));
+  return pages.filter(Boolean).map((p2) => p2.slice(0, 2200)).join("\n\n---\n\n");
+}
 
 // ../../node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
 function __rest(s2, e2) {
@@ -54255,12 +54310,7 @@ function redactPII(text) {
   if (!text) return text;
   return redactSecrets(text).replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, "[REDACTED_EMAIL]").replace(/\b\+?\d[\d ()-]{8,}\d\b/g, "[REDACTED_PHONE]");
 }
-var PROVIDER_FALLBACK_MODELS = [
-  "accounts/fireworks/models/llama-v3p3-70b-instruct",
-  "accounts/fireworks/models/llama-v3p1-70b-instruct",
-  "accounts/fireworks/models/qwen2p5-72b-instruct",
-  "accounts/fireworks/models/mixtral-8x22b-instruct"
-];
+var PROVIDER_FALLBACK_MODELS = (process.env.AI_FALLBACK_MODELS ?? "").split(",").map((s2) => s2.trim()).filter(Boolean);
 function gatewayEnv() {
   return {
     baseURL: process.env.AI_GATEWAY_BASE_URL || process.env.CEREBRAS_BASE_URL || process.env.CEREBRAS_API_BASE_URL,
@@ -54376,14 +54426,16 @@ async function aiGatewayToolUse(req) {
     }],
     tool_choice: { type: "function", function: { name: req.toolName } }
   });
-  if (req.onUsage && completion.usage) {
+  if (completion.usage) {
     const u2 = completion.usage;
-    req.onUsage({
+    const usage = {
       prompt_tokens: u2.prompt_tokens ?? 0,
       completion_tokens: u2.completion_tokens ?? 0,
       total_tokens: u2.total_tokens ?? 0,
       reasoning_tokens: u2.completion_tokens_details?.reasoning_tokens ?? 0
-    });
+    };
+    if (req.onUsage) req.onUsage(usage);
+    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, { userId: req.userId });
   }
   const toolCall = completion.choices[0]?.message.tool_calls?.[0];
   if (!toolCall?.function?.arguments) return {};
@@ -54705,8 +54757,8 @@ var SOVEREIGN_SEARCH_URL = process.env.SOVEREIGN_SEARCH_URL || "http://localhost
 var SOVEREIGN_SCRAPE_URL = process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3000/v2/scrape";
 async function searxngUrls(query, limit2 = 4) {
   try {
-    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&engines=google,reddit`;
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json`;
+    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
     if (!res.ok) {
       console.error(`[search] searxng HTTP ${res.status}`);
       return [];
@@ -54722,7 +54774,7 @@ async function scrapeMarkdown(targetUrl) {
   try {
     const res = await fetch(SOVEREIGN_SCRAPE_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...sovereignHeaders() },
       body: JSON.stringify({ url: targetUrl, formats: ["markdown"] })
     });
     if (!res.ok) return "";
@@ -55312,30 +55364,14 @@ async function runRecurringInvoices(workspaceId) {
   return { generated: totalGenerated };
 }
 var ENRICHABLE2 = ["contact", "person", "people", "lead", "client", "compan", "account", "organization", "org"];
-async function tavilySearch(query) {
-  const key = process.env.TAVILY_API_KEY;
-  if (!key) return "";
-  try {
-    const res = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ api_key: key, query, max_results: 4, search_depth: "basic" })
-    });
-    if (!res.ok) return "";
-    const json = await res.json();
-    return (json.results ?? []).slice(0, 4).map((r2) => `${r2.title}: ${r2.content}`).join("\n");
-  } catch {
-    return "";
-  }
-}
-async function enrichOne(nodeId, objectType2, recordData) {
+async function enrichOne(nodeId, objectType2, recordData, workspaceId) {
   const normalizedType = objectType2.toLowerCase();
   const isPerson = ["contact", "person", "people", "lead"].some((t2) => normalizedType.includes(t2));
   const name = recordData.name ?? recordData.Name ?? recordData.company_name ?? recordData.full_name ?? "";
   const email = recordData.email ?? recordData.Email ?? "";
   const domain = recordData.domain ?? recordData.website ?? "";
   const query = isPerson ? email ? `${email} linkedin job title company` : `${name} linkedin job title company professional` : `${name} ${domain} company funding employees revenue industry`;
-  const webContext = await tavilySearch(query);
+  const webContext = await sovereignWebContext(query);
   const schema = isPerson ? { type: "object", properties: { company: { type: "string" }, job_title: { type: "string" }, linkedin: { type: "string" }, location: { type: "string" }, twitter: { type: "string" }, bio: { type: "string" } } } : { type: "object", properties: { description: { type: "string" }, country: { type: "string" }, employee_range: { type: "string" }, arr: { type: "number" }, funding_raised: { type: "number" }, website: { type: "string" }, industry: { type: "string" }, founded_year: { type: "number" } } };
   const raw2 = await aiGatewayToolUse({
     prompt: isPerson ? `Enrich this person. Name: "${name}", Email: "${email}"
@@ -55346,7 +55382,8 @@ ${webContext}` : ""}`,
     toolName: isPerson ? "enrich_person" : "enrich_company",
     toolDescription: "Extract enrichment fields",
     toolSchema: schema,
-    maxTokens: 1024
+    maxTokens: 1024,
+    workspaceId
   }).catch(() => ({}));
   const fields = Object.fromEntries(Object.entries(raw2).filter(([, v2]) => v2 != null && v2 !== ""));
   if (Object.keys(fields).length === 0) return 0;
@@ -55368,7 +55405,7 @@ async function runEnrichWorkspace(workspaceId, limit2 = 10) {
     const enrichable = (nodes ?? []).filter((n2) => ENRICHABLE2.some((t2) => String(n2.object_type).toLowerCase().includes(t2))).slice(0, limit2);
     let enrichedCount = 0;
     for (const n2 of enrichable) {
-      const added = await enrichOne(n2.id, n2.object_type, n2.data ?? {});
+      const added = await enrichOne(n2.id, n2.object_type, n2.data ?? {}, workspaceId);
       if (added > 0) {
         enrichedCount++;
         await createNotification({
@@ -56180,8 +56217,8 @@ var SEARCH_TIMEOUT_REASON = "Self-hosted search engine instance was temporarily 
 var SOVEREIGN_SEARCH_URL2 = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
 async function searxng(query) {
   try {
-    const url = `${SOVEREIGN_SEARCH_URL2}?q=${encodeURIComponent(query)}&format=json&engines=google,reddit`;
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const url = `${SOVEREIGN_SEARCH_URL2}?q=${encodeURIComponent(query)}&format=json`;
+    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
     if (!res.ok) {
       console.error(`[social-discovery] searxng HTTP ${res.status}`);
       return { hits: [], unreachable: res.status >= 500 };
@@ -56222,73 +56259,89 @@ var LEAD_TOOL_SCHEMA = {
         properties: {
           source_url: { type: "string", description: "Exact URL the result came from (must be one of the provided URLs)" },
           platform: { type: "string", description: "X | Reddit | Google Reviews | other" },
-          author_name: { type: "string" },
-          raw_content: { type: "string", description: "The relevant quote/snippet, verbatim" },
+          author_name: { type: "string", description: "The person's name if identifiable" },
+          raw_content: { type: "string", description: "The relevant quote/snippet/review, verbatim" },
           intent_type: { type: "string", description: "BUY_SIGNAL | REVIEW | COMPLAINT" },
           target_subject: { type: "string", description: "The person/company being reviewed, if any" },
           region: { type: "string" },
-          confidence_score: { type: "number", description: "0-100 how clearly this matches the search intent + region" }
+          confidence_score: { type: "number", description: "0-100 how clearly this matches the search intent + region" },
+          contact_email: { type: "string", description: "Email ONLY if it appears verbatim in the source text \u2014 else omit" },
+          contact_phone: { type: "string", description: "Phone ONLY if it appears verbatim in the source text \u2014 else omit" },
+          handle: { type: "string", description: "Social handle/username if present (e.g. @name)" },
+          summary: { type: "string", description: "One-sentence note: who this is and why they're a lead" }
         },
         required: ["source_url", "intent_type"]
       }
     }
   }
 };
-var socialDiscoveryWorker = inngest.createFunction(
-  { id: "social-media-listening-discovery", name: "Social listening & intent discovery", concurrency: { limit: 3 } },
-  { event: "app/social.discovery.trigger" },
-  async ({ event }) => {
-    const { workspaceId, region, sector, searchType, targetSubject } = event.data;
-    const queries = buildQueries(searchType, sector, region, targetSubject);
-    const sweep = await Promise.all(queries.map((q2) => searxng(q2)));
-    if (sweep.some((s2) => s2.unreachable)) {
-      console.error("[social-discovery] " + SEARCH_TIMEOUT_REASON);
-      return { status: "SKIPPED_INFRASTRUCTURE_TIMEOUT", reason: SEARCH_TIMEOUT_REASON };
-    }
-    const hits = sweep.flatMap((s2) => s2.hits);
-    if (hits.length === 0) return { discovered: 0, reason: "no search results" };
-    const seen = /* @__PURE__ */ new Set();
-    const unique = hits.filter((h2) => seen.has(h2.url) ? false : (seen.add(h2.url), true)).slice(0, 24);
-    const context2 = unique.map((h2, i2) => `[${i2}] ${h2.title}
+async function runSocialDiscovery(data) {
+  const { workspaceId, region, sector, searchType, targetSubject } = data;
+  const queries = buildQueries(searchType, sector, region, targetSubject);
+  const sweep = await Promise.all(queries.map((q2) => searxng(q2)));
+  if (sweep.some((s2) => s2.unreachable)) {
+    console.error("[social-discovery] " + SEARCH_TIMEOUT_REASON);
+    return { status: "SKIPPED_INFRASTRUCTURE_TIMEOUT", reason: SEARCH_TIMEOUT_REASON };
+  }
+  const hits = sweep.flatMap((s2) => s2.hits);
+  if (hits.length === 0) return { discovered: 0, reason: "no search results" };
+  const seen = /* @__PURE__ */ new Set();
+  const unique = hits.filter((h2) => seen.has(h2.url) ? false : (seen.add(h2.url), true)).slice(0, 24);
+  const context2 = unique.map((h2, i2) => `[${i2}] ${h2.title}
 ${h2.content}
 URL: ${h2.url}`).join("\n\n");
-    const wantReviews = searchType === "REVIEWS";
-    const extracted = await aiGatewayToolUse({
-      toolName: "extract_discovered_leads",
-      toolDescription: "Extract clean, on-topic social-listening results from the search hits",
-      toolSchema: LEAD_TOOL_SCHEMA,
-      maxTokens: 2048,
-      system: `You extract ${wantReviews ? "reviews/complaints" : "buyer-intent signals"} from raw web search hits. STRICT RULES: (1) every result's source_url MUST be copied verbatim from one of the provided URLs \u2014 never invent one. (2) Drop ads, SEO listicles, vendor pages, and anything that is not a genuine ${wantReviews ? "review or complaint" : "person expressing buying intent"}. (3) ${region ? `Only keep results that plausibly match the region "${region}"; drop the rest.` : "Region is optional."} (4) intent_type is COMPLAINT for negative reviews, REVIEW for neutral/positive reviews, BUY_SIGNAL for purchase intent. (5) confidence_score reflects how clearly the hit matches the intent and region. Return an empty array if nothing qualifies \u2014 never pad.`,
-      prompt: `Search type: ${searchType}. Sector: "${sector ?? ""}". Region: "${region ?? ""}".${targetSubject ? ` Target subject: "${targetSubject}".` : ""}
+  const wantReviews = searchType === "REVIEWS";
+  const extracted = await aiGatewayToolUse({
+    toolName: "extract_discovered_leads",
+    toolDescription: "Extract clean, on-topic social-listening results from the search hits",
+    toolSchema: LEAD_TOOL_SCHEMA,
+    maxTokens: 2048,
+    system: `You extract ${wantReviews ? "reviews/complaints" : "buyer-intent signals"} from raw web search hits. STRICT RULES: (1) every result's source_url MUST be copied verbatim from one of the provided URLs \u2014 never invent one. (2) Drop ads, SEO listicles, vendor pages, and anything that is not a genuine ${wantReviews ? "review or complaint" : "person expressing buying intent"}. (3) ${region ? `Only keep results that plausibly match the region "${region}"; drop the rest.` : "Region is optional."} (4) intent_type is COMPLAINT for negative reviews, REVIEW for neutral/positive reviews, BUY_SIGNAL for purchase intent. (5) confidence_score reflects how clearly the hit matches the intent and region. Return an empty array if nothing qualifies \u2014 never pad. (6) Fill contact_email / contact_phone / handle ONLY when they appear verbatim in the hit text \u2014 NEVER guess or construct them. Always write a one-sentence summary noting who the person is and why they're a lead.`,
+    prompt: `Search type: ${searchType}. Sector: "${sector ?? ""}". Region: "${region ?? ""}".${targetSubject ? ` Target subject: "${targetSubject}".` : ""}
 
 Search hits:
 ${context2}`
-    }).catch((err2) => {
-      console.error("[social-discovery] extraction gateway call failed (non-fatal):", err2?.message ?? err2);
-      return {};
-    });
-    const leads = Array.isArray(extracted.leads) ? extracted.leads : [];
-    const validUrls = new Set(unique.map((h2) => h2.url));
-    const rows2 = leads.filter((l2) => l2.source_url && validUrls.has(l2.source_url) && l2.intent_type).map((l2) => ({
-      workspace_id: workspaceId,
-      source_url: l2.source_url,
-      // NOT NULL columns — always provide a value.
-      platform: l2.platform || "web",
-      author_name: l2.author_name || "Anonymous",
-      raw_content: l2.raw_content || "",
-      intent_type: l2.intent_type,
-      target_subject: l2.target_subject ?? targetSubject ?? null,
-      region: l2.region ?? region ?? null,
-      confidence_score: typeof l2.confidence_score === "number" ? Math.max(0, Math.min(100, Math.round(l2.confidence_score))) : 0
-    }));
-    if (rows2.length === 0) return { discovered: 0, scanned: unique.length };
-    const { error } = await supabase.from("discovered_leads").upsert(rows2, { onConflict: "source_url" });
-    if (error) {
-      console.error("[social-discovery] upsert failed:", error.message);
-      return { discovered: 0, scanned: unique.length, error: error.message };
+  }).catch((err2) => {
+    console.error("[social-discovery] extraction gateway call failed (non-fatal):", err2?.message ?? err2);
+    return {};
+  });
+  const leads = Array.isArray(extracted.leads) ? extracted.leads : [];
+  const validUrls = new Set(unique.map((h2) => h2.url));
+  const rows2 = leads.filter((l2) => l2.source_url && validUrls.has(l2.source_url) && l2.intent_type).map((l2) => ({
+    workspace_id: workspaceId,
+    source_url: l2.source_url,
+    // NOT NULL columns — always provide a value.
+    platform: l2.platform || "web",
+    author_name: l2.author_name || "Anonymous",
+    raw_content: l2.raw_content || "",
+    intent_type: l2.intent_type,
+    target_subject: l2.target_subject ?? targetSubject ?? null,
+    region: l2.region ?? region ?? null,
+    confidence_score: typeof l2.confidence_score === "number" ? Math.max(0, Math.min(100, Math.round(l2.confidence_score))) : 0,
+    // Structured contact block (needs the `contact jsonb` column — 20260701 migration).
+    contact: {
+      email: l2.contact_email?.trim() || null,
+      phone: l2.contact_phone?.trim() || null,
+      handle: l2.handle?.trim() || null,
+      summary: l2.summary?.trim() || null
     }
-    return { discovered: rows2.length, scanned: unique.length };
+  }));
+  if (rows2.length === 0) return { discovered: 0, scanned: unique.length };
+  let { error } = await supabase.from("discovered_leads").upsert(rows2, { onConflict: "source_url" });
+  if (error && /contact/i.test(error.message)) {
+    const bare = rows2.map(({ contact, ...r2 }) => r2);
+    ({ error } = await supabase.from("discovered_leads").upsert(bare, { onConflict: "source_url" }));
   }
+  if (error) {
+    console.error("[social-discovery] upsert failed:", error.message);
+    return { discovered: 0, scanned: unique.length, error: error.message };
+  }
+  return { discovered: rows2.length, scanned: unique.length };
+}
+var socialDiscoveryWorker = inngest.createFunction(
+  { id: "social-media-listening-discovery", name: "Social listening & intent discovery", concurrency: { limit: 3 } },
+  { event: "app/social.discovery.trigger" },
+  async ({ event }) => runSocialDiscovery(event.data)
 );
 
 // src/jobs/daily-brief.ts
@@ -57187,7 +57240,7 @@ var runSchema = external_exports.object({
   destination_list_id: external_exports.string().uuid().optional(),
   require_approval: external_exports.boolean().default(true)
 });
-async function tavilySearch2(query, maxResults) {
+async function tavilySearch(query, maxResults) {
   const key = process.env.TAVILY_API_KEY;
   if (!key) return [];
   try {
@@ -57318,7 +57371,7 @@ async function runProspecting(workspaceId, userId, input) {
     input: { query: input.query, object_type: input.object_type, count: input.count }
   });
   try {
-    const searchResults = await tavilySearch2(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
+    const searchResults = await tavilySearch(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
     const { candidates, gen } = await extractCandidates(input.query, input.object_type, input.count, searchResults);
     const result = {
       created: 0,
@@ -57660,6 +57713,8 @@ You can create_note (a standalone note, optionally linked to a record), create_d
 For the Decision Queue itself: list_decisions reads what's actually pending, and resolve_decision approves/rejects/snoozes one by id. If the user says "approve all pending decisions" or similar, call list_decisions first, then call resolve_decision once per id returned \u2014 never say the queue is empty without having called list_decisions, and never claim you approved something without actually calling resolve_decision for it.
 
 You also have discover_web_prospects \u2014 the Prospecting Agent. Use it whenever the user asks you to find new candidates from the web: people, organizations, investors, partners, suppliers, or any other object type the workspace tracks (this is not limited to sales leads). It searches the live web, extracts real source-backed candidates, deduplicates them against the workspace graph, and either queues them in the Decision Queue for approval or creates records directly, exactly as the user specifies. Every candidate it returns has a real source URL \u2014 never invent a candidate yourself; always call this tool instead.
+
+You also have web_search \u2014 a general LIVE WEB search that reads the top pages and returns their real content. Use it WHENEVER the user asks for anything external the workspace can't answer: reviews or ratings of a company/product ("search Vivacy reviews", "what do people say about X"), news, current facts, background research, prices, "look up X online". You CAN search the web \u2014 never tell the user you're "unable to perform an external web search" or that you "don't have the tools"; you DO have web_search, so call it and summarise the results WITH their source URLs. web_search is read-only (no records created); use discover_web_prospects instead only when the user wants the results saved as records.
 
 Key tool-chaining patterns:
 - "Create a list of [records matching criteria]" \u2192 search_records first to find the IDs, then create_list, then add_to_list in sequence.
@@ -58041,6 +58096,17 @@ var TOOLS = [
       },
       required: ["query", "object_type"]
     }
+  },
+  {
+    name: "web_search",
+    description: "Search the LIVE WEB and read the top pages \u2014 for reviews, ratings, articles, news, background research, or any question needing current external info the workspace doesn't have. Use whenever the user asks to 'search the web', 'find reviews of X', 'what do people say about X', 'look up X online', or any factual/current question you can't answer from workspace records. Returns source-backed excerpts you then summarize WITH the source URLs. This does NOT create records \u2014 use discover_web_prospects for that.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "The web search query, e.g. 'Vivacy reviews' or 'ACME funding news 2026'" }
+      },
+      required: ["query"]
+    }
   }
 ];
 var CORE_TOOLS = /* @__PURE__ */ new Set([
@@ -58059,7 +58125,8 @@ var TOOL_GROUPS = [
   { tools: ["list_reports", "get_report", "run_report", "create_report"], keywords: /\b(report|dashboard|funnel|insight|metric|chart|forecast|analytics|pipeline health)\b/i },
   { tools: ["list_decisions", "resolve_decision", "create_decision"], keywords: /\b(decision|approve|reject|snooze|queue|recommendation|sign.?off|flag.*approval)\b/i },
   { tools: ["create_workflow_draft", "set_workflow_enabled", "list_workflows"], keywords: /\b(workflow|automat|trigger|sequence|when .* then|enable|disable|activate|turn on|turn off|pause)\b/i },
-  { tools: ["discover_web_prospects"], keywords: /\b(prospect|discover|scrape|outreach|web|online|internet)\b|\bfind (new |more )?(lead|compan|people|investor|prospect)/i }
+  { tools: ["discover_web_prospects"], keywords: /\b(prospect|discover|scrape|outreach|web|online|internet)\b|\bfind (new |more )?(lead|compan|people|investor|prospect)/i },
+  { tools: ["web_search"], keywords: /\b(search|reviews?|rating|reputation|news|article|look ?up|google|what do people say|online|web|current|latest|price of|who is|find out about)\b/i }
 ];
 function selectTools(query, history) {
   if (process.env.LAZY_TOOLS === "off") return TOOLS;
@@ -58327,6 +58394,7 @@ ${results.join("\n")}`;
             prompt: `Generate 5-10 useful fields for a "${input.name}" object. Context: ${input.description}. Use snake_case names, appropriate types (currency for money, date for dates, select for status fields, checkbox for yes/no). Always include a status or stage select field.`,
             toolName: "define_attributes",
             toolDescription: "Define the fields for a custom object type",
+            workspaceId,
             toolSchema: {
               type: "object",
               properties: {
@@ -58597,6 +58665,7 @@ ${list}`;
         try {
           const gen = await aiGatewayToolUse({
             maxTokens: 1200,
+            workspaceId,
             system: "You design business automations. Return ONE trigger, optional conditions, and at least one action. Use exact field names where known (e.g. lead_score, deal_stage).",
             prompt: `Design an automation for: "${input.description}" (name: "${input.name}").`,
             toolName: "design_workflow",
@@ -58686,6 +58755,21 @@ ${list}`;
         ].filter(Boolean).join(", ");
         if (!result.candidates.length) return `No real candidates found for "${input.query}" \u2014 the web search returned nothing usable. Try a more specific query.`;
         return `Searched the web for "${input.query}" (${input.object_type}): ${parts || "no new candidates"}. Every candidate is source-backed \u2014 see the source cards for the page each one came from.`;
+      }
+      case "web_search": {
+        const query = String(input.query ?? "").trim();
+        if (!query) return "No search query provided.";
+        const urls = await sovereignSearchUrls(query, 5);
+        if (!urls.length) return `No web results for "${query}" \u2014 the sovereign search appliance returned nothing (it may be unreachable, or there are genuinely no results).`;
+        const pages = await Promise.all(urls.slice(0, 3).map(async (u2) => ({ url: u2, text: (await sovereignScrape(u2)).slice(0, 2500) })));
+        const withText = pages.filter((p2) => p2.text.trim());
+        for (const u2 of urls) sources.push({ type: "web", title: u2.replace(/^https?:\/\/(www\.)?/, "").split("/")[0] ?? u2, node_id: u2, match_reason: query });
+        if (!withText.length) return `Found ${urls.length} web result(s) for "${query}" but couldn't read their contents. Links:
+${urls.map((u2) => `- ${u2}`).join("\n")}`;
+        return `Live web results for "${query}". Summarize these for the user and cite the source URLs:
+
+${withText.map((p2) => `SOURCE: ${p2.url}
+${p2.text}`).join("\n\n---\n\n")}`;
       }
       default:
         return `Unknown tool: ${name}`;
@@ -59811,11 +59895,16 @@ async function credByEmail(email) {
   return data;
 }
 async function sessionProfile(userId) {
-  const { data } = await supabase.from("workspace_members").select("workspace_id, name, avatar_url").eq("user_id", userId).limit(1).maybeSingle();
+  const [{ data }, { data: cred }] = await Promise.all([
+    supabase.from("workspace_members").select("workspace_id, name, avatar_url").eq("user_id", userId).limit(1).maybeSingle(),
+    // email_verified may not exist pre-migration → default to true so no banner shows (graceful).
+    supabase.from("auth_credentials").select("email_verified").eq("user_id", userId).maybeSingle()
+  ]);
   return {
     workspaceId: data?.workspace_id ?? null,
     name: data?.name ?? null,
-    imageUrl: data?.avatar_url ?? null
+    imageUrl: data?.avatar_url ?? null,
+    emailVerified: cred?.email_verified ?? true
   };
 }
 router11.get("/challenge", async (c2) => c2.json(await issuePowChallenge()));
@@ -59842,10 +59931,63 @@ router11.post("/register", rateLimit(), requirePow, zValidator("json", credSchem
   await issueSession(c2, userId, email, c2.req.header("user-agent"));
   const pb = await c2.req.json().catch(() => ({}));
   logPowClaim(userId, pb.pow_challenge ?? "", pb.pow_nonce ?? "", "register");
+  void sendVerificationEmail(userId, email);
   return c2.json({ userId, email, name: displayName, imageUrl: null, workspaceId }, 201);
 });
-router11.post("/login", rateLimit(), zValidator("json", credSchema), async (c2) => {
+async function sendVerificationEmail(userId, email) {
+  try {
+    const token = await signVerifyToken(userId, email);
+    const appUrl4 = process.env.APP_URL ?? "https://app.mondaily.com";
+    const link = `${appUrl4}/auth/verify-email?token=${encodeURIComponent(token)}`;
+    await sendTransactionalEmail({
+      to: [{ email }],
+      subject: "Verify your Mondaily email",
+      body: `<p>Welcome to Mondaily. Confirm this is your email to secure your account:</p>
+             <p><a href="${link}">Verify my email</a></p>
+             <p>This link expires in 72 hours. You can keep using Mondaily in the meantime.</p>`
+    });
+  } catch {
+  }
+}
+router11.post("/verify-email", rateLimit(), zValidator("json", external_exports.object({ token: external_exports.string().min(1) })), async (c2) => {
+  const { token } = c2.req.valid("json");
+  const claims = await verifyVerifyToken(token);
+  if (!claims) return c2.json({ error: "This verification link is invalid or has expired." }, 400);
+  const { error } = await supabase.from("auth_credentials").update({ email_verified: true, verified_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("user_id", claims.sub);
+  if (error) return c2.json({ error: error.message }, 400);
+  return c2.json({ ok: true, email: claims.email });
+});
+router11.post("/resend-verification", requireAuth, rateLimit({ max: 3, windowMs: 10 * 6e4 }), async (c2) => {
+  const userId = c2.get("userId");
+  const { data } = await supabase.from("auth_credentials").select("email, email_verified").eq("user_id", userId).maybeSingle();
+  if (!data) return c2.json({ ok: true });
+  if (data.email_verified) return c2.json({ ok: true, already: true });
+  await sendVerificationEmail(userId, data.email);
+  return c2.json({ ok: true });
+});
+var failedLogins = /* @__PURE__ */ new Map();
+var LOCK_THRESHOLD = 6;
+var LOCK_MS = 15 * 6e4;
+function loginLockedSecs(email) {
+  const rec = failedLogins.get(email);
+  return rec && rec.until > Date.now() ? Math.ceil((rec.until - Date.now()) / 1e3) : 0;
+}
+function recordLoginFail(email) {
+  const rec = failedLogins.get(email) ?? { count: 0, until: 0 };
+  rec.count += 1;
+  if (rec.count >= LOCK_THRESHOLD) {
+    rec.until = Date.now() + LOCK_MS;
+    rec.count = 0;
+  }
+  failedLogins.set(email, rec);
+}
+router11.post("/login", rateLimit(), requirePow, zValidator("json", credSchema), async (c2) => {
   const { email, password } = c2.req.valid("json");
+  const lock = loginLockedSecs(email.toLowerCase());
+  if (lock > 0) {
+    c2.header("Retry-After", String(lock));
+    return c2.json({ error: `Too many failed attempts. Try again in ${Math.ceil(lock / 60)} min.` }, 429);
+  }
   const cred = await credByEmail(email);
   if (!cred) {
     const member = await memberByEmail(email);
@@ -59853,7 +59995,11 @@ router11.post("/login", rateLimit(), zValidator("json", credSchema), async (c2) 
     return c2.json({ error: "Invalid email or password." }, 401);
   }
   const ok2 = await verifyPassword(cred.password_hash, password);
-  if (!ok2) return c2.json({ error: "Invalid email or password." }, 401);
+  if (!ok2) {
+    recordLoginFail(email.toLowerCase());
+    return c2.json({ error: "Invalid email or password." }, 401);
+  }
+  failedLogins.delete(email.toLowerCase());
   await issueSession(c2, cred.user_id, cred.email, c2.req.header("user-agent"));
   return c2.json({ userId: cred.user_id, email: cred.email, ...await sessionProfile(cred.user_id) });
 });
@@ -60690,10 +60836,12 @@ router15.delete("/settings/workspace", async (c2) => {
 router15.get("/settings/members", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString();
-  const [{ data: members }, { data: teams }, invites, { data: usage }, { data: sessions }] = await Promise.all([
+  const [{ data: members }, { data: teams }, { data: inviteRows }, { data: usage }, { data: sessions }] = await Promise.all([
     supabase.from("workspace_members").select("*").eq("workspace_id", workspaceId),
     supabase.from("teams").select("*, team_members(user_id)").eq("workspace_id", workspaceId),
-    rows("nodes", workspaceId, { objectType: "workspace_invitation" }),
+    // Read pending invites from the SAME table POST /invites writes to (workspace_invites) —
+    // previously this read from nodes/workspace_invitation, so sent invites never appeared.
+    supabase.from("workspace_invites").select("id, email, role, finance_role, created_at, expires_at").eq("workspace_id", workspaceId).is("accepted_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("created_at", { ascending: false }),
     // Per-operator AI telemetry (30d) so the Members matrix shows real compute consumption.
     supabase.from("ai_usage").select("user_id, total_tokens").eq("workspace_id", workspaceId).gte("created_at", sinceIso),
     supabase.from("auth_refresh_tokens").select("user_id, last_active_at").is("revoked_at", null)
@@ -60710,6 +60858,9 @@ router15.get("/settings/members", async (c2) => {
     if (k2 && t2 && (!lastActiveBy.has(k2) || t2 > lastActiveBy.get(k2))) lastActiveBy.set(k2, t2);
   }
   return c2.json({
+    // Authoritative role of the *requesting* user, straight from the auth context — so the UI
+    // never has to guess by matching ids/emails (which was hiding the invite bar for owners).
+    my_role: c2.get("role"),
     members: (members ?? []).map((member) => ({
       id: member.user_id,
       name: member.name || member.email || member.user_id,
@@ -60723,7 +60874,13 @@ router15.get("/settings/members", async (c2) => {
       last_active: lastActiveBy.get(String(member.user_id)) ?? null,
       status: "active"
     })),
-    invitations: invites.map((node) => ({ id: node.id, ...node.data ?? {} })),
+    invitations: (inviteRows ?? []).map((i2) => ({
+      id: i2.id,
+      email: i2.email,
+      role: i2.role,
+      finance_role: i2.finance_role ?? "none",
+      created_at: i2.created_at
+    })),
     teams: (teams ?? []).map((team) => ({ id: team.id, name: team.name, member_count: team.team_members?.length ?? 0, member_ids: team.team_members?.map((item) => item.user_id) ?? [] }))
   });
 });
@@ -61264,24 +61421,10 @@ async function getSettings(workspaceId) {
   return data?.settings ?? {};
 }
 function getGrantId(settings) {
-  if (settings.nylas_grant_id) return settings.nylas_grant_id;
   for (const provider of ["gmail", "outlook"]) {
     const integration = settings.integrations?.[provider];
     if (typeof integration === "object" && integration.grant_id) return integration.grant_id;
   }
-}
-async function nylasRequest(grantId, path, init2) {
-  if (!process.env.NYLAS_API_KEY) throw new Error("NYLAS_API_KEY is not configured");
-  const response3 = await fetch(`https://api.us.nylas.com/v3/grants/${grantId}${path}`, {
-    ...init2,
-    headers: {
-      Authorization: `Bearer ${process.env.NYLAS_API_KEY}`,
-      "Content-Type": "application/json",
-      ...init2?.headers
-    }
-  });
-  if (!response3.ok) throw new Error(`Nylas request failed (${response3.status}): ${await response3.text()}`);
-  return response3.json();
 }
 async function localThreads(workspaceId) {
   const { data } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", workspaceId).eq("object_type", "email_thread").order("updated_at", { ascending: false }).limit(50);
@@ -61342,17 +61485,8 @@ router18.get("/threads", zValidator("query", external_exports.object({
       return c2.json({ threads: mapped, connected: true, connected_email: gc.email, next_cursor: void 0 });
     }
   }
-  let threads;
-  let nextCursor;
-  if (grantId && process.env.NYLAS_API_KEY) {
-    const params = new URLSearchParams({ limit: "50" });
-    if (input.page_token) params.set("page_token", input.page_token);
-    const response3 = await nylasRequest(grantId, `/threads?${params}`);
-    threads = response3.data ?? [];
-    nextCursor = response3.next_cursor;
-  } else {
-    threads = await localThreads(c2.get("workspaceId"));
-  }
+  const threads = await localThreads(c2.get("workspaceId"));
+  const nextCursor = void 0;
   const search = input.search.trim().toLowerCase();
   const filtered = threads.filter((thread) => {
     const participants = JSON.stringify(thread.participants ?? []).toLowerCase();
@@ -61385,25 +61519,6 @@ router18.get("/threads/:id", async (c2) => {
       });
     }
   }
-  if (grantId && process.env.NYLAS_API_KEY) {
-    const threadResponse = await nylasRequest(grantId, `/threads/${encodeURIComponent(c2.req.param("id"))}`);
-    const thread = threadResponse.data;
-    const messageIds = Array.isArray(thread.message_ids) ? thread.message_ids.map(String) : [];
-    const messages = await Promise.all(messageIds.map(async (id) => {
-      const response3 = await nylasRequest(grantId, `/messages/${encodeURIComponent(id)}`);
-      const message = response3.data;
-      return {
-        id,
-        from: message.from ?? [],
-        to: message.to ?? [],
-        cc: message.cc ?? [],
-        date: message.date ?? 0,
-        body: message.body ?? "",
-        attachments: message.attachments ?? []
-      };
-    }));
-    return c2.json({ ...thread, messages });
-  }
   const { data } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_thread").or(`id.eq.${c2.req.param("id")},data->>thread_id.eq.${c2.req.param("id")}`).maybeSingle();
   return data ? c2.json({ id: data.data.thread_id ?? data.id, ...data.data }) : c2.json({ error: "Thread not found" }, 404);
 });
@@ -61430,38 +61545,40 @@ router18.post("/threads/:id/reply", zValidator("json", external_exports.object({
     const msgs = await gmailThread(token, c2.req.param("id"));
     const last = msgs[msgs.length - 1];
     if (!last) return c2.json({ error: "Thread has no message to reply to" }, 400);
-    const replyTo2 = parseAddr(last.from).email;
+    const replyTo = parseAddr(last.from).email;
     const subject = /^re:/i.test(last.subject) ? last.subject : `Re: ${last.subject}`;
-    const { data: trackNode2 } = await supabase.from("nodes").insert({
+    const { data: trackNode } = await supabase.from("nodes").insert({
       workspace_id: c2.get("workspaceId"),
       vertical: "sales",
       object_type: "email_outbox",
       data: { thread_id: c2.req.param("id"), subject, status: "sent", sent_at: (/* @__PURE__ */ new Date()).toISOString(), opens: [], clicks: [] },
       created_by: c2.get("userId")
     }).select("id").single();
-    const trackedBody2 = trackNode2 ? injectTracking(c2.req.valid("json").body, trackNode2.id) : c2.req.valid("json").body;
-    const ok2 = await gmailSend(token, { to: [replyTo2], subject, html: trackedBody2, from: gc.email, threadId: c2.req.param("id"), inReplyTo: last.messageId });
+    const trackedBody = trackNode ? injectTracking(c2.req.valid("json").body, trackNode.id) : c2.req.valid("json").body;
+    const ok2 = await gmailSend(token, { to: [replyTo], subject, html: trackedBody, from: gc.email, threadId: c2.req.param("id"), inReplyTo: last.messageId });
     if (!ok2) return c2.json({ error: "Failed to send the reply via Gmail." }, 502);
-    return c2.json({ ok: true, tracking_id: trackNode2?.id }, 201);
+    return c2.json({ ok: true, tracking_id: trackNode?.id }, 201);
   }
-  if (!grantId) return c2.json({ error: "Connect Gmail or Outlook before replying" }, 400);
-  const thread = await nylasRequest(grantId, `/threads/${encodeURIComponent(c2.req.param("id"))}`);
-  const messageIds = Array.isArray(thread.data.message_ids) ? thread.data.message_ids.map(String) : [];
-  const replyTo = messageIds.at(-1);
-  if (!replyTo) return c2.json({ error: "Thread has no message to reply to" }, 400);
+  return c2.json({ error: "Connect a Gmail inbox in Settings \u2192 Email before replying." }, 400);
+});
+router18.post("/compose", zValidator("json", external_exports.object({
+  to: external_exports.string().email(),
+  subject: external_exports.string().min(1).max(300),
+  body: external_exports.string().min(1),
+  name: external_exports.string().max(160).optional()
+})), async (c2) => {
+  const { to, subject, body, name } = c2.req.valid("json");
   const { data: trackNode } = await supabase.from("nodes").insert({
     workspace_id: c2.get("workspaceId"),
     vertical: "sales",
     object_type: "email_outbox",
-    data: { thread_id: c2.req.param("id"), subject: "(reply)", status: "sent", sent_at: (/* @__PURE__ */ new Date()).toISOString(), opens: [], clicks: [] },
+    data: { to, subject, status: "sent", sent_at: (/* @__PURE__ */ new Date()).toISOString(), opens: [], clicks: [] },
     created_by: c2.get("userId")
   }).select("id").single();
-  const trackedBody = trackNode ? injectTracking(c2.req.valid("json").body, trackNode.id) : c2.req.valid("json").body;
-  const result = await nylasRequest(grantId, "/messages/send", {
-    method: "POST",
-    body: JSON.stringify({ body: trackedBody, reply_to_message_id: replyTo })
-  });
-  return c2.json({ ...result.data, tracking_id: trackNode?.id }, 201);
+  const html = trackNode ? injectTracking(body, trackNode.id) : body;
+  const ok2 = await sendWorkspaceEmail(c2.get("workspaceId"), { subject, body: html, to: [{ email: to, name }] });
+  if (!ok2) return c2.json({ error: "Couldn't send \u2014 connect a Gmail inbox in Settings \u2192 Email, or set RESEND_API_KEY on the API." }, 502);
+  return c2.json({ ok: true, tracking_id: trackNode?.id }, 201);
 });
 router18.get("/outbox", async (c2) => {
   const { data } = await supabase.from("nodes").select("id,data,created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_outbox").order("created_at", { ascending: false }).limit(100);
@@ -62618,7 +62735,7 @@ Example output: {"name":"Text","revenue":"Currency","active":"Boolean"}`,
 
 // src/routes/generate.ts
 var router30 = new Hono2();
-async function callAnthropic(body) {
+async function callGatewayTool(body) {
   const tool = body.tools?.[0];
   const lastMsg = body.messages?.[body.messages.length - 1];
   if (!tool || !lastMsg) throw new Error("Invalid AI request body");
@@ -62635,8 +62752,7 @@ async function callAnthropic(body) {
 router30.post("/schema", requireAuth, zValidator("json", external_exports.object({ prompt: external_exports.string().min(1) })), async (c2) => {
   const { prompt } = c2.req.valid("json");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 2048,
       tools: [{
         name: "create_object_schema",
@@ -62719,56 +62835,32 @@ Only include fields that are clearly requested. sortCol MUST exactly match one o
 });
 router30.post("/enrich/company", requireAuth, zValidator("json", external_exports.object({ name: external_exports.string() })), async (c2) => {
   const { name } = c2.req.valid("json");
-  const tavilyKey = process.env.TAVILY_API_KEY;
-  let webContext = "";
-  if (tavilyKey) {
-    try {
-      const sr2 = await fetch("https://api.tavily.com/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ api_key: tavilyKey, query: `${name} company funding employees ARR revenue`, max_results: 5, search_depth: "basic" })
-      });
-      if (sr2.ok) {
-        const sd = await sr2.json();
-        webContext = (sd.results ?? []).slice(0, 4).map((r2) => `${r2.title}: ${r2.content}`).join("\n");
-      }
-    } catch {
-    }
-  }
+  const webContext = await sovereignWebContext(`${name} company funding employees ARR revenue headquarters`);
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 512,
-      tools: [{
-        name: "enrich_company",
-        description: "Extract company data fields from available information",
-        input_schema: {
-          type: "object",
-          properties: {
-            description: { type: "string" },
-            country: { type: "string" },
-            employee_range: { type: "string", description: "e.g. 1-10, 11-50, 51-200, 201-500, 500-1000, 1000+" },
-            arr: { type: "number", description: "Annual recurring revenue in USD" },
-            funding_raised: { type: "number", description: "Total funding raised in USD" },
-            website: { type: "string" },
-            industry: { type: "string" }
-          }
+    const fields = await aiGatewayToolUse({
+      toolName: "enrich_company",
+      toolDescription: "Extract company data fields strictly from the provided web context",
+      toolSchema: {
+        type: "object",
+        properties: {
+          description: { type: "string" },
+          country: { type: "string" },
+          employee_range: { type: "string", description: "e.g. 1-10, 11-50, 51-200, 201-500, 500-1000, 1000+" },
+          arr: { type: "number", description: "Annual recurring revenue in USD" },
+          funding_raised: { type: "number", description: "Total funding raised in USD" },
+          website: { type: "string" },
+          industry: { type: "string" }
         }
-      }],
-      tool_choice: { type: "tool", name: "enrich_company" },
-      messages: [{
-        role: "user",
-        content: `Enrich this company: "${name}"
+      },
+      system: "You extract verifiable company facts. Only fill a field if the web context supports it \u2014 never guess or fabricate numbers. Omit anything you cannot ground in the context.",
+      prompt: `Company: "${name}"
 
-${webContext ? `Web search results:
-${webContext}
-
-` : ""}Extract what you know or can reasonably infer. Use null for fields you're uncertain about.`
-      }]
+${webContext ? `Web context:
+${webContext}` : "No web context was available."}`,
+      workspaceId: c2.get("workspaceId"),
+      userId: c2.get("userId")
     });
-    const toolUse = data.content?.find((b2) => b2.type === "tool_use");
-    const fields = toolUse?.input ?? {};
-    const clean2 = Object.fromEntries(Object.entries(fields).filter(([, v2]) => v2 != null));
+    const clean2 = Object.fromEntries(Object.entries(fields ?? {}).filter(([, v2]) => v2 != null && v2 !== ""));
     return c2.json({ fields: clean2, source: webContext ? "web" : "ai" });
   } catch (e2) {
     return c2.json({ error: e2.message }, 500);
@@ -62776,55 +62868,31 @@ ${webContext}
 });
 router30.post("/enrich/person", requireAuth, zValidator("json", external_exports.object({ email: external_exports.string() })), async (c2) => {
   const { email } = c2.req.valid("json");
-  const tavilyKey = process.env.TAVILY_API_KEY;
   const domain = email.split("@")[1] ?? "";
-  let webContext = "";
-  if (tavilyKey && domain) {
-    try {
-      const sr2 = await fetch("https://api.tavily.com/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ api_key: tavilyKey, query: `${email} linkedin job title company`, max_results: 3, search_depth: "basic" })
-      });
-      if (sr2.ok) {
-        const sd = await sr2.json();
-        webContext = (sd.results ?? []).slice(0, 3).map((r2) => `${r2.title}: ${r2.content}`).join("\n");
-      }
-    } catch {
-    }
-  }
+  const webContext = domain ? await sovereignWebContext(`${email} ${domain} linkedin job title company`) : "";
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 384,
-      tools: [{
-        name: "enrich_person",
-        description: "Extract person data fields",
-        input_schema: {
-          type: "object",
-          properties: {
-            company: { type: "string" },
-            job_title: { type: "string" },
-            linkedin: { type: "string" },
-            location: { type: "string" },
-            twitter: { type: "string" }
-          }
+    const fields = await aiGatewayToolUse({
+      toolName: "enrich_person",
+      toolDescription: "Extract person data fields strictly from the provided web context",
+      toolSchema: {
+        type: "object",
+        properties: {
+          company: { type: "string" },
+          job_title: { type: "string" },
+          linkedin: { type: "string" },
+          location: { type: "string" },
+          twitter: { type: "string" }
         }
-      }],
-      tool_choice: { type: "tool", name: "enrich_person" },
-      messages: [{
-        role: "user",
-        content: `Enrich this person: email = "${email}", domain = "${domain}"
+      },
+      system: "You extract verifiable facts about a person. Only fill a field if the web context supports it \u2014 never fabricate. Company may be inferred from the email domain; everything else must be grounded in the context.",
+      prompt: `Person email: "${email}" (domain "${domain}")
 
 ${webContext ? `Web context:
-${webContext}
-
-` : ""}Infer what you can from the email domain (company name, likely industry). Use null for unknowns.`
-      }]
+${webContext}` : "No web context was available."}`,
+      workspaceId: c2.get("workspaceId"),
+      userId: c2.get("userId")
     });
-    const toolUse = data.content?.find((b2) => b2.type === "tool_use");
-    const fields = toolUse?.input ?? {};
-    const clean2 = Object.fromEntries(Object.entries(fields).filter(([, v2]) => v2 != null));
+    const clean2 = Object.fromEntries(Object.entries(fields ?? {}).filter(([, v2]) => v2 != null && v2 !== ""));
     return c2.json({ fields: clean2, source: webContext ? "web" : "ai" });
   } catch (e2) {
     return c2.json({ error: e2.message }, 500);
@@ -62838,8 +62906,7 @@ router30.post("/records", requireAuth, zValidator("json", external_exports.objec
 })), async (c2) => {
   const { objectType: objectType2, columns, prompt, count } = c2.req.valid("json");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 4096,
       tools: [{
         name: "generate_records",
@@ -62900,8 +62967,7 @@ router30.post("/tasks", requireAuth, zValidator("json", external_exports.object(
     (r2) => `[${r2.object_type}] ${Object.entries(r2.data).slice(0, 4).map(([k2, v2]) => `${k2}=${v2}`).join(", ")}`
   ).join("\n");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 2048,
       tools: [{
         name: "suggest_tasks",
@@ -62957,8 +63023,7 @@ router30.post("/insights", requireAuth, zValidator("json", external_exports.obje
     return Object.entries(d2).slice(0, 6).map(([k2, v2]) => `${k2}=${v2}`).join(", ");
   }).join("\n");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 2048,
       tools: [{
         name: "generate_insights",
@@ -63012,8 +63077,7 @@ router30.post("/sequence", requireAuth, zValidator("json", external_exports.obje
 })), async (c2) => {
   const { prompt, steps } = c2.req.valid("json");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 3e3,
       tools: [{
         name: "create_sequence",
@@ -63069,8 +63133,7 @@ router30.post("/list-name", requireAuth, zValidator("json", external_exports.obj
 })), async (c2) => {
   const { prompt, objectTypes } = c2.req.valid("json");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 256,
       tools: [{
         name: "name_list",
@@ -63107,8 +63170,7 @@ router30.post("/list-entries", requireAuth, zValidator("json", external_exports.
   if (!records.length) return c2.json({ selectedIds: [] });
   try {
     const recordSummary = records.map((r2) => `ID:${r2.id} | ${Object.entries(r2.data).slice(0, 5).map(([k2, v2]) => `${k2}=${v2}`).join(", ")}`).join("\n");
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 1024,
       tools: [{
         name: "select_records",
@@ -63172,8 +63234,7 @@ router30.post("/workflow", requireAuth, zValidator("json", external_exports.obje
     update_field: "Update field"
   };
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 1024,
       tools: [{
         name: "create_workflow",
@@ -63282,8 +63343,7 @@ Based on this data, generate a realistic forecast. Consider:
 3. Win rate change vs previous period
 4. Average deal size trend`;
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 2048,
       tools: [{
         name: "generate_forecast",
@@ -63362,8 +63422,7 @@ router30.post("/risk-alerts", requireAuth, async (c2) => {
   ].join("\n");
   if (!context2.trim()) return c2.json({ created: 0 });
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 1024,
       tools: [{
         name: "generate_risk_alerts",
@@ -64439,27 +64498,33 @@ router39.post("/complete", requireAuth, async (c2) => {
   const ws = c2.get("workspaceId");
   const userId = c2.get("userId");
   const body = await c2.req.json().catch(() => ({}));
-  const track = body.track === "business" || body.account_tier === "business" ? "business" : "solo";
-  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString();
+  const plan = ["scout", "operator", "command", "sovereign"].includes(body.plan ?? "") ? body.plan : body.track === "business" || body.account_tier === "business" ? "operator" : "scout";
+  const isPaid = plan !== "scout";
+  const trialEndsAt = isPaid ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString() : null;
+  const GRANTS = { scout: SOLO_GRANT, operator: BUSINESS_TRIAL_GRANT, command: 2e6, sovereign: 2e6 };
+  const target = GRANTS[plan] ?? SOLO_GRANT;
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = wsRow?.settings ?? {};
   await supabase.from("workspaces").update({
     onboarded: true,
     settings: {
       ...settings,
-      track,
+      plan,
+      account_tier: plan,
+      // billing reads this
+      track: isPaid ? "business" : "solo",
+      // legacy back-compat
       ...body.industry ? { industry: body.industry } : {},
       ...body.team_size ? { team_size: body.team_size } : {},
       ...typeof body.concurrency === "number" ? { target_concurrency: body.concurrency } : {},
       ...Array.isArray(body.goals) ? { goals: body.goals } : {},
-      ...track === "business" ? { trial_ends_at: trialEndsAt } : {}
+      ...trialEndsAt ? { trial_ends_at: trialEndsAt } : {}
     }
   }).eq("id", ws);
-  if (track === "business") {
-    await grantCredits(ws, BUSINESS_TRIAL_GRANT, "grant", "14-day Pro trial credits");
-  } else {
-    const { enrolled } = await creditStatus(ws);
-    if (!enrolled) await grantCredits(ws, SOLO_GRANT, "grant", "Personal plan baseline credits");
+  const { balance } = await creditStatus(ws);
+  const delta = target - balance;
+  if (delta > 0) {
+    await grantCredits(ws, delta, "grant", `${plan} plan credits`);
   }
   const { count } = await supabase.from("tasks").select("id", { count: "exact", head: true }).eq("workspace_id", ws);
   if ((count ?? 0) === 0) {
@@ -64471,7 +64536,7 @@ router39.post("/complete", requireAuth, async (c2) => {
     }, () => {
     });
   }
-  return c2.json({ ok: true, track, trial_ends_at: track === "business" ? trialEndsAt : null });
+  return c2.json({ ok: true, plan, trial_ends_at: trialEndsAt });
 });
 
 // src/routes/status.ts
@@ -64528,12 +64593,12 @@ router40.get("/", async (c2) => {
     state: inngestConfigured ? "operational" : "not_checked",
     explanation: inngestConfigured ? "INNGEST_EVENT_KEY is set \u2014 scheduled/triggered jobs (enrichment, invoice chasing, relationship health, etc.) run for real." : "INNGEST_EVENT_KEY is not set in this environment \u2014 cannot confirm jobs are actually firing, only that they're registered in code."
   });
-  const tavilyConfigured = Boolean(process.env.TAVILY_API_KEY);
+  const searchConfigured = Boolean(process.env.SOVEREIGN_SEARCH_URL);
   checks.push({
-    id: "tavily",
-    label: "Web search (Tavily) configured",
-    state: tavilyConfigured ? "operational" : "needs_setup",
-    explanation: tavilyConfigured ? "TAVILY_API_KEY is set \u2014 enrichment and the Prospecting Agent can search the live web." : "TAVILY_API_KEY is missing \u2014 enrichment and Prospecting Agent web search will return nothing."
+    id: "sovereign_search",
+    label: "Sovereign web search appliance",
+    state: searchConfigured ? "operational" : "needs_setup",
+    explanation: searchConfigured ? "SOVEREIGN_SEARCH_URL is set \u2014 enrichment and the Prospecting Agent search the live web via your own SearXNG + scraper." : "SOVEREIGN_SEARCH_URL is missing \u2014 enrichment and Prospecting Agent web search will return nothing."
   });
   const googleConfigured2 = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   checks.push({
@@ -64672,17 +64737,22 @@ async function triggerSweep(c2) {
   if (body.searchType === "REVIEWS" && !body.targetSubject) {
     return c2.json({ error: "targetSubject is required for a REVIEWS sweep." }, 400);
   }
-  await inngest.send({
-    name: "app/social.discovery.trigger",
-    data: {
-      workspaceId: c2.get("workspaceId"),
-      searchType: body.searchType,
-      sector: body.sector,
-      region: body.region,
-      targetSubject: body.targetSubject
-    }
+  const params = {
+    workspaceId: c2.get("workspaceId"),
+    searchType: body.searchType,
+    sector: body.sector,
+    region: body.region,
+    targetSubject: body.targetSubject
+  };
+  inngest.send({ name: "app/social.discovery.trigger", data: params }).catch(() => {
   });
-  return c2.json({ queued: true }, 202);
+  try {
+    const result = await runSocialDiscovery(params);
+    return c2.json({ ok: true, ...result }, 200);
+  } catch (e2) {
+    console.error("[discovery] direct sweep failed:", e2 instanceof Error ? e2.message : e2);
+    return c2.json({ ok: false, error: e2 instanceof Error ? e2.message : "Sweep failed" }, 200);
+  }
 }
 router42.post("/trigger", zValidator("json", runSchema2), triggerSweep);
 router42.post("/run", zValidator("json", runSchema2), triggerSweep);
@@ -64699,26 +64769,34 @@ router42.get("/", async (c2) => {
 });
 async function probe2(url) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 3e3);
+  const timer = setTimeout(() => ctrl.abort(), 8e3);
   try {
-    const res = await fetch(url, { method: "GET", signal: ctrl.signal });
-    return res.status > 0;
+    const res = await fetch(url, { method: "GET", signal: ctrl.signal, headers: sovereignHeaders() });
+    return { reachable: true, ok: res.ok, code: res.status };
   } catch {
-    return false;
+    return { reachable: false, ok: false, code: 0 };
   } finally {
     clearTimeout(timer);
   }
 }
 router42.get("/status", async (c2) => {
   const searchUrl = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
-  const scrapeUrl = process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3000/";
-  const [searxng_reachable, scraper_reachable] = await Promise.all([
-    probe2(`${searchUrl}?q=ping&format=json`),
-    probe2(scrapeUrl)
-  ]);
+  const scrapeUrl = process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3002/v1/scrape";
+  const searchHealth = searchUrl.replace(/\/search\/?$/, "/healthz");
+  const scrapeHealth = scrapeUrl.replace(/\/v[12]\/scrape\/?$/, "/health").replace(/\/scrape\/?$/, "/health");
+  const [search, scrape] = await Promise.all([probe2(searchHealth), probe2(scrapeHealth)]);
+  const searxng_reachable = search.ok;
+  const scraper_reachable = scrape.ok;
+  const hasSearchUrl = Boolean(process.env.SOVEREIGN_SEARCH_URL);
+  const hasKey = Boolean(process.env.SOVEREIGN_SEARCH_KEY);
+  const diagnostic = !hasSearchUrl ? "SOVEREIGN_SEARCH_URL is NOT present on this API deployment \u2014 it's on the wrong Vercel project (must be the API/backend project, the one serving api.mondaily.com \u2014 not the app frontend), or this deploy is older than the variable. Set it on the API project and redeploy." : !search.reachable ? `SOVEREIGN_SEARCH_URL is set (to '${searchUrl}') but the appliance isn't reachable from the API \u2014 verify the value is exactly http://167.233.204.196:8080/search and the box is online.` : search.code === 401 || !hasKey ? "Appliance is up but rejecting requests (401) \u2014 SOVEREIGN_SEARCH_KEY is missing or doesn't match the appliance's token. Set it on the API project and redeploy." : searxng_reachable && scraper_reachable ? "All systems operational." : `Search ${search.code}, scrape ${scrape.code}.`;
   return c2.json({
     status: searxng_reachable && scraper_reachable ? "HEALTHY" : "DEGRADED",
-    services: { searxng_reachable, scraper_reachable }
+    services: { searxng_reachable, scraper_reachable },
+    // Env-configured flags + codes so the exact failure is visible from the client/logs.
+    configured: { search_url: Boolean(process.env.SOVEREIGN_SEARCH_URL), scrape_url: Boolean(process.env.SOVEREIGN_SCRAPE_URL), search_key: Boolean(process.env.SOVEREIGN_SEARCH_KEY) },
+    codes: { search: search.code, scrape: scrape.code },
+    diagnostic
   });
 });
 

@@ -1,0 +1,6 @@
+{
+  "buildCommand": "npx tsup",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/handler" }
+  ]
+}

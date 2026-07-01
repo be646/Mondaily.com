@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { apiClient } from "../../lib/api-client";
 
 /**
- * Conversational AI Onboarding Console — a full-screen monospace terminal that interviews the
- * operator, runs Cerebras semantic analysis on their description, prints the inferred workspace
- * architecture with typewriter delays, then transitions to a dual-card plan selector. Selecting a
- * plan persists the tier + backfills ai_credits_ledger + marks onboarded, then HARD-redirects to
- * the dashboard (window.location) so there is zero SPA loop-back potential.
+ * Guided AI Onboarding Console — a full-screen monospace terminal that runs a short, CLICKABLE
+ * survey (no free-typing to stall on), compiles the answers into an inferred workspace profile,
+ * then recommends the right license from the team size (Just me → Scout, small team → Operator,
+ * 6+ → Command). Selecting a plan persists the tier + backfills ai_credits_ledger + marks
+ * onboarded, then routes to the invite step and finally HARD-redirects to the dashboard.
  */
 type Tone = "rule" | "boot" | "system" | "user" | "accent" | "amber" | "dim" | "ok";
 interface Line { id: number; text: string; tone: Tone }
-interface Profile { account_tier: "personal" | "business"; industry_vertical: string; target_concurrency: number }
-type Phase = "await_input" | "processing" | "plans" | "committing" | "invite";
+type PlanId = "scout" | "operator" | "command" | "sovereign";
+type Phase = "survey" | "compiling" | "plans" | "committing" | "invite";
 
 const TONE: Record<Tone, string> = {
   rule: "#27272a",
@@ -31,22 +31,70 @@ const BOOT: Line[] = [
   { id: 2, text: "MONDAILY NETWORKS INC. // INITIALIZING ADAPTIVE SEED ROUTINE...", tone: "boot" },
   { id: 3, text: "-------------------------------------------------------------------", tone: "rule" },
   { id: 4, text: "[SYSTEM]: Welcome, Operator. I am the Mondaily Workspace Architect.", tone: "system" },
-  { id: 5, text: "          Describe the automated operations team, data pipelines, or", tone: "system" },
-  { id: 6, text: "          company infrastructure scale you are deploying today.", tone: "system" },
+  { id: 5, text: "          A few quick questions and I'll compile your workspace.", tone: "system" },
 ];
+
+// ── Survey ────────────────────────────────────────────────────────────────────
+interface Choice { value: string; label: string }
+interface Question { key: "purpose" | "team_size" | "goals"; prompt: string; multi?: boolean; choices: Choice[] }
+
+const SURVEY: Question[] = [
+  {
+    key: "purpose",
+    prompt: "What are you setting up Mondaily for?",
+    choices: [
+      { value: "Sales & Outreach", label: "Sales & outreach" },
+      { value: "Recruiting & Talent", label: "Recruiting & talent" },
+      { value: "Real Estate", label: "Real estate" },
+      { value: "Agency & Client Work", label: "Agency / client work" },
+      { value: "Operations & Admin", label: "Operations & admin" },
+      { value: "General Operations", label: "Something else" },
+    ],
+  },
+  {
+    key: "team_size",
+    prompt: "How many people will work inside this workspace?",
+    choices: [
+      { value: "1", label: "Just me" },
+      { value: "2-5", label: "2–5 people" },
+      { value: "6-15", label: "6–15 people" },
+      { value: "16+", label: "16 or more" },
+    ],
+  },
+  {
+    key: "goals",
+    prompt: "What should your agents focus on first? (pick any)",
+    multi: true,
+    choices: [
+      { value: "find_leads", label: "Find new leads" },
+      { value: "enrich", label: "Enrich & research" },
+      { value: "follow_ups", label: "Automate follow-ups" },
+      { value: "pipeline", label: "Manage the pipeline" },
+      { value: "oversight", label: "Reports & oversight" },
+    ],
+  },
+];
+
+// Team size → the license we lead with. This is the fix for the "15 people → Operator (1 seat)"
+// bug: teams of 6+ are recommended Command, not Operator.
+function recommendPlan(teamSize: string): PlanId {
+  if (teamSize === "1") return "scout";
+  if (teamSize === "2-5") return "operator";
+  return "command"; // 6-15 and 16+
+}
 
 export function TerminalOnboardingPage() {
   const [lines, setLines] = useState<Line[]>([]);
-  const [phase, setPhase] = useState<Phase>("await_input");
-  const [input, setInput] = useState("");
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [phase, setPhase] = useState<Phase>("survey");
+  const [step, setStep] = useState(0);                    // survey question index
+  const [answers, setAnswers] = useState<{ purpose?: string; team_size?: string; goals: string[] }>({ goals: [] });
+  const [recommended, setRecommended] = useState<PlanId>("operator");
   const [inviteText, setInviteText] = useState("");
   const [sending, setSending] = useState(false);
   const [inviteLinks, setInviteLinks] = useState<{ email: string; link: string | null }[]>([]);
   const [copied, setCopied] = useState<string | null>(null);
   const idRef = useRef(100);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const mounted = useRef(true);
 
   const push = (text: string, tone: Tone = "dim") =>
@@ -59,68 +107,73 @@ export function TerminalOnboardingPage() {
       for (const l of BOOT) {
         if (!mounted.current) return;
         setLines(prev => [...prev, l]);
-        await sleep(180);
+        await sleep(160);
       }
-      inputRef.current?.focus();
     })();
     return () => { mounted.current = false; };
   }, []);
 
   // Keep the terminal pinned to the latest line.
-  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, [lines, phase]);
+  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, [lines, phase, step]);
 
-  async function submit() {
-    const value = input.trim();
-    if (!value || phase !== "await_input") return;
-    setInput("");
-    setPhase("processing");
-    push(`operator@mondaily:~$ ${value}`, "user");
-    push("[...PROCESSING SECTOR COMPILATION VECTORS...]", "amber");
+  function toggleGoal(value: string) {
+    setAnswers(a => ({ ...a, goals: a.goals.includes(value) ? a.goals.filter(g => g !== value) : [...a.goals, value] }));
+  }
 
-    let result: Profile;
-    try {
-      result = await apiClient.post<Profile>("/onboarding/analyze", { description: value });
-    } catch {
-      result = { account_tier: "personal", industry_vertical: "General Operations", target_concurrency: 1 };
-    }
+  // Record a single-choice answer, echo it, advance the survey.
+  function answerChoice(q: Question, choice: Choice) {
+    push(`operator@mondaily:~$ ${choice.label}`, "user");
+    setAnswers(a => ({ ...a, [q.key]: choice.value }));
+    advance(step + 1);
+  }
+
+  function advance(next: number) {
+    if (next < SURVEY.length) { setStep(next); return; }
+    void compile();
+  }
+
+  // Compile the survey into a profile + recommendation, then reveal the plan cards.
+  async function compile() {
+    setPhase("compiling");
+    push("[...COMPILING WORKSPACE PROFILE...]", "amber");
+    await sleep(650);
     if (!mounted.current) return;
-    setProfile(result);
+    setLines(prev => prev.filter(l => l.text !== "[...COMPILING WORKSPACE PROFILE...]"));
 
-    await sleep(420);
-    if (!mounted.current) return;
-    // Drop the transient processing indicator, then type the inferred config.
-    setLines(prev => prev.filter(l => l.text !== "[...PROCESSING SECTOR COMPILATION VECTORS...]"));
-    const tier = result.account_tier === "business" ? "BUSINESS // MULTI-OPERATOR" : "PERSONAL // SOLO DEVELOPER";
+    const rec = recommendPlan(answers.team_size ?? "1");
+    setRecommended(rec);
     const out: Line[] = [
-      { id: ++idRef.current, text: `-> Account Tier Resolved: ${tier}`, tone: "dim" },
-      { id: ++idRef.current, text: `-> Sector Matrix Inferred: ${result.industry_vertical}`, tone: "accent" },
-      { id: ++idRef.current, text: `-> Concurrency Allocation: Approved at Scale ${result.target_concurrency}`, tone: "accent" },
+      { id: ++idRef.current, text: `-> Sector Inferred: ${answers.purpose ?? "General Operations"}`, tone: "accent" },
+      { id: ++idRef.current, text: `-> Team Size: ${answers.team_size ?? "1"} operator(s)`, tone: "accent" },
+      { id: ++idRef.current, text: `-> Focus: ${answers.goals.length ? answers.goals.join(", ") : "broad"}`, tone: "dim" },
       { id: ++idRef.current, text: "[✓ ENVIRONMENT COMPILED — WORKSPACE INITIALIZED]", tone: "ok" },
     ];
     for (const l of out) {
       if (!mounted.current) return;
       setLines(prev => [...prev, l]);
-      await sleep(550);
+      await sleep(420);
     }
-    await sleep(400);
+    await sleep(300);
     if (!mounted.current) return;
     push("[SYSTEM]: Select an operational license to finalize deployment.", "system");
     setPhase("plans");
   }
 
-  async function choosePlan(tier: "personal" | "business") {
+  async function choosePlan(plan: PlanId) {
     if (phase === "committing") return;
     setPhase("committing");
-    push(`> Provisioning ${tier === "business" ? "OPERATOR" : "SCOUT"} workspace...`, "amber");
+    const LABEL: Record<PlanId, string> = { scout: "SCOUT", operator: "OPERATOR", command: "COMMAND", sovereign: "SOVEREIGN" };
+    push(`> Provisioning ${LABEL[plan]} workspace...`, "amber");
     try {
       await apiClient.post("/onboarding/complete", {
-        account_tier: tier,
-        industry: profile?.industry_vertical,
-        concurrency: profile?.target_concurrency,
+        plan,
+        industry: answers.purpose,
+        team_size: answers.team_size,
+        goals: answers.goals,
       });
     } catch { /* even if persistence hiccups, do not trap the user in onboarding */ }
     push("[✓ WORKSPACE PROVISIONED]", "ok");
-    await sleep(350);
+    await sleep(300);
     if (!mounted.current) return;
     push("[SYSTEM]: Invite your operators, or skip and bring them later.", "system");
     setPhase("invite");
@@ -155,6 +208,8 @@ export function TerminalOnboardingPage() {
     setSending(false);
   }
 
+  const q = SURVEY[step];
+
   return (
     <div className="fixed inset-0 flex flex-col bg-[#09090b] font-mono text-[13px] text-zinc-300">
       {/* terminal chrome bar */}
@@ -171,8 +226,43 @@ export function TerminalOnboardingPage() {
           <pre key={l.id} className="whitespace-pre-wrap break-words" style={{ color: TONE[l.tone] }}>{l.text}</pre>
         ))}
 
-        {phase === "plans" && profile && (
-          <PlanCards recommended={profile.account_tier} onSelect={choosePlan} />
+        {/* Survey — clickable choices, so the user decides fast without typing. */}
+        {phase === "survey" && q && (
+          <div className="mt-5 max-w-2xl">
+            <div className="text-[13px] text-zinc-100">
+              <span style={{ color: "var(--accent)" }}>?</span> {q.prompt}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {q.choices.map(c => {
+                const active = q.multi && answers.goals.includes(c.value);
+                return (
+                  <button
+                    key={c.value}
+                    onClick={() => (q.multi ? toggleGoal(c.value) : answerChoice(q, c))}
+                    className="rounded-sm border px-3 py-1.5 text-[12px] transition-colors"
+                    style={active
+                      ? { borderColor: "var(--accent)", color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 12%, transparent)" }
+                      : { borderColor: "#27272a", color: "#d4d4d8" }}
+                  >
+                    {active ? "✓ " : ""}{c.label}
+                  </button>
+                );
+              })}
+            </div>
+            {q.multi && (
+              <button
+                onClick={() => advance(step + 1)}
+                className="mt-4 rounded-sm px-4 py-1.5 text-[12px] font-semibold text-black"
+                style={{ background: "var(--accent)" }}
+              >
+                {answers.goals.length ? "Continue ›" : "Skip ›"}
+              </button>
+            )}
+          </div>
+        )}
+
+        {phase === "plans" && (
+          <PlanCards recommended={recommended} onSelect={choosePlan} />
         )}
 
         {phase === "invite" && (
@@ -228,71 +318,63 @@ export function TerminalOnboardingPage() {
         )}
       </div>
 
-      {/* command input */}
-      <form
-        onSubmit={e => { e.preventDefault(); submit(); }}
-        className="flex items-center gap-2 border-t border-[#27272a] bg-[#0e0e10] px-5 py-3.5"
-      >
+      {/* status footer — no free-text input; the survey drives everything */}
+      <div className="flex items-center gap-2 border-t border-[#27272a] bg-[#0e0e10] px-5 py-3.5">
         <span style={{ color: "var(--accent)" }}>operator@mondaily:~$</span>
-        <input
-          ref={inputRef}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          disabled={phase !== "await_input"}
-          autoComplete="off"
-          spellCheck={false}
-          placeholder={phase === "await_input" ? "describe your operation, then press Enter…" : ""}
-          className="flex-1 bg-transparent text-zinc-100 caret-[color:var(--accent)] outline-none placeholder:text-zinc-700 disabled:opacity-40"
-        />
-        {phase === "processing" && <span className="animate-pulse text-[#fbbf24]">▍ compiling</span>}
-        {phase === "await_input" && <span className="animate-pulse" style={{ color: "var(--accent)" }}>▍</span>}
-      </form>
+        <span className="flex-1 text-zinc-600">
+          {phase === "survey" ? "select an option above…"
+            : phase === "compiling" ? "compiling…"
+            : phase === "plans" ? "choose a license…"
+            : phase === "committing" ? "provisioning…"
+            : "invite your team…"}
+        </span>
+        {(phase === "compiling" || phase === "committing") && <span className="animate-pulse text-[#fbbf24]">▍ working</span>}
+        {phase !== "compiling" && phase !== "committing" && <span className="animate-pulse" style={{ color: "var(--accent)" }}>▍</span>}
+      </div>
     </div>
   );
 }
 
-function PlanCards({ recommended, onSelect }: { recommended: "personal" | "business"; onSelect: (t: "personal" | "business") => void }) {
-  return (
-    <div className="mt-6 grid gap-4 sm:grid-cols-2">
-      {/* Card A — Personal */}
-      <button
-        onClick={() => onSelect("personal")}
-        className="group flex flex-col rounded-sm border border-[#27272a] bg-[#18181b] p-5 text-left transition-all hover:border-zinc-600"
-        style={recommended === "personal" ? { borderColor: "var(--accent)" } : undefined}
-      >
-        <div className="text-[11px] uppercase tracking-widest text-zinc-600">Tier · Scout</div>
-        <div className="mt-1 text-base text-zinc-100">Scout</div>
-        <div className="mt-2 text-2xl font-semibold tabular-nums text-zinc-100">$0<span className="text-sm text-zinc-600"> / month</span></div>
-        <span className="mt-4 inline-block w-fit rounded border border-[#27272a] bg-[#0e0e10] px-2.5 py-1 text-[11px] text-zinc-400">
-          1 operator · 50k AI credits / mo
-        </span>
-        <span className="mt-5 text-[12px] font-semibold tracking-wide" style={{ color: "var(--accent)" }}>
-          {recommended === "personal" ? "› RECOMMENDED — START FREE" : "› START FREE"}
-        </span>
-      </button>
+// ── Plan cards ─────────────────────────────────────────────────────────────────
+interface PlanMeta { id: PlanId; name: string; price: string; sub: string; blurb: string }
+const PLANS: PlanMeta[] = [
+  { id: "scout", name: "Scout", price: "$0", sub: "1 operator · 50k credits / mo", blurb: "Solo. Get moving free." },
+  { id: "operator", name: "Operator", price: "$29", sub: "500k credits · unlimited agents", blurb: "Small teams up to ~5." },
+  { id: "command", name: "Command", price: "$79", sub: "2M credits · up to 10 operators", blurb: "Growing teams, flat rate." },
+];
 
-      {/* Card B — Business Pro */}
-      <button
-        onClick={() => onSelect("business")}
-        className="group flex flex-col rounded-sm border bg-[#18181b] p-5 text-left transition-all"
-        style={{
-          borderColor: "var(--accent)",
-          boxShadow: recommended === "business" ? "0 0 0 1px var(--accent), 0 0 28px color-mix(in srgb, var(--accent) 22%, transparent)" : undefined,
-        }}
-      >
-        <div className="text-[11px] uppercase tracking-widest" style={{ color: "var(--accent)" }}>Tier · Operator</div>
-        <div className="mt-1 text-base text-zinc-100">Operator</div>
-        <div className="mt-2 text-2xl font-semibold tabular-nums text-zinc-100">$29<span className="text-sm text-zinc-600"> / month</span></div>
-        <span
-          className="mt-4 inline-block w-fit rounded-full px-2.5 py-1 text-[11px] font-medium"
-          style={{ color: "var(--accent)", background: "color-mix(in srgb, var(--accent) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--accent) 45%, transparent)" }}
-        >
-          500k AI credits · unlimited agents · upgrade now or later
-        </span>
-        <span className="mt-5 text-[12px] font-semibold tracking-wide" style={{ color: "var(--accent)" }}>
-          {recommended === "business" ? "› RECOMMENDED — GO OPERATOR" : "› GO OPERATOR"}
-        </span>
-      </button>
+function PlanCards({ recommended, onSelect }: { recommended: PlanId; onSelect: (p: PlanId) => void }) {
+  return (
+    <div className="mt-6 max-w-3xl">
+      <div className="grid gap-4 sm:grid-cols-3">
+        {PLANS.map(p => {
+          const isRec = recommended === p.id || (recommended === "sovereign" && p.id === "command");
+          return (
+            <button
+              key={p.id}
+              onClick={() => onSelect(p.id)}
+              className="group flex flex-col rounded-sm border bg-[#18181b] p-5 text-left transition-all hover:border-zinc-600"
+              style={isRec
+                ? { borderColor: "var(--accent)", boxShadow: "0 0 0 1px var(--accent), 0 0 28px color-mix(in srgb, var(--accent) 20%, transparent)" }
+                : { borderColor: "#27272a" }}
+            >
+              <div className="text-[11px] uppercase tracking-widest" style={isRec ? { color: "var(--accent)" } : { color: "#52525b" }}>Tier · {p.name}</div>
+              <div className="mt-1 text-base text-zinc-100">{p.name}</div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums text-zinc-100">{p.price}<span className="text-sm text-zinc-600"> / month</span></div>
+              <span className="mt-4 inline-block w-fit rounded border border-[#27272a] bg-[#0e0e10] px-2.5 py-1 text-[11px] text-zinc-400">{p.sub}</span>
+              <span className="mt-2 text-[11px] text-zinc-600">{p.blurb}</span>
+              <span className="mt-5 text-[12px] font-semibold tracking-wide" style={{ color: "var(--accent)" }}>
+                {isRec ? `› RECOMMENDED — CHOOSE ${p.name.toUpperCase()}` : `› CHOOSE ${p.name.toUpperCase()}`}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      {/* Sovereign — large teams / custom, routed to Command credits + a talk-to-us note. */}
+      <div className="mt-3 flex items-center justify-between rounded-sm border border-[#27272a] bg-[#101012] px-4 py-2.5 text-[12px] text-zinc-400">
+        <span><span className="text-zinc-200">Sovereign</span> — 10+ operators, dedicated infra & custom limits.</span>
+        <a href="mailto:sales@mondaily.com?subject=Sovereign%20plan" className="shrink-0 rounded-sm border border-[#34343a] px-2.5 py-1 text-[11px] text-zinc-300 hover:border-[color:var(--accent)]">Talk to us</a>
+      </div>
     </div>
   );
 }
