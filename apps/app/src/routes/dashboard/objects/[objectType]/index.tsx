@@ -283,14 +283,14 @@ function CreateRecordModal({
             <div className="flex flex-col w-[min(440px,92vw)] shrink-0">
               <div className="px-5 py-4 space-y-3">
                 <p className="text-[11px] text-stone-500 leading-relaxed">
-                  Describe the records you want. AI will generate realistic data matching your <strong className="text-stone-400">{objectType.replace(/[-_]/g, " ")}</strong> columns.
+                  Describe what you're looking for. The agent searches the live web and extracts only real, source-backed <strong className="text-stone-400">{objectType.replace(/[-_]/g, " ")}</strong> — never invented data.
                 </p>
                 <textarea
                   ref={promptRef}
                   value={aiPrompt}
                   onChange={e => setAiPrompt(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void generateWithAI(); } }}
-                  placeholder={`e.g. "10 tax expense categories for a SaaS startup including software subscriptions, travel, and office costs"`}
+                  placeholder={`e.g. "Aesthetic clinics in London with public contact details"`}
                   rows={4}
                   className="w-full resize-none rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-stone-500/30 focus:bg-[var(--surface-hover)] transition-colors"
                 />
@@ -512,7 +512,7 @@ function AIFillModal({
                   rows={3}
                   className="w-full resize-none rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-stone-500/30 focus:bg-[var(--surface-hover)] transition-colors"
                 />
-                <p className="mt-1 text-[10px] text-stone-700">e.g. "20 tax expense categories for a SaaS company" or "realistic employee records for a 50-person startup"</p>
+                <p className="mt-1 text-[10px] text-stone-700">e.g. "SaaS companies that raised a seed round this year" — the agent searches the live web and only returns real, source-backed results.</p>
               </div>
 
               {/* Count */}

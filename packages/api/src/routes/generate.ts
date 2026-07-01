@@ -340,7 +340,7 @@ router.post("/insights", requireAuth, zValidator("json", z.object({
       tool_choice: { type: "tool", name: "generate_insights" },
       messages: [{
         role: "user",
-        content: `Analyze these ${records.length} ${objectType} records and generate 4-6 business insights.\n\nSample records:\n${sample}\n\nFocus on: totals, averages, distributions, patterns, anomalies, opportunities, and risks. Be specific with numbers where possible.\n\nFor each insight, also provide a concrete, specific action the user should take right now based on that finding. Actions must start with a verb and be immediately actionable, not generic advice.`
+        content: `Analyze these ${records.length} REAL ${objectType} records and generate 4-6 business insights. ABSOLUTE RULE: only state numbers you actually compute from the records below — never estimate, round-invent, or extrapolate a figure that isn't grounded in this exact sample. If the sample is too thin for a reliable stat (e.g. under 5 records), say so in the insight rather than presenting a guess as fact.\n\nSample records (${sample ? records.length : 0} of ${records.length} shown):\n${sample}\n\nFocus on: totals, averages, distributions, patterns, anomalies, opportunities, and risks — computed from the data above only. Be specific with real numbers.\n\nFor each insight, also provide a concrete, specific action the user should take right now based on that finding. Actions must start with a verb and be immediately actionable, not generic advice.`
       }]
     });
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
@@ -599,7 +599,10 @@ PREVIOUS PERIOD (for comparison):
 TREND DATA (recent periods):
 ${trendSummary}
 
-Based on this data, generate a realistic forecast. Consider:
+Based on this data, generate a forecast. ABSOLUTE RULE: you were given AGGREGATE stats only (no
+per-stage or per-record breakdown) — never state a specific count, name, or stage that isn't one of
+the numbers given above. Reference only stats.openCount, stats.wonCount, etc. as given; do not
+invent "N deals in stage X" or similar specifics you were not actually given. Consider:
 1. Current open pipeline × win rate = expected closures
 2. Trend momentum (is the business accelerating or decelerating?)
 3. Win rate change vs previous period
@@ -626,11 +629,11 @@ Based on this data, generate a realistic forecast. Consider:
             risks: { type: "string", description: "One sentence about the key risk to this forecast, or 'None identified' if data looks healthy." },
             actions: {
               type: "array",
-              description: "3-5 specific, concrete actions the user should take right now to hit or exceed the forecast. Each should be actionable today, not generic advice.",
+              description: "3-5 specific, concrete actions the user should take right now to hit or exceed the forecast. Each should be actionable today, not generic advice. Reference only the aggregate numbers actually given (e.g. the real openCount) — never invent a per-stage or per-record count you weren't given.",
               items: {
                 type: "object",
                 properties: {
-                  action: { type: "string", description: "Short imperative action, e.g. 'Follow up with 4 open deals in Proposal stage'" },
+                  action: { type: "string", description: "Short imperative action grounded in the real stats given, e.g. 'Review the {openCount} open records to prioritize the highest-value ones' — never a fabricated stage/count breakdown" },
                   impact: { type: "string", enum: ["high", "medium", "low"], description: "Expected impact on hitting the forecast" },
                   why: { type: "string", description: "One sentence explaining why this action matters now" }
                 },
