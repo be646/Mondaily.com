@@ -55286,10 +55286,13 @@ async function grantTierCredits(workspaceId, tier, description) {
 }
 var BURST_WINDOW_HOURS = 5;
 var BURST_CAP = {
-  scout: 12e3,
-  operator: 9e4,
-  command: 32e4,
-  sovereign: 1e6
+  scout: 4e4,
+  // 80% of the 50k monthly wallet
+  operator: 25e4,
+  // 50% of the 500k monthly wallet
+  command: 8e5,
+  // 40% of the 2M monthly wallet
+  sovereign: 15e5
 };
 async function resolveTier(workspaceId) {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
@@ -64789,12 +64792,12 @@ router30.post("/insights", requireAuth, zValidator("json", external_exports.obje
       tool_choice: { type: "tool", name: "generate_insights" },
       messages: [{
         role: "user",
-        content: `Analyze these ${records.length} ${objectType2} records and generate 4-6 business insights.
+        content: `Analyze these ${records.length} REAL ${objectType2} records and generate 4-6 business insights. ABSOLUTE RULE: only state numbers you actually compute from the records below \u2014 never estimate, round-invent, or extrapolate a figure that isn't grounded in this exact sample. If the sample is too thin for a reliable stat (e.g. under 5 records), say so in the insight rather than presenting a guess as fact.
 
-Sample records:
+Sample records (${sample ? records.length : 0} of ${records.length} shown):
 ${sample}
 
-Focus on: totals, averages, distributions, patterns, anomalies, opportunities, and risks. Be specific with numbers where possible.
+Focus on: totals, averages, distributions, patterns, anomalies, opportunities, and risks \u2014 computed from the data above only. Be specific with real numbers.
 
 For each insight, also provide a concrete, specific action the user should take right now based on that finding. Actions must start with a verb and be immediately actionable, not generic advice.`
       }]
@@ -65071,7 +65074,10 @@ PREVIOUS PERIOD (for comparison):
 TREND DATA (recent periods):
 ${trendSummary}
 
-Based on this data, generate a realistic forecast. Consider:
+Based on this data, generate a forecast. ABSOLUTE RULE: you were given AGGREGATE stats only (no
+per-stage or per-record breakdown) \u2014 never state a specific count, name, or stage that isn't one of
+the numbers given above. Reference only stats.openCount, stats.wonCount, etc. as given; do not
+invent "N deals in stage X" or similar specifics you were not actually given. Consider:
 1. Current open pipeline \xD7 win rate = expected closures
 2. Trend momentum (is the business accelerating or decelerating?)
 3. Win rate change vs previous period
@@ -65095,11 +65101,11 @@ Based on this data, generate a realistic forecast. Consider:
             risks: { type: "string", description: "One sentence about the key risk to this forecast, or 'None identified' if data looks healthy." },
             actions: {
               type: "array",
-              description: "3-5 specific, concrete actions the user should take right now to hit or exceed the forecast. Each should be actionable today, not generic advice.",
+              description: "3-5 specific, concrete actions the user should take right now to hit or exceed the forecast. Each should be actionable today, not generic advice. Reference only the aggregate numbers actually given (e.g. the real openCount) \u2014 never invent a per-stage or per-record count you weren't given.",
               items: {
                 type: "object",
                 properties: {
-                  action: { type: "string", description: "Short imperative action, e.g. 'Follow up with 4 open deals in Proposal stage'" },
+                  action: { type: "string", description: "Short imperative action grounded in the real stats given, e.g. 'Review the {openCount} open records to prioritize the highest-value ones' \u2014 never a fabricated stage/count breakdown" },
                   impact: { type: "string", enum: ["high", "medium", "low"], description: "Expected impact on hitting the forecast" },
                   why: { type: "string", description: "One sentence explaining why this action matters now" }
                 },
@@ -66515,6 +66521,48 @@ async function triggerSweep(c2) {
 }
 router42.post("/trigger", zValidator("json", runSchema2), triggerSweep);
 router42.post("/run", zValidator("json", runSchema2), triggerSweep);
+var searchSchema = external_exports.object({ query: external_exports.string().min(2).max(300) });
+router42.post("/search", zValidator("json", searchSchema), async (c2) => {
+  const { query } = c2.req.valid("json");
+  let classified = {};
+  try {
+    classified = await aiGatewayToolUse({
+      toolName: "classify_discovery_query",
+      toolDescription: "Classify a free-text web-discovery search into structured sweep parameters",
+      toolSchema: {
+        type: "object",
+        properties: {
+          searchType: { type: "string", enum: ["INTENT_LEADS", "REVIEWS"], description: "REVIEWS if the user is asking what people say/think about a specific named person/company/product (reviews, opinions, reputation). INTENT_LEADS if the user wants to FIND people/businesses in a sector (prospects, leads, directories)." },
+          sector: { type: "string", description: "The industry/sector/subject-matter, e.g. 'real estate', 'aesthetic clinics', 'SaaS companies'. Omit if not applicable." },
+          region: { type: "string", description: "A geographic location mentioned, e.g. 'London', 'Austin TX'. Omit if none mentioned." },
+          targetSubject: { type: "string", description: "REQUIRED for REVIEWS \u2014 the specific person/company/product being asked about, e.g. 'Vivacy', 'Acme Corp'." }
+        },
+        required: ["searchType"]
+      },
+      system: "You classify a Mondaily Discovery search query into structured parameters. Be precise: REVIEWS needs one specific named subject; if the query names no specific entity, it's INTENT_LEADS (finding prospects in a sector/region) even if the word 'review' appears generically.",
+      prompt: query,
+      maxTokens: 200
+    }).catch(() => ({}));
+  } catch {
+  }
+  const searchType = classified.searchType === "REVIEWS" && classified.targetSubject ? "REVIEWS" : "INTENT_LEADS";
+  const params = {
+    workspaceId: c2.get("workspaceId"),
+    searchType,
+    sector: classified.sector || (searchType === "INTENT_LEADS" ? query : void 0),
+    region: classified.region,
+    targetSubject: classified.targetSubject
+  };
+  inngest.send({ name: "app/social.discovery.trigger", data: params }).catch(() => {
+  });
+  try {
+    const result = await runSocialDiscovery(params);
+    return c2.json({ ok: true, classified: params, ...result }, 200);
+  } catch (e2) {
+    console.error("[discovery] search sweep failed:", e2 instanceof Error ? e2.message : e2);
+    return c2.json({ ok: false, error: e2 instanceof Error ? e2.message : "Sweep failed" }, 200);
+  }
+});
 router42.get("/", async (c2) => {
   const intent = c2.req.query("intent_type");
   let q2 = supabase.from("discovered_leads").select("*").eq("workspace_id", c2.get("workspaceId")).order("created_at", { ascending: false }).limit(200);

@@ -6,6 +6,7 @@ import { requireAuth } from "../middleware/auth";
 import { inngest } from "../lib/inngest";
 import { sovereignHeaders } from "../lib/sovereign-search";
 import { runSocialDiscovery } from "../jobs/social-discovery";
+import { aiGatewayToolUse } from "../lib/ai-gateway";
 
 /**
  * Social listening & intent discovery.
@@ -54,6 +55,52 @@ async function triggerSweep(c: any) {
 
 router.post("/trigger", zValidator("json", runSchema), triggerSweep);
 router.post("/run", zValidator("json", runSchema), triggerSweep); // alias used by the Discovery page
+
+// POST /discovery/search { query } — the single-box "Google-style" entry point. One free-text
+// query; the AI classifies it into the structured sweep params (searchType/sector/region/subject)
+// instead of the user filling out a form. Never invents the query's meaning beyond what's asked —
+// if a target subject genuinely isn't present for a reviews-style ask, it falls back to leads.
+const searchSchema = z.object({ query: z.string().min(2).max(300) });
+router.post("/search", zValidator("json", searchSchema), async (c) => {
+  const { query } = c.req.valid("json");
+  let classified: { searchType?: string; sector?: string; region?: string; targetSubject?: string } = {};
+  try {
+    classified = await aiGatewayToolUse({
+      toolName: "classify_discovery_query",
+      toolDescription: "Classify a free-text web-discovery search into structured sweep parameters",
+      toolSchema: {
+        type: "object",
+        properties: {
+          searchType: { type: "string", enum: ["INTENT_LEADS", "REVIEWS"], description: "REVIEWS if the user is asking what people say/think about a specific named person/company/product (reviews, opinions, reputation). INTENT_LEADS if the user wants to FIND people/businesses in a sector (prospects, leads, directories)." },
+          sector: { type: "string", description: "The industry/sector/subject-matter, e.g. 'real estate', 'aesthetic clinics', 'SaaS companies'. Omit if not applicable." },
+          region: { type: "string", description: "A geographic location mentioned, e.g. 'London', 'Austin TX'. Omit if none mentioned." },
+          targetSubject: { type: "string", description: "REQUIRED for REVIEWS — the specific person/company/product being asked about, e.g. 'Vivacy', 'Acme Corp'." },
+        },
+        required: ["searchType"],
+      },
+      system: "You classify a Mondaily Discovery search query into structured parameters. Be precise: REVIEWS needs one specific named subject; if the query names no specific entity, it's INTENT_LEADS (finding prospects in a sector/region) even if the word 'review' appears generically.",
+      prompt: query,
+      maxTokens: 200,
+    }).catch(() => ({} as Record<string, unknown>));
+  } catch { /* fall through to heuristic below */ }
+
+  const searchType = classified.searchType === "REVIEWS" && classified.targetSubject ? "REVIEWS" : "INTENT_LEADS";
+  const params = {
+    workspaceId: c.get("workspaceId") as string,
+    searchType: searchType as "INTENT_LEADS" | "REVIEWS",
+    sector: classified.sector || (searchType === "INTENT_LEADS" ? query : undefined),
+    region: classified.region,
+    targetSubject: classified.targetSubject,
+  };
+  inngest.send({ name: "app/social.discovery.trigger", data: params }).catch(() => {});
+  try {
+    const result = await runSocialDiscovery(params);
+    return c.json({ ok: true, classified: params, ...result }, 200);
+  } catch (e) {
+    console.error("[discovery] search sweep failed:", e instanceof Error ? e.message : e);
+    return c.json({ ok: false, error: e instanceof Error ? e.message : "Sweep failed" }, 200);
+  }
+});
 
 // Read discovered leads for this workspace, optionally filtered by intent_type.
 router.get("/", async (c) => {

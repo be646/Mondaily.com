@@ -32,10 +32,9 @@ const FILTERS = [["all", "All"], ["BUY_SIGNAL", "Buy signals"], ["REVIEW", "Revi
 
 export function DiscoveryPage() {
   const qc = useQueryClient();
-  const [searchType, setSearchType] = useState<SearchType>("INTENT_LEADS");
-  const [sector, setSector] = useState("");
-  const [region, setRegion] = useState("");
-  const [targetSubject, setTargetSubject] = useState("");
+  // Single Google-style search box — one free-text query. The AI classifies it into leads-vs-
+  // reviews + sector/region/subject server-side, instead of the user filling out a form.
+  const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<string>("all");
 
   const leadsQ = useQuery({
@@ -59,12 +58,11 @@ export function DiscoveryPage() {
 
   const run = useMutation({
     mutationFn: () =>
-      apiClient.post<{ ok?: boolean; discovered?: number; scanned?: number; error?: string; reason?: string; status?: string; diag?: { queries: number; hits: number; unique: number; scraped?: number; gateway: boolean; extracted: number; matched: number } }>("/discovery/run", {
-        searchType,
-        sector: sector.trim() || undefined,
-        region: region.trim() || undefined,
-        targetSubject: targetSubject.trim() || undefined,
-      }),
+      apiClient.post<{
+        ok?: boolean; discovered?: number; scanned?: number; error?: string; reason?: string; status?: string;
+        classified?: { searchType: SearchType; sector?: string; region?: string; targetSubject?: string };
+        diag?: { queries: number; hits: number; unique: number; scraped?: number; gateway: boolean; extracted: number; matched: number };
+      }>("/discovery/search", { query: query.trim() }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["discovery"] }),
   });
 
@@ -87,7 +85,6 @@ export function DiscoveryPage() {
     onSuccess: (_d, r) => setAdded((m) => ({ ...m, [r.id]: true })),
   });
 
-  const reviewsMissingSubject = searchType === "REVIEWS" && !targetSubject.trim();
   const all = leadsQ.data ?? [];
   const rows = filter === "all" ? all : all.filter((r) => r.intent_type === filter);
   const counts = {
@@ -133,7 +130,7 @@ export function DiscoveryPage() {
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
         title="Discovery"
-        description="Sweep the open web for buyer-intent signals and reviews — grounded, source-backed, and deduplicated."
+        description="Search anything — the agent scans the open web and finds real, source-backed leads and reviews."
       />
 
       {/* Strong leads already routed to the Decision Queue for one-click approval */}
@@ -170,67 +167,52 @@ export function DiscoveryPage() {
         </div>
       )}
 
-      {/* ── Run a sweep ── */}
-      <section
-        className="overflow-hidden rounded-sm border bg-[var(--surface-card)]"
-        style={{ borderColor: "var(--border-soft)", boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 18px 40px -28px rgba(0,0,0,0.16)" }}
-      >
-        <div className="flex items-center gap-2.5 border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg" style={{ background: "#6f80681a" }}>
-            <Radar size={15} className="text-[#6f8068]" />
-          </span>
-          <div>
-            <div className="text-[13px] font-semibold text-[var(--text-primary)]">Run a web sweep</div>
-            <div className="text-[11px] text-[var(--text-muted)]">Live search across the open web — directories, review sites &amp; forums</div>
-          </div>
+      {/* ── Single Google-style search — one box, AI classifies intent + extracts sector/region/subject ── */}
+      <section>
+        <div
+          className="discovery-search-bar flex items-center gap-2.5 rounded-full border px-3 py-2 transition-all sm:px-4"
+          style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 18px 40px -28px rgba(0,0,0,0.16)" }}
+        >
+          <Search size={17} className="shrink-0" style={{ color: "var(--text-faint)" }} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && query.trim() && !run.isPending) run.mutate(); }}
+            placeholder="Search anything — real estate agents in London, reviews for Vivacy, SaaS companies that raised a seed round…"
+            className="flex-1 min-w-0 bg-transparent px-1 py-1.5 text-[15px] leading-6 outline-none"
+            style={{ color: "var(--text-primary)" }}
+          />
+          <button
+            onClick={() => run.mutate()}
+            disabled={run.isPending || !query.trim()}
+            title="Search"
+            className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-white transition-all disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ background: "#18181b" }}
+          >
+            {run.isPending ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+          </button>
         </div>
 
-        <div className="space-y-4 p-5">
-          <div className="inline-flex rounded-sm border p-1" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
-            {(["INTENT_LEADS", "REVIEWS"] as SearchType[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setSearchType(t)}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-[12.5px] font-medium transition-all ${
-                  searchType === t ? "bg-[var(--surface-card)] text-[var(--text-primary)] shadow-sm ring-1 ring-black/[.06]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                }`}
-              >
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: searchType === t ? "#6f8068" : "#d4d4d8" }} />
-                {t === "INTENT_LEADS" ? "Intent leads" : "Reviews"}
-              </button>
-            ))}
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <Field label={searchType === "REVIEWS" ? "Sector (optional)" : "Sector"} value={sector} onChange={setSector} placeholder="real estate, solar, SaaS" />
-            <Field label="Region (optional)" value={region} onChange={setRegion} placeholder="London, Austin TX" />
-            {searchType === "REVIEWS" && <Field label="Subject" value={targetSubject} onChange={setTargetSubject} placeholder="Person or company" />}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <button
-              onClick={() => run.mutate()}
-              disabled={run.isPending || reviewsMissingSubject}
-              className="inline-flex items-center gap-2 rounded-sm border px-4 py-2 text-[12.5px] font-medium text-white transition-colors disabled:opacity-50"
-              style={{ background: "#18181b", borderColor: "var(--border-strong)" }}
-              onMouseEnter={e => { if (!run.isPending) e.currentTarget.style.borderColor = "var(--section-accent)"; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; }}
-            >
-              {run.isPending ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
-              {run.isPending ? <span className="font-mono text-[11px] tracking-wider">[ SWEEPING THE WEB... ]</span> : "Run sweep"}
-            </button>
-            {reviewsMissingSubject && <span className="text-[12px] text-[var(--text-muted)]">Add a subject to run a reviews sweep.</span>}
-            {run.isError && <span className="text-[12px] text-[#be123c]">Sweep failed: {run.error instanceof Error ? run.error.message : "unknown error"}</span>}
+        {/* Result / status line right under the bar — mirrors how a search engine reports back */}
+        {(run.isPending || run.isError || run.isSuccess) && (
+          <div className="px-4 pt-2.5 text-[12.5px]">
+            {run.isPending && <span style={{ color: "var(--text-muted)" }}>Searching the open web and letting the agent analyze what it finds…</span>}
+            {run.isError && <span style={{ color: "#be123c" }}>Search failed: {run.error instanceof Error ? run.error.message : "unknown error"}</span>}
             {run.isSuccess && !run.isPending && (() => {
               const d = run.data;
-              if (d?.error) return <span className="text-[12px] text-[#be123c]">Sweep error: {d.error}</span>;
-              if (d?.status === "SKIPPED_INFRASTRUCTURE_TIMEOUT") return <span className="text-[12px] text-[#be123c]">Search appliance was unreachable — check the health banner above.</span>;
-              if ((d?.discovered ?? 0) > 0) return <span className="inline-flex items-center gap-1.5 text-[12px] text-[#15803d]"><Check size={12} />Found {d!.discovered} lead{d!.discovered === 1 ? "" : "s"} from {d?.scanned ?? "?"} sources.</span>;
+              const kind = d?.classified?.searchType === "REVIEWS" ? "reviews" : "leads";
+              if (d?.error) return <span style={{ color: "#be123c" }}>Search error: {d.error}</span>;
+              if (d?.status === "SKIPPED_INFRASTRUCTURE_TIMEOUT") return <span style={{ color: "#be123c" }}>Search appliance was unreachable — check the health banner above.</span>;
+              if ((d?.discovered ?? 0) > 0) return (
+                <span className="inline-flex items-center gap-1.5" style={{ color: "#15803d" }}>
+                  <Check size={12} />Found {d!.discovered} {kind === "reviews" ? "review" + (d!.discovered === 1 ? "" : "s") : "lead" + (d!.discovered === 1 ? "" : "s")} from {d?.scanned ?? "?"} sources.
+                </span>
+              );
               return (
-                <span className="text-[12px] text-[var(--text-muted)]">
-                  Scanned {d?.scanned ?? 0} sources — no on-topic {searchType === "REVIEWS" ? "reviews" : "leads"} matched. {d?.reason ? <span className="text-[var(--text-faint)]">({d.reason})</span> : null} Try a broader sector/region, or a different subject.
+                <span style={{ color: "var(--text-muted)" }}>
+                  Scanned {d?.scanned ?? 0} sources — no on-topic {kind} matched. {d?.reason ? <span style={{ color: "var(--text-faint)" }}>({d.reason})</span> : null} Try being more specific, or a different subject.
                   {d?.diag && (
-                    <span className="mt-1 block font-mono text-[10px] text-[var(--text-faint)]">
+                    <span className="mt-1 block font-mono text-[10px]" style={{ color: "var(--text-faint)" }}>
                       pipeline: {d.diag.queries} queries → {d.diag.hits} hits → {d.diag.unique} unique → {d.diag.scraped ?? 0} scraped → gateway {d.diag.gateway ? "ok" : "FAILED"} → {d.diag.extracted} extracted → {d.diag.matched} matched
                     </span>
                   )}
@@ -238,7 +220,23 @@ export function DiscoveryPage() {
               );
             })()}
           </div>
-        </div>
+        )}
+
+        {/* Quick example chips — click to fill the box, same pattern as the home Ask bar's quick prompts */}
+        {!query && !run.isSuccess && (
+          <div className="flex flex-wrap gap-1.5 px-4 pt-3">
+            {["Real estate agents in London", "Reviews for Vivacy", "SaaS companies that raised a seed round"].map((ex) => (
+              <button
+                key={ex}
+                onClick={() => setQuery(ex)}
+                className="rounded-full border px-3 py-1.5 text-[12px] transition-colors"
+                style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* ── Stats + real intent-mix breakdown ── */}
@@ -424,17 +422,3 @@ export function DiscoveryPage() {
   );
 }
 
-function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-[11px] font-medium text-[var(--text-muted)]">{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full rounded-lg border px-3 py-2 text-[13px] text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-faint)] focus:border-[#6f8068]"
-        style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
-      />
-    </label>
-  );
-}
