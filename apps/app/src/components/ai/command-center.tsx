@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ShieldAlert, CheckSquare, Activity, ArrowUpRight, Sparkles, FileText,
@@ -215,16 +214,8 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
               <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{panelOpen ? "Hide" : "Show"}</span>
               <ChevronDown size={14} className={`shrink-0 transition-transform ${panelOpen ? "rotate-180" : ""}`} style={{ color: "var(--text-faint)" }}/>
             </button>
-            <AnimatePresence initial={false}>
-              {panelOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: "easeInOut" }}
-                  className="overflow-hidden border-t"
-                  style={{ borderColor: "var(--border-soft)" }}
-                >
+            {panelOpen && (
+                <div className="border-t" style={{ borderColor: "var(--border-soft)" }}>
             {!decisionsError && topDecisions.map(d => {
               const open = openId === d.id;
               const sources = mapEvidence(d.evidence ?? []);
@@ -232,19 +223,16 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
               const bnr = banner?.id === d.id ? banner.kind : null;
               return (
                 <div key={d.id} className="relative border-b" style={{ borderColor: "var(--border-soft)" }}>
-                  <AnimatePresence>
-                    {bnr && (
-                      <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}
-                        className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--surface-card) 72%, transparent)" }}>
-                        <span className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
-                          style={bnr === "approved"
-                            ? { borderColor: "#10b981", color: "#10b981", background: "color-mix(in srgb, #10b981 12%, var(--surface-card))", boxShadow: "0 0 16px color-mix(in srgb, #10b981 35%, transparent)" }
-                            : { borderColor: bnr === "rejected" ? "#ef4444" : "var(--text-faint)", color: bnr === "rejected" ? "#ef4444" : "var(--text-muted)", background: "var(--surface-card)" }}>
-                          {bnr === "approved" ? <><CheckCircle2 size={12} /> ✓ AUTOMATION INJECTED SECURELY</> : bnr === "rejected" ? <><XCircle size={12} /> ✕ DISMISSED</> : <><Clock size={12} /> ⏳ SNOOZED</>}
-                        </span>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                  {bnr && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--surface-card) 72%, transparent)" }}>
+                      <span className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
+                        style={bnr === "approved"
+                          ? { borderColor: "#10b981", color: "#10b981", background: "color-mix(in srgb, #10b981 12%, var(--surface-card))" }
+                          : { borderColor: bnr === "rejected" ? "#ef4444" : "var(--text-faint)", color: bnr === "rejected" ? "#ef4444" : "var(--text-muted)", background: "var(--surface-card)" }}>
+                        {bnr === "approved" ? <><CheckCircle2 size={12} /> Approved</> : bnr === "rejected" ? <><XCircle size={12} /> Dismissed</> : <><Clock size={12} /> Snoozed</>}
+                      </span>
+                    </div>
+                  )}
                   <button onClick={() => setOpenId(open ? null : d.id)} className="stream-row w-full text-left" style={{ borderLeft: `2px solid ${d.risk_level === "high" ? "#dc2626" : "#d97706"}` }}>
                     {d.risk_level === "high" ? <ShieldAlert size={13} className="mt-0.5 shrink-0 text-rose-500"/> : <Clock size={13} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }}/>}
                     <div className="min-w-0 flex-1">
@@ -297,9 +285,8 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
                 <ArrowUpRight size={11} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }}/>
               </Link>
             ))}
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
           </>
         )}
       </div>
