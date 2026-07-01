@@ -8,7 +8,6 @@ import { freshAccessToken, gmailThreads, gmailThread, gmailSend } from "../lib/g
 
 type Variables = { userId: string; workspaceId: string; role: string };
 type WorkspaceSettings = {
-  nylas_grant_id?: string;
   integrations?: Record<string, boolean | { connected?: boolean; grant_id?: string; email?: string }>;
 };
 
@@ -83,26 +82,13 @@ async function getSettings(workspaceId: string) {
   return (data?.settings ?? {}) as WorkspaceSettings;
 }
 
+// Legacy grant id (from an old integration profile) — only used to reflect "connected" state
+// in the UI; all real inbox access is direct Google (lib/google). Nylas fully removed.
 function getGrantId(settings: WorkspaceSettings) {
-  if (settings.nylas_grant_id) return settings.nylas_grant_id;
   for (const provider of ["gmail", "outlook"]) {
     const integration = settings.integrations?.[provider];
     if (typeof integration === "object" && integration.grant_id) return integration.grant_id;
   }
-}
-
-async function nylasRequest<T>(grantId: string, path: string, init?: RequestInit): Promise<T> {
-  if (!process.env.NYLAS_API_KEY) throw new Error("NYLAS_API_KEY is not configured");
-  const response = await fetch(`https://api.us.nylas.com/v3/grants/${grantId}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${process.env.NYLAS_API_KEY}`,
-      "Content-Type": "application/json",
-      ...init?.headers
-    }
-  });
-  if (!response.ok) throw new Error(`Nylas request failed (${response.status}): ${await response.text()}`);
-  return response.json() as Promise<T>;
 }
 
 async function localThreads(workspaceId: string) {
@@ -178,18 +164,9 @@ router.get("/threads", zValidator("query", z.object({
     }
   }
 
-  let threads: Record<string, unknown>[];
-  let nextCursor: string | undefined;
-
-  if (grantId && process.env.NYLAS_API_KEY) {
-    const params = new URLSearchParams({ limit: "50" });
-    if (input.page_token) params.set("page_token", input.page_token);
-    const response = await nylasRequest<{ data?: Record<string, unknown>[]; next_cursor?: string }>(grantId, `/threads?${params}`);
-    threads = response.data ?? [];
-    nextCursor = response.next_cursor;
-  } else {
-    threads = await localThreads(c.get("workspaceId"));
-  }
+  // No direct-Google inbox → fall back to the locally-cached email threads.
+  const threads = await localThreads(c.get("workspaceId"));
+  const nextCursor: string | undefined = undefined;
 
   const search = input.search.trim().toLowerCase();
   const filtered = threads.filter((thread) => {
@@ -237,25 +214,6 @@ router.get("/threads/:id", async (c) => {
     }
   }
 
-  if (grantId && process.env.NYLAS_API_KEY) {
-    const threadResponse = await nylasRequest<{ data: Record<string, unknown> }>(grantId, `/threads/${encodeURIComponent(c.req.param("id"))}`);
-    const thread = threadResponse.data;
-    const messageIds = Array.isArray(thread.message_ids) ? thread.message_ids.map(String) : [];
-    const messages = await Promise.all(messageIds.map(async (id) => {
-      const response = await nylasRequest<{ data: Record<string, unknown> }>(grantId, `/messages/${encodeURIComponent(id)}`);
-      const message = response.data;
-      return {
-        id,
-        from: message.from ?? [],
-        to: message.to ?? [],
-        cc: message.cc ?? [],
-        date: message.date ?? 0,
-        body: message.body ?? "",
-        attachments: message.attachments ?? []
-      };
-    }));
-    return c.json({ ...thread, messages });
-  }
   const { data } = await supabase.from("nodes").select("id,data").eq("workspace_id", c.get("workspaceId")).eq("object_type", "email_thread").or(`id.eq.${c.req.param("id")},data->>thread_id.eq.${c.req.param("id")}`).maybeSingle();
   return data ? c.json({ id: data.data.thread_id ?? data.id, ...data.data }) : c.json({ error: "Thread not found" }, 404);
 });
@@ -307,27 +265,8 @@ router.post("/threads/:id/reply", zValidator("json", z.object({ body: z.string()
     return c.json({ ok: true, tracking_id: trackNode?.id }, 201);
   }
 
-  if (!grantId) return c.json({ error: "Connect Gmail or Outlook before replying" }, 400);
-  const thread = await nylasRequest<{ data: Record<string, unknown> }>(grantId, `/threads/${encodeURIComponent(c.req.param("id"))}`);
-  const messageIds = Array.isArray(thread.data.message_ids) ? thread.data.message_ids.map(String) : [];
-  const replyTo = messageIds.at(-1);
-  if (!replyTo) return c.json({ error: "Thread has no message to reply to" }, 400);
-
-  // Create an outbox node to track opens/clicks for this reply
-  const { data: trackNode } = await supabase.from("nodes").insert({
-    workspace_id: c.get("workspaceId"),
-    vertical: "sales",
-    object_type: "email_outbox",
-    data: { thread_id: c.req.param("id"), subject: "(reply)", status: "sent", sent_at: new Date().toISOString(), opens: [], clicks: [] },
-    created_by: c.get("userId")
-  }).select("id").single();
-
-  const trackedBody = trackNode ? injectTracking(c.req.valid("json").body, trackNode.id) : c.req.valid("json").body;
-  const result = await nylasRequest<{ data: Record<string, unknown> }>(grantId, "/messages/send", {
-    method: "POST",
-    body: JSON.stringify({ body: trackedBody, reply_to_message_id: replyTo })
-  });
-  return c.json({ ...result.data, tracking_id: trackNode?.id }, 201);
+  // No direct-Google inbox connected → can't send (Nylas removed for sovereignty).
+  return c.json({ error: "Connect a Gmail inbox in Settings → Email before replying." }, 400);
 });
 
 // ── List outbox (sent + tracked emails) ──────────────────────────────────────

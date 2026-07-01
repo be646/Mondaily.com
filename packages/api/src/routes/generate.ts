@@ -15,7 +15,7 @@ const router = new Hono<{ Variables: { userId: string; workspaceId: string; role
  * Model is determined by AI_PROVIDER_MODEL env var (gateway owns routing).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function callAnthropic(body: any): Promise<any> {
+async function callGatewayTool(body: any): Promise<any> {
   const tool = body.tools?.[0];
   const lastMsg = body.messages?.[body.messages.length - 1];
   if (!tool || !lastMsg) throw new Error("Invalid AI request body");
@@ -36,8 +36,7 @@ async function callAnthropic(body: any): Promise<any> {
 router.post("/schema", requireAuth, zValidator("json", z.object({ prompt: z.string().min(1) })), async (c) => {
   const { prompt } = c.req.valid("json");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 2048,
       tools: [{
         name: "create_object_schema",
@@ -90,7 +89,7 @@ router.post("/nlp", requireAuth, zValidator("json", z.object({
   const { query, columns } = c.req.valid("json");
   try {
     // Use the configured gateway (gpt-oss via Cerebras), NOT Anthropic — this
-    // app runs on Cerebras and has no Anthropic key, so callAnthropic here was
+    // app runs on Cerebras and has no Anthropic key, so callGatewayTool here was
     // failing and silently degrading NL sort to the regex fallback.
     const input = await aiGatewayToolUse({
       maxTokens: 512,
@@ -194,8 +193,7 @@ router.post("/records", requireAuth, zValidator("json", z.object({
 })), async (c) => {
   const { objectType, columns, prompt, count } = c.req.valid("json");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 4096,
       tools: [{
         name: "generate_records",
@@ -245,8 +243,7 @@ router.post("/tasks", requireAuth, zValidator("json", z.object({
     `[${r.object_type}] ${Object.entries(r.data).slice(0,4).map(([k,v])=>`${k}=${v}`).join(", ")}`
   ).join("\n");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 2048,
       tools: [{
         name: "suggest_tasks",
@@ -297,8 +294,7 @@ router.post("/insights", requireAuth, zValidator("json", z.object({
     return Object.entries(d).slice(0,6).map(([k,v])=>`${k}=${v}`).join(", ");
   }).join("\n");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 2048,
       tools: [{
         name: "generate_insights",
@@ -347,8 +343,7 @@ router.post("/sequence", requireAuth, zValidator("json", z.object({
 })), async (c) => {
   const { prompt, steps } = c.req.valid("json");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 3000,
       tools: [{
         name: "create_sequence",
@@ -399,8 +394,7 @@ router.post("/list-name", requireAuth, zValidator("json", z.object({
 })), async (c) => {
   const { prompt, objectTypes } = c.req.valid("json");
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 256,
       tools: [{
         name: "name_list",
@@ -437,8 +431,7 @@ router.post("/list-entries", requireAuth, zValidator("json", z.object({
   if (!records.length) return c.json({ selectedIds: [] });
   try {
     const recordSummary = records.map(r => `ID:${r.id} | ${Object.entries(r.data).slice(0,5).map(([k,v])=>`${k}=${v}`).join(", ")}`).join("\n");
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 1024,
       tools: [{
         name: "select_records",
@@ -492,8 +485,7 @@ router.post("/workflow", requireAuth, zValidator("json", z.object({
   };
 
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 1024,
       tools: [{
         name: "create_workflow",
@@ -600,8 +592,7 @@ Based on this data, generate a realistic forecast. Consider:
 4. Average deal size trend`;
 
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 2048,
       tools: [{
         name: "generate_forecast",
@@ -706,8 +697,7 @@ router.post("/risk-alerts", requireAuth, async (c) => {
   if (!context.trim()) return c.json({ created: 0 });
 
   try {
-    const data = await callAnthropic({
-      model: "claude-haiku-4-5-20251001",
+    const data = await callGatewayTool({
       max_tokens: 1024,
       tools: [{
         name: "generate_risk_alerts",
