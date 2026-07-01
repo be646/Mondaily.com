@@ -1291,7 +1291,7 @@ async function executeTool(
         const pages = await Promise.all(urls.slice(0, 3).map(async (u) => ({ url: u, text: (await sovereignScrape(u)).slice(0, 2500) })));
         const withText = pages.filter((p) => p.text.trim());
         // Surface every result as a clickable source card in the UI.
-        for (const u of urls) sources.push({ type: "web", title: u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0], node_id: u, match_reason: query });
+        for (const u of urls) sources.push({ type: "web", title: u.replace(/^https?:\/\/(www\.)?/, "").split("/")[0] ?? u, node_id: u, match_reason: query });
         if (!withText.length) return `Found ${urls.length} web result(s) for "${query}" but couldn't read their contents. Links:\n${urls.map((u) => `- ${u}`).join("\n")}`;
         return `Live web results for "${query}". Summarize these for the user and cite the source URLs:\n\n${withText.map((p) => `SOURCE: ${p.url}\n${p.text}`).join("\n\n---\n\n")}`;
       }
