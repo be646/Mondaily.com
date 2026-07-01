@@ -140,13 +140,14 @@ router.post("/complete", requireAuth, async (c) => {
     },
   }).eq("id", ws);
 
-  // Credit backfill on plan selection — idempotent (skip if the workspace is already enrolled, so
-  // re-running onboarding can't double-grant). Business → 500k Pro trial; Personal → 50k baseline.
-  if (track === "business") {
-    await grantCredits(ws, BUSINESS_TRIAL_GRANT, "grant", "14-day Pro trial credits");
-  } else {
-    const { enrolled } = await creditStatus(ws);
-    if (!enrolled) await grantCredits(ws, SOLO_GRANT, "grant", "Personal plan baseline credits");
+  // Bring credits up to EXACTLY the plan's allotment — never stack the plan grant on top of the
+  // register-time baseline (that produced 50k + 500k = 550k). Grant only the shortfall, so the
+  // total lands on the target and re-running onboarding is idempotent (delta ≤ 0 → no-op).
+  const target = track === "business" ? BUSINESS_TRIAL_GRANT : SOLO_GRANT;
+  const { balance } = await creditStatus(ws);
+  const delta = target - balance;
+  if (delta > 0) {
+    await grantCredits(ws, delta, "grant", track === "business" ? "Operator trial credits" : "Free plan credits");
   }
 
   // Seed a few starter tasks (only if the workspace has none yet).
