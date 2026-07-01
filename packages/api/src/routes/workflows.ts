@@ -2,6 +2,7 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { runWorkflowsForWorkspace } from "../jobs/workflow-engine";
+import { planLimits, workspaceTier } from "../lib/plan-limits";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 type WorkflowData = Record<string, unknown> & { name?: string; status?: string; nodes?: Record<string, unknown>[] };
@@ -44,6 +45,16 @@ router.patch("/:id", async (c) => {
   let result;
 
   if (c.req.param("id") === "new") {
+    // Tier cap: Scout is limited to 3 automations. Enforce before insert (align account with plan).
+    const limits = planLimits(await workspaceTier(workspaceId));
+    if (limits.maxAutomations >= 0) {
+      const { count } = await supabase
+        .from("nodes").select("id", { count: "exact", head: true })
+        .eq("workspace_id", workspaceId).eq("object_type", "automation");
+      if ((count ?? 0) >= limits.maxAutomations) {
+        return c.json({ error: `Your plan includes ${limits.maxAutomations} automations. Upgrade to Operator for unlimited.`, upgrade: true }, 403);
+      }
+    }
     result = await supabase
       .from("nodes")
       .insert({

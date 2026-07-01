@@ -376,6 +376,7 @@ export function WorkflowBuilderPage() {
   const [aiOpen, setAiOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [currentId, setCurrentId] = useState<string | undefined>(id === "new" ? undefined : id);
   const [triggerType, setTriggerType] = useState("record_created");
   const [showRuns, setShowRuns] = useState(false);
@@ -408,7 +409,7 @@ export function WorkflowBuilderPage() {
   }, [id]);
 
   async function saveWorkflow() {
-    setSaving(true);
+    setSaving(true); setSaveError("");
     try {
       const targetId = currentId ?? "new";
       const wf = await apiClient.patch<{ id: string }>(`/workflows/${targetId}`, { name, status, nodes });
@@ -418,7 +419,12 @@ export function WorkflowBuilderPage() {
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch { /* silently fail */ }
+    } catch (e) {
+      // Surface plan-cap and other errors instead of silently failing.
+      let msg = e instanceof Error ? e.message : "Couldn't save the workflow.";
+      try { msg = (JSON.parse(msg) as { error?: string }).error ?? msg; } catch { /* raw */ }
+      setSaveError(msg);
+    }
     finally { setSaving(false); }
   }
 
@@ -497,6 +503,11 @@ export function WorkflowBuilderPage() {
           {saving ? <Loader2 size={12} className="animate-spin"/> : <Save size={12}/>}
           {saved ? "Saved!" : saving ? "Saving…" : "Save"}
         </button>
+        {saveError && (
+          <span className="max-w-xs text-[11px] text-amber-400">
+            {saveError} {/upgrade|plan includes/i.test(saveError) && <a href="/settings/billing" className="underline">Upgrade</a>}
+          </span>
+        )}
 
         <button
           onClick={() => { setStatus(s => s === "active" ? "draft" : "active"); }}

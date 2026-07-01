@@ -9,6 +9,7 @@ import { isWorkspaceAdmin } from "../middleware/rbac";
 import { ACCESS_COOKIE, REFRESH_COOKIE, sha256 } from "../lib/auth-tokens";
 import { MODULE_KEYS, resolveModuleMatrix, enabledModules } from "../lib/modules";
 import { creditStatus, grantCredits } from "../lib/credits";
+import { planLimits } from "../lib/plan-limits";
 
 // Seat limits per tier — Scout & Operator are SINGLE-operator; only Command/Sovereign are teams.
 // The single source used by both /settings/members (can_invite) and /billing (seats_limit).
@@ -64,9 +65,14 @@ router.use("*", requireAuth);
 router.get("/me/access", async (c) => {
   const workspaceId = c.get("workspaceId");
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
-  const wsModules = ((wsRow?.settings as { modules?: string[] } | null)?.modules) ?? [];
+  const settings = (wsRow?.settings as Record<string, unknown> | null) ?? {};
+  const wsModules = (settings.modules as string[] | undefined) ?? [];
+  const tier = (settings.account_tier as string) ?? (settings.track as string) ?? "scout";
   return c.json({
     role: c.get("role"),
+    tier,
+    limits: planLimits(tier),                 // { maxAutomations, maxAgents } — -1 = unlimited
+    seats_limit: seatLimitFor(settings),
     enabled_modules: enabledModules(wsModules).map((m) => m.key),
     access: resolveModuleMatrix(c.get("role"), c.get("moduleAccess"), c.get("financeRole")),
   });
