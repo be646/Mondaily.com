@@ -150,7 +150,7 @@ export function DiscoveryPage() {
               key={k}
               onClick={() => setFilter(k)}
               className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] font-medium transition-colors ${
-                filter === k ? "bg-zinc-900 text-white" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                filter === k ? "bg-[var(--surface-card)] text-white" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
               }`}
             >
               {l}

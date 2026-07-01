@@ -839,7 +839,7 @@ export function ListPage() {
       {/* ── Enroll in Sequence ── */}
       {enrollOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[#121214] shadow-2xl flex flex-col max-h-[80vh]">
+          <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)]">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20">
