@@ -1,6 +1,7 @@
 import { supabase } from "@mondaily/db/client";
 import { startJob, completeJob, failJob, logStep } from "../lib/agent-logger";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
+import { sovereignWebContext } from "../lib/sovereign-search";
 import { createNotification } from "../lib/notify";
 
 // ── Security primitives (exported so the AI-security test suite can assert these
@@ -417,20 +418,6 @@ export async function runRecurringInvoices(workspaceId?: string): Promise<{ gene
 // Stems (not exact) so "companies"/"contact-leads"/"people" all match.
 const ENRICHABLE = ["contact", "person", "people", "lead", "client", "compan", "account", "organization", "org"];
 
-async function tavilySearch(query: string): Promise<string> {
-  const key = process.env.TAVILY_API_KEY;
-  if (!key) return "";
-  try {
-    const res = await fetch("https://api.tavily.com/search", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ api_key: key, query, max_results: 4, search_depth: "basic" }),
-    });
-    if (!res.ok) return "";
-    const json = await res.json() as { results?: { title: string; content: string }[] };
-    return (json.results ?? []).slice(0, 4).map((r) => `${r.title}: ${r.content}`).join("\n");
-  } catch { return ""; }
-}
-
 async function enrichOne(nodeId: string, objectType: string, recordData: Record<string, unknown>, workspaceId?: string): Promise<number> {
   const normalizedType = objectType.toLowerCase();
   const isPerson = ["contact", "person", "people", "lead"].some((t) => normalizedType.includes(t));
@@ -441,7 +428,7 @@ async function enrichOne(nodeId: string, objectType: string, recordData: Record<
   const query = isPerson
     ? (email ? `${email} linkedin job title company` : `${name} linkedin job title company professional`)
     : `${name} ${domain} company funding employees revenue industry`;
-  const webContext = await tavilySearch(query);
+  const webContext = await sovereignWebContext(query);
 
   const schema: GatewayToolRequest["toolSchema"] = isPerson
     ? { type: "object", properties: { company: { type: "string" }, job_title: { type: "string" }, linkedin: { type: "string" }, location: { type: "string" }, twitter: { type: "string" }, bio: { type: "string" } } }

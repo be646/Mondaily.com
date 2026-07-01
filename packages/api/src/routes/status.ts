@@ -82,12 +82,14 @@ router.get("/", async (c) => {
     explanation: inngestConfigured ? "INNGEST_EVENT_KEY is set — scheduled/triggered jobs (enrichment, invoice chasing, relationship health, etc.) run for real." : "INNGEST_EVENT_KEY is not set in this environment — cannot confirm jobs are actually firing, only that they're registered in code.",
   });
 
-  // Tavily
-  const tavilyConfigured = Boolean(process.env.TAVILY_API_KEY);
+  // Sovereign web search (self-hosted SearXNG + scraper appliance)
+  const searchConfigured = Boolean(process.env.SOVEREIGN_SEARCH_URL);
   checks.push({
-    id: "tavily", label: "Web search (Tavily) configured",
-    state: tavilyConfigured ? "operational" : "needs_setup",
-    explanation: tavilyConfigured ? "TAVILY_API_KEY is set — enrichment and the Prospecting Agent can search the live web." : "TAVILY_API_KEY is missing — enrichment and Prospecting Agent web search will return nothing.",
+    id: "sovereign_search", label: "Sovereign web search appliance",
+    state: searchConfigured ? "operational" : "needs_setup",
+    explanation: searchConfigured
+      ? "SOVEREIGN_SEARCH_URL is set — enrichment and the Prospecting Agent search the live web via your own SearXNG + scraper."
+      : "SOVEREIGN_SEARCH_URL is missing — enrichment and Prospecting Agent web search will return nothing.",
   });
 
   // Email (direct Google / Gmail API — Nylas removed)
