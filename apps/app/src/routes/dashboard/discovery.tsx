@@ -49,7 +49,7 @@ export function DiscoveryPage() {
 
   const run = useMutation({
     mutationFn: () =>
-      apiClient.post<{ ok?: boolean; discovered?: number; scanned?: number; error?: string; reason?: string; status?: string }>("/discovery/run", {
+      apiClient.post<{ ok?: boolean; discovered?: number; scanned?: number; error?: string; reason?: string; status?: string; diag?: { queries: number; hits: number; unique: number; gateway: boolean; extracted: number; matched: number } }>("/discovery/run", {
         searchType,
         sector: sector.trim() || undefined,
         region: region.trim() || undefined,
@@ -194,7 +194,16 @@ export function DiscoveryPage() {
               if (d?.error) return <span className="text-[12px] text-[#be123c]">Sweep error: {d.error}</span>;
               if (d?.status === "SKIPPED_INFRASTRUCTURE_TIMEOUT") return <span className="text-[12px] text-[#be123c]">Search appliance was unreachable — check the health banner above.</span>;
               if ((d?.discovered ?? 0) > 0) return <span className="inline-flex items-center gap-1.5 text-[12px] text-[#15803d]"><Check size={12} />Found {d!.discovered} lead{d!.discovered === 1 ? "" : "s"} from {d?.scanned ?? "?"} sources.</span>;
-              return <span className="text-[12px] text-[var(--text-muted)]">Scanned {d?.scanned ?? 0} sources — no on-topic {searchType === "REVIEWS" ? "reviews" : "leads"} matched. Try a broader sector/region, or a different subject.</span>;
+              return (
+                <span className="text-[12px] text-[var(--text-muted)]">
+                  Scanned {d?.scanned ?? 0} sources — no on-topic {searchType === "REVIEWS" ? "reviews" : "leads"} matched. {d?.reason ? <span className="text-[var(--text-faint)]">({d.reason})</span> : null} Try a broader sector/region, or a different subject.
+                  {d?.diag && (
+                    <span className="mt-1 block font-mono text-[10px] text-[var(--text-faint)]">
+                      pipeline: {d.diag.queries} queries → {d.diag.hits} hits → {d.diag.unique} unique → gateway {d.diag.gateway ? "ok" : "FAILED"} → {d.diag.extracted} extracted → {d.diag.matched} matched
+                    </span>
+                  )}
+                </span>
+              );
             })()}
           </div>
         </div>

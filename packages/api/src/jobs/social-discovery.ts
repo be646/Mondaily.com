@@ -114,7 +114,7 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       return { status: "SKIPPED_INFRASTRUCTURE_TIMEOUT" as const, reason: SEARCH_TIMEOUT_REASON };
     }
     const hits = sweep.flatMap((s) => s.hits);
-    if (hits.length === 0) return { discovered: 0, reason: "no search results" };
+    if (hits.length === 0) return { discovered: 0, reason: "no search results", diag: { queries: queries.length, hits: 0, unique: 0, extracted: 0, matched: 0 } };
 
     // Dedupe the raw hits by URL before extraction.
     const seen = new Set<string>();
@@ -146,6 +146,7 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       return {} as Record<string, unknown>;
     });
 
+    const gatewayReturned = Object.keys(extracted as object).length > 0;
     const leads = Array.isArray((extracted as { leads?: unknown }).leads)
       ? ((extracted as { leads: ExtractedLead[] }).leads)
       : [];
@@ -188,7 +189,21 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
         },
       }));
 
-    if (rows.length === 0) return { discovered: 0, scanned: unique.length };
+    // Diagnostics so a thin result is explainable without prod logs: where did the pipeline drop?
+    const diag = {
+      queries: queries.length,
+      hits: hits.length,
+      unique: unique.length,
+      gateway: gatewayReturned,   // false → Cerebras extraction call failed (env/gateway issue)
+      extracted: leads.length,    // leads the model returned
+      matched: rows.length,       // survived the URL-resolution + intent filter
+    };
+    if (rows.length === 0) {
+      const reason = !gatewayReturned ? "extraction gateway unavailable"
+        : leads.length === 0 ? "model found no on-topic results in the scanned pages"
+        : "extracted results didn't resolve to scanned URLs";
+      return { discovered: 0, scanned: unique.length, reason, diag };
+    }
 
     // 3) Upsert, deduping on source_url (a result seen before is refreshed, not duplicated).
     let { error } = await supabase.from("discovered_leads").upsert(rows, { onConflict: "source_url" });
@@ -203,7 +218,7 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       return { discovered: 0, scanned: unique.length, error: error.message };
     }
 
-    return { discovered: rows.length, scanned: unique.length };
+    return { discovered: rows.length, scanned: unique.length, diag };
 }
 
 export const socialDiscoveryWorker = inngest.createFunction(

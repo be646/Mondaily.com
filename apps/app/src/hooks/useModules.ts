@@ -3,18 +3,36 @@ import { apiClient } from "../lib/api-client";
 
 interface WorkspaceSettings { name: string; timezone: string; modules: string[] }
 
+interface MyAccess { role: string; enabled_modules: string[]; access: Record<string, string> }
+
 export function useModules() {
   const { data } = useQuery<WorkspaceSettings>({
     queryKey: ["workspace-settings"],
     queryFn: () => apiClient.get<WorkspaceSettings>("/settings/workspace"),
     staleTime: 300_000,
   });
-  const modules = data?.modules ?? ["crm"];
+  // The CURRENT user's effective per-module access — so nav reflects what THEY can reach, not just
+  // what the workspace enables. A module shows only when it's enabled AND the user has ≥ view.
+  const { data: mine } = useQuery<MyAccess>({
+    queryKey: ["my-access"],
+    queryFn: () => apiClient.get<MyAccess>("/me/access"),
+    staleTime: 300_000,
+  });
+  const modules = data?.modules ?? [];
+  const canSee = (key: string) => {
+    const enabled = key === "finance" || key === "investments" || key === "hr" ? modules.includes(key) : true;
+    // Until /me/access resolves, don't hide (avoid a flash of missing nav for owners).
+    const level = mine?.access?.[key];
+    const allowed = level === undefined ? true : level !== "none";
+    return enabled && allowed;
+  };
   return {
-    hasFinance: modules.includes("finance"),
+    hasFinance: canSee("finance"),
     hasCRM: modules.includes("crm"),
-    hasInvestments: modules.includes("investments"),
-    hasHR: modules.includes("hr"),
+    hasInvestments: canSee("investments"),
+    hasHR: canSee("hr"),
+    canSee,
+    access: mine?.access ?? {},
     modules,
   };
 }

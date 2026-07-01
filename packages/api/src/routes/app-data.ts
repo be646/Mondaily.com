@@ -47,9 +47,23 @@ function relTime(iso: string | null | undefined): string {
   return `${Math.floor(s / 86400)}d ago`;
 }
 
-type AppVariables = { userId: string; workspaceId: string; role: string; financeRole: string };
+type AppVariables = { userId: string; workspaceId: string; role: string; financeRole: string; moduleAccess: Record<string, string> };
 const router = new Hono<{ Variables: AppVariables }>();
 router.use("*", requireAuth);
+
+// GET /me/access — the CURRENT user's effective per-module levels + which modules the workspace
+// has enabled. The sidebar uses this to hide nav for modules the operator can't reach (so there
+// are no dead 403 links), keeping the UI in lockstep with backend enforcement.
+router.get("/me/access", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const wsModules = ((wsRow?.settings as { modules?: string[] } | null)?.modules) ?? [];
+  return c.json({
+    role: c.get("role"),
+    enabled_modules: enabledModules(wsModules).map((m) => m.key),
+    access: resolveModuleMatrix(c.get("role"), c.get("moduleAccess"), c.get("financeRole")),
+  });
+});
 
 // ── Central RBAC gate for workspace-administration settings ───────────────────
 // Any WRITE under these /settings/* areas requires owner/admin. Reads stay open,
