@@ -525,6 +525,20 @@ router.get("/settings/members", async (c) => {
   // Members matrix and the Workspace → Modules toggles stay in lockstep (one taxonomy).
   const wsModules = ((wsRow?.settings as { modules?: string[] } | null)?.modules) ?? [];
   const activeModules = enabledModules(wsModules);
+  // Enrich missing profile fields from auth_credentials so a member row never shows a raw usr_ id.
+  const emailByUser = new Map<string, string>();
+  const missing = (members ?? []).filter((m) => !m.name || !m.email).map((m) => String(m.user_id));
+  if (missing.length) {
+    const { data: creds } = await supabase.from("auth_credentials").select("user_id, email").in("user_id", missing);
+    for (const cr of creds ?? []) { if (cr.email) emailByUser.set(String(cr.user_id), String(cr.email)); }
+  }
+  // Human display name: real name → email → email local-part → "Operator" (NEVER the usr_ id).
+  const displayName = (m: { name?: string | null; email?: string | null; user_id: string }) => {
+    const email = m.email || emailByUser.get(String(m.user_id)) || "";
+    if (m.name && m.name.trim()) return m.name;
+    if (email) return email.split("@")[0]!.replace(/[._]/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase());
+    return "Operator";
+  };
   const tokensBy = new Map<string, number>();
   for (const u of usage ?? []) { const k = String(u.user_id ?? ""); if (k) tokensBy.set(k, (tokensBy.get(k) ?? 0) + Number(u.total_tokens ?? 0)); }
   const lastActiveBy = new Map<string, string>();
@@ -543,8 +557,8 @@ router.get("/settings/members", async (c) => {
       const access = (member as Record<string, unknown>).module_access as Record<string, string> | null;
       return {
         id: member.user_id,
-        name: member.name || member.email || member.user_id,
-        email: member.email || "",
+        name: displayName(member),
+        email: member.email || emailByUser.get(String(member.user_id)) || "",
         image_url: member.avatar_url ?? null,
         avatar_url: member.avatar_url ?? null,
         role: member.role,
@@ -820,6 +834,9 @@ router.get("/billing", async (c) => {
     : null;
   return c.json({
     plan: tier,
+    // A tier the user selected at onboarding but hasn't paid for yet (Command/Sovereign). Billing
+    // surfaces this as "activate <plan> — payment required" rather than granting it for free.
+    pending_plan: (settings.pending_plan as string) ?? null,
     seats_used: memberCount ?? 1,
     seats_limit: SEAT_LIMIT[tier] ?? 1,
     invoices: [],

@@ -56,6 +56,7 @@ interface Billing {
   invoices: Invoice[];
   trial_ends_at?: string | null;
   trial_days_left?: number | null;
+  pending_plan?: string | null;
 }
 
 interface UsageTotals { messages: number; prompt_tokens: number; completion_tokens: number; total_tokens: number }
@@ -152,6 +153,16 @@ export function BillingSettings() {
             {trialDaysLeft! > 0
               ? <><strong className="font-mono tabular-nums">{trialDaysLeft}</strong> day{trialDaysLeft === 1 ? "" : "s"} left in your trial. Upgrade any time to keep full access.</>
               : "Your trial ends today — upgrade to keep full access."}
+          </span>
+        </div>
+      )}
+
+      {/* Pending paid plan — user picked Command/Sovereign at onboarding but hasn't paid. They're on
+          the free Scout baseline until they activate it below. */}
+      {billing.pending_plan && (
+        <div className="rounded-sm border px-5 py-3.5 text-sm" style={{ borderColor: "#a3946b55", background: "#a3946b18" }}>
+          <span style={{ color: "var(--text-primary)" }}>
+            You selected <strong className="capitalize">{billing.pending_plan}</strong> — it needs payment to activate. You're on the free Scout tier until then. Choose it below to complete checkout.
           </span>
         </div>
       )}

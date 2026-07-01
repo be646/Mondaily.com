@@ -138,24 +138,36 @@ router.post("/complete", requireAuth, async (c) => {
   // Optional product modules to switch on (finance/investments/hr) — from the AI recommendation.
   const enabledMods = Array.isArray(body.modules) ? body.modules.filter((m) => ["finance", "investments", "hr"].includes(m)) : [];
   // Resolve the chosen tier. Prefer the explicit `plan`; fall back to legacy track/account_tier.
-  const plan = ["scout", "operator", "command", "sovereign"].includes(body.plan ?? "")
+  const chosen = ["scout", "operator", "command", "sovereign"].includes(body.plan ?? "")
     ? (body.plan as string)
     : (body.track === "business" || body.account_tier === "business") ? "operator" : "scout";
-  const isPaid = plan !== "scout";
-  const trialEndsAt = isPaid ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null;
-  // Monthly credit allotment per tier.
+
+  // BUSINESS RULES (payment not wired yet — Stripe is last):
+  //  • Scout    — free forever, self-serve, 50k credits, NO trial.
+  //  • Operator — 14-day trial, self-serve, 500k credits.
+  //  • Command / Sovereign — PAID, NO trial. A user cannot self-provision these for free. Until
+  //    they pay we provision the free Scout baseline and record `pending_plan` so billing can
+  //    prompt them to activate. This is the fix for "I picked Command and got it free".
+  const requiresPayment = chosen === "command" || chosen === "sovereign";
+  const effectiveTier = requiresPayment ? "scout" : chosen;   // what they're actually entitled to now
+  const isTrial = effectiveTier === "operator";                // trial ONLY for Operator
+  const trialEndsAt = isTrial ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null;
+  // Monthly credit allotment — keyed on the ENTITLED tier, never the aspirational one.
   const GRANTS: Record<string, number> = { scout: SOLO_GRANT, operator: BUSINESS_TRIAL_GRANT, command: 2_000_000, sovereign: 2_000_000 };
-  const target = GRANTS[plan] ?? SOLO_GRANT;
+  const target = GRANTS[effectiveTier] ?? SOLO_GRANT;
 
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
+  // Clear any stale trial/pending flags first, then set the correct ones for this tier.
+  const { trial_ends_at: _t, pending_plan: _p, ...baseSettings } = settings;
   await supabase.from("workspaces").update({
     onboarded: true,
     settings: {
-      ...settings,
-      plan,
-      account_tier: plan,                       // billing reads this
-      track: isPaid ? "business" : "solo",      // legacy back-compat
+      ...baseSettings,
+      plan: effectiveTier,
+      account_tier: effectiveTier,              // billing reads this — never "command" until paid
+      track: effectiveTier === "scout" ? "solo" : "business",
+      ...(requiresPayment ? { pending_plan: chosen } : {}),   // what they WANT, awaiting payment
       ...(body.industry ? { industry: body.industry } : {}),
       ...(body.team_size ? { team_size: body.team_size } : {}),
       ...(typeof body.concurrency === "number" ? { target_concurrency: body.concurrency } : {}),
@@ -165,13 +177,14 @@ router.post("/complete", requireAuth, async (c) => {
     },
   }).eq("id", ws);
 
-  // Bring credits up to EXACTLY the tier's allotment — grant only the shortfall (target − current),
-  // so we never stack on the register-time baseline and re-running onboarding is idempotent.
+  // Bring credits up to EXACTLY the entitled tier's allotment — grant only the shortfall, so we
+  // never stack on the register-time baseline and re-running onboarding is idempotent.
   const { balance } = await creditStatus(ws);
   const delta = target - balance;
   if (delta > 0) {
-    await grantCredits(ws, delta, "grant", `${plan} plan credits`);
+    await grantCredits(ws, delta, "grant", `${effectiveTier} plan credits`);
   }
+  const plan = effectiveTier;
 
   // Seed a few starter tasks (only if the workspace has none yet).
   const { count } = await supabase.from("tasks").select("id", { count: "exact", head: true }).eq("workspace_id", ws);

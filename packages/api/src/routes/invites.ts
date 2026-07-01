@@ -60,8 +60,11 @@ router.post("/", requireAuth, zValidator("json", inviteSchema), async (c) => {
     .eq("workspace_id", workspaceId).eq("email", body.email).is("accepted_at", null)
     .maybeSingle();
 
-  const fields = { role: body.role, finance_role: body.finance_role, module_access: body.module_access, invited_by: c.get("userId"), expires_at: expiresAt };
-  const bare = { role: body.role, finance_role: body.finance_role, invited_by: c.get("userId"), expires_at: expiresAt };
+  // NOTE: we do NOT set invited_by — that column is `uuid REFERENCES auth.users(id)`, but sovereign
+  // auth uses `usr_...` TEXT ids, so writing it throws "invalid input syntax for type uuid" and
+  // killed every invite. Left null until the column is migrated to text.
+  const fields = { role: body.role, finance_role: body.finance_role, module_access: body.module_access, expires_at: expiresAt };
+  const bare = { role: body.role, finance_role: body.finance_role, expires_at: expiresAt };
 
   let data: Record<string, unknown> | null = null;
   let error: { message: string } | null = null;
@@ -105,7 +108,7 @@ router.post("/link", requireAuth, async (c) => {
       email: `link-${randomUUID().slice(0, 8)}@invite.local`, // placeholder; the unique key is (workspace,email)
       role: "member",
       finance_role: "none",
-      invited_by: c.get("userId"),
+      // invited_by omitted — uuid column vs sovereign usr_ text ids (see POST / above).
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     })
     .select("token")

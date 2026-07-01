@@ -116,8 +116,9 @@ export function MembersSettings() {
             style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}
           />
           <button onClick={() => sendInvite.mutate()} disabled={!emails.includes("@") || sendInvite.isPending}
-            className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-3.5 py-2 text-sm font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50">
-            <UserPlus size={14} /> Invite
+            className="flex items-center gap-2 rounded-sm px-3.5 py-2 text-sm font-semibold text-black transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ background: "var(--accent)" }}>
+            <UserPlus size={14} /> {sendInvite.isPending ? "Inviting…" : "Invite"}
           </button>
           <button onClick={copyInviteLink}
             className="flex items-center gap-2 rounded-sm border px-3.5 py-2 text-sm font-medium transition-colors hover:text-[var(--text-primary)]"
