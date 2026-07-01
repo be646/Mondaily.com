@@ -44,6 +44,7 @@ export function MembersSettings() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [inviteResults, setInviteResults] = useState<{ email: string; link: string | null; sent: boolean; error: string | null }[]>([]);
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null);
+  const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null);
 
   // IMPORTANT: distinct key. This endpoint returns an OBJECT {members, invitations, modules,...},
   // whereas the app-wide ["members"] key returns an ARRAY (/members). Sharing the key overwrote the
@@ -70,6 +71,8 @@ export function MembersSettings() {
 
   const changeRole = useMutation({ mutationFn: ({ id, role }: { id: string; role: string }) => apiClient.patch(`/settings/members/${id}`, { role }), onSuccess: refresh });
   const changeModule = useMutation({ mutationFn: ({ id, module, level }: { id: string; module: string; level: string }) => apiClient.patch(`/settings/members/${id}`, { module, level }), onSuccess: refresh });
+  // Bulk access: send a full module_access map. {} clears overrides → back to role defaults.
+  const setAllModules = useMutation({ mutationFn: ({ id, map }: { id: string; map: Record<string, string> }) => apiClient.patch(`/settings/members/${id}`, { module_access: map }), onSuccess: refresh });
   const remove = useMutation({ mutationFn: (id: string) => apiClient.delete(`/settings/members/${id}`), onSuccess: refresh });
   const sendInvite = useMutation({
     mutationFn: async () => {
@@ -113,6 +116,15 @@ export function MembersSettings() {
         <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Members &amp; Roles</h1>
         <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>{members.length} operator{members.length === 1 ? "" : "s"} · roles, per-module access, and AI compute.</p>
       </div>
+
+      {/* How access works — role sets the baseline, per-module access refines it. Clarifies the two
+          distinct controls (revoke a single module vs remove the operator entirely). */}
+      {isAdmin && (
+        <div className="mb-5 rounded-sm border px-4 py-3 text-[11.5px] leading-relaxed" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+          <span style={{ color: "var(--text-secondary)" }}>How access works:</span> a <strong>Role</strong> sets the baseline (Owner/Admin = full, Member = edit, Viewer = read-only).
+          Open <strong>Module access</strong> to refine per feature — set any module to <span style={{ color: LEVEL_COLOR.none }}>None</span> / <span style={{ color: LEVEL_COLOR.view }}>View</span> / <span style={{ color: LEVEL_COLOR.edit }}>Edit</span>, or use <em>Revoke all</em> / <em>Reset to defaults</em>. The trash icon removes the operator from the workspace entirely.
+        </div>
+      )}
 
       {/* Single-operator plans can't invite — nudge to upgrade instead of showing a dead invite box. */}
       {isAdmin && !canInvite && (
@@ -258,9 +270,23 @@ export function MembersSettings() {
                 {isExpanded && (
                   <tr className="border-t" style={{ borderColor: "var(--border-soft)" }}>
                     <td colSpan={6} className="px-3 py-4" style={{ background: "var(--surface-hover)" }}>
-                      <p className="mb-3 text-[10px] uppercase tracking-wider text-stone-500">
-                        Per-module access for {m?.name || m?.email || "this operator"}{isOwner ? " · owners always have full access" : ""}
-                      </p>
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[10px] uppercase tracking-wider text-stone-500">
+                          Per-module access for {m?.name || m?.email || "this operator"}{isOwner ? " · owners always have full access" : ""}
+                        </p>
+                        {isAdmin && !isOwner && m?.id && (
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => setAllModules.mutate({ id: m.id!, map: Object.fromEntries(modules.map(md => [md.key, "none"])) })}
+                              className="rounded-md border px-2 py-1 text-[11px] text-stone-400 transition-colors hover:border-rose-500/40 hover:text-rose-400" style={{ borderColor: "var(--border-soft)" }}>
+                              Revoke all access
+                            </button>
+                            <button onClick={() => setAllModules.mutate({ id: m.id!, map: {} })}
+                              className="rounded-md border px-2 py-1 text-[11px] text-stone-400 transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>
+                              Reset to role defaults
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                         {modules.map(md => {
                           const level = m?.module_access?.[md.key] ?? "edit";
@@ -313,7 +339,15 @@ export function MembersSettings() {
                 <div className="flex items-center gap-3">
                   <span className="rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide text-stone-500" style={{ borderColor: "var(--border-soft)" }}>{roleLabel(inv?.role)}</span>
                   {isAdmin && inv?.id && (
-                    <button onClick={() => revokeInvite.mutate(inv.id!)} className="text-stone-600 transition-colors hover:text-rose-400" title="Revoke invite"><Trash2 size={13} /></button>
+                    confirmRevoke === inv.id ? (
+                      <span className="inline-flex items-center gap-1.5 text-[11px]">
+                        <button onClick={() => { revokeInvite.mutate(inv.id!); setConfirmRevoke(null); }}
+                          className="rounded-md border border-rose-500/40 px-2 py-1 font-medium text-rose-400 hover:bg-rose-500/10">Revoke</button>
+                        <button onClick={() => setConfirmRevoke(null)} className="rounded-md border px-2 py-1 text-stone-400 hover:text-stone-200" style={{ borderColor: "var(--border-soft)" }}>Cancel</button>
+                      </span>
+                    ) : (
+                      <button onClick={() => setConfirmRevoke(inv.id!)} className="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-rose-500/10 hover:text-rose-400" title="Revoke invite"><Trash2 size={13} /></button>
+                    )
                   )}
                 </div>
               </div>
