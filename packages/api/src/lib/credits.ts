@@ -13,6 +13,48 @@ import { maybeAutoRefill } from "./auto-refill";
 export const SOLO_GRANT = 50_000;
 export const BUSINESS_TRIAL_GRANT = 500_000;
 
+/**
+ * Rolling burst limits (Claude/Codex-style). Separate from the monthly wallet: a workspace can
+ * have plenty of credits left but still hit a short-window ceiling that RESETS, so a runaway
+ * agent loop can't drain a month of credits in minutes. The window slides — the cap frees up as
+ * the oldest usage in the window ages out. Caps are tier-scaled (~a few hours of heavy use).
+ */
+export const BURST_WINDOW_HOURS = 5;
+const BURST_CAP: Record<string, number> = {
+  scout: 12_000,
+  operator: 90_000,
+  command: 320_000,
+  sovereign: 1_000_000,
+};
+
+async function resolveTier(workspaceId: string): Promise<string> {
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
+  const tier = (data?.settings as { account_tier?: string } | null)?.account_tier;
+  return tier && tier in BURST_CAP ? tier : "scout";
+}
+
+export interface BurstStatus { limited: boolean; used: number; cap: number; resetsAt: string | null }
+
+/** Sum usage in the trailing window; report whether the burst cap is hit and when it frees up. */
+export async function burstStatus(workspaceId: string): Promise<BurstStatus> {
+  const tier = await resolveTier(workspaceId);
+  const cap = BURST_CAP[tier] ?? BURST_CAP.scout!;
+  const since = new Date(Date.now() - BURST_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+  const { data, error } = await supabase
+    .from("ai_credits_ledger")
+    .select("amount, created_at")
+    .eq("workspace_id", workspaceId)
+    .eq("transaction_type", "usage")
+    .gte("created_at", since)
+    .order("created_at", { ascending: true });
+  if (error || !data || data.length === 0) return { limited: false, used: 0, cap, resetsAt: null };
+  const used = data.reduce((s, r) => s + Math.abs(Number(r.amount) || 0), 0);
+  // Window resets when the OLDEST usage row ages out of the window.
+  const oldest = new Date(data[0]!.created_at as string).getTime();
+  const resetsAt = new Date(oldest + BURST_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+  return { limited: used >= cap, used, cap, resetsAt };
+}
+
 export async function creditStatus(workspaceId: string): Promise<{ balance: number; enrolled: boolean }> {
   const { data: probe, error } = await supabase
     .from("ai_credits_ledger").select("id").eq("workspace_id", workspaceId).limit(1);
@@ -48,6 +90,18 @@ export const verifyAiCredits = createMiddleware<{ Variables: { workspaceId: stri
     const { balance, enrolled } = await creditStatus(ws);
     if (enrolled && balance <= 0) {
       throw new HTTPException(402, { message: "AI credits exhausted. Upgrade or purchase more to keep using AI features." });
+    }
+    // Rolling burst ceiling — only enforced for enrolled workspaces (never bricks pre-migration ones).
+    if (enrolled) {
+      const burst = await burstStatus(ws);
+      if (burst.limited) {
+        const resetLabel = burst.resetsAt
+          ? new Date(burst.resetsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+          : "shortly";
+        throw new HTTPException(429, {
+          message: `You've hit your usage limit for now. It resets around ${resetLabel}. (${BURST_WINDOW_HOURS}-hour rolling window)`,
+        });
+      }
     }
   }
   await next();

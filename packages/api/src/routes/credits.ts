@@ -3,6 +3,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { createCreditPackCheckout } from "../lib/credit-pack";
+import { burstStatus } from "../lib/credits";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string; financeRole: string } }>();
 router.use("*", requireAuth);
@@ -18,13 +19,16 @@ router.get("/balance", async (c) => {
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
   const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
   const ar = (settings.auto_refill ?? {}) as Record<string, unknown>;
+  // Rolling burst-window status for the "usage limit resets at…" indicator.
+  const burst = list.length > 0 ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
   return c.json({
     enrolled: list.length > 0,
     balance: granted + usedNeg,
     granted,
     used: Math.abs(usedNeg),
-    account_tier: (settings.track as string) ?? "personal",
+    account_tier: (settings.account_tier as string) ?? (settings.track as string) ?? "scout",
     trial_ends_at: (settings.trial_ends_at as string) ?? null,
+    burst: { used: burst.used, cap: burst.cap, limited: burst.limited, resets_at: burst.resetsAt },
     auto_refill: {
       enabled: Boolean(ar.enabled),
       threshold: Number(ar.threshold ?? 5000),

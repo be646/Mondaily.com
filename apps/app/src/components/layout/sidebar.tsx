@@ -434,12 +434,16 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const unreadCount = notifications.filter(n => !n.read_at).length;
 
   // AI credit wallet — sidebar telemetry. Shows nothing until the workspace is enrolled.
-  const { data: wallet } = useQuery<{ enrolled: boolean; balance: number; granted: number; account_tier: string; trial_ends_at: string | null }>({
+  const { data: wallet } = useQuery<{ enrolled: boolean; balance: number; granted: number; account_tier: string; trial_ends_at: string | null; burst?: { used: number; cap: number; limited: boolean; resets_at: string | null } }>({
     queryKey: ["credits-balance"],
     queryFn: () => apiClient.get("/credits/balance"),
     staleTime: 60_000,
     refetchInterval: 120_000,
   });
+  const TIER_LABEL: Record<string, string> = { scout: "Scout", operator: "Operator", command: "Command", sovereign: "Sovereign", business: "Pro", personal: "Free" };
+  const burstReset = wallet?.burst?.resets_at
+    ? new Date(wallet.burst.resets_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+    : null;
   const trialDaysLeft = wallet?.trial_ends_at
     ? Math.max(0, Math.ceil((new Date(wallet.trial_ends_at).getTime() - Date.now()) / 86_400_000))
     : null;
@@ -604,12 +608,17 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                         <span style={{ color: "var(--text-secondary)" }}>{wallet.balance.toLocaleString()}</span> / {wallet.granted.toLocaleString()} credits
                       </span>
                       <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
-                        {wallet.account_tier === "business" ? "Pro" : "Free"}
+                        {TIER_LABEL[wallet.account_tier] ?? "Free"}
                       </span>
                     </div>
                     <div className="mt-1 h-1 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
                       <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#ef4444" : "var(--accent)" }} />
                     </div>
+                    {wallet.burst?.limited && burstReset && (
+                      <div className="mt-1 text-[9px] font-medium" style={{ color: "#f59e0b" }}>
+                        Usage limit reached · resets ~{burstReset}
+                      </div>
+                    )}
                   </Link>
                 )}
                 <Link to="/settings/account" title="Settings" className="flex items-center gap-2 rounded-lg px-1.5 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
