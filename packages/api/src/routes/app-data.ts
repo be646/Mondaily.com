@@ -633,9 +633,39 @@ router.post("/settings/teams", zValidator("json", z.object({ name: z.string().mi
   return c.json({ id: data.id, name: data.name, member_count: body.member_ids.length, member_ids: body.member_ids }, 201);
 });
 router.get("/settings/objects", async (c) => c.json(await rows("object_definitions", c.get("workspaceId"))));
-router.post("/settings/objects", async (c) => {
-  const body = await c.req.json<{ name: string; slug: string }>();
-  const { data, error } = await supabase.from("object_definitions").insert({ workspace_id: c.get("workspaceId"), vertical: "shared", slug: body.slug, name_singular: body.name, name_plural: body.name, attributes: [] }).select().single();
+// Naive English pluralization fallback — only used if the caller didn't supply a plural. A bare
+// `name + "s"` (the old behavior) turned "Company" into "Companys" and "Property" into "Propertys".
+function pluralize(word: string): string {
+  const w = word.trim();
+  if (/[^aeiou]y$/i.test(w)) return w.slice(0, -1) + "ies";
+  if (/(s|x|z|ch|sh)$/i.test(w)) return w + "es";
+  return w + "s";
+}
+router.post("/settings/objects", zValidator("json", z.object({
+  name: z.string().min(1),                 // singular (kept for back-compat with older callers)
+  singular: z.string().min(1).optional(),
+  plural: z.string().min(1).optional(),
+  slug: z.string().min(1),
+  icon: z.string().optional(),
+  color: z.string().optional(),
+  vertical: z.enum(["sales", "realestate", "hr", "finance", "investments", "shared"]).optional(),
+})), async (c) => {
+  const body = c.req.valid("json");
+  // The create-object modal collects singular + plural + icon + color + vertical, but this route
+  // previously only read `name`/`slug` — icon, color, vertical, and the real singular were silently
+  // dropped, and name_plural was set equal to name_singular ("Investments"/"Investments" in prod).
+  const singular = body.singular ?? body.name;
+  const plural = body.plural ?? pluralize(singular);
+  const { data, error } = await supabase.from("object_definitions").insert({
+    workspace_id: c.get("workspaceId"),
+    vertical: body.vertical ?? "shared",
+    slug: body.slug,
+    name_singular: singular,
+    name_plural: plural,
+    icon: body.icon || "circle",
+    color: body.color || "gray",
+    attributes: [],
+  }).select().single();
   return error ? c.json({ error: error.message }, 400) : c.json(data, 201);
 });
 router.post("/settings/objects/:id/attributes", zValidator("json", z.object({

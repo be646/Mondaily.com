@@ -285,10 +285,17 @@ export function ObjectsSettings() {
   }, [objects, selectedId]);
 
   const createObject = useMutation({
+    // Send singular/plural separately — the backend used to only accept one "name" field and store
+    // it as BOTH name_singular and name_plural (e.g. "Investments"/"Investments" in prod), silently
+    // dropping icon/color/vertical entirely.
     mutationFn: () => apiClient.post("/settings/objects", {
-      name: customObject.plural || `${customObject.singular}s`,
-      slug: (customObject.plural || customObject.singular).toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      ...customObject
+      name: customObject.singular,
+      singular: customObject.singular,
+      plural: customObject.plural || undefined,
+      slug: customObject.singular.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+      icon: customObject.icon,
+      color: customObject.color,
+      vertical: customObject.vertical,
     }),
     onSuccess: () => { setObjectOpen(false); setCustomObject({ singular: "", plural: "", icon: "circle", color: "red", vertical: "sales" }); qc.invalidateQueries({ queryKey: ["object-definitions"] }); }
   });

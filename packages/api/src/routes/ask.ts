@@ -12,6 +12,15 @@ import { sovereignSearchUrls, sovereignScrape } from "../lib/sovereign-search";
 import { executeApprovedAction } from "./decisions";
 import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway, gatewayHealthCheck, getLastGatewayError } from "../lib/ai-gateway";
 
+// Naive English pluralization (covers the common custom-object-type names: company/property/box/
+// dash/church) — a bare `+ "s"` turned "Company" into "Companys" and "Property" into "Propertys".
+function pluralize(word: string): string {
+  const w = word.trim();
+  if (/[^aeiou]y$/i.test(w)) return w.slice(0, -1) + "ies";
+  if (/(s|x|z|ch|sh)$/i.test(w)) return w + "es";
+  return w + "s";
+}
+
 export const SYSTEM_PROMPT = `You are Mondaily AI — an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be smart, substantive, and actionable.
 
 HOW TO ANSWER — be decisive, never bounce questions back:
@@ -868,7 +877,7 @@ async function executeTool(
           }
         } catch (_) { /* fallback: create with no attributes, user can add later */ }
 
-        const plural = `${input.name}s`;
+        const plural = pluralize(input.name as string);
         const { data, error } = await supabase
           .from("object_definitions")
           .insert({
