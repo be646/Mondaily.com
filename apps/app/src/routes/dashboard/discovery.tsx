@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus } from "lucide-react";
+import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
 
@@ -86,6 +86,28 @@ export function DiscoveryPage() {
     REVIEW: all.filter((r) => r.intent_type === "REVIEW").length,
     COMPLAINT: all.filter((r) => r.intent_type === "COMPLAINT").length,
   } as Record<string, number>;
+  const withContact = all.filter((r) => r.contact?.email || r.contact?.phone).length;
+  const avgConf = all.length ? Math.round(all.reduce((s, r) => s + (r.confidence_score ?? 0), 0) / all.length) : 0;
+
+  // ── Bulk selection + CSV export ──
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleSel = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const selectedRows = rows.filter((r) => selected.has(r.id));
+  const bulkAdd = useMutation({
+    mutationFn: async (list: DiscoveredLead[]) => {
+      for (const r of list) if (!added[r.id]) { try { await addLead.mutateAsync(r); } catch { /* skip failures */ } }
+    },
+    onSuccess: () => setSelected(new Set()),
+  });
+  function exportCSV(list: DiscoveredLead[]) {
+    const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""').replace(/\n/g, " ")}"`;
+    const header = ["name", "type", "email", "phone", "handle", "note", "review", "subject", "region", "confidence", "source_url", "found_at"];
+    const lines = list.map((r) => [r.author_name, r.intent_type, r.contact?.email, r.contact?.phone, r.contact?.handle, r.contact?.summary, r.raw_content, r.target_subject, r.region, r.confidence_score, r.source_url, r.created_at].map(esc).join(","));
+    const blob = new Blob(["﻿" + [header.join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `discovery-leads-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8 space-y-6">
@@ -161,6 +183,23 @@ export function DiscoveryPage() {
         </div>
       </section>
 
+      {/* ── Stats strip ── */}
+      {all.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { label: "Total leads", value: all.length },
+            { label: "With contact", value: withContact },
+            { label: "Buy signals", value: counts.BUY_SIGNAL ?? 0 },
+            { label: "Avg confidence", value: avgConf },
+          ].map((s) => (
+            <div key={s.label} className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              <div className="font-mono text-xl font-semibold tabular-nums text-[var(--text-primary)]">{s.value}</div>
+              <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── Results ── */}
       <section className="overflow-hidden rounded-sm border bg-[var(--surface-card)]" style={{ borderColor: "var(--border-soft)" }}>
         <div className="flex flex-wrap items-center gap-1.5 border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
@@ -169,13 +208,35 @@ export function DiscoveryPage() {
               key={k}
               onClick={() => setFilter(k)}
               className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] font-medium transition-colors ${
-                filter === k ? "bg-[var(--surface-card)] text-white" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                filter === k ? "bg-[var(--surface-selected)] text-[var(--section-accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
               }`}
             >
               {l}
-              <span className={`tabular-nums ${filter === k ? "text-white/70" : "text-[var(--text-faint)]"}`}>{counts[k] ?? 0}</span>
+              <span className={`tabular-nums ${filter === k ? "text-[var(--section-accent)]/70" : "text-[var(--text-faint)]"}`}>{counts[k] ?? 0}</span>
             </button>
           ))}
+          {/* Bulk actions — right aligned */}
+          {rows.length > 0 && (
+            <div className="ml-auto flex items-center gap-2">
+              {selected.size > 0 && (
+                <button onClick={() => bulkAdd.mutate(selectedRows)} disabled={bulkAdd.isPending}
+                  className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[var(--section-accent)] disabled:opacity-60"
+                  style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}>
+                  {bulkAdd.isPending ? <Loader2 size={11} className="animate-spin" /> : <UserPlus size={11} />} Add {selected.size} as leads
+                </button>
+              )}
+              <button onClick={() => bulkAdd.mutate(rows)} disabled={bulkAdd.isPending}
+                className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[var(--section-accent)] disabled:opacity-60"
+                style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
+                <UserPlus size={11} /> Add all
+              </button>
+              <button onClick={() => exportCSV(selected.size ? selectedRows : rows)}
+                className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--section-accent)]"
+                style={{ borderColor: "var(--border-strong)" }}>
+                <Download size={11} /> Export CSV
+              </button>
+            </div>
+          )}
         </div>
 
         {leadsQ.isLoading ? (
@@ -199,6 +260,8 @@ export function DiscoveryPage() {
               return (
                 <li key={r.id} className="px-5 py-3.5 transition-colors hover:bg-[var(--surface-hover)]">
                   <div className="flex items-start gap-3">
+                    <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSel(r.id)}
+                      className="mt-2 h-3.5 w-3.5 shrink-0 cursor-pointer accent-[color:var(--section-accent)]" />
                     <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: s.b, color: s.c }}>
                       <Icon size={14} />
                     </span>
