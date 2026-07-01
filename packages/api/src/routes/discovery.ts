@@ -76,10 +76,13 @@ router.get("/", async (c) => {
 // DEGRADED; the route never throws.
 async function probe(url: string): Promise<boolean> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 3000);
+  // 8s: a real SearXNG search takes 1–5s (it hits live engines) and Vercel↔appliance is
+  // cross-region, so the old 3s aborted a healthy box. We probe the instant /healthz path
+  // below anyway, but keep headroom.
+  const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
     const res = await fetch(url, { method: "GET", signal: ctrl.signal, headers: sovereignHeaders() });
-    // Any HTTP response (even 4xx) means the container is up and answering.
+    // Any HTTP response (even 401/4xx) means the container is up and answering.
     return res.status > 0;
   } catch {
     return false;
@@ -90,11 +93,15 @@ async function probe(url: string): Promise<boolean> {
 
 router.get("/status", async (c) => {
   const searchUrl = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
-  const scrapeUrl = process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3000/";
+  const scrapeUrl = process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3002/v1/scrape";
+  // Probe the appliance's instant health endpoints, NOT a full search — a live search hits
+  // external engines (slow) and made the status flap to DEGRADED even when the box was fine.
+  const searchHealth = searchUrl.replace(/\/search\/?$/, "/healthz");
+  const scrapeHealth = scrapeUrl.replace(/\/v[12]\/scrape\/?$/, "/health").replace(/\/scrape\/?$/, "/health");
 
   const [searxng_reachable, scraper_reachable] = await Promise.all([
-    probe(`${searchUrl}?q=ping&format=json`),
-    probe(scrapeUrl),
+    probe(searchHealth),
+    probe(scrapeHealth),
   ]);
 
   return c.json({
