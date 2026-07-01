@@ -427,9 +427,9 @@ export function DiscoveryPage() {
         </div>
       )}
 
-      {/* ── Results ── */}
-      <section className="overflow-hidden rounded-sm border bg-[var(--surface-card)]" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="flex flex-wrap items-center gap-1.5 border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+      {/* ── Results — Google-style: no table box, each result sits directly on the app background ── */}
+      <section>
+        <div className="flex flex-wrap items-center gap-1.5 px-4 pb-1">
           {FILTERS.map(([k, l]) => (
             <button
               key={k}
@@ -479,84 +479,77 @@ export function DiscoveryPage() {
             </p>
           </div>
         ) : (
-          <ul className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="space-y-6 px-4 pt-4">
             {rows.map((r) => {
               const s = INTENT[r.intent_type] ?? { label: r.intent_type, c: "#71717a", b: "#f4f4f5", icon: Star };
-              const Icon = s.icon;
               const conf = r.confidence_score ?? 0;
+              const confColor = conf >= 70 ? "#15803d" : conf >= 40 ? "#c99a3c" : "#8a8a8a"; // green · gold · gray
+              const domain = (() => { try { return new URL(r.source_url ?? "").host.replace(/^www\./, ""); } catch { return r.platform ?? "web"; } })();
+              const title = r.author_name && r.author_name !== "Anonymous" ? r.author_name : (r.target_subject || r.contact?.handle || domain);
               return (
-                <li key={r.id} className="px-5 py-3.5 transition-colors hover:bg-[var(--surface-hover)]">
-                  <div className="flex items-start gap-3">
-                    <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSel(r.id)}
-                      className="mt-2 h-3.5 w-3.5 shrink-0 cursor-pointer accent-[color:var(--section-accent)]" />
-                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: s.b, color: s.c }}>
-                      <Icon size={14} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ color: s.c, background: s.b }}>{s.label}</span>
-                        {r.author_name && r.author_name !== "Anonymous" && <span className="text-[12px] font-medium text-[var(--text-primary)]">{r.author_name}</span>}
-                        {r.platform && <span className="rounded bg-[var(--surface-card-2)] px-1.5 py-0.5 text-[10.5px] text-[var(--text-muted)]">{r.platform}</span>}
-                        {r.region && <span className="text-[11px] text-[var(--text-muted)]">· {r.region}</span>}
-                        {r.target_subject && <span className="text-[11px] text-[var(--text-muted)]">· re: {r.target_subject}</span>}
-                      </div>
-                      {r.contact?.summary && <p className="mt-1.5 text-[12px] italic leading-relaxed text-[var(--text-muted)]">{r.contact.summary}</p>}
-                      {r.raw_content && <p className="mt-1 line-clamp-3 text-[12.5px] leading-relaxed text-[var(--text-secondary)]">{r.raw_content}</p>}
-                      {/* Contact chips — only what was actually found in the source */}
-                      {(r.contact?.email || r.contact?.phone || r.contact?.handle) && (
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                          {r.contact?.email && <a href={`mailto:${r.contact.email}`} className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] text-[var(--text-secondary)] hover:border-[var(--section-accent)]" style={{ borderColor: "var(--border-soft)" }}><Mail size={10} />{r.contact.email}</a>}
-                          {r.contact?.phone && <a href={`tel:${r.contact.phone}`} className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] text-[var(--text-secondary)] hover:border-[var(--section-accent)]" style={{ borderColor: "var(--border-soft)" }}><Phone size={10} />{r.contact.phone}</a>}
-                          {r.contact?.handle && <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] text-[var(--text-muted)]" style={{ borderColor: "var(--border-soft)" }}>{r.contact.handle}</span>}
-                        </div>
-                      )}
-                      <div className="mt-2 flex flex-wrap items-center gap-3">
-                        {r.source_url && (
-                          <a href={r.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] font-medium text-[#6f8068] hover:underline">
-                            <ExternalLink size={10} /> View source
-                          </a>
-                        )}
-                        <button
-                          onClick={() => !added[r.id] && addLead.mutate(r)}
-                          disabled={added[r.id] || (addLead.isPending && addLead.variables?.id === r.id)}
-                          className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[11px] font-medium transition-colors hover:border-[var(--section-accent)] disabled:opacity-60"
-                          style={{ borderColor: "var(--border-strong)", color: added[r.id] ? "#15803d" : "var(--text-secondary)" }}>
-                          {added[r.id] ? <><Check size={11} /> Added to People</> : <><UserPlus size={11} /> Add as lead</>}
-                        </button>
-                        {r.contact?.email && (
-                          <button
-                            onClick={() => { setSendMsg(null); setCompose({ lead: r, subject: r.target_subject ? `Regarding ${r.target_subject}` : "Hello from Mondaily", body: `Hi ${r.author_name && r.author_name !== "Anonymous" ? r.author_name : "there"},\n\n` }); }}
-                            className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--section-accent)]"
-                            style={{ borderColor: "var(--border-strong)" }}>
-                            <Send size={11} /> Message
-                          </button>
-                        )}
-                      </div>
+                <article key={r.id} className="group flex items-start gap-3">
+                  <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSel(r.id)}
+                    className="mt-1.5 h-3.5 w-3.5 shrink-0 cursor-pointer accent-[color:var(--section-accent)] opacity-40 transition-opacity group-hover:opacity-100 checked:opacity-100" />
+                  <div className="min-w-0 flex-1">
+                    {/* Source line — like Google's URL breadcrumb */}
+                    <div className="flex flex-wrap items-center gap-1.5 text-[11.5px]" style={{ color: "var(--text-faint)" }}>
+                      <span className="font-medium" style={{ color: "var(--text-muted)" }}>{r.platform ?? "web"}</span>
+                      <span aria-hidden>·</span>
+                      <span className="truncate">{domain}</span>
+                      {r.region && <><span aria-hidden>·</span><span>{r.region}</span></>}
+                      <span className="rounded-full px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: s.c, background: s.b }}>{s.label}</span>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          className="rounded-md px-2 py-0.5 text-[12px] font-semibold tabular-nums"
-                          style={{ color: conf >= 70 ? "#15803d" : conf >= 40 ? "#b45309" : "#71717a", background: "var(--surface-card-2)" }}
-                        >
-                          {conf}
-                        </span>
+                    {/* Title — the person/business, linked to the real source */}
+                    <a href={r.source_url ?? "#"} target="_blank" rel="noreferrer"
+                      className="mt-0.5 inline-block max-w-full truncate text-[15.5px] font-medium leading-snug hover:underline"
+                      style={{ color: "var(--section-accent)" }}>
+                      {title}
+                    </a>
+                    {r.contact?.summary && <p className="mt-0.5 text-[12px] italic leading-relaxed" style={{ color: "var(--text-muted)" }}>{r.contact.summary}</p>}
+                    {r.raw_content && <p className="mt-0.5 line-clamp-3 text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{r.raw_content}</p>}
+                    {/* Contact chips + actions — one quiet row, no boxes */}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px]">
+                      {r.contact?.email && <a href={`mailto:${r.contact.email}`} className="inline-flex items-center gap-1 hover:underline" style={{ color: "var(--text-secondary)" }}><Mail size={11} />{r.contact.email}</a>}
+                      {r.contact?.phone && <a href={`tel:${r.contact.phone}`} className="inline-flex items-center gap-1 hover:underline" style={{ color: "var(--text-secondary)" }}><Phone size={11} />{r.contact.phone}</a>}
+                      {r.contact?.handle && <span className="inline-flex items-center gap-1" style={{ color: "var(--text-muted)" }}>{r.contact.handle}</span>}
+                      <button
+                        onClick={() => !added[r.id] && addLead.mutate(r)}
+                        disabled={added[r.id] || (addLead.isPending && addLead.variables?.id === r.id)}
+                        className="inline-flex items-center gap-1 font-medium transition-colors hover:underline disabled:opacity-70"
+                        style={{ color: added[r.id] ? "#15803d" : "var(--section-accent)" }}>
+                        {added[r.id] ? <><Check size={11} /> Added to People</> : <><UserPlus size={11} /> Add as lead</>}
+                      </button>
+                      {r.contact?.email && (
                         <button
-                          onClick={() => removeLead.mutate(r.id)}
-                          title="Remove this result"
-                          className="rounded-md p-1 transition-colors hover:bg-rose-500/10 hover:text-rose-400"
-                          style={{ color: "var(--text-faint)" }}
-                        >
-                          <X size={12} />
+                          onClick={() => { setSendMsg(null); setCompose({ lead: r, subject: r.target_subject ? `Regarding ${r.target_subject}` : "Hello from Mondaily", body: `Hi ${r.author_name && r.author_name !== "Anonymous" ? r.author_name : "there"},\n\n` }); }}
+                          className="inline-flex items-center gap-1 font-medium transition-colors hover:underline"
+                          style={{ color: "var(--section-accent)" }}>
+                          <Send size={11} /> Message
                         </button>
-                      </div>
-                      <span className="text-[9.5px] uppercase tracking-wide text-[var(--text-faint)]">confidence</span>
+                      )}
                     </div>
                   </div>
-                </li>
+                  {/* Confidence — the golden bar */}
+                  <div className="flex shrink-0 flex-col items-end gap-1 pt-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11.5px] font-semibold tabular-nums" style={{ color: confColor }}>{conf}</span>
+                      <button
+                        onClick={() => removeLead.mutate(r.id)}
+                        title="Remove this result"
+                        className="rounded-md p-0.5 opacity-0 transition-all hover:text-rose-400 group-hover:opacity-100"
+                        style={{ color: "var(--text-faint)" }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                    <div className="h-1 w-14 overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${Math.max(conf, 4)}%`, background: confColor }} />
+                    </div>
+                  </div>
+                </article>
               );
             })}
-          </ul>
+          </div>
         )}
       </section>
 
