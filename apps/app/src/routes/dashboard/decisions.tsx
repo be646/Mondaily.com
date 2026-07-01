@@ -141,9 +141,9 @@ export function DecisionsPage() {
                   const a = agentByRaw(d.agent_name);
                   const on = selectedId === d.id;
                   return (
-                    <motion.button key={d.id} layout
-                      initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }} onClick={() => setSelectedId(d.id)}
+                    <motion.button key={d.id}
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }} onClick={() => setSelectedId(d.id)}
                       className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors"
                       style={{ borderTop: i > 0 ? "1px solid var(--border-soft)" : undefined, borderLeft: `2px solid ${on ? RISK_DOT[d.risk_level] : "transparent"}`, background: on ? "color-mix(in srgb, var(--section-accent) 7%, transparent)" : "transparent" }}>
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: RISK_DOT[d.risk_level] }} title={`${d.risk_level} risk`} />
@@ -161,8 +161,9 @@ export function DecisionsPage() {
               {visible.length === 0 && <div className="px-4 py-10 text-center text-[12px]" style={{ color: "var(--text-muted)" }}>No {riskFilter} decisions.</div>}
             </div>
 
-            {/* RIGHT — Impact Canvas (60%) — fits as a card; ImpactCanvas owns any inner scroll */}
-            <div className="relative flex-1 overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            {/* RIGHT — Impact Canvas (60%) — fits as a card; ImpactCanvas owns any inner scroll.
+                min-w-0 is REQUIRED so a long value inside can't push the whole row (and page) wider. */}
+            <div className="relative min-w-0 flex-1 overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               {selected ? <ImpactCanvas key={selected.id} d={selected} acting={acting} onResolve={resolve} /> : (
                 <div className="flex h-full items-center justify-center text-[13px]" style={{ color: "var(--text-muted)" }}>Select a decision to review its impact.</div>
               )}
@@ -215,7 +216,7 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
               </span>
               {d.confidence != null && <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{d.confidence}% confidence</span>}
             </div>
-            <h2 className="mt-1 text-[16px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{d.title}</h2>
+            <h2 className="mt-1 break-words text-[16px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{d.title}</h2>
           </div>
         </div>
 
@@ -231,14 +232,14 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
             </Link>
           )}
           <div className="flex items-stretch gap-2">
-            <div className="flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "#d9770633", background: "#d977060d" }}>
+            <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "#d9770633", background: "#d977060d" }}>
               <div className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "#d97706" }}>Current</div>
-              <div className="mt-1 text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{currentState}</div>
+              <div className="mt-1 break-words text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{currentState}</div>
             </div>
             <div className="flex shrink-0 items-center"><ArrowRight size={18} style={{ color: "var(--text-faint)" }} /></div>
-            <div className="flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "#10b98133", background: "#10b9810d" }}>
+            <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "#10b98133", background: "#10b9810d" }}>
               <div className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "#10b981" }}>Proposed</div>
-              <div className="mt-1 text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{proposed}</div>
+              <div className="mt-1 break-words text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{proposed}</div>
             </div>
           </div>
         </div>
@@ -247,7 +248,7 @@ function ImpactCanvas({ d, acting, onResolve }: { d: Decision; acting: { id: str
         {d.summary && (
           <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)" }}>
             <div className="mb-1 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>Why your agent raised this</div>
-            <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{d.summary}</p>
+            <p className="break-words text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{d.summary}</p>
           </div>
         )}
 
