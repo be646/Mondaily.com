@@ -101,9 +101,12 @@ router.get("/status", async (c) => {
   const searxng_reachable = search.ok;
   const scraper_reachable = scrape.ok;
 
+  const hasSearchUrl = Boolean(process.env.SOVEREIGN_SEARCH_URL);
+  const hasKey = Boolean(process.env.SOVEREIGN_SEARCH_KEY);
   const diagnostic =
-    !search.reachable ? "Can't reach the appliance — check SOVEREIGN_SEARCH_URL in the API env (it may be falling back to localhost) and that the box is online."
-    : search.code === 401 ? "Appliance is up but rejecting requests (401) — SOVEREIGN_SEARCH_KEY is missing or doesn't match the appliance's token. Set it in the API env and redeploy."
+    !hasSearchUrl ? "SOVEREIGN_SEARCH_URL is NOT present on this API deployment — it's on the wrong Vercel project (must be the API/backend project, the one serving api.mondaily.com — not the app frontend), or this deploy is older than the variable. Set it on the API project and redeploy."
+    : !search.reachable ? `SOVEREIGN_SEARCH_URL is set (to '${searchUrl}') but the appliance isn't reachable from the API — verify the value is exactly http://167.233.204.196:8080/search and the box is online.`
+    : search.code === 401 || !hasKey ? "Appliance is up but rejecting requests (401) — SOVEREIGN_SEARCH_KEY is missing or doesn't match the appliance's token. Set it on the API project and redeploy."
     : searxng_reachable && scraper_reachable ? "All systems operational."
     : `Search ${search.code}, scrape ${scrape.code}.`;
 
