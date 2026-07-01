@@ -2,6 +2,7 @@ import { inngest } from "../lib/inngest";
 import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignHeaders, sovereignScrape } from "../lib/sovereign-search";
+import { createNotification } from "../lib/notify";
 
 // ── Sovereign SearXNG search (private metasearch JSON → result rows) ──────────
 interface SearchHit { title: string; content: string; url: string }
@@ -33,24 +34,37 @@ async function searxng(query: string): Promise<SearchResult> {
   }
 }
 
-// Advanced query operators per search type. Real estate agents looking for local
-// buyers → INTENT_LEADS; brand/person sentiment → REVIEWS.
+// Wide-net query set per search type. Casting a broad net across the open web (general queries,
+// directories, review sites, forums) massively out-performs a couple of narrow site: operators —
+// that's what made earlier sweeps return "2 results then nothing". We over-generate queries; the
+// dedupe + extraction stages downstream trim the noise.
 function buildQueries(searchType: "INTENT_LEADS" | "REVIEWS", sector?: string, region?: string, targetSubject?: string): string[] {
   const loc = region ? ` ${region}` : "";
   if (searchType === "REVIEWS") {
-    const subj = targetSubject ?? sector ?? "";
+    const subj = (targetSubject ?? sector ?? "").trim();
     return [
-      `site:reddit.com "${subj}" review`,
-      `"${subj}" complaint OR scam OR "bad experience"${loc}`,
-      `"${subj}" review${loc}`,
-    ];
+      `${subj} reviews${loc}`,
+      `${subj} review${loc}`,
+      `"${subj}" complaints OR scam OR "bad experience"`,
+      `${subj} trustpilot`,
+      `${subj} google reviews${loc}`,
+      `${subj} customer feedback${loc}`,
+      `${subj} testimonials${loc}`,
+      `site:reddit.com ${subj} review`,
+    ].filter(q => q.replace(/["']/g, "").trim().length > 6);
   }
-  const s = sector ?? "";
+  // INTENT_LEADS = find real people/businesses in a sector + region (leads/prospects).
+  const s = (sector ?? "").trim();
   return [
-    `site:reddit.com "${s}"${loc} ("looking to buy" OR "recommendation" OR "anyone know")`,
-    `site:x.com "${s}"${loc} ("looking to buy" OR "in the market for" OR "recommend")`,
-    `"${s}"${loc} ("looking to buy" OR "need a recommendation")`,
-  ];
+    `${s}${loc}`,
+    `top ${s}${loc}`,
+    `best ${s}${loc}`,
+    `${s}${loc} contact email`,
+    `${s}${loc} directory`,
+    `list of ${s}${loc}`,
+    `${s}${loc} "get in touch" OR "contact us"`,
+    `site:reddit.com ${s}${loc} recommendation OR "looking for"`,
+  ].filter(q => q.replace(/["']/g, "").trim().length > 4);
 }
 
 interface ExtractedLead {
@@ -118,12 +132,12 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
 
     // Dedupe the raw hits by URL before extraction.
     const seen = new Set<string>();
-    const unique = hits.filter((h) => (seen.has(h.url) ? false : (seen.add(h.url), true))).slice(0, 24);
+    const unique = hits.filter((h) => (seen.has(h.url) ? false : (seen.add(h.url), true))).slice(0, 36);
 
     // Scrape the TOP pages to full text — SearXNG snippets alone are too thin for the model to find
     // real reviews/people/contacts (that was the "gateway ok → 0 extracted" dead-end). Best-effort:
     // any page that fails to render just falls back to its snippet.
-    const SCRAPE_TOP = 8;
+    const SCRAPE_TOP = 12;
     const scraped = await Promise.all(unique.slice(0, SCRAPE_TOP).map((h) => sovereignScrape(h.url).catch(() => "")));
     const fullText = new Map<string, string>();
     unique.slice(0, SCRAPE_TOP).forEach((h, i) => { const md = scraped[i]; if (md) fullText.set(h.url, md.slice(0, 3500)); });
@@ -225,6 +239,18 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
     if (error) {
       console.error("[social-discovery] upsert failed:", error.message);
       return { discovered: 0, scanned: unique.length, error: error.message };
+    }
+
+    // Agent notifies the workspace that Discovery found real leads (best-effort, never blocks).
+    if (rows.length > 0) {
+      const what = searchType === "REVIEWS" ? "reviews/mentions" : "leads";
+      await createNotification({
+        workspace_id: workspaceId,
+        type: "agent",
+        title: `Discovery Agent found ${rows.length} ${what}`,
+        body: `From ${unique.length} sources${sector ? ` for "${sector}"` : ""}${region ? ` in ${region}` : ""}${targetSubject ? ` about "${targetSubject}"` : ""}. Review them in Discovery.`,
+        metadata: { source: "discovery", count: rows.length, search_type: searchType },
+      }).catch(() => {});
     }
 
     return { discovered: rows.length, scanned: unique.length, diag };
