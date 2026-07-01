@@ -53,7 +53,7 @@ const NAV_ITEMS: NavItem[] = [
 // ─── General ─────────────────────────────────────────────────────────────────
 
 function GeneralSection({
-  form, setForm, save, saved, organization, logoPreview, onUploadLogo, logoRef,
+  form, setForm, save, saved, organization, logoPreview, onUploadLogo, logoRef, logoError, logoBusy,
 }: {
   form: WorkspaceData;
   setForm: (f: WorkspaceData) => void;
@@ -63,6 +63,8 @@ function GeneralSection({
   logoPreview: string;
   onUploadLogo: (file?: File) => void;
   logoRef: React.RefObject<HTMLInputElement | null>;
+  logoError: string;
+  logoBusy: boolean;
 }) {
   return (
     <div className="space-y-6">
@@ -81,12 +83,13 @@ function GeneralSection({
         <div>
           <button
             onClick={() => logoRef.current?.click()}
-            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-[12px] text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+            disabled={logoBusy}
+            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-[12px] text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors"
           >
-            <ImagePlus size={13} /> Upload logo
+            <ImagePlus size={13} /> {logoBusy ? "Saving…" : (logoPreview || organization?.imageUrl) ? "Change logo" : "Upload logo"}
           </button>
-          <p className="mt-1.5 text-[11px] text-stone-600">Square PNG or JPG, at least 256×256px.</p>
-          <p className="mt-0.5 font-mono text-[9px] uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>bucket: workspace-logos</p>
+          <p className="mt-1.5 text-[11px] text-stone-600">Square PNG or JPG, at least 256×256px, under 2 MB. Saves instantly.</p>
+          {logoError && <p className="mt-1 text-[11px] text-rose-400">{logoError}</p>}
         </div>
         <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={e => onUploadLogo(e.target.files?.[0])} />
       </div>
@@ -278,6 +281,8 @@ export function WorkspaceSettings() {
   });
   const [form, setForm] = useState<WorkspaceData>({ name: "", slug: "", currency: "USD", timezone: "UTC", modules: ["crm"] });
   const [logoPreview, setLogoPreview] = useState("");
+  const [logoError, setLogoError] = useState("");
+  const [logoBusy, setLogoBusy] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -303,15 +308,33 @@ export function WorkspaceSettings() {
   });
 
   async function uploadLogo(file?: File) {
-    if (!file || file.size > 2 * 1024 * 1024) return; // cap at 2 MB (stored as a data URL)
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(String(r.result));
-      r.onerror = () => reject(r.error);
-      r.readAsDataURL(file);
-    });
-    setLogoPreview(dataUrl);
-    setForm({ ...form, logo_url: dataUrl }); // persisted by the existing Save button (PATCH /settings/workspace)
+    setLogoError("");
+    if (!file) return;
+    // Validate with FEEDBACK — the old code silently returned on a too-large file, so re-uploading
+    // a bigger logo looked like "nothing happened".
+    if (!file.type.startsWith("image/")) { setLogoError("Please choose an image file (PNG, JPG, SVG…)."); return; }
+    if (file.size > 2 * 1024 * 1024) { setLogoError("That image is too large — please use one under 2 MB."); return; }
+    setLogoBusy(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = () => reject(r.error);
+        r.readAsDataURL(file);
+      });
+      setLogoPreview(dataUrl);
+      const next = { ...form, logo_url: dataUrl };
+      setForm(next);
+      // Persist IMMEDIATELY (don't wait for the separate Save button) and invalidate the shared
+      // workspace-settings cache so the sidebar + this page update live — no manual refresh needed.
+      await apiClient.patch("/settings/workspace", next);
+      await qc.invalidateQueries({ queryKey: ["workspace-settings"] });
+    } catch {
+      setLogoError("Couldn't save the logo — please try again.");
+    } finally {
+      setLogoBusy(false);
+      if (logoRef.current) logoRef.current.value = ""; // reset so re-selecting the SAME file re-fires onChange
+    }
   }
 
   if (query.isLoading) return <PageSkeleton rows={6} />;
@@ -346,6 +369,8 @@ export function WorkspaceSettings() {
             logoPreview={logoPreview}
             onUploadLogo={uploadLogo}
             logoRef={logoRef}
+            logoError={logoError}
+            logoBusy={logoBusy}
           />
         )}
         {section === "modules" && (
