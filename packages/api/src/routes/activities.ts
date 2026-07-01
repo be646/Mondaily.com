@@ -109,22 +109,20 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
     const verifiedPow = powUsers.has(uid);
     const taskCount = last ? (acts ?? []).filter(a => String(a.actor_id) === uid).length : 0;
 
-    // ── Autonomous behavioral verdict (single source of truth) ──
-    // Compares task complexity (proxied by tokens-per-task — strategic deep-work burns more compute
-    // per action than shallow copy-paste) against execution volume + the native session claim:
+    // ── Behavioral verdict (single source of truth), derived from REAL activity ──
     //   inactive       — no compute + no tasks in the window.
-    //   bot            — heavy volume + high throughput with NO verified PoW claim → botnetting.
-    //   low_engagement — many tasks but minimal compute each (shallow / copy-paste behavior).
-    //   high_complexity— high compute-per-task with a live session → strategic deep-work.
-    //   engaged        — actively transacting with a verified human signal at a normal ratio.
+    //   low_engagement — many tasks but minimal compute each (shallow interaction).
+    //   high_complexity— high compute-per-task → strategic deep-work.
+    //   engaged        — actively transacting at a normal ratio.
+    // NOTE: the old "bot" verdict (heavy use + no PoW claim) was REMOVED — PoW claims are
+    // best-effort/client-side and frequently absent, so it false-flagged legitimate power users
+    // (incl. owners) as "ANOMALOUS AUTOMATION / BOT DETECTED". Verdicts now key on real work only.
     const complexityDelta = Math.round(u.tokens / Math.max(1, taskCount)); // tokens per completed task
-    const legit = verifiedPow || hasSession; // prefer absolute crypto proof; session as fallback
     let verdict: "inactive" | "bot" | "low_engagement" | "high_complexity" | "engaged" | "idle" = "idle";
     if (u.tokens === 0 && taskCount === 0) verdict = "inactive";
-    else if (u.tokens > 50_000 && taskCount > 20 && !verifiedPow) verdict = "bot";
-    else if (legit && taskCount >= 5 && complexityDelta < 500) verdict = "low_engagement";
-    else if (legit && complexityDelta > 8_000) verdict = "high_complexity";
-    else if (u.tokens > 0 && legit) verdict = "engaged";
+    else if (taskCount >= 5 && complexityDelta < 500) verdict = "low_engagement";
+    else if (complexityDelta > 8_000) verdict = "high_complexity";
+    else if (u.tokens > 0 || taskCount > 0) verdict = "engaged";
 
     return {
       operator_id: uid,

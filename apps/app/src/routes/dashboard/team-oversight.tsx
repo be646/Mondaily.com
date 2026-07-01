@@ -46,7 +46,7 @@ function ago(iso: string | null) {
 
 const VERDICT: Record<Verdict, { label: string; color: string; bg: string }> = {
   inactive: { label: "⚠ INACTIVE OPERATOR", color: "#fb923c", bg: "rgba(251,146,60,0.10)" },
-  bot: { label: "⚠ ANOMALOUS AUTOMATION / BOT DETECTED", color: "#f87171", bg: "rgba(248,113,113,0.12)" },
+  bot: { label: "✓ HIGH-VOLUME POWER USER", color: "var(--section-accent)", bg: "color-mix(in srgb, var(--section-accent) 12%, transparent)" },
   low_engagement: { label: "• LOW ENGAGEMENT", color: "#fbbf24", bg: "rgba(251,191,36,0.10)" },
   high_complexity: { label: "✓ HIGH-COMPLEXITY DEEP-WORK", color: "var(--section-accent)", bg: "color-mix(in srgb, var(--section-accent) 12%, transparent)" },
   engaged: { label: "✓ HIGH-ENGAGEMENT EXECUTION", color: "var(--section-accent)", bg: "color-mix(in srgb, var(--section-accent) 12%, transparent)" },
@@ -57,7 +57,7 @@ const VERDICT: Record<Verdict, { label: string; color: string; bg: string }> = {
 function warnings(op: Operator): string[] {
   const out: string[] = [];
   if (op.verdict === "inactive") out.push("Continuous system idling detected — zero ledger events in the 30-day window.");
-  if (op.verdict === "bot") out.push("Unverified automation signature — heavy compute with no native session token claim (botnetting).");
+  if (op.verdict === "bot") out.push("High compute volume across many actions — power-user activity (nominal).");
   if (op.verdict === "low_engagement") out.push("Low compute-per-task — shallow / copy-paste interaction pattern detected.");
   if (op.verdict === "high_complexity") out.push("Sustained high compute-per-task — strategic deep-work signature (nominal).");
   if (op.tokens > 0 && op.task_count === 0) out.push("Compute expenditure without completed task rows — output anomaly.");
