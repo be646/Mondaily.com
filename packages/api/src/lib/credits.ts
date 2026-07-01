@@ -12,6 +12,27 @@ import { maybeAutoRefill } from "./auto-refill";
  */
 export const SOLO_GRANT = 50_000;
 export const BUSINESS_TRIAL_GRANT = 500_000;
+export const COMMAND_GRANT = 2_000_000;
+
+/** Single source of truth for the monthly credit allotment per real (paid or free) tier — used by
+ *  onboarding, the Stripe subscription webhook, and the embedded subscribe endpoint so they never
+ *  drift out of sync with each other. */
+export const TIER_GRANTS: Record<string, number> = {
+  scout: SOLO_GRANT,
+  operator: BUSINESS_TRIAL_GRANT,
+  command: COMMAND_GRANT,
+  sovereign: COMMAND_GRANT,
+};
+
+/** Bring a workspace's credit balance up to EXACTLY its tier's allotment — grants only the
+ *  shortfall (target - current), so calling this twice for the same tier is a no-op and it never
+ *  stacks on top of an existing balance. */
+export async function grantTierCredits(workspaceId: string, tier: string, description: string): Promise<void> {
+  const target = TIER_GRANTS[tier] ?? SOLO_GRANT;
+  const { balance } = await creditStatus(workspaceId);
+  const delta = target - balance;
+  if (delta > 0) await grantCredits(workspaceId, delta, "grant", description);
+}
 
 /**
  * Rolling burst limits (Claude/Codex-style). Separate from the monthly wallet: a workspace can

@@ -11938,21 +11938,21 @@ async function verifyResetToken(token) {
   }
 }
 function sha2565(s2) {
-  return (0, import_node_crypto.createHash)("sha256").update(s2).digest("hex");
+  return (0, import_node_crypto2.createHash)("sha256").update(s2).digest("hex");
 }
 function newRefreshToken() {
-  const raw2 = (0, import_node_crypto.randomBytes)(32).toString("hex");
+  const raw2 = (0, import_node_crypto2.randomBytes)(32).toString("hex");
   return { raw: raw2, hash: sha2565(raw2) };
 }
 function refreshExpiry() {
   return new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1e3);
 }
-var import_node_crypto, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS, VERIFY_TTL_SECONDS, RESET_TTL_SECONDS;
+var import_node_crypto2, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS, VERIFY_TTL_SECONDS, RESET_TTL_SECONDS;
 var init_auth_tokens = __esm({
   "src/lib/auth-tokens.ts"() {
     "use strict";
     init_jwt4();
-    import_node_crypto = require("crypto");
+    import_node_crypto2 = require("crypto");
     ACCESS_TTL_SECONDS = 15 * 60;
     REFRESH_TTL_DAYS = 30;
     ACCESS_COOKIE = "md_at";
@@ -11973,7 +11973,7 @@ function secret3() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 function sign4(payload) {
-  return b64url2((0, import_node_crypto8.createHmac)("sha256", secret3()).update(payload).digest());
+  return b64url2((0, import_node_crypto9.createHmac)("sha256", secret3()).update(payload).digest());
 }
 function mintMcpToken(workspaceId) {
   const p2 = b64url2(`mcp:${workspaceId}`);
@@ -11989,7 +11989,7 @@ function verifyMcpToken(token) {
   const expected = sign4(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto8.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto9.timingSafeEqual)(a2, b2)) return null;
   try {
     const decoded = Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
     return decoded.startsWith("mcp:") ? decoded.slice(4) || null : null;
@@ -11997,11 +11997,11 @@ function verifyMcpToken(token) {
     return null;
   }
 }
-var import_node_crypto8, b64url2;
+var import_node_crypto9, b64url2;
 var init_mcp_token = __esm({
   "src/lib/mcp-token.ts"() {
     "use strict";
-    import_node_crypto8 = require("crypto");
+    import_node_crypto9 = require("crypto");
     b64url2 = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 });
@@ -54222,6 +54222,42 @@ async function maybeAutoRefill(workspaceId) {
 // src/lib/credits.ts
 var SOLO_GRANT = 5e4;
 var BUSINESS_TRIAL_GRANT = 5e5;
+var COMMAND_GRANT = 2e6;
+var TIER_GRANTS = {
+  scout: SOLO_GRANT,
+  operator: BUSINESS_TRIAL_GRANT,
+  command: COMMAND_GRANT,
+  sovereign: COMMAND_GRANT
+};
+async function grantTierCredits(workspaceId, tier, description) {
+  const target = TIER_GRANTS[tier] ?? SOLO_GRANT;
+  const { balance } = await creditStatus(workspaceId);
+  const delta = target - balance;
+  if (delta > 0) await grantCredits(workspaceId, delta, "grant", description);
+}
+var BURST_WINDOW_HOURS = 5;
+var BURST_CAP = {
+  scout: 12e3,
+  operator: 9e4,
+  command: 32e4,
+  sovereign: 1e6
+};
+async function resolveTier(workspaceId) {
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
+  const tier = data?.settings?.account_tier;
+  return tier && tier in BURST_CAP ? tier : "scout";
+}
+async function burstStatus(workspaceId) {
+  const tier = await resolveTier(workspaceId);
+  const cap = BURST_CAP[tier] ?? BURST_CAP.scout;
+  const since = new Date(Date.now() - BURST_WINDOW_HOURS * 60 * 60 * 1e3).toISOString();
+  const { data, error } = await supabase.from("ai_credits_ledger").select("amount, created_at").eq("workspace_id", workspaceId).eq("transaction_type", "usage").gte("created_at", since).order("created_at", { ascending: true });
+  if (error || !data || data.length === 0) return { limited: false, used: 0, cap, resetsAt: null };
+  const used = data.reduce((s2, r2) => s2 + Math.abs(Number(r2.amount) || 0), 0);
+  const oldest = new Date(data[0].created_at).getTime();
+  const resetsAt = new Date(oldest + BURST_WINDOW_HOURS * 60 * 60 * 1e3).toISOString();
+  return { limited: used >= cap, used, cap, resetsAt };
+}
 async function creditStatus(workspaceId) {
   const { data: probe3, error } = await supabase.from("ai_credits_ledger").select("id").eq("workspace_id", workspaceId).limit(1);
   if (error) return { balance: 0, enrolled: false };
@@ -54246,6 +54282,15 @@ var verifyAiCredits = createMiddleware(async (c2, next) => {
     const { balance, enrolled } = await creditStatus(ws);
     if (enrolled && balance <= 0) {
       throw new HTTPException(402, { message: "AI credits exhausted. Upgrade or purchase more to keep using AI features." });
+    }
+    if (enrolled) {
+      const burst = await burstStatus(ws);
+      if (burst.limited) {
+        const resetLabel = burst.resetsAt ? new Date(burst.resetsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "shortly";
+        throw new HTTPException(429, {
+          message: `You've hit your usage limit for now. It resets around ${resetLabel}. (${BURST_WINDOW_HOURS}-hour rolling window)`
+        });
+      }
     }
   }
   await next();
@@ -54601,7 +54646,7 @@ async function aiGatewayAgentStream(req, onEvent) {
     const fb = resolveModel(CEREBRAS_DEFAULT_SPEC);
     const r2 = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
     const rateLimited = err2?.status === 429 || /\b429\b|rate limit/i.test(String(err2?.message ?? ""));
-    const reply = r2?.reply || (rateLimited ? "\u23F3 The AI hit its per-minute request limit (current plan: 5 requests/min). Give it ~60 seconds, then try again \u2014 or upgrade the Cerebras plan for higher throughput." : "I'm having trouble connecting to the AI service right now. Please try again in a moment.");
+    const reply = r2?.reply || (rateLimited ? "\u23F3 Mondaily AI is at its current throughput limit \u2014 give it about a minute and try again. High-volume plans get higher limits." : "I'm having trouble reaching Mondaily AI right now. Please try again in a moment.");
     await onEvent({ type: "token", text: reply });
     return r2 ?? { reply, provider: "none", model: "none", rounds: 0 };
   }
@@ -56213,6 +56258,8 @@ var trainingExport = inngest.createFunction(
 );
 
 // src/jobs/social-discovery.ts
+var import_node_crypto = require("crypto");
+var leadFingerprint = (url, author, content) => (0, import_node_crypto.createHash)("md5").update(`${url}|${author}|${(content || "").slice(0, 200)}`).digest("hex");
 var SEARCH_TIMEOUT_REASON = "Self-hosted search engine instance was temporarily unreachable.";
 var SOVEREIGN_SEARCH_URL2 = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
 async function searxng(query) {
@@ -56234,19 +56281,29 @@ async function searxng(query) {
 function buildQueries(searchType, sector, region, targetSubject) {
   const loc = region ? ` ${region}` : "";
   if (searchType === "REVIEWS") {
-    const subj = targetSubject ?? sector ?? "";
+    const subj = (targetSubject ?? sector ?? "").trim();
     return [
-      `site:reddit.com "${subj}" review`,
-      `"${subj}" complaint OR scam OR "bad experience"${loc}`,
-      `"${subj}" review${loc}`
-    ];
+      `${subj} reviews${loc}`,
+      `${subj} review${loc}`,
+      `"${subj}" complaints OR scam OR "bad experience"`,
+      `${subj} trustpilot`,
+      `${subj} google reviews${loc}`,
+      `${subj} customer feedback${loc}`,
+      `${subj} testimonials${loc}`,
+      `site:reddit.com ${subj} review`
+    ].filter((q2) => q2.replace(/["']/g, "").trim().length > 6);
   }
-  const s2 = sector ?? "";
+  const s2 = (sector ?? "").trim();
   return [
-    `site:reddit.com "${s2}"${loc} ("looking to buy" OR "recommendation" OR "anyone know")`,
-    `site:x.com "${s2}"${loc} ("looking to buy" OR "in the market for" OR "recommend")`,
-    `"${s2}"${loc} ("looking to buy" OR "need a recommendation")`
-  ];
+    `${s2}${loc}`,
+    `top ${s2}${loc}`,
+    `best ${s2}${loc}`,
+    `${s2}${loc} contact email`,
+    `${s2}${loc} directory`,
+    `list of ${s2}${loc}`,
+    `${s2}${loc} "get in touch" OR "contact us"`,
+    `site:reddit.com ${s2}${loc} recommendation OR "looking for"`
+  ].filter((q2) => q2.replace(/["']/g, "").trim().length > 4);
 }
 var LEAD_TOOL_SCHEMA = {
   type: "object",
@@ -56284,32 +56341,77 @@ async function runSocialDiscovery(data) {
     return { status: "SKIPPED_INFRASTRUCTURE_TIMEOUT", reason: SEARCH_TIMEOUT_REASON };
   }
   const hits = sweep.flatMap((s2) => s2.hits);
-  if (hits.length === 0) return { discovered: 0, reason: "no search results" };
+  if (hits.length === 0) return { discovered: 0, reason: "no search results", diag: { queries: queries.length, hits: 0, unique: 0, extracted: 0, matched: 0 } };
   const seen = /* @__PURE__ */ new Set();
-  const unique = hits.filter((h2) => seen.has(h2.url) ? false : (seen.add(h2.url), true)).slice(0, 24);
+  const unique = hits.filter((h2) => seen.has(h2.url) ? false : (seen.add(h2.url), true)).slice(0, 36);
+  const SCRAPE_TOP = 12;
+  const scraped = await Promise.all(unique.slice(0, SCRAPE_TOP).map((h2) => sovereignScrape(h2.url).catch(() => "")));
+  const fullText = /* @__PURE__ */ new Map();
+  unique.slice(0, SCRAPE_TOP).forEach((h2, i2) => {
+    const md = scraped[i2];
+    if (md) fullText.set(h2.url, md.slice(0, 3500));
+  });
   const context2 = unique.map((h2, i2) => `[${i2}] ${h2.title}
-${h2.content}
+${fullText.get(h2.url) || h2.content}
 URL: ${h2.url}`).join("\n\n");
   const wantReviews = searchType === "REVIEWS";
-  const extracted = await aiGatewayToolUse({
+  const runExtraction = () => aiGatewayToolUse({
     toolName: "extract_discovered_leads",
     toolDescription: "Extract clean, on-topic social-listening results from the search hits",
     toolSchema: LEAD_TOOL_SCHEMA,
     maxTokens: 2048,
-    system: `You extract ${wantReviews ? "reviews/complaints" : "buyer-intent signals"} from raw web search hits. STRICT RULES: (1) every result's source_url MUST be copied verbatim from one of the provided URLs \u2014 never invent one. (2) Drop ads, SEO listicles, vendor pages, and anything that is not a genuine ${wantReviews ? "review or complaint" : "person expressing buying intent"}. (3) ${region ? `Only keep results that plausibly match the region "${region}"; drop the rest.` : "Region is optional."} (4) intent_type is COMPLAINT for negative reviews, REVIEW for neutral/positive reviews, BUY_SIGNAL for purchase intent. (5) confidence_score reflects how clearly the hit matches the intent and region. Return an empty array if nothing qualifies \u2014 never pad. (6) Fill contact_email / contact_phone / handle ONLY when they appear verbatim in the hit text \u2014 NEVER guess or construct them. Always write a one-sentence summary noting who the person is and why they're a lead.`,
+    system: `You extract ${wantReviews ? "reviews, opinions, and complaints" : "buyer-intent signals and prospects"} from web pages. Be USEFUL \u2014 return every plausibly-relevant result, not just perfect ones. RULES: (1) every result's source_url MUST be copied verbatim from one of the provided URLs \u2014 never invent one. (2) Skip only pure ads and navigation/boilerplate. A ${wantReviews ? "review, testimonial, forum comment, or opinion about the subject" : "person or business showing interest or a need"} all count \u2014 include them. (3) ${region ? `Region "${region}" is a PREFERENCE, not a filter: keep results even if the region is unclear, just give them a lower confidence_score. Only drop a result if it clearly belongs to a different region.` : "Region is optional."} (4) intent_type is COMPLAINT for negative reviews, REVIEW for neutral/positive reviews/opinions, BUY_SIGNAL for purchase intent. (5) confidence_score (0-100) reflects how clearly the result matches. Include lower-confidence results too \u2014 do not return an empty array unless the pages truly contain nothing on-topic. (6) Fill contact_email / contact_phone / handle ONLY when they appear verbatim in the text \u2014 NEVER guess. Always write a one-sentence summary noting who this is and why they're relevant.`,
     prompt: `Search type: ${searchType}. Sector: "${sector ?? ""}". Region: "${region ?? ""}".${targetSubject ? ` Target subject: "${targetSubject}".` : ""}
 
 Search hits:
 ${context2}`
-  }).catch((err2) => {
-    console.error("[social-discovery] extraction gateway call failed (non-fatal):", err2?.message ?? err2);
-    return {};
   });
+  let extracted = {};
+  let gatewayReturned = false;
+  let gatewayError = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      extracted = await runExtraction();
+      gatewayReturned = Object.keys(extracted).length > 0;
+      if (gatewayReturned) {
+        gatewayError = null;
+        break;
+      }
+    } catch (err2) {
+      gatewayError = (err2?.message ?? String(err2)).slice(0, 200);
+      console.error(`[social-discovery] extraction gateway failed (attempt ${attempt + 1}):`, gatewayError);
+    }
+    if (attempt === 0) await new Promise((r2) => setTimeout(r2, 4e3));
+  }
   const leads = Array.isArray(extracted.leads) ? extracted.leads : [];
-  const validUrls = new Set(unique.map((h2) => h2.url));
-  const rows2 = leads.filter((l2) => l2.source_url && validUrls.has(l2.source_url) && l2.intent_type).map((l2) => ({
+  const normUrl = (u2) => {
+    try {
+      const p2 = new URL(u2.trim());
+      const host = p2.host.replace(/^www\./, "").toLowerCase();
+      const path = p2.pathname.replace(/\/+$/, "");
+      return `${host}${path}`.toLowerCase();
+    } catch {
+      return u2.trim().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/[?#].*$/, "").replace(/\/+$/, "").toLowerCase();
+    }
+  };
+  const hostOf = (u2) => {
+    try {
+      return new URL(u2.trim()).host.replace(/^www\./, "").toLowerCase();
+    } catch {
+      return (u2.split("/")[2] ?? u2).replace(/^www\./, "").toLowerCase();
+    }
+  };
+  const byNorm = new Map(unique.map((h2) => [normUrl(h2.url), h2.url]));
+  const scannedHosts = new Set(unique.map((h2) => hostOf(h2.url)));
+  const resolveUrl = (u2) => {
+    const exact = byNorm.get(normUrl(u2));
+    if (exact) return exact;
+    return scannedHosts.has(hostOf(u2)) ? u2.trim() : void 0;
+  };
+  const rows2 = leads.map((l2) => ({ l: l2, resolved: l2.source_url ? resolveUrl(l2.source_url) : void 0 })).filter((x2) => x2.resolved && x2.l.intent_type).map(({ l: l2, resolved }) => ({
     workspace_id: workspaceId,
-    source_url: l2.source_url,
+    source_url: resolved,
+    fingerprint: leadFingerprint(resolved, l2.author_name || "Anonymous", l2.raw_content || ""),
     // NOT NULL columns — always provide a value.
     platform: l2.platform || "web",
     author_name: l2.author_name || "Anonymous",
@@ -56326,17 +56428,91 @@ ${context2}`
       summary: l2.summary?.trim() || null
     }
   }));
-  if (rows2.length === 0) return { discovered: 0, scanned: unique.length };
-  let { error } = await supabase.from("discovered_leads").upsert(rows2, { onConflict: "source_url" });
-  if (error && /contact/i.test(error.message)) {
-    const bare = rows2.map(({ contact, ...r2 }) => r2);
-    ({ error } = await supabase.from("discovered_leads").upsert(bare, { onConflict: "source_url" }));
+  const diag = {
+    queries: queries.length,
+    hits: hits.length,
+    unique: unique.length,
+    scraped: fullText.size,
+    // pages we rendered to full text (vs snippet-only)
+    gateway: gatewayReturned,
+    // false → the AI extraction call failed
+    gateway_error: gatewayError,
+    // the ACTUAL error (rate limit / timeout / payload) when it fails
+    extracted: leads.length,
+    // leads the model returned
+    matched: rows2.length
+    // survived the URL-resolution + intent filter
+  };
+  if (rows2.length === 0) {
+    const reason = !gatewayReturned ? `extraction failed${gatewayError ? `: ${gatewayError}` : ""}` : leads.length === 0 ? "model found no on-topic results in the scanned pages" : "extracted results didn't resolve to scanned URLs";
+    return { discovered: 0, scanned: unique.length, reason, diag };
   }
+  const byFp = /* @__PURE__ */ new Map();
+  for (const r2 of rows2) {
+    const prev = byFp.get(r2.fingerprint);
+    if (!prev || (r2.confidence_score ?? 0) > (prev.confidence_score ?? 0)) byFp.set(r2.fingerprint, r2);
+  }
+  const dedupedRows = [...byFp.values()];
+  const upsertLeads = async (batch) => {
+    let r2 = await supabase.from("discovered_leads").upsert(batch, { onConflict: "workspace_id,fingerprint" });
+    if (r2.error && /fingerprint/i.test(r2.error.message)) {
+      const collapsed = [...new Map(batch.map((x2) => [x2.source_url, x2])).values()].map(({ fingerprint, ...x2 }) => x2);
+      r2 = await supabase.from("discovered_leads").upsert(collapsed, { onConflict: "source_url" });
+      if (r2.error && /contact/i.test(r2.error.message)) {
+        r2 = await supabase.from("discovered_leads").upsert(collapsed.map(({ contact, ...x2 }) => x2), { onConflict: "source_url" });
+      }
+    } else if (r2.error && /contact/i.test(r2.error.message)) {
+      r2 = await supabase.from("discovered_leads").upsert(batch.map(({ contact, ...x2 }) => x2), { onConflict: "workspace_id,fingerprint" });
+    }
+    return r2.error;
+  };
+  let error = await upsertLeads(dedupedRows);
   if (error) {
     console.error("[social-discovery] upsert failed:", error.message);
     return { discovered: 0, scanned: unique.length, error: error.message };
   }
-  return { discovered: rows2.length, scanned: unique.length };
+  let queued = 0;
+  if (searchType !== "REVIEWS") {
+    const strong = dedupedRows.filter((r2) => (r2.confidence_score ?? 0) >= 70 && (r2.contact?.email || r2.contact?.phone));
+    if (strong.length) {
+      const { data: pending } = await supabase.from("decision_queue").select("evidence").eq("workspace_id", workspaceId).eq("agent_name", "discovery").eq("status", "pending");
+      const seenUrls = new Set((pending ?? []).flatMap((d2) => Array.isArray(d2.evidence) ? d2.evidence.map((e2) => e2?.lead?.source_url) : []));
+      for (const r2 of strong) {
+        if (seenUrls.has(r2.source_url)) continue;
+        await supabase.from("decision_queue").insert({
+          workspace_id: workspaceId,
+          source_type: "discovered_lead",
+          source_id: null,
+          agent_name: "discovery",
+          title: `Add ${r2.author_name || "lead"} from Discovery?`,
+          summary: r2.contact?.summary || (r2.raw_content || "").slice(0, 160) || "Discovered from the web",
+          recommended_action: `Add "${r2.author_name || "this lead"}" as a lead record`,
+          risk_level: "low",
+          evidence: [{
+            type: "discovered_lead",
+            title: r2.author_name || "Lead",
+            match_reason: `Confidence ${r2.confidence_score ?? 0}${r2.contact?.email ? ` \xB7 ${r2.contact.email}` : ""}`,
+            lead: { name: r2.author_name, email: r2.contact?.email ?? null, phone: r2.contact?.phone ?? null, handle: r2.contact?.handle ?? null, summary: r2.contact?.summary ?? null, source_url: r2.source_url, region: r2.region, subject: r2.target_subject }
+          }]
+        }).then(() => {
+          queued++;
+        }, () => {
+        });
+      }
+    }
+  }
+  if (dedupedRows.length > 0) {
+    const what = searchType === "REVIEWS" ? "reviews/mentions" : "leads";
+    await createNotification({
+      workspace_id: workspaceId,
+      type: "agent",
+      title: `Discovery Agent found ${dedupedRows.length} ${what}`,
+      body: `From ${unique.length} sources${sector ? ` for "${sector}"` : ""}${region ? ` in ${region}` : ""}${targetSubject ? ` about "${targetSubject}"` : ""}.` + (queued > 0 ? ` ${queued} strong lead${queued === 1 ? "" : "s"} queued in your Decision Queue for approval.` : " Review them in Discovery."),
+      metadata: { source: "discovery", count: dedupedRows.length, queued, search_type: searchType }
+    }).catch(() => {
+    });
+  }
+  return { discovered: dedupedRows.length, scanned: unique.length, queued, diag };
 }
 var socialDiscoveryWorker = inngest.createFunction(
   { id: "social-media-listening-discovery", name: "Social listening & intent discovery", concurrency: { limit: 3 } },
@@ -56737,13 +56913,17 @@ var requireAuth = createMiddleware(async (c2, next) => {
     const msg = e2 instanceof Error ? e2.message : String(e2);
     throw new HTTPException(401, { message: `JWT verification failed: ${msg}` });
   }
-  const { data: membership, error: dbError } = await supabase.from("workspace_members").select("role, finance_role").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle();
+  let { data: membership, error: dbError } = await supabase.from("workspace_members").select("role, finance_role, module_access").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle();
+  if (dbError && /module_access/i.test(dbError.message)) {
+    ({ data: membership, error: dbError } = await supabase.from("workspace_members").select("role, finance_role").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle());
+  }
   if (dbError) throw new HTTPException(500, { message: `DB error: ${dbError.message}` });
   if (!membership) throw new HTTPException(403, { message: `User ${userId} not in workspace ${workspaceId}` });
   c2.set("userId", userId);
   c2.set("workspaceId", workspaceId);
   c2.set("role", membership.role);
   c2.set("financeRole", membership.finance_role ?? "none");
+  c2.set("moduleAccess", membership.module_access ?? {});
   await next();
 });
 var requireJwt = createMiddleware(async (c2, next) => {
@@ -56770,6 +56950,66 @@ var requireAdmin = createMiddleware(async (c2, next) => {
 
 // src/middleware/rbac.ts
 init_http_exception();
+
+// src/lib/modules.ts
+var ACCESS_RANK = { none: 0, view: 1, edit: 2 };
+var MODULES = [
+  { key: "graph", label: "Graph", hint: "Contacts, companies, deals, pipeline" },
+  { key: "discovery", label: "Discovery", hint: "Lead & review discovery" },
+  { key: "automations", label: "Automations", hint: "Workflows & agents" },
+  { key: "communications", label: "Communications", hint: "Emails, calls, notes" },
+  { key: "reports", label: "Reports", hint: "Dashboards & reports" },
+  { key: "finance", label: "Finance & Billing", hint: "Invoices, quotes, credit notes, approvals", optional: true },
+  { key: "investments", label: "Quantitative Asset Systems", hint: "Asset portfolios, rounds, returns", optional: true },
+  { key: "hr", label: "Autonomous Workforce", hint: "Headcount, contracts, operational intelligence", optional: true }
+];
+var MODULE_KEYS = MODULES.map((m2) => m2.key);
+var OPTIONAL_MODULE_KEYS = MODULES.filter((m2) => m2.optional).map((m2) => m2.key);
+function enabledModules(settingsModules) {
+  const enabled = new Set(settingsModules ?? []);
+  return MODULES.filter((m2) => !m2.optional || enabled.has(m2.key));
+}
+var OPTIONAL = new Set(OPTIONAL_MODULE_KEYS);
+function roleDefault(role, moduleKey) {
+  if (role === "owner" || role === "admin") return "edit";
+  if (OPTIONAL.has(moduleKey)) return "none";
+  if (role === "viewer") return "view";
+  return "edit";
+}
+function financeRoleLevel(financeRole) {
+  switch (financeRole) {
+    case "approver":
+      return "edit";
+    case "reviewer":
+      return "view";
+    case "member":
+      return "edit";
+    case "viewer":
+      return "view";
+    default:
+      return null;
+  }
+}
+function resolveModuleLevel(role, moduleKey, moduleAccess, financeRole) {
+  if (role === "owner" || role === "admin") return "edit";
+  const explicit = moduleAccess?.[moduleKey];
+  if (explicit === "none" || explicit === "view" || explicit === "edit") return explicit;
+  if (moduleKey === "finance") {
+    const legacy = financeRoleLevel(financeRole);
+    if (legacy) return legacy;
+  }
+  return roleDefault(role, moduleKey);
+}
+function resolveModuleMatrix(role, moduleAccess, financeRole) {
+  const out = {};
+  for (const k2 of MODULE_KEYS) out[k2] = resolveModuleLevel(role, k2, moduleAccess, financeRole);
+  return out;
+}
+function moduleAllows(role, moduleKey, need, moduleAccess, financeRole) {
+  return ACCESS_RANK[resolveModuleLevel(role, moduleKey, moduleAccess, financeRole)] >= ACCESS_RANK[need];
+}
+
+// src/middleware/rbac.ts
 function isWorkspaceAdmin(role) {
   return role === "owner" || role === "admin";
 }
@@ -56789,6 +57029,15 @@ var denyViewerWrites = createMiddleware(async (c2, next) => {
   }
   await next();
 });
+function requireModuleRW(moduleKey) {
+  return createMiddleware(async (c2, next) => {
+    const m2 = c2.req.method;
+    const need = m2 === "GET" || m2 === "HEAD" || m2 === "OPTIONS" ? "view" : "edit";
+    const ok2 = moduleAllows(c2.get("role"), moduleKey, need, c2.get("moduleAccess"), c2.get("financeRole"));
+    if (!ok2) throw new HTTPException(403, { message: `You don't have ${need} access to this module.` });
+    await next();
+  });
+}
 
 // ../db/src/ubc.ts
 var NodeSchema = external_exports.object({
@@ -57141,7 +57390,7 @@ init_context();
 // src/routes/reports.ts
 var router3 = new Hono2();
 router3.use("*", requireAuth);
-var reportType = external_exports.enum(["insight", "funnel", "time_in_stage", "historical"]);
+var reportType = external_exports.enum(["insight", "funnel", "time_in_stage", "historical", "forecast"]);
 var reportInput = external_exports.object({ name: external_exports.string().min(1), type: reportType, config: external_exports.record(external_exports.unknown()) });
 function unpack(node) {
   return { id: node.id, ...node.data, created_by: node.created_by, updated_at: node.updated_at };
@@ -57175,8 +57424,22 @@ async function runReportData(workspaceId, reportId, input = {}) {
   const type = input.type ?? stored.type ?? "insight";
   const config = { ...stored.config ?? {}, ...input.config ?? {} };
   const objectType2 = String(config.object_type ?? "deal");
-  const { data: nodes, error } = await supabase.from("nodes").select("id,data,created_at,updated_at").eq("workspace_id", workspaceId).eq("object_type", objectType2).order("created_at", { ascending: true });
-  if (error) return { error: error.message };
+  const variants = Array.from(/* @__PURE__ */ new Set([
+    objectType2,
+    objectType2.endsWith("s") ? objectType2.slice(0, -1) : `${objectType2}s`
+  ]));
+  let nodes = [];
+  let error = null;
+  for (const v2 of variants) {
+    const r2 = await supabase.from("nodes").select("id,data,created_at,updated_at").eq("workspace_id", workspaceId).eq("object_type", v2).order("created_at", { ascending: true });
+    if (r2.error) {
+      error = r2.error;
+      continue;
+    }
+    nodes = r2.data ?? [];
+    if (nodes.length) break;
+  }
+  if (!nodes.length && error) return { error: error.message };
   if (type === "funnel") {
     const stages = Array.isArray(config.stages) ? config.stages.map(String) : [];
     const stageField = String(config.stage_field ?? "stage");
@@ -57221,6 +57484,27 @@ async function runReportData(workspaceId, reportId, input = {}) {
   }
   const data = [...groups].map(([label, values]) => ({ label, value: metric === "count" ? values.length : metric === "average" ? Number((values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)).toFixed(2)) : values.reduce((sum, value) => sum + value, 0) }));
   const total = metric === "average" ? Number((data.reduce((sum, item) => sum + item.value, 0) / Math.max(data.length, 1)).toFixed(2)) : data.reduce((sum, item) => sum + item.value, 0);
+  if (type === "forecast" && data.length >= 3) {
+    const ys = data.map((d2) => d2.value);
+    const n2 = ys.length;
+    const xs = ys.map((_2, i2) => i2);
+    const meanX = (n2 - 1) / 2;
+    const meanY = ys.reduce((s2, v2) => s2 + v2, 0) / n2;
+    let num = 0, den = 0;
+    for (let i2 = 0; i2 < n2; i2++) {
+      num += (xs[i2] - meanX) * (ys[i2] - meanY);
+      den += (xs[i2] - meanX) ** 2;
+    }
+    const slope = den === 0 ? 0 : num / den;
+    const intercept = meanY - slope * meanX;
+    const horizon = Math.max(1, Math.min(6, Number(config.horizon ?? 3)));
+    const projected = Array.from({ length: horizon }, (_2, k2) => ({
+      label: `+${k2 + 1}`,
+      value: Math.max(0, Number((intercept + slope * (n2 + k2)).toFixed(2))),
+      forecast: true
+    }));
+    return { data: [...data, ...projected], total, change: 0, chart_type: "line", forecast_from: data.length, slope: Number(slope.toFixed(3)) };
+  }
   return { data, total, change: 0, chart_type: String(config.chart_type ?? "line") };
 }
 router3.post("/:id/run", async (c2) => {
@@ -57228,6 +57512,29 @@ router3.post("/:id/run", async (c2) => {
   const result = await runReportData(c2.get("workspaceId"), c2.req.param("id"), input);
   if ("error" in result) return c2.json({ error: result.error }, result.error === "Report not found" ? 404 : 400);
   return c2.json(result);
+});
+router3.post("/:id/insight", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const input = await c2.req.json().catch(() => ({}));
+  const result = await runReportData(ws, c2.req.param("id"), input);
+  if ("error" in result) return c2.json({ error: result.error }, 400);
+  const data = result.data ?? [];
+  if (data.length < 2) return c2.json({ insight: "Not enough data yet to draw a meaningful insight \u2014 add more records or widen the date range." });
+  const series = data.map((d2) => `${d2.label}: ${d2.value}${d2.forecast ? " (projected)" : ""}`).join("; ");
+  const first = data[0].value, last = data[data.length - 1].value;
+  const peak = data.reduce((m2, d2) => d2.value > m2.value ? d2 : m2, data[0]);
+  try {
+    const { text } = await aiGateway({
+      system: "You are a business analyst. Describe ONLY what the provided numbers show \u2014 trend direction, the peak, the overall change, and (if projected points are present) where the forecast is heading. NEVER invent figures not in the data. Be concrete and specific, cite the real numbers, 2-3 short sentences, plain language, no preamble.",
+      prompt: `Report data points \u2014 ${series}. First=${first}, last=${last}, peak=${peak.label} (${peak.value}).`,
+      maxTokens: 220
+    });
+    return c2.json({ insight: (text || "").trim() || "The data shows the values above; no strong trend detected." });
+  } catch {
+    const dir = last > first ? "up" : last < first ? "down" : "flat";
+    const pct = first ? Math.round((last - first) / Math.abs(first) * 100) : 0;
+    return c2.json({ insight: `Trend is ${dir} \u2014 from ${first} to ${last}${first ? ` (${pct >= 0 ? "+" : ""}${pct}%)` : ""}. Peak was ${peak.value} at ${peak.label}.` });
+  }
 });
 
 // src/routes/prospecting.ts
@@ -57502,6 +57809,7 @@ async function logDecisionTrainingExample(workspaceId, decision, action, editedO
 // src/routes/decisions.ts
 var router5 = new Hono2();
 router5.use("*", requireAuth);
+router5.use("*", denyViewerWrites);
 var evidenceItem = external_exports.object({
   type: external_exports.string(),
   title: external_exports.string(),
@@ -57626,6 +57934,31 @@ async function executeApprovedAction(workspaceId, decision) {
     }
     return;
   }
+  if (decision.agent_name === "discovery" && decision.source_type === "discovered_lead") {
+    const lead = (decision.evidence ?? [])[0]?.lead;
+    if (!lead?.name && !lead?.email) return;
+    const node = await createNode({
+      workspace_id: workspaceId,
+      vertical: "sales",
+      object_type: "person",
+      created_by: "agent:discovery",
+      // agent-icon marking in the UI
+      data: {
+        name: lead.name || lead.email || "Discovered lead",
+        email: lead.email ?? void 0,
+        phone: lead.phone ?? void 0,
+        twitter: lead.handle ?? void 0,
+        notes: lead.summary ?? void 0,
+        region: lead.region ?? void 0,
+        source_url: lead.source_url ?? void 0,
+        discovered: true
+      }
+    });
+    await logActivity(node.id, workspaceId, "ai_agent", "discovery", "created", void 0, "Approved from Decision Queue (Discovery)");
+    inngest.send({ name: "crm/record.created", data: { workspaceId, nodeId: node.id, objectType: "person", vertical: "sales" } }).catch(() => {
+    });
+    return;
+  }
   if (decision.agent_name === "invoice_chaser" && decision.source_type === "invoice") {
     const { data: invoice } = await supabase.from("nodes").select("id, data").eq("id", decision.source_id).eq("workspace_id", workspaceId).maybeSingle();
     if (!invoice) return;
@@ -57691,6 +58024,12 @@ router5.post("/bulk", zValidator("json", external_exports.object({
 });
 
 // src/routes/ask.ts
+function pluralize(word) {
+  const w2 = word.trim();
+  if (/[^aeiou]y$/i.test(w2)) return w2.slice(0, -1) + "ies";
+  if (/(s|x|z|ch|sh)$/i.test(w2)) return w2 + "es";
+  return w2 + "s";
+}
 var SYSTEM_PROMPT = `You are Mondaily AI \u2014 an intelligent business operating system. You help users manage contacts, deals, tasks, pipelines, emails, calls, and all business operations. Be smart, substantive, and actionable.
 
 HOW TO ANSWER \u2014 be decisive, never bounce questions back:
@@ -57731,7 +58070,9 @@ CRITICAL \u2014 never expose raw record IDs/UUIDs to the user. Refer to every re
 
 You ARE connected to the live workspace graph at all times. Never tell the user you "can't find", "can't access", "aren't connected to", or "had trouble reaching" their records, tasks, deals, or reports \u2014 instead, call the appropriate tool and look. If a tool genuinely returns nothing, say plainly that there are no matching records yet (and suggest creating one) \u2014 that is different from claiming you are disconnected, which you must never say.
 
-Never mention Claude, Anthropic, OpenAI, or any underlying AI technology. You are simply Mondaily AI.
+ABSOLUTE GROUNDING RULE \u2014 NEVER FABRICATE DATA. Every number, record, task, deal, invoice, contact, amount, count, date, or fact you state MUST come from an actual tool result in THIS conversation. You may NEVER invent example/placeholder data \u2014 no made-up tasks like "Q4 Planning Review", no fake invoices like "Invoice #1024", no imagined financial figures like "\xA324,500", no fabricated counts ("12 tasks", "5 deals"). If you did not call a tool and get that exact value back, you may not print it. For a new or empty workspace, the correct answer is to say plainly that there is no data yet and suggest adding contacts/deals/tasks or running Discovery \u2014 NOT to generate a realistic-looking sample brief. A confident fabricated overview is a serious failure; an honest "your workspace is empty so far" is correct.
+
+Never mention Claude, Anthropic, OpenAI, Cerebras, or ANY underlying AI provider, model, or infrastructure supplier. You are simply Mondaily AI \u2014 the system is fully our own.
 
 After every response, append a follow-ups block with 3 short suggested next actions the user might want to take, directly relevant to what you just did or said. Format exactly as:
 <followups>["Action one", "Action two", "Action three"]</followups>
@@ -58428,7 +58769,7 @@ ${results.join("\n")}`;
           }
         } catch (_2) {
         }
-        const plural = `${input.name}s`;
+        const plural = pluralize(input.name);
         const { data, error } = await supabase.from("object_definitions").insert({
           workspace_id: workspaceId,
           vertical: "shared",
@@ -59552,10 +59893,10 @@ router8.get("/activity", async (c2) => {
 });
 
 // src/lib/pow-claims.ts
-var import_node_crypto2 = require("crypto");
+var import_node_crypto3 = require("crypto");
 function logPowClaim(userId, challenge, nonce, context2) {
   if (!userId || !challenge || !nonce) return;
-  const challenge_hash = (0, import_node_crypto2.createHash)("sha256").update(challenge).digest("hex");
+  const challenge_hash = (0, import_node_crypto3.createHash)("sha256").update(challenge).digest("hex");
   void supabase.from("pow_claims").insert({ user_id: userId, challenge_hash, nonce, context: context2 }).then(() => {
   }, () => {
   });
@@ -59573,11 +59914,20 @@ router9.get("/oversight", requireAuth, requireAdminRole, async (c2) => {
   const ws = c2.get("workspaceId");
   const limit2 = Math.min(Number(c2.req.query("limit")) || 150, 300);
   const actorFilter = c2.req.query("actor");
-  let q2 = supabase.from("activities").select("id, actor_type, actor_id, action, ai_summary, node_id, created_at, nodes(object_type, data)").eq("workspace_id", ws).order("created_at", { ascending: false }).limit(limit2);
+  let q2 = supabase.from("activities").select("id, actor_type, actor_id, action, ai_summary, node_id, created_at, diff, nodes(object_type, data)").eq("workspace_id", ws).order("created_at", { ascending: false }).limit(limit2);
   if (actorFilter) q2 = q2.eq("actor_id", actorFilter);
   const { data: acts } = await q2;
   const { data: members } = await supabase.from("workspace_members").select("user_id, name, email, avatar_url, role").eq("workspace_id", ws);
   const byUser = new Map((members ?? []).map((m2) => [m2.user_id, m2]));
+  const readableChanges = (diff) => {
+    if (!diff || typeof diff !== "object") return [];
+    const d2 = diff;
+    const src = d2.data && typeof d2.data === "object" ? d2.data : d2;
+    return Object.entries(src).filter(([k2]) => !["type", "data"].includes(k2)).slice(0, 8).map(([field, v2]) => ({
+      field: field.replace(/_/g, " "),
+      value: v2 == null ? "\u2014" : typeof v2 === "object" ? JSON.stringify(v2).slice(0, 60) : String(v2).slice(0, 80)
+    }));
+  };
   const rows2 = (acts ?? []).map((a2) => {
     const m2 = a2.actor_type === "human" ? byUser.get(a2.actor_id) : void 0;
     const node = a2.nodes;
@@ -59594,6 +59944,8 @@ router9.get("/oversight", requireAuth, requireAdminRole, async (c2) => {
       action: a2.action,
       ai_summary: a2.ai_summary ?? null,
       object: node?.object_type ? { type: node.object_type, name: nodeName ?? null } : null,
+      changes: readableChanges(a2.diff),
+      // exactly what changed
       created_at: a2.created_at
     };
   });
@@ -59639,13 +59991,11 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
     const verifiedPow = powUsers.has(uid);
     const taskCount = last ? (acts ?? []).filter((a2) => String(a2.actor_id) === uid).length : 0;
     const complexityDelta = Math.round(u2.tokens / Math.max(1, taskCount));
-    const legit = verifiedPow || hasSession2;
     let verdict = "idle";
     if (u2.tokens === 0 && taskCount === 0) verdict = "inactive";
-    else if (u2.tokens > 5e4 && taskCount > 20 && !verifiedPow) verdict = "bot";
-    else if (legit && taskCount >= 5 && complexityDelta < 500) verdict = "low_engagement";
-    else if (legit && complexityDelta > 8e3) verdict = "high_complexity";
-    else if (u2.tokens > 0 && legit) verdict = "engaged";
+    else if (taskCount >= 5 && complexityDelta < 500) verdict = "low_engagement";
+    else if (complexityDelta > 8e3) verdict = "high_complexity";
+    else if (u2.tokens > 0 || taskCount > 0) verdict = "engaged";
     return {
       operator_id: uid,
       name: m2.name || m2.email || "Unknown Operator",
@@ -59706,13 +60056,13 @@ router10.get("/token", async (c2) => {
 
 // src/routes/auth.ts
 init_cookie2();
-var import_node_crypto5 = require("crypto");
+var import_node_crypto6 = require("crypto");
 
 // src/lib/password.ts
-var import_node_crypto3 = require("crypto");
+var import_node_crypto4 = require("crypto");
 function scryptAsync(password, salt, keylen, options) {
   return new Promise((resolve2, reject) => {
-    (0, import_node_crypto3.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
+    (0, import_node_crypto4.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
   });
 }
 var N2 = 32768;
@@ -59721,7 +60071,7 @@ var P2 = 1;
 var KEYLEN = 64;
 var MAXMEM = 64 * 1024 * 1024;
 async function hashPassword(plain) {
-  const salt = (0, import_node_crypto3.randomBytes)(16);
+  const salt = (0, import_node_crypto4.randomBytes)(16);
   const dk = await scryptAsync(plain, salt, KEYLEN, { N: N2, r: R2, p: P2, maxmem: MAXMEM });
   return `scrypt$${N2}$${R2}$${P2}$${salt.toString("base64")}$${dk.toString("base64")}`;
 }
@@ -59733,7 +60083,7 @@ async function verifyPassword(stored, plain) {
     const salt = Buffer.from(saltB64, "base64");
     const expected = Buffer.from(hashB64, "base64");
     const dk = await scryptAsync(plain, salt, expected.length, { N: Number(n2), r: Number(r2), p: Number(p2), maxmem: MAXMEM });
-    return dk.length === expected.length && (0, import_node_crypto3.timingSafeEqual)(dk, expected);
+    return dk.length === expected.length && (0, import_node_crypto4.timingSafeEqual)(dk, expected);
   } catch {
     return false;
   }
@@ -59818,7 +60168,7 @@ function rateLimit(opts) {
 
 // src/lib/pow.ts
 init_jwt4();
-var import_node_crypto4 = require("crypto");
+var import_node_crypto5 = require("crypto");
 init_http_exception();
 var DIFFICULTY = "0000";
 var TTL_SECONDS = 300;
@@ -59829,7 +60179,7 @@ function secret() {
 }
 async function issuePowChallenge() {
   const now = Math.floor(Date.now() / 1e3);
-  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto4.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
+  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto5.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
   return { challenge, difficulty: DIFFICULTY.length };
 }
 async function verifyPow(challenge, nonce) {
@@ -59840,7 +60190,7 @@ async function verifyPow(challenge, nonce) {
   } catch {
     return false;
   }
-  return (0, import_node_crypto4.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
+  return (0, import_node_crypto5.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
 }
 var requirePow = createMiddleware(async (c2, next) => {
   let body = {};
@@ -59911,7 +60261,7 @@ router11.get("/challenge", async (c2) => c2.json(await issuePowChallenge()));
 router11.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
   const { email, password, name } = c2.req.valid("json");
   if (await credByEmail(email)) return c2.json({ error: "An account with this email already exists." }, 409);
-  const userId = `usr_${(0, import_node_crypto5.randomBytes)(12).toString("hex")}`;
+  const userId = `usr_${(0, import_node_crypto6.randomBytes)(12).toString("hex")}`;
   const password_hash = await hashPassword(password);
   const { error } = await supabase.from("auth_credentials").insert({ user_id: userId, email, password_hash });
   if (error) return c2.json({ error: error.message }, 400);
@@ -60219,13 +60569,15 @@ router12.get("/balance", async (c2) => {
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
   const settings = wsRow?.settings ?? {};
   const ar2 = settings.auto_refill ?? {};
+  const burst = list.length > 0 ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
   return c2.json({
     enrolled: list.length > 0,
     balance: granted + usedNeg,
     granted,
     used: Math.abs(usedNeg),
-    account_tier: settings.track ?? "personal",
+    account_tier: settings.account_tier ?? settings.track ?? "scout",
     trial_ends_at: settings.trial_ends_at ?? null,
+    burst: { used: burst.used, cap: burst.cap, limited: burst.limited, resets_at: burst.resetsAt },
     auto_refill: {
       enabled: Boolean(ar2.enabled),
       threshold: Number(ar2.threshold ?? 5e3),
@@ -60258,7 +60610,38 @@ router12.post("/checkout-session", requireAdminRole, async (c2) => {
 });
 
 // src/routes/webhooks.ts
-var import_node_crypto6 = require("crypto");
+var import_node_crypto7 = require("crypto");
+
+// src/lib/billing-tiers.ts
+var REAL_TIERS = /* @__PURE__ */ new Set(["scout", "operator", "command", "sovereign"]);
+function normalizeTier(raw2) {
+  return raw2 && REAL_TIERS.has(raw2.toLowerCase()) ? raw2.toLowerCase() : "operator";
+}
+async function activateTier(workspaceId, tier, subscriptionId) {
+  const { data: ws } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const settings = { ...ws?.settings ?? {} };
+  delete settings.pending_plan;
+  delete settings.trial_ends_at;
+  settings.account_tier = tier;
+  settings.plan = tier;
+  settings.track = tier === "scout" ? "solo" : "business";
+  settings.billing_status = "active";
+  if (subscriptionId) settings.stripe_subscription_id = subscriptionId;
+  await supabase.from("workspaces").update({ settings, plan: tier }).eq("id", workspaceId);
+  await grantTierCredits(workspaceId, tier, `${tier} plan activated via Stripe`);
+}
+async function downgradeToScout(workspaceId) {
+  const { data: ws } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const settings = { ...ws?.settings ?? {} };
+  settings.account_tier = "scout";
+  settings.plan = "scout";
+  settings.track = "solo";
+  settings.billing_status = "cancelled";
+  delete settings.stripe_subscription_id;
+  await supabase.from("workspaces").update({ settings, plan: "scout" }).eq("id", workspaceId);
+}
+
+// src/routes/webhooks.ts
 var router13 = new Hono2();
 router13.post("/nylas", async (c2) => {
   const challenge = c2.req.query("challenge");
@@ -60267,7 +60650,7 @@ router13.post("/nylas", async (c2) => {
   const sig = c2.req.header("x-nylas-signature") ?? "";
   const secret4 = process.env.NYLAS_WEBHOOK_SECRET ?? "";
   if (secret4 && sig) {
-    const expected = (0, import_node_crypto6.createHmac)("sha256", secret4).update(rawBody).digest("hex");
+    const expected = (0, import_node_crypto7.createHmac)("sha256", secret4).update(rawBody).digest("hex");
     if (sig !== expected) return c2.json({ error: "invalid signature" }, 401);
   }
   const payload = JSON.parse(rawBody);
@@ -60301,9 +60684,9 @@ router13.post("/stripe", async (c2) => {
     const age = Math.abs(Date.now() / 1e3 - parseInt(timestamp));
     if (age > 300) return c2.json({ error: "timestamp too old" }, 400);
     const payload = `${timestamp}.${rawBody}`;
-    const expected = (0, import_node_crypto6.createHmac)("sha256", secret4).update(payload).digest("hex");
+    const expected = (0, import_node_crypto7.createHmac)("sha256", secret4).update(payload).digest("hex");
     const provided = parts["v1"] ?? "";
-    if (!(0, import_node_crypto6.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
+    if (!(0, import_node_crypto7.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
       return c2.json({ error: "invalid signature" }, 401);
     }
   }
@@ -60329,18 +60712,36 @@ router13.post("/stripe", async (c2) => {
         });
       }
     } else if (workspaceId) {
-      const plan = meta.plan || "pro";
-      await supabase.from("workspaces").update({ ...customerId ? { stripe_customer_id: customerId } : {}, plan }).eq("id", workspaceId);
+      const tier = normalizeTier(meta.plan);
+      if (customerId) await supabase.from("workspaces").update({ stripe_customer_id: customerId }).eq("id", workspaceId);
+      await activateTier(workspaceId, tier, s2.subscription);
     }
   }
   if (event.type === "invoice.payment_succeeded") {
     const inv = event.data.object;
     const customerId = inv.customer;
     if (customerId) {
-      const { data: ws } = await supabase.from("workspaces").select("settings").eq("stripe_customer_id", customerId).maybeSingle();
+      const { data: ws } = await supabase.from("workspaces").select("id, settings").eq("stripe_customer_id", customerId).maybeSingle();
       if (ws) {
-        const settings = { ...ws.settings ?? {}, billing_status: "active", last_payment_at: (/* @__PURE__ */ new Date()).toISOString() };
-        await supabase.from("workspaces").update({ settings }).eq("stripe_customer_id", customerId).then(() => {
+        const prevSettings = ws.settings ?? {};
+        const settings = { ...prevSettings, billing_status: "active", last_payment_at: (/* @__PURE__ */ new Date()).toISOString() };
+        await supabase.from("workspaces").update({ settings }).eq("id", ws.id).then(() => {
+        }, () => {
+        });
+        const tier = normalizeTier(settings.account_tier);
+        await grantTierCredits(ws.id, tier, `${tier} plan renewed via Stripe`).catch(() => {
+        });
+      }
+    }
+  }
+  if (event.type === "invoice.payment_failed") {
+    const inv = event.data.object;
+    const customerId = inv.customer;
+    if (customerId) {
+      const { data: ws } = await supabase.from("workspaces").select("id, settings, name").eq("stripe_customer_id", customerId).maybeSingle();
+      if (ws) {
+        const settings = { ...ws.settings ?? {}, billing_status: "payment_failed" };
+        await supabase.from("workspaces").update({ settings }).eq("id", ws.id).then(() => {
         }, () => {
         });
       }
@@ -60351,8 +60752,16 @@ router13.post("/stripe", async (c2) => {
     const customerId = sub.customer;
     const status = sub.status;
     const planMeta = sub.metadata?.plan;
-    const nextPlan = event.type === "customer.subscription.deleted" || status !== "active" ? "free" : planMeta ?? "pro";
-    await supabase.from("workspaces").update({ plan: nextPlan }).eq("stripe_customer_id", customerId);
+    const { data: ws } = await supabase.from("workspaces").select("id").eq("stripe_customer_id", customerId).maybeSingle();
+    if (ws) {
+      const workspaceId = ws.id;
+      const isGone = event.type === "customer.subscription.deleted" || !["active", "trialing"].includes(status);
+      if (isGone) {
+        await downgradeToScout(workspaceId);
+      } else {
+        await activateTier(workspaceId, normalizeTier(planMeta), sub.id);
+      }
+    }
   }
   return c2.json({ ok: true });
 });
@@ -60437,18 +60846,116 @@ router14.post("/portal", async (c2) => {
     return c2.json({ error: e2 instanceof Error ? e2.message : "Could not open the billing portal." }, 500);
   }
 });
+async function stripeGet(path) {
+  const key = process.env.STRIPE_SECRET_KEY;
+  const res = await fetch(`${STRIPE_API3}/${path}`, { headers: { Authorization: `Bearer ${key}` } });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error?.message ?? `Stripe HTTP ${res.status}`);
+  return json;
+}
+async function ensureCustomer(workspaceId, userId) {
+  const { data: ws } = await supabase.from("workspaces").select("stripe_customer_id").eq("id", workspaceId).maybeSingle();
+  const existing = ws?.stripe_customer_id;
+  if (existing) return existing;
+  const { data: member } = await supabase.from("workspace_members").select("email, name").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle();
+  const customer = await stripePost2("customers", {
+    email: member?.email || void 0,
+    name: member?.name || void 0,
+    "metadata[workspace_id]": workspaceId
+  });
+  await supabase.from("workspaces").update({ stripe_customer_id: customer.id }).eq("id", workspaceId);
+  return customer.id;
+}
+router14.post("/setup-intent", async (c2) => {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return c2.json({ error: "Billing isn't connected yet. Add STRIPE_SECRET_KEY to enable upgrades.", configured: false }, 503);
+  }
+  if (!isWorkspaceAdmin(c2.get("role"))) return c2.json({ error: "Only owners and admins can manage billing." }, 403);
+  try {
+    const customer = await ensureCustomer(c2.get("workspaceId"), c2.get("userId"));
+    const intent = await stripePost2("setup_intents", {
+      customer,
+      "automatic_payment_methods[enabled]": "true",
+      usage: "off_session"
+      // so the saved card can be charged for future renewals unattended
+    });
+    return c2.json({
+      client_secret: intent.client_secret,
+      publishable_key: process.env.STRIPE_PUBLISHABLE_KEY ?? null
+    });
+  } catch (e2) {
+    return c2.json({ error: e2 instanceof Error ? e2.message : "Could not start card setup." }, 500);
+  }
+});
+router14.post("/subscribe", async (c2) => {
+  const body = await c2.req.json().catch(() => ({}));
+  const plan = normalizeTier(body.plan);
+  const interval = (body.interval ?? "month").toLowerCase();
+  const paymentMethodId = body.payment_method_id;
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return c2.json({ error: "Billing isn't connected yet. Add STRIPE_SECRET_KEY to enable upgrades.", configured: false }, 503);
+  }
+  if (!isWorkspaceAdmin(c2.get("role"))) return c2.json({ error: "Only owners and admins can manage billing." }, 403);
+  if (plan === "sovereign") return c2.json({ error: "Sovereign is custom pricing \u2014 contact sales@mondaily.com." }, 400);
+  if (!paymentMethodId) return c2.json({ error: "No payment method \u2014 complete the card form first." }, 400);
+  const price = priceFor(plan, interval);
+  if (!price) {
+    return c2.json({ error: `No price configured for ${plan}/${interval}. Set STRIPE_PRICE_${plan.toUpperCase()}_${interval.toUpperCase()}.`, configured: false }, 400);
+  }
+  const workspaceId = c2.get("workspaceId");
+  try {
+    const customer = await ensureCustomer(workspaceId, c2.get("userId"));
+    await stripePost2(`payment_methods/${paymentMethodId}/attach`, { customer }).catch(() => {
+    });
+    await stripePost2(`customers/${customer}`, { "invoice_settings[default_payment_method]": paymentMethodId });
+    const sub = await stripePost2("subscriptions", {
+      customer,
+      "items[0][price]": price,
+      default_payment_method: paymentMethodId,
+      "metadata[workspace_id]": workspaceId,
+      "metadata[plan]": plan,
+      "expand[0]": "latest_invoice.payment_intent",
+      "payment_settings[save_default_payment_method]": "on_subscription"
+    });
+    const pi = sub?.latest_invoice?.payment_intent;
+    if (pi?.status && pi.status !== "succeeded" && pi.status !== "processing" && pi.client_secret) {
+      return c2.json({ requires_action: true, client_secret: pi.client_secret, subscription_id: sub.id });
+    }
+    await activateTier(workspaceId, plan, sub.id);
+    return c2.json({ ok: true, plan, subscription_id: sub.id });
+  } catch (e2) {
+    return c2.json({ error: e2 instanceof Error ? e2.message : "Could not start your subscription." }, 500);
+  }
+});
+router14.post("/confirm-subscription", async (c2) => {
+  if (!process.env.STRIPE_SECRET_KEY) return c2.json({ error: "Billing isn't connected yet.", configured: false }, 503);
+  if (!isWorkspaceAdmin(c2.get("role"))) return c2.json({ error: "Only owners and admins can manage billing." }, 403);
+  const body = await c2.req.json().catch(() => ({}));
+  if (!body.subscription_id) return c2.json({ error: "Missing subscription_id" }, 400);
+  try {
+    const sub = await stripeGet(`subscriptions/${body.subscription_id}`);
+    if (!["active", "trialing"].includes(sub.status)) {
+      return c2.json({ error: `Payment not completed (status: ${sub.status}).` }, 400);
+    }
+    const plan = normalizeTier(sub.metadata?.plan);
+    await activateTier(c2.get("workspaceId"), plan, sub.id);
+    return c2.json({ ok: true, plan });
+  } catch (e2) {
+    return c2.json({ error: e2 instanceof Error ? e2.message : "Could not confirm the subscription." }, 500);
+  }
+});
 
 // src/routes/app-data.ts
 init_cookie2();
 
 // src/lib/tracking.ts
-var import_node_crypto7 = require("crypto");
+var import_node_crypto8 = require("crypto");
 function secret2() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 var b64url = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 function sign3(payload) {
-  return b64url((0, import_node_crypto7.createHmac)("sha256", secret2()).update(payload).digest());
+  return b64url((0, import_node_crypto8.createHmac)("sha256", secret2()).update(payload).digest());
 }
 function makeTrackingToken(nodeId) {
   const p2 = b64url(nodeId);
@@ -60462,7 +60969,7 @@ function verifyTrackingToken(token) {
   const expected = sign3(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto7.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto8.timingSafeEqual)(a2, b2)) return null;
   try {
     return Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8") || null;
   } catch {
@@ -60472,6 +60979,50 @@ function verifyTrackingToken(token) {
 
 // src/routes/app-data.ts
 init_auth_tokens();
+
+// src/lib/plan-limits.ts
+var LIMITS = {
+  scout: { maxAutomations: 3, maxAgents: 1 },
+  operator: { maxAutomations: -1, maxAgents: -1 },
+  command: { maxAutomations: -1, maxAgents: -1 },
+  sovereign: { maxAutomations: -1, maxAgents: -1 }
+};
+function normalizeTier2(raw2) {
+  switch ((raw2 ?? "").toLowerCase()) {
+    case "operator":
+    case "business":
+    case "trial":
+    case "pro":
+      return "operator";
+    case "command":
+      return "command";
+    case "sovereign":
+    case "enterprise":
+      return "sovereign";
+    default:
+      return "scout";
+  }
+}
+function planLimits(tier) {
+  return LIMITS[normalizeTier2(tier)] ?? LIMITS.scout;
+}
+async function workspaceTier(workspaceId) {
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const s2 = data?.settings ?? {};
+  return normalizeTier2(s2.account_tier ?? s2.track);
+}
+
+// src/routes/app-data.ts
+var SEAT_LIMIT = { scout: 1, operator: 1, command: 10, sovereign: 999, business: 1, personal: 1, free: 1, trial: 1 };
+var seatLimitFor = (settings) => SEAT_LIMIT[settings?.account_tier ?? settings?.track ?? "scout"] ?? 1;
+function sanitizeModuleAccess(input) {
+  const out = {};
+  for (const k2 of MODULE_KEYS) {
+    const v2 = input[k2];
+    if (v2 === "none" || v2 === "view" || v2 === "edit") out[k2] = v2;
+  }
+  return out;
+}
 function parseUA(ua) {
   const s2 = ua ?? "";
   const device = /iphone|ipad|ipod/i.test(s2) ? "iOS" : /android/i.test(s2) ? "Android" : /mac os x|macintosh/i.test(s2) ? "macOS" : /windows/i.test(s2) ? "Windows" : /linux/i.test(s2) ? "Linux" : "Unknown device";
@@ -60496,6 +61047,22 @@ function relTime(iso) {
 }
 var router15 = new Hono2();
 router15.use("*", requireAuth);
+router15.get("/me/access", async (c2) => {
+  const workspaceId = c2.get("workspaceId");
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const settings = wsRow?.settings ?? {};
+  const wsModules = settings.modules ?? [];
+  const tier = settings.account_tier ?? settings.track ?? "scout";
+  return c2.json({
+    role: c2.get("role"),
+    tier,
+    limits: planLimits(tier),
+    // { maxAutomations, maxAgents } — -1 = unlimited
+    seats_limit: seatLimitFor(settings),
+    enabled_modules: enabledModules(wsModules).map((m2) => m2.key),
+    access: resolveModuleMatrix(c2.get("role"), c2.get("moduleAccess"), c2.get("financeRole"))
+  });
+});
 var ADMIN_SETTINGS_AREAS = [
   "/settings/workspace",
   "/settings/members",
@@ -60836,7 +61403,7 @@ router15.delete("/settings/workspace", async (c2) => {
 router15.get("/settings/members", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString();
-  const [{ data: members }, { data: teams }, { data: inviteRows }, { data: usage }, { data: sessions }] = await Promise.all([
+  const [{ data: members }, { data: teams }, { data: inviteRows }, { data: usage }, { data: wsRow }] = await Promise.all([
     supabase.from("workspace_members").select("*").eq("workspace_id", workspaceId),
     supabase.from("teams").select("*, team_members(user_id)").eq("workspace_id", workspaceId),
     // Read pending invites from the SAME table POST /invites writes to (workspace_invites) —
@@ -60844,8 +61411,26 @@ router15.get("/settings/members", async (c2) => {
     supabase.from("workspace_invites").select("id, email, role, finance_role, created_at, expires_at").eq("workspace_id", workspaceId).is("accepted_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("created_at", { ascending: false }),
     // Per-operator AI telemetry (30d) so the Members matrix shows real compute consumption.
     supabase.from("ai_usage").select("user_id, total_tokens").eq("workspace_id", workspaceId).gte("created_at", sinceIso),
-    supabase.from("auth_refresh_tokens").select("user_id, last_active_at").is("revoked_at", null)
+    supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle()
   ]);
+  const memberIds = (members ?? []).map((m2) => String(m2.user_id));
+  const { data: sessions } = memberIds.length ? await supabase.from("auth_refresh_tokens").select("user_id, last_active_at").is("revoked_at", null).in("user_id", memberIds) : { data: [] };
+  const wsModules = wsRow?.settings?.modules ?? [];
+  const activeModules = enabledModules(wsModules);
+  const emailByUser = /* @__PURE__ */ new Map();
+  const missing = (members ?? []).filter((m2) => !m2.name || !m2.email).map((m2) => String(m2.user_id));
+  if (missing.length) {
+    const { data: creds } = await supabase.from("auth_credentials").select("user_id, email").in("user_id", missing);
+    for (const cr2 of creds ?? []) {
+      if (cr2.email) emailByUser.set(String(cr2.user_id), String(cr2.email));
+    }
+  }
+  const displayName = (m2) => {
+    const email = m2.email || emailByUser.get(String(m2.user_id)) || "";
+    if (m2.name && m2.name.trim()) return m2.name;
+    if (email) return email.split("@")[0].replace(/[._]/g, " ").replace(/\b\w/g, (ch) => ch.toUpperCase());
+    return "Operator";
+  };
   const tokensBy = /* @__PURE__ */ new Map();
   for (const u2 of usage ?? []) {
     const k2 = String(u2.user_id ?? "");
@@ -60861,34 +61446,54 @@ router15.get("/settings/members", async (c2) => {
     // Authoritative role of the *requesting* user, straight from the auth context — so the UI
     // never has to guess by matching ids/emails (which was hiding the invite bar for owners).
     my_role: c2.get("role"),
-    members: (members ?? []).map((member) => ({
-      id: member.user_id,
-      name: member.name || member.email || member.user_id,
-      email: member.email || "",
-      image_url: member.avatar_url ?? null,
-      avatar_url: member.avatar_url ?? null,
-      role: member.role,
-      finance_role: member.finance_role ?? "none",
-      position: member.position ?? null,
-      tokens: tokensBy.get(String(member.user_id)) ?? 0,
-      last_active: lastActiveBy.get(String(member.user_id)) ?? null,
-      status: "active"
-    })),
+    // Invites only make sense on multi-operator tiers (Command/Sovereign). Scout/Operator are single.
+    can_invite: seatLimitFor(wsRow?.settings) > 1,
+    seats_limit: seatLimitFor(wsRow?.settings),
+    // Catalog of ENABLED feature-modules so the Members matrix renders columns without hardcoding
+    // and never shows a module the workspace has switched off.
+    modules: activeModules,
+    members: (members ?? []).map((member) => {
+      const access = member.module_access;
+      return {
+        id: member.user_id,
+        name: displayName(member),
+        email: member.email || emailByUser.get(String(member.user_id)) || "",
+        image_url: member.avatar_url ?? null,
+        avatar_url: member.avatar_url ?? null,
+        role: member.role,
+        finance_role: member.finance_role ?? "none",
+        // Effective per-module levels (role defaults + finance_role folded in + explicit overrides).
+        module_access: resolveModuleMatrix(member.role, access, member.finance_role ?? "none"),
+        position: member.position ?? null,
+        tokens: tokensBy.get(String(member.user_id)) ?? 0,
+        last_active: lastActiveBy.get(String(member.user_id)) ?? null,
+        status: "active"
+      };
+    }),
     invitations: (inviteRows ?? []).map((i2) => ({
       id: i2.id,
       email: i2.email,
       role: i2.role,
       finance_role: i2.finance_role ?? "none",
+      module_access: resolveModuleMatrix(i2.role, i2.module_access, i2.finance_role ?? "none"),
       created_at: i2.created_at
     })),
     teams: (teams ?? []).map((team) => ({ id: team.id, name: team.name, member_count: team.team_members?.length ?? 0, member_ids: team.team_members?.map((item) => item.user_id) ?? [] }))
   });
 });
 router15.patch("/settings/members/:id", async (c2) => {
+  if (!["owner", "admin"].includes(c2.get("role"))) return c2.json({ error: "Only owners and admins can update members" }, 403);
   const body = await c2.req.json().catch(() => ({}));
   const patch = {};
   if (body.role) patch.role = body.role;
   if (body.finance_role) patch.finance_role = body.finance_role;
+  if (body.module_access && typeof body.module_access === "object") {
+    patch.module_access = sanitizeModuleAccess(body.module_access);
+  } else if (body.module && MODULE_KEYS.includes(body.module) && ["none", "view", "edit"].includes(body.level ?? "")) {
+    const { data: cur } = await supabase.from("workspace_members").select("module_access").eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.req.param("id")).maybeSingle();
+    const merged = { ...cur?.module_access ?? {}, [body.module]: body.level };
+    patch.module_access = sanitizeModuleAccess(merged);
+  }
   if (Object.keys(patch).length === 0) return c2.json({ error: "Nothing to update" }, 400);
   const { error } = await supabase.from("workspace_members").update(patch).eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
@@ -60905,9 +61510,35 @@ router15.post("/settings/teams", zValidator("json", external_exports.object({ na
   return c2.json({ id: data.id, name: data.name, member_count: body.member_ids.length, member_ids: body.member_ids }, 201);
 });
 router15.get("/settings/objects", async (c2) => c2.json(await rows("object_definitions", c2.get("workspaceId"))));
-router15.post("/settings/objects", async (c2) => {
-  const body = await c2.req.json();
-  const { data, error } = await supabase.from("object_definitions").insert({ workspace_id: c2.get("workspaceId"), vertical: "shared", slug: body.slug, name_singular: body.name, name_plural: body.name, attributes: [] }).select().single();
+function pluralize2(word) {
+  const w2 = word.trim();
+  if (/[^aeiou]y$/i.test(w2)) return w2.slice(0, -1) + "ies";
+  if (/(s|x|z|ch|sh)$/i.test(w2)) return w2 + "es";
+  return w2 + "s";
+}
+router15.post("/settings/objects", zValidator("json", external_exports.object({
+  name: external_exports.string().min(1),
+  // singular (kept for back-compat with older callers)
+  singular: external_exports.string().min(1).optional(),
+  plural: external_exports.string().min(1).optional(),
+  slug: external_exports.string().min(1),
+  icon: external_exports.string().optional(),
+  color: external_exports.string().optional(),
+  vertical: external_exports.enum(["sales", "realestate", "hr", "finance", "investments", "shared"]).optional()
+})), async (c2) => {
+  const body = c2.req.valid("json");
+  const singular = body.singular ?? body.name;
+  const plural = body.plural ?? pluralize2(singular);
+  const { data, error } = await supabase.from("object_definitions").insert({
+    workspace_id: c2.get("workspaceId"),
+    vertical: body.vertical ?? "shared",
+    slug: body.slug,
+    name_singular: singular,
+    name_plural: plural,
+    icon: body.icon || "circle",
+    color: body.color || "gray",
+    attributes: []
+  }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data, 201);
 });
 router15.post("/settings/objects/:id/attributes", zValidator("json", external_exports.object({
@@ -61083,27 +61714,48 @@ router15.get("/settings/email", async (c2) => {
   ] });
 });
 router15.get("/billing", async (c2) => {
-  const { data } = await supabase.from("workspaces").select("plan, settings").eq("id", c2.get("workspaceId")).single();
+  const workspaceId = c2.get("workspaceId");
+  const [{ data }, { count: memberCount }] = await Promise.all([
+    supabase.from("workspaces").select("plan, settings").eq("id", workspaceId).single(),
+    supabase.from("workspace_members").select("user_id", { count: "exact", head: true }).eq("workspace_id", workspaceId)
+  ]);
   const settings = data?.settings ?? {};
+  const tier = settings.account_tier ?? data?.plan ?? "scout";
   const trialEndsAt = settings.trial_ends_at;
   const trialDaysLeft = trialEndsAt ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 864e5)) : null;
+  const trialUsed = Boolean(settings.trial_used);
   return c2.json({
-    plan: data?.plan ?? "free",
-    seats_used: 1,
-    seats_limit: 3,
+    plan: tier,
+    // A tier the user selected at onboarding but hasn't paid for yet (Command/Sovereign). Billing
+    // surfaces this as "activate <plan> — payment required" rather than granting it for free.
+    pending_plan: settings.pending_plan ?? null,
+    seats_used: memberCount ?? 1,
+    seats_limit: seatLimitFor(settings),
     invoices: [],
     trial_ends_at: trialEndsAt ?? null,
-    trial_days_left: trialDaysLeft
+    trial_days_left: trialDaysLeft,
+    trial_used: trialUsed,
+    // The 14-day Operator trial is a one-time offer, available anytime UNTIL USED — but only to a
+    // free Scout workspace (paid tiers don't need it).
+    trial_eligible: !trialUsed && tier === "scout"
   });
 });
-router15.post("/invites", async (c2) => {
-  const { data: membership } = await supabase.from("workspace_members").select("role").eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.get("userId")).single();
-  if (!membership || !["owner", "admin"].includes(membership.role)) return c2.json({ error: "Admin authorization required." }, 403);
-  const body = await c2.req.json();
-  const token = crypto.randomUUID();
-  const invitation = { email: body.email, role: body.role, status: "pending", token, expires_at: new Date(Date.now() + 864e5).toISOString() };
-  const { data, error } = await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "shared", object_type: "workspace_invitation", data: invitation, created_by: c2.get("userId") }).select().single();
-  return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, ...invitation }, 201);
+router15.post("/start-trial", async (c2) => {
+  if (!["owner", "admin"].includes(c2.get("role"))) return c2.json({ error: "Only owners/admins can start the trial." }, 403);
+  const ws = c2.get("workspaceId");
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
+  const settings = data?.settings ?? {};
+  if (settings.trial_used) return c2.json({ error: "Your Operator trial has already been used." }, 409);
+  const tier = settings.account_tier ?? settings.track ?? "scout";
+  if (tier !== "scout") return c2.json({ error: "Trials are only available on the free Scout plan." }, 409);
+  const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString();
+  await supabase.from("workspaces").update({
+    settings: { ...settings, account_tier: "operator", plan: "operator", track: "business", trial_ends_at: trialEndsAt, trial_used: true }
+  }).eq("id", ws);
+  const { balance } = await creditStatus(ws);
+  const delta = 5e5 - balance;
+  if (delta > 0) await grantCredits(ws, delta, "grant", "Operator trial credits");
+  return c2.json({ ok: true, trial_ends_at: trialEndsAt });
 });
 router15.get("/workspace/members", async (c2) => {
   const { data, error } = await supabase.from("workspace_members").select("user_id, role, finance_role").eq("workspace_id", c2.get("workspaceId"));
@@ -61196,13 +61848,15 @@ router15.patch("/settings/general", requireAuth, async (c2) => {
 });
 
 // src/routes/invites.ts
-var import_node_crypto9 = require("crypto");
+var import_node_crypto10 = require("crypto");
 var inviteUrl = (token) => `${process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com"}/invite/${token}`;
 var router16 = new Hono2();
 var inviteSchema = external_exports.object({
   email: external_exports.string().email(),
   role: external_exports.enum(["admin", "member", "viewer", "guest"]).default("member"),
-  finance_role: external_exports.enum(["none", "viewer", "member", "reviewer", "approver"]).default("none")
+  finance_role: external_exports.enum(["none", "viewer", "member", "reviewer", "approver"]).default("none"),
+  // Per-module access matrix { crm: "edit", finance: "view", ... }. Empty → role defaults apply.
+  module_access: external_exports.record(external_exports.enum(["none", "view", "edit"])).default({})
 });
 router16.get("/", requireAuth, async (c2) => {
   const { data, error } = await supabase.from("workspace_invites").select("id,email,role,finance_role,invited_by,token,expires_at,created_at").eq("workspace_id", c2.get("workspaceId")).is("accepted_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("created_at", { ascending: false });
@@ -61213,15 +61867,28 @@ router16.post("/", requireAuth, zValidator("json", inviteSchema), async (c2) => 
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const body = c2.req.valid("json");
-  const { data, error } = await supabase.from("workspace_invites").upsert({
-    workspace_id: c2.get("workspaceId"),
-    email: body.email,
-    role: body.role,
-    finance_role: body.finance_role,
-    invited_by: c2.get("userId"),
-    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1e3).toISOString()
-  }, { onConflict: "workspace_id,email", ignoreDuplicates: false }).select("id,email,role,finance_role,token,expires_at,created_at").single();
-  if (error) return c2.json({ error: error.message }, 500);
+  const workspaceId = c2.get("workspaceId");
+  const expiresAt2 = new Date(Date.now() + 7 * 24 * 60 * 60 * 1e3).toISOString();
+  const cols = "id,email,role,finance_role,token,expires_at,created_at";
+  const { data: already } = await supabase.from("workspace_members").select("user_id").eq("workspace_id", workspaceId).eq("email", body.email).maybeSingle();
+  if (already) return c2.json({ error: "That person is already a member of this workspace." }, 409);
+  const { data: pending } = await supabase.from("workspace_invites").select("id").eq("workspace_id", workspaceId).eq("email", body.email).is("accepted_at", null).maybeSingle();
+  const fields = { role: body.role, finance_role: body.finance_role, module_access: body.module_access, expires_at: expiresAt2 };
+  const bare = { role: body.role, finance_role: body.finance_role, expires_at: expiresAt2 };
+  let data = null;
+  let error = null;
+  if (pending?.id) {
+    ({ data, error } = await supabase.from("workspace_invites").update(fields).eq("id", pending.id).select(cols).single());
+    if (error && /module_access/i.test(error.message)) ({ data, error } = await supabase.from("workspace_invites").update(bare).eq("id", pending.id).select(cols).single());
+  } else {
+    const row = { workspace_id: workspaceId, email: body.email, ...fields };
+    ({ data, error } = await supabase.from("workspace_invites").insert(row).select(cols).single());
+    if (error && /module_access/i.test(error.message)) {
+      const { module_access, ...noMod } = row;
+      ({ data, error } = await supabase.from("workspace_invites").insert(noMod).select(cols).single());
+    }
+  }
+  if (error || !data) return c2.json({ error: error?.message ?? "Invite failed" }, 500);
   const inviteLink = inviteUrl(data.token);
   const emailSent = await sendWorkspaceEmail(c2.get("workspaceId"), {
     to: [{ email: data.email }],
@@ -61235,11 +61902,11 @@ router16.post("/link", requireAuth, async (c2) => {
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { data, error } = await supabase.from("workspace_invites").insert({
     workspace_id: c2.get("workspaceId"),
-    email: `link-${(0, import_node_crypto9.randomUUID)().slice(0, 8)}@invite.local`,
+    email: `link-${(0, import_node_crypto10.randomUUID)().slice(0, 8)}@invite.local`,
     // placeholder; the unique key is (workspace,email)
     role: "member",
     finance_role: "none",
-    invited_by: c2.get("userId"),
+    // invited_by omitted — uuid column vs sovereign usr_ text ids (see POST / above).
     expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1e3).toISOString()
   }).select("token").single();
   if (error) return c2.json({ error: error.message }, 500);
@@ -61258,12 +61925,33 @@ router16.post("/accept", requireJwt, async (c2) => {
   if (!token) return c2.json({ error: "Missing invite token" }, 400);
   const { data: invite, error: inviteErr } = await supabase.from("workspace_invites").select("*").eq("token", token).is("accepted_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).maybeSingle();
   if (inviteErr || !invite) return c2.json({ error: "Invalid or expired invite" }, 404);
-  const { error: memberErr } = await supabase.from("workspace_members").upsert({
+  const { data: cred } = await supabase.from("auth_credentials").select("email").eq("user_id", userId).maybeSingle();
+  const myEmail = (cred?.email ?? "").toLowerCase();
+  const inviteEmail = String(invite.email ?? "").toLowerCase();
+  const isLinkInvite = inviteEmail.endsWith("@invite.local");
+  if (!isLinkInvite && myEmail && inviteEmail && myEmail !== inviteEmail) {
+    return c2.json({ error: `This invitation was sent to ${invite.email}. You're signed in as ${cred?.email}. Sign out and sign in (or register) with ${invite.email} to accept.`, email_mismatch: true }, 403);
+  }
+  const { data: existing } = await supabase.from("workspace_members").select("role").eq("workspace_id", invite.workspace_id).eq("user_id", userId).maybeSingle();
+  const RANK = { owner: 4, admin: 3, member: 2, viewer: 1, guest: 1 };
+  if (existing && (RANK[existing.role] ?? 0) >= (RANK[invite.role] ?? 0)) {
+    await supabase.from("workspace_invites").update({ accepted_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", invite.id);
+    return c2.json({ workspace_id: invite.workspace_id, role: existing.role, already_member: true });
+  }
+  const memberRow = {
     workspace_id: invite.workspace_id,
     user_id: userId,
+    email: cred?.email ?? invite.email,
+    // populate so Members shows a real address, not the usr_ id
     role: invite.role,
-    finance_role: invite.finance_role
-  }, { onConflict: "workspace_id,user_id" });
+    finance_role: invite.finance_role,
+    module_access: invite.module_access ?? {}
+  };
+  let { error: memberErr } = await supabase.from("workspace_members").upsert(memberRow, { onConflict: "workspace_id,user_id" });
+  if (memberErr && /module_access/i.test(memberErr.message)) {
+    const { module_access, ...bare } = memberRow;
+    ({ error: memberErr } = await supabase.from("workspace_members").upsert(bare, { onConflict: "workspace_id,user_id" }));
+  }
   if (memberErr) return c2.json({ error: memberErr.message }, 500);
   await supabase.from("workspace_invites").update({ accepted_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", invite.id);
   return c2.json({ workspace_id: invite.workspace_id, role: invite.role });
@@ -61272,6 +61960,7 @@ router16.post("/accept", requireJwt, async (c2) => {
 // src/routes/notes.ts
 var router17 = new Hono2();
 router17.use("*", requireAuth);
+router17.use("*", denyViewerWrites);
 var noteBody = external_exports.object({
   content: external_exports.string().min(1),
   node_id: external_exports.string().uuid()
@@ -61615,6 +62304,7 @@ router18.post("/threads/:id/link", zValidator("json", external_exports.object({ 
 // src/routes/calls.ts
 var router19 = new Hono2();
 router19.use("*", requireAuth);
+router19.use("*", denyViewerWrites);
 function normalizeCall(node) {
   const data = node.data ?? {};
   return {
@@ -61724,6 +62414,7 @@ ${transcript ? `Transcript reviewed: ${normalized.transcript.length} segments.` 
 // src/routes/dashboards.ts
 var router20 = new Hono2();
 router20.use("*", requireAuth);
+router20.use("*", denyViewerWrites);
 function unpack2(node) {
   return { id: node.id, ...node.data, updated_at: node.updated_at };
 }
@@ -61756,6 +62447,7 @@ router20.delete("/:id", async (c2) => {
 // src/routes/sequences.ts
 var router21 = new Hono2();
 router21.use("*", requireAuth);
+router21.use("*", denyViewerWrites);
 var stepSchema = external_exports.object({
   id: external_exports.string().optional(),
   type: external_exports.enum(["email", "task"]),
@@ -61969,6 +62661,7 @@ router22.post("/:id/enrich", async (c2) => {
 // src/routes/tasks.ts
 var tasks = new Hono2();
 tasks.use("*", requireAuth);
+tasks.use("*", denyViewerWrites);
 tasks.get("/", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
@@ -62018,7 +62711,7 @@ tasks.patch("/:id", async (c2) => {
     else if (updateBody.completed === void 0) updateBody.completed = false;
   }
   if (updateBody.completed === true && updateBody.status === void 0) updateBody.status = "done";
-  if (updateBody.completed === false && updateBody.status === "done") updateBody.status = "todo";
+  if (updateBody.completed === false && updateBody.status === void 0) updateBody.status = "todo";
   const { data: oldTask } = await supabase.from("tasks").select("status,priority,assignee_id,assignee_email").eq("id", id).single();
   const { data, error } = await supabase.from("tasks").update(updateBody).eq("id", id).eq("workspace_id", workspaceId).select().single();
   if (error) return c2.json({ error: error.message }, 500);
@@ -62290,6 +62983,7 @@ router26.delete("/:id", async (c2) => {
 // src/routes/task-reviews.ts
 var router27 = new Hono2();
 router27.use("*", requireAuth);
+router27.use("*", denyViewerWrites);
 async function assertTaskOwnership(taskId, workspaceId) {
   const { data } = await supabase.from("tasks").select("id").eq("id", taskId).eq("workspace_id", workspaceId).single();
   if (!data) throw new Error("Task not found or access denied");
@@ -62446,6 +63140,7 @@ Note: ${body.action_note}` : ""}`;
 init_http_exception();
 var router28 = new Hono2();
 router28.use("*", requireAuth);
+router28.use("*", denyViewerWrites);
 async function assertTaskOwnership2(taskId, workspaceId) {
   const { data } = await supabase.from("tasks").select("id").eq("id", taskId).eq("workspace_id", workspaceId).maybeSingle();
   if (!data) throw new HTTPException(404, { message: "Task not found" });
@@ -62658,12 +63353,14 @@ var importBodySchema = external_exports.object({
   headers: external_exports.array(external_exports.string()),
   samples: external_exports.array(external_exports.array(external_exports.string())),
   // first 3 rows for schema inference
-  rows: external_exports.array(external_exports.array(external_exports.string())),
-  // all rows to insert
+  // Cap the batch — rows are inserted serially, so an unbounded CSV would time out the serverless
+  // function mid-import (silent partial import). 1000/request keeps it under the timeout; the client
+  // should chunk larger files.
+  rows: external_exports.array(external_exports.array(external_exports.string())).max(1e3),
   object_type: external_exports.string().min(1),
   vertical: external_exports.enum(["sales", "realestate", "hr", "finance", "investments", "tasks", "shared"]).default("shared")
 });
-router29.post("/", requireAuth, zValidator("json", importBodySchema), async (c2) => {
+router29.post("/", requireAuth, denyViewerWrites, zValidator("json", importBodySchema), async (c2) => {
   const { headers, samples, rows: rows2, object_type, vertical } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
@@ -62906,51 +63603,39 @@ router30.post("/records", requireAuth, zValidator("json", external_exports.objec
 })), async (c2) => {
   const { objectType: objectType2, columns, prompt, count } = c2.req.valid("json");
   try {
-    const data = await callGatewayTool({
-      max_tokens: 4096,
-      tools: [{
-        name: "generate_records",
-        description: "Generate realistic sample records for a database table",
-        input_schema: {
-          type: "object",
-          properties: {
-            records: {
-              type: "array",
-              minItems: 1,
-              maxItems: 50,
-              items: {
-                type: "object",
-                description: "A single record. Keys must exactly match the provided columns.",
-                additionalProperties: { type: "string" }
-              }
+    const webContext = await sovereignWebContext(`${prompt} ${objectType2}`, 5);
+    if (!webContext || webContext.trim().length < 40) {
+      return c2.json({ records: [], reason: "No real web data found for that request. Try a more specific query (a sector, place, or named source)." });
+    }
+    const extracted = await aiGatewayToolUse({
+      toolName: "extract_records",
+      toolDescription: "Extract real, source-backed records from web content",
+      maxTokens: 4096,
+      toolSchema: {
+        type: "object",
+        properties: {
+          records: {
+            type: "array",
+            description: `Up to ${count} REAL ${objectType2} found in the web content. Empty if none genuinely appear.`,
+            items: {
+              type: "object",
+              description: "Keys must match the provided columns. Include source_url.",
+              properties: { source_url: { type: "string", description: "URL where this entity was found (required)" } },
+              additionalProperties: { type: "string" }
             }
-          },
-          required: ["records"]
-        }
-      }],
-      tool_choice: { type: "tool", name: "generate_records" },
-      messages: [{
-        role: "user",
-        content: `Generate ${count} realistic ${objectType2} records.
+          }
+        },
+        required: ["records"]
+      },
+      system: `You extract REAL ${objectType2} records from web content for a workspace database. ABSOLUTE RULE: never invent. Only include an entity that genuinely appears in the content, and only fill a column if the content actually supports it \u2014 otherwise leave it "". NEVER fabricate names, values, follower counts, revenue, emails, or phones. Every record MUST have a real source_url copied from the content. Return an empty array if the content contains no genuine ${objectType2}. Do not pad to reach the count.`,
+      prompt: `Object type: ${objectType2}. Request: "${prompt}". Columns to fill (only when grounded): ${columns.join(", ")}.
 
-Context: ${prompt}
-
-Columns to fill: ${columns.join(", ")}
-
-Rules:
-- Every record must have a "name" field
-- Use realistic values appropriate for the object type and context
-- For currency/number columns use numeric strings (no symbols)
-- For date columns use YYYY-MM-DD format
-- For checkbox columns use "true" or "false"
-- For select columns pick a realistic category value
-- Leave optional fields empty string if not applicable
-- Make records varied and realistic, not just placeholders`
-      }]
-    });
-    const toolUse = data.content?.find((b2) => b2.type === "tool_use");
-    if (!toolUse?.input?.records) return c2.json({ error: "No records generated" }, 500);
-    return c2.json({ records: toolUse.input.records });
+Web content:
+${webContext.slice(0, 12e3)}`
+    }).catch(() => ({ records: [] }));
+    const records = Array.isArray(extracted.records) ? extracted.records : [];
+    const tagged = records.map((r2) => ({ ...r2, _discovered: true }));
+    return c2.json({ records: tagged, reason: tagged.length ? void 0 : "No real records could be verified from the web for that request." });
   } catch (e2) {
     return c2.json({ error: e2.message }, 500);
   }
@@ -63614,6 +64299,7 @@ router31.post("/:id/send", async (c2) => {
 // src/routes/annotations.ts
 var router32 = new Hono2();
 router32.use("*", requireAuth);
+router32.use("*", denyViewerWrites);
 function unpack4(node) {
   return { id: node.id, ...node.data, updated_at: node.updated_at };
 }
@@ -63673,6 +64359,13 @@ router33.patch("/:id", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   let result;
   if (c2.req.param("id") === "new") {
+    const limits = planLimits(await workspaceTier(workspaceId));
+    if (limits.maxAutomations >= 0) {
+      const { count } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).eq("object_type", "automation");
+      if ((count ?? 0) >= limits.maxAutomations) {
+        return c2.json({ error: `Your plan includes ${limits.maxAutomations} automations. Upgrade to Operator for unlimited.`, upgrade: true }, 403);
+      }
+    }
     result = await supabase.from("nodes").insert({
       workspace_id: workspaceId,
       vertical: "shared",
@@ -63729,6 +64422,7 @@ router33.delete("/:id", async (c2) => {
 // src/routes/invoices.ts
 var router34 = new Hono2();
 router34.use("*", requireAuth);
+router34.use("*", requireModuleRW("finance"));
 var lineItemSchema = external_exports.object({
   description: external_exports.string(),
   quantity: external_exports.number().positive(),
@@ -63904,6 +64598,7 @@ router34.get("/:id/credit-notes", async (c2) => {
 init_http_exception();
 var router35 = new Hono2();
 router35.use("*", requireAuth);
+router35.use("*", requireModuleRW("finance"));
 var VALID_TRANSITIONS = {
   draft: ["pending_review", "void"],
   pending_review: ["verified", "rejected", "void"],
@@ -64134,6 +64829,7 @@ router35.delete("/:id", async (c2) => {
 // src/routes/quotes.ts
 var router36 = new Hono2();
 router36.use("*", requireAuth);
+router36.use("*", requireModuleRW("finance"));
 var lineItemSchema2 = external_exports.object({
   description: external_exports.string(),
   quantity: external_exports.number().positive(),
@@ -64293,6 +64989,7 @@ router36.post("/:id/convert", async (c2) => {
 // src/routes/expenses.ts
 var router37 = new Hono2();
 router37.use("*", requireAuth);
+router37.use("*", requireModuleRW("finance"));
 var EXPENSE_CATEGORIES = ["travel", "software", "hardware", "meals", "marketing", "professional_services", "office", "other"];
 var expenseBodySchema = external_exports.object({
   description: external_exports.string().min(1),
@@ -64365,7 +65062,9 @@ router37.delete("/:id", async (c2) => {
 
 // src/routes/tags.ts
 var router38 = new Hono2();
-router38.get("/", requireAuth, async (c2) => {
+router38.use("*", requireAuth);
+router38.use("*", denyViewerWrites);
+router38.get("/", async (c2) => {
   const { data } = await supabase.from("tags").select("*").eq("workspace_id", c2.get("workspaceId")).order("name");
   return c2.json(data ?? []);
 });
@@ -64411,39 +65110,43 @@ router38.delete("/node/:nodeId/:tagId", requireAuth, async (c2) => {
 var router39 = new Hono2();
 router39.post("/analyze", requireAuth, async (c2) => {
   const ws = c2.get("workspaceId");
-  const { description } = await c2.req.json().catch(() => ({ description: "" }));
-  const text = (description ?? "").trim();
-  if (!text) return c2.json({ error: "Describe your operation to continue." }, 400);
+  const body = await c2.req.json().catch(() => ({}));
+  const purpose = (body.purpose ?? "").trim();
+  const goals = Array.isArray(body.goals) ? body.goals : [];
+  const teamSize = (body.team_size ?? "").trim();
+  const text = [body.description, purpose && `Purpose: ${purpose}`, teamSize && `Team size: ${teamSize}`, goals.length && `Goals: ${goals.join(", ")}`].filter(Boolean).join(". ").trim();
+  if (!text) return c2.json({ error: "Tell us a little about your operation to continue." }, 400);
   const heuristic = () => {
-    const biz = /\b(team|company|agency|enterprise|fund|firm|operations|staff|employees|scale|pipeline|department|org|startup|saas)\b/i.test(text);
-    const num = text.match(/\b(\d{1,4})\b/)?.[1];
-    const concurrency = num ? Math.min(512, Math.max(1, Number(num))) : biz ? 8 : 1;
-    return { account_tier: biz ? "business" : "personal", industry_vertical: "General Operations", target_concurrency: concurrency };
+    const t2 = text.toLowerCase();
+    const modules = [];
+    if (/(invoice|billing|payment|quote|finance|revenue|account)/.test(t2)) modules.push("finance");
+    if (/(asset|portfolio|fund|invest|round|return|capital|equity)/.test(t2)) modules.push("investments");
+    if (/(headcount|hire|recruit|contract|hr|payroll|workforce|staff)/.test(t2)) modules.push("hr");
+    return { industry_vertical: purpose || "General Operations", recommended_modules: modules, summary: "" };
   };
   let result = heuristic();
   try {
     const extracted = await aiGatewayToolUse({
-      system: "You are the Mondaily Workspace Architect. Extract a strict configuration profile from the operator's description. account_tier is 'business' for any team/company/agency/multi-operator deployment, else 'personal'. industry_vertical is a concise 1-4 word label (e.g. 'Quantitative Finance', 'Real Estate Ops'). target_concurrency is an integer estimate of simultaneous automated agents/operators implied (1 for a solo developer).",
+      system: "You are the Mondaily Workspace Architect onboarding a new operator. Mondaily is an autonomous AI workspace (operators + AI agents) \u2014 it is NOT a CRM; never use that word. From the operator's answers, return: industry_vertical (a concise 1-4 word label, e.g. 'Quantitative Finance', 'Real Estate Ops'); recommended_modules \u2014 a subset of ['finance','investments','hr'] to switch on, where finance='Finance & Billing' (invoicing/payments), investments='Quantitative Asset Systems' (portfolios/funds), hr='Autonomous Workforce' (headcount/contracts). Only include modules the operation clearly needs; empty is fine. summary \u2014 ONE friendly sentence (<=22 words) telling the operator how their Mondaily workspace will be set up, referencing their sector and goals.",
       prompt: text,
       toolName: "configure_workspace",
       toolDescription: "Return the inferred workspace architecture profile.",
       toolSchema: {
         type: "object",
         properties: {
-          account_tier: { type: "string", enum: ["personal", "business"] },
           industry_vertical: { type: "string" },
-          target_concurrency: { type: "integer", minimum: 1 }
+          recommended_modules: { type: "array", items: { type: "string", enum: ["finance", "investments", "hr"] } },
+          summary: { type: "string" }
         },
-        required: ["account_tier", "industry_vertical", "target_concurrency"]
+        required: ["industry_vertical"]
       },
-      maxTokens: 256,
+      maxTokens: 320,
       onUsage: (u2) => recordCreditUsage(ws, u2.total_tokens, "Onboarding semantic analysis")
     });
-    const tier = extracted.account_tier === "business" ? "business" : extracted.account_tier === "personal" ? "personal" : result.account_tier;
     const vertical = typeof extracted.industry_vertical === "string" && extracted.industry_vertical.trim() ? extracted.industry_vertical.trim() : result.industry_vertical;
-    const cNum = Number(extracted.target_concurrency);
-    const concurrency = Number.isFinite(cNum) && cNum > 0 ? Math.min(512, Math.round(cNum)) : result.target_concurrency;
-    result = { account_tier: tier, industry_vertical: vertical, target_concurrency: concurrency };
+    const mods = Array.isArray(extracted.recommended_modules) ? extracted.recommended_modules.filter((m2) => ["finance", "investments", "hr"].includes(m2)) : result.recommended_modules;
+    const summary = typeof extracted.summary === "string" ? extracted.summary.trim() : "";
+    result = { industry_vertical: vertical, recommended_modules: mods, summary };
   } catch {
   }
   return c2.json(result);
@@ -64498,34 +65201,41 @@ router39.post("/complete", requireAuth, async (c2) => {
   const ws = c2.get("workspaceId");
   const userId = c2.get("userId");
   const body = await c2.req.json().catch(() => ({}));
-  const plan = ["scout", "operator", "command", "sovereign"].includes(body.plan ?? "") ? body.plan : body.track === "business" || body.account_tier === "business" ? "operator" : "scout";
-  const isPaid = plan !== "scout";
-  const trialEndsAt = isPaid ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString() : null;
+  const enabledMods = Array.isArray(body.modules) ? body.modules.filter((m2) => ["finance", "investments", "hr"].includes(m2)) : [];
+  const chosen = ["scout", "operator", "command", "sovereign"].includes(body.plan ?? "") ? body.plan : body.track === "business" || body.account_tier === "business" ? "operator" : "scout";
+  const requiresPayment = chosen === "command" || chosen === "sovereign";
+  const effectiveTier = requiresPayment ? "scout" : chosen;
+  const isTrial = effectiveTier === "operator";
+  const trialEndsAt = isTrial ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString() : null;
   const GRANTS = { scout: SOLO_GRANT, operator: BUSINESS_TRIAL_GRANT, command: 2e6, sovereign: 2e6 };
-  const target = GRANTS[plan] ?? SOLO_GRANT;
+  const target = GRANTS[effectiveTier] ?? SOLO_GRANT;
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = wsRow?.settings ?? {};
+  const { trial_ends_at: _t2, pending_plan: _p, ...baseSettings } = settings;
   await supabase.from("workspaces").update({
     onboarded: true,
     settings: {
-      ...settings,
-      plan,
-      account_tier: plan,
-      // billing reads this
-      track: isPaid ? "business" : "solo",
-      // legacy back-compat
+      ...baseSettings,
+      plan: effectiveTier,
+      account_tier: effectiveTier,
+      // billing reads this — never "command" until paid
+      track: effectiveTier === "scout" ? "solo" : "business",
+      ...requiresPayment ? { pending_plan: chosen } : {},
+      // what they WANT, awaiting payment
       ...body.industry ? { industry: body.industry } : {},
       ...body.team_size ? { team_size: body.team_size } : {},
       ...typeof body.concurrency === "number" ? { target_concurrency: body.concurrency } : {},
       ...Array.isArray(body.goals) ? { goals: body.goals } : {},
-      ...trialEndsAt ? { trial_ends_at: trialEndsAt } : {}
+      ...enabledMods.length ? { modules: enabledMods } : {},
+      ...trialEndsAt ? { trial_ends_at: trialEndsAt, trial_used: true } : {}
     }
   }).eq("id", ws);
   const { balance } = await creditStatus(ws);
   const delta = target - balance;
   if (delta > 0) {
-    await grantCredits(ws, delta, "grant", `${plan} plan credits`);
+    await grantCredits(ws, delta, "grant", `${effectiveTier} plan credits`);
   }
+  const plan = effectiveTier;
   const { count } = await supabase.from("tasks").select("id", { count: "exact", head: true }).eq("workspace_id", ws);
   if ((count ?? 0) === 0) {
     await supabase.from("tasks").insert([
@@ -64857,13 +65567,13 @@ router43.post("/", requireJwt, async (c2) => {
 });
 
 // src/routes/integrations.ts
-var import_node_crypto10 = require("crypto");
+var import_node_crypto11 = require("crypto");
 var router44 = new Hono2();
 var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
 var b64url3 = (b2) => Buffer.from(b2).toString("base64url");
 function signState(payload) {
   const body = b64url3(JSON.stringify(payload));
-  const sig = b64url3((0, import_node_crypto10.createHmac)("sha256", stateSecret()).update(body).digest());
+  const sig = b64url3((0, import_node_crypto11.createHmac)("sha256", stateSecret()).update(body).digest());
   return `${body}.${sig}`;
 }
 function verifyState(token) {
@@ -64871,10 +65581,10 @@ function verifyState(token) {
   if (i2 <= 0) return null;
   const body = token.slice(0, i2);
   const sig = token.slice(i2 + 1);
-  const expected = b64url3((0, import_node_crypto10.createHmac)("sha256", stateSecret()).update(body).digest());
+  const expected = b64url3((0, import_node_crypto11.createHmac)("sha256", stateSecret()).update(body).digest());
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto10.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto11.timingSafeEqual)(a2, b2)) return null;
   try {
     const obj = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     if (typeof obj.exp === "number" && obj.exp < Math.floor(Date.now() / 1e3)) return null;

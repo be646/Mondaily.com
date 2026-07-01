@@ -3,6 +3,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { supabase } from "@mondaily/db/client";
 import { inngest } from "../lib/inngest";
 import { createNotification } from "../lib/notify";
+import { grantTierCredits } from "../lib/credits";
+import { activateTier, downgradeToScout, normalizeTier } from "../lib/billing-tiers";
 
 const router = new Hono();
 
@@ -100,12 +102,11 @@ router.post("/stripe", async (c) => {
         }).then(() => {}, () => {});
       }
     } else if (workspaceId) {
-      // Subscription checkout: link the Stripe customer + activate the chosen plan.
-      const plan = (meta.plan as string | undefined) || "pro";
-      await supabase
-        .from("workspaces")
-        .update({ ...(customerId ? { stripe_customer_id: customerId } : {}), plan })
-        .eq("id", workspaceId);
+      // Subscription checkout: link the Stripe customer + activate the real tier (settings.
+      // account_tier — what the rest of the app actually reads for gating/seats/nav).
+      const tier = normalizeTier(meta.plan as string | undefined);
+      if (customerId) await supabase.from("workspaces").update({ stripe_customer_id: customerId }).eq("id", workspaceId);
+      await activateTier(workspaceId, tier, s.subscription as string | undefined);
     }
   }
 
@@ -115,28 +116,47 @@ router.post("/stripe", async (c) => {
     const inv = event.data.object;
     const customerId = inv.customer as string | undefined;
     if (customerId) {
-      const { data: ws } = await supabase.from("workspaces").select("settings").eq("stripe_customer_id", customerId).maybeSingle();
+      const { data: ws } = await supabase.from("workspaces").select("id, settings").eq("stripe_customer_id", customerId).maybeSingle();
       if (ws) {
-        const settings = { ...((ws.settings as Record<string, unknown> | null) ?? {}), billing_status: "active", last_payment_at: new Date().toISOString() };
-        await supabase.from("workspaces").update({ settings }).eq("stripe_customer_id", customerId).then(() => {}, () => {});
+        const prevSettings = (ws.settings as Record<string, unknown> | null) ?? {};
+        const settings: Record<string, unknown> = { ...prevSettings, billing_status: "active", last_payment_at: new Date().toISOString() };
+        await supabase.from("workspaces").update({ settings }).eq("id", ws.id as string).then(() => {}, () => {});
+        // Renewal — top the wallet back up to the tier's monthly allotment.
+        const tier = normalizeTier(settings.account_tier as string | undefined);
+        await grantTierCredits(ws.id as string, tier, `${tier} plan renewed via Stripe`).catch(() => {});
+      }
+    }
+  }
+
+  // A failed renewal charge — flag it so billing UI can prompt the user, but don't lock them out
+  // immediately (Stripe already retries automatically before subscription.deleted fires).
+  if (event.type === "invoice.payment_failed") {
+    const inv = event.data.object;
+    const customerId = inv.customer as string | undefined;
+    if (customerId) {
+      const { data: ws } = await supabase.from("workspaces").select("id, settings, name").eq("stripe_customer_id", customerId).maybeSingle();
+      if (ws) {
+        const settings = { ...((ws.settings as Record<string, unknown> | null) ?? {}), billing_status: "payment_failed" };
+        await supabase.from("workspaces").update({ settings }).eq("id", ws.id as string).then(() => {}, () => {});
       }
     }
   }
 
   if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.deleted") {
-    const sub      = event.data.object;
+    const sub        = event.data.object;
     const customerId = sub.customer as string;
-    const status   = sub.status as string;
-    // Keep the plan label if active; reading the plan from subscription metadata
-    // when present, else leaving the existing one; downgrade to free when gone.
-    const planMeta = ((sub.metadata as Record<string, unknown> | undefined)?.plan as string | undefined);
-    const nextPlan = event.type === "customer.subscription.deleted" || status !== "active"
-      ? "free"
-      : (planMeta ?? "pro");
-    await supabase
-      .from("workspaces")
-      .update({ plan: nextPlan })
-      .eq("stripe_customer_id", customerId);
+    const status     = sub.status as string;
+    const planMeta   = (sub.metadata as Record<string, unknown> | undefined)?.plan as string | undefined;
+    const { data: ws } = await supabase.from("workspaces").select("id").eq("stripe_customer_id", customerId).maybeSingle();
+    if (ws) {
+      const workspaceId = ws.id as string;
+      const isGone = event.type === "customer.subscription.deleted" || !["active", "trialing"].includes(status);
+      if (isGone) {
+        await downgradeToScout(workspaceId);
+      } else {
+        await activateTier(workspaceId, normalizeTier(planMeta), sub.id as string | undefined);
+      }
+    }
   }
 
   return c.json({ ok: true });

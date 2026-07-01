@@ -5,6 +5,7 @@ import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 import { PLANS, PLAN_BY_ID, normalizePlan } from "../../../lib/plans";
 import { Check } from "lucide-react";
+import { StripePaymentModal } from "../../../components/billing/stripe-payment-form";
 
 interface AutoRefill { enabled: boolean; threshold: number; amount_usd: number }
 interface CreditBalance { enrolled: boolean; balance: number; granted: number; used: number; account_tier: string; trial_ends_at: string | null; auto_refill?: AutoRefill }
@@ -26,18 +27,10 @@ const errFrom = (e: unknown): string => {
   catch { return (e as Error)?.message || "Something went wrong."; }
 };
 
-/** Start Stripe checkout for a specific plan id (operator/command/…). Returns an error
- *  string to show inline, or null on success (redirect). No plan is gated — anyone can
- *  buy any tier upfront; there is no forced trial. */
-async function checkoutPlan(plan: string, interval: "month" | "year"): Promise<string | null> {
-  try {
-    const r = await apiClient.post<{ url?: string; error?: string }>("/billing/checkout", { plan, interval });
-    if (r.url) { window.location.href = r.url; return null; }
-    return r.error ?? "Checkout isn't available yet.";
-  } catch (e) { return errFrom(e); }
-}
-
-/** Open the Stripe customer portal to manage an existing subscription. */
+/** Open the Stripe customer portal to manage an existing subscription (cancel, view invoices,
+ *  update card). This is Stripe's own hosted portal — the intentional exception to "our own
+ *  frontend": account management (invoice history, cancellation) stays on Stripe's portal, exactly
+ *  as most SaaS billing does, while the actual card-entry/subscribe flow is fully embedded below. */
 async function openPortal(): Promise<string | null> {
   try {
     const r = await apiClient.post<{ url?: string; error?: string }>("/billing/portal", {});
@@ -106,6 +99,7 @@ export function BillingSettings() {
   const [billingMsg, setBillingMsg] = useState<string | null>(null);
   const [billingBusy, setBillingBusy] = useState<string | null>(null);
   const [interval, setInterval] = useState<"month" | "year">("month");
+  const [payModal, setPayModal] = useState<{ plan: string; label: string; price: string } | null>(null);
   const startTrial = useMutation({
     mutationFn: () => apiClient.post("/start-trial", {}),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["billing"] }); qc.invalidateQueries({ queryKey: ["credits-balance"] }); },
@@ -140,12 +134,23 @@ export function BillingSettings() {
     : null;
   const trialActive = trialDaysLeft !== null && trialDaysLeft >= 0;
   async function pickPlan(planId: string) {
-    setBillingMsg(null); setBillingBusy(planId);
-    const err = planId === currentPlanId && billing.plan !== "free"
-      ? await openPortal()
-      : await checkoutPlan(planId, interval);
-    if (err) setBillingMsg(err);
-    setBillingBusy(null);
+    // Already on this plan → manage the existing subscription via Stripe's hosted portal.
+    if (planId === currentPlanId && billing.plan !== "free") {
+      setBillingMsg(null); setBillingBusy(planId);
+      const err = await openPortal();
+      if (err) setBillingMsg(err);
+      setBillingBusy(null);
+      return;
+    }
+    // A new/different plan → embedded card entry on our own page (never a Stripe-hosted redirect).
+    const target = PLAN_BY_ID[planId];
+    if (!target) return;
+    setBillingMsg(null);
+    setPayModal({
+      plan: planId,
+      label: target.name,
+      price: interval === "year" && target.priceAnnual != null ? `$${target.priceAnnual}/mo billed yearly` : `$${target.priceMonthly}/mo`,
+    });
   }
   const seatPct = Math.min(Math.round((billing.seats_used / billing.seats_limit) * 100), 100);
 
@@ -520,6 +525,23 @@ export function BillingSettings() {
           <p className="px-5 py-6 text-sm text-stone-600">No invoices yet. They'll appear here once you upgrade.</p>
         )}
       </section>
+
+      {/* Embedded card entry — our own page, Stripe's secure Payment Element underneath */}
+      {payModal && (
+        <StripePaymentModal
+          plan={payModal.plan}
+          planLabel={payModal.label}
+          priceLabel={payModal.price}
+          interval={interval}
+          onClose={() => setPayModal(null)}
+          onSuccess={() => {
+            setPayModal(null);
+            qc.invalidateQueries({ queryKey: ["billing"] });
+            qc.invalidateQueries({ queryKey: ["credits-balance"] });
+            setBillingMsg(`You're now on ${payModal.label} — welcome aboard!`);
+          }}
+        />
+      )}
     </div>
   );
 }
