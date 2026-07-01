@@ -49,13 +49,13 @@ export function DiscoveryPage() {
 
   const run = useMutation({
     mutationFn: () =>
-      apiClient.post("/discovery/run", {
+      apiClient.post<{ ok?: boolean; discovered?: number; scanned?: number; error?: string; reason?: string; status?: string }>("/discovery/run", {
         searchType,
         sector: sector.trim() || undefined,
         region: region.trim() || undefined,
         targetSubject: targetSubject.trim() || undefined,
       }),
-    onSuccess: () => setTimeout(() => qc.invalidateQueries({ queryKey: ["discovery"] }), 4000),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["discovery"] }),
   });
 
   // Promote a discovered lead into a real People record (name + email + phone + note + source).
@@ -188,7 +188,14 @@ export function DiscoveryPage() {
               {run.isPending ? <span className="font-mono text-[11px] tracking-wider">[ EXECUTING WEB SOURCE SNEAK SWEEP... ]</span> : "Run sweep"}
             </button>
             {reviewsMissingSubject && <span className="text-[12px] text-[var(--text-muted)]">Add a subject to run a reviews sweep.</span>}
-            {run.isSuccess && !run.isPending && <span className="inline-flex items-center gap-1.5 text-[12px] text-[#6f8068]"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#6f8068]" />Sweep queued — results appear below as they land.</span>}
+            {run.isError && <span className="text-[12px] text-[#be123c]">Sweep failed: {run.error instanceof Error ? run.error.message : "unknown error"}</span>}
+            {run.isSuccess && !run.isPending && (() => {
+              const d = run.data;
+              if (d?.error) return <span className="text-[12px] text-[#be123c]">Sweep error: {d.error}</span>;
+              if (d?.status === "SKIPPED_INFRASTRUCTURE_TIMEOUT") return <span className="text-[12px] text-[#be123c]">Search appliance was unreachable — check the health banner above.</span>;
+              if ((d?.discovered ?? 0) > 0) return <span className="inline-flex items-center gap-1.5 text-[12px] text-[#15803d]"><Check size={12} />Found {d!.discovered} lead{d!.discovered === 1 ? "" : "s"} from {d?.scanned ?? "?"} sources.</span>;
+              return <span className="text-[12px] text-[var(--text-muted)]">Scanned {d?.scanned ?? 0} sources — no on-topic {searchType === "REVIEWS" ? "reviews" : "leads"} matched. Try a broader sector/region, or a different subject.</span>;
+            })()}
           </div>
         </div>
       </section>
