@@ -97,11 +97,12 @@ const LEAD_TOOL_SCHEMA: GatewayToolRequest["toolSchema"] = {
   },
 };
 
-export const socialDiscoveryWorker = inngest.createFunction(
-  { id: "social-media-listening-discovery", name: "Social listening & intent discovery", concurrency: { limit: 3 } },
-  { event: "app/social.discovery.trigger" },
-  async ({ event }) => {
-    const { workspaceId, region, sector, searchType, targetSubject } = event.data;
+export type DiscoveryParams = { workspaceId: string; region?: string; sector?: string; searchType: "INTENT_LEADS" | "REVIEWS"; targetSubject?: string };
+
+// Core sweep — callable directly (from POST /discovery/run, so results don't depend on Inngest
+// actually processing the event in prod) AND wrapped by the Inngest worker below for background runs.
+export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<string, unknown>> {
+    const { workspaceId, region, sector, searchType, targetSubject } = data;
 
     // 1) Parallel web sweep across the query operators (private SearXNG index).
     const queries = buildQueries(searchType, sector, region, targetSubject);
@@ -189,5 +190,10 @@ export const socialDiscoveryWorker = inngest.createFunction(
     }
 
     return { discovered: rows.length, scanned: unique.length };
-  },
+}
+
+export const socialDiscoveryWorker = inngest.createFunction(
+  { id: "social-media-listening-discovery", name: "Social listening & intent discovery", concurrency: { limit: 3 } },
+  { event: "app/social.discovery.trigger" },
+  async ({ event }) => runSocialDiscovery(event.data),
 );

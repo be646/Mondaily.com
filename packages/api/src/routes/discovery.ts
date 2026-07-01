@@ -5,6 +5,7 @@ import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import { inngest } from "../lib/inngest";
 import { sovereignHeaders } from "../lib/sovereign-search";
+import { runSocialDiscovery } from "../jobs/social-discovery";
 
 /**
  * Social listening & intent discovery.
@@ -24,25 +25,31 @@ const runSchema = z.object({
   targetSubject: z.string().max(160).optional(),
 });
 
-// Fire the discovery sweep asynchronously (Inngest). Returns immediately — the
-// worker writes results to discovered_leads, which GET / below reads.
+// Run the discovery sweep. We run it DIRECTLY (await) so results are populated even if the
+// Inngest worker isn't processing events in this environment — plus fire the Inngest event as
+// a best-effort background path. The direct run is what actually makes the page fill.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function triggerSweep(c: any) {
   const body = c.req.valid("json") as z.infer<typeof runSchema>;
   if (body.searchType === "REVIEWS" && !body.targetSubject) {
     return c.json({ error: "targetSubject is required for a REVIEWS sweep." }, 400);
   }
-  await inngest.send({
-    name: "app/social.discovery.trigger",
-    data: {
-      workspaceId: c.get("workspaceId") as string,
-      searchType: body.searchType,
-      sector: body.sector,
-      region: body.region,
-      targetSubject: body.targetSubject,
-    },
-  });
-  return c.json({ queued: true }, 202);
+  const params = {
+    workspaceId: c.get("workspaceId") as string,
+    searchType: body.searchType,
+    sector: body.sector,
+    region: body.region,
+    targetSubject: body.targetSubject,
+  };
+  // Best-effort background event (no-op if Inngest isn't wired) — never blocks the direct run.
+  inngest.send({ name: "app/social.discovery.trigger", data: params }).catch(() => {});
+  try {
+    const result = await runSocialDiscovery(params);
+    return c.json({ ok: true, ...result }, 200);
+  } catch (e) {
+    console.error("[discovery] direct sweep failed:", e instanceof Error ? e.message : e);
+    return c.json({ ok: false, error: e instanceof Error ? e.message : "Sweep failed" }, 200);
+  }
 }
 
 router.post("/trigger", zValidator("json", runSchema), triggerSweep);
