@@ -45,14 +45,16 @@ function roleDefault(role: string, moduleKey: string): AccessLevel {
 }
 
 // Legacy finance_role → finance-module level, used only when there's no explicit finance override.
+// "none"/unset returns null (NO signal → fall through to the role default) — it must NOT force
+// access to "none", or every member (incl. owners, whose finance_role defaults to "none") would
+// lose finance even when the module is enabled. Only POSITIVE grants map to a level.
 function financeRoleLevel(financeRole: string | undefined): AccessLevel | null {
   switch (financeRole) {
     case "approver": return "edit";
     case "reviewer": return "view";
     case "member": return "edit";
     case "viewer": return "view";
-    case "none": return "none";
-    default: return null;
+    default: return null; // "none" / unset → no signal
   }
 }
 
@@ -63,6 +65,8 @@ export function resolveModuleLevel(
   moduleAccess: Record<string, string> | null | undefined,
   financeRole?: string,
 ): AccessLevel {
+  // Owners & admins always have full access — never gated by an override or a legacy finance_role.
+  if (role === "owner" || role === "admin") return "edit";
   const explicit = moduleAccess?.[moduleKey];
   if (explicit === "none" || explicit === "view" || explicit === "edit") return explicit;
   if (moduleKey === "finance") {
