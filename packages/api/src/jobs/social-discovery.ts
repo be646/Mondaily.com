@@ -1,6 +1,7 @@
 import { inngest } from "../lib/inngest";
 import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
+import { sovereignHeaders } from "../lib/sovereign-search";
 
 // ── Sovereign SearXNG search (private metasearch JSON → result rows) ──────────
 interface SearchHit { title: string; content: string; url: string }
@@ -13,7 +14,7 @@ type SearchResult = { hits: SearchHit[]; unreachable: boolean };
 async function searxng(query: string): Promise<SearchResult> {
   try {
     const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&engines=google,reddit`;
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
     if (!res.ok) {
       // 5xx → the index itself is down/unreachable; treat as an infra timeout.
       console.error(`[social-discovery] searxng HTTP ${res.status}`);

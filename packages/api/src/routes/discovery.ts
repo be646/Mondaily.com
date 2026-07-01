@@ -4,6 +4,7 @@ import { z } from "zod";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import { inngest } from "../lib/inngest";
+import { sovereignHeaders } from "../lib/sovereign-search";
 
 /**
  * Social listening & intent discovery.
@@ -77,7 +78,7 @@ async function probe(url: string): Promise<boolean> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 3000);
   try {
-    const res = await fetch(url, { method: "GET", signal: ctrl.signal });
+    const res = await fetch(url, { method: "GET", signal: ctrl.signal, headers: sovereignHeaders() });
     // Any HTTP response (even 4xx) means the container is up and answering.
     return res.status > 0;
   } catch {

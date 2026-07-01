@@ -1,4 +1,5 @@
 import { inngest, type Events } from "../lib/inngest";
+import { sovereignHeaders } from "../lib/sovereign-search";
 import { startJob, completeJob, failJob, logStep } from "../lib/agent-logger";
 import { supabase } from "@mondaily/db/client";
 import { createNotification } from "../lib/notify";
@@ -44,7 +45,7 @@ const SOVEREIGN_SCRAPE_URL = process.env.SOVEREIGN_SCRAPE_URL || "http://localho
 async function searxngUrls(query: string, limit = 4): Promise<string[]> {
   try {
     const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&engines=google,reddit`;
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
     if (!res.ok) {
       console.error(`[search] searxng HTTP ${res.status}`);
       return [];
@@ -62,7 +63,7 @@ async function scrapeMarkdown(targetUrl: string): Promise<string> {
   try {
     const res = await fetch(SOVEREIGN_SCRAPE_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...sovereignHeaders() },
       body: JSON.stringify({ url: targetUrl, formats: ["markdown"] }),
     });
     if (!res.ok) return "";
