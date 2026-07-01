@@ -3,6 +3,7 @@ import { startJob, completeJob, failJob, logStep } from "../lib/agent-logger";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignWebContext } from "../lib/sovereign-search";
 import { createNotification } from "../lib/notify";
+import { runDiscoveryMonitors } from "./social-discovery";
 
 // ── Security primitives (exported so the AI-security test suite can assert these
 //    defenses never regress across model upgrades) ────────────────────────────
@@ -698,5 +699,8 @@ export async function runAllDaily(): Promise<Record<string, unknown>> {
   results.overdue_task_decisions = await runOverdueTaskDecisions().catch((e) => ({ error: String(e) }));
   results.deal_alerts = await runDealAlerts().catch((e) => ({ error: String(e) }));
   results.invoice_chaser = await runInvoiceChaser().catch((e) => ({ error: String(e) }));
+  // Saved Discovery searches ("watch this search") — re-run each monitor; the fingerprint-keyed
+  // upsert means only genuinely NEW results are added, and the owner is notified about the delta.
+  results.discovery_monitors = await runDiscoveryMonitors().catch((e) => ({ error: String(e) }));
   return results;
 }

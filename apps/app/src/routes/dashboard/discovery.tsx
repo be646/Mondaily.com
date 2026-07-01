@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download, Send, X, Inbox, ArrowUpRight } from "lucide-react";
-import { apiClient } from "../../lib/api-client";
+import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download, Send, X, Inbox, ArrowUpRight, Sparkles, Eye, Pickaxe, Bell } from "lucide-react";
+import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
+import { enrichPerson } from "../../lib/ai-enrichment";
 import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
 
 interface DiscoveredLead {
@@ -55,23 +56,95 @@ export function DiscoveryPage() {
   });
   const queuedCount = (queuedQ.data ?? []).filter((d) => d.agent_name === "discovery").length;
 
-  const run = useMutation({
-    mutationFn: () =>
-      apiClient.post<{
-        ok?: boolean; discovered?: number; scanned?: number; error?: string; reason?: string; status?: string;
-        classified?: { searchType: SearchType; sector?: string; region?: string; targetSubject?: string };
-        diag?: { queries: number; hits: number; unique: number; scraped?: number; gateway: boolean; extracted: number; matched: number };
-      }>("/discovery/search", { query: query.trim() }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["discovery"] }),
-  });
+  // ── Streaming search — watch the agent work live instead of a spinner ──
+  type SweepResult = {
+    ok?: boolean; discovered?: number; scanned?: number; queued?: number; error?: string; reason?: string; status?: string; overview?: string | null;
+    classified?: { searchType: SearchType; sector?: string; region?: string; targetSubject?: string };
+    diag?: { queries: number; hits: number; unique: number; scraped?: number; pages_analyzed?: number; gateway: boolean; extracted: number; matched: number };
+  };
+  const [deep, setDeep] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [progress, setProgress] = useState<string[]>([]);
+  const [overview, setOverview] = useState<string | null>(null);
+  const [result, setResult] = useState<SweepResult | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  // Promote a discovered lead into a real People record (name + email + phone + note + source).
+  async function runSearch() {
+    if (searching || !query.trim()) return;
+    setSearching(true); setProgress([]); setOverview(null); setResult(null); setSearchError(null);
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const timer = setTimeout(() => controller.abort(), 180_000); // hard ceiling
+    try {
+      const apiUrl = (import.meta.env.VITE_API_URL as string) || "";
+      const headers = await getAuthHeaders();
+      const res = await apiFetch(`${apiUrl}/api/v1/discovery/search/stream`, {
+        method: "POST", headers, signal: controller.signal,
+        body: JSON.stringify({ query: query.trim(), deep }),
+      });
+      if (!res.ok || !res.body) throw new Error((await res.text().catch(() => "")) || `Search error: ${res.status}`);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          const t = line.trim();
+          if (!t.startsWith("data:")) continue;
+          let ev: any;
+          try { ev = JSON.parse(t.slice(5).trim()); } catch { continue; }
+          if (ev.type === "progress") setProgress((p) => [...p.slice(-11), ev.message as string]);
+          else if (ev.type === "overview") setOverview(ev.text as string);
+          else if (ev.type === "done") { setResult(ev as SweepResult); if (ev.overview) setOverview(ev.overview as string); }
+          else if (ev.type === "error") setSearchError(ev.error as string);
+        }
+      }
+      qc.invalidateQueries({ queryKey: ["discovery"] });
+      qc.invalidateQueries({ queryKey: ["decisions", "pending"] });
+    } catch (e) {
+      // Fall back to the non-streaming endpoint (older API deploys / proxies that buffer SSE).
+      try {
+        const r = await apiClient.post<SweepResult>("/discovery/search", { query: query.trim(), deep });
+        setResult(r); if (r.overview) setOverview(r.overview);
+        qc.invalidateQueries({ queryKey: ["discovery"] });
+      } catch (e2) {
+        setSearchError(e2 instanceof Error ? e2.message : e instanceof Error ? e.message : "Search failed");
+      }
+    } finally {
+      clearTimeout(timer);
+      setSearching(false);
+    }
+  }
+
+  // ── Saved-search monitors — "watch this search", re-run daily by the agent ──
+  const monitorsQ = useQuery({
+    queryKey: ["discovery-monitors"],
+    queryFn: () => apiClient.get<{ id: string; query: string; last_run_at?: string | null; last_new?: number }[]>("/discovery/monitors"),
+    staleTime: 60_000,
+  });
+  const addMonitor = useMutation({
+    mutationFn: (q: string) => apiClient.post("/discovery/monitors", { query: q }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["discovery-monitors"] }),
+  });
+  const removeMonitor = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/discovery/monitors/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["discovery-monitors"] }),
+  });
+  const monitors = monitorsQ.data ?? [];
+  const isWatched = monitors.some((m) => m.query.toLowerCase() === query.trim().toLowerCase());
+
+  // Promote a discovered lead into a real People record (name + email + phone + note + source),
+  // then AUTO-ENRICH it: the enrichment agent immediately fills company/role/site from a real web
+  // pass (never fabricated — empty when nothing is found).
   const [added, setAdded] = useState<Record<string, boolean>>({});
   const addLead = useMutation({
-    mutationFn: (r: DiscoveredLead) => apiClient.post("/nodes", {
-      vertical: "shared",
-      object_type: "people",
-      data: {
+    mutationFn: async (r: DiscoveredLead) => {
+      const baseData: Record<string, unknown> = {
         name: r.author_name && r.author_name !== "Anonymous" ? r.author_name : (r.contact?.handle || r.target_subject || "Discovered lead"),
         email: r.contact?.email || undefined,
         phone: r.contact?.phone || undefined,
@@ -79,8 +152,23 @@ export function DiscoveryPage() {
         notes: [r.contact?.summary, r.raw_content && `“${r.raw_content}”`, r.source_url && `Source: ${r.source_url}`].filter(Boolean).join("\n\n"),
         source: "discovery",
         lead_type: r.intent_type,
-      },
-    }),
+      };
+      const node = await apiClient.post<{ id: string }>("/nodes", { vertical: "shared", object_type: "people", data: baseData });
+      // Fire-and-forget enrichment — merge real, non-empty fields ONTO the base data (the nodes
+      // PATCH replaces `data` wholesale, so we must send the full merged object; the lead's own
+      // fields always win over enrichment).
+      if (r.contact?.email && node?.id) {
+        void enrichPerson(r.contact.email).then((enr) => {
+          const fields = Object.fromEntries(Object.entries(enr.fields ?? {}).filter(([, v]) => v != null && v !== ""));
+          if (Object.keys(fields).length) {
+            return apiClient.patch(`/nodes/${node.id}`, { data: { ...fields, ...baseData } }).then(() => {
+              qc.invalidateQueries({ queryKey: ["records", "people"] });
+            });
+          }
+        }).catch(() => {});
+      }
+      return node;
+    },
     onSuccess: (_d, r) => setAdded((m) => ({ ...m, [r.id]: true })),
   });
 
@@ -185,43 +273,74 @@ export function DiscoveryPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && query.trim() && !run.isPending) run.mutate(); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && query.trim() && !searching) void runSearch(); }}
             placeholder="Search anything — real estate agents in London, reviews for Vivacy, SaaS companies that raised a seed round…"
             className="flex-1 min-w-0 bg-transparent px-1 py-1.5 text-[15px] leading-6 outline-none"
             style={{ color: "var(--text-primary)" }}
           />
+          {/* Deep mode — second-pass contact harvest from the businesses' own sites */}
           <button
-            onClick={() => run.mutate()}
-            disabled={run.isPending || !query.trim()}
+            onClick={() => setDeep((d) => !d)}
+            title={deep ? "Deep mode ON — also visits business sites for emails/phones (slower, more contacts)" : "Deep mode — also visit business sites for emails/phones"}
+            className="shrink-0 flex h-9 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors"
+            style={deep
+              ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "var(--section-accent-soft)" }
+              : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
+          >
+            <Pickaxe size={13} /> Deep
+          </button>
+          <button
+            onClick={() => void runSearch()}
+            disabled={searching || !query.trim()}
             title="Search"
             className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-white transition-all disabled:cursor-not-allowed disabled:opacity-40"
             style={{ background: "#18181b" }}
           >
-            {run.isPending ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
+            {searching ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
           </button>
         </div>
 
-        {/* Result / status line right under the bar — mirrors how a search engine reports back */}
-        {(run.isPending || run.isError || run.isSuccess) && (
+        {/* Live agent feed — each pipeline stage streams in as the agent works */}
+        {(searching || progress.length > 0) && (
+          <div className="mx-1 mt-2.5 rounded-sm border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="space-y-1">
+              {progress.map((line, i) => (
+                <div key={i} className="flex items-start gap-2 text-[12px]" style={{ color: i === progress.length - 1 && searching ? "var(--text-secondary)" : "var(--text-faint)" }}>
+                  {i === progress.length - 1 && searching
+                    ? <Loader2 size={11} className="mt-0.5 shrink-0 animate-spin" style={{ color: "var(--section-accent)" }} />
+                    : <Check size={11} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />}
+                  <span className="min-w-0 break-words">{line}</span>
+                </div>
+              ))}
+              {searching && progress.length === 0 && (
+                <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--text-secondary)" }}>
+                  <Loader2 size={11} className="animate-spin" style={{ color: "var(--section-accent)" }} /> Starting the agent…
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Result / error line — mirrors how a search engine reports back */}
+        {(searchError || result) && !searching && (
           <div className="px-4 pt-2.5 text-[12.5px]">
-            {run.isPending && <span style={{ color: "var(--text-muted)" }}>Searching the open web and letting the agent analyze what it finds…</span>}
-            {run.isError && <span style={{ color: "#be123c" }}>Search failed: {run.error instanceof Error ? run.error.message : "unknown error"}</span>}
-            {run.isSuccess && !run.isPending && (() => {
-              const d = run.data;
-              const kind = d?.classified?.searchType === "REVIEWS" ? "reviews" : "leads";
-              if (d?.error) return <span style={{ color: "#be123c" }}>Search error: {d.error}</span>;
-              if (d?.status === "SKIPPED_INFRASTRUCTURE_TIMEOUT") return <span style={{ color: "#be123c" }}>Search appliance was unreachable — check the health banner above.</span>;
-              if ((d?.discovered ?? 0) > 0) return (
+            {searchError && <span style={{ color: "#be123c" }}>Search failed: {searchError}</span>}
+            {!searchError && result && (() => {
+              const d = result;
+              const kind = d.classified?.searchType === "REVIEWS" ? "reviews" : "leads";
+              if (d.error) return <span style={{ color: "#be123c" }}>Search error: {d.error}</span>;
+              if (d.status === "SKIPPED_INFRASTRUCTURE_TIMEOUT") return <span style={{ color: "#be123c" }}>Search appliance was unreachable — check the health banner above.</span>;
+              if ((d.discovered ?? 0) > 0) return (
                 <span className="inline-flex items-center gap-1.5" style={{ color: "#15803d" }}>
-                  <Check size={12} />Found {d!.discovered} {kind === "reviews" ? "review" + (d!.discovered === 1 ? "" : "s") : "lead" + (d!.discovered === 1 ? "" : "s")} from {d?.scanned ?? "?"} sources.
+                  <Check size={12} />Found {d.discovered} {kind === "reviews" ? "review" + (d.discovered === 1 ? "" : "s") : "lead" + (d.discovered === 1 ? "" : "s")} from {d.scanned ?? "?"} sources{(d.queued ?? 0) > 0 ? ` · ${d.queued} queued for approval` : ""}.
                 </span>
               );
               return (
                 <span style={{ color: "var(--text-muted)" }}>
-                  Scanned {d?.scanned ?? 0} sources — no on-topic {kind} matched. {d?.reason ? <span style={{ color: "var(--text-faint)" }}>({d.reason})</span> : null} Try being more specific, or a different subject.
-                  {d?.diag && (
+                  Scanned {d.scanned ?? 0} sources — no on-topic {kind} matched. {d.reason ? <span style={{ color: "var(--text-faint)" }}>({d.reason})</span> : null} Try being more specific, or a different subject.
+                  {d.diag && (
                     <span className="mt-1 block font-mono text-[10px]" style={{ color: "var(--text-faint)" }}>
-                      pipeline: {d.diag.queries} queries → {d.diag.hits} hits → {d.diag.unique} unique → {d.diag.scraped ?? 0} scraped → gateway {d.diag.gateway ? "ok" : "FAILED"} → {d.diag.extracted} extracted → {d.diag.matched} matched
+                      pipeline: {d.diag.queries} queries → {d.diag.hits} hits → {d.diag.scraped ?? 0} scraped → {d.diag.pages_analyzed ?? 0} analyzed → gateway {d.diag.gateway ? "ok" : "FAILED"} → {d.diag.extracted} extracted
                     </span>
                   )}
                 </span>
@@ -230,8 +349,49 @@ export function DiscoveryPage() {
           </div>
         )}
 
+        {/* AI overview — the "Google AI mode" panel: a grounded read of what was found */}
+        {overview && !searching && (
+          <div className="mx-1 mt-3 rounded-sm border p-4" style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)" }}>
+            <div className="mb-1.5 flex items-center gap-1.5 text-[11.5px] font-semibold" style={{ color: "var(--section-accent)" }}>
+              <Sparkles size={13} /> AI overview
+            </div>
+            <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{overview}</p>
+          </div>
+        )}
+
+        {/* Watch this search — the agent re-runs it daily and notifies you about NEW results only */}
+        {query.trim().length > 2 && !searching && (
+          <div className="flex flex-wrap items-center gap-2 px-4 pt-3">
+            <button
+              onClick={() => !isWatched && addMonitor.mutate(query.trim())}
+              disabled={addMonitor.isPending || isWatched}
+              className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-70"
+              style={isWatched
+                ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "var(--section-accent-soft)" }
+                : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
+            >
+              {addMonitor.isPending ? <Loader2 size={12} className="animate-spin" /> : isWatched ? <Check size={12} /> : <Eye size={12} />}
+              {isWatched ? "Watching daily" : "Watch this search"}
+            </button>
+          </div>
+        )}
+
+        {/* Active monitors — the searches the agent re-runs every day */}
+        {monitors.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 px-4 pt-3">
+            <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "var(--text-faint)" }}><Bell size={11} /> Watched:</span>
+            {monitors.map((m) => (
+              <span key={m.id} className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                <button onClick={() => setQuery(m.query)} className="max-w-[220px] truncate hover:underline" title={m.query}>{m.query}</button>
+                {typeof m.last_new === "number" && m.last_new > 0 && <span className="rounded-full px-1.5 text-[10px] font-semibold" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>+{m.last_new}</span>}
+                <button onClick={() => removeMonitor.mutate(m.id)} title="Stop watching" className="transition-colors hover:text-rose-400" style={{ color: "var(--text-faint)" }}><X size={11} /></button>
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Quick example chips — click to fill the box, same pattern as the home Ask bar's quick prompts */}
-        {!query && !run.isSuccess && (
+        {!query && !result && (
           <div className="flex flex-wrap gap-1.5 px-4 pt-3">
             {["Real estate agents in London", "Reviews for Vivacy", "SaaS companies that raised a seed round"].map((ex) => (
               <button

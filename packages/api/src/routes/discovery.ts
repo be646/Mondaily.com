@@ -5,8 +5,9 @@ import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import { inngest } from "../lib/inngest";
 import { sovereignHeaders } from "../lib/sovereign-search";
-import { runSocialDiscovery } from "../jobs/social-discovery";
+import { runSocialDiscovery, type DiscoveryParams } from "../jobs/social-discovery";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
+import { streamSSE } from "hono/streaming";
 
 /**
  * Social listening & intent discovery.
@@ -56,13 +57,13 @@ async function triggerSweep(c: any) {
 router.post("/trigger", zValidator("json", runSchema), triggerSweep);
 router.post("/run", zValidator("json", runSchema), triggerSweep); // alias used by the Discovery page
 
-// POST /discovery/search { query } — the single-box "Google-style" entry point. One free-text
-// query; the AI classifies it into the structured sweep params (searchType/sector/region/subject)
-// instead of the user filling out a form. Never invents the query's meaning beyond what's asked —
-// if a target subject genuinely isn't present for a reviews-style ask, it falls back to leads.
-const searchSchema = z.object({ query: z.string().min(2).max(300) });
-router.post("/search", zValidator("json", searchSchema), async (c) => {
-  const { query } = c.req.valid("json");
+// The single-box "Google-style" entry point. One free-text query; the AI classifies it into the
+// structured sweep params (searchType/sector/region/subject) instead of the user filling out a
+// form. Never invents the query's meaning beyond what's asked — if a target subject genuinely
+// isn't present for a reviews-style ask, it falls back to leads.
+const searchSchema = z.object({ query: z.string().min(2).max(300), deep: z.boolean().optional() });
+
+async function classifyQuery(workspaceId: string, query: string, deep?: boolean): Promise<DiscoveryParams> {
   let classified: { searchType?: string; sector?: string; region?: string; targetSubject?: string } = {};
   try {
     classified = await aiGatewayToolUse({
@@ -83,15 +84,20 @@ router.post("/search", zValidator("json", searchSchema), async (c) => {
       maxTokens: 200,
     }).catch(() => ({} as Record<string, unknown>));
   } catch { /* fall through to heuristic below */ }
-
   const searchType = classified.searchType === "REVIEWS" && classified.targetSubject ? "REVIEWS" : "INTENT_LEADS";
-  const params = {
-    workspaceId: c.get("workspaceId") as string,
+  return {
+    workspaceId,
     searchType: searchType as "INTENT_LEADS" | "REVIEWS",
     sector: classified.sector || (searchType === "INTENT_LEADS" ? query : undefined),
     region: classified.region,
     targetSubject: classified.targetSubject,
+    deep,
   };
+}
+
+router.post("/search", zValidator("json", searchSchema), async (c) => {
+  const { query, deep } = c.req.valid("json");
+  const params = await classifyQuery(c.get("workspaceId"), query, deep);
   inngest.send({ name: "app/social.discovery.trigger", data: params }).catch(() => {});
   try {
     const result = await runSocialDiscovery(params);
@@ -100,6 +106,56 @@ router.post("/search", zValidator("json", searchSchema), async (c) => {
     console.error("[discovery] search sweep failed:", e instanceof Error ? e.message : e);
     return c.json({ ok: false, error: e instanceof Error ? e.message : "Sweep failed" }, 200);
   }
+});
+
+// STREAMING search (SSE) — the browser watches the agent work live: classifying, searching,
+// reading each page, finding each lead, deep-harvesting contacts, writing the overview. Events:
+//   {type:"progress", stage, message} · {type:"overview", text} · {type:"done", ...result} · {type:"error", error}
+router.post("/search/stream", zValidator("json", searchSchema), async (c) => {
+  const { query, deep } = c.req.valid("json");
+  const workspaceId = c.get("workspaceId");
+  return streamSSE(c, async (stream) => {
+    const send = (data: Record<string, unknown>) => stream.writeSSE({ data: JSON.stringify(data) });
+    try {
+      await send({ type: "progress", stage: "classify", message: "Understanding your search…" });
+      const params = await classifyQuery(workspaceId, query, deep);
+      const label = params.searchType === "REVIEWS"
+        ? `reviews about "${params.targetSubject}"`
+        : `leads: ${params.sector ?? query}${params.region ? ` in ${params.region}` : ""}`;
+      await send({ type: "progress", stage: "classify", message: `Searching for ${label}` });
+      const result = await runSocialDiscovery(params, (ev) => send(ev));
+      await send({ type: "done", ok: true, classified: params, ...result });
+    } catch (e) {
+      await send({ type: "error", error: e instanceof Error ? e.message : "Sweep failed" });
+    }
+  });
+});
+
+// ── Saved-search monitors ("watch this search") — stored as nodes, re-run by the daily cron. ──
+router.get("/monitors", async (c) => {
+  const { data } = await supabase
+    .from("nodes").select("id, data, created_at")
+    .eq("workspace_id", c.get("workspaceId")).eq("object_type", "discovery_monitor")
+    .order("created_at", { ascending: false });
+  return c.json((data ?? []).map((n) => ({ id: n.id, ...(n.data as Record<string, unknown>), created_at: n.created_at })));
+});
+router.post("/monitors", zValidator("json", z.object({ query: z.string().min(2).max(300) })), async (c) => {
+  const { query } = c.req.valid("json");
+  const workspaceId = c.get("workspaceId");
+  const params = await classifyQuery(workspaceId, query);
+  const { data, error } = await supabase.from("nodes").insert({
+    workspace_id: workspaceId,
+    vertical: "shared",
+    object_type: "discovery_monitor",
+    created_by: c.get("userId"),
+    data: { query, params, enabled: true, last_run_at: null },
+  }).select("id").single();
+  return error ? c.json({ error: error.message }, 400) : c.json({ id: data.id, query }, 201);
+});
+router.delete("/monitors/:id", async (c) => {
+  const { error } = await supabase.from("nodes").delete()
+    .eq("workspace_id", c.get("workspaceId")).eq("object_type", "discovery_monitor").eq("id", c.req.param("id"));
+  return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });
 });
 
 // Read discovered leads for this workspace, optionally filtered by intent_type.

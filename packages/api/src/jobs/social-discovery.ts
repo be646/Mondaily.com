@@ -115,18 +115,24 @@ interface ExtractedLead {
   summary?: string;
 }
 
-export type DiscoveryParams = { workspaceId: string; region?: string; sector?: string; searchType: "INTENT_LEADS" | "REVIEWS"; targetSubject?: string };
+export type DiscoveryParams = { workspaceId: string; region?: string; sector?: string; searchType: "INTENT_LEADS" | "REVIEWS"; targetSubject?: string; deep?: boolean };
+
+/** Live progress callback — the streaming endpoint forwards these to the browser as SSE events so
+ *  the user watches the agent work (searching → reading pages → finding leads) instead of a spinner. */
+export type DiscoveryProgress = (ev: Record<string, unknown>) => void | Promise<void>;
 
 // Core sweep — callable directly (from POST /discovery/run, so results don't depend on Inngest
 // actually processing the event in prod) AND wrapped by the Inngest worker below for background runs.
-export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<string, unknown>> {
-    const { workspaceId, region, sector, searchType, targetSubject } = data;
+export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: DiscoveryProgress): Promise<Record<string, unknown>> {
+    const { workspaceId, region, sector, searchType, targetSubject, deep } = data;
+    const emit = async (ev: Record<string, unknown>) => { try { await onProgress?.(ev); } catch { /* progress is best-effort */ } };
 
     // 1) Web sweep across the query operators (private SearXNG index). STAGGERED in small batches —
     //    firing 10+ queries at bing/qwant simultaneously from one IP trips their rate limits, which
     //    SearXNG then reports as "Suspended: too many requests" and every later query returns 0.
     //    Verified live: rapid-fire parallel queries suspended qwant + wikipedia within seconds.
     const queries = buildQueries(searchType, sector, region, targetSubject);
+    await emit({ type: "progress", stage: "search", message: `Searching the web across ${queries.length} query angles…` });
     const sweep: SearchResult[] = [];
     for (let i = 0; i < queries.length; i += 3) {
       const batch = queries.slice(i, i + 3);
@@ -141,6 +147,7 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
     }
     const hits = sweep.flatMap((s) => s.hits);
     if (hits.length === 0) return { discovered: 0, reason: "no search results", diag: { queries: queries.length, hits: 0, unique: 0, extracted: 0, matched: 0 } };
+    await emit({ type: "progress", stage: "search", message: `Found ${hits.length} candidate pages — reading the most promising…` });
 
     // Dedupe the raw hits by URL before extraction. Prefer scraping social/review pages first —
     // they're where the actual people/reviews live; generic pages fill the remaining slots.
@@ -159,12 +166,14 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
     //    mismatched URLs are structurally impossible, so nothing gets dropped by URL-matching.
     const SCRAPE_TOP = 18;
     const toScrape = unique.slice(0, SCRAPE_TOP);
+    await emit({ type: "progress", stage: "scrape", message: `Reading ${toScrape.length} pages in full…` });
     const scraped = await Promise.all(toScrape.map((h) => sovereignScrape(h.url).catch(() => "")));
     const pages = unique.map((h, i) => ({
       url: h.url,
       title: h.title,
       text: (i < SCRAPE_TOP && scraped[i] ? scraped[i]! : h.content).slice(0, 6000),
     })).filter((p) => p.text.trim().length > 60); // nothing meaningful to extract from
+    await emit({ type: "progress", stage: "extract", message: `Analyzing ${pages.length} pages with the agent…` });
 
     const wantReviews = searchType === "REVIEWS";
     const perPageSchema: GatewayToolRequest["toolSchema"] = {
@@ -226,7 +235,50 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
     for (let i = 0; i < pages.length; i += 6) {
       const batch = pages.slice(i, i + 6);
       const results = await Promise.all(batch.map(extractPage));
-      for (const r of results) allLeads.push(...r);
+      for (let j = 0; j < results.length; j++) {
+        const found = results[j]!;
+        allLeads.push(...found);
+        if (found.length > 0) {
+          await emit({ type: "progress", stage: "extract", message: `${platformOf(batch[j]!.url)} — found ${found.length} result${found.length === 1 ? "" : "s"} (${found.map((f) => f.author_name).filter(Boolean).slice(0, 3).join(", ") || "unnamed"})` });
+        }
+      }
+    }
+
+    // DEEP MODE — second-pass contact harvest. Listing/social pages often name a business without
+    // its email/phone; the business's OWN site usually has both. For leads still missing contact
+    // info, visit their source domain's /contact (and homepage) and pull emails/phones via REGEX
+    // from the real page text — regex on scraped text is deterministic real data, zero AI, zero
+    // fabrication risk.
+    if (deep && searchType !== "REVIEWS") {
+      const missing = allLeads.filter((l) => !l.contact_email && !l.contact_phone);
+      const domains = [...new Set(missing.map((l) => { try { return new URL(l.source_url).origin; } catch { return ""; } }).filter(Boolean))]
+        .filter((o) => !/linkedin|x\.com|twitter|facebook|instagram|reddit|youtube|trustpilot/i.test(o))
+        .slice(0, 8);
+      if (domains.length) {
+        await emit({ type: "progress", stage: "deep", message: `Deep mode — visiting ${domains.length} business sites for contact details…` });
+        const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+        const PHONE_RE = /(?:\+|00)[\d][\d\s().-]{7,18}\d/g;
+        for (const origin of domains) {
+          const texts = await Promise.all([
+            sovereignScrape(`${origin}/contact`).catch(() => ""),
+            sovereignScrape(origin).catch(() => ""),
+          ]);
+          const text = texts.join("\n");
+          const emails = [...new Set(text.match(EMAIL_RE) ?? [])].filter((e) => !/\.(png|jpg|svg|webp|gif)$/i.test(e)).slice(0, 3);
+          const phones = [...new Set(text.match(PHONE_RE) ?? [])].slice(0, 2);
+          if (emails.length || phones.length) {
+            for (const l of allLeads) {
+              try {
+                if (new URL(l.source_url).origin === origin) {
+                  if (!l.contact_email && emails[0]) l.contact_email = emails[0];
+                  if (!l.contact_phone && phones[0]) l.contact_phone = phones[0];
+                }
+              } catch { /* skip malformed */ }
+            }
+            await emit({ type: "progress", stage: "deep", message: `${origin.replace(/^https?:\/\/(www\.)?/, "")} — found ${emails.length} email${emails.length === 1 ? "" : "s"}, ${phones.length} phone${phones.length === 1 ? "" : "s"}` });
+          }
+        }
+      }
     }
 
     const rows = allLeads.map((l) => ({
@@ -339,7 +391,30 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       }
     }
 
-    // 5) Agent notifies the workspace (best-effort, never blocks).
+    // 5) AI OVERVIEW — a grounded read of what was found (the "Google AI mode" panel). Built from
+    //    the ACTUAL extracted rows only; the model is forbidden from adding anything not in them.
+    let overview: string | null = null;
+    if (dedupedRows.length >= 2) {
+      await emit({ type: "progress", stage: "overview", message: "Writing the AI overview of what was found…" });
+      const digest = dedupedRows.slice(0, 30).map((r) =>
+        `- [${r.intent_type}] ${r.author_name} (${r.platform}${r.region ? `, ${r.region}` : ""}, conf ${r.confidence_score})` +
+        `${r.contact.email ? ` email:${r.contact.email}` : ""}${r.contact.phone ? ` phone:yes` : ""}: ${(r.contact.summary || r.raw_content || "").slice(0, 140)}`
+      ).join("\n");
+      try {
+        const { aiGateway } = await import("../lib/ai-gateway");
+        const { text } = await aiGateway({
+          system:
+            "You summarize web-discovery results for a business user. Write 2-4 short sentences describing ONLY what the findings below show — counts, platforms, contactability, and (for reviews) the sentiment balance. " +
+            "NEVER add a fact, name, or number that is not in the findings. Plain language, no preamble, no markdown headers.",
+          prompt: `Search: ${searchType === "REVIEWS" ? `reviews about "${targetSubject ?? sector}"` : `leads in "${sector}"`}${region ? ` (${region})` : ""}. Findings (${dedupedRows.length} total, first 30 shown):\n${digest}`,
+          maxTokens: 260,
+        });
+        overview = (text || "").trim() || null;
+        if (overview) await emit({ type: "overview", text: overview });
+      } catch { /* overview is a bonus — never fail the sweep for it */ }
+    }
+
+    // 6) Agent notifies the workspace (best-effort, never blocks).
     if (dedupedRows.length > 0) {
       const what = searchType === "REVIEWS" ? "reviews/mentions" : "leads";
       await createNotification({
@@ -352,7 +427,40 @@ export async function runSocialDiscovery(data: DiscoveryParams): Promise<Record<
       }).catch(() => {});
     }
 
-    return { discovered: dedupedRows.length, scanned: unique.length, queued, diag };
+    return { discovered: dedupedRows.length, scanned: unique.length, queued, overview, diag };
+}
+
+/**
+ * SAVED-SEARCH MONITORS — "watch this search". Monitors are stored as nodes
+ * (object_type "discovery_monitor" — no migration needed) and re-run by the daily cron. The
+ * fingerprint-keyed upsert makes dedup automatic: re-running only ADDS genuinely new results, so
+ * the count delta = what's new since last run. New finds → agent notification.
+ */
+export async function runDiscoveryMonitors(): Promise<{ monitors: number; new_results: number }> {
+  const { data: monitors } = await supabase
+    .from("nodes").select("id, workspace_id, data")
+    .eq("object_type", "discovery_monitor");
+  let totalNew = 0;
+  for (const m of monitors ?? []) {
+    const d = (m.data ?? {}) as { query?: string; params?: DiscoveryParams; enabled?: boolean };
+    if (d.enabled === false || !d.params) continue;
+    const before = await supabase.from("discovered_leads").select("id", { count: "exact", head: true }).eq("workspace_id", m.workspace_id as string);
+    const result = await runSocialDiscovery({ ...d.params, workspaceId: m.workspace_id as string }).catch(() => null);
+    const after = await supabase.from("discovered_leads").select("id", { count: "exact", head: true }).eq("workspace_id", m.workspace_id as string);
+    const fresh = Math.max(0, (after.count ?? 0) - (before.count ?? 0));
+    totalNew += fresh;
+    await supabase.from("nodes").update({ data: { ...d, last_run_at: new Date().toISOString(), last_new: fresh, last_total: (result as { discovered?: number } | null)?.discovered ?? 0 } }).eq("id", m.id as string);
+    if (fresh > 0) {
+      await createNotification({
+        workspace_id: m.workspace_id as string,
+        type: "agent",
+        title: `Monitor "${d.query ?? "saved search"}" found ${fresh} new result${fresh === 1 ? "" : "s"}`,
+        body: "Your watched Discovery search picked up new results since the last run. Review them in Discovery.",
+        metadata: { source: "discovery_monitor", monitor_id: m.id, new: fresh },
+      }).catch(() => {});
+    }
+  }
+  return { monitors: (monitors ?? []).length, new_results: totalNew };
 }
 
 export const socialDiscoveryWorker = inngest.createFunction(
