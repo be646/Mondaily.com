@@ -193,7 +193,10 @@ export function DashboardLayout() {
 
         <VerifyEmailBanner />
 
-        <main className={`min-h-0 flex-1 pb-16 md:pb-0 overscroll-none ${isGrid ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"}`}>
+        <main className={`min-h-0 flex-1 pb-16 md:pb-0 overscroll-none ${isGrid ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"}`}
+          // Reserve the scrollbar space so the page never shifts sideways when the vertical
+          // scrollbar appears/disappears on data refetch (the "shakes right and left" issue).
+          style={{ scrollbarGutter: "stable" }}>
           {/* key=pathname → the boundary RESETS on every navigation. Without this, one page throwing
               once leaves the boundary stuck, blanking every subsequent route until a full reload. */}
           <ErrorBoundary key={location.pathname}>
