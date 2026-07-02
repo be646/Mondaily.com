@@ -57627,6 +57627,13 @@ function buildQueries(searchType, sector, region, targetSubject) {
     `site:reddit.com ${s2}${loc} recommendation OR "looking for"`
   ].filter((q2) => q2.replace(/["']/g, "").trim().length > 4);
 }
+function normalizeSentiment(s2, intent) {
+  const v2 = (s2 || "").toLowerCase();
+  if (v2 === "positive" || v2 === "negative" || v2 === "neutral" || v2 === "mixed") return v2;
+  if (intent === "COMPLAINT") return "negative";
+  if (intent === "REVIEW") return "neutral";
+  return null;
+}
 function platformOf(url) {
   try {
     const host = new URL(url).host.replace(/^www\./, "").toLowerCase();
@@ -57697,6 +57704,7 @@ async function runSocialDiscovery(data, onProgress) {
             author_name: { type: "string", description: "The person's or business's name if identifiable on the page" },
             raw_content: { type: "string", description: wantReviews ? "The review/opinion text, verbatim (the WHOLE review, not a fragment)" : "The relevant quote/snippet, verbatim" },
             intent_type: { type: "string", description: "BUY_SIGNAL | REVIEW | COMPLAINT" },
+            sentiment: { type: "string", description: wantReviews ? "positive | negative | neutral | mixed \u2014 the reviewer's overall sentiment toward the subject, judged ONLY from the review text" : "Omit for non-review results" },
             target_subject: { type: "string", description: "The person/company being reviewed, if any" },
             region: { type: "string" },
             confidence_score: { type: "number", description: "0-100 how clearly this matches the search intent" },
@@ -57740,9 +57748,9 @@ ${p2.text}`
   const allLeads = [];
   for (let i2 = 0; i2 < pages.length; i2 += 6) {
     const batch = pages.slice(i2, i2 + 6);
-    const results = await Promise.all(batch.map(extractPage));
-    for (let j2 = 0; j2 < results.length; j2++) {
-      const found = results[j2];
+    const results2 = await Promise.all(batch.map(extractPage));
+    for (let j2 = 0; j2 < results2.length; j2++) {
+      const found = results2[j2];
       allLeads.push(...found);
       if (found.length > 0) {
         await emit({ type: "progress", stage: "extract", message: `${platformOf(batch[j2].url)} \u2014 found ${found.length} result${found.length === 1 ? "" : "s"} (${found.map((f2) => f2.author_name).filter(Boolean).slice(0, 3).join(", ") || "unnamed"})` });
@@ -57798,11 +57806,14 @@ ${p2.text}`
     region: l2.region ?? region ?? null,
     confidence_score: typeof l2.confidence_score === "number" ? Math.max(0, Math.min(100, Math.round(l2.confidence_score))) : 0,
     // Structured contact block (needs the `contact jsonb` column — 20260701 migration).
+    // sentiment lives here too (no schema change): the model's read for reviews, else derived
+    // from intent_type (COMPLAINT → negative) so every review row carries a real sentiment.
     contact: {
       email: l2.contact_email?.trim() || null,
       phone: l2.contact_phone?.trim() || null,
       handle: l2.handle?.trim() || null,
-      summary: l2.summary?.trim() || null
+      summary: l2.summary?.trim() || null,
+      sentiment: normalizeSentiment(l2.sentiment, l2.intent_type)
     }
   }));
   const gatewayReturned = gatewayFailures < pages.length;
@@ -57910,7 +57921,21 @@ ${digest}`,
     }).catch(() => {
     });
   }
-  return { discovered: dedupedRows.length, scanned: unique.length, queued, overview, diag };
+  const results = [...dedupedRows].sort((a2, b2) => (b2.confidence_score ?? 0) - (a2.confidence_score ?? 0)).slice(0, 60).map((r2) => ({
+    source_url: r2.source_url,
+    platform: r2.platform,
+    author_name: r2.author_name,
+    intent_type: r2.intent_type,
+    sentiment: r2.contact?.sentiment ?? null,
+    confidence_score: r2.confidence_score ?? 0,
+    region: r2.region,
+    target_subject: r2.target_subject,
+    snippet: (r2.contact?.summary || r2.raw_content || "").slice(0, 400),
+    email: r2.contact?.email ?? null,
+    phone: r2.contact?.phone ?? null,
+    handle: r2.contact?.handle ?? null
+  }));
+  return { discovered: dedupedRows.length, scanned: unique.length, queued, overview, kind: searchType, results, diag };
 }
 async function runDiscoveryMonitors() {
   const { data: monitors } = await supabase.from("nodes").select("id, workspace_id, data").eq("object_type", "discovery_monitor");
@@ -68637,6 +68662,49 @@ router44.post("/search/stream", zValidator("json", searchSchema), async (c2) => 
       await send({ type: "error", error: e2 instanceof Error ? e2.message : "Sweep failed" });
     }
   });
+});
+var saveSchema = external_exports.object({
+  name: external_exports.string().min(1).max(200),
+  object_type: external_exports.string().max(40).default("company"),
+  source_url: external_exports.string().max(600).optional(),
+  discovery_query: external_exports.string().max(300).optional(),
+  email: external_exports.string().max(200).optional(),
+  phone: external_exports.string().max(60).optional(),
+  website: external_exports.string().max(300).optional(),
+  handle: external_exports.string().max(120).optional(),
+  region: external_exports.string().max(160).optional(),
+  summary: external_exports.string().max(1e3).optional()
+});
+router44.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c2) => {
+  const b2 = c2.req.valid("json");
+  const workspaceId = c2.get("workspaceId");
+  const website = b2.website || void 0;
+  let domain;
+  try {
+    if (b2.source_url) domain = new URL(b2.source_url).host.replace(/^www\./, "");
+  } catch {
+  }
+  const { data, error } = await supabase.from("nodes").insert({
+    workspace_id: workspaceId,
+    vertical: objectTypeToVertical(b2.object_type),
+    object_type: b2.object_type,
+    created_by: c2.get("userId"),
+    data: {
+      name: b2.name,
+      source: "discovery",
+      discovery_query: b2.discovery_query,
+      source_url: b2.source_url,
+      email: b2.email,
+      phone: b2.phone,
+      website,
+      domain,
+      handle: b2.handle,
+      description: b2.summary,
+      location: b2.region
+    }
+  }).select("id").single();
+  if (error) return c2.json({ error: error.message }, 400);
+  return c2.json({ id: data.id }, 201);
 });
 router44.get("/monitors", async (c2) => {
   const { data } = await supabase.from("nodes").select("id, data, created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "discovery_monitor").order("created_at", { ascending: false });

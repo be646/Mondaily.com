@@ -1,802 +1,232 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle,
-  ArrowRight,
-  Check,
-  ChevronDown,
-  Clock,
-  ExternalLink,
-  FileSearch,
-  Globe2,
-  Layers3,
-  ListPlus,
-  Loader2,
-  MessageSquare,
-  Microscope,
-  Plus,
-  Radar,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  Trash2,
+  AlertTriangle, ArrowUp, Check, ChevronDown, ExternalLink, Globe2, Loader2, MessageSquare,
+  Plus, Radar, Sparkles, Star, ThumbsDown, ThumbsUp, Minus, Users, Trash2,
 } from "lucide-react";
-import { apiClient } from "../../lib/api-client";
+import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
 import { requestAsk } from "../../lib/ask-bus";
-import { PageHeader } from "../../components/ui/page-state";
 
-type DiscoveryTab = "search" | "saved" | "recent" | "review";
-type SaveMode = "create" | "review";
+/**
+ * Discovery — an AI research surface that finds REAL leads and REAL reviews on the open web.
+ * Built as an advanced AI chat: you ask in natural language, the agent streams what it's doing
+ * (classify → search → read pages → extract → summarize) and answers with source-backed result
+ * cards. Nothing is fabricated: every lead/review is bound to the page it came from.
+ *
+ * Engine: POST /discovery/search/stream (SSE) → the sovereign SearXNG + scraper + per-page
+ * extraction pipeline. Leads can be saved into the graph (POST /discovery/save) and added to
+ * lists; reviews show Brand24-style sentiment + source. If the search appliance isn't reachable,
+ * the connection banner says exactly why instead of failing silently.
+ */
+type Kind = "INTENT_LEADS" | "REVIEWS";
+type Sentiment = "positive" | "negative" | "neutral" | "mixed" | null;
 
-interface ProspectCandidate {
-  name: string;
-  object_type: string;
-  email: string | null;
-  domain: string | null;
-  website: string | null;
-  linkedin: string | null;
-  description: string | null;
-  location: string | null;
+interface ResultRow {
   source_url: string;
-  source_title: string;
-  confidence_label: "high" | "medium" | "low";
-  reason: string;
-  status: "created" | "existing" | "queued_for_review";
-  node_id?: string;
-  decision_id?: string;
+  platform: string;
+  author_name: string;
+  intent_type: "BUY_SIGNAL" | "REVIEW" | "COMPLAINT";
+  sentiment: Sentiment;
+  confidence_score: number;
+  region?: string | null;
+  target_subject?: string | null;
+  snippet: string;
+  email: string | null;
+  phone: string | null;
+  handle: string | null;
 }
 
-interface ProspectingRunResult {
-  created: number;
-  existing: number;
-  queued_for_review: number;
-  added_to_list: number;
-  candidates: ProspectCandidate[];
-  sources: { url: string; title: string }[];
+interface Turn {
+  id: string;
+  query: string;
+  deep: boolean;
+  kind?: Kind;
+  subject?: string | null;
+  steps: string[];
+  overview?: string;
+  results: ResultRow[];
+  discovered?: number;
+  scanned?: number;
+  status: "streaming" | "done" | "error";
   error?: string;
 }
 
-interface SavedRecord {
-  id: string;
-  object_type: string;
-  updated_at?: string;
-  data: Record<string, unknown>;
-}
-
-interface ListRow {
-  id: string;
-  name: string;
-  object_type: string;
-  entry_count?: number;
-}
-
-interface DiscoveryStatus {
-  status: "HEALTHY" | "DEGRADED";
-  services: { searxng_reachable: boolean; scraper_reachable: boolean };
-  diagnostic?: string;
-}
+interface ListRow { id: string; name: string; object_type: string; entry_count?: number }
+interface DiscoveryStatus { status: "HEALTHY" | "DEGRADED"; services: { searxng_reachable: boolean; scraper_reachable: boolean }; diagnostic?: string }
 
 const EXAMPLES = [
-  "Aesthetic clinics in London with poor review response",
-  "Boutique hotels in Dubai hiring operations managers",
-  "Commercial solar installers in Texas with expansion signals",
-  "SaaS companies in Europe that recently raised funding",
+  { icon: Users, label: "Aesthetic clinics in London", q: "aesthetic clinics in London" },
+  { icon: Star, label: "Reviews about Trustpilot", q: "what do people say about Trustpilot" },
+  { icon: Users, label: "Solar installers in Texas", q: "commercial solar installers in Texas" },
+  { icon: Star, label: "Reviews about Acme Corp", q: "reviews and complaints about Acme Corp" },
 ];
 
-const OBJECT_TYPES = ["company", "people", "investor", "supplier", "asset", "candidate"];
-
-const confidenceTone: Record<ProspectCandidate["confidence_label"], string> = {
-  high: "#2f7d52",
-  medium: "#a9782a",
-  low: "#737373",
-};
-
-function hostOf(url?: string | null): string {
+const hostOf = (url?: string | null) => {
   if (!url) return "";
-  try {
-    return new URL(url).host.replace(/^www\./, "");
-  } catch {
-    return url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? "";
-  }
-}
+  try { return new URL(url).host.replace(/^www\./, ""); } catch { return String(url).replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? ""; }
+};
+const uid = () => `t_${Math.random().toString(36).slice(2)}_${performance.now().toString(36)}`;
 
-/**
- * A record belongs in the Saved Leads tab only if it was actually sourced through Discovery.
- * We key on the provenance markers the prospecting agent writes (`source: "discovery"` +
- * the query/reason) and on the persisted search evidence (source url/title/confidence) so both
- * newly-tagged and older discovery records match — while ordinary hand-added contacts don't.
- */
-const DISCOVERY_MARKERS = ["source_url", "source_title", "confidence_label", "discovery_query", "prospecting_reason"] as const;
-function isDiscoverySourced(data: Record<string, unknown> | undefined): boolean {
-  if (!data) return false;
-  if (data.source === "discovery") return true;
-  return DISCOVERY_MARKERS.some((k) => Boolean(data[k]));
-}
-
-function labelOf(record: SavedRecord): string {
-  const d = record.data ?? {};
-  return String(d.name ?? d.company ?? d.full_name ?? d.title ?? "Untitled record");
-}
-
-function sourceKey(candidate: ProspectCandidate): string {
-  return [
-    candidate.name,
-    candidate.email ?? "",
-    candidate.domain ?? "",
-    candidate.website ?? "",
-    candidate.linkedin ?? "",
-    hostOf(candidate.source_url),
-  ].join("|").toLowerCase();
-}
-
-function savedKey(record: SavedRecord): string {
-  const d = record.data ?? {};
-  return [
-    d.name ?? d.company ?? d.full_name ?? d.title ?? "",
-    d.email ?? "",
-    d.domain ?? "",
-    d.website ?? "",
-    d.linkedin ?? "",
-    hostOf(String(d.source_url ?? "")),
-  ].join("|").toLowerCase();
-}
-
-function statusLabel(candidate: ProspectCandidate): string {
-  if (candidate.status === "created") return "Saved to graph";
-  if (candidate.status === "existing") return "Already in graph";
-  return "Awaiting review";
-}
+const SENTIMENT: Record<Exclude<Sentiment, null>, { label: string; tone: string; Icon: typeof ThumbsUp }> = {
+  positive: { label: "Positive", tone: "#15803d", Icon: ThumbsUp },
+  negative: { label: "Negative", tone: "#be123c", Icon: ThumbsDown },
+  neutral:  { label: "Neutral",  tone: "#737373", Icon: Minus },
+  mixed:    { label: "Mixed",    tone: "#a9782a", Icon: Minus },
+};
 
 export function DiscoveryPage() {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<DiscoveryTab>("search");
-  const [query, setQuery] = useState("");
-  const [objectType, setObjectType] = useState("company");
-  const [count, setCount] = useState(12);
-  const [saveMode, setSaveMode] = useState<SaveMode>("create");
-  const [destinationListId, setDestinationListId] = useState("");
-  const [result, setResult] = useState<ProspectingRunResult | null>(null);
-  const [lastSearch, setLastSearch] = useState<{ query: string; objectType: string } | null>(null);
-  const [recents, setRecents] = useState<string[]>(() => {
+  const [view, setView] = useState<"chat" | "saved">("chat");
+  const [input, setInput] = useState("");
+  const [deep, setDeep] = useState(false);
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [busy, setBusy] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const statusQ = useQuery({ queryKey: ["discovery-status"], queryFn: () => apiClient.get<DiscoveryStatus>("/discovery/status"), staleTime: 60_000 });
+  const listsQ = useQuery({ queryKey: ["lists"], queryFn: () => apiClient.get<ListRow[]>("/lists"), staleTime: 30_000 });
+  const degraded = statusQ.data?.status === "DEGRADED";
+
+  useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [turns]);
+
+  async function runSearch(q: string) {
+    const query = q.trim();
+    if (!query || busy) return;
+    setInput("");
+    setBusy(true);
+    const id = uid();
+    const turn: Turn = { id, query, deep, steps: [], results: [], status: "streaming" };
+    setTurns((t) => [...t, turn]);
+    const patch = (fn: (t: Turn) => Turn) => setTurns((ts) => ts.map((t) => (t.id === id ? fn(t) : t)));
+
     try {
-      return JSON.parse(localStorage.getItem("mondaily_discovery_recent_queries") || "[]");
-    } catch {
-      return [];
+      const res = await apiFetch(`${BASE_URL}/api/v1/discovery/search/stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, deep }),
+      });
+      if (!res.ok || !res.body) throw new Error(`Search failed (${res.status})`);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      // Parse the SSE stream: frames are separated by a blank line; each `data:` line is JSON.
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const frames = buffer.split("\n\n");
+        buffer = frames.pop() ?? "";
+        for (const frame of frames) {
+          const line = frame.split("\n").find((l) => l.startsWith("data:"));
+          if (!line) continue;
+          let ev: any;
+          try { ev = JSON.parse(line.slice(5).trim()); } catch { continue; }
+          if (ev.type === "progress" && ev.message) patch((t) => ({ ...t, steps: [...t.steps, String(ev.message)] }));
+          else if (ev.type === "overview" && ev.text) patch((t) => ({ ...t, overview: String(ev.text) }));
+          else if (ev.type === "error") patch((t) => ({ ...t, status: "error", error: String(ev.error || "Search failed") }));
+          else if (ev.type === "done") {
+            const kind: Kind = ev.classified?.searchType === "REVIEWS" ? "REVIEWS" : "INTENT_LEADS";
+            patch((t) => ({
+              ...t,
+              status: "done",
+              kind,
+              subject: ev.classified?.targetSubject ?? null,
+              overview: ev.overview ?? t.overview,
+              results: Array.isArray(ev.results) ? ev.results : [],
+              discovered: ev.discovered ?? (Array.isArray(ev.results) ? ev.results.length : 0),
+              scanned: ev.scanned ?? 0,
+              error: ev.reason && (!ev.results || ev.results.length === 0) ? String(ev.reason) : undefined,
+            }));
+            qc.invalidateQueries({ queryKey: ["nodes"] });
+          }
+        }
+      }
+      // Stream ended without a done frame (e.g. dropped) → mark done so the UI isn't stuck.
+      patch((t) => (t.status === "streaming" ? { ...t, status: "done" } : t));
+    } catch (e) {
+      patch((t) => ({ ...t, status: "error", error: e instanceof Error ? e.message : "Search failed" }));
+    } finally {
+      setBusy(false);
     }
-  });
-
-  const statusQ = useQuery({
-    queryKey: ["discovery-status"],
-    queryFn: () => apiClient.get<DiscoveryStatus>("/discovery/status"),
-    staleTime: 60_000,
-  });
-
-  const listsQ = useQuery({
-    queryKey: ["lists"],
-    queryFn: () => apiClient.get<ListRow[]>("/lists"),
-    staleTime: 30_000,
-  });
-
-  const decisionsQ = useQuery({
-    queryKey: ["decisions", "pending", "prospecting"],
-    queryFn: () => apiClient.get<{ agent_name: string; status: string }[]>("/decisions?status=pending"),
-    staleTime: 20_000,
-  });
-  const pendingProspecting = (decisionsQ.data ?? []).filter((d) => d.agent_name === "prospecting").length;
-
-  const savedQ = useQuery({
-    queryKey: ["nodes", objectType, "discovery-saved"],
-    queryFn: () => apiClient.get<SavedRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}&limit=300`),
-    staleTime: 20_000,
-  });
-
-  const compatibleLists = useMemo(() => {
-    return (listsQ.data ?? []).filter((l) => !l.object_type || l.object_type === objectType);
-  }, [listsQ.data, objectType]);
-
-  useEffect(() => {
-    if (destinationListId && !compatibleLists.some((l) => l.id === destinationListId)) {
-      setDestinationListId("");
-    }
-  }, [compatibleLists, destinationListId]);
-
-  const savedRecords = useMemo(
-    () => (savedQ.data ?? []).filter((r) => isDiscoverySourced(r.data)),
-    [savedQ.data],
-  );
-
-  const savedKeys = useMemo(() => new Set(savedRecords.map(savedKey).filter(Boolean)), [savedRecords]);
-
-  function pushRecent(q: string) {
-    const clean = q.trim();
-    if (!clean) return;
-    setRecents((prev) => {
-      const next = [clean, ...prev.filter((x) => x.toLowerCase() !== clean.toLowerCase())].slice(0, 12);
-      localStorage.setItem("mondaily_discovery_recent_queries", JSON.stringify(next));
-      return next;
-    });
-  }
-
-  const run = useMutation({
-    mutationFn: (input: { query: string; objectType: string }) =>
-      apiClient.post<ProspectingRunResult>("/prospecting/run", {
-        query: input.query,
-        object_type: input.objectType,
-        count,
-        destination_list_id: destinationListId || undefined,
-        require_approval: saveMode === "review",
-      }),
-    onSuccess: (data, input) => {
-      setResult(data);
-      setLastSearch(input);
-      pushRecent(input.query);
-      qc.invalidateQueries({ queryKey: ["nodes", input.objectType, "discovery-saved"] });
-      qc.invalidateQueries({ queryKey: ["decisions", "pending"] });
-      qc.invalidateQueries({ queryKey: ["lists"] });
-    },
-  });
-
-  const removeRecord = useMutation({
-    mutationFn: (id: string) => apiClient.delete(`/nodes/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["nodes", objectType, "discovery-saved"] }),
-  });
-
-  const addToList = useMutation({
-    mutationFn: ({ listId, nodeId }: { listId: string; nodeId: string }) =>
-      apiClient.post(`/lists/${listId}/entries`, { node_id: nodeId }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["lists"] }),
-  });
-
-  function submitSearch(q = query) {
-    const clean = q.trim();
-    if (!clean || run.isPending) return;
-    setTab("search");
-    run.mutate({ query: clean, objectType });
-  }
-
-  function askAboutCandidate(candidate: ProspectCandidate) {
-    requestAsk(
-      `Research this Discovery candidate using only source-backed information: ${candidate.name}. ` +
-      `Source: ${candidate.source_url}. Explain what they do, why they match "${lastSearch?.query ?? query}", ` +
-      `what signal or review evidence exists, red flags, and the best next action. If reviews are not found, say "No review source found".`
-    );
-  }
-
-  function createTask(candidate: ProspectCandidate) {
-    requestAsk(
-      `Create a follow-up task for Discovery candidate "${candidate.name}" from ${candidate.source_url}. ` +
-      `Use the real context only. If the assignee or due date is ambiguous, ask me before creating it.`
-    );
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
-      <PageHeader
-        title="Discovery"
-        description="Find real prospects, suppliers, candidates, assets, reviews, and market signals from the open web — then save them into the workspace graph."
-      />
-
-      <section className="mt-5 border-y py-5" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="mx-auto flex h-[calc(100vh-3.5rem)] max-w-4xl flex-col px-4 sm:px-6">
+      {/* header */}
+      <div className="flex items-center justify-between gap-3 py-4">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--surface-hover)" }}>
+            <Radar size={16} style={{ color: "var(--section-accent)" }} />
+          </span>
           <div>
-            <div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>
-              <span className="h-2 w-2 rounded-full" style={{ background: statusQ.data?.status === "DEGRADED" ? "#b45309" : "#2f7d52" }} />
-              Sovereign web search
-              <span aria-hidden>·</span>
-              SearXNG + scraper + source-backed extraction
+            <h1 className="text-[16px] font-semibold leading-none" style={{ color: "var(--text-primary)" }}>Discovery</h1>
+            <div className="mt-1 flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-faint)" }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: degraded ? "#d97706" : "#15803d" }} />
+              {degraded ? "Search engine offline" : "Sovereign web search online"}
             </div>
+          </div>
+        </div>
+        <div className="flex overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
+          {(["chat", "saved"] as const).map((v) => (
+            <button key={v} onClick={() => setView(v)} className="px-3 py-1.5 text-[12px] font-medium capitalize transition-colors"
+              style={{ background: view === v ? "var(--surface-selected)" : "transparent", color: view === v ? "var(--text-primary)" : "var(--text-muted)" }}>
+              {v === "chat" ? "Discover" : "Saved leads"}
+            </button>
+          ))}
+        </div>
+      </div>
 
-            <div
-              className="mt-4 flex min-h-[58px] items-center gap-3 rounded-full border px-4 transition-colors"
-              style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
-            >
-              <Search size={18} className="shrink-0" style={{ color: "var(--text-muted)" }} />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") submitSearch();
-                }}
-                placeholder="Search the web for leads, reviews, suppliers, investors, assets, candidates..."
-                className="min-w-0 flex-1 bg-transparent text-[16px] outline-none"
+      {degraded && (
+        <div className="mb-3 flex items-start gap-2 rounded-md border px-3 py-2.5 text-[12px]" style={{ borderColor: "#d9770633", background: "#d977060f", color: "#92400e" }}>
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          <span>{statusQ.data?.diagnostic ?? "The search appliance isn't reachable, so Discovery can't return live results yet."}</span>
+        </div>
+      )}
+
+      {view === "saved" ? (
+        <SavedLeads lists={listsQ.data ?? []} />
+      ) : (
+        <>
+          {/* conversation */}
+          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto pb-4">
+            {turns.length === 0 ? (
+              <Empty onPick={runSearch} />
+            ) : (
+              <div className="space-y-6">
+                {turns.map((t) => <TurnView key={t.id} turn={t} lists={listsQ.data ?? []} />)}
+              </div>
+            )}
+          </div>
+
+          {/* composer */}
+          <div className="border-t py-3" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="rounded-2xl border px-3 py-2.5 transition-colors focus-within:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); runSearch(input); } }}
+                rows={1}
+                placeholder="Find leads or reviews — e.g. “aesthetic clinics in London” or “reviews about Acme Corp”"
+                className="max-h-32 w-full resize-none bg-transparent text-[14px] outline-none"
                 style={{ color: "var(--text-primary)" }}
               />
-              <button
-                onClick={() => submitSearch()}
-                disabled={!query.trim() || run.isPending}
-                className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-[13px] font-medium transition-opacity disabled:opacity-40"
-                style={{ background: "var(--text-primary)", color: "var(--surface-canvas)" }}
-              >
-                {run.isPending ? <Loader2 size={14} className="animate-spin" /> : <Radar size={14} />}
-                Search
-              </button>
-            </div>
-
-            <div className="mt-3 flex flex-wrap gap-2">
-              {EXAMPLES.map((ex) => (
-                <button
-                  key={ex}
-                  onClick={() => {
-                    setQuery(ex);
-                    submitSearch(ex);
-                  }}
-                  className="rounded-full border px-3 py-1.5 text-[12px] transition-colors hover:border-[color:var(--section-accent)]"
-                  style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
-                >
-                  {ex}
+              <div className="mt-2 flex items-center justify-between">
+                <button onClick={() => setDeep((d) => !d)} title="Deep mode visits each business's own site to harvest emails & phones"
+                  className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
+                  style={{ borderColor: deep ? "var(--section-accent)" : "var(--border-soft)", color: deep ? "var(--section-accent)" : "var(--text-muted)" }}>
+                  <Sparkles size={12} /> Deep mode {deep ? "on" : "off"}
                 </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-3 border-l pl-5 max-lg:border-l-0 max-lg:border-t max-lg:pl-0 max-lg:pt-4" style={{ borderColor: "var(--border-soft)" }}>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="space-y-1.5">
-                <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Object</span>
-                <select
-                  value={objectType}
-                  onChange={(e) => setObjectType(e.target.value)}
-                  className="key-input h-10 w-full rounded-sm text-[13px]"
-                >
-                  {OBJECT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </label>
-              <label className="space-y-1.5">
-                <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Count</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={count}
-                  onChange={(e) => setCount(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
-                  className="key-input h-10 w-full rounded-sm text-[13px]"
-                />
-              </label>
-            </div>
-
-            <label className="space-y-1.5">
-              <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Save behavior</span>
-              <div className="grid grid-cols-2 overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
-                {([
-                  ["create", "Save now"],
-                  ["review", "Review first"],
-                ] as const).map(([value, label]) => (
-                  <button
-                    key={value}
-                    onClick={() => setSaveMode(value)}
-                    className="px-3 py-2 text-[12px] font-medium transition-colors"
-                    style={{
-                      background: saveMode === value ? "var(--text-primary)" : "transparent",
-                      color: saveMode === value ? "var(--surface-canvas)" : "var(--text-muted)",
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
+                <button onClick={() => runSearch(input)} disabled={!input.trim() || busy}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white transition-opacity disabled:opacity-40" style={{ background: "var(--section-accent)" }}>
+                  {busy ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={16} />}
+                </button>
               </div>
-            </label>
-
-            <label className="space-y-1.5">
-              <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Add to list</span>
-              <select
-                value={destinationListId}
-                onChange={(e) => setDestinationListId(e.target.value)}
-                className="key-input h-10 w-full rounded-sm text-[13px]"
-              >
-                <option value="">No list selected</option>
-                {compatibleLists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
-            </label>
-          </div>
-        </div>
-
-        {statusQ.data?.status === "DEGRADED" && (
-          <div className="mt-4 flex items-start gap-2 rounded-sm border px-3 py-2.5 text-[12.5px]" style={{ borderColor: "#b4530933", color: "#92400e", background: "#f59e0b12" }}>
-            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-            <span>{statusQ.data.diagnostic ?? "The search stack is degraded. Discovery cannot return good results until the appliance is reachable."}</span>
-          </div>
-        )}
-      </section>
-
-      <nav className="mt-5 flex flex-wrap items-center gap-1 border-b" style={{ borderColor: "var(--border-soft)" }}>
-        {([
-          ["search", "Search results"],
-          ["saved", `Saved graph records${savedRecords.length ? ` · ${savedRecords.length}` : ""}`],
-          ["review", `Review queue${pendingProspecting ? ` · ${pendingProspecting}` : ""}`],
-          ["recent", "Recent searches"],
-        ] as const).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className="relative -mb-px px-3 py-2 text-[12.5px] font-medium"
-            style={{ color: tab === key ? "var(--text-primary)" : "var(--text-muted)" }}
-          >
-            {label}
-            {tab === key && <span className="absolute inset-x-2 -bottom-px h-px" style={{ background: "var(--text-primary)" }} />}
-          </button>
-        ))}
-      </nav>
-
-      {tab === "search" && (
-        <SearchResults
-          result={result}
-          pending={run.isPending}
-          error={run.error}
-          savedKeys={savedKeys}
-          objectType={objectType}
-          onAsk={askAboutCandidate}
-          onTask={createTask}
-          onAddToList={(nodeId, listId) => addToList.mutate({ nodeId, listId })}
-          lists={compatibleLists}
-          addingListId={addToList.variables?.listId ?? null}
-        />
-      )}
-
-      {tab === "saved" && (
-        <SavedRecords
-          loading={savedQ.isLoading}
-          error={savedQ.isError}
-          records={savedRecords}
-          objectType={objectType}
-          lists={compatibleLists}
-          onRemove={(id) => removeRecord.mutate(id)}
-          removingId={removeRecord.variables ?? null}
-          onAddToList={(nodeId, listId) => addToList.mutate({ nodeId, listId })}
-          addingListId={addToList.variables?.listId ?? null}
-        />
-      )}
-
-      {tab === "review" && (
-        <ReviewQueue pending={pendingProspecting} />
-      )}
-
-      {tab === "recent" && (
-        <RecentSearches
-          recents={recents}
-          onClear={() => {
-            setRecents([]);
-            localStorage.removeItem("mondaily_discovery_recent_queries");
-          }}
-          onRun={(q) => {
-            setQuery(q);
-            submitSearch(q);
-          }}
-        />
-      )}
-    </div>
-  );
-}
-
-function SearchResults({
-  result,
-  pending,
-  error,
-  savedKeys,
-  objectType,
-  lists,
-  addingListId,
-  onAsk,
-  onTask,
-  onAddToList,
-}: {
-  result: ProspectingRunResult | null;
-  pending: boolean;
-  error: unknown;
-  savedKeys: Set<string>;
-  objectType: string;
-  lists: ListRow[];
-  addingListId: string | null;
-  onAsk: (candidate: ProspectCandidate) => void;
-  onTask: (candidate: ProspectCandidate) => void;
-  onAddToList: (nodeId: string, listId: string) => void;
-}) {
-  if (pending) {
-    return (
-      <div className="grid min-h-[360px] place-items-center border-b py-16" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="max-w-md text-center">
-          <Loader2 size={24} className="mx-auto animate-spin" style={{ color: "var(--section-accent)" }} />
-          <p className="mt-4 text-[15px] font-medium" style={{ color: "var(--text-primary)" }}>Searching the open web</p>
-          <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-            Mondaily is reading sovereign search results, scraping source pages, extracting real candidates, deduplicating against your graph, and saving or queueing records.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="mt-5 rounded-sm border px-4 py-4" style={{ borderColor: "#be123c33", background: "#be123c0d" }}>
-        <div className="flex items-start gap-2">
-          <AlertTriangle size={15} className="mt-0.5 shrink-0" style={{ color: "#be123c" }} />
-          <div>
-            <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>Discovery search failed</p>
-            <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>{(error as Error)?.message ?? "Try again or check the Discovery status."}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!result) {
-    return (
-      <div className="grid gap-4 py-8 lg:grid-cols-3">
-        {[
-          ["Find real leads", "Search industries, geographies, funding signals, reviews, and source pages."],
-          ["Save to graph", "Create records directly, queue candidates for approval, or add them to a list."],
-          ["Ask deeper", "Open a source-backed AI research prompt from any candidate."],
-        ].map(([title, body]) => (
-          <div key={title} className="border-b py-5" style={{ borderColor: "var(--border-soft)" }}>
-            <p className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{title}</p>
-            <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>{body}</p>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  const candidates = result.candidates ?? [];
-
-  return (
-    <section className="py-5">
-      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
-        <span><strong style={{ color: "var(--text-primary)" }}>{candidates.length}</strong> candidates</span>
-        <span aria-hidden>·</span>
-        <span><strong style={{ color: "var(--text-primary)" }}>{result.created}</strong> saved</span>
-        <span aria-hidden>·</span>
-        <span><strong style={{ color: "var(--text-primary)" }}>{result.existing}</strong> already existed</span>
-        <span aria-hidden>·</span>
-        <span><strong style={{ color: "var(--text-primary)" }}>{result.queued_for_review}</strong> queued</span>
-        <span aria-hidden>·</span>
-        <span><strong style={{ color: "var(--text-primary)" }}>{result.sources?.length ?? 0}</strong> sources</span>
-      </div>
-
-      {candidates.length === 0 ? (
-        <div className="border-y px-4 py-14 text-center" style={{ borderColor: "var(--border-soft)" }}>
-          <FileSearch size={22} className="mx-auto mb-3" style={{ color: "var(--text-faint)" }} />
-          <p className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>No real candidates found</p>
-          <p className="mx-auto mt-1 max-w-md text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-            The agent did not find enough source-backed data for this query. Try a clearer industry, location, or target type.
-          </p>
-        </div>
-      ) : (
-        <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
-          {candidates.map((candidate, index) => {
-            const saved = Boolean(candidate.node_id) || savedKeys.has(sourceKey(candidate));
-            return (
-              <CandidateRow
-                key={`${candidate.name}-${candidate.source_url}-${index}`}
-                candidate={candidate}
-                saved={saved}
-                objectType={objectType}
-                lists={lists}
-                addingListId={addingListId}
-                onAsk={() => onAsk(candidate)}
-                onTask={() => onTask(candidate)}
-                onAddToList={(listId) => candidate.node_id && onAddToList(candidate.node_id, listId)}
-              />
-            );
-          })}
-        </div>
-      )}
-    </section>
-  );
-}
-
-function CandidateRow({
-  candidate,
-  saved,
-  objectType,
-  lists,
-  addingListId,
-  onAsk,
-  onTask,
-  onAddToList,
-}: {
-  candidate: ProspectCandidate;
-  saved: boolean;
-  objectType: string;
-  lists: ListRow[];
-  addingListId: string | null;
-  onAsk: () => void;
-  onTask: () => void;
-  onAddToList: (listId: string) => void;
-}) {
-  const [listOpen, setListOpen] = useState(false);
-  const tone = confidenceTone[candidate.confidence_label] ?? "#737373";
-  const domain = candidate.domain || candidate.website || hostOf(candidate.source_url);
-
-  return (
-    <article className="group py-5">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 text-[11.5px]" style={{ color: "var(--text-faint)" }}>
-            <span className="inline-flex items-center gap-1">
-              <Globe2 size={11} /> {hostOf(candidate.source_url) || "source"}
-            </span>
-            {candidate.location && <><span aria-hidden>·</span><span>{candidate.location}</span></>}
-            <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: tone, background: `${tone}16` }}>
-              {candidate.confidence_label}
-            </span>
-            <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ color: saved ? "#2f7d52" : "var(--text-muted)", background: saved ? "#2f7d5214" : "var(--surface-hover)" }}>
-              {statusLabel(candidate)}
-            </span>
-          </div>
-
-          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <a
-              href={candidate.source_url}
-              target="_blank"
-              rel="noreferrer"
-              className="max-w-full truncate text-[16px] font-semibold hover:underline"
-              style={{ color: "var(--section-accent)" }}
-            >
-              {candidate.name}
-            </a>
-            <ExternalLink size={13} style={{ color: "var(--text-faint)" }} />
-          </div>
-
-          {candidate.description && (
-            <p className="mt-1 max-w-3xl text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{candidate.description}</p>
-          )}
-          <p className="mt-1 max-w-3xl text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>{candidate.reason}</p>
-
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
-            {domain && <span>Domain: <span style={{ color: "var(--text-secondary)" }}>{domain}</span></span>}
-            {candidate.email && <span>Email: <span style={{ color: "var(--text-secondary)" }}>{candidate.email}</span></span>}
-            {candidate.linkedin && <a href={candidate.linkedin} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: "var(--section-accent)" }}>LinkedIn</a>}
-          </div>
-        </div>
-
-        <div className="flex flex-col items-start gap-2 lg:items-end">
-          <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
-            <button onClick={onAsk} className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-              <MessageSquare size={12} /> Ask AI
-            </button>
-            <button onClick={onAsk} className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-              <Microscope size={12} /> Deep research
-            </button>
-            <button onClick={onTask} className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-              <ListPlus size={12} /> Task
-            </button>
-          </div>
-
-          {candidate.node_id ? (
-            <div className="relative">
-              <button
-                onClick={() => setListOpen((v) => !v)}
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-medium"
-                style={{ background: "var(--surface-hover)", color: "var(--text-primary)" }}
-              >
-                <Plus size={12} /> Add to list <ChevronDown size={12} />
-              </button>
-              {listOpen && (
-                <>
-                  <button className="fixed inset-0 z-20 cursor-default" onClick={() => setListOpen(false)} aria-label="Close list picker" />
-                  <div className="absolute right-0 z-30 mt-2 w-60 overflow-hidden rounded-sm border shadow-lg" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-                    {lists.length === 0 ? (
-                      <div className="px-3 py-3 text-[12px]" style={{ color: "var(--text-faint)" }}>No compatible lists for {objectType}.</div>
-                    ) : lists.map((list) => (
-                      <button
-                        key={list.id}
-                        onClick={() => {
-                          onAddToList(list.id);
-                          setListOpen(false);
-                        }}
-                        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12px] hover:bg-[var(--surface-hover)]"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        <span className="truncate">{list.name}</span>
-                        {addingListId === list.id ? <Loader2 size={12} className="animate-spin" /> : <span style={{ color: "var(--text-faint)" }}>{list.entry_count ?? 0}</span>}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
             </div>
-          ) : (
-            <Link to="/decisions" className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-medium" style={{ background: "var(--surface-hover)", color: "var(--text-primary)" }}>
-              Review in queue <ArrowRight size={12} />
-            </Link>
-          )}
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function SavedRecords({
-  loading,
-  error,
-  records,
-  objectType,
-  lists,
-  removingId,
-  addingListId,
-  onRemove,
-  onAddToList,
-}: {
-  loading: boolean;
-  error: boolean;
-  records: SavedRecord[];
-  objectType: string;
-  lists: ListRow[];
-  removingId: string | null;
-  addingListId: string | null;
-  onRemove: (id: string) => void;
-  onAddToList: (nodeId: string, listId: string) => void;
-}) {
-  if (loading) return <div className="py-12 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={14} className="mr-2 inline animate-spin" /> Loading saved records…</div>;
-  if (error) return <div className="py-12 text-[13px]" style={{ color: "#be123c" }}>Could not load saved records.</div>;
-  if (records.length === 0) {
-    return (
-      <div className="grid min-h-[260px] place-items-center border-b py-10 text-center" style={{ borderColor: "var(--border-soft)" }}>
-        <div>
-          <Layers3 size={22} className="mx-auto mb-3" style={{ color: "var(--text-faint)" }} />
-          <p className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>No saved {objectType} records yet</p>
-          <p className="mt-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>Run Discovery in “Save now” mode to create graph records here.</p>
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="divide-y py-3" style={{ borderColor: "var(--border-soft)" }}>
-      {records.map((record) => {
-        const d = record.data ?? {};
-        const name = labelOf(record);
-        const source = String(d.source_url ?? d.website ?? d.domain ?? "");
-        return (
-          <div key={record.id} className="grid gap-3 py-4 lg:grid-cols-[minmax(0,1fr)_260px]">
-            <div className="min-w-0">
-              <div className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>{hostOf(source) || "No source stored yet"}</div>
-              <Link to={`/objects/${record.object_type}/${record.id}`} className="mt-0.5 inline-block max-w-full truncate text-[15px] font-semibold hover:underline" style={{ color: "var(--section-accent)" }}>{name}</Link>
-              <p className="mt-1 line-clamp-2 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
-                {String(d.description ?? d.notes ?? d.reason ?? "Not found yet")}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
-              <Link to={`/objects/${record.object_type}/${record.id}`} className="rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Open</Link>
-              <ListPicker lists={lists} addingListId={addingListId} onSelect={(listId) => onAddToList(record.id, listId)} />
-              <button onClick={() => requestAsk(`Tell me what matters about saved Discovery record "${name}" using workspace and source-backed information only.`)} className="rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Ask AI</button>
-              <button onClick={() => onRemove(record.id)} disabled={removingId === record.id} className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11.5px] font-medium" style={{ color: "#be123c", background: "#be123c0d" }}>
-                {removingId === record.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Remove
-              </button>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function ListPicker({ lists, addingListId, onSelect }: { lists: ListRow[]; addingListId: string | null; onSelect: (listId: string) => void }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative">
-      <button onClick={() => setOpen((v) => !v)} className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-        Add to list <ChevronDown size={12} />
-      </button>
-      {open && (
-        <>
-          <button className="fixed inset-0 z-20 cursor-default" onClick={() => setOpen(false)} aria-label="Close list picker" />
-          <div className="absolute right-0 z-30 mt-2 w-60 overflow-hidden rounded-sm border shadow-lg" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            {lists.length === 0 ? (
-              <div className="px-3 py-3 text-[12px]" style={{ color: "var(--text-faint)" }}>No compatible lists.</div>
-            ) : lists.map((list) => (
-              <button
-                key={list.id}
-                onClick={() => {
-                  onSelect(list.id);
-                  setOpen(false);
-                }}
-                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12px] hover:bg-[var(--surface-hover)]"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                <span className="truncate">{list.name}</span>
-                {addingListId === list.id ? <Loader2 size={12} className="animate-spin" /> : <span style={{ color: "var(--text-faint)" }}>{list.entry_count ?? 0}</span>}
-              </button>
-            ))}
+            <p className="mt-1.5 text-center text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+              Every result is bound to a real source page — Discovery never invents leads or reviews.
+            </p>
           </div>
         </>
       )}
@@ -804,48 +234,298 @@ function ListPicker({ lists, addingListId, onSelect }: { lists: ListRow[]; addin
   );
 }
 
-function ReviewQueue({ pending }: { pending: number }) {
+function Empty({ onPick }: { onPick: (q: string) => void }) {
   return (
-    <div className="grid min-h-[260px] place-items-center border-b py-10 text-center" style={{ borderColor: "var(--border-soft)" }}>
-      <div className="max-w-md">
-        <ShieldCheck size={24} className="mx-auto mb-3" style={{ color: "var(--section-accent)" }} />
-        <p className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>{pending} prospecting candidate{pending === 1 ? "" : "s"} awaiting review</p>
-        <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-          When you use “Review first”, Discovery sends candidates to the Decision Queue instead of creating records immediately.
-        </p>
-        <Link to="/decisions" className="mt-4 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-medium" style={{ background: "var(--text-primary)", color: "var(--surface-canvas)" }}>
-          Open Decision Queue <ArrowRight size={13} />
-        </Link>
+    <div className="flex h-full flex-col items-center justify-center py-10 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: "var(--surface-hover)" }}>
+        <Radar size={22} style={{ color: "var(--section-accent)" }} />
+      </span>
+      <h2 className="mt-4 text-[17px] font-semibold" style={{ color: "var(--text-primary)" }}>Find real leads & reviews online</h2>
+      <p className="mt-1.5 max-w-md text-[13px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+        Ask in plain language. Discovery searches the open web, reads the pages, and brings back
+        source-backed prospects — or what people are really saying about a business.
+      </p>
+      <div className="mt-6 grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
+        {EXAMPLES.map((ex) => (
+          <button key={ex.q} onClick={() => onPick(ex.q)}
+            className="flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-[12.5px] transition-colors hover:border-[color:var(--section-accent)]"
+            style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <ex.icon size={14} style={{ color: "var(--section-accent)" }} /> {ex.label}
+          </button>
+        ))}
       </div>
     </div>
   );
 }
 
-function RecentSearches({ recents, onRun, onClear }: { recents: string[]; onRun: (query: string) => void; onClear: () => void }) {
-  if (!recents.length) {
-    return (
-      <div className="grid min-h-[260px] place-items-center border-b py-10 text-center" style={{ borderColor: "var(--border-soft)" }}>
-        <div>
-          <Clock size={22} className="mx-auto mb-3" style={{ color: "var(--text-faint)" }} />
-          <p className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>No recent searches yet</p>
-          <p className="mt-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>Searches you run from this device will appear here.</p>
+function TurnView({ turn, lists }: { turn: Turn; lists: ListRow[] }) {
+  const reviews = turn.kind === "REVIEWS";
+  return (
+    <div>
+      {/* user query bubble */}
+      <div className="flex justify-end">
+        <div className="max-w-[80%] rounded-2xl rounded-br-sm px-3.5 py-2 text-[13.5px]" style={{ background: "var(--section-accent)", color: "#fff" }}>
+          {turn.query}
+          {turn.deep && <span className="ml-2 text-[10px] opacity-80">· deep</span>}
         </div>
       </div>
-    );
-  }
-  return (
-    <div className="py-4">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>{recents.length} recent searches</span>
-        <button onClick={onClear} className="text-[12px] font-medium" style={{ color: "var(--text-faint)" }}>Clear</button>
+
+      {/* assistant response */}
+      <div className="mt-3">
+        <StepTrace steps={turn.steps} status={turn.status} />
+
+        {turn.status === "error" && (
+          <div className="mt-2 flex items-start gap-2 rounded-md border px-3 py-2 text-[12.5px]" style={{ borderColor: "#be123c33", background: "#be123c0d", color: "#be123c" }}>
+            <AlertTriangle size={14} className="mt-0.5 shrink-0" /> {turn.error}
+          </div>
+        )}
+
+        {turn.status === "done" && (
+          <>
+            {turn.overview && (
+              <div className="mt-2 flex items-start gap-2 rounded-lg border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+                <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
+                <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{turn.overview}</p>
+              </div>
+            )}
+
+            {turn.results.length > 0 ? (
+              <>
+                <div className="mt-3 mb-2 flex items-center gap-2 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+                  <strong style={{ color: "var(--text-primary)" }}>{turn.results.length}</strong> {reviews ? "reviews / mentions" : "leads"}
+                  <span aria-hidden>·</span> from {turn.scanned ?? 0} sources
+                  {reviews && <SentimentSummary results={turn.results} />}
+                </div>
+                <div className="space-y-2">
+                  {turn.results.map((r, i) =>
+                    reviews
+                      ? <ReviewCard key={`${r.source_url}-${i}`} r={r} />
+                      : <LeadCard key={`${r.source_url}-${i}`} r={r} query={turn.query} lists={lists} />,
+                  )}
+                </div>
+              </>
+            ) : turn.status === "done" && !turn.error ? (
+              <p className="mt-2 text-[12.5px]" style={{ color: "var(--text-faint)" }}>No on-topic {reviews ? "reviews" : "leads"} found in the pages read. Try a clearer name or sector.</p>
+            ) : null}
+          </>
+        )}
       </div>
-      <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
-        {recents.map((recent) => (
-          <button key={recent} onClick={() => onRun(recent)} className="flex w-full items-center justify-between gap-4 py-3 text-left hover:opacity-80">
-            <span className="truncate text-[13px]" style={{ color: "var(--text-secondary)" }}>{recent}</span>
-            <span className="shrink-0 text-[12px] font-medium" style={{ color: "var(--section-accent)" }}>Run again</span>
+    </div>
+  );
+}
+
+function StepTrace({ steps, status }: { steps: string[]; status: Turn["status"] }) {
+  const [open, setOpen] = useState(true);
+  useEffect(() => { if (status === "done") setOpen(false); }, [status]);
+  if (steps.length === 0 && status === "streaming") {
+    return <div className="flex items-center gap-2 text-[12.5px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Thinking…</div>;
+  }
+  if (steps.length === 0) return null;
+  const last = steps[steps.length - 1];
+  return (
+    <div className="rounded-lg border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px]" style={{ color: "var(--text-muted)" }}>
+        {status === "streaming" ? <Loader2 size={13} className="animate-spin shrink-0" style={{ color: "var(--section-accent)" }} /> : <Check size={13} className="shrink-0" style={{ color: "#15803d" }} />}
+        <span className="min-w-0 flex-1 truncate">{status === "streaming" ? last : `Searched the web · ${steps.length} steps`}</span>
+        <ChevronDown size={13} className="shrink-0 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }} />
+      </button>
+      {open && (
+        <div className="space-y-1.5 border-t px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+          {steps.map((s, i) => (
+            <div key={i} className="flex items-start gap-2 text-[11.5px]" style={{ color: i === steps.length - 1 && status === "streaming" ? "var(--text-secondary)" : "var(--text-faint)" }}>
+              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "var(--text-faint)" }} /> {s}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SentimentSummary({ results }: { results: ResultRow[] }) {
+  const counts = results.reduce((acc, r) => { if (r.sentiment) acc[r.sentiment] = (acc[r.sentiment] ?? 0) + 1; return acc; }, {} as Record<string, number>);
+  const order: Exclude<Sentiment, null>[] = ["positive", "negative", "neutral", "mixed"];
+  const shown = order.filter((k) => counts[k]);
+  if (!shown.length) return null;
+  return (
+    <>
+      <span aria-hidden>·</span>
+      <span className="inline-flex items-center gap-2">
+        {shown.map((k) => <span key={k} style={{ color: SENTIMENT[k].tone }}>{counts[k]} {SENTIMENT[k].label.toLowerCase()}</span>)}
+      </span>
+    </>
+  );
+}
+
+function ReviewCard({ r }: { r: ResultRow }) {
+  const s = r.sentiment ? SENTIMENT[r.sentiment] : null;
+  return (
+    <div className="rounded-lg border px-3.5 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2 text-[11.5px]" style={{ color: "var(--text-faint)" }}>
+          <Globe2 size={11} className="shrink-0" /> <span className="truncate">{r.platform || hostOf(r.source_url)}</span>
+          {r.author_name && r.author_name !== "Anonymous" && <><span aria-hidden>·</span><span className="truncate" style={{ color: "var(--text-muted)" }}>{r.author_name}</span></>}
+        </div>
+        {s && (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-semibold" style={{ color: s.tone, background: `${s.tone}14` }}>
+            <s.Icon size={10} /> {s.label}
+          </span>
+        )}
+      </div>
+      <p className="mt-1.5 text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{r.snippet || "—"}</p>
+      <div className="mt-2 flex items-center gap-3">
+        <a href={r.source_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11.5px] font-medium hover:underline" style={{ color: "var(--section-accent)" }}>
+          View source <ExternalLink size={11} />
+        </a>
+        <button onClick={() => requestAsk(`Summarise what this review from ${hostOf(r.source_url)} says about ${r.target_subject ?? "the business"}, using only its text: "${r.snippet}". Source: ${r.source_url}`)}
+          className="inline-flex items-center gap-1 text-[11.5px] font-medium" style={{ color: "var(--text-muted)" }}>
+          <MessageSquare size={11} /> Ask AI
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: ListRow[] }) {
+  const qc = useQueryClient();
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [listOpen, setListOpen] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const save = useMutation({
+    mutationFn: () => apiClient.post<{ id: string }>("/discovery/save", {
+      name: r.author_name && r.author_name !== "Anonymous" ? r.author_name : (hostOf(r.source_url) || "Discovered lead"),
+      object_type: "company",
+      source_url: r.source_url,
+      discovery_query: query,
+      email: r.email ?? undefined,
+      phone: r.phone ?? undefined,
+      handle: r.handle ?? undefined,
+      region: r.region ?? undefined,
+      summary: r.snippet || undefined,
+    }),
+    onSuccess: (d) => { setSavedId(d.id); setMsg("Saved to graph"); qc.invalidateQueries({ queryKey: ["nodes"] }); },
+    onError: (e) => setMsg((e as Error)?.message ?? "Couldn't save"),
+  });
+  const addToList = useMutation({
+    mutationFn: (listId: string) => apiClient.post(`/lists/${listId}/entries`, { node_id: savedId }),
+    onSuccess: () => { setListOpen(false); setMsg("Added to list"); qc.invalidateQueries({ queryKey: ["lists"] }); },
+    onError: (e) => setMsg((e as Error)?.message ?? "Couldn't add"),
+  });
+
+  const name = r.author_name && r.author_name !== "Anonymous" ? r.author_name : hostOf(r.source_url);
+  return (
+    <div className="rounded-lg border px-3.5 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--text-faint)" }}>
+            <Globe2 size={11} className="shrink-0" /> <span className="truncate">{hostOf(r.source_url) || r.platform}</span>
+            {r.region && <><span aria-hidden>·</span><span>{r.region}</span></>}
+            {r.confidence_score > 0 && <span className="rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold" style={{ color: r.confidence_score >= 70 ? "#15803d" : "var(--text-muted)", background: r.confidence_score >= 70 ? "#15803d14" : "var(--surface-hover)" }}>{r.confidence_score}% match</span>}
+          </div>
+          <a href={r.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-[14.5px] font-semibold hover:underline" style={{ color: "var(--section-accent)" }}>
+            {name} <ExternalLink size={12} className="shrink-0" style={{ color: "var(--text-faint)" }} />
+          </a>
+          {r.snippet && <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>{r.snippet}</p>}
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+            {r.email && <span>✉ <span style={{ color: "var(--text-secondary)" }}>{r.email}</span></span>}
+            {r.phone && <span>☎ <span style={{ color: "var(--text-secondary)" }}>{r.phone}</span></span>}
+            {r.handle && <span style={{ color: "var(--text-secondary)" }}>{r.handle}</span>}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        {savedId ? (
+          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: "#15803d", background: "#15803d14" }}><Check size={11} /> Saved</span>
+        ) : (
+          <button onClick={() => save.mutate()} disabled={save.isPending}
+            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
+            {save.isPending ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Save as lead
           </button>
-        ))}
+        )}
+        {savedId && (
+          <div className="relative">
+            <button onClick={() => setListOpen((o) => !o)} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              Add to list <ChevronDown size={11} />
+            </button>
+            {listOpen && (
+              <>
+                <button className="fixed inset-0 z-20 cursor-default" onClick={() => setListOpen(false)} aria-label="Close" />
+                <div className="absolute left-0 z-30 mt-1 w-56 overflow-hidden rounded-md border shadow-lg" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+                  {lists.length === 0 ? <div className="px-3 py-2.5 text-[12px]" style={{ color: "var(--text-faint)" }}>No lists yet.</div>
+                    : lists.map((l) => (
+                      <button key={l.id} onClick={() => addToList.mutate(l.id)} className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12px] hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-secondary)" }}>
+                        <span className="truncate">{l.name}</span>
+                        {addToList.isPending && addToList.variables === l.id ? <Loader2 size={11} className="animate-spin" /> : <span style={{ color: "var(--text-faint)" }}>{l.entry_count ?? 0}</span>}
+                      </button>
+                    ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+        <button onClick={() => requestAsk(`Research this Discovery lead using only source-backed info: ${name}. Source: ${r.source_url}. Why do they match "${query}", what evidence exists, red flags, and best next action. If no reviews are found, say "No review source found".`)}
+          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          <MessageSquare size={11} /> Ask AI
+        </button>
+        {msg && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{msg}</span>}
+      </div>
+    </div>
+  );
+}
+
+/** Saved leads — real graph records sourced through Discovery (data.source === "discovery"). */
+function SavedLeads({ lists }: { lists: ListRow[] }) {
+  const qc = useQueryClient();
+  const q = useQuery({
+    queryKey: ["nodes", "discovery-saved-all"],
+    queryFn: async () => {
+      const types = ["company", "people"];
+      const all = await Promise.all(types.map((t) => apiClient.get<any[]>(`/nodes?object_type=${t}&limit=300`).catch(() => [])));
+      return all.flat().filter((n) => n?.data?.source === "discovery" || n?.data?.source_url || n?.data?.discovery_query);
+    },
+    staleTime: 20_000,
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/nodes/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["nodes", "discovery-saved-all"] }),
+  });
+  void lists;
+
+  if (q.isLoading) return <div className="flex items-center gap-2 py-16 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> Loading saved leads…</div>;
+  const rows = q.data ?? [];
+  if (rows.length === 0) return (
+    <div className="grid flex-1 place-items-center py-20 text-center">
+      <div>
+        <Users size={22} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
+        <p className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>No saved leads yet</p>
+        <p className="mt-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>Run a search and “Save as lead” to build your list here.</p>
+      </div>
+    </div>
+  );
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto pb-6">
+      <div className="space-y-2">
+        {rows.map((r) => {
+          const d = r.data ?? {};
+          const name = String(d.name ?? d.company ?? d.title ?? "Untitled");
+          return (
+            <div key={r.id} className="flex items-start justify-between gap-3 rounded-lg border px-3.5 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              <div className="min-w-0">
+                <div className="text-[11px]" style={{ color: "var(--text-faint)" }}>{hostOf(String(d.source_url ?? d.website ?? "")) || "no source"}</div>
+                <Link to={`/objects/${r.object_type}/${r.id}`} className="mt-0.5 inline-block max-w-full truncate text-[14px] font-semibold hover:underline" style={{ color: "var(--section-accent)" }}>{name}</Link>
+                <p className="mt-0.5 line-clamp-2 text-[12px]" style={{ color: "var(--text-muted)" }}>{String(d.description ?? d.email ?? d.phone ?? "")}</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Link to={`/objects/${r.object_type}/${r.id}`} className="rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Open</Link>
+                <button onClick={() => remove.mutate(r.id)} disabled={remove.isPending && remove.variables === r.id} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: "#be123c", background: "#be123c0d" }}>
+                  {remove.isPending && remove.variables === r.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -6,6 +6,8 @@ import { requireAuth } from "../middleware/auth";
 import { inngest } from "../lib/inngest";
 import { sovereignHeaders } from "../lib/sovereign-search";
 import { runSocialDiscovery, type DiscoveryParams } from "../jobs/social-discovery";
+import { objectTypeToVertical } from "./prospecting";
+import { denyViewerWrites } from "../middleware/rbac";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { streamSSE } from "hono/streaming";
 
@@ -129,6 +131,50 @@ router.post("/search/stream", zValidator("json", searchSchema), async (c) => {
       await send({ type: "error", error: e instanceof Error ? e.message : "Sweep failed" });
     }
   });
+});
+
+// Promote a discovered lead into a real graph record (the "Save as lead" action). Creates a node
+// tagged with discovery provenance so it shows in Saved Leads. Only real, passed-in values are
+// stored — nothing invented. Returns the new node id so the client can add it to a list next.
+const saveSchema = z.object({
+  name: z.string().min(1).max(200),
+  object_type: z.string().max(40).default("company"),
+  source_url: z.string().max(600).optional(),
+  discovery_query: z.string().max(300).optional(),
+  email: z.string().max(200).optional(),
+  phone: z.string().max(60).optional(),
+  website: z.string().max(300).optional(),
+  handle: z.string().max(120).optional(),
+  region: z.string().max(160).optional(),
+  summary: z.string().max(1000).optional(),
+});
+router.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c) => {
+  const b = c.req.valid("json");
+  const workspaceId = c.get("workspaceId");
+  const website = b.website || undefined;
+  let domain: string | undefined;
+  try { if (b.source_url) domain = new URL(b.source_url).host.replace(/^www\./, ""); } catch { /* ignore */ }
+  const { data, error } = await supabase.from("nodes").insert({
+    workspace_id: workspaceId,
+    vertical: objectTypeToVertical(b.object_type),
+    object_type: b.object_type,
+    created_by: c.get("userId"),
+    data: {
+      name: b.name,
+      source: "discovery",
+      discovery_query: b.discovery_query,
+      source_url: b.source_url,
+      email: b.email,
+      phone: b.phone,
+      website,
+      domain,
+      handle: b.handle,
+      description: b.summary,
+      location: b.region,
+    },
+  }).select("id").single();
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json({ id: data.id }, 201);
 });
 
 // ── Saved-search monitors ("watch this search") — stored as nodes, re-run by the daily cron. ──

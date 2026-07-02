@@ -82,6 +82,19 @@ function buildQueries(searchType: "INTENT_LEADS" | "REVIEWS", sector?: string, r
   ].filter(q => q.replace(/["']/g, "").trim().length > 4);
 }
 
+// Normalize a review sentiment to one of four labels. The model provides it for reviews; if it's
+// missing we derive an honest value from the intent (a COMPLAINT is negative), else "neutral".
+function normalizeSentiment(
+  s: string | undefined,
+  intent: "BUY_SIGNAL" | "REVIEW" | "COMPLAINT" | undefined,
+): "positive" | "negative" | "neutral" | "mixed" | null {
+  const v = (s || "").toLowerCase();
+  if (v === "positive" || v === "negative" || v === "neutral" || v === "mixed") return v;
+  if (intent === "COMPLAINT") return "negative";
+  if (intent === "REVIEW") return "neutral";
+  return null;
+}
+
 // Human-readable platform from a URL's host — real attribution, not model guesswork.
 function platformOf(url: string): string {
   try {
@@ -105,6 +118,7 @@ interface ExtractedLead {
   author_name?: string;
   raw_content?: string;
   intent_type?: "BUY_SIGNAL" | "REVIEW" | "COMPLAINT";
+  sentiment?: "positive" | "negative" | "neutral" | "mixed";
   target_subject?: string;
   region?: string;
   confidence_score?: number;
@@ -188,6 +202,7 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
               author_name: { type: "string", description: "The person's or business's name if identifiable on the page" },
               raw_content: { type: "string", description: wantReviews ? "The review/opinion text, verbatim (the WHOLE review, not a fragment)" : "The relevant quote/snippet, verbatim" },
               intent_type: { type: "string", description: "BUY_SIGNAL | REVIEW | COMPLAINT" },
+              sentiment: { type: "string", description: wantReviews ? "positive | negative | neutral | mixed — the reviewer's overall sentiment toward the subject, judged ONLY from the review text" : "Omit for non-review results" },
               target_subject: { type: "string", description: "The person/company being reviewed, if any" },
               region: { type: "string" },
               confidence_score: { type: "number", description: "0-100 how clearly this matches the search intent" },
@@ -294,11 +309,14 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
       region: l.region ?? region ?? null,
       confidence_score: typeof l.confidence_score === "number" ? Math.max(0, Math.min(100, Math.round(l.confidence_score))) : 0,
       // Structured contact block (needs the `contact jsonb` column — 20260701 migration).
+      // sentiment lives here too (no schema change): the model's read for reviews, else derived
+      // from intent_type (COMPLAINT → negative) so every review row carries a real sentiment.
       contact: {
         email: l.contact_email?.trim() || null,
         phone: l.contact_phone?.trim() || null,
         handle: l.handle?.trim() || null,
         summary: l.summary?.trim() || null,
+        sentiment: normalizeSentiment(l.sentiment, l.intent_type),
       },
     }));
 
@@ -427,7 +445,27 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
       }).catch(() => {});
     }
 
-    return { discovered: dedupedRows.length, scanned: unique.length, queued, overview, diag };
+    // Compact display rows for the chat UI — exactly what was found THIS turn (no global refetch,
+    // no fabricated fields). Ordered strongest-first.
+    const results = [...dedupedRows]
+      .sort((a, b) => (b.confidence_score ?? 0) - (a.confidence_score ?? 0))
+      .slice(0, 60)
+      .map((r) => ({
+        source_url: r.source_url,
+        platform: r.platform,
+        author_name: r.author_name,
+        intent_type: r.intent_type,
+        sentiment: r.contact?.sentiment ?? null,
+        confidence_score: r.confidence_score ?? 0,
+        region: r.region,
+        target_subject: r.target_subject,
+        snippet: (r.contact?.summary || r.raw_content || "").slice(0, 400),
+        email: r.contact?.email ?? null,
+        phone: r.contact?.phone ?? null,
+        handle: r.contact?.handle ?? null,
+      }));
+
+    return { discovered: dedupedRows.length, scanned: unique.length, queued, overview, kind: searchType, results, diag };
 }
 
 /**
