@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ShieldAlert, CheckSquare, Activity, ArrowUpRight, Sparkles, FileText,
   UserPlus, Receipt, TrendingUp, Users, Database, Workflow, GitBranch, Layers, Clock,
@@ -319,6 +319,14 @@ const PULSE_CATEGORIES: { key: "tasksOpen" | "tasksOverdue" | "relationships" | 
  */
 export function WorkspaceGraphPulse() {
   const { pulse } = useAgentData();
+  // REAL 14-day trends (daily creation counts from actual created_at data) — replaces the old
+  // decorative "curve rising to current level" with genuine history per tile where one exists.
+  const trendsQ = useQuery({
+    queryKey: ["pulse-trends"],
+    queryFn: () => apiClient.get<{ days: string[]; series: Record<string, number[]> }>("/activities/trends"),
+    staleTime: 120_000,
+  });
+  const series = trendsQ.data?.series ?? {};
   // Workspace-wide health ratio — share of all active tasks (not just
   // yours) that are NOT overdue. Kept distinct from the hero pills'
   // "assigned to you" counts so the two numbers never silently disagree.
@@ -326,6 +334,14 @@ export function WorkspaceGraphPulse() {
   // Scale each tile's ring relative to the largest connected value on the
   // board right now — a real relative-size cue, never a fake trend.
   const maxValue = Math.max(1, ...PULSE_CATEGORIES.map(c => pulse[c.key] ?? 0));
+  // Build a REAL polyline from a tile's 14-day series. Returns null when no series exists for the
+  // tile (state-like metrics such as "overdue right now" have no creation history).
+  const trendPath = (key: string): string | null => {
+    const s = series[key];
+    if (!s || s.length < 2) return null;
+    const max = Math.max(...s, 1);
+    return s.map((v, i) => `${i === 0 ? "M" : "L"}${((i / (s.length - 1)) * 100).toFixed(1)},${(26 - (v / max) * 20).toFixed(1)}`).join(" ");
+  };
 
   return (
     <section className="mb-8">
@@ -346,28 +362,35 @@ export function WorkspaceGraphPulse() {
       ) : (
         <div className="workspace-pulse-grid grid grid-cols-2 sm:grid-cols-4">
           {[
-            { label: "graph health", icon: CheckSquare, color: "#10b981", value: healthPct, suffix: "%" },
-            ...PULSE_CATEGORIES.map(({ key, label, icon, color }) => ({ label, icon, color, value: pulse[key], suffix: "" })),
+            { key: "", label: "graph health", icon: CheckSquare, color: "#10b981", value: healthPct, suffix: "%" },
+            ...PULSE_CATEGORIES.map(({ key, label, icon, color }) => ({ key: key as string, label, icon, color, value: pulse[key], suffix: "" })),
           ].map((t, i) => {
             const connected = t.value != null;
             const pct = connected ? Math.max(6, Math.round((t.value! / (t.label === "graph health" ? 100 : maxValue)) * 100)) : 0;
             const tone = connected ? t.color : "var(--text-faint)";
-            // A smooth curve rising to the metric's current relative level —
-            // a clean visual indicator of where it stands right now, not a
-            // fabricated history (no time-series snapshots exist yet).
+            // Prefer the REAL 14-day trend (daily creation counts from created_at) when this metric
+            // has one; state-only metrics (e.g. "overdue right now") fall back to a level indicator.
+            const real = connected ? trendPath(t.key) : null;
             const endY = 26 - (pct / 100) * 20;
             return (
               <div key={i} className="pulse-tile flex flex-col gap-1.5 px-3 py-3">
                 <div className="flex items-center gap-1.5">
                   <t.icon size={12} style={{ color: tone }}/>
                   <span className="truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>{t.label}</span>
+                  {real && <span className="ml-auto text-[8.5px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>14d</span>}
                 </div>
                 <p className="text-[20px] font-semibold leading-none" style={{ color: connected ? "var(--text-primary)" : "var(--text-faint)" }}>
                   {connected ? t.value : "—"}{t.suffix}
                 </p>
                 <svg viewBox="0 0 100 30" preserveAspectRatio="none" className="h-[18px] w-full">
-                  <path d={`M0,26 C30,26 50,${endY} 100,${endY}`} fill="none" stroke={tone} strokeWidth={2} strokeLinecap="round" vectorEffect="non-scaling-stroke" opacity={connected ? 1 : 0.4}/>
-                  <circle cx={100} cy={endY} r={2.2} fill={tone} opacity={connected ? 1 : 0.4}/>
+                  {real ? (
+                    <path d={real} fill="none" stroke={tone} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                  ) : (
+                    <>
+                      <path d={`M0,26 C30,26 50,${endY} 100,${endY}`} fill="none" stroke={tone} strokeWidth={2} strokeLinecap="round" vectorEffect="non-scaling-stroke" opacity={connected ? 1 : 0.4}/>
+                      <circle cx={100} cy={endY} r={2.2} fill={tone} opacity={connected ? 1 : 0.4}/>
+                    </>
+                  )}
                 </svg>
               </div>
             );

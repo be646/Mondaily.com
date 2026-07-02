@@ -12,7 +12,7 @@ import {
 import { useAskEngine } from "../../components/ai/use-ask-engine";
 import { useVoiceDictation } from "../../components/ai/use-voice";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
 import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { getThreads } from "../../lib/chat-store";
@@ -150,6 +150,7 @@ const PRIORITY_STYLE: Record<string, string> = {
 
 export function HomePage() {
   const me = useCurrentUser();
+  const navigate = useNavigate();
   const firstName = me.name?.split(" ")[0];
   const { hasFinance } = useModules();
   const qc = useQueryClient();
@@ -885,12 +886,13 @@ export function HomePage() {
                 : { Icon: Brain, label: "Plan my week", sub: "an opinionated brief", prompt: "Review my open tasks and recent activity, then build me an opinionated day-by-day plan for this week with specific next actions." },
               {
                 Icon: Search,
-                label: "Find new prospects",
-                sub: "in my sector",
-                prompt: "Find new prospects relevant to my workspace from the web, dedupe them against my existing records, and add the best ones to my decision queue for approval.",
+                label: "Discover leads on the web",
+                sub: "AI search across the open web + social",
+                prompt: "",
+                to: "/discovery",
               },
             ].map(s => (
-              <button key={s.label} onClick={() => sendSuggestion(s.prompt)}
+              <button key={s.label} onClick={() => ("to" in s && s.to ? navigate(s.to) : sendSuggestion(s.prompt))}
                 className="group flex items-start gap-3 rounded-sm border px-4 py-3 text-left transition-colors"
                 style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--section-accent)"; }}

@@ -7,6 +7,52 @@ import { verifiedPowUserIds } from "../lib/pow-claims";
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
 /**
+ * REAL 14-day trends for the home Workspace Graph Pulse — daily creation counts computed from
+ * actual created_at timestamps (nodes / tasks / risk notifications). This replaces the old
+ * decorative "curve rising to current level" with genuine history: every point is a real count.
+ */
+router.get("/trends", requireAuth, async (c) => {
+  const ws = c.get("workspaceId");
+  const DAYS = 14;
+  const since = new Date(Date.now() - DAYS * 24 * 60 * 60 * 1000);
+  const sinceIso = since.toISOString();
+  const dayKeys: string[] = [];
+  for (let i = DAYS - 1; i >= 0; i--) dayKeys.push(new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10));
+  const emptySeries = () => Object.fromEntries(dayKeys.map((d) => [d, 0])) as Record<string, number>;
+  const bucket = (rows: { created_at: string }[] | null | undefined, into: Record<string, number>) => {
+    for (const r of rows ?? []) {
+      const k = String(r.created_at).slice(0, 10);
+      if (k in into) into[k] = (into[k] ?? 0) + 1;
+    }
+  };
+
+  const [nodes, tasks, risks] = await Promise.all([
+    supabase.from("nodes").select("created_at, object_type").eq("workspace_id", ws).gte("created_at", sinceIso).limit(5000),
+    supabase.from("tasks").select("created_at").eq("workspace_id", ws).gte("created_at", sinceIso).limit(5000),
+    supabase.from("notifications").select("created_at").eq("workspace_id", ws).eq("type", "ai_risk").gte("created_at", sinceIso).limit(2000),
+  ]);
+
+  const records = emptySeries(), relationships = emptySeries(), workflows = emptySeries(), taskSeries = emptySeries(), riskSeries = emptySeries();
+  bucket(nodes.data, records);
+  bucket((nodes.data ?? []).filter((n) => /person|people|company|companies|contact/i.test(String(n.object_type))), relationships);
+  bucket((nodes.data ?? []).filter((n) => String(n.object_type) === "automation"), workflows);
+  bucket(tasks.data, taskSeries);
+  bucket(risks.data, riskSeries);
+
+  const toArr = (s: Record<string, number>) => dayKeys.map((d) => s[d] ?? 0);
+  return c.json({
+    days: dayKeys,
+    series: {
+      records: toArr(records),
+      relationships: toArr(relationships),
+      workflows: toArr(workflows),
+      tasksOpen: toArr(taskSeries),
+      risks: toArr(riskSeries),
+    },
+  });
+});
+
+/**
  * Team Oversight — manager-facing "who did what" timeline. RBAC: owner/admin only
  * (the manager-equivalent roles; this codebase has no separate "manager" role).
  * Actor names/avatars are resolved server-side from workspace_members, which already
