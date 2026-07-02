@@ -8,6 +8,7 @@ import { TaskReviewTab } from "./task-review-tab";
 import { friendlyAskError } from "../ai/ask-shared";
 import { useAskContextStore } from "../../lib/ask-context-store";
 import { AIAgentOwnerChip } from "../ai/ai-intelligence";
+import { AIInspector } from "../ai/ai-inspector";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
 interface Task {
@@ -366,6 +367,22 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <div className="skeleton-shimmer mt-2 h-5 w-32 rounded-full"/>
                 ) : null
               )}
+
+              {/* AI Inspector — real task signals + Ask actions (no fabricated scores) */}
+              <div className="mt-3">
+                <AIInspector
+                  ctx={{
+                    kind: "task",
+                    id: task.id,
+                    title: task.title,
+                    objectType: "task",
+                    data: { status: localStatus, priority: localPriority, due_date: task.due_date, notes: notesVal },
+                    updatedAt: task.due_date ?? null,
+                    scopeLabel: `the task "${task.title}"`,
+                  }}
+                  defaultOpen={false}
+                />
+              </div>
 
               {/* Notes — first-class, not a hidden one-liner */}
               <div className="mt-3 rounded-lg border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>

@@ -13,6 +13,7 @@ import { LogoMark } from "../logo";
 import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { useAskEngine } from "./use-ask-engine";
 import { useAskContextStore } from "../../lib/ask-context-store";
+import { ASK_EVENT, takePendingAsk } from "../../lib/ask-bus";
 import { THEMES, getTheme, applyTheme as applyAppTheme, type ThemeId } from "../../lib/theme";
 import { EvidenceStrip, SourceList, Markdown, TokenLedger, sourcesToLinks } from "./ask-shared";
 import { useAttachments, AttachPicker, AttachChips, AttachButton } from "./use-attachments";
@@ -86,6 +87,16 @@ function AskPanel({ onClose }: { onClose: () => void }) {
     if (attach.attachments.length) attach.clear();
   };
   const sendChip = (text: string) => doSend(text);
+
+  // Drain any prompt queued by the ask-bus (e.g. an AI Inspector action). Runs on mount (fresh
+  // open) AND on the event (drawer already open); takePendingAsk() returns it once, so no double-send.
+  useEffect(() => {
+    const drain = () => { const p = takePendingAsk(); if (p) doSend(p); };
+    drain();
+    window.addEventListener(ASK_EVENT, drain);
+    return () => window.removeEventListener(ASK_EVENT, drain);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const displayMessages = messages.length
     ? messages
     : [{ role: "assistant" as const, content: pageContext?.scope_label
@@ -356,6 +367,13 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  // Any surface (AI Inspector, record/report actions) can open this drawer with a contextual
+  // question via the ask-bus — reuses the existing Ask engine, no duplicate Ask UI.
+  useEffect(() => {
+    const openIt = () => setAskOpen(true);
+    window.addEventListener(ASK_EVENT, openIt);
+    return () => window.removeEventListener(ASK_EVENT, openIt);
+  }, []);
   const [theme, setTheme] = useState<ThemeId>(() => getTheme());
 
   const initials = (me.name || me.email)?.[0]?.toUpperCase() ?? "U";

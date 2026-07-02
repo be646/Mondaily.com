@@ -20,6 +20,7 @@ import { ActivityTimeline } from "./activity-timeline";
 import { LeadScoreBadge } from "./lead-score-badge";
 import { useAskContextStore } from "../../lib/ask-context-store";
 import { AIAgentOwnerChip, AIInsightBadge, AIHealthScore, AISignalList } from "../ai/ai-intelligence";
+import { AIInspector } from "../ai/ai-inspector";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Activity { id: string; action: string; diff?: Record<string, unknown> | null; ai_summary?: string | null; created_at: string; actor_type: string }
@@ -1982,6 +1983,21 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
             {tab === "Overview" && (
               <div className="space-y-7 max-w-3xl">
+                {/* AI Inspector — real summary, gaps, graph context, and Ask actions for this record */}
+                <AIInspector
+                  ctx={{
+                    kind: "record",
+                    id: recordId,
+                    nodeId: recordId,
+                    title: name,
+                    objectType: record.object_type,
+                    data,
+                    updatedAt: record.updated_at,
+                    scopeLabel: `${record.object_type} "${name}"`,
+                  }}
+                  activities={record.activities}
+                  defaultOpen={false}
+                />
                 {/* Description — full-width editable */}
                 {(data.description != null && data.description !== "") && (
                   <DescriptionField value={String(data.description)} onSave={v => save("description", v)}/>
