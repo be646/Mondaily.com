@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send } from "lucide-react";
+import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
+import { requestCall } from "../../lib/call-bus";
 
 /**
  * Team Intelligence — an AI-powered team behaviour & value dashboard for owners/admins.
@@ -18,6 +19,7 @@ type Verdict = "inactive" | "bot" | "low_engagement" | "high_complexity" | "enga
 interface Operator {
   operator_id: string; name: string; email: string | null; avatar_url: string | null; role: string;
   tokens: number; runs: number; task_count: number; complexity_delta: number;
+  records_touched?: number; open_tasks?: number; overdue_tasks?: number; completed_tasks?: number;
   last_task_id: string | null; last_action: string | null; last_active_at: string | null;
   has_session: boolean; verified_pow: boolean; verdict: Verdict;
 }
@@ -196,8 +198,6 @@ export function TeamOversightPage() {
   );
 }
 
-/** Metrics that the platform does NOT yet track per-member — shown honestly as "Not tracked yet". */
-const UNTRACKED = ["Overdue tasks", "Follow-ups", "Deals closed", "Records touched", "Approvals", "Comments"];
 
 /** In-page member dossier — identity, metrics, AI behaviour, activity chart + timeline, actions. */
 function MemberDetail({ op }: { op: Operator }) {
@@ -211,6 +211,13 @@ function MemberDetail({ op }: { op: Operator }) {
     retry: false,
   });
   const timeline = useMemo(() => (Array.isArray(timelineQ.data?.activity) ? timelineQ.data!.activity : []), [timelineQ.data]);
+
+  // Is live calling configured on this deployment? (fail-closed → buttons hidden if not)
+  const callCap = useQuery<{ enabled: boolean }>({
+    queryKey: ["call-capability"],
+    queryFn: () => apiClient.get<{ enabled: boolean }>("/live-calls/capability"),
+    staleTime: 10 * 60_000,
+  });
 
   // Grounded, no-tools AI coaching summary — auto-runs once per member, cached by React Query.
   const insightQ = useQuery<InsightResp>({
@@ -261,12 +268,17 @@ function MemberDetail({ op }: { op: Operator }) {
         ))}
       </div>
 
-      {/* untracked metrics — honest placeholders, never fake values */}
-      <div className="grid grid-cols-3 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
-        {UNTRACKED.map((k) => (
-          <div key={k} className="px-3 py-2.5" style={{ background: "var(--surface-card)" }}>
-            <div className="text-[11px] font-medium" style={{ color: "var(--text-faint)" }}>Not tracked yet</div>
-            <div className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>{k}</div>
+      {/* real work rollups — computed server-side from tasks + activity */}
+      <div className="grid grid-cols-4 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+        {[
+          { k: "Records touched", val: op.records_touched ?? 0 },
+          { k: "Open tasks", val: op.open_tasks ?? 0 },
+          { k: "Overdue", val: op.overdue_tasks ?? 0, warn: (op.overdue_tasks ?? 0) > 0 },
+          { k: "Completed", val: op.completed_tasks ?? 0 },
+        ].map((m) => (
+          <div key={m.k} className="px-3 py-2.5" style={{ background: "var(--surface-card)" }}>
+            <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.warn ? "#d97706" : "var(--text-primary)" }}>{fmt(m.val)}</div>
+            <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{m.k}</div>
           </div>
         ))}
       </div>
@@ -364,6 +376,18 @@ function MemberDetail({ op }: { op: Operator }) {
           className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
           <Send size={11} style={{ color: "var(--section-accent)" }} /> Message
         </button>
+        {callCap.data?.enabled && (
+          <>
+            <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "audio", name: op.name })}
+              className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              <Phone size={11} style={{ color: "var(--section-accent)" }} /> Call
+            </button>
+            <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "video", name: op.name })}
+              className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              <Video size={11} style={{ color: "var(--section-accent)" }} /> Video
+            </button>
+          </>
+        )}
         <Link to="/settings/members" className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
           <Users size={11} style={{ color: "var(--section-accent)" }} /> Manage role &amp; access
         </Link>

@@ -136,12 +136,34 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
   const ws = c.get("workspaceId");
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(); // 30-day window
 
-  const [{ data: members }, { data: usage }, { data: acts }, { data: sessions }] = await Promise.all([
+  const nowIso = new Date().toISOString();
+  const [{ data: members }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks }] = await Promise.all([
     supabase.from("workspace_members").select("user_id, name, email, avatar_url, role").eq("workspace_id", ws),
     supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", sinceIso),
-    supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").order("created_at", { ascending: false }).limit(500),
-    supabase.from("auth_refresh_tokens").select("user_id").is("revoked_at", null).gt("expires_at", new Date().toISOString()),
+    supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").order("created_at", { ascending: false }).limit(2000),
+    supabase.from("auth_refresh_tokens").select("user_id").is("revoked_at", null).gt("expires_at", nowIso),
+    // Real per-member task rollups (assignee-scoped): open / overdue / completed.
+    supabase.from("tasks").select("assignee_id, completed, due_date").eq("workspace_id", ws).limit(5000),
   ]);
+
+  // Per-member task aggregates (all real, current-state).
+  const taskAgg = new Map<string, { open: number; overdue: number; completed: number }>();
+  for (const t of tasks ?? []) {
+    const uid = String(t.assignee_id ?? "");
+    if (!uid) continue;
+    const cur = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
+    if (t.completed) cur.completed += 1;
+    else { cur.open += 1; if (t.due_date && String(t.due_date) < nowIso) cur.overdue += 1; }
+    taskAgg.set(uid, cur);
+  }
+  // Distinct records each member touched in the window (real, from activity node_ids).
+  const touchedBy = new Map<string, Set<string>>();
+  for (const a of acts ?? []) {
+    const uid = String(a.actor_id ?? ""); const nid = a.node_id ? String(a.node_id) : "";
+    if (!uid || !nid) continue;
+    if (!touchedBy.has(uid)) touchedBy.set(uid, new Set());
+    touchedBy.get(uid)!.add(nid);
+  }
 
   // Aggregate real per-operator token spend + inference-run count from ai_usage.
   const usageBy = new Map<string, { tokens: number; runs: number }>();
@@ -197,6 +219,11 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
       runs: u.runs,
       task_count: taskCount,
       complexity_delta: complexityDelta,
+      // Real per-member work rollups (retire the "Not tracked yet" placeholders).
+      records_touched: touchedBy.get(uid)?.size ?? 0,
+      open_tasks: taskAgg.get(uid)?.open ?? 0,
+      overdue_tasks: taskAgg.get(uid)?.overdue ?? 0,
+      completed_tasks: taskAgg.get(uid)?.completed ?? 0,
       last_task_id: last?.node_id ?? null,
       last_action: last?.action ?? null,
       last_active_at: last?.created_at ?? null,
@@ -226,13 +253,21 @@ router.post("/member-insight", requireAuth, requireAdminRole, async (c) => {
   const actorId = String(body.actor_id ?? "");
   if (!actorId) return c.json({ error: "actor_id required" }, 400);
 
+  const nowIso = new Date().toISOString();
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  const [{ data: member }, { data: usage }, { data: acts }, { data: sessions }] = await Promise.all([
+  const [{ data: member }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks }] = await Promise.all([
     supabase.from("workspace_members").select("name, email, role").eq("workspace_id", ws).eq("user_id", actorId).maybeSingle(),
     supabase.from("ai_usage").select("total_tokens, created_at").eq("workspace_id", ws).eq("user_id", actorId).gte("created_at", sinceIso),
     supabase.from("activities").select("action, created_at, nodes(object_type, data)").eq("workspace_id", ws).eq("actor_id", actorId).order("created_at", { ascending: false }).limit(30),
-    supabase.from("auth_refresh_tokens").select("user_id").eq("user_id", actorId).is("revoked_at", null).gt("expires_at", new Date().toISOString()),
+    supabase.from("auth_refresh_tokens").select("user_id").eq("user_id", actorId).is("revoked_at", null).gt("expires_at", nowIso),
+    supabase.from("tasks").select("completed, due_date").eq("workspace_id", ws).eq("assignee_id", actorId).limit(2000),
   ]);
+
+  const taskRoll = { open: 0, overdue: 0, completed: 0 };
+  for (const t of tasks ?? []) {
+    if (t.completed) taskRoll.completed += 1;
+    else { taskRoll.open += 1; if (t.due_date && String(t.due_date) < nowIso) taskRoll.overdue += 1; }
+  }
 
   // The subject must be a real member of THIS workspace before we generate anything.
   if (!member) return c.json({ error: "Member not found in this workspace." }, 404);
@@ -253,7 +288,7 @@ router.post("/member-insight", requireAuth, requireAdminRole, async (c) => {
   }));
 
   // Not enough tracked activity → honest message, no model call.
-  if (tokens === 0 && activities.length === 0) {
+  if (tokens === 0 && activities.length === 0 && taskRoll.open === 0 && taskRoll.completed === 0) {
     return c.json({ insight: "I don't have enough tracked activity for this member yet.", sources: [], sufficient: false });
   }
 
@@ -262,6 +297,7 @@ router.post("/member-insight", requireAuth, requireAdminRole, async (c) => {
     `Live session right now: ${hasSession ? "yes" : "no"}.`,
     `AI credits (tokens) used in last 30 days: ${tokens}.`,
     `Recorded activity events in last 30 days: ${activities.length}.`,
+    `Assigned tasks — open: ${taskRoll.open}, overdue: ${taskRoll.overdue}, completed: ${taskRoll.completed}.`,
     "Recent activity (newest first):",
     ...activities.slice(0, 20).map((a) => `- ${a.at}: ${a.action}${a.object_type ? ` ${a.object_type}` : ""}${a.name ? ` "${a.name}"` : ""}`),
   ].join("\n");

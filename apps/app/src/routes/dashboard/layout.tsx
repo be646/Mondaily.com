@@ -5,6 +5,7 @@ import { QuickActions } from "../../components/ui/quick-actions";
 import { CommandPalette } from "../../components/ui/command-palette";
 import { ToastHost } from "../../components/ui/toast-host";
 import { ErrorBoundary } from "../../components/ui/error-boundary";
+import { CallHost } from "../../components/calls/call-host";
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
@@ -221,6 +222,7 @@ export function DashboardLayout() {
       <QuickActions />
       <CommandPalette />
       <GettingStarted />
+      <CallHost />
       <MobileNav />
     </div>
   );

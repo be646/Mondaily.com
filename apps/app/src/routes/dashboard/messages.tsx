@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Send, User as UserIcon, Inbox as InboxIcon, Archive } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
+import { useTableRealtime } from "../../hooks/useTableRealtime";
 
 /**
  * Mondaily Inbox — internal, workspace-scoped member-to-member messaging.
@@ -30,10 +31,17 @@ export function MessagesPage() {
   const [params, setParams] = useSearchParams();
   const active = params.get("to");
 
+  // Live updates on any message change in this workspace; invalidate inbox + the open thread.
+  const live = useTableRealtime("internal_messages", () => {
+    qc.invalidateQueries({ queryKey: ["messages-inbox"] });
+    if (active) qc.invalidateQueries({ queryKey: ["messages-thread", active] });
+  });
+
   const inboxQ = useQuery<{ inbox: InboxThread[]; unread_total: number }>({
     queryKey: ["messages-inbox"],
     queryFn: () => apiClient.get("/messages/inbox"),
-    refetchInterval: 20_000,
+    // Realtime carries updates when live; poll only as a slow fallback when it isn't configured.
+    refetchInterval: live.current ? false : 20_000,
   });
   const inbox = inboxQ.data?.inbox ?? [];
 
@@ -77,7 +85,7 @@ export function MessagesPage() {
         </div>
 
         {/* thread */}
-        {active ? <Thread otherId={active} onSent={() => { qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onArchived={() => { setActive(""); qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} />
+        {active ? <Thread otherId={active} live={live.current} onSent={() => { qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onArchived={() => { setActive(""); qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} />
           : <div className="hidden items-center justify-center rounded-sm border lg:flex" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", minHeight: 320 }}>
               <p className="text-[13px]" style={{ color: "var(--text-faint)" }}>Select a conversation</p>
             </div>}
@@ -86,7 +94,7 @@ export function MessagesPage() {
   );
 }
 
-function Thread({ otherId, onSent, onArchived }: { otherId: string; onSent: () => void; onArchived: () => void }) {
+function Thread({ otherId, live, onSent, onArchived }: { otherId: string; live: boolean; onSent: () => void; onArchived: () => void }) {
   const qc = useQueryClient();
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -94,7 +102,8 @@ function Thread({ otherId, onSent, onArchived }: { otherId: string; onSent: () =
   const threadQ = useQuery<ThreadResp>({
     queryKey: ["messages-thread", otherId],
     queryFn: () => apiClient.get(`/messages/thread/${encodeURIComponent(otherId)}`),
-    refetchInterval: 12_000,
+    // Parent invalidates this query on realtime events; poll only as a fallback when not live.
+    refetchInterval: live ? false : 12_000,
   });
   const messages = useMemo(() => threadQ.data?.messages ?? [], [threadQ.data]);
   const other = threadQ.data?.other;

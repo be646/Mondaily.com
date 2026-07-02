@@ -192,7 +192,14 @@ export function DiscoveryPage() {
     const rows = savedQ.data ?? [];
     return rows.filter((r) => {
       const d = r.data ?? {};
-      return Boolean(d.source_url || d.source_title || d.confidence_label || String(r.object_type).toLowerCase() === objectType.toLowerCase());
+      return Boolean(
+        d.source === "discovery" ||
+        d.discovery_query ||
+        d.prospecting_reason ||
+        d.source_url ||
+        d.source_title ||
+        d.confidence_label
+      );
     });
   }, [savedQ.data, objectType]);
 

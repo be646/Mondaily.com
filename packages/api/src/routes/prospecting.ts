@@ -231,6 +231,11 @@ export async function runProspecting(
     for (const candidate of candidates) {
       const existingNodeId = await findExistingNode(workspaceId, input.object_type, candidate);
       if (existingNodeId) {
+        if (input.destination_list_id) {
+          const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", input.destination_list_id);
+          await supabase.from("list_entries").upsert({ list_id: input.destination_list_id, node_id: existingNodeId, position: (count ?? 0) + 1 });
+          result.added_to_list++;
+        }
         result.existing++;
         result.candidates.push({ ...candidate, status: "existing", node_id: existingNodeId });
         continue;
@@ -267,6 +272,9 @@ export async function runProspecting(
           created_by: `agent:prospecting`,
           data: {
             name: candidate.name,
+            source: "discovery",
+            discovery_query: input.query,
+            prospecting_reason: candidate.reason,
             email: candidate.email ?? undefined,
             domain: candidate.domain ?? undefined,
             website: candidate.website ?? undefined,
