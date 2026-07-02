@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useCurrentUser } from "./hooks/useCurrentUser";
+import { WorkspaceDiagnostic } from "./components/workspace-diagnostic";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { ShadowLoginPage } from "./routes/auth/shadow-login";
 import { ShadowActivatePage } from "./routes/auth/shadow-activate";
@@ -70,21 +71,23 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-// Redirects signed-in users to onboarding only if they have no Supabase workspace UUID yet.
-// AuthGate in main.tsx is responsible for resolving and storing this UUID via bootstrap.
+// Gates the dashboard. Normal working users (valid workspace id) pass straight through untouched.
+// When workspace data genuinely can't resolve, we show the WorkspaceDiagnostic instead of silently
+// dumping the user into onboarding or an empty Home.
 function DashboardRoute({ children }: { children: ReactNode }) {
   const { isSignedIn, isLoaded, workspaceId } = useCurrentUser();
-  const location = useLocation();
   if (!isLoaded) return null;
   if (!isSignedIn) return <Navigate to="/auth/shadow-login" replace />;
-  const hasWorkspace = typeof workspaceId === "string" && workspaceId.length === 36;
-  if (!hasWorkspace) return <Navigate to="/onboarding" replace state={{ from: location }} />;
-  // New users (bootstrap returned is_new=true) run the conversational onboarding console before the
-  // dashboard. The console clears this flag AND hard-redirects, so there's no SPA loop-back.
+  // Fresh signup (bootstrap returned is_new=true) runs the conversational onboarding console first.
+  // The console clears this flag AND hard-redirects, so there's no SPA loop-back. Kept before the
+  // workspace check so a brand-new user still flows seamlessly into onboarding.
   if (localStorage.getItem("mondaily_needs_onboarding") === "1") {
     localStorage.removeItem("mondaily_needs_onboarding");
     return <Navigate to="/onboarding" replace />;
   }
+  // A valid 36-char workspace UUID → normal path, render the dashboard.
+  const hasWorkspace = typeof workspaceId === "string" && workspaceId.length === 36;
+  if (!hasWorkspace) return <WorkspaceDiagnostic />;
   return <>{children}</>;
 }
 
