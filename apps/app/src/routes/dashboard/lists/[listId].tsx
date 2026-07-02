@@ -313,7 +313,7 @@ export function ListPage() {
   return (
     <div className="list-workspace flex h-full flex-col">
       {/* ── Header ── */}
-      <header className="list-header shrink-0 border-b border-stone-200 dark:border-stone-800/40 px-6 py-3">
+      <header className="list-header shrink-0 border-b px-6 py-3" style={{ borderColor: "var(--border-soft)" }}>
         <div className="flex flex-col gap-3">
           {/* Title row — matches the records sheet's small uppercase tracked label */}
           <div className="flex min-w-0 items-center gap-3">
@@ -508,18 +508,15 @@ export function ListPage() {
         >
           <Globe size={13}/> Find from web
         </button>
-        {/* Export + Delete — individual records-sheet-style header buttons */}
-        <button
-          onClick={exportCsv}
-          title="Export CSV"
-          className="flex items-center gap-1.5 rounded-md border border-stone-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:border-stone-300 hover:text-stone-600 dark:border-[var(--border-soft)] dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"
-        >
+        {/* Export + Delete — unified with the token-based btn-secondary like every other header
+            action (were hardcoded stone, which read as a different button style). */}
+        <button onClick={exportCsv} title="Export CSV" className="btn-secondary !px-2.5 !py-1.5 !text-[11px]">
           <Download size={11}/> Export
         </button>
         <button
           onClick={() => setDeleteConfirm(true)}
           title="Delete list"
-          className="flex items-center gap-1.5 rounded-md border border-stone-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:border-rose-300 hover:text-rose-500 dark:border-[var(--border-soft)] dark:text-stone-400 dark:hover:text-rose-400 dark:hover:border-rose-500/30 dark:hover:bg-rose-500/[.06]"
+          className="btn-secondary !px-2.5 !py-1.5 !text-[11px] hover:!border-rose-400 hover:!text-rose-500"
         >
           <Trash2 size={11}/>
         </button>
