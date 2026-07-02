@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download, Send, X, Inbox, ArrowUpRight, Sparkles, Eye, Pickaxe, Bell, MessageSquare, ListPlus, Microscope } from "lucide-react";
+import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download, Send, X, Inbox, ArrowUpRight, Sparkles, Eye, Pickaxe, Bell, MessageSquare, ListPlus, Microscope, Plus, Trash2 } from "lucide-react";
 import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { enrichPerson } from "../../lib/ai-enrichment";
 import { requestAsk } from "../../lib/ask-bus";
@@ -20,6 +20,10 @@ interface DiscoveredLead {
   created_at: string;
   contact?: { email?: string | null; phone?: string | null; handle?: string | null; summary?: string | null } | null;
 }
+
+// A saved lead is a real People node (tagged source="discovery") — the persistent record behind the
+// Saved Leads tab. `data` holds the fields we wrote when saving (name/email/website/industry/etc.).
+interface SavedLead { id: string; object_type: string; updated_at?: string; created_by?: string | null; data: Record<string, any> }
 
 type SearchType = "INTENT_LEADS" | "REVIEWS";
 
@@ -81,6 +85,7 @@ export function DiscoveryPage() {
 
   async function runSearch() {
     if (searching || !query.trim()) return;
+    pushRecent(query);
     setSearching(true); setProgress([]); setOverview(null); setResult(null); setSearchError(null);
     const controller = new AbortController();
     abortRef.current = controller;
@@ -147,6 +152,48 @@ export function DiscoveryPage() {
   const monitors = monitorsQ.data ?? [];
   const isWatched = monitors.some((m) => m.query.toLowerCase() === query.trim().toLowerCase());
 
+  // ── Tabs: Search / Deep Research / Saved Leads / Recent ──
+  const [tab, setTab] = useState<"search" | "deep" | "saved" | "recent">("search");
+  const isSearchTab = tab === "search" || tab === "deep";
+
+  // Recent searches — persisted locally (no backend needed), most-recent-first, deduped, capped.
+  const [recents, setRecents] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem("mondaily_discovery_recents") || "[]"); } catch { return []; }
+  });
+  const pushRecent = (q: string) => {
+    const v = q.trim(); if (!v) return;
+    setRecents((prev) => {
+      const next = [v, ...prev.filter((x) => x.toLowerCase() !== v.toLowerCase())].slice(0, 12);
+      try { localStorage.setItem("mondaily_discovery_recents", JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  const clearRecents = () => { setRecents([]); try { localStorage.removeItem("mondaily_discovery_recents"); } catch { /* ignore */ } };
+
+  // Saved leads — the REAL records saved from Discovery (People nodes tagged source="discovery").
+  const savedLeadsQ = useQuery({
+    queryKey: ["records", "people", "discovery-saved"],
+    queryFn: async () => (await apiClient.get<SavedLead[]>("/nodes?object_type=people&limit=200"))
+      .filter((n) => (n.data?.source === "discovery")),
+    staleTime: 30_000,
+  });
+  const savedLeads = savedLeadsQ.data ?? [];
+  // Saved-state persistence: a search result counts as "saved" if a saved record already matches by
+  // name or source-domain — so the Added state survives refresh/new searches (no fake state).
+  const savedKeys = new Set<string>();
+  for (const s of savedLeads) {
+    const nm = String(s.data?.name ?? "").trim().toLowerCase(); if (nm) savedKeys.add(`n:${nm}`);
+    const src = String(s.data?.source_url ?? s.data?.website ?? "");
+    try { const h = new URL(src).host.replace(/^www\./, "").toLowerCase(); if (h) savedKeys.add(`d:${h}`); } catch { /* ignore */ }
+  }
+  const isLeadSaved = (r: DiscoveredLead): boolean => {
+    if (added[r.id]) return true;
+    const nm = (r.author_name && r.author_name !== "Anonymous" ? r.author_name : (r.target_subject || "")).trim().toLowerCase();
+    if (nm && savedKeys.has(`n:${nm}`)) return true;
+    try { const h = new URL(r.source_url ?? "").host.replace(/^www\./, "").toLowerCase(); if (h && savedKeys.has(`d:${h}`)) return true; } catch { /* ignore */ }
+    return false;
+  };
+
   // Promote a discovered lead into a real People record (name + email + phone + note + source),
   // then AUTO-ENRICH it: the enrichment agent immediately fills company/role/site from a real web
   // pass (never fabricated — empty when nothing is found).
@@ -178,7 +225,7 @@ export function DiscoveryPage() {
       }
       return node;
     },
-    onSuccess: (_d, r) => setAdded((m) => ({ ...m, [r.id]: true })),
+    onSuccess: (_d, r) => { setAdded((m) => ({ ...m, [r.id]: true })); qc.invalidateQueries({ queryKey: ["records", "people", "discovery-saved"] }); },
   });
 
   const all = leadsQ.data ?? [];
@@ -272,6 +319,32 @@ export function DiscoveryPage() {
         </div>
       )}
 
+      {/* ── Tabs — Search / Deep Research / Saved Leads / Recent ── */}
+      <div className="flex flex-wrap items-center gap-1 border-b" style={{ borderColor: "var(--border-soft)" }}>
+        {([
+          ["search", "Search"],
+          ["deep", "Deep Research"],
+          ["saved", `Saved Leads${savedLeads.length ? ` · ${savedLeads.length}` : ""}`],
+          ["recent", "Recent"],
+        ] as const).map(([k, label]) => (
+          <button key={k} onClick={() => { setTab(k); if (k === "deep") setDeep(true); }}
+            className="relative -mb-px px-3 py-2 text-[12.5px] font-medium transition-colors"
+            style={{ color: tab === k ? "var(--text-primary)" : "var(--text-muted)" }}>
+            {label}
+            {tab === k && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full" style={{ background: "var(--section-accent)" }} />}
+          </button>
+        ))}
+      </div>
+
+      {/* Deep Research explainer — same sovereign search, deep mode on: visits business sites for
+          deeper source-backed detail (real, no fabrication). */}
+      {tab === "deep" && (
+        <p className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>
+          Deep research runs the sovereign web sweep with <strong style={{ color: "var(--text-secondary)" }}>Deep mode</strong> on — it also visits each business&apos;s own site for contact and reputation detail. Every result stays source-backed; use <strong style={{ color: "var(--text-secondary)" }}>Deep research</strong> on any result for an AI dossier.
+        </p>
+      )}
+
+      {isSearchTab && (<>
       {/* ── Single Google-style search — one box, AI classifies intent + extracts sector/region/subject ── */}
       <section>
         <div
@@ -521,13 +594,18 @@ export function DiscoveryPage() {
                       {r.contact?.email && <a href={`mailto:${r.contact.email}`} className="inline-flex items-center gap-1 hover:underline" style={{ color: "var(--text-secondary)" }}><Mail size={11} />{r.contact.email}</a>}
                       {r.contact?.phone && <a href={`tel:${r.contact.phone}`} className="inline-flex items-center gap-1 hover:underline" style={{ color: "var(--text-secondary)" }}><Phone size={11} />{r.contact.phone}</a>}
                       {r.contact?.handle && <span className="inline-flex items-center gap-1" style={{ color: "var(--text-muted)" }}>{r.contact.handle}</span>}
+                      {(() => { const saved = isLeadSaved(r); return (
                       <button
-                        onClick={() => !added[r.id] && addLead.mutate(r)}
-                        disabled={added[r.id] || (addLead.isPending && addLead.variables?.id === r.id)}
+                        onClick={() => !saved && addLead.mutate(r)}
+                        disabled={saved || (addLead.isPending && addLead.variables?.id === r.id)}
                         className="inline-flex items-center gap-1 font-medium transition-colors hover:underline disabled:opacity-70"
-                        style={{ color: added[r.id] ? "#15803d" : "var(--section-accent)" }}>
-                        {added[r.id] ? <><Check size={11} /> Added to People</> : <><UserPlus size={11} /> Add as lead</>}
+                        style={{ color: saved ? "#15803d" : "var(--section-accent)" }}>
+                        {saved ? <><Check size={11} /> Saved to People</> : <><UserPlus size={11} /> Save lead</>}
                       </button>
+                      ); })()}
+                      {/* Add to a workspace list — saves the lead first if needed, then adds the entry */}
+                      <AddToListPicker resolveNodeId={async () => (await addLead.mutateAsync(r)).id} />
+
                       {r.contact?.email && (
                         <button
                           onClick={() => { setSendMsg(null); setCompose({ lead: r, subject: r.target_subject ? `Regarding ${r.target_subject}` : "Hello from Mondaily", body: `Hi ${r.author_name && r.author_name !== "Anonymous" ? r.author_name : "there"},\n\n` }); }}
@@ -576,6 +654,27 @@ export function DiscoveryPage() {
           </div>
         )}
       </section>
+      </>)}
+
+      {/* ── Saved Leads tab — real saved records (People nodes tagged source="discovery") ── */}
+      {tab === "saved" && (
+        <SavedLeadsView
+          leads={savedLeads}
+          loading={savedLeadsQ.isLoading}
+          error={savedLeadsQ.isError}
+          onRefetch={() => savedLeadsQ.refetch()}
+          onRemoved={() => qc.invalidateQueries({ queryKey: ["records", "people", "discovery-saved"] })}
+        />
+      )}
+
+      {/* ── Recent Searches tab — persisted locally; click to rerun ── */}
+      {tab === "recent" && (
+        <RecentSearchesView
+          recents={recents}
+          onRun={(q) => { setQuery(q); setTab("search"); setTimeout(() => runSearch(), 0); }}
+          onClear={clearRecents}
+        />
+      )}
 
       {/* Compose modal — sends through our own system (Gmail/Resend), not mailto */}
       {compose && (
@@ -603,6 +702,151 @@ export function DiscoveryPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Add-to-list picker — real lists (GET /lists) + entry create (POST /lists/:id/entries). For a
+// search result, resolveNodeId() saves the lead first and returns its node id; for a saved lead it
+// just returns the existing id. Clear success/error, no fake state.
+function AddToListPicker({ resolveNodeId }: { resolveNodeId: () => Promise<string> }) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const listsQ = useQuery({
+    queryKey: ["lists"],
+    queryFn: () => apiClient.get<{ id: string; name: string; object_type: string }[]>("/lists"),
+    enabled: open,
+    staleTime: 30_000,
+  });
+  const lists = listsQ.data ?? [];
+  async function addTo(listId: string, name: string) {
+    setBusy(listId); setMsg(null);
+    try {
+      const nodeId = await resolveNodeId();
+      if (!nodeId) throw new Error("Could not save the lead first.");
+      await apiClient.post(`/lists/${listId}/entries`, { node_id: nodeId });
+      qc.invalidateQueries({ queryKey: ["lists"] });
+      setMsg({ text: `Added to "${name}"`, ok: true });
+      setTimeout(() => { setOpen(false); setMsg(null); }, 1200);
+    } catch (e) {
+      setMsg({ text: e instanceof Error ? e.message : "Couldn't add to the list.", ok: false });
+    } finally { setBusy(null); }
+  }
+  return (
+    <span className="relative inline-flex">
+      <button onClick={() => setOpen((o) => !o)} className="inline-flex items-center gap-1 font-medium transition-colors hover:underline" style={{ color: "var(--section-accent)" }}>
+        <Plus size={11} /> Add to list
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full z-30 mt-1 w-56 overflow-hidden rounded-sm border shadow-lg" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="border-b px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>Add to list</div>
+            {listsQ.isLoading ? (
+              <div className="flex items-center gap-2 px-3 py-3 text-[11.5px]" style={{ color: "var(--text-muted)" }}><Loader2 size={12} className="animate-spin" /> Loading lists…</div>
+            ) : lists.length === 0 ? (
+              <div className="px-3 py-3 text-[11.5px]" style={{ color: "var(--text-faint)" }}>No lists yet — create one from the sidebar.</div>
+            ) : (
+              <div className="max-h-56 overflow-y-auto py-1">
+                {lists.map((l) => (
+                  <button key={l.id} onClick={() => addTo(l.id, l.name)} disabled={!!busy}
+                    className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-60" style={{ color: "var(--text-secondary)" }}>
+                    <span className="truncate">{l.name}</span>
+                    {busy === l.id ? <Loader2 size={11} className="shrink-0 animate-spin" /> : <span className="shrink-0 text-[10px]" style={{ color: "var(--text-faint)" }}>{l.object_type}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+            {msg && <div className="border-t px-3 py-1.5 text-[11px]" style={{ borderColor: "var(--border-soft)", color: msg.ok ? "#15803d" : "#be123c" }}>{msg.text}</div>}
+          </div>
+        </>
+      )}
+    </span>
+  );
+}
+
+// ── Saved Leads tab — the real People records saved from Discovery. ──
+function SavedLeadsView({ leads, loading, error, onRefetch, onRemoved }: {
+  leads: SavedLead[]; loading: boolean; error: boolean; onRefetch: () => void; onRemoved: () => void;
+}) {
+  const removeLead = useMutation({ mutationFn: (id: string) => apiClient.delete(`/nodes/${id}`), onSuccess: onRemoved });
+  const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "");
+  if (loading) return <div className="flex items-center gap-2 py-16 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={15} className="animate-spin" /> Loading saved leads…</div>;
+  if (error) return (
+    <div className="rounded-sm border px-5 py-10 text-center" style={{ borderColor: "var(--border-soft)" }}>
+      <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>Couldn&apos;t load saved leads</p>
+      <button onClick={onRefetch} className="mt-2 text-[12px] font-medium" style={{ color: "var(--section-accent)" }}>Retry</button>
+    </div>
+  );
+  if (leads.length === 0) return (
+    <div className="rounded-sm border px-5 py-14 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <UserPlus size={20} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
+      <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>No saved leads yet</p>
+      <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Run a search and use &quot;Save lead&quot; — saved leads live here as real People records.</p>
+    </div>
+  );
+  return (
+    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+        {leads.map((l) => {
+          const d = l.data ?? {};
+          const name = String(d.name ?? d.handle ?? "Lead");
+          const website = String(d.website ?? d.domain ?? d.source_url ?? "");
+          let host = ""; try { host = website ? new URL(website).host.replace(/^www\./, "") : ""; } catch { host = website; }
+          const industry = String(d.industry ?? d.category ?? d.lead_type ?? "");
+          const scope = `${name}${d.email ? ` (${d.email})` : ""}`;
+          return (
+            <div key={l.id} className="px-4 py-3">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>
+                {host && <span className="truncate">{host}</span>}
+                {industry && <><span aria-hidden>·</span><span className="capitalize">{industry}</span></>}
+                {d.region && <><span aria-hidden>·</span><span>{String(d.region)}</span></>}
+                <span aria-hidden>·</span><span>saved {fmtDate(l.updated_at)}</span>
+              </div>
+              <Link to={`/objects/people/${l.id}`} className="mt-0.5 inline-block max-w-full truncate text-[14.5px] font-medium hover:underline" style={{ color: "var(--section-accent)" }}>{name}</Link>
+              {(d.email || d.phone) && <p className="text-[11.5px]" style={{ color: "var(--text-secondary)" }}>{d.email ? String(d.email) : ""}{d.email && d.phone ? " · " : ""}{d.phone ? String(d.phone) : ""}</p>}
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px]">
+                <Link to={`/objects/people/${l.id}`} className="inline-flex items-center gap-1 font-medium hover:underline" style={{ color: "var(--section-accent)" }}><ExternalLink size={11} /> Open record</Link>
+                <AddToListPicker resolveNodeId={async () => l.id} />
+                <button onClick={() => requestAsk(`Create a follow-up task for ${scope}. If the title or due date is ambiguous, ask me to confirm before creating it.`)} className="inline-flex items-center gap-1 font-medium hover:underline" style={{ color: "var(--section-accent)" }}><ListPlus size={11} /> Create task</button>
+                <button onClick={() => requestAsk(`Tell me what I need to know about ${scope} from real workspace and web data, and the best next action.`)} className="inline-flex items-center gap-1 font-medium hover:underline" style={{ color: "var(--section-accent)" }}><MessageSquare size={11} /> Ask AI</button>
+                <button onClick={() => { if (window.confirm(`Remove "${name}" from saved leads? This deletes the record.`)) removeLead.mutate(l.id); }} disabled={removeLead.isPending}
+                  className="inline-flex items-center gap-1 font-medium transition-colors hover:text-rose-500" style={{ color: "var(--text-faint)" }}><Trash2 size={11} /> Remove</button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Recent Searches tab — persisted locally, rerun on click. ──
+function RecentSearchesView({ recents, onRun, onClear }: { recents: string[]; onRun: (q: string) => void; onClear: () => void }) {
+  if (recents.length === 0) return (
+    <div className="rounded-sm border px-5 py-14 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <Search size={20} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
+      <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>No recent searches</p>
+      <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Your recent Discovery searches appear here to rerun.</p>
+    </div>
+  );
+  return (
+    <div>
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{recents.length} recent search{recents.length === 1 ? "" : "es"}</span>
+        <button onClick={onClear} className="text-[11.5px] font-medium transition-colors hover:text-rose-400" style={{ color: "var(--text-faint)" }}>Clear</button>
+      </div>
+      <div className="divide-y overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        {recents.map((q, i) => (
+          <button key={i} onClick={() => onRun(q)} className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
+            <Search size={13} className="shrink-0" style={{ color: "var(--text-faint)" }} />
+            <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: "var(--text-secondary)" }}>{q}</span>
+            <span className="shrink-0 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}>Rerun</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
