@@ -16,7 +16,7 @@ import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
 
 type CheckState = "operational" | "needs_setup" | "disabled" | "error" | "not_checked";
 
-interface Check { id: string; label: string; state: CheckState; explanation: string; }
+interface Check { id: string; label: string; state: CheckState; explanation: string; action?: string; }
 interface Migration { id: string; label: string; applied: boolean; required: boolean; breaks_if_missing: string; }
 interface StatusResponse { checked_at: string; checks: Check[]; migrations: Migration[]; }
 
@@ -157,6 +157,12 @@ export function StatusPage() {
                       <span className="shrink-0 text-[10.5px] font-medium" style={{ color: meta.color }}>{meta.label}</span>
                     </div>
                     <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>{check.explanation}</p>
+                    {check.state !== "operational" && check.action && (
+                      <p className="mt-1.5 flex items-start gap-1.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                        <span className="mt-px shrink-0 font-semibold" style={{ color: meta.color }}>Do this:</span>
+                        <span>{check.action}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
               );
@@ -250,6 +256,12 @@ export function StatusPage() {
                     <span className="shrink-0 text-[10.5px] font-medium" style={{ color: m.applied ? "#10b981" : "#dc2626" }}>{m.applied ? "Applied" : "Not applied"}</span>
                   </div>
                   <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>{m.required ? "Required. " : "Optional. "}If missing: {m.breaks_if_missing}</p>
+                  {!m.applied && (
+                    <p className="mt-1.5 flex items-start gap-1.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                      <span className="mt-px shrink-0 font-semibold" style={{ color: "#dc2626" }}>Do this:</span>
+                      <span>Open Supabase → SQL editor and run migration <code>{m.id}</code> from <code>packages/db/migrations</code>.</span>
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
