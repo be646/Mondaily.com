@@ -166,7 +166,12 @@ app.get("/api/cron/daily", async (c) => {
 
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.8.0-objreg" }));
 
+// Auth diagnostics — DEV/DEBUG ONLY. Gated behind an explicit flag so it never exposes session
+// state in production. Set DEBUG_AUTH=1 (only in a non-prod environment) to enable it; otherwise
+// it 404s like any unknown route.
 app.get("/api/debug-auth", async (c) => {
+  const enabled = process.env.DEBUG_AUTH === "1" && process.env.NODE_ENV !== "production";
+  if (!enabled) return c.json({ error: "Not found" }, 404);
   const { getCookie } = await import("hono/cookie");
   const { verifyAccessToken, ACCESS_COOKIE } = await import("./lib/auth-tokens");
   const at = getCookie(c, ACCESS_COOKIE);

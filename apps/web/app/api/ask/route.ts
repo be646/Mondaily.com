@@ -13,16 +13,22 @@ async function callAI(
   system: string,
   conversationMessages: { role: string; content: string }[],
 ): Promise<string> {
-  const spec = process.env.AI_PROVIDER_MODEL ?? "anthropic/claude-haiku-4-5-20251001";
+  // SOVEREIGN GATEWAY ONLY — the same self-hosted, OpenAI-compatible gateway as the app (Cerebras
+  // via AI_GATEWAY_BASE_URL / AI_GATEWAY_API_KEY). There is deliberately NO Anthropic/OpenAI
+  // fallback: if the gateway isn't configured or errors, we return "" and the caller shows a
+  // canned reply — the marketing site never silently calls a third-party AI provider.
+  const base = process.env.AI_GATEWAY_BASE_URL;
+  const key = process.env.AI_GATEWAY_API_KEY;
+  if (!base || !key) return "";
 
-  if (spec.startsWith("openai-compat/")) {
-    const modelId = spec.slice("openai-compat/".length);
-    const res = await fetch(`${process.env.AI_GATEWAY_BASE_URL ?? ""}/chat/completions`, {
+  // AI_PROVIDER_MODEL is "openai-compat/<model>" (or a bare id); strip the routing prefix.
+  const spec = process.env.AI_PROVIDER_MODEL ?? "openai-compat/gpt-oss-120b";
+  const modelId = spec.includes("/") ? spec.slice(spec.indexOf("/") + 1) : spec;
+
+  try {
+    const res = await fetch(`${base.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.AI_GATEWAY_API_KEY ?? ""}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         model: modelId,
         max_tokens: 300,
@@ -32,30 +38,9 @@ async function callAI(
     if (!res.ok) return "";
     const data = await res.json() as { choices?: { message?: { content?: string } }[] };
     return data.choices?.[0]?.message?.content ?? "";
+  } catch {
+    return "";
   }
-
-  // Anthropic path (default)
-  const modelId = spec.startsWith("anthropic/")
-    ? spec.slice("anthropic/".length)
-    : "claude-haiku-4-5-20251001";
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY ?? "",
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: modelId || "claude-haiku-4-5-20251001",
-      max_tokens: 300,
-      system,
-      messages: conversationMessages,
-    }),
-  });
-  if (!res.ok) return "";
-  const data = await res.json() as { content?: { type: string; text: string }[] };
-  return data.content?.find(b => b.type === "text")?.text ?? "";
 }
 
 export async function POST(request: Request) {

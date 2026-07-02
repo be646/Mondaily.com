@@ -8,7 +8,7 @@ const ROUTES: { path: string; priority: number; changeFrequency: MetadataRoute.S
   { path: "/pricing", priority: 0.9, changeFrequency: "weekly" },
   { path: "/docs", priority: 0.7, changeFrequency: "weekly" },
   { path: "/help", priority: 0.6, changeFrequency: "monthly" },
-  { path: "/blog", priority: 0.7, changeFrequency: "weekly" },
+  // /blog omitted: only blog/[slug] posts exist — there's no /blog index page, so listing it 404s.
   { path: "/changelog", priority: 0.6, changeFrequency: "weekly" },
   { path: "/roadmap", priority: 0.5, changeFrequency: "monthly" },
   { path: "/security", priority: 0.5, changeFrequency: "monthly" },

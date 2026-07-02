@@ -62110,9 +62110,9 @@ router6.get("/health/chat", async (c2) => {
 // src/routes/public-ask.ts
 init_ai_gateway();
 var router7 = new Hono2();
-var SYSTEM = `You are Mondaily AI \u2014 an autonomous AI workspace platform. You help visitors understand what Mondaily does. Be concise, clear, and compelling. Never mention Claude, Anthropic, or any underlying AI technology. Keep replies under 3 sentences.
+var SYSTEM = `You are Mondaily AI \u2014 the assistant on Mondaily's marketing site. You help visitors understand what Mondaily does. Be concise, clear, and compelling. Never mention Claude, Anthropic, or any underlying AI technology. Keep replies under 3 sentences.
 
-Mondaily is: an AI workspace that replaces CRM, email sequences, pipelines, automations, and finance tools. It enriches company records automatically (ARR, headcount, tech stack, signals), moves deals based on AI activity rules, runs multi-step email sequences, and handles invoicing and approvals \u2014 all without manual input.`;
+Mondaily is an AI-native autonomous workspace and asset-graph engine: every record \u2014 people, companies, assets, documents, tasks, invoices, conversations \u2014 lives on one connected workspace graph. A team of AI agents (Graph, Operations, Relationship, Finance, Prospecting, Signal, Graph Enrichment, Workflow) continuously watches that graph, enriches records, and raises source-backed signals and recommendations. Agents prepare and recommend; sensitive actions (sending, billing, deleting) always wait for human approval in the Decision Queue \u2014 agents prepare, you approve. Sales pipelines, finance, and tasks are examples of what you can run on the graph, not the whole identity of the product. Lead with the workspace graph and the AI agents; do not position Mondaily primarily as a CRM or "CRM replacement." Only describe capabilities that exist \u2014 never promise unbuilt features.`;
 router7.post(
   "/",
   zValidator("json", external_exports.object({
@@ -68765,6 +68765,8 @@ app.get("/api/cron/daily", async (c2) => {
 });
 app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.8.0-objreg" }));
 app.get("/api/debug-auth", async (c2) => {
+  const enabled = process.env.DEBUG_AUTH === "1" && process.env.NODE_ENV !== "production";
+  if (!enabled) return c2.json({ error: "Not found" }, 404);
   const { getCookie: getCookie2 } = await Promise.resolve().then(() => (init_cookie2(), cookie_exports));
   const { verifyAccessToken: verifyAccessToken2, ACCESS_COOKIE: ACCESS_COOKIE2 } = await Promise.resolve().then(() => (init_auth_tokens(), auth_tokens_exports));
   const at2 = getCookie2(c2, ACCESS_COOKIE2);

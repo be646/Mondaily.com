@@ -630,7 +630,7 @@ function WorkflowDemo() {
         What happens when a record enters Mondaily
       </h2>
       <p className="mb-10 max-w-2xl text-[15px] leading-relaxed text-zinc-500">
-        Zero manual input. The platform enriches, scores, connects, and notifies — automatically.
+        Zero manual input. The platform enriches records, scores relationships and leads, connects them on the graph, and raises source-backed signals — automatically.
       </p>
 
       <div className="grid gap-4 lg:grid-cols-2">
