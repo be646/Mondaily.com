@@ -44,6 +44,7 @@ import { IntegrationsSettings } from "./routes/dashboard/settings/integrations";
 import { EmailSettings } from "./routes/dashboard/settings/email";
 import { SecuritySettings } from "./routes/dashboard/settings/security";
 import { AskMondailySettings } from "./routes/dashboard/settings/ask-mondaily";
+import { AIControlRoomSettings } from "./routes/dashboard/settings/ai-control-room";
 import { ListPage } from "./routes/dashboard/lists/[listId]";
 import { SearchPage } from "./routes/dashboard/search";
 import { InvoicesPage } from "./routes/dashboard/finance/invoices";
@@ -160,6 +161,7 @@ export function App() {
           <Route path="email" element={<EmailSettings />} />
           <Route path="security" element={<SecuritySettings />} />
           <Route path="ask-mondaily" element={<AskMondailySettings />} />
+          <Route path="ai-control-room" element={<AIControlRoomSettings />} />
         </Route>
       </Route>
       <Route path="/dashboard/*" element={<Navigate to="/home" replace />} />
