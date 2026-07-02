@@ -123,7 +123,7 @@ export function GraphContextDrawer({ ctx, activities: passedActivities, onClose 
               </span>
             </div>
           </div>
-          <button onClick={onClose} className="shrink-0 text-stone-500 hover:text-[var(--text-primary)]" aria-label="Close"><X size={16} /></button>
+          <button onClick={onClose} className="shrink-0 hover:text-[var(--text-primary)]" style={{ color: "var(--text-muted)" }} aria-label="Close"><X size={16} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
