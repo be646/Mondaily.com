@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ShieldAlert, CheckSquare, Activity, ArrowUpRight, Sparkles, FileText,
   UserPlus, Receipt, TrendingUp, Users, Database, Workflow, GitBranch, Layers, Clock,
-  CheckCircle2, XCircle, ChevronDown, Loader2,
+  CheckCircle2, XCircle, ChevronDown, Loader2, Check, X,
 } from "lucide-react";
 import { useAgentData } from "./agent-dock";
 import { agentById } from "../../lib/agents";
@@ -87,9 +87,6 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
   const topDecisions = [...decisions].sort((a, b) => (RISK_ORDER[a.risk_level] ?? 3) - (RISK_ORDER[b.risk_level] ?? 3)).slice(0, HOME_DECISION_CAP);
   const qc = useQueryClient();
   const [openId, setOpenId] = useState<string | null>(null);
-  // Collapsed by default — a wide summary bar that expands on click,
-  // rather than always showing the full list inline.
-  const [panelOpen, setPanelOpen] = useState(false);
   const act = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" | "snooze" }) =>
       apiClient.post(`/decisions/${id}/${action}`, {}),
@@ -198,29 +195,17 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
             )}
           </div>
         ) : (
-          <>
-            {/* Wide summary bar — collapsed by default, expands on click
-                instead of always showing the full list. */}
-            <button onClick={() => setPanelOpen(o => !o)} className="flex w-full items-center gap-3 px-1 py-3 text-left sm:px-2">
-              <span className="relative flex h-2 w-2 shrink-0">
-                {decisions.length > 0 && <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#d97706" }}/>}
-                {decisions.length === 0 && <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "var(--text-faint)" }}/>}
-              </span>
-              <span className="flex-1 text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>
-                {decisions.length > 0
-                  ? `${decisions.length} decision${decisions.length === 1 ? "" : "s"} awaiting approval`
-                  : `${stream.length} update${stream.length === 1 ? "" : "s"} — no approvals pending`}
-              </span>
-              <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{panelOpen ? "Hide" : "Show"}</span>
-              <ChevronDown size={14} className={`shrink-0 transition-transform ${panelOpen ? "rotate-180" : ""}`} style={{ color: "var(--text-faint)" }}/>
-            </button>
-            {panelOpen && (
-                <div className="border-t" style={{ borderColor: "var(--border-soft)" }}>
+          <div>
+            {/* Decisions — shown INLINE with actions always visible. No outer collapse toggle:
+                an approvals inbox should never hide its approvals behind two clicks. The row's
+                primary actions (Approve / Dismiss) act in one place; the chevron only reveals the
+                supporting evidence, which is secondary. */}
             {!decisionsError && topDecisions.map(d => {
               const open = openId === d.id;
               const sources = mapEvidence(d.evidence ?? []);
               const act = acting?.id === d.id ? acting.action : null;
               const bnr = banner?.id === d.id ? banner.kind : null;
+              const accent = d.risk_level === "high" ? "#dc2626" : d.risk_level === "medium" ? "#d97706" : "var(--text-muted)";
               return (
                 <div key={d.id} className="relative border-b" style={{ borderColor: "var(--border-soft)" }}>
                   {bnr && (
@@ -233,38 +218,47 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
                       </span>
                     </div>
                   )}
-                  <button onClick={() => setOpenId(open ? null : d.id)} className="stream-row w-full text-left" style={{ borderLeft: `2px solid ${d.risk_level === "high" ? "#dc2626" : "#d97706"}` }}>
-                    {d.risk_level === "high" ? <ShieldAlert size={13} className="mt-0.5 shrink-0 text-rose-500"/> : <Clock size={13} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }}/>}
+                  <div className="flex items-start gap-3 px-1 py-3 sm:px-2" style={{ borderLeft: `2px solid ${accent}` }}>
+                    {d.risk_level === "high" ? <ShieldAlert size={14} className="mt-0.5 shrink-0 text-rose-500"/> : <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }}/>}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[12px] leading-tight" style={{ color: "var(--text-secondary)" }}>
+                      <p className="text-[12.5px] leading-tight" style={{ color: "var(--text-secondary)" }}>
                         <span className="font-medium" style={{ color: "var(--text-primary)" }}>{d.agent_name.replace(/_/g, " ")}</span> · {d.title}
                       </p>
-                      <p className="text-[10px]" style={{ color: "var(--text-faint)" }}><span className={RISK_STYLE[d.risk_level]}>{d.risk_level} risk</span> · awaiting approval</p>
-                    </div>
-                    <ChevronDown size={12} className={`mt-0.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} style={{ color: "var(--text-faint)" }}/>
-                  </button>
-                  {open && (
-                    <div className="px-3.5 pb-3 pl-9 space-y-2">
-                      {d.summary && <p className="text-[12px] leading-snug" style={{ color: "var(--text-secondary)" }}>{d.summary}</p>}
-                      {d.recommended_action && <p className="text-[11.5px] font-medium" style={{ color: "var(--accent)" }}>→ {d.recommended_action}</p>}
-                      <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>{d.confidence != null ? `${d.confidence}% confidence` : "Source-backed"}</p>
-                      {sources.length > 0 && <div className="flex flex-wrap gap-1.5">{sources.map((s, i) => <SourceCard key={i} source={s}/>)}</div>}
-                      <div className="flex items-center gap-1.5 pt-1">
-                        <button onClick={() => resolveDecision(d.id, "approve")} disabled={!!act}
-                          className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium text-[var(--text-primary)] transition-colors disabled:opacity-50" style={{ background: "#10b981" }}>
-                          {act === "approve" ? <Loader2 size={11} className="animate-spin"/> : <CheckCircle2 size={11}/>} Approve
-                        </button>
-                        <button onClick={() => resolveDecision(d.id, "reject")} disabled={!!act}
-                          className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ border: "1px solid var(--border-strong)", color: "var(--text-secondary)" }}>
-                          {act === "reject" ? <Loader2 size={11} className="animate-spin"/> : <XCircle size={11}/>} Reject
-                        </button>
-                        <button onClick={() => resolveDecision(d.id, "snooze")} disabled={!!act}
-                          className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ color: "var(--text-faint)" }}>
-                          {act === "snooze" ? <Loader2 size={11} className="animate-spin"/> : <Clock size={11}/>} Snooze
-                        </button>
+                      {/* One-line summary is now visible immediately — no expand needed to read it */}
+                      {d.summary && <p className="mt-0.5 line-clamp-1 text-[11.5px]" style={{ color: "var(--text-muted)" }}>{d.summary}</p>}
+                      <div className="mt-1 flex items-center gap-2 text-[10px]" style={{ color: "var(--text-faint)" }}>
+                        <span className={RISK_STYLE[d.risk_level]}>{d.risk_level} risk</span>
+                        {d.confidence != null && <><span aria-hidden>·</span><span>{d.confidence}% confidence</span></>}
+                        {sources.length > 0 && (
+                          <button onClick={() => setOpenId(open ? null : d.id)} className="inline-flex items-center gap-0.5 transition-colors hover:text-[var(--text-secondary)]">
+                            <span aria-hidden>·</span> {sources.length} source{sources.length === 1 ? "" : "s"}
+                            <ChevronDown size={10} className={`transition-transform ${open ? "rotate-180" : ""}`}/>
+                          </button>
+                        )}
                       </div>
+                      {open && sources.length > 0 && (
+                        <div className="mt-2 space-y-2">
+                          {d.recommended_action && <p className="text-[11.5px] font-medium" style={{ color: "var(--section-accent)" }}>→ {d.recommended_action}</p>}
+                          <div className="flex flex-wrap gap-1.5">{sources.map((s, i) => <SourceCard key={i} source={s}/>)}</div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    {/* Actions — ALWAYS visible; act in one click */}
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button onClick={() => resolveDecision(d.id, "approve")} disabled={!!act} title="Approve"
+                        className="flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: "#10b981" }}>
+                        {act === "approve" ? <Loader2 size={11} className="animate-spin"/> : <Check size={11}/>}<span className="hidden sm:inline">Approve</span>
+                      </button>
+                      <button onClick={() => resolveDecision(d.id, "reject")} disabled={!!act} title="Dismiss"
+                        className="flex h-[26px] w-[26px] items-center justify-center rounded-md transition-colors hover:bg-rose-500/10 hover:text-rose-500 disabled:opacity-50" style={{ border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}>
+                        {act === "reject" ? <Loader2 size={11} className="animate-spin"/> : <X size={12}/>}
+                      </button>
+                      <button onClick={() => resolveDecision(d.id, "snooze")} disabled={!!act} title="Snooze"
+                        className="flex h-[26px] w-[26px] items-center justify-center rounded-md transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50" style={{ color: "var(--text-faint)" }}>
+                        {act === "snooze" ? <Loader2 size={11} className="animate-spin"/> : <Clock size={12}/>}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -285,9 +279,7 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
                 <ArrowUpRight size={11} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }}/>
               </Link>
             ))}
-                </div>
-              )}
-          </>
+          </div>
         )}
       </div>
     </section>

@@ -990,7 +990,12 @@ export function HomePage() {
               </div>
             ) : (
               <ul className="flow-list">
-                {activeTasks.slice(0, 6).map(item => {
+                {[...activeTasks].sort((a, b) => {
+                  // Overdue first, then by soonest due date; undated tasks sink to the bottom.
+                  const ad = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+                  const bd = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+                  return ad - bd;
+                }).slice(0, 6).map(item => {
                   const isOverdue = item.due_date && new Date(item.due_date) < new Date();
                   const assigneeName = getMemberName(item);
                   const statusColor = item.status === "review" ? "bg-amber-500" : item.status === "done" ? "btn-solid dark:bg-stone-100" : item.status === "in_progress" ? "bg-stone-500 dark:bg-stone-400" : "bg-stone-300 dark:bg-stone-700";
@@ -1084,11 +1089,7 @@ export function HomePage() {
                   <Calendar size={16} style={{ color: "var(--text-faint)" }}/>
                 </div>
                 <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>No meetings today</p>
-                <p className="mt-1 text-[11px] max-w-[200px]" style={{ color: "var(--text-faint)" }}>Connect your calendar to get automatic meeting briefs.</p>
-                <div className="mt-4 flex gap-2">
-                  <button className="btn-secondary !px-3 !py-1.5 !text-[11px]">Sync Google</button>
-                  <button className="btn-secondary !px-3 !py-1.5 !text-[11px]">Sync Microsoft</button>
-                </div>
+                <p className="mt-1 text-[11px] max-w-[220px]" style={{ color: "var(--text-faint)" }}>Meetings created in your workspace show up here with an AI brief.</p>
               </div>
             )}
           </div>
