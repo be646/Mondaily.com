@@ -61696,6 +61696,7 @@ router9.post("/member-insight", requireAuth, requireAdminRole, async (c2) => {
     supabase.from("activities").select("action, created_at, nodes(object_type, data)").eq("workspace_id", ws).eq("actor_id", actorId).order("created_at", { ascending: false }).limit(30),
     supabase.from("auth_refresh_tokens").select("user_id").eq("user_id", actorId).is("revoked_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString())
   ]);
+  if (!member) return c2.json({ error: "Member not found in this workspace." }, 404);
   const tokens = (usage ?? []).reduce((s2, u2) => s2 + Number(u2.total_tokens ?? 0), 0);
   const activities = (acts ?? []).map((a2) => {
     const node = a2.nodes;
@@ -61750,29 +61751,33 @@ async function members(workspaceId) {
 router10.get("/inbox", async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
-  const { data: rows2 } = await supabase.from("internal_messages").select("id, thread_key, sender_id, recipient_id, body, read_at, archived_at, created_at").eq("workspace_id", ws).or(`sender_id.eq.${me2},recipient_id.eq.${me2}`).order("created_at", { ascending: false }).limit(500);
+  const [{ data: rows2 }, { data: states }] = await Promise.all([
+    supabase.from("internal_messages").select("id, thread_key, sender_id, recipient_id, body, read_at, created_at").eq("workspace_id", ws).or(`sender_id.eq.${me2},recipient_id.eq.${me2}`).order("created_at", { ascending: false }).limit(500),
+    // This caller's OWN archive state — never the other participant's.
+    supabase.from("internal_message_thread_state").select("thread_key, archived_at").eq("workspace_id", ws).eq("user_id", me2)
+  ]);
+  const archivedAt = new Map((states ?? []).filter((s2) => s2.archived_at).map((s2) => [String(s2.thread_key), String(s2.archived_at)]));
   const dir = await members(ws);
   const threads = /* @__PURE__ */ new Map();
   for (const r2 of rows2 ?? []) {
-    if (r2.archived_at) continue;
     const otherId = r2.sender_id === me2 ? r2.recipient_id : r2.sender_id;
-    const t2 = threads.get(r2.thread_key);
-    if (!t2) {
+    if (!threads.has(r2.thread_key)) {
       threads.set(r2.thread_key, {
         thread_key: r2.thread_key,
         other_id: otherId,
         last: r2.body.slice(0, 140),
         last_at: r2.created_at,
+        // rows are newest-first, so the first seen is the latest
         unread: 0,
         outgoing: r2.sender_id === me2
       });
     }
-    if (r2.recipient_id === me2 && !r2.read_at) {
-      const cur = threads.get(r2.thread_key);
-      cur.unread += 1;
-    }
+    if (r2.recipient_id === me2 && !r2.read_at) threads.get(r2.thread_key).unread += 1;
   }
-  const inbox = [...threads.values()].map((t2) => {
+  const inbox = [...threads.values()].filter((t2) => {
+    const a2 = archivedAt.get(t2.thread_key);
+    return !a2 || t2.last_at > a2;
+  }).map((t2) => {
     const m2 = dir.get(t2.other_id);
     return { ...t2, name: m2?.name || m2?.email || "Member", email: m2?.email ?? null, avatar_url: m2?.avatar_url ?? null };
   });
@@ -61784,9 +61789,14 @@ router10.get("/thread/:otherId", async (c2) => {
   const me2 = c2.get("userId");
   const other = c2.req.param("otherId");
   const key = threadKey(me2, other);
-  const { data: rows2 } = await supabase.from("internal_messages").select("id, sender_id, recipient_id, body, read_at, created_at").eq("workspace_id", ws).eq("thread_key", key).order("created_at", { ascending: true }).limit(500);
-  await supabase.from("internal_messages").update({ read_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("workspace_id", ws).eq("thread_key", key).eq("recipient_id", me2).is("read_at", null);
   const dir = await members(ws);
+  if (!dir.has(other)) return c2.json({ error: "Member not found in this workspace." }, 404);
+  const { data: rows2 } = await supabase.from("internal_messages").select("id, sender_id, recipient_id, body, read_at, created_at").eq("workspace_id", ws).eq("thread_key", key).order("created_at", { ascending: true }).limit(500);
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  await supabase.from("internal_messages").update({ read_at: now }).eq("workspace_id", ws).eq("thread_key", key).eq("recipient_id", me2).is("read_at", null);
+  await supabase.from("internal_message_thread_state").upsert({ workspace_id: ws, thread_key: key, user_id: me2, last_read_at: now, updated_at: now }, { onConflict: "workspace_id,thread_key,user_id" }).then(() => {
+  }, () => {
+  });
   const m2 = dir.get(other);
   return c2.json({
     other: { user_id: other, name: m2?.name || m2?.email || "Member", email: m2?.email ?? null, avatar_url: m2?.avatar_url ?? null },
@@ -61829,8 +61839,10 @@ router10.post("/", zValidator("json", external_exports.object({ recipient_id: ex
 router10.patch("/thread/:otherId/archive", async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
+  const now = (/* @__PURE__ */ new Date()).toISOString();
   const key = threadKey(me2, c2.req.param("otherId"));
-  await supabase.from("internal_messages").update({ archived_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("workspace_id", ws).eq("thread_key", key).or(`sender_id.eq.${me2},recipient_id.eq.${me2}`);
+  const { error } = await supabase.from("internal_message_thread_state").upsert({ workspace_id: ws, thread_key: key, user_id: me2, archived_at: now, updated_at: now }, { onConflict: "workspace_id,thread_key,user_id" });
+  if (error) return c2.json({ error: error.message }, 400);
   return c2.json({ ok: true });
 });
 

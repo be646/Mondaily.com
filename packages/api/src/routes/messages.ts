@@ -32,39 +32,47 @@ async function members(workspaceId: string) {
 router.get("/inbox", async (c) => {
   const ws = c.get("workspaceId");
   const me = c.get("userId");
-  const { data: rows } = await supabase
-    .from("internal_messages")
-    .select("id, thread_key, sender_id, recipient_id, body, read_at, archived_at, created_at")
-    .eq("workspace_id", ws)
-    .or(`sender_id.eq.${me},recipient_id.eq.${me}`)
-    .order("created_at", { ascending: false })
-    .limit(500);
+  const [{ data: rows }, { data: states }] = await Promise.all([
+    supabase
+      .from("internal_messages")
+      .select("id, thread_key, sender_id, recipient_id, body, read_at, created_at")
+      .eq("workspace_id", ws)
+      .or(`sender_id.eq.${me},recipient_id.eq.${me}`)
+      .order("created_at", { ascending: false })
+      .limit(500),
+    // This caller's OWN archive state — never the other participant's.
+    supabase
+      .from("internal_message_thread_state")
+      .select("thread_key, archived_at")
+      .eq("workspace_id", ws)
+      .eq("user_id", me),
+  ]);
+  const archivedAt = new Map((states ?? []).filter(s => s.archived_at).map(s => [String(s.thread_key), String(s.archived_at)]));
 
   const dir = await members(ws);
   const threads = new Map<string, { thread_key: string; other_id: string; last: string; last_at: string; unread: number; outgoing: boolean }>();
   for (const r of rows ?? []) {
-    if (r.archived_at) continue;
     const otherId = r.sender_id === me ? r.recipient_id : r.sender_id;
-    const t = threads.get(r.thread_key);
-    if (!t) {
+    if (!threads.has(r.thread_key)) {
       threads.set(r.thread_key, {
         thread_key: r.thread_key,
         other_id: otherId,
         last: r.body.slice(0, 140),
-        last_at: r.created_at,
+        last_at: r.created_at,           // rows are newest-first, so the first seen is the latest
         unread: 0,
         outgoing: r.sender_id === me,
       });
     }
-    if (r.recipient_id === me && !r.read_at) {
-      const cur = threads.get(r.thread_key)!;
-      cur.unread += 1;
-    }
+    if (r.recipient_id === me && !r.read_at) threads.get(r.thread_key)!.unread += 1;
   }
-  const inbox = [...threads.values()].map((t) => {
-    const m = dir.get(t.other_id);
-    return { ...t, name: m?.name || m?.email || "Member", email: m?.email ?? null, avatar_url: m?.avatar_url ?? null };
-  });
+  const inbox = [...threads.values()]
+    // Hide only if THIS user archived the thread AND no newer message arrived since (a new
+    // message's created_at > archived_at, so sending re-surfaces the thread automatically).
+    .filter((t) => { const a = archivedAt.get(t.thread_key); return !a || t.last_at > a; })
+    .map((t) => {
+      const m = dir.get(t.other_id);
+      return { ...t, name: m?.name || m?.email || "Member", email: m?.email ?? null, avatar_url: m?.avatar_url ?? null };
+    });
   const unreadTotal = inbox.reduce((s, t) => s + t.unread, 0);
   return c.json({ inbox, unread_total: unreadTotal });
 });
@@ -76,6 +84,10 @@ router.get("/thread/:otherId", async (c) => {
   const other = c.req.param("otherId");
   const key = threadKey(me, other);
 
+  // The other party must be a real member of THIS workspace (isolation guard).
+  const dir = await members(ws);
+  if (!dir.has(other)) return c.json({ error: "Member not found in this workspace." }, 404);
+
   const { data: rows } = await supabase
     .from("internal_messages")
     .select("id, sender_id, recipient_id, body, read_at, created_at")
@@ -84,16 +96,22 @@ router.get("/thread/:otherId", async (c) => {
     .order("created_at", { ascending: true })
     .limit(500);
 
-  // Mark the caller's incoming, unread messages as read.
+  const now = new Date().toISOString();
+  // Mark the caller's incoming, unread messages as read (per-message read state → unread counts).
   await supabase
     .from("internal_messages")
-    .update({ read_at: new Date().toISOString() })
+    .update({ read_at: now })
     .eq("workspace_id", ws)
     .eq("thread_key", key)
     .eq("recipient_id", me)
     .is("read_at", null);
+  // Also stamp this user's own thread-state last_read_at (future realtime read-marker; upsert never
+  // touches the other participant's row thanks to the (workspace, thread, user) unique key).
+  await supabase
+    .from("internal_message_thread_state")
+    .upsert({ workspace_id: ws, thread_key: key, user_id: me, last_read_at: now, updated_at: now }, { onConflict: "workspace_id,thread_key,user_id" })
+    .then(() => {}, () => {});
 
-  const dir = await members(ws);
   const m = dir.get(other);
   return c.json({
     other: { user_id: other, name: m?.name || m?.email || "Member", email: m?.email ?? null, avatar_url: m?.avatar_url ?? null },
@@ -146,17 +164,18 @@ router.post("/", zValidator("json", z.object({ recipient_id: z.string().min(1), 
   return c.json({ id: data.id, created_at: data.created_at }, 201);
 });
 
-/** PATCH /messages/thread/:otherId/archive — archive a whole conversation for the caller. */
+/** PATCH /messages/thread/:otherId/archive — archive a conversation for THE CALLER ONLY.
+ *  Archive is a personal view choice, stored in the caller's own thread-state row — it never
+ *  hides the thread for the other participant. A later message re-surfaces it (see /inbox). */
 router.patch("/thread/:otherId/archive", async (c) => {
   const ws = c.get("workspaceId");
   const me = c.get("userId");
+  const now = new Date().toISOString();
   const key = threadKey(me, c.req.param("otherId"));
-  await supabase
-    .from("internal_messages")
-    .update({ archived_at: new Date().toISOString() })
-    .eq("workspace_id", ws)
-    .eq("thread_key", key)
-    .or(`sender_id.eq.${me},recipient_id.eq.${me}`);
+  const { error } = await supabase
+    .from("internal_message_thread_state")
+    .upsert({ workspace_id: ws, thread_key: key, user_id: me, archived_at: now, updated_at: now }, { onConflict: "workspace_id,thread_key,user_id" });
+  if (error) return c.json({ error: error.message }, 400);
   return c.json({ ok: true });
 });
 

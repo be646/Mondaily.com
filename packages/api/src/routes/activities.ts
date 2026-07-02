@@ -234,6 +234,9 @@ router.post("/member-insight", requireAuth, requireAdminRole, async (c) => {
     supabase.from("auth_refresh_tokens").select("user_id").eq("user_id", actorId).is("revoked_at", null).gt("expires_at", new Date().toISOString()),
   ]);
 
+  // The subject must be a real member of THIS workspace before we generate anything.
+  if (!member) return c.json({ error: "Member not found in this workspace." }, 404);
+
   const tokens = (usage ?? []).reduce((s, u) => s + Number(u.total_tokens ?? 0), 0);
   const activities = (acts ?? []).map((a) => {
     const node = (a as { nodes?: { object_type?: string; data?: Record<string, unknown> } | null }).nodes;

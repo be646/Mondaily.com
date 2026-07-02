@@ -1,853 +1,842 @@
-import { useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download, Send, X, Inbox, ArrowUpRight, Sparkles, Eye, Pickaxe, Bell, MessageSquare, ListPlus, Microscope, Plus, Trash2 } from "lucide-react";
-import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
-import { enrichPerson } from "../../lib/ai-enrichment";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  ChevronDown,
+  Clock,
+  ExternalLink,
+  FileSearch,
+  Globe2,
+  Layers3,
+  ListPlus,
+  Loader2,
+  MessageSquare,
+  Microscope,
+  Plus,
+  Radar,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
+import { apiClient } from "../../lib/api-client";
 import { requestAsk } from "../../lib/ask-bus";
-import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
+import { PageHeader } from "../../components/ui/page-state";
 
-interface DiscoveredLead {
-  id: string;
-  source_url: string | null;
-  platform: string | null;
-  author_name: string | null;
-  raw_content: string | null;
-  intent_type: "BUY_SIGNAL" | "REVIEW" | "COMPLAINT";
-  target_subject: string | null;
-  region: string | null;
-  confidence_score: number | null;
-  created_at: string;
-  contact?: { email?: string | null; phone?: string | null; handle?: string | null; summary?: string | null } | null;
+type DiscoveryTab = "search" | "saved" | "recent" | "review";
+type SaveMode = "create" | "review";
+
+interface ProspectCandidate {
+  name: string;
+  object_type: string;
+  email: string | null;
+  domain: string | null;
+  website: string | null;
+  linkedin: string | null;
+  description: string | null;
+  location: string | null;
+  source_url: string;
+  source_title: string;
+  confidence_label: "high" | "medium" | "low";
+  reason: string;
+  status: "created" | "existing" | "queued_for_review";
+  node_id?: string;
+  decision_id?: string;
 }
 
-// A saved lead is a real People node (tagged source="discovery") — the persistent record behind the
-// Saved Leads tab. `data` holds the fields we wrote when saving (name/email/website/industry/etc.).
-interface SavedLead { id: string; object_type: string; updated_at?: string; created_by?: string | null; data: Record<string, any> }
+interface ProspectingRunResult {
+  created: number;
+  existing: number;
+  queued_for_review: number;
+  added_to_list: number;
+  candidates: ProspectCandidate[];
+  sources: { url: string; title: string }[];
+  error?: string;
+}
 
-type SearchType = "INTENT_LEADS" | "REVIEWS";
+interface SavedRecord {
+  id: string;
+  object_type: string;
+  updated_at?: string;
+  data: Record<string, unknown>;
+}
 
-const INTENT: Record<string, { label: string; c: string; b: string; icon: typeof Star }> = {
-  BUY_SIGNAL: { label: "Buy signal", c: "#15803d", b: "#ecfdf3", icon: TrendingUp },
-  REVIEW:     { label: "Review",     c: "#1d4ed8", b: "#eff4ff", icon: Star },
-  COMPLAINT:  { label: "Complaint",  c: "#b91c1c", b: "#fef2f2", icon: AlertTriangle },
+interface ListRow {
+  id: string;
+  name: string;
+  object_type: string;
+  entry_count?: number;
+}
+
+interface DiscoveryStatus {
+  status: "HEALTHY" | "DEGRADED";
+  services: { searxng_reachable: boolean; scraper_reachable: boolean };
+  diagnostic?: string;
+}
+
+const EXAMPLES = [
+  "Aesthetic clinics in London with poor review response",
+  "Boutique hotels in Dubai hiring operations managers",
+  "Commercial solar installers in Texas with expansion signals",
+  "SaaS companies in Europe that recently raised funding",
+];
+
+const OBJECT_TYPES = ["company", "people", "investor", "supplier", "asset", "candidate"];
+
+const confidenceTone: Record<ProspectCandidate["confidence_label"], string> = {
+  high: "#2f7d52",
+  medium: "#a9782a",
+  low: "#737373",
 };
 
-const FILTERS = [["all", "All"], ["BUY_SIGNAL", "Buy signals"], ["REVIEW", "Reviews"], ["COMPLAINT", "Complaints"]] as const;
+function hostOf(url?: string | null): string {
+  if (!url) return "";
+  try {
+    return new URL(url).host.replace(/^www\./, "");
+  } catch {
+    return url.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? "";
+  }
+}
 
-// Human label for a discovered lead — used to scope the AI actions (Ask / Create task / Deep research).
-function leadScope(r: DiscoveredLead): string {
-  const name = r.author_name && r.author_name !== "Anonymous" ? r.author_name : (r.target_subject || r.contact?.handle || "");
-  let host = "";
-  try { host = r.source_url ? new URL(r.source_url).host.replace(/^www\./, "") : ""; } catch { /* ignore */ }
-  return name || host || "this lead";
+function labelOf(record: SavedRecord): string {
+  const d = record.data ?? {};
+  return String(d.name ?? d.company ?? d.full_name ?? d.title ?? "Untitled record");
+}
+
+function sourceKey(candidate: ProspectCandidate): string {
+  return [
+    candidate.name,
+    candidate.email ?? "",
+    candidate.domain ?? "",
+    candidate.website ?? "",
+    candidate.linkedin ?? "",
+    hostOf(candidate.source_url),
+  ].join("|").toLowerCase();
+}
+
+function savedKey(record: SavedRecord): string {
+  const d = record.data ?? {};
+  return [
+    d.name ?? d.company ?? d.full_name ?? d.title ?? "",
+    d.email ?? "",
+    d.domain ?? "",
+    d.website ?? "",
+    d.linkedin ?? "",
+    hostOf(String(d.source_url ?? "")),
+  ].join("|").toLowerCase();
+}
+
+function statusLabel(candidate: ProspectCandidate): string {
+  if (candidate.status === "created") return "Saved to graph";
+  if (candidate.status === "existing") return "Already in graph";
+  return "Awaiting review";
 }
 
 export function DiscoveryPage() {
   const qc = useQueryClient();
-  // Single Google-style search box — one free-text query. The AI classifies it into leads-vs-
-  // reviews + sector/region/subject server-side, instead of the user filling out a form.
+  const [tab, setTab] = useState<DiscoveryTab>("search");
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<string>("all");
-
-  const leadsQ = useQuery({
-    queryKey: ["discovery"],
-    queryFn: () => apiClient.get<DiscoveredLead[]>("/discovery"),
-    refetchInterval: 12_000,
+  const [objectType, setObjectType] = useState("company");
+  const [count, setCount] = useState(12);
+  const [saveMode, setSaveMode] = useState<SaveMode>("create");
+  const [destinationListId, setDestinationListId] = useState("");
+  const [result, setResult] = useState<ProspectingRunResult | null>(null);
+  const [lastSearch, setLastSearch] = useState<{ query: string; objectType: string } | null>(null);
+  const [recents, setRecents] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("mondaily_discovery_recent_queries") || "[]");
+    } catch {
+      return [];
+    }
   });
+
   const statusQ = useQuery({
     queryKey: ["discovery-status"],
-    queryFn: () => apiClient.get<{ status: "HEALTHY" | "DEGRADED"; services: { searxng_reachable: boolean; scraper_reachable: boolean } }>("/discovery/status"),
+    queryFn: () => apiClient.get<DiscoveryStatus>("/discovery/status"),
     staleTime: 60_000,
   });
-  // The strongest leads (confidence >=70 + real contact) auto-queue in the Decision Queue for
-  // one-click approval — surface that count here so it's obvious where they went.
-  const queuedQ = useQuery({
-    queryKey: ["decisions", "pending"],
+
+  const listsQ = useQuery({
+    queryKey: ["lists"],
+    queryFn: () => apiClient.get<ListRow[]>("/lists"),
+    staleTime: 30_000,
+  });
+
+  const decisionsQ = useQuery({
+    queryKey: ["decisions", "pending", "prospecting"],
     queryFn: () => apiClient.get<{ agent_name: string; status: string }[]>("/decisions?status=pending"),
     staleTime: 20_000,
   });
-  const queuedCount = (queuedQ.data ?? []).filter((d) => d.agent_name === "discovery").length;
+  const pendingProspecting = (decisionsQ.data ?? []).filter((d) => d.agent_name === "prospecting").length;
 
-  // ── Streaming search — watch the agent work live instead of a spinner ──
-  type SweepResult = {
-    ok?: boolean; discovered?: number; scanned?: number; queued?: number; error?: string; reason?: string; status?: string; overview?: string | null;
-    classified?: { searchType: SearchType; sector?: string; region?: string; targetSubject?: string };
-    diag?: { queries: number; hits: number; unique: number; scraped?: number; pages_analyzed?: number; gateway: boolean; extracted: number; matched: number };
-  };
-  const [deep, setDeep] = useState(false);
-  const [searching, setSearching] = useState(false);
-  const [progress, setProgress] = useState<string[]>([]);
-  const [overview, setOverview] = useState<string | null>(null);
-  const [result, setResult] = useState<SweepResult | null>(null);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const savedQ = useQuery({
+    queryKey: ["nodes", objectType, "discovery-saved"],
+    queryFn: () => apiClient.get<SavedRecord[]>(`/nodes?object_type=${encodeURIComponent(objectType)}&limit=300`),
+    staleTime: 20_000,
+  });
 
-  async function runSearch() {
-    if (searching || !query.trim()) return;
-    pushRecent(query);
-    setSearching(true); setProgress([]); setOverview(null); setResult(null); setSearchError(null);
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const timer = setTimeout(() => controller.abort(), 180_000); // hard ceiling
-    try {
-      const apiUrl = (import.meta.env.VITE_API_URL as string) || "";
-      const headers = await getAuthHeaders();
-      const res = await apiFetch(`${apiUrl}/api/v1/discovery/search/stream`, {
-        method: "POST", headers, signal: controller.signal,
-        body: JSON.stringify({ query: query.trim(), deep }),
-      });
-      if (!res.ok || !res.body) throw new Error((await res.text().catch(() => "")) || `Search error: ${res.status}`);
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-        for (const line of lines) {
-          const t = line.trim();
-          if (!t.startsWith("data:")) continue;
-          let ev: any;
-          try { ev = JSON.parse(t.slice(5).trim()); } catch { continue; }
-          if (ev.type === "progress") setProgress((p) => [...p.slice(-11), ev.message as string]);
-          else if (ev.type === "overview") setOverview(ev.text as string);
-          else if (ev.type === "done") { setResult(ev as SweepResult); if (ev.overview) setOverview(ev.overview as string); }
-          else if (ev.type === "error") setSearchError(ev.error as string);
-        }
-      }
-      qc.invalidateQueries({ queryKey: ["discovery"] });
-      qc.invalidateQueries({ queryKey: ["decisions", "pending"] });
-    } catch (e) {
-      // Fall back to the non-streaming endpoint (older API deploys / proxies that buffer SSE).
-      try {
-        const r = await apiClient.post<SweepResult>("/discovery/search", { query: query.trim(), deep });
-        setResult(r); if (r.overview) setOverview(r.overview);
-        qc.invalidateQueries({ queryKey: ["discovery"] });
-      } catch (e2) {
-        setSearchError(e2 instanceof Error ? e2.message : e instanceof Error ? e.message : "Search failed");
-      }
-    } finally {
-      clearTimeout(timer);
-      setSearching(false);
+  const compatibleLists = useMemo(() => {
+    return (listsQ.data ?? []).filter((l) => !l.object_type || l.object_type === objectType);
+  }, [listsQ.data, objectType]);
+
+  useEffect(() => {
+    if (destinationListId && !compatibleLists.some((l) => l.id === destinationListId)) {
+      setDestinationListId("");
     }
-  }
+  }, [compatibleLists, destinationListId]);
 
-  // ── Saved-search monitors — "watch this search", re-run daily by the agent ──
-  const monitorsQ = useQuery({
-    queryKey: ["discovery-monitors"],
-    queryFn: () => apiClient.get<{ id: string; query: string; last_run_at?: string | null; last_new?: number }[]>("/discovery/monitors"),
-    staleTime: 60_000,
-  });
-  const addMonitor = useMutation({
-    mutationFn: (q: string) => apiClient.post("/discovery/monitors", { query: q }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["discovery-monitors"] }),
-  });
-  const removeMonitor = useMutation({
-    mutationFn: (id: string) => apiClient.delete(`/discovery/monitors/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["discovery-monitors"] }),
-  });
-  const monitors = monitorsQ.data ?? [];
-  const isWatched = monitors.some((m) => m.query.toLowerCase() === query.trim().toLowerCase());
+  const savedRecords = useMemo(() => {
+    const rows = savedQ.data ?? [];
+    return rows.filter((r) => {
+      const d = r.data ?? {};
+      return Boolean(d.source_url || d.source_title || d.confidence_label || String(r.object_type).toLowerCase() === objectType.toLowerCase());
+    });
+  }, [savedQ.data, objectType]);
 
-  // ── Tabs: Search / Deep Research / Saved Leads / Recent ──
-  const [tab, setTab] = useState<"search" | "deep" | "saved" | "recent">("search");
-  const isSearchTab = tab === "search" || tab === "deep";
+  const savedKeys = useMemo(() => new Set(savedRecords.map(savedKey).filter(Boolean)), [savedRecords]);
 
-  // Recent searches — persisted locally (no backend needed), most-recent-first, deduped, capped.
-  const [recents, setRecents] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem("mondaily_discovery_recents") || "[]"); } catch { return []; }
-  });
-  const pushRecent = (q: string) => {
-    const v = q.trim(); if (!v) return;
+  function pushRecent(q: string) {
+    const clean = q.trim();
+    if (!clean) return;
     setRecents((prev) => {
-      const next = [v, ...prev.filter((x) => x.toLowerCase() !== v.toLowerCase())].slice(0, 12);
-      try { localStorage.setItem("mondaily_discovery_recents", JSON.stringify(next)); } catch { /* ignore */ }
+      const next = [clean, ...prev.filter((x) => x.toLowerCase() !== clean.toLowerCase())].slice(0, 12);
+      localStorage.setItem("mondaily_discovery_recent_queries", JSON.stringify(next));
       return next;
     });
-  };
-  const clearRecents = () => { setRecents([]); try { localStorage.removeItem("mondaily_discovery_recents"); } catch { /* ignore */ } };
-
-  // Saved leads — the REAL records saved from Discovery (People nodes tagged source="discovery").
-  const savedLeadsQ = useQuery({
-    queryKey: ["records", "people", "discovery-saved"],
-    queryFn: async () => (await apiClient.get<SavedLead[]>("/nodes?object_type=people&limit=200"))
-      .filter((n) => (n.data?.source === "discovery")),
-    staleTime: 30_000,
-  });
-  const savedLeads = savedLeadsQ.data ?? [];
-  // Saved-state persistence: a search result counts as "saved" if a saved record already matches by
-  // name or source-domain — so the Added state survives refresh/new searches (no fake state).
-  const savedKeys = new Set<string>();
-  for (const s of savedLeads) {
-    const nm = String(s.data?.name ?? "").trim().toLowerCase(); if (nm) savedKeys.add(`n:${nm}`);
-    const src = String(s.data?.source_url ?? s.data?.website ?? "");
-    try { const h = new URL(src).host.replace(/^www\./, "").toLowerCase(); if (h) savedKeys.add(`d:${h}`); } catch { /* ignore */ }
   }
-  const isLeadSaved = (r: DiscoveredLead): boolean => {
-    if (added[r.id]) return true;
-    const nm = (r.author_name && r.author_name !== "Anonymous" ? r.author_name : (r.target_subject || "")).trim().toLowerCase();
-    if (nm && savedKeys.has(`n:${nm}`)) return true;
-    try { const h = new URL(r.source_url ?? "").host.replace(/^www\./, "").toLowerCase(); if (h && savedKeys.has(`d:${h}`)) return true; } catch { /* ignore */ }
-    return false;
-  };
 
-  // Promote a discovered lead into a real People record (name + email + phone + note + source),
-  // then AUTO-ENRICH it: the enrichment agent immediately fills company/role/site from a real web
-  // pass (never fabricated — empty when nothing is found).
-  const [added, setAdded] = useState<Record<string, boolean>>({});
-  const addLead = useMutation({
-    mutationFn: async (r: DiscoveredLead) => {
-      const baseData: Record<string, unknown> = {
-        name: r.author_name && r.author_name !== "Anonymous" ? r.author_name : (r.contact?.handle || r.target_subject || "Discovered lead"),
-        email: r.contact?.email || undefined,
-        phone: r.contact?.phone || undefined,
-        handle: r.contact?.handle || undefined,
-        notes: [r.contact?.summary, r.raw_content && `“${r.raw_content}”`, r.source_url && `Source: ${r.source_url}`].filter(Boolean).join("\n\n"),
-        source: "discovery",
-        lead_type: r.intent_type,
-      };
-      const node = await apiClient.post<{ id: string }>("/nodes", { vertical: "shared", object_type: "people", data: baseData });
-      // Fire-and-forget enrichment — merge real, non-empty fields ONTO the base data (the nodes
-      // PATCH replaces `data` wholesale, so we must send the full merged object; the lead's own
-      // fields always win over enrichment).
-      if (r.contact?.email && node?.id) {
-        void enrichPerson(r.contact.email).then((enr) => {
-          const fields = Object.fromEntries(Object.entries(enr.fields ?? {}).filter(([, v]) => v != null && v !== ""));
-          if (Object.keys(fields).length) {
-            return apiClient.patch(`/nodes/${node.id}`, { data: { ...fields, ...baseData } }).then(() => {
-              qc.invalidateQueries({ queryKey: ["records", "people"] });
-            });
-          }
-        }).catch(() => {});
-      }
-      return node;
+  const run = useMutation({
+    mutationFn: (input: { query: string; objectType: string }) =>
+      apiClient.post<ProspectingRunResult>("/prospecting/run", {
+        query: input.query,
+        object_type: input.objectType,
+        count,
+        destination_list_id: destinationListId || undefined,
+        require_approval: saveMode === "review",
+      }),
+    onSuccess: (data, input) => {
+      setResult(data);
+      setLastSearch(input);
+      pushRecent(input.query);
+      qc.invalidateQueries({ queryKey: ["nodes", input.objectType, "discovery-saved"] });
+      qc.invalidateQueries({ queryKey: ["decisions", "pending"] });
+      qc.invalidateQueries({ queryKey: ["lists"] });
     },
-    onSuccess: (_d, r) => { setAdded((m) => ({ ...m, [r.id]: true })); qc.invalidateQueries({ queryKey: ["records", "people", "discovery-saved"] }); },
   });
 
-  const all = leadsQ.data ?? [];
-  const rows = filter === "all" ? all : all.filter((r) => r.intent_type === filter);
-  const counts = {
-    all: all.length,
-    BUY_SIGNAL: all.filter((r) => r.intent_type === "BUY_SIGNAL").length,
-    REVIEW: all.filter((r) => r.intent_type === "REVIEW").length,
-    COMPLAINT: all.filter((r) => r.intent_type === "COMPLAINT").length,
-  } as Record<string, number>;
-  const withContact = all.filter((r) => r.contact?.email || r.contact?.phone).length;
-  const avgConf = all.length ? Math.round(all.reduce((s, r) => s + (r.confidence_score ?? 0), 0) / all.length) : 0;
-
-  // ── Bulk selection + CSV export ──
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const toggleSel = (id: string) => setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  const selectedRows = rows.filter((r) => selected.has(r.id));
-  const bulkAdd = useMutation({
-    mutationFn: async (list: DiscoveredLead[]) => {
-      for (const r of list) if (!added[r.id]) { try { await addLead.mutateAsync(r); } catch { /* skip failures */ } }
-    },
-    onSuccess: () => setSelected(new Set()),
-  });
-  // Clear stale results — the whole feed (fresh start) or one lead.
-  const clearAll = useMutation({
-    mutationFn: () => apiClient.delete("/discovery/all"),
-    onSuccess: () => { setSelected(new Set()); qc.invalidateQueries({ queryKey: ["discovery"] }); },
-  });
-  const removeLead = useMutation({
-    mutationFn: (id: string) => apiClient.delete(`/discovery/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["discovery"] }),
-  });
-  // Compose + send an email to a lead — through our own system (Gmail/Resend), not mailto.
-  const [compose, setCompose] = useState<{ lead: DiscoveredLead; subject: string; body: string } | null>(null);
-  const [sendMsg, setSendMsg] = useState<string | null>(null);
-  const sendEmail = useMutation({
-    mutationFn: (c: { to: string; subject: string; body: string; name?: string }) =>
-      apiClient.post("/emails/compose", { to: c.to, subject: c.subject, body: c.body.replace(/\n/g, "<br>"), name: c.name }),
-    onSuccess: () => { setSendMsg("Sent ✓"); setTimeout(() => { setCompose(null); setSendMsg(null); }, 1200); },
-    onError: (e) => setSendMsg(e instanceof Error ? e.message : "Couldn't send."),
+  const removeRecord = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/nodes/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["nodes", objectType, "discovery-saved"] }),
   });
 
-  function exportCSV(list: DiscoveredLead[]) {
-    const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""').replace(/\n/g, " ")}"`;
-    const header = ["name", "type", "email", "phone", "handle", "note", "review", "subject", "region", "confidence", "source_url", "found_at"];
-    const lines = list.map((r) => [r.author_name, r.intent_type, r.contact?.email, r.contact?.phone, r.contact?.handle, r.contact?.summary, r.raw_content, r.target_subject, r.region, r.confidence_score, r.source_url, r.created_at].map(esc).join(","));
-    const blob = new Blob(["﻿" + [header.join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `discovery-leads-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
-    URL.revokeObjectURL(url);
+  const addToList = useMutation({
+    mutationFn: ({ listId, nodeId }: { listId: string; nodeId: string }) =>
+      apiClient.post(`/lists/${listId}/entries`, { node_id: nodeId }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lists"] }),
+  });
+
+  function submitSearch(q = query) {
+    const clean = q.trim();
+    if (!clean || run.isPending) return;
+    setTab("search");
+    run.mutate({ query: clean, objectType });
+  }
+
+  function askAboutCandidate(candidate: ProspectCandidate) {
+    requestAsk(
+      `Research this Discovery candidate using only source-backed information: ${candidate.name}. ` +
+      `Source: ${candidate.source_url}. Explain what they do, why they match "${lastSearch?.query ?? query}", ` +
+      `what signal or review evidence exists, red flags, and the best next action. If reviews are not found, say "No review source found".`
+    );
+  }
+
+  function createTask(candidate: ProspectCandidate) {
+    requestAsk(
+      `Create a follow-up task for Discovery candidate "${candidate.name}" from ${candidate.source_url}. ` +
+      `Use the real context only. If the assignee or due date is ambiguous, ask me before creating it.`
+    );
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
       <PageHeader
         title="Discovery"
-        description="Search anything — the agent scans the open web and finds real, source-backed leads and reviews."
+        description="Find real prospects, suppliers, candidates, assets, reviews, and market signals from the open web — then save them into the workspace graph."
       />
 
-      {/* Strong leads already routed to the Decision Queue for one-click approval */}
-      {queuedCount > 0 && (
-        <Link
-          to="/decisions"
-          className="flex items-center justify-between gap-3 rounded-sm border px-4 py-3 transition-colors hover:border-[color:var(--section-accent)]"
-          style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)" }}
-        >
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: "var(--section-accent)", color: "#000" }}>
-              <Inbox size={15} />
-            </span>
-            <div>
-              <div className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>
-                {queuedCount} strong lead{queuedCount === 1 ? "" : "s"} queued for your approval
-              </div>
-              <div className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>High confidence + a real contact — the Discovery Agent already found these, review in the Decision Deck.</div>
+      <section className="mt-5 border-y py-5" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div>
+            <div className="flex items-center gap-2 text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>
+              <span className="h-2 w-2 rounded-full" style={{ background: statusQ.data?.status === "DEGRADED" ? "#b45309" : "#2f7d52" }} />
+              Sovereign web search
+              <span aria-hidden>·</span>
+              SearXNG + scraper + source-backed extraction
             </div>
-          </div>
-          <ArrowUpRight size={16} className="shrink-0" style={{ color: "var(--section-accent)" }} />
-        </Link>
-      )}
 
-      {/* Health banner — only when the self-hosted search stack is degraded */}
-      {statusQ.data && statusQ.data.status === "DEGRADED" && (
-        <div className="flex items-start gap-3 rounded-sm border px-4 py-3" style={{ borderColor: "#e9d8a6", background: "#fdfaf0" }}>
-          <AlertTriangle size={15} className="mt-0.5 shrink-0 text-amber-600" />
-          <div className="text-[12.5px] leading-relaxed text-amber-900">
-            <span className="font-medium">Search stack is degraded.</span>{" "}
-            {(statusQ.data as { diagnostic?: string }).diagnostic
-              ?? "Sweeps will return nothing until the self-hosted appliance is reachable."}
-          </div>
-        </div>
-      )}
-
-      {/* ── Tabs — Search / Deep Research / Saved Leads / Recent ── */}
-      <div className="flex flex-wrap items-center gap-1 border-b" style={{ borderColor: "var(--border-soft)" }}>
-        {([
-          ["search", "Search"],
-          ["deep", "Deep Research"],
-          ["saved", `Saved Leads${savedLeads.length ? ` · ${savedLeads.length}` : ""}`],
-          ["recent", "Recent"],
-        ] as const).map(([k, label]) => (
-          <button key={k} onClick={() => { setTab(k); if (k === "deep") setDeep(true); }}
-            className="relative -mb-px px-3 py-2 text-[12.5px] font-medium transition-colors"
-            style={{ color: tab === k ? "var(--text-primary)" : "var(--text-muted)" }}>
-            {label}
-            {tab === k && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full" style={{ background: "var(--section-accent)" }} />}
-          </button>
-        ))}
-      </div>
-
-      {/* Deep Research explainer — same sovereign search, deep mode on: visits business sites for
-          deeper source-backed detail (real, no fabrication). */}
-      {tab === "deep" && (
-        <p className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>
-          Deep research runs the sovereign web sweep with <strong style={{ color: "var(--text-secondary)" }}>Deep mode</strong> on — it also visits each business&apos;s own site for contact and reputation detail. Every result stays source-backed; use <strong style={{ color: "var(--text-secondary)" }}>Deep research</strong> on any result for an AI dossier.
-        </p>
-      )}
-
-      {isSearchTab && (<>
-      {/* ── Single Google-style search — one box, AI classifies intent + extracts sector/region/subject ── */}
-      <section>
-        <div
-          className="discovery-search-bar flex items-center gap-2.5 rounded-full border px-3 py-2 transition-all sm:px-4"
-          style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 18px 40px -28px rgba(0,0,0,0.16)" }}
-        >
-          <Search size={17} className="shrink-0" style={{ color: "var(--text-faint)" }} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && query.trim() && !searching) void runSearch(); }}
-            placeholder="Search anything — real estate agents in London, reviews for Vivacy, SaaS companies that raised a seed round…"
-            className="flex-1 min-w-0 bg-transparent px-1 py-1.5 text-[15px] leading-6 outline-none"
-            style={{ color: "var(--text-primary)" }}
-          />
-          {/* Deep mode — second-pass contact harvest from the businesses' own sites */}
-          <button
-            onClick={() => setDeep((d) => !d)}
-            title={deep ? "Deep mode ON — also visits business sites for emails/phones (slower, more contacts)" : "Deep mode — also visit business sites for emails/phones"}
-            className="shrink-0 flex h-9 items-center gap-1.5 rounded-full border px-3 text-[12px] font-medium transition-colors"
-            style={deep
-              ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "var(--section-accent-soft)" }
-              : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
-          >
-            <Pickaxe size={13} /> Deep
-          </button>
-          <button
-            onClick={() => void runSearch()}
-            disabled={searching || !query.trim()}
-            title="Search"
-            className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-white transition-all disabled:cursor-not-allowed disabled:opacity-40"
-            style={{ background: "#18181b" }}
-          >
-            {searching ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-          </button>
-        </div>
-
-        {/* Live agent feed — each pipeline stage streams in as the agent works */}
-        {(searching || progress.length > 0) && (
-          <div className="mx-1 mt-2.5 rounded-sm border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            <div className="space-y-1">
-              {progress.map((line, i) => (
-                <div key={i} className="flex items-start gap-2 text-[12px]" style={{ color: i === progress.length - 1 && searching ? "var(--text-secondary)" : "var(--text-faint)" }}>
-                  {i === progress.length - 1 && searching
-                    ? <Loader2 size={11} className="mt-0.5 shrink-0 animate-spin" style={{ color: "var(--section-accent)" }} />
-                    : <Check size={11} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />}
-                  <span className="min-w-0 break-words">{line}</span>
-                </div>
-              ))}
-              {searching && progress.length === 0 && (
-                <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--text-secondary)" }}>
-                  <Loader2 size={11} className="animate-spin" style={{ color: "var(--section-accent)" }} /> Starting the agent…
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Result / error line — mirrors how a search engine reports back */}
-        {(searchError || result) && !searching && (
-          <div className="px-4 pt-2.5 text-[12.5px]">
-            {searchError && <span style={{ color: "#be123c" }}>Search failed: {searchError}</span>}
-            {!searchError && result && (() => {
-              const d = result;
-              const kind = d.classified?.searchType === "REVIEWS" ? "reviews" : "leads";
-              if (d.error) return <span style={{ color: "#be123c" }}>Search error: {d.error}</span>;
-              if (d.status === "SKIPPED_INFRASTRUCTURE_TIMEOUT") return <span style={{ color: "#be123c" }}>Search appliance was unreachable — check the health banner above.</span>;
-              if ((d.discovered ?? 0) > 0) return (
-                <span className="inline-flex items-center gap-1.5" style={{ color: "#15803d" }}>
-                  <Check size={12} />Found {d.discovered} {kind === "reviews" ? "review" + (d.discovered === 1 ? "" : "s") : "lead" + (d.discovered === 1 ? "" : "s")} from {d.scanned ?? "?"} sources{(d.queued ?? 0) > 0 ? ` · ${d.queued} queued for approval` : ""}.
-                </span>
-              );
-              return (
-                <span style={{ color: "var(--text-muted)" }}>
-                  Scanned {d.scanned ?? 0} sources — no on-topic {kind} matched. {d.reason ? <span style={{ color: "var(--text-faint)" }}>({d.reason})</span> : null} Try being more specific, or a different subject.
-                  {d.diag && (
-                    <span className="mt-1 block font-mono text-[10px]" style={{ color: "var(--text-faint)" }}>
-                      pipeline: {d.diag.queries} queries → {d.diag.hits} hits → {d.diag.scraped ?? 0} scraped → {d.diag.pages_analyzed ?? 0} analyzed → gateway {d.diag.gateway ? "ok" : "FAILED"} → {d.diag.extracted} extracted
-                    </span>
-                  )}
-                </span>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* AI overview — the "Google AI mode" panel: a grounded read of what was found */}
-        {overview && !searching && (
-          <div className="mx-1 mt-3 rounded-sm border p-4" style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)" }}>
-            <div className="mb-1.5 flex items-center gap-1.5 text-[11.5px] font-semibold" style={{ color: "var(--section-accent)" }}>
-              <Sparkles size={13} /> AI overview
-            </div>
-            <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{overview}</p>
-          </div>
-        )}
-
-        {/* Watch this search — the agent re-runs it daily and notifies you about NEW results only */}
-        {query.trim().length > 2 && !searching && (
-          <div className="flex flex-wrap items-center gap-2 px-4 pt-3">
-            <button
-              onClick={() => !isWatched && addMonitor.mutate(query.trim())}
-              disabled={addMonitor.isPending || isWatched}
-              className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-70"
-              style={isWatched
-                ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "var(--section-accent-soft)" }
-                : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
+            <div
+              className="mt-4 flex min-h-[58px] items-center gap-3 rounded-full border px-4 transition-colors"
+              style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
             >
-              {addMonitor.isPending ? <Loader2 size={12} className="animate-spin" /> : isWatched ? <Check size={12} /> : <Eye size={12} />}
-              {isWatched ? "Watching daily" : "Watch this search"}
-            </button>
-          </div>
-        )}
-
-        {/* Active monitors — the searches the agent re-runs every day */}
-        {monitors.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 px-4 pt-3">
-            <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "var(--text-faint)" }}><Bell size={11} /> Watched:</span>
-            {monitors.map((m) => (
-              <span key={m.id} className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                <button onClick={() => setQuery(m.query)} className="max-w-[220px] truncate hover:underline" title={m.query}>{m.query}</button>
-                {typeof m.last_new === "number" && m.last_new > 0 && <span className="rounded-full px-1.5 text-[10px] font-semibold" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>+{m.last_new}</span>}
-                <button onClick={() => removeMonitor.mutate(m.id)} title="Stop watching" className="transition-colors hover:text-rose-400" style={{ color: "var(--text-faint)" }}><X size={11} /></button>
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Quick example chips — click to fill the box, same pattern as the home Ask bar's quick prompts */}
-        {!query && !result && (
-          <div className="flex flex-wrap gap-1.5 px-4 pt-3">
-            {["Real estate agents in London", "Reviews for Vivacy", "SaaS companies that raised a seed round"].map((ex) => (
+              <Search size={18} className="shrink-0" style={{ color: "var(--text-muted)" }} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") submitSearch();
+                }}
+                placeholder="Search the web for leads, reviews, suppliers, investors, assets, candidates..."
+                className="min-w-0 flex-1 bg-transparent text-[16px] outline-none"
+                style={{ color: "var(--text-primary)" }}
+              />
               <button
-                key={ex}
-                onClick={() => setQuery(ex)}
-                className="rounded-full border px-3 py-1.5 text-[12px] transition-colors"
-                style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
+                onClick={() => submitSearch()}
+                disabled={!query.trim() || run.isPending}
+                className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-[13px] font-medium transition-opacity disabled:opacity-40"
+                style={{ background: "var(--text-primary)", color: "var(--surface-canvas)" }}
               >
-                {ex}
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* ── Google-style results summary — one quiet line, not KPI cards ── */}
-      {all.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
-          <span>About <strong className="font-medium" style={{ color: "var(--text-secondary)" }}>{all.length}</strong> result{all.length === 1 ? "" : "s"}</span>
-          <span aria-hidden>·</span>
-          <span><strong className="font-medium" style={{ color: "var(--text-secondary)" }}>{withContact}</strong> with contact details</span>
-          <span aria-hidden>·</span>
-          <span>avg confidence <strong className="font-medium" style={{ color: "var(--text-secondary)" }}>{avgConf}</strong></span>
-          <button
-            onClick={() => clearAll.mutate()}
-            disabled={clearAll.isPending}
-            className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] transition-colors hover:text-rose-400 disabled:opacity-60"
-            style={{ color: "var(--text-faint)" }}
-            title="Clear all results"
-          >
-            {clearAll.isPending ? <Loader2 size={11} className="animate-spin" /> : <X size={11} />} Clear results
-          </button>
-        </div>
-      )}
-
-      {/* ── Results — Google-style: no table box, each result sits directly on the app background ── */}
-      <section>
-        <div className="flex flex-wrap items-center gap-1.5 px-4 pb-1">
-          {FILTERS.map(([k, l]) => (
-            <button
-              key={k}
-              onClick={() => setFilter(k)}
-              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11.5px] font-medium transition-colors ${
-                filter === k ? "bg-[var(--surface-selected)] text-[var(--section-accent)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-              }`}
-            >
-              {l}
-              <span className={`tabular-nums ${filter === k ? "text-[var(--section-accent)]/70" : "text-[var(--text-faint)]"}`}>{counts[k] ?? 0}</span>
-            </button>
-          ))}
-          {/* Bulk actions — right aligned */}
-          {rows.length > 0 && (
-            <div className="ml-auto flex items-center gap-2">
-              {selected.size > 0 && (
-                <button onClick={() => bulkAdd.mutate(selectedRows)} disabled={bulkAdd.isPending}
-                  className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[var(--section-accent)] disabled:opacity-60"
-                  style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}>
-                  {bulkAdd.isPending ? <Loader2 size={11} className="animate-spin" /> : <UserPlus size={11} />} Add {selected.size} as leads
-                </button>
-              )}
-              <button onClick={() => bulkAdd.mutate(rows)} disabled={bulkAdd.isPending}
-                className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[var(--section-accent)] disabled:opacity-60"
-                style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
-                <UserPlus size={11} /> Add all
-              </button>
-              <button onClick={() => exportCSV(selected.size ? selectedRows : rows)}
-                className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--section-accent)]"
-                style={{ borderColor: "var(--border-strong)" }}>
-                <Download size={11} /> Export CSV
+                {run.isPending ? <Loader2 size={14} className="animate-spin" /> : <Radar size={14} />}
+                Search
               </button>
             </div>
-          )}
-        </div>
 
-        {leadsQ.isLoading ? (
-          <div className="p-5"><PageSkeleton rows={4} /></div>
-        ) : rows.length === 0 ? (
-          <div className="flex flex-col items-center px-6 py-16 text-center">
-            <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-sm" style={{ background: "#6f80681a" }}>
-              <Radar size={20} className="text-[#6f8068]" />
-            </span>
-            <p className="text-[14px] font-medium text-[var(--text-primary)]">No discovered leads yet</p>
-            <p className="mt-1 max-w-sm text-[12.5px] leading-relaxed text-[var(--text-muted)]">
-              Run a sweep above — grounded, on-topic buyer signals and reviews land here, each with a real source link.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-6 px-4 pt-4">
-            {rows.map((r) => {
-              const s = INTENT[r.intent_type] ?? { label: r.intent_type, c: "#71717a", b: "#f4f4f5", icon: Star };
-              const conf = r.confidence_score ?? 0;
-              const confColor = conf >= 70 ? "#15803d" : conf >= 40 ? "#c99a3c" : "#8a8a8a"; // green · gold · gray
-              const domain = (() => { try { return new URL(r.source_url ?? "").host.replace(/^www\./, ""); } catch { return r.platform ?? "web"; } })();
-              const title = r.author_name && r.author_name !== "Anonymous" ? r.author_name : (r.target_subject || r.contact?.handle || domain);
-              return (
-                <article key={r.id} className="group flex items-start gap-3">
-                  <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleSel(r.id)}
-                    className="mt-1.5 h-3.5 w-3.5 shrink-0 cursor-pointer accent-[color:var(--section-accent)] opacity-40 transition-opacity group-hover:opacity-100 checked:opacity-100" />
-                  <div className="min-w-0 flex-1">
-                    {/* Source line — like Google's URL breadcrumb */}
-                    <div className="flex flex-wrap items-center gap-1.5 text-[11.5px]" style={{ color: "var(--text-faint)" }}>
-                      <span className="font-medium" style={{ color: "var(--text-muted)" }}>{r.platform ?? "web"}</span>
-                      <span aria-hidden>·</span>
-                      <span className="truncate">{domain}</span>
-                      {r.region && <><span aria-hidden>·</span><span>{r.region}</span></>}
-                      <span className="rounded-full px-1.5 py-px text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: s.c, background: s.b }}>{s.label}</span>
-                    </div>
-                    {/* Title — the person/business, linked to the real source */}
-                    <a href={r.source_url ?? "#"} target="_blank" rel="noreferrer"
-                      className="mt-0.5 inline-block max-w-full truncate text-[15.5px] font-medium leading-snug hover:underline"
-                      style={{ color: "var(--section-accent)" }}>
-                      {title}
-                    </a>
-                    {r.contact?.summary && <p className="mt-0.5 text-[12px] italic leading-relaxed" style={{ color: "var(--text-muted)" }}>{r.contact.summary}</p>}
-                    {r.raw_content && <p className="mt-0.5 line-clamp-3 text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{r.raw_content}</p>}
-                    {/* Contact chips + actions — one quiet row, no boxes */}
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px]">
-                      {r.contact?.email && <a href={`mailto:${r.contact.email}`} className="inline-flex items-center gap-1 hover:underline" style={{ color: "var(--text-secondary)" }}><Mail size={11} />{r.contact.email}</a>}
-                      {r.contact?.phone && <a href={`tel:${r.contact.phone}`} className="inline-flex items-center gap-1 hover:underline" style={{ color: "var(--text-secondary)" }}><Phone size={11} />{r.contact.phone}</a>}
-                      {r.contact?.handle && <span className="inline-flex items-center gap-1" style={{ color: "var(--text-muted)" }}>{r.contact.handle}</span>}
-                      {(() => { const saved = isLeadSaved(r); return (
-                      <button
-                        onClick={() => !saved && addLead.mutate(r)}
-                        disabled={saved || (addLead.isPending && addLead.variables?.id === r.id)}
-                        className="inline-flex items-center gap-1 font-medium transition-colors hover:underline disabled:opacity-70"
-                        style={{ color: saved ? "#15803d" : "var(--section-accent)" }}>
-                        {saved ? <><Check size={11} /> Saved to People</> : <><UserPlus size={11} /> Save lead</>}
-                      </button>
-                      ); })()}
-                      {/* Add to a workspace list — saves the lead first if needed, then adds the entry */}
-                      <AddToListPicker resolveNodeId={async () => (await addLead.mutateAsync(r)).id} />
-
-                      {r.contact?.email && (
-                        <button
-                          onClick={() => { setSendMsg(null); setCompose({ lead: r, subject: r.target_subject ? `Regarding ${r.target_subject}` : "Hello from Mondaily", body: `Hi ${r.author_name && r.author_name !== "Anonymous" ? r.author_name : "there"},\n\n` }); }}
-                          className="inline-flex items-center gap-1 font-medium transition-colors hover:underline"
-                          style={{ color: "var(--section-accent)" }}>
-                          <Send size={11} /> Message
-                        </button>
-                      )}
-                      {/* AI actions — reuse the existing Ask engine (source-backed, no fabrication) */}
-                      {(() => { const who = leadScope(r); return (<>
-                        <button onClick={() => requestAsk(`Tell me about ${who} using real, source-backed web information — what they do and why they may be relevant.${r.source_url ? ` Source: ${r.source_url}` : ""}`)}
-                          className="inline-flex items-center gap-1 font-medium transition-colors hover:underline" style={{ color: "var(--section-accent)" }}>
-                          <MessageSquare size={11} /> Ask AI
-                        </button>
-                        <button onClick={() => requestAsk(`Create a follow-up task for the lead ${who}${r.contact?.email ? ` (${r.contact.email})` : ""}. If the title or due date is ambiguous, ask me to confirm before creating it.`)}
-                          className="inline-flex items-center gap-1 font-medium transition-colors hover:underline" style={{ color: "var(--section-accent)" }}>
-                          <ListPlus size={11} /> Create task
-                        </button>
-                        <button onClick={() => requestAsk(`Deep research ${who}${r.source_url ? ` (start from ${r.source_url})` : ""}: from real, source-backed web information summarise what they do, why they may be relevant, any buying/partnership signal, red flags, and the best next action. Include review/reputation clues if a review source exists — if none is found, say "No review source found".`)}
-                          className="inline-flex items-center gap-1 font-medium transition-colors hover:underline" style={{ color: "var(--section-accent)" }}>
-                          <Microscope size={11} /> Deep research
-                        </button>
-                      </>); })()}
-                    </div>
-                  </div>
-                  {/* Confidence — the golden bar */}
-                  <div className="flex shrink-0 flex-col items-end gap-1 pt-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[11.5px] font-semibold tabular-nums" style={{ color: confColor }}>{conf}</span>
-                      <button
-                        onClick={() => removeLead.mutate(r.id)}
-                        title="Remove this result"
-                        className="rounded-md p-0.5 opacity-0 transition-all hover:text-rose-400 group-hover:opacity-100"
-                        style={{ color: "var(--text-faint)" }}
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                    <div className="h-1 w-14 overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
-                      <div className="h-full rounded-full" style={{ width: `${Math.max(conf, 4)}%`, background: confColor }} />
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </section>
-      </>)}
-
-      {/* ── Saved Leads tab — real saved records (People nodes tagged source="discovery") ── */}
-      {tab === "saved" && (
-        <SavedLeadsView
-          leads={savedLeads}
-          loading={savedLeadsQ.isLoading}
-          error={savedLeadsQ.isError}
-          onRefetch={() => savedLeadsQ.refetch()}
-          onRemoved={() => qc.invalidateQueries({ queryKey: ["records", "people", "discovery-saved"] })}
-        />
-      )}
-
-      {/* ── Recent Searches tab — persisted locally; click to rerun ── */}
-      {tab === "recent" && (
-        <RecentSearchesView
-          recents={recents}
-          onRun={(q) => { setQuery(q); setTab("search"); setTimeout(() => runSearch(), 0); }}
-          onClear={clearRecents}
-        />
-      )}
-
-      {/* Compose modal — sends through our own system (Gmail/Resend), not mailto */}
-      {compose && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setCompose(null)}>
-          <div className="w-full max-w-lg rounded-sm border shadow-2xl" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }} onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
-              <span className="text-sm font-semibold text-[var(--text-primary)]">Message {compose.lead.author_name && compose.lead.author_name !== "Anonymous" ? compose.lead.author_name : "lead"}</span>
-              <button onClick={() => setCompose(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X size={15} /></button>
-            </div>
-            <div className="space-y-3 p-4">
-              <div className="flex items-center gap-2 text-[12px]"><span className="text-[var(--text-muted)]">To</span><span className="font-mono text-[var(--text-primary)]">{compose.lead.contact?.email}</span></div>
-              <input value={compose.subject} onChange={(e) => setCompose({ ...compose, subject: e.target.value })} placeholder="Subject" className="key-input h-9 w-full px-3 text-sm" />
-              <textarea value={compose.body} onChange={(e) => setCompose({ ...compose, body: e.target.value })} rows={7} placeholder="Write your message…" className="key-input w-full resize-none px-3 py-2 text-sm" />
-              {sendMsg && <p className="text-[12px]" style={{ color: sendMsg.includes("✓") ? "#15803d" : "#be123c" }}>{sendMsg}</p>}
-              <div className="flex items-center justify-end gap-2">
-                <button onClick={() => setCompose(null)} className="rounded-sm px-3 py-1.5 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)]">Cancel</button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {EXAMPLES.map((ex) => (
                 <button
-                  onClick={() => compose.lead.contact?.email && sendEmail.mutate({ to: compose.lead.contact.email, subject: compose.subject, body: compose.body, name: compose.lead.author_name ?? undefined })}
-                  disabled={sendEmail.isPending || !compose.subject.trim() || !compose.body.trim()}
-                  className="inline-flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-stone-600 disabled:opacity-60">
-                  {sendEmail.isPending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />} Send
+                  key={ex}
+                  onClick={() => {
+                    setQuery(ex);
+                    submitSearch(ex);
+                  }}
+                  className="rounded-full border px-3 py-1.5 text-[12px] transition-colors hover:border-[color:var(--section-accent)]"
+                  style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
+                >
+                  {ex}
                 </button>
-              </div>
+              ))}
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
-// ── Add-to-list picker — real lists (GET /lists) + entry create (POST /lists/:id/entries). For a
-// search result, resolveNodeId() saves the lead first and returns its node id; for a saved lead it
-// just returns the existing id. Clear success/error, no fake state.
-function AddToListPicker({ resolveNodeId }: { resolveNodeId: () => Promise<string> }) {
-  const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
-  const listsQ = useQuery({
-    queryKey: ["lists"],
-    queryFn: () => apiClient.get<{ id: string; name: string; object_type: string }[]>("/lists"),
-    enabled: open,
-    staleTime: 30_000,
-  });
-  const lists = listsQ.data ?? [];
-  async function addTo(listId: string, name: string) {
-    setBusy(listId); setMsg(null);
-    try {
-      const nodeId = await resolveNodeId();
-      if (!nodeId) throw new Error("Could not save the lead first.");
-      await apiClient.post(`/lists/${listId}/entries`, { node_id: nodeId });
-      qc.invalidateQueries({ queryKey: ["lists"] });
-      setMsg({ text: `Added to "${name}"`, ok: true });
-      setTimeout(() => { setOpen(false); setMsg(null); }, 1200);
-    } catch (e) {
-      setMsg({ text: e instanceof Error ? e.message : "Couldn't add to the list.", ok: false });
-    } finally { setBusy(null); }
-  }
-  return (
-    <span className="relative inline-flex">
-      <button onClick={() => setOpen((o) => !o)} className="inline-flex items-center gap-1 font-medium transition-colors hover:underline" style={{ color: "var(--section-accent)" }}>
-        <Plus size={11} /> Add to list
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-20" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-full z-30 mt-1 w-56 overflow-hidden rounded-sm border shadow-lg" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            <div className="border-b px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>Add to list</div>
-            {listsQ.isLoading ? (
-              <div className="flex items-center gap-2 px-3 py-3 text-[11.5px]" style={{ color: "var(--text-muted)" }}><Loader2 size={12} className="animate-spin" /> Loading lists…</div>
-            ) : lists.length === 0 ? (
-              <div className="px-3 py-3 text-[11.5px]" style={{ color: "var(--text-faint)" }}>No lists yet — create one from the sidebar.</div>
-            ) : (
-              <div className="max-h-56 overflow-y-auto py-1">
-                {lists.map((l) => (
-                  <button key={l.id} onClick={() => addTo(l.id, l.name)} disabled={!!busy}
-                    className="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-60" style={{ color: "var(--text-secondary)" }}>
-                    <span className="truncate">{l.name}</span>
-                    {busy === l.id ? <Loader2 size={11} className="shrink-0 animate-spin" /> : <span className="shrink-0 text-[10px]" style={{ color: "var(--text-faint)" }}>{l.object_type}</span>}
+          <div className="space-y-3 border-l pl-5 max-lg:border-l-0 max-lg:border-t max-lg:pl-0 max-lg:pt-4" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="space-y-1.5">
+                <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Object</span>
+                <select
+                  value={objectType}
+                  onChange={(e) => setObjectType(e.target.value)}
+                  className="key-input h-10 w-full rounded-sm text-[13px]"
+                >
+                  {OBJECT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </label>
+              <label className="space-y-1.5">
+                <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Count</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={count}
+                  onChange={(e) => setCount(Math.max(1, Math.min(50, Number(e.target.value) || 1)))}
+                  className="key-input h-10 w-full rounded-sm text-[13px]"
+                />
+              </label>
+            </div>
+
+            <label className="space-y-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Save behavior</span>
+              <div className="grid grid-cols-2 overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+                {([
+                  ["create", "Save now"],
+                  ["review", "Review first"],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    onClick={() => setSaveMode(value)}
+                    className="px-3 py-2 text-[12px] font-medium transition-colors"
+                    style={{
+                      background: saveMode === value ? "var(--text-primary)" : "transparent",
+                      color: saveMode === value ? "var(--surface-canvas)" : "var(--text-muted)",
+                    }}
+                  >
+                    {label}
                   </button>
                 ))}
               </div>
-            )}
-            {msg && <div className="border-t px-3 py-1.5 text-[11px]" style={{ borderColor: "var(--border-soft)", color: msg.ok ? "#15803d" : "#be123c" }}>{msg.text}</div>}
+            </label>
+
+            <label className="space-y-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Add to list</span>
+              <select
+                value={destinationListId}
+                onChange={(e) => setDestinationListId(e.target.value)}
+                className="key-input h-10 w-full rounded-sm text-[13px]"
+              >
+                <option value="">No list selected</option>
+                {compatibleLists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            </label>
+          </div>
+        </div>
+
+        {statusQ.data?.status === "DEGRADED" && (
+          <div className="mt-4 flex items-start gap-2 rounded-sm border px-3 py-2.5 text-[12.5px]" style={{ borderColor: "#b4530933", color: "#92400e", background: "#f59e0b12" }}>
+            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+            <span>{statusQ.data.diagnostic ?? "The search stack is degraded. Discovery cannot return good results until the appliance is reachable."}</span>
+          </div>
+        )}
+      </section>
+
+      <nav className="mt-5 flex flex-wrap items-center gap-1 border-b" style={{ borderColor: "var(--border-soft)" }}>
+        {([
+          ["search", "Search results"],
+          ["saved", `Saved graph records${savedRecords.length ? ` · ${savedRecords.length}` : ""}`],
+          ["review", `Review queue${pendingProspecting ? ` · ${pendingProspecting}` : ""}`],
+          ["recent", "Recent searches"],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className="relative -mb-px px-3 py-2 text-[12.5px] font-medium"
+            style={{ color: tab === key ? "var(--text-primary)" : "var(--text-muted)" }}
+          >
+            {label}
+            {tab === key && <span className="absolute inset-x-2 -bottom-px h-px" style={{ background: "var(--text-primary)" }} />}
+          </button>
+        ))}
+      </nav>
+
+      {tab === "search" && (
+        <SearchResults
+          result={result}
+          pending={run.isPending}
+          error={run.error}
+          savedKeys={savedKeys}
+          objectType={objectType}
+          onAsk={askAboutCandidate}
+          onTask={createTask}
+          onAddToList={(nodeId, listId) => addToList.mutate({ nodeId, listId })}
+          lists={compatibleLists}
+          addingListId={addToList.variables?.listId ?? null}
+        />
+      )}
+
+      {tab === "saved" && (
+        <SavedRecords
+          loading={savedQ.isLoading}
+          error={savedQ.isError}
+          records={savedRecords}
+          objectType={objectType}
+          lists={compatibleLists}
+          onRemove={(id) => removeRecord.mutate(id)}
+          removingId={removeRecord.variables ?? null}
+          onAddToList={(nodeId, listId) => addToList.mutate({ nodeId, listId })}
+          addingListId={addToList.variables?.listId ?? null}
+        />
+      )}
+
+      {tab === "review" && (
+        <ReviewQueue pending={pendingProspecting} />
+      )}
+
+      {tab === "recent" && (
+        <RecentSearches
+          recents={recents}
+          onClear={() => {
+            setRecents([]);
+            localStorage.removeItem("mondaily_discovery_recent_queries");
+          }}
+          onRun={(q) => {
+            setQuery(q);
+            submitSearch(q);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SearchResults({
+  result,
+  pending,
+  error,
+  savedKeys,
+  objectType,
+  lists,
+  addingListId,
+  onAsk,
+  onTask,
+  onAddToList,
+}: {
+  result: ProspectingRunResult | null;
+  pending: boolean;
+  error: unknown;
+  savedKeys: Set<string>;
+  objectType: string;
+  lists: ListRow[];
+  addingListId: string | null;
+  onAsk: (candidate: ProspectCandidate) => void;
+  onTask: (candidate: ProspectCandidate) => void;
+  onAddToList: (nodeId: string, listId: string) => void;
+}) {
+  if (pending) {
+    return (
+      <div className="grid min-h-[360px] place-items-center border-b py-16" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="max-w-md text-center">
+          <Loader2 size={24} className="mx-auto animate-spin" style={{ color: "var(--section-accent)" }} />
+          <p className="mt-4 text-[15px] font-medium" style={{ color: "var(--text-primary)" }}>Searching the open web</p>
+          <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+            Mondaily is reading sovereign search results, scraping source pages, extracting real candidates, deduplicating against your graph, and saving or queueing records.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-5 rounded-sm border px-4 py-4" style={{ borderColor: "#be123c33", background: "#be123c0d" }}>
+        <div className="flex items-start gap-2">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0" style={{ color: "#be123c" }} />
+          <div>
+            <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>Discovery search failed</p>
+            <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>{(error as Error)?.message ?? "Try again or check the Discovery status."}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!result) {
+    return (
+      <div className="grid gap-4 py-8 lg:grid-cols-3">
+        {[
+          ["Find real leads", "Search industries, geographies, funding signals, reviews, and source pages."],
+          ["Save to graph", "Create records directly, queue candidates for approval, or add them to a list."],
+          ["Ask deeper", "Open a source-backed AI research prompt from any candidate."],
+        ].map(([title, body]) => (
+          <div key={title} className="border-b py-5" style={{ borderColor: "var(--border-soft)" }}>
+            <p className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{title}</p>
+            <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>{body}</p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  const candidates = result.candidates ?? [];
+
+  return (
+    <section className="py-5">
+      <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
+        <span><strong style={{ color: "var(--text-primary)" }}>{candidates.length}</strong> candidates</span>
+        <span aria-hidden>·</span>
+        <span><strong style={{ color: "var(--text-primary)" }}>{result.created}</strong> saved</span>
+        <span aria-hidden>·</span>
+        <span><strong style={{ color: "var(--text-primary)" }}>{result.existing}</strong> already existed</span>
+        <span aria-hidden>·</span>
+        <span><strong style={{ color: "var(--text-primary)" }}>{result.queued_for_review}</strong> queued</span>
+        <span aria-hidden>·</span>
+        <span><strong style={{ color: "var(--text-primary)" }}>{result.sources?.length ?? 0}</strong> sources</span>
+      </div>
+
+      {candidates.length === 0 ? (
+        <div className="border-y px-4 py-14 text-center" style={{ borderColor: "var(--border-soft)" }}>
+          <FileSearch size={22} className="mx-auto mb-3" style={{ color: "var(--text-faint)" }} />
+          <p className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>No real candidates found</p>
+          <p className="mx-auto mt-1 max-w-md text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+            The agent did not find enough source-backed data for this query. Try a clearer industry, location, or target type.
+          </p>
+        </div>
+      ) : (
+        <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+          {candidates.map((candidate, index) => {
+            const saved = Boolean(candidate.node_id) || savedKeys.has(sourceKey(candidate));
+            return (
+              <CandidateRow
+                key={`${candidate.name}-${candidate.source_url}-${index}`}
+                candidate={candidate}
+                saved={saved}
+                objectType={objectType}
+                lists={lists}
+                addingListId={addingListId}
+                onAsk={() => onAsk(candidate)}
+                onTask={() => onTask(candidate)}
+                onAddToList={(listId) => candidate.node_id && onAddToList(candidate.node_id, listId)}
+              />
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CandidateRow({
+  candidate,
+  saved,
+  objectType,
+  lists,
+  addingListId,
+  onAsk,
+  onTask,
+  onAddToList,
+}: {
+  candidate: ProspectCandidate;
+  saved: boolean;
+  objectType: string;
+  lists: ListRow[];
+  addingListId: string | null;
+  onAsk: () => void;
+  onTask: () => void;
+  onAddToList: (listId: string) => void;
+}) {
+  const [listOpen, setListOpen] = useState(false);
+  const tone = confidenceTone[candidate.confidence_label] ?? "#737373";
+  const domain = candidate.domain || candidate.website || hostOf(candidate.source_url);
+
+  return (
+    <article className="group py-5">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_240px]">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 text-[11.5px]" style={{ color: "var(--text-faint)" }}>
+            <span className="inline-flex items-center gap-1">
+              <Globe2 size={11} /> {hostOf(candidate.source_url) || "source"}
+            </span>
+            {candidate.location && <><span aria-hidden>·</span><span>{candidate.location}</span></>}
+            <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: tone, background: `${tone}16` }}>
+              {candidate.confidence_label}
+            </span>
+            <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ color: saved ? "#2f7d52" : "var(--text-muted)", background: saved ? "#2f7d5214" : "var(--surface-hover)" }}>
+              {statusLabel(candidate)}
+            </span>
+          </div>
+
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <a
+              href={candidate.source_url}
+              target="_blank"
+              rel="noreferrer"
+              className="max-w-full truncate text-[16px] font-semibold hover:underline"
+              style={{ color: "var(--section-accent)" }}
+            >
+              {candidate.name}
+            </a>
+            <ExternalLink size={13} style={{ color: "var(--text-faint)" }} />
+          </div>
+
+          {candidate.description && (
+            <p className="mt-1 max-w-3xl text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{candidate.description}</p>
+          )}
+          <p className="mt-1 max-w-3xl text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>{candidate.reason}</p>
+
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+            {domain && <span>Domain: <span style={{ color: "var(--text-secondary)" }}>{domain}</span></span>}
+            {candidate.email && <span>Email: <span style={{ color: "var(--text-secondary)" }}>{candidate.email}</span></span>}
+            {candidate.linkedin && <a href={candidate.linkedin} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: "var(--section-accent)" }}>LinkedIn</a>}
+          </div>
+        </div>
+
+        <div className="flex flex-col items-start gap-2 lg:items-end">
+          <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
+            <button onClick={onAsk} className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              <MessageSquare size={12} /> Ask AI
+            </button>
+            <button onClick={onAsk} className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              <Microscope size={12} /> Deep research
+            </button>
+            <button onClick={onTask} className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              <ListPlus size={12} /> Task
+            </button>
+          </div>
+
+          {candidate.node_id ? (
+            <div className="relative">
+              <button
+                onClick={() => setListOpen((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-medium"
+                style={{ background: "var(--surface-hover)", color: "var(--text-primary)" }}
+              >
+                <Plus size={12} /> Add to list <ChevronDown size={12} />
+              </button>
+              {listOpen && (
+                <>
+                  <button className="fixed inset-0 z-20 cursor-default" onClick={() => setListOpen(false)} aria-label="Close list picker" />
+                  <div className="absolute right-0 z-30 mt-2 w-60 overflow-hidden rounded-sm border shadow-lg" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+                    {lists.length === 0 ? (
+                      <div className="px-3 py-3 text-[12px]" style={{ color: "var(--text-faint)" }}>No compatible lists for {objectType}.</div>
+                    ) : lists.map((list) => (
+                      <button
+                        key={list.id}
+                        onClick={() => {
+                          onAddToList(list.id);
+                          setListOpen(false);
+                        }}
+                        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12px] hover:bg-[var(--surface-hover)]"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        <span className="truncate">{list.name}</span>
+                        {addingListId === list.id ? <Loader2 size={12} className="animate-spin" /> : <span style={{ color: "var(--text-faint)" }}>{list.entry_count ?? 0}</span>}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <Link to="/decisions" className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-medium" style={{ background: "var(--surface-hover)", color: "var(--text-primary)" }}>
+              Review in queue <ArrowRight size={12} />
+            </Link>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function SavedRecords({
+  loading,
+  error,
+  records,
+  objectType,
+  lists,
+  removingId,
+  addingListId,
+  onRemove,
+  onAddToList,
+}: {
+  loading: boolean;
+  error: boolean;
+  records: SavedRecord[];
+  objectType: string;
+  lists: ListRow[];
+  removingId: string | null;
+  addingListId: string | null;
+  onRemove: (id: string) => void;
+  onAddToList: (nodeId: string, listId: string) => void;
+}) {
+  if (loading) return <div className="py-12 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={14} className="mr-2 inline animate-spin" /> Loading saved records…</div>;
+  if (error) return <div className="py-12 text-[13px]" style={{ color: "#be123c" }}>Could not load saved records.</div>;
+  if (records.length === 0) {
+    return (
+      <div className="grid min-h-[260px] place-items-center border-b py-10 text-center" style={{ borderColor: "var(--border-soft)" }}>
+        <div>
+          <Layers3 size={22} className="mx-auto mb-3" style={{ color: "var(--text-faint)" }} />
+          <p className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>No saved {objectType} records yet</p>
+          <p className="mt-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>Run Discovery in “Save now” mode to create graph records here.</p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="divide-y py-3" style={{ borderColor: "var(--border-soft)" }}>
+      {records.map((record) => {
+        const d = record.data ?? {};
+        const name = labelOf(record);
+        const source = String(d.source_url ?? d.website ?? d.domain ?? "");
+        return (
+          <div key={record.id} className="grid gap-3 py-4 lg:grid-cols-[minmax(0,1fr)_260px]">
+            <div className="min-w-0">
+              <div className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>{hostOf(source) || "No source stored yet"}</div>
+              <Link to={`/objects/${record.object_type}/${record.id}`} className="mt-0.5 inline-block max-w-full truncate text-[15px] font-semibold hover:underline" style={{ color: "var(--section-accent)" }}>{name}</Link>
+              <p className="mt-1 line-clamp-2 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
+                {String(d.description ?? d.notes ?? d.reason ?? "Not found yet")}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
+              <Link to={`/objects/${record.object_type}/${record.id}`} className="rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Open</Link>
+              <ListPicker lists={lists} addingListId={addingListId} onSelect={(listId) => onAddToList(record.id, listId)} />
+              <button onClick={() => requestAsk(`Tell me what matters about saved Discovery record "${name}" using workspace and source-backed information only.`)} className="rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Ask AI</button>
+              <button onClick={() => onRemove(record.id)} disabled={removingId === record.id} className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11.5px] font-medium" style={{ color: "#be123c", background: "#be123c0d" }}>
+                {removingId === record.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />} Remove
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ListPicker({ lists, addingListId, onSelect }: { lists: ListRow[]; addingListId: string | null; onSelect: (listId: string) => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen((v) => !v)} className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[11.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+        Add to list <ChevronDown size={12} />
+      </button>
+      {open && (
+        <>
+          <button className="fixed inset-0 z-20 cursor-default" onClick={() => setOpen(false)} aria-label="Close list picker" />
+          <div className="absolute right-0 z-30 mt-2 w-60 overflow-hidden rounded-sm border shadow-lg" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            {lists.length === 0 ? (
+              <div className="px-3 py-3 text-[12px]" style={{ color: "var(--text-faint)" }}>No compatible lists.</div>
+            ) : lists.map((list) => (
+              <button
+                key={list.id}
+                onClick={() => {
+                  onSelect(list.id);
+                  setOpen(false);
+                }}
+                className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12px] hover:bg-[var(--surface-hover)]"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                <span className="truncate">{list.name}</span>
+                {addingListId === list.id ? <Loader2 size={12} className="animate-spin" /> : <span style={{ color: "var(--text-faint)" }}>{list.entry_count ?? 0}</span>}
+              </button>
+            ))}
           </div>
         </>
       )}
-    </span>
+    </div>
   );
 }
 
-// ── Saved Leads tab — the real People records saved from Discovery. ──
-function SavedLeadsView({ leads, loading, error, onRefetch, onRemoved }: {
-  leads: SavedLead[]; loading: boolean; error: boolean; onRefetch: () => void; onRemoved: () => void;
-}) {
-  const removeLead = useMutation({ mutationFn: (id: string) => apiClient.delete(`/nodes/${id}`), onSuccess: onRemoved });
-  const fmtDate = (iso?: string) => (iso ? new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "");
-  if (loading) return <div className="flex items-center gap-2 py-16 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={15} className="animate-spin" /> Loading saved leads…</div>;
-  if (error) return (
-    <div className="rounded-sm border px-5 py-10 text-center" style={{ borderColor: "var(--border-soft)" }}>
-      <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>Couldn&apos;t load saved leads</p>
-      <button onClick={onRefetch} className="mt-2 text-[12px] font-medium" style={{ color: "var(--section-accent)" }}>Retry</button>
-    </div>
-  );
-  if (leads.length === 0) return (
-    <div className="rounded-sm border px-5 py-14 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-      <UserPlus size={20} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
-      <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>No saved leads yet</p>
-      <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Run a search and use &quot;Save lead&quot; — saved leads live here as real People records.</p>
-    </div>
-  );
+function ReviewQueue({ pending }: { pending: number }) {
   return (
-    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="grid min-h-[260px] place-items-center border-b py-10 text-center" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="max-w-md">
+        <ShieldCheck size={24} className="mx-auto mb-3" style={{ color: "var(--section-accent)" }} />
+        <p className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>{pending} prospecting candidate{pending === 1 ? "" : "s"} awaiting review</p>
+        <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+          When you use “Review first”, Discovery sends candidates to the Decision Queue instead of creating records immediately.
+        </p>
+        <Link to="/decisions" className="mt-4 inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[12px] font-medium" style={{ background: "var(--text-primary)", color: "var(--surface-canvas)" }}>
+          Open Decision Queue <ArrowRight size={13} />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function RecentSearches({ recents, onRun, onClear }: { recents: string[]; onRun: (query: string) => void; onClear: () => void }) {
+  if (!recents.length) {
+    return (
+      <div className="grid min-h-[260px] place-items-center border-b py-10 text-center" style={{ borderColor: "var(--border-soft)" }}>
+        <div>
+          <Clock size={22} className="mx-auto mb-3" style={{ color: "var(--text-faint)" }} />
+          <p className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>No recent searches yet</p>
+          <p className="mt-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>Searches you run from this device will appear here.</p>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="py-4">
+      <div className="mb-3 flex items-center justify-between">
+        <span className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>{recents.length} recent searches</span>
+        <button onClick={onClear} className="text-[12px] font-medium" style={{ color: "var(--text-faint)" }}>Clear</button>
+      </div>
       <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
-        {leads.map((l) => {
-          const d = l.data ?? {};
-          const name = String(d.name ?? d.handle ?? "Lead");
-          const website = String(d.website ?? d.domain ?? d.source_url ?? "");
-          let host = ""; try { host = website ? new URL(website).host.replace(/^www\./, "") : ""; } catch { host = website; }
-          const industry = String(d.industry ?? d.category ?? d.lead_type ?? "");
-          const scope = `${name}${d.email ? ` (${d.email})` : ""}`;
-          return (
-            <div key={l.id} className="px-4 py-3">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>
-                {host && <span className="truncate">{host}</span>}
-                {industry && <><span aria-hidden>·</span><span className="capitalize">{industry}</span></>}
-                {d.region && <><span aria-hidden>·</span><span>{String(d.region)}</span></>}
-                <span aria-hidden>·</span><span>saved {fmtDate(l.updated_at)}</span>
-              </div>
-              <Link to={`/objects/people/${l.id}`} className="mt-0.5 inline-block max-w-full truncate text-[14.5px] font-medium hover:underline" style={{ color: "var(--section-accent)" }}>{name}</Link>
-              {(d.email || d.phone) && <p className="text-[11.5px]" style={{ color: "var(--text-secondary)" }}>{d.email ? String(d.email) : ""}{d.email && d.phone ? " · " : ""}{d.phone ? String(d.phone) : ""}</p>}
-              <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11.5px]">
-                <Link to={`/objects/people/${l.id}`} className="inline-flex items-center gap-1 font-medium hover:underline" style={{ color: "var(--section-accent)" }}><ExternalLink size={11} /> Open record</Link>
-                <AddToListPicker resolveNodeId={async () => l.id} />
-                <button onClick={() => requestAsk(`Create a follow-up task for ${scope}. If the title or due date is ambiguous, ask me to confirm before creating it.`)} className="inline-flex items-center gap-1 font-medium hover:underline" style={{ color: "var(--section-accent)" }}><ListPlus size={11} /> Create task</button>
-                <button onClick={() => requestAsk(`Tell me what I need to know about ${scope} from real workspace and web data, and the best next action.`)} className="inline-flex items-center gap-1 font-medium hover:underline" style={{ color: "var(--section-accent)" }}><MessageSquare size={11} /> Ask AI</button>
-                <button onClick={() => { if (window.confirm(`Remove "${name}" from saved leads? This deletes the record.`)) removeLead.mutate(l.id); }} disabled={removeLead.isPending}
-                  className="inline-flex items-center gap-1 font-medium transition-colors hover:text-rose-500" style={{ color: "var(--text-faint)" }}><Trash2 size={11} /> Remove</button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ── Recent Searches tab — persisted locally, rerun on click. ──
-function RecentSearchesView({ recents, onRun, onClear }: { recents: string[]; onRun: (q: string) => void; onClear: () => void }) {
-  if (recents.length === 0) return (
-    <div className="rounded-sm border px-5 py-14 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-      <Search size={20} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
-      <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>No recent searches</p>
-      <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Your recent Discovery searches appear here to rerun.</p>
-    </div>
-  );
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{recents.length} recent search{recents.length === 1 ? "" : "es"}</span>
-        <button onClick={onClear} className="text-[11.5px] font-medium transition-colors hover:text-rose-400" style={{ color: "var(--text-faint)" }}>Clear</button>
-      </div>
-      <div className="divide-y overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-        {recents.map((q, i) => (
-          <button key={i} onClick={() => onRun(q)} className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
-            <Search size={13} className="shrink-0" style={{ color: "var(--text-faint)" }} />
-            <span className="min-w-0 flex-1 truncate text-[13px]" style={{ color: "var(--text-secondary)" }}>{q}</span>
-            <span className="shrink-0 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}>Rerun</span>
+        {recents.map((recent) => (
+          <button key={recent} onClick={() => onRun(recent)} className="flex w-full items-center justify-between gap-4 py-3 text-left hover:opacity-80">
+            <span className="truncate text-[13px]" style={{ color: "var(--text-secondary)" }}>{recent}</span>
+            <span className="shrink-0 text-[12px] font-medium" style={{ color: "var(--section-accent)" }}>Run again</span>
           </button>
         ))}
       </div>
     </div>
   );
 }
-
