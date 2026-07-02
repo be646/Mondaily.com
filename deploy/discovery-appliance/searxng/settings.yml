@@ -1,0 +1,20 @@
+# Minimal overrides on top of SearXNG's shipped defaults (use_default_settings merges them).
+# The three things Discovery needs: the JSON format enabled, the API-blocking limiter OFF
+# (Discovery staggers its own queries), and a secret key.
+use_default_settings: true
+
+server:
+  # CHANGE THIS to any long random string (e.g. `openssl rand -hex 32`).
+  secret_key: "CHANGE_ME_secret_key"
+  bind_address: "0.0.0.0"
+  # The bot-limiter blocks programmatic JSON access; the API paces requests itself, so disable it.
+  limiter: false
+  image_proxy: false
+
+search:
+  # Enabling json is what makes `?format=json` work — without it SearXNG returns 403 to the API.
+  formats:
+    - html
+    - json
+  # English results (the box's German IP otherwise geo-localizes everything to Germany).
+  default_lang: "en-US"

@@ -1,0 +1,48 @@
+# Mondaily Discovery appliance — self-hosted sovereign web search + scraper.
+# Three services on one box:
+#   • searxng  — private metasearch (JSON API) that Discovery queries
+#   • scraper  — tiny Playwright renderer that returns clean Markdown per page
+#   • caddy    — public edge on :8080 (search) and :3002 (scraper) that enforces a
+#                bearer token, so only the Mondaily API (which sends SOVEREIGN_SEARCH_KEY)
+#                can use the appliance. searxng + scraper are NOT exposed directly.
+#
+# Ports match what the API expects out of the box:
+#   SOVEREIGN_SEARCH_URL = http://<BOX_IP>:8080/search
+#   SOVEREIGN_SCRAPE_URL = http://<BOX_IP>:3002/v1/scrape
+#   SOVEREIGN_SEARCH_KEY = <APPLIANCE_TOKEN>   (the bearer below)
+
+services:
+  searxng:
+    image: searxng/searxng:latest
+    restart: unless-stopped
+    volumes:
+      - ./searxng:/etc/searxng:rw
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8080/
+    expose:
+      - "8080"          # internal only — Caddy fronts it
+    networks: [appliance]
+
+  scraper:
+    build: ./scraper
+    restart: unless-stopped
+    expose:
+      - "3002"          # internal only — Caddy fronts it
+    networks: [appliance]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [searxng, scraper]
+    environment:
+      - APPLIANCE_TOKEN=${APPLIANCE_TOKEN:?set APPLIANCE_TOKEN in .env}
+    ports:
+      - "8080:8080"     # public: search edge
+      - "3002:3002"     # public: scraper edge
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    networks: [appliance]
+
+networks:
+  appliance:
+    driver: bridge
