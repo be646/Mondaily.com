@@ -9,47 +9,41 @@ import {
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
-import { sectionHue } from "../../lib/sections";
 import { useModules } from "../../hooks/useModules";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useSovereignAuthOptional } from "../auth/sovereign-auth-context";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
-import { SidebarAgents } from "../ai/agent-constellation";
 
-// ─── Primary nav — calm by design: 6 items max, always visible. Everything
-// else lives in the collapsible "More" group below or behind command/search.
-// "Finance" only appears here when the module is enabled — otherwise its
-// slot is "Reports" so the main nav never shows a field-specific label for
-// a module that isn't on. ──────────────────────────────────────────────────
-// Each page gets a quiet, matte, natural tint for its icon — desaturated earthy
-// tones that sit calmly on both light and dark, so the nav reads as colour-coded
-// without ever feeling loud.
-type NavEntry = { to: string; label: string; icon: React.ElementType; tint: string };
+// ─── Core nav — the 7 always-visible surfaces. Monochrome; each row uses the shared nav-row
+// token (no per-section tints). Everything else lives in the grouped sections below. ─────────
+type NavEntry = { to: string; label: string; icon: React.ElementType; tint?: string };
 
-const PRIMARY_NAV: NavEntry[] = [
-  { to: "/home", label: "Home", icon: Home, tint: "#b08968" },          // warm taupe
-  { to: "/ask/new", label: "Ask", icon: MessageCircle, tint: "#8b7fb0" }, // muted violet
-  { to: "/search", label: "Graph", icon: GitBranch, tint: "#6f9c97" },   // muted teal
-  { to: "/tasks", label: "Tasks", icon: CheckSquare, tint: "#7fa37f" },  // sage
-  { to: "/decisions", label: "Decisions", icon: ShieldCheck, tint: "#7f93b0" }, // slate blue
-  { to: "/discovery", label: "Discovery", icon: Radar, tint: "#6f8068" },       // sage
-  { to: "/automations", label: "Automations", icon: Activity, tint: "#8a86b8" }, // muted indigo
-  { to: "/activity", label: "Agents", icon: Zap, tint: "#6f8068" }, // Agent Control Room — roster + proof-of-work
-  { to: "/team/oversight", label: "Team Oversight", icon: Users, tint: "#7f93b0" }, // slate — manager who-did-what (owner/admin)
-  { to: "/reports", label: "Reports", icon: BarChart2, tint: "#6f9aa3" }, // muted cyan
+const CORE_NAV: NavEntry[] = [
+  { to: "/home", label: "Home", icon: Home },
+  { to: "/ask/new", label: "Ask", icon: MessageCircle },
+  { to: "/search", label: "Graph", icon: GitBranch },
+  { to: "/tasks", label: "Tasks", icon: CheckSquare },
+  { to: "/decisions", label: "Decisions", icon: ShieldCheck },
+  { to: "/activity", label: "Agents", icon: Zap },
+  { to: "/discovery", label: "Discovery", icon: Radar },
 ];
 
-// ─── Workspace — daily-use surfaces, kept FLAT (no click to reveal). Canvas
-// lives here too, so there's no longer a second "Automation" group that holds
-// only Canvas (which read as a duplicate of the primary "Automations" item).
+// ─── Work — the build surfaces (Records + Lists come from their own components below).
+const WORK_NAV: NavEntry[] = [
+  { to: "/automations", label: "Automations", icon: Activity },
+  { to: "/reports", label: "Reports", icon: BarChart2 },
+];
+
+// ─── Workspace — daily-use surfaces + Team Oversight, kept in a flat group so no link is lost.
 const WORKSPACE_NAV: NavEntry[] = [
-  { to: "/notifications", label: "Notifications", icon: Bell, tint: "#c2a06b" }, // muted amber
-  { to: "/notes",  label: "Notes",  icon: FileText, tint: "#9a9a8f" },           // warm grey
-  { to: "/emails", label: "Emails", icon: Mail, tint: "#b08a90" },               // muted rose
-  { to: "/calls",  label: "Calls",  icon: Phone, tint: "#7faa92" },              // muted green
-  { to: "/canvas", label: "Canvas", icon: Layers, tint: "#9b86b0" },            // muted purple
+  { to: "/notifications", label: "Notifications", icon: Bell },
+  { to: "/notes",  label: "Notes",  icon: FileText },
+  { to: "/emails", label: "Emails", icon: Mail },
+  { to: "/calls",  label: "Calls",  icon: Phone },
+  { to: "/canvas", label: "Canvas", icon: Layers },
+  { to: "/team/oversight", label: "Team Oversight", icon: Users },
 ];
 
 // ─── Finance — the one genuinely large set, so it stays a collapsible group.
@@ -281,12 +275,9 @@ function NavItem({
 }: { to: string; label: string; icon: React.ElementType; collapsed: boolean; badge?: number; tint?: string }) {
   const location = useLocation();
   const active = location.pathname.startsWith(to);
-  // Smart per-section colour: each row scopes its own --section-accent (derived from the
-  // route's hue, theme-aware). Active row goes full accent + an accent indicator bar;
-  // inactive rows stay calm (faint, lightly accent-tinted). This is where each section's
-  // colour lives — contextual to where you navigate, not a floating decorative line.
-  const scope = { "--section-hue": sectionHue(to) } as React.CSSProperties;
-  const iconColor = active ? "var(--section-accent)" : "color-mix(in srgb, var(--section-accent) 45%, var(--text-faint))";
+  // Monochrome by design: ONE active indicator (accent bar + primary text/icon). Inactive rows are
+  // calm neutral tokens; hover lifts to the shared surface. No per-section tints, no mixed stone/hex.
+  const iconColor = active ? "var(--text-primary)" : "var(--text-muted)";
   const badgeEl = !!badge && (
     <span
       className={collapsed
@@ -300,8 +291,9 @@ function NavItem({
   if (collapsed) {
     return (
       <Link
-        to={to} title={label} style={scope}
-        className={`section-soul mb-0.5 relative flex items-center justify-center rounded-md p-2 transition-colors ${active ? "text-stone-950 dark:text-stone-50" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
+        to={to} title={label}
+        className={`mb-0.5 relative flex items-center justify-center rounded-md p-2 transition-colors ${active ? "" : "hover:bg-[var(--surface-hover)]"}`}
+        style={{ background: active ? "var(--surface-hover)" : undefined }}
       >
         {active && <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full" style={{ background: "var(--section-accent)" }}/>}
         <Icon size={16} style={{ color: iconColor }}/>
@@ -311,8 +303,9 @@ function NavItem({
   }
   return (
     <Link
-      to={to} style={scope}
-      className={`section-soul relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[15px] transition-colors ${active ? "font-medium text-stone-950 dark:text-stone-50" : "text-stone-600 hover:bg-stone-100 hover:text-stone-950 dark:text-stone-300 dark:hover:bg-stone-900 dark:hover:text-stone-100"}`}
+      to={to}
+      className={`nav-row relative mb-px flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[14px] transition-colors ${active ? "font-medium" : "hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"}`}
+      style={{ color: active ? "var(--text-primary)" : "var(--text-secondary)", background: active ? "var(--surface-hover)" : undefined }}
     >
       {active && <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full" style={{ background: "var(--section-accent)" }}/>}
       <Icon size={16} style={{ color: iconColor }}/>
@@ -458,9 +451,6 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   });
   const TIER_LABEL: Record<string, string> = { scout: "Scout", operator: "Operator", command: "Command", sovereign: "Sovereign", business: "Operator", personal: "Scout", free: "Scout", trial: "Operator" };
   const tierLabel = TIER_LABEL[wallet?.account_tier ?? ""] ?? "Scout";
-  const burstReset = wallet?.burst?.resets_at
-    ? new Date(wallet.burst.resets_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
-    : null;
   const trialDaysLeft = wallet?.trial_ends_at
     ? Math.max(0, Math.ceil((new Date(wallet.trial_ends_at).getTime() - Date.now()) / 86_400_000))
     : null;
@@ -549,34 +539,31 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
           )}
         </div>
 
-        {/* AI agents — its own section, split from the workspace header */}
-        {!collapsed && (
-          <div className="shrink-0 border-b border-stone-200 px-2 py-2 dark:border-stone-800">
-            <SidebarAgents />
-          </div>
-        )}
-
-        {/* Quick Action — frozen above the scroll area, always visible */}
-        {!collapsed && (
-          <div className="shrink-0 border-b border-stone-200 px-2 py-2 dark:border-stone-800">
-            <button
-              onClick={() => window.dispatchEvent(new Event("mondaily:open-quick-actions"))}
-              className="key-button flex w-full items-center gap-2 px-3 py-2 text-[12px]"
-            >
-              <Zap size={12} className="text-stone-500 dark:text-stone-500 shrink-0"/>
-              <span>Quick action</span>
-              <Plus size={11} className="ml-auto text-stone-400 dark:text-stone-600"/>
-            </button>
-          </div>
-        )}
-
-        {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page */}
+        {/* Nav scroll — overscroll-none prevents the sidebar from dragging the page.
+            Quick Action + the permanent AI-agents dot block were removed for a calmer sidebar;
+            quick actions live behind the command palette, and agents have their own "Agents" row. */}
         <nav className="flex-1 min-h-0 overflow-y-auto overscroll-none px-2 py-2 sidebar-scroll">
 
-          {/* Primary — always flat, always visible */}
-          {PRIMARY_NAV.map(item => <NavItem key={item.to} {...item} collapsed={collapsed}/>)}
+          {/* Core — always flat, always visible */}
+          {CORE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={collapsed}/>)}
 
-          {/* Workspace — daily surfaces, flat (no click to reveal) */}
+          {/* Work — build surfaces (Records + Lists render from their own components below) */}
+          {collapsed
+            ? WORK_NAV.map(item => <NavItem key={item.to} {...item} collapsed={true}/>)
+            : (
+              <>
+                <SectionLabel label="Work"/>
+                {WORK_NAV.map(item => <NavItem key={item.to} {...item} collapsed={false}/>)}
+                <SidebarObjects />
+              </>
+            )}
+
+          {/* Finance — the one large set, collapsible, only when the module is on */}
+          {!collapsed && hasFinance && (
+            <NavGroup label="Finance" items={FINANCE_NAV} unreadCount={unreadCount}/>
+          )}
+
+          {/* Workspace — daily surfaces + Team Oversight */}
           {collapsed
             ? WORKSPACE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={true}
                 badge={item.to === "/notifications" ? unreadCount : undefined}/>)
@@ -588,14 +575,9 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               </>
             )}
 
-          {/* Finance — the one large set, collapsible, only when the module is on */}
-          {!collapsed && hasFinance && (
-            <NavGroup label="Finance" items={FINANCE_NAV} unreadCount={unreadCount}/>
-          )}
-
+          {/* Recent — lists + chat history, collapsed sections that look like the rest of the nav */}
           {!collapsed && (
             <>
-              <SidebarObjects />
               <SidebarLists />
               <SidebarAsk />
             </>
@@ -629,29 +611,20 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                 </Link>
               )}
 
-              {/* User + invite banner */}
-              <div className="-mx-2 border-t border-stone-200 bg-white px-3 py-1 dark:border-stone-800 dark:bg-stone-950">
+              {/* Compact credits line (text only, no meter) + user row. Sign out lives in the
+                  workspace menu above, not as a noisy visible row. */}
+              <div className="-mx-2 border-t px-3 py-1" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
                 {wallet?.enrolled && (
-                  <Link to="/settings/billing" className="block px-1.5 pt-1.5 font-mono">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>
-                        <span style={{ color: "var(--text-secondary)" }}>{wallet.balance.toLocaleString()}</span> / {wallet.granted.toLocaleString()} credits
-                      </span>
-                      <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
-                        {TIER_LABEL[wallet.account_tier] ?? "Free"}
-                      </span>
-                    </div>
-                    <div className="mt-1 h-1 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
-                      <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#ef4444" : "var(--accent)" }} />
-                    </div>
-                    {wallet.burst?.limited && burstReset && (
-                      <div className="mt-1 text-[9px] font-medium" style={{ color: "#f59e0b" }}>
-                        Usage limit reached · resets ~{burstReset}
-                      </div>
-                    )}
+                  <Link to="/settings/billing" className="flex items-center justify-between px-1.5 pt-1.5 text-[10.5px] tabular-nums" title="Credits & billing">
+                    <span style={{ color: "var(--text-faint)" }}>
+                      <span style={{ color: "var(--text-secondary)" }}>{wallet.balance.toLocaleString()}</span> / {wallet.granted.toLocaleString()} credits
+                    </span>
+                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: walletPct <= 10 ? "#ef4444" : "var(--text-faint)" }}>
+                      {TIER_LABEL[wallet.account_tier] ?? "Scout"}
+                    </span>
                   </Link>
                 )}
-                <Link to="/settings/account" title="Settings" className="flex items-center gap-2 rounded-lg px-1.5 py-2 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
+                <Link to="/settings/account" title="Account settings" className="flex items-center gap-2 rounded-lg px-1.5 py-2 transition-colors hover:bg-[var(--surface-hover)]">
                   {me.imageUrl
                     ? <img src={me.imageUrl} className="h-6 w-6 rounded-full object-cover shrink-0" alt=""/>
                     : <div className="h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-semibold shrink-0" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
@@ -663,11 +636,6 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                     <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>{me.email}</div>
                   </div>
                   <Settings size={13} style={{ color: "var(--text-faint)" }}/>
-                </Link>
-
-                <Link to="/settings/members" className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
-                  <Users size={13} style={{ color: "var(--text-faint)" }}/>
-                  <span className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>Invite members</span>
                 </Link>
               </div>
             </div>
