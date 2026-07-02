@@ -68036,6 +68036,7 @@ router39.post("/complete", requireAuth, async (c2) => {
 init_client();
 var router40 = new Hono2();
 router40.use("*", requireAuth);
+var ENV_STEP = "Add it in your host's dashboard (Vercel \u2192 Settings \u2192 Environment Variables), then redeploy.";
 async function probeTable(table, columns = "id") {
   const { error } = await supabase.from(table).select(columns).limit(1);
   return !error;
@@ -68050,7 +68051,8 @@ router40.get("/", async (c2) => {
       id: "database",
       label: "Supabase / database connection",
       state: ok2 ? "operational" : "error",
-      explanation: ok2 ? "Queried the workspaces table successfully." : "A query against the workspaces table failed."
+      explanation: ok2 ? "Queried the workspaces table successfully." : "A query against the workspaces table failed.",
+      action: ok2 ? void 0 : "Check your Supabase project is live and SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY are set correctly in your host's environment variables."
     });
   } catch {
     checks.push({ id: "database", label: "Supabase / database connection", state: "error", explanation: "Could not reach the database." });
@@ -68060,14 +68062,16 @@ router40.get("/", async (c2) => {
     id: "auth",
     label: "Sovereign auth configured",
     state: authConfigured ? "operational" : "needs_setup",
-    explanation: authConfigured ? "AUTH_JWT_SECRET is set \u2014 native session signing is active, and this request itself passed sovereign auth." : "AUTH_JWT_SECRET is not set \u2014 native auth cannot sign sessions."
+    explanation: authConfigured ? "AUTH_JWT_SECRET is set \u2014 native session signing is active, and this request itself passed sovereign auth." : "Sign-in can't sign sessions yet \u2014 the AUTH_JWT_SECRET secret isn't set.",
+    action: authConfigured ? void 0 : `Generate a secret (run \`openssl rand -hex 32\`) and set it as AUTH_JWT_SECRET. ${ENV_STEP}`
   });
   const gatewayConfigured = Boolean(process.env.AI_GATEWAY_BASE_URL && process.env.AI_GATEWAY_API_KEY);
   checks.push({
     id: "ask",
     label: "Ask Mondaily available",
     state: gatewayConfigured ? "operational" : "needs_setup",
-    explanation: gatewayConfigured ? "AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY are set \u2014 Ask Mondaily, enrichment, and the Prospecting Agent run on the Cerebras gateway." : "AI_GATEWAY_BASE_URL / AI_GATEWAY_API_KEY missing \u2014 the Cerebras gateway is not configured, so Ask Mondaily and AI enrichment will not work."
+    explanation: gatewayConfigured ? "AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY are set \u2014 Ask Mondaily, enrichment, and the Prospecting Agent run on the sovereign AI gateway." : "The AI engine isn't connected yet, so Ask Mondaily, enrichment, and Discovery can't run.",
+    action: gatewayConfigured ? void 0 : `Set both AI_GATEWAY_BASE_URL (your Cerebras gateway URL) and AI_GATEWAY_API_KEY (your gateway key). ${ENV_STEP}`
   });
   try {
     const ok2 = await probeTable("agent_jobs");
@@ -68085,28 +68089,32 @@ router40.get("/", async (c2) => {
     id: "inngest",
     label: "Inngest (background jobs)",
     state: inngestConfigured ? "operational" : "not_checked",
-    explanation: inngestConfigured ? "INNGEST_EVENT_KEY is set \u2014 scheduled/triggered jobs (enrichment, invoice chasing, relationship health, etc.) run for real." : "INNGEST_EVENT_KEY is not set in this environment \u2014 cannot confirm jobs are actually firing, only that they're registered in code."
+    explanation: inngestConfigured ? "INNGEST_EVENT_KEY is set \u2014 scheduled/triggered jobs (enrichment, invoice chasing, relationship health, etc.) run for real." : "Background jobs are registered in code, but we can't confirm they're actually firing without the Inngest key.",
+    action: inngestConfigured ? void 0 : `Set INNGEST_EVENT_KEY (from your Inngest dashboard) to enable scheduled + event-triggered jobs. ${ENV_STEP}`
   });
   const searchConfigured = Boolean(process.env.SOVEREIGN_SEARCH_URL);
   checks.push({
     id: "sovereign_search",
     label: "Sovereign web search appliance",
     state: searchConfigured ? "operational" : "needs_setup",
-    explanation: searchConfigured ? "SOVEREIGN_SEARCH_URL is set \u2014 enrichment and the Prospecting Agent search the live web via your own SearXNG + scraper." : "SOVEREIGN_SEARCH_URL is missing \u2014 enrichment and Prospecting Agent web search will return nothing."
+    explanation: searchConfigured ? "SOVEREIGN_SEARCH_URL is set \u2014 enrichment and the Prospecting Agent search the live web via your own SearXNG + scraper." : "Discovery and web enrichment will return nothing \u2014 the self-hosted search appliance isn't connected.",
+    action: searchConfigured ? void 0 : `Deploy the SearXNG search appliance (see deploy/search-appliance) and set SOVEREIGN_SEARCH_URL to its address. ${ENV_STEP}`
   });
   const googleConfigured2 = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   checks.push({
     id: "email",
     label: "Google (Gmail + Calendar) configured",
     state: googleConfigured2 ? "operational" : "needs_setup",
-    explanation: googleConfigured2 ? "GOOGLE_CLIENT_ID/SECRET are set \u2014 users can connect Google for mail (read + reply) and calendar sync." : "GOOGLE_CLIENT_ID/SECRET missing \u2014 Connect Google (mail + calendar) will fail."
+    explanation: googleConfigured2 ? "GOOGLE_CLIENT_ID/SECRET are set \u2014 users can connect Google for mail (read + reply) and calendar sync." : "The 'Connect Google' button (Gmail + Calendar) won't work until Google OAuth is set up.",
+    action: googleConfigured2 ? void 0 : `Create an OAuth client in Google Cloud Console (APIs \u2192 Credentials), then set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET. ${ENV_STEP} Going past 100 users also needs Google's verification review.`
   });
   const microsoftConfigured2 = Boolean(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
   checks.push({
     id: "microsoft",
     label: "Microsoft (Outlook + Calendar) configured",
     state: microsoftConfigured2 ? "operational" : "needs_setup",
-    explanation: microsoftConfigured2 ? "MICROSOFT_CLIENT_ID/SECRET are set \u2014 users can connect Outlook for mail and calendar sync." : "MICROSOFT_CLIENT_ID/SECRET missing \u2014 Connect Outlook will fail (Google can still be used)."
+    explanation: microsoftConfigured2 ? "MICROSOFT_CLIENT_ID/SECRET are set \u2014 users can connect Outlook for mail and calendar sync." : "The 'Connect Outlook' button won't work until Microsoft OAuth is set up (Google can still be used meanwhile).",
+    action: microsoftConfigured2 ? void 0 : `Register an app in Microsoft Azure (Entra \u2192 App registrations), then set MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET. ${ENV_STEP}`
   });
   const stripeKey = Boolean(process.env.STRIPE_SECRET_KEY);
   const stripePublishable = Boolean(process.env.STRIPE_PUBLISHABLE_KEY);
@@ -68117,14 +68125,16 @@ router40.get("/", async (c2) => {
     id: "stripe",
     label: "Stripe (billing) configured",
     state: stripeReady ? "operational" : "needs_setup",
-    explanation: stripeReady ? "Embedded Payment Element, subscriptions, and the webhook are fully configured \u2014 clients can subscribe on-page and tiers activate automatically." : `Embedded billing is built. Still needed: ${[!stripeKey && "STRIPE_SECRET_KEY", !stripePublishable && "STRIPE_PUBLISHABLE_KEY", !stripePrice && "STRIPE_PRICE_OPERATOR_MONTH / _COMMAND_MONTH", !stripeWebhook && "STRIPE_WEBHOOK_SECRET"].filter(Boolean).join(", ")}.`
+    explanation: stripeReady ? "Embedded Payment Element, subscriptions, and the webhook are fully configured \u2014 clients can subscribe on-page and tiers activate automatically." : "Billing is built and ready \u2014 it just needs your Stripe keys before anyone can subscribe.",
+    action: stripeReady ? void 0 : `From your Stripe dashboard, set these ${["STRIPE_SECRET_KEY", "STRIPE_PUBLISHABLE_KEY", "a price id (STRIPE_PRICE_OPERATOR_MONTH / _COMMAND_MONTH)", "STRIPE_WEBHOOK_SECRET"].length} values \u2014 still missing: ${[!stripeKey && "STRIPE_SECRET_KEY", !stripePublishable && "STRIPE_PUBLISHABLE_KEY", !stripePrice && "STRIPE_PRICE_OPERATOR_MONTH / _COMMAND_MONTH", !stripeWebhook && "STRIPE_WEBHOOK_SECRET"].filter(Boolean).join(", ")}. ${ENV_STEP} Register the webhook endpoint at /api/v1/webhooks/stripe.`
   });
   const cronSecret = Boolean(process.env.CRON_SECRET);
   checks.push({
     id: "cron_secret",
     label: "Cron endpoint protected (CRON_SECRET)",
     state: cronSecret ? "operational" : "needs_setup",
-    explanation: cronSecret ? "CRON_SECRET is set \u2014 /api/cron/daily rejects any request without the matching bearer token." : "CRON_SECRET is not set \u2014 the daily cron endpoint is publicly triggerable. Add CRON_SECRET to lock it."
+    explanation: cronSecret ? "CRON_SECRET is set \u2014 /api/cron/daily rejects any request without the matching bearer token." : "The daily automation endpoint isn't locked yet, so it could be triggered by outsiders.",
+    action: cronSecret ? void 0 : `Set CRON_SECRET to any long random string (e.g. \`openssl rand -hex 32\`). ${ENV_STEP}`
   });
   const migrations = await Promise.all([
     probeTable("tasks").then((ok2) => ({ id: "0014", label: "0014 \u2014 tasks & detail tables", applied: ok2, required: true, breaks_if_missing: "Tasks, task reviews, and task details would not work at all." })),
