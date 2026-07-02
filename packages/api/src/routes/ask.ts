@@ -8,7 +8,7 @@ import { supabase } from "@mondaily/db/client";
 import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
 import { runProspecting } from "./prospecting";
-import { sovereignSearchUrls, sovereignScrape } from "../lib/sovereign-search";
+import { sovereignSearchUrls, sovereignScrape, sovereignWebContext } from "../lib/sovereign-search";
 import { executeApprovedAction } from "./decisions";
 import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway, gatewayHealthCheck, getLastGatewayError } from "../lib/ai-gateway";
 
@@ -474,19 +474,13 @@ function selectTools(query: string, history?: { role?: string; content?: string 
   return TOOLS.filter((t) => keep.has(t.name));
 }
 
+// Web search for Ask — SOVEREIGN ONLY. Routes through our own SearXNG + scraper appliance
+// (sovereignWebContext), never api.tavily.com. Empty when the appliance isn't configured
+// (SOVEREIGN_SEARCH_URL) — no third-party fallback.
 async function searchWeb(query: string): Promise<string> {
-  const apiKey = process.env.TAVILY_API_KEY;
-  if (!apiKey) return "";
   try {
-    const res = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ api_key: apiKey, query, max_results: 5, search_depth: "basic" })
-    });
-    if (!res.ok) return "";
-    const data = await res.json() as any;
-    const results = (data.results ?? []).slice(0, 5).map((r: any) => `- ${r.title}: ${r.content}`).join("\n");
-    return results ? `\n\nWeb search results for "${query}":\n${results}` : "";
+    const context = await sovereignWebContext(query, 3);
+    return context ? `\n\nWeb search results for "${query}":\n${context}` : "";
   } catch { return ""; }
 }
 

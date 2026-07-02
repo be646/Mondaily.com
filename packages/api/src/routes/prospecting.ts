@@ -7,16 +7,17 @@ import * as ubc from "@mondaily/db/ubc";
 import { inngest } from "../lib/inngest";
 import { startJob, completeJob, failJob } from "../lib/agent-logger";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
+import { sovereignSearchUrls, sovereignScrape } from "../lib/sovereign-search";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
 
 /**
- * Prospecting Agent — searches the web (Tavily) for candidate records of
- * any object type the workspace tracks (people, organizations, assets,
- * investors, suppliers, etc.), has Claude extract structured candidates
- * from the real search results, deduplicates against the workspace graph,
+ * Prospecting Agent — searches the web via the SOVEREIGN SearXNG + scraper appliance (never a
+ * third-party search API) for candidate records of any object type the workspace tracks (people,
+ * organizations, assets, investors, suppliers, etc.), has the sovereign AI gateway extract
+ * structured candidates from the real search results, deduplicates against the workspace graph,
  * and either creates nodes directly or queues them in the Decision Queue
  * for human approval. Every candidate must trace back to a real source
  * URL from the search results — nothing here is invented. Deliberately
@@ -58,21 +59,24 @@ export interface ProspectingRunResult {
   sources: { url: string; title: string }[];
 }
 
-async function tavilySearch(query: string, maxResults: number): Promise<{ url: string; title: string; content: string }[]> {
-  const key = process.env.TAVILY_API_KEY;
-  if (!key) return [];
-  try {
-    const res = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ api_key: key, query, max_results: maxResults, search_depth: "advanced" }),
-    });
-    if (!res.ok) return [];
-    const json = await res.json() as { results?: { title: string; content: string; url: string }[] };
-    return (json.results ?? []).map(r => ({ url: r.url, title: r.title, content: r.content }));
-  } catch {
-    return [];
-  }
+/**
+ * Web search for prospecting — SOVEREIGN ONLY. Routes through our own SearXNG + scraper appliance
+ * (lib/sovereign-search), never api.tavily.com. Returns the same { url, title, content } shape the
+ * extractor expects: SearXNG gives the URLs, the scraper renders each page to text. Empty when the
+ * appliance isn't configured (SOVEREIGN_SEARCH_URL) — no third-party fallback.
+ */
+async function sovereignProspectSearch(query: string, maxResults: number): Promise<{ url: string; title: string; content: string }[]> {
+  const urls = await sovereignSearchUrls(query, maxResults);
+  if (!urls.length) return [];
+  const scraped = await Promise.all(urls.map((u) => sovereignScrape(u).catch(() => "")));
+  return urls
+    .map((url, i) => {
+      const content = (scraped[i] || "").slice(0, 4000);
+      let title = url;
+      try { title = new URL(url).host.replace(/^www\./, ""); } catch { /* keep url */ }
+      return { url, title, content };
+    })
+    .filter((r) => r.content.trim().length > 40);
 }
 
 async function extractCandidates(
@@ -216,7 +220,7 @@ export async function runProspecting(
   });
 
   try {
-    const searchResults = await tavilySearch(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
+    const searchResults = await sovereignProspectSearch(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
     const { candidates, gen } = await extractCandidates(input.query, input.object_type, input.count, searchResults);
 
     const result: ProspectingRunResult = {

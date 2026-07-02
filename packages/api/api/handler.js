@@ -59175,21 +59175,19 @@ var runSchema = external_exports.object({
   destination_list_id: external_exports.string().uuid().optional(),
   require_approval: external_exports.boolean().default(true)
 });
-async function tavilySearch(query, maxResults) {
-  const key = process.env.TAVILY_API_KEY;
-  if (!key) return [];
-  try {
-    const res = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ api_key: key, query, max_results: maxResults, search_depth: "advanced" })
-    });
-    if (!res.ok) return [];
-    const json = await res.json();
-    return (json.results ?? []).map((r2) => ({ url: r2.url, title: r2.title, content: r2.content }));
-  } catch {
-    return [];
-  }
+async function sovereignProspectSearch(query, maxResults) {
+  const urls = await sovereignSearchUrls(query, maxResults);
+  if (!urls.length) return [];
+  const scraped = await Promise.all(urls.map((u2) => sovereignScrape(u2).catch(() => "")));
+  return urls.map((url, i2) => {
+    const content = (scraped[i2] || "").slice(0, 4e3);
+    let title = url;
+    try {
+      title = new URL(url).host.replace(/^www\./, "");
+    } catch {
+    }
+    return { url, title, content };
+  }).filter((r2) => r2.content.trim().length > 40);
 }
 async function extractCandidates(query, objectType2, count, results) {
   if (results.length === 0) return { candidates: [], gen: { system: "", prompt: "" } };
@@ -59306,7 +59304,7 @@ async function runProspecting(workspaceId, userId, input) {
     input: { query: input.query, object_type: input.object_type, count: input.count }
   });
   try {
-    const searchResults = await tavilySearch(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
+    const searchResults = await sovereignProspectSearch(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
     const { candidates, gen } = await extractCandidates(input.query, input.object_type, input.count, searchResults);
     const result = {
       created: 0,
@@ -60111,21 +60109,12 @@ function selectTools(query, history) {
   return TOOLS.filter((t2) => keep.has(t2.name));
 }
 async function searchWeb(query) {
-  const apiKey = process.env.TAVILY_API_KEY;
-  if (!apiKey) return "";
   try {
-    const res = await fetch("https://api.tavily.com/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ api_key: apiKey, query, max_results: 5, search_depth: "basic" })
-    });
-    if (!res.ok) return "";
-    const data = await res.json();
-    const results = (data.results ?? []).slice(0, 5).map((r2) => `- ${r2.title}: ${r2.content}`).join("\n");
-    return results ? `
+    const context2 = await sovereignWebContext(query, 3);
+    return context2 ? `
 
 Web search results for "${query}":
-${results}` : "";
+${context2}` : "";
   } catch {
     return "";
   }
@@ -67054,17 +67043,17 @@ router40.get("/", async (c2) => {
   const googleConfigured2 = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   checks.push({
     id: "email",
-    label: "Google (Gmail + Calendar) configured",
+    label: "Google (Gmail + Calendar) connector",
     state: googleConfigured2 ? "operational" : "needs_setup",
-    explanation: googleConfigured2 ? "GOOGLE_CLIENT_ID/SECRET are set \u2014 users can connect Google for mail (read + reply) and calendar sync." : "The 'Connect Google' button (Gmail + Calendar) won't work until Google OAuth is set up.",
+    explanation: googleConfigured2 ? "GOOGLE_CLIENT_ID/SECRET are set \u2014 an optional client-authorized connector: users can connect Google for mail (read + reply) and calendar. Data is accessed only after a user connects and stays workspace-scoped." : "The optional 'Connect Google' connector (Gmail + Calendar) won't work until Google OAuth is set up.",
     action: googleConfigured2 ? void 0 : `Create an OAuth client in Google Cloud Console (APIs \u2192 Credentials), then set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET. ${ENV_STEP} Going past 100 users also needs Google's verification review.`
   });
   const microsoftConfigured2 = Boolean(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
   checks.push({
     id: "microsoft",
-    label: "Microsoft (Outlook + Calendar) configured",
+    label: "Microsoft (Outlook + Calendar) connector",
     state: microsoftConfigured2 ? "operational" : "needs_setup",
-    explanation: microsoftConfigured2 ? "MICROSOFT_CLIENT_ID/SECRET are set \u2014 users can connect Outlook for mail and calendar sync." : "The 'Connect Outlook' button won't work until Microsoft OAuth is set up (Google can still be used meanwhile).",
+    explanation: microsoftConfigured2 ? "MICROSOFT_CLIENT_ID/SECRET are set \u2014 an optional client-authorized connector: users can connect Outlook for mail and calendar. Data is accessed only after a user connects and stays workspace-scoped." : "The optional 'Connect Outlook' connector won't work until Microsoft OAuth is set up (Google can still be used meanwhile).",
     action: microsoftConfigured2 ? void 0 : `Register an app in Microsoft Azure (Entra \u2192 App registrations), then set MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET. ${ENV_STEP}`
   });
   const stripeKey = Boolean(process.env.STRIPE_SECRET_KEY);
@@ -67074,9 +67063,9 @@ router40.get("/", async (c2) => {
   const stripeReady = stripeKey && stripePublishable && stripePrice && stripeWebhook;
   checks.push({
     id: "stripe",
-    label: "Stripe (billing) configured",
+    label: "Stripe (payment processor) configured",
     state: stripeReady ? "operational" : "needs_setup",
-    explanation: stripeReady ? "Embedded Payment Element, subscriptions, and the webhook are fully configured \u2014 clients can subscribe on-page and tiers activate automatically." : "Billing is built and ready \u2014 it just needs your Stripe keys before anyone can subscribe.",
+    explanation: stripeReady ? "Stripe is the payment processor: embedded Payment Element, subscriptions, and the webhook are configured \u2014 clients subscribe on-page and tiers activate automatically. Card numbers live with Stripe; Mondaily never stores them and AI tools can't access payment data." : "Billing is built and ready \u2014 it just needs your Stripe (payment processor) keys before anyone can subscribe. Mondaily never stores card numbers.",
     action: stripeReady ? void 0 : `From your Stripe dashboard, set these ${["STRIPE_SECRET_KEY", "STRIPE_PUBLISHABLE_KEY", "a price id (STRIPE_PRICE_OPERATOR_MONTH / _COMMAND_MONTH)", "STRIPE_WEBHOOK_SECRET"].length} values \u2014 still missing: ${[!stripeKey && "STRIPE_SECRET_KEY", !stripePublishable && "STRIPE_PUBLISHABLE_KEY", !stripePrice && "STRIPE_PRICE_OPERATOR_MONTH / _COMMAND_MONTH", !stripeWebhook && "STRIPE_WEBHOOK_SECRET"].filter(Boolean).join(", ")}. ${ENV_STEP} Register the webhook endpoint at /api/v1/webhooks/stripe.`
   });
   const cronSecret = Boolean(process.env.CRON_SECRET);

@@ -31,6 +31,20 @@ export default function SecurityPage() {
           maintain SOC 2 Type II security certifications, with Vercel also holding ISO 27001 certification.
         </p>
 
+        <Section tag="// ai-sovereignty" title="Sovereign-first AI architecture">
+          <p className="mb-3">
+            Mondaily runs on a sovereign-first AI architecture. AI inference runs on a private AI
+            gateway, web search runs on a self-hosted sovereign search appliance, and your data is
+            workspace-isolated — every AI request is scoped to your workspace and can&apos;t read another&apos;s.
+          </p>
+          <ul className="list-disc space-y-1.5 pl-5">
+            <li>Source-backed AI answers, with human-approved agent actions — agents prepare, you approve</li>
+            <li>No silent fallback to third-party AI providers; your data isn&apos;t used for training unless you explicitly approve it</li>
+            <li>Google and Outlook are optional, client-authorized integrations — email and calendar data is accessed only after you connect an account, stays workspace-scoped, and can be disconnected any time; they are not core AI infrastructure</li>
+            <li>Stripe is our payment processor — card numbers live with Stripe, never stored by Mondaily, and are never accessible to AI tools</li>
+          </ul>
+        </Section>
+
         <Section tag="// gdpr" title="GDPR Compliant Architecture">
           <p className="mb-3">
             We process personal data in line with the EU General Data Protection Regulation. This includes:

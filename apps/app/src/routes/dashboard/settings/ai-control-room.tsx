@@ -77,8 +77,28 @@ export function AIControlRoomSettings() {
     <div className="mx-auto max-w-3xl px-1 py-2">
       <div className="mb-6">
         <h1 className="text-[18px] font-semibold" style={{ color: "var(--text-primary)" }}>AI Control Room</h1>
-        <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-muted)" }}>Your AI operating layer — configuration, agents, safety, and the audit trail. Real data only.</p>
+        <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-muted)" }}>Sovereign-first AI architecture — configuration, agents, safety, and the audit trail. Real data only.</p>
       </div>
+
+      {/* Sovereignty matrix — the honest at-a-glance posture. Layers are self-hosted/native where
+          it matters (auth, inference gateway, search); Google/Outlook/Stripe are optional
+          client-authorized integrations, not core AI infrastructure. */}
+      <Section title="Sovereignty matrix" hint='Sovereign-first — "100% sovereign" applies only when private/self-hosted inference AND search are configured.'>
+        <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+          <MatrixRow label="Core auth" value="Sovereign / native (email + cookie sessions)" tone="ok" />
+          <MatrixRow label="Workspace data" value="Isolated — every query is workspace-scoped" tone="ok" />
+          <MatrixRow label="AI inference"
+            value={byId("ask")?.state === "operational" ? "Private AI gateway (your configured endpoint)" : "Not configured — needs the private AI gateway"}
+            tone={byId("ask")?.state === "operational" ? "ok" : "warn"} />
+          <MatrixRow label="Web search"
+            value={byId("sovereign_search")?.state === "operational" ? "Sovereign search appliance (self-hosted SearXNG)" : "Needs setup — SOVEREIGN_SEARCH_URL"}
+            tone={byId("sovereign_search")?.state === "operational" ? "ok" : "warn"} />
+          <MatrixRow label="Email / calendar" value="Optional client-authorized connectors (Google / Outlook) — not core AI infrastructure" tone="muted" />
+          <MatrixRow label="Billing" value="Stripe — payment processor only (Mondaily never stores card numbers)" tone="muted" />
+          <MatrixRow label="Training data" value="Human-approved only — connected email/calendar is never used for training unless you explicitly approve it" tone="ok" />
+          <MatrixRow label="Third-party AI/search fallbacks" value="Disabled — no silent fallback to Anthropic, OpenAI, or Tavily" tone="ok" />
+        </div>
+      </Section>
 
       {/* 1. AI System Status */}
       <Section title="AI system status">
@@ -156,7 +176,9 @@ export function AIControlRoomSettings() {
           <Boundary ok label="Source-backed responses" detail="Answers and decisions cite the real records or evidence behind them." />
           <Boundary ok label="No cross-workspace memory" detail="Threads and context never carry across workspaces." />
           <Boundary ok label="No training on your data by default" detail="Customer data isn't used for model training unless you explicitly export/configure it." />
-          <Boundary ok label="Sovereign AI + search" detail="Runs on your configured AI gateway and self-hosted search — no third-party middleman." />
+          <Boundary ok label="Connected email & calendar stay yours" detail="Email and calendar data is only accessed after you connect an account, remains workspace-scoped, is never used for AI training unless you explicitly approve it, and can be disconnected at any time." />
+          <Boundary ok label="AI can't see payment data" detail="Card numbers and payment methods live with Stripe (the payment processor) — Mondaily never stores them and AI tools can't access raw card/payment data." />
+          <Boundary ok label="Sovereign-first AI + search" detail="Runs on your private AI gateway and self-hosted search — no third-party AI/search middleman and no silent fallbacks." />
         </div>
       </Section>
 
@@ -225,6 +247,16 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
 }
 function Row({ children }: { children: React.ReactNode }) {
   return <div className="flex items-center justify-between gap-3 py-2.5 text-[12.5px]">{children}</div>;
+}
+function MatrixRow({ label, value, tone }: { label: string; value: string; tone: "ok" | "warn" | "muted" }) {
+  const color = tone === "ok" ? "#10b981" : tone === "warn" ? "#d97706" : "var(--text-faint)";
+  return (
+    <div className="flex items-start gap-3 py-2.5">
+      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
+      <span className="w-32 shrink-0 text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>{label}</span>
+      <span className="min-w-0 flex-1 text-[12px]" style={{ color: "var(--text-muted)" }}>{value}</span>
+    </div>
+  );
 }
 function StatusRow({ label, check }: { label: string; check?: Check }) {
   const state = check?.state ?? "not_checked";

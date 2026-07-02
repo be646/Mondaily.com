@@ -25,7 +25,24 @@ these against the running backend. This table is the landing-facing summary.
 | Voice commands | Disabled mic in Ask | **Roadmap** | Shown as "coming soon", not claimed as working. |
 | Native calendar-based meeting briefs | Meetings card | **Partial** | Real events render once calendar is connected; AI meeting briefs are roadmap. |
 
-## Sovereignty note
-No third-party integration middlemen. All AI runs on the sovereign Cerebras gateway; all web search
-runs on the self-hosted SearXNG appliance; email/calendar use **direct** Google/Microsoft OAuth (no
-Nylas). Absence of an env var = "Needs env", never a silent fallback to a third-party endpoint.
+## Sovereignty note — sovereign-first architecture
+Mondaily is **sovereign-first**, not "100% sovereign" in the absolute sense. Precisely:
+
+- **AI inference** runs on a private AI gateway (Cerebras via `AI_GATEWAY_*`). There is **no** silent
+  fallback to Anthropic/OpenAI — if the gateway env is missing, AI features report "Needs env"
+  rather than routing to a proprietary provider.
+- **Web search** (Discovery, Prospecting, enrichment, Ask web search) routes through the self-hosted
+  sovereign search appliance (SearXNG + scraper, `SOVEREIGN_SEARCH_URL`). **Tavily has been fully
+  removed** — no third-party search API is called anywhere.
+- **Workspace data** is isolated: every AI request is workspace-scoped and can't read another
+  workspace's data.
+- **Google / Outlook** are **optional, client-authorized connectors** — not core AI infrastructure
+  and not a sovereignty failure. Email/calendar data is accessed only after a user connects an
+  account, stays workspace-scoped, is never used for AI training unless explicitly approved, and can
+  be disconnected at any time. (Direct Google/Microsoft OAuth — no Nylas middleman.)
+- **Stripe** is a **payment processor / payment rail**, not AI or data infrastructure. Mondaily never
+  stores card numbers (they live with Stripe), billing metadata is workspace-scoped, and AI tools
+  can't access raw card/payment data.
+
+**Full "100% sovereign" would additionally require self-hosted/private inference and search to be
+configured.** Until self-hosted inference is live, describe the current state as **sovereign-first**.

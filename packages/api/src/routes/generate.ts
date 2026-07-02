@@ -119,7 +119,7 @@ router.post("/nlp", requireAuth, zValidator("json", z.object({
   }
 });
 
-// ─── Company enrichment via Tavily + Claude ───────────────────────────────────
+// ─── Company enrichment via the sovereign SearXNG appliance + sovereign AI gateway ────────────
 router.post("/enrich/company", requireAuth, zValidator("json", z.object({ name: z.string() })), async (c) => {
   const { name } = c.req.valid("json");
   // Sovereign web context: our own SearXNG + scraper appliance (no Tavily).

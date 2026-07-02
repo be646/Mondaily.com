@@ -269,8 +269,8 @@ router.get("/", async (c) => {
     });
   }
 
-  // Prospecting Agent — searches the web (Tavily) for candidate records of
-  // any object type, real run history in agent_jobs (agent_name
+  // Prospecting Agent — searches the web via the sovereign SearXNG appliance for candidate records
+  // of any object type, real run history in agent_jobs (agent_name
   // "prospecting"). Conceptually it moves through idle → searching →
   // review_needed → completed/failed; mapped onto the shared AgentState
   // enum (already used by every other agent) so every surface — landing,

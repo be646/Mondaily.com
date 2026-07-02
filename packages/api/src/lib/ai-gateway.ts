@@ -553,10 +553,9 @@ async function runOpenAICompatAgent(
  *
  * Priority: req.model → AI_AGENT_MODEL → AI_PROVIDER_MODEL → CEREBRAS_DEFAULT_SPEC
  *
- * Fallback chain:
- *   1. Primary provider (resolved from spec above)
- *   2. If primary is openai-compat and fails → Anthropic haiku (if ANTHROPIC_API_KEY set)
- *   3. If all fail → returns graceful reply, never throws
+ * SOVEREIGN: the only provider is the openai-compatible gateway (Cerebras). There is NO fallback to
+ * api.anthropic.com or api.openai.com — if the primary attempt fails, we return a graceful reply
+ * (never throw, never route to a proprietary provider).
  */
 export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> {
   // Fast-model routing applies here too (conversational → fast model, no tools).
@@ -598,9 +597,9 @@ export type AgentStreamEvent =
  * Streaming variant of aiGatewayAgent. Emits `token` events as the model
  * produces the final answer (live, like Claude.ai) and `status` events while
  * tools run, then returns the full AgentResponse. Streams only for the
- * openai-compat provider (Cerebras); the Anthropic path and any failure fall
+ * openai-compat provider (Cerebras); any non-streamable case or failure falls
  * back to the non-streaming loop, emitting the whole reply as one token so the
- * caller's rendering path is identical. Never throws.
+ * caller's rendering path is identical. Never throws, never routes to a proprietary provider.
  */
 export async function aiGatewayAgentStream(
   req: AgentRequest,

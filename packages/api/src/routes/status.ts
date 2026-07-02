@@ -103,21 +103,22 @@ router.get("/", async (c) => {
     action: searchConfigured ? undefined : `Deploy the SearXNG search appliance (see deploy/search-appliance) and set SOVEREIGN_SEARCH_URL to its address. ${ENV_STEP}`,
   });
 
-  // Google (Gmail + Calendar — direct OAuth, Nylas removed)
+  // Google (Gmail + Calendar) — an OPTIONAL, client-authorized connector (direct OAuth, no Nylas).
+  // Not core AI infrastructure: data is only accessed after a user connects, stays workspace-scoped.
   const googleConfigured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   checks.push({
-    id: "email", label: "Google (Gmail + Calendar) configured",
+    id: "email", label: "Google (Gmail + Calendar) connector",
     state: googleConfigured ? "operational" : "needs_setup",
-    explanation: googleConfigured ? "GOOGLE_CLIENT_ID/SECRET are set — users can connect Google for mail (read + reply) and calendar sync." : "The 'Connect Google' button (Gmail + Calendar) won't work until Google OAuth is set up.",
+    explanation: googleConfigured ? "GOOGLE_CLIENT_ID/SECRET are set — an optional client-authorized connector: users can connect Google for mail (read + reply) and calendar. Data is accessed only after a user connects and stays workspace-scoped." : "The optional 'Connect Google' connector (Gmail + Calendar) won't work until Google OAuth is set up.",
     action: googleConfigured ? undefined : `Create an OAuth client in Google Cloud Console (APIs → Credentials), then set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET. ${ENV_STEP} Going past 100 users also needs Google's verification review.`,
   });
 
-  // Microsoft (Outlook mail + Calendar — direct Graph OAuth)
+  // Microsoft (Outlook + Calendar) — an OPTIONAL, client-authorized connector (direct Graph OAuth).
   const microsoftConfigured = Boolean(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
   checks.push({
-    id: "microsoft", label: "Microsoft (Outlook + Calendar) configured",
+    id: "microsoft", label: "Microsoft (Outlook + Calendar) connector",
     state: microsoftConfigured ? "operational" : "needs_setup",
-    explanation: microsoftConfigured ? "MICROSOFT_CLIENT_ID/SECRET are set — users can connect Outlook for mail and calendar sync." : "The 'Connect Outlook' button won't work until Microsoft OAuth is set up (Google can still be used meanwhile).",
+    explanation: microsoftConfigured ? "MICROSOFT_CLIENT_ID/SECRET are set — an optional client-authorized connector: users can connect Outlook for mail and calendar. Data is accessed only after a user connects and stays workspace-scoped." : "The optional 'Connect Outlook' connector won't work until Microsoft OAuth is set up (Google can still be used meanwhile).",
     action: microsoftConfigured ? undefined : `Register an app in Microsoft Azure (Entra → App registrations), then set MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET. ${ENV_STEP}`,
   });
 
@@ -130,11 +131,11 @@ router.get("/", async (c) => {
   const stripeWebhook = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
   const stripeReady = stripeKey && stripePublishable && stripePrice && stripeWebhook;
   checks.push({
-    id: "stripe", label: "Stripe (billing) configured",
+    id: "stripe", label: "Stripe (payment processor) configured",
     state: stripeReady ? "operational" : "needs_setup",
     explanation: stripeReady
-      ? "Embedded Payment Element, subscriptions, and the webhook are fully configured — clients can subscribe on-page and tiers activate automatically."
-      : "Billing is built and ready — it just needs your Stripe keys before anyone can subscribe.",
+      ? "Stripe is the payment processor: embedded Payment Element, subscriptions, and the webhook are configured — clients subscribe on-page and tiers activate automatically. Card numbers live with Stripe; Mondaily never stores them and AI tools can't access payment data."
+      : "Billing is built and ready — it just needs your Stripe (payment processor) keys before anyone can subscribe. Mondaily never stores card numbers.",
     action: stripeReady ? undefined : `From your Stripe dashboard, set these ${["STRIPE_SECRET_KEY", "STRIPE_PUBLISHABLE_KEY", "a price id (STRIPE_PRICE_OPERATOR_MONTH / _COMMAND_MONTH)", "STRIPE_WEBHOOK_SECRET"].length} values — still missing: ${[!stripeKey && "STRIPE_SECRET_KEY", !stripePublishable && "STRIPE_PUBLISHABLE_KEY", !stripePrice && "STRIPE_PRICE_OPERATOR_MONTH / _COMMAND_MONTH", !stripeWebhook && "STRIPE_WEBHOOK_SECRET"].filter(Boolean).join(", ")}. ${ENV_STEP} Register the webhook endpoint at /api/v1/webhooks/stripe.`,
   });
 

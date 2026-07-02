@@ -70,6 +70,11 @@ export function EmailSettings() {
   return (
     <div>
       <PageHeader title="Email & calendar" description="Control inbox synchronization, sending, signatures, and meeting context." />
+      <p className="mb-4 text-[12px] leading-relaxed text-[var(--text-muted)]">
+        Google and Outlook are optional, client-authorized connectors. Email and calendar data is only
+        accessed after you connect an account, remains workspace-scoped, is never used for AI training
+        unless you explicitly approve it, and can be disconnected at any time.
+      </p>
       <section className="premium-panel mb-5 p-5">
         <div className="mb-4 flex items-center justify-between"><h2 className="flex items-center gap-2 text-sm font-medium"><Mail size={15} /> Connected email accounts</h2><div className="flex gap-2">{data.providers.filter((provider) => !provider.connected).map((provider) => <button key={provider.id} onClick={() => connect(provider.id)} className="flex items-center gap-1 rounded-md border border-[var(--border-soft)] px-2 py-1.5 text-xs"><Plus size={11} /> {provider.name}</button>)}</div></div>
         {connected.length ? <div className="space-y-3">{connected.map((provider) => <article key={provider.id} className="rounded-md border border-[var(--border-soft)] p-4">
