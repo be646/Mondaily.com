@@ -99,11 +99,11 @@ export function InvoicesPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="border-b border-stone-200 dark:border-stone-800 px-6 py-4">
+      <div className="border-b border-[var(--border-soft)] px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-[15px] font-semibold text-[var(--text-primary)]">Invoices</h1>
-            <p className="text-[12px] text-stone-500 mt-0.5">Create, send, and track invoices</p>
+            <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Create, send, and track invoices</p>
           </div>
           <button
             onClick={() => createMutation.mutate()}
@@ -120,15 +120,15 @@ export function InvoicesPage() {
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="telemetry-strip">
             <div className="flex items-center gap-2 mb-1">
-              <DollarSign size={12} className="text-stone-500"/>
-              <span className="text-[11px] text-stone-500">Outstanding</span>
+              <DollarSign size={12} className="text-[var(--text-muted)]"/>
+              <span className="text-[11px] text-[var(--text-muted)]">Outstanding</span>
             </div>
             <div className="font-mono text-[18px] font-semibold tabular-nums text-[var(--text-primary)]">{formatCurrency(totalOwed, "GBP")}</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-2 mb-1">
               <CheckCircle size={12} className="text-emerald-400"/>
-              <span className="text-[11px] text-stone-500">Collected</span>
+              <span className="text-[11px] text-[var(--text-muted)]">Collected</span>
             </div>
             <div className="font-mono text-[18px] font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{formatCurrency(totalPaid, "GBP")}</div>
           </div>
@@ -141,14 +141,14 @@ export function InvoicesPage() {
               <button
                 key={f.key}
                 onClick={() => setStatusFilter(f.key)}
-                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${statusFilter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}
+                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${statusFilter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}
               >
                 {f.label}
               </button>
             ))}
           </div>
           <div className="relative flex-1 max-w-xs">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-600"/>
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"/>
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -162,14 +162,14 @@ export function InvoicesPage() {
       {/* Table */}
       <div className="flex-1 overflow-auto">
         {isLoading ? (
-          <div className="flex h-40 items-center justify-center text-[12px] text-stone-600">Loading…</div>
+          <div className="flex h-40 items-center justify-center text-[12px] text-[var(--text-secondary)]">Loading…</div>
         ) : invoices.length === 0 ? (
           <div className="flex h-60 flex-col items-center justify-center gap-3">
-            <FileText size={32} className="text-stone-700"/>
-            <div className="text-[13px] text-stone-500">No invoices yet</div>
+            <FileText size={32} className="text-[var(--text-secondary)]"/>
+            <div className="text-[13px] text-[var(--text-muted)]">No invoices yet</div>
             <button
               onClick={() => createMutation.mutate()}
-              className="text-[12px] text-stone-400 hover:text-stone-300 transition-colors"
+              className="text-[12px] text-[var(--text-faint)] hover:text-[var(--text-faint)] transition-colors"
             >
               Create your first invoice
             </button>
@@ -179,7 +179,7 @@ export function InvoicesPage() {
             <thead>
               <tr className="border-b border-[var(--border-soft)]">
                 {["Invoice", "Client", "Amount", "Status", "Due Date", ""].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-stone-600">{h}</th>
+                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-[var(--text-secondary)]">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -196,7 +196,7 @@ export function InvoicesPage() {
                     <td className="px-4 py-3 text-[12px] font-medium text-[var(--text-primary)]">{inv.number}</td>
                     <td className="px-4 py-3">
                       <div className="text-[12px] text-[var(--text-primary)]">{inv.client_name}</div>
-                      {inv.client_email && <div className="text-[11px] text-stone-600">{inv.client_email}</div>}
+                      {inv.client_email && <div className="text-[11px] text-[var(--text-secondary)]">{inv.client_email}</div>}
                     </td>
                     <td className="px-4 py-3 text-[12px] font-semibold text-[var(--text-primary)]">
                       {formatCurrency(inv.total, inv.currency)}
@@ -206,14 +206,14 @@ export function InvoicesPage() {
                         <Icon size={10}/>{cfg.label}
                       </span>
                     </td>
-                    <td className={`px-4 py-3 text-[12px] ${inv.status === "overdue" ? "text-stone-400" : "text-stone-400"}`}>
+                    <td className={`px-4 py-3 text-[12px] ${inv.status === "overdue" ? "text-[var(--text-faint)]" : "text-[var(--text-faint)]"}`}>
                       {formatDate(inv.due_date)}
                     </td>
                     <td className="px-4 py-3">
                       <Link
                         to={`/finance/invoices/${inv.id}`}
                         onClick={e => e.stopPropagation()}
-                        className="text-[11px] text-stone-600 hover:text-stone-300 transition-colors"
+                        className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors"
                       >
                         Open →
                       </Link>

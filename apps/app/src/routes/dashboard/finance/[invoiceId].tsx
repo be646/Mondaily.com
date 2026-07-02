@@ -92,7 +92,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
         <span className="text-[12px] font-medium text-[var(--text-primary)]">Payments</span>
         <button
           onClick={() => setExpanded(o => !o)}
-          className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-stone-300 transition-colors"
+          className="flex items-center gap-1 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors"
         >
           <Plus size={11}/> Record payment
           <ChevronDown size={11} className={`ml-0.5 transition-transform ${expanded ? "rotate-180" : ""}`}/>
@@ -106,11 +106,11 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
             <div key={p.id} className="flex items-center justify-between py-1.5 text-[12px] border-b border-[var(--border-soft)] last:border-0">
               <div className="flex items-center gap-2">
                 <span className="text-[var(--text-primary)] font-medium">{formatCurrency(p.amount, invoice.currency)}</span>
-                <span className="text-stone-600">·</span>
-                <span className="text-stone-500 capitalize">{p.method.replace(/_/g, " ")}</span>
-                {p.reference && <><span className="text-stone-700">·</span><span className="text-stone-600">{p.reference}</span></>}
+                <span className="text-[var(--text-secondary)]">·</span>
+                <span className="text-[var(--text-muted)] capitalize">{p.method.replace(/_/g, " ")}</span>
+                {p.reference && <><span className="text-[var(--text-secondary)]">·</span><span className="text-[var(--text-secondary)]">{p.reference}</span></>}
               </div>
-              <span className="text-stone-600">{new Date(p.paid_at).toLocaleDateString()}</span>
+              <span className="text-[var(--text-secondary)]">{new Date(p.paid_at).toLocaleDateString()}</span>
             </div>
           ))}
         </div>
@@ -119,14 +119,14 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
       {/* Summary row */}
       <div className="px-4 py-2.5 flex justify-end">
         <div className="w-56 space-y-1.5">
-          <div className="flex justify-between text-[12px] text-stone-500">
+          <div className="flex justify-between text-[12px] text-[var(--text-muted)]">
             <span>Total paid</span>
             <span className="text-emerald-400">{formatCurrency(totalPaid, invoice.currency)}</span>
           </div>
           {remaining > 0 && (
-            <div className="flex justify-between text-[12px] text-stone-500 border-t border-[var(--border-soft)] pt-1.5">
+            <div className="flex justify-between text-[12px] text-[var(--text-muted)] border-t border-[var(--border-soft)] pt-1.5">
               <span>Remaining</span>
-              <span className="text-stone-400 font-medium">{formatCurrency(remaining, invoice.currency)}</span>
+              <span className="text-[var(--text-faint)] font-medium">{formatCurrency(remaining, invoice.currency)}</span>
             </div>
           )}
         </div>
@@ -137,7 +137,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
         <div className="border-t border-[var(--border-soft)] px-4 py-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-stone-600">Amount</label>
+              <label className="text-[11px] text-[var(--text-secondary)]">Amount</label>
               <input
                 type="number"
                 value={amount}
@@ -147,7 +147,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
               />
             </div>
             <div>
-              <label className="text-[11px] text-stone-600">Method</label>
+              <label className="text-[11px] text-[var(--text-secondary)]">Method</label>
               <select value={method} onChange={e => setMethod(e.target.value)} className="key-input mt-1 w-full text-[13px]">
                 <option value="bank_transfer">Bank Transfer</option>
                 <option value="card">Card</option>
@@ -157,7 +157,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
               </select>
             </div>
             <div>
-              <label className="text-[11px] text-stone-600">Reference</label>
+              <label className="text-[11px] text-[var(--text-secondary)]">Reference</label>
               <input
                 value={reference}
                 onChange={e => setReference(e.target.value)}
@@ -166,7 +166,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
               />
             </div>
             <div>
-              <label className="text-[11px] text-stone-600">Date</label>
+              <label className="text-[11px] text-[var(--text-secondary)]">Date</label>
               <input
                 type="date"
                 value={paidAt}
@@ -176,7 +176,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <button onClick={() => setExpanded(false)} className="rounded-lg px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
+            <button onClick={() => setExpanded(false)} className="rounded-lg px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">Cancel</button>
             <button
               onClick={() => recordPayment.mutate()}
               disabled={recordPayment.isPending || !amount || parseFloat(amount) <= 0}
@@ -355,14 +355,14 @@ export function InvoiceDetailPage() {
   const isEditable = !invoice || ["draft", "sent"].includes(invoice.status);
 
   if (isLoading) {
-    return <div className="flex h-full items-center justify-center text-[12px] text-stone-600">Loading…</div>;
+    return <div className="flex h-full items-center justify-center text-[12px] text-[var(--text-secondary)]">Loading…</div>;
   }
 
   if (!invoice) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
-        <div className="text-[13px] text-stone-500">Invoice not found</div>
-        <Link to="/finance/invoices" className="text-[12px] text-stone-400 hover:text-stone-300">← Back to invoices</Link>
+        <div className="text-[13px] text-[var(--text-muted)]">Invoice not found</div>
+        <Link to="/finance/invoices" className="text-[12px] text-[var(--text-faint)] hover:text-[var(--text-faint)]">← Back to invoices</Link>
       </div>
     );
   }
@@ -370,16 +370,16 @@ export function InvoiceDetailPage() {
   return (
     <div className="flex h-full flex-col">
       {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 px-6 py-3">
+      <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-6 py-3">
         <div className="flex items-center gap-3">
-          <Link to="/finance/invoices" className="text-stone-500 hover:text-[var(--text-primary)] transition-colors">
+          <Link to="/finance/invoices" className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
             <ArrowLeft size={15}/>
           </Link>
           <span className="text-[14px] font-semibold text-[var(--text-primary)]">{invoice.number}</span>
           <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${STATUS_COLORS[invoice.status]}`}>
             {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
           </span>
-          {dirty && <span className="text-[11px] text-stone-600 italic">Unsaved changes</span>}
+          {dirty && <span className="text-[11px] text-[var(--text-secondary)] italic">Unsaved changes</span>}
         </div>
 
         <div className="flex items-center gap-2">
@@ -387,7 +387,7 @@ export function InvoiceDetailPage() {
             <button
               onClick={() => save()}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-[12px] text-stone-300 hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50"
             >
               <Save size={12}/> Save
             </button>
@@ -412,7 +412,7 @@ export function InvoiceDetailPage() {
           )}
           <button
             onClick={() => printInvoice(invoice)}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-[12px] text-stone-500 hover:text-stone-300 hover:bg-[var(--surface-hover)] transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:bg-[var(--surface-hover)] transition-colors"
           >
             <Download size={12}/> PDF
           </button>
@@ -426,7 +426,7 @@ export function InvoiceDetailPage() {
           <FinanceAgentStrip invoiceId={invoiceId}/>
 
           {invoice.status === "overdue" && (
-            <div className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600/5 px-4 py-3 text-[12px] text-stone-400">
+            <div className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600/5 px-4 py-3 text-[12px] text-[var(--text-faint)]">
               <AlertTriangle size={13}/>
               This invoice is overdue. Consider sending a payment reminder.
             </div>
@@ -435,9 +435,9 @@ export function InvoiceDetailPage() {
           {/* Client + meta */}
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
-              <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">Bill To</div>
+              <div className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider">Bill To</div>
               <div>
-                <label className="text-[11px] text-stone-600">Client name *</label>
+                <label className="text-[11px] text-[var(--text-secondary)]">Client name *</label>
                 <input
                   value={clientName}
                   onChange={e => { setClientName(e.target.value); setDirty(true); }}
@@ -447,7 +447,7 @@ export function InvoiceDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-[11px] text-stone-600">Email</label>
+                <label className="text-[11px] text-[var(--text-secondary)]">Email</label>
                 <input
                   value={clientEmail}
                   onChange={e => { setClientEmail(e.target.value); setDirty(true); }}
@@ -458,7 +458,7 @@ export function InvoiceDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-[11px] text-stone-600">Address</label>
+                <label className="text-[11px] text-[var(--text-secondary)]">Address</label>
                 <textarea
                   value={clientAddress}
                   onChange={e => { setClientAddress(e.target.value); setDirty(true); }}
@@ -471,13 +471,13 @@ export function InvoiceDetailPage() {
             </div>
 
             <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
-              <div className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">Details</div>
+              <div className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider">Details</div>
               <div>
-                <label className="text-[11px] text-stone-600">Invoice number</label>
+                <label className="text-[11px] text-[var(--text-secondary)]">Invoice number</label>
                 <input value={invoice.number} disabled className="key-input mt-1 w-full text-[13px] opacity-50"/>
               </div>
               <div>
-                <label className="text-[11px] text-stone-600">Due date</label>
+                <label className="text-[11px] text-[var(--text-secondary)]">Due date</label>
                 <input
                   value={dueDate}
                   onChange={e => { setDueDate(e.target.value); setDirty(true); }}
@@ -487,7 +487,7 @@ export function InvoiceDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-[11px] text-stone-600">Currency</label>
+                <label className="text-[11px] text-[var(--text-secondary)]">Currency</label>
                 <select
                   value={currency}
                   onChange={e => { setCurrency(e.target.value); setDirty(true); }}
@@ -508,7 +508,7 @@ export function InvoiceDetailPage() {
             <div className="border-b border-[var(--border-soft)] px-4 py-3 flex items-center justify-between">
               <span className="text-[12px] font-medium text-[var(--text-primary)]">Line Items</span>
               {isEditable && (
-                <button onClick={addItem} className="flex items-center gap-1 text-[11px] text-stone-500 hover:text-stone-300 transition-colors">
+                <button onClick={addItem} className="flex items-center gap-1 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">
                   <Plus size={11}/> Add item
                 </button>
               )}
@@ -517,11 +517,11 @@ export function InvoiceDetailPage() {
             <table className="minimal-table">
               <thead>
                 <tr className="border-b border-[var(--border-soft)]">
-                  <th className="px-4 py-2 text-left text-[11px] font-medium text-stone-600">Description</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-stone-600 w-16">Qty</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-stone-600 w-28">Unit Price</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-stone-600 w-20">Tax %</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-stone-600 w-28">Total</th>
+                  <th className="px-4 py-2 text-left text-[11px] font-medium text-[var(--text-secondary)]">Description</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium text-[var(--text-secondary)] w-16">Qty</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium text-[var(--text-secondary)] w-28">Unit Price</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium text-[var(--text-secondary)] w-20">Tax %</th>
+                  <th className="px-4 py-2 text-right text-[11px] font-medium text-[var(--text-secondary)] w-28">Total</th>
                   {isEditable && <th className="w-10"/>}
                 </tr>
               </thead>
@@ -581,7 +581,7 @@ export function InvoiceDetailPage() {
                           <button
                             onClick={() => removeItem(i)}
                             disabled={items.length === 1}
-                            className="rounded p-1 text-stone-700 hover:text-stone-400 disabled:opacity-20 transition-colors"
+                            className="rounded p-1 text-[var(--text-secondary)] hover:text-[var(--text-faint)] disabled:opacity-20 transition-colors"
                           >
                             <Trash2 size={11}/>
                           </button>
@@ -596,11 +596,11 @@ export function InvoiceDetailPage() {
             {/* Totals */}
             <div className="flex justify-end border-t border-[var(--border-soft)] px-4 py-3">
               <div className="w-64 space-y-1.5">
-                <div className="flex justify-between text-[12px] text-stone-500">
+                <div className="flex justify-between text-[12px] text-[var(--text-muted)]">
                   <span>Subtotal</span>
                   <span>{formatCurrency(subtotal, currency)}</span>
                 </div>
-                <div className="flex justify-between text-[12px] text-stone-500">
+                <div className="flex justify-between text-[12px] text-[var(--text-muted)]">
                   <span>Tax</span>
                   <span>{formatCurrency(tax_total, currency)}</span>
                 </div>
@@ -618,7 +618,7 @@ export function InvoiceDetailPage() {
                   return (
                     <>
                       {creditsAmt > 0 && (
-                        <div className="flex justify-between text-[12px] text-stone-400">
+                        <div className="flex justify-between text-[12px] text-[var(--text-faint)]">
                           <span>Credits applied</span>
                           <span>−{formatCurrency(creditsAmt, currency)}</span>
                         </div>
@@ -629,7 +629,7 @@ export function InvoiceDetailPage() {
                           <span>−{formatCurrency(paymentsAmt, currency)}</span>
                         </div>
                       )}
-                      <div className={`flex justify-between border-t border-[var(--border-soft)] pt-1.5 text-[14px] font-bold ${netOwed > 0 ? "text-stone-400" : "text-emerald-400"}`}>
+                      <div className={`flex justify-between border-t border-[var(--border-soft)] pt-1.5 text-[14px] font-bold ${netOwed > 0 ? "text-[var(--text-faint)]" : "text-emerald-400"}`}>
                         <span>Net owed</span>
                         <span>{formatCurrency(Math.max(0, netOwed), currency)}</span>
                       </div>
@@ -645,7 +645,7 @@ export function InvoiceDetailPage() {
 
           {/* Notes */}
           <div>
-            <label className="text-[11px] text-stone-600">Notes / Payment instructions</label>
+            <label className="text-[11px] text-[var(--text-secondary)]">Notes / Payment instructions</label>
             <textarea
               value={notes}
               onChange={e => { setNotes(e.target.value); setDirty(true); }}
@@ -662,7 +662,7 @@ export function InvoiceDetailPage() {
               <button
                 onClick={() => { if (confirm("Delete this invoice?")) deleteMutation.mutate(); }}
                 disabled={deleteMutation.isPending}
-                className="text-[11px] text-stone-700 hover:text-stone-400 transition-colors"
+                className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors"
               >
                 Delete invoice
               </button>

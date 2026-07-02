@@ -149,10 +149,10 @@ export function FinanceReportsPage() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-white text-stone-900 dark:bg-stone-950 dark:text-stone-50">
-      <div className="border-b border-stone-200 px-6 py-4 dark:border-stone-800">
-        <h1 className="text-[15px] font-semibold tracking-tight text-stone-900 dark:text-stone-50">Finance Reports</h1>
-        <p className="mt-0.5 text-[12px] text-stone-500 dark:text-stone-500">Revenue overview, client breakdown and credit analysis</p>
+    <div className="flex h-full flex-col bg-[var(--surface-card)] text-[var(--text-primary)]">
+      <div className="border-b border-[var(--border-soft)] px-6 py-4">
+        <h1 className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">Finance Reports</h1>
+        <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">Revenue overview, client breakdown and credit analysis</p>
       </div>
 
       <div className="flex-1 overflow-auto">
@@ -163,42 +163,42 @@ export function FinanceReportsPage() {
             <div>
               <div className="flex items-center gap-1.5 mb-2">
                 <TrendingUp size={11} className="text-emerald-600 dark:text-emerald-400"/>
-                <span className="text-[11px] text-stone-500 dark:text-stone-500">Total Revenue</span>
+                <span className="text-[11px] text-[var(--text-muted)]">Total Revenue</span>
               </div>
-              <div className="text-[20px] font-semibold tracking-tight text-stone-900 dark:text-stone-50">{fmt(totalRevenue, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-stone-400 dark:text-stone-600">from paid invoices</div>
+              <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(totalRevenue, currency)}</div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">from paid invoices</div>
             </div>
             <div>
               <div className="flex items-center gap-1.5 mb-2">
                 <Clock size={11} className="text-amber-400"/>
-                <span className="text-[11px] text-stone-500 dark:text-stone-500">Outstanding</span>
+                <span className="text-[11px] text-[var(--text-muted)]">Outstanding</span>
               </div>
-              <div className="text-[20px] font-semibold tracking-tight text-stone-900 dark:text-stone-50">{fmt(outstanding, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-stone-400 dark:text-stone-600">sent / viewed / overdue</div>
+              <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(outstanding, currency)}</div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">sent / viewed / overdue</div>
             </div>
             <div>
               <div className="flex items-center gap-1.5 mb-2">
-                <MinusCircle size={11} className="text-stone-400 dark:text-stone-500"/>
-                <span className="text-[11px] text-stone-500 dark:text-stone-500">Credits Issued</span>
+                <MinusCircle size={11} className="text-[var(--text-faint)]"/>
+                <span className="text-[11px] text-[var(--text-muted)]">Credits Issued</span>
               </div>
-              <div className="text-[20px] font-semibold tracking-tight text-stone-900 dark:text-stone-50">{fmt(creditsIssued, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-stone-400 dark:text-stone-600">executed credit notes</div>
+              <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(creditsIssued, currency)}</div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">executed credit notes</div>
             </div>
             <div>
               <div className="flex items-center gap-1.5 mb-2">
-                <DollarSign size={11} className="text-stone-400 dark:text-stone-500"/>
-                <span className="text-[11px] text-stone-500 dark:text-stone-500">Net Revenue</span>
+                <DollarSign size={11} className="text-[var(--text-faint)]"/>
+                <span className="text-[11px] text-[var(--text-muted)]">Net Revenue</span>
               </div>
-              <div className={`text-[20px] font-semibold tracking-tight ${netRevenue >= 0 ? "text-stone-900 dark:text-stone-50" : "text-amber-600 dark:text-amber-400"}`}>{fmt(netRevenue, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-stone-400 dark:text-stone-600">after credits</div>
+              <div className={`text-[20px] font-semibold tracking-tight ${netRevenue >= 0 ? "text-[var(--text-primary)]" : "text-amber-600 dark:text-amber-400"}`}>{fmt(netRevenue, currency)}</div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">after credits</div>
             </div>
           </div>
 
           {/* Revenue by month chart */}
-          <div className="rounded-sm border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-950">
+          <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-4">
             <div className="mb-4">
-              <div className="text-[13px] font-medium tracking-tight text-stone-900 dark:text-stone-50">Revenue by Month</div>
-              <div className="text-[11px] text-stone-500 dark:text-stone-500">Last 6 months — billed vs collected</div>
+              <div className="text-[13px] font-medium tracking-tight text-[var(--text-primary)]">Revenue by Month</div>
+              <div className="text-[11px] text-[var(--text-muted)]">Last 6 months — billed vs collected</div>
             </div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={monthlyData} barCategoryGap="30%" barGap={3}>
@@ -216,13 +216,13 @@ export function FinanceReportsPage() {
           {/* Top clients + Status breakdown */}
           <div className="grid grid-cols-2 gap-4">
             {/* Top clients */}
-            <div className="overflow-hidden rounded-sm border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
-              <div className="border-b border-stone-200 px-4 py-3 dark:border-stone-800">
-                <div className="text-[12px] font-medium tracking-tight text-stone-900 dark:text-stone-50">Top Clients</div>
-                <div className="mt-0.5 text-[10px] text-stone-500 dark:text-stone-500">by total billed</div>
+            <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]">
+              <div className="border-b border-[var(--border-soft)] px-4 py-3">
+                <div className="text-[12px] font-medium tracking-tight text-[var(--text-primary)]">Top Clients</div>
+                <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">by total billed</div>
               </div>
               {topClients.length === 0 ? (
-                <div className="px-4 py-6 text-center text-[12px] text-stone-500 dark:text-stone-500">No invoice data</div>
+                <div className="px-4 py-6 text-center text-[12px] text-[var(--text-muted)]">No invoice data</div>
               ) : (
                 <table className="minimal-table">
                   <thead>
@@ -235,11 +235,11 @@ export function FinanceReportsPage() {
                   <tbody>
                     {topClients.map(c => (
                       <tr key={c.name}>
-                        <td className="max-w-[100px] truncate px-3 py-2.5 text-[11px] font-medium text-stone-900 dark:text-stone-50">{c.name}</td>
-                        <td className="px-3 py-2.5 text-[11px] text-stone-600 dark:text-stone-300">{fmt(c.billed, currency)}</td>
-                        <td className="px-3 py-2.5 text-[11px] text-stone-600 dark:text-stone-300">{fmt(c.paid, currency)}</td>
+                        <td className="max-w-[100px] truncate px-3 py-2.5 text-[11px] font-medium text-[var(--text-primary)]">{c.name}</td>
+                        <td className="px-3 py-2.5 text-[11px] text-[var(--text-secondary)]">{fmt(c.billed, currency)}</td>
+                        <td className="px-3 py-2.5 text-[11px] text-[var(--text-secondary)]">{fmt(c.paid, currency)}</td>
                         <td className="px-3 py-2.5 text-[11px] text-amber-600 dark:text-amber-400">{fmt(c.outstanding, currency)}</td>
-                        <td className="px-3 py-2.5 text-[11px] text-stone-400 dark:text-stone-600">{c.count}</td>
+                        <td className="px-3 py-2.5 text-[11px] text-[var(--text-faint)]">{c.count}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -249,37 +249,37 @@ export function FinanceReportsPage() {
 
             {/* Status breakdown + credit note impact */}
             <div className="space-y-4">
-              <div className="overflow-hidden rounded-sm border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
-                <div className="border-b border-stone-200 px-4 py-3 dark:border-stone-800">
-                  <div className="text-[12px] font-medium tracking-tight text-stone-900 dark:text-stone-50">Invoice Status Breakdown</div>
+              <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]">
+                <div className="border-b border-[var(--border-soft)] px-4 py-3">
+                  <div className="text-[12px] font-medium tracking-tight text-[var(--text-primary)]">Invoice Status Breakdown</div>
                 </div>
                 <div className="divide-y divide-stone-200 px-4 py-1 dark:divide-stone-800">
                   {statusBreakdown.length === 0 ? (
-                    <div className="py-3 text-center text-[12px] text-stone-500 dark:text-stone-500">No invoices yet</div>
+                    <div className="py-3 text-center text-[12px] text-[var(--text-muted)]">No invoices yet</div>
                   ) : statusBreakdown.map(s => (
                     <div key={s.status} className="flex items-center justify-between py-2.5">
                       <div className="flex items-center gap-2">
                         <span className={`text-[11px] font-medium ${STATUS_COLORS[s.status]}`}>{STATUS_LABELS[s.status]}</span>
-                        <span className="text-[10px] text-stone-400 dark:text-stone-600">{s.count} invoice{s.count !== 1 ? "s" : ""}</span>
+                        <span className="text-[10px] text-[var(--text-faint)]">{s.count} invoice{s.count !== 1 ? "s" : ""}</span>
                       </div>
-                      <span className="text-[11px] text-stone-600 dark:text-stone-300">{fmt(s.total, currency)}</span>
+                      <span className="text-[11px] text-[var(--text-secondary)]">{fmt(s.total, currency)}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-sm border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-950">
-                <div className="border-b border-stone-200 px-4 py-3 dark:border-stone-800">
-                  <div className="text-[12px] font-medium tracking-tight text-stone-900 dark:text-stone-50">Credit Note Impact</div>
-                  <div className="mt-0.5 text-[10px] text-stone-500 dark:text-stone-500">by reason (executed only)</div>
+              <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]">
+                <div className="border-b border-[var(--border-soft)] px-4 py-3">
+                  <div className="text-[12px] font-medium tracking-tight text-[var(--text-primary)]">Credit Note Impact</div>
+                  <div className="mt-0.5 text-[10px] text-[var(--text-muted)]">by reason (executed only)</div>
                 </div>
                 <div className="divide-y divide-stone-200 px-4 py-1 dark:divide-stone-800">
                   {Object.keys(reasonMap).length === 0 ? (
-                    <div className="py-3 text-center text-[12px] text-stone-500 dark:text-stone-500">No executed credits</div>
+                    <div className="py-3 text-center text-[12px] text-[var(--text-muted)]">No executed credits</div>
                   ) : Object.entries(reasonMap).map(([reason, amount]) => (
                     <div key={reason} className="flex items-center justify-between py-2.5">
-                      <span className="text-[11px] text-stone-600 dark:text-stone-300">{REASON_LABELS[reason] ?? reason}</span>
-                      <span className="text-[11px] text-stone-900 dark:text-stone-50">{fmt(amount, currency)}</span>
+                      <span className="text-[11px] text-[var(--text-secondary)]">{REASON_LABELS[reason] ?? reason}</span>
+                      <span className="text-[11px] text-[var(--text-primary)]">{fmt(amount, currency)}</span>
                     </div>
                   ))}
                 </div>
