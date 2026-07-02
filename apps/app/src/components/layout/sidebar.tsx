@@ -36,7 +36,7 @@ const PRIMARY_NAV: NavEntry[] = [
   { to: "/decisions", label: "Decisions", icon: ShieldCheck, tint: "#7f93b0" }, // slate blue
   { to: "/discovery", label: "Discovery", icon: Radar, tint: "#6f8068" },       // sage
   { to: "/automations", label: "Automations", icon: Activity, tint: "#8a86b8" }, // muted indigo
-  { to: "/activity", label: "Agent Activity", icon: Zap, tint: "#6f8068" }, // sage — agent proof-of-work feed
+  { to: "/activity", label: "Agents", icon: Zap, tint: "#6f8068" }, // Agent Control Room — roster + proof-of-work
   { to: "/team/oversight", label: "Team Oversight", icon: Users, tint: "#7f93b0" }, // slate — manager who-did-what (owner/admin)
   { to: "/reports", label: "Reports", icon: BarChart2, tint: "#6f9aa3" }, // muted cyan
 ];

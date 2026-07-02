@@ -197,14 +197,20 @@ export function AgentConstellationPanel() {
 
   return (
     <section className="mb-8">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Network size={13} style={{ color: "var(--text-muted)" }}/>
           <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Agent Constellation</h2>
         </div>
-        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>
-          {liveCount > 0 ? `${liveCount} live right now` : "all quiet"} · {constellation.length} agents
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="hidden text-[11px] sm:inline" style={{ color: "var(--text-faint)" }}>
+            {liveCount > 0 ? `${liveCount} live right now` : "all quiet"} · {constellation.length} agents
+          </span>
+          {/* This panel is a preview — the full roster + proof-of-work lives in the Control Room. */}
+          <Link to="/activity" className="inline-flex items-center gap-0.5 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}>
+            Control Room <ArrowUpRight size={11}/>
+          </Link>
+        </div>
       </div>
 
       {/* Premium info-grid: each agent shows its real state, last real run, and evidence count at
@@ -309,7 +315,7 @@ export function SidebarAgents() {
   if (isLoading || !constellation.length) return null;
   const live = constellation.filter(a => isLiveState(a.state));
   return (
-    <Link to="/home#agents" className="block rounded-lg px-1.5 py-1 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
+    <Link to="/activity" className="block rounded-lg px-1.5 py-1 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
       <div className="mb-1 flex items-center justify-between">
         <span className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>AI agents</span>
         <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{live.length}/{constellation.length} active</span>
