@@ -157,7 +157,7 @@ function NoteCard({
   const [colorOpen, setColorOpen] = useState(false);
   const isAI = note.actor_type === "ai_agent";
   const scheme = NOTE_COLORS[colorKey] ?? NOTE_COLORS["default"]!;
-  const objColor = OBJECT_COLORS[note.record.object_type] ?? "text-stone-400 bg-[var(--surface-hover)] border-[var(--border-soft)]";
+  const objColor = OBJECT_COLORS[note.record.object_type] ?? "text-[var(--text-faint)] bg-[var(--surface-hover)] border-[var(--border-soft)]";
   const preview = plainText(note.content);
 
   return (
@@ -180,7 +180,7 @@ function NoteCard({
               <Bot size={12} />
             </div>
           ) : (
-            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[10px] font-bold text-stone-300">
+            <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[10px] font-bold text-[var(--text-faint)]">
               {initials(note.author_name)}
             </div>
           )}
@@ -189,7 +189,7 @@ function NoteCard({
               {note.author_name}
               {isAI && <span className="ml-1.5 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-[9px] font-semibold text-stone-400">AI</span>}
             </p>
-            <p className="text-[10px] text-stone-600">{relTime(note.updated_at)}</p>
+            <p className="text-[10px] text-[var(--text-secondary)]">{relTime(note.updated_at)}</p>
           </div>
         </div>
 
@@ -219,18 +219,18 @@ function NoteCard({
           {onPin && (
             <button onClick={onPin} title={isPinned ? "Unpin" : "Pin"}
               className="grid h-6 w-6 place-items-center rounded-lg hover:bg-[var(--surface-hover)] transition-colors">
-              <Pin size={11} className={isPinned ? "fill-orange-400 text-orange-400" : "text-stone-500"} />
+              <Pin size={11} className={isPinned ? "fill-orange-400 text-orange-400" : "text-[var(--text-muted)]"} />
             </button>
           )}
           {isOwner && onEdit && (
             <button onClick={onEdit} title="Edit"
-              className="grid h-6 w-6 place-items-center rounded-lg text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+              className="grid h-6 w-6 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
               <Pencil size={11} />
             </button>
           )}
           {isOwner && onDelete && (
             <button onClick={onDelete} title="Delete"
-              className="grid h-6 w-6 place-items-center rounded-lg text-stone-500 hover:bg-stone-500/10 hover:text-stone-400 transition-colors">
+              className="grid h-6 w-6 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-stone-500/10 hover:text-stone-400 transition-colors">
               <Trash2 size={11} />
             </button>
           )}
@@ -238,8 +238,8 @@ function NoteCard({
       </div>
 
       {/* Content preview */}
-      <p className={`text-sm leading-relaxed text-stone-300 ${compact ? "line-clamp-3" : "line-clamp-4"} ${isPinned ? "" : ""}`}>
-        {preview || <span className="italic text-stone-600">Empty note</span>}
+      <p className={`text-sm leading-relaxed text-[var(--text-faint)] ${compact ? "line-clamp-3" : "line-clamp-4"} ${isPinned ? "" : ""}`}>
+        {preview || <span className="italic text-[var(--text-secondary)]">Empty note</span>}
       </p>
 
       {/* Footer */}
@@ -314,7 +314,7 @@ function BoardView({ notes, colors, pinned, userId, isAdmin, onColorChange, onEd
               <div className="flex items-center gap-2 px-1">
                 <span className="text-base">{col.icon}</span>
                 <span className="text-sm font-semibold text-[var(--text-primary)]">{col.label}</span>
-                <span className="ml-auto rounded-full border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-px text-[10px] text-stone-500">{colNotes.length}</span>
+                <span className="ml-auto rounded-full border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-px text-[10px] text-[var(--text-muted)]">{colNotes.length}</span>
               </div>
               <DroppableCol id={col.key}>
                 {colNotes.map(note => (
@@ -323,7 +323,7 @@ function BoardView({ notes, colors, pinned, userId, isAdmin, onColorChange, onEd
                       onColorChange={c => onColorChange(note.id, c)} onEdit={() => onEdit(note)} onDelete={() => onDelete(note.id)} onPin={() => onPin(note.id)} />
                   </DraggableCard>
                 ))}
-                {colNotes.length === 0 && <p className="py-8 text-center text-xs text-stone-700">Drop notes here</p>}
+                {colNotes.length === 0 && <p className="py-8 text-center text-xs text-[var(--text-faint)]">Drop notes here</p>}
               </DroppableCol>
             </div>
           );
@@ -380,11 +380,11 @@ function TimelineView({ notes, colors, pinned, userId, isAdmin, onColorChange, o
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-stone-500">{sorted.length} notes across timeline</p>
+        <p className="text-xs text-[var(--text-muted)]">{sorted.length} notes across timeline</p>
         <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
           {(["week", "month", "quarter"] as const).map(z => (
             <button key={z} onClick={() => setZoom(z)}
-              className={`rounded-lg px-3 py-1.5 text-xs capitalize transition-colors ${zoom === z ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}>
+              className={`rounded-lg px-3 py-1.5 text-xs capitalize transition-colors ${zoom === z ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
               {z}
             </button>
           ))}
@@ -399,11 +399,11 @@ function TimelineView({ notes, colors, pinned, userId, isAdmin, onColorChange, o
                 <div className="absolute inset-y-0 left-0 z-10 flex w-[170px] flex-col justify-center gap-0.5 bg-[var(--surface-card)] px-4 shadow-[2px_0_12px_rgba(0,0,0,0.5)]">
                   <p className="text-base">{col.icon}</p>
                   <p className="text-xs font-semibold text-[var(--text-primary)]">{col.label}</p>
-                  <p className="text-[10px] text-stone-600">{laneNotes.length} notes</p>
+                  <p className="text-[10px] text-[var(--text-secondary)]">{laneNotes.length} notes</p>
                 </div>
                 {laneIdx === 0 && markers.map(m => (
                   <div key={m.label + m.x} className="absolute top-2 z-[5] -translate-x-1/2" style={{ left: m.x }}>
-                    <span className="text-[9px] text-stone-700 whitespace-nowrap">{m.label}</span>
+                    <span className="text-[9px] text-[var(--text-secondary)] whitespace-nowrap">{m.label}</span>
                     <div className="mx-auto mt-1 w-px bg-[var(--surface-hover)]" style={{ height: LANE_H - 20 }} />
                   </div>
                 ))}
@@ -438,9 +438,9 @@ function ModalShell({ title, subtitle, onClose, children }: { title: string; sub
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
           <div>
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
-            {subtitle && <p className="mt-0.5 text-[11px] text-stone-500">{subtitle}</p>}
+            {subtitle && <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{subtitle}</p>}
           </div>
-          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
             <X size={14} />
           </button>
         </div>
@@ -540,10 +540,10 @@ export function NotesPage() {
       <div className="mb-3 flex items-end justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Notes</h1>
-          <p className="mt-0.5 text-sm text-stone-500">
+          <p className="mt-0.5 text-sm text-[var(--text-muted)]">
             Notes linked to your contacts, companies, and deals.
             {(notesQ.data ?? []).length > 0 && (
-              <span className="ml-2 text-stone-700">{(notesQ.data ?? []).length - aiCount} human · {aiCount} AI</span>
+              <span className="ml-2 text-[var(--text-secondary)]">{(notesQ.data ?? []).length - aiCount} human · {aiCount} AI</span>
             )}
           </p>
         </div>
@@ -564,7 +564,7 @@ export function NotesPage() {
             { key: "ai",   label: "AI"   },
           ] as const).map(({ key, label }) => (
             <button key={key} onClick={() => setFilter(key)}
-              className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}>
+              className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
               {label}
             </button>
           ))}
@@ -573,14 +573,14 @@ export function NotesPage() {
         <div className="h-4 w-px bg-[var(--surface-hover)]" />
 
         <label className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-600" size={12} />
+          <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={12} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search notes…"
-            className="h-8 w-48 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-stone-600 outline-none focus:border-[var(--border-soft)] transition-colors" />
+            className="h-8 w-48 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none focus:border-[var(--border-soft)] transition-colors" />
         </label>
 
         <select value={sort} onChange={e => setSort(e.target.value as typeof sort)}
-          className="h-8 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 text-xs text-stone-400 outline-none">
+          className="h-8 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 text-xs text-[var(--text-faint)] outline-none">
           <option value="newest">Newest</option>
           <option value="oldest">Oldest</option>
           <option value="updated">Updated</option>
@@ -643,7 +643,7 @@ export function NotesPage() {
             <section>
               {pinnedNotes.length > 0 && (
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-stone-600">All notes</span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">All notes</span>
                 </div>
               )}
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -669,21 +669,21 @@ export function NotesPage() {
           {/* Record picker */}
           {!editing ? (
             <div className="relative mb-4">
-              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-stone-600" size={12} />
+              <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={12} />
               <input value={recordSearch}
                 onChange={e => { setRecordSearch(e.target.value); setLinkedRecord(undefined); }}
                 placeholder="Link to a contact, company, deal…"
-                className="h-10 w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder-stone-600 outline-none focus:border-[var(--border-soft)] transition-colors" />
+                className="h-10 w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none focus:border-[var(--border-soft)] transition-colors" />
               {recordSearch && !linkedRecord && (
                 <div className="absolute z-10 mt-1 max-h-52 w-full overflow-auto rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-1 shadow-2xl">
                   {recordOptions.length === 0 ? (
-                    <p className="px-3 py-4 text-center text-xs text-stone-600">No records found</p>
+                    <p className="px-3 py-4 text-center text-xs text-[var(--text-secondary)]">No records found</p>
                   ) : recordOptions.map(r => (
                     <button key={r.id}
                       onClick={() => { setLinkedRecord(r); setRecordSearch(String(r.data.name ?? r.data.title ?? r.id)); }}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                       <span>{String(r.data.name ?? r.data.title ?? "Untitled")}</span>
-                      <span className="text-xs text-stone-600">{r.object_type}</span>
+                      <span className="text-xs text-[var(--text-secondary)]">{r.object_type}</span>
                     </button>
                   ))}
                 </div>
@@ -691,8 +691,8 @@ export function NotesPage() {
             </div>
           ) : (
             <div className="mb-4 flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
-              <Link2 size={12} className="text-stone-500" />
-              <span className="text-xs text-stone-400">Linked to</span>
+              <Link2 size={12} className="text-[var(--text-muted)]" />
+              <span className="text-xs text-[var(--text-faint)]">Linked to</span>
               <span className="text-xs font-medium text-[var(--text-primary)]">{linkedRecord?.data.name as string}</span>
             </div>
           )}

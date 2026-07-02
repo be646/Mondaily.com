@@ -97,11 +97,11 @@ function CalcFooter({ cards }: { cards: DealRecord[] }) {
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-stone-500 hover:text-stone-300 hover:bg-stone-800/30 transition-colors border-t border-stone-800/50"
+        className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:bg-stone-800/30 transition-colors border-t border-stone-800/50"
       >
-        <span className="text-stone-600">{CALC_LABELS[type]}</span>
+        <span className="text-[var(--text-secondary)]">{CALC_LABELS[type]}</span>
         <div className="flex items-center gap-1">
-          <span className="font-medium text-stone-400">{result}</span>
+          <span className="font-medium text-[var(--text-faint)]">{result}</span>
           <ChevronDown size={10} className={`transition-transform ${open ? "rotate-180" : ""}`}/>
         </div>
       </button>
@@ -114,7 +114,7 @@ function CalcFooter({ cards }: { cards: DealRecord[] }) {
               className={`dropdown-item justify-between ${t === type ? "dropdown-item-active" : ""}`}
             >
               <span>{CALC_LABELS[t]}</span>
-              {t === type && <Check size={10} className="text-stone-300"/>}
+              {t === type && <Check size={10} className="text-[var(--text-faint)]"/>}
             </button>
           ))}
         </div>
@@ -204,7 +204,7 @@ function CardField({
   return (
     <span
       onClick={() => { setDraft(value); setEditing(true); }}
-      className={`block truncate cursor-text text-[11px] ${value ? "" : "text-stone-700 hover:text-stone-500"} ${className}`}
+      className={`block truncate cursor-text text-[11px] ${value ? "" : "text-[var(--text-faint)] hover:text-[var(--text-muted)]"} ${className}`}
     >
       {shown}
     </span>
@@ -232,9 +232,9 @@ function DealCard({ deal, members, stages, onMove, onPatch }: {
           value={name}
           onSave={v => onPatch({ name: v })}
           placeholder="Untitled deal"
-          className="flex-1 font-medium text-stone-100"
+          className="flex-1 font-medium text-[var(--text-primary)]"
         />
-        <Link to={`/objects/deals/${deal.id}`} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-stone-600 hover:text-stone-400">
+        <Link to={`/objects/deals/${deal.id}`} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-[var(--text-secondary)] hover:text-[var(--text-faint)]">
           <ChevronRight size={12}/>
         </Link>
       </div>
@@ -254,17 +254,17 @@ function DealCard({ deal, members, stages, onMove, onPatch }: {
       {/* Owner row */}
       <div className="flex items-center gap-1.5 mb-2.5">
         {ownerMember ? (
-          <div className="h-4 w-4 rounded-full bg-stone-500/20 flex items-center justify-center text-[8px] font-bold text-stone-300 shrink-0">
+          <div className="h-4 w-4 rounded-full bg-stone-500/20 flex items-center justify-center text-[8px] font-bold text-[var(--text-faint)] shrink-0">
             {memberInitials(ownerMember.name)}
           </div>
         ) : (
-          <User size={10} className="text-stone-700 shrink-0"/>
+          <User size={10} className="text-[var(--text-faint)] shrink-0"/>
         )}
         <CardField
           value={owner}
           onSave={v => onPatch({ deal_owner: v })}
           placeholder="Owner…"
-          className="flex-1 text-stone-500"
+          className="flex-1 text-[var(--text-muted)]"
         />
       </div>
 
@@ -331,7 +331,7 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
               {defaultStage}
             </span>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-stone-500 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+          <button onClick={onClose} className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
             <X size={14}/>
           </button>
         </div>
@@ -339,7 +339,7 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
         <div className="max-h-[400px] overflow-auto px-5 py-4 space-y-0.5">
           {fieldKeys.map(k => (
             <div key={k} className="grid grid-cols-[130px_1fr] items-center gap-3 py-2 border-b border-[var(--border-soft)] last:border-0">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-stone-600 select-none truncate">{label(k)}</span>
+              <span className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-secondary)] select-none truncate">{label(k)}</span>
               <input
                 value={values[k] ?? ""}
                 onChange={e => setValues(prev => ({ ...prev, [k]: e.target.value }))}
@@ -348,13 +348,13 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
               />
             </div>
           ))}
-          {error && <p className="pt-2 text-xs text-stone-400">{error}</p>}
+          {error && <p className="pt-2 text-xs text-[var(--text-faint)]">{error}</p>}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-[var(--border-soft)] px-5 py-3.5">
           <button
             onClick={onClose}
-            className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 transition-all hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+            className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-faint)] transition-all hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
           >
             Cancel
           </button>
@@ -452,11 +452,11 @@ export function PipelinePage() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-stone-800/50 px-6 py-3 shrink-0">
         <div>
-          <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-stone-500 select-none">Pipeline</span>
-          <p className="mt-0.5 text-[11px] text-stone-600">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)] select-none">Pipeline</span>
+          <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
             {deals.length} deal{deals.length !== 1 ? "s" : ""}
             {wonValue > 0 && <> · <span className="text-emerald-500">{fmtDisplay(wonValue)} won</span></>}
-            {totalValue > 0 && <> · <span className="text-stone-500">{fmtDisplay(totalValue)} pipeline</span></>}
+            {totalValue > 0 && <> · <span className="text-[var(--text-muted)]">{fmtDisplay(totalValue)} pipeline</span></>}
           </p>
         </div>
         <button
@@ -481,11 +481,11 @@ export function PipelinePage() {
                 <div className="flex items-center gap-2 min-w-0">
                   <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotColor(stage)}`}/>
                   <span className={`text-[11px] font-semibold truncate ${textColor(stage)}`}>{stage}</span>
-                  <span className="text-[10px] text-stone-600 font-medium shrink-0">{cards.length}</span>
+                  <span className="text-[10px] text-[var(--text-secondary)] font-medium shrink-0">{cards.length}</span>
                 </div>
                 <button
                   onClick={() => setCreateForStage(stage)}
-                  className="flex items-center justify-center h-5 w-5 rounded text-stone-600 hover:text-stone-300 hover:bg-stone-800/50 transition-all shrink-0"
+                  className="flex items-center justify-center h-5 w-5 rounded text-[var(--text-secondary)] hover:text-[var(--text-faint)] hover:bg-stone-800/50 transition-all shrink-0"
                   title={`Add deal to ${stage}`}
                 >
                   <Plus size={11}/>
@@ -503,7 +503,7 @@ export function PipelinePage() {
                     onClick={() => setCreateForStage(stage)}
                     className="flex w-full h-12 items-center justify-center rounded-md border border-dashed border-stone-800/60 hover:border-stone-700/60 hover:bg-stone-800/20 transition-all group/empty"
                   >
-                    <Plus size={11} className="text-stone-700 group-hover/empty:text-stone-500 transition-colors"/>
+                    <Plus size={11} className="text-[var(--text-faint)] group-hover/empty:text-[var(--text-muted)] transition-colors"/>
                   </button>
                 ) : (
                   cards.map(deal => (
@@ -540,17 +540,17 @@ export function PipelinePage() {
                 placeholder="Stage name…"
                 className="flex-1 bg-transparent text-[11px] text-[var(--text-primary)] placeholder-stone-600 outline-none"
               />
-              <button onClick={commitNewStage} className="text-stone-500 hover:text-emerald-400 transition-colors"><Check size={12}/></button>
-              <button onClick={() => { setAddingStage(false); setNewStageName(""); }} className="text-stone-600 hover:text-stone-300 transition-colors"><X size={12}/></button>
+              <button onClick={commitNewStage} className="text-[var(--text-muted)] hover:text-emerald-400 transition-colors"><Check size={12}/></button>
+              <button onClick={() => { setAddingStage(false); setNewStageName(""); }} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors"><X size={12}/></button>
             </div>
             <div className="flex-1 flex items-center justify-center min-h-[80px]">
-              <span className="text-[10px] text-stone-700">New stage</span>
+              <span className="text-[10px] text-[var(--text-faint)]">New stage</span>
             </div>
           </div>
         ) : (
           <button
             onClick={() => setAddingStage(true)}
-            className="flex shrink-0 w-[220px] flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-stone-800/60 hover:border-stone-700/60 hover:bg-stone-900/20 transition-all text-stone-600 hover:text-stone-400 self-start min-h-[80px]"
+            className="flex shrink-0 w-[220px] flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-stone-800/60 hover:border-stone-700/60 hover:bg-stone-900/20 transition-all text-[var(--text-secondary)] hover:text-[var(--text-faint)] self-start min-h-[80px]"
           >
             <Plus size={13}/>
             <span className="text-[10px]">Add stage</span>

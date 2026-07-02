@@ -559,7 +559,7 @@ export function DiscoveryPage() {
           <div className="w-full max-w-lg rounded-sm border shadow-2xl" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
               <span className="text-sm font-semibold text-[var(--text-primary)]">Message {compose.lead.author_name && compose.lead.author_name !== "Anonymous" ? compose.lead.author_name : "lead"}</span>
-              <button onClick={() => setCompose(null)} className="text-stone-500 hover:text-[var(--text-primary)]"><X size={15} /></button>
+              <button onClick={() => setCompose(null)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X size={15} /></button>
             </div>
             <div className="space-y-3 p-4">
               <div className="flex items-center gap-2 text-[12px]"><span className="text-[var(--text-muted)]">To</span><span className="font-mono text-[var(--text-primary)]">{compose.lead.contact?.email}</span></div>

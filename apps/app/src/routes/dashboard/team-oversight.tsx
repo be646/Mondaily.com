@@ -72,7 +72,7 @@ function Avatar({ op, size = 28 }: { op: Operator; size?: number }) {
   if (op.avatar_url) return <img src={op.avatar_url} alt={op.name} style={{ width: size, height: size }} className="shrink-0 rounded-md object-cover" />;
   const initial = op.name?.trim()?.[0]?.toUpperCase();
   return (
-    <span style={{ width: size, height: size }} className="flex shrink-0 items-center justify-center rounded-md border border-zinc-800 bg-[var(--surface-card)] text-[11px] font-semibold text-zinc-300">
+    <span style={{ width: size, height: size }} className="flex shrink-0 items-center justify-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] text-[11px] font-semibold text-[var(--text-faint)]">
       {initial || <UserIcon size={13} />}
     </span>
   );
@@ -96,14 +96,14 @@ export function TeamOversightPage() {
   if (forbidden) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center px-6 py-24 text-center">
-        <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-sm border border-zinc-800 bg-[var(--surface-card)]">
+        <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]">
           <Lock size={20} style={{ color: "var(--section-accent)" }} />
         </span>
-        <h1 className="text-lg font-semibold text-zinc-100">Manager access only</h1>
-        <p className="mt-2 text-[13px] text-zinc-500">
-          The ABI Oversight matrix surfaces every operator's behavioral telemetry. Only <strong className="text-zinc-300">Owners</strong> and <strong className="text-zinc-300">Admins</strong> may view it.
+        <h1 className="text-lg font-semibold text-[var(--text-primary)]">Manager access only</h1>
+        <p className="mt-2 text-[13px] text-[var(--text-muted)]">
+          The ABI Oversight matrix surfaces every operator's behavioral telemetry. Only <strong className="text-[var(--text-faint)]">Owners</strong> and <strong className="text-[var(--text-faint)]">Admins</strong> may view it.
         </p>
-        <button onClick={() => navigate("/home")} className="mt-5 inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-[var(--surface-card)] px-3.5 py-2 text-[13px] text-zinc-300 transition-colors hover:border-zinc-700">
+        <button onClick={() => navigate("/home")} className="mt-5 inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-3.5 py-2 text-[13px] text-[var(--text-faint)] transition-colors hover:border-[var(--border-strong)]">
           <ArrowLeft size={14} /> Back to home
         </button>
       </div>
@@ -111,13 +111,13 @@ export function TeamOversightPage() {
   }
 
   return (
-    <div className="min-h-full bg-[var(--surface-page)] text-zinc-300">
+    <div className="min-h-full bg-[var(--surface-page)] text-[var(--text-faint)]">
       <div className="mx-auto max-w-6xl px-6 py-8">
         {/* ── Header / readiness banner ── */}
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// ABI · Autonomous Behavioral Intelligence</p>
-            <h1 className="mt-1 text-xl font-semibold text-zinc-100">Operational Readiness Matrix</h1>
+            <h1 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Operational Readiness Matrix</h1>
           </div>
           {totals && (
             <div className="flex gap-2 text-[11px]">
@@ -127,8 +127,8 @@ export function TeamOversightPage() {
                 ["LIVE SESSIONS", String(totals.active_sessions)],
               ].map(([k, v]) => (
                 <div key={k} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2">
-                  <div className="text-[9px] uppercase tracking-widest text-zinc-600">{k}</div>
-                  <div className="mt-0.5 tabular-nums text-zinc-200">{v}</div>
+                  <div className="text-[9px] uppercase tracking-widest text-[var(--text-secondary)]">{k}</div>
+                  <div className="mt-0.5 tabular-nums text-[var(--text-primary)]">{v}</div>
                 </div>
               ))}
             </div>
@@ -136,17 +136,17 @@ export function TeamOversightPage() {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center gap-2 py-16 text-sm text-zinc-500"><Loader2 size={15} className="animate-spin" /> Synchronizing operator telemetry…</div>
+          <div className="flex items-center gap-2 py-16 text-sm text-[var(--text-muted)]"><Loader2 size={15} className="animate-spin" /> Synchronizing operator telemetry…</div>
         ) : operators.length === 0 ? (
           <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-5 py-12 text-center">
-            <Activity size={20} className="mx-auto mb-2 text-zinc-600" />
-            <p className="text-sm text-zinc-300">No operators registered.</p>
-            <p className="mt-1 text-xs text-zinc-600">Behavioral telemetry will populate as members transact.</p>
+            <Activity size={20} className="mx-auto mb-2 text-[var(--text-secondary)]" />
+            <p className="text-sm text-[var(--text-faint)]">No operators registered.</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">Behavioral telemetry will populate as members transact.</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
             {/* grid header */}
-            <div className="grid grid-cols-[1.6fr_1fr_1.2fr_2fr] gap-3 border-b border-[var(--border-soft)] px-4 py-2.5 text-[9px] uppercase tracking-widest text-zinc-600">
+            <div className="grid grid-cols-[1.6fr_1fr_1.2fr_2fr] gap-3 border-b border-[var(--border-soft)] px-4 py-2.5 text-[9px] uppercase tracking-widest text-[var(--text-secondary)]">
               <span>Operator</span><span>Task Context</span><span>Compute Velocity</span><span>Behavioral Evaluation</span>
             </div>
             {operators.map((op, i) => {
@@ -162,18 +162,18 @@ export function TeamOversightPage() {
                   <div className="flex min-w-0 items-center gap-2.5">
                     <Avatar op={op} />
                     <div className="min-w-0">
-                      <div className="truncate text-[13px] text-zinc-100">{op.name}</div>
-                      <div className="truncate text-[10px] uppercase tracking-wide text-zinc-600">{op.role}</div>
+                      <div className="truncate text-[13px] text-[var(--text-primary)]">{op.name}</div>
+                      <div className="truncate text-[10px] uppercase tracking-wide text-[var(--text-secondary)]">{op.role}</div>
                     </div>
                   </div>
                   {/* task context — short-hash capsule */}
                   <div>
-                    <span className="inline-block rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 py-0.5 text-[11px] tabular-nums text-zinc-400">#{shortHash(op.last_task_id)}</span>
+                    <span className="inline-block rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 py-0.5 text-[11px] tabular-nums text-[var(--text-faint)]">#{shortHash(op.last_task_id)}</span>
                   </div>
                   {/* compute velocity */}
                   <div className="text-[12px] tabular-nums">
                     <span style={{ color: "var(--section-accent)" }}>{fmt(op.tokens)}</span>
-                    <span className="text-zinc-600"> tok · {op.runs} runs</span>
+                    <span className="text-[var(--text-secondary)]"> tok · {op.runs} runs</span>
                   </div>
                   {/* behavioral evaluation */}
                   <div>
@@ -214,11 +214,11 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
           <div className="flex items-center gap-3">
             <Avatar op={op} size={36} />
             <div>
-              <div className="text-sm text-zinc-100">{op.name}</div>
-              <div className="text-[10px] uppercase tracking-wide text-zinc-600">{op.email ?? op.role} · {ago(op.last_active_at)}</div>
+              <div className="text-sm text-[var(--text-primary)]">{op.name}</div>
+              <div className="text-[10px] uppercase tracking-wide text-[var(--text-secondary)]">{op.email ?? op.role} · {ago(op.last_active_at)}</div>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-zinc-500 hover:bg-[var(--surface-hover)] hover:text-zinc-200 transition-colors"><X size={16} /></button>
+          <button onClick={onClose} className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"><X size={16} /></button>
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
@@ -229,7 +229,7 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
 
           {/* efficiency delta */}
           <section>
-            <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-zinc-600"><Gauge size={11} /> Efficiency delta</div>
+            <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[var(--text-secondary)]"><Gauge size={11} /> Efficiency delta</div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
                 [<Cpu size={12} key="c" />, "TOKENS", fmt(op.tokens)],
@@ -237,24 +237,24 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
                 [<Gauge size={12} key="g" />, "TOK / TASK", fmt(efficiency)],
               ].map(([icon, k, val], i) => (
                 <div key={i} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
-                  <div className="flex items-center gap-1 text-[9px] uppercase tracking-widest text-zinc-600">{icon}{k}</div>
-                  <div className="mt-1 tabular-nums text-[14px] text-zinc-100">{val}</div>
+                  <div className="flex items-center gap-1 text-[9px] uppercase tracking-widest text-[var(--text-secondary)]">{icon}{k}</div>
+                  <div className="mt-1 tabular-nums text-[14px] text-[var(--text-primary)]">{val}</div>
                 </div>
               ))}
             </div>
-            <div className="mt-2 space-y-0.5 text-[10px] text-zinc-600">
+            <div className="mt-2 space-y-0.5 text-[10px] text-[var(--text-secondary)]">
               <div>PoW crypto claim: {op.verified_pow ? <span style={{ color: "var(--section-accent)" }}>VERIFIED ✓</span> : <span className="text-orange-400">NONE</span>}</div>
-              <div>Native session: {op.has_session ? <span style={{ color: "var(--section-accent)" }}>ACTIVE ✓</span> : <span className="text-zinc-500">offline</span>}</div>
+              <div>Native session: {op.has_session ? <span style={{ color: "var(--section-accent)" }}>ACTIVE ✓</span> : <span className="text-[var(--text-muted)]">offline</span>}</div>
             </div>
           </section>
 
           {/* warnings log */}
           <section>
-            <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-zinc-600"><ShieldAlert size={11} /> Structural behavior log</div>
+            <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[var(--text-secondary)]"><ShieldAlert size={11} /> Structural behavior log</div>
             <div className="space-y-1.5">
               {warnings(op).map((w, i) => (
-                <div key={i} className="rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-2 text-[11px] leading-snug text-zinc-400">
-                  <span className="text-zinc-700">›</span> {w}
+                <div key={i} className="rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-2 text-[11px] leading-snug text-[var(--text-faint)]">
+                  <span className="text-[var(--text-secondary)]">›</span> {w}
                 </div>
               ))}
             </div>
@@ -262,34 +262,34 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
 
           {/* full activity timeline — exact time + what changed, so admins can judge 100% of behaviour */}
           <section>
-            <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-zinc-600"><Activity size={11} /> Full activity timeline</div>
+            <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[var(--text-secondary)]"><Activity size={11} /> Full activity timeline</div>
             {isLoading ? (
-              <div className="flex items-center gap-2 py-4 text-[11px] text-zinc-600"><Loader2 size={12} className="animate-spin" /> Loading activity…</div>
+              <div className="flex items-center gap-2 py-4 text-[11px] text-[var(--text-secondary)]"><Loader2 size={12} className="animate-spin" /> Loading activity…</div>
             ) : timeline.length === 0 ? (
-              <p className="py-3 text-[11px] text-zinc-600">No recorded activity in window.</p>
+              <p className="py-3 text-[11px] text-[var(--text-secondary)]">No recorded activity in window.</p>
             ) : (
               <div className="space-y-2">
                 {timeline.slice(0, 40).map((a, i) => (
                   <div key={a.id || i} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-[11.5px] font-medium text-zinc-200 capitalize">
+                      <span className="text-[11.5px] font-medium text-[var(--text-primary)] capitalize">
                         {(a.action || "action").replace(/_/g, " ")}
-                        {a.object?.type && <span className="font-normal text-zinc-500"> · {a.object.type}</span>}
-                        {a.object?.name && <span className="font-normal text-zinc-400"> "{a.object.name}"</span>}
+                        {a.object?.type && <span className="font-normal text-[var(--text-muted)]"> · {a.object.type}</span>}
+                        {a.object?.name && <span className="font-normal text-[var(--text-faint)]"> "{a.object.name}"</span>}
                       </span>
-                      <span className="shrink-0 text-[10px] tabular-nums text-zinc-600" title={new Date(a.created_at).toISOString()}>{exactTime(a.created_at)}</span>
+                      <span className="shrink-0 text-[10px] tabular-nums text-[var(--text-secondary)]" title={new Date(a.created_at).toISOString()}>{exactTime(a.created_at)}</span>
                     </div>
                     {a.changes && a.changes.length > 0 && (
                       <div className="mt-1.5 flex flex-wrap gap-1">
                         {a.changes.map((ch, j) => (
                           <span key={j} className="inline-flex items-center gap-1 rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-0.5 text-[10px]">
-                            <span className="text-zinc-500 capitalize">{ch.field}:</span>
-                            <span className="max-w-[140px] truncate text-zinc-300">{ch.value}</span>
+                            <span className="text-[var(--text-muted)] capitalize">{ch.field}:</span>
+                            <span className="max-w-[140px] truncate text-[var(--text-faint)]">{ch.value}</span>
                           </span>
                         ))}
                       </div>
                     )}
-                    {a.ai_summary && <p className="mt-1 text-[10.5px] leading-snug text-zinc-600">{a.ai_summary}</p>}
+                    {a.ai_summary && <p className="mt-1 text-[10.5px] leading-snug text-[var(--text-secondary)]">{a.ai_summary}</p>}
                   </div>
                 ))}
               </div>

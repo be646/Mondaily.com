@@ -68,20 +68,20 @@ export function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-full bg-[var(--surface-page)] text-zinc-300">
+    <div className="min-h-full bg-[var(--surface-page)] text-[var(--text-faint)]">
       <div className="mx-auto max-w-3xl px-6 py-8">
         {/* Header */}
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// SIGNAL FEED</p>
-            <h1 className="mt-1 text-xl font-semibold text-zinc-100">Notifications</h1>
-            <p className="mt-0.5 text-[11px] text-zinc-600">{unread > 0 ? `${unread} unread · live` : "all caught up · live"}</p>
+            <h1 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Notifications</h1>
+            <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">{unread > 0 ? `${unread} unread · live` : "all caught up · live"}</p>
           </div>
           {unread > 0 && (
             <button
               onClick={() => markAll.mutate()}
               disabled={markAll.isPending}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-[12px] text-zinc-300 transition-colors hover:border-zinc-600 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-[12px] text-[var(--text-faint)] transition-colors hover:border-[var(--border-strong)] disabled:opacity-50"
             >
               <CheckCheck size={13} /> Mark all read
             </button>
@@ -123,9 +123,9 @@ export function NotificationsPage() {
           </div>
         ) : visible.length === 0 ? (
           <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] py-16 text-center">
-            <Bell size={28} className="mx-auto mb-3 text-zinc-700" />
-            <p className="text-sm text-zinc-400">{filter === "unread" ? "No unread signals" : "No notifications yet"}</p>
-            <p className="mt-1 text-xs text-zinc-700">Reviews, approvals, mentions, and agent events surface here.</p>
+            <Bell size={28} className="mx-auto mb-3 text-[var(--text-secondary)]" />
+            <p className="text-sm text-[var(--text-faint)]">{filter === "unread" ? "No unread signals" : "No notifications yet"}</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">Reviews, approvals, mentions, and agent events surface here.</p>
           </div>
         ) : (
           <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
@@ -146,7 +146,7 @@ export function NotificationsPage() {
 
                   <button className="min-w-0 flex-1 text-left" onClick={() => handleClick(n)}>
                     <div className="flex items-center gap-2">
-                      <p className={`truncate text-[13px] ${!n.is_read ? "text-zinc-100" : "text-zinc-500"}`}>{n.title}</p>
+                      <p className={`truncate text-[13px] ${!n.is_read ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>{n.title}</p>
                       {n.type && (
                         <span
                           className="shrink-0 rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wide"
@@ -158,19 +158,19 @@ export function NotificationsPage() {
                         </span>
                       )}
                     </div>
-                    {n.body && <p className="mt-0.5 line-clamp-2 text-[11.5px] text-zinc-600">{n.body}</p>}
-                    <p className="mt-1 text-[10px] text-zinc-700">{relTime(n.created_at)}</p>
+                    {n.body && <p className="mt-0.5 line-clamp-2 text-[11.5px] text-[var(--text-secondary)]">{n.body}</p>}
+                    <p className="mt-1 text-[10px] text-[var(--text-secondary)]">{relTime(n.created_at)}</p>
                   </button>
 
                   <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     {!n.is_read && (
                       <button onClick={() => markRead.mutate(n.id)} title="Mark read"
-                        className="rounded-md p-1.5 text-zinc-600 transition-colors hover:text-emerald-400">
+                        className="rounded-md p-1.5 text-[var(--text-secondary)] transition-colors hover:text-emerald-400">
                         <Check size={12} />
                       </button>
                     )}
                     <button onClick={() => deleteOne.mutate(n.id)} title="Delete"
-                      className="rounded-md p-1.5 text-zinc-600 transition-colors hover:text-rose-400">
+                      className="rounded-md p-1.5 text-[var(--text-secondary)] transition-colors hover:text-rose-400">
                       <Trash2 size={12} />
                     </button>
                   </div>

@@ -164,7 +164,7 @@ function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; 
           </select>
         </div>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
-          className="w-full rounded-sm border border-stone-200 bg-white px-3 py-2 text-sm text-[#111827] resize-none outline-none focus:border-stone-500 focus:ring-2 focus:ring-stone-500/20 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:focus:border-[var(--border-soft)] dark:focus:ring-0 transition-colors"/>
+          className="w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-2 text-sm text-[#111827] resize-none outline-none focus:border-[var(--border-strong)] focus:ring-2 focus:ring-stone-500/20 dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:focus:ring-0 transition-colors"/>
         <div className="flex gap-2 pt-1">
           <button onClick={onClose} className={BTN_CANCEL}>Cancel</button>
           <button onClick={() => title.trim() && update.mutate()} disabled={!title.trim() || update.isPending} className={BTN_PRIMARY}>
@@ -190,17 +190,17 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}
-      className={`rounded-sm border p-3 transition-all ${isDragging ? "shadow-2xl opacity-80 border-stone-500/40 bg-white dark:bg-[#1a1d24]" : "border-stone-200 bg-white hover:border-stone-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"}`}>
+      className={`rounded-sm border p-3 transition-all ${isDragging ? "shadow-2xl opacity-80 border-stone-500/40 bg-[var(--surface-card)] dark:bg-[#1a1d24]" : "border-[var(--border-soft)] bg-[var(--surface-card)] hover:border-[var(--border-soft)]"}`}>
       {/* Drag handle covers the background only */}
       <div {...listeners} className="absolute inset-0 rounded-sm cursor-grab active:cursor-grabbing" style={{ zIndex: 0 }}/>
       <div className="relative" style={{ zIndex: 1 }}>
         <div className="flex items-start gap-2 mb-2">
           <button onPointerDown={e => e.stopPropagation()} onClick={() => onToggle(task)}
-            className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : isOverdue ? "border-stone-400/60 hover:border-stone-400" : "border-stone-300 hover:border-stone-400 dark:border-[var(--border-soft)] dark:hover:border-[var(--border-soft)]"}`}>
+            className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : isOverdue ? "border-stone-400/60 hover:border-stone-400" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}`}>
             {task.completed && <Check size={9} className="text-[var(--text-primary)]"/>}
           </button>
           <button onPointerDown={e => e.stopPropagation()} onClick={() => onDetail(task)}
-            className={`flex-1 text-left text-xs font-medium leading-snug hover:text-stone-600 dark:hover:text-[var(--text-primary)] transition-colors ${task.completed ? "line-through text-stone-400 dark:text-stone-600" : "text-[#111827] dark:text-stone-200"}`}>
+            className={`flex-1 text-left text-xs font-medium leading-snug hover:text-[var(--text-secondary)] transition-colors ${task.completed ? "line-through text-[var(--text-faint)]" : "text-[#111827] dark:text-stone-200"}`}>
             {task.title}
           </button>
         </div>
@@ -220,16 +220,16 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
           {/* Actions — always visible but subtle, no opacity-0 */}
           <div className="flex gap-0.5 shrink-0">
             <button onPointerDown={e => e.stopPropagation()} onClick={() => onEdit(task)}
-              className="rounded-md p-1 text-stone-400 hover:text-stone-100 hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={10}/></button>
+              className="rounded-md p-1 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={10}/></button>
             {(task.assignee_id === currentUserId || !task.assignee_id) && (
               <button onPointerDown={e => e.stopPropagation()} onClick={() => onDelete(task.id)}
-                className="rounded-md p-1 text-stone-400 hover:text-stone-400 hover:bg-stone-400/10 transition-colors"><Trash2 size={10}/></button>
+                className="rounded-md p-1 text-[var(--text-faint)] hover:text-stone-400 hover:bg-stone-400/10 transition-colors"><Trash2 size={10}/></button>
             )}
           </div>
         </div>
 
         {(assigneeName || task.due_date) && (
-          <div className="mt-2 flex items-center gap-2 text-[10px] text-stone-600">
+          <div className="mt-2 flex items-center gap-2 text-[10px] text-[var(--text-secondary)]">
             {assigneeName && <span className="flex items-center gap-0.5"><User size={9}/>{assigneeName.split(" ")[0]}</span>}
             {task.due_date && <span className={`flex items-center gap-0.5 ${isOverdue ? "text-stone-400" : ""}`}><Clock size={9}/>{fmtDate(task.due_date)}</span>}
           </div>
@@ -251,12 +251,12 @@ function BoardColumn({ col, tasks, onDetail, onEdit, onDelete, onToggle, current
     <div className="flex flex-col min-w-[240px] w-[240px] shrink-0">
       <div className="flex items-center gap-2 mb-3 px-1">
         <span className={`h-2 w-2 rounded-full shrink-0 ${col.dotColor}`}/>
-        <span className="text-sm font-medium text-stone-300">{col.label}</span>
-        <span className="ml-auto rounded-full bg-[var(--surface-hover)] px-2 py-px text-[10px] text-stone-500">{tasks.length}</span>
+        <span className="text-sm font-medium text-[var(--text-faint)]">{col.label}</span>
+        <span className="ml-auto rounded-full bg-[var(--surface-hover)] px-2 py-px text-[10px] text-[var(--text-muted)]">{tasks.length}</span>
       </div>
       <div ref={setNodeRef}
         className={`flex-1 min-h-[120px] rounded-sm border-2 border-dashed p-2 space-y-2 transition-colors ${isOver ? "border-stone-500/30 bg-stone-600/[.03]" : "border-[var(--border-soft)] bg-[var(--surface-hover)]"}`}>
-        {tasks.length === 0 && <div className="flex h-16 items-center justify-center text-xs text-stone-700">Drop here</div>}
+        {tasks.length === 0 && <div className="flex h-16 items-center justify-center text-xs text-[var(--text-faint)]">Drop here</div>}
         {tasks.map(task => (
           <div key={task.id} className="relative">
             <DraggableCard task={task} onDetail={onDetail} onEdit={onEdit} onDelete={onDelete} onToggle={onToggle} currentUserId={currentUserId} getMemberName={getMemberName} flagged={flaggedTaskIds.has(task.id)}/>
@@ -303,53 +303,53 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
-      <div className={`w-full rounded-sm border border-stone-200 bg-white shadow-2xl overflow-hidden transition-all dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)] ${suggestions.length ? "max-w-2xl" : "max-w-md"}`}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 dark:border-[var(--border-soft)]">
+      <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl overflow-hidden transition-all ${suggestions.length ? "max-w-2xl" : "max-w-md"}`}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
-            <LogoMark size={14} className="text-stone-600 dark:text-stone-400"/>
+            <LogoMark size={14} className="text-[var(--text-secondary)]"/>
             <span className="text-sm font-semibold text-[#111827] dark:text-[var(--text-primary)]">Suggest tasks with AI</span>
           </div>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-900 dark:text-stone-500 dark:hover:text-[var(--text-primary)] transition-colors"><X size={15}/></button>
+          <button onClick={onClose} className="text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors"><X size={15}/></button>
         </div>
 
         <div className="p-5 space-y-4">
           <textarea autoFocus value={prompt} onChange={e => setPrompt(e.target.value)} rows={3}
-            className="w-full rounded-sm border border-stone-200 bg-white px-3 py-2.5 text-sm text-[#111827] placeholder-[#9ca3af] resize-none outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-500/20 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:placeholder-stone-600 dark:focus:border-stone-500/40 dark:focus:ring-0 transition-colors"/>
+            className="w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-2.5 text-sm text-[#111827] placeholder-[#9ca3af] resize-none outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-500/20 dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:placeholder-stone-600 dark:focus:border-stone-500/40 dark:focus:ring-0 transition-colors"/>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-stone-500 dark:text-stone-500">Suggest</span>
+            <span className="text-xs text-[var(--text-muted)]">Suggest</span>
             <div className="flex gap-1">
               {[3,5,10].map(n => (
                 <button key={n} onClick={() => setCount(n)}
-                  className={`w-9 rounded-lg border py-1 text-xs font-medium transition-colors ${count === n ? "border-stone-300 bg-stone-50 text-stone-700 dark:border-stone-500/50 dark:bg-stone-500/10 dark:text-stone-300" : "border-stone-200 text-stone-500 hover:text-stone-800 dark:border-[var(--border-soft)] dark:text-stone-500 dark:hover:text-stone-300"}`}>{n}</button>
+                  className={`w-9 rounded-lg border py-1 text-xs font-medium transition-colors ${count === n ? "border-stone-300 bg-stone-50 text-stone-700 dark:border-stone-500/50 dark:bg-stone-500/10 dark:text-stone-300" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>{n}</button>
               ))}
             </div>
-            <span className="text-xs text-stone-500 dark:text-stone-500">tasks</span>
+            <span className="text-xs text-[var(--text-muted)]">tasks</span>
           </div>
-          {error && <p className="text-xs text-stone-600 dark:text-stone-400">{error}</p>}
+          {error && <p className="text-xs text-[var(--text-secondary)]">{error}</p>}
         </div>
 
         {suggestions.length > 0 && (
-          <div className="border-t border-stone-200 dark:border-[var(--border-soft)]">
+          <div className="border-t border-[var(--border-soft)]">
             <div className="flex items-center justify-between px-5 py-3">
-              <span className="text-xs text-stone-500 dark:text-stone-500">{suggestions.length} suggestions</span>
+              <span className="text-xs text-[var(--text-muted)]">{suggestions.length} suggestions</span>
               <button onClick={() => setSelected(prev => prev.size === suggestions.length ? new Set() : new Set(suggestions.map((_,i)=>i)))}
-                className="text-xs text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-300 transition-colors">
+                className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
                 {selected.size === suggestions.length ? "Deselect all" : "Select all"}
               </button>
             </div>
             <div className="max-h-64 overflow-auto">
               {suggestions.map((t, i) => (
                 <button key={i} onClick={() => setSelected(prev => { const s = new Set(prev); s.has(i) ? s.delete(i) : s.add(i); return s; })}
-                  className={`flex w-full items-start gap-3 px-5 py-3 text-left border-b border-stone-100 hover:bg-stone-50 dark:border-[var(--border-soft)] dark:hover:bg-[var(--surface-hover)] transition-colors ${selected.has(i) ? "" : "opacity-40"}`}>
-                  <div className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center ${selected.has(i) ? "bg-stone-600 border-stone-600" : "border-stone-300 dark:border-[var(--border-soft)]"}`}>
+                  className={`flex w-full items-start gap-3 px-5 py-3 text-left border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors ${selected.has(i) ? "" : "opacity-40"}`}>
+                  <div className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center ${selected.has(i) ? "bg-stone-600 border-stone-600" : "border-[var(--border-soft)]"}`}>
                     {selected.has(i) && <Check size={10} className="text-[var(--text-primary)]"/>}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-[#111827] dark:text-[var(--text-primary)]">{t.title}</p>
-                    {t.notes && <p className="text-xs text-stone-500 dark:text-stone-500 mt-0.5 truncate">{t.notes}</p>}
+                    {t.notes && <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">{t.notes}</p>}
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] font-medium capitalize ${PCOL[t.priority] ?? "text-stone-400 dark:text-stone-400"}`}>{t.priority}</span>
-                      {t.due_days && <span className="text-[10px] text-stone-400 dark:text-stone-600">due in {t.due_days}d</span>}
+                      <span className={`text-[10px] font-medium capitalize ${PCOL[t.priority] ?? "text-[var(--text-faint)]"}`}>{t.priority}</span>
+                      {t.due_days && <span className="text-[10px] text-[var(--text-faint)]">due in {t.due_days}d</span>}
                     </div>
                   </div>
                 </button>
@@ -358,8 +358,8 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
           </div>
         )}
 
-        <div className="flex items-center justify-between px-5 py-4 border-t border-stone-200 dark:border-[var(--border-soft)]">
-          <button onClick={onClose} className="text-sm text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-300 transition-colors">Cancel</button>
+        <div className="flex items-center justify-between px-5 py-4 border-t border-[var(--border-soft)]">
+          <button onClick={onClose} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
           {suggestions.length === 0 ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
               className="flex items-center gap-2 rounded-sm bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
@@ -367,7 +367,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
             </button>
           ) : (
             <div className="flex items-center gap-2">
-              <button onClick={generate} disabled={loading} className="text-sm text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-300 transition-colors">
+              <button onClick={generate} disabled={loading} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
                 {loading ? "Regenerating…" : "Regenerate"}
               </button>
               <button onClick={importSelected} disabled={selected.size === 0 || saving}
@@ -532,13 +532,13 @@ export function TasksPage() {
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-        <p className="text-sm text-stone-500">Work assigned to you and your team.</p>
+        <p className="text-sm text-[var(--text-muted)]">Work assigned to you and your team.</p>
         <div className="flex items-center gap-2 flex-wrap">
           {/* View toggle */}
-          <div className="flex gap-0.5 rounded-sm border border-stone-200 bg-stone-50 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] p-0.5">
+          <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
             {([["list","List",<List size={12}/>],["board","Board",<Columns3 size={12}/>],["sheet","Sheet",<Sheet size={12}/>]] as const).map(([mode, label, icon]) => (
               <button key={mode} onClick={() => setViewMode(mode as any)} title={label}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-stone-200 text-stone-900 dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-300"}`}>
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
                 {icon}{label}
               </button>
             ))}
@@ -555,14 +555,14 @@ export function TasksPage() {
               </button>
             </>
           )}
-          {isViewer && <span className="text-[11px] text-stone-500">Read-only access</span>}
+          {isViewer && <span className="text-[11px] text-[var(--text-muted)]">Read-only access</span>}
         </div>
       </div>
 
       {/* ── Filter bar ── */}
       <div className="mb-5 flex items-center gap-1.5 flex-wrap">
         {/* Status */}
-        <div className="flex gap-0.5 rounded-sm border border-stone-200 bg-stone-50 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] p-0.5">
+        <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
           {([
             { key: "mine",    label: "Mine" },
             { key: "all",     label: "All" },
@@ -570,7 +570,7 @@ export function TasksPage() {
             { key: "review",  label: "Review" },
           ]).map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-stone-200 text-stone-900 dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-800 dark:text-stone-500 dark:hover:text-stone-300"}`}>
+              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
               {f.label}
               {f.badge && filter !== f.key && <span className="rounded-full bg-stone-100 px-1 py-px text-[10px] text-stone-700 dark:bg-stone-500/20 dark:text-stone-400">{f.badge}</span>}
             </button>
@@ -583,7 +583,7 @@ export function TasksPage() {
         <div className="relative">
           {labelOpen && <div className="fixed inset-0 z-40" onClick={() => setLabelOpen(false)}/>}
           <button onClick={() => { setLabelOpen(o => !o); setPriorityOpen(false); setSortOpen(false); }}
-            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${labelFilter ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:border-[var(--border-soft)]"}`}>
+            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${labelFilter ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:border-[var(--border-soft)]"}`}>
             <Tag size={11}/>{labelFilter || "Label"}<ChevronDown size={10} className={`transition-transform ${labelOpen ? "rotate-180" : ""}`}/>
           </button>
           {labelOpen && (
@@ -600,7 +600,7 @@ export function TasksPage() {
                 <button key={opt.value} onClick={() => { setLabelFilter(opt.value); setLabelOpen(false); }}
                   className={`dropdown-item ${labelFilter === opt.value ? "dropdown-item-active" : ""}`}>
                   <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dot}`}/>{opt.label}
-                  {labelFilter === opt.value && <Check size={12} className="ml-auto text-stone-400"/>}
+                  {labelFilter === opt.value && <Check size={12} className="ml-auto text-[var(--text-faint)]"/>}
                 </button>
               ))}
             </div>
@@ -611,7 +611,7 @@ export function TasksPage() {
         <div className="relative">
           {priorityOpen && <div className="fixed inset-0 z-40" onClick={() => setPriorityOpen(false)}/>}
           <button onClick={() => { setPriorityOpen(o => !o); setLabelOpen(false); setSortOpen(false); }}
-            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${priorityFilter ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:border-[var(--border-soft)]"}`}>
+            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${priorityFilter ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:border-[var(--border-soft)]"}`}>
             <Flag size={11}/>{priorityFilter ? priorityFilter.charAt(0).toUpperCase()+priorityFilter.slice(1) : "Priority"}<ChevronDown size={10} className={`transition-transform ${priorityOpen ? "rotate-180" : ""}`}/>
           </button>
           {priorityOpen && (
@@ -626,7 +626,7 @@ export function TasksPage() {
                 <button key={opt.value} onClick={() => { setPriorityFilter(opt.value); setPriorityOpen(false); }}
                   className={`dropdown-item ${priorityFilter === opt.value ? "dropdown-item-active" : ""}`}>
                   <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dot}`}/>{opt.label}
-                  {priorityFilter === opt.value && <Check size={12} className="ml-auto text-stone-400"/>}
+                  {priorityFilter === opt.value && <Check size={12} className="ml-auto text-[var(--text-faint)]"/>}
                 </button>
               ))}
             </div>
@@ -637,7 +637,7 @@ export function TasksPage() {
         <div className="relative">
           {sortOpen && <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)}/>}
           <button onClick={() => { setSortOpen(o => !o); setLabelOpen(false); setPriorityOpen(false); }}
-            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${(sortBy !== "created_at" || sortDir !== "desc") ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:border-[var(--border-soft)]"}`}>
+            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${(sortBy !== "created_at" || sortDir !== "desc") ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:border-[var(--border-soft)]"}`}>
             <ArrowUpDown size={11}/>
             {sortBy === "due_date" ? "Due date" : sortBy === "priority" ? "Priority" : sortBy === "assignee" ? "Assignee" : "Sort"}
             <ChevronDown size={10} className={`transition-transform ${sortOpen ? "rotate-180" : ""}`}/>
@@ -652,13 +652,13 @@ export function TasksPage() {
               ].map(opt => (
                 <button key={opt.value} onClick={() => { setSortBy(opt.value); setSortOpen(false); }}
                   className={`dropdown-item ${sortBy === opt.value ? "dropdown-item-active" : ""}`}>
-                  {opt.icon}{opt.label}{sortBy === opt.value && <Check size={12} className="ml-auto text-stone-400"/>}
+                  {opt.icon}{opt.label}{sortBy === opt.value && <Check size={12} className="ml-auto text-[var(--text-faint)]"/>}
                 </button>
               ))}
               <div className="mx-2 my-1 border-t border-[var(--border-soft)]"/>
               <div className="flex gap-1 px-1 pb-1">
-                <button onClick={() => setSortDir("desc")} className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs transition-colors ${sortDir === "desc" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:bg-[var(--surface-hover)] hover:text-stone-300"}`}><ArrowDown size={11}/> Newest</button>
-                <button onClick={() => setSortDir("asc")}  className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs transition-colors ${sortDir === "asc"  ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-stone-500 hover:bg-[var(--surface-hover)] hover:text-stone-300"}`}><ArrowUp size={11}/> Oldest</button>
+                <button onClick={() => setSortDir("desc")} className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs transition-colors ${sortDir === "desc" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-faint)]"}`}><ArrowDown size={11}/> Newest</button>
+                <button onClick={() => setSortDir("asc")}  className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs transition-colors ${sortDir === "asc"  ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-faint)]"}`}><ArrowUp size={11}/> Oldest</button>
               </div>
             </div>
           )}
@@ -677,17 +677,17 @@ export function TasksPage() {
               const assigneeName = getMemberName(task);
               const sm = STATUS_META[task.status ?? "todo"] ?? STATUS_META["todo"]!;
               return (
-                <div key={task.id} id={`task-${task.id}`} className={`rounded-sm border transition-all ${highlightId === task.id ? "ring-2 ring-offset-1" : ""} ${isOverdue ? "border-stone-200 bg-stone-50/60 dark:border-stone-500/20 dark:bg-stone-500/[.03]" : "border-stone-200 bg-white hover:border-stone-300 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"}`} style={highlightId === task.id ? { boxShadow: "0 0 0 2px var(--section-accent)", borderColor: "var(--section-accent)" } : undefined}>
+                <div key={task.id} id={`task-${task.id}`} className={`rounded-sm border transition-all ${highlightId === task.id ? "ring-2 ring-offset-1" : ""} ${isOverdue ? "border-stone-200 bg-stone-50/60 dark:border-stone-500/20 dark:bg-stone-500/[.03]" : "border-[var(--border-soft)] bg-[var(--surface-card)] hover:border-[var(--border-soft)]"}`} style={highlightId === task.id ? { boxShadow: "0 0 0 2px var(--section-accent)", borderColor: "var(--section-accent)" } : undefined}>
                   <div className="flex items-center gap-3 px-4 py-3">
                     {/* Checkbox */}
                     <button onClick={() => handleToggle(task)}
-                      className={`h-5 w-5 shrink-0 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : isOverdue ? "border-stone-400/60 hover:border-stone-400" : "border-stone-300 hover:border-stone-400 dark:border-[var(--border-soft)] dark:hover:border-[var(--border-soft)]"}`}>
+                      className={`h-5 w-5 shrink-0 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : isOverdue ? "border-stone-400/60 hover:border-stone-400" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}`}>
                       {task.completed && <Check size={11} className="text-[var(--text-primary)]"/>}
                     </button>
 
                     {/* Title */}
                     <button onClick={() => setDetailTask(task)}
-                      className={`flex-1 min-w-0 text-left text-sm font-medium truncate transition-colors ${task.completed ? "text-stone-400 line-through dark:text-stone-600" : "text-[#111827] hover:text-stone-600 dark:text-stone-100 dark:hover:text-[var(--text-primary)]"}`}>
+                      className={`flex-1 min-w-0 text-left text-sm font-medium truncate transition-colors ${task.completed ? "text-[var(--text-faint)] line-through" : "text-[#111827] hover:text-[var(--text-secondary)] dark:text-stone-100 dark:hover:text-[var(--text-primary)]"}`}>
                       {task.title}
                     </button>
 
@@ -696,7 +696,7 @@ export function TasksPage() {
                       {task.priority && task.priority !== "low" && (
                         <span className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority}</span>
                       )}
-                      <span className={`flex items-center gap-1 rounded-full border px-1.5 py-px text-[10px] font-medium border-stone-200 text-stone-500 dark:border-[var(--border-soft)] dark:text-stone-500`}>
+                      <span className={`flex items-center gap-1 rounded-full border px-1.5 py-px text-[10px] font-medium border-[var(--border-soft)] text-[var(--text-muted)]`}>
                         <span className={`h-1 w-1 rounded-full ${sm.dot}`}/>{sm.label}
                       </span>
                       {flaggedTaskIds.has(task.id) && (
@@ -705,28 +705,28 @@ export function TasksPage() {
                         </span>
                       )}
                       {task.due_date && (
-                        <span className={`flex items-center gap-0.5 text-[11px] ${isOverdue ? "text-stone-600 dark:text-stone-400" : "text-stone-500 dark:text-stone-600"}`}>
+                        <span className={`flex items-center gap-0.5 text-[11px] ${isOverdue ? "text-stone-600 dark:text-stone-400" : "text-[var(--text-muted)]"}`}>
                           <Clock size={10}/>{fmtDate(task.due_date)}
                         </span>
                       )}
-                      {assigneeName && <span className="flex items-center gap-0.5 text-[11px] text-stone-500 dark:text-stone-600"><User size={10}/>{assigneeName.split(" ")[0]}</span>}
+                      {assigneeName && <span className="flex items-center gap-0.5 text-[11px] text-[var(--text-muted)]"><User size={10}/>{assigneeName.split(" ")[0]}</span>}
                     </div>
 
                     {/* Actions */}
                     <div className="flex items-center gap-0.5 shrink-0">
                       {task.completed && (
                         <button onClick={() => handleToggle(task)} title="Reactivate"
-                          className="rounded-lg p-1.5 text-stone-400 hover:text-stone-100 hover:bg-[var(--surface-hover)] transition-colors"><RotateCcw size={12}/></button>
+                          className="rounded-lg p-1.5 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><RotateCcw size={12}/></button>
                       )}
                       <button onClick={() => setExpandedId(expanded ? null : task.id)}
-                        className="rounded-lg p-1.5 text-stone-400 hover:text-stone-100 hover:bg-[var(--surface-hover)] transition-colors">
+                        className="rounded-lg p-1.5 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
                         <ChevronDown size={13} className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}/>
                       </button>
                       <button onClick={() => setEditTask(task)} title="Edit"
-                        className="rounded-lg p-1.5 text-stone-400 hover:text-stone-100 hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={12}/></button>
+                        className="rounded-lg p-1.5 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={12}/></button>
                       {(task.assignee_id === currentUserId || !task.assignee_id) && (
                         <button onClick={() => setConfirmDeleteId(task.id)} title="Delete"
-                          className="rounded-lg p-1.5 text-stone-400 hover:text-stone-400 hover:bg-stone-400/10 transition-colors"><Trash2 size={12}/></button>
+                          className="rounded-lg p-1.5 text-[var(--text-faint)] hover:text-stone-400 hover:bg-stone-400/10 transition-colors"><Trash2 size={12}/></button>
                       )}
                     </div>
                   </div>
@@ -735,10 +735,10 @@ export function TasksPage() {
                   {expanded && (
                     <div className="border-t border-[var(--border-soft)] px-4 py-4 space-y-3">
                       <div className="flex flex-wrap gap-4 text-xs">
-                        <div><p className="text-stone-600 mb-0.5">Created</p><p className="text-stone-300">{task.created_at ? fmtDateTime(task.created_at) : "—"}</p></div>
-                        <div><p className="text-stone-600 mb-0.5">Due</p><p className={task.due_date ? (isOverdue ? "text-stone-400" : "text-stone-300") : "text-stone-600"}>{task.due_date ? fmtDateTime(task.due_date) : "No due date"}</p></div>
-                        <div><p className="text-stone-600 mb-0.5">Assignee</p><p className="text-stone-300">{assigneeName || "Unassigned"}</p></div>
-                        {task.record_name && <div><p className="text-stone-600 mb-0.5">Record</p><p className="text-stone-300">{task.record_name}</p></div>}
+                        <div><p className="text-[var(--text-secondary)] mb-0.5">Created</p><p className="text-[var(--text-faint)]">{task.created_at ? fmtDateTime(task.created_at) : "—"}</p></div>
+                        <div><p className="text-[var(--text-secondary)] mb-0.5">Due</p><p className={task.due_date ? (isOverdue ? "text-stone-400" : "text-[var(--text-faint)]") : "text-[var(--text-secondary)]"}>{task.due_date ? fmtDateTime(task.due_date) : "No due date"}</p></div>
+                        <div><p className="text-[var(--text-secondary)] mb-0.5">Assignee</p><p className="text-[var(--text-faint)]">{assigneeName || "Unassigned"}</p></div>
+                        {task.record_name && <div><p className="text-[var(--text-secondary)] mb-0.5">Record</p><p className="text-[var(--text-faint)]">{task.record_name}</p></div>}
                       </div>
                       {task.labels && task.labels.filter(l => LABEL_COLORS[l]).length > 0 && (
                         <div className="flex flex-wrap gap-1">
@@ -747,7 +747,7 @@ export function TasksPage() {
                           ))}
                         </div>
                       )}
-                      {task.notes && <p className="text-sm text-stone-400 leading-relaxed whitespace-pre-wrap">{task.notes}</p>}
+                      {task.notes && <p className="text-sm text-[var(--text-faint)] leading-relaxed whitespace-pre-wrap">{task.notes}</p>}
                     </div>
                   )}
                 </div>
@@ -783,14 +783,14 @@ export function TasksPage() {
           <>
             <div className="flex justify-end mb-3">
               <button onClick={() => setShowDone(v => !v)}
-                className={`flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs transition-colors ${showDone ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/[.06] dark:text-emerald-400" : "border-stone-200 text-stone-500 hover:text-stone-800 dark:border-[var(--border-soft)] dark:text-stone-500 dark:hover:text-stone-300"}`}>
+                className={`flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs transition-colors ${showDone ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/[.06] dark:text-emerald-400" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
                 <Check size={11}/>{showDone ? "Hiding completed" : "Show completed"}
               </button>
             </div>
-            <div className="overflow-auto rounded-sm border border-stone-200 dark:border-[var(--border-soft)]">
+            <div className="overflow-auto rounded-sm border border-[var(--border-soft)]">
               <table className="minimal-table min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-stone-200 bg-[#f9fafb] dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)]">
+                  <tr className="border-b border-[var(--border-soft)] bg-[#f9fafb] dark:bg-[var(--surface-hover)]">
                     {["", "Task", "Status", "Priority", "Assignee", "Due Date", "Created", "Labels"].map(h => (
                       <th key={h} className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold tracking-widest uppercase text-[#6b7280] dark:text-stone-400">{h}</th>
                     ))}
@@ -806,27 +806,27 @@ export function TasksPage() {
                       <tr key={task.id} id={`task-${task.id}`} className="group bg-white hover:bg-[#f9fafb] dark:bg-transparent dark:hover:bg-[var(--surface-hover)] transition-colors" style={highlightId === task.id ? { boxShadow: "inset 2px 0 0 0 var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 7%, transparent)" } : undefined}>
                         <td className="px-4 py-3 w-8">
                           <button onClick={() => handleToggle(task)}
-                            className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : "border-stone-300 hover:border-stone-400 dark:border-[var(--border-soft)] dark:hover:border-[var(--border-soft)]"}`}>
+                            className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-emerald-500 bg-emerald-500" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}`}>
                             {task.completed && <Check size={9} className="text-[var(--text-primary)]"/>}
                           </button>
                         </td>
                         <td className="px-4 py-3 max-w-[240px]">
-                          <button onClick={() => setDetailTask(task)} className={`text-left hover:underline font-medium truncate block w-full ${task.completed ? "text-stone-400 line-through dark:text-stone-600" : "text-[#111827] dark:text-stone-100"}`}>{task.title}</button>
+                          <button onClick={() => setDetailTask(task)} className={`text-left hover:underline font-medium truncate block w-full ${task.completed ? "text-[var(--text-faint)] line-through" : "text-[#111827] dark:text-stone-100"}`}>{task.title}</button>
                           {task.notes && <p className="text-xs text-[#6b7280] dark:text-stone-600 truncate mt-0.5">{task.notes}</p>}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="flex items-center gap-1 text-[11px] text-stone-500 dark:text-stone-400">
+                          <span className="flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
                             <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${sm.dot}`}/>{sm.label}
                           </span>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           {task.priority && <span className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority.charAt(0).toUpperCase()+task.priority.slice(1)}</span>}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-xs text-stone-500 dark:text-stone-400">
-                          {assigneeName ? <span className="flex items-center gap-1"><User size={11}/>{assigneeName}</span> : <span className="text-stone-300 dark:text-stone-700">—</span>}
+                        <td className="px-4 py-3 whitespace-nowrap text-xs text-[var(--text-muted)]">
+                          {assigneeName ? <span className="flex items-center gap-1"><User size={11}/>{assigneeName}</span> : <span className="text-[var(--text-faint)]">—</span>}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-xs tabular-nums">
-                          {task.due_date ? <span className={isOverdue ? "text-stone-600 dark:text-stone-400" : "text-stone-500 dark:text-stone-400"}>{fmtDate(task.due_date)}</span> : <span className="text-stone-300 dark:text-stone-700">—</span>}
+                          {task.due_date ? <span className={isOverdue ? "text-stone-600 dark:text-stone-400" : "text-[var(--text-muted)]"}>{fmtDate(task.due_date)}</span> : <span className="text-[var(--text-faint)]">—</span>}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-xs text-[#6b7280] dark:text-stone-500 tabular-nums">
                           {task.created_at ? fmtDate(task.created_at) : "—"}
@@ -840,9 +840,9 @@ export function TasksPage() {
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => setEditTask(task)} className="rounded-md p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={12}/></button>
+                            <button onClick={() => setEditTask(task)} className="rounded-md p-1 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={12}/></button>
                             {(task.assignee_id === currentUserId || !task.assignee_id) && (
-                              <button onClick={() => setConfirmDeleteId(task.id)} className="rounded-md p-1 text-stone-400 hover:text-stone-600 hover:bg-stone-50 dark:text-stone-400 dark:hover:text-stone-400 dark:hover:bg-stone-400/10 transition-colors"><Trash2 size={12}/></button>
+                              <button onClick={() => setConfirmDeleteId(task.id)} className="rounded-md p-1 text-[var(--text-faint)] hover:text-stone-600 hover:bg-stone-50 dark:hover:text-stone-400 dark:hover:bg-stone-400/10 transition-colors"><Trash2 size={12}/></button>
                             )}
                           </div>
                         </td>
@@ -860,10 +860,10 @@ export function TasksPage() {
       {viewMode === "list" && doneTasks.length > 0 && !labelFilter && sortBy === "created_at" && (
         <div className="mt-6">
           <button onClick={() => setShowDone(!showDone)}
-            className="flex items-center gap-2 text-xs text-stone-400 hover:text-stone-200 transition-colors mb-3">
+            className="flex items-center gap-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-secondary)] transition-colors mb-3">
             <ChevronDown size={13} className={`transition-transform ${showDone ? "" : "-rotate-90"}`}/>
             Completed
-            <span className="rounded-full bg-[var(--surface-hover)] px-2 py-0.5 text-[10px] text-stone-500">{doneTasks.length}</span>
+            <span className="rounded-full bg-[var(--surface-hover)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">{doneTasks.length}</span>
           </button>
           {showDone && (
             <div className="space-y-1 opacity-50">
@@ -873,8 +873,8 @@ export function TasksPage() {
                     className="h-4 w-4 shrink-0 rounded border border-emerald-500/50 bg-emerald-500/20 flex items-center justify-center">
                     <Check size={9} className="text-emerald-400"/>
                   </button>
-                  <button onClick={() => setDetailTask(task)} className="flex-1 text-sm text-stone-500 line-through text-left hover:text-stone-400 truncate transition-colors">{task.title}</button>
-                  <span className="text-[10px] text-stone-700 shrink-0">{task.status === "done" ? "Done" : "Completed"}</span>
+                  <button onClick={() => setDetailTask(task)} className="flex-1 text-sm text-[var(--text-muted)] line-through text-left hover:text-[var(--text-faint)] truncate transition-colors">{task.title}</button>
+                  <span className="text-[10px] text-[var(--text-faint)] shrink-0">{task.status === "done" ? "Done" : "Completed"}</span>
                 </div>
               ))}
             </div>
@@ -885,12 +885,12 @@ export function TasksPage() {
       {/* ── Delete confirm ── */}
       {confirmDeleteId && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-sm border border-stone-200 bg-white p-6 shadow-2xl dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)]">
+          <div className="w-full max-w-sm rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-6 shadow-2xl">
             <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-stone-50 dark:bg-stone-500/10 mb-4">
               <Trash2 size={16} className="text-stone-600 dark:text-stone-400"/>
             </div>
             <h2 className="text-base font-semibold text-[#111827] dark:text-[var(--text-primary)] mb-1">Delete task?</h2>
-            <p className="text-sm text-stone-500 dark:text-stone-500 mb-5">This cannot be undone.</p>
+            <p className="text-sm text-[var(--text-muted)] mb-5">This cannot be undone.</p>
             <div className="flex gap-2">
               <button onClick={() => setConfirmDeleteId(null)} className={BTN_CANCEL}>Cancel</button>
               <button onClick={() => { remove.mutate(confirmDeleteId); setConfirmDeleteId(null); }} className={BTN_PRIMARY}>Delete</button>
