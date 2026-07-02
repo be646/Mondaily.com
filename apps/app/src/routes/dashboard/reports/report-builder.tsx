@@ -7,6 +7,7 @@ import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { AutoChart, type Point } from "../../../components/charts/charts";
 import { AIInspector } from "../../../components/ai/ai-inspector";
+import { GraphContextButton } from "../../../components/graph/graph-context-drawer";
 
 type ReportType = "insight" | "funnel" | "time_in_stage" | "historical" | "forecast";
 type ChartType = "line" | "bar" | "donut" | "number";
@@ -124,20 +125,25 @@ export function ReportBuilderPage() {
           {!run.isLoading && (run.data?.data?.length ?? 0) >= 2 && (
             <InsightPanel reportId={id} type={report.type} config={report.config} />
           )}
-          {/* AI Inspector — real report context (not node-backed, so no graph neighbours). */}
-          <div className="mt-4">
-            <AIInspector
-              ctx={{
-                kind: "report",
-                id,
-                title: report.name,
-                objectType: report.config.object_type,
-                data: { report_type: report.type, metric: report.config.metric, group_by: report.config.group_by, rows: run.data?.data?.length ?? 0 },
-                scopeLabel: `the report "${report.name}"`,
-              }}
-              defaultOpen={false}
-            />
-          </div>
+          {/* AI Inspector (interpretation) + Graph Context Drawer trigger (connected context). */}
+          {(() => {
+            const reportCtx = {
+              kind: "report" as const,
+              id,
+              title: report.name,
+              objectType: report.config.object_type,
+              data: { report_type: report.type, metric: report.config.metric, group_by: report.config.group_by, rows: run.data?.data?.length ?? 0 },
+              scopeLabel: `the report "${report.name}"`,
+            };
+            return (
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-end">
+                  <GraphContextButton ctx={reportCtx} />
+                </div>
+                <AIInspector ctx={reportCtx} defaultOpen={false} />
+              </div>
+            );
+          })()}
         </main>
         <aside className="border-t border-[var(--border-soft)] p-5 lg:border-l lg:border-t-0">
           <h2 className="mb-5 text-sm font-semibold text-[var(--text-primary)]">Configuration</h2>

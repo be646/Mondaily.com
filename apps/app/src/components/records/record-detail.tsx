@@ -21,6 +21,7 @@ import { LeadScoreBadge } from "./lead-score-badge";
 import { useAskContextStore } from "../../lib/ask-context-store";
 import { AIAgentOwnerChip, AIInsightBadge, AIHealthScore, AISignalList } from "../ai/ai-intelligence";
 import { AIInspector } from "../ai/ai-inspector";
+import { GraphContextButton } from "../graph/graph-context-drawer";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Activity { id: string; action: string; diff?: Record<string, unknown> | null; ai_summary?: string | null; created_at: string; actor_type: string }
@@ -1983,10 +1984,10 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
             {tab === "Overview" && (
               <div className="space-y-7 max-w-3xl">
-                {/* AI Inspector — real summary, gaps, graph context, and Ask actions for this record */}
-                <AIInspector
-                  ctx={{
-                    kind: "record",
+                {/* AI Inspector (interpretation) + Graph Context Drawer trigger (connected context) */}
+                {(() => {
+                  const inspectorCtx = {
+                    kind: "record" as const,
                     id: recordId,
                     nodeId: recordId,
                     title: name,
@@ -1994,10 +1995,16 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                     data,
                     updatedAt: record.updated_at,
                     scopeLabel: `${record.object_type} "${name}"`,
-                  }}
-                  activities={record.activities}
-                  defaultOpen={false}
-                />
+                  };
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex justify-end">
+                        <GraphContextButton ctx={inspectorCtx} activities={record.activities} />
+                      </div>
+                      <AIInspector ctx={inspectorCtx} activities={record.activities} defaultOpen={false} />
+                    </div>
+                  );
+                })()}
                 {/* Description — full-width editable */}
                 {(data.description != null && data.description !== "") && (
                   <DescriptionField value={String(data.description)} onSave={v => save("description", v)}/>

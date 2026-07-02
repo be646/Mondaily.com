@@ -9,6 +9,7 @@ import { friendlyAskError } from "../ai/ask-shared";
 import { useAskContextStore } from "../../lib/ask-context-store";
 import { AIAgentOwnerChip } from "../ai/ai-intelligence";
 import { AIInspector } from "../ai/ai-inspector";
+import { GraphContextButton } from "../graph/graph-context-drawer";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
 interface Task {
@@ -368,21 +369,26 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 ) : null
               )}
 
-              {/* AI Inspector — real task signals + Ask actions (no fabricated scores) */}
-              <div className="mt-3">
-                <AIInspector
-                  ctx={{
-                    kind: "task",
-                    id: task.id,
-                    title: task.title,
-                    objectType: "task",
-                    data: { status: localStatus, priority: localPriority, due_date: task.due_date, notes: notesVal },
-                    updatedAt: task.due_date ?? null,
-                    scopeLabel: `the task "${task.title}"`,
-                  }}
-                  defaultOpen={false}
-                />
-              </div>
+              {/* AI Inspector (interpretation) + Graph Context Drawer trigger (connected context) */}
+              {(() => {
+                const taskCtx = {
+                  kind: "task" as const,
+                  id: task.id,
+                  title: task.title,
+                  objectType: "task",
+                  data: { status: localStatus, priority: localPriority, due_date: task.due_date, notes: notesVal },
+                  updatedAt: task.due_date ?? null,
+                  scopeLabel: `the task "${task.title}"`,
+                };
+                return (
+                  <div className="mt-3 space-y-2">
+                    <div className="flex justify-end">
+                      <GraphContextButton ctx={taskCtx} />
+                    </div>
+                    <AIInspector ctx={taskCtx} defaultOpen={false} />
+                  </div>
+                );
+              })()}
 
               {/* Notes — first-class, not a hidden one-liner */}
               <div className="mt-3 rounded-lg border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>

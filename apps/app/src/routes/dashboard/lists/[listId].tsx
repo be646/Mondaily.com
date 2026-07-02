@@ -13,6 +13,7 @@ import { PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 import { ProspectingModal } from "../../../components/ai/prospecting-modal";
 import { AIInspector } from "../../../components/ai/ai-inspector";
+import { GraphContextButton } from "../../../components/graph/graph-context-drawer";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null; created_by?: string | null }
 
@@ -531,22 +532,25 @@ export function ListPage() {
 
       {/* ── Body ── */}
       <div className="flex-1 overflow-auto px-6 py-5">
-        {/* AI Inspector — real list context only (not node-backed, so no graph neighbours). */}
-        {list.data && (
-          <div className="mb-5">
-            <AIInspector
-              ctx={{
-                kind: "list",
-                id: list.data.id,
-                title: list.data.name,
-                objectType: list.data.object_type,
-                data: { record_count: records.length },
-                scopeLabel: `the ${list.data.object_type} list "${list.data.name}" (${records.length} records)`,
-              }}
-              defaultOpen={false}
-            />
-          </div>
-        )}
+        {/* AI Inspector (interpretation) + Graph Context Drawer trigger (connected context). */}
+        {list.data && (() => {
+          const listCtx = {
+            kind: "list" as const,
+            id: list.data.id,
+            title: list.data.name,
+            objectType: list.data.object_type,
+            data: { record_count: records.length },
+            scopeLabel: `the ${list.data.object_type} list "${list.data.name}" (${records.length} records)`,
+          };
+          return (
+            <div className="mb-5 space-y-2">
+              <div className="flex justify-end">
+                <GraphContextButton ctx={listCtx} />
+              </div>
+              <AIInspector ctx={listCtx} defaultOpen={false} />
+            </div>
+          );
+        })()}
         {entries.isLoading ? (
           <PageSkeleton rows={6} />
         ) : isEmpty ? (

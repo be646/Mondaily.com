@@ -5,6 +5,7 @@ import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { FinanceAgentStrip } from "../../../components/ai/finance-agent-strip";
 import { AIInspector } from "../../../components/ai/ai-inspector";
+import { GraphContextButton } from "../../../components/graph/graph-context-drawer";
 import { ArrowLeft, Plus, Trash2, Send, CheckCircle, Download, Save, AlertTriangle, ChevronDown } from "lucide-react";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
@@ -424,10 +425,10 @@ export function InvoiceDetailPage() {
       <div className="flex-1 overflow-auto">
         <div className="mx-auto max-w-4xl px-6 py-6 space-y-6">
 
-          {/* AI Inspector — real invoice fields only (finance signals render from these). */}
-          <AIInspector
-            ctx={{
-              kind: "invoice",
+          {/* AI Inspector (interpretation) + Graph Context Drawer trigger (connected context). */}
+          {(() => {
+            const invoiceCtx = {
+              kind: "invoice" as const,
               id: invoice.id,
               title: invoice.number,
               objectType: "invoice",
@@ -439,9 +440,16 @@ export function InvoiceDetailPage() {
               },
               updatedAt: invoice.due_date ?? null,
               scopeLabel: `invoice ${invoice.number}${invoice.client_name ? ` for ${invoice.client_name}` : ""}`,
-            }}
-            defaultOpen={false}
-          />
+            };
+            return (
+              <div className="space-y-2">
+                <div className="flex justify-end">
+                  <GraphContextButton ctx={invoiceCtx} />
+                </div>
+                <AIInspector ctx={invoiceCtx} defaultOpen={false} />
+              </div>
+            );
+          })()}
 
           <FinanceAgentStrip invoiceId={invoiceId}/>
 
