@@ -29,10 +29,10 @@ const defaultControls = {
 function CopyField({ label, value, copied, onCopy }: { label: string; value: string; copied: boolean; onCopy: () => void }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">{label}</span>
+      <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">{label}</span>
       <div className="flex h-10 items-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)]">
-        <code className="min-w-0 flex-1 truncate px-3 text-xs text-stone-400">{value}</code>
-        <button onClick={onCopy} className="px-3 text-stone-500 hover:text-[var(--text-primary)] transition-colors">
+        <code className="min-w-0 flex-1 truncate px-3 text-xs text-[var(--text-faint)]">{value}</code>
+        <button onClick={onCopy} className="px-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
           {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
         </button>
       </div>
@@ -107,18 +107,18 @@ export function SecuritySettings() {
       <section className="settings-section">
         <div className="settings-section-header">
           <div className="flex items-center gap-2">
-            <Shield size={14} className="text-stone-500" />
+            <Shield size={14} className="text-[var(--text-muted)]" />
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Single Sign-On (SAML 2.0)</h2>
-            <span className="rounded-full bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-stone-300">Enterprise</span>
+            <span className="rounded-full bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-[var(--text-faint)]">Enterprise</span>
           </div>
-          <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${data.saml_enabled ? "bg-emerald-500/10 text-emerald-400" : "bg-[var(--surface-hover)] text-stone-600"}`}>
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${data.saml_enabled ? "bg-emerald-500/10 text-emerald-400" : "bg-[var(--surface-hover)] text-[var(--text-muted)]"}`}>
             {data.saml_enabled ? "Configured" : "Not configured"}
           </span>
         </div>
         <div className="space-y-4 p-5">
-          <p className="text-sm text-stone-500">Configure your identity provider to enable SSO login for all workspace members.</p>
+          <p className="text-sm text-[var(--text-muted)]">Configure your identity provider to enable SSO login for all workspace members.</p>
           <label className="block">
-            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Identity provider</span>
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Identity provider</span>
             <select value={data.saml_provider ?? "okta"} onChange={e => setData({ ...data, saml_provider: e.target.value })}
               className="key-input h-9 w-full px-3 text-sm">
               <option value="okta">Okta</option>
@@ -132,7 +132,7 @@ export function SecuritySettings() {
             <CopyField label="ACS URL" value={acsUrl} copied={copied === "acs"} onCopy={() => copy("acs", acsUrl)} />
           </div>
           <label className="block">
-            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">IdP metadata URL or XML</span>
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">IdP metadata URL or XML</span>
             <textarea value={data.saml_metadata ?? ""} onChange={e => setData({ ...data, saml_metadata: e.target.value })}
               placeholder="https://idp.example.com/metadata or paste XML here" rows={3}
               className="key-input w-full resize-none p-3 text-xs" />
@@ -143,13 +143,13 @@ export function SecuritySettings() {
               className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-stone-600 disabled:opacity-70">
               {update.isPending ? <span className="font-mono text-xs tracking-wider">[ RUNNING CRYPTO EXCHANGER... ]</span> : (data.saml_enabled ? "Update SSO" : "Configure SSO")}
             </button>
-            <button className="rounded-sm border px-4 py-2 text-sm text-stone-400 transition-colors hover:text-[var(--text-primary)]"
+            <button className="rounded-sm border px-4 py-2 text-sm text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]"
               style={{ borderColor: "var(--border-soft)" }}
               onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--section-accent)")}
               onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-soft)")}>
               Test SSO
             </button>
-            <label className="ml-auto flex items-center gap-2 text-sm text-stone-300 cursor-pointer">
+            <label className="ml-auto flex items-center gap-2 text-sm text-[var(--text-faint)] cursor-pointer">
               <button type="button" role="switch" aria-checked={data.enforce_sso ?? false}
                 onClick={() => save({ enforce_sso: !(data.enforce_sso ?? false) })} className="md-toggle">
                 <span className="md-toggle-thumb" />
@@ -179,7 +179,7 @@ export function SecuritySettings() {
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border-soft)" }}>
                   {["Device", "Browser", "Location", "IP", "Last active", ""].map(h => (
-                    <th key={h || "act"} className="px-4 py-2.5 text-[9px] font-semibold uppercase tracking-widest text-stone-600">{h}</th>
+                    <th key={h || "act"} className="px-4 py-2.5 text-[9px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -187,13 +187,13 @@ export function SecuritySettings() {
                 {data.sessions.map(s => (
                   <tr key={s.id} style={{ borderBottom: "1px solid var(--border-soft)", background: s.current ? "color-mix(in srgb, var(--section-accent) 5%, transparent)" : undefined }}>
                     <td className="px-4 py-3">
-                      <span className="text-stone-200">{s.device}</span>
+                      <span className="text-[var(--text-primary)]">{s.device}</span>
                       {s.current && <span className="ml-2 rounded-sm px-1.5 py-0.5 text-[9px] uppercase tracking-wide" style={{ background: "color-mix(in srgb, var(--section-accent) 14%, transparent)", color: "var(--section-accent)" }}>current</span>}
                     </td>
-                    <td className="px-4 py-3 text-stone-500">{s.browser ?? "Browser"}</td>
-                    <td className="px-4 py-3 text-stone-500">{s.location}</td>
-                    <td className="px-4 py-3 tabular-nums text-stone-500">{s.ip ?? "Hidden"}</td>
-                    <td className="px-4 py-3 tabular-nums text-stone-500">{s.last_active ?? "Now"}</td>
+                    <td className="px-4 py-3 text-[var(--text-muted)]">{s.browser ?? "Browser"}</td>
+                    <td className="px-4 py-3 text-[var(--text-muted)]">{s.location}</td>
+                    <td className="px-4 py-3 tabular-nums text-[var(--text-muted)]">{s.ip ?? "Hidden"}</td>
+                    <td className="px-4 py-3 tabular-nums text-[var(--text-muted)]">{s.last_active ?? "Now"}</td>
                     <td className="px-4 py-3 text-right">
                       {!s.current && (
                         <button onClick={() => revoke.mutate(s.id)} className="text-[10px] uppercase tracking-wider transition-colors hover:opacity-80" style={{ color: "#fb7185" }}>
@@ -219,14 +219,14 @@ export function SecuritySettings() {
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><LockKeyhole size={14} /> Protected recipients</h2>
         </div>
         <div className="p-5 space-y-4">
-          <p className="text-sm text-stone-500">Prevent AI sequences from emailing specific domains. Useful for blocking competitors, personal addresses, or internal teams.</p>
+          <p className="text-sm text-[var(--text-muted)]">Prevent AI sequences from emailing specific domains. Useful for blocking competitors, personal addresses, or internal teams.</p>
           {data.protected_recipients.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {data.protected_recipients.map(r => (
-                <span key={r} className="flex items-center gap-1.5 rounded-full bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400">
+                <span key={r} className="flex items-center gap-1.5 rounded-full bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-faint)]">
                   {r}
                   <button onClick={() => save({ protected_recipients: data.protected_recipients.filter(x => x !== r) })}
-                    className="text-stone-600 hover:text-stone-400 transition-colors"><X size={10} /></button>
+                    className="text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors"><X size={10} /></button>
                 </span>
               ))}
             </div>
@@ -235,15 +235,15 @@ export function SecuritySettings() {
             <input value={domain} onChange={e => setDomain(e.target.value)} placeholder="competitor.com"
               className="key-input h-9 flex-1 px-3 text-sm" />
             <button type="submit"
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
               <Plus size={13} /> Add
             </button>
           </form>
-          <div className="flex items-center gap-2 text-xs text-stone-600">
+          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
             Presets:
             {["gmail.com", "hotmail.com", "yahoo.com"].map(p => (
               <button key={p} onClick={() => setDomain(p)}
-                className="rounded-md border border-[var(--border-soft)] px-2 py-1 hover:text-stone-300 transition-colors">{p}</button>
+                className="rounded-md border border-[var(--border-soft)] px-2 py-1 hover:text-[var(--text-faint)] transition-colors">{p}</button>
             ))}
           </div>
         </div>
@@ -256,12 +256,12 @@ export function SecuritySettings() {
         </div>
         <div className="px-5 py-3">
           <div className="grid grid-cols-[1fr_96px_96px] items-center">
-            <div className="py-2.5 text-[10px] font-semibold uppercase tracking-widest text-stone-700">Role</div>
-            <div className="py-2.5 text-center text-[10px] font-semibold uppercase tracking-widest text-stone-700">CSV export</div>
-            <div className="py-2.5 text-center text-[10px] font-semibold uppercase tracking-widest text-stone-700">API access</div>
+            <div className="py-2.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Role</div>
+            <div className="py-2.5 text-center text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">CSV export</div>
+            <div className="py-2.5 text-center text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">API access</div>
             {Object.entries(data.access_controls ?? defaultControls).map(([role, controls]) => (
               <div key={role} className="contents">
-                <div className="border-t border-[var(--border-soft)] py-3.5 text-sm capitalize text-stone-300">{role}</div>
+                <div className="border-t border-[var(--border-soft)] py-3.5 text-sm capitalize text-[var(--text-faint)]">{role}</div>
                 <div className="border-t border-[var(--border-soft)] py-3.5 flex justify-center">
                   <AccessToggle
                     checked={controls.export}
@@ -285,9 +285,9 @@ export function SecuritySettings() {
         <div className="settings-section-header">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Audit log</h2>
-            <span className="rounded-full bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-stone-300">Enterprise</span>
+            <span className="rounded-full bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-[var(--text-faint)]">Enterprise</span>
           </div>
-          <button className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-300 transition-colors">
+          <button className="flex items-center gap-1.5 text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">
             <Download size={12} /> Export CSV
           </button>
         </div>
@@ -297,18 +297,18 @@ export function SecuritySettings() {
               <thead>
                 <tr className="border-b border-[var(--border-soft)] bg-[var(--surface-hover)]">
                   {["Actor", "Action", "Target", "Timestamp", "IP"].map(h => (
-                    <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-600">{h}</th>
+                    <th key={h} className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {data.audit_log?.map(entry => (
                   <tr key={entry.id} className="border-b border-[var(--border-soft)] last:border-0">
-                    <td className="px-4 py-3 text-stone-200">{entry.actor}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-stone-400">{entry.action}</td>
-                    <td className="px-4 py-3 text-stone-600">{entry.target}</td>
-                    <td className="px-4 py-3 font-mono text-stone-600">{entry.timestamp}</td>
-                    <td className="px-4 py-3 font-mono tabular-nums text-stone-600">{entry.ip ?? "—"}</td>
+                    <td className="px-4 py-3 text-[var(--text-primary)]">{entry.actor}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-[var(--text-faint)]">{entry.action}</td>
+                    <td className="px-4 py-3 text-[var(--text-muted)]">{entry.target}</td>
+                    <td className="px-4 py-3 font-mono text-[var(--text-muted)]">{entry.timestamp}</td>
+                    <td className="px-4 py-3 font-mono tabular-nums text-[var(--text-muted)]">{entry.ip ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>

@@ -63,10 +63,10 @@ interface Usage {
 }
 
 const PLAN_COLORS: Record<string, string> = {
-  free: "bg-[var(--surface-hover)] text-stone-400",
+  free: "bg-[var(--surface-hover)] text-[var(--text-faint)]",
   trial: "bg-emerald-500/10 text-emerald-300",
   pro: "bg-blue-500/10 text-blue-300",
-  business: "bg-stone-500/10 text-stone-300",
+  business: "bg-stone-500/10 text-[var(--text-faint)]",
   enterprise: "bg-amber-500/10 text-amber-300",
 };
 
@@ -206,12 +206,12 @@ export function BillingSettings() {
               <p className="text-sm font-semibold text-[var(--text-primary)]">
                 {currentPlan?.name ?? "Scout"}
                 {currentPlan && currentPlan.priceMonthly !== null && (
-                  <span className="ml-2 font-mono text-xs font-normal text-stone-500">
+                  <span className="ml-2 font-mono text-xs font-normal text-[var(--text-muted)]">
                     {currentPlan.priceMonthly === 0 ? "free" : `$${currentPlan.priceMonthly}/mo`}
                   </span>
                 )}
               </p>
-              <p className="mt-0.5 text-sm text-stone-500">
+              <p className="mt-0.5 text-sm text-[var(--text-muted)]">
                 {trialActive
                   ? `Trial ends ${new Date(trialEndsAt!).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
                   : billing.next_billing_date
@@ -231,8 +231,8 @@ export function BillingSettings() {
               an upgrade nudge instead of an empty progress bar. */}
           <div className="mt-5 rounded-sm border p-4" style={{ borderColor: "var(--border-soft)" }}>
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm text-stone-300">
-                <Users size={14} className="text-stone-500" /> {billing.seats_limit > 1 ? "Seats used" : "Operators"}
+              <div className="flex items-center gap-2 text-sm text-[var(--text-faint)]">
+                <Users size={14} className="text-[var(--text-muted)]" /> {billing.seats_limit > 1 ? "Seats used" : "Operators"}
               </div>
               <span className="text-sm font-medium text-[var(--text-primary)]">{billing.seats_used} / {billing.seats_limit}</span>
             </div>
@@ -245,11 +245,11 @@ export function BillingSettings() {
                   />
                 </div>
                 {seatPct >= 90 && (
-                  <p className="mt-2 text-xs text-stone-400">You're nearly at your seat limit. Upgrade to add more members.</p>
+                  <p className="mt-2 text-xs text-[var(--text-faint)]">You're nearly at your seat limit. Upgrade to add more members.</p>
                 )}
               </>
             ) : (
-              <p className="mt-1.5 text-xs text-stone-500">This plan is for a single operator. Upgrade to Command to invite your team.</p>
+              <p className="mt-1.5 text-xs text-[var(--text-muted)]">This plan is for a single operator. Upgrade to Command to invite your team.</p>
             )}
           </div>
         </div>
@@ -293,17 +293,17 @@ export function BillingSettings() {
                 <div className="mt-1.5 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
                   {plan.priceMonthly === null ? "Custom"
                     : plan.priceMonthly === 0 ? "$0"
-                    : <>${interval === "year" ? plan.priceAnnual : plan.priceMonthly}<span className="text-sm text-stone-500"> /mo</span></>}
+                    : <>${interval === "year" ? plan.priceAnnual : plan.priceMonthly}<span className="text-sm text-[var(--text-muted)]"> /mo</span></>}
                 </div>
                 {interval === "year" && plan.priceAnnual !== null && plan.priceAnnual > 0 && (
-                  <p className="mt-0.5 font-mono text-[10px] text-stone-500">${plan.priceAnnual * 12} billed yearly</p>
+                  <p className="mt-0.5 font-mono text-[10px] text-[var(--text-muted)]">${plan.priceAnnual * 12} billed yearly</p>
                 )}
-                <p className="mt-1 text-[11px] text-stone-500">{plan.tagline}</p>
-                <div className="mt-3 space-y-1 text-[11px] text-stone-400">
+                <p className="mt-1 text-[11px] text-[var(--text-muted)]">{plan.tagline}</p>
+                <div className="mt-3 space-y-1 text-[11px] text-[var(--text-faint)]">
                   <div className="font-mono text-[var(--text-secondary)]">{plan.operators}</div>
                   <div className="font-mono text-[var(--text-secondary)]">{plan.credits}</div>
                 </div>
-                <ul className="mt-3 flex-1 space-y-1.5 text-[11.5px] text-stone-400">
+                <ul className="mt-3 flex-1 space-y-1.5 text-[11.5px] text-[var(--text-faint)]">
                   {plan.features.map(f => (
                     <li key={f} className="flex items-start gap-1.5">
                       <Check size={11} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />{f}
@@ -329,15 +329,15 @@ export function BillingSettings() {
       <section className="settings-section">
         <div className="settings-section-header">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">AI usage</h2>
-          <span className="text-xs text-stone-500">This month</span>
+          <span className="text-xs text-[var(--text-muted)]">This month</span>
         </div>
         <div className="p-5">
           {(() => {
             const u = usageQuery.data;
             const t = u?.totals;
-            if (usageQuery.isLoading) return <p className="text-sm text-stone-500">Loading usage…</p>;
+            if (usageQuery.isLoading) return <p className="text-sm text-[var(--text-muted)]">Loading usage…</p>;
             if (!t || (t.total_tokens === 0 && t.messages === 0)) {
-              return <p className="text-sm text-stone-500">No AI usage recorded yet this month. Totals appear here as your team chats and runs agents.</p>;
+              return <p className="text-sm text-[var(--text-muted)]">No AI usage recorded yet this month. Totals appear here as your team chats and runs agents.</p>;
             }
             const fmt = (n: number) => n.toLocaleString();
             const cells: [string, number][] = [
@@ -351,21 +351,21 @@ export function BillingSettings() {
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {cells.map(([label, val]) => (
                     <div key={label} className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
-                      <div className="text-[11px] text-stone-500">{label}</div>
+                      <div className="text-[11px] text-[var(--text-muted)]">{label}</div>
                       <div className="mt-0.5 text-lg font-semibold tabular-nums text-[var(--text-primary)]">{fmt(val)}</div>
                     </div>
                   ))}
                 </div>
                 {u && Object.entries(u.by_model).filter(([, mt]) => mt.total_tokens > 0).length > 0 && (
                   <div className="mt-4">
-                    <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-stone-500">By engine</div>
+                    <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">By engine</div>
                     <div className="space-y-1.5">
                       {Object.entries(u.by_model)
                         .filter(([, mt]) => mt.total_tokens > 0)
                         .sort((a, b) => b[1].total_tokens - a[1].total_tokens)
                         .map(([model, mt]) => (
                           <div key={model} className="flex items-center justify-between text-sm">
-                            <span className="flex items-center gap-2 truncate text-stone-400">
+                            <span className="flex items-center gap-2 truncate text-[var(--text-faint)]">
                               <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "var(--section-accent)" }} />
                               {prettyEngine(model)}
                             </span>
@@ -385,16 +385,16 @@ export function BillingSettings() {
       {wallet?.enrolled && (
         <section className="settings-section">
           <div className="settings-section-header">
-            <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><Wallet size={14} className="text-stone-500" /> AI credit wallet</h2>
-            <span className="text-xs capitalize text-stone-500">{wallet.account_tier} tier</span>
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><Wallet size={14} className="text-[var(--text-muted)]" /> AI credit wallet</h2>
+            <span className="text-xs capitalize text-[var(--text-muted)]">{wallet.account_tier} tier</span>
           </div>
           <div className="p-5">
             <div className="flex items-end justify-between">
               <div>
                 <div className="text-3xl font-semibold tabular-nums text-[var(--text-primary)]">{fmtCredits(wallet.balance)}</div>
-                <div className="mt-0.5 text-xs text-stone-500">of {fmtCredits(wallet.granted)} credits remaining · {fmtCredits(wallet.used)} used</div>
+                <div className="mt-0.5 text-xs text-[var(--text-muted)]">of {fmtCredits(wallet.granted)} credits remaining · {fmtCredits(wallet.used)} used</div>
               </div>
-              <span className="tabular-nums text-sm text-stone-400">{walletPct}%</span>
+              <span className="tabular-nums text-sm text-[var(--text-faint)]">{walletPct}%</span>
             </div>
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
               <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#ef4444" : "var(--section-accent)" }} />
@@ -405,7 +405,7 @@ export function BillingSettings() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium text-[var(--text-primary)]">Pay-As-You-Go refill</p>
-                  <p className="mt-0.5 text-xs text-stone-500">Top up 100,000 credits for <span className="tabular-nums text-stone-300">$10</span> via Stripe.</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">Top up 100,000 credits for <span className="tabular-nums text-[var(--text-faint)]">$10</span> via Stripe.</p>
                 </div>
                 <button
                   onClick={handleBuyCredits}
@@ -418,7 +418,7 @@ export function BillingSettings() {
               <div className="mt-3 flex items-center justify-between gap-4 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>
                 <div>
                   <p className="text-sm font-medium text-[var(--text-primary)]">Enable Auto-Refill</p>
-                  <p className="mt-0.5 text-xs text-stone-500">Automatically charge your card <span className="tabular-nums text-stone-300">$10</span> whenever the credit line falls below <span className="tabular-nums text-stone-300">5,000</span> units.</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">Automatically charge your card <span className="tabular-nums text-[var(--text-faint)]">$10</span> whenever the credit line falls below <span className="tabular-nums text-[var(--text-faint)]">5,000</span> units.</p>
                 </div>
                 <button
                   role="switch"
@@ -430,7 +430,7 @@ export function BillingSettings() {
                   <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all" style={{ left: autoRefill ? "1.5rem" : "0.125rem" }} />
                 </button>
               </div>
-              {autoRefill && <p className="mt-2 text-[11px] text-stone-500">Auto-Refill armed — connect a card via “Buy credits” to activate billing.</p>}
+              {autoRefill && <p className="mt-2 text-[11px] text-[var(--text-muted)]">Auto-Refill armed — connect a card via “Buy credits” to activate billing.</p>}
             </div>
           </div>
         </section>
@@ -441,7 +441,7 @@ export function BillingSettings() {
         <section className="settings-section">
           <div className="settings-section-header">
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Credit ledger</h2>
-            <span className="text-xs text-stone-500">{ledger.length} transaction{ledger.length === 1 ? "" : "s"}</span>
+            <span className="text-xs text-[var(--text-muted)]">{ledger.length} transaction{ledger.length === 1 ? "" : "s"}</span>
           </div>
           {ledger.length ? (
             <div className="minimal-sheet overflow-x-auto">
@@ -454,14 +454,14 @@ export function BillingSettings() {
                     const positive = row.amount >= 0;
                     return (
                       <tr key={row.id}>
-                        <td className="whitespace-nowrap text-stone-400">{new Date(row.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
+                        <td className="whitespace-nowrap text-[var(--text-faint)]">{new Date(row.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
                         <td>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${row.transaction_type === "grant" ? "bg-emerald-500/10 text-emerald-400" : row.transaction_type === "purchase" ? "bg-blue-500/10 text-blue-300" : "bg-[var(--surface-hover)] text-stone-500"}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${row.transaction_type === "grant" ? "bg-emerald-500/10 text-emerald-400" : row.transaction_type === "purchase" ? "bg-blue-500/10 text-blue-300" : "bg-[var(--surface-hover)] text-[var(--text-muted)]"}`}>
                             {row.transaction_type}
                           </span>
                         </td>
-                        <td className="max-w-[260px] truncate text-stone-400">{row.description ?? "—"}</td>
-                        <td className={`whitespace-nowrap text-right tabular-nums ${positive ? "text-emerald-400" : "text-stone-600"}`}>
+                        <td className="max-w-[260px] truncate text-[var(--text-faint)]">{row.description ?? "—"}</td>
+                        <td className={`whitespace-nowrap text-right tabular-nums ${positive ? "text-emerald-400" : "text-[var(--text-muted)]"}`}>
                           {positive ? "+" : "−"}{fmtCredits(Math.abs(row.amount))}
                         </td>
                       </tr>
@@ -471,7 +471,7 @@ export function BillingSettings() {
               </table>
             </div>
           ) : (
-            <p className="px-5 py-6 text-sm text-stone-600">No credit transactions yet. Grants and AI usage will appear here in real time.</p>
+            <p className="px-5 py-6 text-sm text-[var(--text-muted)]">No credit transactions yet. Grants and AI usage will appear here in real time.</p>
           )}
         </section>
       )}
@@ -484,15 +484,15 @@ export function BillingSettings() {
           </div>
           <div className="flex items-center gap-3 p-5">
             <div className="grid h-9 w-14 place-items-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)]">
-              <CreditCard size={16} className="text-stone-500" />
+              <CreditCard size={16} className="text-[var(--text-muted)]" />
             </div>
             <div>
-              <p className="text-sm text-stone-200">Card ending in {billing.card_last4}</p>
-              <p className="text-xs text-stone-500">Billing currency: USD</p>
+              <p className="text-sm text-[var(--text-primary)]">Card ending in {billing.card_last4}</p>
+              <p className="text-xs text-[var(--text-muted)]">Billing currency: USD</p>
             </div>
             <button
               onClick={() => { void openPortal().then(err => err && setBillingMsg(err)); }}
-              className="ml-auto text-xs text-stone-400 hover:text-stone-300 transition-colors"
+              className="ml-auto text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors"
             >
               Update
             </button>
@@ -506,7 +506,7 @@ export function BillingSettings() {
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">Invoice history</h2>
         </div>
         {billing.invoices.length ? (
-          <div className="minimal-sheet divide-y divide-stone-200 px-5 dark:divide-stone-800">
+          <div className="minimal-sheet divide-y divide-[var(--border-soft)] px-5">
             {billing.invoices.map(inv => (
               <a
                 key={inv.id}
@@ -514,15 +514,15 @@ export function BillingSettings() {
                 className="flex items-center justify-between py-3.5 hover:text-[var(--text-primary)] transition-colors"
               >
                 <div>
-                  <p className="text-sm text-stone-200">{new Date(inv.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
-                  <p className="text-xs text-stone-500">${(inv.amount / 100).toFixed(2)}</p>
+                  <p className="text-sm text-[var(--text-primary)]">{new Date(inv.date).toLocaleDateString("en-US", { month: "long", year: "numeric" })}</p>
+                  <p className="text-xs text-[var(--text-muted)]">${(inv.amount / 100).toFixed(2)}</p>
                 </div>
-                <Download size={14} className="text-stone-600 hover:text-stone-300 transition-colors" />
+                <Download size={14} className="text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors" />
               </a>
             ))}
           </div>
         ) : (
-          <p className="px-5 py-6 text-sm text-stone-600">No invoices yet. They'll appear here once you upgrade.</p>
+          <p className="px-5 py-6 text-sm text-[var(--text-muted)]">No invoices yet. They'll appear here once you upgrade.</p>
         )}
       </section>
 

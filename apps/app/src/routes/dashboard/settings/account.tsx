@@ -241,8 +241,8 @@ export function AccountSettings() {
               <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>{me.name || "Operator"}</h2>
               <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 14%, transparent)", border: "1px solid color-mix(in srgb, var(--section-accent) 40%, transparent)" }}>Verified ✓</span>
             </div>
-            <p className="mt-0.5 text-[12.5px] text-stone-500">{me.email}</p>
-            {jobTitle && <p className="text-[12px] text-stone-600">{jobTitle}</p>}
+            <p className="mt-0.5 text-[12.5px] text-[var(--text-muted)]">{me.email}</p>
+            {jobTitle && <p className="text-[12px] text-[var(--text-muted)]">{jobTitle}</p>}
           </div>
           {/* stat chips */}
           <div className="flex shrink-0 gap-2">
@@ -251,7 +251,7 @@ export function AccountSettings() {
               ["AI CREDITS", (walletQuery.data?.balance ?? 0).toLocaleString()],
             ] as const).map(([label, value]) => (
               <div key={label} className="rounded-sm border px-3.5 py-2.5 text-center" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-card) 60%, transparent)" }}>
-                <div className="text-[8.5px] uppercase tracking-widest text-stone-500">{label}</div>
+                <div className="text-[8.5px] uppercase tracking-widest text-[var(--text-muted)]">{label}</div>
                 <div className="mt-0.5 text-[15px] font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{value}</div>
               </div>
             ))}
@@ -270,7 +270,7 @@ export function AccountSettings() {
               <img src={me.imageUrl ?? undefined} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-white/[.07]" />
               <button
                 onClick={() => fileRef.current?.click()}
-                className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-card)] text-stone-400 hover:text-[var(--text-primary)] transition-colors"
+                className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-card)] text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <Camera size={12} />
               </button>
@@ -278,22 +278,22 @@ export function AccountSettings() {
             </div>
             <div>
               <p className="text-sm font-medium text-[var(--text-primary)]">{me.name ?? ""}</p>
-              <p className="text-xs text-stone-500">Click the camera to update your photo · JPG, PNG, WebP</p>
+              <p className="text-xs text-[var(--text-muted)]">Click the camera to update your photo · JPG, PNG, WebP</p>
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Full name</span>
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Full name</span>
               <input value={name} onChange={e => setName(e.target.value)} className="key-input h-9 w-full px-3 text-sm" />
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Email</span>
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Email</span>
               <div className="flex h-9 items-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3">
-                <span className="min-w-0 flex-1 truncate text-sm text-stone-400">{me.email ?? ""}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-[var(--text-faint)]">{me.email ?? ""}</span>
               </div>
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Job title</span>
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Job title</span>
               <input value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="Founder, Head of Sales…" className="key-input h-9 w-full px-3 text-sm" />
             </label>
           </div>
@@ -304,19 +304,19 @@ export function AccountSettings() {
       <section className="settings-section">
         <div className="settings-section-header">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">AI personalization</h2>
-          <span className="text-xs text-stone-500">How Mondaily tailors itself to you</span>
+          <span className="text-xs text-[var(--text-muted)]">How Mondaily tailors itself to you</span>
         </div>
         <div className="space-y-4 p-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Address me as</span>
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Address me as</span>
               <div className="flex h-9 items-center rounded-sm border px-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-input)" }}>
                 <span className="mr-1.5 font-mono text-sm" style={{ color: "var(--section-accent)" }}>&gt;</span>
                 <input value={aiAddress} onChange={e => setAiAddress(e.target.value)} placeholder={me.name?.split(" ")[0] || "first_name"} className="h-full flex-1 bg-transparent font-mono text-sm outline-none" style={{ color: "var(--text-primary)" }} />
               </div>
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Expertise level</span>
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Expertise level</span>
               <select value={aiExpertise} onChange={e => setAiExpertise(e.target.value as Expertise)} className="key-input h-9 w-full px-3 font-mono text-sm">
                 <option value="novice">Novice — explain thoroughly</option>
                 <option value="intermediate">Intermediate — balanced</option>
@@ -324,7 +324,7 @@ export function AccountSettings() {
               </select>
             </label>
             <label className="block">
-              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Preferred response length</span>
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Preferred response length</span>
               <select value={aiLength} onChange={e => setAiLength(e.target.value as ResponseLength)} className="key-input h-9 w-full px-3 text-sm">
                 <option value="concise">Concise</option>
                 <option value="balanced">Balanced</option>
@@ -335,7 +335,7 @@ export function AccountSettings() {
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Context for the assistant</span>
             <textarea value={aiContext} onChange={e => setAiContext(e.target.value)} rows={3} placeholder="e.g. I run a B2B SaaS sales team; prioritize pipeline and revenue framing." className="key-input w-full resize-none p-3 text-sm" />
-            <p className="mt-1.5 text-[11px] text-stone-600">Mondaily uses this to personalize how it reasons, addresses you, and frames answers across the workspace.</p>
+            <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">Mondaily uses this to personalize how it reasons, addresses you, and frames answers across the workspace.</p>
           </label>
         </div>
       </section>
@@ -344,7 +344,7 @@ export function AccountSettings() {
       <section className="settings-section">
         <div className="settings-section-header">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">Appearance</h2>
-          <span className="text-xs text-stone-500">Changes apply instantly</span>
+          <span className="text-xs text-[var(--text-muted)]">Changes apply instantly</span>
         </div>
         <div className="p-5">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -369,7 +369,7 @@ export function AccountSettings() {
                   </div>
                   <div>
                     <span className="text-xs font-medium text-[var(--text-primary)]">{t.label}</span>
-                    <p className="mt-0.5 text-[10.5px] leading-tight text-stone-500">{t.blurb}</p>
+                    <p className="mt-0.5 text-[10.5px] leading-tight text-[var(--text-muted)]">{t.blurb}</p>
                   </div>
                   {active && <Check size={11} className="absolute right-2 top-2" style={{ color: "var(--section-accent)" }} />}
                 </button>
@@ -378,7 +378,7 @@ export function AccountSettings() {
           </div>
 
           <div className="mt-5 border-t pt-5" style={{ borderColor: "var(--border-soft)" }}>
-            <p className="mb-2.5 text-xs font-medium text-stone-400">Primary button style</p>
+            <p className="mb-2.5 text-xs font-medium text-[var(--text-faint)]">Primary button style</p>
             <div className="grid grid-cols-2 gap-3">
               {([["dark", "Dark"], ["accent", "Sage green"]] as const).map(([s, label]) => (
                 <button
@@ -390,7 +390,7 @@ export function AccountSettings() {
                     background: btnStyle === s ? "color-mix(in srgb, var(--section-accent) 8%, transparent)" : "transparent",
                   }}
                 >
-                  <span className="text-xs font-medium text-stone-300">{label}</span>
+                  <span className="text-xs font-medium text-[var(--text-faint)]">{label}</span>
                   <span className="inline-flex h-6 items-center rounded-lg px-3 text-[11px] font-medium text-white" style={{ background: s === "accent" ? "var(--section-accent)" : "#18181b" }}>Save</span>
                 </button>
               ))}
@@ -409,7 +409,7 @@ export function AccountSettings() {
             {!pwOpen ? (
               <button
                 onClick={() => { setPwOpen(true); setPwMsg(null); }}
-                className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <KeyRound size={14} /> Change password
               </button>
@@ -419,10 +419,10 @@ export function AccountSettings() {
                 <input type="password" autoComplete="new-password" placeholder="New password (8+ chars)" value={pwNext} onChange={e => setPwNext(e.target.value)} className="key-input h-9 w-full px-3 text-sm" />
                 <div className="flex items-center gap-2">
                   <button onClick={changePassword} disabled={pwBusy || !pwCurrent || pwNext.length < 8}
-                    className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50">
+                    className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50">
                     {pwBusy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} Update password
                   </button>
-                  <button onClick={() => { setPwOpen(false); setPwCurrent(""); setPwNext(""); setPwMsg(null); }} className="text-sm text-stone-500 hover:text-stone-300">Cancel</button>
+                  <button onClick={() => { setPwOpen(false); setPwCurrent(""); setPwNext(""); setPwMsg(null); }} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)]">Cancel</button>
                 </div>
               </div>
             )}
@@ -442,13 +442,13 @@ export function AccountSettings() {
             return (
               <div key={provider} className="flex items-center justify-between py-3.5">
                 <div>
-                  <p className="text-sm font-medium text-stone-200">{provider === "gmail" ? "Google" : "Outlook"}</p>
-                  <p className="mt-0.5 text-xs text-stone-500">{account?.email ?? "Not connected"}</p>
+                  <p className="text-sm font-medium text-[var(--text-primary)]">{provider === "gmail" ? "Google" : "Outlook"}</p>
+                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">{account?.email ?? "Not connected"}</p>
                 </div>
                 {account ? (
-                  <button onClick={() => disconnect.mutate(account.id)} className="font-mono text-[10.5px] uppercase tracking-wider text-stone-500 transition-colors hover:text-rose-400">[ TERMINATE LINK ]</button>
+                  <button onClick={() => disconnect.mutate(account.id)} className="font-mono text-[10.5px] uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-rose-400">[ TERMINATE LINK ]</button>
                 ) : (
-                  <button onClick={() => connect(provider)} className="rounded-sm border px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-wider text-stone-400 transition-colors hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }} onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--section-accent)")} onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-soft)")}>[ ESTABLISH SECURE HANDSHAKE ]</button>
+                  <button onClick={() => connect(provider)} className="rounded-sm border px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-wider text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }} onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--section-accent)")} onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-soft)")}>[ ESTABLISH SECURE HANDSHAKE ]</button>
                 )}
               </div>
             );
@@ -460,18 +460,18 @@ export function AccountSettings() {
       <section className="settings-section">
         <div className="settings-section-header">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">Notification preferences</h2>
-          <span className="text-xs text-stone-500">{autosaveNotif.isPending ? "Saving…" : "Saves automatically"}</span>
+          <span className="text-xs text-[var(--text-muted)]">{autosaveNotif.isPending ? "Saving…" : "Saves automatically"}</span>
         </div>
         <div className="px-5">
           {/* Header row */}
           <div className="grid grid-cols-[1fr_76px_76px] items-center border-b border-[var(--border-soft)] py-2.5">
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-stone-700">Notification</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-widest text-stone-700">In-app</span>
-            <span className="text-center text-[10px] font-semibold uppercase tracking-widest text-stone-700">Email</span>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Notification</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">In-app</span>
+            <span className="text-center text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Email</span>
           </div>
           {notificationTypes.map(([key, label]) => (
             <div key={key} className="grid grid-cols-[1fr_76px_76px] items-center border-b border-[var(--border-soft)] py-3 last:border-0">
-              <span className="text-sm text-stone-300">{label}</span>
+              <span className="text-sm text-[var(--text-faint)]">{label}</span>
               {(["in_app", "email"] as const).map(channel => (
                 <div key={channel} className="flex justify-center">
                   <button
@@ -498,8 +498,8 @@ export function AccountSettings() {
         <div className="divide-y divide-white/[.04] px-5">
           {shortcuts.map(([label, keys]) => (
             <div key={label} className="flex items-center justify-between py-3">
-              <span className="text-sm text-stone-400">{label}</span>
-              <kbd className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 font-mono text-[11px] text-stone-400">{keys}</kbd>
+              <span className="text-sm text-[var(--text-faint)]">{label}</span>
+              <kbd className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-faint)]">{keys}</kbd>
             </div>
           ))}
         </div>
@@ -508,18 +508,18 @@ export function AccountSettings() {
       {/* ── Danger zone ── */}
       <section className="settings-section border-stone-500/[.15]">
         <div className="settings-section-header border-stone-500/[.08]">
-          <h2 className="text-sm font-semibold text-stone-400">Danger zone</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-faint)]">Danger zone</h2>
         </div>
         <div className="flex flex-wrap gap-3 p-5">
           <button
             onClick={() => { (async () => { await sov?.logout(); localStorage.removeItem("mondaily_workspace_id"); navigate("/auth/shadow-login"); })(); }}
-            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
           >
             <LogOut size={14} /> Sign out
           </button>
           <button
             onClick={() => setDeleteOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-stone-500/30 px-3 py-2 text-sm text-stone-400 hover:bg-stone-500/[.08] transition-colors"
+            className="flex items-center gap-2 rounded-lg border border-stone-500/30 px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-stone-500/[.08] transition-colors"
           >
             <Trash2 size={14} /> Delete account
           </button>
@@ -547,10 +547,10 @@ export function AccountSettings() {
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setDeleteOpen(false)} />
           <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <h2 className="font-semibold text-[var(--text-primary)]">Delete account</h2>
-            <p className="mt-2 text-sm text-stone-500">This permanently deletes your account and all data. Type <strong className="text-[var(--text-primary)]">DELETE</strong> to confirm.</p>
+            <p className="mt-2 text-sm text-[var(--text-muted)]">This permanently deletes your account and all data. Type <strong className="text-[var(--text-primary)]">DELETE</strong> to confirm.</p>
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder="DELETE" className="key-input mt-4 h-10 w-full px-3 text-sm" />
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setDeleteOpen(false)} className="rounded-lg border border-[var(--border-soft)] px-4 py-2 text-sm text-stone-400 hover:text-[var(--text-primary)] transition-colors">Cancel</button>
+              <button onClick={() => setDeleteOpen(false)} className="rounded-lg border border-[var(--border-soft)] px-4 py-2 text-sm text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
               <button onClick={deleteAccount} disabled={deleteText !== "DELETE"} className="rounded-lg bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-colors">Delete account</button>
             </div>
           </div>

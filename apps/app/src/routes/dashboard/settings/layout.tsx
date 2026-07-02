@@ -35,24 +35,24 @@ export function SettingsLayout() {
     // Dual-font: settings UI (tabs, labels, headers, buttons) uses Geist Sans; data values opt into mono.
     <div className="flex h-full">
       {/* Sidebar nav */}
-      <aside className={`w-full md:w-56 md:shrink-0 border-r border-[#e5e7eb] dark:border-[var(--border-soft)] px-3 py-6 ${!isRoot ? "hidden md:block" : "block"}`}>
+      <aside className={`w-full md:w-56 md:shrink-0 border-r border-[var(--border-soft)] px-3 py-6 ${!isRoot ? "hidden md:block" : "block"}`}>
         <p className="mb-4 px-3 text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// Settings</p>
         {GROUPS.map(group => (
           <div key={group.title} className="mb-4">
-            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-[#9ca3af] dark:text-stone-600">{group.title}</p>
+            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">{group.title}</p>
             {group.items.map(([to, Icon, label]) => (
               <NavLink
                 key={to}
                 to={to}
                 className={({ isActive }) =>
-                  `mb-0.5 flex items-center justify-between rounded-sm px-3 py-2 text-sm ${isActive ? "bg-stone-200 text-stone-900 dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)]" : "text-[#52525b] hover:bg-[#f4f4f5] hover:text-[#18181b] dark:text-stone-500 dark:hover:text-stone-200 dark:hover:bg-transparent"}`
+                  `mb-0.5 flex items-center justify-between rounded-sm px-3 py-2 text-sm ${isActive ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"}`
                 }
               >
                 <div className="flex items-center gap-2">
                   <Icon size={14}/>
                   {label}
                 </div>
-                <ChevronRight size={13} className="md:hidden text-[#9ca3af] dark:text-stone-600"/>
+                <ChevronRight size={13} className="md:hidden text-[var(--text-muted)]"/>
               </NavLink>
             ))}
           </div>
@@ -62,11 +62,11 @@ export function SettingsLayout() {
       {/* Content area */}
       <main className={`min-w-0 flex-1 overflow-auto ${isRoot ? "hidden md:block" : "block"}`}>
         {/* Mobile back button */}
-        <div className="flex items-center gap-2 border-b border-[#e5e7eb] dark:border-[var(--border-soft)] px-4 py-3 md:hidden">
-          <button onClick={() => navigate("/settings")} className="flex items-center gap-1.5 text-sm text-[#6b7280] hover:text-[#111827] dark:text-stone-400 dark:hover:text-[var(--text-primary)]">
+        <div className="flex items-center gap-2 border-b border-[var(--border-soft)] px-4 py-3 md:hidden">
+          <button onClick={() => navigate("/settings")} className="flex items-center gap-1.5 text-sm text-[var(--text-faint)] hover:text-[var(--text-primary)]">
             <ArrowLeft size={15}/> Settings
           </button>
-          {currentItem && <span className="text-sm text-[#111827] dark:text-[var(--text-primary)]">· {currentItem[2]}</span>}
+          {currentItem && <span className="text-sm text-[var(--text-primary)]">· {currentItem[2]}</span>}
         </div>
         <div className="mx-auto max-w-3xl px-4 py-6 md:px-8 md:py-8">
           <Outlet />

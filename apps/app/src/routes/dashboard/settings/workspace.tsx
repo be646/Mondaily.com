@@ -70,7 +70,7 @@ function GeneralSection({
     <div className="space-y-6">
       <div>
         <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-0.5">General</h2>
-        <p className="text-[11px] text-stone-500">Workspace identity and regional settings.</p>
+        <p className="text-[11px] text-[var(--text-muted)]">Workspace identity and regional settings.</p>
       </div>
 
       {/* Logo */}
@@ -78,17 +78,17 @@ function GeneralSection({
         <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
           {logoPreview || organization?.imageUrl
             ? <img src={logoPreview || organization?.imageUrl} alt="" className="h-full w-full object-cover" />
-            : <span className="text-xl font-bold text-stone-400">{(form.name || "W").slice(0, 1).toUpperCase()}</span>}
+            : <span className="text-xl font-bold text-[var(--text-faint)]">{(form.name || "W").slice(0, 1).toUpperCase()}</span>}
         </div>
         <div>
           <button
             onClick={() => logoRef.current?.click()}
             disabled={logoBusy}
-            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-[12px] text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors"
           >
             <ImagePlus size={13} /> {logoBusy ? "Saving…" : (logoPreview || organization?.imageUrl) ? "Change logo" : "Upload logo"}
           </button>
-          <p className="mt-1.5 text-[11px] text-stone-600">Square PNG or JPG, at least 256×256px, under 2 MB. Saves instantly.</p>
+          <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">Square PNG or JPG, at least 256×256px, under 2 MB. Saves instantly.</p>
           {logoError && <p className="mt-1 text-[11px] text-rose-400">{logoError}</p>}
         </div>
         <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={e => onUploadLogo(e.target.files?.[0])} />
@@ -97,29 +97,29 @@ function GeneralSection({
       {/* Fields */}
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1.5 block text-[11px] text-stone-400">Workspace name</span>
+          <span className="mb-1.5 block text-[11px] text-[var(--text-faint)]">Workspace name</span>
           <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="key-input h-9 w-full px-3 text-[12px]" />
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-[11px] text-stone-400">Workspace URL</span>
+          <span className="mb-1.5 block text-[11px] text-[var(--text-faint)]">Workspace URL</span>
           <div className="flex h-9 items-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)]">
-            <span className="border-r border-[var(--border-soft)] px-3 text-[11px] text-stone-600">app.mondaily.com/</span>
+            <span className="border-r border-[var(--border-soft)] px-3 text-[11px] text-[var(--text-muted)]">app.mondaily.com/</span>
             <input
               value={form.slug ?? ""}
               onChange={e => setForm({ ...form, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-              className="min-w-0 flex-1 bg-transparent px-3 text-[12px] outline-none text-stone-200"
+              className="min-w-0 flex-1 bg-transparent px-3 text-[12px] outline-none text-[var(--text-primary)]"
             />
           </div>
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-[11px] text-stone-400">Default currency</span>
+          <span className="mb-1.5 block text-[11px] text-[var(--text-faint)]">Default currency</span>
           <select value={form.currency ?? "USD"} onChange={e => setForm({ ...form, currency: e.target.value })}
             className="key-input h-9 w-full px-3 text-[12px]">
             {currencies.map(c => <option key={c}>{c}</option>)}
           </select>
         </label>
         <label className="block">
-          <span className="mb-1.5 block text-[11px] text-stone-400">Default timezone</span>
+          <span className="mb-1.5 block text-[11px] text-[var(--text-faint)]">Default timezone</span>
           <select value={form.timezone} onChange={e => setForm({ ...form, timezone: e.target.value })}
             className="key-input h-9 w-full px-3 text-[12px]">
             {timezones.map(tz => <option key={tz}>{tz}</option>)}
@@ -155,7 +155,7 @@ function ModulesSection({
     <div className="space-y-4">
       <div>
         <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-0.5">Modules</h2>
-        <p className="text-[11px] text-stone-500">Enable or disable product modules for your workspace.</p>
+        <p className="text-[11px] text-[var(--text-muted)]">Enable or disable product modules for your workspace.</p>
       </div>
 
       {AVAILABLE_MODULES.map(mod => {
@@ -164,7 +164,7 @@ function ModulesSection({
           <div key={mod.id} className="flex items-center justify-between rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3">
             <div>
               <p className="text-[12px] font-medium text-[var(--text-primary)]">{mod.label}</p>
-              <p className="text-[11px] text-stone-500 mt-0.5">{mod.description}</p>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">{mod.description}</p>
             </div>
             <button
               type="button"
@@ -229,19 +229,19 @@ function DangerZoneSection({ form }: { form: WorkspaceData }) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-sm font-semibold text-stone-400 mb-0.5">Danger Zone</h2>
-        <p className="text-[11px] text-stone-500">Irreversible actions. Proceed with caution.</p>
+        <h2 className="text-sm font-semibold text-[var(--text-faint)] mb-0.5">Danger Zone</h2>
+        <p className="text-[11px] text-[var(--text-muted)]">Irreversible actions. Proceed with caution.</p>
       </div>
 
       <div className="border border-stone-500/20 rounded-sm p-6 space-y-4">
-        <p className="text-[12px] text-stone-500">Export a portable copy of all workspace data, or permanently delete this workspace.</p>
+        <p className="text-[12px] text-[var(--text-muted)]">Export a portable copy of all workspace data, or permanently delete this workspace.</p>
         <div className="flex flex-wrap gap-3">
           <button onClick={exportData}
-            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-[12px] text-stone-300 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
             <Download size={13} /> Export all data
           </button>
           <button onClick={() => setDeleteOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-stone-500/30 px-3 py-2 text-[12px] text-stone-400 hover:bg-stone-500/[.08] transition-colors">
+            className="flex items-center gap-2 rounded-lg border border-stone-500/30 px-3 py-2 text-[12px] text-[var(--text-faint)] hover:bg-stone-500/[.08] transition-colors">
             <Trash2 size={13} /> Delete workspace
           </button>
         </div>
@@ -253,12 +253,12 @@ function DangerZoneSection({ form }: { form: WorkspaceData }) {
           <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-6 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-semibold text-[var(--text-primary)]">Delete {form.name}</h2>
-              <button onClick={() => setDeleteOpen(false)} className="text-stone-500 hover:text-[var(--text-primary)] transition-colors"><X size={15} /></button>
+              <button onClick={() => setDeleteOpen(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"><X size={15} /></button>
             </div>
-            <p className="text-[12px] text-stone-500">All records, members, and activity in this workspace will be permanently removed. This cannot be undone. Type the workspace name to confirm.</p>
+            <p className="text-[12px] text-[var(--text-muted)]">All records, members, and activity in this workspace will be permanently removed. This cannot be undone. Type the workspace name to confirm.</p>
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder={form.name} className="key-input mt-4 h-10 w-full px-3 text-[12px]" />
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setDeleteOpen(false)} className="rounded-lg border border-[var(--border-soft)] px-4 py-2 text-[12px] text-stone-400 hover:text-[var(--text-primary)] transition-colors">Cancel</button>
+              <button onClick={() => setDeleteOpen(false)} className="rounded-lg border border-[var(--border-soft)] px-4 py-2 text-[12px] text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
               <button onClick={deleteWorkspace} disabled={deleteText !== form.name} className="rounded-lg bg-stone-600 px-4 py-2 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-colors">Delete workspace</button>
             </div>
           </div>
@@ -348,8 +348,8 @@ export function WorkspaceSettings() {
             key={item.key}
             onClick={() => setSection(item.key)}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] mb-0.5 transition-colors ${
-              section === item.key ? "bg-[var(--surface-hover)] text-stone-200" : "text-stone-500 hover:text-stone-300 hover:bg-[var(--surface-hover)]"
-            } ${item.danger ? (section === item.key ? "text-stone-400" : "text-red-500 hover:text-stone-400") : ""}`}
+              section === item.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:bg-[var(--surface-hover)]"
+            } ${item.danger ? (section === item.key ? "text-[var(--text-faint)]" : "text-red-500 hover:text-[var(--text-faint)]") : ""}`}
           >
             <item.icon size={13} />
             {item.label}

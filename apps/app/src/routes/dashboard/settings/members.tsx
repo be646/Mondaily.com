@@ -159,19 +159,19 @@ export function MembersSettings() {
       {isAdmin && inviteResults.length > 0 && (
         <div className="mb-5 rounded-sm border p-3" style={{ borderColor: "var(--border-soft)" }}>
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-[11px] uppercase tracking-wider text-stone-500">Invites created · share each link</span>
-            <button onClick={() => setInviteResults([])} className="text-[11px] text-stone-500 hover:text-stone-300">Dismiss</button>
+            <span className="text-[11px] uppercase tracking-wider text-[var(--text-muted)]">Invites created · share each link</span>
+            <button onClick={() => setInviteResults([])} className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-faint)]">Dismiss</button>
           </div>
           <div className="space-y-1.5">
             {inviteResults.map(iv => (
               <div key={iv.email} className="flex items-center gap-2 rounded-sm border px-2.5 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
-                <span className="w-44 shrink-0 truncate text-[12px] text-stone-300">{iv.email}</span>
+                <span className="w-44 shrink-0 truncate text-[12px] text-[var(--text-faint)]">{iv.email}</span>
                 {iv.link ? (
                   <>
-                    <span className="min-w-0 flex-1 truncate text-[11px] text-stone-500">{iv.link}</span>
+                    <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--text-muted)]">{iv.link}</span>
                     <span className="shrink-0 text-[10px]" style={{ color: iv.sent ? "#34d399" : "#a1a1aa" }}>{iv.sent ? "emailed ✓" : "link only"}</span>
                     <button onClick={() => { navigator.clipboard.writeText(iv.link!); setCopiedLink(iv.email); setTimeout(() => setCopiedLink(null), 1500); }}
-                      className="shrink-0 rounded-sm border px-2 py-0.5 text-[11px] text-stone-300 hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>
+                      className="shrink-0 rounded-sm border px-2 py-0.5 text-[11px] text-[var(--text-faint)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>
                       {copiedLink === iv.email ? "Copied ✓" : "Copy"}
                     </button>
                   </>
@@ -188,7 +188,7 @@ export function MembersSettings() {
           <thead>
             <tr>
               {["Operator", "Role", "Module access", "AI usage · 30d", "Last active", ""].map(h => (
-                <th key={h || "x"} className={`whitespace-nowrap text-[10px] uppercase tracking-wider text-stone-500 ${h === "AI usage · 30d" ? "text-right" : ""}`}>{h}</th>
+                <th key={h || "x"} className={`whitespace-nowrap text-[10px] uppercase tracking-wider text-[var(--text-muted)] ${h === "AI usage · 30d" ? "text-right" : ""}`}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -203,12 +203,12 @@ export function MembersSettings() {
                     <div className="flex items-center gap-2.5">
                       {m?.image_url
                         ? <img src={m.image_url} alt="" className="h-7 w-7 shrink-0 rounded-md object-cover" />
-                        : <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[11px] font-semibold text-stone-300">
+                        : <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[11px] font-semibold text-[var(--text-faint)]">
                             {(m?.name || m?.email || "?").trim().charAt(0).toUpperCase() || "?"}
                           </span>}
                       <div className="min-w-0 max-w-[240px]">
-                        <div className="truncate text-[13px] text-stone-200">{m?.name || m?.email || "Unknown Operator"}</div>
-                        <div className="truncate text-[10.5px] text-stone-600">{m?.email || "—"}</div>
+                        <div className="truncate text-[13px] text-[var(--text-primary)]">{m?.name || m?.email || "Unknown Operator"}</div>
+                        <div className="truncate text-[10.5px] text-[var(--text-muted)]">{m?.email || "—"}</div>
                       </div>
                     </div>
                   </td>
@@ -247,20 +247,20 @@ export function MembersSettings() {
                     </span>
                   </td>
                   <td className="py-3">
-                    <span className="inline-flex items-center gap-1 text-[11.5px] text-stone-500"><Clock size={11} /> {ago(m?.last_active)}</span>
+                    <span className="inline-flex items-center gap-1 text-[11.5px] text-[var(--text-muted)]"><Clock size={11} /> {ago(m?.last_active)}</span>
                   </td>
                   <td className="py-3 text-right">
                     {isAdmin && !isOwner && m?.id && (
                       confirmRemove === m.id ? (
                         <span className="inline-flex items-center gap-1.5 text-[11px]">
-                          <span className="text-stone-400">Remove?</span>
+                          <span className="text-[var(--text-faint)]">Remove?</span>
                           <button onClick={() => { remove.mutate(m.id!); setConfirmRemove(null); }}
                             className="rounded-md border border-rose-500/40 px-2 py-1 font-medium text-rose-400 hover:bg-rose-500/10">Yes, remove</button>
                           <button onClick={() => setConfirmRemove(null)}
-                            className="rounded-md border px-2 py-1 text-stone-400 hover:text-stone-200" style={{ borderColor: "var(--border-soft)" }}>Cancel</button>
+                            className="rounded-md border px-2 py-1 text-[var(--text-faint)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>Cancel</button>
                         </span>
                       ) : (
-                        <button onClick={() => setConfirmRemove(m.id!)} className="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-rose-500/10 hover:text-rose-400" title="Remove operator">
+                        <button onClick={() => setConfirmRemove(m.id!)} className="rounded-md p-1.5 text-[var(--text-muted)] transition-colors hover:bg-rose-500/10 hover:text-rose-400" title="Remove operator">
                           <Trash2 size={14} />
                         </button>
                       )
@@ -271,17 +271,17 @@ export function MembersSettings() {
                   <tr className="border-t" style={{ borderColor: "var(--border-soft)" }}>
                     <td colSpan={6} className="px-3 py-4" style={{ background: "var(--surface-hover)" }}>
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-[10px] uppercase tracking-wider text-stone-500">
+                        <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
                           Per-module access for {m?.name || m?.email || "this operator"}{isOwner ? " · owners always have full access" : ""}
                         </p>
                         {isAdmin && !isOwner && m?.id && (
                           <div className="flex items-center gap-2">
                             <button onClick={() => setAllModules.mutate({ id: m.id!, map: Object.fromEntries(modules.map(md => [md.key, "none"])) })}
-                              className="rounded-md border px-2 py-1 text-[11px] text-stone-400 transition-colors hover:border-rose-500/40 hover:text-rose-400" style={{ borderColor: "var(--border-soft)" }}>
+                              className="rounded-md border px-2 py-1 text-[11px] text-[var(--text-faint)] transition-colors hover:border-rose-500/40 hover:text-rose-400" style={{ borderColor: "var(--border-soft)" }}>
                               Revoke all access
                             </button>
                             <button onClick={() => setAllModules.mutate({ id: m.id!, map: {} })}
-                              className="rounded-md border px-2 py-1 text-[11px] text-stone-400 transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>
+                              className="rounded-md border px-2 py-1 text-[11px] text-[var(--text-faint)] transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>
                               Reset to role defaults
                             </button>
                           </div>
@@ -293,8 +293,8 @@ export function MembersSettings() {
                           return (
                             <div key={md.key} className="flex items-center justify-between gap-2 rounded-sm border px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
                               <div className="min-w-0">
-                                <div className="text-[12px] text-stone-200">{md.label}</div>
-                                {md.hint && <div className="truncate text-[10px] text-stone-600">{md.hint}</div>}
+                                <div className="text-[12px] text-[var(--text-primary)]">{md.label}</div>
+                                {md.hint && <div className="truncate text-[10px] text-[var(--text-muted)]">{md.hint}</div>}
                               </div>
                               {isAdmin && !isOwner && m?.id ? (
                                 <select
@@ -331,22 +331,22 @@ export function MembersSettings() {
       {/* Pending invitations */}
       {invitations.length > 0 && (
         <div className="mt-6">
-          <p className="mb-2 text-[10px] uppercase tracking-wider text-stone-500">Pending invitations</p>
+          <p className="mb-2 text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Pending invitations</p>
           <div className="minimal-sheet">
             {invitations.map((inv, i) => (
               <div key={inv?.id ?? `inv-${i}`} className="flex items-center justify-between border-t px-4 py-2.5 first:border-t-0" style={{ borderColor: "var(--border-soft)" }}>
-                <span className="text-[12.5px] text-stone-300">{inv?.email || "—"}</span>
+                <span className="text-[12.5px] text-[var(--text-faint)]">{inv?.email || "—"}</span>
                 <div className="flex items-center gap-3">
-                  <span className="rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide text-stone-500" style={{ borderColor: "var(--border-soft)" }}>{roleLabel(inv?.role)}</span>
+                  <span className="rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide text-[var(--text-muted)]" style={{ borderColor: "var(--border-soft)" }}>{roleLabel(inv?.role)}</span>
                   {isAdmin && inv?.id && (
                     confirmRevoke === inv.id ? (
                       <span className="inline-flex items-center gap-1.5 text-[11px]">
                         <button onClick={() => { revokeInvite.mutate(inv.id!); setConfirmRevoke(null); }}
                           className="rounded-md border border-rose-500/40 px-2 py-1 font-medium text-rose-400 hover:bg-rose-500/10">Revoke</button>
-                        <button onClick={() => setConfirmRevoke(null)} className="rounded-md border px-2 py-1 text-stone-400 hover:text-stone-200" style={{ borderColor: "var(--border-soft)" }}>Cancel</button>
+                        <button onClick={() => setConfirmRevoke(null)} className="rounded-md border px-2 py-1 text-[var(--text-faint)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>Cancel</button>
                       </span>
                     ) : (
-                      <button onClick={() => setConfirmRevoke(inv.id!)} className="rounded-md p-1.5 text-stone-600 transition-colors hover:bg-rose-500/10 hover:text-rose-400" title="Revoke invite"><Trash2 size={13} /></button>
+                      <button onClick={() => setConfirmRevoke(inv.id!)} className="rounded-md p-1.5 text-[var(--text-muted)] transition-colors hover:bg-rose-500/10 hover:text-rose-400" title="Revoke invite"><Trash2 size={13} /></button>
                     )
                   )}
                 </div>
