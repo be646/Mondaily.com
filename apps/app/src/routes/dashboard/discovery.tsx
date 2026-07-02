@@ -1,9 +1,10 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download, Send, X, Inbox, ArrowUpRight, Sparkles, Eye, Pickaxe, Bell } from "lucide-react";
+import { Radar, ExternalLink, Search, Loader2, TrendingUp, Star, AlertTriangle, Mail, Phone, Check, UserPlus, Download, Send, X, Inbox, ArrowUpRight, Sparkles, Eye, Pickaxe, Bell, MessageSquare, ListPlus, Microscope } from "lucide-react";
 import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { enrichPerson } from "../../lib/ai-enrichment";
+import { requestAsk } from "../../lib/ask-bus";
 import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
 
 interface DiscoveredLead {
@@ -29,6 +30,14 @@ const INTENT: Record<string, { label: string; c: string; b: string; icon: typeof
 };
 
 const FILTERS = [["all", "All"], ["BUY_SIGNAL", "Buy signals"], ["REVIEW", "Reviews"], ["COMPLAINT", "Complaints"]] as const;
+
+// Human label for a discovered lead — used to scope the AI actions (Ask / Create task / Deep research).
+function leadScope(r: DiscoveredLead): string {
+  const name = r.author_name && r.author_name !== "Anonymous" ? r.author_name : (r.target_subject || r.contact?.handle || "");
+  let host = "";
+  try { host = r.source_url ? new URL(r.source_url).host.replace(/^www\./, "") : ""; } catch { /* ignore */ }
+  return name || host || "this lead";
+}
 
 export function DiscoveryPage() {
   const qc = useQueryClient();
@@ -527,6 +536,21 @@ export function DiscoveryPage() {
                           <Send size={11} /> Message
                         </button>
                       )}
+                      {/* AI actions — reuse the existing Ask engine (source-backed, no fabrication) */}
+                      {(() => { const who = leadScope(r); return (<>
+                        <button onClick={() => requestAsk(`Tell me about ${who} using real, source-backed web information — what they do and why they may be relevant.${r.source_url ? ` Source: ${r.source_url}` : ""}`)}
+                          className="inline-flex items-center gap-1 font-medium transition-colors hover:underline" style={{ color: "var(--section-accent)" }}>
+                          <MessageSquare size={11} /> Ask AI
+                        </button>
+                        <button onClick={() => requestAsk(`Create a follow-up task for the lead ${who}${r.contact?.email ? ` (${r.contact.email})` : ""}. If the title or due date is ambiguous, ask me to confirm before creating it.`)}
+                          className="inline-flex items-center gap-1 font-medium transition-colors hover:underline" style={{ color: "var(--section-accent)" }}>
+                          <ListPlus size={11} /> Create task
+                        </button>
+                        <button onClick={() => requestAsk(`Deep research ${who}${r.source_url ? ` (start from ${r.source_url})` : ""}: from real, source-backed web information summarise what they do, why they may be relevant, any buying/partnership signal, red flags, and the best next action. Include review/reputation clues if a review source exists — if none is found, say "No review source found".`)}
+                          className="inline-flex items-center gap-1 font-medium transition-colors hover:underline" style={{ color: "var(--section-accent)" }}>
+                          <Microscope size={11} /> Deep research
+                        </button>
+                      </>); })()}
                     </div>
                   </div>
                   {/* Confidence — the golden bar */}

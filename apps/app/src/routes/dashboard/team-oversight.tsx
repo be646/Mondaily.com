@@ -1,79 +1,71 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Lock, ArrowLeft, Loader2, User as UserIcon, X, Activity, Cpu, ShieldAlert, Gauge } from "lucide-react";
+import { Lock, ArrowLeft, Loader2, User as UserIcon, X, ShieldCheck, MessageSquare, Users, ChevronRight, History } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
-import { agentByRaw } from "../../lib/agents";
+import { requestAsk } from "../../lib/ask-bus";
 
 /**
- * ABI — Autonomous Behavioral Intelligence · Team Oversight.
- * A monospace operations-center grid over real per-operator telemetry (/activities/oversight-matrix):
- * compute velocity from ai_usage, task context from activities, behavioral verdict computed server-side.
+ * Team Intelligence — an AI-powered team behaviour & value dashboard for owners/admins.
+ * REAL data only: /activities/oversight-matrix (per-operator tokens/runs/tasks/last-active/verdict,
+ * from ai_usage + activities + live sessions) and /activities/oversight?actor= (activity timeline).
+ * Premium ledger rows + a dossier drawer — no terminal gimmicks, no fabricated scores.
  */
 type Verdict = "inactive" | "bot" | "low_engagement" | "high_complexity" | "engaged" | "idle";
 interface Operator {
-  operator_id: string;
-  name: string;
-  email: string | null;
-  avatar_url: string | null;
-  role: string;
-  tokens: number;
-  runs: number;
-  task_count: number;
-  complexity_delta: number;
-  last_task_id: string | null;
-  last_action: string | null;
-  last_active_at: string | null;
-  has_session: boolean;
-  verified_pow: boolean;
-  verdict: Verdict;
+  operator_id: string; name: string; email: string | null; avatar_url: string | null; role: string;
+  tokens: number; runs: number; task_count: number; complexity_delta: number;
+  last_task_id: string | null; last_action: string | null; last_active_at: string | null;
+  has_session: boolean; verified_pow: boolean; verdict: Verdict;
 }
 interface MatrixResp { operators: Operator[]; totals: { operators: number; tokens: number; active_sessions: number } }
-
 interface ActivityRow { id: string; action: string; ai_summary: string | null; object: { type: string; name: string | null } | null; changes?: { field: string; value: string }[]; created_at: string }
-const exactTime = (iso: string) => { const d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" }); };
 
-const shortHash = (id: string | null) => (id ? id.replace(/-/g, "").slice(0, 8).toUpperCase() : "——————");
+// Plain, calm verdict language + a single status-dot tone (green = healthy, amber = attention, muted = quiet).
+const VERDICT: Record<Verdict, { label: string; tone: string }> = {
+  engaged:         { label: "Engaged",        tone: "#10b981" },
+  high_complexity: { label: "Deep work",      tone: "#10b981" },
+  bot:             { label: "Power user",     tone: "#10b981" },
+  low_engagement:  { label: "Low engagement", tone: "#d97706" },
+  inactive:        { label: "Inactive",       tone: "#d97706" },
+  idle:            { label: "Standby",        tone: "var(--text-faint)" },
+};
+
 const fmt = (n: number) => n.toLocaleString();
+const exactTime = (iso: string) => { const d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
 function ago(iso: string | null) {
-  if (!iso) return "no signal";
-  const d = new Date(iso); if (isNaN(d.getTime())) return "no signal";
+  if (!iso) return "no activity";
+  const d = new Date(iso); if (isNaN(d.getTime())) return "no activity";
   const s = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (s < 60) return `${s}s ago`;
+  if (s < 60) return "just now";
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
 }
+const activeToday = (iso: string | null) => !!iso && (Date.now() - new Date(iso).getTime()) < 86_400_000;
 
-const VERDICT: Record<Verdict, { label: string; color: string; bg: string }> = {
-  inactive: { label: "⚠ INACTIVE OPERATOR", color: "#fb923c", bg: "rgba(251,146,60,0.10)" },
-  bot: { label: "✓ HIGH-VOLUME POWER USER", color: "var(--section-accent)", bg: "color-mix(in srgb, var(--section-accent) 12%, transparent)" },
-  low_engagement: { label: "• LOW ENGAGEMENT", color: "#fbbf24", bg: "rgba(251,191,36,0.10)" },
-  high_complexity: { label: "✓ HIGH-COMPLEXITY DEEP-WORK", color: "var(--section-accent)", bg: "color-mix(in srgb, var(--section-accent) 12%, transparent)" },
-  engaged: { label: "✓ HIGH-ENGAGEMENT EXECUTION", color: "var(--section-accent)", bg: "color-mix(in srgb, var(--section-accent) 12%, transparent)" },
-  idle: { label: "• STANDBY", color: "#71717a", bg: "rgba(113,113,122,0.10)" },
-};
-
-/** Structural behavior warnings derived from the operator's live metrics. */
-function warnings(op: Operator): string[] {
+/** Honest, data-derived behaviour insights — only shown when the real metrics support them. */
+function insights(op: Operator): string[] {
   const out: string[] = [];
-  if (op.verdict === "inactive") out.push("Continuous system idling detected — zero ledger events in the 30-day window.");
-  if (op.verdict === "bot") out.push("High compute volume across many actions — power-user activity (nominal).");
-  if (op.verdict === "low_engagement") out.push("Low compute-per-task — shallow / copy-paste interaction pattern detected.");
-  if (op.verdict === "high_complexity") out.push("Sustained high compute-per-task — strategic deep-work signature (nominal).");
-  if (op.tokens > 0 && op.task_count === 0) out.push("Compute expenditure without completed task rows — output anomaly.");
-  if (op.complexity_delta > 25_000) out.push("Disproportionate compute-to-output ratio — efficiency delta degrading.");
-  if (!op.has_session && op.tokens > 0) out.push("No live client session bound to active compute stream.");
-  if (out.length === 0) out.push("Nominal — no structural behavior warnings on record.");
+  const days = op.last_active_at ? Math.floor((Date.now() - new Date(op.last_active_at).getTime()) / 86_400_000) : null;
+  if (op.tokens === 0 && op.task_count === 0) return ["Not enough data yet — no recorded activity or AI usage in the last 30 days."];
+  if (days != null && days >= 7) out.push(`Hasn't acted in ${days} days — may be disengaged or away.`);
+  if (op.tokens > 50_000 && op.task_count <= 2) out.push("Uses substantial AI credits but has completed few tracked tasks — output-to-compute ratio is low.");
+  if (op.complexity_delta > 8_000 && op.task_count > 0) out.push("High compute per task — strategic, deep-work interaction pattern.");
+  if (op.task_count >= 5 && op.complexity_delta < 500) out.push("Many tasks with minimal compute each — fast, shallow interaction pattern.");
+  if (op.tokens > 0 && op.task_count === 0) out.push("AI usage recorded without completed task rows — check whether work is landing as records.");
+  if (op.has_session && op.task_count > 0 && out.length === 0) out.push("Actively transacting at a healthy compute-to-work ratio.");
+  if (out.length === 0) out.push("No notable behaviour signals — activity is within normal ranges.");
   return out;
 }
 
-function Avatar({ op, size = 28 }: { op: Operator; size?: number }) {
-  if (op.avatar_url) return <img src={op.avatar_url} alt={op.name} style={{ width: size, height: size }} className="shrink-0 rounded-md object-cover" />;
+function Avatar({ op, size = 30 }: { op: Operator; size?: number }) {
+  if (op.avatar_url) return <img src={op.avatar_url} alt={op.name} style={{ width: size, height: size }} className="shrink-0 rounded-full object-cover" />;
   const initial = op.name?.trim()?.[0]?.toUpperCase();
   return (
-    <span style={{ width: size, height: size }} className="flex shrink-0 items-center justify-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] text-[11px] font-semibold text-[var(--text-faint)]">
-      {initial || <UserIcon size={13} />}
+    <span style={{ width: size, height: size, background: "var(--surface-hover)", color: "var(--text-secondary)" }}
+      className="flex shrink-0 items-center justify-center rounded-full text-[12px] font-semibold">
+      {initial || <UserIcon size={14} />}
     </span>
   );
 }
@@ -92,18 +84,20 @@ export function TeamOversightPage() {
 
   const operators = useMemo(() => (Array.isArray(data?.operators) ? data!.operators : []), [data]);
   const totals = data?.totals;
+  const activeTodayCount = operators.filter(o => activeToday(o.last_active_at)).length;
+  const totalTasks = operators.reduce((s, o) => s + o.task_count, 0);
 
   if (forbidden) {
     return (
       <div className="mx-auto flex max-w-md flex-col items-center px-6 py-24 text-center">
-        <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]">
+        <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "var(--surface-hover)" }}>
           <Lock size={20} style={{ color: "var(--section-accent)" }} />
         </span>
-        <h1 className="text-lg font-semibold text-[var(--text-primary)]">Manager access only</h1>
-        <p className="mt-2 text-[13px] text-[var(--text-muted)]">
-          The ABI Oversight matrix surfaces every operator's behavioral telemetry. Only <strong className="text-[var(--text-faint)]">Owners</strong> and <strong className="text-[var(--text-faint)]">Admins</strong> may view it.
+        <h1 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Owner access only</h1>
+        <p className="mt-2 text-[13px]" style={{ color: "var(--text-muted)" }}>
+          Team Intelligence shows every member's real activity and AI usage. Only owners and admins can view it.
         </p>
-        <button onClick={() => navigate("/home")} className="mt-5 inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-3.5 py-2 text-[13px] text-[var(--text-faint)] transition-colors hover:border-[var(--border-strong)]">
+        <button onClick={() => navigate("/home")} className="mt-5 inline-flex items-center gap-1.5 rounded-sm border px-3.5 py-2 text-[13px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
           <ArrowLeft size={14} /> Back to home
         </button>
       </div>
@@ -111,90 +105,91 @@ export function TeamOversightPage() {
   }
 
   return (
-    <div className="min-h-full bg-[var(--surface-page)] text-[var(--text-faint)]">
-      <div className="mx-auto max-w-6xl px-6 py-8">
-        {/* ── Header / readiness banner ── */}
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// ABI · Autonomous Behavioral Intelligence</p>
-            <h1 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Operational Readiness Matrix</h1>
-          </div>
-          {totals && (
-            <div className="flex gap-2 text-[11px]">
-              {[
-                ["OPERATORS", String(totals.operators)],
-                ["TOKENS · 30D", fmt(totals.tokens)],
-                ["LIVE SESSIONS", String(totals.active_sessions)],
-              ].map(([k, v]) => (
-                <div key={k} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2">
-                  <div className="text-[9px] uppercase tracking-widest text-[var(--text-secondary)]">{k}</div>
-                  <div className="mt-0.5 tabular-nums text-[var(--text-primary)]">{v}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      {/* ── Header ── */}
+      <div className="mb-6">
+        <h1 className="text-[20px] font-semibold" style={{ color: "var(--text-primary)" }}>Team Intelligence</h1>
+        <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-muted)" }}>How each member contributes, behaves, and uses AI — real activity only.</p>
+      </div>
 
-        {isLoading ? (
-          <div className="flex items-center gap-2 py-16 text-sm text-[var(--text-muted)]"><Loader2 size={15} className="animate-spin" /> Synchronizing operator telemetry…</div>
-        ) : operators.length === 0 ? (
-          <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-5 py-12 text-center">
-            <Activity size={20} className="mx-auto mb-2 text-[var(--text-secondary)]" />
-            <p className="text-sm text-[var(--text-faint)]">No operators registered.</p>
-            <p className="mt-1 text-xs text-[var(--text-secondary)]">Behavioral telemetry will populate as members transact.</p>
+      {/* ── Team overview — real aggregates ── */}
+      <div className="mb-8 grid grid-cols-2 gap-px overflow-hidden rounded-sm border sm:grid-cols-4" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+        {[
+          { label: "Members", value: totals?.operators ?? operators.length },
+          { label: "Active today", value: activeTodayCount },
+          { label: "Tasks (30d)", value: totalTasks },
+          { label: "AI credits (30d)", value: totals ? fmt(totals.tokens) : "—" },
+        ].map((s) => (
+          <div key={s.label} className="px-4 py-3" style={{ background: "var(--surface-card)" }}>
+            <div className="text-[22px] font-semibold leading-none tabular-nums" style={{ color: "var(--text-primary)" }}>{s.value}</div>
+            <div className="mt-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>{s.label}</div>
           </div>
-        ) : (
-          <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
-            {/* grid header */}
-            <div className="grid grid-cols-[1.6fr_1fr_1.2fr_2fr] gap-3 border-b border-[var(--border-soft)] px-4 py-2.5 text-[9px] uppercase tracking-widest text-[var(--text-secondary)]">
-              <span>Operator</span><span>Task Context</span><span>Compute Velocity</span><span>Behavioral Evaluation</span>
-            </div>
-            {operators.map((op, i) => {
+        ))}
+      </div>
+
+      {/* ── Member ledger ── */}
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Members</h2>
+        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{totals?.active_sessions ?? 0} live now</span>
+      </div>
+      {isLoading ? (
+        <div className="flex items-center gap-2 py-16 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={15} className="animate-spin" /> Loading team activity…</div>
+      ) : operators.length === 0 ? (
+        <div className="rounded-sm border px-5 py-14 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          <Users size={20} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
+          <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>No members yet</p>
+          <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Activity and AI usage appear here as members work. <Link to="/settings/members" className="font-medium hover:underline" style={{ color: "var(--section-accent)" }}>Invite members</Link>.</p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          {/* column header (desktop) */}
+          <div className="hidden grid-cols-[1.8fr_1fr_1fr_1.1fr] gap-3 border-b px-4 py-2 text-[10px] font-semibold uppercase tracking-wider sm:grid" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
+            <span>Member</span><span>Last active</span><span className="tabular-nums">Tasks · AI</span><span>Behaviour</span>
+          </div>
+          <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+            {operators.map((op) => {
               const v = VERDICT[op.verdict];
               return (
-                <button
-                  key={op.operator_id || i}
-                  onClick={() => setSelected(op)}
-                  className="grid w-full grid-cols-[1.6fr_1fr_1.2fr_2fr] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--surface-selected)]"
-                  style={i > 0 ? { borderTop: "1px solid var(--border-soft)" } : undefined}
-                >
-                  {/* operator */}
+                <button key={op.operator_id} onClick={() => setSelected(op)}
+                  className="grid w-full grid-cols-[1fr_auto] items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)] sm:grid-cols-[1.8fr_1fr_1fr_1.1fr]">
+                  {/* member */}
                   <div className="flex min-w-0 items-center gap-2.5">
                     <Avatar op={op} />
                     <div className="min-w-0">
-                      <div className="truncate text-[13px] text-[var(--text-primary)]">{op.name}</div>
-                      <div className="truncate text-[10px] uppercase tracking-wide text-[var(--text-secondary)]">{op.role}</div>
+                      <div className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{op.name}</div>
+                      <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>{op.email ?? op.role}</div>
                     </div>
                   </div>
-                  {/* task context — short-hash capsule */}
-                  <div>
-                    <span className="inline-block rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 py-0.5 text-[11px] tabular-nums text-[var(--text-faint)]">#{shortHash(op.last_task_id)}</span>
+                  {/* last active */}
+                  <div className="hidden items-center gap-1.5 text-[11.5px] sm:flex" style={{ color: "var(--text-muted)" }}>
+                    {activeToday(op.last_active_at) && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#10b981" }} />}
+                    {ago(op.last_active_at)}
                   </div>
-                  {/* compute velocity */}
-                  <div className="text-[12px] tabular-nums">
-                    <span style={{ color: "var(--section-accent)" }}>{fmt(op.tokens)}</span>
-                    <span className="text-[var(--text-secondary)]"> tok · {op.runs} runs</span>
+                  {/* tasks · AI */}
+                  <div className="hidden text-[12px] tabular-nums sm:block" style={{ color: "var(--text-secondary)" }}>
+                    {op.task_count} · <span style={{ color: "var(--text-muted)" }}>{fmt(op.tokens)} cr</span>
                   </div>
-                  {/* behavioral evaluation */}
-                  <div>
-                    <span className="inline-block rounded px-2 py-1 text-[10.5px] font-semibold tracking-wide" style={{ color: v.color, background: v.bg }}>
-                      [{v.label}]
+                  {/* behaviour + chevron */}
+                  <div className="flex items-center justify-end gap-2 sm:justify-between">
+                    <span className="inline-flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--text-secondary)" }}>
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: v.tone }} /> {v.label}
                     </span>
+                    <ChevronRight size={14} className="shrink-0" style={{ color: "var(--text-faint)" }} />
                   </div>
                 </button>
               );
             })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {selected && <DeepAudit op={selected} onClose={() => setSelected(null)} />}
+      {selected && <MemberDossier op={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }
 
-/** Slide-out individual operator deep-audit viewport. */
-function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
+/** Member detail drawer — an intelligence dossier: metrics, AI behaviour analysis, activity, actions. */
+function MemberDossier({ op, onClose }: { op: Operator; onClose: () => void }) {
   const { data, isLoading } = useQuery<{ activity: ActivityRow[] }>({
     queryKey: ["oversight-actor", op.operator_id],
     queryFn: () => apiClient.get<{ activity: ActivityRow[] }>(`/activities/oversight?actor=${encodeURIComponent(op.operator_id)}&limit=100`),
@@ -202,101 +197,140 @@ function DeepAudit({ op, onClose }: { op: Operator; onClose: () => void }) {
   });
   const v = VERDICT[op.verdict];
   const timeline = Array.isArray(data?.activity) ? data!.activity : [];
-  const efficiency = op.complexity_delta;
+  const scope = `${op.name}${op.email ? ` (${op.email})` : ""}`;
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
-      <aside className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-[var(--border-soft)] bg-[var(--surface-page)] shadow-[0_0_64px_rgba(0,0,0,0.8)] animate-[slideIn_.18s_ease-out]">
-        <style>{`@keyframes slideIn{from{transform:translateX(24px);opacity:.4}to{transform:translateX(0);opacity:1}}`}</style>
+    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-label={`${op.name} dossier`}>
+      <div className="flex-1 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
+      <aside className="flex h-full w-full max-w-md flex-col border-l shadow-2xl" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
         {/* header */}
-        <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
-          <div className="flex items-center gap-3">
-            <Avatar op={op} size={36} />
-            <div>
-              <div className="text-sm text-[var(--text-primary)]">{op.name}</div>
-              <div className="text-[10px] uppercase tracking-wide text-[var(--text-secondary)]">{op.email ?? op.role} · {ago(op.last_active_at)}</div>
+        <div className="flex items-center justify-between gap-3 border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Avatar op={op} size={34} />
+            <div className="min-w-0">
+              <div className="truncate text-[13.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{op.name}</div>
+              <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>
+                {op.role} · {ago(op.last_active_at)}
+                {op.has_session && <span style={{ color: "#10b981" }}> · online</span>}
+              </div>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"><X size={16} /></button>
+          <button onClick={onClose} className="shrink-0 hover:text-[var(--text-primary)]" style={{ color: "var(--text-muted)" }} aria-label="Close"><X size={16} /></button>
         </div>
 
-        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
-          {/* verdict */}
-          <div className="rounded-lg border px-3 py-2.5 text-[11px] font-semibold tracking-wide" style={{ color: v.color, background: v.bg, borderColor: "color-mix(in srgb, currentColor 30%, transparent)" }}>
-            [{v.label}]
+        <div className="flex-1 overflow-y-auto">
+          {/* metrics */}
+          <div className="grid grid-cols-3 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+            {[
+              { k: "Tasks", val: String(op.task_count) },
+              { k: "AI credits", val: fmt(op.tokens) },
+              { k: "Cr / task", val: fmt(op.complexity_delta) },
+            ].map((m) => (
+              <div key={m.k} className="px-3 py-3" style={{ background: "var(--surface-card)" }}>
+                <div className="text-[16px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{m.val}</div>
+                <div className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>{m.k}</div>
+              </div>
+            ))}
           </div>
 
-          {/* efficiency delta */}
-          <section>
-            <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[var(--text-secondary)]"><Gauge size={11} /> Efficiency delta</div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {[
-                [<Cpu size={12} key="c" />, "TOKENS", fmt(op.tokens)],
-                [<Activity size={12} key="a" />, "TASKS", String(op.task_count)],
-                [<Gauge size={12} key="g" />, "TOK / TASK", fmt(efficiency)],
-              ].map(([icon, k, val], i) => (
-                <div key={i} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
-                  <div className="flex items-center gap-1 text-[9px] uppercase tracking-widest text-[var(--text-secondary)]">{icon}{k}</div>
-                  <div className="mt-1 tabular-nums text-[14px] text-[var(--text-primary)]">{val}</div>
-                </div>
+          {/* behaviour verdict + AI analysis */}
+          <Section title="AI behaviour analysis">
+            <span className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: v.tone, background: `color-mix(in srgb, ${v.tone} 12%, transparent)` }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: v.tone }} /> {v.label}
+            </span>
+            <ul className="space-y-1.5">
+              {insights(op).map((s, i) => (
+                <li key={i} className="flex items-start gap-2 text-[12px]" style={{ color: "var(--text-secondary)" }}>
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "var(--text-faint)" }} />
+                  {s}
+                </li>
               ))}
-            </div>
-            <div className="mt-2 space-y-0.5 text-[10px] text-[var(--text-secondary)]">
-              <div>PoW crypto claim: {op.verified_pow ? <span style={{ color: "var(--section-accent)" }}>VERIFIED ✓</span> : <span className="text-orange-400">NONE</span>}</div>
-              <div>Native session: {op.has_session ? <span style={{ color: "var(--section-accent)" }}>ACTIVE ✓</span> : <span className="text-[var(--text-muted)]">offline</span>}</div>
-            </div>
-          </section>
+            </ul>
+          </Section>
 
-          {/* warnings log */}
-          <section>
-            <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[var(--text-secondary)]"><ShieldAlert size={11} /> Structural behavior log</div>
-            <div className="space-y-1.5">
-              {warnings(op).map((w, i) => (
-                <div key={i} className="rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-2 text-[11px] leading-snug text-[var(--text-faint)]">
-                  <span className="text-[var(--text-secondary)]">›</span> {w}
-                </div>
-              ))}
+          {/* verification signals — real */}
+          <Section title="Signals">
+            <div className="space-y-1.5 text-[12px]">
+              <Signal label="Live native session" ok={op.has_session} okText="Active" offText="Offline" />
+              <Signal label="Verified device claim (PoW)" ok={op.verified_pow} okText="Verified" offText="None on record" neutral={!op.verified_pow} />
             </div>
-          </section>
+          </Section>
 
-          {/* full activity timeline — exact time + what changed, so admins can judge 100% of behaviour */}
-          <section>
-            <div className="mb-2 flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[var(--text-secondary)]"><Activity size={11} /> Full activity timeline</div>
+          {/* activity timeline — real */}
+          <Section title="Activity timeline">
             {isLoading ? (
-              <div className="flex items-center gap-2 py-4 text-[11px] text-[var(--text-secondary)]"><Loader2 size={12} className="animate-spin" /> Loading activity…</div>
+              <div className="flex items-center gap-2 py-3 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Loading…</div>
             ) : timeline.length === 0 ? (
-              <p className="py-3 text-[11px] text-[var(--text-secondary)]">No recorded activity in window.</p>
+              <p className="py-1 text-[12px]" style={{ color: "var(--text-faint)" }}>No recorded activity in the last 30 days.</p>
             ) : (
-              <div className="space-y-2">
-                {timeline.slice(0, 40).map((a, i) => (
-                  <div key={a.id || i} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-[11.5px] font-medium text-[var(--text-primary)] capitalize">
-                        {(a.action || "action").replace(/_/g, " ")}
-                        {a.object?.type && <span className="font-normal text-[var(--text-muted)]"> · {a.object.type}</span>}
-                        {a.object?.name && <span className="font-normal text-[var(--text-faint)]"> "{a.object.name}"</span>}
-                      </span>
-                      <span className="shrink-0 text-[10px] tabular-nums text-[var(--text-secondary)]" title={new Date(a.created_at).toISOString()}>{exactTime(a.created_at)}</span>
+              <div className="space-y-2.5">
+                {timeline.slice(0, 40).map((a) => (
+                  <div key={a.id} className="flex items-start gap-2.5">
+                    <History size={12} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
+                        <span className="font-medium capitalize" style={{ color: "var(--text-primary)" }}>{(a.action || "action").replace(/_/g, " ")}</span>
+                        {a.object?.type && <span> · {a.object.type}</span>}
+                        {a.object?.name && <span style={{ color: "var(--text-muted)" }}> "{a.object.name}"</span>}
+                      </p>
+                      {a.changes && a.changes.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {a.changes.map((ch, j) => (
+                            <span key={j} className="rounded px-1.5 py-px text-[10px]" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>
+                              <span className="capitalize">{ch.field}</span>: <span style={{ color: "var(--text-secondary)" }}>{ch.value}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    {a.changes && a.changes.length > 0 && (
-                      <div className="mt-1.5 flex flex-wrap gap-1">
-                        {a.changes.map((ch, j) => (
-                          <span key={j} className="inline-flex items-center gap-1 rounded border border-[var(--border-soft)] bg-[var(--surface-card)] px-1.5 py-0.5 text-[10px]">
-                            <span className="text-[var(--text-muted)] capitalize">{ch.field}:</span>
-                            <span className="max-w-[140px] truncate text-[var(--text-faint)]">{ch.value}</span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {a.ai_summary && <p className="mt-1 text-[10.5px] leading-snug text-[var(--text-secondary)]">{a.ai_summary}</p>}
+                    <span className="shrink-0 text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>{exactTime(a.created_at)}</span>
                   </div>
                 ))}
               </div>
             )}
-          </section>
+          </Section>
+        </div>
+
+        {/* admin actions — real destinations only */}
+        <div className="flex flex-wrap gap-1.5 border-t px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+          <Action icon={MessageSquare} label="Ask AI about this member" onClick={() => { requestAsk(`Summarise ${scope}'s recent activity, workload, and AI usage from real workspace data, and suggest one coaching action.`); onClose(); }} />
+          <Link to="/settings/members" onClick={onClose} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <Users size={11} style={{ color: "var(--section-accent)" }} /> Manage role & access
+          </Link>
+          {op.email && (
+            <a href={`mailto:${op.email}`} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              <MessageSquare size={11} style={{ color: "var(--section-accent)" }} /> Message
+            </a>
+          )}
         </div>
       </aside>
-    </>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+      <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{title}</p>
+      {children}
+    </div>
+  );
+}
+function Signal({ label, ok, okText, offText, neutral }: { label: string; ok: boolean; okText: string; offText: string; neutral?: boolean }) {
+  const tone = ok ? "#10b981" : neutral ? "var(--text-faint)" : "#d97706";
+  return (
+    <div className="flex items-center justify-between">
+      <span style={{ color: "var(--text-secondary)" }}>{label}</span>
+      <span className="inline-flex items-center gap-1.5" style={{ color: tone }}>
+        <ShieldCheck size={12} /> {ok ? okText : offText}
+      </span>
+    </div>
+  );
+}
+function Action({ icon: Icon, label, onClick }: { icon: React.ElementType; label: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+      <Icon size={11} style={{ color: "var(--section-accent)" }} /> {label}
+    </button>
   );
 }
