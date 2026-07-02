@@ -60337,6 +60337,13 @@ async function findExistingNode(workspaceId, objectType2, candidate) {
   }
   return null;
 }
+async function addNodeToList(listId, nodeId) {
+  const { data: existing } = await supabase.from("list_entries").select("id").eq("list_id", listId).eq("node_id", nodeId).maybeSingle();
+  if (existing) return false;
+  const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", listId);
+  const { error } = await supabase.from("list_entries").insert({ list_id: listId, node_id: nodeId, position: (count ?? 0) + 1 });
+  return !error;
+}
 function objectTypeToVertical(objectType2) {
   const t2 = objectType2.toLowerCase();
   if (t2.includes("invest") || t2.includes("fund") || t2.includes("portfolio")) return "investments";
@@ -60366,11 +60373,7 @@ async function runProspecting(workspaceId, userId, input) {
     for (const candidate of candidates) {
       const existingNodeId = await findExistingNode(workspaceId, input.object_type, candidate);
       if (existingNodeId) {
-        if (input.destination_list_id) {
-          const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", input.destination_list_id);
-          await supabase.from("list_entries").upsert({ list_id: input.destination_list_id, node_id: existingNodeId, position: (count ?? 0) + 1 });
-          result.added_to_list++;
-        }
+        if (input.destination_list_id && await addNodeToList(input.destination_list_id, existingNodeId)) result.added_to_list++;
         result.existing++;
         result.candidates.push({ ...candidate, status: "existing", node_id: existingNodeId });
         continue;
@@ -60425,11 +60428,7 @@ async function runProspecting(workspaceId, userId, input) {
           name: "crm/record.created",
           data: { workspaceId, nodeId: node.id, objectType: input.object_type, vertical: objectTypeToVertical(input.object_type) }
         }).catch((e2) => console.error("[bg-task] swallowed error:", e2));
-        if (input.destination_list_id) {
-          const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", input.destination_list_id);
-          await supabase.from("list_entries").upsert({ list_id: input.destination_list_id, node_id: node.id, position: (count ?? 0) + 1 });
-          result.added_to_list++;
-        }
+        if (input.destination_list_id && node.id && await addNodeToList(input.destination_list_id, node.id)) result.added_to_list++;
         result.created++;
         result.candidates.push({ ...candidate, status: "created", node_id: node.id });
       }

@@ -101,6 +101,19 @@ function hostOf(url?: string | null): string {
   }
 }
 
+/**
+ * A record belongs in the Saved Leads tab only if it was actually sourced through Discovery.
+ * We key on the provenance markers the prospecting agent writes (`source: "discovery"` +
+ * the query/reason) and on the persisted search evidence (source url/title/confidence) so both
+ * newly-tagged and older discovery records match — while ordinary hand-added contacts don't.
+ */
+const DISCOVERY_MARKERS = ["source_url", "source_title", "confidence_label", "discovery_query", "prospecting_reason"] as const;
+function isDiscoverySourced(data: Record<string, unknown> | undefined): boolean {
+  if (!data) return false;
+  if (data.source === "discovery") return true;
+  return DISCOVERY_MARKERS.some((k) => Boolean(data[k]));
+}
+
 function labelOf(record: SavedRecord): string {
   const d = record.data ?? {};
   return String(d.name ?? d.company ?? d.full_name ?? d.title ?? "Untitled record");
@@ -188,20 +201,10 @@ export function DiscoveryPage() {
     }
   }, [compatibleLists, destinationListId]);
 
-  const savedRecords = useMemo(() => {
-    const rows = savedQ.data ?? [];
-    return rows.filter((r) => {
-      const d = r.data ?? {};
-      return Boolean(
-        d.source === "discovery" ||
-        d.discovery_query ||
-        d.prospecting_reason ||
-        d.source_url ||
-        d.source_title ||
-        d.confidence_label
-      );
-    });
-  }, [savedQ.data, objectType]);
+  const savedRecords = useMemo(
+    () => (savedQ.data ?? []).filter((r) => isDiscoverySourced(r.data)),
+    [savedQ.data],
+  );
 
   const savedKeys = useMemo(() => new Set(savedRecords.map(savedKey).filter(Boolean)), [savedRecords]);
 
