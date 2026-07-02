@@ -162,12 +162,12 @@ function WFNodeCard({ node, onDelete, onAddAfter, onUpdate }: {
             <p className="text-[9px] font-semibold uppercase tracking-widest opacity-50">{kindLabel(node.kind)}</p>
             <p className="text-xs font-medium text-[var(--text-primary)]">{node.label}</p>
           </div>
-          <ChevronDown size={12} className={`shrink-0 text-stone-600 transition-transform ${expanded ? "rotate-180" : ""}`}/>
+          <ChevronDown size={12} className={`shrink-0 text-[var(--text-secondary)] transition-transform ${expanded ? "rotate-180" : ""}`}/>
           {node.kind !== "trigger" && (
             <span
               role="button"
               onClick={e => { e.stopPropagation(); onDelete(node.id); }}
-              className="opacity-0 group-hover:opacity-100 rounded-md p-1 text-stone-700 hover:bg-stone-500/10 hover:text-stone-400 transition-all"
+              className="opacity-0 group-hover:opacity-100 rounded-md p-1 text-[var(--text-faint)] hover:bg-stone-500/10 hover:text-[var(--text-faint)] transition-all"
             >
               <X size={12}/>
             </span>
@@ -186,7 +186,7 @@ function WFNodeCard({ node, onDelete, onAddAfter, onUpdate }: {
         <div className="h-5 w-px bg-[var(--surface-hover)]"/>
         <button
           onClick={() => onAddAfter(node.id)}
-          className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-card)] text-stone-600 hover:border-stone-500/30 hover:bg-stone-500/[.08] hover:text-stone-400 transition-all"
+          className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-card)] text-[var(--text-secondary)] hover:border-stone-500/30 hover:bg-stone-500/[.08] hover:text-[var(--text-faint)] transition-all"
         >
           <Plus size={11}/>
         </button>
@@ -215,14 +215,14 @@ function NodePicker({ onPick, onClose }: {
       <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-4 py-3">
           <p className="text-xs font-semibold text-[var(--text-primary)]">Add step</p>
-          <button onClick={onClose} className="text-stone-600 hover:text-stone-300"><X size={14}/></button>
+          <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)]"><X size={14}/></button>
         </div>
         <div className="flex border-b border-[var(--border-soft)]">
           {(["condition","action"] as NodeKind[]).map(k => (
             <button
               key={k}
               onClick={() => setSection(k)}
-              className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${section === k ? "border-b-2 border-stone-500 text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}
+              className={`flex-1 py-2 text-xs font-medium capitalize transition-colors ${section === k ? "border-b-2 border-[var(--border-strong)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}
             >
               {kindLabel(k)}
             </button>
@@ -241,7 +241,7 @@ function NodePicker({ onPick, onClose }: {
                 <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${s.icon}`}>
                   <Icon size={11}/>
                 </div>
-                <span className="text-xs text-stone-300">{item.label}</span>
+                <span className="text-xs text-[var(--text-faint)]">{item.label}</span>
               </button>
             );
           })}
@@ -296,10 +296,10 @@ function AIWorkflowModal({ onClose, onApply }: {
       <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-lg" : "max-w-md"}`}>
         <div className="flex items-center justify-between p-5 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
-            <LogoMark size={15} className="text-stone-400"/>
+            <LogoMark size={15} className="text-[var(--text-faint)]"/>
             <h2 className="font-semibold text-[var(--text-primary)]">Generate workflow with AI</h2>
           </div>
-          <button onClick={onClose} className="text-stone-500 hover:text-[var(--text-primary)]"><X size={16}/></button>
+          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X size={16}/></button>
         </div>
 
         <div className="p-5 space-y-4">
@@ -311,19 +311,19 @@ function AIWorkflowModal({ onClose, onApply }: {
             placeholder={`e.g. "When a deal is marked as Won, create a follow-up task and notify the team" or "Send a welcome email when a contact form is submitted"`}
             className="w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-sm text-[var(--text-primary)] placeholder-stone-600 resize-none outline-none focus:border-stone-500/40 transition-colors"
           />
-          {error && <p className="text-xs text-stone-400">{error}</p>}
+          {error && <p className="text-xs text-[var(--text-faint)]">{error}</p>}
         </div>
 
         {preview && (
           <div className="border-t border-[var(--border-soft)] px-5 pb-4">
-            <p className="py-3 text-xs font-semibold text-stone-400">"{preview.name}"</p>
+            <p className="py-3 text-xs font-semibold text-[var(--text-faint)]">"{preview.name}"</p>
             <div className="space-y-1.5">
               {preview.nodes.map((n, i) => {
                 const s = KIND_STYLES[n.kind];
                 return (
                   <div key={i} className={`flex items-center gap-3 rounded-lg border ${s.border} ${s.bg} px-3 py-2`}>
                     <span className={`text-[9px] font-bold uppercase tracking-widest w-16 shrink-0 ${s.text}`}>{n.kind}</span>
-                    <span className="text-xs text-stone-300">{n.label}</span>
+                    <span className="text-xs text-[var(--text-faint)]">{n.label}</span>
                   </div>
                 );
               })}
@@ -332,7 +332,7 @@ function AIWorkflowModal({ onClose, onApply }: {
         )}
 
         <div className="flex items-center justify-between p-5 border-t border-[var(--border-soft)]">
-          <button onClick={onClose} className="text-sm text-stone-500 hover:text-stone-300">Cancel</button>
+          <button onClick={onClose} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)]">Cancel</button>
           {!preview ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
               className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-500">
@@ -340,7 +340,7 @@ function AIWorkflowModal({ onClose, onApply }: {
             </button>
           ) : (
             <div className="flex items-center gap-2">
-              <button onClick={generate} disabled={loading} className="text-sm text-stone-500 hover:text-stone-300">Regenerate</button>
+              <button onClick={generate} disabled={loading} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)]">Regenerate</button>
               <button onClick={apply}
                 className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500">
                 <LogoMark size={13}/> Apply to builder
@@ -460,7 +460,7 @@ export function WorkflowBuilderPage() {
     <div className="relative flex min-h-full flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-[var(--border-soft)] px-6 py-3">
-        <Link to="/automations" className="text-stone-600 hover:text-stone-300 transition-colors">
+        <Link to="/automations" className="text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors">
           <ArrowLeft size={15}/>
         </Link>
 
@@ -475,7 +475,7 @@ export function WorkflowBuilderPage() {
           />
         ) : (
           <h1
-            className="flex-1 cursor-pointer text-[15px] font-semibold text-[var(--text-primary)] hover:text-stone-400 transition-colors"
+            className="flex-1 cursor-pointer text-[15px] font-semibold text-[var(--text-primary)] hover:text-[var(--text-faint)] transition-colors"
             onClick={() => setNameEdit(true)}
           >
             {name}
@@ -488,7 +488,7 @@ export function WorkflowBuilderPage() {
 
         {currentId && (
           <button onClick={() => { const next = !showRuns; setShowRuns(next); if (next) loadRuns(); }}
-            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${showRuns ? "border-stone-500/30 bg-stone-600/30 text-[var(--text-primary)]" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-300 hover:text-[var(--text-primary)]"}`}>
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${showRuns ? "border-stone-500/30 bg-stone-600/30 text-[var(--text-primary)]" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-faint)] hover:text-[var(--text-primary)]"}`}>
             <Clock size={12}/> History
           </button>
         )}
@@ -499,7 +499,7 @@ export function WorkflowBuilderPage() {
         </button>
 
         <button onClick={saveWorkflow} disabled={saving}
-          className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs font-medium text-stone-300 hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors">
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs font-medium text-[var(--text-faint)] hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors">
           {saving ? <Loader2 size={12} className="animate-spin"/> : <Save size={12}/>}
           {saved ? "Saved!" : saving ? "Saving…" : "Save"}
         </button>
@@ -538,7 +538,7 @@ export function WorkflowBuilderPage() {
                         <p className="text-xs font-medium text-[var(--text-primary)]">When this happens…</p>
                       </div>
                       {arr.length > 1 && (
-                        <button onClick={() => deleteNode(tn.id)} className="text-stone-600 hover:text-red-400 transition-colors" title="Remove trigger">
+                        <button onClick={() => deleteNode(tn.id)} className="text-[var(--text-secondary)] hover:text-red-400 transition-colors" title="Remove trigger">
                           <X size={12}/>
                         </button>
                       )}
@@ -570,7 +570,7 @@ export function WorkflowBuilderPage() {
                 next.splice(insertAt, 0, { id: crypto.randomUUID(), kind: "trigger", type: "record_created", label: "Record created", config: {}, children: [] });
                 return next;
               })}
-              className="mb-2 text-[10px] font-medium text-stone-500 hover:text-stone-300 transition-colors"
+              className="mb-2 text-[10px] font-medium text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors"
             >
               + Add trigger (OR)
             </button>
@@ -578,7 +578,7 @@ export function WorkflowBuilderPage() {
             <div className="h-5 w-px bg-[var(--surface-hover)]"/>
             <button
               onClick={() => setPicking(nodes.filter(n => n.kind === "trigger").slice(-1)[0]?.id ?? "trigger-1")}
-              className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-card)] text-stone-600 hover:border-stone-500/30 hover:bg-stone-500/[.08] hover:text-stone-400 transition-all"
+              className="flex h-6 w-6 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-card)] text-[var(--text-secondary)] hover:border-stone-500/30 hover:bg-stone-500/[.08] hover:text-[var(--text-faint)] transition-all"
             >
               <Plus size={11}/>
             </button>
@@ -596,7 +596,7 @@ export function WorkflowBuilderPage() {
             ))}
 
             {/* End cap */}
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-card)] text-stone-700">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--border-soft)] bg-[var(--surface-card)] text-[var(--text-faint)]">
               <Zap size={14}/>
             </div>
           </div>
@@ -608,25 +608,25 @@ export function WorkflowBuilderPage() {
         <div className="absolute right-0 top-0 bottom-0 z-20 flex w-80 flex-col border-l border-[var(--border-soft)] bg-[var(--surface-page)]">
           <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-4 py-3">
             <div className="flex items-center gap-2">
-              <Clock size={13} className="text-stone-400"/>
+              <Clock size={13} className="text-[var(--text-faint)]"/>
               <p className="text-xs font-semibold text-[var(--text-primary)]">Run history</p>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={loadRuns} className="text-[10px] text-stone-500 hover:text-stone-300">Refresh</button>
-              <button onClick={() => setShowRuns(false)} className="text-stone-600 hover:text-stone-300"><X size={13}/></button>
+              <button onClick={loadRuns} className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-faint)]">Refresh</button>
+              <button onClick={() => setShowRuns(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)]"><X size={13}/></button>
             </div>
           </div>
           <div className="flex-1 overflow-auto px-3 py-3">
             {runsLoading ? (
-              <div className="flex justify-center py-8"><Loader2 size={16} className="animate-spin text-stone-600"/></div>
+              <div className="flex justify-center py-8"><Loader2 size={16} className="animate-spin text-[var(--text-secondary)]"/></div>
             ) : runs.length === 0 ? (
-              <p className="px-1 py-6 text-center text-[11px] text-stone-600">No runs yet. This workflow hasn't fired on any record.</p>
+              <p className="px-1 py-6 text-center text-[11px] text-[var(--text-secondary)]">No runs yet. This workflow hasn't fired on any record.</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {runs.map(run => {
                   const tone = run.status === "executed" ? "text-emerald-400 border-emerald-500/20 bg-emerald-500/[.06]"
                     : run.status === "queued" ? "text-amber-400 border-amber-500/20 bg-amber-500/[.06]"
-                    : "text-stone-500 border-[var(--border-soft)] bg-[var(--surface-hover)]";
+                    : "text-[var(--text-muted)] border-[var(--border-soft)] bg-[var(--surface-hover)]";
                   return (
                     <div key={run.id} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
                       <div className="flex items-center justify-between gap-2">
@@ -635,12 +635,12 @@ export function WorkflowBuilderPage() {
                           {run.status === "condition_failed" ? "skipped" : run.status}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-[10px] text-stone-500">{new Date(run.created_at).toLocaleString()} · {run.trigger_key}</p>
+                      <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{new Date(run.created_at).toLocaleString()} · {run.trigger_key}</p>
                       {run.actions?.length > 0 && (
                         <ul className="mt-1.5 flex flex-col gap-0.5">
                           {run.actions.map((a, idx) => (
-                            <li key={idx} className="text-[10px] text-stone-400">
-                              <span className="text-stone-500">{a.mode === "executed" ? "✓ ran" : "→ queued"}:</span> {a.action}{a.detail ? ` — ${a.detail}` : ""}
+                            <li key={idx} className="text-[10px] text-[var(--text-faint)]">
+                              <span className="text-[var(--text-muted)]">{a.mode === "executed" ? "✓ ran" : "→ queued"}:</span> {a.action}{a.detail ? ` — ${a.detail}` : ""}
                             </li>
                           ))}
                         </ul>

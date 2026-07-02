@@ -66,7 +66,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
       onClick={() => onChange(!checked)}
       className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors ${checked ? "bg-stone-500" : "bg-[var(--surface-hover)]"}`}
     >
-      <span className={`block h-3 w-3 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-3.5" : "translate-x-0.5"}`}/>
+      <span className={`block h-3 w-3 rounded-full bg-[var(--surface-card)] shadow transition-transform ${checked ? "translate-x-3.5" : "translate-x-0.5"}`}/>
     </button>
   );
 }
@@ -102,7 +102,7 @@ function StepCard({
           className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-[var(--surface-hover)] transition-colors"
           onClick={() => setOpen(o => !o)}
         >
-          <GripVertical size={14} className="shrink-0 text-stone-700"/>
+          <GripVertical size={14} className="shrink-0 text-[var(--text-faint)]"/>
           <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${step.type === "email" ? "border-stone-500/30 bg-stone-600/[.08] text-stone-400" : "border-blue-500/20 bg-blue-500/[.08] text-blue-400"}`}>
             {step.type === "email" ? <Mail size={12}/> : <CheckSquare size={12}/>}
           </div>
@@ -110,7 +110,7 @@ function StepCard({
             <p className="text-xs font-medium text-[var(--text-primary)] truncate">
               {step.type === "email" ? (step.subject || "Email — no subject") : (step.task_title || "Task — no title")}
             </p>
-            <p className="mt-0.5 text-[10px] text-stone-600 flex items-center gap-1">
+            <p className="mt-0.5 text-[10px] text-[var(--text-secondary)] flex items-center gap-1">
               <Clock size={9}/>
               {step.position === 1 ? "Immediately" : `+${step.delay_value} ${step.delay_unit}`}
             </p>
@@ -118,11 +118,11 @@ function StepCard({
           <div className="flex items-center gap-2">
             <button
               onClick={(e) => { e.stopPropagation(); onDelete(step.id); }}
-              className="rounded-md p-1 text-stone-700 hover:bg-stone-500/10 hover:text-stone-400 transition-colors"
+              className="rounded-md p-1 text-[var(--text-faint)] hover:bg-stone-500/10 hover:text-[var(--text-faint)] transition-colors"
             >
               <Trash2 size={12}/>
             </button>
-            {open ? <ChevronUp size={13} className="text-stone-600"/> : <ChevronDown size={13} className="text-stone-600"/>}
+            {open ? <ChevronUp size={13} className="text-[var(--text-secondary)]"/> : <ChevronDown size={13} className="text-[var(--text-secondary)]"/>}
           </div>
         </div>
 
@@ -132,8 +132,8 @@ function StepCard({
             {/* Delay */}
             {step.position > 1 && (
               <div className="flex items-center gap-2">
-                <Clock size={12} className="shrink-0 text-stone-600"/>
-                <span className="text-[11px] text-stone-600 w-16">Wait</span>
+                <Clock size={12} className="shrink-0 text-[var(--text-secondary)]"/>
+                <span className="text-[11px] text-[var(--text-secondary)] w-16">Wait</span>
                 <input
                   type="number" min={0}
                   value={step.delay_value}
@@ -155,7 +155,7 @@ function StepCard({
             {step.type === "email" ? (
               <>
                 <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                  <label className="text-[10px] font-medium uppercase tracking-wide text-stone-600">Subject</label>
+                  <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Subject</label>
                   <input
                     value={step.subject ?? ""}
                     onChange={e => onUpdate(step.id, { subject: e.target.value })}
@@ -165,7 +165,7 @@ function StepCard({
                 </div>
                 {seq.accounts.length > 0 && (
                   <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                    <label className="text-[10px] font-medium uppercase tracking-wide text-stone-600">From</label>
+                    <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">From</label>
                     <select
                       value={step.from_account ?? ""}
                       onChange={e => onUpdate(step.id, { from_account: e.target.value })}
@@ -177,7 +177,7 @@ function StepCard({
                   </div>
                 )}
                 <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                  <label className="text-[10px] font-medium uppercase tracking-wide text-stone-600">Send as</label>
+                  <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Send as</label>
                   <select
                     value={step.send_as ?? "new"}
                     onChange={e => onUpdate(step.id, { send_as: e.target.value as "new" | "reply" })}
@@ -188,7 +188,7 @@ function StepCard({
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-stone-600">Body</label>
+                  <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Body</label>
                   <textarea
                     value={step.body ?? ""}
                     onChange={e => onUpdate(step.id, { body: e.target.value })}
@@ -201,7 +201,7 @@ function StepCard({
             ) : (
               <>
                 <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                  <label className="text-[10px] font-medium uppercase tracking-wide text-stone-600">Task</label>
+                  <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Task</label>
                   <input
                     value={step.task_title ?? ""}
                     onChange={e => onUpdate(step.id, { task_title: e.target.value })}
@@ -211,7 +211,7 @@ function StepCard({
                 </div>
                 {seq.members.length > 0 && (
                   <div className="grid grid-cols-[80px_1fr] items-center gap-2">
-                    <label className="text-[10px] font-medium uppercase tracking-wide text-stone-600">Assign to</label>
+                    <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Assign to</label>
                     <select
                       value={step.assignee_id ?? ""}
                       onChange={e => onUpdate(step.id, { assignee_id: e.target.value })}
@@ -321,7 +321,7 @@ export function SequenceBuilderPage() {
     </div>
   );
 
-  if (!seq) return <div className="p-8 text-sm text-stone-500">Sequence not found.</div>;
+  if (!seq) return <div className="p-8 text-sm text-[var(--text-muted)]">Sequence not found.</div>;
 
   const enrollments = seq.enrollments;
   const totalEnrolled = enrollments.length;
@@ -343,8 +343,8 @@ export function SequenceBuilderPage() {
   return (
     <div className="flex min-h-full flex-col">
       {/* Top bar */}
-      <div className="flex items-center gap-3 border-b border-stone-200 dark:border-stone-800 px-6 py-3">
-        <Link to="/automations" className="text-stone-600 hover:text-stone-300 transition-colors">
+      <div className="flex items-center gap-3 border-b border-[var(--border-soft)] px-6 py-3">
+        <Link to="/automations" className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] transition-colors">
           <ArrowLeft size={15}/>
         </Link>
 
@@ -359,7 +359,7 @@ export function SequenceBuilderPage() {
           />
         ) : (
           <h1
-            className="flex-1 cursor-pointer text-[15px] font-semibold text-[var(--text-primary)] hover:text-stone-400 transition-colors truncate"
+            className="flex-1 cursor-pointer text-[15px] font-semibold text-[var(--text-primary)] hover:text-[var(--text-faint)] transition-colors truncate"
             onClick={() => setNameEdit(true)}
           >
             {seq.name}
@@ -390,15 +390,15 @@ export function SequenceBuilderPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-stone-200 dark:border-stone-800 px-6">
+      <div className="flex border-b border-[var(--border-soft)] px-6">
         {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition-colors ${tab === t.key ? "border-stone-500 text-[var(--text-primary)]" : "border-transparent text-stone-500 hover:text-stone-300"}`}
+            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-xs font-medium transition-colors ${tab === t.key ? "border-[var(--border-strong)] text-[var(--text-primary)]" : "border-transparent text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}
           >
             {t.label}
-            {t.count != null && <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${tab === t.key ? "bg-stone-500/20 text-stone-300" : "bg-[var(--surface-hover)] text-stone-600"}`}>{t.count}</span>}
+            {t.count != null && <span className={`rounded-full px-1.5 py-0.5 text-[9px] ${tab === t.key ? "bg-stone-500/20 text-[var(--text-faint)]" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"}`}>{t.count}</span>}
           </button>
         ))}
       </div>
@@ -411,9 +411,9 @@ export function SequenceBuilderPage() {
           <div className="max-w-xl mx-auto">
             {seq.steps.length === 0 ? (
               <div className="mb-6 rounded-sm border border-dashed border-[var(--border-soft)] py-10 text-center">
-                <Mail size={20} className="mx-auto mb-2 text-stone-700"/>
-                <p className="text-sm font-medium text-stone-400">No steps yet</p>
-                <p className="mt-1 text-xs text-stone-600">Add an email or task step to build your sequence</p>
+                <Mail size={20} className="mx-auto mb-2 text-[var(--text-faint)]"/>
+                <p className="text-sm font-medium text-[var(--text-faint)]">No steps yet</p>
+                <p className="mt-1 text-xs text-[var(--text-secondary)]">Add an email or task step to build your sequence</p>
               </div>
             ) : (
               <div className="space-y-6 mb-6">
@@ -434,14 +434,14 @@ export function SequenceBuilderPage() {
               <button
                 onClick={() => addStep.mutate("email")}
                 disabled={addStep.isPending}
-                className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5 text-xs text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
               >
-                <Mail size={12} className="text-stone-400"/> Add email step
+                <Mail size={12} className="text-[var(--text-faint)]"/> Add email step
               </button>
               <button
                 onClick={() => addStep.mutate("task")}
                 disabled={addStep.isPending}
-                className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5 text-xs text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+                className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <CheckSquare size={12} className="text-blue-400"/> Add task step
               </button>
@@ -454,34 +454,34 @@ export function SequenceBuilderPage() {
           <div className="max-w-2xl mx-auto">
             {seq.enrollments.length === 0 ? (
               <div className="rounded-sm border border-dashed border-[var(--border-soft)] py-10 text-center">
-                <Users size={20} className="mx-auto mb-2 text-stone-700"/>
-                <p className="text-sm font-medium text-stone-400">No contacts enrolled</p>
-                <p className="mt-1 text-xs text-stone-600">Go to a People or Company record and enroll them in this sequence</p>
+                <Users size={20} className="mx-auto mb-2 text-[var(--text-faint)]"/>
+                <p className="text-sm font-medium text-[var(--text-faint)]">No contacts enrolled</p>
+                <p className="mt-1 text-xs text-[var(--text-secondary)]">Go to a People or Company record and enroll them in this sequence</p>
               </div>
             ) : (
               <div className="minimal-sheet overflow-hidden">
           <table className="minimal-table text-xs">
-                  <thead className="border-b border-stone-200 dark:border-stone-800 bg-[var(--surface-hover)]">
+                  <thead className="border-b border-[var(--border-soft)] bg-[var(--surface-hover)]">
                     <tr>
-                      <th className="px-4 py-2.5 text-left font-medium text-stone-500">Contact</th>
-                      <th className="px-4 py-2.5 text-left font-medium text-stone-500">Company</th>
-                      <th className="px-4 py-2.5 text-left font-medium text-stone-500">Step</th>
-                      <th className="px-4 py-2.5 text-left font-medium text-stone-500">Status</th>
-                      <th className="px-4 py-2.5 text-left font-medium text-stone-500">Enrolled</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-[var(--text-muted)]">Contact</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-[var(--text-muted)]">Company</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-[var(--text-muted)]">Step</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-[var(--text-muted)]">Status</th>
+                      <th className="px-4 py-2.5 text-left font-medium text-[var(--text-muted)]">Enrolled</th>
                     </tr>
                   </thead>
                   <tbody>
                     {seq.enrollments.map((e, i) => (
                       <tr key={e.id} className={`border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] ${i === seq.enrollments.length - 1 ? "border-0" : ""}`}>
                         <td className="px-4 py-2.5 font-medium text-[var(--text-primary)]">{e.contact_name}</td>
-                        <td className="px-4 py-2.5 text-stone-500">{e.company || "—"}</td>
-                        <td className="px-4 py-2.5 text-stone-400">{e.current_step} / {seq.steps.length}</td>
+                        <td className="px-4 py-2.5 text-[var(--text-muted)]">{e.company || "—"}</td>
+                        <td className="px-4 py-2.5 text-[var(--text-faint)]">{e.current_step} / {seq.steps.length}</td>
                         <td className="px-4 py-2.5">
                           <span className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold capitalize ${STATUS_STYLES[e.status] ?? STATUS_STYLES.active}`}>
                             {e.status}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-stone-600">
+                        <td className="px-4 py-2.5 text-[var(--text-secondary)]">
                           {new Date(e.enrolled_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                         </td>
                       </tr>
@@ -500,12 +500,12 @@ export function SequenceBuilderPage() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
                 { label: "Enrolled", value: totalEnrolled, color: "text-[var(--text-primary)]" },
-                { label: "Open rate", value: `${openRate}%`, color: openRate >= 30 ? "text-emerald-400" : openRate >= 15 ? "text-amber-400" : "text-stone-400" },
-                { label: "Click rate", value: `${clickRate}%`, color: clickRate >= 10 ? "text-emerald-400" : "text-stone-400" },
-                { label: "Reply rate", value: `${replyRate}%`, color: replyRate >= 5 ? "text-emerald-400" : "text-stone-400" },
+                { label: "Open rate", value: `${openRate}%`, color: openRate >= 30 ? "text-emerald-400" : openRate >= 15 ? "text-amber-400" : "text-[var(--text-faint)]" },
+                { label: "Click rate", value: `${clickRate}%`, color: clickRate >= 10 ? "text-emerald-400" : "text-[var(--text-faint)]" },
+                { label: "Reply rate", value: `${replyRate}%`, color: replyRate >= 5 ? "text-emerald-400" : "text-[var(--text-faint)]" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="premium-panel px-4 py-4">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">{label}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">{label}</p>
                   <p className={`mt-1.5 text-2xl font-bold ${color}`}>{value}</p>
                 </div>
               ))}
@@ -514,10 +514,10 @@ export function SequenceBuilderPage() {
             {/* Step-by-step funnel */}
             {seq.steps.length > 0 && (
               <div className="minimal-sheet overflow-hidden">
-                <div className="border-b border-stone-200 dark:border-stone-800 px-4 py-3">
+                <div className="border-b border-[var(--border-soft)] px-4 py-3">
                   <p className="text-xs font-semibold text-[var(--text-primary)]">Step performance</p>
                 </div>
-                <div className="divide-y divide-stone-200 dark:divide-stone-800">
+                <div className="divide-y divide-[var(--border-soft)]">
                   {seq.steps.map((step, i) => {
                     const sent = Number(step.sent_count ?? 0);
                     const opened = Number(step.opened_count ?? 0);
@@ -525,13 +525,13 @@ export function SequenceBuilderPage() {
                     const pct = sent > 0 ? Math.round((opened / sent) * 100) : 0;
                     return (
                       <div key={i} className="flex items-center gap-4 px-4 py-3">
-                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[10px] font-bold text-stone-400">{i + 1}</div>
+                        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--surface-hover)] text-[10px] font-bold text-[var(--text-faint)]">{i + 1}</div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-[var(--text-primary)] truncate">{String(step.label ?? step.subject ?? `Step ${i + 1}`)}</p>
-                          <p className="text-[10px] text-stone-600 capitalize">{String(step.type ?? "email")}</p>
+                          <p className="text-[10px] text-[var(--text-secondary)] capitalize">{String(step.type ?? "email")}</p>
                         </div>
                         <div className="text-right shrink-0 space-y-0.5">
-                          <p className="text-xs text-stone-400">{sent > 0 ? `${sent} sent` : "Not sent yet"}</p>
+                          <p className="text-xs text-[var(--text-faint)]">{sent > 0 ? `${sent} sent` : "Not sent yet"}</p>
                           {sent > 0 && <p className="text-[10px] text-[var(--text-secondary)]">{opened} opened · {clicked} clicked · {pct}%</p>}
                         </div>
                       </div>
@@ -545,11 +545,11 @@ export function SequenceBuilderPage() {
             <div className="premium-panel px-4 py-4 flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-[var(--text-primary)]">Unsubscribes</p>
-                <p className="text-[11px] text-stone-600 mt-0.5">Contacts who opted out</p>
+                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Contacts who opted out</p>
               </div>
               <div className="text-right">
-                <p className="text-xl font-bold text-stone-400">{totalUnsubscribed}</p>
-                <p className="text-[10px] text-stone-600">{totalEnrolled > 0 ? Math.round((totalUnsubscribed / totalEnrolled) * 100) : 0}% rate</p>
+                <p className="text-xl font-bold text-[var(--text-faint)]">{totalUnsubscribed}</p>
+                <p className="text-[10px] text-[var(--text-secondary)]">{totalEnrolled > 0 ? Math.round((totalUnsubscribed / totalEnrolled) * 100) : 0}% rate</p>
               </div>
             </div>
 
@@ -564,12 +564,12 @@ export function SequenceBuilderPage() {
           <div className="max-w-lg mx-auto space-y-4">
             {/* Sending window */}
             <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
-              <div className="border-b border-stone-200 dark:border-stone-800 px-4 py-3">
+              <div className="border-b border-[var(--border-soft)] px-4 py-3">
                 <p className="text-xs font-semibold text-[var(--text-primary)]">Sending window</p>
               </div>
               <div className="space-y-4 px-4 py-4">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs text-stone-400">Sending days</label>
+                  <label className="text-xs text-[var(--text-faint)]">Sending days</label>
                   <div className="flex gap-1">
                     {DAYS.map(d => {
                       const active = seq.settings.sending_days.includes(d);
@@ -582,7 +582,7 @@ export function SequenceBuilderPage() {
                               : [...seq.settings.sending_days, d];
                             patchSeq.mutate({ settings: { ...seq.settings, sending_days: days } } as any);
                           }}
-                          className={`rounded-md px-2 py-1 text-[9px] font-semibold transition-colors ${active ? "bg-stone-500/20 text-stone-300 border border-stone-500/20" : "bg-[var(--surface-hover)] text-stone-600 border border-[var(--border-soft)] hover:text-stone-400"}`}
+                          className={`rounded-md px-2 py-1 text-[9px] font-semibold transition-colors ${active ? "bg-stone-500/20 text-[var(--text-faint)] border border-stone-500/20" : "bg-[var(--surface-hover)] text-[var(--text-secondary)] border border-[var(--border-soft)] hover:text-[var(--text-faint)]"}`}
                         >
                           {d}
                         </button>
@@ -591,7 +591,7 @@ export function SequenceBuilderPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <label className="text-xs text-stone-400">Send window</label>
+                  <label className="text-xs text-[var(--text-faint)]">Send window</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="time"
@@ -599,7 +599,7 @@ export function SequenceBuilderPage() {
                       onChange={e => patchSeq.mutate({ settings: { ...seq.settings, send_start: e.target.value } } as any)}
                       className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                     />
-                    <span className="text-xs text-stone-600">to</span>
+                    <span className="text-xs text-[var(--text-secondary)]">to</span>
                     <input
                       type="time"
                       value={seq.settings.send_end}
@@ -609,7 +609,7 @@ export function SequenceBuilderPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <label className="text-xs text-stone-400">Daily email limit</label>
+                  <label className="text-xs text-[var(--text-faint)]">Daily email limit</label>
                   <input
                     type="number" min={1} max={500}
                     value={seq.settings.daily_limit}
@@ -622,7 +622,7 @@ export function SequenceBuilderPage() {
 
             {/* Behavior */}
             <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
-              <div className="border-b border-stone-200 dark:border-stone-800 px-4 py-3">
+              <div className="border-b border-[var(--border-soft)] px-4 py-3">
                 <p className="text-xs font-semibold text-[var(--text-primary)]">Behavior</p>
               </div>
               <div className="divide-y divide-white/[.04] px-4">
@@ -633,7 +633,7 @@ export function SequenceBuilderPage() {
                   <div key={key} className="flex items-center justify-between py-3.5">
                     <div>
                       <p className="text-xs font-medium text-[var(--text-primary)]">{label}</p>
-                      <p className="mt-0.5 text-[10px] text-stone-600">{sub}</p>
+                      <p className="mt-0.5 text-[10px] text-[var(--text-secondary)]">{sub}</p>
                     </div>
                     <Toggle
                       checked={!!(seq.settings as any)[key]}
