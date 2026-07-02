@@ -28372,6 +28372,222 @@ var init_client = __esm({
   }
 });
 
+// src/lib/google.ts
+var google_exports = {};
+__export(google_exports, {
+  GOOGLE_SCOPES: () => GOOGLE_SCOPES,
+  exchangeCode: () => exchangeCode,
+  freshAccessToken: () => freshAccessToken,
+  gmailSend: () => gmailSend,
+  gmailThread: () => gmailThread,
+  gmailThreads: () => gmailThreads,
+  googleAuthUrl: () => googleAuthUrl,
+  googleCalendarEvents: () => googleCalendarEvents,
+  googleConfigured: () => googleConfigured
+});
+function googleConfigured() {
+  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+}
+function googleAuthUrl(redirectUri, state) {
+  const u2 = new URL(AUTH_URL);
+  u2.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID ?? "");
+  u2.searchParams.set("redirect_uri", redirectUri);
+  u2.searchParams.set("response_type", "code");
+  u2.searchParams.set("scope", GOOGLE_SCOPES.join(" "));
+  u2.searchParams.set("access_type", "offline");
+  u2.searchParams.set("prompt", "consent");
+  u2.searchParams.set("include_granted_scopes", "true");
+  u2.searchParams.set("state", state);
+  return u2.toString();
+}
+function decodeJwtEmail(idToken) {
+  if (!idToken) return void 0;
+  try {
+    const payload = idToken.split(".")[1];
+    if (!payload) return void 0;
+    const json2 = JSON.parse(Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
+    return typeof json2.email === "string" ? json2.email : void 0;
+  } catch {
+    return void 0;
+  }
+}
+async function exchangeCode(code, redirectUri) {
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
+      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code"
+    })
+  });
+  if (!res.ok) {
+    console.error("[google] code exchange failed", res.status, await res.text().catch(() => ""));
+    return null;
+  }
+  const t2 = await res.json();
+  return { access_token: t2.access_token, refresh_token: t2.refresh_token, expires_in: t2.expires_in, email: decodeJwtEmail(t2.id_token) };
+}
+async function freshAccessToken(conn) {
+  const stillValid = conn.access_token && conn.token_expiry && new Date(conn.token_expiry).getTime() > Date.now() + 6e4;
+  if (stillValid) return conn.access_token;
+  if (!conn.refresh_token) return null;
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      refresh_token: conn.refresh_token,
+      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
+      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+      grant_type: "refresh_token"
+    })
+  });
+  if (!res.ok) {
+    console.error("[google] token refresh failed", res.status, await res.text().catch(() => ""));
+    return null;
+  }
+  const t2 = await res.json();
+  await supabase.from("email_connections").update({
+    access_token: t2.access_token,
+    token_expiry: new Date(Date.now() + t2.expires_in * 1e3).toISOString()
+  }).eq("id", conn.id);
+  return t2.access_token;
+}
+async function gmailSend(accessToken, msg) {
+  const headers = [
+    `To: ${msg.to.join(", ")}`,
+    msg.from ? `From: ${msg.from}` : "",
+    `Subject: ${msg.subject}`,
+    msg.inReplyTo ? `In-Reply-To: ${msg.inReplyTo}` : "",
+    msg.inReplyTo ? `References: ${msg.inReplyTo}` : "",
+    "MIME-Version: 1.0",
+    'Content-Type: text/html; charset="UTF-8"',
+    "",
+    msg.html
+  ].filter(Boolean).join("\r\n");
+  const raw2 = Buffer.from(headers).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  try {
+    const res = await fetch(GMAIL_SEND_URL, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(msg.threadId ? { raw: raw2, threadId: msg.threadId } : { raw: raw2 })
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+async function gmailThreads(accessToken, opts = {}) {
+  const params = new URLSearchParams({ maxResults: String(opts.max ?? 20) });
+  if (opts.q) params.set("q", opts.q);
+  const listRes = await fetch(`${GMAIL_BASE}/threads?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!listRes.ok) return [];
+  const list = await listRes.json();
+  const ids = (list.threads ?? []).map((t2) => t2.id);
+  const summaries = await Promise.all(ids.map(async (id) => {
+    const r2 = await fetch(`${GMAIL_BASE}/threads/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`, { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!r2.ok) return null;
+    const t2 = await r2.json();
+    const msgs = t2.messages ?? [];
+    const last = msgs[msgs.length - 1];
+    return {
+      id: t2.id,
+      subject: header(last?.payload?.headers, "Subject"),
+      from: header(last?.payload?.headers, "From"),
+      date: header(last?.payload?.headers, "Date"),
+      snippet: last?.snippet ?? "",
+      unread: msgs.some((m2) => (m2.labelIds ?? []).includes("UNREAD"))
+    };
+  }));
+  return summaries.filter((s2) => s2 !== null);
+}
+function decodeBody(payload) {
+  if (!payload) return "";
+  if (payload.body?.data) {
+    try {
+      return Buffer.from(payload.body.data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+    } catch {
+      return "";
+    }
+  }
+  for (const part of payload.parts ?? []) {
+    if (part.mimeType === "text/html" || part.mimeType === "text/plain") {
+      const b2 = decodeBody(part);
+      if (b2) return b2;
+    }
+  }
+  for (const part of payload.parts ?? []) {
+    const b2 = decodeBody(part);
+    if (b2) return b2;
+  }
+  return "";
+}
+async function googleCalendarEvents(accessToken, timeMin, timeMax) {
+  const params = new URLSearchParams({
+    timeMin,
+    timeMax,
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "50"
+  });
+  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  if (!res.ok) {
+    console.error("[google] calendar fetch failed", res.status, await res.text().catch(() => ""));
+    return [];
+  }
+  const data = await res.json();
+  return (data.items ?? []).filter((e2) => e2.status !== "cancelled").map((e2) => ({
+    id: String(e2.id),
+    title: e2.summary ?? "(no title)",
+    start: e2.start?.dateTime ?? e2.start?.date ?? "",
+    end: e2.end?.dateTime ?? e2.end?.date,
+    allDay: !e2.start?.dateTime,
+    location: e2.location,
+    attendees: Array.isArray(e2.attendees) ? e2.attendees.length : 0,
+    meetingUrl: e2.hangoutLink ?? (Array.isArray(e2.conferenceData?.entryPoints) ? e2.conferenceData.entryPoints.find((p2) => p2.entryPointType === "video")?.uri : void 0),
+    provider: "google"
+  })).filter((e2) => e2.start);
+}
+async function gmailThread(accessToken, threadId) {
+  const r2 = await fetch(`${GMAIL_BASE}/threads/${threadId}?format=full`, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!r2.ok) return [];
+  const t2 = await r2.json();
+  return (t2.messages ?? []).map((m2) => ({
+    id: m2.id,
+    messageId: header(m2.payload?.headers, "Message-ID"),
+    from: header(m2.payload?.headers, "From"),
+    to: header(m2.payload?.headers, "To"),
+    date: header(m2.payload?.headers, "Date"),
+    subject: header(m2.payload?.headers, "Subject"),
+    snippet: m2.snippet ?? "",
+    body: decodeBody(m2.payload)
+  }));
+}
+var TOKEN_URL, AUTH_URL, GMAIL_BASE, GMAIL_SEND_URL, GOOGLE_SCOPES, header;
+var init_google = __esm({
+  "src/lib/google.ts"() {
+    "use strict";
+    init_client();
+    TOKEN_URL = "https://oauth2.googleapis.com/token";
+    AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+    GMAIL_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
+    GMAIL_SEND_URL = `${GMAIL_BASE}/messages/send`;
+    GOOGLE_SCOPES = [
+      "openid",
+      "email",
+      "profile",
+      "https://www.googleapis.com/auth/gmail.send",
+      "https://www.googleapis.com/auth/gmail.readonly",
+      "https://www.googleapis.com/auth/calendar.readonly"
+    ];
+    header = (headers, name) => headers?.find((h2) => h2.name.toLowerCase() === name.toLowerCase())?.value ?? "";
+  }
+});
+
 // ../../node_modules/.pnpm/openai@4.104.0_zod@3.25.76/node_modules/openai/internal/qs/formats.mjs
 var default_format, formatters, RFC1738;
 var init_formats = __esm({
@@ -43746,6 +43962,155 @@ var init_mcp_token = __esm({
   }
 });
 
+// src/lib/microsoft.ts
+var microsoft_exports = {};
+__export(microsoft_exports, {
+  MICROSOFT_SCOPES: () => MICROSOFT_SCOPES,
+  exchangeCode: () => exchangeCode2,
+  freshAccessToken: () => freshAccessToken2,
+  microsoftAuthUrl: () => microsoftAuthUrl,
+  microsoftCalendarEvents: () => microsoftCalendarEvents,
+  microsoftConfigured: () => microsoftConfigured,
+  microsoftSend: () => microsoftSend
+});
+function microsoftConfigured() {
+  return Boolean(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
+}
+function microsoftAuthUrl(redirectUri, state) {
+  const u2 = new URL(AUTH_URL2);
+  u2.searchParams.set("client_id", process.env.MICROSOFT_CLIENT_ID ?? "");
+  u2.searchParams.set("redirect_uri", redirectUri);
+  u2.searchParams.set("response_type", "code");
+  u2.searchParams.set("response_mode", "query");
+  u2.searchParams.set("scope", MICROSOFT_SCOPES.join(" "));
+  u2.searchParams.set("state", state);
+  return u2.toString();
+}
+function decodeJwtEmail2(idToken) {
+  if (!idToken) return void 0;
+  try {
+    const payload = idToken.split(".")[1];
+    if (!payload) return void 0;
+    const json2 = JSON.parse(Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
+    return json2.email ?? json2.preferred_username ?? json2.upn;
+  } catch {
+    return void 0;
+  }
+}
+async function exchangeCode2(code, redirectUri) {
+  const res = await fetch(TOKEN_URL2, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: process.env.MICROSOFT_CLIENT_ID ?? "",
+      client_secret: process.env.MICROSOFT_CLIENT_SECRET ?? "",
+      redirect_uri: redirectUri,
+      grant_type: "authorization_code",
+      scope: MICROSOFT_SCOPES.join(" ")
+    })
+  });
+  if (!res.ok) {
+    console.error("[microsoft] code exchange failed", res.status, await res.text().catch(() => ""));
+    return null;
+  }
+  const t2 = await res.json();
+  return { access_token: t2.access_token, refresh_token: t2.refresh_token, expires_in: t2.expires_in, email: decodeJwtEmail2(t2.id_token) };
+}
+async function freshAccessToken2(conn) {
+  const stillValid = conn.access_token && conn.token_expiry && new Date(conn.token_expiry).getTime() > Date.now() + 6e4;
+  if (stillValid) return conn.access_token;
+  if (!conn.refresh_token) return null;
+  const res = await fetch(TOKEN_URL2, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      refresh_token: conn.refresh_token,
+      client_id: process.env.MICROSOFT_CLIENT_ID ?? "",
+      client_secret: process.env.MICROSOFT_CLIENT_SECRET ?? "",
+      grant_type: "refresh_token",
+      scope: MICROSOFT_SCOPES.join(" ")
+    })
+  });
+  if (!res.ok) {
+    console.error("[microsoft] token refresh failed", res.status, await res.text().catch(() => ""));
+    return null;
+  }
+  const t2 = await res.json();
+  await supabase.from("email_connections").update({
+    access_token: t2.access_token,
+    token_expiry: new Date(Date.now() + t2.expires_in * 1e3).toISOString()
+  }).eq("id", conn.id);
+  return t2.access_token;
+}
+async function microsoftCalendarEvents(accessToken, timeMin, timeMax) {
+  const params = new URLSearchParams({
+    startDateTime: timeMin,
+    endDateTime: timeMax,
+    $orderby: "start/dateTime",
+    $top: "50"
+  });
+  const res = await fetch(`${GRAPH}/me/calendarView?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${accessToken}`, Prefer: 'outlook.timezone="UTC"' }
+  });
+  if (!res.ok) {
+    console.error("[microsoft] calendar fetch failed", res.status, await res.text().catch(() => ""));
+    return [];
+  }
+  const data = await res.json();
+  return (data.value ?? []).filter((e2) => !e2.isCancelled).map((e2) => ({
+    id: String(e2.id),
+    title: e2.subject ?? "(no title)",
+    // Graph returns naive UTC strings (no Z) when we ask for UTC — normalize to ISO.
+    start: e2.start?.dateTime ? `${e2.start.dateTime.replace(/(\.\d+)?$/, "")}Z`.replace("ZZ", "Z") : "",
+    end: e2.end?.dateTime ? `${e2.end.dateTime.replace(/(\.\d+)?$/, "")}Z`.replace("ZZ", "Z") : void 0,
+    allDay: Boolean(e2.isAllDay),
+    location: e2.location?.displayName || void 0,
+    attendees: Array.isArray(e2.attendees) ? e2.attendees.length : 0,
+    meetingUrl: e2.onlineMeeting?.joinUrl || void 0,
+    provider: "microsoft"
+  })).filter((e2) => e2.start);
+}
+async function microsoftSend(accessToken, msg) {
+  try {
+    const res = await fetch(`${GRAPH}/me/sendMail`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: {
+          subject: msg.subject,
+          body: { contentType: "HTML", content: msg.html },
+          toRecipients: msg.to.map((address) => ({ emailAddress: { address } }))
+        },
+        saveToSentItems: true
+      })
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+var TENANT, AUTH_URL2, TOKEN_URL2, GRAPH, MICROSOFT_SCOPES;
+var init_microsoft = __esm({
+  "src/lib/microsoft.ts"() {
+    "use strict";
+    init_client();
+    TENANT = "common";
+    AUTH_URL2 = `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/authorize`;
+    TOKEN_URL2 = `https://login.microsoftonline.com/${TENANT}/oauth2/v2.0/token`;
+    GRAPH = "https://graph.microsoft.com/v1.0";
+    MICROSOFT_SCOPES = [
+      "openid",
+      "email",
+      "profile",
+      "offline_access",
+      "https://graph.microsoft.com/Mail.Send",
+      "https://graph.microsoft.com/Mail.Read",
+      "https://graph.microsoft.com/Calendars.Read"
+    ];
+  }
+});
+
 // ../../node_modules/.pnpm/@hono+node-server@2.0.4_hono@4.12.23/node_modules/@hono/node-server/dist/constants-BLSFu_RU.mjs
 var X_ALREADY_SENT = "x-hono-already-sent";
 
@@ -56841,177 +57206,7 @@ init_client();
 
 // src/lib/mail.ts
 init_client();
-
-// src/lib/google.ts
-init_client();
-var TOKEN_URL = "https://oauth2.googleapis.com/token";
-var AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
-var GMAIL_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
-var GMAIL_SEND_URL = `${GMAIL_BASE}/messages/send`;
-var GOOGLE_SCOPES = [
-  "openid",
-  "email",
-  "profile",
-  "https://www.googleapis.com/auth/gmail.send",
-  "https://www.googleapis.com/auth/gmail.readonly"
-];
-function googleConfigured() {
-  return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
-}
-function googleAuthUrl(redirectUri, state) {
-  const u2 = new URL(AUTH_URL);
-  u2.searchParams.set("client_id", process.env.GOOGLE_CLIENT_ID ?? "");
-  u2.searchParams.set("redirect_uri", redirectUri);
-  u2.searchParams.set("response_type", "code");
-  u2.searchParams.set("scope", GOOGLE_SCOPES.join(" "));
-  u2.searchParams.set("access_type", "offline");
-  u2.searchParams.set("prompt", "consent");
-  u2.searchParams.set("include_granted_scopes", "true");
-  u2.searchParams.set("state", state);
-  return u2.toString();
-}
-function decodeJwtEmail(idToken) {
-  if (!idToken) return void 0;
-  try {
-    const payload = idToken.split(".")[1];
-    if (!payload) return void 0;
-    const json2 = JSON.parse(Buffer.from(payload.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8"));
-    return typeof json2.email === "string" ? json2.email : void 0;
-  } catch {
-    return void 0;
-  }
-}
-async function exchangeCode(code, redirectUri) {
-  const res = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      code,
-      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
-      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      redirect_uri: redirectUri,
-      grant_type: "authorization_code"
-    })
-  });
-  if (!res.ok) {
-    console.error("[google] code exchange failed", res.status, await res.text().catch(() => ""));
-    return null;
-  }
-  const t2 = await res.json();
-  return { access_token: t2.access_token, refresh_token: t2.refresh_token, expires_in: t2.expires_in, email: decodeJwtEmail(t2.id_token) };
-}
-async function freshAccessToken(conn) {
-  const stillValid = conn.access_token && conn.token_expiry && new Date(conn.token_expiry).getTime() > Date.now() + 6e4;
-  if (stillValid) return conn.access_token;
-  if (!conn.refresh_token) return null;
-  const res = await fetch(TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      refresh_token: conn.refresh_token,
-      client_id: process.env.GOOGLE_CLIENT_ID ?? "",
-      client_secret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-      grant_type: "refresh_token"
-    })
-  });
-  if (!res.ok) {
-    console.error("[google] token refresh failed", res.status, await res.text().catch(() => ""));
-    return null;
-  }
-  const t2 = await res.json();
-  await supabase.from("email_connections").update({
-    access_token: t2.access_token,
-    token_expiry: new Date(Date.now() + t2.expires_in * 1e3).toISOString()
-  }).eq("id", conn.id);
-  return t2.access_token;
-}
-async function gmailSend(accessToken, msg) {
-  const headers = [
-    `To: ${msg.to.join(", ")}`,
-    msg.from ? `From: ${msg.from}` : "",
-    `Subject: ${msg.subject}`,
-    msg.inReplyTo ? `In-Reply-To: ${msg.inReplyTo}` : "",
-    msg.inReplyTo ? `References: ${msg.inReplyTo}` : "",
-    "MIME-Version: 1.0",
-    'Content-Type: text/html; charset="UTF-8"',
-    "",
-    msg.html
-  ].filter(Boolean).join("\r\n");
-  const raw2 = Buffer.from(headers).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  try {
-    const res = await fetch(GMAIL_SEND_URL, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify(msg.threadId ? { raw: raw2, threadId: msg.threadId } : { raw: raw2 })
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-var header = (headers, name) => headers?.find((h2) => h2.name.toLowerCase() === name.toLowerCase())?.value ?? "";
-async function gmailThreads(accessToken, opts = {}) {
-  const params = new URLSearchParams({ maxResults: String(opts.max ?? 20) });
-  if (opts.q) params.set("q", opts.q);
-  const listRes = await fetch(`${GMAIL_BASE}/threads?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!listRes.ok) return [];
-  const list = await listRes.json();
-  const ids = (list.threads ?? []).map((t2) => t2.id);
-  const summaries = await Promise.all(ids.map(async (id) => {
-    const r2 = await fetch(`${GMAIL_BASE}/threads/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!r2.ok) return null;
-    const t2 = await r2.json();
-    const msgs = t2.messages ?? [];
-    const last = msgs[msgs.length - 1];
-    return {
-      id: t2.id,
-      subject: header(last?.payload?.headers, "Subject"),
-      from: header(last?.payload?.headers, "From"),
-      date: header(last?.payload?.headers, "Date"),
-      snippet: last?.snippet ?? "",
-      unread: msgs.some((m2) => (m2.labelIds ?? []).includes("UNREAD"))
-    };
-  }));
-  return summaries.filter((s2) => s2 !== null);
-}
-function decodeBody(payload) {
-  if (!payload) return "";
-  if (payload.body?.data) {
-    try {
-      return Buffer.from(payload.body.data.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
-    } catch {
-      return "";
-    }
-  }
-  for (const part of payload.parts ?? []) {
-    if (part.mimeType === "text/html" || part.mimeType === "text/plain") {
-      const b2 = decodeBody(part);
-      if (b2) return b2;
-    }
-  }
-  for (const part of payload.parts ?? []) {
-    const b2 = decodeBody(part);
-    if (b2) return b2;
-  }
-  return "";
-}
-async function gmailThread(accessToken, threadId) {
-  const r2 = await fetch(`${GMAIL_BASE}/threads/${threadId}?format=full`, { headers: { Authorization: `Bearer ${accessToken}` } });
-  if (!r2.ok) return [];
-  const t2 = await r2.json();
-  return (t2.messages ?? []).map((m2) => ({
-    id: m2.id,
-    messageId: header(m2.payload?.headers, "Message-ID"),
-    from: header(m2.payload?.headers, "From"),
-    to: header(m2.payload?.headers, "To"),
-    date: header(m2.payload?.headers, "Date"),
-    subject: header(m2.payload?.headers, "Subject"),
-    snippet: m2.snippet ?? "",
-    body: decodeBody(m2.payload)
-  }));
-}
-
-// src/lib/mail.ts
+init_google();
 async function sendViaGoogle(workspaceId, msg) {
   try {
     const { data: conn } = await supabase.from("email_connections").select("id, refresh_token, access_token, token_expiry, email").eq("workspace_id", workspaceId).eq("provider", "google").limit(1).maybeSingle();
@@ -62404,6 +62599,43 @@ async function verifiedPowUserIds(sinceMs = 30 * 24 * 60 * 60 * 1e3) {
 
 // src/routes/activities.ts
 var router9 = new Hono2();
+router9.get("/trends", requireAuth, async (c2) => {
+  const ws = c2.get("workspaceId");
+  const DAYS = 14;
+  const since = new Date(Date.now() - DAYS * 24 * 60 * 60 * 1e3);
+  const sinceIso = since.toISOString();
+  const dayKeys = [];
+  for (let i2 = DAYS - 1; i2 >= 0; i2--) dayKeys.push(new Date(Date.now() - i2 * 24 * 60 * 60 * 1e3).toISOString().slice(0, 10));
+  const emptySeries = () => Object.fromEntries(dayKeys.map((d2) => [d2, 0]));
+  const bucket = (rows2, into) => {
+    for (const r2 of rows2 ?? []) {
+      const k2 = String(r2.created_at).slice(0, 10);
+      if (k2 in into) into[k2] = (into[k2] ?? 0) + 1;
+    }
+  };
+  const [nodes, tasks2, risks] = await Promise.all([
+    supabase.from("nodes").select("created_at, object_type").eq("workspace_id", ws).gte("created_at", sinceIso).limit(5e3),
+    supabase.from("tasks").select("created_at").eq("workspace_id", ws).gte("created_at", sinceIso).limit(5e3),
+    supabase.from("notifications").select("created_at").eq("workspace_id", ws).eq("type", "ai_risk").gte("created_at", sinceIso).limit(2e3)
+  ]);
+  const records = emptySeries(), relationships = emptySeries(), workflows = emptySeries(), taskSeries = emptySeries(), riskSeries = emptySeries();
+  bucket(nodes.data, records);
+  bucket((nodes.data ?? []).filter((n2) => /person|people|company|companies|contact/i.test(String(n2.object_type))), relationships);
+  bucket((nodes.data ?? []).filter((n2) => String(n2.object_type) === "automation"), workflows);
+  bucket(tasks2.data, taskSeries);
+  bucket(risks.data, riskSeries);
+  const toArr = (s2) => dayKeys.map((d2) => s2[d2] ?? 0);
+  return c2.json({
+    days: dayKeys,
+    series: {
+      records: toArr(records),
+      relationships: toArr(relationships),
+      workflows: toArr(workflows),
+      tasksOpen: toArr(taskSeries),
+      risks: toArr(riskSeries)
+    }
+  });
+});
 router9.get("/oversight", requireAuth, requireAdminRole, async (c2) => {
   const ws = c2.get("workspaceId");
   const limit2 = Math.min(Number(c2.req.query("limit")) || 150, 300);
@@ -64587,6 +64819,7 @@ router17.delete("/:id", async (c2) => {
 
 // src/routes/emails.ts
 init_client();
+init_google();
 var PIXEL_GIF = Buffer.from(
   "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
   "base64"
@@ -67864,19 +68097,27 @@ router40.get("/", async (c2) => {
   const googleConfigured2 = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   checks.push({
     id: "email",
-    label: "Email (Gmail OAuth) configured",
+    label: "Google (Gmail + Calendar) configured",
     state: googleConfigured2 ? "operational" : "needs_setup",
-    explanation: googleConfigured2 ? "GOOGLE_CLIENT_ID/SECRET are set \u2014 users can connect Gmail (read + reply)." : "GOOGLE_CLIENT_ID/SECRET missing \u2014 Connect Gmail will fail."
+    explanation: googleConfigured2 ? "GOOGLE_CLIENT_ID/SECRET are set \u2014 users can connect Google for mail (read + reply) and calendar sync." : "GOOGLE_CLIENT_ID/SECRET missing \u2014 Connect Google (mail + calendar) will fail."
+  });
+  const microsoftConfigured2 = Boolean(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
+  checks.push({
+    id: "microsoft",
+    label: "Microsoft (Outlook + Calendar) configured",
+    state: microsoftConfigured2 ? "operational" : "needs_setup",
+    explanation: microsoftConfigured2 ? "MICROSOFT_CLIENT_ID/SECRET are set \u2014 users can connect Outlook for mail and calendar sync." : "MICROSOFT_CLIENT_ID/SECRET missing \u2014 Connect Outlook will fail (Google can still be used)."
   });
   const stripeKey = Boolean(process.env.STRIPE_SECRET_KEY);
-  const stripePrice = Boolean(process.env.STRIPE_PRICE_PRO_MONTH || process.env.STRIPE_PRICE_BUSINESS_MONTH);
+  const stripePublishable = Boolean(process.env.STRIPE_PUBLISHABLE_KEY);
+  const stripePrice = Boolean(process.env.STRIPE_PRICE_OPERATOR_MONTH || process.env.STRIPE_PRICE_COMMAND_MONTH);
   const stripeWebhook = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
-  const stripeReady = stripeKey && stripePrice && stripeWebhook;
+  const stripeReady = stripeKey && stripePublishable && stripePrice && stripeWebhook;
   checks.push({
     id: "stripe",
     label: "Stripe (billing) configured",
-    state: stripeReady ? "operational" : stripeKey ? "needs_setup" : "needs_setup",
-    explanation: stripeReady ? "Checkout + Customer Portal routes are live and Stripe is fully configured (secret key, a price id, and webhook secret) \u2014 clients can subscribe and self-serve billing." : `Billing routes (/api/v1/billing/checkout + /portal) are built. Still needed: ${[!stripeKey && "STRIPE_SECRET_KEY", !stripePrice && "a STRIPE_PRICE_* id", !stripeWebhook && "STRIPE_WEBHOOK_SECRET"].filter(Boolean).join(", ")}.`
+    state: stripeReady ? "operational" : "needs_setup",
+    explanation: stripeReady ? "Embedded Payment Element, subscriptions, and the webhook are fully configured \u2014 clients can subscribe on-page and tiers activate automatically." : `Embedded billing is built. Still needed: ${[!stripeKey && "STRIPE_SECRET_KEY", !stripePublishable && "STRIPE_PUBLISHABLE_KEY", !stripePrice && "STRIPE_PRICE_OPERATOR_MONTH / _COMMAND_MONTH", !stripeWebhook && "STRIPE_WEBHOOK_SECRET"].filter(Boolean).join(", ")}.`
   });
   const cronSecret = Boolean(process.env.CRON_SECRET);
   checks.push({
@@ -68216,6 +68457,8 @@ router43.post("/", requireJwt, async (c2) => {
 // src/routes/integrations.ts
 var import_node_crypto11 = require("crypto");
 init_client();
+init_google();
+init_microsoft();
 var router44 = new Hono2();
 var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
 var b64url3 = (b2) => Buffer.from(b2).toString("base64url");
@@ -68258,18 +68501,17 @@ function popupHtml(message, ok2) {
 router44.post("/connect", requireAuth, async (c2) => {
   const body = await c2.req.json().catch(() => ({}));
   const provider = normalizeProvider(body.provider);
-  if (provider !== "google") {
-    return c2.json({ error: "Only Google (Gmail) is supported right now \u2014 Outlook is coming soon." }, 400);
+  if (provider === "imap") {
+    return c2.json({ error: "Direct IMAP isn't supported yet \u2014 connect Google or Microsoft." }, 400);
+  }
+  if (!process.env.API_BASE_URL) return c2.json({ error: "API_BASE_URL is not configured (needed for the OAuth redirect)." }, 503);
+  if (provider === "microsoft") {
+    if (!microsoftConfigured()) return c2.json({ error: "MICROSOFT_CLIENT_ID / MICROSOFT_CLIENT_SECRET are not configured on the server." }, 503);
+    const state2 = signState({ u: c2.get("userId"), w: c2.get("workspaceId"), p: "microsoft", exp: Math.floor(Date.now() / 1e3) + 600 });
+    return c2.json({ auth_url: microsoftAuthUrl(callbackUrl(), state2) });
   }
   if (!googleConfigured()) return c2.json({ error: "GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are not configured on the server." }, 503);
-  if (!process.env.API_BASE_URL) return c2.json({ error: "API_BASE_URL is not configured (needed for the OAuth redirect)." }, 503);
-  const state = signState({
-    u: c2.get("userId"),
-    w: c2.get("workspaceId"),
-    p: "google",
-    exp: Math.floor(Date.now() / 1e3) + 600
-    // 10 min
-  });
+  const state = signState({ u: c2.get("userId"), w: c2.get("workspaceId"), p: "google", exp: Math.floor(Date.now() / 1e3) + 600 });
   return c2.json({ auth_url: googleAuthUrl(callbackUrl(), state) });
 });
 router44.get("/callback", async (c2) => {
@@ -68282,13 +68524,14 @@ router44.get("/callback", async (c2) => {
   if (!st2 || typeof st2.u !== "string" || typeof st2.w !== "string") {
     return c2.html(popupHtml("Invalid or expired connection request.", false));
   }
+  const provider = st2.p === "microsoft" ? "microsoft" : "google";
   try {
-    const tokens = await exchangeCode(code, callbackUrl());
-    if (!tokens) return c2.html(popupHtml("Could not complete Google sign-in. Please try again.", false));
+    const tokens = provider === "microsoft" ? await exchangeCode2(code, callbackUrl()) : await exchangeCode(code, callbackUrl());
+    if (!tokens) return c2.html(popupHtml(`Could not complete ${provider === "microsoft" ? "Microsoft" : "Google"} sign-in. Please try again.`, false));
     const row = {
       workspace_id: st2.w,
       user_id: st2.u,
-      provider: "google",
+      provider,
       grant_id: null,
       email: tokens.email ?? "",
       access_token: tokens.access_token,
@@ -68297,12 +68540,35 @@ router44.get("/callback", async (c2) => {
     if (tokens.refresh_token) row.refresh_token = tokens.refresh_token;
     const { error } = await supabase.from("email_connections").upsert(row, { onConflict: "workspace_id,user_id" });
     if (error) {
-      console.error("[google/callback] saving connection failed", error.message);
-      return c2.html(popupHtml("Connected, but saving the mailbox failed.", false));
+      console.error("[integrations/callback] saving connection failed", error.message);
+      return c2.html(popupHtml("Connected, but saving the connection failed.", false));
     }
-    return c2.html(popupHtml(`Connected ${tokens.email ?? "your inbox"}.`, true));
+    return c2.html(popupHtml(`Connected ${tokens.email ?? "your account"}.`, true));
   } catch {
-    return c2.html(popupHtml("Something went wrong connecting your inbox.", false));
+    return c2.html(popupHtml("Something went wrong connecting your account.", false));
+  }
+});
+router44.get("/calendar/events", requireAuth, async (c2) => {
+  const { data: conn } = await supabase.from("email_connections").select("id, provider, refresh_token, access_token, token_expiry, email").eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.get("userId")).maybeSingle();
+  if (!conn) return c2.json({ connected: false, events: [] });
+  const now = /* @__PURE__ */ new Date();
+  const days = Math.min(14, Math.max(1, Number(c2.req.query("days") ?? "1")));
+  const timeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  const timeMax = new Date(now.getTime() + days * 864e5).toISOString();
+  try {
+    if (conn.provider === "microsoft") {
+      const { freshAccessToken: freshAccessToken4, microsoftCalendarEvents: microsoftCalendarEvents2 } = await Promise.resolve().then(() => (init_microsoft(), microsoft_exports));
+      const token2 = await freshAccessToken4(conn);
+      if (!token2) return c2.json({ connected: true, provider: "microsoft", email: conn.email, needs_reauth: true, events: [] });
+      return c2.json({ connected: true, provider: "microsoft", email: conn.email, events: await microsoftCalendarEvents2(token2, timeMin, timeMax) });
+    }
+    const { freshAccessToken: freshAccessToken3, googleCalendarEvents: googleCalendarEvents2 } = await Promise.resolve().then(() => (init_google(), google_exports));
+    const token = await freshAccessToken3(conn);
+    if (!token) return c2.json({ connected: true, provider: "google", email: conn.email, needs_reauth: true, events: [] });
+    return c2.json({ connected: true, provider: "google", email: conn.email, events: await googleCalendarEvents2(token, timeMin, timeMax) });
+  } catch (e2) {
+    console.error("[integrations/calendar] fetch failed", e2 instanceof Error ? e2.message : e2);
+    return c2.json({ connected: true, provider: conn.provider, error: "Could not read your calendar.", events: [] });
   }
 });
 router44.get("/mcp-token", requireAuth, async (c2) => {
