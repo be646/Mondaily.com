@@ -77,7 +77,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
     setRows(dataRows);
     setPhase("inferring");
 
-    // Call backend for Claude schema inference
+    // Call backend for AI schema inference (sovereign gateway)
     try {
       const samples = dataRows.slice(0, 3);
       const res = await apiClient.post<ImportResult>("/import", {
@@ -166,7 +166,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
       </div>
       <div className="text-center">
         <p className="text-xs font-medium text-stone-300">Drop a CSV file or click to browse</p>
-        <p className="mt-0.5 text-[10px] text-stone-600">Claude will auto-detect column types</p>
+        <p className="mt-0.5 text-[10px] text-stone-600">Mondaily AI will auto-detect column types</p>
       </div>
       {phase === "error" && <p className="text-xs text-stone-400">{error}</p>}
     </div>
@@ -177,7 +177,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
     <div className="flex items-center gap-3 rounded-sm border border-stone-500/30 bg-stone-600/[.04] px-4 py-4">
       <LogoMark size={16} className="shrink-0 animate-pulse text-stone-400"/>
       <div>
-        <p className="text-xs font-medium text-stone-300">Inferring schema with Claude…</p>
+        <p className="text-xs font-medium text-stone-300">Inferring schema with Mondaily AI…</p>
         <p className="text-[10px] text-stone-600">{fileName} · {rows.length} rows · {headers.length} columns</p>
       </div>
       <button onClick={reset} className="ml-auto text-stone-600 hover:text-stone-300"><X size={14}/></button>

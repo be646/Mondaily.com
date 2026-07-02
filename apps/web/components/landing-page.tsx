@@ -1291,7 +1291,7 @@ const WORKSPACE_AGENT_LOGS: WgLogLine[][] = [
   [ // Graph
     { t: "cmd", s: 'graph.query("linked records")' },
     { t: "call", s: "POST /api/v1/graph/traverse" },
-    { t: "meta", s: "model cerebras/gpt-oss-120b · reasoning=on" },
+    { t: "meta", s: "model Mondaily Reasoning · private gateway · reasoning=on" },
     { t: "ok", s: "1,240 nodes · 3,418 edges · 84ms" },
     { t: "out", s: '"Acme ↔ 3 open deals, 2 overdue tasks"' },
   ],
