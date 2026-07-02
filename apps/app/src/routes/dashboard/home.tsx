@@ -583,22 +583,7 @@ export function HomePage() {
         {!isChatting && (
           <div className="mx-auto mb-6 flex max-w-2xl flex-col items-center text-center">
             <h2 className="text-[26px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {firstName || "there"}</h2>
-            {/* Today's brief — composed deterministically from the REAL numbers already on this
-                page (never AI-generated, so it can't fabricate and costs nothing per load). */}
-            {(() => {
-              const meetingsToday = meetings.data?.length ?? 0;
-              const parts: string[] = [];
-              if (meetingsToday > 0) parts.push(`${meetingsToday} meeting${meetingsToday === 1 ? "" : "s"} today`);
-              if (overdueCount > 0) parts.push(`${overdueCount} overdue task${overdueCount === 1 ? "" : "s"}`);
-              else if (activeTasks.length > 0) parts.push(`${activeTasks.length} open task${activeTasks.length === 1 ? "" : "s"}`);
-              if (pendingDecisionsCount > 0) parts.push(`${pendingDecisionsCount} decision${pendingDecisionsCount === 1 ? "" : "s"} waiting`);
-              if (unreadCount > 0) parts.push(`${unreadCount} unread update${unreadCount === 1 ? "" : "s"}`);
-              return (
-                <p className="mt-1.5 text-[15px]" style={{ color: "var(--text-muted)" }}>
-                  {parts.length ? parts.join(" · ") : "All clear — what do you want to get done today?"}
-                </p>
-              );
-            })()}
+            <p className="mt-1.5 text-[15px]" style={{ color: "var(--text-muted)" }}>What do you want to get done today?</p>
             <div className="mt-3 flex items-center gap-4">
               <span className="status-line"><span className="live-dot" style={{ background: graphSynced ? "var(--section-accent)" : "#d97706" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
               <span className="status-line"><span className="live-dot" style={{ background: sourcesChecked ? "var(--section-accent)" : "#d97706" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
