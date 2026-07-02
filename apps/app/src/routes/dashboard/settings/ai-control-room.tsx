@@ -93,6 +93,7 @@ export function AIControlRoomSettings() {
           <MatrixRow label="Web search"
             value={byId("sovereign_search")?.state === "operational" ? "Sovereign search appliance (self-hosted SearXNG)" : "Needs setup — SOVEREIGN_SEARCH_URL"}
             tone={byId("sovereign_search")?.state === "operational" ? "ok" : "warn"} />
+          <MatrixRow label="Marketing chat" value="Routes to the backend public ask endpoint on the sovereign gateway — the marketing site holds no AI secrets" tone="ok" />
           <MatrixRow label="Email / calendar" value="Optional client-authorized connectors (Google / Outlook) — not core AI infrastructure" tone="muted" />
           <MatrixRow label="Billing" value="Stripe — payment processor only (Mondaily never stores card numbers)" tone="muted" />
           <MatrixRow label="Training data" value="Human-approved only — connected email/calendar is never used for training unless you explicitly approve it" tone="ok" />

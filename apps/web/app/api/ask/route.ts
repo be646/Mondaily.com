@@ -1,62 +1,42 @@
 import { NextResponse } from "next/server";
 
-const SYSTEM = `You are Mondaily AI — the assistant on Mondaily's marketing site. You help visitors understand what Mondaily does. Be concise, clear, and compelling. Never mention Claude, Anthropic, or any underlying AI technology. Keep replies under 3 sentences.
-
-Mondaily is an AI-native autonomous workspace and asset-graph engine: every record — people, companies, assets, documents, tasks, invoices, conversations — lives on one connected workspace graph. A team of AI agents (Graph, Operations, Relationship, Finance, Insights, Workflow) continuously monitors that graph, enriches records, and raises source-backed signals and recommendations. Agents prepare and recommend; sensitive actions (sending, billing, deleting) wait for human approval in the Decision Queue. Sales pipelines, finance, and tasks are examples of what you can run on the graph — not the whole identity of the product. Avoid pitching Mondaily as a replacement for "CRM and pipelines" — lead with the workspace graph and agents instead.`;
-
 /**
- * Inline AI gateway — mirrors packages/api/src/lib/ai-gateway.ts routing logic.
- * apps/web has no AI SDK deps so we use native fetch directly.
- * Model is controlled by AI_PROVIDER_MODEL env var.
+ * Marketing chat — thin proxy to the backend PUBLIC ASK route. The marketing site holds NO AI
+ * secrets: it forwards the conversation to `${NEXT_PUBLIC_API_URL}/api/v1/public/ask`, which runs on
+ * the sovereign AI gateway (the SYSTEM prompt + provider live there). There is no inline AI gateway,
+ * no Anthropic/OpenAI/Tavily/Clerk dependency — the only env this route needs is NEXT_PUBLIC_API_URL.
+ * On any failure it returns a canned reply; it never calls a third-party AI provider directly.
  */
-async function callAI(
-  system: string,
-  conversationMessages: { role: string; content: string }[],
-): Promise<string> {
-  // SOVEREIGN GATEWAY ONLY — the same self-hosted, OpenAI-compatible gateway as the app (Cerebras
-  // via AI_GATEWAY_BASE_URL / AI_GATEWAY_API_KEY). There is deliberately NO Anthropic/OpenAI
-  // fallback: if the gateway isn't configured or errors, we return "" and the caller shows a
-  // canned reply — the marketing site never silently calls a third-party AI provider.
-  const base = process.env.AI_GATEWAY_BASE_URL;
-  const key = process.env.AI_GATEWAY_API_KEY;
-  if (!base || !key) return "";
 
-  // AI_PROVIDER_MODEL is "openai-compat/<model>" (or a bare id); strip the routing prefix.
-  const spec = process.env.AI_PROVIDER_MODEL ?? "openai-compat/gpt-oss-120b";
-  const modelId = spec.includes("/") ? spec.slice(spec.indexOf("/") + 1) : spec;
-
-  try {
-    const res = await fetch(`${base.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: modelId,
-        max_tokens: 300,
-        messages: [{ role: "system", content: system }, ...conversationMessages],
-      }),
-    });
-    if (!res.ok) return "";
-    const data = await res.json() as { choices?: { message?: { content?: string } }[] };
-    return data.choices?.[0]?.message?.content ?? "";
-  } catch {
-    return "";
-  }
-}
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({ messages: [] })) as {
     messages: { role: string; content: string }[];
   };
-  const { messages } = body;
+  const messages = (body.messages ?? []).slice(-4);
+  if (!messages.length) {
+    return NextResponse.json({ reply: "Ask me anything about Mondaily." });
+  }
+  if (!API_BASE) {
+    // No backend configured — never fall back to a third-party provider.
+    return NextResponse.json({ reply: "Ask me about the workspace graph, AI agents, decisions, or finance." });
+  }
 
   try {
-    const trimmed = (messages ?? []).slice(-4);
-    if (!trimmed.length) {
-      return NextResponse.json({ reply: "Ask me anything about Mondaily." });
-    }
-    const reply = await callAI(SYSTEM, trimmed);
+    // The backend public-ask route expects roles limited to user/assistant.
+    const clean = messages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({ role: m.role, content: m.content }));
+    const res = await fetch(`${API_BASE}/api/v1/public/ask`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: clean.length ? clean : messages }),
+    });
+    if (!res.ok) throw new Error(`public-ask ${res.status}`);
+    const data = (await res.json()) as { reply?: string };
     return NextResponse.json({
-      reply: reply || "Ask me about the workspace graph, AI agents, decisions, or finance.",
+      reply: data.reply || "Ask me about the workspace graph, AI agents, decisions, or finance.",
     });
   } catch {
     return NextResponse.json({
