@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ShieldAlert, CheckSquare, Activity, ArrowUpRight, Sparkles, FileText,
   UserPlus, Receipt, TrendingUp, Users, Database, Workflow, GitBranch, Layers, Clock,
-  CheckCircle2, XCircle, ChevronDown, Loader2, Check, X,
+  CheckCircle2, XCircle, ChevronDown, Loader2, Check, X, Radar,
 } from "lucide-react";
 import { useAgentData } from "./agent-dock";
 import { agentById } from "../../lib/agents";
@@ -126,11 +126,27 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
     .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
     .slice(0, 4);
 
+  // Discovery monitors — surface NEW leads found by the user's watched searches (re-run daily by
+  // the agent) as an actionable line, tying the Discovery engine into Home. Real data: last_new is
+  // the delta from each monitor's most recent run.
+  const monitorsQ = useQuery({
+    queryKey: ["discovery-monitors"],
+    queryFn: () => apiClient.get<{ id: string; query: string; last_new?: number }[]>("/discovery/monitors"),
+    staleTime: 120_000,
+  });
+  const monitorsWithNew = (monitorsQ.data ?? []).filter(m => (m.last_new ?? 0) > 0);
+  const discoveryNew = monitorsWithNew.reduce((s, m) => s + (m.last_new ?? 0), 0);
+
   const stream: StreamItem[] = [
     ...riskAlerts.map(n => ({
       id: n.id, icon: ShieldAlert, agentLabel: "Signal Agent",
       title: n.title, meta: relTime(n.created_at), to: "/notifications", tone: "rose" as const,
     })),
+    ...(discoveryNew > 0 ? [{
+      id: "discovery-new", icon: Radar, agentLabel: "Discovery Agent",
+      title: `${discoveryNew} new lead${discoveryNew === 1 ? "" : "s"} from ${monitorsWithNew.length === 1 ? `"${monitorsWithNew[0]!.query}"` : `${monitorsWithNew.length} watched searches`}`,
+      meta: "since last run", to: "/discovery", tone: "violet" as const,
+    }] : []),
     ...recentActivity.map(a => ({
       id: a.id, icon: a.icon, agentLabel: a.agentName,
       title: a.title, meta: relTime(a.created_at), to: "/notifications", tone: "default" as const,

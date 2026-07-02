@@ -491,7 +491,6 @@ export function HomePage() {
   // Count unread AI risk alerts from notifications (persists across page loads, not just the one scan run)
   const unreadRiskCount = (notificationsQuery.data ?? []).filter(n => n.type === "ai_risk" && !n.is_read).length;
   const unreadCount = (notificationsQuery.data ?? []).filter(n => !n.is_read).length;
-  const pendingDecisionsCount = decisionsQuery.data?.length ?? 0;
   const graphSynced = !tasksQuery.isError && !notificationsQuery.isError && !decisionsQuery.isError;
   const sourcesChecked = !notificationsQuery.isLoading && !notificationsQuery.isError;
   const currentWorkspaceId = typeof window !== "undefined" ? localStorage.getItem("mondaily_workspace_id") : null;
@@ -524,9 +523,10 @@ export function HomePage() {
           {/* Right — signals bar, top-right (always renders; not inside the
               collapsing welcome) */}
           <div className="flex flex-col gap-2 lg:items-end">
+            {/* Decisions count intentionally lives ONLY in the Attention stream below (which owns
+                approvals), not here — the two used to echo the same number. */}
             <div className="home-telemetry-strip">
               <Link to="/tasks" state={{ filter: taskScope === "mine" ? "mine" : "all" }}><ListChecks size={13}/><strong>{activeTasks.length}</strong>{taskScope === "mine" ? "my open tasks" : "open tasks"}</Link>
-              <Link to="/decisions"><FileText size={13}/><strong>{pendingDecisionsCount}</strong>pending decisions</Link>
               <Link to="/notifications"><Inbox size={13}/><strong>{unreadCount}</strong>unread</Link>
             </div>
 
