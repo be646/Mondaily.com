@@ -87,7 +87,7 @@ app.route("/api/v1/discovery", discoveryRouter);
 app.route("/api/v1/workspaces", workspacesRouter);
 app.route("/api/v1/activities", activitiesRouter);
 app.route("/api/v1/realtime", realtimeRouter);
-app.route("/api/v1/auth", authRouter);   // Sovereign Auth (shadow mode — runs alongside Clerk)
+app.route("/api/v1/auth", authRouter);   // Sovereign Auth — the sole auth runtime (Clerk fully removed)
 app.route("/api/v1/credits", creditsRouter);
 app.route("/api/v1/webhooks", webhooksRouter);
 app.route("/api/v1/billing", billingRouter);
