@@ -179,7 +179,7 @@ function ConfigPanel({ report, update, objects }: {
             <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
               {(["line","bar","donut","number"] as const).map(t => (
                 <button key={t} onClick={() => update({ chart_type: t })}
-                  className={`rounded-md border px-2 py-2 text-xs capitalize ${config.chart_type === t ? "border-stone-500 bg-stone-500/10 text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400"}`}>
+                  className={`rounded-md border px-2 py-2 text-xs capitalize ${config.chart_type === t ? "border-stone-500 bg-stone-500/10 text-[var(--text-primary)]" : "border-[var(--border-soft)] text-[var(--text-faint)]"}`}>
                   {t}
                 </button>
               ))}
@@ -193,7 +193,7 @@ function ConfigPanel({ report, update, objects }: {
             </select>
           </Field>
         )}
-        <label className="flex items-center justify-between text-sm text-stone-400">
+        <label className="flex items-center justify-between text-sm text-[var(--text-faint)]">
           Compare previous period
           <input type="checkbox" checked={config.compare} onChange={e => update({ compare: e.target.checked })} className="accent-red-500" />
         </label>
@@ -218,15 +218,15 @@ function ConfigPanel({ report, update, objects }: {
                 }}
                 className="flex items-center gap-2"
               >
-                <GripVertical size={13} className="cursor-grab text-stone-600" />
+                <GripVertical size={13} className="cursor-grab text-[var(--text-secondary)]" />
                 <input value={stage} onChange={e => update({ stages: config.stages.map((v, j) => j === i ? e.target.value : v) })} className="input flex-1" />
-                <button onClick={() => update({ stages: config.stages.filter((_,j) => j !== i) })} className="text-stone-600 hover:text-stone-400">
+                <button onClick={() => update({ stages: config.stages.filter((_,j) => j !== i) })} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)]">
                   <Trash2 size={13} />
                 </button>
               </div>
             ))}
             <button onClick={() => update({ stages: [...config.stages, `Stage ${config.stages.length + 1}`] })}
-              className="flex items-center gap-2 text-xs text-stone-400 hover:text-stone-300">
+              className="flex items-center gap-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-faint)]">
               <Plus size={12} /> Add stage
             </button>
           </div>
@@ -260,8 +260,8 @@ function ConfigPanel({ report, update, objects }: {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="block text-sm text-stone-400">
-      <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-stone-600">{label}</span>
+    <label className="block text-sm text-[var(--text-faint)]">
+      <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-[var(--text-secondary)]">{label}</span>
       {children}
     </label>
   );
@@ -273,8 +273,8 @@ function ReportChart({ type, result, config }: { type: ReportType; result?: RunD
   if (!data.length && !result?.total) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-2 text-center">
-        <p className="text-sm text-stone-500">No data yet for this configuration.</p>
-        <p className="text-xs text-stone-600">Try changing the object type, metric, or date range.</p>
+        <p className="text-sm text-[var(--text-muted)]">No data yet for this configuration.</p>
+        <p className="text-xs text-[var(--text-secondary)]">Try changing the object type, metric, or date range.</p>
       </div>
     );
   }
@@ -284,7 +284,7 @@ function ReportChart({ type, result, config }: { type: ReportType; result?: RunD
       <div>
         <p className="text-6xl font-semibold text-[var(--text-primary)]">{result?.total ?? 0}</p>
         {config.compare && (
-          <p className={`mt-3 text-sm ${(result?.change ?? 0) >= 0 ? "text-emerald-400" : "text-stone-400"}`}>
+          <p className={`mt-3 text-sm ${(result?.change ?? 0) >= 0 ? "text-emerald-400" : "text-[var(--text-faint)]"}`}>
             {(result?.change ?? 0) >= 0 ? "+" : ""}{result?.change ?? 0}% vs previous period
           </p>
         )}
