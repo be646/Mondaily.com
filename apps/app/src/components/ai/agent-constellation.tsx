@@ -177,6 +177,24 @@ export function AgentConstellationPanel() {
 
   const liveCount = constellation.filter(a => isLiveState(a.state)).length;
 
+  // Relative "last run" — the real telemetry (already fetched) that the old pill rail hid.
+  const ranAgo = (iso?: string | null): string | null => {
+    if (!iso) return null;
+    const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (!Number.isFinite(s) || s < 0) return null;
+    if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    return `${Math.floor(s / 86400)}d ago`;
+  };
+  // Colour encodes MEANING (state), never an arbitrary per-agent rainbow:
+  // working = green · waiting on you = amber · problem = rose · watching/quiet = muted.
+  const stateTone = (state: ConstellationState): string =>
+    state === "active" ? "#10b981"
+    : state === "needs_approval" ? "#d97706"
+    : state === "issue" ? "#e11d48"
+    : state === "monitoring" ? "var(--text-muted)"
+    : "var(--text-faint)";
+
   return (
     <section className="mb-8">
       <div className="mb-3 flex items-center justify-between">
@@ -189,35 +207,47 @@ export function AgentConstellationPanel() {
         </span>
       </div>
 
-      <div className="agent-orbit-field">
-        <div className="agent-orbit-rail">
-            {constellation.map((agent, i) => {
-              const live = isLiveState(agent.state);
-              const isSelected = active?.id === agent.id;
-              const dotColor = AGENT_DOT_PALETTE[i % AGENT_DOT_PALETTE.length]!;
-              return (
-                <div key={agent.id} className="relative flex shrink-0 flex-col items-center">
-                  <button
-                    onClick={() => setSelected(agent.id)}
-                    title={agent.note}
-                    className="agent-orbit-node relative flex items-center gap-2 rounded-full px-3 py-2 text-left transition-colors"
-                    style={{
-                      border: `1px solid ${isSelected ? dotColor : "var(--border-soft)"}`,
-                      background: isSelected ? "color-mix(in srgb, var(--accent) 5%, var(--surface-page))" : "var(--surface-page)",
-                    }}
-                  >
-                    <span className="relative flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "var(--surface-hover)" }}>
-                      <agent.icon size={11} style={{ color: live ? dotColor : "var(--text-faint)" }}/>
-                      {live && (
-                        <span className="live-ping absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full ring-2" style={{ background: dotColor, boxShadow: "0 0 0 2px var(--surface-page)" }}/>
-                      )}
-                    </span>
-                    <span className="max-w-[8.5rem] truncate text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}>{agent.name.replace(" Agent", "")}</span>
-                  </button>
-                </div>
-              );
-            })}
-        </div>
+      {/* Premium info-grid: each agent shows its real state, last real run, and evidence count at
+          a glance — the telemetry was always in the payload, the old pill rail just hid it. */}
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
+        {constellation.map((agent) => {
+          const live = isLiveState(agent.state);
+          const isSelected = active?.id === agent.id;
+          const tone = stateTone(agent.state);
+          const ran = ranAgo(agent.lastRunAt);
+          const ghost = agent.state === "disabled" || agent.state === "not_configured";
+          return (
+            <button
+              key={agent.id}
+              onClick={() => setSelected(agent.id)}
+              className="group flex flex-col gap-1.5 rounded-sm border px-3 py-2.5 text-left transition-colors"
+              style={{
+                borderColor: isSelected ? "var(--section-accent)" : "var(--border-soft)",
+                borderStyle: ghost ? "dashed" : "solid",
+                background: isSelected ? "color-mix(in srgb, var(--section-accent) 5%, var(--surface-card))" : "var(--surface-card)",
+                opacity: ghost ? 0.65 : 1,
+              }}
+            >
+              <span className="flex w-full items-center gap-2">
+                <agent.icon size={13} className="shrink-0" style={{ color: live ? tone : "var(--text-muted)" }}/>
+                <span className="min-w-0 flex-1 truncate text-[11.5px] font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {agent.name.replace(" Agent", "")}
+                </span>
+                <span className="relative flex h-1.5 w-1.5 shrink-0">
+                  {live && <span className="live-ping absolute inline-flex h-full w-full rounded-full" style={{ background: tone }}/>}
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: tone }}/>
+                </span>
+              </span>
+              <span className="flex w-full items-center gap-1.5 text-[10px]" style={{ color: "var(--text-faint)" }}>
+                <span className="truncate" style={{ color: live ? "var(--text-muted)" : "var(--text-faint)" }}>
+                  {CONSTELLATION_STATE_LABEL[agent.state]}
+                </span>
+                {ran && <span className="ml-auto shrink-0 tabular-nums">{ran}</span>}
+                {!ran && agent.evidenceCount > 0 && <span className="ml-auto shrink-0 tabular-nums">{agent.evidenceCount} ev.</span>}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {active && (
