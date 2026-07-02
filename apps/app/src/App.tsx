@@ -17,6 +17,7 @@ import { StatusPage } from "./routes/dashboard/status";
 import { NotificationsPage } from "./routes/dashboard/notifications";
 import { AgentActivityPage } from "./routes/dashboard/activity";
 import { TeamOversightPage } from "./routes/dashboard/team-oversight";
+import { MessagesPage } from "./routes/dashboard/messages";
 import { TasksPage } from "./routes/dashboard/tasks";
 import { NotesPage } from "./routes/dashboard/notes";
 import { EmailsPage } from "./routes/dashboard/emails";
@@ -121,6 +122,7 @@ export function App() {
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="activity" element={<AgentActivityPage />} />
         <Route path="team/oversight" element={<TeamOversightPage />} />
+        <Route path="messages" element={<MessagesPage />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="notes" element={<NotesPage />} />
         <Route path="emails" element={<EmailsPage />} />

@@ -3,6 +3,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { verifiedPowUserIds } from "../lib/pow-claims";
+import { aiGateway } from "../lib/ai-gateway";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -207,6 +208,75 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
 
   const totalTokens = operators.reduce((s, o) => s + o.tokens, 0);
   return c.json({ operators, totals: { operators: operators.length, tokens: totalTokens, active_sessions: sessionUsers.size } });
+});
+
+/**
+ * Team Insights — grounded per-member AI summary. Admin-only.
+ *
+ * This is DELIBERATELY NOT the general Ask agent: the Ask agent does tool-use and, on the
+ * reasoning model, leaked its planning ("We need to call tools. I'll call search_records…")
+ * and returned "No sources returned." Here we assemble the member's REAL telemetry server-side
+ * and ask the gateway for a plain-prose completion with NO tools — so there is nothing to leak
+ * and nothing to invent: the model only sees the data below. If the data is thin we return the
+ * honest insufficient-data message WITHOUT calling the model at all.
+ */
+router.post("/member-insight", requireAuth, requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const body = await c.req.json<{ actor_id?: string }>().catch(() => ({} as { actor_id?: string }));
+  const actorId = String(body.actor_id ?? "");
+  if (!actorId) return c.json({ error: "actor_id required" }, 400);
+
+  const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const [{ data: member }, { data: usage }, { data: acts }, { data: sessions }] = await Promise.all([
+    supabase.from("workspace_members").select("name, email, role").eq("workspace_id", ws).eq("user_id", actorId).maybeSingle(),
+    supabase.from("ai_usage").select("total_tokens, created_at").eq("workspace_id", ws).eq("user_id", actorId).gte("created_at", sinceIso),
+    supabase.from("activities").select("action, created_at, nodes(object_type, data)").eq("workspace_id", ws).eq("actor_id", actorId).order("created_at", { ascending: false }).limit(30),
+    supabase.from("auth_refresh_tokens").select("user_id").eq("user_id", actorId).is("revoked_at", null).gt("expires_at", new Date().toISOString()),
+  ]);
+
+  const tokens = (usage ?? []).reduce((s, u) => s + Number(u.total_tokens ?? 0), 0);
+  const activities = (acts ?? []).map((a) => {
+    const node = (a as { nodes?: { object_type?: string; data?: Record<string, unknown> } | null }).nodes;
+    const name = (node?.data?.name ?? node?.data?.title) as string | undefined;
+    return { action: a.action as string, object_type: node?.object_type ?? null, name: name ?? null, at: a.created_at as string };
+  });
+  const hasSession = (sessions ?? []).length > 0;
+
+  // Real source cards — every one is an actual activity row (never fabricated).
+  const sources = activities.slice(0, 12).map((a) => ({
+    type: "activity" as const,
+    title: `${a.action}${a.object_type ? ` · ${a.object_type}` : ""}${a.name ? ` "${a.name}"` : ""}`,
+    timestamp: a.at,
+  }));
+
+  // Not enough tracked activity → honest message, no model call.
+  if (tokens === 0 && activities.length === 0) {
+    return c.json({ insight: "I don't have enough tracked activity for this member yet.", sources: [], sufficient: false });
+  }
+
+  const digest = [
+    `Member: ${member?.name ?? "Unknown"}${member?.email ? ` (${member.email})` : ""}, role ${member?.role ?? "member"}.`,
+    `Live session right now: ${hasSession ? "yes" : "no"}.`,
+    `AI credits (tokens) used in last 30 days: ${tokens}.`,
+    `Recorded activity events in last 30 days: ${activities.length}.`,
+    "Recent activity (newest first):",
+    ...activities.slice(0, 20).map((a) => `- ${a.at}: ${a.action}${a.object_type ? ` ${a.object_type}` : ""}${a.name ? ` "${a.name}"` : ""}`),
+  ].join("\n");
+
+  const system =
+    "You are a workspace admin assistant. Summarise ONE team member's real activity using ONLY the data provided. " +
+    "Never invent tasks, deals, notes, numbers, workload, hours, or coaching that the data does not support. " +
+    "Write 2 to 4 short, plain sentences of factual observation. " +
+    "Do NOT mention tools, functions, searching, databases, or your own reasoning process. " +
+    "If the data is too thin to say anything useful, reply exactly: \"I don't have enough tracked activity for this member yet.\"";
+
+  try {
+    const { text } = await aiGateway({ system, prompt: digest, maxTokens: 240 });
+    const insight = (text || "").trim();
+    return c.json({ insight: insight || "I don't have enough tracked activity for this member yet.", sources, sufficient: true });
+  } catch {
+    return c.json({ insight: "The AI service is unavailable right now — please try again in a moment.", sources, sufficient: true });
+  }
 });
 
 // Timeline for a specific node

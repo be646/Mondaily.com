@@ -1,15 +1,18 @@
-import { useMemo, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useMemo } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Lock, ArrowLeft, Loader2, User as UserIcon, X, ShieldCheck, MessageSquare, Users, ChevronRight, History } from "lucide-react";
+import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
-import { requestAsk } from "../../lib/ask-bus";
 
 /**
  * Team Intelligence — an AI-powered team behaviour & value dashboard for owners/admins.
- * REAL data only: /activities/oversight-matrix (per-operator tokens/runs/tasks/last-active/verdict,
- * from ai_usage + activities + live sessions) and /activities/oversight?actor= (activity timeline).
- * Premium ledger rows + a dossier drawer — no terminal gimmicks, no fabricated scores.
+ * REAL data only:
+ *   • /activities/oversight-matrix       — per-operator tokens/runs/tasks/last-active/verdict
+ *   • /activities/oversight?actor=        — that member's real activity timeline
+ *   • /activities/member-insight (POST)   — grounded, no-tools AI summary (never leaks planning,
+ *                                           never invents; honest "not enough activity" when thin)
+ * Master–detail IN-PAGE layout (no side drawer): the ledger stays visible on the left, the
+ * selected member's dossier fills the right column. Selection is mirrored to `?member=`.
  */
 type Verdict = "inactive" | "bot" | "low_engagement" | "high_complexity" | "engaged" | "idle";
 interface Operator {
@@ -20,8 +23,8 @@ interface Operator {
 }
 interface MatrixResp { operators: Operator[]; totals: { operators: number; tokens: number; active_sessions: number } }
 interface ActivityRow { id: string; action: string; ai_summary: string | null; object: { type: string; name: string | null } | null; changes?: { field: string; value: string }[]; created_at: string }
+interface InsightResp { insight: string; sources: { type: string; title: string; timestamp: string }[]; sufficient: boolean }
 
-// Plain, calm verdict language + a single status-dot tone (green = healthy, amber = attention, muted = quiet).
 const VERDICT: Record<Verdict, { label: string; tone: string }> = {
   engaged:         { label: "Engaged",        tone: "#10b981" },
   high_complexity: { label: "Deep work",      tone: "#10b981" },
@@ -44,7 +47,7 @@ function ago(iso: string | null) {
 }
 const activeToday = (iso: string | null) => !!iso && (Date.now() - new Date(iso).getTime()) < 86_400_000;
 
-/** Honest, data-derived behaviour insights — only shown when the real metrics support them. */
+/** Honest, data-derived behaviour signals — only shown when the real metrics support them. */
 function insights(op: Operator): string[] {
   const out: string[] = [];
   const days = op.last_active_at ? Math.floor((Date.now() - new Date(op.last_active_at).getTime()) / 86_400_000) : null;
@@ -72,7 +75,8 @@ function Avatar({ op, size = 30 }: { op: Operator; size?: number }) {
 
 export function TeamOversightPage() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState<Operator | null>(null);
+  const [params, setParams] = useSearchParams();
+  const selectedId = params.get("member");
 
   const { data, isLoading, isError, error } = useQuery<MatrixResp>({
     queryKey: ["oversight-matrix"],
@@ -86,6 +90,9 @@ export function TeamOversightPage() {
   const totals = data?.totals;
   const activeTodayCount = operators.filter(o => activeToday(o.last_active_at)).length;
   const totalTasks = operators.reduce((s, o) => s + o.task_count, 0);
+  const selected = operators.find(o => o.operator_id === selectedId) ?? null;
+
+  const select = (id: string | null) => setParams(id ? { member: id } : {}, { replace: true });
 
   if (forbidden) {
     return (
@@ -105,7 +112,7 @@ export function TeamOversightPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
       {/* ── Header ── */}
       <div className="mb-6">
         <h1 className="text-[20px] font-semibold" style={{ color: "var(--text-primary)" }}>Team Intelligence</h1>
@@ -113,7 +120,7 @@ export function TeamOversightPage() {
       </div>
 
       {/* ── Team overview — real aggregates ── */}
-      <div className="mb-8 grid grid-cols-2 gap-px overflow-hidden rounded-sm border sm:grid-cols-4" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+      <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-sm border sm:grid-cols-4" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
         {[
           { label: "Members", value: totals?.operators ?? operators.length },
           { label: "Active today", value: activeTodayCount },
@@ -127,183 +134,245 @@ export function TeamOversightPage() {
         ))}
       </div>
 
-      {/* ── Member ledger ── */}
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Members</h2>
-        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{totals?.active_sessions ?? 0} live now</span>
-      </div>
-      {isLoading ? (
-        <div className="flex items-center gap-2 py-16 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={15} className="animate-spin" /> Loading team activity…</div>
-      ) : operators.length === 0 ? (
-        <div className="rounded-sm border px-5 py-14 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-          <Users size={20} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
-          <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>No members yet</p>
-          <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Activity and AI usage appear here as members work. <Link to="/settings/members" className="font-medium hover:underline" style={{ color: "var(--section-accent)" }}>Invite members</Link>.</p>
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-          {/* column header (desktop) */}
-          <div className="hidden grid-cols-[1.8fr_1fr_1fr_1.1fr] gap-3 border-b px-4 py-2 text-[10px] font-semibold uppercase tracking-wider sm:grid" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
-            <span>Member</span><span>Last active</span><span className="tabular-nums">Tasks · AI</span><span>Behaviour</span>
+      {/* ── Master–detail: ledger (left) + dossier (right) ── */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+        {/* ledger */}
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Members</h2>
+            <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{totals?.active_sessions ?? 0} live now</span>
           </div>
-          <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
-            {operators.map((op) => {
-              const v = VERDICT[op.verdict];
-              return (
-                <button key={op.operator_id} onClick={() => setSelected(op)}
-                  className="grid w-full grid-cols-[1fr_auto] items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)] sm:grid-cols-[1.8fr_1fr_1fr_1.1fr]">
-                  {/* member */}
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <Avatar op={op} />
-                    <div className="min-w-0">
-                      <div className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{op.name}</div>
-                      <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>{op.email ?? op.role}</div>
-                    </div>
-                  </div>
-                  {/* last active */}
-                  <div className="hidden items-center gap-1.5 text-[11.5px] sm:flex" style={{ color: "var(--text-muted)" }}>
-                    {activeToday(op.last_active_at) && <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#10b981" }} />}
-                    {ago(op.last_active_at)}
-                  </div>
-                  {/* tasks · AI */}
-                  <div className="hidden text-[12px] tabular-nums sm:block" style={{ color: "var(--text-secondary)" }}>
-                    {op.task_count} · <span style={{ color: "var(--text-muted)" }}>{fmt(op.tokens)} cr</span>
-                  </div>
-                  {/* behaviour + chevron */}
-                  <div className="flex items-center justify-end gap-2 sm:justify-between">
-                    <span className="inline-flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--text-secondary)" }}>
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: v.tone }} /> {v.label}
-                    </span>
-                    <ChevronRight size={14} className="shrink-0" style={{ color: "var(--text-faint)" }} />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          {isLoading ? (
+            <div className="flex items-center gap-2 py-16 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={15} className="animate-spin" /> Loading team activity…</div>
+          ) : operators.length === 0 ? (
+            <div className="rounded-sm border px-5 py-14 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              <Users size={20} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
+              <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>No members yet</p>
+              <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Activity and AI usage appear here as members work. <Link to="/settings/members" className="font-medium hover:underline" style={{ color: "var(--section-accent)" }}>Invite members</Link>.</p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+                {operators.map((op) => {
+                  const v = VERDICT[op.verdict];
+                  const isSel = op.operator_id === selectedId;
+                  return (
+                    <button key={op.operator_id} onClick={() => select(op.operator_id)}
+                      className="grid w-full grid-cols-[1fr_auto] items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
+                      style={{ background: isSel ? "var(--surface-selected)" : undefined }}>
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <Avatar op={op} />
+                        <div className="min-w-0">
+                          <div className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{op.name}</div>
+                          <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>
+                            {activeToday(op.last_active_at) && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: "#10b981" }} />}
+                            {ago(op.last_active_at)} · {op.task_count} tasks · {fmt(op.tokens)} cr
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="hidden items-center gap-1.5 text-[11.5px] sm:inline-flex" style={{ color: "var(--text-secondary)" }}>
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: v.tone }} /> {v.label}
+                        </span>
+                        <ChevronRight size={14} className="shrink-0" style={{ color: isSel ? "var(--section-accent)" : "var(--text-faint)" }} />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
-      )}
 
-      {selected && <MemberDossier op={selected} onClose={() => setSelected(null)} />}
+        {/* dossier */}
+        <div className="lg:sticky lg:top-6 lg:self-start">
+          {selected ? <MemberDetail op={selected} />
+            : <div className="flex items-center justify-center rounded-sm border px-6 py-20 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", minHeight: 280 }}>
+                <p className="text-[13px]" style={{ color: "var(--text-faint)" }}>Select a member to see their activity, AI usage, and behaviour.</p>
+              </div>}
+        </div>
+      </div>
     </div>
   );
 }
 
-/** Member detail drawer — an intelligence dossier: metrics, AI behaviour analysis, activity, actions. */
-function MemberDossier({ op, onClose }: { op: Operator; onClose: () => void }) {
-  const { data, isLoading } = useQuery<{ activity: ActivityRow[] }>({
+/** Metrics that the platform does NOT yet track per-member — shown honestly as "Not tracked yet". */
+const UNTRACKED = ["Overdue tasks", "Follow-ups", "Deals closed", "Records touched", "Approvals", "Comments"];
+
+/** In-page member dossier — identity, metrics, AI behaviour, activity chart + timeline, actions. */
+function MemberDetail({ op }: { op: Operator }) {
+  const navigate = useNavigate();
+  const v = VERDICT[op.verdict];
+  const scope = `${op.name}${op.email ? ` (${op.email})` : ""}`;
+
+  const timelineQ = useQuery<{ activity: ActivityRow[] }>({
     queryKey: ["oversight-actor", op.operator_id],
     queryFn: () => apiClient.get<{ activity: ActivityRow[] }>(`/activities/oversight?actor=${encodeURIComponent(op.operator_id)}&limit=100`),
     retry: false,
   });
-  const v = VERDICT[op.verdict];
-  const timeline = Array.isArray(data?.activity) ? data!.activity : [];
-  const scope = `${op.name}${op.email ? ` (${op.email})` : ""}`;
+  const timeline = useMemo(() => (Array.isArray(timelineQ.data?.activity) ? timelineQ.data!.activity : []), [timelineQ.data]);
+
+  // Grounded, no-tools AI coaching summary — auto-runs once per member, cached by React Query.
+  const insightQ = useQuery<InsightResp>({
+    queryKey: ["member-insight", op.operator_id],
+    queryFn: () => apiClient.post<InsightResp>("/activities/member-insight", { actor_id: op.operator_id }),
+    retry: false,
+    staleTime: 5 * 60_000,
+  });
+
+  // Activity-over-time — last 14 days bucketed from the REAL timeline (no fabricated hours).
+  const chart = useMemo(() => {
+    const days: { key: string; count: number }[] = [];
+    for (let i = 13; i >= 0; i--) days.push({ key: new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10), count: 0 });
+    const idx = new Map(days.map((d, i) => [d.key, i]));
+    for (const a of timeline) { const k = String(a.created_at).slice(0, 10); const i = idx.get(k); if (i != null) days[i]!.count++; }
+    const max = Math.max(1, ...days.map(d => d.count));
+    return { days, max };
+  }, [timeline]);
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-label={`${op.name} dossier`}>
-      <div className="flex-1 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
-      <aside className="flex h-full w-full max-w-md flex-col border-l shadow-2xl" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-        {/* header */}
-        <div className="flex items-center justify-between gap-3 border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
-          <div className="flex min-w-0 items-center gap-2.5">
-            <Avatar op={op} size={34} />
-            <div className="min-w-0">
-              <div className="truncate text-[13.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{op.name}</div>
-              <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>
-                {op.role} · {ago(op.last_active_at)}
-                {op.has_session && <span style={{ color: "#10b981" }}> · online</span>}
-              </div>
-            </div>
+    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      {/* identity */}
+      <div className="flex items-center gap-3 border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+        <Avatar op={op} size={38} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{op.name}</div>
+          <div className="truncate text-[11.5px]" style={{ color: "var(--text-faint)" }}>
+            {op.email ?? op.role} · {op.role}
+            {op.has_session ? <span style={{ color: "#10b981" }}> · online</span> : <span> · {ago(op.last_active_at)}</span>}
           </div>
-          <button onClick={onClose} className="shrink-0 hover:text-[var(--text-primary)]" style={{ color: "var(--text-muted)" }} aria-label="Close"><X size={16} /></button>
         </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: v.tone, background: `color-mix(in srgb, ${v.tone} 12%, transparent)` }}>
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: v.tone }} /> {v.label}
+        </span>
+      </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {/* metrics */}
-          <div className="grid grid-cols-3 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
-            {[
-              { k: "Tasks", val: String(op.task_count) },
-              { k: "AI credits", val: fmt(op.tokens) },
-              { k: "Cr / task", val: fmt(op.complexity_delta) },
-            ].map((m) => (
-              <div key={m.k} className="px-3 py-3" style={{ background: "var(--surface-card)" }}>
-                <div className="text-[16px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{m.val}</div>
-                <div className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>{m.k}</div>
+      {/* tracked metrics */}
+      <div className="grid grid-cols-3 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+        {[
+          { k: "Tasks (30d)", val: String(op.task_count) },
+          { k: "AI credits", val: fmt(op.tokens) },
+          { k: "Credits / task", val: fmt(op.complexity_delta) },
+        ].map((m) => (
+          <div key={m.k} className="px-3 py-3" style={{ background: "var(--surface-card)" }}>
+            <div className="text-[17px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{m.val}</div>
+            <div className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>{m.k}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* untracked metrics — honest placeholders, never fake values */}
+      <div className="grid grid-cols-3 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+        {UNTRACKED.map((k) => (
+          <div key={k} className="px-3 py-2.5" style={{ background: "var(--surface-card)" }}>
+            <div className="text-[11px] font-medium" style={{ color: "var(--text-faint)" }}>Not tracked yet</div>
+            <div className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>{k}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* activity over time — real */}
+      <Section title="Activity over time · last 14 days">
+        <div className="flex items-end gap-[3px]" style={{ height: 48 }}>
+          {chart.days.map((d) => (
+            <div key={d.key} className="group relative flex-1" title={`${d.key}: ${d.count}`}>
+              <div className="w-full rounded-sm" style={{ height: `${Math.max(2, (d.count / chart.max) * 46)}px`, background: d.count ? "var(--section-accent)" : "var(--border-soft)", opacity: d.count ? 1 : 0.6 }} />
+            </div>
+          ))}
+        </div>
+        <p className="mt-1.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Recorded activity events per day. Hours are not tracked yet.</p>
+      </Section>
+
+      {/* AI coaching summary — grounded, source-backed */}
+      <Section title="AI coaching summary">
+        {insightQ.isLoading ? (
+          <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Reading real activity…</div>
+        ) : insightQ.isError ? (
+          <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>Couldn't generate a summary right now.</p>
+        ) : (
+          <>
+            <div className="flex items-start gap-2">
+              <Sparkles size={13} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
+              <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{insightQ.data?.insight}</p>
+            </div>
+            {insightQ.data?.sources && insightQ.data.sources.length > 0 && (
+              <div className="mt-2.5">
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Sources · real activity</p>
+                <div className="flex flex-wrap gap-1">
+                  {insightQ.data.sources.slice(0, 6).map((s, i) => (
+                    <span key={i} className="rounded px-1.5 py-px text-[10px]" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }} title={exactTime(s.timestamp)}>{s.title}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </Section>
+
+      {/* derived behaviour signals — real, from matrix metrics */}
+      <Section title="Behaviour signals">
+        <ul className="space-y-1.5">
+          {insights(op).map((s, i) => (
+            <li key={i} className="flex items-start gap-2 text-[12px]" style={{ color: "var(--text-secondary)" }}>
+              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "var(--text-faint)" }} />{s}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-2.5 space-y-1.5 text-[12px]">
+          <Signal label="Live native session" ok={op.has_session} okText="Active" offText="Offline" />
+          <Signal label="Verified device claim (PoW)" ok={op.verified_pow} okText="Verified" offText="None on record" neutral={!op.verified_pow} />
+        </div>
+      </Section>
+
+      {/* activity timeline — real */}
+      <Section title="Activity timeline">
+        {timelineQ.isLoading ? (
+          <div className="flex items-center gap-2 py-2 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Loading…</div>
+        ) : timeline.length === 0 ? (
+          <p className="py-1 text-[12px]" style={{ color: "var(--text-faint)" }}>No recorded activity in the last 30 days.</p>
+        ) : (
+          <div className="max-h-64 space-y-2.5 overflow-y-auto pr-1">
+            {timeline.slice(0, 50).map((a) => (
+              <div key={a.id} className="flex items-start gap-2.5">
+                <History size={12} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }} />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
+                    <span className="font-medium capitalize" style={{ color: "var(--text-primary)" }}>{(a.action || "action").replace(/_/g, " ")}</span>
+                    {a.object?.type && <span> · {a.object.type}</span>}
+                    {a.object?.name && <span style={{ color: "var(--text-muted)" }}> "{a.object.name}"</span>}
+                  </p>
+                  {a.changes && a.changes.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {a.changes.map((ch, j) => (
+                        <span key={j} className="rounded px-1.5 py-px text-[10px]" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>
+                          <span className="capitalize">{ch.field}</span>: <span style={{ color: "var(--text-secondary)" }}>{ch.value}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <span className="shrink-0 text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>{exactTime(a.created_at)}</span>
               </div>
             ))}
           </div>
+        )}
+      </Section>
 
-          {/* behaviour verdict + AI analysis */}
-          <Section title="AI behaviour analysis">
-            <span className="mb-2 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: v.tone, background: `color-mix(in srgb, ${v.tone} 12%, transparent)` }}>
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: v.tone }} /> {v.label}
-            </span>
-            <ul className="space-y-1.5">
-              {insights(op).map((s, i) => (
-                <li key={i} className="flex items-start gap-2 text-[12px]" style={{ color: "var(--text-secondary)" }}>
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "var(--text-faint)" }} />
-                  {s}
-                </li>
-              ))}
-            </ul>
-          </Section>
-
-          {/* verification signals — real */}
-          <Section title="Signals">
-            <div className="space-y-1.5 text-[12px]">
-              <Signal label="Live native session" ok={op.has_session} okText="Active" offText="Offline" />
-              <Signal label="Verified device claim (PoW)" ok={op.verified_pow} okText="Verified" offText="None on record" neutral={!op.verified_pow} />
-            </div>
-          </Section>
-
-          {/* activity timeline — real */}
-          <Section title="Activity timeline">
-            {isLoading ? (
-              <div className="flex items-center gap-2 py-3 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Loading…</div>
-            ) : timeline.length === 0 ? (
-              <p className="py-1 text-[12px]" style={{ color: "var(--text-faint)" }}>No recorded activity in the last 30 days.</p>
-            ) : (
-              <div className="space-y-2.5">
-                {timeline.slice(0, 40).map((a) => (
-                  <div key={a.id} className="flex items-start gap-2.5">
-                    <History size={12} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }} />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
-                        <span className="font-medium capitalize" style={{ color: "var(--text-primary)" }}>{(a.action || "action").replace(/_/g, " ")}</span>
-                        {a.object?.type && <span> · {a.object.type}</span>}
-                        {a.object?.name && <span style={{ color: "var(--text-muted)" }}> "{a.object.name}"</span>}
-                      </p>
-                      {a.changes && a.changes.length > 0 && (
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {a.changes.map((ch, j) => (
-                            <span key={j} className="rounded px-1.5 py-px text-[10px]" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>
-                              <span className="capitalize">{ch.field}</span>: <span style={{ color: "var(--text-secondary)" }}>{ch.value}</span>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <span className="shrink-0 text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>{exactTime(a.created_at)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Section>
-        </div>
-
-        {/* admin actions — real destinations only */}
-        <div className="flex flex-wrap gap-1.5 border-t px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
-          <Action icon={MessageSquare} label="Ask AI about this member" onClick={() => { requestAsk(`Summarise ${scope}'s recent activity, workload, and AI usage from real workspace data, and suggest one coaching action.`); onClose(); }} />
-          <Link to="/settings/members" onClick={onClose} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-            <Users size={11} style={{ color: "var(--section-accent)" }} /> Manage role & access
-          </Link>
-          {op.email && (
-            <a href={`mailto:${op.email}`} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-              <MessageSquare size={11} style={{ color: "var(--section-accent)" }} /> Message
-            </a>
-          )}
-        </div>
-      </aside>
+      {/* actions — real destinations only */}
+      <div className="flex flex-wrap gap-1.5 px-4 py-3">
+        <button onClick={() => navigate(`/messages?to=${encodeURIComponent(op.operator_id)}`)}
+          className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          <Send size={11} style={{ color: "var(--section-accent)" }} /> Message
+        </button>
+        <Link to="/settings/members" className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          <Users size={11} style={{ color: "var(--section-accent)" }} /> Manage role &amp; access
+        </Link>
+        <button onClick={() => insightQ.refetch()}
+          className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          <MessageSquare size={11} style={{ color: "var(--section-accent)" }} /> Regenerate AI summary
+        </button>
+      </div>
+      <span className="sr-only">{scope}</span>
     </div>
   );
 }
@@ -325,12 +394,5 @@ function Signal({ label, ok, okText, offText, neutral }: { label: string; ok: bo
         <ShieldCheck size={12} /> {ok ? okText : offText}
       </span>
     </div>
-  );
-}
-function Action({ icon: Icon, label, onClick }: { icon: React.ElementType; label: string; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-      <Icon size={11} style={{ color: "var(--section-accent)" }} /> {label}
-    </button>
   );
 }
