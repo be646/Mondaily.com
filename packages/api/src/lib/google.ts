@@ -15,13 +15,15 @@ const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GMAIL_BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
 const GMAIL_SEND_URL = `${GMAIL_BASE}/messages/send`;
 
-// Send + read (inbox sync). gmail.readonly covers listing/reading threads.
+// Send + read (inbox sync) + calendar (read-only). One consent grants mail + calendar so
+// "Connect Google" wires both the inbox and the Meetings card in a single flow.
 export const GOOGLE_SCOPES = [
   "openid",
   "email",
   "profile",
   "https://www.googleapis.com/auth/gmail.send",
   "https://www.googleapis.com/auth/gmail.readonly",
+  "https://www.googleapis.com/auth/calendar.readonly",
 ];
 
 export function googleConfigured(): boolean {
@@ -203,6 +205,52 @@ function decodeBody(payload: { mimeType?: string; body?: { data?: string }; part
   }
   for (const part of payload.parts ?? []) { const b = decodeBody(part); if (b) return b; }
   return "";
+}
+
+// ── Calendar (read) ─────────────────────────────────────────────────────────
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;      // ISO
+  end?: string;
+  allDay: boolean;
+  location?: string;
+  attendees: number;
+  meetingUrl?: string; // Google Meet / Zoom link if present
+  provider: "google" | "microsoft";
+}
+
+/** Fetch the connected calendar's events between two ISO instants (primary calendar). */
+export async function googleCalendarEvents(accessToken: string, timeMin: string, timeMax: string): Promise<CalendarEvent[]> {
+  const params = new URLSearchParams({
+    timeMin, timeMax,
+    singleEvents: "true",
+    orderBy: "startTime",
+    maxResults: "50",
+  });
+  const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    console.error("[google] calendar fetch failed", res.status, await res.text().catch(() => ""));
+    return [];
+  }
+  const data = (await res.json()) as { items?: any[] };
+  return (data.items ?? [])
+    .filter((e) => e.status !== "cancelled")
+    .map((e): CalendarEvent => ({
+      id: String(e.id),
+      title: e.summary ?? "(no title)",
+      start: e.start?.dateTime ?? e.start?.date ?? "",
+      end: e.end?.dateTime ?? e.end?.date,
+      allDay: !e.start?.dateTime,
+      location: e.location,
+      attendees: Array.isArray(e.attendees) ? e.attendees.length : 0,
+      meetingUrl: e.hangoutLink ?? (Array.isArray(e.conferenceData?.entryPoints) ? e.conferenceData.entryPoints.find((p: any) => p.entryPointType === "video")?.uri : undefined),
+      provider: "google",
+    }))
+    .filter((e) => e.start);
 }
 
 /** Full thread with each message's headers + decoded body. */

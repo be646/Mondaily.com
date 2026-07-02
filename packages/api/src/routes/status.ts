@@ -92,27 +92,36 @@ router.get("/", async (c) => {
       : "SOVEREIGN_SEARCH_URL is missing — enrichment and Prospecting Agent web search will return nothing.",
   });
 
-  // Email (direct Google / Gmail API — Nylas removed)
+  // Google (Gmail + Calendar — direct OAuth, Nylas removed)
   const googleConfigured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   checks.push({
-    id: "email", label: "Email (Gmail OAuth) configured",
+    id: "email", label: "Google (Gmail + Calendar) configured",
     state: googleConfigured ? "operational" : "needs_setup",
-    explanation: googleConfigured ? "GOOGLE_CLIENT_ID/SECRET are set — users can connect Gmail (read + reply)." : "GOOGLE_CLIENT_ID/SECRET missing — Connect Gmail will fail.",
+    explanation: googleConfigured ? "GOOGLE_CLIENT_ID/SECRET are set — users can connect Google for mail (read + reply) and calendar sync." : "GOOGLE_CLIENT_ID/SECRET missing — Connect Google (mail + calendar) will fail.",
   });
 
-  // Stripe — the checkout + portal routes exist now; reflect real readiness.
-  // Fully operational needs the secret key (to create sessions), at least one
-  // price id (to sell a plan), and the webhook secret (to verify events).
+  // Microsoft (Outlook mail + Calendar — direct Graph OAuth)
+  const microsoftConfigured = Boolean(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET);
+  checks.push({
+    id: "microsoft", label: "Microsoft (Outlook + Calendar) configured",
+    state: microsoftConfigured ? "operational" : "needs_setup",
+    explanation: microsoftConfigured ? "MICROSOFT_CLIENT_ID/SECRET are set — users can connect Outlook for mail and calendar sync." : "MICROSOFT_CLIENT_ID/SECRET missing — Connect Outlook will fail (Google can still be used).",
+  });
+
+  // Stripe — embedded Payment Element + subscriptions + webhook. Fully operational needs the secret
+  // key, the publishable key (for the embedded card field), at least one plan price id, and the
+  // webhook secret (to activate tiers on payment).
   const stripeKey = Boolean(process.env.STRIPE_SECRET_KEY);
-  const stripePrice = Boolean(process.env.STRIPE_PRICE_PRO_MONTH || process.env.STRIPE_PRICE_BUSINESS_MONTH);
+  const stripePublishable = Boolean(process.env.STRIPE_PUBLISHABLE_KEY);
+  const stripePrice = Boolean(process.env.STRIPE_PRICE_OPERATOR_MONTH || process.env.STRIPE_PRICE_COMMAND_MONTH);
   const stripeWebhook = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
-  const stripeReady = stripeKey && stripePrice && stripeWebhook;
+  const stripeReady = stripeKey && stripePublishable && stripePrice && stripeWebhook;
   checks.push({
     id: "stripe", label: "Stripe (billing) configured",
-    state: stripeReady ? "operational" : stripeKey ? "needs_setup" : "needs_setup",
+    state: stripeReady ? "operational" : "needs_setup",
     explanation: stripeReady
-      ? "Checkout + Customer Portal routes are live and Stripe is fully configured (secret key, a price id, and webhook secret) — clients can subscribe and self-serve billing."
-      : `Billing routes (/api/v1/billing/checkout + /portal) are built. Still needed: ${[!stripeKey && "STRIPE_SECRET_KEY", !stripePrice && "a STRIPE_PRICE_* id", !stripeWebhook && "STRIPE_WEBHOOK_SECRET"].filter(Boolean).join(", ")}.`,
+      ? "Embedded Payment Element, subscriptions, and the webhook are fully configured — clients can subscribe on-page and tiers activate automatically."
+      : `Embedded billing is built. Still needed: ${[!stripeKey && "STRIPE_SECRET_KEY", !stripePublishable && "STRIPE_PUBLISHABLE_KEY", !stripePrice && "STRIPE_PRICE_OPERATOR_MONTH / _COMMAND_MONTH", !stripeWebhook && "STRIPE_WEBHOOK_SECRET"].filter(Boolean).join(", ")}.`,
   });
 
   // Background cron protection — CRON_SECRET locks the public /api/cron/daily

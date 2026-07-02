@@ -17,6 +17,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import { googleConfigured, googleAuthUrl, exchangeCode } from "../lib/google";
+import { microsoftConfigured, microsoftAuthUrl, exchangeCode as exchangeMicrosoftCode } from "../lib/microsoft";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -67,22 +68,24 @@ function popupHtml(message: string, ok: boolean): string {
 </body></html>`;
 }
 
-// 1) INITIATE — authed. Returns the Google OAuth consent URL (signed state).
+// 1) INITIATE — authed. Returns the provider's OAuth consent URL (signed state). Google grants
+// Gmail + Calendar; Microsoft grants Outlook mail + Calendar — both in one consent.
 router.post("/connect", requireAuth, async (c) => {
   const body = await c.req.json<{ provider?: string }>().catch(() => ({} as { provider?: string }));
   const provider = normalizeProvider(body.provider);
-  if (provider !== "google") {
-    return c.json({ error: "Only Google (Gmail) is supported right now — Outlook is coming soon." }, 400);
+  if (provider === "imap") {
+    return c.json({ error: "Direct IMAP isn't supported yet — connect Google or Microsoft." }, 400);
   }
-  if (!googleConfigured()) return c.json({ error: "GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are not configured on the server." }, 503);
   if (!process.env.API_BASE_URL) return c.json({ error: "API_BASE_URL is not configured (needed for the OAuth redirect)." }, 503);
 
-  const state = signState({
-    u: c.get("userId"),
-    w: c.get("workspaceId"),
-    p: "google",
-    exp: Math.floor(Date.now() / 1000) + 600, // 10 min
-  });
+  if (provider === "microsoft") {
+    if (!microsoftConfigured()) return c.json({ error: "MICROSOFT_CLIENT_ID / MICROSOFT_CLIENT_SECRET are not configured on the server." }, 503);
+    const state = signState({ u: c.get("userId"), w: c.get("workspaceId"), p: "microsoft", exp: Math.floor(Date.now() / 1000) + 600 });
+    return c.json({ auth_url: microsoftAuthUrl(callbackUrl(), state) });
+  }
+
+  if (!googleConfigured()) return c.json({ error: "GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET are not configured on the server." }, 503);
+  const state = signState({ u: c.get("userId"), w: c.get("workspaceId"), p: "google", exp: Math.floor(Date.now() / 1000) + 600 });
   return c.json({ auth_url: googleAuthUrl(callbackUrl(), state) });
 });
 
@@ -100,17 +103,19 @@ router.get("/callback", async (c) => {
     return c.html(popupHtml("Invalid or expired connection request.", false));
   }
 
+  const provider = st.p === "microsoft" ? "microsoft" : "google";
   try {
-    const tokens = await exchangeCode(code, callbackUrl());
-    if (!tokens) return c.html(popupHtml("Could not complete Google sign-in. Please try again.", false));
+    const tokens = provider === "microsoft"
+      ? await exchangeMicrosoftCode(code, callbackUrl())
+      : await exchangeCode(code, callbackUrl());
+    if (!tokens) return c.html(popupHtml(`Could not complete ${provider === "microsoft" ? "Microsoft" : "Google"} sign-in. Please try again.`, false));
 
-    // Build the row; only set refresh_token when Google returned one (it does on
-    // first consent), so a re-auth never wipes the stored token. grant_id is
-    // cleared — this row is now a direct-Google connection, not a Nylas grant.
+    // Only set refresh_token when the provider returned one (both do on first consent), so a
+    // re-auth never wipes the stored token. grant_id is cleared — this is a direct connection.
     const row: Record<string, unknown> = {
       workspace_id: st.w as string,
       user_id: st.u as string,
-      provider: "google",
+      provider,
       grant_id: null,
       email: tokens.email ?? "",
       access_token: tokens.access_token,
@@ -120,12 +125,46 @@ router.get("/callback", async (c) => {
 
     const { error } = await supabase.from("email_connections").upsert(row, { onConflict: "workspace_id,user_id" });
     if (error) {
-      console.error("[google/callback] saving connection failed", error.message);
-      return c.html(popupHtml("Connected, but saving the mailbox failed.", false));
+      console.error("[integrations/callback] saving connection failed", error.message);
+      return c.html(popupHtml("Connected, but saving the connection failed.", false));
     }
-    return c.html(popupHtml(`Connected ${tokens.email ?? "your inbox"}.`, true));
+    return c.html(popupHtml(`Connected ${tokens.email ?? "your account"}.`, true));
   } catch {
-    return c.html(popupHtml("Something went wrong connecting your inbox.", false));
+    return c.html(popupHtml("Something went wrong connecting your account.", false));
+  }
+});
+
+// 3) MEETINGS — authed. Real calendar events from the connected provider (Google or Microsoft)
+// for a window (default: today). Returns { connected, provider, events } so the UI can show a
+// connect prompt vs. real meetings without guessing.
+router.get("/calendar/events", requireAuth, async (c) => {
+  const { data: conn } = await supabase
+    .from("email_connections")
+    .select("id, provider, refresh_token, access_token, token_expiry, email")
+    .eq("workspace_id", c.get("workspaceId"))
+    .eq("user_id", c.get("userId"))
+    .maybeSingle();
+  if (!conn) return c.json({ connected: false, events: [] });
+
+  const now = new Date();
+  const days = Math.min(14, Math.max(1, Number(c.req.query("days") ?? "1")));
+  const timeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  const timeMax = new Date(now.getTime() + days * 86400000).toISOString();
+
+  try {
+    if (conn.provider === "microsoft") {
+      const { freshAccessToken, microsoftCalendarEvents } = await import("../lib/microsoft");
+      const token = await freshAccessToken(conn);
+      if (!token) return c.json({ connected: true, provider: "microsoft", email: conn.email, needs_reauth: true, events: [] });
+      return c.json({ connected: true, provider: "microsoft", email: conn.email, events: await microsoftCalendarEvents(token, timeMin, timeMax) });
+    }
+    const { freshAccessToken, googleCalendarEvents } = await import("../lib/google");
+    const token = await freshAccessToken(conn);
+    if (!token) return c.json({ connected: true, provider: "google", email: conn.email, needs_reauth: true, events: [] });
+    return c.json({ connected: true, provider: "google", email: conn.email, events: await googleCalendarEvents(token, timeMin, timeMax) });
+  } catch (e) {
+    console.error("[integrations/calendar] fetch failed", e instanceof Error ? e.message : e);
+    return c.json({ connected: true, provider: conn.provider, error: "Could not read your calendar.", events: [] });
   }
 });
 

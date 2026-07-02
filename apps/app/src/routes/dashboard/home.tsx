@@ -289,6 +289,39 @@ export function HomePage() {
   });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const meetings = useQuery({ queryKey: ["meetings", "home"], queryFn: () => apiClient.get<Meeting[]>("/meetings/today") });
+  // Real connected-calendar events (Google / Microsoft, direct OAuth — no middleman).
+  interface CalEvent { id: string; title: string; start: string; end?: string; allDay: boolean; location?: string; attendees: number; meetingUrl?: string; provider: string }
+  const calendarQ = useQuery({
+    queryKey: ["calendar", "today"],
+    queryFn: () => apiClient.get<{ connected: boolean; provider?: string; email?: string; needs_reauth?: boolean; events: CalEvent[] }>("/integrations/calendar/events?days=1"),
+    staleTime: 60_000,
+  });
+  const [connectingCal, setConnectingCal] = useState<string | null>(null);
+  async function connectCalendar(provider: "google" | "microsoft") {
+    setConnectingCal(provider);
+    try {
+      const r = await apiClient.post<{ auth_url?: string; error?: string }>("/integrations/connect", { provider });
+      if (r.auth_url) {
+        const popup = window.open(r.auth_url, "mondaily-calendar", "width=520,height=680");
+        // Refresh once the OAuth popup posts back success.
+        const onMsg = (e: MessageEvent) => {
+          if (e.data?.type === "nylas-connect" && e.data.ok) {
+            qc.invalidateQueries({ queryKey: ["calendar"] });
+            window.removeEventListener("message", onMsg);
+          }
+        };
+        window.addEventListener("message", onMsg);
+        // Fallback: poll refetch when the popup closes.
+        const timer = setInterval(() => { if (popup?.closed) { clearInterval(timer); qc.invalidateQueries({ queryKey: ["calendar"] }); } }, 1200);
+      } else if (r.error) {
+        alert(r.error);
+      }
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not start the connection.");
+    } finally {
+      setConnectingCal(null);
+    }
+  }
   const notificationsQuery = useQuery({
     queryKey: ["notifications", "risk"],
     queryFn: () => apiClient.get<{ id: string; type: string; is_read: boolean; title: string; body?: string; created_at?: string }[]>("/notifications?limit=50"),
@@ -1054,46 +1087,81 @@ export function HomePage() {
           </div>
         </section>
 
-        {/* Meetings card */}
-        <section className="flow-panel-clean flex flex-col overflow-hidden">
-          <div className="flow-panel-heading flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Calendar size={13} className="text-stone-500 dark:text-stone-400"/>
-              <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Meetings</span>
-            </div>
-            <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Today</span>
-          </div>
-          <div className="flex-1">
-            {meetings.isLoading ? (
-              <div className="py-4"><PageSkeleton rows={3} label="Loading meetings…"/></div>
-            ) : meetings.isError ? (
-              <div className="py-4">
-                <div className="rounded-sm px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #d97706 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 24%, var(--border-soft))" }}>
-                  <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load meetings</p>
-                  <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{(meetings.error as Error)?.message || "Calendar data did not return."}</p>
-                  <button onClick={() => meetings.refetch()} className="btn-suggested mt-3 !px-2.5 !py-1 !text-[11px]">Retry</button>
+        {/* Meetings card — real connected calendar (Google / Microsoft) + workspace meetings */}
+        {(() => {
+          const cal = calendarQ.data;
+          const calConnected = cal?.connected;
+          // Merge connected-calendar events with any workspace-created meetings, sorted by start.
+          const calEvents = (cal?.events ?? []).map(e => ({ id: e.id, title: e.title, when: e.allDay ? "All day" : new Date(e.start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), sub: e.location || (e.attendees ? `${e.attendees} attendee${e.attendees === 1 ? "" : "s"}` : ""), url: e.meetingUrl, start: e.start }));
+          const wsEvents = (meetings.data ?? []).map(m => ({ id: `ws-${m.id}`, title: m.title, when: m.start_time, sub: "", url: undefined as string | undefined, start: m.start_time }));
+          const allEvents = [...calEvents, ...wsEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+          const loading = calendarQ.isLoading || meetings.isLoading;
+          return (
+            <section className="flow-panel-clean flex flex-col overflow-hidden">
+              <div className="flow-panel-heading flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar size={13} className="text-stone-500 dark:text-stone-400"/>
+                  <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Meetings</span>
+                  {calConnected && cal?.provider && (
+                    <span className="flow-micro-badge" title={cal.email}>
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#10b981" }}/> {cal.provider === "microsoft" ? "Outlook" : "Google"}
+                    </span>
+                  )}
                 </div>
+                <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Today</span>
               </div>
-            ) : meetings.data?.length ? (
-              <ul className="flow-list">
-                {meetings.data.map(m => (
-                  <li key={m.id} className="flow-list-row">
-                    <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{m.title}</p>
-                    <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>{m.start_time}</p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-10 text-center px-5">
-                <div className="flex h-10 w-10 items-center justify-center rounded-sm mb-3" style={{ background: "var(--surface-hover)", border: "1px solid var(--border-soft)" }}>
-                  <Calendar size={16} style={{ color: "var(--text-faint)" }}/>
-                </div>
-                <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>No meetings today</p>
-                <p className="mt-1 text-[11px] max-w-[220px]" style={{ color: "var(--text-faint)" }}>Meetings created in your workspace show up here with an AI brief.</p>
+              <div className="flex-1">
+                {loading ? (
+                  <div className="py-4"><PageSkeleton rows={3} label="Loading meetings…"/></div>
+                ) : allEvents.length ? (
+                  <ul className="flow-list">
+                    {allEvents.map(m => {
+                      const row = (
+                        <>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm" style={{ color: "var(--text-secondary)" }}>{m.title}</p>
+                            {m.sub && <p className="mt-0.5 truncate text-[11px]" style={{ color: "var(--text-faint)" }}>{m.sub}</p>}
+                          </div>
+                          <span className="shrink-0 text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>{m.when}</span>
+                        </>
+                      );
+                      return m.url ? (
+                        <li key={m.id}><a href={m.url} target="_blank" rel="noreferrer" className="flow-list-row group flex items-center gap-3 hover:opacity-90">{row}</a></li>
+                      ) : (
+                        <li key={m.id} className="flow-list-row flex items-center gap-3">{row}</li>
+                      );
+                    })}
+                  </ul>
+                ) : calConnected ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center px-5">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-sm mb-3" style={{ background: "var(--surface-hover)", border: "1px solid var(--border-soft)" }}>
+                      <Calendar size={16} style={{ color: "var(--text-faint)" }}/>
+                    </div>
+                    <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>No meetings today</p>
+                    <p className="mt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>Your {cal?.provider === "microsoft" ? "Outlook" : "Google"} calendar is connected and clear.</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-9 text-center px-5">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-sm mb-3" style={{ background: "var(--surface-hover)", border: "1px solid var(--border-soft)" }}>
+                      <Calendar size={16} style={{ color: "var(--text-faint)" }}/>
+                    </div>
+                    <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Connect your calendar</p>
+                    <p className="mt-1 mb-3 text-[11px] max-w-[240px]" style={{ color: "var(--text-faint)" }}>Sync Google or Outlook to see your day here — read-only, connected directly, no third-party broker.</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => connectCalendar("google")} disabled={!!connectingCal} className="btn-secondary !px-3 !py-1.5 !text-[11px]">
+                        {connectingCal === "google" ? <Loader2 size={11} className="inline animate-spin"/> : "Connect Google"}
+                      </button>
+                      <button onClick={() => connectCalendar("microsoft")} disabled={!!connectingCal} className="btn-secondary !px-3 !py-1.5 !text-[11px]">
+                        {connectingCal === "microsoft" ? <Loader2 size={11} className="inline animate-spin"/> : "Connect Outlook"}
+                      </button>
+                    </div>
+                    {cal?.needs_reauth && <p className="mt-2 text-[10.5px]" style={{ color: "#d97706" }}>Reconnect needed — your calendar token expired.</p>}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </section>
+            </section>
+          );
+        })()}
           </div>
       </section>
 
