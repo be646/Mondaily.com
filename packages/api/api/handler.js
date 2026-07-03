@@ -56099,9 +56099,10 @@ function sovereignHeaders() {
 }
 var SEARCH_URL = () => process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
 var SCRAPE_URL = () => process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3002/v1/scrape";
+var SEARCH_ENGINES = () => process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,yahoo";
 async function sovereignSearchUrls(query, limit2 = 4) {
   try {
-    const url = `${SEARCH_URL()}?q=${encodeURIComponent(query)}&format=json&language=en-US`;
+    const url = `${SEARCH_URL()}?q=${encodeURIComponent(query)}&format=json&language=en-US&engines=${encodeURIComponent(SEARCH_ENGINES())}`;
     const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
     if (!res.ok) return [];
     const data = await res.json();
@@ -56530,10 +56531,13 @@ var import_node_crypto = require("crypto");
 var leadFingerprint = (url, author, content) => (0, import_node_crypto.createHash)("md5").update(`${url}|${author}|${(content || "").slice(0, 200)}`).digest("hex");
 var SEARCH_TIMEOUT_REASON = "Self-hosted search engine instance was temporarily unreachable.";
 var SOVEREIGN_SEARCH_URL2 = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
+var SOVEREIGN_SEARCH_ENGINES = process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,yahoo";
 async function searxng(query) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12e3);
   try {
-    const url = `${SOVEREIGN_SEARCH_URL2}?q=${encodeURIComponent(query)}&format=json&language=en-US`;
-    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
+    const url = `${SOVEREIGN_SEARCH_URL2}?q=${encodeURIComponent(query)}&format=json&language=en-US&engines=${encodeURIComponent(SOVEREIGN_SEARCH_ENGINES)}`;
+    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() }, signal: ctrl.signal });
     if (!res.ok) {
       console.error(`[social-discovery] searxng HTTP ${res.status}`);
       return { hits: [], unreachable: res.status >= 500 };
@@ -56543,7 +56547,9 @@ async function searxng(query) {
     return { hits, unreachable: false };
   } catch (e2) {
     console.error("[social-discovery] searxng unreachable:", e2 instanceof Error ? e2.message : String(e2));
-    return { hits: [], unreachable: true };
+    return { hits: [], unreachable: false };
+  } finally {
+    clearTimeout(timer);
   }
 }
 function buildQueries(searchType, sector, region, targetSubject) {

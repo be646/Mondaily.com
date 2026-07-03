@@ -8,13 +8,16 @@ export function sovereignHeaders(): Record<string, string> {
 
 const SEARCH_URL = () => process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
 const SCRAPE_URL = () => process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3002/v1/scrape";
+// Datacenter-reliable engine set (see social-discovery): CAPTCHA'd engines in the default mix
+// zero out otherwise-good results, so pin to the ones that respond. Overridable via env.
+const SEARCH_ENGINES = () => process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,yahoo";
 
 /** SearXNG JSON search → result URLs (empty on any failure — never throws). */
 export async function sovereignSearchUrls(query: string, limit = 4): Promise<string[]> {
   try {
     // language=en-US — the appliance's German Hetzner IP makes engines geo-localize results to
     // Germany otherwise (verified live). All enrichment/web-search queries are English.
-    const url = `${SEARCH_URL()}?q=${encodeURIComponent(query)}&format=json&language=en-US`;
+    const url = `${SEARCH_URL()}?q=${encodeURIComponent(query)}&format=json&language=en-US&engines=${encodeURIComponent(SEARCH_ENGINES())}`;
     const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
     if (!res.ok) return [];
     const data = await res.json() as { results?: { url?: string }[] };

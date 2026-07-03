@@ -15,16 +15,21 @@ interface SearchHit { title: string; content: string; url: string }
 
 export const SEARCH_TIMEOUT_REASON = "Self-hosted search engine instance was temporarily unreachable.";
 const SOVEREIGN_SEARCH_URL = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
+// Pin to the engines that actually respond from a datacenter IP. Google/DDG/Brave/Startpage
+// CAPTCHA-block the box and Bing serves junk — leaving them in the default mix drags the WHOLE
+// result to 0 even when Qwant has 10. Overridable via env as more reliable engines are found.
+const SOVEREIGN_SEARCH_ENGINES = process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,yahoo";
 
 type SearchResult = { hits: SearchHit[]; unreachable: boolean };
 
 async function searxng(query: string): Promise<SearchResult> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12_000); // never let one slow query hang the whole sweep
   try {
-    // language=en-US — the appliance sits on a German Hetzner IP, so without this bing geo-localizes
-    // every query to Germany (verified live: "real estate agents London" returned German supermarket
-    // pages). Discovery queries are English; pin the locale.
-    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&language=en-US`;
-    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
+    // language=en-US pins the locale (the box's German IP otherwise geo-localizes results); engines
+    // pinned to the datacenter-reliable set so CAPTCHA'd engines can't zero out the response.
+    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&language=en-US&engines=${encodeURIComponent(SOVEREIGN_SEARCH_ENGINES)}`;
+    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() }, signal: ctrl.signal });
     if (!res.ok) {
       // 5xx → the index itself is down/unreachable; treat as an infra timeout.
       console.error(`[social-discovery] searxng HTTP ${res.status}`);
@@ -37,9 +42,11 @@ async function searxng(query: string): Promise<SearchResult> {
       .map((r) => ({ title: r.title ?? "", content: r.content ?? "", url: r.url as string }));
     return { hits, unreachable: false };
   } catch (e) {
-    // Connection drop / DNS / timeout reaching the self-hosted instance.
+    // Connection drop / DNS / abort (timeout) reaching the self-hosted instance.
     console.error("[social-discovery] searxng unreachable:", e instanceof Error ? e.message : String(e));
-    return { hits: [], unreachable: true };
+    return { hits: [], unreachable: false }; // don't hard-abort the sweep on one slow/aborted query
+  } finally {
+    clearTimeout(timer);
   }
 }
 
