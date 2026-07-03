@@ -55537,23 +55537,38 @@ async function googlePlaces(query, region, limit2) {
   const key = process.env.GOOGLE_PLACES_API_KEY;
   if (!key) return [];
   const q2 = region ? `${query} in ${region}` : query;
-  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": key,
-      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.internationalPhoneNumber,places.nationalPhoneNumber,places.websiteUri"
-    },
-    body: JSON.stringify({ textQuery: q2, maxResultCount: Math.min(limit2, 20) })
-  }).then((r2) => r2.json()).catch(() => null);
-  return (res?.places ?? []).map((p2) => ({
-    name: p2.displayName?.text ?? "Unknown",
-    address: p2.formattedAddress ?? null,
-    phone: p2.internationalPhoneNumber ?? p2.nationalPhoneNumber ?? null,
-    website: p2.websiteUri ?? null,
-    source_url: p2.id ? `https://www.google.com/maps/place/?q=place_id:${p2.id}` : "https://maps.google.com",
-    source: "google"
-  })).filter((p2) => p2.name !== "Unknown");
+  const out = [];
+  let pageToken;
+  const maxPages = Math.min(3, Math.ceil(limit2 / 20));
+  for (let page = 0; page < maxPages; page++) {
+    const body = pageToken ? { pageToken } : { textQuery: q2, maxResultCount: 20 };
+    const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": key,
+        // nextPageToken must be in the field mask to paginate.
+        "X-Goog-FieldMask": "nextPageToken,places.id,places.displayName,places.formattedAddress,places.internationalPhoneNumber,places.nationalPhoneNumber,places.websiteUri"
+      },
+      body: JSON.stringify(body)
+    }).then((r2) => r2.json()).catch(() => null);
+    if (!res) break;
+    for (const p2 of res.places ?? []) {
+      const name = p2.displayName?.text;
+      if (!name) continue;
+      out.push({
+        name,
+        address: p2.formattedAddress ?? null,
+        phone: p2.internationalPhoneNumber ?? p2.nationalPhoneNumber ?? null,
+        website: p2.websiteUri ?? null,
+        source_url: p2.id ? `https://www.google.com/maps/place/?q=place_id:${p2.id}` : "https://maps.google.com",
+        source: "google"
+      });
+    }
+    pageToken = res.nextPageToken;
+    if (!pageToken || out.length >= limit2) break;
+  }
+  return out;
 }
 async function osmPlaces(query, region, limit2) {
   const q2 = region ? `${query} ${region}` : query;
@@ -55903,7 +55918,7 @@ ${text}`
   }
   if (searchType === "INTENT_LEADS" && sector) {
     await emit({ type: "progress", stage: "places", message: `Looking up local businesses via ${placesProvider() === "google" ? "Google Places" : "OpenStreetMap"}\u2026` });
-    const places = await placesSearch(sector, region, 30).catch(() => []);
+    const places = await placesSearch(sector, region, 60).catch(() => []);
     for (const pl of places) {
       allLeads.push({
         author_name: pl.name,
@@ -56043,6 +56058,31 @@ ${text}`
     handle: r2.contact?.handle ?? null
   }));
   await emit({ type: "results", kind: searchType, discovered: dedupedRows.length, scanned: unique.length, results });
+  let overview = null;
+  if (dedupedRows.length >= 2) {
+    await emit({ type: "progress", stage: "overview", message: "Writing the AI overview of what was found\u2026" });
+    const wantReviewsOverview = searchType === "REVIEWS";
+    const sentimentTally = dedupedRows.reduce((a2, r2) => {
+      const s2 = r2.contact?.sentiment;
+      if (s2) a2[s2] = (a2[s2] ?? 0) + 1;
+      return a2;
+    }, {});
+    const digest = dedupedRows.slice(0, 30).map(
+      (r2) => `- [${r2.intent_type}${r2.contact?.sentiment ? `/${r2.contact.sentiment}` : ""}] ${r2.author_name} (${r2.platform}${r2.region ? `, ${r2.region}` : ""}, conf ${r2.confidence_score})${r2.contact.email ? ` email:${r2.contact.email}` : ""}${r2.contact.phone ? ` phone:yes` : ""}: ${(r2.contact.summary || r2.raw_content || "").slice(0, 160)}`
+    ).join("\n");
+    try {
+      const { aiGateway: aiGateway2 } = await Promise.resolve().then(() => (init_ai_gateway(), ai_gateway_exports));
+      const { text } = await aiGateway2({
+        system: wantReviewsOverview ? "You analyze REAL customer reviews for a business user researching a company/competitor. Using ONLY the reviews below, write a short, plain briefing (no markdown headers, no preamble): 1) the sentiment balance (use the given counts), 2) the 2-3 most common COMPLAINTS people raise (these are pitch angles for a competitor), 3) the main things people PRAISE, and 4) one sentence on the opportunity for someone competing. NEVER invent a complaint, praise, name, or number that isn't supported by the reviews. If reviews are too few to judge, say so." : "You summarize web-discovery results for a business user. Write 2-4 short sentences describing ONLY what the findings below show \u2014 counts, platforms, contactability. NEVER add a fact, name, or number that is not in the findings. Plain language, no preamble, no markdown headers.",
+        prompt: `Search: ${wantReviewsOverview ? `reviews about "${targetSubject ?? sector}"` : `leads in "${sector}"`}${region ? ` (${region})` : ""}. ${wantReviewsOverview ? `Sentiment counts: ${JSON.stringify(sentimentTally)}. ` : ""}Findings (${dedupedRows.length} total, first 30 shown):
+${digest}`,
+        maxTokens: 320
+      });
+      overview = (text || "").trim() || null;
+      if (overview) await emit({ type: "overview", text: overview });
+    } catch {
+    }
+  }
   const upsertLeads = async (batch) => {
     let r2 = await supabase.from("discovered_leads").upsert(batch, { onConflict: "workspace_id,fingerprint" });
     if (r2.error && /fingerprint/i.test(r2.error.message)) {
@@ -56089,31 +56129,6 @@ ${text}`
         }, () => {
         });
       }
-    }
-  }
-  let overview = null;
-  if (dedupedRows.length >= 2) {
-    await emit({ type: "progress", stage: "overview", message: "Writing the AI overview of what was found\u2026" });
-    const wantReviewsOverview = searchType === "REVIEWS";
-    const sentimentTally = dedupedRows.reduce((a2, r2) => {
-      const s2 = r2.contact?.sentiment;
-      if (s2) a2[s2] = (a2[s2] ?? 0) + 1;
-      return a2;
-    }, {});
-    const digest = dedupedRows.slice(0, 30).map(
-      (r2) => `- [${r2.intent_type}${r2.contact?.sentiment ? `/${r2.contact.sentiment}` : ""}] ${r2.author_name} (${r2.platform}${r2.region ? `, ${r2.region}` : ""}, conf ${r2.confidence_score})${r2.contact.email ? ` email:${r2.contact.email}` : ""}${r2.contact.phone ? ` phone:yes` : ""}: ${(r2.contact.summary || r2.raw_content || "").slice(0, 160)}`
-    ).join("\n");
-    try {
-      const { aiGateway: aiGateway2 } = await Promise.resolve().then(() => (init_ai_gateway(), ai_gateway_exports));
-      const { text } = await aiGateway2({
-        system: wantReviewsOverview ? "You analyze REAL customer reviews for a business user researching a company/competitor. Using ONLY the reviews below, write a short, plain briefing (no markdown headers, no preamble): 1) the sentiment balance (use the given counts), 2) the 2-3 most common COMPLAINTS people raise (these are pitch angles for a competitor), 3) the main things people PRAISE, and 4) one sentence on the opportunity for someone competing. NEVER invent a complaint, praise, name, or number that isn't supported by the reviews. If reviews are too few to judge, say so." : "You summarize web-discovery results for a business user. Write 2-4 short sentences describing ONLY what the findings below show \u2014 counts, platforms, contactability. NEVER add a fact, name, or number that is not in the findings. Plain language, no preamble, no markdown headers.",
-        prompt: `Search: ${wantReviewsOverview ? `reviews about "${targetSubject ?? sector}"` : `leads in "${sector}"`}${region ? ` (${region})` : ""}. ${wantReviewsOverview ? `Sentiment counts: ${JSON.stringify(sentimentTally)}. ` : ""}Findings (${dedupedRows.length} total, first 30 shown):
-${digest}`,
-        maxTokens: 320
-      });
-      overview = (text || "").trim() || null;
-      if (overview) await emit({ type: "overview", text: overview });
-    } catch {
     }
   }
   if (dedupedRows.length > 0) {

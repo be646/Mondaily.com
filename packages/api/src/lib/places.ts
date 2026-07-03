@@ -24,29 +24,44 @@ const UA = "MondailyDiscovery/1.0 (+https://mondaily.com)";
 
 interface NewPlace { id?: string; formattedAddress?: string; internationalPhoneNumber?: string; nationalPhoneNumber?: string; websiteUri?: string; displayName?: { text?: string } }
 
-/** Places API (New) Text Search — phone + website come back in ONE call via the field mask.
- *  (Google deprecated the legacy Places API for new projects.) */
+/** Places API (New) Text Search — phone + website in ONE call via the field mask, PAGINATED
+ *  (20/page, up to 3 pages = 60 via nextPageToken). Google deprecated the legacy API for new projects. */
 async function googlePlaces(query: string, region: string | undefined, limit: number): Promise<PlaceLead[]> {
   const key = process.env.GOOGLE_PLACES_API_KEY;
   if (!key) return [];
   const q = region ? `${query} in ${region}` : query;
-  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": key,
-      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.internationalPhoneNumber,places.nationalPhoneNumber,places.websiteUri",
-    },
-    body: JSON.stringify({ textQuery: q, maxResultCount: Math.min(limit, 20) }),
-  }).then(r => r.json()).catch(() => null) as { places?: NewPlace[] } | null;
-  return (res?.places ?? []).map((p) => ({
-    name: p.displayName?.text ?? "Unknown",
-    address: p.formattedAddress ?? null,
-    phone: p.internationalPhoneNumber ?? p.nationalPhoneNumber ?? null,
-    website: p.websiteUri ?? null,
-    source_url: p.id ? `https://www.google.com/maps/place/?q=place_id:${p.id}` : "https://maps.google.com",
-    source: "google" as const,
-  })).filter(p => p.name !== "Unknown");
+  const out: PlaceLead[] = [];
+  let pageToken: string | undefined;
+  const maxPages = Math.min(3, Math.ceil(limit / 20));
+  for (let page = 0; page < maxPages; page++) {
+    const body: Record<string, unknown> = pageToken ? { pageToken } : { textQuery: q, maxResultCount: 20 };
+    const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": key,
+        // nextPageToken must be in the field mask to paginate.
+        "X-Goog-FieldMask": "nextPageToken,places.id,places.displayName,places.formattedAddress,places.internationalPhoneNumber,places.nationalPhoneNumber,places.websiteUri",
+      },
+      body: JSON.stringify(body),
+    }).then(r => r.json()).catch(() => null) as { places?: NewPlace[]; nextPageToken?: string } | null;
+    if (!res) break;
+    for (const p of res.places ?? []) {
+      const name = p.displayName?.text;
+      if (!name) continue;
+      out.push({
+        name,
+        address: p.formattedAddress ?? null,
+        phone: p.internationalPhoneNumber ?? p.nationalPhoneNumber ?? null,
+        website: p.websiteUri ?? null,
+        source_url: p.id ? `https://www.google.com/maps/place/?q=place_id:${p.id}` : "https://maps.google.com",
+        source: "google" as const,
+      });
+    }
+    pageToken = res.nextPageToken;
+    if (!pageToken || out.length >= limit) break;
+  }
+  return out;
 }
 
 /** OpenStreetMap Nominatim search with extratags (free, sovereign default). */
