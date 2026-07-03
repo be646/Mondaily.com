@@ -57159,12 +57159,12 @@ async function sovereignSearchUrls(query, limit2 = 4) {
     return [];
   }
 }
-async function sovereignScrape(targetUrl) {
+async function sovereignScrape(targetUrl, opts) {
   try {
     const res = await fetch(SCRAPE_URL(), {
       method: "POST",
       headers: { "Content-Type": "application/json", ...sovereignHeaders() },
-      body: JSON.stringify({ url: targetUrl, formats: ["markdown"] })
+      body: JSON.stringify({ url: targetUrl, formats: ["markdown"], deep: !!opts?.deep })
     });
     if (!res.ok) return "";
     const data = await res.json();
@@ -57682,11 +57682,13 @@ async function runSocialDiscovery(data, onProgress) {
   const SCRAPE_TOP = 18;
   const toScrape = unique.slice(0, SCRAPE_TOP);
   await emit({ type: "progress", stage: "scrape", message: `Reading ${toScrape.length} pages in full\u2026` });
-  const scraped = await Promise.all(toScrape.map((h2) => sovereignScrape(h2.url).catch(() => "")));
+  const deepScrape = searchType === "REVIEWS" || !!deep;
+  const scraped = await Promise.all(toScrape.map((h2) => sovereignScrape(h2.url, { deep: deepScrape }).catch(() => "")));
+  const pageTextCap = deepScrape ? 24e3 : 6e3;
   const pages = unique.map((h2, i2) => ({
     url: h2.url,
     title: h2.title,
-    text: (i2 < SCRAPE_TOP && scraped[i2] ? scraped[i2] : h2.content).slice(0, 6e3)
+    text: (i2 < SCRAPE_TOP && scraped[i2] ? scraped[i2] : h2.content).slice(0, pageTextCap)
   })).filter((p2) => p2.text.trim().length > 60);
   await emit({ type: "progress", stage: "extract", message: `Analyzing ${pages.length} pages with the agent\u2026` });
   const wantReviews = searchType === "REVIEWS";
@@ -57725,7 +57727,8 @@ async function runSocialDiscovery(data, onProgress) {
         toolName: "extract_from_page",
         toolDescription: "Extract real leads/reviews from one web page",
         toolSchema: perPageSchema,
-        maxTokens: 1600,
+        // Review-listing pages can hold dozens of reviews — give the extraction room to return them all.
+        maxTokens: wantReviews ? 4e3 : 1600,
         system: `You extract REAL ${wantReviews ? "reviews and opinions" : "leads and prospects"} from a single web page. ABSOLUTE RULES: only report what is literally on the page \u2014 never invent names, emails, phones, or review text. Contact details ONLY when they appear verbatim. ${region ? `Region "${region}" is a preference, not a hard filter \u2014 keep unclear-region results at lower confidence.` : ""} Return an empty array if the page genuinely has nothing on-topic. Do not pad.`,
         prompt: `${ask}
 

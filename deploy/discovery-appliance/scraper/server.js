@@ -47,13 +47,32 @@ app.post("/v1/scrape", async (req, res) => {
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT });
     await page.waitForTimeout(400); // let late text hydrate
 
+    // Deep mode: scroll to the bottom repeatedly to trigger lazy-loaded content (review lists like
+    // ZnanyLekarz/GoWork only render more entries as you scroll) and click common "show more /
+    // load more / więcej" buttons. This turns "1 review" into "all reviews".
+    const deep = !!(req.body && req.body.deep);
+    if (deep) {
+      for (let i = 0; i < 12; i++) {
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
+        await page.waitForTimeout(700);
+        await page.evaluate(() => {
+          const re = /(show more|load more|see more|more reviews|więcej|pokaż|załaduj|voir plus|mehr)/i;
+          const btn = Array.from(document.querySelectorAll("button, a, span, div"))
+            .find((e) => re.test((e.textContent || "").trim()) && (e.textContent || "").length < 40);
+          if (btn) btn.click();
+        }).catch(() => {});
+      }
+      await page.waitForTimeout(500);
+    }
+
     // Strip scripts/styles/nav/footer chrome, then convert the main HTML to Markdown.
     const html = await page.evaluate(() => {
       document.querySelectorAll("script,style,noscript,svg,iframe,header,footer,nav").forEach((el) => el.remove());
       const main = document.querySelector("main,article,[role=main]") || document.body;
       return main ? main.innerHTML : "";
     });
-    const markdown = td.turndown(html || "").replace(/\n{3,}/g, "\n\n").trim().slice(0, 20_000);
+    const cap = deep ? 120_000 : 20_000; // review/listing pages need room for many entries
+    const markdown = td.turndown(html || "").replace(/\n{3,}/g, "\n\n").trim().slice(0, cap);
     res.json({ markdown, url });
   } catch (e) {
     // Never 500 the API's pipeline — return empty so it degrades gracefully.

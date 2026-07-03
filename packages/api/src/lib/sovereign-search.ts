@@ -22,13 +22,15 @@ export async function sovereignSearchUrls(query: string, limit = 4): Promise<str
   } catch { return []; }
 }
 
-/** Render one page to clean Markdown via the self-hosted scraper ("" on failure). */
-export async function sovereignScrape(targetUrl: string): Promise<string> {
+/** Render one page to clean Markdown via the self-hosted scraper ("" on failure).
+ *  Pass { deep:true } for review/listing pages so the scraper scrolls to load lazy content
+ *  (e.g. ZnanyLekarz/GoWork load reviews on scroll) and returns much more text. */
+export async function sovereignScrape(targetUrl: string, opts?: { deep?: boolean }): Promise<string> {
   try {
     const res = await fetch(SCRAPE_URL(), {
       method: "POST",
       headers: { "Content-Type": "application/json", ...sovereignHeaders() },
-      body: JSON.stringify({ url: targetUrl, formats: ["markdown"] }),
+      body: JSON.stringify({ url: targetUrl, formats: ["markdown"], deep: !!opts?.deep }),
     });
     if (!res.ok) return "";
     const data = await res.json() as { markdown?: string; content?: string; data?: { markdown?: string; content?: string } };

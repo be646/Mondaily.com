@@ -181,11 +181,15 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     const SCRAPE_TOP = 18;
     const toScrape = unique.slice(0, SCRAPE_TOP);
     await emit({ type: "progress", stage: "scrape", message: `Reading ${toScrape.length} pages in full…` });
-    const scraped = await Promise.all(toScrape.map((h) => sovereignScrape(h.url).catch(() => "")));
+    // Scroll each page so lazy-loaded review lists fully render (1 review → all reviews). ALWAYS
+    // on for reviews (getting them all is the point), and for deep lead runs too.
+    const deepScrape = searchType === "REVIEWS" || !!deep;
+    const scraped = await Promise.all(toScrape.map((h) => sovereignScrape(h.url, { deep: deepScrape }).catch(() => "")));
+    const pageTextCap = deepScrape ? 24_000 : 6_000; // review/deep pages hold many entries — keep them
     const pages = unique.map((h, i) => ({
       url: h.url,
       title: h.title,
-      text: (i < SCRAPE_TOP && scraped[i] ? scraped[i]! : h.content).slice(0, 6000),
+      text: (i < SCRAPE_TOP && scraped[i] ? scraped[i]! : h.content).slice(0, pageTextCap),
     })).filter((p) => p.text.trim().length > 60); // nothing meaningful to extract from
     await emit({ type: "progress", stage: "extract", message: `Analyzing ${pages.length} pages with the agent…` });
 
@@ -228,7 +232,8 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
           toolName: "extract_from_page",
           toolDescription: "Extract real leads/reviews from one web page",
           toolSchema: perPageSchema,
-          maxTokens: 1600,
+          // Review-listing pages can hold dozens of reviews — give the extraction room to return them all.
+          maxTokens: wantReviews ? 4000 : 1600,
           system:
             `You extract REAL ${wantReviews ? "reviews and opinions" : "leads and prospects"} from a single web page. ` +
             `ABSOLUTE RULES: only report what is literally on the page — never invent names, emails, phones, or review text. ` +
