@@ -13,6 +13,8 @@ describe("redactPII — PII + secrets never survive", () => {
     ["phone (intl)", "call +1 (415) 555-2671 today", /\[REDACTED_PHONE\]/],
     ["phone (plain)", "number is 415-555-2671", /\[REDACTED_PHONE\]/],
     ["openai key", "key sk-abcdEFGH1234567890ijkl leaked", /\[REDACTED_KEY\]/],
+    // Split the prefix so the source file never contains a contiguous live-key literal (trips
+    // secret scanners); the runtime string still matches the redaction regex.
     ["stripe live key", "sk_live_" + "51HabcdEFGH1234567890xyz", /\[REDACTED_KEY\]/],
     ["aws key", "AKIAIOSFODNN7EXAMPLE in config", /\[REDACTED_AWS_KEY\]/],
     ["jwt", "token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N", /\[REDACTED_JWT\]/],
