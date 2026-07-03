@@ -170,18 +170,23 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     if (hits.length === 0) return { discovered: 0, reason: "no search results", diag: { queries: queries.length, hits: 0, unique: 0, extracted: 0, matched: 0 } };
     await emit({ type: "progress", stage: "search", message: `Found ${hits.length} candidate pages — reading the most promising…` });
 
-    // Dedupe the raw hits by URL before extraction. Prefer scraping social/review pages first —
-    // they're where the actual people/reviews live; generic pages fill the remaining slots.
+    const isReviews = searchType === "REVIEWS";
+    // Known review-listing hosts — where actual reviews live (incl. regional sites like the Polish
+    // ZnanyLekarz/GoWork/Opineo). For a REVIEWS search these MUST be scraped first, or we'd waste
+    // the 8 scrape slots on social pages that have no reviews (the "found 70, extracted 0" bug).
+    const REVIEW_HOSTS = /(trustpilot|znanylekarz|gowork|opineo|opinie|ratingcaptain|yelp|glassdoor|tripadvisor|google\.|goo\.gl|maps\.|g\.page|booking\.|kliniki|clinic|facebook|reddit)/i;
+    // Dedupe the raw hits by URL, then order by what's most likely to contain what we want.
     const seen = new Set<string>();
     const uniqueAll = hits.filter((h) => (seen.has(h.url) ? false : (seen.add(h.url), true)));
-    const socialFirst = [...uniqueAll].sort((a, b) => {
-      const rank = (u: string) => (platformOf(u) === "web" || platformOf(u).includes(".") ? 1 : 0);
+    const ranked = [...uniqueAll].sort((a, b) => {
+      const rank = isReviews
+        ? (u: string) => (REVIEW_HOSTS.test(u) ? 0 : 1)                                   // review sites first
+        : (u: string) => (platformOf(u) === "web" || platformOf(u).includes(".") ? 1 : 0); // people/social first
       return rank(a.url) - rank(b.url);
     });
     // Reviews deep-scroll each page (slow but rich — 1 page can yield ~90 reviews), so we analyze
     // FEWER, higher-quality pages to stay well under the 60s serverless limit. Leads stay broad.
-    const isReviews = searchType === "REVIEWS";
-    const unique = socialFirst.slice(0, isReviews ? 10 : 40);
+    const unique = ranked.slice(0, isReviews ? 12 : 40);
 
     // 2) Scrape the top pages to full text, then run ONE FOCUSED extraction call PER PAGE, in
     //    parallel batches. This replaces the old single-blob call (36 concatenated pages in one

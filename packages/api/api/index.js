@@ -57678,14 +57678,15 @@ async function runSocialDiscovery(data, onProgress) {
   const hits = sweep.flatMap((s2) => s2.hits);
   if (hits.length === 0) return { discovered: 0, reason: "no search results", diag: { queries: queries.length, hits: 0, unique: 0, extracted: 0, matched: 0 } };
   await emit({ type: "progress", stage: "search", message: `Found ${hits.length} candidate pages \u2014 reading the most promising\u2026` });
+  const isReviews = searchType === "REVIEWS";
+  const REVIEW_HOSTS = /(trustpilot|znanylekarz|gowork|opineo|opinie|ratingcaptain|yelp|glassdoor|tripadvisor|google\.|goo\.gl|maps\.|g\.page|booking\.|kliniki|clinic|facebook|reddit)/i;
   const seen = /* @__PURE__ */ new Set();
   const uniqueAll = hits.filter((h2) => seen.has(h2.url) ? false : (seen.add(h2.url), true));
-  const socialFirst = [...uniqueAll].sort((a2, b2) => {
-    const rank = (u2) => platformOf(u2) === "web" || platformOf(u2).includes(".") ? 1 : 0;
+  const ranked = [...uniqueAll].sort((a2, b2) => {
+    const rank = isReviews ? (u2) => REVIEW_HOSTS.test(u2) ? 0 : 1 : (u2) => platformOf(u2) === "web" || platformOf(u2).includes(".") ? 1 : 0;
     return rank(a2.url) - rank(b2.url);
   });
-  const isReviews = searchType === "REVIEWS";
-  const unique = socialFirst.slice(0, isReviews ? 10 : 40);
+  const unique = ranked.slice(0, isReviews ? 12 : 40);
   const SCRAPE_TOP = isReviews ? 8 : 18;
   const toScrape = unique.slice(0, SCRAPE_TOP);
   await emit({ type: "progress", stage: "scrape", message: `Reading ${toScrape.length} pages in full\u2026` });
