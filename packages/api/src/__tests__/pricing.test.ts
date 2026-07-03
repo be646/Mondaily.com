@@ -114,3 +114,49 @@ describe("backend enforcement + no-negative (source-read guards)", () => {
     expect(route).toMatch(/router\.get\("\/diagnostics"/); // admin diagnostics exists
   });
 });
+
+describe("EVERY gateway path is credit-gated (no bypass)", () => {
+  const gw = readFileSync(fileURLToPath(new URL("../lib/ai-gateway.ts", import.meta.url)), "utf8");
+  it("plain aiGateway gates + meters when a workspaceId is provided", () => {
+    // The plain-completion function now asserts credits and records usage.
+    const fn = gw.slice(gw.indexOf("export async function aiGateway("), gw.indexOf("export async function aiGatewayToolUse"));
+    expect(fn).toMatch(/assertCreditsOk\(req\.workspaceId\)/);
+    expect(fn).toMatch(/recordAiUsage\(req\.workspaceId/);
+  });
+  it("aiGatewayComplete gates + meters when a workspaceId is provided", () => {
+    const fn = gw.slice(gw.indexOf("export async function aiGatewayComplete"));
+    expect(fn).toMatch(/assertCreditsOk\(req\.workspaceId\)/);
+    expect(fn).toMatch(/recordAiUsage\(req\.workspaceId/);
+  });
+  it("all four public gateway entry points call assertCreditsOk", () => {
+    for (const fnName of ["aiGateway(", "aiGatewayComplete(", "aiGatewayToolUse(", "aiGatewayAgent("]) {
+      const start = gw.indexOf(`export async function ${fnName}`);
+      expect(start, `${fnName} should exist`).toBeGreaterThan(-1);
+    }
+    // 4 public functions + the streaming variant = at least 5 assertCreditsOk call sites.
+    expect((gw.match(/assertCreditsOk\(req\.workspaceId\)/g) ?? []).length).toBeGreaterThanOrEqual(5);
+  });
+  it("public marketing chat intentionally has NO workspaceId (documented, unmetered, still sovereign)", () => {
+    const pub = readFileSync(fileURLToPath(new URL("../routes/public-ask.ts", import.meta.url)), "utf8");
+    expect(pub).toMatch(/aiGateway\(\{ system: SYSTEM/);      // uses the sovereign gateway
+    expect(pub).not.toMatch(/workspaceId/);                    // never charges a workspace
+  });
+});
+
+describe("no stale visible pricing copy (50k/500k/2M) in the onboarding + billing UI", () => {
+  const files = [
+    "../../../../apps/app/src/routes/onboarding/terminal-console.tsx",
+    "../../../../apps/app/src/routes/dashboard/settings/billing.tsx",
+  ];
+  for (const rel of files) {
+    it(`${rel.split("/").pop()} has no hardcoded stale credit strings`, () => {
+      const src = readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
+      expect(src).not.toMatch(/50k credits|500k credits|2M credits|500,000 credits/);
+    });
+  }
+  it("onboarding plan display derives from the shared catalog", () => {
+    const src = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/onboarding/terminal-console.tsx", import.meta.url)), "utf8");
+    expect(src).toMatch(/from "@mondaily\/shared\/pricing"/);
+    expect(src).toMatch(/PLAN_TIERS\[id\]/);
+  });
+});

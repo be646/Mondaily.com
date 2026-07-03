@@ -176,6 +176,7 @@ router.post("/:id/insight", async (c) => {
         "NEVER invent figures not in the data. Be concrete and specific, cite the real numbers, 2-3 short sentences, plain language, no preamble.",
       prompt: `Report data points — ${series}. First=${first}, last=${last}, peak=${peak.label} (${peak.value}).`,
       maxTokens: 220,
+      workspaceId: ws, userId: c.get("userId"), feature: "report_insight",
     });
     return c.json({ insight: (text || "").trim() || "The data shows the values above; no strong trend detected." });
   } catch {

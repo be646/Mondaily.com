@@ -370,7 +370,7 @@ router.post("/member-insight", requireAuth, requireAdminRole, async (c) => {
     "If the data is too thin to say anything useful, reply exactly: \"I don't have enough tracked activity for this member yet.\"";
 
   try {
-    const { text } = await aiGateway({ system, prompt: digest, maxTokens: 240 });
+    const { text } = await aiGateway({ system, prompt: digest, maxTokens: 240, workspaceId: ws, userId: c.get("userId"), feature: "oversight_insight" });
     const insight = (text || "").trim();
     return c.json({ insight: insight || "I don't have enough tracked activity for this member yet.", sources, sufficient: true });
   } catch {
@@ -434,7 +434,7 @@ router.post("/oversight-ask", requireAuth, requireAdminRole, async (c) => {
     "If the data does not contain enough to answer, reply exactly: \"I don't have enough tracked team activity to answer that yet.\"";
 
   try {
-    const { text } = await aiGateway({ system, prompt: `Question: ${question}\n\nData:\n${digest}`, maxTokens: 320 });
+    const { text } = await aiGateway({ system, prompt: `Question: ${question}\n\nData:\n${digest}`, maxTokens: 320, workspaceId: ws, userId: c.get("userId"), feature: "oversight_ask" });
     const answer = (text || "").trim();
     const sources = lines.map((l) => ({ type: "member_metrics" as const, title: l }));
     return c.json({ answer: answer || "I don't have enough tracked team activity to answer that yet.", sources, sufficient: true });

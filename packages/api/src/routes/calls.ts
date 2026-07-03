@@ -103,6 +103,7 @@ router.post("/:id/analyze", zValidator("json", z.object({ template_id: z.enum(["
     const result = await aiGateway({
       prompt: `${prompts[templateId]}\n\nTranscript:\n${transcript}`,
       maxTokens: 900,
+      workspaceId: c.get("workspaceId"), userId: c.get("userId"), feature: "call_summary",
     }).catch(() => null);
     if (result) output = result.text;
   }

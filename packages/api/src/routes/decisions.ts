@@ -378,7 +378,7 @@ router.post("/:id/ask", async (c) => {
 
   const sources = evidence.slice(0, 12).map((e: Record<string, unknown>) => ({ type: "evidence" as const, title: String(e.title ?? "evidence"), relevance: (e.match_reason ?? e.relationship) as string | undefined }));
   try {
-    const { text } = await aiGateway({ system, prompt: `Question: ${question}\n\nData:\n${digest}`, maxTokens: 320 });
+    const { text } = await aiGateway({ system, prompt: `Question: ${question}\n\nData:\n${digest}`, maxTokens: 320, workspaceId, userId: c.get("userId"), feature: "decision_ask" });
     const answer = (text || "").trim();
     return c.json({ answer: answer || "I couldn't produce an explanation for this decision.", sources, sufficient: true });
   } catch {

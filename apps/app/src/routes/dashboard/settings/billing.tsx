@@ -188,7 +188,7 @@ export function BillingSettings() {
       {billing.trial_eligible && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border px-5 py-3.5 text-sm" style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)" }}>
           <span style={{ color: "var(--text-primary)" }}>
-            Try <strong>Operator</strong> free for 14 days — full autonomous workspace, 500k credits. No card required.
+            Try <strong>Operator</strong> free for 14 days — full autonomous workspace, {fmtCredits(PLAN_BY_ID.operator?.monthlyCredits ?? 0)} AI credits. No card required.
           </span>
           <button onClick={() => startTrial.mutate()} disabled={startTrial.isPending}
             className="shrink-0 rounded-sm px-4 py-2 text-[12px] font-semibold text-black disabled:opacity-60" style={{ background: "var(--accent)" }}>

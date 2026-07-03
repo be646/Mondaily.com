@@ -1469,6 +1469,7 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
         system: "You are Mondaily AI, a helpful business workspace assistant. Answer concisely. If the workspace appears empty, say so and suggest the user adds contacts, deals, or tasks to get started.",
         prompt: message,
         maxTokens: 400,
+        workspaceId, userId, feature: "chat",
       }).catch(() => ({ text: "" }));
       reply = fallback.text;
       console.log(`[ask] direct fallback replyLen=${reply.length}`);

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { apiClient } from "../../lib/api-client";
+import { PLAN_TIERS } from "@mondaily/shared/pricing";
 
 /**
  * Guided AI Onboarding Console — a full-screen monospace terminal that runs a short, CLICKABLE
@@ -399,11 +400,18 @@ export function TerminalOnboardingPage() {
 
 // ── Plan cards ─────────────────────────────────────────────────────────────────
 interface PlanMeta { id: PlanId; name: string; price: string; sub: string; blurb: string }
-const PLANS: PlanMeta[] = [
-  { id: "scout", name: "Scout", price: "$0", sub: "1 operator · 50k credits / mo", blurb: "Solo. Get moving free." },
-  { id: "operator", name: "Operator", price: "$29", sub: "500k credits · unlimited agents", blurb: "Small teams up to ~5." },
-  { id: "command", name: "Command", price: "$79", sub: "2M credits · up to 10 operators", blurb: "Growing teams, flat rate." },
-];
+// Numbers + seats come from the shared catalog; onboarding copy stays here.
+const fmtCr = (n: number | null) => n === null ? "custom" : n >= 1_000_000 ? `${n % 1_000_000 === 0 ? n / 1_000_000 : (n / 1_000_000).toFixed(1)}M` : `${Math.round(n / 1_000)}k`;
+const BLURB: Record<string, string> = { scout: "Solo. Get moving free.", operator: "Small teams up to 5.", command: "Growing teams, flat rate." };
+const PLANS: PlanMeta[] = (["scout", "operator", "command"] as const).map((id) => {
+  const t = PLAN_TIERS[id];
+  return {
+    id, name: t.name,
+    price: t.priceMonthly === 0 ? "$0" : `$${t.priceMonthly}`,
+    sub: `${t.seats} seat${t.seats === 1 ? "" : "s"} · ${fmtCr(t.monthlyCredits)} AI credits / mo`,
+    blurb: BLURB[id] ?? "",
+  };
+});
 
 function PlanCards({ recommended, onSelect }: { recommended: PlanId; onSelect: (p: PlanId) => void }) {
   return (

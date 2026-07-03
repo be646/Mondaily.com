@@ -33,6 +33,7 @@ router.post("/", requireAuth, denyViewerWrites, zValidator("json", importBodySch
       system: "You are a data schema expert. Reply ONLY with a valid JSON object — no prose, no markdown.",
       prompt: `Given the following CSV headers and sample rows, classify each column as one of: Text, Number, Email, URL, Date, Status, Currency, Phone, Boolean.\n\nCSV:\n${sampleText}\n\nExample output: {"name":"Text","revenue":"Currency","active":"Boolean"}`,
       maxTokens: 512,
+      workspaceId, userId: c.get("userId"), feature: "import",
     });
     const parsed = JSON.parse(text.trim());
     if (typeof parsed === "object" && parsed !== null) {

@@ -55374,6 +55374,12 @@ async function gatewayHealthCheck(opts) {
   return { ok: ok2, baseURLHost, env: env2, tests, lastChatError: lastGatewayError };
 }
 async function aiGateway(req) {
+  try {
+    await assertCreditsOk(req.workspaceId);
+  } catch (e2) {
+    if (e2 instanceof CreditsExhaustedError) return { text: e2.message, provider: "none", model: "none" };
+    throw e2;
+  }
   const resolved = resolveModel();
   const messages = [];
   if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
@@ -55386,6 +55392,12 @@ async function aiGateway(req) {
     max_tokens: Math.max(req.maxTokens ?? 512, 2048),
     messages
   });
+  if (completion.usage) {
+    const u2 = completion.usage;
+    const usage = { prompt_tokens: u2.prompt_tokens ?? 0, completion_tokens: u2.completion_tokens ?? 0, total_tokens: u2.total_tokens ?? 0, reasoning_tokens: u2.completion_tokens_details?.reasoning_tokens ?? 0 };
+    if (req.onUsage) req.onUsage(usage);
+    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, { userId: req.userId, feature: req.feature });
+  }
   const msg = completion.choices[0]?.message;
   const text = msg?.content && msg.content.trim() ? msg.content : msg?.reasoning ?? "";
   return { text, provider: "openai-compat", model: resolved.modelId };
@@ -58876,7 +58888,9 @@ var creditNoteDisputeHandler = inngest.createFunction(
 
 Reply ONLY with valid JSON: {"reason":"...","amount_cents":0,"summary":"..."}`,
         prompt: disputeBody,
-        maxTokens: 256
+        maxTokens: 256,
+        workspaceId,
+        feature: "credit_note_dispute"
       }).catch((err2) => {
         console.error("[credit-note-dispute] classify-dispute gateway call failed (non-fatal):", err2?.message ?? err2);
         return { text: "" };
@@ -59022,7 +59036,7 @@ function triggerKeyFor(trigger, record) {
   }
   return trigger.type || "fired";
 }
-async function evaluateConditions(conditions, record) {
+async function evaluateConditions(workspaceId, conditions, record) {
   if (conditions.length === 0) return true;
   const structured = conditions.every((c2) => c2.config && c2.config.field && "value" in (c2.config ?? {}));
   if (structured) {
@@ -59058,7 +59072,9 @@ Conditions (ALL must hold):
 ${conditions.map((c2, i2) => `${i2 + 1}. ${c2.label ?? c2.type}`).join("\n")}
 
 Do ALL conditions hold for this record? Answer YES or NO.`,
-    maxTokens: 1500
+    maxTokens: 1500,
+    workspaceId,
+    feature: "workflow_condition"
   }).catch(() => ({ text: "" }));
   return /\byes\b/i.test(text) && !/\bno\b/i.test(text.replace(/yes/gi, ""));
 }
@@ -59229,7 +59245,7 @@ async function runWorkflowsForWorkspace(workspaceId, opts = {}) {
           }, () => {
           });
         }
-        const pass = await evaluateConditions(parsed.conditions, record);
+        const pass = await evaluateConditions(workspaceId, parsed.conditions, record);
         if (!pass) {
           await supabase.from("workflow_runs").insert({
             workspace_id: workspaceId,
@@ -60510,7 +60526,10 @@ router3.post("/:id/insight", async (c2) => {
     const { text } = await aiGateway({
       system: "You are a business analyst. Describe ONLY what the provided numbers show \u2014 trend direction, the peak, the overall change, and (if projected points are present) where the forecast is heading. NEVER invent figures not in the data. Be concrete and specific, cite the real numbers, 2-3 short sentences, plain language, no preamble.",
       prompt: `Report data points \u2014 ${series}. First=${first}, last=${last}, peak=${peak.label} (${peak.value}).`,
-      maxTokens: 220
+      maxTokens: 220,
+      workspaceId: ws,
+      userId: c2.get("userId"),
+      feature: "report_insight"
     });
     return c2.json({ insight: (text || "").trim() || "The data shows the values above; no strong trend detected." });
   } catch {
@@ -61147,7 +61166,7 @@ ${evidenceLines.join("\n")}` : "Evidence: none recorded.",
     const { text } = await aiGateway({ system, prompt: `Question: ${question}
 
 Data:
-${digest}`, maxTokens: 320 });
+${digest}`, maxTokens: 320, workspaceId, userId: c2.get("userId"), feature: "decision_ask" });
     const answer = (text || "").trim();
     return c2.json({ answer: answer || "I couldn't produce an explanation for this decision.", sources, sufficient: true });
   } catch {
@@ -62467,7 +62486,10 @@ ${webContext}` : "") + contextNote;
       const fallback = await aiGateway({
         system: "You are Mondaily AI, a helpful business workspace assistant. Answer concisely. If the workspace appears empty, say so and suggest the user adds contacts, deals, or tasks to get started.",
         prompt: message,
-        maxTokens: 400
+        maxTokens: 400,
+        workspaceId,
+        userId,
+        feature: "chat"
       }).catch(() => ({ text: "" }));
       reply = fallback.text;
       console.log(`[ask] direct fallback replyLen=${reply.length}`);
@@ -63536,7 +63558,7 @@ router9.post("/member-insight", requireAuth, requireAdminRole, async (c2) => {
   ].join("\n");
   const system = `You are a workspace admin assistant. Summarise ONE team member's real activity using ONLY the data provided. Never invent tasks, deals, notes, numbers, workload, hours, or coaching that the data does not support. Write 2 to 4 short, plain sentences of factual observation. Do NOT mention tools, functions, searching, databases, or your own reasoning process. If the data is too thin to say anything useful, reply exactly: "I don't have enough tracked activity for this member yet."`;
   try {
-    const { text } = await aiGateway({ system, prompt: digest, maxTokens: 240 });
+    const { text } = await aiGateway({ system, prompt: digest, maxTokens: 240, workspaceId: ws, userId: c2.get("userId"), feature: "oversight_insight" });
     const insight = (text || "").trim();
     return c2.json({ insight: insight || "I don't have enough tracked activity for this member yet.", sources, sufficient: true });
   } catch {
@@ -63597,7 +63619,7 @@ router9.post("/oversight-ask", requireAuth, requireAdminRole, async (c2) => {
     const { text } = await aiGateway({ system, prompt: `Question: ${question}
 
 Data:
-${digest}`, maxTokens: 320 });
+${digest}`, maxTokens: 320, workspaceId: ws, userId: c2.get("userId"), feature: "oversight_ask" });
     const answer = (text || "").trim();
     const sources = lines.map((l2) => ({ type: "member_metrics", title: l2 }));
     return c2.json({ answer: answer || "I don't have enough tracked team activity to answer that yet.", sources, sufficient: true });
@@ -66370,7 +66392,10 @@ router22.post("/:id/analyze", zValidator("json", external_exports.object({ templ
 
 Transcript:
 ${transcript}`,
-      maxTokens: 900
+      maxTokens: 900,
+      workspaceId: c2.get("workspaceId"),
+      userId: c2.get("userId"),
+      feature: "call_summary"
     }).catch(() => null);
     if (result) output = result.text;
   }
@@ -67391,7 +67416,10 @@ CSV:
 ${sampleText}
 
 Example output: {"name":"Text","revenue":"Currency","active":"Boolean"}`,
-      maxTokens: 512
+      maxTokens: 512,
+      workspaceId,
+      userId: c2.get("userId"),
+      feature: "import"
     });
     const parsed = JSON.parse(text.trim());
     if (typeof parsed === "object" && parsed !== null) {

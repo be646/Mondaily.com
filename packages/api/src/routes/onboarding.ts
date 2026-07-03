@@ -170,9 +170,9 @@ router.post("/complete", requireAuth, async (c) => {
     ? (body.plan as string)
     : (body.track === "business" || body.account_tier === "business") ? "operator" : "scout";
 
-  // BUSINESS RULES (payment not wired yet — Stripe is last):
-  //  • Scout    — free forever, self-serve, 50k credits, NO trial.
-  //  • Operator — 14-day trial, self-serve, 500k credits.
+  // BUSINESS RULES (credit amounts come from @mondaily/shared/pricing — see grantAmountFor):
+  //  • Scout    — free forever, self-serve, 100k credits/mo, NO trial.
+  //  • Operator — 14-day trial, self-serve, 1M credits/mo.
   //  • Command / Sovereign — PAID, NO trial. A user cannot self-provision these for free. Until
   //    they pay we provision the free Scout baseline and record `pending_plan` so billing can
   //    prompt them to activate. This is the fix for "I picked Command and got it free".

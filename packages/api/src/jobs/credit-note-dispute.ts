@@ -37,6 +37,7 @@ export const creditNoteDisputeHandler = inngest.createFunction(
 Reply ONLY with valid JSON: {"reason":"...","amount_cents":0,"summary":"..."}`,
         prompt: disputeBody,
         maxTokens: 256,
+        workspaceId, feature: "credit_note_dispute",
       }).catch((err: any) => {
         console.error("[credit-note-dispute] classify-dispute gateway call failed (non-fatal):", err?.message ?? err);
         return { text: "" };

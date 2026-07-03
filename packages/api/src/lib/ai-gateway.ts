@@ -36,6 +36,13 @@ export type GatewayRequest = {
   system?: string;
   prompt: string;
   maxTokens?: number;
+  /** When set, the call is credit-gated (fail closed) and its real token usage is metered to the
+   *  workspace wallet + ai_usage. Omit ONLY for genuinely workspace-less calls (e.g. anonymous
+   *  marketing chat), which still route through the sovereign gateway and fail closed on missing env. */
+  workspaceId?: string;
+  userId?: string;
+  feature?: string;
+  onUsage?: (u: { prompt_tokens: number; completion_tokens: number; total_tokens: number; reasoning_tokens: number }) => void;
 };
 
 export type GatewayResponse = {
@@ -292,6 +299,11 @@ export async function gatewayHealthCheck(opts?: { probe?: boolean }): Promise<{
 // ── Plain text generation ───────────────────────────────────────────────────────
 
 export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
+  // Credit gate — fail closed BEFORE inference when tied to a workspace. On exhaustion, return the
+  // clear message as text (callers surface it) rather than throwing into their fallback paths.
+  try { await assertCreditsOk(req.workspaceId); }
+  catch (e) { if (e instanceof CreditsExhaustedError) return { text: e.message, provider: "none", model: "none" }; throw e; }
+
   const resolved = resolveModel();
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
@@ -306,6 +318,13 @@ export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
     max_tokens: Math.max(req.maxTokens ?? 512, 2048),
     messages,
   });
+  // Meter real token usage to the workspace wallet + ai_usage (only charges for work performed).
+  if (completion.usage) {
+    const u = completion.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
+    const usage = { prompt_tokens: u.prompt_tokens ?? 0, completion_tokens: u.completion_tokens ?? 0, total_tokens: u.total_tokens ?? 0, reasoning_tokens: u.completion_tokens_details?.reasoning_tokens ?? 0 };
+    if (req.onUsage) req.onUsage(usage);
+    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, { userId: req.userId, feature: req.feature });
+  }
   const msg = completion.choices[0]?.message as { content?: string; reasoning?: string } | undefined;
   const text = (msg?.content && msg.content.trim()) ? msg.content : (msg?.reasoning ?? "");
   return { text, provider: "openai-compat", model: resolved.modelId };
@@ -364,7 +383,11 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
  * does NOT support forced function-calling. Returns raw text (content, or
  * `reasoning` for reasoning models). Empty string on non-openai / error.
  */
-export async function aiGatewayComplete(req: { prompt: string; system?: string; model?: string; maxTokens?: number }): Promise<string> {
+export async function aiGatewayComplete(req: { prompt: string; system?: string; model?: string; maxTokens?: number; workspaceId?: string; userId?: string; feature?: string }): Promise<string> {
+  // Credit gate — fail closed BEFORE inference when tied to a workspace (returns "" = no work done).
+  try { await assertCreditsOk(req.workspaceId); }
+  catch (e) { if (e instanceof CreditsExhaustedError) return ""; throw e; }
+
   const resolved = resolveModel(req.model);
   if (resolved.type !== "openai-compat") return "";
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
@@ -376,6 +399,12 @@ export async function aiGatewayComplete(req: { prompt: string; system?: string; 
       max_tokens: req.maxTokens ?? 512,
       messages,
     });
+    // Meter usage to the wallet + ai_usage when tied to a workspace.
+    if (completion.usage && req.workspaceId) {
+      const u = completion.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
+      const total = u.total_tokens ?? 0;
+      if (total > 0) recordAiUsage(req.workspaceId, resolved.modelId, { prompt_tokens: u.prompt_tokens ?? 0, completion_tokens: u.completion_tokens ?? 0, total_tokens: total }, { userId: req.userId, feature: req.feature });
+    }
     const m = completion.choices[0]?.message as { content?: string; reasoning?: string } | undefined;
     return (m?.content && m.content.trim()) ? m.content : (m?.reasoning ?? "");
   } catch {

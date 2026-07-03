@@ -81,7 +81,7 @@ function triggerKeyFor(trigger: WorkflowBlock, record: { data: Record<string, un
 }
 
 /** AI condition evaluation — do ALL conditions hold for this record? */
-async function evaluateConditions(conditions: WorkflowBlock[], record: { object_type: string; data: Record<string, unknown> }): Promise<boolean> {
+async function evaluateConditions(workspaceId: string, conditions: WorkflowBlock[], record: { object_type: string; data: Record<string, unknown> }): Promise<boolean> {
   if (conditions.length === 0) return true;
   // Structured fast-path: if any condition has explicit field/operator/value config.
   const structured = conditions.every((c) => c.config && c.config.field && "value" in (c.config ?? {}));
@@ -123,6 +123,7 @@ async function evaluateConditions(conditions: WorkflowBlock[], record: { object_
     system: "You evaluate workflow conditions. Answer with exactly one word: YES or NO.",
     prompt: `Record (${record.object_type}):\n${JSON.stringify(record.data).slice(0, 1500)}\n\nConditions (ALL must hold):\n${conditions.map((c, i) => `${i + 1}. ${c.label ?? c.type}`).join("\n")}\n\nDo ALL conditions hold for this record? Answer YES or NO.`,
     maxTokens: 1500,
+    workspaceId, feature: "workflow_condition",
   }).catch(() => ({ text: "" }));
   return /\byes\b/i.test(text) && !/\bno\b/i.test(text.replace(/yes/gi, ""));
 }
@@ -295,7 +296,7 @@ export async function runWorkflowsForWorkspace(
             .eq("workflow_id", wf.id).eq("record_id", record.id).eq("trigger_key", triggerKey).then(() => {}, () => {});
         }
 
-        const pass = await evaluateConditions(parsed.conditions, record);
+        const pass = await evaluateConditions(workspaceId, parsed.conditions, record);
         if (!pass) {
           await supabase.from("workflow_runs").insert({
             workspace_id: workspaceId, workflow_id: wf.id, record_id: record.id, trigger_key: triggerKey,
