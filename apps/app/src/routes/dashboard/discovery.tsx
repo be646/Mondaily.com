@@ -82,9 +82,18 @@ export function DiscoveryPage() {
   const [view, setView] = useState<"chat" | "saved">("chat");
   const [input, setInput] = useState("");
   const [deep, setDeep] = useState(false);
-  const [turns, setTurns] = useState<Turn[]>([]);
+  // Search history persists in localStorage per workspace, so searches + their results survive a
+  // refresh/navigation instead of disappearing.
+  const HISTORY_KEY = `mondaily_discovery_history_${localStorage.getItem("mondaily_workspace_id") ?? "default"}`;
+  const [turns, setTurns] = useState<Turn[]>(() => { try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch { return []; } });
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const keep = turns.filter((t) => t.status !== "streaming").slice(-25);
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(keep)); } catch { /* quota — ignore */ }
+  }, [turns, HISTORY_KEY]);
+  const clearHistory = () => { setTurns([]); try { localStorage.removeItem(HISTORY_KEY); } catch { /* ignore */ } };
 
   const statusQ = useQuery({ queryKey: ["discovery-status"], queryFn: () => apiClient.get<DiscoveryStatus>("/discovery/status"), staleTime: 60_000 });
   const listsQ = useQuery({ queryKey: ["lists"], queryFn: () => apiClient.get<ListRow[]>("/lists"), staleTime: 30_000 });
@@ -206,13 +215,20 @@ export function DiscoveryPage() {
             </div>
           </div>
         </div>
-        <div className="flex overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
-          {(["chat", "saved"] as const).map((v) => (
-            <button key={v} onClick={() => setView(v)} className="px-3 py-1.5 text-[12px] font-medium capitalize transition-colors"
-              style={{ background: view === v ? "var(--surface-selected)" : "transparent", color: view === v ? "var(--text-primary)" : "var(--text-muted)" }}>
-              {v === "chat" ? "Discover" : "Saved leads"}
+        <div className="flex items-center gap-2">
+          {view === "chat" && turns.length > 0 && (
+            <button onClick={clearHistory} title="Clear search history" className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+              <Trash2 size={12} /> Clear
             </button>
-          ))}
+          )}
+          <div className="flex overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
+            {(["chat", "saved"] as const).map((v) => (
+              <button key={v} onClick={() => setView(v)} className="px-3 py-1.5 text-[12px] font-medium capitalize transition-colors"
+                style={{ background: view === v ? "var(--surface-selected)" : "transparent", color: view === v ? "var(--text-primary)" : "var(--text-muted)" }}>
+                {v === "chat" ? "Discover" : "Saved leads"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -357,10 +373,11 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
         {/* Results render as soon as they stream in — independent of the final done event. */}
         {turn.results.length > 0 ? (
           <>
-            <div className="mt-3 mb-2 flex items-center gap-2 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+            <div className="mt-3 mb-2 flex flex-wrap items-center gap-2 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
               <strong style={{ color: "var(--text-primary)" }}>{turn.results.length}</strong> {reviews ? "reviews / mentions" : "leads"}
               <span aria-hidden>·</span> from {turn.scanned ?? 0} sources
               {reviews && <SentimentSummary results={turn.results} />}
+              {!reviews && <SaveAllLeads results={turn.results} query={turn.query} />}
             </div>
             <div className="space-y-2">
               {turn.results.map((r, i) =>
@@ -456,6 +473,37 @@ function StepTrace({ steps, status }: { steps: string[]; status: Turn["status"] 
         </div>
       )}
     </div>
+  );
+}
+
+/** "Save all leads" — one call promotes the whole result set into the graph. */
+function SaveAllLeads({ results, query }: { results: ResultRow[]; query: string }) {
+  const qc = useQueryClient();
+  const [state, setState] = useState<"idle" | "saving" | "done" | "error">("idle");
+  const save = async () => {
+    setState("saving");
+    try {
+      const leads = results.map((r) => ({
+        name: r.author_name && r.author_name !== "Anonymous" ? r.author_name : (hostOf(r.source_url) || "Discovered lead"),
+        object_type: "company",
+        source_url: r.source_url,
+        discovery_query: query,
+        email: r.email ?? undefined,
+        phone: r.phone ?? undefined,
+        handle: r.handle ?? undefined,
+        region: r.region ?? undefined,
+        summary: r.snippet || undefined,
+      }));
+      await apiClient.post("/discovery/save-batch", { leads });
+      setState("done");
+      qc.invalidateQueries({ queryKey: ["nodes"] });
+    } catch { setState("error"); }
+  };
+  if (state === "done") return <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "#15803d" }}><Check size={12} /> All {results.length} saved</span>;
+  return (
+    <button onClick={save} disabled={state === "saving"} className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
+      {state === "saving" ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} {state === "error" ? "Retry save all" : `Save all ${results.length}`}
+    </button>
   );
 }
 

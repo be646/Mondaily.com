@@ -246,6 +246,27 @@ router.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c)
   return c.json({ id: data.id }, 201);
 });
 
+// Bulk "Save all leads" — promote a whole result set into the graph in one insert.
+router.post("/save-batch", denyViewerWrites, zValidator("json", z.object({ leads: z.array(saveSchema).min(1).max(200) })), async (c) => {
+  const { leads } = c.req.valid("json");
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+  const rows = leads.map((b) => {
+    let domain: string | undefined;
+    try { if (b.source_url) domain = new URL(b.source_url).host.replace(/^www\./, ""); } catch { /* ignore */ }
+    return {
+      workspace_id: workspaceId,
+      vertical: objectTypeToVertical(b.object_type),
+      object_type: b.object_type,
+      created_by: userId,
+      data: { name: b.name, source: "discovery", discovery_query: b.discovery_query, source_url: b.source_url, email: b.email, phone: b.phone, website: b.website || undefined, domain, handle: b.handle, description: b.summary, location: b.region },
+    };
+  });
+  const { data, error } = await supabase.from("nodes").insert(rows).select("id");
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json({ saved: data?.length ?? 0, ids: (data ?? []).map((r) => r.id) }, 201);
+});
+
 // ── Saved-search monitors ("watch this search") — stored as nodes, re-run by the daily cron. ──
 router.get("/monitors", async (c) => {
   const { data } = await supabase

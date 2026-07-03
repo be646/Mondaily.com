@@ -517,19 +517,23 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
         `${r.contact.email ? ` email:${r.contact.email}` : ""}${r.contact.phone ? ` phone:yes` : ""}: ${(r.contact.summary || r.raw_content || "").slice(0, 160)}`
       ).join("\n");
       try {
-        const { aiGateway } = await import("../lib/ai-gateway");
-        const { text } = await aiGateway({
+        // Use the STRUCTURED tool path (same one extraction uses reliably) — the plain-completion
+        // path can return empty content on a reasoning model, which is why the overview never showed.
+        const out = await aiGatewayToolUse({
+          toolName: "write_overview",
+          toolDescription: "Write one short grounded briefing of the discovery findings",
+          toolSchema: { type: "object", properties: { summary: { type: "string", description: "The briefing text, plain prose, no markdown headers." } }, required: ["summary"] },
+          workspaceId, onUsage: meter,
+          maxTokens: 700,
           system: wantReviewsOverview
-            ? "You analyze REAL customer reviews for a business user researching a company/competitor. Using ONLY the reviews below, write a short, plain briefing (no markdown headers, no preamble): " +
-              "1) the sentiment balance (use the given counts), 2) the 2-3 most common COMPLAINTS people raise (these are pitch angles for a competitor), 3) the main things people PRAISE, and 4) one sentence on the opportunity for someone competing. " +
-              "NEVER invent a complaint, praise, name, or number that isn't supported by the reviews. If reviews are too few to judge, say so."
-            : "You summarize web-discovery results for a business user. Write 2-4 short sentences describing ONLY what the findings below show — counts, platforms, contactability. " +
-              "NEVER add a fact, name, or number that is not in the findings. Plain language, no preamble, no markdown headers.",
+            ? "You analyze REAL customer reviews for a business user researching a company/competitor. Using ONLY the reviews below, write a short plain briefing: " +
+              "1) the sentiment balance (use the given counts), 2) the 2-3 most common COMPLAINTS (pitch angles for a competitor), 3) the main PRAISE, 4) one sentence on the opportunity. " +
+              "NEVER invent a complaint, praise, name, or number not supported by the reviews."
+            : "You summarize web-discovery results for a business user in 2-4 short sentences describing ONLY what the findings show — counts, platforms, contactability. Never add a fact not in the findings.",
           prompt: `Search: ${wantReviewsOverview ? `reviews about "${targetSubject ?? sector}"` : `leads in "${sector}"`}${region ? ` (${region})` : ""}. ` +
             `${wantReviewsOverview ? `Sentiment counts: ${JSON.stringify(sentimentTally)}. ` : ""}Findings (${dedupedRows.length} total, first 30 shown):\n${digest}`,
-          maxTokens: 320,
         });
-        overview = (text || "").trim() || null;
+        overview = typeof out.summary === "string" ? (out.summary.trim() || null) : null;
         if (overview) await emit({ type: "overview", text: overview });
       } catch { /* overview is a bonus — never fail the sweep for it */ }
     }

@@ -55041,20 +55041,6 @@ var init_ai_usage = __esm({
 });
 
 // src/lib/ai-gateway.ts
-var ai_gateway_exports = {};
-__export(ai_gateway_exports, {
-  CEREBRAS_DEFAULT_SPEC: () => CEREBRAS_DEFAULT_SPEC,
-  aiGateway: () => aiGateway,
-  aiGatewayAgent: () => aiGatewayAgent,
-  aiGatewayAgentStream: () => aiGatewayAgentStream,
-  aiGatewayComplete: () => aiGatewayComplete,
-  aiGatewayToolUse: () => aiGatewayToolUse,
-  gatewayEnv: () => gatewayEnv,
-  gatewayHealthCheck: () => gatewayHealthCheck,
-  getLastGatewayError: () => getLastGatewayError,
-  redactPII: () => redactPII,
-  redactSecrets: () => redactSecrets
-});
 function resolveModel(spec) {
   const s2 = spec ?? process.env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC;
   const modelId = s2.startsWith("openai-compat/") ? s2.slice("openai-compat/".length) : s2;
@@ -55212,24 +55198,6 @@ async function aiGatewayToolUse(req) {
     return JSON.parse(toolCall.function.arguments);
   } catch {
     return {};
-  }
-}
-async function aiGatewayComplete(req) {
-  const resolved = resolveModel(req.model);
-  if (resolved.type !== "openai-compat") return "";
-  const messages = [];
-  if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
-  messages.push({ role: "user", content: redactSecrets(req.prompt) });
-  try {
-    const completion = await openAIClient().chat.completions.create({
-      model: resolved.modelId,
-      max_tokens: req.maxTokens ?? 512,
-      messages
-    });
-    const m2 = completion.choices[0]?.message;
-    return m2?.content && m2.content.trim() ? m2.content : m2?.reasoning ?? "";
-  } catch {
-    return "";
   }
 }
 async function runOpenAICompatAgent(modelId, req, maxRounds) {
@@ -56091,14 +56059,18 @@ ${text}`
       (r2) => `- [${r2.intent_type}${r2.contact?.sentiment ? `/${r2.contact.sentiment}` : ""}] ${r2.author_name} (${r2.platform}${r2.region ? `, ${r2.region}` : ""}, conf ${r2.confidence_score})${r2.contact.email ? ` email:${r2.contact.email}` : ""}${r2.contact.phone ? ` phone:yes` : ""}: ${(r2.contact.summary || r2.raw_content || "").slice(0, 160)}`
     ).join("\n");
     try {
-      const { aiGateway: aiGateway2 } = await Promise.resolve().then(() => (init_ai_gateway(), ai_gateway_exports));
-      const { text } = await aiGateway2({
-        system: wantReviewsOverview ? "You analyze REAL customer reviews for a business user researching a company/competitor. Using ONLY the reviews below, write a short, plain briefing (no markdown headers, no preamble): 1) the sentiment balance (use the given counts), 2) the 2-3 most common COMPLAINTS people raise (these are pitch angles for a competitor), 3) the main things people PRAISE, and 4) one sentence on the opportunity for someone competing. NEVER invent a complaint, praise, name, or number that isn't supported by the reviews. If reviews are too few to judge, say so." : "You summarize web-discovery results for a business user. Write 2-4 short sentences describing ONLY what the findings below show \u2014 counts, platforms, contactability. NEVER add a fact, name, or number that is not in the findings. Plain language, no preamble, no markdown headers.",
+      const out = await aiGatewayToolUse({
+        toolName: "write_overview",
+        toolDescription: "Write one short grounded briefing of the discovery findings",
+        toolSchema: { type: "object", properties: { summary: { type: "string", description: "The briefing text, plain prose, no markdown headers." } }, required: ["summary"] },
+        workspaceId,
+        onUsage: meter,
+        maxTokens: 700,
+        system: wantReviewsOverview ? "You analyze REAL customer reviews for a business user researching a company/competitor. Using ONLY the reviews below, write a short plain briefing: 1) the sentiment balance (use the given counts), 2) the 2-3 most common COMPLAINTS (pitch angles for a competitor), 3) the main PRAISE, 4) one sentence on the opportunity. NEVER invent a complaint, praise, name, or number not supported by the reviews." : "You summarize web-discovery results for a business user in 2-4 short sentences describing ONLY what the findings show \u2014 counts, platforms, contactability. Never add a fact not in the findings.",
         prompt: `Search: ${wantReviewsOverview ? `reviews about "${targetSubject ?? sector}"` : `leads in "${sector}"`}${region ? ` (${region})` : ""}. ${wantReviewsOverview ? `Sentiment counts: ${JSON.stringify(sentimentTally)}. ` : ""}Findings (${dedupedRows.length} total, first 30 shown):
-${digest}`,
-        maxTokens: 320
+${digest}`
       });
-      overview = (text || "").trim() || null;
+      overview = typeof out.summary === "string" ? out.summary.trim() || null : null;
       if (overview) await emit({ type: "overview", text: overview });
     } catch {
     }
@@ -68702,6 +68674,28 @@ router44.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (
   }).select("id").single();
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json({ id: data.id }, 201);
+});
+router44.post("/save-batch", denyViewerWrites, zValidator("json", external_exports.object({ leads: external_exports.array(saveSchema).min(1).max(200) })), async (c2) => {
+  const { leads } = c2.req.valid("json");
+  const workspaceId = c2.get("workspaceId");
+  const userId = c2.get("userId");
+  const rows2 = leads.map((b2) => {
+    let domain;
+    try {
+      if (b2.source_url) domain = new URL(b2.source_url).host.replace(/^www\./, "");
+    } catch {
+    }
+    return {
+      workspace_id: workspaceId,
+      vertical: objectTypeToVertical(b2.object_type),
+      object_type: b2.object_type,
+      created_by: userId,
+      data: { name: b2.name, source: "discovery", discovery_query: b2.discovery_query, source_url: b2.source_url, email: b2.email, phone: b2.phone, website: b2.website || void 0, domain, handle: b2.handle, description: b2.summary, location: b2.region }
+    };
+  });
+  const { data, error } = await supabase.from("nodes").insert(rows2).select("id");
+  if (error) return c2.json({ error: error.message }, 400);
+  return c2.json({ saved: data?.length ?? 0, ids: (data ?? []).map((r2) => r2.id) }, 201);
 });
 router44.get("/monitors", async (c2) => {
   const { data } = await supabase.from("nodes").select("id, data, created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "discovery_monitor").order("created_at", { ascending: false });
