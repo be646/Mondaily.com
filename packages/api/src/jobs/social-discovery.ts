@@ -2,6 +2,8 @@ import { inngest } from "../lib/inngest";
 import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignHeaders, sovereignScrape } from "../lib/sovereign-search";
+import { placesSearch, placesProvider } from "../lib/places";
+import { redditSearch } from "../lib/reddit";
 import { createNotification } from "../lib/notify";
 import { createHash } from "node:crypto";
 
@@ -250,8 +252,8 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
           toolName: "extract_from_page",
           toolDescription: "Extract real leads/reviews from one web page",
           toolSchema: perPageSchema,
-          // Review-listing pages can hold dozens of reviews — give the extraction room to return them all.
-          maxTokens: wantReviews ? 4000 : 1600,
+          // Review-listing pages can hold dozens of reviews — give the extraction lots of room.
+          maxTokens: wantReviews ? 6000 : 1600,
           system:
             `You extract REAL ${wantReviews ? "reviews and opinions" : "leads and prospects"} from a single web page. ` +
             `ABSOLUTE RULES: only report what is literally on the page — never invent names, emails, phones, or review text. ` +
@@ -303,6 +305,53 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
         const partial = allLeads.map(toDisplay).filter((r) => { const k = `${r.source_url}|${r.author_name}|${r.snippet.slice(0, 40)}`; return seenK.has(k) ? false : (seenK.add(k), true); }).slice(0, 60);
         await emit({ type: "results", kind: searchType, discovered: partial.length, scanned: unique.length, results: partial });
       }
+    }
+
+    // ── CONNECTORS (leads only): structured local businesses (Places) + buyer-intent (Reddit) ──
+    // Both fail-open; they ADD to the web-extracted leads, they never replace or block them.
+    if (searchType === "INTENT_LEADS" && sector) {
+      // Places: real local businesses with name/phone/website (Google if keyed, else OSM).
+      await emit({ type: "progress", stage: "places", message: `Looking up local businesses via ${placesProvider() === "google" ? "Google Places" : "OpenStreetMap"}…` });
+      const places = await placesSearch(sector, region, 30).catch(() => []);
+      for (const pl of places) {
+        allLeads.push({
+          author_name: pl.name,
+          raw_content: pl.address ?? "",
+          intent_type: "BUY_SIGNAL",
+          target_subject: sector,
+          region: region,
+          confidence_score: 88,
+          contact_email: undefined,
+          contact_phone: pl.phone ?? undefined,
+          handle: undefined,
+          summary: `${pl.source === "google" ? "Google Maps" : "OpenStreetMap"} business${pl.address ? ` · ${pl.address.slice(0, 80)}` : ""}`,
+          source_url: pl.website || pl.source_url,
+        });
+      }
+      if (places.length) await emit({ type: "progress", stage: "places", message: `Found ${places.length} businesses with contact details` });
+
+      // Reddit: fresh public buyer-intent posts ("looking for a <sector> in <region>").
+      const one = sector.replace(/(\w)s\b/, "$1");
+      const intentQ = `${region ? region + " " : ""}${one} (looking for OR recommend OR "anyone know")`;
+      const redditHits = await redditSearch(intentQ, 25).catch(() => []);
+      const INTENT_RE = /(looking for|recommend|anyone know|need a|suggestions|szukam|polec|help me find|where can i)/i;
+      const fresh = redditHits.filter((h) => INTENT_RE.test(`${h.title} ${h.text}`)).slice(0, 15);
+      for (const rp of fresh) {
+        allLeads.push({
+          author_name: rp.author ? `u/${rp.author}` : (rp.subreddit ?? "Reddit user"),
+          raw_content: `${rp.title}${rp.text ? " — " + rp.text : ""}`.slice(0, 500),
+          intent_type: "BUY_SIGNAL",
+          target_subject: sector,
+          region: region,
+          confidence_score: 72,
+          contact_email: undefined,
+          contact_phone: undefined,
+          handle: rp.author ? `u/${rp.author}` : undefined,
+          summary: `Reddit buyer-intent${rp.subreddit ? ` · ${rp.subreddit}` : ""}: ${rp.title.slice(0, 110)}`,
+          source_url: rp.url,
+        });
+      }
+      if (fresh.length) await emit({ type: "progress", stage: "reddit", message: `Found ${fresh.length} buyer-intent posts on Reddit` });
     }
 
     // DEEP MODE — second-pass contact harvest. Listing/social pages often name a business without

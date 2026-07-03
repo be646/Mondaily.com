@@ -168,6 +168,21 @@ app.get("/api/cron/daily", async (c) => {
   return c.json({ ran: true, at: new Date().toISOString(), results, workflows, vertical });
 });
 
+/**
+ * Dedicated Discovery-monitors cron — runs ONLY the "Watch this search" saved searches, so we can
+ * refresh them several times a day WITHOUT re-running the heavy daily batch (invoices, scoring…).
+ * Same CRON_SECRET auth as /api/cron/daily. Configured in vercel.json.
+ */
+app.get("/api/cron/monitors", async (c) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return c.json({ error: "Cron disabled — CRON_SECRET is not configured." }, 503);
+  const provided = c.req.header("Authorization") ?? `Bearer ${c.req.query("secret") ?? ""}`;
+  if (provided !== `Bearer ${secret}`) return c.json({ error: "Unauthorized" }, 401);
+  const { runDiscoveryMonitors } = await import("./jobs/social-discovery");
+  const result = await runDiscoveryMonitors().catch((e) => ({ error: String(e) }));
+  return c.json({ ran: true, at: new Date().toISOString(), result });
+});
+
 app.get("/api/health", (c) => c.json({ ok: true, version: "1.8.0-objreg" }));
 
 // Auth diagnostics — DEV/DEBUG ONLY. Gated behind an explicit flag so it never exposes session
