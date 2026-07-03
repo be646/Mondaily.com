@@ -732,6 +732,9 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
       )}
 
       {/* Drafted outreach — grounded in the lead's real signal; copy to send. */}
+      {(outreach.isError || (outreach.data && !outreach.data.message)) && (
+        <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>Couldn't draft a message right now — try again.</p>
+      )}
       {outreach.data?.message && (
         <div className="mt-2 rounded-md border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
           {outreach.data.subject && <p className="mb-1 text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{outreach.data.subject}</p>}
