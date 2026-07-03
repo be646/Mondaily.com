@@ -200,7 +200,7 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     // on for reviews (getting them all is the point), and for deep lead runs too.
     const deepScrape = searchType === "REVIEWS" || !!deep;
     const scraped = await Promise.all(toScrape.map((h) => sovereignScrape(h.url, { deep: deepScrape }).catch(() => "")));
-    const pageTextCap = deepScrape ? 24_000 : 6_000; // review/deep pages hold many entries — keep them
+    const pageTextCap = deepScrape ? 32_000 : 6_000; // cleaned review pages fit ~all entries in this budget
     const pages = unique.map((h, i) => ({
       url: h.url,
       title: h.title,
@@ -265,7 +265,24 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
       }
     };
 
-    // Parallel in batches of 6 — fast without slamming the AI provider all at once.
+    // Map an extracted lead to the compact display row the chat UI renders.
+    const toDisplay = (l: ExtractedLead & { source_url: string }) => ({
+      source_url: l.source_url,
+      platform: platformOf(l.source_url),
+      author_name: l.author_name || "Anonymous",
+      intent_type: l.intent_type,
+      sentiment: normalizeSentiment(l.sentiment, l.intent_type),
+      confidence_score: typeof l.confidence_score === "number" ? Math.round(l.confidence_score) : 0,
+      region: l.region ?? region ?? null,
+      target_subject: l.target_subject ?? targetSubject ?? null,
+      snippet: (l.summary || l.raw_content || "").slice(0, 400),
+      email: l.contact_email ?? null,
+      phone: l.contact_phone ?? null,
+      handle: l.handle ?? null,
+    });
+
+    // Parallel in batches of 6 — fast without slamming the AI provider all at once. After EACH batch
+    // we stream the results-so-far, so a run cut short by the 60s limit still delivers what it found.
     const allLeads: (ExtractedLead & { source_url: string })[] = [];
     for (let i = 0; i < pages.length; i += 6) {
       const batch = pages.slice(i, i + 6);
@@ -276,6 +293,12 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
         if (found.length > 0) {
           await emit({ type: "progress", stage: "extract", message: `${platformOf(batch[j]!.url)} — found ${found.length} result${found.length === 1 ? "" : "s"} (${found.map((f) => f.author_name).filter(Boolean).slice(0, 3).join(", ") || "unnamed"})` });
         }
+      }
+      if (allLeads.length) {
+        // De-dupe by URL+author+snippet for a clean progressive view.
+        const seenK = new Set<string>();
+        const partial = allLeads.map(toDisplay).filter((r) => { const k = `${r.source_url}|${r.author_name}|${r.snippet.slice(0, 40)}`; return seenK.has(k) ? false : (seenK.add(k), true); }).slice(0, 60);
+        await emit({ type: "results", kind: searchType, discovered: partial.length, scanned: unique.length, results: partial });
       }
     }
 

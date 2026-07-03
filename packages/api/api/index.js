@@ -57692,7 +57692,7 @@ async function runSocialDiscovery(data, onProgress) {
   await emit({ type: "progress", stage: "scrape", message: `Reading ${toScrape.length} pages in full\u2026` });
   const deepScrape = searchType === "REVIEWS" || !!deep;
   const scraped = await Promise.all(toScrape.map((h2) => sovereignScrape(h2.url, { deep: deepScrape }).catch(() => "")));
-  const pageTextCap = deepScrape ? 24e3 : 6e3;
+  const pageTextCap = deepScrape ? 32e3 : 6e3;
   const pages = unique.map((h2, i2) => ({
     url: h2.url,
     title: h2.title,
@@ -57754,6 +57754,20 @@ ${p2.text}`
       return [];
     }
   };
+  const toDisplay = (l2) => ({
+    source_url: l2.source_url,
+    platform: platformOf(l2.source_url),
+    author_name: l2.author_name || "Anonymous",
+    intent_type: l2.intent_type,
+    sentiment: normalizeSentiment(l2.sentiment, l2.intent_type),
+    confidence_score: typeof l2.confidence_score === "number" ? Math.round(l2.confidence_score) : 0,
+    region: l2.region ?? region ?? null,
+    target_subject: l2.target_subject ?? targetSubject ?? null,
+    snippet: (l2.summary || l2.raw_content || "").slice(0, 400),
+    email: l2.contact_email ?? null,
+    phone: l2.contact_phone ?? null,
+    handle: l2.handle ?? null
+  });
   const allLeads = [];
   for (let i2 = 0; i2 < pages.length; i2 += 6) {
     const batch = pages.slice(i2, i2 + 6);
@@ -57764,6 +57778,14 @@ ${p2.text}`
       if (found.length > 0) {
         await emit({ type: "progress", stage: "extract", message: `${platformOf(batch[j2].url)} \u2014 found ${found.length} result${found.length === 1 ? "" : "s"} (${found.map((f2) => f2.author_name).filter(Boolean).slice(0, 3).join(", ") || "unnamed"})` });
       }
+    }
+    if (allLeads.length) {
+      const seenK = /* @__PURE__ */ new Set();
+      const partial = allLeads.map(toDisplay).filter((r2) => {
+        const k2 = `${r2.source_url}|${r2.author_name}|${r2.snippet.slice(0, 40)}`;
+        return seenK.has(k2) ? false : (seenK.add(k2), true);
+      }).slice(0, 60);
+      await emit({ type: "results", kind: searchType, discovered: partial.length, scanned: unique.length, results: partial });
     }
   }
   if (deep && searchType !== "REVIEWS") {

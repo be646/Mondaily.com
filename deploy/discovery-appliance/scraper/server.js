@@ -65,14 +65,21 @@ app.post("/v1/scrape", async (req, res) => {
       await page.waitForTimeout(500);
     }
 
-    // Strip scripts/styles/nav/footer chrome, then convert the main HTML to Markdown.
+    // Strip scripts/styles/chrome AND images/icons/buttons (review lists wrap every entry in ~5
+    // icon <img> tags — that noise eats the extraction budget and buries the actual review text).
     const html = await page.evaluate(() => {
-      document.querySelectorAll("script,style,noscript,svg,iframe,header,footer,nav").forEach((el) => el.remove());
+      document.querySelectorAll("script,style,noscript,svg,iframe,img,picture,button,header,footer,nav").forEach((el) => el.remove());
       const main = document.querySelector("main,article,[role=main]") || document.body;
       return main ? main.innerHTML : "";
     });
     const cap = deep ? 120_000 : 20_000; // review/listing pages need room for many entries
-    const markdown = td.turndown(html || "").replace(/\n{3,}/g, "\n\n").trim().slice(0, cap);
+    const markdown = td.turndown(html || "")
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, "")   // kill any leftover markdown images
+      .replace(/\[\]\([^)]*\)/g, "")          // empty links
+      .replace(/^\s*[-*]\s*$/gm, "")          // stray bullet chrome
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+      .slice(0, cap);
     res.json({ markdown, url });
   } catch (e) {
     // Never 500 the API's pipeline — return empty so it degrades gracefully.
