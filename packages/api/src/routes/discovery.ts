@@ -463,7 +463,9 @@ router.post("/save-batch", denyViewerWrites, zValidator("json", z.object({
   if (error) return c.json({ error: error.message }, 400);
   const ids = (data ?? []).map((r) => r.id as string);
   const created = ids.map((id, i) => ({ name: toInsert[i]?.name ?? "", node_id: id }));
-  if (list_id) for (const id of ids) await addToList(workspaceId, list_id, id);
+  // Add BOTH newly-created and already-existing matches to the list, so "add selected to list"
+  // covers leads that were already in the graph too.
+  if (list_id) for (const id of [...ids, ...already_existed.map((a) => a.node_id)]) await addToList(workspaceId, list_id, id);
   return c.json({ saved: ids.length, skipped, ids, created, already_existed }, 201);
 });
 
@@ -590,7 +592,7 @@ router.post("/lead-task", denyViewerWrites, zValidator("json", z.object({
   source_url: z.string().max(600).optional(),
 })), async (c) => {
   const b = c.req.valid("json");
-  const row = buildLeadTask({ workspaceId: c.get("workspaceId"), userId: c.get("userId"), ...b });
+  const row = buildLeadTask({ workspaceId: c.get("workspaceId"), userId: c.get("userId"), name: b.name, node_id: b.node_id, title: b.title, assignee_id: b.assignee_id, due_date: b.due_date, priority: b.priority, source_url: b.source_url });
   const { data, error } = await supabase.from("tasks").insert(row).select("id, title").single();
   if (error) return c.json({ error: error.message }, 400);
   return c.json(data, 201);
@@ -609,10 +611,48 @@ router.post("/lead-decision", denyViewerWrites, zValidator("json", z.object({
   source_url: z.string().max(600).optional(),
 })), async (c) => {
   const b = c.req.valid("json");
-  const row = buildLeadDecision({ workspaceId: c.get("workspaceId"), ...b });
+  const row = buildLeadDecision({ workspaceId: c.get("workspaceId"), name: b.name, node_id: b.node_id, title: b.title, summary: b.summary, recommended_action: b.recommended_action, risk_level: b.risk_level, email: b.email, phone: b.phone, source_url: b.source_url });
   const { data, error } = await supabase.from("decision_queue").insert(row).select("id, title").single();
   if (error) return c.json({ error: error.message }, 400);
   return c.json(data, 201);
+});
+
+// ── Bulk lead → tasks : create a follow-up task per selected lead, with PER-LEAD status so a
+//    partial failure is reported honestly (never a blanket "success"). ──
+const bulkLeadSchema = z.object({
+  name: z.string().min(1).max(200),
+  node_id: z.string().uuid().optional(),
+  source_url: z.string().max(600).optional(),
+  email: z.string().max(200).optional(),
+  phone: z.string().max(60).optional(),
+  summary: z.string().max(1000).optional(),
+});
+router.post("/bulk-task", denyViewerWrites, zValidator("json", z.object({
+  leads: z.array(bulkLeadSchema).min(1).max(200),
+  assignee_id: z.string().max(120).optional(),
+})), async (c) => {
+  const { leads, assignee_id } = c.req.valid("json");
+  const workspaceId = c.get("workspaceId"); const userId = c.get("userId");
+  const results = await Promise.all(leads.map(async (b) => {
+    const row = buildLeadTask({ workspaceId, userId, name: b.name, node_id: b.node_id, assignee_id, source_url: b.source_url });
+    const { data, error } = await supabase.from("tasks").insert(row).select("id").single();
+    return error ? { name: b.name, ok: false, error: error.message } : { name: b.name, ok: true, id: data.id as string };
+  }));
+  return c.json({ created: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length, results });
+});
+
+// ── Bulk lead → decisions : queue each selected lead into the Decision Queue, per-lead status. ──
+router.post("/bulk-decision", denyViewerWrites, zValidator("json", z.object({
+  leads: z.array(bulkLeadSchema).min(1).max(200),
+})), async (c) => {
+  const { leads } = c.req.valid("json");
+  const workspaceId = c.get("workspaceId");
+  const results = await Promise.all(leads.map(async (b) => {
+    const row = buildLeadDecision({ workspaceId, name: b.name, node_id: b.node_id, summary: b.summary, email: b.email, phone: b.phone, source_url: b.source_url });
+    const { data, error } = await supabase.from("decision_queue").insert(row).select("id").single();
+    return error ? { name: b.name, ok: false, error: error.message } : { name: b.name, ok: true, id: data.id as string };
+  }));
+  return c.json({ created: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length, results });
 });
 
 export { router as discoveryRouter };

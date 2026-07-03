@@ -381,6 +381,14 @@ function Empty({ onPick }: { onPick: (q: string) => void }) {
 
 function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun: (q: string, force?: boolean) => void }) {
   const reviews = turn.kind === "REVIEWS";
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [status, setStatus] = useState<Record<string, LeadStatus>>({});
+  const [drawerKey, setDrawerKey] = useState<string | null>(null);
+  const { data: members } = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members"), staleTime: 300_000 });
+  const keyOf = (r: ResultRow, i: number) => `${i}:${r.source_url}`;
+  const toggle = (k: string) => setSel((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
+  const applyStatus = (updates: Record<string, LeadStatus>) => setStatus((p) => { const n = { ...p }; for (const [k, v] of Object.entries(updates)) n[k] = { ...n[k], ...v }; return n; });
+  const drawerRow = drawerKey ? (() => { const r = turn.results.find((row, i) => keyOf(row, i) === drawerKey); return r ? { r, k: drawerKey } : null; })() : null;
   return (
     <div>
       {/* user query bubble */}
@@ -435,13 +443,21 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
               {reviews && <SentimentSummary results={turn.results} />}
               {!reviews && <SaveAllLeads results={turn.results} query={turn.query} />}
             </div>
+            {!reviews && sel.size > 0 && (
+              <BulkBar entries={turn.results.map((r, i) => ({ key: keyOf(r, i), r })).filter((e) => sel.has(e.key))} query={turn.query} lists={lists} members={members ?? []}
+                onApplied={applyStatus} onClear={() => setSel(new Set())} />
+            )}
             <div className="space-y-2">
-              {turn.results.map((r, i) =>
-                reviews
-                  ? <ReviewCard key={`${r.source_url}-${i}`} r={r} />
-                  : <LeadCard key={`${r.source_url}-${i}`} r={r} query={turn.query} lists={lists} />,
-              )}
+              {turn.results.map((r, i) => {
+                const k = keyOf(r, i);
+                return reviews
+                  ? <ReviewCard key={k} r={r} />
+                  : <LeadCard key={k} r={r} query={turn.query} lists={lists}
+                      selected={sel.has(k)} onToggle={() => toggle(k)} bulkStatus={status[k]} onDetails={() => setDrawerKey(k)} />;
+              })}
             </div>
+            {drawerRow && <LeadDrawer r={drawerRow.r} query={turn.query} lists={lists} members={members ?? []}
+              status={status[drawerRow.k]} onStatus={(s) => applyStatus({ [drawerRow.k]: s })} onClose={() => setDrawerKey(null)} />}
             <WatchButton query={turn.query} />
           </>
         ) : turn.status === "done" && !turn.error ? (
@@ -623,6 +639,18 @@ interface Dossier {
 }
 interface Enrichment { dossier?: Dossier; emails: string[]; phones: string[]; people: { name: string; role?: string; email?: string }[]; company: string | null }
 
+// Per-lead pipeline state — reflected as status chips (all real; set only after a real action).
+interface LeadStatus { saved?: boolean; existed?: boolean; listed?: boolean; tasked?: boolean; queued?: boolean; node_id?: string; owner?: string }
+interface Member { user_id: string; name?: string | null; email?: string | null }
+// Map a display row → the save/batch lead payload (one place, reused by single + bulk).
+function toLeadPayload(r: ResultRow, query: string) {
+  return {
+    name: r.author_name && r.author_name !== "Anonymous" ? r.author_name : (hostOf(r.source_url) || "Discovered lead"),
+    object_type: "company", source_url: r.source_url, discovery_query: query,
+    email: r.email ?? undefined, phone: r.phone ?? undefined, handle: r.handle ?? undefined, region: r.region ?? undefined, summary: r.snippet || undefined,
+  };
+}
+
 // How a field was obtained — an honest provenance chip, never a fabricated confidence number.
 const VIA_LABEL: Record<CiteVia, string> = { scrape: "on page", ai: "AI-read", places: "Google Places", graph: "in your graph" };
 function ViaChip({ via, source }: { via: CiteVia; source: string }) {
@@ -696,10 +724,140 @@ function DossierPanel({ d }: { d: Dossier }) {
   );
 }
 
-function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: ListRow[] }) {
+/** Secondary pipeline chips (owner / list / task / decision) — saved/in-graph lives on the action row. */
+function PipelineChips({ st }: { st: LeadStatus }) {
+  const chips = [
+    st.owner ? { l: `Owner set`, tone: "#0891b2" } : null,
+    st.listed ? { l: "In list", tone: "#0d9488" } : null,
+    st.tasked ? { l: "Task created", tone: "#2563eb" } : null,
+    st.queued ? { l: "In Decision Queue", tone: "#7c3aed" } : null,
+  ].filter(Boolean) as { l: string; tone: string }[];
+  if (chips.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap gap-1">
+      {chips.map((c) => <span key={c.l} className="rounded-full px-1.5 py-0.5 text-[9.5px] font-medium" style={{ color: c.tone, background: `color-mix(in srgb, ${c.tone} 14%, transparent)` }}>{c.l}</span>)}
+    </div>
+  );
+}
+
+interface BatchResp { created: { name: string; node_id: string }[]; already_existed: { name: string; node_id: string }[]; saved: number; skipped: number }
+interface BulkPerLead { created: number; failed: number; results: { name: string; ok: boolean; id?: string; error?: string }[] }
+/** Operational bulk action bar — runs real bulk endpoints, maps per-lead results back to status
+ *  chips, and reports partial failures honestly (no blanket success). */
+function BulkBar({ entries, query, lists, members, onApplied, onClear }: {
+  entries: { key: string; r: ResultRow }[]; query: string; lists: ListRow[]; members: Member[];
+  onApplied: (u: Record<string, LeadStatus>) => void; onClear: () => void;
+}) {
   const qc = useQueryClient();
-  const [savedId, setSavedId] = useState<string | null>(null);
-  const [existed, setExisted] = useState(false);
+  const [listId, setListId] = useState<string>("");
+  const [ownerId, setOwnerId] = useState<string>("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const nameToKeys = () => { const m = new Map<string, string[]>(); for (const e of entries) { const n = toLeadPayload(e.r, query).name; (m.get(n) ?? m.set(n, []).get(n)!).push(e.key); } return m; };
+
+  async function save(withList: boolean, withOwner: boolean) {
+    setBusy("save"); setNote(null);
+    try {
+      const body: Record<string, unknown> = { leads: entries.map((e) => toLeadPayload(e.r, query)) };
+      if (withList && listId) body.list_id = listId;
+      if (withOwner && ownerId) body.owner_id = ownerId;
+      const res = await apiClient.post<BatchResp>("/discovery/save-batch", body);
+      const byName = nameToKeys(); const updates: Record<string, LeadStatus> = {};
+      for (const cr of res.created) for (const k of byName.get(cr.name) ?? []) updates[k] = { saved: true, node_id: cr.node_id, listed: withList && !!listId, owner: withOwner && ownerId ? ownerId : undefined };
+      for (const ex of res.already_existed) for (const k of byName.get(ex.name) ?? []) updates[k] = { existed: true, node_id: ex.node_id, listed: withList && !!listId };
+      onApplied(updates);
+      setNote(`${res.created.length} saved · ${res.already_existed.length} already in graph${withList && listId ? " · added to list" : ""}`);
+      qc.invalidateQueries({ queryKey: ["nodes"] }); qc.invalidateQueries({ queryKey: ["lists"] });
+    } catch (e) { setNote((e as Error)?.message ?? "Bulk save failed"); }
+    finally { setBusy(null); }
+  }
+  async function bulk(kind: "task" | "decision") {
+    setBusy(kind); setNote(null);
+    try {
+      const leads = entries.map((e) => { const p = toLeadPayload(e.r, query); return { name: p.name, source_url: e.r.source_url, email: e.r.email ?? undefined, phone: e.r.phone ?? undefined, summary: e.r.snippet || undefined }; });
+      const res = await apiClient.post<BulkPerLead>(`/discovery/bulk-${kind}`, kind === "task" ? { leads, assignee_id: ownerId || undefined } : { leads });
+      const updates: Record<string, LeadStatus> = {};
+      res.results.forEach((r, i) => { if (r.ok && entries[i]) updates[entries[i].key] = kind === "task" ? { tasked: true } : { queued: true }; });
+      onApplied(updates);
+      setNote(`${res.created} ${kind === "task" ? "task(s)" : "decision(s)"} created${res.failed ? ` · ${res.failed} failed` : ""}`);
+      qc.invalidateQueries({ queryKey: [kind === "task" ? "tasks" : "decisions"] });
+    } catch (e) { setNote((e as Error)?.message ?? "Bulk action failed"); }
+    finally { setBusy(null); }
+  }
+  const B = ({ id, onClick, children }: { id: string; onClick: () => void; children: React.ReactNode }) => (
+    <button onClick={onClick} disabled={!!busy} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+      {busy === id ? <Loader2 size={11} className="animate-spin" /> : children}
+    </button>
+  );
+  return (
+    <div className="sticky top-2 z-10 mb-2 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 shadow-sm" style={{ borderColor: "var(--section-accent)", background: "var(--surface-card)" }}>
+      <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{entries.length} selected</span>
+      <B id="save" onClick={() => save(false, !!ownerId)}><Plus size={11} /> Save</B>
+      <select value={listId} onChange={(e) => setListId(e.target.value)} className="key-input h-7 rounded-full px-2 text-[11px]" style={{ maxWidth: 130 }}>
+        <option value="">List…</option>{lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+      </select>
+      <B id="save" onClick={() => save(true, !!ownerId)}>Add to list</B>
+      <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className="key-input h-7 rounded-full px-2 text-[11px]" style={{ maxWidth: 140 }}>
+        <option value="">Owner…</option>{members.map((m) => <option key={m.user_id} value={m.user_id}>{m.name || m.email || m.user_id}</option>)}
+      </select>
+      <B id="save" onClick={() => save(false, true)}>Assign owner</B>
+      <B id="task" onClick={() => bulk("task")}><CheckSquare size={11} /> Tasks</B>
+      <B id="decision" onClick={() => bulk("decision")}><ShieldCheck size={11} /> To Decisions</B>
+      <button onClick={onClear} className="text-[11px]" style={{ color: "var(--text-faint)" }}>Clear</button>
+      {note && <span className="w-full text-[11px] sm:w-auto" style={{ color: "var(--text-muted)" }}>{note}</span>}
+    </div>
+  );
+}
+
+/** Full-intelligence detail drawer — dossier with citations + the lead's pipeline actions. */
+function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
+  r: ResultRow; query: string; lists: ListRow[]; members: Member[]; status?: LeadStatus;
+  onStatus: (s: LeadStatus) => void; onClose: () => void;
+}) {
+  const qc = useQueryClient();
+  const name = r.author_name && r.author_name !== "Anonymous" ? r.author_name : (hostOf(r.source_url) || "Lead");
+  const enrich = useQuery({ queryKey: ["enrich", r.source_url], queryFn: () => apiClient.post<Enrichment>("/discovery/enrich", { url: r.source_url, name: r.author_name, region: r.region ?? undefined }), retry: false, staleTime: 300_000 });
+  const p = toLeadPayload(r, query);
+  const save = useMutation({ mutationFn: () => apiClient.post<{ id: string; existed?: boolean }>("/discovery/save", p), onSuccess: (d) => { onStatus({ saved: !d.existed, existed: d.existed, node_id: d.id }); qc.invalidateQueries({ queryKey: ["nodes"] }); } });
+  const task = useMutation({ mutationFn: () => apiClient.post("/discovery/lead-task", { name, node_id: status?.node_id, source_url: r.source_url }), onSuccess: () => onStatus({ tasked: true }) });
+  const decision = useMutation({ mutationFn: () => apiClient.post("/discovery/lead-decision", { name, node_id: status?.node_id, summary: r.snippet || undefined, email: r.email ?? undefined, phone: r.phone ?? undefined, source_url: r.source_url }), onSuccess: () => onStatus({ queued: true }) });
+  const addList = useMutation({ mutationFn: (listId: string) => apiClient.post(`/lists/${listId}/entries`, { node_id: status?.node_id }), onSuccess: () => onStatus({ listed: true }) });
+  return (
+    <>
+      <div className="fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.35)" }} onClick={onClose} />
+      <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l shadow-2xl" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
+        <div className="flex items-start justify-between gap-2 border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="min-w-0">
+            <div className="text-[11px]" style={{ color: "var(--text-faint)" }}>{hostOf(r.source_url) || r.platform}{r.region ? ` · ${r.region}` : ""}</div>
+            <a href={r.source_url} target="_blank" rel="noreferrer" className="truncate text-[15px] font-semibold hover:underline" style={{ color: "var(--section-accent)" }}>{name}</a>
+          </div>
+          <button onClick={onClose} className="shrink-0 rounded-md p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"><Minus size={16} /></button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          <PipelineChips st={{ ...(status ?? {}) }} />
+          {r.snippet && <p className="mt-2 text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{r.snippet}</p>}
+          {enrich.isLoading ? <div className="mt-3 flex items-center gap-2 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Building dossier…</div>
+            : enrich.data?.dossier ? <DossierPanel d={enrich.data.dossier} />
+            : <p className="mt-3 text-[11.5px]" style={{ color: "var(--text-faint)" }}>No dossier could be built from this site.</p>}
+        </div>
+        <div className="flex flex-wrap gap-1.5 border-t px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+          {(status?.saved || status?.existed) ? <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: status.existed ? "var(--text-muted)" : "#15803d", background: status.existed ? "var(--surface-hover)" : "#15803d14" }}><Check size={11} /> {status.existed ? "In graph" : "Saved"}</span>
+            : <button onClick={() => save.mutate()} disabled={save.isPending} className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>{save.isPending ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Save</button>}
+          {status?.node_id && lists.length > 0 && (
+            <select onChange={(e) => e.target.value && addList.mutate(e.target.value)} className="key-input h-7 rounded-full px-2 text-[11px]" style={{ maxWidth: 130 }} defaultValue=""><option value="">Add to list…</option>{lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
+          )}
+          <button onClick={() => task.mutate()} disabled={task.isPending} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{task.isPending ? <Loader2 size={11} className="animate-spin" /> : <CheckSquare size={11} />} Task</button>
+          <button onClick={() => decision.mutate()} disabled={decision.isPending} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{decision.isPending ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />} Decision</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }: { r: ResultRow; query: string; lists: ListRow[]; selected?: boolean; onToggle?: () => void; bulkStatus?: LeadStatus; onDetails?: () => void }) {
+  const qc = useQueryClient();
+  const [savedId, setSavedId] = useState<string | null>(bulkStatus?.node_id ?? null);
+  const [existed, setExisted] = useState(Boolean(bulkStatus?.existed));
   const [listOpen, setListOpen] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -746,10 +904,14 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
   });
 
   const name = r.author_name && r.author_name !== "Anonymous" ? r.author_name : hostOf(r.source_url);
+  const st: LeadStatus = { ...(bulkStatus ?? {}), saved: (bulkStatus?.saved ?? Boolean(savedId)), existed: (bulkStatus?.existed ?? existed) };
   return (
-    <div className="rounded-lg border px-3.5 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="rounded-lg border px-3.5 py-3" style={{ borderColor: selected ? "var(--section-accent)" : "var(--border-soft)", background: "var(--surface-card)" }}>
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        {onToggle && (
+          <input type="checkbox" checked={Boolean(selected)} onChange={onToggle} className="mt-1 h-3.5 w-3.5 shrink-0 accent-[var(--section-accent)]" aria-label="Select lead" />
+        )}
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--text-faint)" }}>
             <Globe2 size={11} className="shrink-0" /> <span className="truncate">{hostOf(r.source_url) || r.platform}</span>
             {r.region && <><span aria-hidden>·</span><span>{r.region}</span></>}
@@ -766,11 +928,16 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
             {r.handle && <span style={{ color: "var(--text-secondary)" }}>{r.handle}</span>}
           </div>
         </div>
+        {onDetails && (
+          <button onClick={onDetails} className="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Details</button>
+        )}
       </div>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-        {savedId ? (
-          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: existed ? "var(--text-muted)" : "#15803d", background: existed ? "var(--surface-hover)" : "#15803d14" }}><Check size={11} /> {existed ? "In graph" : "Saved"}</span>
+      <PipelineChips st={st} />
+
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {(st.saved || st.existed) ? (
+          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: st.existed ? "var(--text-muted)" : "#15803d", background: st.existed ? "var(--surface-hover)" : "#15803d14" }}><Check size={11} /> {st.existed ? "In graph" : "Saved"}</span>
         ) : (
           <button onClick={() => save.mutate()} disabled={save.isPending}
             className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>

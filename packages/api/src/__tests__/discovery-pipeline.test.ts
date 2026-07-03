@@ -85,4 +85,27 @@ describe("workspace isolation + wiring (source-read guards)", () => {
   it("save-batch reports already_existed with node ids", () => {
     expect(src).toMatch(/already_existed\.push\(\{ name: b\.name, node_id: existingByKey\.get\(k\)! \}\)/);
   });
+  it("save-batch adds BOTH created and already-existing matches to the list", () => {
+    expect(src).toMatch(/for \(const id of \[\.\.\.ids, \.\.\.already_existed\.map\(\(a\) => a\.node_id\)\]\) await addToList/);
+  });
+});
+
+describe("bulk task/decision endpoints — per-lead status + isolation (source-read)", () => {
+  const src = readFileSync(fileURLToPath(new URL("../routes/discovery.ts", import.meta.url)), "utf8");
+  it("bulk-task creates one task per lead and reports per-lead ok/error", () => {
+    expect(src).toMatch(/router\.post\("\/bulk-task"/);
+    expect(src).toMatch(/buildLeadTask\(\{ workspaceId, userId, name: b\.name/);
+    expect(src).toMatch(/\{ name: b\.name, ok: false, error: error\.message \}/);
+    expect(src).toMatch(/created: results\.filter\(r => r\.ok\)\.length, failed: results\.filter\(r => !r\.ok\)\.length/);
+  });
+  it("bulk-decision creates one decision per lead with per-lead status", () => {
+    expect(src).toMatch(/router\.post\("\/bulk-decision"/);
+    expect(src).toMatch(/buildLeadDecision\(\{ workspaceId, name: b\.name/);
+  });
+  it("bulk endpoints are workspace-scoped (workspaceId from context, not client)", () => {
+    // Both pull workspaceId from c.get, never from the request body.
+    const bulk = src.slice(src.indexOf('router.post("/bulk-task"'));
+    expect(bulk).toMatch(/const workspaceId = c\.get\("workspaceId"\)/);
+    expect(bulk).not.toMatch(/workspace_id:\s*b\./);
+  });
 });

@@ -69854,7 +69854,7 @@ router45.post("/save-batch", denyViewerWrites, zValidator("json", external_expor
   if (error) return c2.json({ error: error.message }, 400);
   const ids = (data ?? []).map((r2) => r2.id);
   const created = ids.map((id, i2) => ({ name: toInsert[i2]?.name ?? "", node_id: id }));
-  if (list_id) for (const id of ids) await addToList(workspaceId, list_id, id);
+  if (list_id) for (const id of [...ids, ...already_existed.map((a2) => a2.node_id)]) await addToList(workspaceId, list_id, id);
   return c2.json({ saved: ids.length, skipped, ids, created, already_existed }, 201);
 });
 router45.get("/monitors", async (c2) => {
@@ -69940,7 +69940,7 @@ router45.post("/lead-task", denyViewerWrites, zValidator("json", external_export
   source_url: external_exports.string().max(600).optional()
 })), async (c2) => {
   const b2 = c2.req.valid("json");
-  const row = buildLeadTask({ workspaceId: c2.get("workspaceId"), userId: c2.get("userId"), ...b2 });
+  const row = buildLeadTask({ workspaceId: c2.get("workspaceId"), userId: c2.get("userId"), name: b2.name, node_id: b2.node_id, title: b2.title, assignee_id: b2.assignee_id, due_date: b2.due_date, priority: b2.priority, source_url: b2.source_url });
   const { data, error } = await supabase.from("tasks").insert(row).select("id, title").single();
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json(data, 201);
@@ -69957,10 +69957,44 @@ router45.post("/lead-decision", denyViewerWrites, zValidator("json", external_ex
   source_url: external_exports.string().max(600).optional()
 })), async (c2) => {
   const b2 = c2.req.valid("json");
-  const row = buildLeadDecision({ workspaceId: c2.get("workspaceId"), ...b2 });
+  const row = buildLeadDecision({ workspaceId: c2.get("workspaceId"), name: b2.name, node_id: b2.node_id, title: b2.title, summary: b2.summary, recommended_action: b2.recommended_action, risk_level: b2.risk_level, email: b2.email, phone: b2.phone, source_url: b2.source_url });
   const { data, error } = await supabase.from("decision_queue").insert(row).select("id, title").single();
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json(data, 201);
+});
+var bulkLeadSchema = external_exports.object({
+  name: external_exports.string().min(1).max(200),
+  node_id: external_exports.string().uuid().optional(),
+  source_url: external_exports.string().max(600).optional(),
+  email: external_exports.string().max(200).optional(),
+  phone: external_exports.string().max(60).optional(),
+  summary: external_exports.string().max(1e3).optional()
+});
+router45.post("/bulk-task", denyViewerWrites, zValidator("json", external_exports.object({
+  leads: external_exports.array(bulkLeadSchema).min(1).max(200),
+  assignee_id: external_exports.string().max(120).optional()
+})), async (c2) => {
+  const { leads, assignee_id } = c2.req.valid("json");
+  const workspaceId = c2.get("workspaceId");
+  const userId = c2.get("userId");
+  const results = await Promise.all(leads.map(async (b2) => {
+    const row = buildLeadTask({ workspaceId, userId, name: b2.name, node_id: b2.node_id, assignee_id, source_url: b2.source_url });
+    const { data, error } = await supabase.from("tasks").insert(row).select("id").single();
+    return error ? { name: b2.name, ok: false, error: error.message } : { name: b2.name, ok: true, id: data.id };
+  }));
+  return c2.json({ created: results.filter((r2) => r2.ok).length, failed: results.filter((r2) => !r2.ok).length, results });
+});
+router45.post("/bulk-decision", denyViewerWrites, zValidator("json", external_exports.object({
+  leads: external_exports.array(bulkLeadSchema).min(1).max(200)
+})), async (c2) => {
+  const { leads } = c2.req.valid("json");
+  const workspaceId = c2.get("workspaceId");
+  const results = await Promise.all(leads.map(async (b2) => {
+    const row = buildLeadDecision({ workspaceId, name: b2.name, node_id: b2.node_id, summary: b2.summary, email: b2.email, phone: b2.phone, source_url: b2.source_url });
+    const { data, error } = await supabase.from("decision_queue").insert(row).select("id").single();
+    return error ? { name: b2.name, ok: false, error: error.message } : { name: b2.name, ok: true, id: data.id };
+  }));
+  return c2.json({ created: results.filter((r2) => r2.ok).length, failed: results.filter((r2) => !r2.ok).length, results });
 });
 
 // src/routes/workspaces.ts
