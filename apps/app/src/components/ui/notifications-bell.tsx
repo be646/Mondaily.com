@@ -1,51 +1,12 @@
 import { useState } from "react";
-import { Bell, Sparkles, ShieldCheck, MessageSquare, CheckSquare, Settings2, ArrowUpRight } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Bell, ArrowUpRight } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import { useNavigate } from "react-router-dom";
 import { resolveNotificationLink } from "../../lib/notification-link";
-import { agentByRaw } from "../../lib/agents";
+import { CATEGORY_META, actionLabel, actorLabel, type GroupableNotification } from "../../lib/notification-groups";
 
-type NotifCategory = "agent" | "decisions" | "messages" | "tasks" | "system";
-interface NotifSource {
-  source_agent?: string; agent_job_id?: string; decision_id?: string;
-  task_id?: string; node_id?: string; object_type?: string; route?: string;
-}
-interface Notification {
-  id: string; title: string; body: string; type: string;
-  task_id?: string; is_read: boolean; created_at: string;
-  metadata?: Record<string, unknown> | null;
-  category?: NotifCategory;      // derived server-side
-  source?: NotifSource;          // derived server-side (audit links)
-}
-
-// The five bell groups, in display order, each with a heading + icon.
-const CATEGORY_META: { key: NotifCategory; label: string; Icon: LucideIcon }[] = [
-  { key: "decisions", label: "Decisions waiting", Icon: ShieldCheck },
-  { key: "agent",     label: "Agent findings",    Icon: Sparkles },
-  { key: "messages",  label: "Messages",          Icon: MessageSquare },
-  { key: "tasks",     label: "Tasks",             Icon: CheckSquare },
-  { key: "system",    label: "System & readiness", Icon: Settings2 },
-];
-
-// The action a notification offers — derived from its category (source-backed, not invented).
-function actionLabel(n: Notification): string {
-  switch (n.category) {
-    case "decisions": return "Review in Decision Deck";
-    case "tasks":     return "Open task";
-    case "messages":  return "Open message";
-    case "agent":     return n.source?.node_id ? "View record" : "View";
-    default:          return "Open";
-  }
-}
-
-// "who caused it" — a real agent name (via the canonical registry) when we know the source_agent.
-function actorLabel(n: Notification): string | null {
-  const slug = n.source?.source_agent;
-  if (!slug) return null;
-  try { return agentByRaw(slug).name; } catch { return null; }
-}
+type Notification = GroupableNotification & { body: string };
 
 function fmtTime(iso: string) {
   const d = new Date(iso);

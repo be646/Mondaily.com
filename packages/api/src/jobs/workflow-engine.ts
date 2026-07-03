@@ -232,7 +232,8 @@ async function runAction(workspaceId: string, action: WorkflowBlock, record: { i
   if (type === "notify") {
     await createNotification({
       workspace_id: workspaceId, type: "agent", title: `Workflow: ${action.label ?? "notification"}`,
-      body: `Triggered for ${recName}`, metadata: { node_id: record.id, object_type: record.object_type },
+      body: `Triggered for ${recName}`,
+      source: { source_agent: "workflow", node_id: record.id, object_type: record.object_type },
     });
     return { action: action.type, mode: "executed", detail: "notified" };
   }

@@ -56305,7 +56305,8 @@ ${digest}`
       type: "agent",
       title: `Discovery Agent found ${dedupedRows.length} ${what}`,
       body: `From ${unique.length} sources${sector ? ` for "${sector}"` : ""}${region ? ` in ${region}` : ""}${targetSubject ? ` about "${targetSubject}"` : ""}.` + (queued > 0 ? ` ${queued} strong lead${queued === 1 ? "" : "s"} queued in your Decision Queue for approval.` : " Review them in Discovery."),
-      metadata: { source: "discovery", count: dedupedRows.length, queued, search_type: searchType }
+      metadata: { count: dedupedRows.length, queued, search_type: searchType },
+      source: { source_agent: "prospecting", route: queued > 0 ? "/decisions" : "/discovery" }
     }).catch(() => {
     });
   }
@@ -56331,7 +56332,8 @@ async function runDiscoveryMonitors() {
         type: "agent",
         title: `Monitor "${d2.query ?? "saved search"}" found ${fresh} new result${fresh === 1 ? "" : "s"}`,
         body: "Your watched Discovery search picked up new results since the last run. Review them in Discovery.",
-        metadata: { source: "discovery_monitor", monitor_id: m2.id, new: fresh }
+        metadata: { monitor_id: m2.id, new: fresh },
+        source: { source_agent: "prospecting", route: "/discovery" }
       }).catch(() => {
       });
     }
@@ -58013,7 +58015,8 @@ ${webContext}` : "No web context found \u2014 return only fields you are certain
         type: "agent",
         title: "\u2726 Record enriched",
         body: `AI filled in: ${summary}${flatKeys.length > 3 ? ` +${flatKeys.length - 3} more` : ""}`,
-        metadata: { nodeId, object_type: objectType2, fields_added: flatKeys.length }
+        metadata: { fields_added: flatKeys.length },
+        source: { source_agent: "graph-enrichment", agent_job_id: jobId, node_id: nodeId, object_type: objectType2 }
       });
       await completeJob(jobId, { fields_added: flatKeys.length, fields: flat, usage }, []);
       return { enriched: true, fields_count: Object.keys(fields).length };
@@ -58086,15 +58089,7 @@ async function runDealAlerts(workspaceId) {
           days_inactive: daysInactive
         });
         if (alertErr) throw new Error(`deal_alerts insert failed: ${alertErr.message}`);
-        await createNotification({
-          workspace_id: wsId,
-          type: "alert",
-          title: "\u{1F976} Cold deal detected",
-          body: `"${data.name ?? data.title ?? "Deal"}" has had no activity for ${daysInactive} days`,
-          metadata: { days_inactive: daysInactive },
-          source: { source_agent: "signal", agent_job_id: jobId, node_id: deal.id, object_type: "deal" }
-        });
-        await supabase.from("decision_queue").insert({
+        const { data: dq } = await supabase.from("decision_queue").insert({
           workspace_id: wsId,
           source_type: "node",
           source_id: deal.id,
@@ -58104,8 +58099,14 @@ async function runDealAlerts(workspaceId) {
           recommended_action: "Reach out to re-engage, or mark as lost",
           risk_level: daysInactive > 30 ? "high" : "medium",
           evidence: [{ type: "record", title: String(data.name ?? data.title ?? "Deal"), node_id: deal.id, match_reason: `${daysInactive} days inactive` }]
-        }).then(() => {
-        }, () => {
+        }).select("id").single().then((r2) => r2, () => ({ data: null }));
+        await createNotification({
+          workspace_id: wsId,
+          type: "alert",
+          title: "\u{1F976} Cold deal detected",
+          body: `"${data.name ?? data.title ?? "Deal"}" has had no activity for ${daysInactive} days`,
+          metadata: { days_inactive: daysInactive },
+          source: { source_agent: "signal", agent_job_id: jobId, decision_id: dq?.id ?? null, node_id: deal.id, object_type: "deal" }
         });
         totalAlerts++;
       }
@@ -59036,7 +59037,7 @@ What single field should be set to what value?`,
       type: "agent",
       title: `Workflow: ${action.label ?? "notification"}`,
       body: `Triggered for ${recName2}`,
-      metadata: { node_id: record.id, object_type: record.object_type }
+      source: { source_agent: "workflow", node_id: record.id, object_type: record.object_type }
     });
     return { action: action.type, mode: "executed", detail: "notified" };
   }
@@ -59338,7 +59339,8 @@ var dailyBrief = inngest.createFunction(
           type: "daily_brief",
           title: "\u2600\uFE0F Your daily brief",
           body: `Today: ${parts.join(" \xB7 ")}. Ask "what should I focus on today?" for the full picture.`,
-          metadata: { route: "/home", overdue, open: openCount, pending_decisions: pendingN, recent_records: recentN }
+          metadata: { overdue, open: openCount, pending_decisions: pendingN, recent_records: recentN },
+          source: { source_agent: "insights", route: "/home" }
         });
         posted++;
       } catch (e2) {
@@ -60003,7 +60005,9 @@ router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", external_
         title: "Deal stage changed",
         body: `${name} moved${oldStage ? ` from ${oldStage}` : ""} to ${newStage}.`,
         type: "deal_stage",
-        metadata: { node_id: node.id, object_type: node.object_type, from: oldStage || null, to: newStage }
+        // Human-triggered record event (no autonomous agent) — link the record, don't attribute an agent.
+        metadata: { from: oldStage || null, to: newStage },
+        source: { node_id: node.id, object_type: node.object_type }
       });
     }
   } catch {
@@ -68002,7 +68006,8 @@ async function notifyAdmins(workspaceId, title, body, creditNoteId) {
     title,
     body,
     type: "credit_note",
-    metadata: { credit_note_id: creditNoteId, object_type: "credit_note" }
+    metadata: { credit_note_id: creditNoteId },
+    source: { node_id: creditNoteId, object_type: "credit_note", route: creditNoteId ? `/finance/credit-notes/${creditNoteId}` : void 0 }
   })));
 }
 async function notifyReviewers(workspaceId, title, body, creditNoteId) {
@@ -68014,7 +68019,8 @@ async function notifyReviewers(workspaceId, title, body, creditNoteId) {
     title,
     body,
     type: "credit_note",
-    metadata: { credit_note_id: creditNoteId, object_type: "credit_note" }
+    metadata: { credit_note_id: creditNoteId },
+    source: { node_id: creditNoteId, object_type: "credit_note", route: creditNoteId ? `/finance/credit-notes/${creditNoteId}` : void 0 }
   })));
 }
 async function getCreditNote(workspaceId, id) {
@@ -68153,7 +68159,8 @@ router38.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c2
         title: "Credit note rejected",
         body: `Your credit note has been rejected.`,
         type: "credit_note",
-        metadata: { credit_note_id: cnId, object_type: "credit_note" }
+        metadata: { credit_note_id: cnId },
+        source: { node_id: cnId, object_type: "credit_note", route: `/finance/credit-notes/${cnId}` }
       });
     }
   }

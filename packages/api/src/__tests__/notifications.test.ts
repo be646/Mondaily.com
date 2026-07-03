@@ -79,6 +79,72 @@ describe("extractSource — compacted audit links, snake/camel tolerant", () => 
   });
 });
 
+describe("producer source metadata → categorization + deep-link folding", () => {
+  // Each entry mirrors exactly what a producer now emits (type + source), and the group the
+  // bell/page should file it under. This locks the remaining producers' provenance behavior.
+  const producers: Array<{ name: string; type: string; source: Record<string, unknown>; category: string }> = [
+    { name: "daily-brief (Insights)",     type: "daily_brief", source: { source_agent: "insights", route: "/home" }, category: "agent" },
+    { name: "discovery sweep",            type: "agent",       source: { source_agent: "prospecting", route: "/decisions" }, category: "agent" },
+    { name: "discovery monitor",          type: "agent",       source: { source_agent: "prospecting", route: "/discovery" }, category: "agent" },
+    { name: "workflow notify",            type: "agent",       source: { source_agent: "workflow", node_id: "n1", object_type: "deal" }, category: "agent" },
+    { name: "enrich record",              type: "agent",       source: { source_agent: "graph-enrichment", agent_job_id: "j1", node_id: "n2" }, category: "agent" },
+    { name: "cold-deal alert (Signal)",   type: "alert",       source: { source_agent: "signal", decision_id: "d1", node_id: "n3", object_type: "deal" }, category: "decisions" },
+    { name: "deal stage change (human)",  type: "deal_stage",  source: { node_id: "n4", object_type: "deal" }, category: "system" },
+    { name: "credit note review",         type: "credit_note", source: { node_id: "cn1", object_type: "credit_note" }, category: "system" },
+  ];
+
+  for (const p of producers) {
+    it(`${p.name} → ${p.category}`, () => {
+      const payload = buildNotificationPayload({ workspace_id: "ws1", title: p.name, type: p.type, source: p.source as never });
+      // source folded into metadata → categorization sees it
+      expect(categorizeNotification(payload as never)).toBe(p.category);
+      // audit links survive extraction
+      const src = extractSource(payload as never);
+      if (p.source.source_agent) expect(src.source_agent).toBe(p.source.source_agent);
+      if (p.source.node_id) expect(src.node_id).toBe(p.source.node_id);
+    });
+  }
+
+  it("cold-deal alert carries decision_id into metadata for deep-linking", () => {
+    const payload = buildNotificationPayload({
+      workspace_id: "ws1", title: "🥶 Cold deal", type: "alert",
+      source: { source_agent: "signal", decision_id: "dec_123", node_id: "n1", object_type: "deal" },
+    });
+    expect((payload.metadata as Record<string, unknown>).decision_id).toBe("dec_123");
+    expect(extractSource(payload as never).decision_id).toBe("dec_123");
+    expect(categorizeNotification(payload as never)).toBe("decisions");
+  });
+
+  it("a null decision_id (insert failed) does not fabricate a link", () => {
+    const payload = buildNotificationPayload({
+      workspace_id: "ws1", title: "🥶 Cold deal", type: "alert",
+      source: { source_agent: "signal", decision_id: null, node_id: "n1", object_type: "deal" },
+    });
+    expect((payload.metadata as Record<string, unknown>).decision_id).toBeUndefined();
+    expect(extractSource(payload as never).decision_id).toBeUndefined();
+  });
+});
+
+describe("full page grouping assumptions — every notification lands in exactly one group", () => {
+  it("categorize returns one of the five known keys for any input", () => {
+    const KEYS = new Set(["agent", "decisions", "messages", "tasks", "system"]);
+    const samples = [
+      { type: "message" }, { type: "alert" }, { type: "agent", task_id: "t" },
+      { type: "agent", metadata: { source_agent: "asset" } }, { type: "daily_brief" },
+      { type: "deal_stage" }, { type: "credit_note" }, { type: undefined as unknown as string }, {},
+    ];
+    for (const s of samples) expect(KEYS.has(categorizeNotification(s as never))).toBe(true);
+  });
+});
+
+describe("read/unread behavior preserved", () => {
+  it("every built payload starts unread with a null read_at", () => {
+    const p = buildNotificationPayload({ workspace_id: "ws1", title: "x", type: "agent", source: { source_agent: "signal" } });
+    expect(p.is_read).toBe(false);
+    expect(p.read_at).toBeNull();
+  });
+});
+
 describe("workspace isolation — notifications route stays scoped", () => {
   it("every notifications query filters by workspace_id", () => {
     const src = readFileSync(fileURLToPath(new URL("../routes/notifications.ts", import.meta.url)), "utf8");

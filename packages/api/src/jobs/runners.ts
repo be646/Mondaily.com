@@ -107,20 +107,23 @@ export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_crea
           workspace_id: wsId, node_id: deal.id, alert_type: "cold_deal", days_inactive: daysInactive,
         });
         if (alertErr) throw new Error(`deal_alerts insert failed: ${alertErr.message}`);
-        await createNotification({
-          workspace_id: wsId, type: "alert", title: "🥶 Cold deal detected",
-          body: `"${data.name ?? data.title ?? "Deal"}" has had no activity for ${daysInactive} days`,
-          metadata: { days_inactive: daysInactive },
-          source: { source_agent: "signal", agent_job_id: jobId, node_id: deal.id, object_type: "deal" },
-        });
-        await supabase.from("decision_queue").insert({
+        // Create the decision FIRST so we can deep-link the notification straight to it. Capturing
+        // the id is best-effort — if the insert fails, decisionId stays null and the notification
+        // still lands (linked to the record instead).
+        const { data: dq } = await supabase.from("decision_queue").insert({
           workspace_id: wsId, source_type: "node", source_id: deal.id, agent_name: "relationship",
           title: `${data.name ?? data.title ?? "This relationship"} has gone quiet`,
           summary: `No activity for ${daysInactive} days.`,
           recommended_action: "Reach out to re-engage, or mark as lost",
           risk_level: daysInactive > 30 ? "high" : "medium",
           evidence: [{ type: "record", title: String(data.name ?? data.title ?? "Deal"), node_id: deal.id, match_reason: `${daysInactive} days inactive` }],
-        }).then(() => {}, () => {});
+        }).select("id").single().then((r) => r, () => ({ data: null }));
+        await createNotification({
+          workspace_id: wsId, type: "alert", title: "🥶 Cold deal detected",
+          body: `"${data.name ?? data.title ?? "Deal"}" has had no activity for ${daysInactive} days`,
+          metadata: { days_inactive: daysInactive },
+          source: { source_agent: "signal", agent_job_id: jobId, decision_id: (dq as { id?: string } | null)?.id ?? null, node_id: deal.id, object_type: "deal" },
+        });
         totalAlerts++;
       }
     }

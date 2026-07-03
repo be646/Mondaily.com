@@ -54,7 +54,8 @@ export const dailyBrief = inngest.createFunction(
           type: "daily_brief",
           title: "☀️ Your daily brief",
           body: `Today: ${parts.join(" · ")}. Ask "what should I focus on today?" for the full picture.`,
-          metadata: { route: "/home", overdue, open: openCount, pending_decisions: pendingN, recent_records: recentN },
+          metadata: { overdue, open: openCount, pending_decisions: pendingN, recent_records: recentN },
+          source: { source_agent: "insights", route: "/home" },
         });
         posted++;
       } catch (e) {

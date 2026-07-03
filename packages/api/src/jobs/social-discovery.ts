@@ -674,7 +674,8 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
         title: `Discovery Agent found ${dedupedRows.length} ${what}`,
         body: `From ${unique.length} sources${sector ? ` for "${sector}"` : ""}${region ? ` in ${region}` : ""}${targetSubject ? ` about "${targetSubject}"` : ""}.` +
           (queued > 0 ? ` ${queued} strong lead${queued === 1 ? "" : "s"} queued in your Decision Queue for approval.` : " Review them in Discovery."),
-        metadata: { source: "discovery", count: dedupedRows.length, queued, search_type: searchType },
+        metadata: { count: dedupedRows.length, queued, search_type: searchType },
+        source: { source_agent: "prospecting", route: queued > 0 ? "/decisions" : "/discovery" },
       }).catch(() => {});
     }
 
@@ -711,7 +712,8 @@ export async function runDiscoveryMonitors(): Promise<{ monitors: number; new_re
         type: "agent",
         title: `Monitor "${d.query ?? "saved search"}" found ${fresh} new result${fresh === 1 ? "" : "s"}`,
         body: "Your watched Discovery search picked up new results since the last run. Review them in Discovery.",
-        metadata: { source: "discovery_monitor", monitor_id: m.id, new: fresh },
+        metadata: { monitor_id: m.id, new: fresh },
+        source: { source_agent: "prospecting", route: "/discovery" },
       }).catch(() => {});
     }
   }

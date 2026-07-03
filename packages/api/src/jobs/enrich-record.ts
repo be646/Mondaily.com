@@ -292,7 +292,8 @@ export const enrichRecord = inngest.createFunction(
         type: "agent",
         title: "✦ Record enriched",
         body: `AI filled in: ${summary}${flatKeys.length > 3 ? ` +${flatKeys.length - 3} more` : ""}`,
-        metadata: { nodeId, object_type: objectType, fields_added: flatKeys.length },
+        metadata: { fields_added: flatKeys.length },
+        source: { source_agent: "graph-enrichment", agent_job_id: jobId, node_id: nodeId, object_type: objectType },
       });
 
       await completeJob(jobId, { fields_added: flatKeys.length, fields: flat, usage }, []);

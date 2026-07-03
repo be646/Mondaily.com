@@ -1,21 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, Check, CheckCheck, Trash2, ShieldAlert } from "lucide-react";
+import { Bell, Check, CheckCheck, Trash2, ShieldAlert, ArrowUpRight } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { resolveNotificationLink } from "../../lib/notification-link";
+import { groupByCategory, actorLabel, actionLabel, type GroupableNotification } from "../../lib/notification-groups";
 
-interface Notification {
-  id: string; title: string; body: string; type: string;
-  task_id?: string; is_read: boolean; created_at: string;
-  metadata?: Record<string, unknown> | null;
-}
-
-const TYPE_LABELS: Record<string, string> = {
-  task_review: "Task review", mention: "Mention", approval: "Approval",
-  system: "System", comment: "Comment", assignment: "Assignment",
-  ai_risk: "AI Risk Alert", email: "Email", agent: "Agent",
-};
+type Notification = GroupableNotification & { body: string };
 
 function relTime(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -33,7 +24,6 @@ export function NotificationsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const [filter, setFilter] = useState<"all" | "unread">("all");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
 
   const query = useQuery({
     queryKey: ["notifications"],
@@ -56,11 +46,9 @@ export function NotificationsPage() {
 
   const all = query.data ?? [];
   const unread = all.filter(n => !n.is_read).length;
-  const types = ["all", ...Array.from(new Set(all.map(n => n.type).filter(Boolean)))];
 
-  const visible = all
-    .filter(n => filter === "unread" ? !n.is_read : true)
-    .filter(n => typeFilter === "all" ? true : n.type === typeFilter);
+  const visible = all.filter(n => filter === "unread" ? !n.is_read : true);
+  const groups = groupByCategory(visible);
 
   function handleClick(n: Notification) {
     if (!n.is_read) markRead.mutate(n.id);
@@ -102,18 +90,6 @@ export function NotificationsPage() {
               {f === "all" ? "All" : `Unread · ${unread}`}
             </button>
           ))}
-          {types.length > 1 && types.map(t => (
-            <button
-              key={t}
-              onClick={() => setTypeFilter(t)}
-              className="rounded-full border px-2.5 py-1 text-[10px] uppercase tracking-wide transition-colors"
-              style={typeFilter === t
-                ? { borderColor: "var(--text-faint)", color: "var(--text-primary)", background: "var(--surface-hover)" }
-                : { borderColor: "var(--border-soft)", color: "var(--text-faint)" }}
-            >
-              {t === "all" ? "All types" : (TYPE_LABELS[t] ?? t)}
-            </button>
-          ))}
         </div>
 
         {/* List */}
@@ -128,55 +104,60 @@ export function NotificationsPage() {
             <p className="mt-1 text-xs text-[var(--text-secondary)]">Reviews, approvals, mentions, and agent events surface here.</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
-            {visible.map((n, i) => {
-              const isRisk = n.type === "ai_risk";
-              return (
-                <div
-                  key={n.id}
-                  className="group flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--surface-selected)]"
-                  style={{
-                    ...(i > 0 ? { borderTop: "1px solid var(--border-soft)" } : {}),
-                    ...(!n.is_read ? { background: isRisk ? "rgba(251,191,36,0.05)" : "rgba(132,204,130,0.04)" } : {}),
-                  }}
-                >
-                  {isRisk && !n.is_read
-                    ? <ShieldAlert size={14} className="mt-1 shrink-0 text-amber-400" />
-                    : <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: !n.is_read ? "var(--section-accent)" : "transparent" }} />}
-
-                  <button className="min-w-0 flex-1 text-left" onClick={() => handleClick(n)}>
-                    <div className="flex items-center gap-2">
-                      <p className={`truncate text-[13px] ${!n.is_read ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>{n.title}</p>
-                      {n.type && (
-                        <span
-                          className="shrink-0 rounded px-1.5 py-0.5 text-[9px] uppercase tracking-wide"
-                          style={isRisk
-                            ? { border: "1px solid rgba(251,191,36,0.3)", background: "rgba(251,191,36,0.1)", color: "#fbbf24" }
-                            : { border: "1px solid var(--border-soft)", background: "var(--surface-card)", color: "var(--text-muted)" }}
-                        >
-                          {TYPE_LABELS[n.type] ?? n.type}
-                        </span>
-                      )}
-                    </div>
-                    {n.body && <p className="mt-0.5 line-clamp-2 text-[11.5px] text-[var(--text-secondary)]">{n.body}</p>}
-                    <p className="mt-1 text-[10px] text-[var(--text-secondary)]">{relTime(n.created_at)}</p>
-                  </button>
-
-                  <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    {!n.is_read && (
-                      <button onClick={() => markRead.mutate(n.id)} title="Mark read"
-                        className="rounded-md p-1.5 text-[var(--text-secondary)] transition-colors hover:text-emerald-400">
-                        <Check size={12} />
-                      </button>
-                    )}
-                    <button onClick={() => deleteOne.mutate(n.id)} title="Delete"
-                      className="rounded-md p-1.5 text-[var(--text-secondary)] transition-colors hover:text-rose-400">
-                      <Trash2 size={12} />
-                    </button>
-                  </div>
+          // Grouped by the same five categories as the bell. Read/unread, mark-read, delete, and
+          // click-to-navigate are all unchanged — only the layout groups.
+          <div className="space-y-5">
+            {groups.map(group => (
+              <section key={group.key}>
+                <div className="mb-1.5 flex items-center gap-1.5 px-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-faint)]">
+                  <group.Icon size={12} /> {group.label}
+                  <span className="text-[var(--text-secondary)]">· {group.items.length}</span>
                 </div>
-              );
-            })}
+                <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+                  {group.items.map((n, i) => {
+                    const isRisk = n.type === "ai_risk";
+                    const actor = actorLabel(n);
+                    return (
+                      <div
+                        key={n.id}
+                        className="group flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-[var(--surface-selected)]"
+                        style={{
+                          ...(i > 0 ? { borderTop: "1px solid var(--border-soft)" } : {}),
+                          ...(!n.is_read ? { background: isRisk ? "rgba(251,191,36,0.05)" : "rgba(132,204,130,0.04)" } : {}),
+                        }}
+                      >
+                        {isRisk && !n.is_read
+                          ? <ShieldAlert size={14} className="mt-1 shrink-0 text-amber-400" />
+                          : <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: !n.is_read ? "var(--section-accent)" : "transparent" }} />}
+
+                        <button className="min-w-0 flex-1 text-left" onClick={() => handleClick(n)}>
+                          <p className={`truncate text-[13px] ${!n.is_read ? "text-[var(--text-primary)]" : "text-[var(--text-muted)]"}`}>{n.title}</p>
+                          {n.body && <p className="mt-0.5 line-clamp-2 text-[11.5px] text-[var(--text-secondary)]">{n.body}</p>}
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 text-[10px] text-[var(--text-secondary)]">
+                            {actor && <span>by {actor}</span>}
+                            <span>{relTime(n.created_at)}</span>
+                            <span className="inline-flex items-center gap-0.5" style={{ color: "var(--section-accent)" }}>{actionLabel(n)} <ArrowUpRight size={9} /></span>
+                          </div>
+                        </button>
+
+                        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          {!n.is_read && (
+                            <button onClick={() => markRead.mutate(n.id)} title="Mark read"
+                              className="rounded-md p-1.5 text-[var(--text-secondary)] transition-colors hover:text-emerald-400">
+                              <Check size={12} />
+                            </button>
+                          )}
+                          <button onClick={() => deleteOne.mutate(n.id)} title="Delete"
+                            className="rounded-md p-1.5 text-[var(--text-secondary)] transition-colors hover:text-rose-400">
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
         )}
       </div>

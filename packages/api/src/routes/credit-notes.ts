@@ -57,7 +57,8 @@ async function notifyAdmins(workspaceId: string, title: string, body: string, cr
     title,
     body,
     type: "credit_note",
-    metadata: { credit_note_id: creditNoteId, object_type: "credit_note" },
+    metadata: { credit_note_id: creditNoteId },
+    source: { node_id: creditNoteId, object_type: "credit_note", route: creditNoteId ? `/finance/credit-notes/${creditNoteId}` : undefined },
   })));
 }
 
@@ -74,7 +75,8 @@ async function notifyReviewers(workspaceId: string, title: string, body: string,
     title,
     body,
     type: "credit_note",
-    metadata: { credit_note_id: creditNoteId, object_type: "credit_note" },
+    metadata: { credit_note_id: creditNoteId },
+    source: { node_id: creditNoteId, object_type: "credit_note", route: creditNoteId ? `/finance/credit-notes/${creditNoteId}` : undefined },
   })));
 }
 
@@ -292,7 +294,8 @@ router.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c) =
         title: "Credit note rejected",
         body: `Your credit note has been rejected.`,
         type: "credit_note",
-        metadata: { credit_note_id: cnId, object_type: "credit_note" },
+        metadata: { credit_note_id: cnId },
+        source: { node_id: cnId, object_type: "credit_note", route: `/finance/credit-notes/${cnId}` },
       });
     }
   }

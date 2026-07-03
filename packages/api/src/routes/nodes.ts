@@ -100,7 +100,9 @@ router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", z.object(
         title: "Deal stage changed",
         body: `${name} moved${oldStage ? ` from ${oldStage}` : ""} to ${newStage}.`,
         type: "deal_stage",
-        metadata: { node_id: node.id, object_type: node.object_type, from: oldStage || null, to: newStage },
+        // Human-triggered record event (no autonomous agent) — link the record, don't attribute an agent.
+        metadata: { from: oldStage || null, to: newStage },
+        source: { node_id: node.id, object_type: node.object_type },
       });
     }
   } catch { /* best-effort — never block the update on the notification */ }
