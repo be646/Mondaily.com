@@ -6833,12 +6833,12 @@ function isValidCidr(ip, version6) {
   }
   return false;
 }
-function floatSafeRemainder(val, step2) {
+function floatSafeRemainder(val, step3) {
   const valDecCount = (val.toString().split(".")[1] || "").length;
-  const stepDecCount = (step2.toString().split(".")[1] || "").length;
+  const stepDecCount = (step3.toString().split(".")[1] || "").length;
   const decCount = valDecCount > stepDecCount ? valDecCount : stepDecCount;
   const valInt = Number.parseInt(val.toFixed(decCount).replace(".", ""));
-  const stepInt = Number.parseInt(step2.toFixed(decCount).replace(".", ""));
+  const stepInt = Number.parseInt(step3.toFixed(decCount).replace(".", ""));
   return valInt % stepInt / 10 ** decCount;
 }
 function deepPartialify(schema) {
@@ -13300,8 +13300,8 @@ var init_v0 = __esm({
                 ...output?.ctx
               },
               fn: this.options.fn,
-              steps: prev.steps.map((step2, i2) => ({
-                ...step2,
+              steps: prev.steps.map((step3, i2) => ({
+                ...step3,
                 ...output?.steps?.[i2]
               })),
               reqArgs: prev.reqArgs
@@ -13401,10 +13401,10 @@ var init_v0 = __esm({
             };
           });
         };
-        const step2 = createStepTools(this.options.client, this, stepHandler);
+        const step3 = createStepTools(this.options.client, this, stepHandler);
         let fnArg = {
           ...this.options.data,
-          step: step2
+          step: step3
         };
         if (this.options.isFailureHandler) {
           const eventData = external_exports.object({ error: jsonErrorSchema }).parse(fnArg.event?.data);
@@ -13436,18 +13436,18 @@ var init_v0 = __esm({
       /**
       * Using middleware, transform output before returning.
       */
-      async transformOutput(dataOrError, step2) {
+      async transformOutput(dataOrError, step3) {
         const output = { ...dataOrError };
         if (typeof output.error !== "undefined") output.data = serializeError$1(output.error);
         const transformedOutput = await this.state.hooks?.transformOutput?.({
           result: { ...output },
-          step: step2
+          step: step3
         });
         const { data, error } = {
           ...output,
           ...transformedOutput?.result
         };
-        if (!step2) await this.state.hooks?.finished?.({ result: { ...typeof error !== "undefined" ? { error } : { data } } });
+        if (!step3) await this.state.hooks?.finished?.({ result: { ...typeof error !== "undefined" ? { error } : { data } } });
         if (typeof error !== "undefined") {
           let retriable = !(error instanceof NonRetriableError || error?.name === "NonRetriableError");
           if (retriable && (error instanceof RetryAfterError || error?.name === "RetryAfterError")) retriable = error.retryAfter;
@@ -14712,9 +14712,9 @@ var init_v2 = __esm({
             };
           },
           "steps-found": async ({ steps }) => {
-            if (steps.length !== 1 || steps[0].mode !== StepMode.Sync) return this.checkpointAndSwitchToAsync(steps.map((step2) => ({
-              ...step2,
-              id: step2.hashedId
+            if (steps.length !== 1 || steps[0].mode !== StepMode.Sync) return this.checkpointAndSwitchToAsync(steps.map((step3) => ({
+              ...step3,
+              id: step3.hashedId
             })));
             const result = await this.executeStep(steps[0]);
             const transformed = await stepRanHandler(result);
@@ -14750,12 +14750,12 @@ var init_v2 = __esm({
             if (stepResult) return stepRanHandler(stepResult);
             return maybeReturnNewSteps(steps);
           },
-          "step-not-found": ({ step: step2, foundSteps, totalFoundSteps }) => {
+          "step-not-found": ({ step: step3, foundSteps, totalFoundSteps }) => {
             return {
               type: "step-not-found",
               ctx: this.fnArg,
               ops: this.ops,
-              step: step2,
+              step: step3,
               foundSteps,
               totalFoundSteps
             };
@@ -14794,9 +14794,9 @@ var init_v2 = __esm({
           },
           "step-not-found": asyncHandlers["step-not-found"],
           "steps-found": async ({ steps }) => {
-            const { stepsToResume, newSteps } = steps.reduce((acc, step2) => {
-              if (!step2.hasStepState) acc.newSteps.push(step2);
-              else if (!step2.fulfilled) acc.stepsToResume.push(step2);
+            const { stepsToResume, newSteps } = steps.reduce((acc, step3) => {
+              if (!step3.hasStepState) acc.newSteps.push(step3);
+              else if (!step3.fulfilled) acc.stepsToResume.push(step3);
               return acc;
             }, {
               stepsToResume: [],
@@ -14859,8 +14859,8 @@ var init_v2 = __esm({
       async tryExecuteStep(steps) {
         const hashedStepIdToRun = this.options.requestedRunStep || this.getEarlyExecRunStep(steps);
         if (!hashedStepIdToRun) return;
-        const step2 = steps.find((step$1) => step$1.hashedId === hashedStepIdToRun && step$1.fn);
-        if (step2) return await this.executeStep(step2);
+        const step3 = steps.find((step$1) => step$1.hashedId === hashedStepIdToRun && step$1.fn);
+        if (step3) return await this.executeStep(step3);
         this.timeout?.reset();
       }
       /**
@@ -14869,28 +14869,28 @@ var init_v2 = __esm({
       */
       getEarlyExecRunStep(steps) {
         if (this.options.disableImmediateExecution) return;
-        const unfulfilledSteps = steps.filter((step2) => !step2.fulfilled);
+        const unfulfilledSteps = steps.filter((step3) => !step3.fulfilled);
         if (unfulfilledSteps.length !== 1) return;
         const op = unfulfilledSteps[0];
         if (op && op.op === StepOpCode.StepPlanned) return op.hashedId;
       }
       async filterNewSteps(foundSteps) {
         if (this.options.requestedRunStep) return;
-        const newSteps = foundSteps.reduce((acc, step2) => {
-          if (!step2.hasStepState) acc.push(step2);
+        const newSteps = foundSteps.reduce((acc, step3) => {
+          if (!step3.hasStepState) acc.push(step3);
           return acc;
         }, []);
         if (!newSteps.length) return;
         await this.state.hooks?.afterMemoization?.();
         await this.state.hooks?.beforeExecution?.();
         await this.state.hooks?.afterExecution?.();
-        const stepList = newSteps.map((step2) => ({
-          displayName: step2.displayName,
-          op: step2.op,
-          id: step2.hashedId,
-          name: step2.name,
-          opts: step2.opts,
-          userland: step2.userland
+        const stepList = newSteps.map((step3) => ({
+          displayName: step3.displayName,
+          op: step3.op,
+          id: step3.hashedId,
+          name: step3.name,
+          opts: step3.opts,
+          userland: step3.userland
         }));
         return await this.transformNewSteps(stepList);
       }
@@ -14899,8 +14899,8 @@ var init_v2 = __esm({
       * an Inngest Server.
       */
       async transformNewSteps(steps) {
-        return Promise.all(steps.map(async (step2) => {
-          if (step2.op !== StepOpCode.InvokeFunction) return step2;
+        return Promise.all(steps.map(async (step3) => {
+          if (step3.op !== StepOpCode.InvokeFunction) return step3;
           const transformedPayload = await (await getHookStack(this.options.fn["middleware"], "onSendEvent", void 0, {
             transformInput: (prev, output) => {
               return {
@@ -14915,16 +14915,16 @@ var init_v2 = __esm({
               } };
             }
           })).transformInput?.({ payloads: [{
-            ...step2.opts?.payload ?? {},
+            ...step3.opts?.payload ?? {},
             name: internalEvents.FunctionInvoked
           }] });
           const newPayload = invokePayloadSchema.parse(transformedPayload?.payloads?.[0] ?? {});
           return {
-            ...step2,
+            ...step3,
             opts: {
-              ...step2.opts,
+              ...step3.opts,
               payload: {
-                ...step2.opts?.payload ?? {},
+                ...step3.opts?.payload ?? {},
                 ...newPayload
               }
             }
@@ -15030,19 +15030,19 @@ var init_v2 = __esm({
           reqArgs: this.options.reqArgs
         });
         if (inputMutations?.ctx) this.fnArg = inputMutations.ctx;
-        if (inputMutations?.steps) this.state.stepState = Object.fromEntries(inputMutations.steps.map((step2) => [step2.id, step2]));
+        if (inputMutations?.steps) this.state.stepState = Object.fromEntries(inputMutations.steps.map((step3) => [step3.id, step3]));
       }
       /**
       * Using middleware, transform output before returning.
       */
       async transformOutput(dataOrError) {
         const output = { ...dataOrError };
-        const step2 = this.state.executingStep;
+        const step3 = this.state.executingStep;
         delete this.state.executingStep;
-        const isStepExecution = Boolean(step2);
+        const isStepExecution = Boolean(step3);
         const transformedOutput = await this.state.hooks?.transformOutput?.({
           result: { ...output },
-          step: step2
+          step: step3
         });
         const { data, error } = {
           ...output,
@@ -15111,10 +15111,10 @@ var init_v2 = __esm({
         return Object.fromEntries(this.state.steps);
       }
       createFnArg() {
-        const step2 = this.createStepTools();
+        const step3 = this.createStepTools();
         let fnArg = {
           ...this.options.data,
-          step: step2
+          step: step3
         };
         if (this.options.isFailureHandler) {
           const eventData = external_exports.object({ error: jsonErrorSchema }).parse(fnArg.event?.data);
@@ -15135,9 +15135,9 @@ var init_v2 = __esm({
           if (foundStepsReportPromise) return;
           foundStepsReportPromise = resolveAfterPending().then(() => beforeExecHooksPromise).then(() => {
             foundStepsReportPromise = void 0;
-            for (const [hashedId, step2] of unhandledFoundStepsToReport) if ((this.options.stepMode === StepMode.Async || step2.hasStepState) && step2.handle()) {
+            for (const [hashedId, step3] of unhandledFoundStepsToReport) if ((this.options.stepMode === StepMode.Async || step3.hasStepState) && step3.handle()) {
               unhandledFoundStepsToReport.delete(hashedId);
-              if (step2.fulfilled) foundStepsToReport.delete(step2.id);
+              if (step3.fulfilled) foundStepsToReport.delete(step3.id);
             }
             if (foundStepsToReport.size) {
               const steps = [...foundStepsToReport.values()];
@@ -15151,9 +15151,9 @@ var init_v2 = __esm({
             }
           });
         };
-        const pushStepToReport = (step2) => {
-          foundStepsToReport.set(step2.hashedId, step2);
-          unhandledFoundStepsToReport.set(step2.hashedId, step2);
+        const pushStepToReport = (step3) => {
+          foundStepsToReport.set(step3.hashedId, step3);
+          unhandledFoundStepsToReport.set(step3.hashedId, step3);
           reportNextTick();
         };
         const stepHandler = async ({ args, matchOp, opts }) => {
@@ -15205,7 +15205,7 @@ var init_v2 = __esm({
               } };
               break;
           }
-          const step2 = {
+          const step3 = {
             ...opId,
             opts: {
               ...opId.opts,
@@ -15221,11 +15221,11 @@ var init_v2 = __esm({
             displayName: opId.displayName ?? opId.id,
             handled: false,
             handle: () => {
-              if (step2.handled) return false;
+              if (step3.handled) return false;
               this.debug(`handling step "${hashedId}"`);
-              step2.handled = true;
+              step3.handled = true;
               const result = this.state.stepState[hashedId];
-              if (step2.fulfilled && result) {
+              if (step3.fulfilled && result) {
                 result.fulfilled = true;
                 Promise.all([
                   result.data,
@@ -15242,9 +15242,9 @@ var init_v2 = __esm({
               return true;
             }
           };
-          this.state.steps.set(hashedId, step2);
+          this.state.steps.set(hashedId, step3);
           this.state.hasSteps = true;
-          pushStepToReport(step2);
+          pushStepToReport(step3);
           if (!beforeExecHooksPromise && this.state.allStateUsed()) await (beforeExecHooksPromise = (async () => {
             await this.state.hooks?.afterMemoization?.();
             await this.state.hooks?.beforeExecution?.();
@@ -15294,10 +15294,10 @@ var init_v2 = __esm({
         });
       }
       getStepNotFoundDetails() {
-        const foundSteps = [...this.state.steps.values()].filter((step2) => !step2.hasStepState).map((step2) => ({
-          id: step2.hashedId,
-          name: step2.name,
-          displayName: step2.displayName
+        const foundSteps = [...this.state.steps.values()].filter((step3) => !step3.hasStepState).map((step3) => ({
+          id: step3.hashedId,
+          name: step3.name,
+          displayName: step3.displayName
         })).sort((a2, b2) => a2.id.localeCompare(b2.id));
         return {
           foundSteps: foundSteps.slice(0, STEP_NOT_FOUND_MAX_FOUND_STEPS),
@@ -15344,8 +15344,8 @@ var init_v2 = __esm({
                 ...output?.ctx
               },
               fn: this.options.fn,
-              steps: prev.steps.map((step2, i2) => ({
-                ...step2,
+              steps: prev.steps.map((step3, i2) => ({
+                ...step3,
                 ...output?.steps?.[i2]
               })),
               reqArgs: prev.reqArgs
@@ -15690,9 +15690,9 @@ var init_v1 = __esm({
             };
           },
           "steps-found": async ({ steps }) => {
-            if (steps.length !== 1 || steps[0].mode !== StepMode.Sync) return this.checkpointAndSwitchToAsync(steps.map((step2) => ({
-              ...step2,
-              id: step2.hashedId
+            if (steps.length !== 1 || steps[0].mode !== StepMode.Sync) return this.checkpointAndSwitchToAsync(steps.map((step3) => ({
+              ...step3,
+              id: step3.hashedId
             })));
             const result = await this.executeStep(steps[0]);
             if (result.error) return this.checkpointAndSwitchToAsync([result]);
@@ -15732,12 +15732,12 @@ var init_v1 = __esm({
             if (stepResult) return stepRanHandler(stepResult);
             return maybeReturnNewSteps();
           },
-          "step-not-found": ({ step: step2, foundSteps, totalFoundSteps }) => {
+          "step-not-found": ({ step: step3, foundSteps, totalFoundSteps }) => {
             return {
               type: "step-not-found",
               ctx: this.fnArg,
               ops: this.ops,
-              step: step2,
+              step: step3,
               foundSteps,
               totalFoundSteps
             };
@@ -15773,9 +15773,9 @@ var init_v1 = __esm({
           },
           "step-not-found": asyncHandlers["step-not-found"],
           "steps-found": async ({ steps }) => {
-            const { stepsToResume, newSteps } = steps.reduce((acc, step2) => {
-              if (!step2.hasStepState) acc.newSteps.push(step2);
-              else if (!step2.fulfilled) acc.stepsToResume.push(step2);
+            const { stepsToResume, newSteps } = steps.reduce((acc, step3) => {
+              if (!step3.hasStepState) acc.newSteps.push(step3);
+              else if (!step3.fulfilled) acc.stepsToResume.push(step3);
               return acc;
             }, {
               stepsToResume: [],
@@ -15828,8 +15828,8 @@ var init_v1 = __esm({
       async tryExecuteStep(steps) {
         const hashedStepIdToRun = this.options.requestedRunStep || this.getEarlyExecRunStep(steps);
         if (!hashedStepIdToRun) return;
-        const step2 = steps.find((step$1) => step$1.hashedId === hashedStepIdToRun && step$1.fn);
-        if (step2) return await this.executeStep(step2);
+        const step3 = steps.find((step$1) => step$1.hashedId === hashedStepIdToRun && step$1.fn);
+        if (step3) return await this.executeStep(step3);
         this.timeout?.reset();
       }
       /**
@@ -15838,28 +15838,28 @@ var init_v1 = __esm({
       */
       getEarlyExecRunStep(steps) {
         if (this.options.disableImmediateExecution) return;
-        const unfulfilledSteps = steps.filter((step2) => !step2.fulfilled);
+        const unfulfilledSteps = steps.filter((step3) => !step3.fulfilled);
         if (unfulfilledSteps.length !== 1) return;
         const op = unfulfilledSteps[0];
         if (op && op.op === StepOpCode.StepPlanned) return op.hashedId;
       }
       async filterNewSteps(foundSteps) {
         if (this.options.requestedRunStep) return;
-        const newSteps = foundSteps.reduce((acc, step2) => {
-          if (!step2.hasStepState) acc.push(step2);
+        const newSteps = foundSteps.reduce((acc, step3) => {
+          if (!step3.hasStepState) acc.push(step3);
           return acc;
         }, []);
         if (!newSteps.length) return;
         await this.state.hooks?.afterMemoization?.();
         await this.state.hooks?.beforeExecution?.();
         await this.state.hooks?.afterExecution?.();
-        const stepList = newSteps.map((step2) => ({
-          displayName: step2.displayName,
-          op: step2.op,
-          id: step2.hashedId,
-          name: step2.name,
-          opts: step2.opts,
-          userland: step2.userland
+        const stepList = newSteps.map((step3) => ({
+          displayName: step3.displayName,
+          op: step3.op,
+          id: step3.hashedId,
+          name: step3.name,
+          opts: step3.opts,
+          userland: step3.userland
         }));
         return await this.transformNewSteps(stepList);
       }
@@ -15868,8 +15868,8 @@ var init_v1 = __esm({
       * an Inngest Server.
       */
       async transformNewSteps(steps) {
-        return Promise.all(steps.map(async (step2) => {
-          if (step2.op !== StepOpCode.InvokeFunction) return step2;
+        return Promise.all(steps.map(async (step3) => {
+          if (step3.op !== StepOpCode.InvokeFunction) return step3;
           const transformedPayload = await (await getHookStack(this.options.fn["middleware"], "onSendEvent", void 0, {
             transformInput: (prev, output) => {
               return {
@@ -15884,16 +15884,16 @@ var init_v1 = __esm({
               } };
             }
           })).transformInput?.({ payloads: [{
-            ...step2.opts?.payload ?? {},
+            ...step3.opts?.payload ?? {},
             name: internalEvents.FunctionInvoked
           }] });
           const newPayload = invokePayloadSchema.parse(transformedPayload?.payloads?.[0] ?? {});
           return {
-            ...step2,
+            ...step3,
             opts: {
-              ...step2.opts,
+              ...step3.opts,
               payload: {
-                ...step2.opts?.payload ?? {},
+                ...step3.opts?.payload ?? {},
                 ...newPayload
               }
             }
@@ -15998,19 +15998,19 @@ var init_v1 = __esm({
           reqArgs: this.options.reqArgs
         });
         if (inputMutations?.ctx) this.fnArg = inputMutations.ctx;
-        if (inputMutations?.steps) this.state.stepState = Object.fromEntries(inputMutations.steps.map((step2) => [step2.id, step2]));
+        if (inputMutations?.steps) this.state.stepState = Object.fromEntries(inputMutations.steps.map((step3) => [step3.id, step3]));
       }
       /**
       * Using middleware, transform output before returning.
       */
       async transformOutput(dataOrError) {
         const output = { ...dataOrError };
-        const step2 = this.state.executingStep;
+        const step3 = this.state.executingStep;
         delete this.state.executingStep;
-        const isStepExecution = Boolean(step2);
+        const isStepExecution = Boolean(step3);
         const transformedOutput = await this.state.hooks?.transformOutput?.({
           result: { ...output },
-          step: step2
+          step: step3
         });
         const { data, error } = {
           ...output,
@@ -16079,10 +16079,10 @@ var init_v1 = __esm({
         return Object.fromEntries(this.state.steps);
       }
       createFnArg() {
-        const step2 = this.createStepTools();
+        const step3 = this.createStepTools();
         let fnArg = {
           ...this.options.data,
-          step: step2
+          step: step3
         };
         if (this.options.isFailureHandler) {
           const eventData = external_exports.object({ error: jsonErrorSchema }).parse(fnArg.event?.data);
@@ -16148,9 +16148,9 @@ var init_v1 = __esm({
             });
           });
         };
-        const pushStepToReport = (step2) => {
-          foundStepsToReport.set(step2.hashedId, step2);
-          unhandledFoundStepsToReport.set(step2.hashedId, step2);
+        const pushStepToReport = (step3) => {
+          foundStepsToReport.set(step3.hashedId, step3);
+          unhandledFoundStepsToReport.set(step3.hashedId, step3);
           reportNextTick();
         };
         const stepHandler = async ({ args, matchOp, opts }) => {
@@ -16203,7 +16203,7 @@ var init_v1 = __esm({
               } };
               break;
           }
-          const step2 = {
+          const step3 = {
             ...opId,
             opts: {
               ...opId.opts,
@@ -16219,11 +16219,11 @@ var init_v1 = __esm({
             displayName: opId.displayName ?? opId.id,
             handled: false,
             handle: () => {
-              if (step2.handled) return false;
+              if (step3.handled) return false;
               this.debug(`handling step "${hashedId}"`);
-              step2.handled = true;
+              step3.handled = true;
               const result = this.state.stepState[hashedId];
-              if (step2.fulfilled && result) {
+              if (step3.fulfilled && result) {
                 result.fulfilled = true;
                 Promise.all([
                   result.data,
@@ -16240,9 +16240,9 @@ var init_v1 = __esm({
               return true;
             }
           };
-          this.state.steps.set(hashedId, step2);
+          this.state.steps.set(hashedId, step3);
           this.state.hasSteps = true;
-          pushStepToReport(step2);
+          pushStepToReport(step3);
           if (!beforeExecHooksPromise && this.state.allStateUsed()) await (beforeExecHooksPromise = (async () => {
             await this.state.hooks?.afterMemoization?.();
             await this.state.hooks?.beforeExecution?.();
@@ -16292,10 +16292,10 @@ var init_v1 = __esm({
         });
       }
       getStepNotFoundDetails() {
-        const foundSteps = [...this.state.steps.values()].filter((step2) => !step2.hasStepState).map((step2) => ({
-          id: step2.hashedId,
-          name: step2.name,
-          displayName: step2.displayName
+        const foundSteps = [...this.state.steps.values()].filter((step3) => !step3.hasStepState).map((step3) => ({
+          id: step3.hashedId,
+          name: step3.name,
+          displayName: step3.displayName
         })).sort((a2, b2) => a2.id.localeCompare(b2.id));
         return {
           foundSteps: foundSteps.slice(0, STEP_NOT_FOUND_MAX_FOUND_STEPS2),
@@ -16342,8 +16342,8 @@ var init_v1 = __esm({
                 ...output?.ctx
               },
               fn: this.options.fn,
-              steps: prev.steps.map((step2, i2) => ({
-                ...step2,
+              steps: prev.steps.map((step3, i2) => ({
+                ...step3,
                 ...output?.steps?.[i2]
               })),
               reqArgs: prev.reqArgs
@@ -17532,8 +17532,8 @@ var init_InngestCommHandler = __esm({
               "step-not-found": (result$1) => {
                 let error = `Could not find step "${result$1.step.displayName || result$1.step.id}" to run; timed out.`;
                 if (result$1.foundSteps.length > 0) {
-                  const foundStepsSummary = result$1.foundSteps.map((step2) => {
-                    return `${step2.displayName || step2.id} (${step2.id})`;
+                  const foundStepsSummary = result$1.foundSteps.map((step3) => {
+                    return `${step3.displayName || step3.id} (${step3.id})`;
                   }).join("\n");
                   error = `${error} Found new steps: 
 ${foundStepsSummary}.`;
@@ -17555,7 +17555,7 @@ ${foundStepsSummary}.`;
                 };
               },
               "step-ran": (result$1) => {
-                const step2 = opDataUndefinedToNull(result$1.step);
+                const step3 = opDataUndefinedToNull(result$1.step);
                 return {
                   status: 206,
                   headers: {
@@ -17565,7 +17565,7 @@ ${foundStepsSummary}.`;
                       ...typeof result$1.retriable === "string" ? { [headerKeys.RetryAfter]: result$1.retriable } : {}
                     } : {}
                   },
-                  body: stringify$1([step2]),
+                  body: stringify$1([step3]),
                   version: version$1
                 };
               },
@@ -19562,22 +19562,22 @@ function __awaiter(thisArg, _arguments, P3, generator) {
   return new (P3 || (P3 = Promise))(function(resolve2, reject) {
     function fulfilled(value) {
       try {
-        step2(generator.next(value));
+        step3(generator.next(value));
       } catch (e2) {
         reject(e2);
       }
     }
     function rejected(value) {
       try {
-        step2(generator["throw"](value));
+        step3(generator["throw"](value));
       } catch (e2) {
         reject(e2);
       }
     }
-    function step2(result) {
+    function step3(result) {
       result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
     }
-    step2((generator = generator.apply(thisArg, _arguments || [])).next());
+    step3((generator = generator.apply(thisArg, _arguments || [])).next());
   });
 }
 var init_tslib_es6 = __esm({
@@ -40059,22 +40059,22 @@ function __awaiter2(thisArg, _arguments, P3, generator) {
   return new (P3 || (P3 = Promise))(function(resolve2, reject) {
     function fulfilled(value) {
       try {
-        step2(generator.next(value));
+        step3(generator.next(value));
       } catch (e2) {
         reject(e2);
       }
     }
     function rejected(value) {
       try {
-        step2(generator["throw"](value));
+        step3(generator["throw"](value));
       } catch (e2) {
         reject(e2);
       }
     }
-    function step2(result) {
+    function step3(result) {
       result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
     }
-    step2((generator = generator.apply(thisArg, _arguments || [])).next());
+    step3((generator = generator.apply(thisArg, _arguments || [])).next());
   });
 }
 function loadOtel() {
@@ -41359,20 +41359,20 @@ function is_non_nullish_primitive(v2) {
 function inner_stringify(object, prefix, generateArrayPrefix, commaRoundTrip, allowEmptyArrays, strictNullHandling, skipNulls, encodeDotInKeys, encoder, filter, sort, allowDots, serializeDate, format, formatter, encodeValuesOnly, charset, sideChannel) {
   let obj = object;
   let tmp_sc = sideChannel;
-  let step2 = 0;
+  let step3 = 0;
   let find_flag = false;
   while ((tmp_sc = tmp_sc.get(sentinel)) !== void 0 && !find_flag) {
     const pos = tmp_sc.get(object);
-    step2 += 1;
+    step3 += 1;
     if (typeof pos !== "undefined") {
-      if (pos === step2) {
+      if (pos === step3) {
         throw new RangeError("Cyclic object value");
       } else {
         find_flag = true;
       }
     }
     if (typeof tmp_sc.get(sentinel) === "undefined") {
-      step2 = 0;
+      step3 = 0;
     }
   }
   if (typeof filter === "function") {
@@ -41438,7 +41438,7 @@ function inner_stringify(object, prefix, generateArrayPrefix, commaRoundTrip, al
     }
     const encoded_key = allowDots && encodeDotInKeys ? key.replace(/\./g, "%2E") : key;
     const key_prefix = is_array2(obj) ? typeof generateArrayPrefix === "function" ? generateArrayPrefix(adjusted_prefix, encoded_key) : adjusted_prefix : adjusted_prefix + (allowDots ? "." + encoded_key : "[" + encoded_key + "]");
-    sideChannel.set(object, step2);
+    sideChannel.set(object, step3);
     const valueSideChannel = /* @__PURE__ */ new WeakMap();
     valueSideChannel.set(sentinel, sideChannel);
     push_to_array(values, inner_stringify(
@@ -57711,6 +57711,22 @@ init_sovereign_search();
 
 // src/lib/agent-logger.ts
 init_client();
+function step2(label, extra) {
+  return { label, status: extra?.status ?? "ok", at: (/* @__PURE__ */ new Date()).toISOString(), detail: extra?.detail, sources: extra?.sources };
+}
+function normalizeStep(raw2) {
+  if (raw2 && typeof raw2 === "object" && typeof raw2.label === "string") {
+    const s2 = raw2;
+    return { label: s2.label, status: s2.status ?? "ok", at: typeof s2.at === "string" ? s2.at : "", detail: s2.detail, sources: Array.isArray(s2.sources) ? s2.sources : void 0 };
+  }
+  if (typeof raw2 === "string") return { label: raw2, status: "info", at: "" };
+  if (raw2 && typeof raw2 === "object") {
+    const obj = raw2;
+    const label = Object.entries(obj).filter(([, v2]) => v2 != null && typeof v2 !== "object").map(([k2, v2]) => `${k2.replace(/_/g, " ")}: ${v2}`).join(" \xB7 ") || "step";
+    return { label, status: "info", at: "", detail: void 0 };
+  }
+  return { label: "step", status: "info", at: "" };
+}
 async function startJob(init2) {
   const { data } = await supabase.from("agent_jobs").insert({ ...init2, status: "running", started_at: (/* @__PURE__ */ new Date()).toISOString() }).select("id").single();
   return data?.id ?? "";
@@ -57721,10 +57737,11 @@ async function completeJob(id, output, steps = []) {
 async function failJob(id, error) {
   await supabase.from("agent_jobs").update({ status: "failed", error, completed_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", id);
 }
-async function logStep(id, step2) {
+async function logStep(id, rawStep) {
+  const stepToStore = rawStep && typeof rawStep === "object" && typeof rawStep.label === "string" ? { ...rawStep, at: rawStep.at ?? (/* @__PURE__ */ new Date()).toISOString() } : rawStep;
   const { data } = await supabase.from("agent_jobs").select("steps").eq("id", id).single();
   const steps = Array.isArray(data?.steps) ? data.steps : [];
-  await supabase.from("agent_jobs").update({ steps: [...steps, step2] }).eq("id", id);
+  await supabase.from("agent_jobs").update({ steps: [...steps, stepToStore] }).eq("id", id);
 }
 
 // src/jobs/enrich-record.ts
@@ -58150,7 +58167,12 @@ async function runRelationshipHealth(workspaceId) {
         throw new Error(`relationship_health wrote 0/${updates.length} rows \u2014 ${firstError || "unknown write error"}`);
       }
       totalScored += written;
-      await completeJob(jobId, { scored: written, attempted: updates.length, write_errors: updates.length - written, summary: `Scored ${written}/${updates.length} relationship(s)` }, []);
+      const relSteps = [
+        step2(`Loaded ${nodes.length} records, ${contacts.length} relationship contact(s)`),
+        step2(`Tallied signals: ${acts?.length ?? 0} recent activities, ${openDealsByContact.size} contacts with open deals`),
+        step2(`Wrote ${written}/${updates.length} relationship-health score(s)`, { status: written ? "ok" : "warn" })
+      ];
+      await completeJob(jobId, { scored: written, attempted: updates.length, write_errors: updates.length - written, summary: `Scored ${written}/${updates.length} relationship(s)` }, relSteps);
     } catch (err2) {
       await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
     }
@@ -58648,9 +58670,9 @@ init_ai_gateway();
 var creditNoteDisputeHandler = inngest.createFunction(
   { id: "credit-note-dispute", name: "Provision credit note from dispute email" },
   { event: "finance/dispute.email.received" },
-  async ({ event, step: step2 }) => {
+  async ({ event, step: step3 }) => {
     const { workspaceId, clientName, disputeBody, invoiceId, suggestedAmountCents, currency } = event.data;
-    const aiResult = await step2.run("classify-dispute", async () => {
+    const aiResult = await step3.run("classify-dispute", async () => {
       if (!process.env.AI_GATEWAY_BASE_URL || !process.env.AI_GATEWAY_API_KEY) {
         return { amount_cents: suggestedAmountCents ?? 0, reason: "billing_error", summary: disputeBody.slice(0, 200) };
       }
@@ -58673,7 +58695,7 @@ Reply ONLY with valid JSON: {"reason":"...","amount_cents":0,"summary":"..."}`,
         return { amount_cents: suggestedAmountCents ?? 0, reason: "billing_error", summary: disputeBody.slice(0, 200) };
       }
     });
-    const node = await step2.run("create-credit-note-node", async () => {
+    const node = await step3.run("create-credit-note-node", async () => {
       const validReasons = ["refund", "billing_error", "goodwill", "contract_discount"];
       const reason = validReasons.includes(aiResult.reason) ? aiResult.reason : "billing_error";
       const { data, error } = await supabase.from("nodes").insert({
@@ -58698,7 +58720,7 @@ ${disputeBody.slice(0, 500)}`,
       return data;
     });
     if (invoiceId) {
-      await step2.run("link-to-invoice", async () => {
+      await step3.run("link-to-invoice", async () => {
         await supabase.from("edges").upsert({
           workspace_id: workspaceId,
           from_node_id: node.id,
@@ -58708,7 +58730,7 @@ ${disputeBody.slice(0, 500)}`,
       });
     }
     const amount = ((aiResult.amount_cents || 0) / 100).toLocaleString("en-GB", { style: "currency", currency: currency ?? "GBP" });
-    await step2.run("notify-admins", async () => {
+    await step3.run("notify-admins", async () => {
       const { data: admins } = await supabase.from("workspace_members").select("user_id").eq("workspace_id", workspaceId).in("role", ["admin", "owner"]);
       if (!admins?.length) return;
       await supabase.from("notifications").insert(
@@ -58722,7 +58744,7 @@ ${disputeBody.slice(0, 500)}`,
         }))
       );
     });
-    await step2.run("queue-decision", async () => {
+    await step3.run("queue-decision", async () => {
       await supabase.from("decision_queue").insert({
         workspace_id: workspaceId,
         source_type: "credit_note",
@@ -59343,6 +59365,11 @@ async function runOpportunityScan(workspaceId) {
     }
     const leads = nodes.filter((n2) => matches(n2.object_type, ["lead", "contact", "people", "person", "compan"]));
     const opportunities = leads.filter((l2) => !linked.has(l2.id));
+    const steps = [
+      step2(`Loaded ${nodes.length} workspace records`),
+      step2(`Found ${deals.length} deals with ${linked.size} linked records`),
+      step2(`${opportunities.length} lead/contact record(s) have no active deal`, { status: opportunities.length ? "warn" : "ok" })
+    ];
     let queued = 0;
     for (const lead of opportunities.sort((a2, b2) => daysSince(a2.updated_at) - daysSince(b2.updated_at)).slice(0, 3)) {
       const ok2 = await queueDecision(
@@ -59357,10 +59384,11 @@ async function runOpportunityScan(workspaceId) {
       );
       if (ok2) queued++;
     }
+    steps.push(step2(`Queued ${queued} opportunity decision(s) for review`, { status: queued ? "ok" : "info" }));
     if (opportunities.length > 0) {
       await notify(workspaceId, "\u2726 Opportunity Agent", `${opportunities.length} record(s) with no active deal \u2014 potential conversions.`, { opportunities: opportunities.length });
     }
-    await completeJob(jobId, { opportunities: opportunities.length, queued, summary: `${opportunities.length} conversion opportunity(ies), ${queued} queued` }, []);
+    await completeJob(jobId, { opportunities: opportunities.length, queued, summary: `${opportunities.length} conversion opportunity(ies), ${queued} queued` }, steps);
     return { opportunities: opportunities.length, queued };
   } catch (err2) {
     await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
@@ -59378,6 +59406,10 @@ async function runPeopleScan(workspaceId) {
       const hasRole = d2.role || d2.title || d2.job_title || d2.position;
       return !hasEmail || !hasRole;
     });
+    const steps = [
+      step2(`Loaded ${people.length} people record(s)`),
+      step2(`${incomplete.length} missing email or role/title`, { status: incomplete.length ? "warn" : "ok" })
+    ];
     let queued = 0;
     for (const p2 of incomplete.slice(0, 3)) {
       const missing = [!(p2.data.email || p2.data.Email) ? "email" : null, !(p2.data.role || p2.data.title || p2.data.job_title) ? "role/title" : null].filter(Boolean).join(" and ");
@@ -59393,10 +59425,11 @@ async function runPeopleScan(workspaceId) {
       );
       if (ok2) queued++;
     }
+    steps.push(step2(`Queued ${queued} completion decision(s)`, { status: queued ? "ok" : "info" }));
     if (incomplete.length > 0) {
       await notify(workspaceId, "\u2726 People Agent", `${incomplete.length} of ${people.length} people record(s) missing email or role.`, { incomplete: incomplete.length, total: people.length });
     }
-    await completeJob(jobId, { people: people.length, incomplete: incomplete.length, queued, summary: `${incomplete.length}/${people.length} people need completion` }, []);
+    await completeJob(jobId, { people: people.length, incomplete: incomplete.length, queued, summary: `${incomplete.length}/${people.length} people need completion` }, steps);
     return { people: people.length, incomplete: incomplete.length, queued };
   } catch (err2) {
     await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
@@ -59413,6 +59446,10 @@ async function runPortfolioScan(workspaceId) {
       const hasValue = d2.value ?? d2.valuation ?? d2.amount ?? d2.current_value;
       return !hasValue || daysSince(h2.updated_at) > 90;
     });
+    const steps = [
+      step2(`Loaded ${holdings.length} holding(s)`),
+      step2(`${needsReview.length} missing a valuation or stale (90+ days)`, { status: needsReview.length ? "warn" : "ok" })
+    ];
     let queued = 0;
     for (const h2 of needsReview.slice(0, 3)) {
       const stale = daysSince(h2.updated_at) > 90;
@@ -59428,10 +59465,11 @@ async function runPortfolioScan(workspaceId) {
       );
       if (ok2) queued++;
     }
+    steps.push(step2(`Queued ${queued} valuation decision(s)`, { status: queued ? "ok" : "info" }));
     if (holdings.length > 0) {
       await notify(workspaceId, "\u2726 Portfolio Agent", `${needsReview.length} of ${holdings.length} holding(s) need a valuation update.`, { needs_review: needsReview.length, total: holdings.length });
     }
-    await completeJob(jobId, { holdings: holdings.length, needs_review: needsReview.length, queued, summary: `${needsReview.length}/${holdings.length} holdings need review` }, []);
+    await completeJob(jobId, { holdings: holdings.length, needs_review: needsReview.length, queued, summary: `${needsReview.length}/${holdings.length} holdings need review` }, steps);
     return { holdings: holdings.length, needs_review: needsReview.length, queued };
   } catch (err2) {
     await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
@@ -59449,6 +59487,10 @@ async function runAssetScan(workspaceId) {
       const renewalSoon = renewal && daysSince(String(renewal)) > -30 && daysSince(String(renewal)) < Infinity && new Date(String(renewal)).getTime() - Date.now() < 30 * DAY;
       return renewalSoon || daysSince(a2.updated_at) > 180;
     });
+    const steps = [
+      step2(`Loaded ${assets.length} asset record(s)`),
+      step2(`${flagged.length} flagged (upcoming renewal/service or 180+ days stale)`, { status: flagged.length ? "warn" : "ok" })
+    ];
     let queued = 0;
     for (const a2 of flagged.slice(0, 3)) {
       const ok2 = await queueDecision(
@@ -59463,10 +59505,11 @@ async function runAssetScan(workspaceId) {
       );
       if (ok2) queued++;
     }
+    steps.push(step2(`Queued ${queued} attention decision(s)`, { status: queued ? "ok" : "info" }));
     if (assets.length > 0) {
       await notify(workspaceId, "\u2726 Asset Agent", `${flagged.length} of ${assets.length} asset(s) need attention.`, { flagged: flagged.length, total: assets.length });
     }
-    await completeJob(jobId, { assets: assets.length, flagged, queued, summary: assets.length === 0 ? "No asset records in this workspace" : `${flagged.length}/${assets.length} assets flagged` }, []);
+    await completeJob(jobId, { assets: assets.length, flagged, queued, summary: assets.length === 0 ? "No asset records in this workspace" : `${flagged.length}/${assets.length} assets flagged` }, steps);
     return { assets: assets.length, flagged: flagged.length, queued };
   } catch (err2) {
     await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
@@ -62630,6 +62673,8 @@ router8.get("/activity", async (c2) => {
       const nums = Object.entries(out).filter(([, v2]) => typeof v2 === "number" && v2 !== 0);
       summary = nums.length ? nums.map(([k2, v2]) => `${v2} ${k2.replace(/_/g, " ")}`).join(", ") : "ran \u2014 no changes needed";
     }
+    const steps = (Array.isArray(j2.steps) ? j2.steps : []).map(normalizeStep);
+    const duration_ms = j2.started_at && j2.completed_at ? Math.max(0, new Date(j2.completed_at).getTime() - new Date(j2.started_at).getTime()) : null;
     return {
       id: j2.id,
       agent: j2.agent_name,
@@ -62638,8 +62683,9 @@ router8.get("/activity", async (c2) => {
       summary,
       detail: out,
       // full structured output for the expanded view
-      steps: Array.isArray(j2.steps) ? j2.steps : [],
-      // real execution track (logStep entries)
+      steps,
+      // canonical AgentStep[] — real execution track
+      duration_ms,
       error: j2.error ?? null,
       started_at: j2.started_at,
       completed_at: j2.completed_at
@@ -65750,17 +65796,17 @@ router24.post("/:id/steps", zValidator("json", stepSchema.omit({ id: true })), a
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
-  const step2 = { id: crypto.randomUUID(), ...c2.req.valid("json") };
-  const result = await saveData(c2.get("workspaceId"), node.id, { ...current, steps: [...current.steps ?? [], step2] });
-  return result.error ? c2.json({ error: result.error.message }, 400) : c2.json(step2, 201);
+  const step3 = { id: crypto.randomUUID(), ...c2.req.valid("json") };
+  const result = await saveData(c2.get("workspaceId"), node.id, { ...current, steps: [...current.steps ?? [], step3] });
+  return result.error ? c2.json({ error: result.error.message }, 400) : c2.json(step3, 201);
 });
 router24.patch("/:id/steps/:sid", zValidator("json", stepSchema.partial()), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
-  const steps = (current.steps ?? []).map((step2) => step2.id === c2.req.param("sid") ? { ...step2, ...c2.req.valid("json") } : step2);
+  const steps = (current.steps ?? []).map((step3) => step3.id === c2.req.param("sid") ? { ...step3, ...c2.req.valid("json") } : step3);
   const result = await saveData(c2.get("workspaceId"), node.id, { ...current, steps });
-  return result.error ? c2.json({ error: result.error.message }, 400) : c2.json(steps.find((step2) => step2.id === c2.req.param("sid")));
+  return result.error ? c2.json({ error: result.error.message }, 400) : c2.json(steps.find((step3) => step3.id === c2.req.param("sid")));
 });
 router24.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "automation").eq("id", c2.req.param("id"));
@@ -65770,7 +65816,7 @@ router24.delete("/:id/steps/:sid", async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
-  const steps = (current.steps ?? []).filter((step2) => step2.id !== c2.req.param("sid")).map((step2, index) => ({ ...step2, position: index + 1 }));
+  const steps = (current.steps ?? []).filter((step3) => step3.id !== c2.req.param("sid")).map((step3, index) => ({ ...step3, position: index + 1 }));
   const result = await saveData(c2.get("workspaceId"), node.id, { ...current, steps });
   return result.error ? c2.json({ error: result.error.message }, 400) : c2.json({ ok: true });
 });

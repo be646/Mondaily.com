@@ -1,5 +1,5 @@
 import { supabase } from "@mondaily/db/client";
-import { startJob, completeJob, failJob, logStep } from "../lib/agent-logger";
+import { startJob, completeJob, failJob, logStep, step } from "../lib/agent-logger";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignWebContext } from "../lib/sovereign-search";
 import { createNotification } from "../lib/notify";
@@ -223,7 +223,12 @@ export async function runRelationshipHealth(workspaceId?: string): Promise<{ tot
         throw new Error(`relationship_health wrote 0/${updates.length} rows — ${firstError || "unknown write error"}`);
       }
       totalScored += written;
-      await completeJob(jobId, { scored: written, attempted: updates.length, write_errors: updates.length - written, summary: `Scored ${written}/${updates.length} relationship(s)` }, []);
+      const relSteps = [
+        step(`Loaded ${nodes.length} records, ${contacts.length} relationship contact(s)`),
+        step(`Tallied signals: ${acts?.length ?? 0} recent activities, ${openDealsByContact.size} contacts with open deals`),
+        step(`Wrote ${written}/${updates.length} relationship-health score(s)`, { status: written ? "ok" : "warn" }),
+      ];
+      await completeJob(jobId, { scored: written, attempted: updates.length, write_errors: updates.length - written, summary: `Scored ${written}/${updates.length} relationship(s)` }, relSteps);
     } catch (err: unknown) {
       await failJob(jobId, err instanceof Error ? err.message : String(err));
     }

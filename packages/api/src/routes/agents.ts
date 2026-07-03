@@ -7,6 +7,7 @@ import {
 } from "../jobs/runners";
 import { runWorkflowsForWorkspace } from "../jobs/workflow-engine";
 import { runOpportunityScan, runPeopleScan, runPortfolioScan, runAssetScan } from "../jobs/vertical-agents";
+import { normalizeStep } from "../lib/agent-logger";
 import { inngest } from "../lib/inngest";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
@@ -450,6 +451,13 @@ router.get("/activity", async (c) => {
       const nums = Object.entries(out).filter(([, v]) => typeof v === "number" && (v as number) !== 0);
       summary = nums.length ? nums.map(([k, v]) => `${v} ${k.replace(/_/g, " ")}`).join(", ") : "ran — no changes needed";
     }
+    // Normalize every step to the canonical AgentStep shape so the timeline renders consistently
+    // whether the agent logged structured steps or legacy freeform objects/strings.
+    const steps = (Array.isArray(j.steps) ? j.steps : []).map(normalizeStep);
+    // Real wall-clock duration for the run (ms) — powers "took 1.2s" in the timeline.
+    const duration_ms = j.started_at && j.completed_at
+      ? Math.max(0, new Date(j.completed_at).getTime() - new Date(j.started_at).getTime())
+      : null;
     return {
       id: j.id,
       agent: j.agent_name,
@@ -457,7 +465,8 @@ router.get("/activity", async (c) => {
       status: j.status,
       summary,
       detail: out,                 // full structured output for the expanded view
-      steps: Array.isArray(j.steps) ? j.steps : [],  // real execution track (logStep entries)
+      steps,                       // canonical AgentStep[] — real execution track
+      duration_ms,
       error: j.error ?? null,
       started_at: j.started_at,
       completed_at: j.completed_at,

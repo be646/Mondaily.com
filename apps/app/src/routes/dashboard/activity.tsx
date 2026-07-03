@@ -20,11 +20,25 @@ import { useDecisionQueue } from "../../components/ai/decision-queue";
 // Agent ids with an on-demand runner (POST /agents/:id/run) — mirrors the backend AGENT_RUNNERS.
 const RUNNABLE = new Set(["relationship", "operations", "finance", "graph-enrichment", "workflow", "opportunity", "people", "portfolio", "asset"]);
 
+// Canonical proof-of-work step (matches the API's normalizeStep output).
+type Step = {
+  label: string;
+  status?: "ok" | "warn" | "error" | "info";
+  at?: string;
+  detail?: string;
+  sources?: { title: string; url?: string; node_id?: string }[];
+};
 type ActivityItem = {
   id: string; agent: string; trigger: string; status: string; summary: string;
-  detail: Record<string, unknown>; steps: unknown[]; error: string | null;
+  detail: Record<string, unknown>; steps: Step[]; error: string | null;
+  duration_ms?: number | null;
   started_at: string; completed_at: string | null;
 };
+
+// Per-step status dot tone — mirrors the run tones (green ok, amber warn, rose error, muted info).
+function stepTone(status?: string): string {
+  return status === "ok" ? "#10b981" : status === "warn" ? "#d97706" : status === "error" ? "#e11d48" : "var(--text-muted)";
+}
 
 const agentOf = (raw: string) => { const a = agentByRaw(raw); return { label: a.name, Icon: a.Icon }; };
 
@@ -317,18 +331,34 @@ export function AgentActivityPage() {
                           <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
                             Execution{steps.length > 0 ? ` · ${steps.length} steps` : ""}
                           </div>
-                          <div className="space-y-1">
+                          <div className="space-y-1.5">
                             {steps.length > 0 ? (
-                              steps.map((s, si) => {
-                                const obj = (s && typeof s === "object") ? s as Record<string, unknown> : { value: s };
-                                const stepLabel = String(obj.label ?? obj.step ?? obj.name ?? obj.message ?? Object.entries(obj).map(([k, v]) => `${k}=${typeof v === "object" ? JSON.stringify(v) : v}`).join(" ") ?? `step ${si + 1}`);
-                                return (
-                                  <div key={si} className="flex items-center gap-2 text-[11.5px]">
-                                    <span className="tabular-nums" style={{ color: "var(--text-faint)" }}>[{si + 1}/{steps.length}]</span>
-                                    <span style={{ color: "var(--text-secondary)" }}>{stepLabel}</span>
+                              steps.map((s, si) => (
+                                <div key={si} className="flex items-start gap-2 text-[11.5px]">
+                                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: stepTone(s.status) }} />
+                                  <span className="shrink-0 tabular-nums" style={{ color: "var(--text-faint)" }}>{si + 1}.</span>
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-x-2">
+                                      <span style={{ color: "var(--text-secondary)" }}>{s.label}</span>
+                                      {s.at && <span className="tabular-nums text-[10px]" style={{ color: "var(--text-faint)" }}>{clockTime(s.at)}</span>}
+                                    </div>
+                                    {s.detail && <div className="text-[10.5px]" style={{ color: "var(--text-muted)" }}>{s.detail}</div>}
+                                    {Array.isArray(s.sources) && s.sources.length > 0 && (
+                                      <div className="mt-0.5 flex flex-wrap gap-1">
+                                        {s.sources.map((src, xi) => src.url ? (
+                                          <a key={xi} href={src.url} target="_blank" rel="noreferrer"
+                                            className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] hover:underline"
+                                            style={{ background: "var(--surface-hover)", color: "var(--section-accent)" }}>
+                                            {src.title}<ArrowUpRight size={9} />
+                                          </a>
+                                        ) : (
+                                          <span key={xi} className="rounded-full px-1.5 py-px text-[10px]" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>{src.title}</span>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
-                                );
-                              })
+                                </div>
+                              ))
                             ) : (
                               <div className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>
                                 {a.status === "running" ? "Executing…" : a.status === "failed" ? "Queued → executing → failed" : "Queued → executing → saved"}

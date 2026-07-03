@@ -1,5 +1,5 @@
 import { supabase } from "@mondaily/db/client";
-import { startJob, completeJob, failJob } from "../lib/agent-logger";
+import { startJob, completeJob, failJob, step } from "../lib/agent-logger";
 import { createNotification } from "../lib/notify";
 
 /**
@@ -71,6 +71,12 @@ export async function runOpportunityScan(workspaceId: string) {
     const leads = nodes.filter((n) => matches(n.object_type, ["lead", "contact", "people", "person", "compan"]));
     const opportunities = leads.filter((l) => !linked.has(l.id));
 
+    const steps = [
+      step(`Loaded ${nodes.length} workspace records`),
+      step(`Found ${deals.length} deals with ${linked.size} linked records`),
+      step(`${opportunities.length} lead/contact record(s) have no active deal`, { status: opportunities.length ? "warn" : "ok" }),
+    ];
+
     let queued = 0;
     // Queue the top few most-recently-active uncovered leads as real opportunities.
     for (const lead of opportunities.sort((a, b) => daysSince(a.updated_at) - daysSince(b.updated_at)).slice(0, 3)) {
@@ -80,10 +86,11 @@ export async function runOpportunityScan(workspaceId: string) {
         "Create a deal/opportunity for this record, or mark as not a fit", "low", recName(lead.data));
       if (ok) queued++;
     }
+    steps.push(step(`Queued ${queued} opportunity decision(s) for review`, { status: queued ? "ok" : "info" }));
     if (opportunities.length > 0) {
       await notify(workspaceId, "✦ Opportunity Agent", `${opportunities.length} record(s) with no active deal — potential conversions.`, { opportunities: opportunities.length });
     }
-    await completeJob(jobId, { opportunities: opportunities.length, queued, summary: `${opportunities.length} conversion opportunity(ies), ${queued} queued` }, []);
+    await completeJob(jobId, { opportunities: opportunities.length, queued, summary: `${opportunities.length} conversion opportunity(ies), ${queued} queued` }, steps);
     return { opportunities: opportunities.length, queued };
   } catch (err: unknown) { await failJob(jobId, err instanceof Error ? err.message : String(err)); throw err; }
 }
@@ -100,6 +107,10 @@ export async function runPeopleScan(workspaceId: string) {
       const hasRole = d.role || d.title || d.job_title || d.position;
       return !hasEmail || !hasRole;
     });
+    const steps = [
+      step(`Loaded ${people.length} people record(s)`),
+      step(`${incomplete.length} missing email or role/title`, { status: incomplete.length ? "warn" : "ok" }),
+    ];
     let queued = 0;
     for (const p of incomplete.slice(0, 3)) {
       const missing = [!(p.data.email || p.data.Email) ? "email" : null, !(p.data.role || p.data.title || p.data.job_title) ? "role/title" : null].filter(Boolean).join(" and ");
@@ -109,10 +120,11 @@ export async function runPeopleScan(workspaceId: string) {
         "Complete the missing fields or enrich the record", "low", recName(p.data));
       if (ok) queued++;
     }
+    steps.push(step(`Queued ${queued} completion decision(s)`, { status: queued ? "ok" : "info" }));
     if (incomplete.length > 0) {
       await notify(workspaceId, "✦ People Agent", `${incomplete.length} of ${people.length} people record(s) missing email or role.`, { incomplete: incomplete.length, total: people.length });
     }
-    await completeJob(jobId, { people: people.length, incomplete: incomplete.length, queued, summary: `${incomplete.length}/${people.length} people need completion` }, []);
+    await completeJob(jobId, { people: people.length, incomplete: incomplete.length, queued, summary: `${incomplete.length}/${people.length} people need completion` }, steps);
     return { people: people.length, incomplete: incomplete.length, queued };
   } catch (err: unknown) { await failJob(jobId, err instanceof Error ? err.message : String(err)); throw err; }
 }
@@ -128,6 +140,10 @@ export async function runPortfolioScan(workspaceId: string) {
       const hasValue = d.value ?? d.valuation ?? d.amount ?? d.current_value;
       return !hasValue || daysSince(h.updated_at) > 90;
     });
+    const steps = [
+      step(`Loaded ${holdings.length} holding(s)`),
+      step(`${needsReview.length} missing a valuation or stale (90+ days)`, { status: needsReview.length ? "warn" : "ok" }),
+    ];
     let queued = 0;
     for (const h of needsReview.slice(0, 3)) {
       const stale = daysSince(h.updated_at) > 90;
@@ -137,10 +153,11 @@ export async function runPortfolioScan(workspaceId: string) {
         "Update the valuation or latest figures", "low", recName(h.data));
       if (ok) queued++;
     }
+    steps.push(step(`Queued ${queued} valuation decision(s)`, { status: queued ? "ok" : "info" }));
     if (holdings.length > 0) {
       await notify(workspaceId, "✦ Portfolio Agent", `${needsReview.length} of ${holdings.length} holding(s) need a valuation update.`, { needs_review: needsReview.length, total: holdings.length });
     }
-    await completeJob(jobId, { holdings: holdings.length, needs_review: needsReview.length, queued, summary: `${needsReview.length}/${holdings.length} holdings need review` }, []);
+    await completeJob(jobId, { holdings: holdings.length, needs_review: needsReview.length, queued, summary: `${needsReview.length}/${holdings.length} holdings need review` }, steps);
     return { holdings: holdings.length, needs_review: needsReview.length, queued };
   } catch (err: unknown) { await failJob(jobId, err instanceof Error ? err.message : String(err)); throw err; }
 }
@@ -157,6 +174,10 @@ export async function runAssetScan(workspaceId: string) {
       const renewalSoon = renewal && daysSince(String(renewal)) > -30 && daysSince(String(renewal)) < Infinity && new Date(String(renewal)).getTime() - Date.now() < 30 * DAY;
       return renewalSoon || daysSince(a.updated_at) > 180;
     });
+    const steps = [
+      step(`Loaded ${assets.length} asset record(s)`),
+      step(`${flagged.length} flagged (upcoming renewal/service or 180+ days stale)`, { status: flagged.length ? "warn" : "ok" }),
+    ];
     let queued = 0;
     for (const a of flagged.slice(0, 3)) {
       const ok = await queueDecision(workspaceId, "asset", a.id,
@@ -165,10 +186,11 @@ export async function runAssetScan(workspaceId: string) {
         "Review the asset's renewal, service, or valuation", "low", recName(a.data));
       if (ok) queued++;
     }
+    steps.push(step(`Queued ${queued} attention decision(s)`, { status: queued ? "ok" : "info" }));
     if (assets.length > 0) {
       await notify(workspaceId, "✦ Asset Agent", `${flagged.length} of ${assets.length} asset(s) need attention.`, { flagged: flagged.length, total: assets.length });
     }
-    await completeJob(jobId, { assets: assets.length, flagged, queued, summary: assets.length === 0 ? "No asset records in this workspace" : `${flagged.length}/${assets.length} assets flagged` }, []);
+    await completeJob(jobId, { assets: assets.length, flagged, queued, summary: assets.length === 0 ? "No asset records in this workspace" : `${flagged.length}/${assets.length} assets flagged` }, steps);
     return { assets: assets.length, flagged: flagged.length, queued };
   } catch (err: unknown) { await failJob(jobId, err instanceof Error ? err.message : String(err)); throw err; }
 }
