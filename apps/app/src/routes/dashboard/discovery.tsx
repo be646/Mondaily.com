@@ -110,6 +110,16 @@ export function DiscoveryPage() {
   });
   const degraded = statusQ.data?.status === "DEGRADED";
 
+  // Ideal Customer Profile — one saved description that biases scoring + coach suggestions.
+  const icpQ = useQuery({ queryKey: ["discovery-icp"], queryFn: () => apiClient.get<{ description: string }>("/discovery/icp"), staleTime: 300_000, retry: false });
+  const [icpOpen, setIcpOpen] = useState(false);
+  const [icpText, setIcpText] = useState("");
+  useEffect(() => { if (icpQ.data) setIcpText(icpQ.data.description); }, [icpQ.data]);
+  const saveIcp = useMutation({
+    mutationFn: () => apiClient.post("/discovery/icp", { description: icpText }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["discovery-icp"] }); setIcpOpen(false); },
+  });
+
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [turns]);
 
   // Coach preflight: a fast, cheap check BEFORE the expensive sweep. Vague queries get a coaching
@@ -233,6 +243,11 @@ export function DiscoveryPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {view === "chat" && (
+            <button onClick={() => setIcpOpen((o) => !o)} title="Set your ideal customer — biases lead scoring + coach suggestions" className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: icpQ.data?.description ? "var(--section-accent)" : "var(--border-soft)", color: icpQ.data?.description ? "var(--section-accent)" : "var(--text-muted)" }}>
+              <Star size={12} /> Ideal customer{icpQ.data?.description ? " ✓" : ""}
+            </button>
+          )}
           {view === "chat" && turns.length > 0 && (
             <button onClick={clearHistory} title="Clear search history" className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
               <Trash2 size={12} /> Clear
@@ -248,6 +263,22 @@ export function DiscoveryPage() {
           </div>
         </div>
       </div>
+
+      {icpOpen && view === "chat" && (
+        <div className="mb-3 rounded-lg border px-3 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          <p className="mb-1.5 text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>Your ideal customer</p>
+          <p className="mb-2 text-[11px]" style={{ color: "var(--text-muted)" }}>One line describing who you sell to — leads matching it rank higher (Hot) and the coach tailors suggestions to it.</p>
+          <textarea value={icpText} onChange={(e) => setIcpText(e.target.value)} rows={2}
+            placeholder="e.g. Independent aesthetic clinics in Poland with 5-30 staff and an active social presence"
+            className="w-full resize-none rounded-md border bg-transparent px-2.5 py-2 text-[13px] outline-none focus:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+          <div className="mt-2 flex items-center gap-2">
+            <button onClick={() => saveIcp.mutate()} disabled={saveIcp.isPending} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
+              {saveIcp.isPending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Save
+            </button>
+            <button onClick={() => setIcpOpen(false)} className="text-[12px]" style={{ color: "var(--text-muted)" }}>Cancel</button>
+          </div>
+        </div>
+      )}
 
       {degraded && (
         <div className="mb-3 flex items-start gap-2 rounded-md border px-3 py-2.5 text-[12px]" style={{ borderColor: "#d9770633", background: "#d977060f", color: "#92400e" }}>

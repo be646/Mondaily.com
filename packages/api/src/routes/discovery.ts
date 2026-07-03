@@ -132,6 +132,7 @@ async function classifyQuery(workspaceId: string, query: string, deep?: boolean,
 router.post("/coach", zValidator("json", z.object({ query: z.string().min(1).max(300) })), async (c) => {
   const { query } = c.req.valid("json");
   try {
+    const icp = await loadIcp(c.get("workspaceId"));
     const out = await aiGatewayToolUse({
       toolName: "assess_search_query",
       toolDescription: "Judge if a lead/review discovery query is specific enough, and suggest better ones",
@@ -149,7 +150,8 @@ router.post("/coach", zValidator("json", z.object({ query: z.string().min(1).max
         "You are a search coach for a B2B discovery tool that finds business leads and customer reviews on the open web. " +
         "Judge if the user's query is specific enough to return good results. A good LEADS query names an INDUSTRY/role and ideally a CITY (e.g. 'aesthetic clinics in Warsaw'). A good REVIEWS query names a SPECIFIC business (e.g. 'reviews about Klinika Ambroziak'). " +
         "If the query is vague (missing industry, or just 'leads in <city>'), set specific=false and propose 4-5 concrete ready-to-run queries covering likely industries for that context, plus a refined_query. " +
-        "If it's already specific, set specific=true, suggestions=[]. Suggestions must be complete runnable queries, not fragments.",
+        "If it's already specific, set specific=true, suggestions=[]. Suggestions must be complete runnable queries, not fragments." +
+        (icp ? ` The user's ideal customer is: "${icp}". Bias suggestions toward that profile.` : ""),
       prompt: query,
       workspaceId: c.get("workspaceId"),
       maxTokens: 300,
@@ -204,6 +206,7 @@ router.post("/search/stream", zValidator("json", searchSchema), async (c) => {
     try {
       await send({ type: "progress", stage: "classify", message: "Understanding your search…" });
       const params = await classifyQuery(workspaceId, query, deep, exhaustive);
+      params.icp = await loadIcp(workspaceId); // ideal-customer bias for scoring
       const label = params.searchType === "REVIEWS"
         ? `reviews about "${params.targetSubject}"`
         : `leads: ${params.sector ?? query}${params.region ? ` in ${params.region}` : ""}`;
@@ -259,6 +262,27 @@ router.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c)
   if (error) return c.json({ error: error.message }, 400);
   return c.json({ id: data.id }, 201);
 });
+
+// ── Ideal Customer Profile (ICP) — one saved description of the user's ideal lead. Boosts scoring
+//    (leads matching the ICP rank higher) and tailors the coach's suggestions. Stored on the workspace. ──
+router.get("/icp", async (c) => {
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", c.get("workspaceId")).maybeSingle();
+  const icp = (data?.settings as { discovery_icp?: { description?: string } } | null)?.discovery_icp ?? null;
+  return c.json({ description: icp?.description ?? "" });
+});
+router.post("/icp", denyViewerWrites, zValidator("json", z.object({ description: z.string().max(1000) })), async (c) => {
+  const ws = c.get("workspaceId");
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const settings = { ...((data?.settings as Record<string, unknown>) ?? {}), discovery_icp: { description: c.req.valid("json").description.trim(), updated_at: new Date().toISOString() } };
+  const { error } = await supabase.from("workspaces").update({ settings }).eq("id", ws);
+  return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });
+});
+
+async function loadIcp(workspaceId: string): Promise<string | undefined> {
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const d = (data?.settings as { discovery_icp?: { description?: string } } | null)?.discovery_icp?.description;
+  return d && d.trim() ? d.trim() : undefined;
+}
 
 // Enrich a lead — deep-read its OWN site (home + /contact + /about) to pull emails, phones, and
 // decision-makers. Emails/phones via regex on the real page text (deterministic, never invented);

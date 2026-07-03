@@ -144,7 +144,7 @@ interface ExtractedLead {
   summary?: string;
 }
 
-export type DiscoveryParams = { workspaceId: string; region?: string; sector?: string; searchType: "INTENT_LEADS" | "REVIEWS"; targetSubject?: string; deep?: boolean; exhaustive?: boolean };
+export type DiscoveryParams = { workspaceId: string; region?: string; sector?: string; searchType: "INTENT_LEADS" | "REVIEWS"; targetSubject?: string; deep?: boolean; exhaustive?: boolean; icp?: string };
 
 /** Live progress callback — the streaming endpoint forwards these to the browser as SSE events so
  *  the user watches the agent work (searching → reading pages → finding leads) instead of a spinner. */
@@ -153,7 +153,8 @@ export type DiscoveryProgress = (ev: Record<string, unknown>) => void | Promise<
 // Core sweep — callable directly (from POST /discovery/run, so results don't depend on Inngest
 // actually processing the event in prod) AND wrapped by the Inngest worker below for background runs.
 export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: DiscoveryProgress): Promise<Record<string, unknown>> {
-    const { workspaceId, region, sector, searchType, targetSubject, deep, exhaustive } = data;
+    const { workspaceId, region, sector, searchType, targetSubject, deep, exhaustive, icp } = data;
+    const icpKeywords = (icp ?? "").toLowerCase().split(/\W+/).filter((w) => w.length > 3).slice(0, 20);
     const emit = async (ev: Record<string, unknown>) => { try { await onProgress?.(ev); } catch { /* progress is best-effort */ } };
 
     // 1) Web sweep across the query operators (private SearXNG index). STAGGERED in small batches —
@@ -315,9 +316,10 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     // confidence + a big bonus for having a real contact + a bonus for being an actual business site
     // (vs a social page). Lets the pipeline rank hot → cold instead of showing a flat list.
     const SOCIAL_HOST = /linkedin|reddit|facebook|instagram|(^|\.)x\b|twitter|youtube|tiktok/i;
-    const priorityOf = (conf: number, hasContact: boolean, platform: string): "hot" | "warm" | "cold" => {
+    const icpMatch = (text: string) => icpKeywords.length > 0 && icpKeywords.some((k) => text.toLowerCase().includes(k));
+    const priorityOf = (conf: number, hasContact: boolean, platform: string, matchesIcp = false): "hot" | "warm" | "cold" => {
       const business = !SOCIAL_HOST.test(platform);
-      const s = conf + (hasContact ? 25 : 0) + (business ? 10 : 0);
+      const s = conf + (hasContact ? 25 : 0) + (business ? 10 : 0) + (matchesIcp ? 20 : 0); // ICP fit boost
       return s >= 85 ? "hot" : s >= 55 ? "warm" : "cold";
     };
 
@@ -332,7 +334,7 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
         intent_type: l.intent_type,
         sentiment: normalizeSentiment(l.sentiment, l.intent_type),
         confidence_score,
-        priority: priorityOf(confidence_score, !!(l.contact_email || l.contact_phone), platform),
+        priority: priorityOf(confidence_score, !!(l.contact_email || l.contact_phone), platform, icpMatch(`${l.author_name ?? ""} ${l.summary ?? ""} ${l.raw_content ?? ""}`)),
         region: l.region ?? region ?? null,
         target_subject: l.target_subject ?? targetSubject ?? null,
         snippet: (l.summary || l.raw_content || "").slice(0, 400),
@@ -531,7 +533,7 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     const PRIO_RANK = { hot: 0, warm: 1, cold: 2 } as const;
     const results = [...dedupedRows]
       .map((r) => {
-        const priority = priorityOf(r.confidence_score ?? 0, !!(r.contact?.email || r.contact?.phone), r.platform);
+        const priority = priorityOf(r.confidence_score ?? 0, !!(r.contact?.email || r.contact?.phone), r.platform, icpMatch(`${r.author_name ?? ""} ${r.contact?.summary ?? ""} ${r.raw_content ?? ""}`));
         return {
           source_url: r.source_url,
           platform: r.platform,

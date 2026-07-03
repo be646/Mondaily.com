@@ -55814,7 +55814,8 @@ function platformOf(url) {
   }
 }
 async function runSocialDiscovery(data, onProgress) {
-  const { workspaceId, region, sector, searchType, targetSubject, deep, exhaustive } = data;
+  const { workspaceId, region, sector, searchType, targetSubject, deep, exhaustive, icp } = data;
+  const icpKeywords = (icp ?? "").toLowerCase().split(/\W+/).filter((w2) => w2.length > 3).slice(0, 20);
   const emit = async (ev) => {
     try {
       await onProgress?.(ev);
@@ -55944,9 +55945,10 @@ ${text}`
     return extractChunk(p2, p2.text);
   };
   const SOCIAL_HOST = /linkedin|reddit|facebook|instagram|(^|\.)x\b|twitter|youtube|tiktok/i;
-  const priorityOf = (conf, hasContact, platform) => {
+  const icpMatch = (text) => icpKeywords.length > 0 && icpKeywords.some((k2) => text.toLowerCase().includes(k2));
+  const priorityOf = (conf, hasContact, platform, matchesIcp = false) => {
     const business = !SOCIAL_HOST.test(platform);
-    const s2 = conf + (hasContact ? 25 : 0) + (business ? 10 : 0);
+    const s2 = conf + (hasContact ? 25 : 0) + (business ? 10 : 0) + (matchesIcp ? 20 : 0);
     return s2 >= 85 ? "hot" : s2 >= 55 ? "warm" : "cold";
   };
   const toDisplay = (l2) => {
@@ -55959,7 +55961,7 @@ ${text}`
       intent_type: l2.intent_type,
       sentiment: normalizeSentiment(l2.sentiment, l2.intent_type),
       confidence_score,
-      priority: priorityOf(confidence_score, !!(l2.contact_email || l2.contact_phone), platform),
+      priority: priorityOf(confidence_score, !!(l2.contact_email || l2.contact_phone), platform, icpMatch(`${l2.author_name ?? ""} ${l2.summary ?? ""} ${l2.raw_content ?? ""}`)),
       region: l2.region ?? region ?? null,
       target_subject: l2.target_subject ?? targetSubject ?? null,
       snippet: (l2.summary || l2.raw_content || "").slice(0, 400),
@@ -56150,7 +56152,7 @@ ${text}`
   const dedupedRows = [...byFp.values()];
   const PRIO_RANK = { hot: 0, warm: 1, cold: 2 };
   const results = [...dedupedRows].map((r2) => {
-    const priority = priorityOf(r2.confidence_score ?? 0, !!(r2.contact?.email || r2.contact?.phone), r2.platform);
+    const priority = priorityOf(r2.confidence_score ?? 0, !!(r2.contact?.email || r2.contact?.phone), r2.platform, icpMatch(`${r2.author_name ?? ""} ${r2.contact?.summary ?? ""} ${r2.raw_content ?? ""}`));
     return {
       source_url: r2.source_url,
       platform: r2.platform,
@@ -69786,6 +69788,7 @@ async function classifyQuery(workspaceId, query, deep, exhaustive) {
 router44.post("/coach", zValidator("json", external_exports.object({ query: external_exports.string().min(1).max(300) })), async (c2) => {
   const { query } = c2.req.valid("json");
   try {
+    const icp = await loadIcp(c2.get("workspaceId"));
     const out = await aiGatewayToolUse({
       toolName: "assess_search_query",
       toolDescription: "Judge if a lead/review discovery query is specific enough, and suggest better ones",
@@ -69799,7 +69802,7 @@ router44.post("/coach", zValidator("json", external_exports.object({ query: exte
         },
         required: ["specific", "coach_message"]
       },
-      system: "You are a search coach for a B2B discovery tool that finds business leads and customer reviews on the open web. Judge if the user's query is specific enough to return good results. A good LEADS query names an INDUSTRY/role and ideally a CITY (e.g. 'aesthetic clinics in Warsaw'). A good REVIEWS query names a SPECIFIC business (e.g. 'reviews about Klinika Ambroziak'). If the query is vague (missing industry, or just 'leads in <city>'), set specific=false and propose 4-5 concrete ready-to-run queries covering likely industries for that context, plus a refined_query. If it's already specific, set specific=true, suggestions=[]. Suggestions must be complete runnable queries, not fragments.",
+      system: "You are a search coach for a B2B discovery tool that finds business leads and customer reviews on the open web. Judge if the user's query is specific enough to return good results. A good LEADS query names an INDUSTRY/role and ideally a CITY (e.g. 'aesthetic clinics in Warsaw'). A good REVIEWS query names a SPECIFIC business (e.g. 'reviews about Klinika Ambroziak'). If the query is vague (missing industry, or just 'leads in <city>'), set specific=false and propose 4-5 concrete ready-to-run queries covering likely industries for that context, plus a refined_query. If it's already specific, set specific=true, suggestions=[]. Suggestions must be complete runnable queries, not fragments." + (icp ? ` The user's ideal customer is: "${icp}". Bias suggestions toward that profile.` : ""),
       prompt: query,
       workspaceId: c2.get("workspaceId"),
       maxTokens: 300
@@ -69843,6 +69846,7 @@ router44.post("/search/stream", zValidator("json", searchSchema), async (c2) => 
     try {
       await send({ type: "progress", stage: "classify", message: "Understanding your search\u2026" });
       const params = await classifyQuery(workspaceId, query, deep, exhaustive);
+      params.icp = await loadIcp(workspaceId);
       const label = params.searchType === "REVIEWS" ? `reviews about "${params.targetSubject}"` : `leads: ${params.sector ?? query}${params.region ? ` in ${params.region}` : ""}`;
       await send({ type: "progress", stage: "classify", message: `Searching for ${label}` });
       const result = await runSocialDiscovery(params, (ev) => send(ev));
@@ -69895,6 +69899,23 @@ router44.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json({ id: data.id }, 201);
 });
+router44.get("/icp", async (c2) => {
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", c2.get("workspaceId")).maybeSingle();
+  const icp = data?.settings?.discovery_icp ?? null;
+  return c2.json({ description: icp?.description ?? "" });
+});
+router44.post("/icp", denyViewerWrites, zValidator("json", external_exports.object({ description: external_exports.string().max(1e3) })), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const settings = { ...data?.settings ?? {}, discovery_icp: { description: c2.req.valid("json").description.trim(), updated_at: (/* @__PURE__ */ new Date()).toISOString() } };
+  const { error } = await supabase.from("workspaces").update({ settings }).eq("id", ws);
+  return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
+});
+async function loadIcp(workspaceId) {
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const d2 = data?.settings?.discovery_icp?.description;
+  return d2 && d2.trim() ? d2.trim() : void 0;
+}
 router44.post("/enrich", denyViewerWrites, zValidator("json", external_exports.object({ url: external_exports.string().max(600), name: external_exports.string().max(200).optional() })), async (c2) => {
   const { url, name } = c2.req.valid("json");
   const { sovereignScrape: sovereignScrape2 } = await Promise.resolve().then(() => (init_sovereign_search(), sovereign_search_exports));
