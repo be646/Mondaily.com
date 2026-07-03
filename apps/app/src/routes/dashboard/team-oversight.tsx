@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
@@ -18,11 +18,15 @@ import { requestCall } from "../../lib/call-bus";
 type Verdict = "inactive" | "bot" | "low_engagement" | "high_complexity" | "engaged" | "idle";
 type SignalLevel = "good" | "watch" | "risk" | "insufficient";
 interface QualitySignal { key: string; label: string; level: SignalLevel; basis: string }
+interface EvalLabel { label: string; tone: "good" | "watch" | "risk" | "neutral"; basis: string }
+interface TrendPoint { date: string; value: number }
 interface Operator {
   operator_id: string; name: string; email: string | null; avatar_url: string | null; role: string;
   tokens: number; runs: number; task_count: number; complexity_delta: number;
   records_touched?: number; open_tasks?: number; overdue_tasks?: number; completed_tasks?: number;
   messages_sent?: number; decisions_resolved?: number; quality?: QualitySignal[];
+  deals_owned?: number; deals_won?: number; deals_lost?: number; deals_open?: number; deals_updated?: number;
+  evaluation?: EvalLabel;
   last_task_id: string | null; last_action: string | null; last_active_at: string | null;
   has_session: boolean; verified_pow: boolean; verdict: Verdict;
 }
@@ -30,8 +34,25 @@ interface Operator {
 const SIGNAL_TONE: Record<SignalLevel, string> = {
   good: "#10b981", watch: "#d97706", risk: "#e11d48", insufficient: "var(--text-faint)",
 };
-interface MatrixResp { operators: Operator[]; totals: { operators: number; tokens: number; active_sessions: number } }
-interface ActivityRow { id: string; action: string; ai_summary: string | null; object: { type: string; name: string | null } | null; changes?: { field: string; value: string }[]; created_at: string }
+const EVAL_TONE: Record<EvalLabel["tone"], string> = {
+  good: "#10b981", watch: "#d97706", risk: "#e11d48", neutral: "var(--text-faint)",
+};
+interface MatrixResp { operators: Operator[]; trends?: { activity: TrendPoint[]; ai_usage: TrendPoint[]; decisions: TrendPoint[] }; totals: { operators: number; tokens: number; active_sessions: number } }
+interface ActivityRow { id: string; action: string; ai_summary: string | null; object: { type: string; name: string | null; node_id?: string | null } | null; changes?: { field: string; value: string }[]; created_at: string }
+
+// Group a member's timeline into the same lenses used across Oversight.
+type TimelineGroup = "Tasks" | "Records & deals" | "Decisions" | "Messages" | "AI actions" | "Other";
+function timelineGroupOf(a: ActivityRow): TimelineGroup {
+  const t = (a.object?.type ?? "").toLowerCase();
+  const act = (a.action ?? "").toLowerCase();
+  if (t.includes("task") || act.includes("task")) return "Tasks";
+  if (t.includes("deal") || t.includes("opportunit") || t.includes("company") || t.includes("contact") || t.includes("lead") || t.includes("person") || t.includes("record")) return "Records & deals";
+  if (t.includes("decision") || act.includes("approve") || act.includes("reject") || act.includes("decision")) return "Decisions";
+  if (t.includes("message") || act.includes("message")) return "Messages";
+  if (act.includes("enrich") || act.includes("ai") || act.includes("summar")) return "AI actions";
+  return "Other";
+}
+const TIMELINE_ORDER: TimelineGroup[] = ["Tasks", "Records & deals", "Decisions", "Messages", "AI actions", "Other"];
 interface InsightResp { insight: string; sources: { type: string; title: string; timestamp: string }[]; sufficient: boolean }
 
 const VERDICT: Record<Verdict, { label: string; tone: string }> = {
@@ -123,6 +144,96 @@ function TeamCharts({ operators, onSelect }: { operators: Operator[]; onSelect: 
   );
 }
 
+/** Minimal, dependency-free SVG sparkline for a 30-day trend (premium ledger style). */
+function Sparkline({ points, tone }: { points: TrendPoint[]; tone: string }) {
+  if (!points || points.length === 0) return null;
+  const max = points.reduce((m, p) => Math.max(m, p.value), 0) || 1;
+  const W = 100, H = 28;
+  const step = points.length > 1 ? W / (points.length - 1) : W;
+  const coords = points.map((p, i) => `${(i * step).toFixed(2)},${(H - (p.value / max) * (H - 2) - 1).toFixed(2)}`);
+  const total = points.reduce((s, p) => s + p.value, 0);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-8 w-full" role="img" aria-label={`trend total ${total}`}>
+      <polyline points={coords.join(" ")} fill="none" stroke={tone} strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/** Team-wide 30-day trends — all from real timestamps (activity, AI usage, decisions). */
+function TeamTrends({ trends }: { trends: NonNullable<MatrixResp["trends"]> }) {
+  const cards: { title: string; hint: string; tone: string; pts: TrendPoint[] }[] = [
+    { title: "Activity", hint: "Recorded actions / day", tone: "var(--section-accent)", pts: trends.activity ?? [] },
+    { title: "AI usage", hint: "Credits / day", tone: "#3b82f6", pts: trends.ai_usage ?? [] },
+    { title: "Decisions resolved", hint: "Approvals & rejections / day", tone: "#10b981", pts: trends.decisions ?? [] },
+  ];
+  return (
+    <div className="mb-6 grid gap-3 md:grid-cols-3">
+      {cards.map((c) => {
+        const total = c.pts.reduce((s, p) => s + p.value, 0);
+        return (
+          <div key={c.title} className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="flex items-baseline justify-between">
+              <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{c.title}</span>
+              <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{fmt(total)}</span>
+            </div>
+            <div className="mb-2 text-[11px]" style={{ color: "var(--text-muted)" }}>{c.hint} · 30d</div>
+            {total === 0 ? <div className="py-2 text-[11px]" style={{ color: "var(--text-faint)" }}>No data yet.</div> : <Sparkline points={c.pts} tone={c.tone} />}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+interface AskResp { answer: string; sources: { type: string; title: string }[]; sufficient: boolean }
+/** Grounded Ask-AI over real team data. Renders the answer + the exact source lines it used. */
+function OversightAsk() {
+  const [q, setQ] = useState("");
+  const ask = useMutation({ mutationFn: (question: string) => apiClient.post<AskResp>("/activities/oversight-ask", { question }) });
+  const suggestions = ["Who has the most overdue work?", "Who is contributing to decisions?", "How is deal ownership spread across the team?"];
+  return (
+    <div className="mb-6 rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="mb-2 flex items-center gap-2">
+        <Sparkles size={14} style={{ color: "var(--section-accent)" }} />
+        <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}>Ask about your team</span>
+        <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>grounded in real data — no guesses</span>
+      </div>
+      <form onSubmit={(e) => { e.preventDefault(); if (q.trim()) ask.mutate(q.trim()); }} className="flex gap-2">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. Who is at risk of overdue work?"
+          className="key-input h-9 flex-1 px-3 text-[13px]" />
+        <button type="submit" disabled={ask.isPending || !q.trim()}
+          className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50"
+          style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          {ask.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} Ask
+        </button>
+      </form>
+      {!ask.data && !ask.isPending && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {suggestions.map((s) => (
+            <button key={s} onClick={() => { setQ(s); ask.mutate(s); }}
+              className="rounded-full border px-2.5 py-1 text-[10.5px] transition-colors hover:text-[var(--text-primary)]"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{s}</button>
+          ))}
+        </div>
+      )}
+      {ask.data && (
+        <div className="mt-3">
+          <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{ask.data.answer}</p>
+          {ask.data.sufficient && ask.data.sources.length > 0 && (
+            <details className="mt-2">
+              <summary className="cursor-pointer text-[10.5px]" style={{ color: "var(--text-faint)" }}>Based on {ask.data.sources.length} member metric line(s)</summary>
+              <div className="mt-1.5 space-y-1">
+                {ask.data.sources.map((s, i) => <p key={i} className="text-[10.5px]" style={{ color: "var(--text-muted)" }}>• {s.title}</p>)}
+              </div>
+            </details>
+          )}
+          {!ask.data.sufficient && <p className="mt-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Not enough tracked data to answer — nothing was invented.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function TeamOversightPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -183,6 +294,12 @@ export function TeamOversightPage() {
           </div>
         ))}
       </div>
+
+      {/* ── Team-wide 30-day trends (real timestamps) ── */}
+      {data?.trends && <TeamTrends trends={data.trends} />}
+
+      {/* ── Grounded Ask-AI over real team data ── */}
+      {operators.length > 0 && <OversightAsk />}
 
       {/* ── Team charts — real per-member distributions (ledger-style horizontal bars) ── */}
       {operators.length > 0 && <TeamCharts operators={operators} onSelect={select} />}
@@ -305,6 +422,16 @@ function MemberDetail({ op }: { op: Operator }) {
         </span>
       </div>
 
+      {/* admin evaluation headline — a source-backed label, not a score */}
+      {op.evaluation && (
+        <div className="flex items-center gap-2 border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: EVAL_TONE[op.evaluation.tone], background: `color-mix(in srgb, ${EVAL_TONE[op.evaluation.tone]} 12%, transparent)` }}>
+            {op.evaluation.label}
+          </span>
+          <span className="min-w-0 truncate text-[11px]" style={{ color: "var(--text-muted)" }}>{op.evaluation.basis}</span>
+        </div>
+      )}
+
       {/* tracked metrics */}
       <div className="grid grid-cols-3 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
         {[
@@ -335,6 +462,24 @@ function MemberDetail({ op }: { op: Operator }) {
           </div>
         ))}
       </div>
+
+      {/* deals / opportunities — real tallies (ownership resolved from node data + created_by) */}
+      {((op.deals_owned ?? 0) > 0 || (op.deals_updated ?? 0) > 0) && (
+        <div className="grid grid-cols-5 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+          {[
+            { k: "Deals owned", val: op.deals_owned ?? 0 },
+            { k: "Open", val: op.deals_open ?? 0 },
+            { k: "Won", val: op.deals_won ?? 0, tone: "#10b981" },
+            { k: "Lost", val: op.deals_lost ?? 0, tone: "#e11d48" },
+            { k: "Updated", val: op.deals_updated ?? 0 },
+          ].map((m) => (
+            <div key={m.k} className="px-2.5 py-2.5" style={{ background: "var(--surface-card)" }}>
+              <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.tone ?? "var(--text-primary)" }}>{fmt(m.val)}</div>
+              <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{m.k}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* work quality — source-backed signals computed server-side; every one cites its real basis */}
       {op.quality && op.quality.length > 0 && (
@@ -412,36 +557,53 @@ function MemberDetail({ op }: { op: Operator }) {
         </div>
       </Section>
 
-      {/* activity timeline — real */}
+      {/* activity timeline — real, grouped by lens with source links where a node is known */}
       <Section title="Activity timeline">
         {timelineQ.isLoading ? (
           <div className="flex items-center gap-2 py-2 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Loading…</div>
         ) : timeline.length === 0 ? (
           <p className="py-1 text-[12px]" style={{ color: "var(--text-faint)" }}>No recorded activity in the last 30 days.</p>
         ) : (
-          <div className="max-h-64 space-y-2.5 overflow-y-auto pr-1">
-            {timeline.slice(0, 50).map((a) => (
-              <div key={a.id} className="flex items-start gap-2.5">
-                <History size={12} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
-                    <span className="font-medium capitalize" style={{ color: "var(--text-primary)" }}>{(a.action || "action").replace(/_/g, " ")}</span>
-                    {a.object?.type && <span> · {a.object.type}</span>}
-                    {a.object?.name && <span style={{ color: "var(--text-muted)" }}> "{a.object.name}"</span>}
-                  </p>
-                  {a.changes && a.changes.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {a.changes.map((ch, j) => (
-                        <span key={j} className="rounded px-1.5 py-px text-[10px]" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>
-                          <span className="capitalize">{ch.field}</span>: <span style={{ color: "var(--text-secondary)" }}>{ch.value}</span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
+          <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
+            {TIMELINE_ORDER.map((group) => {
+              const rows = timeline.slice(0, 80).filter((a) => timelineGroupOf(a) === group);
+              if (rows.length === 0) return null;
+              return (
+                <div key={group}>
+                  <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{group} · {rows.length}</div>
+                  <div className="space-y-2">
+                    {rows.slice(0, 20).map((a) => {
+                      const link = a.object?.node_id && a.object?.type ? `/objects/${encodeURIComponent(a.object.type)}/${a.object.node_id}` : null;
+                      const Row = (
+                        <>
+                          <History size={12} className="mt-0.5 shrink-0" style={{ color: "var(--text-faint)" }} />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
+                              <span className="font-medium capitalize" style={{ color: "var(--text-primary)" }}>{(a.action || "action").replace(/_/g, " ")}</span>
+                              {a.object?.type && <span> · {a.object.type}</span>}
+                              {a.object?.name && <span style={{ color: link ? "var(--section-accent)" : "var(--text-muted)" }}> "{a.object.name}"</span>}
+                            </p>
+                            {a.changes && a.changes.length > 0 && (
+                              <div className="mt-1 flex flex-wrap gap-1">
+                                {a.changes.map((ch, j) => (
+                                  <span key={j} className="rounded px-1.5 py-px text-[10px]" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>
+                                    <span className="capitalize">{ch.field}</span>: <span style={{ color: "var(--text-secondary)" }}>{ch.value}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <span className="shrink-0 text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>{exactTime(a.created_at)}</span>
+                        </>
+                      );
+                      return link
+                        ? <Link key={a.id} to={link} className="flex items-start gap-2.5 rounded-sm px-1 py-0.5 -mx-1 transition-colors hover:bg-[var(--surface-hover)]">{Row}</Link>
+                        : <div key={a.id} className="flex items-start gap-2.5 px-1">{Row}</div>;
+                    })}
+                  </div>
                 </div>
-                <span className="shrink-0 text-[10px] tabular-nums" style={{ color: "var(--text-faint)" }}>{exactTime(a.created_at)}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </Section>

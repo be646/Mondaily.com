@@ -62859,6 +62859,84 @@ function workQuality(op) {
   }
   return signals;
 }
+var OWNER_FIELDS = ["owner_id", "owner", "assignee", "assigned_to", "rep", "account_owner"];
+function isDealType2(objectType2) {
+  const t2 = (objectType2 ?? "").toLowerCase();
+  return t2.includes("deal") || t2.includes("opportunit");
+}
+function dealStageClass(data) {
+  const s2 = String(data.deal_stage ?? data.stage ?? data.status ?? "").toLowerCase();
+  if (s2.includes("won")) return "won";
+  if (s2.includes("lost")) return "lost";
+  return "open";
+}
+function dealOwnerKeys(node) {
+  const keys = /* @__PURE__ */ new Set();
+  const add = (v2) => {
+    const s2 = String(v2 ?? "").trim().toLowerCase();
+    if (s2) keys.add(s2);
+  };
+  for (const f2 of OWNER_FIELDS) add(node.data?.[f2]);
+  add(node.created_by);
+  return keys;
+}
+function aggregateDeals(deals, members3) {
+  const out = /* @__PURE__ */ new Map();
+  const memberKeys = members3.map((m2) => ({
+    uid: m2.user_id,
+    ids: new Set([m2.user_id, m2.email ?? "", m2.name ?? ""].map((s2) => String(s2).trim().toLowerCase()).filter(Boolean))
+  }));
+  for (const deal of deals) {
+    if (!isDealType2(deal.object_type)) continue;
+    const owners = dealOwnerKeys(deal);
+    const cls = dealStageClass(deal.data ?? {});
+    for (const m2 of memberKeys) {
+      let matched = false;
+      for (const id of m2.ids) if (owners.has(id)) {
+        matched = true;
+        break;
+      }
+      if (!matched) continue;
+      const t2 = out.get(m2.uid) ?? { owned: 0, won: 0, lost: 0, open: 0 };
+      t2.owned += 1;
+      t2[cls] += 1;
+      out.set(m2.uid, t2);
+    }
+  }
+  return out;
+}
+function dailyTrend(items, getIso, days, nowMs, value = () => 1) {
+  const DAY3 = 864e5;
+  const startOfDay = (ms5) => {
+    const d2 = new Date(ms5);
+    return Date.UTC(d2.getUTCFullYear(), d2.getUTCMonth(), d2.getUTCDate());
+  };
+  const todayStart = startOfDay(nowMs);
+  const buckets2 = /* @__PURE__ */ new Map();
+  for (let i2 = days - 1; i2 >= 0; i2--) buckets2.set(new Date(todayStart - i2 * DAY3).toISOString().slice(0, 10), 0);
+  for (const it2 of items) {
+    const iso = getIso(it2);
+    if (!iso) continue;
+    const key = String(iso).slice(0, 10);
+    if (buckets2.has(key)) buckets2.set(key, (buckets2.get(key) ?? 0) + value(it2));
+  }
+  return [...buckets2.entries()].map(([date, v2]) => ({ date, value: v2 }));
+}
+function evaluationLabel(op) {
+  if (op.task_count === 0 && op.open_tasks === 0 && op.decisions_resolved === 0) {
+    return { label: "Inactive", tone: "neutral", basis: "No tracked tasks, activity, or decisions in scope." };
+  }
+  if (op.overdue_tasks >= 3) {
+    return { label: "At risk of overdue work", tone: "risk", basis: `${op.overdue_tasks} overdue task(s).` };
+  }
+  if (op.overdue_tasks > 0) {
+    return { label: "Needs follow-up", tone: "watch", basis: `${op.overdue_tasks} overdue of ${op.open_tasks + op.overdue_tasks} open task(s).` };
+  }
+  if (op.decisions_resolved >= 3) {
+    return { label: "Decision contributor", tone: "good", basis: `Resolved ${op.decisions_resolved} decision(s) in 30d.` };
+  }
+  return { label: "Balanced workload", tone: "good", basis: `${op.open_tasks} open task(s), none overdue.` };
+}
 
 // src/routes/activities.ts
 var router9 = new Hono2();
@@ -62932,7 +63010,7 @@ router9.get("/oversight", requireAuth, requireAdminRole, async (c2) => {
       actor_avatar: m2?.avatar_url ?? null,
       action: a2.action,
       ai_summary: a2.ai_summary ?? null,
-      object: node?.object_type ? { type: node.object_type, name: nodeName ?? null } : null,
+      object: node?.object_type ? { type: node.object_type, name: nodeName ?? null, node_id: a2.node_id ?? null } : null,
       changes: readableChanges(a2.diff),
       // exactly what changed
       created_at: a2.created_at
@@ -62950,7 +63028,7 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
   const ws = c2.get("workspaceId");
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString();
   const nowIso = (/* @__PURE__ */ new Date()).toISOString();
-  const [{ data: members3 }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks2 }, { data: msgs }, { data: decisions }] = await Promise.all([
+  const [{ data: members3 }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks2 }, { data: msgs }, { data: decisions }, { data: deals }] = await Promise.all([
     supabase.from("workspace_members").select("user_id, name, email, avatar_url, role").eq("workspace_id", ws),
     supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", sinceIso),
     supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").order("created_at", { ascending: false }).limit(2e3),
@@ -62958,8 +63036,10 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
     // Real per-member task rollups (assignee-scoped): open / overdue / completed.
     supabase.from("tasks").select("assignee_id, completed, due_date").eq("workspace_id", ws).limit(5e3),
     // Real per-member internal messages sent (30d) + decisions resolved (30d) — both workspace-scoped.
-    supabase.from("internal_messages").select("sender_id").eq("workspace_id", ws).gte("created_at", sinceIso).limit(1e4),
-    supabase.from("decision_queue").select("resolved_by").eq("workspace_id", ws).gte("resolved_at", sinceIso).limit(1e4)
+    supabase.from("internal_messages").select("sender_id, created_at").eq("workspace_id", ws).gte("created_at", sinceIso).limit(1e4),
+    supabase.from("decision_queue").select("resolved_by, resolved_at").eq("workspace_id", ws).gte("resolved_at", sinceIso).limit(1e4),
+    // Deal / opportunity nodes (workspace-scoped) — ownership lives in data (see oversight-metrics).
+    supabase.from("nodes").select("id, object_type, data, created_by").eq("workspace_id", ws).or("object_type.ilike.%deal%,object_type.ilike.%opportunit%").limit(1e4)
   ]);
   const msgBy = /* @__PURE__ */ new Map();
   for (const m2 of msgs ?? []) {
@@ -62971,6 +63051,23 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
     const k2 = String(d2.resolved_by ?? "");
     if (k2) decBy.set(k2, (decBy.get(k2) ?? 0) + 1);
   }
+  const memberRefs = (members3 ?? []).map((m2) => ({ user_id: String(m2.user_id ?? ""), email: m2.email ?? null, name: m2.name ?? null }));
+  const dealBy = aggregateDeals(deals ?? [], memberRefs);
+  const dealIds = new Set((deals ?? []).map((d2) => String(d2.id)));
+  const dealsUpdatedBy = /* @__PURE__ */ new Map();
+  for (const a2 of acts ?? []) {
+    const uid = String(a2.actor_id ?? "");
+    const nid = a2.node_id ? String(a2.node_id) : "";
+    if (!uid || !nid || !dealIds.has(nid)) continue;
+    if (!dealsUpdatedBy.has(uid)) dealsUpdatedBy.set(uid, /* @__PURE__ */ new Set());
+    dealsUpdatedBy.get(uid).add(nid);
+  }
+  const nowMs = Date.now();
+  const trends = {
+    activity: dailyTrend(acts ?? [], (a2) => a2.created_at, 30, nowMs),
+    ai_usage: dailyTrend(usage ?? [], (u2) => u2.created_at, 30, nowMs, (u2) => Number(u2.total_tokens ?? 0)),
+    decisions: dailyTrend(decisions ?? [], (d2) => d2.resolved_at, 30, nowMs)
+  };
   const taskAgg = /* @__PURE__ */ new Map();
   for (const t2 of tasks2 ?? []) {
     const uid = String(t2.assignee_id ?? "");
@@ -63038,6 +63135,12 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
       completed_tasks: taskAgg.get(uid)?.completed ?? 0,
       messages_sent: msgBy.get(uid) ?? 0,
       decisions_resolved: decBy.get(uid) ?? 0,
+      // Real per-member deal tallies + "deals updated" (activity on deal nodes).
+      deals_owned: dealBy.get(uid)?.owned ?? 0,
+      deals_won: dealBy.get(uid)?.won ?? 0,
+      deals_lost: dealBy.get(uid)?.lost ?? 0,
+      deals_open: dealBy.get(uid)?.open ?? 0,
+      deals_updated: dealsUpdatedBy.get(uid)?.size ?? 0,
       last_task_id: last?.node_id ?? null,
       last_action: last?.action ?? null,
       last_active_at: last?.created_at ?? null,
@@ -63052,11 +63155,18 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
         task_count: taskCount,
         decisions_resolved: decBy.get(uid) ?? 0,
         last_active_at: last?.created_at ?? null
+      }),
+      // Single admin-evaluation headline (source-backed label, not a score).
+      evaluation: evaluationLabel({
+        open_tasks: taskAgg.get(uid)?.open ?? 0,
+        overdue_tasks: taskAgg.get(uid)?.overdue ?? 0,
+        task_count: taskCount,
+        decisions_resolved: decBy.get(uid) ?? 0
       })
     };
   }).sort((a2, b2) => b2.tokens - a2.tokens);
   const totalTokens = operators.reduce((s2, o2) => s2 + o2.tokens, 0);
-  return c2.json({ operators, totals: { operators: operators.length, tokens: totalTokens, active_sessions: sessionUsers.size } });
+  return c2.json({ operators, trends, totals: { operators: operators.length, tokens: totalTokens, active_sessions: sessionUsers.size } });
 });
 router9.post("/member-insight", requireAuth, requireAdminRole, async (c2) => {
   const ws = c2.get("workspaceId");
@@ -63112,6 +63222,68 @@ router9.post("/member-insight", requireAuth, requireAdminRole, async (c2) => {
     return c2.json({ insight: insight || "I don't have enough tracked activity for this member yet.", sources, sufficient: true });
   } catch {
     return c2.json({ insight: "The AI service is unavailable right now \u2014 please try again in a moment.", sources, sufficient: true });
+  }
+});
+router9.post("/oversight-ask", requireAuth, requireAdminRole, async (c2) => {
+  const ws = c2.get("workspaceId");
+  const body = await c2.req.json().catch(() => ({}));
+  const question = (body.question ?? "").trim();
+  if (!question) return c2.json({ answer: "Ask a question about your team's activity.", sources: [], sufficient: false });
+  const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString();
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const [{ data: members3 }, { data: usage }, { data: tasks2 }, { data: decisions }, { data: deals }] = await Promise.all([
+    supabase.from("workspace_members").select("user_id, name, email, role").eq("workspace_id", ws),
+    supabase.from("ai_usage").select("user_id, total_tokens").eq("workspace_id", ws).gte("created_at", sinceIso),
+    supabase.from("tasks").select("assignee_id, completed, due_date").eq("workspace_id", ws).limit(5e3),
+    supabase.from("decision_queue").select("resolved_by").eq("workspace_id", ws).gte("resolved_at", sinceIso).limit(1e4),
+    supabase.from("nodes").select("id, object_type, data, created_by").eq("workspace_id", ws).or("object_type.ilike.%deal%,object_type.ilike.%opportunit%").limit(1e4)
+  ]);
+  const tokBy = /* @__PURE__ */ new Map();
+  for (const u2 of usage ?? []) {
+    const k2 = String(u2.user_id ?? "");
+    if (k2) tokBy.set(k2, (tokBy.get(k2) ?? 0) + Number(u2.total_tokens ?? 0));
+  }
+  const taskAgg = /* @__PURE__ */ new Map();
+  for (const t2 of tasks2 ?? []) {
+    const uid = String(t2.assignee_id ?? "");
+    if (!uid) continue;
+    const cur = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
+    if (t2.completed) cur.completed += 1;
+    else {
+      cur.open += 1;
+      if (t2.due_date && String(t2.due_date) < nowIso) cur.overdue += 1;
+    }
+    taskAgg.set(uid, cur);
+  }
+  const decBy = /* @__PURE__ */ new Map();
+  for (const d2 of decisions ?? []) {
+    const k2 = String(d2.resolved_by ?? "");
+    if (k2) decBy.set(k2, (decBy.get(k2) ?? 0) + 1);
+  }
+  const memberRefs = (members3 ?? []).map((m2) => ({ user_id: String(m2.user_id ?? ""), email: m2.email ?? null, name: m2.name ?? null }));
+  const dealBy = aggregateDeals(deals ?? [], memberRefs);
+  const lines = (members3 ?? []).map((m2) => {
+    const uid = String(m2.user_id ?? "");
+    const t2 = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
+    const d2 = dealBy.get(uid) ?? { owned: 0, won: 0, lost: 0, open: 0 };
+    return `${m2.name ?? m2.email ?? "Member"} (${m2.role ?? "member"}): tasks open ${t2.open}, overdue ${t2.overdue}, completed ${t2.completed}; decisions resolved ${decBy.get(uid) ?? 0}; deals owned ${d2.owned} (won ${d2.won}, lost ${d2.lost}, open ${d2.open}); AI credits ${tokBy.get(uid) ?? 0}.`;
+  });
+  const anyData = (tasks2?.length ?? 0) > 0 || (usage?.length ?? 0) > 0 || (decisions?.length ?? 0) > 0 || (deals?.length ?? 0) > 0;
+  if (!anyData || lines.length === 0) {
+    return c2.json({ answer: "I don't have enough tracked team activity to answer that yet.", sources: [], sufficient: false });
+  }
+  const digest = [`Team of ${lines.length} member(s), last 30 days:`, ...lines].join("\n");
+  const system = `You are a workspace admin assistant. Answer the admin's question about their team using ONLY the per-member data provided. Never invent members, tasks, deals, decisions, numbers, hours, or productivity scores. Cite real numbers from the data. Do NOT mention tools, databases, or your reasoning. Keep it to a few plain sentences. If the data does not contain enough to answer, reply exactly: "I don't have enough tracked team activity to answer that yet."`;
+  try {
+    const { text } = await aiGateway({ system, prompt: `Question: ${question}
+
+Data:
+${digest}`, maxTokens: 320 });
+    const answer = (text || "").trim();
+    const sources = lines.map((l2) => ({ type: "member_metrics", title: l2 }));
+    return c2.json({ answer: answer || "I don't have enough tracked team activity to answer that yet.", sources, sufficient: true });
+  } catch {
+    return c2.json({ answer: "The AI service is unavailable right now \u2014 please try again in a moment.", sources: [], sufficient: true });
   }
 });
 router9.get("/node/:nodeId", requireAuth, async (c2) => {

@@ -88,3 +88,107 @@ export function workQuality(op: OperatorMetrics): WorkQualitySignal[] {
 
   return signals;
 }
+
+// ── Deal / opportunity aggregation (Increment 2) ──────────────────────────────────────────────
+// Deals are nodes; ownership lives in `data` (no first-class owner column). We match a member if
+// ANY of their identifiers (user_id / email / name, case-insensitive) appears in the deal's owner
+// fields or created_by. Exact fields used: data.owner_id, data.owner, data.assignee,
+// data.assigned_to, data.rep, data.account_owner, and the node's created_by column.
+export interface DealNode { id: string; object_type: string; data: Record<string, unknown>; created_by?: string | null }
+export interface MemberRef { user_id: string; email?: string | null; name?: string | null }
+export interface DealTally { owned: number; won: number; lost: number; open: number }
+
+const OWNER_FIELDS = ["owner_id", "owner", "assignee", "assigned_to", "rep", "account_owner"];
+
+export function isDealType(objectType: string): boolean {
+  const t = (objectType ?? "").toLowerCase();
+  return t.includes("deal") || t.includes("opportunit");
+}
+
+/** Won / lost / open from the deal's stage-or-status field (same resolution the app uses elsewhere). */
+export function dealStageClass(data: Record<string, unknown>): "won" | "lost" | "open" {
+  const s = String((data.deal_stage ?? data.stage ?? data.status ?? "")).toLowerCase();
+  if (s.includes("won")) return "won";
+  if (s.includes("lost")) return "lost";
+  return "open";
+}
+
+/** The lowercased set of owner identifiers a deal node carries. */
+export function dealOwnerKeys(node: DealNode): Set<string> {
+  const keys = new Set<string>();
+  const add = (v: unknown) => { const s = String(v ?? "").trim().toLowerCase(); if (s) keys.add(s); };
+  for (const f of OWNER_FIELDS) add(node.data?.[f]);
+  add(node.created_by);
+  return keys;
+}
+
+/**
+ * Per-member deal tallies. A member "owns" a deal if one of their identifiers matches an owner key.
+ * Pure + workspace-agnostic (caller passes only this workspace's deal nodes) so it's unit-tested.
+ */
+export function aggregateDeals(deals: DealNode[], members: MemberRef[]): Map<string, DealTally> {
+  const out = new Map<string, DealTally>();
+  const memberKeys = members.map(m => ({
+    uid: m.user_id,
+    ids: new Set([m.user_id, m.email ?? "", m.name ?? ""].map(s => String(s).trim().toLowerCase()).filter(Boolean)),
+  }));
+  for (const deal of deals) {
+    if (!isDealType(deal.object_type)) continue;
+    const owners = dealOwnerKeys(deal);
+    const cls = dealStageClass(deal.data ?? {});
+    for (const m of memberKeys) {
+      let matched = false;
+      for (const id of m.ids) if (owners.has(id)) { matched = true; break; }
+      if (!matched) continue;
+      const t = out.get(m.uid) ?? { owned: 0, won: 0, lost: 0, open: 0 };
+      t.owned += 1; t[cls] += 1;
+      out.set(m.uid, t);
+    }
+  }
+  return out;
+}
+
+// ── Daily trend bucketing (Increment 2) ───────────────────────────────────────────────────────
+export interface TrendPoint { date: string; value: number }
+
+/**
+ * Bucket timestamped items into the last `days` calendar days (UTC), zero-filled, oldest→newest.
+ * `nowMs` is injectable for deterministic tests. `value` defaults to 1 (a count).
+ */
+export function dailyTrend<T>(items: T[], getIso: (t: T) => string | null | undefined, days: number, nowMs: number, value: (t: T) => number = () => 1): TrendPoint[] {
+  const DAY = 86_400_000;
+  const startOfDay = (ms: number) => { const d = new Date(ms); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
+  const todayStart = startOfDay(nowMs);
+  const buckets = new Map<string, number>();
+  for (let i = days - 1; i >= 0; i--) buckets.set(new Date(todayStart - i * DAY).toISOString().slice(0, 10), 0);
+  for (const it of items) {
+    const iso = getIso(it);
+    if (!iso) continue;
+    const key = String(iso).slice(0, 10);
+    if (buckets.has(key)) buckets.set(key, (buckets.get(key) ?? 0) + value(it));
+  }
+  return [...buckets.entries()].map(([date, v]) => ({ date, value: v }));
+}
+
+// ── Admin evaluation label (Increment 2) ──────────────────────────────────────────────────────
+// A single source-backed headline per member. NOT a productivity score — a label tied to real
+// counts, with an honest "Inactive" / basis. Order = priority.
+export interface EvalInput { open_tasks: number; overdue_tasks: number; task_count: number; decisions_resolved: number }
+export interface EvalLabel { label: string; tone: "good" | "watch" | "risk" | "neutral"; basis: string }
+
+export function evaluationLabel(op: EvalInput): EvalLabel {
+  if (op.task_count === 0 && op.open_tasks === 0 && op.decisions_resolved === 0) {
+    return { label: "Inactive", tone: "neutral", basis: "No tracked tasks, activity, or decisions in scope." };
+  }
+  if (op.overdue_tasks >= 3) {
+    return { label: "At risk of overdue work", tone: "risk", basis: `${op.overdue_tasks} overdue task(s).` };
+  }
+  if (op.overdue_tasks > 0) {
+    return { label: "Needs follow-up", tone: "watch", basis: `${op.overdue_tasks} overdue of ${op.open_tasks + op.overdue_tasks} open task(s).` };
+  }
+  if (op.decisions_resolved >= 3) {
+    return { label: "Decision contributor", tone: "good", basis: `Resolved ${op.decisions_resolved} decision(s) in 30d.` };
+  }
+  return { label: "Balanced workload", tone: "good", basis: `${op.open_tasks} open task(s), none overdue.` };
+}
+

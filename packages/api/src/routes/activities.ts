@@ -4,7 +4,7 @@ import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { verifiedPowUserIds } from "../lib/pow-claims";
 import { aiGateway } from "../lib/ai-gateway";
-import { workQuality } from "../lib/oversight-metrics";
+import { workQuality, aggregateDeals, dailyTrend, evaluationLabel, type DealNode } from "../lib/oversight-metrics";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -108,7 +108,7 @@ router.get("/oversight", requireAuth, requireAdminRole, async (c) => {
       actor_avatar: (m as { avatar_url?: string } | undefined)?.avatar_url ?? null,
       action: a.action,
       ai_summary: a.ai_summary ?? null,
-      object: node?.object_type ? { type: node.object_type, name: nodeName ?? null } : null,
+      object: node?.object_type ? { type: node.object_type, name: nodeName ?? null, node_id: (a.node_id as string) ?? null } : null,
       changes: readableChanges((a as { diff?: unknown }).diff),   // exactly what changed
       created_at: a.created_at,
     };
@@ -138,7 +138,7 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(); // 30-day window
 
   const nowIso = new Date().toISOString();
-  const [{ data: members }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks }, { data: msgs }, { data: decisions }] = await Promise.all([
+  const [{ data: members }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks }, { data: msgs }, { data: decisions }, { data: deals }] = await Promise.all([
     supabase.from("workspace_members").select("user_id, name, email, avatar_url, role").eq("workspace_id", ws),
     supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", sinceIso),
     supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").order("created_at", { ascending: false }).limit(2000),
@@ -146,8 +146,10 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
     // Real per-member task rollups (assignee-scoped): open / overdue / completed.
     supabase.from("tasks").select("assignee_id, completed, due_date").eq("workspace_id", ws).limit(5000),
     // Real per-member internal messages sent (30d) + decisions resolved (30d) — both workspace-scoped.
-    supabase.from("internal_messages").select("sender_id").eq("workspace_id", ws).gte("created_at", sinceIso).limit(10000),
-    supabase.from("decision_queue").select("resolved_by").eq("workspace_id", ws).gte("resolved_at", sinceIso).limit(10000),
+    supabase.from("internal_messages").select("sender_id, created_at").eq("workspace_id", ws).gte("created_at", sinceIso).limit(10000),
+    supabase.from("decision_queue").select("resolved_by, resolved_at").eq("workspace_id", ws).gte("resolved_at", sinceIso).limit(10000),
+    // Deal / opportunity nodes (workspace-scoped) — ownership lives in data (see oversight-metrics).
+    supabase.from("nodes").select("id, object_type, data, created_by").eq("workspace_id", ws).or("object_type.ilike.%deal%,object_type.ilike.%opportunit%").limit(10000),
   ]);
 
   // Per-member message + decision-participation tallies (real counts, workspace-scoped).
@@ -155,6 +157,27 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
   for (const m of msgs ?? []) { const k = String(m.sender_id ?? ""); if (k) msgBy.set(k, (msgBy.get(k) ?? 0) + 1); }
   const decBy = new Map<string, number>();
   for (const d of decisions ?? []) { const k = String(d.resolved_by ?? ""); if (k) decBy.set(k, (decBy.get(k) ?? 0) + 1); }
+
+  // Per-member deal tallies (owned/won/lost/open) from the real deal nodes.
+  const memberRefs = (members ?? []).map(m => ({ user_id: String(m.user_id ?? ""), email: (m.email as string) ?? null, name: (m.name as string) ?? null }));
+  const dealBy = aggregateDeals((deals ?? []) as DealNode[], memberRefs);
+  // Deal node ids → count each member's real activity on a deal (a proxy for "deals updated").
+  const dealIds = new Set((deals ?? []).map(d => String(d.id)));
+  const dealsUpdatedBy = new Map<string, Set<string>>();
+  for (const a of acts ?? []) {
+    const uid = String(a.actor_id ?? ""); const nid = a.node_id ? String(a.node_id) : "";
+    if (!uid || !nid || !dealIds.has(nid)) continue;
+    if (!dealsUpdatedBy.has(uid)) dealsUpdatedBy.set(uid, new Set());
+    dealsUpdatedBy.get(uid)!.add(nid);
+  }
+
+  // Team-wide daily trends (30d, zero-filled) — all from real timestamps.
+  const nowMs = Date.now();
+  const trends = {
+    activity: dailyTrend(acts ?? [], (a) => a.created_at as string, 30, nowMs),
+    ai_usage: dailyTrend(usage ?? [], (u) => u.created_at as string, 30, nowMs, (u) => Number(u.total_tokens ?? 0)),
+    decisions: dailyTrend(decisions ?? [], (d) => d.resolved_at as string, 30, nowMs),
+  };
 
   // Per-member task aggregates (all real, current-state).
   const taskAgg = new Map<string, { open: number; overdue: number; completed: number }>();
@@ -236,6 +259,12 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
       completed_tasks: taskAgg.get(uid)?.completed ?? 0,
       messages_sent: msgBy.get(uid) ?? 0,
       decisions_resolved: decBy.get(uid) ?? 0,
+      // Real per-member deal tallies + "deals updated" (activity on deal nodes).
+      deals_owned: dealBy.get(uid)?.owned ?? 0,
+      deals_won: dealBy.get(uid)?.won ?? 0,
+      deals_lost: dealBy.get(uid)?.lost ?? 0,
+      deals_open: dealBy.get(uid)?.open ?? 0,
+      deals_updated: dealsUpdatedBy.get(uid)?.size ?? 0,
       last_task_id: last?.node_id ?? null,
       last_action: last?.action ?? null,
       last_active_at: last?.created_at ?? null,
@@ -251,11 +280,18 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
         decisions_resolved: decBy.get(uid) ?? 0,
         last_active_at: last?.created_at ?? null,
       }),
+      // Single admin-evaluation headline (source-backed label, not a score).
+      evaluation: evaluationLabel({
+        open_tasks: taskAgg.get(uid)?.open ?? 0,
+        overdue_tasks: taskAgg.get(uid)?.overdue ?? 0,
+        task_count: taskCount,
+        decisions_resolved: decBy.get(uid) ?? 0,
+      }),
     };
   }).sort((a, b) => b.tokens - a.tokens);
 
   const totalTokens = operators.reduce((s, o) => s + o.tokens, 0);
-  return c.json({ operators, totals: { operators: operators.length, tokens: totalTokens, active_sessions: sessionUsers.size } });
+  return c.json({ operators, trends, totals: { operators: operators.length, tokens: totalTokens, active_sessions: sessionUsers.size } });
 });
 
 /**
@@ -336,6 +372,71 @@ router.post("/member-insight", requireAuth, requireAdminRole, async (c) => {
     return c.json({ insight: insight || "I don't have enough tracked activity for this member yet.", sources, sufficient: true });
   } catch {
     return c.json({ insight: "The AI service is unavailable right now — please try again in a moment.", sources, sufficient: true });
+  }
+});
+
+/**
+ * Grounded Oversight Ask — admin-only team Q&A over REAL member metrics only. No tools, no
+ * hallucination: the model is handed a digest built entirely from the database and told to answer
+ * strictly from it, or say the data is insufficient. Returns the source lines it was grounded on.
+ */
+router.post("/oversight-ask", requireAuth, requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const body = await c.req.json().catch(() => ({})) as { question?: string };
+  const question = (body.question ?? "").trim();
+  if (!question) return c.json({ answer: "Ask a question about your team's activity.", sources: [], sufficient: false });
+
+  const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const nowIso = new Date().toISOString();
+  const [{ data: members }, { data: usage }, { data: tasks }, { data: decisions }, { data: deals }] = await Promise.all([
+    supabase.from("workspace_members").select("user_id, name, email, role").eq("workspace_id", ws),
+    supabase.from("ai_usage").select("user_id, total_tokens").eq("workspace_id", ws).gte("created_at", sinceIso),
+    supabase.from("tasks").select("assignee_id, completed, due_date").eq("workspace_id", ws).limit(5000),
+    supabase.from("decision_queue").select("resolved_by").eq("workspace_id", ws).gte("resolved_at", sinceIso).limit(10000),
+    supabase.from("nodes").select("id, object_type, data, created_by").eq("workspace_id", ws).or("object_type.ilike.%deal%,object_type.ilike.%opportunit%").limit(10000),
+  ]);
+
+  const tokBy = new Map<string, number>();
+  for (const u of usage ?? []) { const k = String(u.user_id ?? ""); if (k) tokBy.set(k, (tokBy.get(k) ?? 0) + Number(u.total_tokens ?? 0)); }
+  const taskAgg = new Map<string, { open: number; overdue: number; completed: number }>();
+  for (const t of tasks ?? []) {
+    const uid = String(t.assignee_id ?? ""); if (!uid) continue;
+    const cur = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
+    if (t.completed) cur.completed += 1; else { cur.open += 1; if (t.due_date && String(t.due_date) < nowIso) cur.overdue += 1; }
+    taskAgg.set(uid, cur);
+  }
+  const decBy = new Map<string, number>();
+  for (const d of decisions ?? []) { const k = String(d.resolved_by ?? ""); if (k) decBy.set(k, (decBy.get(k) ?? 0) + 1); }
+  const memberRefs = (members ?? []).map(m => ({ user_id: String(m.user_id ?? ""), email: (m.email as string) ?? null, name: (m.name as string) ?? null }));
+  const dealBy = aggregateDeals((deals ?? []) as DealNode[], memberRefs);
+
+  // One grounded line per member — these ARE the sources.
+  const lines = (members ?? []).map(m => {
+    const uid = String(m.user_id ?? "");
+    const t = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
+    const d = dealBy.get(uid) ?? { owned: 0, won: 0, lost: 0, open: 0 };
+    return `${m.name ?? m.email ?? "Member"} (${m.role ?? "member"}): tasks open ${t.open}, overdue ${t.overdue}, completed ${t.completed}; decisions resolved ${decBy.get(uid) ?? 0}; deals owned ${d.owned} (won ${d.won}, lost ${d.lost}, open ${d.open}); AI credits ${tokBy.get(uid) ?? 0}.`;
+  });
+
+  const anyData = (tasks?.length ?? 0) > 0 || (usage?.length ?? 0) > 0 || (decisions?.length ?? 0) > 0 || (deals?.length ?? 0) > 0;
+  if (!anyData || lines.length === 0) {
+    return c.json({ answer: "I don't have enough tracked team activity to answer that yet.", sources: [], sufficient: false });
+  }
+
+  const digest = [`Team of ${lines.length} member(s), last 30 days:`, ...lines].join("\n");
+  const system =
+    "You are a workspace admin assistant. Answer the admin's question about their team using ONLY the per-member data provided. " +
+    "Never invent members, tasks, deals, decisions, numbers, hours, or productivity scores. Cite real numbers from the data. " +
+    "Do NOT mention tools, databases, or your reasoning. Keep it to a few plain sentences. " +
+    "If the data does not contain enough to answer, reply exactly: \"I don't have enough tracked team activity to answer that yet.\"";
+
+  try {
+    const { text } = await aiGateway({ system, prompt: `Question: ${question}\n\nData:\n${digest}`, maxTokens: 320 });
+    const answer = (text || "").trim();
+    const sources = lines.map((l) => ({ type: "member_metrics" as const, title: l }));
+    return c.json({ answer: answer || "I don't have enough tracked team activity to answer that yet.", sources, sufficient: true });
+  } catch {
+    return c.json({ answer: "The AI service is unavailable right now — please try again in a moment.", sources: [], sufficient: true });
   }
 });
 
