@@ -35,8 +35,9 @@ function daysSince(iso?: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / DAY);
 }
 
-async function notify(workspaceId: string, title: string, body: string, metadata: Record<string, unknown> = {}) {
-  await createNotification({ workspace_id: workspaceId, type: "agent", title, body, metadata });
+// `agent` is the canonical agent slug (source_agent) so every finding is attributable in the bell.
+async function notify(workspaceId: string, agent: string, title: string, body: string, metadata: Record<string, unknown> = {}) {
+  await createNotification({ workspace_id: workspaceId, type: "agent", title, body, metadata, source: { source_agent: agent } });
 }
 
 async function queueDecision(workspaceId: string, agent: string, recordId: string, title: string, summary: string, action: string, risk: "low" | "medium" | "high", evidenceTitle: string) {
@@ -88,7 +89,7 @@ export async function runOpportunityScan(workspaceId: string) {
     }
     steps.push(step(`Queued ${queued} opportunity decision(s) for review`, { status: queued ? "ok" : "info" }));
     if (opportunities.length > 0) {
-      await notify(workspaceId, "✦ Opportunity Agent", `${opportunities.length} record(s) with no active deal — potential conversions.`, { opportunities: opportunities.length });
+      await notify(workspaceId, "opportunity", "✦ Opportunity Agent", `${opportunities.length} record(s) with no active deal — potential conversions.`, { opportunities: opportunities.length });
     }
     await completeJob(jobId, { opportunities: opportunities.length, queued, summary: `${opportunities.length} conversion opportunity(ies), ${queued} queued` }, steps);
     return { opportunities: opportunities.length, queued };
@@ -122,7 +123,7 @@ export async function runPeopleScan(workspaceId: string) {
     }
     steps.push(step(`Queued ${queued} completion decision(s)`, { status: queued ? "ok" : "info" }));
     if (incomplete.length > 0) {
-      await notify(workspaceId, "✦ People Agent", `${incomplete.length} of ${people.length} people record(s) missing email or role.`, { incomplete: incomplete.length, total: people.length });
+      await notify(workspaceId, "people", "✦ People Agent", `${incomplete.length} of ${people.length} people record(s) missing email or role.`, { incomplete: incomplete.length, total: people.length });
     }
     await completeJob(jobId, { people: people.length, incomplete: incomplete.length, queued, summary: `${incomplete.length}/${people.length} people need completion` }, steps);
     return { people: people.length, incomplete: incomplete.length, queued };
@@ -155,7 +156,7 @@ export async function runPortfolioScan(workspaceId: string) {
     }
     steps.push(step(`Queued ${queued} valuation decision(s)`, { status: queued ? "ok" : "info" }));
     if (holdings.length > 0) {
-      await notify(workspaceId, "✦ Portfolio Agent", `${needsReview.length} of ${holdings.length} holding(s) need a valuation update.`, { needs_review: needsReview.length, total: holdings.length });
+      await notify(workspaceId, "portfolio", "✦ Portfolio Agent", `${needsReview.length} of ${holdings.length} holding(s) need a valuation update.`, { needs_review: needsReview.length, total: holdings.length });
     }
     await completeJob(jobId, { holdings: holdings.length, needs_review: needsReview.length, queued, summary: `${needsReview.length}/${holdings.length} holdings need review` }, steps);
     return { holdings: holdings.length, needs_review: needsReview.length, queued };
@@ -188,7 +189,7 @@ export async function runAssetScan(workspaceId: string) {
     }
     steps.push(step(`Queued ${queued} attention decision(s)`, { status: queued ? "ok" : "info" }));
     if (assets.length > 0) {
-      await notify(workspaceId, "✦ Asset Agent", `${flagged.length} of ${assets.length} asset(s) need attention.`, { flagged: flagged.length, total: assets.length });
+      await notify(workspaceId, "asset", "✦ Asset Agent", `${flagged.length} of ${assets.length} asset(s) need attention.`, { flagged: flagged.length, total: assets.length });
     }
     await completeJob(jobId, { assets: assets.length, flagged, queued, summary: assets.length === 0 ? "No asset records in this workspace" : `${flagged.length}/${assets.length} assets flagged` }, steps);
     return { assets: assets.length, flagged: flagged.length, queued };

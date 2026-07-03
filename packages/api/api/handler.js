@@ -41212,10 +41212,37 @@ function emailNotification(n2, to, name) {
   }).catch(() => {
   });
 }
-async function createNotification(n2) {
-  const ch = await channelPrefs(n2);
-  if (ch.email && ch.to) emailNotification(n2, ch.to, ch.name);
-  if (!ch.inApp) return true;
+function compact(obj) {
+  const out = {};
+  for (const [k2, v2] of Object.entries(obj)) if (v2 != null && v2 !== "") out[k2] = v2;
+  return out;
+}
+function categorizeNotification(row) {
+  const type = (row.type ?? "system").toLowerCase();
+  const m2 = row.metadata ?? {};
+  const has2 = (k2) => m2[k2] != null && m2[k2] !== "";
+  if (type === "message") return "messages";
+  if (type === "decision" || type === "alert" || has2("decision_id")) return "decisions";
+  if (type === "task" || row.task_id || has2("task_id")) return "tasks";
+  if (type === "agent" || has2("source_agent")) return "agent";
+  return "system";
+}
+function extractSource(row) {
+  const m2 = row.metadata ?? {};
+  const pick = (a2, b2) => m2[a2] ?? (b2 ? m2[b2] : void 0);
+  return compact({
+    source_agent: pick("source_agent"),
+    agent_job_id: pick("agent_job_id"),
+    decision_id: pick("decision_id", "decisionId"),
+    task_id: row.task_id ?? pick("task_id"),
+    node_id: pick("node_id", "nodeId"),
+    object_type: pick("object_type", "objectType"),
+    route: pick("route")
+  });
+}
+function buildNotificationPayload(n2) {
+  const source = n2.source ? compact({ ...n2.source }) : {};
+  const metadata = { ...source, ...n2.metadata ?? {} };
   const base = {
     workspace_id: n2.workspace_id,
     user_id: n2.user_id ?? null,
@@ -41227,12 +41254,19 @@ async function createNotification(n2) {
     is_read: false,
     read_at: null
   };
-  if (n2.task_id) base.task_id = n2.task_id;
+  const taskId = n2.task_id ?? n2.source?.task_id ?? null;
+  if (taskId) base.task_id = taskId;
   if (n2.record_name) base.record_name = n2.record_name;
-  const hasMeta = n2.metadata && Object.keys(n2.metadata).length > 0;
-  const payload = hasMeta ? { ...base, metadata: n2.metadata } : base;
+  return Object.keys(metadata).length > 0 ? { ...base, metadata } : base;
+}
+async function createNotification(n2) {
+  const ch = await channelPrefs(n2);
+  if (ch.email && ch.to) emailNotification(n2, ch.to, ch.name);
+  if (!ch.inApp) return true;
+  const payload = buildNotificationPayload(n2);
   let { error } = await supabase.from("notifications").insert(payload);
   if (error && /metadata/i.test(error.message)) {
+    const { metadata: _dropped, ...base } = payload;
     ({ error } = await supabase.from("notifications").insert(base));
   }
   if (error) {
@@ -58057,7 +58091,8 @@ async function runDealAlerts(workspaceId) {
           type: "alert",
           title: "\u{1F976} Cold deal detected",
           body: `"${data.name ?? data.title ?? "Deal"}" has had no activity for ${daysInactive} days`,
-          metadata: { node_id: deal.id, object_type: "deal", days_inactive: daysInactive }
+          metadata: { days_inactive: daysInactive },
+          source: { source_agent: "signal", agent_job_id: jobId, node_id: deal.id, object_type: "deal" }
         });
         await supabase.from("decision_queue").insert({
           workspace_id: wsId,
@@ -58300,7 +58335,8 @@ async function runInvoiceChaser(workspaceId) {
           type: "agent",
           title: `Invoice ${invoice.data.invoice_number ?? ""} chase ready for approval`,
           body: `${days} days overdue \xB7 reminder #${chaseCount} drafted, awaiting your approval`,
-          metadata: { invoice_id: invoice.id, object_type: "invoice", days_overdue: days }
+          metadata: { invoice_id: invoice.id, days_overdue: days },
+          source: { source_agent: "finance", agent_job_id: jobId, node_id: invoice.id, object_type: "invoice" }
         });
         chased++;
         totalChased++;
@@ -58379,7 +58415,8 @@ async function runRecurringInvoices(workspaceId) {
           type: "agent",
           title: `Recurring invoice generated: ${newNumber}`,
           body: `Cloned from ${invoice.data.number ?? invoice.id} \xB7 Next due: ${updatedNextDue}`,
-          metadata: { invoice_id: newInvoice.id, original_invoice_id: invoice.id, new_invoice_id: newInvoice.id, object_type: "invoice" }
+          metadata: { original_invoice_id: invoice.id, new_invoice_id: newInvoice.id },
+          source: { source_agent: "finance", agent_job_id: jobId, node_id: newInvoice.id, object_type: "invoice" }
         });
         steps.push({ generated: newNumber, original_id: invoice.id, new_id: newInvoice.id });
         generated++;
@@ -58442,7 +58479,8 @@ async function runEnrichWorkspace(workspaceId, limit2 = 10) {
           type: "agent",
           title: "\u2726 Record enriched",
           body: `AI filled in ${added} field(s)`,
-          metadata: { nodeId: n2.id, object_type: n2.object_type, fields_added: added }
+          metadata: { fields_added: added },
+          source: { source_agent: "graph-enrichment", agent_job_id: jobId, node_id: n2.id, object_type: n2.object_type }
         });
       }
     }
@@ -59327,8 +59365,8 @@ function daysSince(iso) {
   if (!iso) return Infinity;
   return Math.floor((Date.now() - new Date(iso).getTime()) / DAY);
 }
-async function notify(workspaceId, title, body, metadata = {}) {
-  await createNotification({ workspace_id: workspaceId, type: "agent", title, body, metadata });
+async function notify(workspaceId, agent, title, body, metadata = {}) {
+  await createNotification({ workspace_id: workspaceId, type: "agent", title, body, metadata, source: { source_agent: agent } });
 }
 async function queueDecision(workspaceId, agent, recordId, title, summary, action, risk, evidenceTitle) {
   const { data: existing } = await supabase.from("decision_queue").select("id").eq("workspace_id", workspaceId).eq("source_id", recordId).eq("agent_name", agent).eq("status", "pending").maybeSingle();
@@ -59386,7 +59424,7 @@ async function runOpportunityScan(workspaceId) {
     }
     steps.push(step2(`Queued ${queued} opportunity decision(s) for review`, { status: queued ? "ok" : "info" }));
     if (opportunities.length > 0) {
-      await notify(workspaceId, "\u2726 Opportunity Agent", `${opportunities.length} record(s) with no active deal \u2014 potential conversions.`, { opportunities: opportunities.length });
+      await notify(workspaceId, "opportunity", "\u2726 Opportunity Agent", `${opportunities.length} record(s) with no active deal \u2014 potential conversions.`, { opportunities: opportunities.length });
     }
     await completeJob(jobId, { opportunities: opportunities.length, queued, summary: `${opportunities.length} conversion opportunity(ies), ${queued} queued` }, steps);
     return { opportunities: opportunities.length, queued };
@@ -59427,7 +59465,7 @@ async function runPeopleScan(workspaceId) {
     }
     steps.push(step2(`Queued ${queued} completion decision(s)`, { status: queued ? "ok" : "info" }));
     if (incomplete.length > 0) {
-      await notify(workspaceId, "\u2726 People Agent", `${incomplete.length} of ${people.length} people record(s) missing email or role.`, { incomplete: incomplete.length, total: people.length });
+      await notify(workspaceId, "people", "\u2726 People Agent", `${incomplete.length} of ${people.length} people record(s) missing email or role.`, { incomplete: incomplete.length, total: people.length });
     }
     await completeJob(jobId, { people: people.length, incomplete: incomplete.length, queued, summary: `${incomplete.length}/${people.length} people need completion` }, steps);
     return { people: people.length, incomplete: incomplete.length, queued };
@@ -59467,7 +59505,7 @@ async function runPortfolioScan(workspaceId) {
     }
     steps.push(step2(`Queued ${queued} valuation decision(s)`, { status: queued ? "ok" : "info" }));
     if (holdings.length > 0) {
-      await notify(workspaceId, "\u2726 Portfolio Agent", `${needsReview.length} of ${holdings.length} holding(s) need a valuation update.`, { needs_review: needsReview.length, total: holdings.length });
+      await notify(workspaceId, "portfolio", "\u2726 Portfolio Agent", `${needsReview.length} of ${holdings.length} holding(s) need a valuation update.`, { needs_review: needsReview.length, total: holdings.length });
     }
     await completeJob(jobId, { holdings: holdings.length, needs_review: needsReview.length, queued, summary: `${needsReview.length}/${holdings.length} holdings need review` }, steps);
     return { holdings: holdings.length, needs_review: needsReview.length, queued };
@@ -59507,7 +59545,7 @@ async function runAssetScan(workspaceId) {
     }
     steps.push(step2(`Queued ${queued} attention decision(s)`, { status: queued ? "ok" : "info" }));
     if (assets.length > 0) {
-      await notify(workspaceId, "\u2726 Asset Agent", `${flagged.length} of ${assets.length} asset(s) need attention.`, { flagged: flagged.length, total: assets.length });
+      await notify(workspaceId, "asset", "\u2726 Asset Agent", `${flagged.length} of ${assets.length} asset(s) need attention.`, { flagged: flagged.length, total: assets.length });
     }
     await completeJob(jobId, { assets: assets.length, flagged, queued, summary: assets.length === 0 ? "No asset records in this workspace" : `${flagged.length}/${assets.length} assets flagged` }, steps);
     return { assets: assets.length, flagged: flagged.length, queued };
@@ -66227,6 +66265,7 @@ router28.post("/sync", requireJwt, async (c2) => {
 
 // src/routes/notifications.ts
 init_client();
+init_notify();
 var router29 = new Hono2();
 router29.use("*", requireAuth);
 router29.get("/", async (c2) => {
@@ -66234,7 +66273,12 @@ router29.get("/", async (c2) => {
   const userId = c2.get("userId");
   const { data, error } = await supabase.from("notifications").select("*").eq("workspace_id", workspaceId).or(`user_id.eq.${userId},user_id.is.null`).order("created_at", { ascending: false }).limit(100);
   if (error) return c2.json({ error: error.message }, 500);
-  return c2.json(data ?? []);
+  const rows2 = (data ?? []).map((n2) => ({
+    ...n2,
+    category: categorizeNotification(n2),
+    source: extractSource(n2)
+  }));
+  return c2.json(rows2);
 });
 router29.post("/", async (c2) => {
   const workspaceId = c2.get("workspaceId");

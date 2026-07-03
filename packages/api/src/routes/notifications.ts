@@ -1,11 +1,14 @@
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import { categorizeNotification, extractSource } from "../lib/notify";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
 
-// GET /notifications — scoped to workspace + requesting user
+// GET /notifications — scoped to workspace + requesting user. Each row is enriched with a derived
+// `category` (for the grouped bell) and a compacted `source` (the audit-trail links) — both computed
+// from the row's own fields, never fabricated. Original fields are preserved (unread/read intact).
 router.get("/", async (c) => {
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
@@ -17,7 +20,12 @@ router.get("/", async (c) => {
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) return c.json({ error: error.message }, 500);
-  return c.json(data ?? []);
+  const rows = (data ?? []).map((n) => ({
+    ...n,
+    category: categorizeNotification(n),
+    source: extractSource(n),
+  }));
+  return c.json(rows);
 });
 
 // POST /notifications

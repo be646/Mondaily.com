@@ -1,14 +1,50 @@
 import { useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Sparkles, ShieldCheck, MessageSquare, CheckSquare, Settings2, ArrowUpRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import { useNavigate } from "react-router-dom";
 import { resolveNotificationLink } from "../../lib/notification-link";
+import { agentByRaw } from "../../lib/agents";
 
+type NotifCategory = "agent" | "decisions" | "messages" | "tasks" | "system";
+interface NotifSource {
+  source_agent?: string; agent_job_id?: string; decision_id?: string;
+  task_id?: string; node_id?: string; object_type?: string; route?: string;
+}
 interface Notification {
   id: string; title: string; body: string; type: string;
   task_id?: string; is_read: boolean; created_at: string;
   metadata?: Record<string, unknown> | null;
+  category?: NotifCategory;      // derived server-side
+  source?: NotifSource;          // derived server-side (audit links)
+}
+
+// The five bell groups, in display order, each with a heading + icon.
+const CATEGORY_META: { key: NotifCategory; label: string; Icon: LucideIcon }[] = [
+  { key: "decisions", label: "Decisions waiting", Icon: ShieldCheck },
+  { key: "agent",     label: "Agent findings",    Icon: Sparkles },
+  { key: "messages",  label: "Messages",          Icon: MessageSquare },
+  { key: "tasks",     label: "Tasks",             Icon: CheckSquare },
+  { key: "system",    label: "System & readiness", Icon: Settings2 },
+];
+
+// The action a notification offers — derived from its category (source-backed, not invented).
+function actionLabel(n: Notification): string {
+  switch (n.category) {
+    case "decisions": return "Review in Decision Deck";
+    case "tasks":     return "Open task";
+    case "messages":  return "Open message";
+    case "agent":     return n.source?.node_id ? "View record" : "View";
+    default:          return "Open";
+  }
+}
+
+// "who caused it" — a real agent name (via the canonical registry) when we know the source_agent.
+function actorLabel(n: Notification): string | null {
+  const slug = n.source?.source_agent;
+  if (!slug) return null;
+  try { return agentByRaw(slug).name; } catch { return null; }
 }
 
 function fmtTime(iso: string) {
@@ -92,28 +128,48 @@ export function NotificationsBell() {
               )}
             </div>
 
-            {/* List */}
-            <div className="max-h-72 overflow-auto">
+            {/* List — grouped by category, each notification answers what/who/source/action */}
+            <div className="max-h-96 overflow-auto">
               {notifications.length === 0 ? (
                 <div className="px-4 py-10 text-center">
                   <Bell size={20} className="mx-auto mb-2 text-stone-700"/>
                   <p className="text-[12px] text-stone-600">No notifications yet</p>
                 </div>
               ) : (
-                notifications.map(n => (
-                  <button
-                    key={n.id}
-                    onClick={() => handleClick(n)}
-                    className={`flex w-full items-start gap-3 px-4 py-3 border-b border-[var(--border-soft)] last:border-0 hover:bg-[var(--surface-hover)] transition-colors text-left ${!n.is_read ? "bg-[var(--surface-hover)]" : ""}`}
-                  >
-                    <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${!n.is_read ? "bg-stone-400" : "bg-transparent"}`}/>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-[12px] font-medium leading-snug ${!n.is_read ? "text-[var(--text-primary)]" : "text-stone-400"}`}>{n.title}</p>
-                      {n.body && <p className="text-[11px] text-stone-600 mt-0.5 truncate">{n.body}</p>}
-                      <p className="text-[10px] text-stone-700 mt-1">{fmtTime(n.created_at)}</p>
+                CATEGORY_META.map(cat => {
+                  const items = notifications.filter(n => (n.category ?? "system") === cat.key);
+                  if (items.length === 0) return null;
+                  const groupUnread = items.filter(n => !n.is_read).length;
+                  return (
+                    <div key={cat.key}>
+                      <div className="flex items-center gap-1.5 bg-[var(--surface-hover)]/40 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-faint)]">
+                        <cat.Icon size={11}/> {cat.label}
+                        {groupUnread > 0 && <span className="text-[var(--section-accent)]">· {groupUnread}</span>}
+                      </div>
+                      {items.map(n => {
+                        const actor = actorLabel(n);
+                        return (
+                          <button
+                            key={n.id}
+                            onClick={() => handleClick(n)}
+                            className={`flex w-full items-start gap-3 px-4 py-2.5 border-b border-[var(--border-soft)] last:border-0 hover:bg-[var(--surface-hover)] transition-colors text-left ${!n.is_read ? "bg-[var(--surface-hover)]" : ""}`}
+                          >
+                            <div className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${!n.is_read ? "bg-[color:var(--section-accent)]" : "bg-transparent"}`}/>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-[12px] font-medium leading-snug ${!n.is_read ? "text-[var(--text-primary)]" : "text-stone-400"}`}>{n.title}</p>
+                              {n.body && <p className="text-[11px] text-stone-600 mt-0.5 line-clamp-2">{n.body}</p>}
+                              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-stone-700">
+                                {actor && <span className="text-[var(--text-faint)]">by {actor}</span>}
+                                <span>{fmtTime(n.created_at)}</span>
+                                <span className="inline-flex items-center gap-0.5 text-[var(--section-accent)]">{actionLabel(n)} <ArrowUpRight size={9}/></span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                  </button>
-                ))
+                  );
+                })
               )}
             </div>
 

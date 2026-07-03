@@ -110,7 +110,8 @@ export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_crea
         await createNotification({
           workspace_id: wsId, type: "alert", title: "🥶 Cold deal detected",
           body: `"${data.name ?? data.title ?? "Deal"}" has had no activity for ${daysInactive} days`,
-          metadata: { node_id: deal.id, object_type: "deal", days_inactive: daysInactive },
+          metadata: { days_inactive: daysInactive },
+          source: { source_agent: "signal", agent_job_id: jobId, node_id: deal.id, object_type: "deal" },
         });
         await supabase.from("decision_queue").insert({
           workspace_id: wsId, source_type: "node", source_id: deal.id, agent_name: "relationship",
@@ -337,7 +338,8 @@ export async function runInvoiceChaser(workspaceId?: string): Promise<{ total_ch
           workspace_id: wsId, type: "agent",
           title: `Invoice ${invoice.data.invoice_number ?? ""} chase ready for approval`,
           body: `${days} days overdue · reminder #${chaseCount} drafted, awaiting your approval`,
-          metadata: { invoice_id: invoice.id, object_type: "invoice", days_overdue: days },
+          metadata: { invoice_id: invoice.id, days_overdue: days },
+          source: { source_agent: "finance", agent_job_id: jobId, node_id: invoice.id, object_type: "invoice" },
         });
         chased++; totalChased++;
       }
@@ -407,7 +409,8 @@ export async function runRecurringInvoices(workspaceId?: string): Promise<{ gene
         await createNotification({
           workspace_id: wsId, type: "agent", title: `Recurring invoice generated: ${newNumber}`,
           body: `Cloned from ${invoice.data.number ?? invoice.id} · Next due: ${updatedNextDue}`,
-          metadata: { invoice_id: newInvoice.id, original_invoice_id: invoice.id, new_invoice_id: newInvoice.id, object_type: "invoice" },
+          metadata: { original_invoice_id: invoice.id, new_invoice_id: newInvoice.id },
+          source: { source_agent: "finance", agent_job_id: jobId, node_id: newInvoice.id, object_type: "invoice" },
         });
         steps.push({ generated: newNumber, original_id: invoice.id, new_id: newInvoice.id });
         generated++; totalGenerated++;
@@ -480,7 +483,8 @@ export async function runEnrichWorkspace(workspaceId: string, limit = 10): Promi
         enrichedCount++;
         await createNotification({
           workspace_id: workspaceId, type: "agent", title: "✦ Record enriched",
-          body: `AI filled in ${added} field(s)`, metadata: { nodeId: n.id, object_type: n.object_type, fields_added: added },
+          body: `AI filled in ${added} field(s)`, metadata: { fields_added: added },
+          source: { source_agent: "graph-enrichment", agent_job_id: jobId, node_id: n.id, object_type: n.object_type },
         });
       }
     }

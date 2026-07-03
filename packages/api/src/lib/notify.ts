@@ -54,6 +54,21 @@ function emailNotification(n: NotifyInput, to: string, name?: string): void {
  *    exist yet, retries WITHOUT it so the notification still lands,
  *  - logs real failures instead of swallowing them.
  */
+/**
+ * Where a notification came from — the audit trail. Every field is OPTIONAL and only ever set to a
+ * real id the caller already has (an agent that actually ran, a decision that was actually queued).
+ * Nothing here is fabricated: an unknown source stays undefined rather than guessed.
+ */
+export interface NotificationSource {
+  source_agent?: string | null;   // canonical agent slug that caused it (e.g. "relationship", "asset")
+  agent_job_id?: string | null;   // the agent_jobs run — links a notification to its proof-of-work
+  decision_id?: string | null;    // the decision_queue row the user can act on
+  task_id?: string | null;
+  node_id?: string | null;        // the graph record it's about
+  object_type?: string | null;
+  route?: string | null;          // explicit deep-link override
+}
+
 export interface NotifyInput {
   workspace_id: string;
   user_id?: string | null;
@@ -63,6 +78,74 @@ export interface NotifyInput {
   task_id?: string | null;
   record_name?: string | null;
   metadata?: Record<string, unknown> | null;
+  /** Structured provenance — folded into metadata so the bell can show who/what/where + deep-link. */
+  source?: NotificationSource | null;
+}
+
+/** The five notification groups the bell renders. */
+export type NotificationCategory = "agent" | "decisions" | "messages" | "tasks" | "system";
+
+/** Drop null/undefined/empty-string entries so we never persist a fabricated/blank source field. */
+function compact(obj: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) if (v != null && v !== "") out[k] = v;
+  return out;
+}
+
+/**
+ * Categorize a notification into one of the five bell groups, deterministically from its type +
+ * source. Precedence: messages → decisions (something to approve) → tasks → agent findings → system.
+ * Pure + exported so it's unit-tested and reused server-side in GET /notifications.
+ */
+export function categorizeNotification(row: { type?: string | null; task_id?: string | null; metadata?: Record<string, unknown> | null }): NotificationCategory {
+  const type = (row.type ?? "system").toLowerCase();
+  const m = (row.metadata ?? {}) as Record<string, unknown>;
+  const has = (k: string) => m[k] != null && m[k] !== "";
+  if (type === "message") return "messages";
+  if (type === "decision" || type === "alert" || has("decision_id")) return "decisions";
+  if (type === "task" || row.task_id || has("task_id")) return "tasks";
+  if (type === "agent" || has("source_agent")) return "agent";
+  return "system";
+}
+
+/** Extract the compacted source object from a persisted row (metadata + top-level task_id). */
+export function extractSource(row: { task_id?: string | null; metadata?: Record<string, unknown> | null }): NotificationSource {
+  const m = (row.metadata ?? {}) as Record<string, unknown>;
+  const pick = (a: string, b?: string) => (m[a] ?? (b ? m[b] : undefined)) as string | undefined;
+  return compact({
+    source_agent: pick("source_agent"),
+    agent_job_id: pick("agent_job_id"),
+    decision_id: pick("decision_id", "decisionId"),
+    task_id: row.task_id ?? pick("task_id"),
+    node_id: pick("node_id", "nodeId"),
+    object_type: pick("object_type", "objectType"),
+    route: pick("route"),
+  }) as NotificationSource;
+}
+
+/**
+ * Build the notifications insert row from a NotifyInput — pure so it's unit-tested. Folds the
+ * structured `source` into metadata (never overwriting an explicit metadata key the caller set),
+ * always stamps workspace_id + is_read:false (preserves read/unread behavior), and lifts
+ * source.task_id up to the top-level column for the existing deep-link resolver.
+ */
+export function buildNotificationPayload(n: NotifyInput): Record<string, unknown> {
+  const source = n.source ? compact({ ...n.source }) : {};
+  const metadata = { ...source, ...(n.metadata ?? {}) }; // explicit metadata wins over source
+  const base: Record<string, unknown> = {
+    workspace_id: n.workspace_id,
+    user_id: n.user_id ?? null,
+    type: n.type ?? "system",
+    title: n.title,
+    body: n.body ?? "",
+    message: n.title, // legacy NOT-NULL-friendly column
+    is_read: false,
+    read_at: null,
+  };
+  const taskId = n.task_id ?? n.source?.task_id ?? null;
+  if (taskId) base.task_id = taskId;
+  if (n.record_name) base.record_name = n.record_name;
+  return Object.keys(metadata).length > 0 ? { ...base, metadata } : base;
 }
 
 export async function createNotification(n: NotifyInput): Promise<boolean> {
@@ -75,25 +158,12 @@ export async function createNotification(n: NotifyInput): Promise<boolean> {
   // In-app channel — honor the toggle: if the operator turned in-app OFF for this type, skip it.
   if (!ch.inApp) return true;
 
-  const base: Record<string, unknown> = {
-    workspace_id: n.workspace_id,
-    user_id: n.user_id ?? null,
-    type: n.type ?? "system",
-    title: n.title,
-    body: n.body ?? "",
-    message: n.title, // legacy NOT-NULL-friendly column
-    is_read: false,
-    read_at: null,
-  };
-  if (n.task_id) base.task_id = n.task_id;
-  if (n.record_name) base.record_name = n.record_name;
-
-  const hasMeta = n.metadata && Object.keys(n.metadata).length > 0;
-  const payload = hasMeta ? { ...base, metadata: n.metadata } : base;
+  const payload = buildNotificationPayload(n);
 
   let { error } = await supabase.from("notifications").insert(payload);
   if (error && /metadata/i.test(error.message)) {
     // metadata column not migrated yet — persist anyway (deep-link added once migrated).
+    const { metadata: _dropped, ...base } = payload;
     ({ error } = await supabase.from("notifications").insert(base));
   }
   if (error) {
