@@ -65,7 +65,7 @@ describe("reconciliation makes included credits usable (source-read guards)", ()
   it("tops grant rows up to the entitlement target (included credits become usable)", () => {
     const fn = credits.slice(credits.indexOf("export async function reconcileIncludedCredits"));
     expect(fn).toMatch(/const target = grantAmountFor\(ent\.tier\)/);
-    expect(fn).toMatch(/const shortfall = target - granted/);
+    expect(fn).toMatch(/const shortfall = target - \(granted \?\? 0\)/);
   });
   it("is idempotent — a shortfall of ≤ 0 grants nothing (never double-grants)", () => {
     const fn = credits.slice(credits.indexOf("export async function reconcileIncludedCredits"));
@@ -130,5 +130,52 @@ describe("sidebar + billing share ONE balance source, no stale 50k/500k/2M strin
     for (const src of [sidebar, billing]) {
       expect(src).not.toMatch(/50k credits|500k credits|2M credits|500,000 credits|50,000 credits/);
     }
+  });
+});
+
+describe("Start 14-day trial — one consistent activation, no double-grant", () => {
+  const appData = readFileSync(fileURLToPath(new URL("../routes/app-data.ts", import.meta.url)), "utf8");
+  const credits = readFileSync(fileURLToPath(new URL("../lib/credits.ts", import.meta.url)), "utf8");
+  const billing = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/settings/billing.tsx", import.meta.url)), "utf8");
+  const startTrial = appData.slice(appData.indexOf('router.post("/start-trial"'), appData.indexOf('router.post("/start-trial"') + 2100);
+
+  it("activates the Operator trial: account_tier=operator, trial_used, trial_ends_at, plan column", () => {
+    expect(startTrial).toMatch(/account_tier: "operator"/);
+    expect(startTrial).toMatch(/trial_used: true/);
+    expect(startTrial).toMatch(/trial_ends_at: trialEndsAt/);
+    expect(startTrial).toMatch(/plan: "operator"/);   // top-level column in lockstep
+  });
+
+  it("tops credits up via the SHARED grant-row reconciler — NOT the old balance-delta grant", () => {
+    expect(startTrial).toMatch(/reconcileIncludedCredits\(ws, \{ enrollIfEmpty: true \}\)/);
+    // the buggy balance-based delta grant that caused "1,000,000 / 550,000" must be gone
+    expect(startTrial).not.toMatch(/grantAmountFor\("operator"\) - balance/);
+    expect(startTrial).not.toMatch(/creditStatus\(ws\)/);
+  });
+
+  it("only grants the missing shortfall and is idempotent (no double-grant on re-run)", () => {
+    const fn = credits.slice(credits.indexOf("export async function reconcileIncludedCredits"));
+    expect(fn).toMatch(/const shortfall = target - \(granted \?\? 0\)/);
+    expect(fn).toMatch(/if \(shortfall <= 0\) return 0/);   // second activation adds nothing
+  });
+
+  it("a second click is blocked: trial_used → 409 that still returns the resolved state", () => {
+    expect(startTrial).toMatch(/if \(settings\.trial_used\)/);
+    expect(startTrial).toMatch(/trial_used: true, plan: ent\.tier/);
+    expect(startTrial).toMatch(/\}, 409\)/);
+  });
+
+  it("returns the fresh resolved entitlement so the UI can settle immediately", () => {
+    expect(startTrial).toMatch(/const ent = await getEntitlement\(ws\)/);
+    expect(startTrial).toMatch(/ok: true, plan: ent\.tier, source: ent\.source/);
+  });
+
+  it("frontend refetches EVERY tier/credit surface after activation (banner hides, tiers agree)", () => {
+    for (const key of ["billing", "credits-balance", "credit-packs", "workspace-settings"]) {
+      expect(billing, `should invalidate ${key}`).toMatch(new RegExp(`"${key}"`));
+    }
+    expect(billing).toMatch(/refreshEntitlementSurfaces/);
+    // the Start button is gated on trial_eligible, which the backend flips to false on activation
+    expect(billing).toMatch(/billing\.trial_eligible/);
   });
 });

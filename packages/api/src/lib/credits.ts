@@ -50,11 +50,13 @@ async function resolveTier(workspaceId: string): Promise<string> {
  * or `usage` rows, so purchased credits are always preserved and it can never double-grant.
  *
  * Pass `grantedSoFar` when the caller already has the ledger rows in hand (e.g. /credits/balance) to
- * avoid a redundant round-trip. Returns the number of credits added (0 when already reconciled).
+ * avoid a redundant round-trip. Pass `enrollIfEmpty` on an ACTIVATION path (e.g. starting a trial)
+ * so a workspace with no ledger yet gets its first grant instead of being skipped — read paths must
+ * NOT set this (they must never enroll a workspace just by looking at it). Returns credits added.
  */
 export async function reconcileIncludedCredits(
   workspaceId: string,
-  opts: { grantedSoFar?: number; enrolled?: boolean } = {},
+  opts: { grantedSoFar?: number; enrolled?: boolean; enrollIfEmpty?: boolean } = {},
 ): Promise<number> {
   const ent = await getEntitlement(workspaceId);
   const target = grantAmountFor(ent.tier);
@@ -68,8 +70,8 @@ export async function reconcileIncludedCredits(
     enrolled = list.length > 0;
     granted = list.filter(r => r.transaction_type === "grant").reduce((s, r) => s + Number(r.amount), 0);
   }
-  if (!enrolled) return 0;                       // never enroll a workspace just by looking at it
-  const shortfall = target - granted;
+  if (!enrolled && !opts.enrollIfEmpty) return 0; // read paths never enroll a workspace by looking at it
+  const shortfall = target - (granted ?? 0);
   if (shortfall <= 0) return 0;                  // already at/above entitlement — idempotent no-op
   await grantCredits(workspaceId, shortfall, "grant", `reconcile: included-credits top-up to ${ent.tier} entitlement`);
   return shortfall;

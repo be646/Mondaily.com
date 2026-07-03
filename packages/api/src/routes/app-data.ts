@@ -8,10 +8,10 @@ import { makeTrackingToken } from "../lib/tracking";
 import { isWorkspaceAdmin } from "../middleware/rbac";
 import { ACCESS_COOKIE, REFRESH_COOKIE, sha256 } from "../lib/auth-tokens";
 import { MODULE_KEYS, resolveModuleMatrix, enabledModules } from "../lib/modules";
-import { creditStatus, grantCredits } from "../lib/credits";
-import { grantAmountFor, PLAN_TIERS } from "@mondaily/shared/pricing";
+import { reconcileIncludedCredits } from "../lib/credits";
+import { PLAN_TIERS } from "@mondaily/shared/pricing";
 import { planLimits } from "../lib/plan-limits";
-import { resolveEntitlement } from "../lib/entitlements";
+import { resolveEntitlement, getEntitlement } from "../lib/entitlements";
 
 // Seat limit for a workspace — resolved entitlement tier → catalog seats (the ONE source). Scout 1,
 // Operator 5, Command 20, Sovereign 999. Used by both /settings/members (can_invite) and /billing.
@@ -907,19 +907,25 @@ router.post("/start-trial", async (c) => {
   const ws = c.get("workspaceId");
   const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = (data?.settings as Record<string, unknown> | null) ?? {};
-  if (settings.trial_used) return c.json({ error: "Your Operator trial has already been used." }, 409);
+  // Already used → clear 409 WITH the current resolved state so the UI can settle correctly.
+  if (settings.trial_used) {
+    const ent = await getEntitlement(ws);
+    return c.json({ error: "Your Operator trial has already been used.", trial_used: true, plan: ent.tier, source: ent.source, trial_ends_at: ent.trialEndsAt }, 409);
+  }
   if (resolveEntitlement(settings).tier !== "scout") return c.json({ error: "Trials are only available on the free Scout plan." }, 409);
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
   await supabase.from("workspaces").update({
     plan: "operator",                      // keep the top-level column in lockstep with settings
     settings: { ...settings, account_tier: "operator", plan: "operator", track: "business", trial_ends_at: trialEndsAt, trial_used: true },
   }).eq("id", ws);
-  // Top credits up to the Operator allotment (shortfall only — never stack). From the catalog:
-  // trial credits behave exactly like real credits (metered + floored at zero), just time-boxed.
-  const { balance } = await creditStatus(ws);
-  const delta = grantAmountFor("operator") - balance;
-  if (delta > 0) await grantCredits(ws, delta, "grant", "Operator trial credits");
-  return c.json({ ok: true, trial_ends_at: trialEndsAt });
+  // Top the INCLUDED credits up to the Operator allotment using the SAME grant-row reconciliation
+  // that /credits/balance uses — grant-row based, idempotent, never double-grants, and preserves any
+  // purchased credits on top. (The old balance-based delta grant disagreed with that reconciler and
+  // caused the transient "1,000,000 / 550,000" double-grant.)
+  await reconcileIncludedCredits(ws, { enrollIfEmpty: true });
+  // Return the fresh resolved state so the frontend updates immediately, even before refetch.
+  const ent = await getEntitlement(ws);
+  return c.json({ ok: true, plan: ent.tier, source: ent.source, trial_ends_at: ent.trialEndsAt, trial_used: true });
 });
 
 // NOTE: POST /invites lives in routes/invites.ts (mounted at /api/v1/invites, which shadows this

@@ -121,10 +121,25 @@ export function BillingSettings() {
   const [billingBusy, setBillingBusy] = useState<string | null>(null);
   const [interval, setInterval] = useState<"month" | "year">("month");
   const [payModal, setPayModal] = useState<{ plan: string; label: string; price: string } | null>(null);
+  // Refetch EVERY surface that shows tier/credits so the UI settles to one truth immediately after
+  // activation: billing (Current plan + trial banner), the wallet, packs (bonus %), the credit
+  // ledger, and the sidebar/workspace-access queries that also read the resolved tier.
+  const refreshEntitlementSurfaces = () => {
+    for (const key of ["billing", "credits-balance", "credit-packs", "credits-ledger", "workspace-settings", "me-access", "onboarding-status"]) {
+      qc.invalidateQueries({ queryKey: [key] });
+    }
+  };
   const startTrial = useMutation({
     mutationFn: () => apiClient.post("/start-trial", {}),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["billing"] }); qc.invalidateQueries({ queryKey: ["credits-balance"] }); },
-    onError: (e) => { try { setBillingMsg(JSON.parse((e as Error).message)?.error ?? "Could not start the trial."); } catch { setBillingMsg("Could not start the trial."); } },
+    onSuccess: () => { setBillingMsg(null); refreshEntitlementSurfaces(); },
+    // A 409 means the trial is already active/used — that's not a hard error; refresh so the UI
+    // reflects the real state (banner flips to the active trial) instead of leaving the button.
+    onError: (e) => {
+      let parsed: { error?: string; trial_used?: boolean } = {};
+      try { parsed = JSON.parse((e as Error).message); } catch { /* non-JSON */ }
+      if (parsed.trial_used) { refreshEntitlementSurfaces(); return; }
+      setBillingMsg(parsed.error ?? "Could not start the trial.");
+    },
   });
   async function handleBuyCredits(packId = "standard") {
     setCharging(true);

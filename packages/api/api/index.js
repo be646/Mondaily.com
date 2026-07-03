@@ -55206,8 +55206,8 @@ async function reconcileIncludedCredits(workspaceId, opts = {}) {
     enrolled = list.length > 0;
     granted = list.filter((r2) => r2.transaction_type === "grant").reduce((s2, r2) => s2 + Number(r2.amount), 0);
   }
-  if (!enrolled) return 0;
-  const shortfall = target - granted;
+  if (!enrolled && !opts.enrollIfEmpty) return 0;
+  const shortfall = target - (granted ?? 0);
   if (shortfall <= 0) return 0;
   await grantCredits(workspaceId, shortfall, "grant", `reconcile: included-credits top-up to ${ent.tier} entitlement`);
   return shortfall;
@@ -66905,7 +66905,10 @@ router18.post("/start-trial", async (c2) => {
   const ws = c2.get("workspaceId");
   const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = data?.settings ?? {};
-  if (settings.trial_used) return c2.json({ error: "Your Operator trial has already been used." }, 409);
+  if (settings.trial_used) {
+    const ent2 = await getEntitlement(ws);
+    return c2.json({ error: "Your Operator trial has already been used.", trial_used: true, plan: ent2.tier, source: ent2.source, trial_ends_at: ent2.trialEndsAt }, 409);
+  }
   if (resolveEntitlement(settings).tier !== "scout") return c2.json({ error: "Trials are only available on the free Scout plan." }, 409);
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString();
   await supabase.from("workspaces").update({
@@ -66913,10 +66916,9 @@ router18.post("/start-trial", async (c2) => {
     // keep the top-level column in lockstep with settings
     settings: { ...settings, account_tier: "operator", plan: "operator", track: "business", trial_ends_at: trialEndsAt, trial_used: true }
   }).eq("id", ws);
-  const { balance } = await creditStatus(ws);
-  const delta = grantAmountFor("operator") - balance;
-  if (delta > 0) await grantCredits(ws, delta, "grant", "Operator trial credits");
-  return c2.json({ ok: true, trial_ends_at: trialEndsAt });
+  await reconcileIncludedCredits(ws, { enrollIfEmpty: true });
+  const ent = await getEntitlement(ws);
+  return c2.json({ ok: true, plan: ent.tier, source: ent.source, trial_ends_at: ent.trialEndsAt, trial_used: true });
 });
 router18.get("/workspace/members", async (c2) => {
   const { data, error } = await supabase.from("workspace_members").select("user_id, role, finance_role").eq("workspace_id", c2.get("workspaceId"));
