@@ -68483,6 +68483,13 @@ init_places();
 init_reddit();
 init_ai_gateway();
 var router44 = new Hono2();
+router44.get("/connectors", requireJwt, async (c2) => {
+  const [places, reddit] = await Promise.all([
+    placesDiagnostic().catch(() => ({ provider: "osm", ok: true, detail: "probe failed", sample: 0 })),
+    redditDiagnostic().catch(() => ({ enabled: false, ok: false, detail: "probe failed" }))
+  ]);
+  return c2.json({ places, reddit });
+});
 router44.use("*", requireAuth);
 var runSchema2 = external_exports.object({
   searchType: external_exports.enum(["INTENT_LEADS", "REVIEWS"]),
@@ -68624,10 +68631,6 @@ router44.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (
   }).select("id").single();
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json({ id: data.id }, 201);
-});
-router44.get("/connectors", async (c2) => {
-  const [places, reddit] = await Promise.all([placesDiagnostic().catch(() => ({ provider: "osm", ok: true, detail: "probe failed", sample: 0 })), redditDiagnostic().catch(() => ({ enabled: false, ok: false, detail: "probe failed" }))]);
-  return c2.json({ places, reddit });
 });
 router44.get("/monitors", async (c2) => {
   const { data } = await supabase.from("nodes").select("id, data, created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "discovery_monitor").order("created_at", { ascending: false });

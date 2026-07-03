@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { supabase } from "@mondaily/db/client";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireJwt } from "../middleware/auth";
 import { inngest } from "../lib/inngest";
 import { sovereignHeaders } from "../lib/sovereign-search";
 import { runSocialDiscovery, type DiscoveryParams } from "../jobs/social-discovery";
@@ -22,6 +22,18 @@ import { streamSSE } from "hono/streaming";
  */
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
+
+// Connector health — registered BEFORE the workspace-requiring requireAuth so you can hit it from
+// a browser tab (no X-Workspace-Id header). Auth only (requireJwt); makes one real test call to
+// each data source so a bad Google key is visible instead of silently falling back to OSM.
+router.get("/connectors", requireJwt, async (c) => {
+  const [places, reddit] = await Promise.all([
+    placesDiagnostic().catch(() => ({ provider: "osm" as const, ok: true, detail: "probe failed", sample: 0 })),
+    redditDiagnostic().catch(() => ({ enabled: false, ok: false, detail: "probe failed" })),
+  ]);
+  return c.json({ places, reddit });
+});
+
 router.use("*", requireAuth);
 
 const runSchema = z.object({
@@ -191,13 +203,6 @@ router.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c)
   }).select("id").single();
   if (error) return c.json({ error: error.message }, 400);
   return c.json({ id: data.id }, 201);
-});
-
-// Connector health — live probes so you can SEE which data sources are actually on (a bad Google
-// key silently falls back to OSM otherwise). Reads config + makes one real test call to each.
-router.get("/connectors", async (c) => {
-  const [places, reddit] = await Promise.all([placesDiagnostic().catch(() => ({ provider: "osm" as const, ok: true, detail: "probe failed", sample: 0 })), redditDiagnostic().catch(() => ({ enabled: false, ok: false, detail: "probe failed" }))]);
-  return c.json({ places, reddit });
 });
 
 // ── Saved-search monitors ("watch this search") — stored as nodes, re-run by the daily cron. ──
