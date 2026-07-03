@@ -69995,23 +69995,39 @@ router44.post("/save-batch", denyViewerWrites, zValidator("json", external_expor
   const { leads } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
-  const rows2 = leads.map((b2) => {
-    let domain;
+  const domainOf = (website, source_url) => {
+    const u2 = website || source_url || "";
     try {
-      if (b2.source_url) domain = new URL(b2.source_url).host.replace(/^www\./, "");
+      return new URL(u2.startsWith("http") ? u2 : `https://${u2}`).host.replace(/^www\./, "").toLowerCase();
     } catch {
+      return "";
     }
-    return {
-      workspace_id: workspaceId,
-      vertical: objectTypeToVertical(b2.object_type),
-      object_type: b2.object_type,
-      created_by: userId,
-      data: { name: b2.name, source: "discovery", discovery_query: b2.discovery_query, source_url: b2.source_url, email: b2.email, phone: b2.phone, website: b2.website || void 0, domain, handle: b2.handle, description: b2.summary, location: b2.region }
-    };
-  });
+  };
+  const keyOf = (name, website, source_url) => domainOf(website, source_url) || (name ?? "").trim().toLowerCase();
+  const objectTypes = [...new Set(leads.map((l2) => l2.object_type))];
+  const { data: existingNodes } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).in("object_type", objectTypes).limit(5e3);
+  const existingKeys = new Set((existingNodes ?? []).map((n2) => {
+    const d2 = n2.data ?? {};
+    return keyOf(d2.name, d2.website, d2.source_url);
+  }).filter(Boolean));
+  const seen = /* @__PURE__ */ new Set();
+  const rows2 = leads.filter((b2) => {
+    const k2 = keyOf(b2.name, b2.website, b2.source_url);
+    if (!k2 || existingKeys.has(k2) || seen.has(k2)) return false;
+    seen.add(k2);
+    return true;
+  }).map((b2) => ({
+    workspace_id: workspaceId,
+    vertical: objectTypeToVertical(b2.object_type),
+    object_type: b2.object_type,
+    created_by: userId,
+    data: { name: b2.name, source: "discovery", discovery_query: b2.discovery_query, source_url: b2.source_url, email: b2.email, phone: b2.phone, website: b2.website || void 0, domain: domainOf(b2.website, b2.source_url) || void 0, handle: b2.handle, description: b2.summary, location: b2.region }
+  }));
+  const skipped = leads.length - rows2.length;
+  if (rows2.length === 0) return c2.json({ saved: 0, skipped, ids: [] }, 200);
   const { data, error } = await supabase.from("nodes").insert(rows2).select("id");
   if (error) return c2.json({ error: error.message }, 400);
-  return c2.json({ saved: data?.length ?? 0, ids: (data ?? []).map((r2) => r2.id) }, 201);
+  return c2.json({ saved: data?.length ?? 0, skipped, ids: (data ?? []).map((r2) => r2.id) }, 201);
 });
 router44.get("/monitors", async (c2) => {
   const { data } = await supabase.from("nodes").select("id, data, created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "discovery_monitor").order("created_at", { ascending: false });

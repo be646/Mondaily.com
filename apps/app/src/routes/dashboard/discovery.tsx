@@ -535,6 +535,7 @@ function StepTrace({ steps, status }: { steps: string[]; status: Turn["status"] 
 function SaveAllLeads({ results, query }: { results: ResultRow[]; query: string }) {
   const qc = useQueryClient();
   const [state, setState] = useState<"idle" | "saving" | "done" | "error">("idle");
+  const [result, setResult] = useState<{ saved: number; skipped: number } | null>(null);
   const save = async () => {
     setState("saving");
     try {
@@ -549,12 +550,13 @@ function SaveAllLeads({ results, query }: { results: ResultRow[]; query: string 
         region: r.region ?? undefined,
         summary: r.snippet || undefined,
       }));
-      await apiClient.post("/discovery/save-batch", { leads });
+      const res = await apiClient.post<{ saved: number; skipped: number }>("/discovery/save-batch", { leads });
+      setResult(res);
       setState("done");
       qc.invalidateQueries({ queryKey: ["nodes"] });
     } catch { setState("error"); }
   };
-  if (state === "done") return <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "#15803d" }}><Check size={12} /> All {results.length} saved</span>;
+  if (state === "done") return <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "#15803d" }}><Check size={12} /> {result?.saved ?? results.length} saved{result?.skipped ? ` · ${result.skipped} already in graph` : ""}</span>;
   return (
     <button onClick={save} disabled={state === "saving"} className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
       {state === "saving" ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} {state === "error" ? "Retry save all" : `Save all ${results.length}`}

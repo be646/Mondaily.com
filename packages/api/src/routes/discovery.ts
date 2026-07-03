@@ -362,20 +362,40 @@ router.post("/save-batch", denyViewerWrites, zValidator("json", z.object({ leads
   const { leads } = c.req.valid("json");
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
-  const rows = leads.map((b) => {
-    let domain: string | undefined;
-    try { if (b.source_url) domain = new URL(b.source_url).host.replace(/^www\./, ""); } catch { /* ignore */ }
-    return {
-      workspace_id: workspaceId,
-      vertical: objectTypeToVertical(b.object_type),
-      object_type: b.object_type,
-      created_by: userId,
-      data: { name: b.name, source: "discovery", discovery_query: b.discovery_query, source_url: b.source_url, email: b.email, phone: b.phone, website: b.website || undefined, domain, handle: b.handle, description: b.summary, location: b.region },
-    };
-  });
+
+  // Entity resolution — don't create duplicates of leads already in the graph. Key each lead by its
+  // domain (from website/source_url), else its normalized name, and skip ones that already exist.
+  const domainOf = (website?: string, source_url?: string) => {
+    const u = website || source_url || "";
+    try { return new URL(u.startsWith("http") ? u : `https://${u}`).host.replace(/^www\./, "").toLowerCase(); } catch { return ""; }
+  };
+  const keyOf = (name?: string, website?: string, source_url?: string) => domainOf(website, source_url) || (name ?? "").trim().toLowerCase();
+
+  const objectTypes = [...new Set(leads.map((l) => l.object_type))];
+  const { data: existingNodes } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).in("object_type", objectTypes).limit(5000);
+  const existingKeys = new Set((existingNodes ?? []).map((n) => {
+    const d = (n.data ?? {}) as Record<string, string | undefined>;
+    return keyOf(d.name, d.website, d.source_url);
+  }).filter(Boolean));
+
+  const seen = new Set<string>();
+  const rows = leads.filter((b) => {
+    const k = keyOf(b.name, b.website, b.source_url);
+    if (!k || existingKeys.has(k) || seen.has(k)) return false;
+    seen.add(k); return true;
+  }).map((b) => ({
+    workspace_id: workspaceId,
+    vertical: objectTypeToVertical(b.object_type),
+    object_type: b.object_type,
+    created_by: userId,
+    data: { name: b.name, source: "discovery", discovery_query: b.discovery_query, source_url: b.source_url, email: b.email, phone: b.phone, website: b.website || undefined, domain: domainOf(b.website, b.source_url) || undefined, handle: b.handle, description: b.summary, location: b.region },
+  }));
+
+  const skipped = leads.length - rows.length;
+  if (rows.length === 0) return c.json({ saved: 0, skipped, ids: [] }, 200);
   const { data, error } = await supabase.from("nodes").insert(rows).select("id");
   if (error) return c.json({ error: error.message }, 400);
-  return c.json({ saved: data?.length ?? 0, ids: (data ?? []).map((r) => r.id) }, 201);
+  return c.json({ saved: data?.length ?? 0, skipped, ids: (data ?? []).map((r) => r.id) }, 201);
 });
 
 // ── Saved-search monitors ("watch this search") — stored as nodes, re-run by the daily cron. ──
