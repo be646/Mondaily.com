@@ -55975,7 +55975,6 @@ ${text}`
           prompt: region,
           workspaceId,
           onUsage: meter,
-          model: process.env.AI_FAST_MODEL || void 0,
           maxTokens: 300
         });
         districts = Array.isArray(d2.districts) ? d2.districts.filter((x2) => typeof x2 === "string").slice(0, 12) : [];
@@ -69725,8 +69724,6 @@ async function classifyQuery(workspaceId, query, deep, exhaustive) {
       },
       system: "You classify a Mondaily Discovery search query into structured parameters. Be precise: REVIEWS needs one specific named subject; if the query names no specific entity, it's INTENT_LEADS (finding prospects in a sector/region) even if the word 'review' appears generically.",
       prompt: query,
-      model: process.env.AI_FAST_MODEL || void 0,
-      // light task → cheap model when configured
       maxTokens: 200
     }).catch(() => ({}));
   } catch {
@@ -69766,15 +69763,20 @@ router44.post("/coach", zValidator("json", external_exports.object({ query: exte
       system: "You are a search coach for a B2B discovery tool that finds business leads and customer reviews on the open web. Judge if the user's query is specific enough to return good results. A good LEADS query names an INDUSTRY/role and ideally a CITY (e.g. 'aesthetic clinics in Warsaw'). A good REVIEWS query names a SPECIFIC business (e.g. 'reviews about Klinika Ambroziak'). If the query is vague (missing industry, or just 'leads in <city>'), set specific=false and propose 4-5 concrete ready-to-run queries covering likely industries for that context, plus a refined_query. If it's already specific, set specific=true, suggestions=[]. Suggestions must be complete runnable queries, not fragments.",
       prompt: query,
       workspaceId: c2.get("workspaceId"),
-      model: process.env.AI_FAST_MODEL || void 0,
-      // route this light task to the cheap model if configured
       maxTokens: 300
     }).catch(() => ({}));
-    const specific = out.specific !== false;
+    const words = query.trim().split(/\s+/);
+    const GENERIC = /^(leads?|companies|company|businesses|business|prospects?|clients?|contacts?|people|someone|customers?|firms?)$/i;
+    const placeMatch = query.match(/\b(?:in|near|around|from)\s+(.+)$/i);
+    const place = placeMatch && placeMatch[1] ? placeMatch[1].trim() : "";
+    const heuristicVague = GENERIC.test(words[0] ?? "") && words.length <= 4 || words.filter(Boolean).length <= 1;
+    const aiSuggestions = Array.isArray(out.suggestions) ? out.suggestions.filter((s2) => typeof s2 === "string").slice(0, 5) : [];
+    const vague = out.specific === false || heuristicVague;
+    const fallback = place ? [`restaurants in ${place}`, `law firms in ${place}`, `dentists in ${place}`, `marketing agencies in ${place}`, `real estate agencies in ${place}`] : [];
     return c2.json({
-      specific,
-      coach_message: typeof out.coach_message === "string" ? out.coach_message : "",
-      suggestions: Array.isArray(out.suggestions) ? out.suggestions.filter((s2) => typeof s2 === "string").slice(0, 5) : [],
+      specific: !vague,
+      coach_message: typeof out.coach_message === "string" && out.coach_message ? out.coach_message : vague ? `\u201C${query}\u201D is a bit broad \u2014 pick an industry to get sharper results, or search anyway:` : "",
+      suggestions: !vague ? [] : aiSuggestions.length ? aiSuggestions : fallback,
       refined_query: typeof out.refined_query === "string" ? out.refined_query : query
     });
   } catch {

@@ -366,7 +366,7 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
             toolSchema: { type: "object", properties: { districts: { type: "array", items: { type: "string" }, description: "up to 12 main districts/boroughs of the city" } }, required: ["districts"] },
             system: "List the main administrative districts or well-known neighborhoods of the given city, for looping a local-business search. Return names only, no country.",
             prompt: region,
-            workspaceId, onUsage: meter, model: process.env.AI_FAST_MODEL || undefined, maxTokens: 300,
+            workspaceId, onUsage: meter, maxTokens: 300,
           });
           districts = Array.isArray((d as { districts?: unknown }).districts) ? (d as { districts: string[] }).districts.filter((x) => typeof x === "string").slice(0, 12) : [];
         } catch { /* fall back to the single-area result */ }

@@ -97,7 +97,6 @@ async function classifyQuery(workspaceId: string, query: string, deep?: boolean,
       },
       system: "You classify a Mondaily Discovery search query into structured parameters. Be precise: REVIEWS needs one specific named subject; if the query names no specific entity, it's INTENT_LEADS (finding prospects in a sector/region) even if the word 'review' appears generically.",
       prompt: query,
-      model: process.env.AI_FAST_MODEL || undefined, // light task → cheap model when configured
       maxTokens: 200,
     }).catch(() => ({} as Record<string, unknown>));
   } catch { /* fall through to heuristic below */ }
@@ -153,14 +152,26 @@ router.post("/coach", zValidator("json", z.object({ query: z.string().min(1).max
         "If it's already specific, set specific=true, suggestions=[]. Suggestions must be complete runnable queries, not fragments.",
       prompt: query,
       workspaceId: c.get("workspaceId"),
-      model: process.env.AI_FAST_MODEL || undefined, // route this light task to the cheap model if configured
       maxTokens: 300,
     }).catch(() => ({} as Record<string, unknown>));
-    const specific = out.specific !== false; // default to letting it run if the coach fails
+
+    // DETERMINISTIC heuristic so vague queries ALWAYS coach, even if the AI call is flaky/nondeterministic.
+    // "leads in warsaw", "companies in london", a bare 1-2 words → vague (a generic collective noun + a
+    // place, with no industry). "aesthetic clinics in warsaw", "reviews about X" → specific.
+    const words = query.trim().split(/\s+/);
+    const GENERIC = /^(leads?|companies|company|businesses|business|prospects?|clients?|contacts?|people|someone|customers?|firms?)$/i;
+    const placeMatch = query.match(/\b(?:in|near|around|from)\s+(.+)$/i);
+    const place = placeMatch && placeMatch[1] ? placeMatch[1].trim() : "";
+    const heuristicVague = (GENERIC.test(words[0] ?? "") && words.length <= 4) || words.filter(Boolean).length <= 1;
+
+    const aiSuggestions = Array.isArray(out.suggestions) ? (out.suggestions as unknown[]).filter((s): s is string => typeof s === "string").slice(0, 5) : [];
+    const vague = out.specific === false || heuristicVague;
+    const fallback = place ? [`restaurants in ${place}`, `law firms in ${place}`, `dentists in ${place}`, `marketing agencies in ${place}`, `real estate agencies in ${place}`] : [];
     return c.json({
-      specific,
-      coach_message: typeof out.coach_message === "string" ? out.coach_message : "",
-      suggestions: Array.isArray(out.suggestions) ? (out.suggestions as unknown[]).filter((s): s is string => typeof s === "string").slice(0, 5) : [],
+      specific: !vague,
+      coach_message: (typeof out.coach_message === "string" && out.coach_message) ? out.coach_message
+        : (vague ? `“${query}” is a bit broad — pick an industry to get sharper results, or search anyway:` : ""),
+      suggestions: !vague ? [] : (aiSuggestions.length ? aiSuggestions : fallback),
       refined_query: typeof out.refined_query === "string" ? out.refined_query : query,
     });
   } catch {
