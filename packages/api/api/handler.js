@@ -55798,7 +55798,7 @@ function platformOf(url) {
   }
 }
 async function runSocialDiscovery(data, onProgress) {
-  const { workspaceId, region, sector, searchType, targetSubject, deep } = data;
+  const { workspaceId, region, sector, searchType, targetSubject, deep, exhaustive } = data;
   const emit = async (ev) => {
     try {
       await onProgress?.(ev);
@@ -55963,6 +55963,39 @@ ${text}`
   if (searchType === "INTENT_LEADS" && sector) {
     await emit({ type: "progress", stage: "places", message: `Looking up local businesses via ${placesProvider() === "google" ? "Google Places" : "OpenStreetMap"}\u2026` });
     const places = await placesSearch(sector, region, 60).catch(() => []);
+    if (exhaustive && region) {
+      await emit({ type: "progress", stage: "places", message: `Exhaustive sweep \u2014 finding ${region}'s districts\u2026` });
+      let districts = [];
+      try {
+        const d2 = await aiGatewayToolUse({
+          toolName: "list_districts",
+          toolDescription: "List the main districts/neighborhoods of a city",
+          toolSchema: { type: "object", properties: { districts: { type: "array", items: { type: "string" }, description: "up to 12 main districts/boroughs of the city" } }, required: ["districts"] },
+          system: "List the main administrative districts or well-known neighborhoods of the given city, for looping a local-business search. Return names only, no country.",
+          prompt: region,
+          workspaceId,
+          onUsage: meter,
+          model: process.env.AI_FAST_MODEL || void 0,
+          maxTokens: 300
+        });
+        districts = Array.isArray(d2.districts) ? d2.districts.filter((x2) => typeof x2 === "string").slice(0, 12) : [];
+      } catch {
+      }
+      for (const district of districts) {
+        const more = await placesSearch(sector, `${district}, ${region}`, 60).catch(() => []);
+        if (more.length) {
+          places.push(...more);
+          await emit({ type: "progress", stage: "places", message: `${district}: +${more.length} businesses` });
+        }
+      }
+      const seenP = /* @__PURE__ */ new Set();
+      const unique2 = places.filter((p2) => {
+        const k2 = `${p2.name}|${p2.address ?? ""}`.toLowerCase();
+        return seenP.has(k2) ? false : (seenP.add(k2), true);
+      });
+      places.length = 0;
+      places.push(...unique2);
+    }
     for (const pl of places) {
       allLeads.push({
         author_name: pl.name,
@@ -68624,8 +68657,8 @@ async function triggerSweep(c2) {
 }
 router44.post("/trigger", zValidator("json", runSchema2), triggerSweep);
 router44.post("/run", zValidator("json", runSchema2), triggerSweep);
-var searchSchema = external_exports.object({ query: external_exports.string().min(2).max(300), deep: external_exports.boolean().optional() });
-async function classifyQuery(workspaceId, query, deep) {
+var searchSchema = external_exports.object({ query: external_exports.string().min(2).max(300), deep: external_exports.boolean().optional(), exhaustive: external_exports.boolean().optional() });
+async function classifyQuery(workspaceId, query, deep, exhaustive) {
   let classified = {};
   try {
     classified = await aiGatewayToolUse({
@@ -68661,7 +68694,8 @@ async function classifyQuery(workspaceId, query, deep) {
     sector: classified.sector || (searchType === "INTENT_LEADS" ? query : void 0),
     region: classified.region,
     targetSubject: searchType === "REVIEWS" ? subject : classified.targetSubject,
-    deep
+    deep,
+    exhaustive
   };
 }
 router44.post("/coach", zValidator("json", external_exports.object({ query: external_exports.string().min(1).max(300) })), async (c2) => {
@@ -68712,13 +68746,13 @@ router44.post("/search", zValidator("json", searchSchema), async (c2) => {
   }
 });
 router44.post("/search/stream", zValidator("json", searchSchema), async (c2) => {
-  const { query, deep } = c2.req.valid("json");
+  const { query, deep, exhaustive } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   return streamSSE(c2, async (stream2) => {
     const send = (data) => stream2.writeSSE({ data: JSON.stringify(data) });
     try {
       await send({ type: "progress", stage: "classify", message: "Understanding your search\u2026" });
-      const params = await classifyQuery(workspaceId, query, deep);
+      const params = await classifyQuery(workspaceId, query, deep, exhaustive);
       const label = params.searchType === "REVIEWS" ? `reviews about "${params.targetSubject}"` : `leads: ${params.sector ?? query}${params.region ? ` in ${params.region}` : ""}`;
       await send({ type: "progress", stage: "classify", message: `Searching for ${label}` });
       const result = await runSocialDiscovery(params, (ev) => send(ev));

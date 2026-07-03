@@ -77,9 +77,9 @@ router.post("/run", zValidator("json", runSchema), triggerSweep); // alias used 
 // structured sweep params (searchType/sector/region/subject) instead of the user filling out a
 // form. Never invents the query's meaning beyond what's asked — if a target subject genuinely
 // isn't present for a reviews-style ask, it falls back to leads.
-const searchSchema = z.object({ query: z.string().min(2).max(300), deep: z.boolean().optional() });
+const searchSchema = z.object({ query: z.string().min(2).max(300), deep: z.boolean().optional(), exhaustive: z.boolean().optional() });
 
-async function classifyQuery(workspaceId: string, query: string, deep?: boolean): Promise<DiscoveryParams> {
+async function classifyQuery(workspaceId: string, query: string, deep?: boolean, exhaustive?: boolean): Promise<DiscoveryParams> {
   let classified: { searchType?: string; sector?: string; region?: string; targetSubject?: string } = {};
   try {
     classified = await aiGatewayToolUse({
@@ -123,6 +123,7 @@ async function classifyQuery(workspaceId: string, query: string, deep?: boolean)
     region: classified.region,
     targetSubject: searchType === "REVIEWS" ? subject : classified.targetSubject,
     deep,
+    exhaustive,
   };
 }
 
@@ -185,13 +186,13 @@ router.post("/search", zValidator("json", searchSchema), async (c) => {
 // reading each page, finding each lead, deep-harvesting contacts, writing the overview. Events:
 //   {type:"progress", stage, message} · {type:"overview", text} · {type:"done", ...result} · {type:"error", error}
 router.post("/search/stream", zValidator("json", searchSchema), async (c) => {
-  const { query, deep } = c.req.valid("json");
+  const { query, deep, exhaustive } = c.req.valid("json");
   const workspaceId = c.get("workspaceId");
   return streamSSE(c, async (stream) => {
     const send = (data: Record<string, unknown>) => stream.writeSSE({ data: JSON.stringify(data) });
     try {
       await send({ type: "progress", stage: "classify", message: "Understanding your search…" });
-      const params = await classifyQuery(workspaceId, query, deep);
+      const params = await classifyQuery(workspaceId, query, deep, exhaustive);
       const label = params.searchType === "REVIEWS"
         ? `reviews about "${params.targetSubject}"`
         : `leads: ${params.sector ?? query}${params.region ? ` in ${params.region}` : ""}`;

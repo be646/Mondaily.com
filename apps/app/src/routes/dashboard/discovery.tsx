@@ -82,6 +82,7 @@ export function DiscoveryPage() {
   const [view, setView] = useState<"chat" | "saved">("chat");
   const [input, setInput] = useState("");
   const [deep, setDeep] = useState(false);
+  const [exhaustive, setExhaustive] = useState(false);
   // Search history persists in localStorage per workspace, so searches + their results survive a
   // refresh/navigation instead of disappearing.
   const HISTORY_KEY = `mondaily_discovery_history_${localStorage.getItem("mondaily_workspace_id") ?? "default"}`;
@@ -133,7 +134,7 @@ export function DiscoveryPage() {
       const res = await apiFetch(`${BASE_URL}/api/v1/discovery/search/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, deep }),
+        body: JSON.stringify({ query, deep, exhaustive }),
       });
       if (!res.ok || !res.body) throw new Error(`Search failed (${res.status})`);
 
@@ -267,11 +268,18 @@ export function DiscoveryPage() {
                 style={{ color: "var(--text-primary)" }}
               />
               <div className="mt-2 flex items-center justify-between">
-                <button onClick={() => setDeep((d) => !d)} title="Deep mode visits each business's own site to harvest emails & phones"
-                  className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
-                  style={{ borderColor: deep ? "var(--section-accent)" : "var(--border-soft)", color: deep ? "var(--section-accent)" : "var(--text-muted)" }}>
-                  <Sparkles size={12} /> Deep mode {deep ? "on" : "off"}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setDeep((d) => !d)} title="Deep mode visits each business's own site to harvest emails & phones"
+                    className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
+                    style={{ borderColor: deep ? "var(--section-accent)" : "var(--border-soft)", color: deep ? "var(--section-accent)" : "var(--text-muted)" }}>
+                    <Sparkles size={12} /> Deep {deep ? "on" : "off"}
+                  </button>
+                  <button onClick={() => setExhaustive((e) => !e)} title="Exhaustive sweep loops the city's districts for full coverage (uses more Google Places credits)"
+                    className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
+                    style={{ borderColor: exhaustive ? "var(--section-accent)" : "var(--border-soft)", color: exhaustive ? "var(--section-accent)" : "var(--text-muted)" }}>
+                    <Globe2 size={12} /> Exhaustive {exhaustive ? "on" : "off"}
+                  </button>
+                </div>
                 <button onClick={() => onSubmit(input)} disabled={!input.trim() || busy}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white transition-opacity disabled:opacity-40" style={{ background: "var(--section-accent)" }}>
                   {busy ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={16} />}

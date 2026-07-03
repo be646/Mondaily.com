@@ -3,7 +3,7 @@ import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignHeaders, sovereignScrape } from "../lib/sovereign-search";
 import { cacheGet, cacheSet, cacheKey } from "../lib/discovery-cache";
-import { placesSearch, placesProvider } from "../lib/places";
+import { placesSearch, placesProvider, type PlaceLead } from "../lib/places";
 import { redditSearch } from "../lib/reddit";
 import { createNotification } from "../lib/notify";
 import { createHash } from "node:crypto";
@@ -144,7 +144,7 @@ interface ExtractedLead {
   summary?: string;
 }
 
-export type DiscoveryParams = { workspaceId: string; region?: string; sector?: string; searchType: "INTENT_LEADS" | "REVIEWS"; targetSubject?: string; deep?: boolean };
+export type DiscoveryParams = { workspaceId: string; region?: string; sector?: string; searchType: "INTENT_LEADS" | "REVIEWS"; targetSubject?: string; deep?: boolean; exhaustive?: boolean };
 
 /** Live progress callback — the streaming endpoint forwards these to the browser as SSE events so
  *  the user watches the agent work (searching → reading pages → finding leads) instead of a spinner. */
@@ -153,7 +153,7 @@ export type DiscoveryProgress = (ev: Record<string, unknown>) => void | Promise<
 // Core sweep — callable directly (from POST /discovery/run, so results don't depend on Inngest
 // actually processing the event in prod) AND wrapped by the Inngest worker below for background runs.
 export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: DiscoveryProgress): Promise<Record<string, unknown>> {
-    const { workspaceId, region, sector, searchType, targetSubject, deep } = data;
+    const { workspaceId, region, sector, searchType, targetSubject, deep, exhaustive } = data;
     const emit = async (ev: Record<string, unknown>) => { try { await onProgress?.(ev); } catch { /* progress is best-effort */ } };
 
     // 1) Web sweep across the query operators (private SearXNG index). STAGGERED in small batches —
@@ -352,8 +352,33 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     // Both fail-open; they ADD to the web-extracted leads, they never replace or block them.
     if (searchType === "INTENT_LEADS" && sector) {
       // Places: real local businesses with name/phone/website (Google if keyed, else OSM).
+      // EXHAUSTIVE city sweep: Places/Maps caps ~60 per area, so we loop the city's districts and
+      // merge — the way to get "every clinic in Warsaw" (100s) instead of one 60-result page.
       await emit({ type: "progress", stage: "places", message: `Looking up local businesses via ${placesProvider() === "google" ? "Google Places" : "OpenStreetMap"}…` });
-      const places = await placesSearch(sector, region, 60).catch(() => []);
+      const places: PlaceLead[] = await placesSearch(sector, region, 60).catch(() => []);
+      if (exhaustive && region) {
+        await emit({ type: "progress", stage: "places", message: `Exhaustive sweep — finding ${region}'s districts…` });
+        let districts: string[] = [];
+        try {
+          const d = await aiGatewayToolUse({
+            toolName: "list_districts",
+            toolDescription: "List the main districts/neighborhoods of a city",
+            toolSchema: { type: "object", properties: { districts: { type: "array", items: { type: "string" }, description: "up to 12 main districts/boroughs of the city" } }, required: ["districts"] },
+            system: "List the main administrative districts or well-known neighborhoods of the given city, for looping a local-business search. Return names only, no country.",
+            prompt: region,
+            workspaceId, onUsage: meter, model: process.env.AI_FAST_MODEL || undefined, maxTokens: 300,
+          });
+          districts = Array.isArray((d as { districts?: unknown }).districts) ? (d as { districts: string[] }).districts.filter((x) => typeof x === "string").slice(0, 12) : [];
+        } catch { /* fall back to the single-area result */ }
+        for (const district of districts) {
+          const more = await placesSearch(sector, `${district}, ${region}`, 60).catch(() => []);
+          if (more.length) { places.push(...more); await emit({ type: "progress", stage: "places", message: `${district}: +${more.length} businesses` }); }
+        }
+        // De-dup by name+address across districts.
+        const seenP = new Set<string>();
+        const unique = places.filter((p) => { const k = `${p.name}|${p.address ?? ""}`.toLowerCase(); return seenP.has(k) ? false : (seenP.add(k), true); });
+        places.length = 0; places.push(...unique);
+      }
       for (const pl of places) {
         allLeads.push({
           author_name: pl.name,
