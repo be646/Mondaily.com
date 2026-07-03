@@ -32,6 +32,23 @@ function StatusDot({ color }: { color: string }) {
   return <span className="inline-flex h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />;
 }
 
+// ── Sovereignty grouping — maps each backend check id to a named readiness area, in the order
+// item-2 specifies. Any check id NOT listed here still renders (it falls into "Other checks"),
+// so the page can never silently hide a check the API returns. ──────────────────────────────
+const CHECK_GROUPS: { title: string; ids: string[] }[] = [
+  { title: "AI Gateway", ids: ["ask"] },
+  { title: "Sovereign Search", ids: ["sovereign_search", "sovereign_search_key"] },
+  { title: "Scraper", ids: ["sovereign_scraper"] },
+  { title: "Native Auth", ids: ["auth"] },
+  { title: "Database", ids: ["database"] },
+  { title: "Background Jobs", ids: ["api", "agent_jobs", "inngest", "cron_secret"] },
+  { title: "Internal Messaging", ids: ["messaging"] },
+  { title: "Calls / LiveKit", ids: ["calls"] },
+  { title: "Training Controls", ids: ["training"] },
+  { title: "Optional Connectors", ids: ["email", "microsoft"] },
+  { title: "Billing", ids: ["stripe"] },
+];
+
 // ── Feature Reality Matrix — code-backed, not live-queried. Status values
 // reflect what actually exists in this codebase today (routes, jobs,
 // frontend wiring), audited as part of this change. ──────────────────────
@@ -144,31 +161,50 @@ export function StatusPage() {
           <div className="surface-card rounded-sm p-4 text-[12.5px]" style={{ color: "var(--text-faint)" }}>
             Couldn't reach the status endpoint: {(error as Error)?.message ?? "unknown error"}. The API itself may be down — that's a real signal, not hidden.
           </div>
-        ) : (
-          <div className="surface-card rounded-sm">
-            {data!.checks.map(check => {
-              const meta = STATE_META[check.state];
-              return (
-                <div key={check.id} className="stream-row" style={{ borderLeft: `2px solid ${meta.color}` }}>
-                  <meta.icon size={14} className="mt-0.5 shrink-0" style={{ color: meta.color }}/>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{check.label}</p>
-                      <span className="shrink-0 text-[10.5px] font-medium" style={{ color: meta.color }}>{meta.label}</span>
-                    </div>
-                    <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>{check.explanation}</p>
-                    {check.state !== "operational" && check.action && (
-                      <p className="mt-1.5 flex items-start gap-1.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>
-                        <span className="mt-px shrink-0 font-semibold" style={{ color: meta.color }}>Do this:</span>
-                        <span>{check.action}</span>
-                      </p>
-                    )}
+        ) : (() => {
+          const renderCheck = (check: Check) => {
+            const meta = STATE_META[check.state];
+            return (
+              <div key={check.id} className="stream-row" style={{ borderLeft: `2px solid ${meta.color}` }}>
+                <meta.icon size={14} className="mt-0.5 shrink-0" style={{ color: meta.color }}/>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{check.label}</p>
+                    <span className="shrink-0 text-[10.5px] font-medium" style={{ color: meta.color }}>{meta.label}</span>
+                  </div>
+                  <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>{check.explanation}</p>
+                  {/* Only shows a "Do this" when the API itself flags the row non-operational — never invented. */}
+                  {check.state !== "operational" && check.action && (
+                    <p className="mt-1.5 flex items-start gap-1.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>
+                      <span className="mt-px shrink-0 font-semibold" style={{ color: meta.color }}>Do this:</span>
+                      <span>{check.action}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          };
+          const byId = new Map(data!.checks.map(c => [c.id, c]));
+          const grouped = CHECK_GROUPS
+            .map(g => ({ title: g.title, checks: g.ids.map(id => byId.get(id)).filter((c): c is Check => Boolean(c)) }))
+            .filter(g => g.checks.length > 0);
+          // Any check the API returns that isn't mapped to a group above — surface it, never hide it.
+          const claimed = new Set(CHECK_GROUPS.flatMap(g => g.ids));
+          const other = data!.checks.filter(c => !claimed.has(c.id));
+          const sections = other.length ? [...grouped, { title: "Other checks", checks: other }] : grouped;
+          return (
+            <div className="space-y-4">
+              {sections.map(section => (
+                <div key={section.title}>
+                  <p className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{section.title}</p>
+                  <div className="surface-card rounded-sm">
+                    {section.checks.map(renderCheck)}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              ))}
+            </div>
+          );
+        })()}
       </section>
 
       {/* ── 2. Feature Reality Matrix ── */}
