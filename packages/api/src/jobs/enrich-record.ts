@@ -105,7 +105,7 @@ async function extractFields(prompt: string, toolName: string, toolSchema: objec
 }
 
 export const enrichRecord = inngest.createFunction(
-  { id: "crm-enrich-record", name: "CRM: Enrich Record", concurrency: { limit: 5 } },
+  { id: "crm-enrich-record", name: "Enrich Record", concurrency: { limit: 5 } },
   { event: "crm/record.created" },
   async ({ event }) => {
     const { workspaceId, nodeId, objectType } = event.data;

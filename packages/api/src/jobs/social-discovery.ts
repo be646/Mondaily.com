@@ -17,7 +17,10 @@ const leadFingerprint = (url: string, author: string, content: string) =>
 interface SearchHit { title: string; content: string; url: string }
 
 export const SEARCH_TIMEOUT_REASON = "Self-hosted search engine instance was temporarily unreachable.";
-const SOVEREIGN_SEARCH_URL = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
+export const SEARCH_NOT_CONFIGURED_REASON = "Search appliance not configured — SOVEREIGN_SEARCH_URL is not set on the API.";
+// Dev-only localhost default; in production an unset env means "not configured" (fail loud), not a
+// silent localhost that can't exist on Vercel.
+const SOVEREIGN_SEARCH_URL = process.env.SOVEREIGN_SEARCH_URL || (process.env.NODE_ENV !== "production" ? "http://localhost:8080/search" : "");
 // Pin to the engines that actually respond from a datacenter IP. Google/DDG/Brave/Startpage
 // CAPTCHA-block the box and Bing serves junk — leaving them in the default mix drags the WHOLE
 // result to 0 even when Qwant has 10. Overridable via env as more reliable engines are found.
@@ -161,6 +164,12 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     //    firing 10+ queries at bing/qwant simultaneously from one IP trips their rate limits, which
     //    SearXNG then reports as "Suspended: too many requests" and every later query returns 0.
     //    Verified live: rapid-fire parallel queries suspended qwant + wikipedia within seconds.
+    // FAIL LOUD if the sovereign search appliance isn't configured — never pretend to search.
+    if (!SOVEREIGN_SEARCH_URL) {
+      console.error("[social-discovery] " + SEARCH_NOT_CONFIGURED_REASON);
+      await emit({ type: "error", error: SEARCH_NOT_CONFIGURED_REASON });
+      return { status: "SKIPPED_NOT_CONFIGURED" as const, reason: SEARCH_NOT_CONFIGURED_REASON };
+    }
     const queries = buildQueries(searchType, sector, region, targetSubject);
     await emit({ type: "progress", stage: "search", message: `Searching the web across ${queries.length} query angles…` });
     const sweep: SearchResult[] = [];

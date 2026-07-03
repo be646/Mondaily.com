@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   title: { default: TITLE, template: "%s · Mondaily" },
   description: DESCRIPTION,
   applicationName: "Mondaily",
-  keywords: ["autonomous AI workspace", "AI agents", "operations", "CRM alternative", "lead discovery", "workflow automation", "finance and billing", "Mondaily"],
+  keywords: ["autonomous AI workspace", "AI agents", "operations", "relationship graph", "lead discovery", "workflow automation", "finance and billing", "Mondaily"],
   authors: [{ name: "Mondaily Networks" }],
   creator: "Mondaily",
   alternates: { canonical: "/" },

@@ -490,13 +490,15 @@ router.get("/status", async (c) => {
   const scraper_reachable = scrape.ok;
 
   const hasSearchUrl = Boolean(process.env.SOVEREIGN_SEARCH_URL);
+  const hasScrapeUrl = Boolean(process.env.SOVEREIGN_SCRAPE_URL);
   const hasKey = Boolean(process.env.SOVEREIGN_SEARCH_KEY);
   const diagnostic =
-    !hasSearchUrl ? "SOVEREIGN_SEARCH_URL is NOT present on this API deployment — it's on the wrong Vercel project (must be the API/backend project, the one serving api.mondaily.com — not the app frontend), or this deploy is older than the variable. Set it on the API project and redeploy."
-    : !search.reachable ? `SOVEREIGN_SEARCH_URL is set (to '${searchUrl}') but the appliance isn't reachable from the API — verify the value is exactly http://167.233.204.196:8080/search and the box is online.`
+    !hasSearchUrl ? "SOVEREIGN_SEARCH_URL is NOT present on this API deployment — set it on the API/backend project (the one serving api.mondaily.com, not the frontend) and redeploy."
+    : !hasScrapeUrl ? "SOVEREIGN_SCRAPE_URL is NOT set — search works but pages can't be read (no lead/review extraction). Set it on the API project and redeploy."
+    : !search.reachable ? `SOVEREIGN_SEARCH_URL is set (to '${searchUrl}') but the appliance isn't reachable from the API — verify the value and that the box is online.`
     : search.code === 401 || !hasKey ? "Appliance is up but rejecting requests (401) — SOVEREIGN_SEARCH_KEY is missing or doesn't match the appliance's token. Set it on the API project and redeploy."
-    : searxng_reachable && scraper_reachable ? "All systems operational."
-    : `Search ${search.code}, scrape ${scrape.code}.`;
+    : !scraper_reachable ? `Search is up but the scraper isn't reachable (scrape ${scrape.code}) — pages can't be read. Verify SOVEREIGN_SCRAPE_URL and that the scraper container is running.`
+    : "All systems operational.";
 
   return c.json({
     status: searxng_reachable && scraper_reachable ? "HEALTHY" : "DEGRADED",

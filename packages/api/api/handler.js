@@ -40856,6 +40856,10 @@ function sovereignHeaders() {
   return key ? { Authorization: `Bearer ${key}` } : {};
 }
 async function sovereignSearchUrls(query, limit2 = 4) {
+  if (!SEARCH_URL()) {
+    console.error("[sovereign-search] search appliance not configured \u2014 SOVEREIGN_SEARCH_URL is missing");
+    return [];
+  }
   try {
     const url = `${SEARCH_URL()}?q=${encodeURIComponent(query)}&format=json&language=en-US&engines=${encodeURIComponent(SEARCH_ENGINES())}`;
     const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
@@ -40867,6 +40871,10 @@ async function sovereignSearchUrls(query, limit2 = 4) {
   }
 }
 async function sovereignScrape(targetUrl, opts) {
+  if (!SCRAPE_URL()) {
+    console.error("[sovereign-search] scraper appliance not configured \u2014 SOVEREIGN_SCRAPE_URL is missing");
+    return "";
+  }
   const { cacheGet: cacheGet2, cacheSet: cacheSet2, cacheKey: cacheKey2 } = await Promise.resolve().then(() => (init_discovery_cache(), discovery_cache_exports));
   const ck = cacheKey2("scrape", `${opts?.deep ? "d" : "s"}:${targetUrl}`);
   const cached = await cacheGet2(ck);
@@ -40892,12 +40900,13 @@ async function sovereignWebContext(query, maxPages = 2) {
   const pages = await Promise.all(urls.map((u2) => sovereignScrape(u2)));
   return pages.filter(Boolean).map((p2) => p2.slice(0, 2200)).join("\n\n---\n\n");
 }
-var SEARCH_URL, SCRAPE_URL, SEARCH_ENGINES;
+var DEV, SEARCH_URL, SCRAPE_URL, SEARCH_ENGINES;
 var init_sovereign_search = __esm({
   "src/lib/sovereign-search.ts"() {
     "use strict";
-    SEARCH_URL = () => process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
-    SCRAPE_URL = () => process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3002/v1/scrape";
+    DEV = () => process.env.NODE_ENV !== "production";
+    SEARCH_URL = () => process.env.SOVEREIGN_SEARCH_URL || (DEV() ? "http://localhost:8080/search" : "");
+    SCRAPE_URL = () => process.env.SOVEREIGN_SCRAPE_URL || (DEV() ? "http://localhost:3002/v1/scrape" : "");
     SEARCH_ENGINES = () => process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,yahoo";
   }
 });
@@ -55731,6 +55740,7 @@ var init_reddit = __esm({
 // src/jobs/social-discovery.ts
 var social_discovery_exports = {};
 __export(social_discovery_exports, {
+  SEARCH_NOT_CONFIGURED_REASON: () => SEARCH_NOT_CONFIGURED_REASON,
   SEARCH_TIMEOUT_REASON: () => SEARCH_TIMEOUT_REASON,
   runDiscoveryMonitors: () => runDiscoveryMonitors,
   runSocialDiscovery: () => runSocialDiscovery,
@@ -55823,6 +55833,11 @@ async function runSocialDiscovery(data, onProgress) {
     } catch {
     }
   };
+  if (!SOVEREIGN_SEARCH_URL2) {
+    console.error("[social-discovery] " + SEARCH_NOT_CONFIGURED_REASON);
+    await emit({ type: "error", error: SEARCH_NOT_CONFIGURED_REASON });
+    return { status: "SKIPPED_NOT_CONFIGURED", reason: SEARCH_NOT_CONFIGURED_REASON };
+  }
   const queries = buildQueries(searchType, sector, region, targetSubject);
   await emit({ type: "progress", stage: "search", message: `Searching the web across ${queries.length} query angles\u2026` });
   const sweep = [];
@@ -56289,7 +56304,7 @@ async function runDiscoveryMonitors() {
   }
   return { monitors: (monitors ?? []).length, new_results: totalNew };
 }
-var import_node_crypto2, leadFingerprint, SEARCH_TIMEOUT_REASON, SOVEREIGN_SEARCH_URL2, SOVEREIGN_SEARCH_ENGINES, socialDiscoveryWorker;
+var import_node_crypto2, leadFingerprint, SEARCH_TIMEOUT_REASON, SEARCH_NOT_CONFIGURED_REASON, SOVEREIGN_SEARCH_URL2, SOVEREIGN_SEARCH_ENGINES, socialDiscoveryWorker;
 var init_social_discovery = __esm({
   "src/jobs/social-discovery.ts"() {
     "use strict";
@@ -56304,7 +56319,8 @@ var init_social_discovery = __esm({
     import_node_crypto2 = require("crypto");
     leadFingerprint = (url, author, content) => (0, import_node_crypto2.createHash)("md5").update(`${url}|${author}|${(content || "").slice(0, 200)}`).digest("hex");
     SEARCH_TIMEOUT_REASON = "Self-hosted search engine instance was temporarily unreachable.";
-    SOVEREIGN_SEARCH_URL2 = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
+    SEARCH_NOT_CONFIGURED_REASON = "Search appliance not configured \u2014 SOVEREIGN_SEARCH_URL is not set on the API.";
+    SOVEREIGN_SEARCH_URL2 = process.env.SOVEREIGN_SEARCH_URL || (process.env.NODE_ENV !== "production" ? "http://localhost:8080/search" : "");
     SOVEREIGN_SEARCH_ENGINES = process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,yahoo";
     socialDiscoveryWorker = inngest.createFunction(
       { id: "social-media-listening-discovery", name: "Social listening & intent discovery", concurrency: { limit: 3 } },
@@ -57791,7 +57807,7 @@ async function extractFields(prompt, toolName, toolSchema, onUsage) {
   return Object.fromEntries(Object.entries(raw2).filter(([, v2]) => v2 != null && v2 !== ""));
 }
 var enrichRecord = inngest.createFunction(
-  { id: "crm-enrich-record", name: "CRM: Enrich Record", concurrency: { limit: 5 } },
+  { id: "crm-enrich-record", name: "Enrich Record", concurrency: { limit: 5 } },
   { event: "crm/record.created" },
   async ({ event }) => {
     const { workspaceId, nodeId, objectType: objectType2 } = event.data;
@@ -58603,7 +58619,7 @@ var invoiceChaser = inngest.createFunction(
 // src/jobs/relationship-health.ts
 init_inngest2();
 var relationshipHealth = inngest.createFunction(
-  { id: "crm-relationship-health", name: "CRM: Relationship Health Scoring", concurrency: { limit: 1 } },
+  { id: "crm-relationship-health", name: "Relationship Health Scoring", concurrency: { limit: 1 } },
   { cron: "0 2 * * *" },
   async () => runRelationshipHealth()
 );
@@ -58611,7 +58627,7 @@ var relationshipHealth = inngest.createFunction(
 // src/jobs/lead-scoring.ts
 init_inngest2();
 var leadScoring = inngest.createFunction(
-  { id: "crm-lead-scoring", name: "CRM: AI Lead Scoring", concurrency: { limit: 1 } },
+  { id: "crm-lead-scoring", name: "AI Lead Scoring", concurrency: { limit: 1 } },
   { cron: "0 3 * * *" },
   async () => runLeadScoring()
 );
@@ -58619,7 +58635,7 @@ var leadScoring = inngest.createFunction(
 // src/jobs/deal-alerts.ts
 init_inngest2();
 var dealAlerts = inngest.createFunction(
-  { id: "crm-deal-alerts", name: "CRM: Deal Alerts", concurrency: { limit: 2 } },
+  { id: "crm-deal-alerts", name: "Deal Alerts", concurrency: { limit: 2 } },
   { cron: "0 8 * * *" },
   // 8am daily
   async () => runDealAlerts()
@@ -67244,7 +67260,7 @@ router32.post("/risk-alerts", requireAuth, async (c2) => {
     `Total open tasks: ${tasks2.length}`,
     `Overdue tasks: ${overdueTasks.length}${overdueTasks.length ? " \u2014 titles: " + overdueTasks.slice(0, 5).map((t2) => t2.title).join(", ") : ""}`,
     `Urgent tasks: ${urgentTasks.length}`,
-    `Total CRM records: ${nodes.length}`,
+    `Total graph records: ${nodes.length}`,
     `Stale records (no update in 14d): ${staleNodes.length}`,
     `Open deals: ${dealNodes.length}`,
     `High-value stale deals (no activity 14d): ${highValueStaleDeals.length}${highValueStaleDeals.length ? " \u2014 " + highValueStaleDeals.slice(0, 3).map((n2) => n2.data?.name ?? "unnamed").join(", ") : ""}`,
@@ -67256,7 +67272,7 @@ router32.post("/risk-alerts", requireAuth, async (c2) => {
       max_tokens: 1024,
       tools: [{
         name: "generate_risk_alerts",
-        description: "Identify business risks from CRM/task data and return actionable alerts",
+        description: "Identify business risks from graph and task data and return actionable alerts",
         input_schema: {
           type: "object",
           properties: {
@@ -69037,8 +69053,9 @@ router44.get("/status", async (c2) => {
   const searxng_reachable = search.ok;
   const scraper_reachable = scrape.ok;
   const hasSearchUrl = Boolean(process.env.SOVEREIGN_SEARCH_URL);
+  const hasScrapeUrl = Boolean(process.env.SOVEREIGN_SCRAPE_URL);
   const hasKey = Boolean(process.env.SOVEREIGN_SEARCH_KEY);
-  const diagnostic = !hasSearchUrl ? "SOVEREIGN_SEARCH_URL is NOT present on this API deployment \u2014 it's on the wrong Vercel project (must be the API/backend project, the one serving api.mondaily.com \u2014 not the app frontend), or this deploy is older than the variable. Set it on the API project and redeploy." : !search.reachable ? `SOVEREIGN_SEARCH_URL is set (to '${searchUrl}') but the appliance isn't reachable from the API \u2014 verify the value is exactly http://167.233.204.196:8080/search and the box is online.` : search.code === 401 || !hasKey ? "Appliance is up but rejecting requests (401) \u2014 SOVEREIGN_SEARCH_KEY is missing or doesn't match the appliance's token. Set it on the API project and redeploy." : searxng_reachable && scraper_reachable ? "All systems operational." : `Search ${search.code}, scrape ${scrape.code}.`;
+  const diagnostic = !hasSearchUrl ? "SOVEREIGN_SEARCH_URL is NOT present on this API deployment \u2014 set it on the API/backend project (the one serving api.mondaily.com, not the frontend) and redeploy." : !hasScrapeUrl ? "SOVEREIGN_SCRAPE_URL is NOT set \u2014 search works but pages can't be read (no lead/review extraction). Set it on the API project and redeploy." : !search.reachable ? `SOVEREIGN_SEARCH_URL is set (to '${searchUrl}') but the appliance isn't reachable from the API \u2014 verify the value and that the box is online.` : search.code === 401 || !hasKey ? "Appliance is up but rejecting requests (401) \u2014 SOVEREIGN_SEARCH_KEY is missing or doesn't match the appliance's token. Set it on the API project and redeploy." : !scraper_reachable ? `Search is up but the scraper isn't reachable (scrape ${scrape.code}) \u2014 pages can't be read. Verify SOVEREIGN_SCRAPE_URL and that the scraper container is running.` : "All systems operational.";
   return c2.json({
     status: searxng_reachable && scraper_reachable ? "HEALTHY" : "DEGRADED",
     services: { searxng_reachable, scraper_reachable },

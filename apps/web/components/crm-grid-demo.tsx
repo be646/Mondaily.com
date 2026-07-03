@@ -74,7 +74,7 @@ export function CrmGridDemo() {
         <span className="h-2.5 w-2.5 rounded-full bg-red-500/70"/>
         <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/70"/>
         <span className="h-2.5 w-2.5 rounded-full bg-green-500/70"/>
-        <span className="ml-3 text-[10px] text-slate-600">Companies — Mondaily CRM</span>
+        <span className="ml-3 text-[10px] text-slate-600">Companies — Mondaily Graph</span>
       </div>
 
       {/* Table */}

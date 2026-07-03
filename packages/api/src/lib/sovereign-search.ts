@@ -6,14 +6,19 @@ export function sovereignHeaders(): Record<string, string> {
   return key ? { Authorization: `Bearer ${key}` } : {};
 }
 
-const SEARCH_URL = () => process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
-const SCRAPE_URL = () => process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3002/v1/scrape";
+// In production we FAIL LOUD (empty URL → the call logs "appliance not configured" and returns
+// nothing) rather than silently defaulting to a localhost that will never exist on Vercel. The
+// localhost default is a dev-only convenience.
+const DEV = () => process.env.NODE_ENV !== "production";
+const SEARCH_URL = () => process.env.SOVEREIGN_SEARCH_URL || (DEV() ? "http://localhost:8080/search" : "");
+const SCRAPE_URL = () => process.env.SOVEREIGN_SCRAPE_URL || (DEV() ? "http://localhost:3002/v1/scrape" : "");
 // Datacenter-reliable engine set (see social-discovery): CAPTCHA'd engines in the default mix
 // zero out otherwise-good results, so pin to the ones that respond. Overridable via env.
 const SEARCH_ENGINES = () => process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,yahoo";
 
 /** SearXNG JSON search → result URLs (empty on any failure — never throws). */
 export async function sovereignSearchUrls(query: string, limit = 4): Promise<string[]> {
+  if (!SEARCH_URL()) { console.error("[sovereign-search] search appliance not configured — SOVEREIGN_SEARCH_URL is missing"); return []; }
   try {
     // language=en-US — the appliance's German Hetzner IP makes engines geo-localize results to
     // Germany otherwise (verified live). All enrichment/web-search queries are English.
@@ -30,6 +35,7 @@ export async function sovereignSearchUrls(query: string, limit = 4): Promise<str
  *  (e.g. ZnanyLekarz/GoWork load reviews on scroll) and returns much more text.
  *  Result is cached 24h (fail-open) so repeat runs/monitors don't re-scrape. */
 export async function sovereignScrape(targetUrl: string, opts?: { deep?: boolean }): Promise<string> {
+  if (!SCRAPE_URL()) { console.error("[sovereign-search] scraper appliance not configured — SOVEREIGN_SCRAPE_URL is missing"); return ""; }
   const { cacheGet, cacheSet, cacheKey } = await import("./discovery-cache");
   const ck = cacheKey("scrape", `${opts?.deep ? "d" : "s"}:${targetUrl}`);
   const cached = await cacheGet<string>(ck);

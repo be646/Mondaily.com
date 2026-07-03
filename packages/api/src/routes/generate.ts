@@ -704,7 +704,7 @@ router.post("/risk-alerts", requireAuth, async (c) => {
     `Total open tasks: ${tasks.length}`,
     `Overdue tasks: ${overdueTasks.length}${overdueTasks.length ? " — titles: " + overdueTasks.slice(0,5).map(t=>t.title).join(", ") : ""}`,
     `Urgent tasks: ${urgentTasks.length}`,
-    `Total CRM records: ${nodes.length}`,
+    `Total graph records: ${nodes.length}`,
     `Stale records (no update in 14d): ${staleNodes.length}`,
     `Open deals: ${dealNodes.length}`,
     `High-value stale deals (no activity 14d): ${highValueStaleDeals.length}${highValueStaleDeals.length ? " — " + highValueStaleDeals.slice(0,3).map(n=>(n.data as any)?.name ?? "unnamed").join(", ") : ""}`,
@@ -718,7 +718,7 @@ router.post("/risk-alerts", requireAuth, async (c) => {
       max_tokens: 1024,
       tools: [{
         name: "generate_risk_alerts",
-        description: "Identify business risks from CRM/task data and return actionable alerts",
+        description: "Identify business risks from graph and task data and return actionable alerts",
         input_schema: {
           type: "object",
           properties: {
