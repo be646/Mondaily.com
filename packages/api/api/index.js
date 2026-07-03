@@ -40844,6 +40844,13 @@ var init_discovery_cache = __esm({
 });
 
 // src/lib/sovereign-search.ts
+var sovereign_search_exports = {};
+__export(sovereign_search_exports, {
+  sovereignHeaders: () => sovereignHeaders,
+  sovereignScrape: () => sovereignScrape,
+  sovereignSearchUrls: () => sovereignSearchUrls,
+  sovereignWebContext: () => sovereignWebContext
+});
 function sovereignHeaders() {
   const key = process.env.SOVEREIGN_SEARCH_KEY;
   return key ? { Authorization: `Bearer ${key}` } : {};
@@ -69887,6 +69894,53 @@ router44.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (
   }).select("id").single();
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json({ id: data.id }, 201);
+});
+router44.post("/enrich", denyViewerWrites, zValidator("json", external_exports.object({ url: external_exports.string().max(600), name: external_exports.string().max(200).optional() })), async (c2) => {
+  const { url, name } = c2.req.valid("json");
+  const { sovereignScrape: sovereignScrape2 } = await Promise.resolve().then(() => (init_sovereign_search(), sovereign_search_exports));
+  let origin = url;
+  try {
+    origin = new URL(url.startsWith("http") ? url : `https://${url}`).origin;
+  } catch {
+    return c2.json({ error: "Invalid URL" }, 400);
+  }
+  const texts = await Promise.all([
+    sovereignScrape2(origin).catch(() => ""),
+    sovereignScrape2(`${origin}/contact`).catch(() => ""),
+    sovereignScrape2(`${origin}/about`).catch(() => ""),
+    sovereignScrape2(`${origin}/team`).catch(() => "")
+  ]);
+  const text = texts.filter(Boolean).join("\n").slice(0, 14e3);
+  const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const PHONE_RE = /(?:\+|00)[\d][\d\s().-]{7,18}\d/g;
+  const emails = [...new Set(text.match(EMAIL_RE) ?? [])].filter((e2) => !/\.(png|jpg|jpeg|svg|webp|gif)$/i.test(e2)).slice(0, 6);
+  const phones = [...new Set(text.match(PHONE_RE) ?? [])].slice(0, 4);
+  let people = [];
+  let company = null;
+  if (text.trim().length > 120) {
+    try {
+      const out = await aiGatewayToolUse({
+        toolName: "enrich_business",
+        toolDescription: "Extract decision-makers and a one-line company description from a business site",
+        toolSchema: {
+          type: "object",
+          properties: {
+            people: { type: "array", items: { type: "object", properties: { name: { type: "string" }, role: { type: "string" }, email: { type: "string" } }, required: ["name"] }, description: "Named staff/owners/decision-makers shown on the site (verbatim). Empty if none." },
+            company: { type: "string", description: "One-sentence factual description of what the business does, from the site." }
+          }
+        },
+        system: `Extract ONLY real people (name + role + email when shown verbatim) and a one-line company description from this business website${name ? ` for "${name}"` : ""}. Never invent names or emails. Empty arrays if none are present.`,
+        prompt: text,
+        workspaceId: c2.get("workspaceId"),
+        feature: "discovery",
+        maxTokens: 800
+      });
+      people = Array.isArray(out.people) ? out.people.filter((p2) => p2 && typeof p2.name === "string").slice(0, 10) : [];
+      company = typeof out.company === "string" ? out.company : null;
+    } catch {
+    }
+  }
+  return c2.json({ emails, phones, people, company, scanned: texts.filter(Boolean).length });
 });
 router44.post("/save-batch", denyViewerWrites, zValidator("json", external_exports.object({ leads: external_exports.array(saveSchema).min(1).max(200) })), async (c2) => {
   const { leads } = c2.req.valid("json");

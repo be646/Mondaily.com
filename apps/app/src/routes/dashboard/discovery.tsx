@@ -575,11 +575,17 @@ function ReviewCard({ r }: { r: ResultRow }) {
   );
 }
 
+interface Enrichment { emails: string[]; phones: string[]; people: { name: string; role?: string; email?: string }[]; company: string | null }
+
 function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: ListRow[] }) {
   const qc = useQueryClient();
   const [savedId, setSavedId] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const enrich = useMutation({
+    mutationFn: () => apiClient.post<Enrichment>("/discovery/enrich", { url: r.source_url, name: r.author_name }),
+  });
 
   const save = useMutation({
     mutationFn: () => apiClient.post<{ id: string }>("/discovery/save", {
@@ -655,12 +661,35 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
             )}
           </div>
         )}
+        <button onClick={() => enrich.mutate()} disabled={enrich.isPending}
+          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          {enrich.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} style={{ color: "var(--section-accent)" }} />} Enrich
+        </button>
         <button onClick={() => requestAsk(`Research this Discovery lead using only source-backed info: ${name}. Source: ${r.source_url}. Why do they match "${query}", what evidence exists, red flags, and best next action. If no reviews are found, say "No review source found".`)}
           className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
           <MessageSquare size={11} /> Ask AI
         </button>
         {msg && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{msg}</span>}
       </div>
+
+      {/* Enrichment results — real contacts + decision-makers pulled from the lead's own site. */}
+      {enrich.isError && <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>Couldn't enrich (site unreachable).</p>}
+      {enrich.data && (
+        (enrich.data.emails.length || enrich.data.phones.length || enrich.data.people.length || enrich.data.company) ? (
+          <div className="mt-2 rounded-md border px-3 py-2 text-[11.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+            {enrich.data.company && <p className="mb-1.5" style={{ color: "var(--text-secondary)" }}>{enrich.data.company}</p>}
+            {enrich.data.emails.length > 0 && <div style={{ color: "var(--text-muted)" }}>✉ {enrich.data.emails.map((e) => <span key={e} className="mr-2" style={{ color: "var(--text-secondary)" }}>{e}</span>)}</div>}
+            {enrich.data.phones.length > 0 && <div style={{ color: "var(--text-muted)" }}>☎ {enrich.data.phones.map((p) => <span key={p} className="mr-2" style={{ color: "var(--text-secondary)" }}>{p}</span>)}</div>}
+            {enrich.data.people.length > 0 && (
+              <div className="mt-1" style={{ color: "var(--text-muted)" }}>
+                {enrich.data.people.map((p, i) => (
+                  <span key={i} className="mr-2" style={{ color: "var(--text-secondary)" }}>{p.name}{p.role ? ` (${p.role})` : ""}{p.email ? ` · ${p.email}` : ""}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>No extra contacts found on their site.</p>
+      )}
     </div>
   );
 }

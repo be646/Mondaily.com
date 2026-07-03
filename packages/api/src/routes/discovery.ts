@@ -260,6 +260,51 @@ router.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c)
   return c.json({ id: data.id }, 201);
 });
 
+// Enrich a lead — deep-read its OWN site (home + /contact + /about) to pull emails, phones, and
+// decision-makers. Emails/phones via regex on the real page text (deterministic, never invented);
+// people via a grounded AI extraction. Fail-soft: returns whatever it finds (possibly empty).
+router.post("/enrich", denyViewerWrites, zValidator("json", z.object({ url: z.string().max(600), name: z.string().max(200).optional() })), async (c) => {
+  const { url, name } = c.req.valid("json");
+  const { sovereignScrape } = await import("../lib/sovereign-search");
+  let origin = url;
+  try { origin = new URL(url.startsWith("http") ? url : `https://${url}`).origin; } catch { return c.json({ error: "Invalid URL" }, 400); }
+  const texts = await Promise.all([
+    sovereignScrape(origin).catch(() => ""),
+    sovereignScrape(`${origin}/contact`).catch(() => ""),
+    sovereignScrape(`${origin}/about`).catch(() => ""),
+    sovereignScrape(`${origin}/team`).catch(() => ""),
+  ]);
+  const text = texts.filter(Boolean).join("\n").slice(0, 14000);
+  const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const PHONE_RE = /(?:\+|00)[\d][\d\s().-]{7,18}\d/g;
+  const emails = [...new Set(text.match(EMAIL_RE) ?? [])].filter((e) => !/\.(png|jpg|jpeg|svg|webp|gif)$/i.test(e)).slice(0, 6);
+  const phones = [...new Set(text.match(PHONE_RE) ?? [])].slice(0, 4);
+
+  let people: { name: string; role?: string; email?: string }[] = [];
+  let company: string | null = null;
+  if (text.trim().length > 120) {
+    try {
+      const out = await aiGatewayToolUse({
+        toolName: "enrich_business",
+        toolDescription: "Extract decision-makers and a one-line company description from a business site",
+        toolSchema: {
+          type: "object",
+          properties: {
+            people: { type: "array", items: { type: "object", properties: { name: { type: "string" }, role: { type: "string" }, email: { type: "string" } }, required: ["name"] }, description: "Named staff/owners/decision-makers shown on the site (verbatim). Empty if none." },
+            company: { type: "string", description: "One-sentence factual description of what the business does, from the site." },
+          },
+        },
+        system: `Extract ONLY real people (name + role + email when shown verbatim) and a one-line company description from this business website${name ? ` for "${name}"` : ""}. Never invent names or emails. Empty arrays if none are present.`,
+        prompt: text,
+        workspaceId: c.get("workspaceId"), feature: "discovery", maxTokens: 800,
+      });
+      people = Array.isArray((out as { people?: unknown }).people) ? (out as { people: typeof people }).people.filter((p) => p && typeof p.name === "string").slice(0, 10) : [];
+      company = typeof (out as { company?: unknown }).company === "string" ? (out as { company: string }).company : null;
+    } catch { /* return regex results even if AI extraction fails */ }
+  }
+  return c.json({ emails, phones, people, company, scanned: texts.filter(Boolean).length });
+});
+
 // Bulk "Save all leads" — promote a whole result set into the graph in one insert.
 router.post("/save-batch", denyViewerWrites, zValidator("json", z.object({ leads: z.array(saveSchema).min(1).max(200) })), async (c) => {
   const { leads } = c.req.valid("json");
