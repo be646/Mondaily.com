@@ -632,9 +632,10 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
         const { data: pending } = await supabase.from("decision_queue")
           .select("evidence").eq("workspace_id", workspaceId).eq("agent_name", "discovery").eq("status", "pending");
         const seenUrls = new Set((pending ?? []).flatMap((d) => Array.isArray(d.evidence) ? d.evidence.map((e: any) => e?.lead?.source_url) : []));
-        for (const r of strong) {
-          if (seenUrls.has(r.source_url)) continue;
-          await supabase.from("decision_queue").insert({
+        // Await the inserts so `queued` is accurate before the notification body reads it.
+        const inserts = strong
+          .filter((r) => !seenUrls.has(r.source_url))
+          .map((r) => supabase.from("decision_queue").insert({
             workspace_id: workspaceId,
             source_type: "discovered_lead",
             source_id: null,
@@ -649,8 +650,8 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
               match_reason: `Confidence ${r.confidence_score ?? 0}${r.contact?.email ? ` · ${r.contact.email}` : ""}`,
               lead: { name: r.author_name, email: r.contact?.email ?? null, phone: r.contact?.phone ?? null, handle: r.contact?.handle ?? null, summary: r.contact?.summary ?? null, source_url: r.source_url, region: r.region, subject: r.target_subject },
             }],
-          }).then(() => { queued++; }, () => {});
-        }
+          }).then(() => true, () => false));
+        queued = (await Promise.all(inserts)).filter(Boolean).length;
       }
     }
 

@@ -34,6 +34,9 @@ async function googlePlaces(query: string, region: string | undefined, limit: nu
   let pageToken: string | undefined;
   const maxPages = Math.min(3, Math.ceil(limit / 20));
   for (let page = 0; page < maxPages; page++) {
+    // A freshly-issued nextPageToken needs a brief moment to become valid; without this the
+    // page-2+ call can return empty and silently truncate the exhaustive sweep to the first 20.
+    if (pageToken) await new Promise((r) => setTimeout(r, 1600));
     const body: Record<string, unknown> = pageToken ? { pageToken } : { textQuery: q, maxResultCount: 20 };
     const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
       method: "POST",

@@ -55577,6 +55577,7 @@ async function googlePlaces(query, region, limit2) {
   let pageToken;
   const maxPages = Math.min(3, Math.ceil(limit2 / 20));
   for (let page = 0; page < maxPages; page++) {
+    if (pageToken) await new Promise((r2) => setTimeout(r2, 1600));
     const body = pageToken ? { pageToken } : { textQuery: q2, maxResultCount: 20 };
     const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
       method: "POST",
@@ -56229,28 +56230,23 @@ ${digest}`
     if (strong.length) {
       const { data: pending } = await supabase.from("decision_queue").select("evidence").eq("workspace_id", workspaceId).eq("agent_name", "discovery").eq("status", "pending");
       const seenUrls = new Set((pending ?? []).flatMap((d2) => Array.isArray(d2.evidence) ? d2.evidence.map((e2) => e2?.lead?.source_url) : []));
-      for (const r2 of strong) {
-        if (seenUrls.has(r2.source_url)) continue;
-        await supabase.from("decision_queue").insert({
-          workspace_id: workspaceId,
-          source_type: "discovered_lead",
-          source_id: null,
-          agent_name: "discovery",
-          title: `Add ${r2.author_name || "lead"} from Discovery?`,
-          summary: r2.contact?.summary || (r2.raw_content || "").slice(0, 160) || "Discovered from the web",
-          recommended_action: `Add "${r2.author_name || "this lead"}" as a lead record`,
-          risk_level: "low",
-          evidence: [{
-            type: "discovered_lead",
-            title: r2.author_name || "Lead",
-            match_reason: `Confidence ${r2.confidence_score ?? 0}${r2.contact?.email ? ` \xB7 ${r2.contact.email}` : ""}`,
-            lead: { name: r2.author_name, email: r2.contact?.email ?? null, phone: r2.contact?.phone ?? null, handle: r2.contact?.handle ?? null, summary: r2.contact?.summary ?? null, source_url: r2.source_url, region: r2.region, subject: r2.target_subject }
-          }]
-        }).then(() => {
-          queued++;
-        }, () => {
-        });
-      }
+      const inserts = strong.filter((r2) => !seenUrls.has(r2.source_url)).map((r2) => supabase.from("decision_queue").insert({
+        workspace_id: workspaceId,
+        source_type: "discovered_lead",
+        source_id: null,
+        agent_name: "discovery",
+        title: `Add ${r2.author_name || "lead"} from Discovery?`,
+        summary: r2.contact?.summary || (r2.raw_content || "").slice(0, 160) || "Discovered from the web",
+        recommended_action: `Add "${r2.author_name || "this lead"}" as a lead record`,
+        risk_level: "low",
+        evidence: [{
+          type: "discovered_lead",
+          title: r2.author_name || "Lead",
+          match_reason: `Confidence ${r2.confidence_score ?? 0}${r2.contact?.email ? ` \xB7 ${r2.contact.email}` : ""}`,
+          lead: { name: r2.author_name, email: r2.contact?.email ?? null, phone: r2.contact?.phone ?? null, handle: r2.contact?.handle ?? null, summary: r2.contact?.summary ?? null, source_url: r2.source_url, region: r2.region, subject: r2.target_subject }
+        }]
+      }).then(() => true, () => false));
+      queued = (await Promise.all(inserts)).filter(Boolean).length;
     }
   }
   if (dedupedRows.length > 0) {
