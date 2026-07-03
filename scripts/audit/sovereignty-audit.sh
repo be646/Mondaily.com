@@ -54,7 +54,21 @@ COUNT=$(printf "%s\n" "$SUSPECT" | grep -c '\.from(' 2>/dev/null || echo 0)
 printf "  %s workspace-table query sites to eyeball (see workspace-isolation-scan output).\n" "$COUNT"
 warn "heuristic only — run 'node scripts/audit/workspace-isolation-scan.mjs' for per-query workspace_id proximity"
 
-# ── 6. ENV DEPENDENCY SCAN ────────────────────────────────────────────────────
+# ── 6b. SOURCE-BACKED-ANSWER ENFORCEMENT (grounded endpoints have an insufficient-data path) ──
+sec "6b. Source-backed answer enforcement"
+GROUNDED=0
+grep -q "don't have enough tracked activity" "$API/routes/activities.ts" && GROUNDED=$((GROUNDED+1)) && ok "member-insight returns 'insufficient activity' when data is thin (no fabrication)"
+grep -q "no on-topic results found\|No on-topic" "$API/jobs/social-discovery.ts" && GROUNDED=$((GROUNDED+1)) && ok "discovery overview is built only from extracted rows (grounded)"
+grep -q "source-backed\|Never invent\|never invent\|ONLY on the page\|grounded" "$API/jobs/social-discovery.ts" && ok "extraction system prompt forbids inventing data"
+[ $GROUNDED -ge 1 ] || warn "no insufficient-data guard found in the grounded endpoints — review AI answer surfaces"
+
+# ── 7. TRAINING GOVERNANCE (opt-in + redaction + workspace-isolated) ──────────
+sec "7. Training-data governance"
+grep -q "OPT-IN gate" "$API/lib/training-ledger.ts" && ok "training capture is opt-in (off by default)" || bad "training capture is not opt-in gated"
+grep -q "redactPII" "$API/lib/training-ledger.ts" && ok "training prompts run through redactPII" || bad "training capture does not redact PII"
+[ -f "$API/routes/training.ts" ] && ok "visible controls: /training policy/export/purge exist" || warn "no /training controls route"
+
+# ── 8. ENV DEPENDENCY SCAN ────────────────────────────────────────────────────
 sec "6. Env dependency scan (what the API reads)"
 grep -rhoE "process\.env\.[A-Z0-9_]+" "$API" --include="*.ts" | sed 's/process.env.//' | sort -u | tr '\n' ' '
 echo ""
