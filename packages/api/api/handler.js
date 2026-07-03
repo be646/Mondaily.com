@@ -63033,8 +63033,8 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
     supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", sinceIso),
     supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").order("created_at", { ascending: false }).limit(2e3),
     supabase.from("auth_refresh_tokens").select("user_id").is("revoked_at", null).gt("expires_at", nowIso),
-    // Real per-member task rollups (assignee-scoped): open / overdue / completed.
-    supabase.from("tasks").select("assignee_id, completed, due_date").eq("workspace_id", ws).limit(5e3),
+    // Real per-member task rollups (assignee-scoped): open / overdue / completed (+ completed_at for the trend).
+    supabase.from("tasks").select("assignee_id, completed, due_date, completed_at").eq("workspace_id", ws).limit(5e3),
     // Real per-member internal messages sent (30d) + decisions resolved (30d) — both workspace-scoped.
     supabase.from("internal_messages").select("sender_id, created_at").eq("workspace_id", ws).gte("created_at", sinceIso).limit(1e4),
     supabase.from("decision_queue").select("resolved_by, resolved_at").eq("workspace_id", ws).gte("resolved_at", sinceIso).limit(1e4),
@@ -63063,10 +63063,13 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
     dealsUpdatedBy.get(uid).add(nid);
   }
   const nowMs = Date.now();
+  const completedTasks = (tasks2 ?? []).filter((t2) => t2.completed && t2.completed_at);
   const trends = {
     activity: dailyTrend(acts ?? [], (a2) => a2.created_at, 30, nowMs),
     ai_usage: dailyTrend(usage ?? [], (u2) => u2.created_at, 30, nowMs, (u2) => Number(u2.total_tokens ?? 0)),
-    decisions: dailyTrend(decisions ?? [], (d2) => d2.resolved_at, 30, nowMs)
+    decisions: dailyTrend(decisions ?? [], (d2) => d2.resolved_at, 30, nowMs),
+    // Real completed-work trend, now that tasks carry completed_at (migration 0019).
+    tasks_completed: dailyTrend(completedTasks, (t2) => t2.completed_at, 30, nowMs)
   };
   const taskAgg = /* @__PURE__ */ new Map();
   for (const t2 of tasks2 ?? []) {
@@ -66250,6 +66253,15 @@ router25.post("/:id/enrich", async (c2) => {
 
 // src/routes/tasks.ts
 init_client();
+
+// src/lib/task-completion.ts
+function resolveCompletedAt(opts) {
+  if (opts.nextCompleted === true && !opts.wasCompleted) return { completed_at: opts.nowIso };
+  if (opts.nextCompleted === false && opts.wasCompleted) return { completed_at: null };
+  return {};
+}
+
+// src/routes/tasks.ts
 var tasks = new Hono2();
 tasks.use("*", requireAuth);
 tasks.use("*", denyViewerWrites);
@@ -66303,7 +66315,9 @@ tasks.patch("/:id", async (c2) => {
   }
   if (updateBody.completed === true && updateBody.status === void 0) updateBody.status = "done";
   if (updateBody.completed === false && updateBody.status === void 0) updateBody.status = "todo";
-  const { data: oldTask } = await supabase.from("tasks").select("status,priority,assignee_id,assignee_email").eq("id", id).single();
+  const { data: oldTask } = await supabase.from("tasks").select("status,priority,assignee_id,assignee_email,completed,completed_at").eq("id", id).single();
+  const wasCompleted = oldTask?.completed === true;
+  Object.assign(updateBody, resolveCompletedAt({ wasCompleted, nextCompleted: updateBody.completed, nowIso: (/* @__PURE__ */ new Date()).toISOString() }));
   const { data, error } = await supabase.from("tasks").update(updateBody).eq("id", id).eq("workspace_id", workspaceId).select().single();
   if (error) return c2.json({ error: error.message }, 500);
   const statusLabels = { todo: "To Do", in_progress: "In Progress", review: "Needs Review", done: "Done" };

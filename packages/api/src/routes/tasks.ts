@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { denyViewerWrites } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
+import { resolveCompletedAt } from "../lib/task-completion";
 
 const tasks = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 tasks.use("*", requireAuth);
@@ -83,8 +84,12 @@ tasks.patch("/:id", async (c) => {
   // "todo" so the row doesn't stay stuck in "done" (which required a manual refresh to clear).
   if (updateBody.completed === false && updateBody.status === undefined) updateBody.status = "todo";
 
-  // Get old values for activity logging
-  const { data: oldTask } = await supabase.from("tasks").select("status,priority,assignee_id,assignee_email").eq("id", id).single();
+  // Get old values for activity logging + the completion transition (need prior `completed`).
+  const { data: oldTask } = await supabase.from("tasks").select("status,priority,assignee_id,assignee_email,completed,completed_at").eq("id", id).single();
+
+  // Stamp completed_at on the REAL completion transition only (see resolveCompletedAt for the rule).
+  const wasCompleted = (oldTask as { completed?: boolean } | null)?.completed === true;
+  Object.assign(updateBody, resolveCompletedAt({ wasCompleted, nextCompleted: updateBody.completed, nowIso: new Date().toISOString() }));
 
   const { data, error } = await supabase
     .from("tasks")

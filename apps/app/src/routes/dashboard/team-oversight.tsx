@@ -37,7 +37,7 @@ const SIGNAL_TONE: Record<SignalLevel, string> = {
 const EVAL_TONE: Record<EvalLabel["tone"], string> = {
   good: "#10b981", watch: "#d97706", risk: "#e11d48", neutral: "var(--text-faint)",
 };
-interface MatrixResp { operators: Operator[]; trends?: { activity: TrendPoint[]; ai_usage: TrendPoint[]; decisions: TrendPoint[] }; totals: { operators: number; tokens: number; active_sessions: number } }
+interface MatrixResp { operators: Operator[]; trends?: { activity: TrendPoint[]; ai_usage: TrendPoint[]; decisions: TrendPoint[]; tasks_completed?: TrendPoint[] }; totals: { operators: number; tokens: number; active_sessions: number } }
 interface ActivityRow { id: string; action: string; ai_summary: string | null; object: { type: string; name: string | null; node_id?: string | null } | null; changes?: { field: string; value: string }[]; created_at: string }
 
 // Group a member's timeline into the same lenses used across Oversight.
@@ -163,11 +163,12 @@ function Sparkline({ points, tone }: { points: TrendPoint[]; tone: string }) {
 function TeamTrends({ trends }: { trends: NonNullable<MatrixResp["trends"]> }) {
   const cards: { title: string; hint: string; tone: string; pts: TrendPoint[] }[] = [
     { title: "Activity", hint: "Recorded actions / day", tone: "var(--section-accent)", pts: trends.activity ?? [] },
+    { title: "Tasks completed", hint: "Finished tasks / day", tone: "#10b981", pts: trends.tasks_completed ?? [] },
     { title: "AI usage", hint: "Credits / day", tone: "#3b82f6", pts: trends.ai_usage ?? [] },
-    { title: "Decisions resolved", hint: "Approvals & rejections / day", tone: "#10b981", pts: trends.decisions ?? [] },
+    { title: "Decisions resolved", hint: "Approvals & rejections / day", tone: "#8b5cf6", pts: trends.decisions ?? [] },
   ];
   return (
-    <div className="mb-6 grid gap-3 md:grid-cols-3">
+    <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       {cards.map((c) => {
         const total = c.pts.reduce((s, p) => s + p.value, 0);
         return (

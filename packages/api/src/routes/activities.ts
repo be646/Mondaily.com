@@ -143,8 +143,8 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
     supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", sinceIso),
     supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").order("created_at", { ascending: false }).limit(2000),
     supabase.from("auth_refresh_tokens").select("user_id").is("revoked_at", null).gt("expires_at", nowIso),
-    // Real per-member task rollups (assignee-scoped): open / overdue / completed.
-    supabase.from("tasks").select("assignee_id, completed, due_date").eq("workspace_id", ws).limit(5000),
+    // Real per-member task rollups (assignee-scoped): open / overdue / completed (+ completed_at for the trend).
+    supabase.from("tasks").select("assignee_id, completed, due_date, completed_at").eq("workspace_id", ws).limit(5000),
     // Real per-member internal messages sent (30d) + decisions resolved (30d) — both workspace-scoped.
     supabase.from("internal_messages").select("sender_id, created_at").eq("workspace_id", ws).gte("created_at", sinceIso).limit(10000),
     supabase.from("decision_queue").select("resolved_by, resolved_at").eq("workspace_id", ws).gte("resolved_at", sinceIso).limit(10000),
@@ -173,10 +173,13 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
 
   // Team-wide daily trends (30d, zero-filled) — all from real timestamps.
   const nowMs = Date.now();
+  const completedTasks = (tasks ?? []).filter((t) => t.completed && t.completed_at);
   const trends = {
     activity: dailyTrend(acts ?? [], (a) => a.created_at as string, 30, nowMs),
     ai_usage: dailyTrend(usage ?? [], (u) => u.created_at as string, 30, nowMs, (u) => Number(u.total_tokens ?? 0)),
     decisions: dailyTrend(decisions ?? [], (d) => d.resolved_at as string, 30, nowMs),
+    // Real completed-work trend, now that tasks carry completed_at (migration 0019).
+    tasks_completed: dailyTrend(completedTasks, (t) => t.completed_at as string, 30, nowMs),
   };
 
   // Per-member task aggregates (all real, current-state).
