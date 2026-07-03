@@ -86,13 +86,27 @@ async function classifyQuery(workspaceId: string, query: string, deep?: boolean)
       maxTokens: 200,
     }).catch(() => ({} as Record<string, unknown>));
   } catch { /* fall through to heuristic below */ }
-  const searchType = classified.searchType === "REVIEWS" && classified.targetSubject ? "REVIEWS" : "INTENT_LEADS";
+
+  // Heuristic backstop so review intent is never missed when the model is unsure. Phrases like
+  // "reviews about X", "opinions on X", "what do people say about X" are unambiguously REVIEWS,
+  // and the subject is whatever follows — even lowercase/misspelled (e.g. "ambrorzek klinik warsaw").
+  const lc = query.toLowerCase();
+  const reviewish = /\b(reviews?|reviewed|opinions?|opinie|complaints?|reputation|feedback|testimonials?|what (do|are) people say|are they (any )?good|legit|scam)\b/.test(lc);
+  const heuristicSubject = query
+    .replace(/^\s*(reviews?|opinions?|feedback|complaints?|reputation)\s+(about|on|for|of|regarding)\s+/i, "")
+    .replace(/^\s*what (do|are) people say(ing)?\s+(about|on)\s+/i, "")
+    .trim();
+
+  const isReviews = classified.searchType === "REVIEWS" || reviewish;
+  const subject = classified.targetSubject || (isReviews ? heuristicSubject || query : undefined);
+  const searchType: "INTENT_LEADS" | "REVIEWS" = isReviews && subject ? "REVIEWS" : "INTENT_LEADS";
+
   return {
     workspaceId,
-    searchType: searchType as "INTENT_LEADS" | "REVIEWS",
+    searchType,
     sector: classified.sector || (searchType === "INTENT_LEADS" ? query : undefined),
     region: classified.region,
-    targetSubject: classified.targetSubject,
+    targetSubject: searchType === "REVIEWS" ? subject : classified.targetSubject,
     deep,
   };
 }

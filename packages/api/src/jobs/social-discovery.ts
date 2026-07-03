@@ -52,33 +52,33 @@ function buildQueries(searchType: "INTENT_LEADS" | "REVIEWS", sector?: string, r
   const loc = region ? ` ${region}` : "";
   if (searchType === "REVIEWS") {
     const subj = (targetSubject ?? sector ?? "").trim();
+    // Reviews live under different words per country (opinie/avis/bewertungen/reseñas) and on
+    // local review sites, not just English "reviews"/Trustpilot — so we cast a multilingual net.
     return [
       `${subj} reviews${loc}`,
-      `"${subj}" complaints OR scam OR "bad experience"`,
-      `${subj} trustpilot OR google reviews${loc}`,
-      `${subj} customer feedback OR testimonials${loc}`,
-      `site:reddit.com ${subj} review`,
-      `site:x.com OR site:twitter.com ${subj}`,
-      `site:facebook.com ${subj} review`,
-      `site:instagram.com ${subj}`,
-      `site:linkedin.com ${subj}`,
-      `site:youtube.com ${subj} review`,
+      `${subj} opinie OR avis OR bewertungen OR reseñas OR recensioni${loc}`,
+      `"${subj}" complaints OR scam OR "bad experience" OR skarga`,
+      `${subj} trustpilot OR "google reviews" OR yelp OR znanylekarz OR gowork OR opineo${loc}`,
+      `${subj} customer feedback OR testimonials OR opinie klientów${loc}`,
+      `site:reddit.com ${subj}`,
+      `site:trustpilot.com ${subj}`,
+      `site:facebook.com ${subj} reviews OR opinie`,
     ].filter(q => q.replace(/["']/g, "").trim().length > 6);
   }
-  // INTENT_LEADS = find real people/businesses in a sector + region (leads/prospects).
+  // INTENT_LEADS = find real businesses in a sector/region AND people actively asking to buy.
   const s = (sector ?? "").trim();
+  const one = s.replace(/(\w)s\b/, "$1"); // rough singular: "lawyers" → "lawyer" for intent phrasing
   return [
-    `${s}${loc}`,
-    `top ${s}${loc}`,
+    // Business/provider discovery
     `best ${s}${loc}`,
     `${s}${loc} contact email OR phone`,
-    `${s}${loc} directory`,
-    `list of ${s}${loc}`,
+    `${s}${loc} directory OR "list of"`,
     `site:linkedin.com ${s}${loc}`,
-    `site:x.com OR site:twitter.com ${s}${loc}`,
-    `site:instagram.com ${s}${loc}`,
-    `site:facebook.com ${s}${loc}`,
-    `site:reddit.com ${s}${loc} recommendation OR "looking for"`,
+    // BUYER-INTENT signals — people publicly asking for exactly this ("looking for a lawyer in Warsaw")
+    `site:reddit.com ("looking for" OR "recommend" OR "anyone know a good") ${one}${loc}`,
+    `"looking for a ${one}"${loc} OR "need a ${one}"${loc}`,
+    `"can anyone recommend a ${one}"${loc} OR "recommendations for a ${one}"${loc}`,
+    `(site:x.com OR site:twitter.com OR site:quora.com) "looking for" ${one}${loc}`,
   ].filter(q => q.replace(/["']/g, "").trim().length > 4);
 }
 
@@ -148,10 +148,10 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     const queries = buildQueries(searchType, sector, region, targetSubject);
     await emit({ type: "progress", stage: "search", message: `Searching the web across ${queries.length} query angles…` });
     const sweep: SearchResult[] = [];
-    for (let i = 0; i < queries.length; i += 3) {
-      const batch = queries.slice(i, i + 3);
+    for (let i = 0; i < queries.length; i += 2) {
+      const batch = queries.slice(i, i + 2);
       sweep.push(...await Promise.all(batch.map((q) => searxng(q))));
-      if (i + 3 < queries.length) await new Promise((r) => setTimeout(r, 700));
+      if (i + 2 < queries.length) await new Promise((r) => setTimeout(r, 1200));
     }
     // Short-circuit on a connection drop / infra timeout rather than proceeding
     // with an empty payload.

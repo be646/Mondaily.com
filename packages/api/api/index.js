@@ -57601,30 +57601,28 @@ function buildQueries(searchType, sector, region, targetSubject) {
     const subj = (targetSubject ?? sector ?? "").trim();
     return [
       `${subj} reviews${loc}`,
-      `"${subj}" complaints OR scam OR "bad experience"`,
-      `${subj} trustpilot OR google reviews${loc}`,
-      `${subj} customer feedback OR testimonials${loc}`,
-      `site:reddit.com ${subj} review`,
-      `site:x.com OR site:twitter.com ${subj}`,
-      `site:facebook.com ${subj} review`,
-      `site:instagram.com ${subj}`,
-      `site:linkedin.com ${subj}`,
-      `site:youtube.com ${subj} review`
+      `${subj} opinie OR avis OR bewertungen OR rese\xF1as OR recensioni${loc}`,
+      `"${subj}" complaints OR scam OR "bad experience" OR skarga`,
+      `${subj} trustpilot OR "google reviews" OR yelp OR znanylekarz OR gowork OR opineo${loc}`,
+      `${subj} customer feedback OR testimonials OR opinie klient\xF3w${loc}`,
+      `site:reddit.com ${subj}`,
+      `site:trustpilot.com ${subj}`,
+      `site:facebook.com ${subj} reviews OR opinie`
     ].filter((q2) => q2.replace(/["']/g, "").trim().length > 6);
   }
   const s2 = (sector ?? "").trim();
+  const one = s2.replace(/(\w)s\b/, "$1");
   return [
-    `${s2}${loc}`,
-    `top ${s2}${loc}`,
+    // Business/provider discovery
     `best ${s2}${loc}`,
     `${s2}${loc} contact email OR phone`,
-    `${s2}${loc} directory`,
-    `list of ${s2}${loc}`,
+    `${s2}${loc} directory OR "list of"`,
     `site:linkedin.com ${s2}${loc}`,
-    `site:x.com OR site:twitter.com ${s2}${loc}`,
-    `site:instagram.com ${s2}${loc}`,
-    `site:facebook.com ${s2}${loc}`,
-    `site:reddit.com ${s2}${loc} recommendation OR "looking for"`
+    // BUYER-INTENT signals — people publicly asking for exactly this ("looking for a lawyer in Warsaw")
+    `site:reddit.com ("looking for" OR "recommend" OR "anyone know a good") ${one}${loc}`,
+    `"looking for a ${one}"${loc} OR "need a ${one}"${loc}`,
+    `"can anyone recommend a ${one}"${loc} OR "recommendations for a ${one}"${loc}`,
+    `(site:x.com OR site:twitter.com OR site:quora.com) "looking for" ${one}${loc}`
   ].filter((q2) => q2.replace(/["']/g, "").trim().length > 4);
 }
 function normalizeSentiment(s2, intent) {
@@ -57662,10 +57660,10 @@ async function runSocialDiscovery(data, onProgress) {
   const queries = buildQueries(searchType, sector, region, targetSubject);
   await emit({ type: "progress", stage: "search", message: `Searching the web across ${queries.length} query angles\u2026` });
   const sweep = [];
-  for (let i2 = 0; i2 < queries.length; i2 += 3) {
-    const batch = queries.slice(i2, i2 + 3);
+  for (let i2 = 0; i2 < queries.length; i2 += 2) {
+    const batch = queries.slice(i2, i2 + 2);
     sweep.push(...await Promise.all(batch.map((q2) => searxng(q2))));
-    if (i2 + 3 < queries.length) await new Promise((r2) => setTimeout(r2, 700));
+    if (i2 + 2 < queries.length) await new Promise((r2) => setTimeout(r2, 1200));
   }
   if (sweep.some((s2) => s2.unreachable)) {
     console.error("[social-discovery] " + SEARCH_TIMEOUT_REASON);
@@ -68623,13 +68621,18 @@ async function classifyQuery(workspaceId, query, deep) {
     }).catch(() => ({}));
   } catch {
   }
-  const searchType = classified.searchType === "REVIEWS" && classified.targetSubject ? "REVIEWS" : "INTENT_LEADS";
+  const lc = query.toLowerCase();
+  const reviewish = /\b(reviews?|reviewed|opinions?|opinie|complaints?|reputation|feedback|testimonials?|what (do|are) people say|are they (any )?good|legit|scam)\b/.test(lc);
+  const heuristicSubject = query.replace(/^\s*(reviews?|opinions?|feedback|complaints?|reputation)\s+(about|on|for|of|regarding)\s+/i, "").replace(/^\s*what (do|are) people say(ing)?\s+(about|on)\s+/i, "").trim();
+  const isReviews = classified.searchType === "REVIEWS" || reviewish;
+  const subject = classified.targetSubject || (isReviews ? heuristicSubject || query : void 0);
+  const searchType = isReviews && subject ? "REVIEWS" : "INTENT_LEADS";
   return {
     workspaceId,
     searchType,
     sector: classified.sector || (searchType === "INTENT_LEADS" ? query : void 0),
     region: classified.region,
-    targetSubject: classified.targetSubject,
+    targetSubject: searchType === "REVIEWS" ? subject : classified.targetSubject,
     deep
   };
 }

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowUp, Check, ChevronDown, ExternalLink, Globe2, Loader2, MessageSquare,
-  Plus, Radar, Sparkles, Star, ThumbsDown, ThumbsUp, Minus, Users, Trash2,
+  Plus, Radar, Sparkles, Star, ThumbsDown, ThumbsUp, Minus, Users, Trash2, Bell,
 } from "lucide-react";
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
 import { requestAsk } from "../../lib/ask-bus";
@@ -303,6 +303,7 @@ function TurnView({ turn, lists }: { turn: Turn; lists: ListRow[] }) {
                       : <LeadCard key={`${r.source_url}-${i}`} r={r} query={turn.query} lists={lists} />,
                   )}
                 </div>
+                <WatchButton query={turn.query} />
               </>
             ) : turn.status === "done" && !turn.error ? (
               <p className="mt-2 text-[12.5px]" style={{ color: "var(--text-faint)" }}>No on-topic {reviews ? "reviews" : "leads"} found in the pages read. Try a clearer name or sector.</p>
@@ -311,6 +312,26 @@ function TurnView({ turn, lists }: { turn: Turn; lists: ListRow[] }) {
         )}
       </div>
     </div>
+  );
+}
+
+/** "Watch this search" — saves it as a monitor; the daily job re-runs it and notifies on new hits.
+ *  This is how you get alerted to fresh buyer-intent posts ("looking for a lawyer in Warsaw"). */
+function WatchButton({ query }: { query: string }) {
+  const [state, setState] = useState<"idle" | "saving" | "done" | "error">("idle");
+  const save = async () => {
+    setState("saving");
+    try { await apiClient.post("/discovery/monitors", { query }); setState("done"); }
+    catch { setState("error"); }
+  };
+  if (state === "done") return <p className="mt-2 inline-flex items-center gap-1.5 text-[11.5px]" style={{ color: "#15803d" }}><Check size={12} /> Watching — you'll be notified of new results</p>;
+  return (
+    <button onClick={save} disabled={state === "saving"}
+      className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
+      style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+      {state === "saving" ? <Loader2 size={12} className="animate-spin" /> : <Bell size={12} style={{ color: "var(--section-accent)" }} />}
+      {state === "error" ? "Couldn't watch — retry" : "Watch this search — alert me to new results"}
+    </button>
   );
 }
 
