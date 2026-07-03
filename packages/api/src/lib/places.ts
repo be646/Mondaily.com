@@ -94,6 +94,33 @@ async function osmPlaces(query: string, region: string | undefined, limit: numbe
     .filter((p): p is PlaceLead => !!p);
 }
 
+/** Google Places details for the top match of a name — real rating/category/location for the
+ *  enrichment dossier. Google-only (needs GOOGLE_PLACES_API_KEY); returns null otherwise or on no
+ *  match. Never fabricates: only fields Places actually returns are populated. */
+export async function placesDetails(name: string, region?: string): Promise<{ address: string | null; category: string | null; rating: number | null; reviewCount: number | null } | null> {
+  const key = process.env.GOOGLE_PLACES_API_KEY;
+  if (!key || !name.trim()) return null;
+  const q = region ? `${name} in ${region}` : name;
+  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": key,
+      "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryTypeDisplayName,places.types",
+    },
+    body: JSON.stringify({ textQuery: q, maxResultCount: 1 }),
+  }).then(r => r.json()).catch(() => null) as { places?: Array<{ formattedAddress?: string; rating?: number; userRatingCount?: number; primaryTypeDisplayName?: { text?: string }; types?: string[] }> } | null;
+  const p = res?.places?.[0];
+  if (!p) return null;
+  const category = p.primaryTypeDisplayName?.text || (p.types?.[0] ? p.types[0].replace(/_/g, " ") : null);
+  return {
+    address: p.formattedAddress ?? null,
+    category: category ?? null,
+    rating: typeof p.rating === "number" ? p.rating : null,
+    reviewCount: typeof p.userRatingCount === "number" ? p.userRatingCount : null,
+  };
+}
+
 /** True when the Places connector can return anything (always true — OSM needs no key). */
 export function placesEnabled(): boolean { return true; }
 export function placesProvider(): "google" | "osm" { return process.env.GOOGLE_PLACES_API_KEY ? "google" : "osm"; }

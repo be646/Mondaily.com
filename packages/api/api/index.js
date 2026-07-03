@@ -55669,6 +55669,29 @@ async function osmPlaces(query, region, limit2) {
     };
   }).filter((p2) => !!p2);
 }
+async function placesDetails(name, region) {
+  const key = process.env.GOOGLE_PLACES_API_KEY;
+  if (!key || !name.trim()) return null;
+  const q2 = region ? `${name} in ${region}` : name;
+  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": key,
+      "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryTypeDisplayName,places.types"
+    },
+    body: JSON.stringify({ textQuery: q2, maxResultCount: 1 })
+  }).then((r2) => r2.json()).catch(() => null);
+  const p2 = res?.places?.[0];
+  if (!p2) return null;
+  const category = p2.primaryTypeDisplayName?.text || (p2.types?.[0] ? p2.types[0].replace(/_/g, " ") : null);
+  return {
+    address: p2.formattedAddress ?? null,
+    category: category ?? null,
+    rating: typeof p2.rating === "number" ? p2.rating : null,
+    reviewCount: typeof p2.userRatingCount === "number" ? p2.userRatingCount : null
+  };
+}
 function placesProvider() {
   return process.env.GOOGLE_PLACES_API_KEY ? "google" : "osm";
 }
@@ -70399,6 +70422,51 @@ init_inngest2();
 init_sovereign_search();
 init_social_discovery();
 init_places();
+
+// src/lib/discovery-dossier.ts
+function citeInPages(value, pages) {
+  const needle = value.trim().toLowerCase();
+  if (!needle) return null;
+  for (const p2 of pages) if ((p2.text ?? "").toLowerCase().includes(needle)) return p2.url;
+  return null;
+}
+function buildDossier(input) {
+  const pages = input.pages.filter((p2) => p2.text && p2.text.trim().length > 0);
+  const aiSource = `AI over ${pages.length} scraped page(s)`;
+  const domainFallback = input.domain ? `https://${input.domain}` : "unknown";
+  const emails = input.emails.map((e2) => ({ value: e2, via: "scrape", source: citeInPages(e2, pages) ?? domainFallback }));
+  const phones = input.phones.map((p2) => ({ value: p2, via: "scrape", source: citeInPages(p2, pages) ?? domainFallback }));
+  const people = (input.ai?.people ?? []).filter((p2) => p2 && typeof p2.name === "string" && p2.name.trim()).map((p2) => ({ name: p2.name, role: p2.role ?? null, email: p2.email ?? null, via: "ai", source: aiSource }));
+  const summary = input.ai?.company && input.ai.company.trim() ? { value: input.ai.company.trim(), via: "ai", source: aiSource } : null;
+  const category = input.places?.category ? { value: input.places.category, via: "places", source: "Google Places" } : input.ai?.category && input.ai.category.trim() ? { value: input.ai.category.trim(), via: "ai", source: aiSource } : null;
+  const location2 = input.places?.address ? { value: input.places.address, via: "places", source: "Google Places" } : input.ai?.location && input.ai.location.trim() ? { value: input.ai.location.trim(), via: "ai", source: aiSource } : null;
+  const reviews = input.places && typeof input.places.rating === "number" ? { rating: input.places.rating, count: input.places.reviewCount ?? null, source: "Google Places" } : null;
+  const graph_match = input.graphMatch ?? null;
+  const missing = [];
+  if (!summary) missing.push("summary");
+  if (!category) missing.push("category");
+  if (!location2) missing.push("location");
+  if (emails.length === 0) missing.push("emails");
+  if (phones.length === 0) missing.push("phones");
+  if (!reviews) missing.push("reviews");
+  return {
+    name: input.name,
+    domain: input.domain,
+    summary,
+    category,
+    location: location2,
+    emails,
+    phones,
+    people,
+    reviews,
+    graph_match,
+    sources: pages.map((p2) => ({ url: p2.url, scanned: true })),
+    missing,
+    scanned: pages.length
+  };
+}
+
+// src/routes/discovery.ts
 init_reddit();
 init_ai_gateway();
 
@@ -70687,8 +70755,14 @@ async function loadIcp(workspaceId) {
   const d2 = data?.settings?.discovery_icp?.description;
   return d2 && d2.trim() ? d2.trim() : void 0;
 }
-router45.post("/enrich", denyViewerWrites, zValidator("json", external_exports.object({ url: external_exports.string().max(600), name: external_exports.string().max(200).optional() })), async (c2) => {
-  const { url, name } = c2.req.valid("json");
+router45.post("/enrich", denyViewerWrites, zValidator("json", external_exports.object({
+  url: external_exports.string().max(600),
+  name: external_exports.string().max(200).optional(),
+  region: external_exports.string().max(160).optional(),
+  object_type: external_exports.string().max(40).optional()
+})), async (c2) => {
+  const { url, name, region } = c2.req.valid("json");
+  const workspaceId = c2.get("workspaceId");
   const { sovereignScrape: sovereignScrape2 } = await Promise.resolve().then(() => (init_sovereign_search(), sovereign_search_exports));
   let origin = url;
   try {
@@ -70696,43 +70770,65 @@ router45.post("/enrich", denyViewerWrites, zValidator("json", external_exports.o
   } catch {
     return c2.json({ error: "Invalid URL" }, 400);
   }
-  const texts = await Promise.all([
-    sovereignScrape2(origin).catch(() => ""),
-    sovereignScrape2(`${origin}/contact`).catch(() => ""),
-    sovereignScrape2(`${origin}/about`).catch(() => ""),
-    sovereignScrape2(`${origin}/team`).catch(() => "")
-  ]);
-  const text = texts.filter(Boolean).join("\n").slice(0, 14e3);
+  const domain = (() => {
+    try {
+      return new URL(origin).host.replace(/^www\./, "");
+    } catch {
+      return null;
+    }
+  })();
+  const pageUrls = [origin, `${origin}/contact`, `${origin}/about`, `${origin}/team`];
+  const texts = await Promise.all(pageUrls.map((u2) => sovereignScrape2(u2).catch(() => "")));
+  const pages = pageUrls.map((u2, i2) => ({ url: u2, text: texts[i2] ?? "" })).filter((p2) => p2.text);
+  const combined = pages.map((p2) => p2.text).join("\n").slice(0, 14e3);
   const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const PHONE_RE = /(?:\+|00)[\d][\d\s().-]{7,18}\d/g;
-  const emails = [...new Set(text.match(EMAIL_RE) ?? [])].filter((e2) => !/\.(png|jpg|jpeg|svg|webp|gif)$/i.test(e2)).slice(0, 6);
-  const phones = [...new Set(text.match(PHONE_RE) ?? [])].slice(0, 4);
-  let people = [];
-  let company = null;
-  if (text.trim().length > 120) {
+  const emails = [...new Set(combined.match(EMAIL_RE) ?? [])].filter((e2) => !/\.(png|jpg|jpeg|svg|webp|gif)$/i.test(e2)).slice(0, 6);
+  const phones = [...new Set(combined.match(PHONE_RE) ?? [])].slice(0, 4);
+  let ai = {};
+  if (combined.trim().length > 120) {
     try {
       const out = await aiGatewayToolUse({
         toolName: "enrich_business",
-        toolDescription: "Extract decision-makers and a one-line company description from a business site",
+        toolDescription: "Extract decision-makers, a one-line description, category and location from a business site",
         toolSchema: {
           type: "object",
           properties: {
             people: { type: "array", items: { type: "object", properties: { name: { type: "string" }, role: { type: "string" }, email: { type: "string" } }, required: ["name"] }, description: "Named staff/owners/decision-makers shown on the site (verbatim). Empty if none." },
-            company: { type: "string", description: "One-sentence factual description of what the business does, from the site." }
+            company: { type: "string", description: "One-sentence factual description of what the business does, from the site." },
+            category: { type: "string", description: "The business's industry/category IF stated on the site (e.g. 'dental clinic', 'law firm'). Empty if not stated." },
+            location: { type: "string", description: "City/region/address IF shown on the site. Empty if not shown." }
           }
         },
-        system: `Extract ONLY real people (name + role + email when shown verbatim) and a one-line company description from this business website${name ? ` for "${name}"` : ""}. Never invent names or emails. Empty arrays if none are present.`,
-        prompt: text,
-        workspaceId: c2.get("workspaceId"),
+        system: `Extract ONLY real, verbatim details from this business website${name ? ` for "${name}"` : ""}. Never invent names, emails, category, or location. Leave a field empty if it is not present on the page.`,
+        prompt: combined,
+        workspaceId,
         feature: "discovery",
         maxTokens: 800
       });
-      people = Array.isArray(out.people) ? out.people.filter((p2) => p2 && typeof p2.name === "string").slice(0, 10) : [];
-      company = typeof out.company === "string" ? out.company : null;
+      const o2 = out;
+      ai = {
+        people: Array.isArray(o2.people) ? o2.people.filter((p2) => p2 && typeof p2.name === "string").slice(0, 10) : [],
+        company: typeof o2.company === "string" && o2.company.trim() ? o2.company : null,
+        category: typeof o2.category === "string" && o2.category.trim() ? o2.category : null,
+        location: typeof o2.location === "string" && o2.location.trim() ? o2.location : null
+      };
     } catch {
     }
   }
-  return c2.json({ emails, phones, people, company, scanned: texts.filter(Boolean).length });
+  const places = name ? await placesDetails(name, region).catch(() => null) : null;
+  let graphMatch = null;
+  const key = graphDedupeKey(name ?? domain, void 0, url);
+  if (key) {
+    const { data: nodes } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).limit(5e3);
+    const m2 = (nodes ?? []).find((n2) => {
+      const d2 = n2.data ?? {};
+      return graphDedupeKey(d2.name, d2.website, d2.source_url) === key;
+    });
+    if (m2) graphMatch = { node_id: m2.id, name: (m2.data ?? {}).name || (name ?? "record") };
+  }
+  const dossier = buildDossier({ name: name ?? domain ?? "Lead", domain, pages, emails, phones, ai, places, graphMatch });
+  return c2.json({ dossier, emails, phones, people: ai.people ?? [], company: ai.company ?? null, scanned: pages.length });
 });
 router45.post("/outreach", denyViewerWrites, zValidator("json", external_exports.object({
   name: external_exports.string().max(200),

@@ -8,7 +8,8 @@ import { sovereignHeaders } from "../lib/sovereign-search";
 import { runSocialDiscovery, type DiscoveryParams } from "../jobs/social-discovery";
 import { objectTypeToVertical } from "./prospecting";
 import { denyViewerWrites } from "../middleware/rbac";
-import { placesDiagnostic } from "../lib/places";
+import { placesDiagnostic, placesDetails } from "../lib/places";
+import { buildDossier, type AiEnrichment } from "../lib/discovery-dossier";
 import { redditDiagnostic } from "../lib/reddit";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { streamSSE } from "hono/streaming";
@@ -314,49 +315,75 @@ async function loadIcp(workspaceId: string): Promise<string | undefined> {
   return d && d.trim() ? d.trim() : undefined;
 }
 
-// Enrich a lead — deep-read its OWN site (home + /contact + /about) to pull emails, phones, and
-// decision-makers. Emails/phones via regex on the real page text (deterministic, never invented);
-// people via a grounded AI extraction. Fail-soft: returns whatever it finds (possibly empty).
-router.post("/enrich", denyViewerWrites, zValidator("json", z.object({ url: z.string().max(600), name: z.string().max(200).optional() })), async (c) => {
-  const { url, name } = c.req.valid("json");
+// Enrich a lead into a DOSSIER — deep-read its own site (home + /contact + /about + /team), extract
+// emails/phones (regex, verbatim), people + summary + category + location (grounded AI), fold in
+// Google Places (rating/category/location) and any existing Graph match. Every field carries a real
+// SOURCE CITATION; missing fields are reported honestly. Nothing is fabricated. Fail-soft.
+router.post("/enrich", denyViewerWrites, zValidator("json", z.object({
+  url: z.string().max(600), name: z.string().max(200).optional(), region: z.string().max(160).optional(), object_type: z.string().max(40).optional(),
+})), async (c) => {
+  const { url, name, region } = c.req.valid("json");
+  const workspaceId = c.get("workspaceId");
   const { sovereignScrape } = await import("../lib/sovereign-search");
   let origin = url;
   try { origin = new URL(url.startsWith("http") ? url : `https://${url}`).origin; } catch { return c.json({ error: "Invalid URL" }, 400); }
-  const texts = await Promise.all([
-    sovereignScrape(origin).catch(() => ""),
-    sovereignScrape(`${origin}/contact`).catch(() => ""),
-    sovereignScrape(`${origin}/about`).catch(() => ""),
-    sovereignScrape(`${origin}/team`).catch(() => ""),
-  ]);
-  const text = texts.filter(Boolean).join("\n").slice(0, 14000);
+  const domain = (() => { try { return new URL(origin).host.replace(/^www\./, ""); } catch { return null; } })();
+
+  const pageUrls = [origin, `${origin}/contact`, `${origin}/about`, `${origin}/team`];
+  const texts = await Promise.all(pageUrls.map((u) => sovereignScrape(u).catch(() => "")));
+  const pages = pageUrls.map((u, i) => ({ url: u, text: texts[i] ?? "" })).filter((p) => p.text);
+  const combined = pages.map((p) => p.text).join("\n").slice(0, 14000);
+
   const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const PHONE_RE = /(?:\+|00)[\d][\d\s().-]{7,18}\d/g;
-  const emails = [...new Set(text.match(EMAIL_RE) ?? [])].filter((e) => !/\.(png|jpg|jpeg|svg|webp|gif)$/i.test(e)).slice(0, 6);
-  const phones = [...new Set(text.match(PHONE_RE) ?? [])].slice(0, 4);
+  const emails = [...new Set(combined.match(EMAIL_RE) ?? [])].filter((e) => !/\.(png|jpg|jpeg|svg|webp|gif)$/i.test(e)).slice(0, 6);
+  const phones = [...new Set(combined.match(PHONE_RE) ?? [])].slice(0, 4);
 
-  let people: { name: string; role?: string; email?: string }[] = [];
-  let company: string | null = null;
-  if (text.trim().length > 120) {
+  // AI extraction — people, summary, category, location (grounded, never invented).
+  let ai: AiEnrichment = {};
+  if (combined.trim().length > 120) {
     try {
       const out = await aiGatewayToolUse({
         toolName: "enrich_business",
-        toolDescription: "Extract decision-makers and a one-line company description from a business site",
+        toolDescription: "Extract decision-makers, a one-line description, category and location from a business site",
         toolSchema: {
           type: "object",
           properties: {
             people: { type: "array", items: { type: "object", properties: { name: { type: "string" }, role: { type: "string" }, email: { type: "string" } }, required: ["name"] }, description: "Named staff/owners/decision-makers shown on the site (verbatim). Empty if none." },
             company: { type: "string", description: "One-sentence factual description of what the business does, from the site." },
+            category: { type: "string", description: "The business's industry/category IF stated on the site (e.g. 'dental clinic', 'law firm'). Empty if not stated." },
+            location: { type: "string", description: "City/region/address IF shown on the site. Empty if not shown." },
           },
         },
-        system: `Extract ONLY real people (name + role + email when shown verbatim) and a one-line company description from this business website${name ? ` for "${name}"` : ""}. Never invent names or emails. Empty arrays if none are present.`,
-        prompt: text,
-        workspaceId: c.get("workspaceId"), feature: "discovery", maxTokens: 800,
+        system: `Extract ONLY real, verbatim details from this business website${name ? ` for "${name}"` : ""}. Never invent names, emails, category, or location. Leave a field empty if it is not present on the page.`,
+        prompt: combined,
+        workspaceId, feature: "discovery", maxTokens: 800,
       });
-      people = Array.isArray((out as { people?: unknown }).people) ? (out as { people: typeof people }).people.filter((p) => p && typeof p.name === "string").slice(0, 10) : [];
-      company = typeof (out as { company?: unknown }).company === "string" ? (out as { company: string }).company : null;
-    } catch { /* return regex results even if AI extraction fails */ }
+      const o = out as AiEnrichment;
+      ai = {
+        people: Array.isArray(o.people) ? o.people.filter((p) => p && typeof p.name === "string").slice(0, 10) : [],
+        company: typeof o.company === "string" && o.company.trim() ? o.company : null,
+        category: typeof o.category === "string" && o.category.trim() ? o.category : null,
+        location: typeof o.location === "string" && o.location.trim() ? o.location : null,
+      };
+    } catch { /* keep regex results even if AI extraction fails */ }
   }
-  return c.json({ emails, phones, people, company, scanned: texts.filter(Boolean).length });
+
+  // Google Places fold-in — real rating/category/location (only when configured + a match exists).
+  const places = name ? await placesDetails(name, region).catch(() => null) : null;
+
+  // Existing Graph match — dedupe against the workspace's records by domain/name.
+  let graphMatch: { node_id: string; name: string } | null = null;
+  const key = graphDedupeKey(name ?? domain, undefined, url);
+  if (key) {
+    const { data: nodes } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).limit(5000);
+    const m = (nodes ?? []).find((n) => { const d = (n.data ?? {}) as Record<string, string | undefined>; return graphDedupeKey(d.name, d.website, d.source_url) === key; });
+    if (m) graphMatch = { node_id: m.id as string, name: (((m.data ?? {}) as Record<string, string>).name) || (name ?? "record") };
+  }
+
+  const dossier = buildDossier({ name: name ?? domain ?? "Lead", domain, pages, emails, phones, ai, places, graphMatch });
+  // `dossier` is the cited v2 shape; the flat fields keep the pre-drawer UI working unchanged.
+  return c.json({ dossier, emails, phones, people: ai.people ?? [], company: ai.company ?? null, scanned: pages.length });
 });
 
 // Draft a personalized first-touch outreach message, grounded ONLY in the real signal (their

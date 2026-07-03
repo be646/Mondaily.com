@@ -445,7 +445,7 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
             <WatchButton query={turn.query} />
           </>
         ) : turn.status === "done" && !turn.error ? (
-          <p className="mt-2 text-[12.5px]" style={{ color: "var(--text-faint)" }}>No on-topic {reviews ? "reviews" : "leads"} found in the pages read. Try a clearer name or sector.</p>
+          <NoResults reviews={reviews} scanned={turn.scanned} query={turn.query} onRun={onRun} />
         ) : null}
 
         {/* Next-move suggestions after a completed search. */}
@@ -609,7 +609,92 @@ function ReviewCard({ r }: { r: ResultRow }) {
   );
 }
 
-interface Enrichment { emails: string[]; phones: string[]; people: { name: string; role?: string; email?: string }[]; company: string | null }
+type CiteVia = "scrape" | "ai" | "places" | "graph";
+interface CitedValue { value: string; source: string; via: CiteVia }
+interface Dossier {
+  name: string; domain: string | null;
+  summary: CitedValue | null; category: CitedValue | null; location: CitedValue | null;
+  emails: CitedValue[]; phones: CitedValue[];
+  people: { name: string; role?: string | null; email?: string | null; source: string; via: CiteVia }[];
+  reviews: { rating: number | null; count: number | null; source: string } | null;
+  graph_match: { node_id: string; name: string } | null;
+  sources: { url: string; scanned: boolean }[];
+  missing: string[]; scanned: number;
+}
+interface Enrichment { dossier?: Dossier; emails: string[]; phones: string[]; people: { name: string; role?: string; email?: string }[]; company: string | null }
+
+// How a field was obtained — an honest provenance chip, never a fabricated confidence number.
+const VIA_LABEL: Record<CiteVia, string> = { scrape: "on page", ai: "AI-read", places: "Google Places", graph: "in your graph" };
+function ViaChip({ via, source }: { via: CiteVia; source: string }) {
+  const isUrl = /^https?:\/\//.test(source);
+  return (
+    <span className="ml-1 inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[9px]" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }} title={source}>
+      {VIA_LABEL[via]}{isUrl && <a href={source} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: "var(--section-accent)" }}>↗</a>}
+    </span>
+  );
+}
+
+/** The cited enrichment dossier — every field shows where it came from; missing fields are honest. */
+/** Honest no-results state — distinguishes "appliance returned nothing" from "no on-topic matches",
+ *  and suggests concrete query / coverage expansions (never pretends there were results). */
+function NoResults({ reviews, scanned, query, onRun }: { reviews: boolean; scanned?: number; query: string; onRun: (q: string, force?: boolean) => void }) {
+  const noPages = !scanned || scanned === 0;
+  const suggestions = reviews
+    ? [`${query} reviews`, `${query} complaints`, `${query} trustpilot`]
+    : [`${query} in London`, `${query} email contact`, `${query} directory`];
+  return (
+    <div className="mt-2 rounded-md border px-3.5 py-3 text-[12.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+      <p style={{ color: "var(--text-secondary)" }}>
+        {noPages
+          ? "The search appliance returned no pages to read — the query may be too narrow, or the appliance found nothing indexable."
+          : `Read ${scanned} page(s), but found no on-topic ${reviews ? "reviews" : "leads"} in them.`}
+      </p>
+      <p className="mt-1.5 text-[11px]" style={{ color: "var(--text-faint)" }}>Try a clearer name/sector, add a location, or broaden the source:</p>
+      <div className="mt-1.5 flex flex-wrap gap-1.5">
+        {suggestions.map((s) => (
+          <button key={s} onClick={() => onRun(s)} className="rounded-full border px-2.5 py-1 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{s}</button>
+        ))}
+        <button onClick={() => onRun(query, true)} className="rounded-full px-2.5 py-1 text-[11.5px] font-medium" style={{ color: "var(--section-accent)" }}>Search deeper →</button>
+      </div>
+    </div>
+  );
+}
+
+/** The cited enrichment dossier — every field shows where it came from; missing fields are honest. */
+function DossierPanel({ d }: { d: Dossier }) {
+  const anything = d.summary || d.category || d.location || d.reviews || d.emails.length || d.phones.length || d.people.length || d.graph_match;
+  if (!anything) {
+    return <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>Read {d.scanned} page(s) — no contact details, category, or reviews found. Missing: {d.missing.join(", ")}.</p>;
+  }
+  return (
+    <div className="mt-2 space-y-2 rounded-md border px-3 py-2.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+      {d.graph_match && (
+        <div className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ background: "var(--surface-card)", color: "var(--text-muted)" }}>
+          <Check size={10} /> Already in your graph as “{d.graph_match.name}”
+        </div>
+      )}
+      {d.summary && <p style={{ color: "var(--text-secondary)" }}>{d.summary.value}<ViaChip via={d.summary.via} source={d.summary.source} /></p>}
+      <div className="flex flex-wrap gap-x-4 gap-y-1" style={{ color: "var(--text-muted)" }}>
+        {d.category && <span>🏷 <span style={{ color: "var(--text-secondary)" }}>{d.category.value}</span><ViaChip via={d.category.via} source={d.category.source} /></span>}
+        {d.location && <span>📍 <span style={{ color: "var(--text-secondary)" }}>{d.location.value}</span><ViaChip via={d.location.via} source={d.location.source} /></span>}
+        {d.reviews && <span>⭐ <span style={{ color: "var(--text-secondary)" }}>{d.reviews.rating}{d.reviews.count != null ? ` (${d.reviews.count})` : ""}</span><ViaChip via="places" source={d.reviews.source} /></span>}
+      </div>
+      {d.emails.map((e) => <div key={e.value} style={{ color: "var(--text-muted)" }}>✉ <span style={{ color: "var(--text-secondary)" }}>{e.value}</span><ViaChip via={e.via} source={e.source} /></div>)}
+      {d.phones.map((p) => <div key={p.value} style={{ color: "var(--text-muted)" }}>☎ <span style={{ color: "var(--text-secondary)" }}>{p.value}</span><ViaChip via={p.via} source={p.source} /></div>)}
+      {d.people.length > 0 && (
+        <div style={{ color: "var(--text-muted)" }}>
+          {d.people.map((p, i) => <div key={i}>👤 <span style={{ color: "var(--text-secondary)" }}>{p.name}{p.role ? ` (${p.role})` : ""}{p.email ? ` · ${p.email}` : ""}</span><ViaChip via={p.via} source={p.source} /></div>)}
+        </div>
+      )}
+      {d.sources.length > 0 && (
+        <div className="pt-1 text-[10px]" style={{ color: "var(--text-faint)" }}>
+          Web evidence: {d.sources.map((s, i) => <a key={i} href={s.url} target="_blank" rel="noreferrer" className="mr-2 hover:underline" style={{ color: "var(--section-accent)" }}>{hostOf(s.url)}</a>)}
+        </div>
+      )}
+      {d.missing.length > 0 && <div className="text-[10px]" style={{ color: "var(--text-faint)" }}>Not found: {d.missing.join(", ")}</div>}
+    </div>
+  );
+}
 
 function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: ListRow[] }) {
   const qc = useQueryClient();
@@ -621,7 +706,7 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
   const leadName = r.author_name && r.author_name !== "Anonymous" ? r.author_name : (hostOf(r.source_url) || "Discovered lead");
 
   const enrich = useMutation({
-    mutationFn: () => apiClient.post<Enrichment>("/discovery/enrich", { url: r.source_url, name: r.author_name }),
+    mutationFn: () => apiClient.post<Enrichment>("/discovery/enrich", { url: r.source_url, name: r.author_name, region: r.region ?? undefined }),
   });
   const outreach = useMutation({
     mutationFn: () => apiClient.post<{ subject: string | null; message: string }>("/discovery/outreach", { name: r.author_name || hostOf(r.source_url), context: r.snippet, sector: r.target_subject ?? query, kind: "lead" }),
@@ -738,22 +823,9 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
 
       {/* Enrichment results — real contacts + decision-makers pulled from the lead's own site. */}
       {enrich.isError && <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>Couldn't enrich (site unreachable).</p>}
-      {enrich.data && (
-        (enrich.data.emails.length || enrich.data.phones.length || enrich.data.people.length || enrich.data.company) ? (
-          <div className="mt-2 rounded-md border px-3 py-2 text-[11.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
-            {enrich.data.company && <p className="mb-1.5" style={{ color: "var(--text-secondary)" }}>{enrich.data.company}</p>}
-            {enrich.data.emails.length > 0 && <div style={{ color: "var(--text-muted)" }}>✉ {enrich.data.emails.map((e) => <span key={e} className="mr-2" style={{ color: "var(--text-secondary)" }}>{e}</span>)}</div>}
-            {enrich.data.phones.length > 0 && <div style={{ color: "var(--text-muted)" }}>☎ {enrich.data.phones.map((p) => <span key={p} className="mr-2" style={{ color: "var(--text-secondary)" }}>{p}</span>)}</div>}
-            {enrich.data.people.length > 0 && (
-              <div className="mt-1" style={{ color: "var(--text-muted)" }}>
-                {enrich.data.people.map((p, i) => (
-                  <span key={i} className="mr-2" style={{ color: "var(--text-secondary)" }}>{p.name}{p.role ? ` (${p.role})` : ""}{p.email ? ` · ${p.email}` : ""}</span>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>No extra contacts found on their site.</p>
-      )}
+      {enrich.data && (enrich.data.dossier ? <DossierPanel d={enrich.data.dossier} /> : (
+        <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>No extra contacts found on their site.</p>
+      ))}
 
       {/* Drafted outreach — grounded in the lead's real signal; copy to send. */}
       {(outreach.isError || (outreach.data && !outreach.data.message)) && (
