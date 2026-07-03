@@ -22,33 +22,31 @@ export interface PlaceLead {
 
 const UA = "MondailyDiscovery/1.0 (+https://mondaily.com)";
 
-/** Google Places Text Search + Details (only when a key is configured). */
+interface NewPlace { id?: string; formattedAddress?: string; internationalPhoneNumber?: string; nationalPhoneNumber?: string; websiteUri?: string; displayName?: { text?: string } }
+
+/** Places API (New) Text Search — phone + website come back in ONE call via the field mask.
+ *  (Google deprecated the legacy Places API for new projects.) */
 async function googlePlaces(query: string, region: string | undefined, limit: number): Promise<PlaceLead[]> {
   const key = process.env.GOOGLE_PLACES_API_KEY;
   if (!key) return [];
   const q = region ? `${query} in ${region}` : query;
-  const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(q)}&key=${key}`;
-  const res = await fetch(searchUrl).then(r => r.json()).catch(() => null) as
-    | { results?: { name?: string; formatted_address?: string; place_id?: string }[] } | null;
-  const places = (res?.results ?? []).slice(0, limit);
-  // Fetch phone + website per place (Details). Best-effort, capped.
-  const out = await Promise.all(places.map(async (p) => {
-    let phone: string | null = null, website: string | null = null;
-    if (p.place_id) {
-      const d = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${p.place_id}&fields=formatted_phone_number,website&key=${key}`)
-        .then(r => r.json()).catch(() => null) as { result?: { formatted_phone_number?: string; website?: string } } | null;
-      phone = d?.result?.formatted_phone_number ?? null;
-      website = d?.result?.website ?? null;
-    }
-    return {
-      name: p.name ?? "Unknown",
-      address: p.formatted_address ?? null,
-      phone, website,
-      source_url: p.place_id ? `https://www.google.com/maps/place/?q=place_id:${p.place_id}` : "https://maps.google.com",
-      source: "google" as const,
-    };
-  }));
-  return out.filter(p => p.name && p.name !== "Unknown");
+  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": key,
+      "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.internationalPhoneNumber,places.nationalPhoneNumber,places.websiteUri",
+    },
+    body: JSON.stringify({ textQuery: q, maxResultCount: Math.min(limit, 20) }),
+  }).then(r => r.json()).catch(() => null) as { places?: NewPlace[] } | null;
+  return (res?.places ?? []).map((p) => ({
+    name: p.displayName?.text ?? "Unknown",
+    address: p.formattedAddress ?? null,
+    phone: p.internationalPhoneNumber ?? p.nationalPhoneNumber ?? null,
+    website: p.websiteUri ?? null,
+    source_url: p.id ? `https://www.google.com/maps/place/?q=place_id:${p.id}` : "https://maps.google.com",
+    source: "google" as const,
+  })).filter(p => p.name !== "Unknown");
 }
 
 /** OpenStreetMap Nominatim search with extratags (free, sovereign default). */
@@ -91,11 +89,15 @@ export async function placesDiagnostic(): Promise<{ provider: "google" | "osm"; 
   const key = process.env.GOOGLE_PLACES_API_KEY;
   if (key) {
     try {
-      const r = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent("dentist in Warsaw")}&key=${key}`)
-        .then(res => res.json()).catch(() => null) as { status?: string; error_message?: string; results?: unknown[] } | null;
-      const status = r?.status ?? "NO_RESPONSE";
-      const ok = status === "OK" || status === "ZERO_RESULTS";
-      return { provider: "google", ok, detail: ok ? `Google Places OK (${(r?.results ?? []).length} test results)` : `${status}${r?.error_message ? " — " + r.error_message : ""}`, sample: (r?.results ?? []).length };
+      const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": "places.id" },
+        body: JSON.stringify({ textQuery: "dentist in Warsaw", maxResultCount: 5 }),
+      });
+      const j = await res.json().catch(() => null) as { places?: unknown[]; error?: { message?: string; status?: string } } | null;
+      const ok = res.ok && Array.isArray(j?.places);
+      const count = j?.places?.length ?? 0;
+      return { provider: "google", ok, detail: ok ? `Google Places (New) OK (${count} test results)` : (j?.error?.message ?? `HTTP ${res.status}`), sample: count };
     } catch (e) {
       return { provider: "google", ok: false, detail: `Request failed: ${e instanceof Error ? e.message : String(e)}`, sample: 0 };
     }
