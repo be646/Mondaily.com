@@ -311,21 +311,36 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
       return extractChunk(p, p.text);
     };
 
+    // Lead priority (Phase 1 scoring) — a fast, deterministic fit+reachability signal, no AI cost:
+    // confidence + a big bonus for having a real contact + a bonus for being an actual business site
+    // (vs a social page). Lets the pipeline rank hot → cold instead of showing a flat list.
+    const SOCIAL_HOST = /linkedin|reddit|facebook|instagram|(^|\.)x\b|twitter|youtube|tiktok/i;
+    const priorityOf = (conf: number, hasContact: boolean, platform: string): "hot" | "warm" | "cold" => {
+      const business = !SOCIAL_HOST.test(platform);
+      const s = conf + (hasContact ? 25 : 0) + (business ? 10 : 0);
+      return s >= 85 ? "hot" : s >= 55 ? "warm" : "cold";
+    };
+
     // Map an extracted lead to the compact display row the chat UI renders.
-    const toDisplay = (l: ExtractedLead & { source_url: string }) => ({
-      source_url: l.source_url,
-      platform: platformOf(l.source_url),
-      author_name: l.author_name || "Anonymous",
-      intent_type: l.intent_type,
-      sentiment: normalizeSentiment(l.sentiment, l.intent_type),
-      confidence_score: typeof l.confidence_score === "number" ? Math.round(l.confidence_score) : 0,
-      region: l.region ?? region ?? null,
-      target_subject: l.target_subject ?? targetSubject ?? null,
-      snippet: (l.summary || l.raw_content || "").slice(0, 400),
-      email: l.contact_email ?? null,
-      phone: l.contact_phone ?? null,
-      handle: l.handle ?? null,
-    });
+    const toDisplay = (l: ExtractedLead & { source_url: string }) => {
+      const platform = platformOf(l.source_url);
+      const confidence_score = typeof l.confidence_score === "number" ? Math.round(l.confidence_score) : 0;
+      return {
+        source_url: l.source_url,
+        platform,
+        author_name: l.author_name || "Anonymous",
+        intent_type: l.intent_type,
+        sentiment: normalizeSentiment(l.sentiment, l.intent_type),
+        confidence_score,
+        priority: priorityOf(confidence_score, !!(l.contact_email || l.contact_phone), platform),
+        region: l.region ?? region ?? null,
+        target_subject: l.target_subject ?? targetSubject ?? null,
+        snippet: (l.summary || l.raw_content || "").slice(0, 400),
+        email: l.contact_email ?? null,
+        phone: l.contact_phone ?? null,
+        handle: l.handle ?? null,
+      };
+    };
 
     // Parallel in batches of 6 — fast without slamming the AI provider all at once. After EACH batch
     // we stream the results-so-far, so a run cut short by the 60s limit still delivers what it found.
@@ -512,24 +527,29 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     }
     const dedupedRows = [...byFp.values()];
 
-    // Compact display rows for the chat UI — strongest first, no fabricated fields.
+    // Compact display rows for the chat UI — ranked hot → cold by priority (Phase 1 scoring).
+    const PRIO_RANK = { hot: 0, warm: 1, cold: 2 } as const;
     const results = [...dedupedRows]
-      .sort((a, b) => (b.confidence_score ?? 0) - (a.confidence_score ?? 0))
-      .slice(0, 120)
-      .map((r) => ({
-        source_url: r.source_url,
-        platform: r.platform,
-        author_name: r.author_name,
-        intent_type: r.intent_type,
-        sentiment: r.contact?.sentiment ?? null,
-        confidence_score: r.confidence_score ?? 0,
-        region: r.region,
-        target_subject: r.target_subject,
-        snippet: (r.contact?.summary || r.raw_content || "").slice(0, 400),
-        email: r.contact?.email ?? null,
-        phone: r.contact?.phone ?? null,
-        handle: r.contact?.handle ?? null,
-      }));
+      .map((r) => {
+        const priority = priorityOf(r.confidence_score ?? 0, !!(r.contact?.email || r.contact?.phone), r.platform);
+        return {
+          source_url: r.source_url,
+          platform: r.platform,
+          author_name: r.author_name,
+          intent_type: r.intent_type,
+          sentiment: r.contact?.sentiment ?? null,
+          confidence_score: r.confidence_score ?? 0,
+          priority,
+          region: r.region,
+          target_subject: r.target_subject,
+          snippet: (r.contact?.summary || r.raw_content || "").slice(0, 400),
+          email: r.contact?.email ?? null,
+          phone: r.contact?.phone ?? null,
+          handle: r.contact?.handle ?? null,
+        };
+      })
+      .sort((a, b) => PRIO_RANK[a.priority] - PRIO_RANK[b.priority] || (b.confidence_score ?? 0) - (a.confidence_score ?? 0))
+      .slice(0, 120);
 
     // Stream the results NOW — before the slow DB upsert + AI overview — so the browser renders them
     // even if the tail of the run is cut short by the serverless time limit. This is what fixes

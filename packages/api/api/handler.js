@@ -55936,20 +55936,31 @@ ${text}`
     }
     return extractChunk(p2, p2.text);
   };
-  const toDisplay = (l2) => ({
-    source_url: l2.source_url,
-    platform: platformOf(l2.source_url),
-    author_name: l2.author_name || "Anonymous",
-    intent_type: l2.intent_type,
-    sentiment: normalizeSentiment(l2.sentiment, l2.intent_type),
-    confidence_score: typeof l2.confidence_score === "number" ? Math.round(l2.confidence_score) : 0,
-    region: l2.region ?? region ?? null,
-    target_subject: l2.target_subject ?? targetSubject ?? null,
-    snippet: (l2.summary || l2.raw_content || "").slice(0, 400),
-    email: l2.contact_email ?? null,
-    phone: l2.contact_phone ?? null,
-    handle: l2.handle ?? null
-  });
+  const SOCIAL_HOST = /linkedin|reddit|facebook|instagram|(^|\.)x\b|twitter|youtube|tiktok/i;
+  const priorityOf = (conf, hasContact, platform) => {
+    const business = !SOCIAL_HOST.test(platform);
+    const s2 = conf + (hasContact ? 25 : 0) + (business ? 10 : 0);
+    return s2 >= 85 ? "hot" : s2 >= 55 ? "warm" : "cold";
+  };
+  const toDisplay = (l2) => {
+    const platform = platformOf(l2.source_url);
+    const confidence_score = typeof l2.confidence_score === "number" ? Math.round(l2.confidence_score) : 0;
+    return {
+      source_url: l2.source_url,
+      platform,
+      author_name: l2.author_name || "Anonymous",
+      intent_type: l2.intent_type,
+      sentiment: normalizeSentiment(l2.sentiment, l2.intent_type),
+      confidence_score,
+      priority: priorityOf(confidence_score, !!(l2.contact_email || l2.contact_phone), platform),
+      region: l2.region ?? region ?? null,
+      target_subject: l2.target_subject ?? targetSubject ?? null,
+      snippet: (l2.summary || l2.raw_content || "").slice(0, 400),
+      email: l2.contact_email ?? null,
+      phone: l2.contact_phone ?? null,
+      handle: l2.handle ?? null
+    };
+  };
   const allLeads = [];
   for (let i2 = 0; i2 < pages.length; i2 += 6) {
     const batch = pages.slice(i2, i2 + 6);
@@ -56130,20 +56141,25 @@ ${text}`
     if (!prev || (r2.confidence_score ?? 0) > (prev.confidence_score ?? 0)) byFp.set(r2.fingerprint, r2);
   }
   const dedupedRows = [...byFp.values()];
-  const results = [...dedupedRows].sort((a2, b2) => (b2.confidence_score ?? 0) - (a2.confidence_score ?? 0)).slice(0, 120).map((r2) => ({
-    source_url: r2.source_url,
-    platform: r2.platform,
-    author_name: r2.author_name,
-    intent_type: r2.intent_type,
-    sentiment: r2.contact?.sentiment ?? null,
-    confidence_score: r2.confidence_score ?? 0,
-    region: r2.region,
-    target_subject: r2.target_subject,
-    snippet: (r2.contact?.summary || r2.raw_content || "").slice(0, 400),
-    email: r2.contact?.email ?? null,
-    phone: r2.contact?.phone ?? null,
-    handle: r2.contact?.handle ?? null
-  }));
+  const PRIO_RANK = { hot: 0, warm: 1, cold: 2 };
+  const results = [...dedupedRows].map((r2) => {
+    const priority = priorityOf(r2.confidence_score ?? 0, !!(r2.contact?.email || r2.contact?.phone), r2.platform);
+    return {
+      source_url: r2.source_url,
+      platform: r2.platform,
+      author_name: r2.author_name,
+      intent_type: r2.intent_type,
+      sentiment: r2.contact?.sentiment ?? null,
+      confidence_score: r2.confidence_score ?? 0,
+      priority,
+      region: r2.region,
+      target_subject: r2.target_subject,
+      snippet: (r2.contact?.summary || r2.raw_content || "").slice(0, 400),
+      email: r2.contact?.email ?? null,
+      phone: r2.contact?.phone ?? null,
+      handle: r2.contact?.handle ?? null
+    };
+  }).sort((a2, b2) => PRIO_RANK[a2.priority] - PRIO_RANK[b2.priority] || (b2.confidence_score ?? 0) - (a2.confidence_score ?? 0)).slice(0, 120);
   await emit({ type: "results", kind: searchType, discovered: dedupedRows.length, scanned: unique.length, results });
   let overview = null;
   if (dedupedRows.length >= 2) {

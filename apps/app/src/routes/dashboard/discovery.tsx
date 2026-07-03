@@ -29,6 +29,7 @@ interface ResultRow {
   intent_type: "BUY_SIGNAL" | "REVIEW" | "COMPLAINT";
   sentiment: Sentiment;
   confidence_score: number;
+  priority?: "hot" | "warm" | "cold";
   region?: string | null;
   target_subject?: string | null;
   snippet: string;
@@ -69,6 +70,12 @@ const hostOf = (url?: string | null) => {
   try { return new URL(url).host.replace(/^www\./, ""); } catch { return String(url).replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0] ?? ""; }
 };
 const uid = () => `t_${Math.random().toString(36).slice(2)}_${performance.now().toString(36)}`;
+
+const PRIORITY: Record<"hot" | "warm" | "cold", { label: string; tone: string }> = {
+  hot:  { label: "Hot",  tone: "#be123c" },
+  warm: { label: "Warm", tone: "#d97706" },
+  cold: { label: "Cold", tone: "#737373" },
+};
 
 const SENTIMENT: Record<Exclude<Sentiment, null>, { label: string; tone: string; Icon: typeof ThumbsUp }> = {
   positive: { label: "Positive", tone: "#15803d", Icon: ThumbsUp },
@@ -594,6 +601,7 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
           <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--text-faint)" }}>
             <Globe2 size={11} className="shrink-0" /> <span className="truncate">{hostOf(r.source_url) || r.platform}</span>
             {r.region && <><span aria-hidden>·</span><span>{r.region}</span></>}
+            {r.priority && <span className="rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold" style={{ color: PRIORITY[r.priority].tone, background: `${PRIORITY[r.priority].tone}14` }}>{PRIORITY[r.priority].label}</span>}
             {r.confidence_score > 0 && <span className="rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold" style={{ color: r.confidence_score >= 70 ? "#15803d" : "var(--text-muted)", background: r.confidence_score >= 70 ? "#15803d14" : "var(--surface-hover)" }}>{r.confidence_score}% match</span>}
           </div>
           <a href={r.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-[14.5px] font-semibold hover:underline" style={{ color: "var(--section-accent)" }}>
