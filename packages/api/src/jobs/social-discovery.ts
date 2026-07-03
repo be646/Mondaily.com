@@ -414,18 +414,25 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     let overview: string | null = null;
     if (dedupedRows.length >= 2) {
       await emit({ type: "progress", stage: "overview", message: "Writing the AI overview of what was found…" });
+      const wantReviewsOverview = searchType === "REVIEWS";
+      const sentimentTally = dedupedRows.reduce((a, r) => { const s = (r.contact as { sentiment?: string })?.sentiment; if (s) a[s] = (a[s] ?? 0) + 1; return a; }, {} as Record<string, number>);
       const digest = dedupedRows.slice(0, 30).map((r) =>
-        `- [${r.intent_type}] ${r.author_name} (${r.platform}${r.region ? `, ${r.region}` : ""}, conf ${r.confidence_score})` +
-        `${r.contact.email ? ` email:${r.contact.email}` : ""}${r.contact.phone ? ` phone:yes` : ""}: ${(r.contact.summary || r.raw_content || "").slice(0, 140)}`
+        `- [${r.intent_type}${(r.contact as { sentiment?: string })?.sentiment ? `/${(r.contact as { sentiment?: string }).sentiment}` : ""}] ${r.author_name} (${r.platform}${r.region ? `, ${r.region}` : ""}, conf ${r.confidence_score})` +
+        `${r.contact.email ? ` email:${r.contact.email}` : ""}${r.contact.phone ? ` phone:yes` : ""}: ${(r.contact.summary || r.raw_content || "").slice(0, 160)}`
       ).join("\n");
       try {
         const { aiGateway } = await import("../lib/ai-gateway");
         const { text } = await aiGateway({
-          system:
-            "You summarize web-discovery results for a business user. Write 2-4 short sentences describing ONLY what the findings below show — counts, platforms, contactability, and (for reviews) the sentiment balance. " +
-            "NEVER add a fact, name, or number that is not in the findings. Plain language, no preamble, no markdown headers.",
-          prompt: `Search: ${searchType === "REVIEWS" ? `reviews about "${targetSubject ?? sector}"` : `leads in "${sector}"`}${region ? ` (${region})` : ""}. Findings (${dedupedRows.length} total, first 30 shown):\n${digest}`,
-          maxTokens: 260,
+          system: wantReviewsOverview
+            // Review deep-dive: turn raw reviews into competitive intelligence + pitch angles.
+            ? "You analyze REAL customer reviews for a business user researching a company/competitor. Using ONLY the reviews below, write a short, plain briefing (no markdown headers, no preamble): " +
+              "1) the sentiment balance (use the given counts), 2) the 2-3 most common COMPLAINTS people raise (these are pitch angles for a competitor), 3) the main things people PRAISE, and 4) one sentence on the opportunity for someone competing. " +
+              "NEVER invent a complaint, praise, name, or number that isn't supported by the reviews. If reviews are too few to judge, say so."
+            : "You summarize web-discovery results for a business user. Write 2-4 short sentences describing ONLY what the findings below show — counts, platforms, contactability. " +
+              "NEVER add a fact, name, or number that is not in the findings. Plain language, no preamble, no markdown headers.",
+          prompt: `Search: ${wantReviewsOverview ? `reviews about "${targetSubject ?? sector}"` : `leads in "${sector}"`}${region ? ` (${region})` : ""}. ` +
+            `${wantReviewsOverview ? `Sentiment counts: ${JSON.stringify(sentimentTally)}. ` : ""}Findings (${dedupedRows.length} total, first 30 shown):\n${digest}`,
+          maxTokens: 320,
         });
         overview = (text || "").trim() || null;
         if (overview) await emit({ type: "overview", text: overview });

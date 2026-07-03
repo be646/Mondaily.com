@@ -57892,16 +57892,22 @@ ${p2.text}`
   let overview = null;
   if (dedupedRows.length >= 2) {
     await emit({ type: "progress", stage: "overview", message: "Writing the AI overview of what was found\u2026" });
+    const wantReviewsOverview = searchType === "REVIEWS";
+    const sentimentTally = dedupedRows.reduce((a2, r2) => {
+      const s2 = r2.contact?.sentiment;
+      if (s2) a2[s2] = (a2[s2] ?? 0) + 1;
+      return a2;
+    }, {});
     const digest = dedupedRows.slice(0, 30).map(
-      (r2) => `- [${r2.intent_type}] ${r2.author_name} (${r2.platform}${r2.region ? `, ${r2.region}` : ""}, conf ${r2.confidence_score})${r2.contact.email ? ` email:${r2.contact.email}` : ""}${r2.contact.phone ? ` phone:yes` : ""}: ${(r2.contact.summary || r2.raw_content || "").slice(0, 140)}`
+      (r2) => `- [${r2.intent_type}${r2.contact?.sentiment ? `/${r2.contact.sentiment}` : ""}] ${r2.author_name} (${r2.platform}${r2.region ? `, ${r2.region}` : ""}, conf ${r2.confidence_score})${r2.contact.email ? ` email:${r2.contact.email}` : ""}${r2.contact.phone ? ` phone:yes` : ""}: ${(r2.contact.summary || r2.raw_content || "").slice(0, 160)}`
     ).join("\n");
     try {
       const { aiGateway: aiGateway2 } = await Promise.resolve().then(() => (init_ai_gateway(), ai_gateway_exports));
       const { text } = await aiGateway2({
-        system: "You summarize web-discovery results for a business user. Write 2-4 short sentences describing ONLY what the findings below show \u2014 counts, platforms, contactability, and (for reviews) the sentiment balance. NEVER add a fact, name, or number that is not in the findings. Plain language, no preamble, no markdown headers.",
-        prompt: `Search: ${searchType === "REVIEWS" ? `reviews about "${targetSubject ?? sector}"` : `leads in "${sector}"`}${region ? ` (${region})` : ""}. Findings (${dedupedRows.length} total, first 30 shown):
+        system: wantReviewsOverview ? "You analyze REAL customer reviews for a business user researching a company/competitor. Using ONLY the reviews below, write a short, plain briefing (no markdown headers, no preamble): 1) the sentiment balance (use the given counts), 2) the 2-3 most common COMPLAINTS people raise (these are pitch angles for a competitor), 3) the main things people PRAISE, and 4) one sentence on the opportunity for someone competing. NEVER invent a complaint, praise, name, or number that isn't supported by the reviews. If reviews are too few to judge, say so." : "You summarize web-discovery results for a business user. Write 2-4 short sentences describing ONLY what the findings below show \u2014 counts, platforms, contactability. NEVER add a fact, name, or number that is not in the findings. Plain language, no preamble, no markdown headers.",
+        prompt: `Search: ${wantReviewsOverview ? `reviews about "${targetSubject ?? sector}"` : `leads in "${sector}"`}${region ? ` (${region})` : ""}. ${wantReviewsOverview ? `Sentiment counts: ${JSON.stringify(sentimentTally)}. ` : ""}Findings (${dedupedRows.length} total, first 30 shown):
 ${digest}`,
-        maxTokens: 260
+        maxTokens: 320
       });
       overview = (text || "").trim() || null;
       if (overview) await emit({ type: "overview", text: overview });
