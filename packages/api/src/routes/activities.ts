@@ -4,6 +4,7 @@ import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { verifiedPowUserIds } from "../lib/pow-claims";
 import { aiGateway } from "../lib/ai-gateway";
+import { workQuality } from "../lib/oversight-metrics";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -137,14 +138,23 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(); // 30-day window
 
   const nowIso = new Date().toISOString();
-  const [{ data: members }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks }] = await Promise.all([
+  const [{ data: members }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks }, { data: msgs }, { data: decisions }] = await Promise.all([
     supabase.from("workspace_members").select("user_id, name, email, avatar_url, role").eq("workspace_id", ws),
     supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", sinceIso),
     supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").order("created_at", { ascending: false }).limit(2000),
     supabase.from("auth_refresh_tokens").select("user_id").is("revoked_at", null).gt("expires_at", nowIso),
     // Real per-member task rollups (assignee-scoped): open / overdue / completed.
     supabase.from("tasks").select("assignee_id, completed, due_date").eq("workspace_id", ws).limit(5000),
+    // Real per-member internal messages sent (30d) + decisions resolved (30d) — both workspace-scoped.
+    supabase.from("internal_messages").select("sender_id").eq("workspace_id", ws).gte("created_at", sinceIso).limit(10000),
+    supabase.from("decision_queue").select("resolved_by").eq("workspace_id", ws).gte("resolved_at", sinceIso).limit(10000),
   ]);
+
+  // Per-member message + decision-participation tallies (real counts, workspace-scoped).
+  const msgBy = new Map<string, number>();
+  for (const m of msgs ?? []) { const k = String(m.sender_id ?? ""); if (k) msgBy.set(k, (msgBy.get(k) ?? 0) + 1); }
+  const decBy = new Map<string, number>();
+  for (const d of decisions ?? []) { const k = String(d.resolved_by ?? ""); if (k) decBy.set(k, (decBy.get(k) ?? 0) + 1); }
 
   // Per-member task aggregates (all real, current-state).
   const taskAgg = new Map<string, { open: number; overdue: number; completed: number }>();
@@ -224,12 +234,23 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
       open_tasks: taskAgg.get(uid)?.open ?? 0,
       overdue_tasks: taskAgg.get(uid)?.overdue ?? 0,
       completed_tasks: taskAgg.get(uid)?.completed ?? 0,
+      messages_sent: msgBy.get(uid) ?? 0,
+      decisions_resolved: decBy.get(uid) ?? 0,
       last_task_id: last?.node_id ?? null,
       last_action: last?.action ?? null,
       last_active_at: last?.created_at ?? null,
       has_session: hasSession,
       verified_pow: verifiedPow,
       verdict,
+      // Source-backed work-quality signals derived from the real metrics above.
+      quality: workQuality({
+        open_tasks: taskAgg.get(uid)?.open ?? 0,
+        overdue_tasks: taskAgg.get(uid)?.overdue ?? 0,
+        completed_tasks: taskAgg.get(uid)?.completed ?? 0,
+        task_count: taskCount,
+        decisions_resolved: decBy.get(uid) ?? 0,
+        last_active_at: last?.created_at ?? null,
+      }),
     };
   }).sort((a, b) => b.tokens - a.tokens);
 

@@ -16,13 +16,20 @@ import { requestCall } from "../../lib/call-bus";
  * selected member's dossier fills the right column. Selection is mirrored to `?member=`.
  */
 type Verdict = "inactive" | "bot" | "low_engagement" | "high_complexity" | "engaged" | "idle";
+type SignalLevel = "good" | "watch" | "risk" | "insufficient";
+interface QualitySignal { key: string; label: string; level: SignalLevel; basis: string }
 interface Operator {
   operator_id: string; name: string; email: string | null; avatar_url: string | null; role: string;
   tokens: number; runs: number; task_count: number; complexity_delta: number;
   records_touched?: number; open_tasks?: number; overdue_tasks?: number; completed_tasks?: number;
+  messages_sent?: number; decisions_resolved?: number; quality?: QualitySignal[];
   last_task_id: string | null; last_action: string | null; last_active_at: string | null;
   has_session: boolean; verified_pow: boolean; verdict: Verdict;
 }
+
+const SIGNAL_TONE: Record<SignalLevel, string> = {
+  good: "#10b981", watch: "#d97706", risk: "#e11d48", insufficient: "var(--text-faint)",
+};
 interface MatrixResp { operators: Operator[]; totals: { operators: number; tokens: number; active_sessions: number } }
 interface ActivityRow { id: string; action: string; ai_summary: string | null; object: { type: string; name: string | null } | null; changes?: { field: string; value: string }[]; created_at: string }
 interface InsightResp { insight: string; sources: { type: string; title: string; timestamp: string }[]; sufficient: boolean }
@@ -72,6 +79,47 @@ function Avatar({ op, size = 30 }: { op: Operator; size?: number }) {
       className="flex shrink-0 items-center justify-center rounded-full text-[12px] font-semibold">
       {initial || <UserIcon size={14} />}
     </span>
+  );
+}
+
+/** One ledger-style distribution: a labeled horizontal bar per member, sorted desc, real values. */
+function MetricBars({ title, hint, operators, value, tone, onSelect }: {
+  title: string; hint: string; operators: Operator[]; value: (o: Operator) => number; tone: string; onSelect: (id: string) => void;
+}) {
+  const rows = operators.map(o => ({ o, v: value(o) })).filter(r => r.v > 0).sort((a, b) => b.v - a.v).slice(0, 8);
+  const max = rows.reduce((m, r) => Math.max(m, r.v), 0) || 1;
+  return (
+    <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="mb-0.5 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{title}</div>
+      <div className="mb-2.5 text-[11px]" style={{ color: "var(--text-muted)" }}>{hint}</div>
+      {rows.length === 0 ? (
+        <div className="py-3 text-[11.5px]" style={{ color: "var(--text-faint)" }}>No data yet.</div>
+      ) : (
+        <div className="space-y-1.5">
+          {rows.map(({ o, v }) => (
+            <button key={o.operator_id} onClick={() => onSelect(o.operator_id)} className="group grid w-full grid-cols-[minmax(0,7rem)_1fr_auto] items-center gap-2 text-left">
+              <span className="truncate text-[11.5px]" style={{ color: "var(--text-secondary)" }}>{o.name}</span>
+              <span className="h-2 overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
+                <span className="block h-full rounded-full transition-all" style={{ width: `${Math.max(4, (v / max) * 100)}%`, background: tone }} />
+              </span>
+              <span className="text-[11px] tabular-nums" style={{ color: "var(--text-faint)" }}>{fmt(v)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Team-level distributions built entirely from the real oversight-matrix operators array. */
+function TeamCharts({ operators, onSelect }: { operators: Operator[]; onSelect: (id: string) => void }) {
+  return (
+    <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <MetricBars title="Workload" hint="Open tasks assigned" operators={operators} tone="#3b82f6" onSelect={onSelect} value={(o) => (o.open_tasks ?? 0) + (o.overdue_tasks ?? 0)} />
+      <MetricBars title="Overdue work" hint="Overdue tasks by member" operators={operators} tone="#e11d48" onSelect={onSelect} value={(o) => o.overdue_tasks ?? 0} />
+      <MetricBars title="Decisions resolved" hint="Approvals/rejections (30d)" operators={operators} tone="#10b981" onSelect={onSelect} value={(o) => o.decisions_resolved ?? 0} />
+      <MetricBars title="AI usage" hint="Credits spent (30d)" operators={operators} tone="var(--section-accent)" onSelect={onSelect} value={(o) => o.tokens} />
+    </div>
   );
 }
 
@@ -135,6 +183,9 @@ export function TeamOversightPage() {
           </div>
         ))}
       </div>
+
+      {/* ── Team charts — real per-member distributions (ledger-style horizontal bars) ── */}
+      {operators.length > 0 && <TeamCharts operators={operators} onSelect={select} />}
 
       {/* ── Master–detail: ledger (left) + dossier (right) ── */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
@@ -268,13 +319,15 @@ function MemberDetail({ op }: { op: Operator }) {
         ))}
       </div>
 
-      {/* real work rollups — computed server-side from tasks + activity */}
-      <div className="grid grid-cols-4 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+      {/* real work rollups — computed server-side from tasks + activity + messages + decisions */}
+      <div className="grid grid-cols-3 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
         {[
           { k: "Records touched", val: op.records_touched ?? 0 },
           { k: "Open tasks", val: op.open_tasks ?? 0 },
           { k: "Overdue", val: op.overdue_tasks ?? 0, warn: (op.overdue_tasks ?? 0) > 0 },
           { k: "Completed", val: op.completed_tasks ?? 0 },
+          { k: "Messages (30d)", val: op.messages_sent ?? 0 },
+          { k: "Decisions (30d)", val: op.decisions_resolved ?? 0 },
         ].map((m) => (
           <div key={m.k} className="px-3 py-2.5" style={{ background: "var(--surface-card)" }}>
             <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.warn ? "#d97706" : "var(--text-primary)" }}>{fmt(m.val)}</div>
@@ -282,6 +335,29 @@ function MemberDetail({ op }: { op: Operator }) {
           </div>
         ))}
       </div>
+
+      {/* work quality — source-backed signals computed server-side; every one cites its real basis */}
+      {op.quality && op.quality.length > 0 && (
+        <Section title="Work quality">
+          <div className="space-y-2">
+            {op.quality.map((s) => (
+              <div key={s.key} className="flex items-start gap-2.5">
+                <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: SIGNAL_TONE[s.level] }} />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</span>
+                    <span className="text-[10px] uppercase tracking-wide" style={{ color: SIGNAL_TONE[s.level] }}>
+                      {s.level === "insufficient" ? "no data" : s.level}
+                    </span>
+                  </div>
+                  <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>{s.basis}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px]" style={{ color: "var(--text-faint)" }}>Every signal is derived from real metrics; "no data" means it isn't measurable yet — never guessed.</p>
+        </Section>
+      )}
 
       {/* activity over time — real */}
       <Section title="Activity over time · last 14 days">

@@ -62814,6 +62814,53 @@ async function verifiedPowUserIds(sinceMs = 30 * 24 * 60 * 60 * 1e3) {
 
 // src/routes/activities.ts
 init_ai_gateway();
+
+// src/lib/oversight-metrics.ts
+var DAY2 = 864e5;
+function daysSince2(iso) {
+  if (!iso) return null;
+  const t2 = new Date(iso).getTime();
+  if (Number.isNaN(t2)) return null;
+  return Math.floor((Date.now() - t2) / DAY2);
+}
+function workQuality(op) {
+  const signals = [];
+  const activeTasks = op.open_tasks + op.overdue_tasks;
+  const totalTasks = activeTasks + op.completed_tasks;
+  if (activeTasks === 0) {
+    signals.push({ key: "follow_up", label: "Follow-up discipline", level: "insufficient", basis: "No open tasks assigned in scope \u2014 nothing to measure." });
+  } else {
+    const slip = op.overdue_tasks / activeTasks;
+    const level = slip === 0 ? "good" : slip <= 0.34 ? "watch" : "risk";
+    signals.push({ key: "follow_up", label: "Follow-up discipline", level, basis: `${op.overdue_tasks} of ${activeTasks} open task(s) are overdue (${Math.round(slip * 100)}%).` });
+  }
+  {
+    const level = op.overdue_tasks === 0 ? "good" : op.overdue_tasks <= 2 ? "watch" : "risk";
+    signals.push({ key: "overdue_risk", label: "Overdue risk", level, basis: `${op.overdue_tasks} overdue task(s) currently assigned.` });
+  }
+  const d2 = daysSince2(op.last_active_at);
+  if (op.task_count === 0 || d2 === null) {
+    signals.push({ key: "consistency", label: "Activity consistency", level: "insufficient", basis: "No tracked activity in the last 30 days." });
+  } else {
+    const level = d2 <= 3 ? "good" : d2 <= 7 ? "watch" : "risk";
+    signals.push({ key: "consistency", label: "Activity consistency", level, basis: `${op.task_count} action(s) in 30d; last active ${d2} day(s) ago.` });
+  }
+  if (op.decisions_resolved === 0) {
+    signals.push({ key: "decisions", label: "Decision participation", level: "insufficient", basis: "No decisions resolved in the last 30 days." });
+  } else {
+    const level = op.decisions_resolved >= 3 ? "good" : "watch";
+    signals.push({ key: "decisions", label: "Decision participation", level, basis: `Resolved ${op.decisions_resolved} decision(s) in 30d.` });
+  }
+  if (typeof op.reassigned_tasks !== "number") {
+    signals.push({ key: "handoff", label: "Handoff quality", level: "insufficient", basis: "Handoff/reassignment history is not tracked yet." });
+  } else {
+    const level = op.reassigned_tasks === 0 ? "good" : op.reassigned_tasks <= 2 ? "watch" : "risk";
+    signals.push({ key: "handoff", label: "Handoff quality", level, basis: `${op.reassigned_tasks} task(s) reassigned away.` });
+  }
+  return signals;
+}
+
+// src/routes/activities.ts
 var router9 = new Hono2();
 router9.get("/trends", requireAuth, async (c2) => {
   const ws = c2.get("workspaceId");
@@ -62903,14 +62950,27 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
   const ws = c2.get("workspaceId");
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString();
   const nowIso = (/* @__PURE__ */ new Date()).toISOString();
-  const [{ data: members3 }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks2 }] = await Promise.all([
+  const [{ data: members3 }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks2 }, { data: msgs }, { data: decisions }] = await Promise.all([
     supabase.from("workspace_members").select("user_id, name, email, avatar_url, role").eq("workspace_id", ws),
     supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", sinceIso),
     supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").order("created_at", { ascending: false }).limit(2e3),
     supabase.from("auth_refresh_tokens").select("user_id").is("revoked_at", null).gt("expires_at", nowIso),
     // Real per-member task rollups (assignee-scoped): open / overdue / completed.
-    supabase.from("tasks").select("assignee_id, completed, due_date").eq("workspace_id", ws).limit(5e3)
+    supabase.from("tasks").select("assignee_id, completed, due_date").eq("workspace_id", ws).limit(5e3),
+    // Real per-member internal messages sent (30d) + decisions resolved (30d) — both workspace-scoped.
+    supabase.from("internal_messages").select("sender_id").eq("workspace_id", ws).gte("created_at", sinceIso).limit(1e4),
+    supabase.from("decision_queue").select("resolved_by").eq("workspace_id", ws).gte("resolved_at", sinceIso).limit(1e4)
   ]);
+  const msgBy = /* @__PURE__ */ new Map();
+  for (const m2 of msgs ?? []) {
+    const k2 = String(m2.sender_id ?? "");
+    if (k2) msgBy.set(k2, (msgBy.get(k2) ?? 0) + 1);
+  }
+  const decBy = /* @__PURE__ */ new Map();
+  for (const d2 of decisions ?? []) {
+    const k2 = String(d2.resolved_by ?? "");
+    if (k2) decBy.set(k2, (decBy.get(k2) ?? 0) + 1);
+  }
   const taskAgg = /* @__PURE__ */ new Map();
   for (const t2 of tasks2 ?? []) {
     const uid = String(t2.assignee_id ?? "");
@@ -62976,12 +63036,23 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
       open_tasks: taskAgg.get(uid)?.open ?? 0,
       overdue_tasks: taskAgg.get(uid)?.overdue ?? 0,
       completed_tasks: taskAgg.get(uid)?.completed ?? 0,
+      messages_sent: msgBy.get(uid) ?? 0,
+      decisions_resolved: decBy.get(uid) ?? 0,
       last_task_id: last?.node_id ?? null,
       last_action: last?.action ?? null,
       last_active_at: last?.created_at ?? null,
       has_session: hasSession2,
       verified_pow: verifiedPow,
-      verdict
+      verdict,
+      // Source-backed work-quality signals derived from the real metrics above.
+      quality: workQuality({
+        open_tasks: taskAgg.get(uid)?.open ?? 0,
+        overdue_tasks: taskAgg.get(uid)?.overdue ?? 0,
+        completed_tasks: taskAgg.get(uid)?.completed ?? 0,
+        task_count: taskCount,
+        decisions_resolved: decBy.get(uid) ?? 0,
+        last_active_at: last?.created_at ?? null
+      })
     };
   }).sort((a2, b2) => b2.tokens - a2.tokens);
   const totalTokens = operators.reduce((s2, o2) => s2 + o2.tokens, 0);
