@@ -189,23 +189,23 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
         : (u: string) => (platformOf(u) === "web" || platformOf(u).includes(".") ? 1 : 0); // people/social first
       return rank(a.url) - rank(b.url);
     });
-    // Reviews deep-scroll each page (slow but rich — 1 page can yield ~90 reviews), so we analyze
-    // FEWER, higher-quality pages to stay well under the 60s serverless limit. Leads stay broad.
-    const unique = ranked.slice(0, isReviews ? 14 : 40);
+    // Reviews deep-scroll each page (rich — 1 page can yield ~90 reviews). With the 300s function
+    // budget (Vercel Pro) we can afford many review pages; the tiered ranking keeps them relevant.
+    const unique = ranked.slice(0, isReviews ? 20 : 40);
 
     // 2) Scrape the top pages to full text, then run ONE FOCUSED extraction call PER PAGE, in
     //    parallel batches. This replaces the old single-blob call (36 concatenated pages in one
     //    prompt), which overwhelmed the model into returning 1-2 results — and because WE bind each
     //    extraction to its page's URL, the model never writes a source_url at all: hallucinated or
     //    mismatched URLs are structurally impossible, so nothing gets dropped by URL-matching.
-    const SCRAPE_TOP = isReviews ? 8 : 18;
+    const SCRAPE_TOP = isReviews ? 14 : 18;
     const toScrape = unique.slice(0, SCRAPE_TOP);
     await emit({ type: "progress", stage: "scrape", message: `Reading ${toScrape.length} pages in full…` });
     // Scroll each page so lazy-loaded review lists fully render (1 review → all reviews). ALWAYS
     // on for reviews (getting them all is the point), and for deep lead runs too.
     const deepScrape = searchType === "REVIEWS" || !!deep;
     const scraped = await Promise.all(toScrape.map((h) => sovereignScrape(h.url, { deep: deepScrape }).catch(() => "")));
-    const pageTextCap = deepScrape ? 32_000 : 6_000; // cleaned review pages fit ~all entries in this budget
+    const pageTextCap = deepScrape ? 36_000 : 6_000; // feeds up to 3 multi-pass extraction chunks
     const pages = unique.map((h, i) => ({
       url: h.url,
       title: h.title,
@@ -246,20 +246,20 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
 
     let gatewayFailures = 0;
     let lastGatewayError: string | null = null;
-    const extractPage = async (p: { url: string; title: string; text: string }): Promise<(ExtractedLead & { source_url: string })[]> => {
+    // One extraction call over a single text block.
+    const extractChunk = async (p: { url: string; title: string }, text: string): Promise<(ExtractedLead & { source_url: string })[]> => {
       try {
         const out = await aiGatewayToolUse({
           toolName: "extract_from_page",
           toolDescription: "Extract real leads/reviews from one web page",
           toolSchema: perPageSchema,
-          // Review-listing pages can hold dozens of reviews — give the extraction lots of room.
           maxTokens: wantReviews ? 6000 : 1600,
           system:
             `You extract REAL ${wantReviews ? "reviews and opinions" : "leads and prospects"} from a single web page. ` +
             `ABSOLUTE RULES: only report what is literally on the page — never invent names, emails, phones, or review text. ` +
             `Contact details ONLY when they appear verbatim. ${region ? `Region "${region}" is a preference, not a hard filter — keep unclear-region results at lower confidence.` : ""} ` +
             `Return an empty array if the page genuinely has nothing on-topic. Do not pad.`,
-          prompt: `${ask}\n\nPAGE TITLE: ${p.title}\nPAGE URL: ${p.url}\n\nPAGE CONTENT:\n${p.text}`,
+          prompt: `${ask}\n\nPAGE TITLE: ${p.title}\nPAGE URL: ${p.url}\n\nPAGE CONTENT:\n${text}`,
         });
         const leads = Array.isArray((out as { leads?: unknown }).leads) ? (out as { leads: ExtractedLead[] }).leads : [];
         return leads.filter((l) => l.intent_type).map((l) => ({ ...l, source_url: p.url }));
@@ -268,6 +268,18 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
         lastGatewayError = (err?.message ?? String(err)).slice(0, 200);
         return [];
       }
+    };
+    // MULTI-PASS: a big review page holds more reviews than one call can output — split it into
+    // ~12k chunks and extract each, so a 97-review page returns most/all of them (300s budget).
+    const extractPage = async (p: { url: string; title: string; text: string }): Promise<(ExtractedLead & { source_url: string })[]> => {
+      if (wantReviews && p.text.length > 13_000) {
+        const CHUNK = 12_000;
+        const chunks: string[] = [];
+        for (let s = 0; s < p.text.length; s += CHUNK) chunks.push(p.text.slice(s, s + CHUNK));
+        const passes = await Promise.all(chunks.slice(0, 3).map((c) => extractChunk(p, c)));
+        return passes.flat();
+      }
+      return extractChunk(p, p.text);
     };
 
     // Map an extracted lead to the compact display row the chat UI renders.
@@ -302,7 +314,7 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
       if (allLeads.length) {
         // De-dupe by URL+author+snippet for a clean progressive view.
         const seenK = new Set<string>();
-        const partial = allLeads.map(toDisplay).filter((r) => { const k = `${r.source_url}|${r.author_name}|${r.snippet.slice(0, 40)}`; return seenK.has(k) ? false : (seenK.add(k), true); }).slice(0, 60);
+        const partial = allLeads.map(toDisplay).filter((r) => { const k = `${r.source_url}|${r.author_name}|${r.snippet.slice(0, 40)}`; return seenK.has(k) ? false : (seenK.add(k), true); }).slice(0, 120);
         await emit({ type: "results", kind: searchType, discovered: partial.length, scanned: unique.length, results: partial });
       }
     }
@@ -449,7 +461,7 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     // Compact display rows for the chat UI — strongest first, no fabricated fields.
     const results = [...dedupedRows]
       .sort((a, b) => (b.confidence_score ?? 0) - (a.confidence_score ?? 0))
-      .slice(0, 60)
+      .slice(0, 120)
       .map((r) => ({
         source_url: r.source_url,
         platform: r.platform,

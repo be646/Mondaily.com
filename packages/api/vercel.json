@@ -1,7 +1,7 @@
 {
   "buildCommand": "npx tsup && (node scripts/log-deploy.mjs || true)",
   "functions": {
-    "api/handler.js": { "maxDuration": 60 }
+    "api/handler.js": { "maxDuration": 300 }
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/handler" }

@@ -55765,13 +55765,13 @@ async function runSocialDiscovery(data, onProgress) {
     const rank = isReviews ? (u2) => REVIEW_LISTING.test(u2) ? 0 : SOCIAL_HOSTS.test(u2) ? 1 : 2 : (u2) => platformOf(u2) === "web" || platformOf(u2).includes(".") ? 1 : 0;
     return rank(a2.url) - rank(b2.url);
   });
-  const unique = ranked.slice(0, isReviews ? 14 : 40);
-  const SCRAPE_TOP = isReviews ? 8 : 18;
+  const unique = ranked.slice(0, isReviews ? 20 : 40);
+  const SCRAPE_TOP = isReviews ? 14 : 18;
   const toScrape = unique.slice(0, SCRAPE_TOP);
   await emit({ type: "progress", stage: "scrape", message: `Reading ${toScrape.length} pages in full\u2026` });
   const deepScrape = searchType === "REVIEWS" || !!deep;
   const scraped = await Promise.all(toScrape.map((h2) => sovereignScrape(h2.url, { deep: deepScrape }).catch(() => "")));
-  const pageTextCap = deepScrape ? 32e3 : 6e3;
+  const pageTextCap = deepScrape ? 36e3 : 6e3;
   const pages = unique.map((h2, i2) => ({
     url: h2.url,
     title: h2.title,
@@ -55808,13 +55808,12 @@ async function runSocialDiscovery(data, onProgress) {
   const ask = wantReviews ? `Extract EVERY review, opinion, testimonial, or complaint${targetSubject ? ` about "${targetSubject}"` : ""} from this page \u2014 the full review text verbatim, with the reviewer's name when shown.` : `Extract EVERY real person or business on this page that fits: sector "${sector ?? ""}"${region ? `, region "${region}"` : ""} \u2014 prospects, providers, or people showing interest. Include name + any email/phone/handle that appears verbatim.`;
   let gatewayFailures = 0;
   let lastGatewayError2 = null;
-  const extractPage = async (p2) => {
+  const extractChunk = async (p2, text) => {
     try {
       const out = await aiGatewayToolUse({
         toolName: "extract_from_page",
         toolDescription: "Extract real leads/reviews from one web page",
         toolSchema: perPageSchema,
-        // Review-listing pages can hold dozens of reviews — give the extraction lots of room.
         maxTokens: wantReviews ? 6e3 : 1600,
         system: `You extract REAL ${wantReviews ? "reviews and opinions" : "leads and prospects"} from a single web page. ABSOLUTE RULES: only report what is literally on the page \u2014 never invent names, emails, phones, or review text. Contact details ONLY when they appear verbatim. ${region ? `Region "${region}" is a preference, not a hard filter \u2014 keep unclear-region results at lower confidence.` : ""} Return an empty array if the page genuinely has nothing on-topic. Do not pad.`,
         prompt: `${ask}
@@ -55823,7 +55822,7 @@ PAGE TITLE: ${p2.title}
 PAGE URL: ${p2.url}
 
 PAGE CONTENT:
-${p2.text}`
+${text}`
       });
       const leads = Array.isArray(out.leads) ? out.leads : [];
       return leads.filter((l2) => l2.intent_type).map((l2) => ({ ...l2, source_url: p2.url }));
@@ -55832,6 +55831,16 @@ ${p2.text}`
       lastGatewayError2 = (err2?.message ?? String(err2)).slice(0, 200);
       return [];
     }
+  };
+  const extractPage = async (p2) => {
+    if (wantReviews && p2.text.length > 13e3) {
+      const CHUNK = 12e3;
+      const chunks = [];
+      for (let s2 = 0; s2 < p2.text.length; s2 += CHUNK) chunks.push(p2.text.slice(s2, s2 + CHUNK));
+      const passes = await Promise.all(chunks.slice(0, 3).map((c2) => extractChunk(p2, c2)));
+      return passes.flat();
+    }
+    return extractChunk(p2, p2.text);
   };
   const toDisplay = (l2) => ({
     source_url: l2.source_url,
@@ -55863,7 +55872,7 @@ ${p2.text}`
       const partial = allLeads.map(toDisplay).filter((r2) => {
         const k2 = `${r2.source_url}|${r2.author_name}|${r2.snippet.slice(0, 40)}`;
         return seenK.has(k2) ? false : (seenK.add(k2), true);
-      }).slice(0, 60);
+      }).slice(0, 120);
       await emit({ type: "results", kind: searchType, discovered: partial.length, scanned: unique.length, results: partial });
     }
   }
@@ -55994,7 +56003,7 @@ ${p2.text}`
     if (!prev || (r2.confidence_score ?? 0) > (prev.confidence_score ?? 0)) byFp.set(r2.fingerprint, r2);
   }
   const dedupedRows = [...byFp.values()];
-  const results = [...dedupedRows].sort((a2, b2) => (b2.confidence_score ?? 0) - (a2.confidence_score ?? 0)).slice(0, 60).map((r2) => ({
+  const results = [...dedupedRows].sort((a2, b2) => (b2.confidence_score ?? 0) - (a2.confidence_score ?? 0)).slice(0, 120).map((r2) => ({
     source_url: r2.source_url,
     platform: r2.platform,
     author_name: r2.author_name,
