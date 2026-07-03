@@ -121,10 +121,19 @@ export function DiscoveryPage() {
     if (force) { runSearch(query); return; }
     setBusy(true);
     let coach: { specific?: boolean; coach_message?: string; suggestions?: string[] } | null = null;
-    try { coach = await apiClient.post("/discovery/coach", { query }); } catch { coach = { specific: true }; }
+    try { coach = await apiClient.post("/discovery/coach", { query }); } catch { coach = null; }
     setBusy(false);
-    if (!coach || coach.specific !== false) { runSearch(query); return; }
-    setTurns((t) => [...t, { id: uid(), query, deep, steps: [], results: [], status: "coach", coach: { message: coach!.coach_message || "That's a bit broad — pick one to get sharper results:", suggestions: (coach!.suggestions || []).slice(0, 5) } }]);
+    // Decide vagueness client-side too, so the coach appears even if /coach is slow or errors.
+    const w = query.split(/\s+/).filter(Boolean);
+    const clientVague = (/^(leads?|companies|company|businesses|business|prospects?|clients?|contacts?|people|customers?|firms?)$/i.test(w[0] ?? "") && w.length <= 4) || w.length <= 1;
+    const vague = coach?.specific === false || clientVague;
+    if (!vague) { runSearch(query); return; }
+    // Suggestions: server's if any, else derive from the place in the query.
+    const place = (query.match(/\b(?:in|near|around|from)\s+(.+)$/i)?.[1] ?? "").trim();
+    const fallback = place ? [`restaurants in ${place}`, `law firms in ${place}`, `dentists in ${place}`, `marketing agencies in ${place}`, `real estate agencies in ${place}`] : [];
+    const suggestions = ((coach?.suggestions && coach.suggestions.length ? coach.suggestions : fallback)).slice(0, 5);
+    const message = coach?.coach_message || `“${query}” is a bit broad — pick an industry to get sharper results, or search anyway:`;
+    setTurns((t) => [...t, { id: uid(), query, deep, steps: [], results: [], status: "coach", coach: { message, suggestions } }]);
   }
 
   async function runSearch(q: string) {
