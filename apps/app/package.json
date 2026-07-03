@@ -33,7 +33,8 @@
     "react-router-dom": "^6.30.1",
     "recharts": "^2.15.3",
     "tailwind-merge": "^3.3.0",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.5",
+    "@mondaily/shared": "workspace:*"
   },
   "devDependencies": {
     "@rollup/wasm-node": "4.61.1",

@@ -9,6 +9,7 @@ import { isWorkspaceAdmin } from "../middleware/rbac";
 import { ACCESS_COOKIE, REFRESH_COOKIE, sha256 } from "../lib/auth-tokens";
 import { MODULE_KEYS, resolveModuleMatrix, enabledModules } from "../lib/modules";
 import { creditStatus, grantCredits } from "../lib/credits";
+import { grantAmountFor } from "@mondaily/shared/pricing";
 import { planLimits } from "../lib/plan-limits";
 
 // Seat limits per tier — Scout & Operator are SINGLE-operator; only Command/Sovereign are teams.
@@ -914,9 +915,10 @@ router.post("/start-trial", async (c) => {
   await supabase.from("workspaces").update({
     settings: { ...settings, account_tier: "operator", plan: "operator", track: "business", trial_ends_at: trialEndsAt, trial_used: true },
   }).eq("id", ws);
-  // Top credits up to the Operator allotment (shortfall only — never stack).
+  // Top credits up to the Operator allotment (shortfall only — never stack). From the catalog:
+  // trial credits behave exactly like real credits (metered + floored at zero), just time-boxed.
   const { balance } = await creditStatus(ws);
-  const delta = 500_000 - balance;
+  const delta = grantAmountFor("operator") - balance;
   if (delta > 0) await grantCredits(ws, delta, "grant", "Operator trial credits");
   return c.json({ ok: true, trial_ends_at: trialEndsAt });
 });

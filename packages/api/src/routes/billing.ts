@@ -101,8 +101,10 @@ router.post("/checkout", async (c) => {
 // POST /credits-checkout → { url } — buy a one-time credit pack AND save the card off-session so
 // the auto-refill engine can charge it later. Shared logic in lib/credit-pack.ts.
 router.post("/credits-checkout", async (c) => {
-  const r = await createCreditPackCheckout(c.get("workspaceId"), c.get("userId"));
-  return r.url ? c.json({ url: r.url }) : c.json({ error: r.error, configured: r.status !== 503 }, r.status as 503 | 500);
+  const body = (await c.req.json().catch(() => ({}))) as { pack_id?: string };
+  const packId = body.pack_id ?? "standard";
+  const r = await createCreditPackCheckout(c.get("workspaceId"), c.get("userId"), packId);
+  return r.url ? c.json({ url: r.url }) : c.json({ error: r.error, configured: r.status !== 503 }, r.status as 400 | 503 | 500);
 });
 
 // POST /portal → { url } — manage an existing subscription.

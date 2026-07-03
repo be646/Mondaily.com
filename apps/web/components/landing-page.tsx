@@ -6,6 +6,15 @@ import { useRouter } from "next/navigation";
 import { Nav } from "./nav";
 import { HeroChat } from "./hero-chat";
 import { Logo } from "./logo";
+import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER } from "@mondaily/shared/pricing";
+
+// Credit display helper — shared catalog is the source of truth for the numbers.
+function fmtCredits(n: number | null): string {
+  if (n === null) return "Custom";
+  if (n >= 1_000_000) return `${n % 1_000_000 === 0 ? n / 1_000_000 : (n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return String(n);
+}
 
 function FadeIn({ children, delay = 0 }: { children: ReactNode; delay?: number }) {
   return (
@@ -2802,44 +2811,48 @@ function EmailSignup() {
 
 // ── Pricing ───────────────────────────────────────────────────────────────────
 // Flat tiers — value = operators + AI credits, not per-seat. Mirrors apps/app/src/lib/plans.ts.
+// Prices + monthly AI credits come from the shared catalog (PLAN_TIERS); marketing copy stays here.
 const PLANS = [
   {
-    name: "Scout", bestFor: "Best for trying it solo",
-    priceMonthly: 0, priceAnnual: 0, period: "forever",
+    name: PLAN_TIERS.scout.name, bestFor: "Best for trying it solo",
+    priceMonthly: PLAN_TIERS.scout.priceMonthly, priceAnnual: PLAN_TIERS.scout.priceAnnual, period: "forever",
     desc: "Run your first autonomous operations, free.",
     cta: "Start free — takes 90 seconds", href: "https://app.mondaily.com/sign-up", highlight: false,
     capacityPct: 20,
-    features: ["1 operator","50k AI credits / mo","Full workspace + records","1 live autonomous agent","3 automations"],
+    features: [`${PLAN_TIERS.scout.seats} seat`, `${fmtCredits(PLAN_TIERS.scout.monthlyCredits)} AI credits / mo`, "Full workspace + records", "Autonomous agents", "Discovery search"],
     unlocks: "Unlocks the workspace, records, and a taste of Mondaily's autonomous agents.",
   },
   {
-    name: "Operator", bestFor: "Best for an AI-run workspace",
-    priceMonthly: 29, priceAnnual: 23, period: "mo",
+    name: PLAN_TIERS.operator.name, bestFor: "Best for an AI-run workspace",
+    priceMonthly: PLAN_TIERS.operator.priceMonthly, priceAnnual: PLAN_TIERS.operator.priceAnnual, period: "mo",
     desc: "Your full autonomous workspace — agents doing the work.",
     cta: "Get started", href: "https://app.mondaily.com/sign-up?plan=operator", highlight: true,
     capacityPct: 75,
-    features: ["1 operator","500k AI credits / mo","Unlimited autonomous agents","Unlimited automations","Finance + Discovery + enrichment"],
-    unlocks: "Unlocks unlimited agents and automations, the finance suite, Discovery, and priority AI.",
+    features: [`Up to ${PLAN_TIERS.operator.seats} seats`, `${fmtCredits(PLAN_TIERS.operator.monthlyCredits)} AI credits / mo`, "Discovery deep research + enrichment", "Decision Queue + workflows", "Finance & billing", "+10% credit-pack bonus"],
+    unlocks: "Unlocks Discovery deep research, the Decision Queue, the finance suite, and a +10% credit-pack bonus.",
   },
   {
-    name: "Command", bestFor: "Best for a team of operators",
-    priceMonthly: 79, priceAnnual: 63, period: "mo",
+    name: PLAN_TIERS.command.name, bestFor: "Best for a team of operators",
+    priceMonthly: PLAN_TIERS.command.priceMonthly, priceAnnual: PLAN_TIERS.command.priceAnnual, period: "mo",
     desc: "Run a team of operators alongside your agents.",
     cta: "Get started", href: "https://app.mondaily.com/sign-up?plan=command", highlight: false,
     capacityPct: 90,
-    features: ["Up to 10 operators","2M AI credits / mo","Team Oversight + audit trail","Shared command center","Role-based access"],
-    unlocks: "Unlocks up to 10 operators, Team Oversight, the shared command center, and role-based access.",
+    features: [`Up to ${PLAN_TIERS.command.seats} seats`, `${fmtCredits(PLAN_TIERS.command.monthlyCredits)} AI credits / mo`, "Team Intelligence / Oversight", "Everything in Operator", "+20% credit-pack bonus"],
+    unlocks: "Unlocks Team Intelligence, everything in Operator, and a +20% credit-pack bonus.",
   },
   {
-    name: "Sovereign", bestFor: "Best for autonomy at scale",
-    priceMonthly: null, priceAnnual: null, period: "talk to us",
-    desc: "Autonomous operations at enterprise scale.",
+    name: PLAN_TIERS.sovereign.name, bestFor: "Best for autonomy at scale",
+    priceMonthly: PLAN_TIERS.sovereign.priceMonthly, priceAnnual: PLAN_TIERS.sovereign.priceAnnual, period: "talk to us",
+    desc: "Autonomous operations at enterprise scale — private infrastructure.",
     cta: "Talk to us", href: "mailto:sales@mondaily.com", highlight: false,
     capacityPct: 100,
-    features: ["Unlimited operators","Custom AI credits","SSO / SAML + audit export","Dedicated agents + SLA","Onboarding manager"],
-    unlocks: "Unlocks SSO/SAML, audit export, dedicated agents with an SLA, and a success manager.",
+    features: ["Unlimited seats", "Custom AI credits", "Self-hosted infra + SSO/SAML", "Audit export + compliance", "Dedicated support + SLA"],
+    unlocks: "Unlocks self-hosted infrastructure, SSO/SAML, audit export, and a dedicated success manager.",
   },
 ];
+
+// Pay-as-you-go credit packs (from the shared catalog) — shown under the plan grid.
+const CREDIT_PACK_CARDS = CREDIT_PACK_ORDER.map((id) => CREDIT_PACKS[id]!);
 
 // ── Live now / Operating now / Coming online — an honest status board so
 // nothing on this page overpromises. Every item is checked against the
@@ -2942,8 +2955,25 @@ export function PricingSection() {
         })}
       </div>
 
+      {/* Pay-as-you-go AI credit packs — buy more anytime; paid plans earn a bonus. */}
+      <div className="mt-14">
+        <p className="mb-1 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Top up anytime</p>
+        <h3 className="mb-1 text-[20px] font-semibold text-zinc-900">Pay-as-you-go AI credit packs</h3>
+        <p className="mb-5 text-[13.5px] text-zinc-500">One-time credits that never expire. Operator earns <strong>+10%</strong>, Command <strong>+20%</strong>, and annual plans an extra <strong>+10%</strong> on every pack.</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {CREDIT_PACK_CARDS.map((p) => (
+            <div key={p.id} className="rounded-xl border border-zinc-200 bg-white px-4 py-4">
+              <div className="text-[13px] font-semibold text-zinc-900">{p.name}</div>
+              <div className="mt-1 text-[22px] font-semibold text-zinc-900">${p.price_usd}</div>
+              <div className="mt-0.5 text-[12.5px] text-zinc-500">{fmtCredits(p.base_credits)} AI credits</div>
+              <div className="mt-0.5 text-[11px] text-zinc-400">+ plan/annual bonus</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] text-zinc-400">
-        {["14-day Pro trial — no card required", "Cancel anytime", "Your data stays yours — row-level isolation"].map(t => (
+        {["14-day Operator trial — no card required", "Cancel anytime", "Your data stays yours — row-level isolation"].map(t => (
           <span key={t} className="inline-flex items-center gap-1.5">
             <svg width="13" height="13" viewBox="0 0 14 14" className="shrink-0 text-zinc-300"><path d="M2.5 7.5l3 3 6-7.5" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
             {t}

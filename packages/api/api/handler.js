@@ -3866,10 +3866,10 @@ var require_source = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/consts.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/consts.js
 var import_chalk, queryKeys, probe, envKeys, headerKeys, forwardedHeaders, defaultInngestApiBaseUrl, defaultInngestEventBaseUrl, defaultDevServerHost, internalEvents, logPrefix, debugPrefix, dummyEventKey, syncKind, ExecutionVersion, defaultMaxRetries;
 var init_consts = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/consts.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/consts.js"() {
     "use strict";
     import_chalk = __toESM(require_source(), 1);
     queryKeys = /* @__PURE__ */ (function(queryKeys$1) {
@@ -3983,10 +3983,10 @@ var init_consts = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/version.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/version.js
 var version;
 var init_version = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/version.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/version.js"() {
     "use strict";
     version = "3.54.2";
   }
@@ -5827,7 +5827,7 @@ var require_ms = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/strings.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/strings.js
 function timingSafeEqual(a2, b2) {
   if (a2.length !== b2.length) return false;
   let diff = 0;
@@ -5839,7 +5839,7 @@ function removeSigningKeyPrefix(signingKey) {
 }
 var import_hash, import_json_stringify_safe, import_ms, sha256, stringify$1, slugify, second, minute, hour, day, periods, timeStr, stringifyUnknown, hashEventKey, hashSigningKey;
 var init_strings = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/strings.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/strings.js"() {
     "use strict";
     import_hash = __toESM(require_hash(), 1);
     import_json_stringify_safe = __toESM(require_stringify(), 1);
@@ -5890,10 +5890,10 @@ var init_strings = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/_virtual/rolldown_runtime.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/_virtual/rolldown_runtime.js
 var __require;
 var init_rolldown_runtime = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/_virtual/rolldown_runtime.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/_virtual/rolldown_runtime.js"() {
     "use strict";
     __require = /* @__PURE__ */ ((x2) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x2, { get: (a2, b2) => (typeof require !== "undefined" ? require : a2)[b2] }) : x2)(function(x2) {
       if (typeof require !== "undefined") return require.apply(this, arguments);
@@ -5902,7 +5902,7 @@ var init_rolldown_runtime = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/env.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/env.js
 function getProcessEnv() {
   const env2 = {};
   const whitelist = Object.values(envKeys);
@@ -5922,7 +5922,7 @@ function protectEnv(env2) {
 }
 var devServerHost, checkFns, prodChecks, Mode, getMode, getEnvironmentName, processEnv, allProcessEnv, inngestHeaders, platformChecks, streamingChecks, getPlatformName, platformSupportsStreaming, CUSTOM_FETCH_MARKER, getFetch, parseAsBoolean;
 var init_env = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/env.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/env.js"() {
     "use strict";
     init_rolldown_runtime();
     init_consts();
@@ -6166,10 +6166,10 @@ var init_env = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/devserver.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/devserver.js
 var devServerAvailable, devServerUrl, devServerHost$1;
 var init_devserver = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/devserver.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/devserver.js"() {
     "use strict";
     init_consts();
     init_env();
@@ -6188,10 +6188,10 @@ var init_devserver = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/enum.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/enum.js
 var enumFromValue;
 var init_enum = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/enum.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/enum.js"() {
     "use strict";
     enumFromValue = (enumType2, value) => {
       if (Object.values(enumType2).includes(value)) return value;
@@ -6199,10 +6199,10 @@ var init_enum = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/NonRetriableError.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/NonRetriableError.js
 var NonRetriableError;
 var init_NonRetriableError = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/NonRetriableError.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/NonRetriableError.js"() {
     "use strict";
     NonRetriableError = class extends Error {
       /**
@@ -10493,10 +10493,10 @@ var require_strip_ansi = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/errors.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/errors.js
 var import_chalk2, import_json_stringify_safe2, import_serialize_error_cjs, import_strip_ansi, SERIALIZED_KEY, SERIALIZED_VALUE, serializeError$1, isSerializedError, deserializeError$1, ErrCode, prettyErrorSplitter, minifyPrettyError, isError, getErrorMessage, prettyError, fixEventKeyMissingSteps, rethrowError, functionStoppedRunningErr;
 var init_errors2 = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/errors.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/errors.js"() {
     "use strict";
     init_NonRetriableError();
     init_v3();
@@ -10689,10 +10689,10 @@ ${toFixNowStr}` : toFixNowStr;
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/types.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/types.js
 var baseJsonErrorSchema, maybeJsonErrorSchema, jsonErrorSchema, StepOpCode, StepMode, AsyncResponseType, incomingOpSchema, sendEventResponseSchema, defaultCheckpointingOptions, logLevels, concurrencyOptionSchema, functionConfigSchema, ok, err, inBandSyncRequestBodySchema;
 var init_types2 = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/types.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/types.js"() {
     "use strict";
     init_v3();
     baseJsonErrorSchema = external_exports.object({
@@ -11387,10 +11387,10 @@ var require_src = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/execution/InngestExecution.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/InngestExecution.js
 var import_debug, PREFERRED_ASYNC_EXECUTION_VERSION, PREFERRED_CHECKPOINTING_EXECUTION_VERSION, InngestExecution;
 var init_InngestExecution = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/execution/InngestExecution.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/InngestExecution.js"() {
     "use strict";
     init_consts();
     import_debug = __toESM(require_src(), 1);
@@ -11406,10 +11406,10 @@ var init_InngestExecution = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/api/schema.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/api/schema.js
 var errorSchema, v0StepSchema, v1StepSchema, v2StepSchema, stepsSchemas, batchSchema;
 var init_schema = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/api/schema.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/api/schema.js"() {
     "use strict";
     init_consts();
     init_types2();
@@ -11442,10 +11442,10 @@ var init_schema = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/functions.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/functions.js
 var cacheFn, waterfall, undefinedToNull, versionSchema, fnDataVersionSchema, parseFnData, fetchAllFnData, parseFailureErr;
 var init_functions = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/functions.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/functions.js"() {
     "use strict";
     init_consts();
     init_errors2();
@@ -11661,7 +11661,7 @@ var require_canonicalize = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/net.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/net.js
 async function fetchWithAuthFallback({ authToken, authTokenFallback, fetch: fetch5, options, url }) {
   let res = await fetch5(url, {
     ...options,
@@ -11713,7 +11713,7 @@ async function signDataWithKey(data, signingKey, ts) {
 }
 var import_hash2, import_canonicalize, hmac, sha2562, hasLoggedCryptoImplementation, cryptoKeyCache;
 var init_net = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/net.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/net.js"() {
     "use strict";
     init_strings();
     import_hash2 = __toESM(require_hash(), 1);
@@ -11724,10 +11724,10 @@ var init_net = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/promises.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/promises.js
 var shimQueueMicrotask, resolveAfterPending, createDeferredPromise, createDeferredPromiseWithStack, createTimeoutPromise, runAsPromise, resolveNextTick, retryWithBackoff, goIntervalTiming;
 var init_promises = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/promises.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/promises.js"() {
     "use strict";
     shimQueueMicrotask = (callback) => {
       Promise.resolve().then(callback);
@@ -11859,10 +11859,10 @@ var init_promises = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/ServerTiming.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/ServerTiming.js
 var ServerTiming;
 var init_ServerTiming = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/ServerTiming.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/ServerTiming.js"() {
     "use strict";
     init_promises();
     ServerTiming = class {
@@ -11936,10 +11936,10 @@ var init_ServerTiming = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/stream.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/stream.js
 var createStream;
 var init_stream = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/stream.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/stream.js"() {
     "use strict";
     init_strings();
     createStream = (opts) => {
@@ -11976,10 +11976,10 @@ var init_stream = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/execution/als.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/als.js
 var alsSymbol, getAsyncCtx, getAsyncLocalStorage;
 var init_als = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/execution/als.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/als.js"() {
     "use strict";
     alsSymbol = /* @__PURE__ */ Symbol.for("inngest:als");
     getAsyncCtx = async () => {
@@ -12003,10 +12003,10 @@ var init_als = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/InngestMiddleware.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestMiddleware.js
 var InngestMiddleware, getHookStack, hookDirections;
 var init_InngestMiddleware = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/InngestMiddleware.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestMiddleware.js"() {
     "use strict";
     init_functions();
     InngestMiddleware = class InngestMiddleware2 {
@@ -12090,10 +12090,10 @@ var init_InngestMiddleware = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/RetryAfterError.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/RetryAfterError.js
 var import_ms2, RetryAfterError;
 var init_RetryAfterError = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/RetryAfterError.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/RetryAfterError.js"() {
     "use strict";
     import_ms2 = __toESM(require_ms(), 1);
     RetryAfterError = class extends Error {
@@ -12123,10 +12123,10 @@ var init_RetryAfterError = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/temporal.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/temporal.js
 var isTemporalDuration, isTemporalInstant, isTemporalZonedDateTime, getISOString;
 var init_temporal = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/temporal.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/temporal.js"() {
     "use strict";
     isTemporalDuration = (input) => {
       try {
@@ -12159,7 +12159,7 @@ var init_temporal = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/InngestMetadata.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestMetadata.js
 function buildTarget(config, ctx) {
   const ctxExecution = ctx?.execution;
   const ctxRunId = ctxExecution?.ctx?.runId;
@@ -12238,7 +12238,7 @@ async function performOp(client, config, values, kind2, op) {
 }
 var UnscopedMetadataBuilder, metadataSymbol;
 var init_InngestMetadata = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/InngestMetadata.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestMetadata.js"() {
     "use strict";
     init_als();
     UnscopedMetadataBuilder = class UnscopedMetadataBuilder2 {
@@ -12282,10 +12282,10 @@ var init_InngestMetadata = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/Fetch.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/Fetch.js
 var import_debug2, globalFetch, debug$1, createFetchShim, fetch2;
 var init_Fetch = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/Fetch.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/Fetch.js"() {
     "use strict";
     init_als();
     init_InngestStepTools();
@@ -12330,10 +12330,10 @@ var init_Fetch = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/InngestFunctionReference.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestFunctionReference.js
 var InngestFunctionReference, referenceFunction;
 var init_InngestFunctionReference = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/InngestFunctionReference.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestFunctionReference.js"() {
     "use strict";
     InngestFunctionReference = class InngestFunctionReference2 {
       get [Symbol.toStringTag]() {
@@ -12824,10 +12824,10 @@ var require_dist2 = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/InngestStepTools.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestStepTools.js
 var import_ai, getStepOptions, STEP_INDEXING_SUFFIX, createStepTools, gatewaySymbol, step, getDeferredStepTooling, invokePayloadSchema;
 var init_InngestStepTools = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/InngestStepTools.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestStepTools.js"() {
     "use strict";
     init_consts();
     init_strings();
@@ -13139,10 +13139,10 @@ var init_InngestStepTools = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/execution/v0.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v0.js
 var import_hash3, import_canonicalize2, sha1, createV0InngestExecution, V0InngestExecution, tickOpToOutgoing, hashData, _internals;
 var init_v0 = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/execution/v0.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v0.js"() {
     "use strict";
     init_consts();
     init_NonRetriableError();
@@ -13483,19 +13483,19 @@ var init_v0 = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/execution/otel/access.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/otel/access.js
 var clientProcessorMap;
 var init_access = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/execution/otel/access.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/otel/access.js"() {
     "use strict";
     clientProcessorMap = /* @__PURE__ */ new WeakMap();
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/StepError.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/StepError.js
 var StepError;
 var init_StepError = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/StepError.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/StepError.js"() {
     "use strict";
     init_errors2();
     init_types2();
@@ -14394,10 +14394,10 @@ var init_esm = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/execution/v2.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v2.js
 var import_hash4, import_ms3, sha12, CHECKPOINT_RETRY_OPTIONS, STEP_NOT_FOUND_MAX_FOUND_STEPS, createV2InngestExecution, V2InngestExecution, hashId, hashOp, _internals2;
 var init_v2 = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/execution/v2.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v2.js"() {
     "use strict";
     init_consts();
     init_version();
@@ -15379,10 +15379,10 @@ var init_v2 = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/execution/v1.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v1.js
 var import_hash5, import_ms4, sha13, CHECKPOINT_RETRY_OPTIONS2, STEP_NOT_FOUND_MAX_FOUND_STEPS2, createV1InngestExecution, V1InngestExecution, hashId2, hashOp2, _internals3;
 var init_v1 = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/execution/v1.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v1.js"() {
     "use strict";
     init_consts();
     init_version();
@@ -16377,10 +16377,10 @@ var init_v1 = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/InngestFunction.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestFunction.js
 var InngestFunction;
 var init_InngestFunction = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/InngestFunction.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestFunction.js"() {
     "use strict";
     init_consts();
     init_strings();
@@ -16715,10 +16715,10 @@ var init_index_esm = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/InngestCommHandler.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestCommHandler.js
 var import_debug3, registerResSchema, InngestCommHandler, RequestSignature;
 var init_InngestCommHandler = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/InngestCommHandler.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestCommHandler.js"() {
     "use strict";
     init_consts();
     init_version();
@@ -18234,10 +18234,10 @@ var init_adapter = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/EventSchemas.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/EventSchemas.js
 var EventSchemas;
 var init_EventSchemas = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/EventSchemas.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/EventSchemas.js"() {
     "use strict";
     EventSchemas = class {
       runtimeSchemas = {};
@@ -18368,10 +18368,10 @@ var init_EventSchemas = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/middleware/logger.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/middleware/logger.js
 var DefaultLogger, ProxyLogger;
 var init_logger = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/middleware/logger.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/middleware/logger.js"() {
     "use strict";
     init_promises();
     DefaultLogger = class {
@@ -18433,7 +18433,7 @@ var init_logger = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/url.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/url.js
 async function resolveApiBaseUrl(opts) {
   if (opts.apiBaseUrl !== void 0) return opts.apiBaseUrl;
   if (opts.mode.isDev && opts.mode.isInferred) {
@@ -18442,17 +18442,17 @@ async function resolveApiBaseUrl(opts) {
   return defaultInngestApiBaseUrl;
 }
 var init_url2 = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/url.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/url.js"() {
     "use strict";
     init_consts();
     init_devserver();
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/api/api.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/api/api.js
 var realtimeSubscriptionTokenSchema, sendSignalSuccessResponseSchema, checkpointNewRunResponseSchema, InngestApi;
 var init_api = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/api/api.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/api/api.js"() {
     "use strict";
     init_strings();
     init_errors2();
@@ -18767,7 +18767,7 @@ var init_api = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/crypto.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/crypto.js
 function createEntropy(byteLength) {
   const bytes = new Uint8Array(byteLength);
   const { crypto: crypto2 } = globalThis;
@@ -18777,15 +18777,15 @@ function createEntropy(byteLength) {
   return bytes;
 }
 var init_crypto = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/crypto.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/crypto.js"() {
     "use strict";
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/Inngest.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/Inngest.js
 var Inngest, builtInMiddleware;
 var init_Inngest = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/components/Inngest.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/Inngest.js"() {
     "use strict";
     init_consts();
     init_strings();
@@ -19427,10 +19427,10 @@ var init_Inngest = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/assertions.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/assertions.js
 var isInngest, isInngestFunction, isInngestMiddleware, isInngestRequest;
 var init_assertions = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/helpers/assertions.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/assertions.js"() {
     "use strict";
     init_consts();
     init_InngestMiddleware();
@@ -19457,10 +19457,10 @@ var init_assertions = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/middleware/dependencyInjection.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/middleware/dependencyInjection.js
 var dependencyInjectionMiddleware;
 var init_dependencyInjection = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/middleware/dependencyInjection.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/middleware/dependencyInjection.js"() {
     "use strict";
     init_InngestMiddleware();
     dependencyInjectionMiddleware = (ctx) => {
@@ -19478,7 +19478,7 @@ var init_dependencyInjection = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/index.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/index.js
 var inngest_exports = {};
 __export(inngest_exports, {
   EventSchemas: () => EventSchemas,
@@ -19505,7 +19505,7 @@ __export(inngest_exports, {
   version: () => version
 });
 var init_inngest = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/index.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/index.js"() {
     "use strict";
     init_consts();
     init_version();
@@ -54955,7 +54955,111 @@ var init_factory = __esm({
   }
 });
 
+// ../shared/src/pricing.ts
+function computePackCredits(packId, tier, interval) {
+  const pack = CREDIT_PACKS[packId];
+  const base = pack?.base_credits ?? 0;
+  const planPct = PLAN_TIERS[tier]?.packBonusPct ?? 0;
+  const annualPct = interval === "year" ? ANNUAL_BONUS_PCT : 0;
+  const plan_bonus = Math.round(base * planPct);
+  const annual_bonus = Math.round(base * annualPct);
+  return {
+    pack_id: packId,
+    base_credits: base,
+    plan_bonus,
+    annual_bonus,
+    final_credits: base + plan_bonus + annual_bonus,
+    plan_bonus_pct: planPct,
+    annual_bonus_pct: annualPct
+  };
+}
+function normalizeTierId(t2) {
+  const s2 = (t2 ?? "").toLowerCase();
+  if (s2 === "operator" || s2 === "command" || s2 === "sovereign" || s2 === "scout") return s2;
+  if (s2 === "business") return "operator";
+  return "scout";
+}
+function monthlyCreditsFor(tier) {
+  return PLAN_TIERS[tier]?.monthlyCredits ?? null;
+}
+function grantAmountFor(tier) {
+  return monthlyCreditsFor(tier) ?? SOVEREIGN_DEFAULT_GRANT;
+}
+function burstCapFor(tier) {
+  return PLAN_TIERS[tier]?.burstCap ?? PLAN_TIERS.scout.burstCap;
+}
+var ANNUAL_BONUS_PCT, BURST_WINDOW_HOURS, PLAN_TIERS, PLAN_ORDER, CREDIT_PACKS, CREDIT_PACK_ORDER, SOVEREIGN_DEFAULT_GRANT;
+var init_pricing = __esm({
+  "../shared/src/pricing.ts"() {
+    "use strict";
+    ANNUAL_BONUS_PCT = 0.1;
+    BURST_WINDOW_HOURS = 5;
+    PLAN_TIERS = {
+      scout: {
+        id: "scout",
+        name: "Scout",
+        priceMonthly: 0,
+        priceAnnual: 0,
+        monthlyCredits: 1e5,
+        burstCap: 6e4,
+        packBonusPct: 0,
+        seats: 1,
+        tagline: "Free \u2014 get started with AI-run operations.",
+        features: ["1 seat", "100,000 AI credits / month", "Graph, tasks, lists & sheets", "Ask Mondaily + agents", "Discovery search"]
+      },
+      operator: {
+        id: "operator",
+        name: "Operator",
+        priceMonthly: 29,
+        priceAnnual: 23,
+        monthlyCredits: 1e6,
+        burstCap: 4e5,
+        packBonusPct: 0.1,
+        seats: 5,
+        tagline: "For growing teams that run on AI.",
+        features: ["Up to 5 seats", "1,000,000 AI credits / month", "Discovery deep research + enrichment", "Decision Queue + workflows", "Finance & billing", "+10% credit-pack bonus"]
+      },
+      command: {
+        id: "command",
+        name: "Command",
+        priceMonthly: 79,
+        priceAnnual: 63,
+        monthlyCredits: 5e6,
+        burstCap: 15e5,
+        packBonusPct: 0.2,
+        seats: 20,
+        tagline: "For scaling operations & oversight.",
+        features: ["Up to 20 seats", "5,000,000 AI credits / month", "Team Intelligence / Oversight", "Everything in Operator", "+20% credit-pack bonus", "Priority support"]
+      },
+      sovereign: {
+        id: "sovereign",
+        name: "Sovereign",
+        priceMonthly: null,
+        priceAnnual: null,
+        monthlyCredits: null,
+        burstCap: 5e6,
+        packBonusPct: 0.2,
+        seats: 999,
+        tagline: "Custom \u2014 private/self-hosted infrastructure.",
+        features: ["Unlimited seats", "Custom AI credit allotment", "Self-hosted inference/search/DB", "Encryption/KMS, audit logs, SLAs", "Dedicated support"]
+      }
+    };
+    PLAN_ORDER = ["scout", "operator", "command", "sovereign"];
+    CREDIT_PACKS = {
+      starter: { id: "starter", name: "Starter", price_usd: 5, base_credits: 5e4 },
+      standard: { id: "standard", name: "Standard", price_usd: 10, base_credits: 125e3 },
+      power: { id: "power", name: "Power", price_usd: 25, base_credits: 4e5 },
+      team: { id: "team", name: "Team", price_usd: 50, base_credits: 1e6 }
+    };
+    CREDIT_PACK_ORDER = ["starter", "standard", "power", "team"];
+    SOVEREIGN_DEFAULT_GRANT = 1e7;
+  }
+});
+
 // src/lib/auto-refill.ts
+function packForAmount(amountUsd) {
+  return Object.values(CREDIT_PACKS).find((p2) => p2.price_usd === amountUsd)?.id ?? "standard";
+}
 function encodeForm(params) {
   return Object.entries(params).map(([k2, v2]) => `${encodeURIComponent(k2)}=${encodeURIComponent(v2)}`).join("&");
 }
@@ -54971,6 +55075,9 @@ async function maybeAutoRefill(workspaceId) {
     if (!ar2.enabled || !customer) return;
     const threshold = Number(ar2.threshold ?? 5e3);
     const amountUsd = Number(ar2.amount_usd ?? 10);
+    const tier = normalizeTierId(settings.account_tier);
+    const interval = settings.billing_interval === "year" ? "year" : "month";
+    const refillCredits = computePackCredits(packForAmount(amountUsd), tier, interval).final_credits;
     const { data: bal } = await supabase.rpc("ai_credit_balance", { ws: workspaceId });
     if (Number(bal ?? 0) >= threshold) return;
     const since = new Date(Date.now() - 2 * 60 * 1e3).toISOString();
@@ -54998,40 +55105,38 @@ async function maybeAutoRefill(workspaceId) {
     if (!res.ok) return;
     await supabase.from("ai_credits_ledger").insert({
       workspace_id: workspaceId,
-      amount: REFILL_CREDITS,
+      amount: refillCredits,
       transaction_type: "purchase",
-      description: `Auto-refill \xB7 $${amountUsd} \u2192 ${REFILL_CREDITS.toLocaleString()} credits`
+      description: `Auto-refill \xB7 $${amountUsd} \u2192 ${refillCredits.toLocaleString()} AI credits`
     }).then(() => {
     }, () => {
     });
   } catch {
   }
 }
-var STRIPE_API, REFILL_CREDITS;
+var STRIPE_API;
 var init_auto_refill = __esm({
   "src/lib/auto-refill.ts"() {
     "use strict";
     init_client();
+    init_pricing();
     STRIPE_API = "https://api.stripe.com/v1";
-    REFILL_CREDITS = 1e5;
   }
 });
 
 // src/lib/credits.ts
 async function grantTierCredits(workspaceId, tier, description) {
-  const target = TIER_GRANTS[tier] ?? SOLO_GRANT;
+  const target = grantAmountFor(normalizeTierId(tier));
   const { balance } = await creditStatus(workspaceId);
   const delta = target - balance;
   if (delta > 0) await grantCredits(workspaceId, delta, "grant", description);
 }
 async function resolveTier(workspaceId) {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
-  const tier = data?.settings?.account_tier;
-  return tier && tier in BURST_CAP ? tier : "scout";
+  return normalizeTierId(data?.settings?.account_tier);
 }
 async function burstStatus(workspaceId) {
-  const tier = await resolveTier(workspaceId);
-  const cap = BURST_CAP[tier] ?? BURST_CAP.scout;
+  const cap = burstCapFor(normalizeTierId(await resolveTier(workspaceId)));
   const since = new Date(Date.now() - BURST_WINDOW_HOURS * 60 * 60 * 1e3).toISOString();
   const { data, error } = await supabase.from("ai_credits_ledger").select("amount, created_at").eq("workspace_id", workspaceId).eq("transaction_type", "usage").gte("created_at", since).order("created_at", { ascending: true });
   if (error || !data || data.length === 0) return { limited: false, used: 0, cap, resetsAt: null };
@@ -55055,51 +55160,59 @@ async function grantCredits(workspaceId, amount, type, description) {
 }
 function recordCreditUsage(workspaceId, tokens, description = "AI usage") {
   if (!workspaceId || !tokens || tokens <= 0) return;
-  void supabase.from("ai_credits_ledger").insert({ workspace_id: workspaceId, amount: -Math.round(tokens), transaction_type: "usage", description }).then(() => maybeAutoRefill(workspaceId), () => {
-  });
+  void (async () => {
+    try {
+      const { balance, enrolled } = await creditStatus(workspaceId);
+      if (!enrolled) return;
+      const deduct = Math.min(Math.round(tokens), Math.max(0, balance));
+      if (deduct <= 0) return;
+      await supabase.from("ai_credits_ledger").insert({ workspace_id: workspaceId, amount: -deduct, transaction_type: "usage", description });
+      await maybeAutoRefill(workspaceId);
+    } catch {
+    }
+  })();
 }
-var SOLO_GRANT, BUSINESS_TRIAL_GRANT, COMMAND_GRANT, TIER_GRANTS, BURST_WINDOW_HOURS, BURST_CAP, verifyAiCredits;
+async function assertCreditsOk(workspaceId) {
+  if (!workspaceId) return;
+  const { balance, enrolled } = await creditStatus(workspaceId);
+  if (!enrolled) return;
+  if (balance <= 0) {
+    throw new CreditsExhaustedError("credits", null, "AI credits exhausted. Upgrade your plan or add a credit pack to keep using AI.");
+  }
+  const burst = await burstStatus(workspaceId);
+  if (burst.limited) {
+    throw new CreditsExhaustedError("burst", burst.resetsAt, `You've hit your short-term usage limit. It resets ${burst.resetsAt ? "around " + new Date(burst.resetsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "shortly"}.`);
+  }
+}
+var CreditsExhaustedError, verifyAiCredits;
 var init_credits = __esm({
   "src/lib/credits.ts"() {
     "use strict";
     init_factory();
     init_http_exception();
     init_client();
+    init_pricing();
     init_auto_refill();
-    SOLO_GRANT = 5e4;
-    BUSINESS_TRIAL_GRANT = 5e5;
-    COMMAND_GRANT = 2e6;
-    TIER_GRANTS = {
-      scout: SOLO_GRANT,
-      operator: BUSINESS_TRIAL_GRANT,
-      command: COMMAND_GRANT,
-      sovereign: COMMAND_GRANT
-    };
-    BURST_WINDOW_HOURS = 5;
-    BURST_CAP = {
-      scout: 4e4,
-      // 80% of the 50k monthly wallet
-      operator: 25e4,
-      // 50% of the 500k monthly wallet
-      command: 8e5,
-      // 40% of the 2M monthly wallet
-      sovereign: 15e5
+    CreditsExhaustedError = class extends Error {
+      constructor(kind2, resetsAt, message) {
+        super(message);
+        this.kind = kind2;
+        this.resetsAt = resetsAt;
+        this.name = "CreditsExhaustedError";
+      }
+      kind;
+      resetsAt;
     };
     verifyAiCredits = createMiddleware(async (c2, next) => {
       const ws = c2.get("workspaceId");
       if (ws) {
-        const { balance, enrolled } = await creditStatus(ws);
-        if (enrolled && balance <= 0) {
-          throw new HTTPException(402, { message: "AI credits exhausted. Upgrade or purchase more to keep using AI features." });
-        }
-        if (enrolled) {
-          const burst = await burstStatus(ws);
-          if (burst.limited) {
-            const resetLabel = burst.resetsAt ? new Date(burst.resetsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "shortly";
-            throw new HTTPException(429, {
-              message: `You've hit your usage limit for now. It resets around ${resetLabel}. (${BURST_WINDOW_HOURS}-hour rolling window)`
-            });
+        try {
+          await assertCreditsOk(ws);
+        } catch (e2) {
+          if (e2 instanceof CreditsExhaustedError) {
+            throw new HTTPException(e2.kind === "credits" ? 402 : 429, { message: e2.message });
           }
+          throw e2;
         }
       }
       await next();
@@ -55278,6 +55391,7 @@ async function aiGateway(req) {
   return { text, provider: "openai-compat", model: resolved.modelId };
 }
 async function aiGatewayToolUse(req) {
+  await assertCreditsOk(req.workspaceId);
   const resolved = resolveModel(req.model);
   const messages = [];
   if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
@@ -55415,6 +55529,12 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
   return { reply, provider: "openai-compat", model: activeModel, rounds, usage: finalUsage };
 }
 async function aiGatewayAgent(req) {
+  try {
+    await assertCreditsOk(req.workspaceId);
+  } catch (e2) {
+    if (e2 instanceof CreditsExhaustedError) return { reply: e2.message, provider: "none", model: "none", rounds: 0 };
+    throw e2;
+  }
   const route = routeAgentModel(req);
   req = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
   const spec = route.spec;
@@ -55436,6 +55556,15 @@ async function aiGatewayAgent(req) {
   }
 }
 async function aiGatewayAgentStream(req, onEvent) {
+  try {
+    await assertCreditsOk(req.workspaceId);
+  } catch (e2) {
+    if (e2 instanceof CreditsExhaustedError) {
+      await onEvent({ type: "token", text: e2.message });
+      return { reply: e2.message, provider: "none", model: "none", rounds: 0 };
+    }
+    throw e2;
+  }
   const route = routeAgentModel(req);
   const effectiveReq = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
   const resolved = resolveModel(route.spec);
@@ -55602,6 +55731,7 @@ var init_ai_gateway = __esm({
     "use strict";
     init_openai();
     init_ai_usage();
+    init_credits();
     DEFAULT_MODEL_SPEC = "openai-compat/gpt-oss-120b";
     FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? DEFAULT_MODEL_SPEC;
     lastGatewayError = null;
@@ -57716,7 +57846,7 @@ var logger = (fn = console.log) => {
   };
 };
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@4.12.2_5nhj2zrujrfm4p26r4nfreg2za/node_modules/inngest/hono.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/hono.js
 init_InngestCommHandler();
 init_adapter();
 var frameworkName = "hono";
@@ -62487,10 +62617,29 @@ router6.get("/health/chat", async (c2) => {
 
 // src/routes/public-ask.ts
 init_ai_gateway();
+init_pricing();
 var router7 = new Hono2();
-var SYSTEM = `You are Mondaily AI \u2014 the assistant on Mondaily's marketing site. You help visitors understand what Mondaily does. Be concise, clear, and compelling. Never mention Claude, Anthropic, or any underlying AI technology. Keep replies under 3 sentences.
+var fmt = (n2) => n2 === null ? "custom" : n2 >= 1e6 ? `${n2 / 1e6}M` : `${Math.round(n2 / 1e3)}k`;
+var PRICING_FACTS = [
+  "PLANS (monthly, with included AI credits):",
+  `- Scout: free \u2014 ${fmt(PLAN_TIERS.scout.monthlyCredits)} AI credits/month, 1 seat.`,
+  `- Operator: $${PLAN_TIERS.operator.priceMonthly}/mo \u2014 ${fmt(PLAN_TIERS.operator.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.operator.seats} seats, +10% credit-pack bonus.`,
+  `- Command: $${PLAN_TIERS.command.priceMonthly}/mo \u2014 ${fmt(PLAN_TIERS.command.monthlyCredits)} AI credits/month, up to ${PLAN_TIERS.command.seats} seats, +20% credit-pack bonus.`,
+  `- Sovereign: custom \u2014 custom AI credits, private/self-hosted infrastructure.`,
+  "PAY-AS-YOU-GO CREDIT PACKS: " + CREDIT_PACK_ORDER.map((id) => {
+    const p2 = CREDIT_PACKS[id];
+    return `${p2.name} $${p2.price_usd} \u2192 ${fmt(p2.base_credits)} credits`;
+  }).join("; ") + ".",
+  `Pack bonuses: Operator +10%, Command +20%, and annual subscriptions add another +${Math.round(ANNUAL_BONUS_PCT * 100)}%.`,
+  "Say 'AI credits', never 'tokens'. Do NOT claim unlimited AI \u2014 credits are metered. Manual CRUD (creating/editing records) does not use AI credits; AI chat, agents, enrichment, Discovery deep research, report generation, and workflow drafting do."
+].join("\n");
+var SYSTEM = `You are Mondaily AI \u2014 the assistant on Mondaily's marketing site. You help visitors understand what Mondaily does. Be concise, clear, and compelling. Never mention Claude, Anthropic, or any underlying AI technology. Keep replies under 4 sentences.
 
-Mondaily is an AI-native autonomous workspace and asset-graph engine: every record \u2014 people, companies, assets, documents, tasks, invoices, conversations \u2014 lives on one connected workspace graph. A team of AI agents (Graph, Operations, Relationship, Finance, Prospecting, Signal, Graph Enrichment, Workflow) continuously watches that graph, enriches records, and raises source-backed signals and recommendations. Agents prepare and recommend; sensitive actions (sending, billing, deleting) always wait for human approval in the Decision Queue \u2014 agents prepare, you approve. Sales pipelines, finance, and tasks are examples of what you can run on the graph, not the whole identity of the product. Lead with the workspace graph and the AI agents; do not position Mondaily primarily as a CRM or "CRM replacement." Only describe capabilities that exist \u2014 never promise unbuilt features.`;
+Mondaily is an AI-native autonomous workspace and asset-graph engine: every record \u2014 people, companies, assets, documents, tasks, invoices, conversations \u2014 lives on one connected workspace graph. A team of AI agents (Graph, Operations, Relationship, Finance, Prospecting, Signal, Graph Enrichment, Workflow) continuously watches that graph, enriches records, and raises source-backed signals and recommendations. Agents prepare and recommend; sensitive actions (sending, billing, deleting) always wait for human approval in the Decision Queue \u2014 agents prepare, you approve. Sales pipelines, finance, and tasks are examples of what you can run on the graph, not the whole identity of the product. Lead with the workspace graph and the AI agents; do not position Mondaily primarily as a CRM. Only describe capabilities that exist \u2014 never promise unbuilt features.
+
+For any pricing / plan / credits / packs / discount question, answer ONLY from these facts (never invent prices, credits, or features):
+${PRICING_FACTS}
+If asked which plan fits: solo/trying it \u2192 Scout; a growing team running on AI \u2192 Operator; a larger team needing oversight & more credits \u2192 Command; private/self-hosted or compliance needs \u2192 Sovereign. If they'll exceed included credits, mention pay-as-you-go packs.`;
 router7.post(
   "/",
   zValidator("json", external_exports.object({
@@ -63895,6 +64044,7 @@ function rateLimit(opts) {
 
 // src/routes/auth.ts
 init_credits();
+init_pricing();
 
 // src/lib/pow.ts
 init_jwt4();
@@ -64002,7 +64152,7 @@ router14.post("/register", rateLimit(), requirePow, zValidator("json", credSchem
     const ws = await ensureWorkspaceForUser(userId, name?.trim() ? `${name.trim()}'s Workspace` : "My Workspace");
     workspaceId = ws.workspaceId;
     await supabase.from("workspace_members").update({ name: displayName, email }).eq("workspace_id", workspaceId).eq("user_id", userId);
-    if (ws.isNew) await grantCredits(workspaceId, SOLO_GRANT, "grant", "Free-tier welcome credits");
+    if (ws.isNew) await grantCredits(workspaceId, grantAmountFor("scout"), "grant", "Free-tier welcome credits");
   } catch (e2) {
     await supabase.from("auth_credentials").delete().eq("user_id", userId).then(() => {
     }, () => {
@@ -64243,9 +64393,9 @@ init_client();
 
 // src/lib/credit-pack.ts
 init_client();
+init_pricing();
 var STRIPE_API2 = "https://api.stripe.com/v1";
 var appUrl2 = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
-var CREDIT_PACK = { credits: 1e5, amount_usd: 10 };
 function encodeForm2(params) {
   return Object.entries(params).filter(([, v2]) => v2 !== void 0 && v2 !== "").map(([k2, v2]) => `${encodeURIComponent(k2)}=${encodeURIComponent(v2)}`).join("&");
 }
@@ -64260,31 +64410,48 @@ async function stripePost(path, params) {
   if (!res.ok) throw new Error(json?.error?.message ?? `Stripe HTTP ${res.status}`);
   return json;
 }
-async function createCreditPackCheckout(workspaceId, userId) {
+async function workspacePlanContext(workspaceId) {
+  const { data } = await supabase.from("workspaces").select("settings, stripe_customer_id").eq("id", workspaceId).maybeSingle();
+  const settings = data?.settings ?? {};
+  return {
+    tier: normalizeTierId(settings.account_tier),
+    interval: settings.billing_interval === "year" ? "year" : "month",
+    customer: data?.stripe_customer_id
+  };
+}
+async function createCreditPackCheckout(workspaceId, userId, packId) {
+  const pack = CREDIT_PACKS[packId];
+  if (!pack) return { status: 400, error: "Unknown credit pack." };
   if (!process.env.STRIPE_SECRET_KEY) {
     return { status: 503, error: "Billing isn't connected yet. Add STRIPE_SECRET_KEY to enable credit purchases." };
   }
-  const [{ data: ws }, { data: member }] = await Promise.all([
-    supabase.from("workspaces").select("stripe_customer_id").eq("id", workspaceId).maybeSingle(),
+  const [{ tier, interval, customer }, { data: member }] = await Promise.all([
+    workspacePlanContext(workspaceId),
     supabase.from("workspace_members").select("email").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle()
   ]);
-  const existingCustomer = ws?.stripe_customer_id;
+  const quote = computePackCredits(packId, tier, interval);
   try {
     const session = await stripePost("checkout/sessions", {
       mode: "payment",
       "line_items[0][price_data][currency]": "usd",
-      "line_items[0][price_data][unit_amount]": String(CREDIT_PACK.amount_usd * 100),
-      "line_items[0][price_data][product_data][name]": `${CREDIT_PACK.credits.toLocaleString()} AI Token Operational Refill Pack`,
+      "line_items[0][price_data][unit_amount]": String(pack.price_usd * 100),
+      "line_items[0][price_data][product_data][name]": `${pack.name} pack \u2014 ${quote.final_credits.toLocaleString()} AI credits`,
       "line_items[0][quantity]": "1",
       "payment_intent_data[setup_future_usage]": "off_session",
-      // attach card for auto-refill
       success_url: `${appUrl2()}/settings/billing?credits=success`,
       cancel_url: `${appUrl2()}/settings/billing?credits=cancelled`,
       client_reference_id: workspaceId,
-      "metadata[workspace_id]": workspaceId,
+      // FULL metadata — the webhook grants final_credits (base+bonus). Enforced server-side.
       "metadata[kind]": "credit_pack",
-      "metadata[credits]": String(CREDIT_PACK.credits),
-      ...existingCustomer ? { customer: existingCustomer } : { customer_creation: "always", customer_email: member?.email || void 0 }
+      "metadata[pack_id]": packId,
+      "metadata[base_credits]": String(quote.base_credits),
+      "metadata[bonus_credits]": String(quote.plan_bonus + quote.annual_bonus),
+      "metadata[final_credits]": String(quote.final_credits),
+      "metadata[plan_tier]": tier,
+      "metadata[billing_interval]": interval,
+      "metadata[workspace_id]": workspaceId,
+      "metadata[user_id]": userId,
+      ...customer ? { customer } : { customer_creation: "always", customer_email: member?.email || void 0 }
     });
     return { status: 200, url: session.url };
   } catch (e2) {
@@ -64294,31 +64461,86 @@ async function createCreditPackCheckout(workspaceId, userId) {
 
 // src/routes/credits.ts
 init_credits();
+init_pricing();
 var router15 = new Hono2();
 router15.use("*", requireAuth);
+function nextResetIso() {
+  const n2 = /* @__PURE__ */ new Date();
+  return new Date(Date.UTC(n2.getUTCFullYear(), n2.getUTCMonth() + 1, 1)).toISOString();
+}
 router15.get("/balance", async (c2) => {
   const ws = c2.get("workspaceId");
   const { data: rows2 } = await supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws);
   const list = rows2 ?? [];
-  const granted = list.filter((r2) => r2.transaction_type !== "usage").reduce((s2, r2) => s2 + Number(r2.amount), 0);
+  const granted = list.filter((r2) => r2.transaction_type === "grant").reduce((s2, r2) => s2 + Number(r2.amount), 0);
+  const purchased = list.filter((r2) => r2.transaction_type === "purchase").reduce((s2, r2) => s2 + Number(r2.amount), 0);
   const usedNeg = list.filter((r2) => r2.transaction_type === "usage").reduce((s2, r2) => s2 + Number(r2.amount), 0);
+  const rawBalance = granted + purchased + usedNeg;
+  const remaining = Math.max(0, rawBalance);
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
   const settings = wsRow?.settings ?? {};
   const ar2 = settings.auto_refill ?? {};
+  const tier = normalizeTierId(settings.account_tier ?? settings.track);
   const burst = list.length > 0 ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
   return c2.json({
     enrolled: list.length > 0,
-    balance: granted + usedNeg,
+    balance: remaining,
+    // floored (never < 0)
+    remaining,
     granted,
+    purchased,
     used: Math.abs(usedNeg),
-    account_tier: settings.account_tier ?? settings.track ?? "scout",
+    included_monthly: monthlyCreditsFor(tier),
+    account_tier: tier,
+    reset_at: nextResetIso(),
     trial_ends_at: settings.trial_ends_at ?? null,
+    low: remaining > 0 && remaining < (monthlyCreditsFor(tier) ?? 1e5) * 0.1,
+    exhausted: list.length > 0 && remaining <= 0,
     burst: { used: burst.used, cap: burst.cap, limited: burst.limited, resets_at: burst.resetsAt },
     auto_refill: {
       enabled: Boolean(ar2.enabled),
       threshold: Number(ar2.threshold ?? 5e3),
       amount_usd: Number(ar2.amount_usd ?? 10)
     }
+  });
+});
+router15.get("/packs", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const settings = wsRow?.settings ?? {};
+  const tier = normalizeTierId(settings.account_tier);
+  const interval = settings.billing_interval === "year" ? "year" : "month";
+  const packs = CREDIT_PACK_ORDER.map((id) => ({ ...CREDIT_PACKS[id], quote: computePackCredits(id, tier, interval) }));
+  return c2.json({ tier, interval, plan_bonus_pct: PLAN_TIERS[tier].packBonusPct, packs });
+});
+router15.get("/diagnostics", requireAdminRole, async (c2) => {
+  const ws = c2.get("workspaceId");
+  const { data: rows2 } = await supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws);
+  const list = rows2 ?? [];
+  const included = list.filter((r2) => r2.transaction_type === "grant").reduce((s2, r2) => s2 + Number(r2.amount), 0);
+  const purchased = list.filter((r2) => r2.transaction_type === "purchase").reduce((s2, r2) => s2 + Number(r2.amount), 0);
+  const used = Math.abs(list.filter((r2) => r2.transaction_type === "usage").reduce((s2, r2) => s2 + Number(r2.amount), 0));
+  const rawBalance = included + purchased - used;
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const settings = wsRow?.settings ?? {};
+  const tier = normalizeTierId(settings.account_tier);
+  const burst = list.length > 0 ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
+  return c2.json({
+    plan: tier,
+    monthly_included_credits: monthlyCreditsFor(tier),
+    granted_credits: included,
+    purchased_credits: purchased,
+    used_credits: used,
+    remaining_credits: Math.max(0, rawBalance),
+    // floored
+    raw_balance: rawBalance,
+    // may be < 0 for an un-reconciled legacy wallet
+    negative_flagged: rawBalance < 0,
+    // if true, run migration 0021 to floor it
+    burst: { used: burst.used, cap: burst.cap, window_hours: 5, limited: burst.limited, resets_at: burst.resetsAt },
+    reset_date: nextResetIso(),
+    trial_ends_at: settings.trial_ends_at ?? null,
+    on_trial: tier === "operator" && Boolean(settings.trial_ends_at)
   });
 });
 router15.post("/auto-refill", async (c2) => {
@@ -64341,7 +64563,9 @@ router15.get("/ledger", async (c2) => {
   return c2.json({ ledger: data ?? [] });
 });
 router15.post("/checkout-session", requireAdminRole, async (c2) => {
-  const r2 = await createCreditPackCheckout(c2.get("workspaceId"), c2.get("userId"));
+  const body = await c2.req.json().catch(() => ({}));
+  const packId = body.pack_id && CREDIT_PACKS[body.pack_id] ? body.pack_id : "standard";
+  const r2 = await createCreditPackCheckout(c2.get("workspaceId"), c2.get("userId"), packId);
   return r2.url ? c2.json({ url: r2.url }) : c2.json({ error: r2.error }, r2.status);
 });
 
@@ -64441,16 +64665,19 @@ router16.post("/stripe", async (c2) => {
     const workspaceId = s2.client_reference_id || meta.workspace_id;
     const customerId = s2.customer;
     if (meta.kind === "credit_pack") {
-      const credits = Number(meta.credits ?? 0);
+      const finalCredits = Number(meta.final_credits ?? meta.credits ?? 0);
+      const base = Number(meta.base_credits ?? finalCredits);
+      const bonus = Number(meta.bonus_credits ?? 0);
+      const packId = String(meta.pack_id ?? "pack");
       if (workspaceId && customerId) {
         await supabase.from("workspaces").update({ stripe_customer_id: customerId }).eq("id", workspaceId);
       }
-      if (workspaceId && credits > 0) {
+      if (workspaceId && finalCredits > 0) {
         await supabase.from("ai_credits_ledger").insert({
           workspace_id: workspaceId,
-          amount: credits,
+          amount: Math.round(finalCredits),
           transaction_type: "purchase",
-          description: `Credit pack \xB7 ${credits.toLocaleString()} credits`
+          description: `${packId} pack \xB7 ${base.toLocaleString()} + ${bonus.toLocaleString()} bonus = ${finalCredits.toLocaleString()} AI credits`
         }).then(() => {
         }, () => {
         });
@@ -64568,7 +64795,9 @@ router17.post("/checkout", async (c2) => {
   }
 });
 router17.post("/credits-checkout", async (c2) => {
-  const r2 = await createCreditPackCheckout(c2.get("workspaceId"), c2.get("userId"));
+  const body = await c2.req.json().catch(() => ({}));
+  const packId = body.pack_id ?? "standard";
+  const r2 = await createCreditPackCheckout(c2.get("workspaceId"), c2.get("userId"), packId);
   return r2.url ? c2.json({ url: r2.url }) : c2.json({ error: r2.error, configured: r2.status !== 503 }, r2.status);
 });
 router17.post("/portal", async (c2) => {
@@ -64726,6 +64955,7 @@ function verifyTrackingToken(token) {
 // src/routes/app-data.ts
 init_auth_tokens();
 init_credits();
+init_pricing();
 
 // src/lib/plan-limits.ts
 init_client();
@@ -65501,7 +65731,7 @@ router18.post("/start-trial", async (c2) => {
     settings: { ...settings, account_tier: "operator", plan: "operator", track: "business", trial_ends_at: trialEndsAt, trial_used: true }
   }).eq("id", ws);
   const { balance } = await creditStatus(ws);
-  const delta = 5e5 - balance;
+  const delta = grantAmountFor("operator") - balance;
   if (delta > 0) await grantCredits(ws, delta, "grant", "Operator trial credits");
   return c2.json({ ok: true, trial_ends_at: trialEndsAt });
 });
@@ -68015,14 +68245,14 @@ router34.post("/:id/send", async (c2) => {
   const wonValue = valueCol ? wonRecs.reduce((s2, r2) => s2 + Number(r2.data[valueCol] ?? 0), 0) : 0;
   const totalValue = valueCol ? recs.reduce((s2, r2) => s2 + Number(r2.data[valueCol] ?? 0), 0) : 0;
   const winRate = wonRecs.length + lostRecs.length > 0 ? Math.round(wonRecs.length / (wonRecs.length + lostRecs.length) * 100) : null;
-  const fmt = (n2) => n2 >= 1e6 ? `$${(n2 / 1e6).toFixed(1)}M` : n2 >= 1e3 ? `$${(n2 / 1e3).toFixed(0)}K` : `$${n2.toLocaleString()}`;
+  const fmt2 = (n2) => n2 >= 1e6 ? `$${(n2 / 1e6).toFixed(1)}M` : n2 >= 1e3 ? `$${(n2 / 1e3).toFixed(0)}K` : `$${n2.toLocaleString()}`;
   const label = cfg.label || `${cfg.object_type} \xB7 ${cfg.period}`;
   const now = (/* @__PURE__ */ new Date()).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const statsRows = [
     ["Total records", String(total)],
     ...wonRecs.length ? [["Completed / Won", String(wonRecs.length)]] : [],
-    ...valueCol && wonValue ? [["Won value", fmt(wonValue)]] : [],
-    ...valueCol && totalValue ? [["Total pipeline value", fmt(totalValue)]] : [],
+    ...valueCol && wonValue ? [["Won value", fmt2(wonValue)]] : [],
+    ...valueCol && totalValue ? [["Total pipeline value", fmt2(totalValue)]] : [],
     ...winRate !== null ? [["Win rate", `${winRate}%`]] : []
   ];
   const html = `<!DOCTYPE html>
@@ -68914,6 +69144,7 @@ router41.delete("/node/:nodeId/:tagId", requireAuth, async (c2) => {
 // src/routes/onboarding.ts
 init_client();
 init_credits();
+init_pricing();
 init_ai_gateway();
 init_credits();
 var router42 = new Hono2();
@@ -68925,37 +69156,59 @@ router42.post("/analyze", requireAuth, async (c2) => {
   const teamSize = (body.team_size ?? "").trim();
   const text = [body.description, purpose && `Purpose: ${purpose}`, teamSize && `Team size: ${teamSize}`, goals.length && `Goals: ${goals.join(", ")}`].filter(Boolean).join(". ").trim();
   if (!text) return c2.json({ error: "Tell us a little about your operation to continue." }, 400);
+  const planFacts = PLAN_ORDER.map((id) => {
+    const p2 = PLAN_TIERS[id];
+    return `${p2.name}: ${p2.priceMonthly === null ? "custom" : "$" + p2.priceMonthly + "/mo"}, ${p2.monthlyCredits === null ? "custom" : p2.monthlyCredits.toLocaleString()} credits/mo, up to ${p2.seats} seat(s).`;
+  }).join(" ");
   const heuristic = () => {
     const t2 = text.toLowerCase();
     const modules = [];
     if (/(invoice|billing|payment|quote|finance|revenue|account)/.test(t2)) modules.push("finance");
     if (/(asset|portfolio|fund|invest|round|return|capital|equity)/.test(t2)) modules.push("investments");
     if (/(headcount|hire|recruit|contract|hr|payroll|workforce|staff)/.test(t2)) modules.push("hr");
-    return { industry_vertical: purpose || "General Operations", recommended_modules: modules, summary: "" };
+    const size = parseInt(teamSize.replace(/[^0-9]/g, ""), 10) || (teamSize.includes("just me") || teamSize.includes("solo") ? 1 : 0);
+    let plan = "scout";
+    if (/(compliance|self-host|private infra|sovereign|on-?prem|regulated)/.test(t2)) plan = "sovereign";
+    else if (size > 5 || /(oversight|team|manage|approvals|decision queue)/.test(t2)) plan = "command";
+    else if (size >= 1 && /(discovery|enrich|research|prospect|finance|agents|deep)/.test(t2)) plan = "operator";
+    else if (size > 1) plan = "operator";
+    return { industry_vertical: purpose || "General Operations", recommended_modules: modules, summary: "", recommended_plan: plan, recommend_pack: false, plan_reason: "" };
   };
   let result = heuristic();
   try {
     const extracted = await aiGatewayToolUse({
-      system: "You are the Mondaily Workspace Architect onboarding a new operator. Mondaily is an autonomous AI workspace (operators + AI agents) \u2014 it is NOT a CRM; never use that word. From the operator's answers, return: industry_vertical (a concise 1-4 word label, e.g. 'Quantitative Finance', 'Real Estate Ops'); recommended_modules \u2014 a subset of ['finance','investments','hr'] to switch on, where finance='Finance & Billing' (invoicing/payments), investments='Quantitative Asset Systems' (portfolios/funds), hr='Autonomous Workforce' (headcount/contracts). Only include modules the operation clearly needs; empty is fine. summary \u2014 ONE friendly sentence (<=22 words) telling the operator how their Mondaily workspace will be set up, referencing their sector and goals.",
-      prompt: text,
+      system: "You are the Mondaily Workspace Architect onboarding a new operator. Mondaily is an autonomous AI workspace (operators + AI agents) \u2014 it is NOT a CRM; never use that word. From the operator's answers, return: industry_vertical (a concise 1-4 word label); recommended_modules \u2014 a subset of ['finance','investments','hr']; only what the operation clearly needs; empty is fine. recommended_plan \u2014 one of ['scout','operator','command','sovereign'] using ONLY these facts: " + planFacts + " Recommend based on: team size, expected AI usage (chat/agents/enrichment/Discovery deep research/report generation), finance workflows, Decision-Queue approvals, Team Oversight need, and compliance/private-infrastructure needs. Solo/just trying \u2192 scout; a team running on AI (Discovery, finance, agents) \u2192 operator; a larger team (>5) or one needing oversight/approvals at scale \u2192 command; compliance/self-hosted/private \u2192 sovereign. recommend_pack \u2014 true if their expected usage is likely to exceed the plan's included monthly credits (then suggest pay-as-you-go packs). plan_reason \u2014 ONE short sentence (<=20 words) on why that plan fits. summary \u2014 ONE friendly sentence (<=22 words) on how their workspace will be set up.",
+      prompt: text + (teamSize ? `
+
+Team size: ${teamSize}` : ""),
       toolName: "configure_workspace",
-      toolDescription: "Return the inferred workspace architecture profile.",
+      toolDescription: "Return the inferred workspace architecture profile + plan recommendation.",
       toolSchema: {
         type: "object",
         properties: {
           industry_vertical: { type: "string" },
           recommended_modules: { type: "array", items: { type: "string", enum: ["finance", "investments", "hr"] } },
+          recommended_plan: { type: "string", enum: ["scout", "operator", "command", "sovereign"] },
+          recommend_pack: { type: "boolean" },
+          plan_reason: { type: "string" },
           summary: { type: "string" }
         },
-        required: ["industry_vertical"]
+        required: ["industry_vertical", "recommended_plan"]
       },
-      maxTokens: 320,
+      maxTokens: 360,
       onUsage: (u2) => recordCreditUsage(ws, u2.total_tokens, "Onboarding semantic analysis")
     });
     const vertical = typeof extracted.industry_vertical === "string" && extracted.industry_vertical.trim() ? extracted.industry_vertical.trim() : result.industry_vertical;
     const mods = Array.isArray(extracted.recommended_modules) ? extracted.recommended_modules.filter((m2) => ["finance", "investments", "hr"].includes(m2)) : result.recommended_modules;
-    const summary = typeof extracted.summary === "string" ? extracted.summary.trim() : "";
-    result = { industry_vertical: vertical, recommended_modules: mods, summary };
+    const plan = ["scout", "operator", "command", "sovereign"].includes(String(extracted.recommended_plan)) ? String(extracted.recommended_plan) : result.recommended_plan;
+    result = {
+      industry_vertical: vertical,
+      recommended_modules: mods,
+      summary: typeof extracted.summary === "string" ? extracted.summary.trim() : "",
+      recommended_plan: plan,
+      recommend_pack: Boolean(extracted.recommend_pack),
+      plan_reason: typeof extracted.plan_reason === "string" ? extracted.plan_reason.trim() : ""
+    };
   } catch {
   }
   return c2.json(result);
@@ -69016,8 +69269,7 @@ router42.post("/complete", requireAuth, async (c2) => {
   const effectiveTier = requiresPayment ? "scout" : chosen;
   const isTrial = effectiveTier === "operator";
   const trialEndsAt = isTrial ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString() : null;
-  const GRANTS = { scout: SOLO_GRANT, operator: BUSINESS_TRIAL_GRANT, command: 2e6, sovereign: 2e6 };
-  const target = GRANTS[effectiveTier] ?? SOLO_GRANT;
+  const target = grantAmountFor(normalizeTierId(effectiveTier));
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = wsRow?.settings ?? {};
   const { trial_ends_at: _t2, pending_plan: _p, ...baseSettings } = settings;

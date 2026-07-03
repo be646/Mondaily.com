@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { requireAuth, requireJwt } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { ensureWorkspaceForUser } from "../lib/bootstrap";
-import { grantCredits, creditStatus, BUSINESS_TRIAL_GRANT, SOLO_GRANT } from "../lib/credits";
+import { grantCredits, creditStatus } from "../lib/credits";
+import { grantAmountFor, normalizeTierId, PLAN_TIERS, PLAN_ORDER } from "@mondaily/shared/pricing";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { recordCreditUsage } from "../lib/credits";
 
@@ -24,13 +25,26 @@ router.post("/analyze", requireAuth, async (c) => {
     .filter(Boolean).join(". ").trim();
   if (!text) return c.json({ error: "Tell us a little about your operation to continue." }, 400);
 
+  // Catalog-grounded plan facts so the recommendation can never invent prices/credits.
+  const planFacts = PLAN_ORDER.map((id) => {
+    const p = PLAN_TIERS[id];
+    return `${p.name}: ${p.priceMonthly === null ? "custom" : "$" + p.priceMonthly + "/mo"}, ${p.monthlyCredits === null ? "custom" : p.monthlyCredits.toLocaleString()} credits/mo, up to ${p.seats} seat(s).`;
+  }).join(" ");
+
   const heuristic = () => {
     const t = text.toLowerCase();
     const modules: string[] = [];
     if (/(invoice|billing|payment|quote|finance|revenue|account)/.test(t)) modules.push("finance");
     if (/(asset|portfolio|fund|invest|round|return|capital|equity)/.test(t)) modules.push("investments");
     if (/(headcount|hire|recruit|contract|hr|payroll|workforce|staff)/.test(t)) modules.push("hr");
-    return { industry_vertical: purpose || "General Operations", recommended_modules: modules, summary: "" };
+    // Plan heuristic from real signals (team size + intent).
+    const size = parseInt(teamSize.replace(/[^0-9]/g, ""), 10) || (teamSize.includes("just me") || teamSize.includes("solo") ? 1 : 0);
+    let plan = "scout";
+    if (/(compliance|self-host|private infra|sovereign|on-?prem|regulated)/.test(t)) plan = "sovereign";
+    else if (size > 5 || /(oversight|team|manage|approvals|decision queue)/.test(t)) plan = "command";
+    else if (size >= 1 && /(discovery|enrich|research|prospect|finance|agents|deep)/.test(t)) plan = "operator";
+    else if (size > 1) plan = "operator";
+    return { industry_vertical: purpose || "General Operations", recommended_modules: modules, summary: "", recommended_plan: plan, recommend_pack: false, plan_reason: "" };
   };
 
   let result = heuristic();
@@ -38,30 +52,44 @@ router.post("/analyze", requireAuth, async (c) => {
     const extracted = await aiGatewayToolUse({
       system:
         "You are the Mondaily Workspace Architect onboarding a new operator. Mondaily is an autonomous AI workspace (operators + AI agents) — it is NOT a CRM; never use that word. " +
-        "From the operator's answers, return: industry_vertical (a concise 1-4 word label, e.g. 'Quantitative Finance', 'Real Estate Ops'); " +
-        "recommended_modules — a subset of ['finance','investments','hr'] to switch on, where finance='Finance & Billing' (invoicing/payments), investments='Quantitative Asset Systems' (portfolios/funds), hr='Autonomous Workforce' (headcount/contracts). Only include modules the operation clearly needs; empty is fine. " +
-        "summary — ONE friendly sentence (<=22 words) telling the operator how their Mondaily workspace will be set up, referencing their sector and goals.",
-      prompt: text,
+        "From the operator's answers, return: industry_vertical (a concise 1-4 word label); " +
+        "recommended_modules — a subset of ['finance','investments','hr']; only what the operation clearly needs; empty is fine. " +
+        "recommended_plan — one of ['scout','operator','command','sovereign'] using ONLY these facts: " + planFacts + " " +
+        "Recommend based on: team size, expected AI usage (chat/agents/enrichment/Discovery deep research/report generation), finance workflows, Decision-Queue approvals, Team Oversight need, and compliance/private-infrastructure needs. Solo/just trying → scout; a team running on AI (Discovery, finance, agents) → operator; a larger team (>5) or one needing oversight/approvals at scale → command; compliance/self-hosted/private → sovereign. " +
+        "recommend_pack — true if their expected usage is likely to exceed the plan's included monthly credits (then suggest pay-as-you-go packs). " +
+        "plan_reason — ONE short sentence (<=20 words) on why that plan fits. " +
+        "summary — ONE friendly sentence (<=22 words) on how their workspace will be set up.",
+      prompt: text + (teamSize ? `\n\nTeam size: ${teamSize}` : ""),
       toolName: "configure_workspace",
-      toolDescription: "Return the inferred workspace architecture profile.",
+      toolDescription: "Return the inferred workspace architecture profile + plan recommendation.",
       toolSchema: {
         type: "object",
         properties: {
           industry_vertical: { type: "string" },
           recommended_modules: { type: "array", items: { type: "string", enum: ["finance", "investments", "hr"] } },
+          recommended_plan: { type: "string", enum: ["scout", "operator", "command", "sovereign"] },
+          recommend_pack: { type: "boolean" },
+          plan_reason: { type: "string" },
           summary: { type: "string" },
         },
-        required: ["industry_vertical"],
+        required: ["industry_vertical", "recommended_plan"],
       },
-      maxTokens: 320,
+      maxTokens: 360,
       onUsage: (u) => recordCreditUsage(ws, u.total_tokens, "Onboarding semantic analysis"),
     });
     const vertical = typeof extracted.industry_vertical === "string" && extracted.industry_vertical.trim() ? extracted.industry_vertical.trim() : result.industry_vertical;
     const mods = Array.isArray(extracted.recommended_modules)
       ? (extracted.recommended_modules as unknown[]).filter((m): m is string => ["finance", "investments", "hr"].includes(m as string))
       : result.recommended_modules;
-    const summary = typeof extracted.summary === "string" ? extracted.summary.trim() : "";
-    result = { industry_vertical: vertical, recommended_modules: mods, summary };
+    const plan = ["scout", "operator", "command", "sovereign"].includes(String(extracted.recommended_plan)) ? String(extracted.recommended_plan) : result.recommended_plan;
+    result = {
+      industry_vertical: vertical,
+      recommended_modules: mods,
+      summary: typeof extracted.summary === "string" ? extracted.summary.trim() : "",
+      recommended_plan: plan,
+      recommend_pack: Boolean(extracted.recommend_pack),
+      plan_reason: typeof extracted.plan_reason === "string" ? extracted.plan_reason.trim() : "",
+    };
   } catch { /* keep heuristic — onboarding must never hard-fail */ }
 
   return c.json(result);
@@ -152,9 +180,8 @@ router.post("/complete", requireAuth, async (c) => {
   const effectiveTier = requiresPayment ? "scout" : chosen;   // what they're actually entitled to now
   const isTrial = effectiveTier === "operator";                // trial ONLY for Operator
   const trialEndsAt = isTrial ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null;
-  // Monthly credit allotment — keyed on the ENTITLED tier, never the aspirational one.
-  const GRANTS: Record<string, number> = { scout: SOLO_GRANT, operator: BUSINESS_TRIAL_GRANT, command: 2_000_000, sovereign: 2_000_000 };
-  const target = GRANTS[effectiveTier] ?? SOLO_GRANT;
+  // Monthly credit allotment — keyed on the ENTITLED tier, from the shared catalog.
+  const target = grantAmountFor(normalizeTierId(effectiveTier));
 
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;

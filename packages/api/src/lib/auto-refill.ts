@@ -1,15 +1,21 @@
 import { supabase } from "@mondaily/db/client";
+import { CREDIT_PACKS, computePackCredits, normalizeTierId, type BillingInterval } from "@mondaily/shared/pricing";
 
 /**
  * Stripe auto-refill engine. Called right after a usage deduction: if the workspace opted in and
  * its balance has fallen below the configured threshold, charge the saved Stripe customer
- * off-session, then append a 100k 'purchase' to the ledger.
+ * off-session, then append the matching pack's FINAL credits (base + plan/annual bonus) to the
+ * ledger — consistent with the shared catalog.
  *
  * Fully guarded — no-ops without STRIPE_SECRET_KEY, opt-in, or a saved customer; debounced so
  * concurrent deductions can't double-charge; never throws into the usage-recording path.
  */
 const STRIPE_API = "https://api.stripe.com/v1";
-const REFILL_CREDITS = 100_000;
+
+/** Map an auto-refill dollar amount to the catalog pack of that price (default: standard/$10). */
+function packForAmount(amountUsd: number): string {
+  return Object.values(CREDIT_PACKS).find((p) => p.price_usd === amountUsd)?.id ?? "standard";
+}
 
 function encodeForm(params: Record<string, string>): string {
   return Object.entries(params).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join("&");
@@ -29,6 +35,9 @@ export async function maybeAutoRefill(workspaceId: string): Promise<void> {
 
     const threshold = Number(ar.threshold ?? 5000);
     const amountUsd = Number(ar.amount_usd ?? 10);
+    const tier = normalizeTierId((settings as { account_tier?: string }).account_tier);
+    const interval: BillingInterval = (settings as { billing_interval?: string }).billing_interval === "year" ? "year" : "month";
+    const refillCredits = computePackCredits(packForAmount(amountUsd), tier, interval).final_credits;
 
     const { data: bal } = await supabase.rpc("ai_credit_balance", { ws: workspaceId });
     if (Number(bal ?? 0) >= threshold) return;
@@ -65,9 +74,9 @@ export async function maybeAutoRefill(workspaceId: string): Promise<void> {
 
     await supabase.from("ai_credits_ledger").insert({
       workspace_id: workspaceId,
-      amount: REFILL_CREDITS,
+      amount: refillCredits,
       transaction_type: "purchase",
-      description: `Auto-refill · $${amountUsd} → ${REFILL_CREDITS.toLocaleString()} credits`,
+      description: `Auto-refill · $${amountUsd} → ${refillCredits.toLocaleString()} AI credits`,
     }).then(() => {}, () => {});
   } catch {
     /* never throw into recordCreditUsage */

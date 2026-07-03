@@ -28,6 +28,7 @@
 
 import OpenAI from "openai";
 import { recordAiUsage } from "./ai-usage";
+import { assertCreditsOk, CreditsExhaustedError } from "./credits";
 
 // ── Shared types ────────────────────────────────────────────────────────────────
 
@@ -313,6 +314,10 @@ export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
 // ── Structured tool-use extraction ─────────────────────────────────────────────
 
 export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<string, unknown>> {
+  // Credit gate — fail closed BEFORE any inference (Discovery extraction, enrichment, report
+  // generation, decision reasoning all flow through here). Throws CreditsExhaustedError if the
+  // workspace is out of credits or over its burst cap. Callers degrade gracefully.
+  await assertCreditsOk(req.workspaceId);
   const resolved = resolveModel(req.model);
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
@@ -562,6 +567,9 @@ async function runOpenAICompatAgent(
  * (never throw, never route to a proprietary provider).
  */
 export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> {
+  // Credit gate — fail closed with a clear message when out of credits / over burst.
+  try { await assertCreditsOk(req.workspaceId); }
+  catch (e) { if (e instanceof CreditsExhaustedError) return { reply: e.message, provider: "none", model: "none", rounds: 0 }; throw e; }
   // Fast-model routing applies here too (conversational → fast model, no tools).
   const route = routeAgentModel(req);
   req = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
@@ -609,6 +617,9 @@ export async function aiGatewayAgentStream(
   req: AgentRequest,
   onEvent: (e: AgentStreamEvent) => void | Promise<void>,
 ): Promise<AgentResponse> {
+  // Credit gate — fail closed; surface the message as a single token so the UI renders it.
+  try { await assertCreditsOk(req.workspaceId); }
+  catch (e) { if (e instanceof CreditsExhaustedError) { await onEvent({ type: "token", text: e.message }); return { reply: e.message, provider: "none", model: "none", rounds: 0 }; } throw e; }
   // Fast-model routing: conversational turns → small model, no tools.
   const route = routeAgentModel(req);
   const effectiveReq: AgentRequest = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };

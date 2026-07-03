@@ -8,7 +8,10 @@ import { Check } from "lucide-react";
 import { StripePaymentModal } from "../../../components/billing/stripe-payment-form";
 
 interface AutoRefill { enabled: boolean; threshold: number; amount_usd: number }
-interface CreditBalance { enrolled: boolean; balance: number; granted: number; used: number; account_tier: string; trial_ends_at: string | null; auto_refill?: AutoRefill }
+interface CreditBalance { enrolled: boolean; balance: number; remaining: number; granted: number; purchased: number; used: number; included_monthly: number | null; account_tier: string; reset_at: string; trial_ends_at: string | null; low: boolean; exhausted: boolean; auto_refill?: AutoRefill }
+interface PackQuote { final_credits: number; base_credits: number; plan_bonus: number; annual_bonus: number }
+interface CreditPackRow { id: string; name: string; price_usd: number; base_credits: number; quote: PackQuote }
+interface PacksResp { tier: string; interval: string; plan_bonus_pct: number; packs: CreditPackRow[] }
 interface LedgerRow { id: string; amount: number; transaction_type: "grant" | "usage" | "purchase"; description: string | null; created_at: string }
 
 // Friendly names for the raw model ids the gateway reports, so AI usage reads as the
@@ -75,6 +78,7 @@ export function BillingSettings() {
   const usageQuery = useQuery({ queryKey: ["ai-usage"], queryFn: () => apiClient.get<Usage>("/usage") });
   const summaryQuery = useQuery({ queryKey: ["usage-summary"], queryFn: () => apiClient.get<{ month: { by_feature: Record<string, number> } }>("/usage/summary"), retry: false });
   const balanceQuery = useQuery({ queryKey: ["credits-balance"], queryFn: () => apiClient.get<CreditBalance>("/credits/balance") });
+  const packsQuery = useQuery({ queryKey: ["credit-packs"], queryFn: () => apiClient.get<PacksResp>("/credits/packs"), retry: false });
   const ledgerQuery = useQuery({ queryKey: ["credits-ledger"], queryFn: () => apiClient.get<{ ledger: LedgerRow[] }>("/credits/ledger") });
   const qc = useQueryClient();
   const [autoRefill, setAutoRefill] = useState(false);
@@ -106,10 +110,10 @@ export function BillingSettings() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["billing"] }); qc.invalidateQueries({ queryKey: ["credits-balance"] }); },
     onError: (e) => { try { setBillingMsg(JSON.parse((e as Error).message)?.error ?? "Could not start the trial."); } catch { setBillingMsg("Could not start the trial."); } },
   });
-  async function handleBuyCredits() {
+  async function handleBuyCredits(packId = "standard") {
     setCharging(true);
     try {
-      const session = await apiClient.post<{ url?: string; error?: string }>("/credits/checkout-session", {});
+      const session = await apiClient.post<{ url?: string; error?: string }>("/credits/checkout-session", { pack_id: packId });
       if (session.url) { window.location.assign(session.url); return; } // redirecting away — keep loading
       if (session.error) { alert(session.error); setCharging(false); }
     } catch (e) {
@@ -410,10 +414,23 @@ export function BillingSettings() {
             <span className="text-xs capitalize text-[var(--text-muted)]">{wallet.account_tier} tier</span>
           </div>
           <div className="p-5">
+            {/* Exhausted / low warnings — never show a negative balance. */}
+            {wallet.exhausted ? (
+              <div className="mb-4 rounded-sm border px-3 py-2.5 text-[12.5px]" style={{ borderColor: "#ef444433", background: "#ef44440d", color: "#b91c1c" }}>
+                You're out of AI credits. AI chat, agents, enrichment and Discovery are paused until you add a pack or upgrade your plan.
+              </div>
+            ) : wallet.low ? (
+              <div className="mb-4 rounded-sm border px-3 py-2.5 text-[12.5px]" style={{ borderColor: "#d9770633", background: "#d977060d", color: "#92400e" }}>
+                Credits running low — top up below or enable Auto-Refill so AI never stops mid-task.
+              </div>
+            ) : null}
             <div className="flex items-end justify-between">
               <div>
-                <div className="text-3xl font-semibold tabular-nums text-[var(--text-primary)]">{fmtCredits(wallet.balance)}</div>
-                <div className="mt-0.5 text-xs text-[var(--text-muted)]">of {fmtCredits(wallet.granted)} credits remaining · {fmtCredits(wallet.used)} used</div>
+                <div className="text-3xl font-semibold tabular-nums text-[var(--text-primary)]">{fmtCredits(wallet.remaining ?? wallet.balance)}</div>
+                <div className="mt-0.5 text-xs text-[var(--text-muted)]">
+                  credits remaining · {wallet.included_monthly != null ? `${fmtCredits(wallet.included_monthly)}/mo included` : "custom plan"}{wallet.purchased > 0 ? ` · ${fmtCredits(wallet.purchased)} purchased` : ""} · {fmtCredits(wallet.used)} used
+                </div>
+                <div className="mt-0.5 text-[11px] text-[var(--text-faint)]">Resets {new Date(wallet.reset_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
               </div>
               <span className="tabular-nums text-sm text-[var(--text-faint)]">{walletPct}%</span>
             </div>
@@ -421,21 +438,22 @@ export function BillingSettings() {
               <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#ef4444" : "var(--section-accent)" }} />
             </div>
 
-            {/* Pay-As-You-Go refill module + auto-refill toggle (Stripe stub) */}
+            {/* Pay-as-you-go credit packs (from the shared catalog) + auto-refill toggle */}
             <div className="mt-5 rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-[var(--text-primary)]">Pay-As-You-Go refill</p>
-                  <p className="mt-0.5 text-xs text-[var(--text-muted)]">Top up 100,000 credits for <span className="tabular-nums text-[var(--text-faint)]">$10</span> via Stripe.</p>
-                </div>
-                <button
-                  onClick={handleBuyCredits}
-                  disabled={charging}
-                  className="flex shrink-0 items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-3.5 py-2 text-sm font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-600 disabled:opacity-70"
-                >
-                  {charging ? <span className="font-mono text-xs tracking-wider">Processing…</span> : <><RefreshCw size={13} /> Buy credits</>}
-                </button>
+              <p className="text-sm font-medium text-[var(--text-primary)]">Buy AI credits</p>
+              <p className="mt-0.5 text-xs text-[var(--text-muted)]">Credits never expire.{packsQuery.data && packsQuery.data.plan_bonus_pct > 0 ? ` Your ${packsQuery.data.tier} plan adds +${Math.round(packsQuery.data.plan_bonus_pct * 100)}% to every pack.` : ""}</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {(packsQuery.data?.packs ?? []).map((p) => (
+                  <button key={p.id} onClick={() => handleBuyCredits(p.id)} disabled={charging}
+                    className="rounded-sm border px-3 py-2.5 text-left transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-60"
+                    style={{ borderColor: "var(--border-soft)" }}>
+                    <div className="text-[12px] font-semibold text-[var(--text-primary)]">{p.name} · ${p.price_usd}</div>
+                    <div className="mt-0.5 text-[11px] tabular-nums text-[var(--text-secondary)]">{fmtCredits(p.quote.final_credits)} credits</div>
+                    {(p.quote.plan_bonus + p.quote.annual_bonus) > 0 && <div className="text-[10px] text-[var(--section-accent)]">+{fmtCredits(p.quote.plan_bonus + p.quote.annual_bonus)} bonus</div>}
+                  </button>
+                ))}
               </div>
+              {charging && <p className="mt-2 font-mono text-xs tracking-wider text-[var(--text-muted)]">Opening secure checkout…</p>}
               <div className="mt-3 flex items-center justify-between gap-4 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>
                 <div>
                   <p className="text-sm font-medium text-[var(--text-primary)]">Enable Auto-Refill</p>

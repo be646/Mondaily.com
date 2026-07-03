@@ -1,73 +1,50 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { supabase } from "@mondaily/db/client";
+import { grantAmountFor, burstCapFor, normalizeTierId, BURST_WINDOW_HOURS } from "@mondaily/shared/pricing";
 import { maybeAutoRefill } from "./auto-refill";
+
+export { BURST_WINDOW_HOURS };
 
 /**
  * AI credit wallet (ai_credits_ledger). Balance = SUM(amount): grant/purchase add, usage subtracts.
+ * The wallet is FLOORED AT ZERO — usage is clamped so a balance can never go negative (the -166k
+ * bug), and enforcement fails CLOSED at zero across every AI path (see assertCreditsOk + the
+ * gateway pre-flight). All amounts come from the shared pricing catalog — no hardcoded credits here.
  *
- * GRANDFATHERING: a workspace is only gated once it's ENROLLED (has ≥1 ledger row). Workspaces
- * with no ledger (pre-existing, or before the migration runs) are never blocked — so this can't
- * brick existing accounts or AI when the feature is half-rolled-out.
+ * GRANDFATHERING: a workspace is only gated once ENROLLED (≥1 ledger row). Workspaces with no ledger
+ * are never blocked, so this can't brick existing accounts while the feature rolls out.
  */
-export const SOLO_GRANT = 50_000;
-export const BUSINESS_TRIAL_GRANT = 500_000;
-export const COMMAND_GRANT = 2_000_000;
 
-/** Single source of truth for the monthly credit allotment per real (paid or free) tier — used by
- *  onboarding, the Stripe subscription webhook, and the embedded subscribe endpoint so they never
- *  drift out of sync with each other. */
-export const TIER_GRANTS: Record<string, number> = {
-  scout: SOLO_GRANT,
-  operator: BUSINESS_TRIAL_GRANT,
-  command: COMMAND_GRANT,
-  sovereign: COMMAND_GRANT,
-};
+/** Raised when a workspace has no remaining credits / has hit its burst cap. Fails closed. */
+export class CreditsExhaustedError extends Error {
+  constructor(public readonly kind: "credits" | "burst", public readonly resetsAt: string | null, message: string) {
+    super(message);
+    this.name = "CreditsExhaustedError";
+  }
+}
 
-/** Bring a workspace's credit balance up to EXACTLY its tier's allotment — grants only the
- *  shortfall (target - current), so calling this twice for the same tier is a no-op and it never
- *  stacks on top of an existing balance. */
+/** Bring a workspace's balance up to EXACTLY its tier's allotment — grants only the shortfall
+ *  (target - current), so calling twice is a no-op and it never stacks. */
 export async function grantTierCredits(workspaceId: string, tier: string, description: string): Promise<void> {
-  const target = TIER_GRANTS[tier] ?? SOLO_GRANT;
+  const target = grantAmountFor(normalizeTierId(tier));
   const { balance } = await creditStatus(workspaceId);
   const delta = target - balance;
   if (delta > 0) await grantCredits(workspaceId, delta, "grant", description);
 }
 
-/**
- * Rolling burst limits (Claude/Codex-style). Separate from the monthly wallet: a workspace can
- * have plenty of credits left but still hit a short-window ceiling that RESETS, so a runaway
- * agent loop can't drain a month of credits in minutes. The window slides — the cap frees up as
- * the oldest usage in the window ages out. Caps are tier-scaled (~a few hours of heavy use).
- *
- * SIZING (revised 2026-07-01 — the original caps were too tight and made chat feel "broken"):
- * Ask's system prompt alone is ~3,000 tokens, tool schemas add more, and a single question can run
- * up to 5 agentic rounds (each round resends the growing context) — so ONE substantive chat turn
- * can legitimately cost 8,000-25,000 tokens. The old scout cap (12,000) could be exhausted by a
- * single message, presenting as "AI chat not working." Caps are now sized as a large fraction of
- * the monthly wallet (so the ONLY thing they stop is draining an entire month in one sitting), not
- * a ceiling on normal single-session use.
- */
-export const BURST_WINDOW_HOURS = 5;
-const BURST_CAP: Record<string, number> = {
-  scout: 40_000,      // 80% of the 50k monthly wallet
-  operator: 250_000,  // 50% of the 500k monthly wallet
-  command: 800_000,   // 40% of the 2M monthly wallet
-  sovereign: 1_500_000,
-};
-
 async function resolveTier(workspaceId: string): Promise<string> {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
-  const tier = (data?.settings as { account_tier?: string } | null)?.account_tier;
-  return tier && tier in BURST_CAP ? tier : "scout";
+  return normalizeTierId((data?.settings as { account_tier?: string } | null)?.account_tier);
 }
 
 export interface BurstStatus { limited: boolean; used: number; cap: number; resetsAt: string | null }
 
-/** Sum usage in the trailing window; report whether the burst cap is hit and when it frees up. */
+/** Sum usage in the trailing window; report whether the burst cap is hit and when it frees up.
+ *  The burst cap is a FRACTION of the monthly wallet, so it can never let a user spend beyond their
+ *  total credits — the wallet floor (assertCreditsOk) is the hard stop; burst just paces bursts. */
 export async function burstStatus(workspaceId: string): Promise<BurstStatus> {
-  const tier = await resolveTier(workspaceId);
-  const cap = BURST_CAP[tier] ?? BURST_CAP.scout!;
+  const cap = burstCapFor(normalizeTierId(await resolveTier(workspaceId)));
   const since = new Date(Date.now() - BURST_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase
     .from("ai_credits_ledger")
@@ -78,7 +55,6 @@ export async function burstStatus(workspaceId: string): Promise<BurstStatus> {
     .order("created_at", { ascending: true });
   if (error || !data || data.length === 0) return { limited: false, used: 0, cap, resetsAt: null };
   const used = data.reduce((s, r) => s + Math.abs(Number(r.amount) || 0), 0);
-  // Window resets when the OLDEST usage row ages out of the window.
   const oldest = new Date(data[0]!.created_at as string).getTime();
   const resetsAt = new Date(oldest + BURST_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
   return { limited: used >= cap, used, cap, resetsAt };
@@ -93,6 +69,12 @@ export async function creditStatus(workspaceId: string): Promise<{ balance: numb
   return { balance: Number(bal ?? 0), enrolled: true };
 }
 
+/** User-facing remaining credits — NEVER negative (the wallet is floored at 0). */
+export async function remainingCredits(workspaceId: string): Promise<number> {
+  const { balance } = await creditStatus(workspaceId);
+  return Math.max(0, balance);
+}
+
 export async function grantCredits(workspaceId: string, amount: number, type: "grant" | "purchase", description: string): Promise<void> {
   if (amount <= 0) return;
   await supabase.from("ai_credits_ledger")
@@ -100,37 +82,57 @@ export async function grantCredits(workspaceId: string, amount: number, type: "g
     .then(() => {}, () => {});
 }
 
-/** Deduct token usage (negative). Fire-and-forget — called from recordAiUsage after each AI call. */
+/**
+ * Deduct token usage (negative). CLAMPED so the wallet can NEVER go below zero: we only deduct down
+ * to the current balance. Fire-and-forget from the caller; the async body reads the balance first.
+ * Only charges for work actually performed (real provider tokens) — a failed call reports 0 tokens.
+ */
 export function recordCreditUsage(workspaceId: string | undefined, tokens: number | undefined, description = "AI usage"): void {
   if (!workspaceId || !tokens || tokens <= 0) return;
-  void supabase.from("ai_credits_ledger")
-    .insert({ workspace_id: workspaceId, amount: -Math.round(tokens), transaction_type: "usage", description })
-    // After the deduction lands, check whether auto-refill should top the wallet back up.
-    .then(() => maybeAutoRefill(workspaceId), () => {});
+  void (async () => {
+    try {
+      const { balance, enrolled } = await creditStatus(workspaceId);
+      if (!enrolled) return; // not on the metered ledger → nothing to deduct
+      const deduct = Math.min(Math.round(tokens), Math.max(0, balance)); // floor at zero
+      if (deduct <= 0) return;
+      await supabase.from("ai_credits_ledger")
+        .insert({ workspace_id: workspaceId, amount: -deduct, transaction_type: "usage", description });
+      await maybeAutoRefill(workspaceId);
+    } catch { /* ledger is best-effort telemetry — never block the user's action */ }
+  })();
 }
 
 /**
- * Gate generative/agent routes. Mount AFTER requireAuth. 402 only when the workspace is enrolled
- * AND its balance has hit zero/negative.
+ * THE enforcement gate — call BEFORE running any AI/generative/agent action. Throws
+ * CreditsExhaustedError (fail closed) when an enrolled workspace has no credits left or has hit its
+ * rolling burst cap. Used by the route middleware (clean 402/429) AND the AI-gateway pre-flight (so
+ * Discovery, agents, reports, and decision reasoning all fail closed too — not just /ask).
  */
+export async function assertCreditsOk(workspaceId?: string): Promise<void> {
+  if (!workspaceId) return;
+  const { balance, enrolled } = await creditStatus(workspaceId);
+  if (!enrolled) return;
+  if (balance <= 0) {
+    throw new CreditsExhaustedError("credits", null, "AI credits exhausted. Upgrade your plan or add a credit pack to keep using AI.");
+  }
+  const burst = await burstStatus(workspaceId);
+  if (burst.limited) {
+    throw new CreditsExhaustedError("burst", burst.resetsAt, `You've hit your short-term usage limit. It resets ${burst.resetsAt ? "around " + new Date(burst.resetsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "shortly"}.`);
+  }
+}
+
+/** Route middleware — mount AFTER requireAuth on AI-consuming routes. Fails closed with a clear
+ *  402 (out of credits) or 429 (burst), or falls through when the workspace isn't enrolled. */
 export const verifyAiCredits = createMiddleware<{ Variables: { workspaceId: string } }>(async (c, next) => {
   const ws = c.get("workspaceId");
   if (ws) {
-    const { balance, enrolled } = await creditStatus(ws);
-    if (enrolled && balance <= 0) {
-      throw new HTTPException(402, { message: "AI credits exhausted. Upgrade or purchase more to keep using AI features." });
-    }
-    // Rolling burst ceiling — only enforced for enrolled workspaces (never bricks pre-migration ones).
-    if (enrolled) {
-      const burst = await burstStatus(ws);
-      if (burst.limited) {
-        const resetLabel = burst.resetsAt
-          ? new Date(burst.resetsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-          : "shortly";
-        throw new HTTPException(429, {
-          message: `You've hit your usage limit for now. It resets around ${resetLabel}. (${BURST_WINDOW_HOURS}-hour rolling window)`,
-        });
+    try {
+      await assertCreditsOk(ws);
+    } catch (e) {
+      if (e instanceof CreditsExhaustedError) {
+        throw new HTTPException(e.kind === "credits" ? 402 : 429, { message: e.message });
       }
+      throw e;
     }
   }
   await next();

@@ -94,18 +94,22 @@ router.post("/stripe", async (c) => {
     const customerId  = s.customer as string | undefined;
 
     if (meta.kind === "credit_pack") {
-      // One-time AI credit purchase: save the customer (its card is now on file for auto-refill)
-      // and append the purchased credits to the ledger. Does NOT touch the subscription plan.
-      const credits = Number(meta.credits ?? 0);
+      // One-time AI credit purchase: grant the FINAL credits (base + plan/annual bonus) that the
+      // catalog computed at checkout and stamped into metadata — the bonus is enforced here, not
+      // just shown in the UI. Falls back to legacy `credits` for any pre-catalog session.
+      const finalCredits = Number(meta.final_credits ?? meta.credits ?? 0);
+      const base = Number(meta.base_credits ?? finalCredits);
+      const bonus = Number(meta.bonus_credits ?? 0);
+      const packId = String(meta.pack_id ?? "pack");
       if (workspaceId && customerId) {
         await supabase.from("workspaces").update({ stripe_customer_id: customerId }).eq("id", workspaceId);
       }
-      if (workspaceId && credits > 0) {
+      if (workspaceId && finalCredits > 0) {
         await supabase.from("ai_credits_ledger").insert({
           workspace_id: workspaceId,
-          amount: credits,
+          amount: Math.round(finalCredits),
           transaction_type: "purchase",
-          description: `Credit pack · ${credits.toLocaleString()} credits`,
+          description: `${packId} pack · ${base.toLocaleString()} + ${bonus.toLocaleString()} bonus = ${finalCredits.toLocaleString()} AI credits`,
         }).then(() => {}, () => {});
       }
     } else if (workspaceId) {

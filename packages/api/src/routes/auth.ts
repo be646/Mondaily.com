@@ -15,7 +15,8 @@ import {
 } from "../lib/auth-tokens";
 import { sendTransactionalEmail } from "../lib/mail";
 import { rateLimit } from "../middleware/rate-limit";
-import { grantCredits, SOLO_GRANT } from "../lib/credits";
+import { grantCredits } from "../lib/credits";
+import { grantAmountFor } from "@mondaily/shared/pricing";
 import { issuePowChallenge, requirePow, verifyPow } from "../lib/pow";
 import { logPowClaim } from "../lib/pow-claims";
 import { requireAuth } from "../middleware/auth";
@@ -120,7 +121,7 @@ router.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.
     const ws = await ensureWorkspaceForUser(userId, name?.trim() ? `${name.trim()}'s Workspace` : "My Workspace");
     workspaceId = ws.workspaceId;
     await supabase.from("workspace_members").update({ name: displayName, email }).eq("workspace_id", workspaceId).eq("user_id", userId);
-    if (ws.isNew) await grantCredits(workspaceId, SOLO_GRANT, "grant", "Free-tier welcome credits");
+    if (ws.isNew) await grantCredits(workspaceId, grantAmountFor("scout"), "grant", "Free-tier welcome credits");
   } catch (e) {
     await supabase.from("auth_credentials").delete().eq("user_id", userId).then(() => {}, () => {});
     return c.json({ error: e instanceof Error ? e.message : "Failed to initialize workspace" }, 500);
