@@ -113,9 +113,18 @@ describe("sidebar + billing share ONE balance source, no stale 50k/500k/2M strin
     expect(sidebar).toMatch(/apiClient\.get\("\/credits\/balance"\)/);
     expect(billing).toMatch(/apiClient\.get<CreditBalance>\("\/credits\/balance"\)/);
   });
-  it("sidebar meter denominator is capacity/included — NOT the raw grant-row sum", () => {
+  it("sidebar meter denominator is capacity (included + purchased) — NOT balance/granted", () => {
     expect(sidebar).toMatch(/walletCapacity/);
-    expect(sidebar).not.toMatch(/wallet\.granted\.toLocaleString\(\)/);   // the stale "50,000" line
+    expect(sidebar).toMatch(/wallet\.remaining/);
+    expect(sidebar).not.toMatch(/wallet\.granted/);                       // never the raw grant-row sum
+    expect(sidebar).not.toMatch(/wallet\.balance\s*\/\s*wallet\.granted/);// the old ratio
+    expect(sidebar).not.toMatch(/\/\s*\{?wallet\.granted/);               // granted as visible denominator
+  });
+  it("sidebar wallet type carries the shared balance model (remaining/included/purchased/used/tier)", () => {
+    const decl = sidebar.slice(sidebar.indexOf("const { data: wallet } = useQuery<"), sidebar.indexOf("queryKey: [\"credits-balance\"]"));
+    for (const field of ["remaining", "included_monthly", "purchased", "used", "account_tier"]) {
+      expect(decl, `wallet type should include ${field}`).toMatch(new RegExp(`\\b${field}\\b`));
+    }
   });
   it("no hardcoded stale credit strings in either surface", () => {
     for (const src of [sidebar, billing]) {
