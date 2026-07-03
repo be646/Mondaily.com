@@ -8,6 +8,8 @@ import { sovereignHeaders } from "../lib/sovereign-search";
 import { runSocialDiscovery, type DiscoveryParams } from "../jobs/social-discovery";
 import { objectTypeToVertical } from "./prospecting";
 import { denyViewerWrites } from "../middleware/rbac";
+import { placesDiagnostic } from "../lib/places";
+import { redditDiagnostic } from "../lib/reddit";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { streamSSE } from "hono/streaming";
 
@@ -189,6 +191,13 @@ router.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c)
   }).select("id").single();
   if (error) return c.json({ error: error.message }, 400);
   return c.json({ id: data.id }, 201);
+});
+
+// Connector health — live probes so you can SEE which data sources are actually on (a bad Google
+// key silently falls back to OSM otherwise). Reads config + makes one real test call to each.
+router.get("/connectors", async (c) => {
+  const [places, reddit] = await Promise.all([placesDiagnostic().catch(() => ({ provider: "osm" as const, ok: true, detail: "probe failed", sample: 0 })), redditDiagnostic().catch(() => ({ enabled: false, ok: false, detail: "probe failed" }))]);
+  return c.json({ places, reddit });
 });
 
 // ── Saved-search monitors ("watch this search") — stored as nodes, re-run by the daily cron. ──

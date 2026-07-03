@@ -55580,6 +55580,21 @@ async function osmPlaces(query, region, limit2) {
 function placesProvider() {
   return process.env.GOOGLE_PLACES_API_KEY ? "google" : "osm";
 }
+async function placesDiagnostic() {
+  const key = process.env.GOOGLE_PLACES_API_KEY;
+  if (key) {
+    try {
+      const r2 = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent("dentist in Warsaw")}&key=${key}`).then((res) => res.json()).catch(() => null);
+      const status = r2?.status ?? "NO_RESPONSE";
+      const ok2 = status === "OK" || status === "ZERO_RESULTS";
+      return { provider: "google", ok: ok2, detail: ok2 ? `Google Places OK (${(r2?.results ?? []).length} test results)` : `${status}${r2?.error_message ? " \u2014 " + r2.error_message : ""}`, sample: (r2?.results ?? []).length };
+    } catch (e2) {
+      return { provider: "google", ok: false, detail: `Request failed: ${e2 instanceof Error ? e2.message : String(e2)}`, sample: 0 };
+    }
+  }
+  const rows2 = await osmPlaces("dentist", "Warsaw", 5).catch(() => []);
+  return { provider: "osm", ok: true, detail: `OpenStreetMap (free/sovereign) \u2014 ${rows2.length} test businesses`, sample: rows2.length };
+}
 async function placesSearch(sector, region, limit2 = 30) {
   try {
     const g2 = await googlePlaces(sector, region, limit2);
@@ -55620,6 +55635,14 @@ async function appToken() {
   } catch {
     return null;
   }
+}
+function redditEnabled() {
+  return !!(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET);
+}
+async function redditDiagnostic() {
+  if (!redditEnabled()) return { enabled: false, ok: false, detail: "Not configured (REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET). SearXNG still covers Reddit publicly." };
+  const token = await appToken();
+  return token ? { enabled: true, ok: true, detail: "Reddit OAuth OK \u2014 buyer-intent posts will be pulled." } : { enabled: true, ok: false, detail: "Credentials set but token request failed \u2014 check the client id/secret and that the app type is 'script'." };
 }
 async function redditSearch(query, limit2 = 25) {
   if (process.env.REDDIT_DISABLE === "1") return [];
@@ -69505,6 +69528,8 @@ init_client();
 init_inngest2();
 init_sovereign_search();
 init_social_discovery();
+init_places();
+init_reddit();
 init_ai_gateway();
 var router44 = new Hono2();
 router44.use("*", requireAuth);
@@ -69648,6 +69673,10 @@ router44.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (
   }).select("id").single();
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json({ id: data.id }, 201);
+});
+router44.get("/connectors", async (c2) => {
+  const [places, reddit] = await Promise.all([placesDiagnostic().catch(() => ({ provider: "osm", ok: true, detail: "probe failed", sample: 0 })), redditDiagnostic().catch(() => ({ enabled: false, ok: false, detail: "probe failed" }))]);
+  return c2.json({ places, reddit });
 });
 router44.get("/monitors", async (c2) => {
   const { data } = await supabase.from("nodes").select("id, data, created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "discovery_monitor").order("created_at", { ascending: false });

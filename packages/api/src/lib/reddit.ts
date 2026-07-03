@@ -44,6 +44,15 @@ async function appToken(): Promise<string | null> {
 /** True when Reddit OAuth credentials are configured. */
 export function redditEnabled(): boolean { return !!(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET); }
 
+/** Live health probe — confirms the OAuth credentials actually mint a token. */
+export async function redditDiagnostic(): Promise<{ enabled: boolean; ok: boolean; detail: string }> {
+  if (!redditEnabled()) return { enabled: false, ok: false, detail: "Not configured (REDDIT_CLIENT_ID / REDDIT_CLIENT_SECRET). SearXNG still covers Reddit publicly." };
+  const token = await appToken();
+  return token
+    ? { enabled: true, ok: true, detail: "Reddit OAuth OK — buyer-intent posts will be pulled." }
+    : { enabled: true, ok: false, detail: "Credentials set but token request failed — check the client id/secret and that the app type is 'script'." };
+}
+
 /** Search Reddit posts via the official OAuth API. `sort=new` surfaces fresh intent. */
 export async function redditSearch(query: string, limit = 25): Promise<RedditHit[]> {
   if (process.env.REDDIT_DISABLE === "1") return [];

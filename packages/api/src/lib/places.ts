@@ -83,6 +83,29 @@ export function placesEnabled(): boolean { return true; }
 export function placesProvider(): "google" | "osm" { return process.env.GOOGLE_PLACES_API_KEY ? "google" : "osm"; }
 
 /**
+ * Live health probe — makes ONE real test call so a misconfigured key is visible instead of
+ * silently falling back to OSM. Surfaces Google's exact status (e.g. REQUEST_DENIED = classic
+ * Places API not enabled or billing off; OK = working).
+ */
+export async function placesDiagnostic(): Promise<{ provider: "google" | "osm"; ok: boolean; detail: string; sample: number }> {
+  const key = process.env.GOOGLE_PLACES_API_KEY;
+  if (key) {
+    try {
+      const r = await fetch(`https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent("dentist in Warsaw")}&key=${key}`)
+        .then(res => res.json()).catch(() => null) as { status?: string; error_message?: string; results?: unknown[] } | null;
+      const status = r?.status ?? "NO_RESPONSE";
+      const ok = status === "OK" || status === "ZERO_RESULTS";
+      return { provider: "google", ok, detail: ok ? `Google Places OK (${(r?.results ?? []).length} test results)` : `${status}${r?.error_message ? " — " + r.error_message : ""}`, sample: (r?.results ?? []).length };
+    } catch (e) {
+      return { provider: "google", ok: false, detail: `Request failed: ${e instanceof Error ? e.message : String(e)}`, sample: 0 };
+    }
+  }
+  // OSM default — quick sanity call.
+  const rows = await osmPlaces("dentist", "Warsaw", 5).catch(() => []);
+  return { provider: "osm", ok: true, detail: `OpenStreetMap (free/sovereign) — ${rows.length} test businesses`, sample: rows.length };
+}
+
+/**
  * Find local businesses for a sector + region. Google if a key is set, else OSM. Never throws.
  * Pass districts to run the "geographic loop" (e.g. Warsaw → Mokotów, Wola…) for higher volume.
  */
