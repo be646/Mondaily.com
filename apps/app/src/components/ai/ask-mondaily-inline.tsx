@@ -1,12 +1,15 @@
 import { Loader2, Send } from "lucide-react";
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
 import { friendlyAskError } from "./ask-shared";
+import { askModeForPath } from "../../lib/ask-mode";
 
 export function AskMondailyInline({ placeholder, onResponse }: { placeholder: string; onResponse?: (text: string) => void }) {
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
+  const mode = askModeForPath(useLocation().pathname);
 
   async function submit() {
     const message = value.trim();
@@ -38,6 +41,10 @@ export function AskMondailyInline({ placeholder, onResponse }: { placeholder: st
     >
       <span className="shrink-0" style={{ color: "var(--section-accent)" }}>
         <LogoMark size={16} thinking={loading}/>
+      </span>
+      {/* Page-aware mode label — names the scope the (existing) Ask engine is grounded in here. */}
+      <span title={mode.hint} className="shrink-0 rounded-full border px-1.5 py-0.5 text-[9.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+        {mode.label}
       </span>
       <input
         className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-stone-600"

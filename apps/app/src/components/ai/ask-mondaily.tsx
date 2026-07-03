@@ -11,7 +11,8 @@ function LogoSymbol({ size = 28, thinking = false }: { size?: number; thinking?:
     </svg>
   );
 }
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
+import { askModeForPath } from "../../lib/ask-mode";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { LogoMark } from "../logo";
@@ -84,6 +85,7 @@ const EMPTY_SUGGESTION_GROUPS = [
 
 export function AskMondaily() {
   const { threadId } = useParams();
+  const askMode = askModeForPath(useLocation().pathname);
   const [input, setInput] = useState("");
   const voice = useVoiceDictation(setInput);
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
@@ -245,6 +247,8 @@ export function AskMondaily() {
             <div className="soul-kicker mb-1">// MONDAILY · DEEP CONTEXT</div>
             <h1 className="flex items-center gap-2 text-[13px] font-semibold tracking-wide text-[#111827] dark:text-[var(--text-primary)]">
               Ask
+              {/* Page-aware mode label — names the scope Ask is grounded in (no logic change). */}
+              <span title={askMode.hint} className="rounded-full border px-1.5 py-0.5 text-[9.5px] font-medium tracking-normal" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{askMode.label}</span>
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-stone-400 opacity-40 animate-ping"/>
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-stone-500"/>

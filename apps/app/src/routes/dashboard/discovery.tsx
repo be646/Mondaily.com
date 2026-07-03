@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowUp, Check, ChevronDown, ExternalLink, Globe2, Loader2, MessageSquare,
   Plus, Radar, Sparkles, Star, ThumbsDown, ThumbsUp, Minus, Users, Trash2, Bell, Send, Copy,
-  CheckSquare, ShieldCheck,
+  CheckSquare, ShieldCheck, ArrowRight,
 } from "lucide-react";
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
 import { requestAsk } from "../../lib/ask-bus";
@@ -264,6 +264,8 @@ export function DiscoveryPage() {
           </div>
         </div>
       </div>
+
+      {view === "chat" && <ModuleStrip />}
 
       {icpOpen && view === "chat" && (
         <div className="mb-3 rounded-lg border px-3 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
@@ -642,6 +644,31 @@ interface Enrichment { dossier?: Dossier; emails: string[]; phones: string[]; pe
 // Per-lead pipeline state — reflected as status chips (all real; set only after a real action).
 interface LeadStatus { saved?: boolean; existed?: boolean; listed?: boolean; tasked?: boolean; queued?: boolean; node_id?: string; owner?: string }
 interface Member { user_id: string; name?: string | null; email?: string | null }
+// Product-structure framing for Discovery — a light labeling layer over the EXISTING features
+// (no new logic). Each module names where its real capabilities live on this page.
+const DISCOVERY_MODULES: { key: string; label: string; Icon: typeof Globe2; hint: string }[] = [
+  { key: "search", label: "Search", Icon: Globe2, hint: "Web · Places · Graph — run a query, stream results." },
+  { key: "enrich", label: "Enrich", Icon: Sparkles, hint: "Open a lead's Details for the cited dossier, reviews, evidence, and graph match." },
+  { key: "capture", label: "Capture", Icon: Plus, hint: "Save (deduped) · assign owner · add to list · create task · send to Decision Queue — per lead or in bulk." },
+  { key: "monitor", label: "Monitor", Icon: Bell, hint: "Watch a search — saved monitors re-run and alert you to new results." },
+  { key: "research", label: "Research", Icon: MessageSquare, hint: "Ask AI over a lead or the whole result set (grounded, source-backed)." },
+];
+function ModuleStrip() {
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-1.5">
+      <span className="text-[10px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Pipeline</span>
+      {DISCOVERY_MODULES.map((m, i) => (
+        <span key={m.key} className="inline-flex items-center gap-1">
+          <span title={m.hint} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+            <m.Icon size={10} style={{ color: "var(--section-accent)" }} /> {m.label}
+          </span>
+          {i < DISCOVERY_MODULES.length - 1 && <ArrowRight size={9} style={{ color: "var(--text-faint)" }} />}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 // "Why this lead matched" — honest signals derived ONLY from real row fields (never fabricated).
 function matchReasons(r: ResultRow): string[] {
   const out: string[] = [];
