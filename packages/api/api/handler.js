@@ -56629,8 +56629,9 @@ async function runSocialDiscovery(data, onProgress) {
     const rank = (u2) => platformOf(u2) === "web" || platformOf(u2).includes(".") ? 1 : 0;
     return rank(a2.url) - rank(b2.url);
   });
-  const unique = socialFirst.slice(0, 40);
-  const SCRAPE_TOP = 18;
+  const isReviews = searchType === "REVIEWS";
+  const unique = socialFirst.slice(0, isReviews ? 10 : 40);
+  const SCRAPE_TOP = isReviews ? 8 : 18;
   const toScrape = unique.slice(0, SCRAPE_TOP);
   await emit({ type: "progress", stage: "scrape", message: `Reading ${toScrape.length} pages in full\u2026` });
   const deepScrape = searchType === "REVIEWS" || !!deep;

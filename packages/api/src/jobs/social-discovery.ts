@@ -171,14 +171,17 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
       const rank = (u: string) => (platformOf(u) === "web" || platformOf(u).includes(".") ? 1 : 0);
       return rank(a.url) - rank(b.url);
     });
-    const unique = socialFirst.slice(0, 40);
+    // Reviews deep-scroll each page (slow but rich — 1 page can yield ~90 reviews), so we analyze
+    // FEWER, higher-quality pages to stay well under the 60s serverless limit. Leads stay broad.
+    const isReviews = searchType === "REVIEWS";
+    const unique = socialFirst.slice(0, isReviews ? 10 : 40);
 
     // 2) Scrape the top pages to full text, then run ONE FOCUSED extraction call PER PAGE, in
     //    parallel batches. This replaces the old single-blob call (36 concatenated pages in one
     //    prompt), which overwhelmed the model into returning 1-2 results — and because WE bind each
     //    extraction to its page's URL, the model never writes a source_url at all: hallucinated or
     //    mismatched URLs are structurally impossible, so nothing gets dropped by URL-matching.
-    const SCRAPE_TOP = 18;
+    const SCRAPE_TOP = isReviews ? 8 : 18;
     const toScrape = unique.slice(0, SCRAPE_TOP);
     await emit({ type: "progress", stage: "scrape", message: `Reading ${toScrape.length} pages in full…` });
     // Scroll each page so lazy-loaded review lists fully render (1 review → all reviews). ALWAYS

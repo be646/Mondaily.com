@@ -52,9 +52,9 @@ app.post("/v1/scrape", async (req, res) => {
     // load more / więcej" buttons. This turns "1 review" into "all reviews".
     const deep = !!(req.body && req.body.deep);
     if (deep) {
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 6; i++) {
         await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight)).catch(() => {});
-        await page.waitForTimeout(700);
+        await page.waitForTimeout(600);
         await page.evaluate(() => {
           const re = /(show more|load more|see more|more reviews|więcej|pokaż|załaduj|voir plus|mehr)/i;
           const btn = Array.from(document.querySelectorAll("button, a, span, div"))
