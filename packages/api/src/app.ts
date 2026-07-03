@@ -15,6 +15,7 @@ import { agentsRouter } from "./routes/agents";
 import { decisionsRouter } from "./routes/decisions";
 import { activitiesRouter } from "./routes/activities";
 import { messagesRouter } from "./routes/messages";
+import { trainingRouter } from "./routes/training";
 import { liveCallsRouter } from "./routes/live-calls";
 import { realtimeRouter } from "./routes/realtime";
 import { authRouter } from "./routes/auth";
@@ -106,6 +107,7 @@ app.route("/api/v1/feedback", feedbackRouter);
 app.route("/api/v1/members", membersRouter);
 app.route("/api/v1/notifications", notificationsRouter);
 app.route("/api/v1/messages", messagesRouter);
+app.route("/api/v1/training", trainingRouter);
 app.route("/api/v1/live-calls", liveCallsRouter);
 app.route("/api/v1/tasks", taskReviewsRouter);
 app.route("/api/v1/tasks", taskDetailsRouter);
@@ -183,6 +185,18 @@ app.get("/api/cron/monitors", async (c) => {
   // Purge expired Discovery cache rows so the table stays bounded.
   const { supabase } = await import("@mondaily/db/client");
   await supabase.from("discovery_cache").delete().lt("expires_at", new Date().toISOString()).then(() => {}, () => {});
+  // Training-data RETENTION — for each workspace that set a retention window, drop training rows
+  // older than it (workspace-isolated deletes).
+  try {
+    const { data: wsList } = await supabase.from("workspaces").select("id, settings");
+    for (const w of wsList ?? []) {
+      const rd = Number((w.settings as { training_policy?: { retention_days?: number } } | null)?.training_policy?.retention_days ?? 0);
+      if (rd >= 7) {
+        const cutoff = new Date(Date.now() - rd * 86_400_000).toISOString();
+        await supabase.from("ai_training_logs").delete().eq("workspace_id", w.id as string).lt("created_at", cutoff).then(() => {}, () => {});
+      }
+    }
+  } catch { /* best-effort retention */ }
   return c.json({ ran: true, at: new Date().toISOString(), result });
 });
 

@@ -18,6 +18,21 @@ import { redactPII } from "./ai-gateway";
 
 export type TrainingAction = "APPROVED" | "REJECTED" | "EDITED";
 
+export interface TrainingPolicy { enabled: boolean; retention_days: number }
+const DEFAULT_POLICY: TrainingPolicy = { enabled: false, retention_days: 365 }; // opt-in by default
+
+/** The workspace's training-data policy (defaults to disabled = opt-in). */
+export async function getTrainingPolicy(workspaceId: string): Promise<TrainingPolicy> {
+  try {
+    const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+    const p = (data?.settings as { training_policy?: Partial<TrainingPolicy> } | null)?.training_policy;
+    return { enabled: !!p?.enabled, retention_days: Number(p?.retention_days ?? DEFAULT_POLICY.retention_days) };
+  } catch { return DEFAULT_POLICY; }
+}
+async function trainingEnabled(workspaceId: string): Promise<boolean> {
+  return (await getTrainingPolicy(workspaceId)).enabled;
+}
+
 /**
  * Flush one decision_queue row (the agent's "model output" that a human just
  * judged) into the training ledger. The literal system prompt lives in the
@@ -31,6 +46,10 @@ export async function logDecisionTrainingExample(
 ): Promise<void> {
   try {
     if (!decision) return;
+
+    // OPT-IN gate: capture only when the workspace has explicitly enabled training-data collection.
+    // Default is OFF — a workspace's data never enters the training corpus unless the owner opts in.
+    if (!(await trainingEnabled(workspaceId))) return;
 
     // Prefer the REAL generating prompt/output: LLM-generated decisions (prospecting,
     // vertical agents, chat) store {system_prompt, user_prompt, model_output} in

@@ -8,10 +8,17 @@ import { activateTier, downgradeToScout, normalizeTier } from "../lib/billing-ti
 
 const router = new Hono();
 
-/* ── Nylas webhook — ingest email events ────────────────────────────────────── */
+/* ── Nylas webhook — LEGACY / DISABLED ───────────────────────────────────────────
+   Mondaily uses DIRECT Google (Gmail API), not Nylas — kept only so a stray old webhook
+   registration gets a clean 410 instead of silently processing. Inert unless NYLAS_WEBHOOK_SECRET
+   is still set (which a sovereign deployment does NOT set). */
 router.post("/nylas", async (c) => {
   const challenge = c.req.query("challenge");
-  if (challenge) return c.text(challenge); // Nylas verification handshake
+  if (challenge) return c.text(challenge); // harmless verification echo
+
+  if (!process.env.NYLAS_WEBHOOK_SECRET) {
+    return c.json({ error: "Nylas integration removed — Mondaily uses direct Google inbox access." }, 410);
+  }
 
   const rawBody = await c.req.text();
   const sig     = c.req.header("x-nylas-signature") ?? "";
