@@ -25,7 +25,7 @@ export function recordAiUsage(
   workspaceId: string | undefined,
   model: string,
   usage: UsageMetrics | undefined | null,
-  opts?: { userId?: string; messageCount?: number },
+  opts?: { userId?: string; messageCount?: number; feature?: string },
 ): void {
   if (!workspaceId || !usage) return;
   const prompt = Math.max(0, Math.round(usage.prompt_tokens ?? 0));
@@ -41,22 +41,31 @@ export function recordAiUsage(
   const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-  // Detached background write — not awaited, errors swallowed.
+  // Detached background write — not awaited, errors swallowed. `feature` (discovery/chat/…) lets
+  // the usage dashboard break spend down per surface; if the column isn't migrated yet the write
+  // retries without it so metering never breaks during rollout.
+  const base = {
+    workspace_id: workspaceId,
+    user_id: opts?.userId ?? null,
+    model,
+    message_count: opts?.messageCount ?? 1,
+    prompt_tokens: prompt,
+    completion_tokens: completion,
+    total_tokens: total,
+    period_start: periodStart,
+    period_end: periodEnd,
+  };
   void supabase
     .from("ai_usage")
-    .insert({
-      workspace_id: workspaceId,
-      user_id: opts?.userId ?? null,
-      model,
-      message_count: opts?.messageCount ?? 1,
-      prompt_tokens: prompt,
-      completion_tokens: completion,
-      total_tokens: total,
-      period_start: periodStart,
-      period_end: periodEnd,
-    })
+    .insert({ ...base, feature: opts?.feature ?? null })
     .then(
       () => {},
-      (err: unknown) => console.error("[ai-usage] ledger write failed (non-fatal):", err),
+      (err: unknown) => {
+        if (/feature/i.test(String((err as { message?: string })?.message ?? err))) {
+          void supabase.from("ai_usage").insert(base).then(() => {}, () => {});
+        } else {
+          console.error("[ai-usage] ledger write failed (non-fatal):", err);
+        }
+      },
     );
 }

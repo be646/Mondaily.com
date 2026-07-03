@@ -85,17 +85,21 @@ router.get("/summary", async (c) => {
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
 
   const [{ data: usage }, { data: ledger }, { data: wsRow }] = await Promise.all([
-    supabase.from("ai_usage").select("model, total_tokens, message_count, created_at").eq("workspace_id", ws).gte("created_at", monthStart),
+    supabase.from("ai_usage").select("*").eq("workspace_id", ws).gte("created_at", monthStart),
     supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws),
     supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle(),
   ]);
 
   let monthTokens = 0, monthCalls = 0;
   const byModel: Record<string, number> = {};
-  for (const r of usage ?? []) {
+  const byFeature: Record<string, number> = {};
+  for (const r of (usage ?? []) as Record<string, unknown>[]) {
     const t = Number(r.total_tokens ?? 0);
     monthTokens += t; monthCalls += Number(r.message_count ?? 1);
-    byModel[r.model ?? "unknown"] = (byModel[r.model ?? "unknown"] ?? 0) + t;
+    const model = String(r.model ?? "unknown");
+    byModel[model] = (byModel[model] ?? 0) + t;
+    const feature = String(r.feature ?? "other");
+    byFeature[feature] = (byFeature[feature] ?? 0) + t;
   }
 
   const list = ledger ?? [];
@@ -106,7 +110,7 @@ router.get("/summary", async (c) => {
 
   return c.json({
     period: { start: monthStart, resets_at: nextMonth },
-    month: { credits_used: monthTokens, ai_calls: monthCalls, by_model: byModel },
+    month: { credits_used: monthTokens, ai_calls: monthCalls, by_model: byModel, by_feature: byFeature },
     wallet: {
       enrolled,
       tier: (settings.account_tier as string) ?? (settings.track as string) ?? "scout",

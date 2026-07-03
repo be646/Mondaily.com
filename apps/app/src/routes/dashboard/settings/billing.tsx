@@ -73,6 +73,7 @@ const PLAN_COLORS: Record<string, string> = {
 export function BillingSettings() {
   const query = useQuery({ queryKey: ["billing"], queryFn: () => apiClient.get<Billing>("/billing") });
   const usageQuery = useQuery({ queryKey: ["ai-usage"], queryFn: () => apiClient.get<Usage>("/usage") });
+  const summaryQuery = useQuery({ queryKey: ["usage-summary"], queryFn: () => apiClient.get<{ month: { by_feature: Record<string, number> } }>("/usage/summary"), retry: false });
   const balanceQuery = useQuery({ queryKey: ["credits-balance"], queryFn: () => apiClient.get<CreditBalance>("/credits/balance") });
   const ledgerQuery = useQuery({ queryKey: ["credits-ledger"], queryFn: () => apiClient.get<{ ledger: LedgerRow[] }>("/credits/ledger") });
   const qc = useQueryClient();
@@ -356,6 +357,26 @@ export function BillingSettings() {
                     </div>
                   ))}
                 </div>
+                {(() => {
+                  const bf = Object.entries(summaryQuery.data?.month.by_feature ?? {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+                  if (!bf.length) return null;
+                  const label = (k: string) => k === "discovery" ? "Discovery" : k === "chat" ? "Chat / Ask" : k === "other" ? "Other" : k.charAt(0).toUpperCase() + k.slice(1);
+                  return (
+                    <div className="mt-4">
+                      <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">By feature</div>
+                      <div className="space-y-1.5">
+                        {bf.map(([feat, v]) => (
+                          <div key={feat} className="flex items-center justify-between text-sm">
+                            <span className="flex items-center gap-2 truncate text-[var(--text-faint)]">
+                              <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "var(--section-accent)" }} />{label(feat)}
+                            </span>
+                            <span className="font-mono tabular-nums text-[var(--text-primary)]">{fmt(v)} tokens</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
                 {u && Object.entries(u.by_model).filter(([, mt]) => mt.total_tokens > 0).length > 0 && (
                   <div className="mt-4">
                     <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">By engine</div>

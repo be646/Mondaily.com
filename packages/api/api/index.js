@@ -55068,7 +55068,7 @@ function recordAiUsage(workspaceId, model, usage, opts) {
   const now = /* @__PURE__ */ new Date();
   const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
-  void supabase.from("ai_usage").insert({
+  const base = {
     workspace_id: workspaceId,
     user_id: opts?.userId ?? null,
     model,
@@ -55078,10 +55078,19 @@ function recordAiUsage(workspaceId, model, usage, opts) {
     total_tokens: total,
     period_start: periodStart,
     period_end: periodEnd
-  }).then(
+  };
+  void supabase.from("ai_usage").insert({ ...base, feature: opts?.feature ?? null }).then(
     () => {
     },
-    (err2) => console.error("[ai-usage] ledger write failed (non-fatal):", err2)
+    (err2) => {
+      if (/feature/i.test(String(err2?.message ?? err2))) {
+        void supabase.from("ai_usage").insert(base).then(() => {
+        }, () => {
+        });
+      } else {
+        console.error("[ai-usage] ledger write failed (non-fatal):", err2);
+      }
+    }
   );
 }
 var init_ai_usage = __esm({
@@ -55242,7 +55251,7 @@ async function aiGatewayToolUse(req) {
       reasoning_tokens: u2.completion_tokens_details?.reasoning_tokens ?? 0
     };
     if (req.onUsage) req.onUsage(usage);
-    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, { userId: req.userId });
+    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, { userId: req.userId, feature: req.feature });
   }
   const toolCall = completion.choices[0]?.message.tool_calls?.[0];
   if (!toolCall?.function?.arguments) return {};
@@ -55895,6 +55904,7 @@ async function runSocialDiscovery(data, onProgress) {
         toolDescription: "Extract real leads/reviews from one web page",
         toolSchema: perPageSchema,
         workspaceId,
+        feature: "discovery",
         // meter to ai_usage / credit wallet
         onUsage: meter,
         // + accumulate for this search's cost display
@@ -55974,6 +55984,7 @@ ${text}`
           system: "List the main administrative districts or well-known neighborhoods of the given city, for looping a local-business search. Return names only, no country.",
           prompt: region,
           workspaceId,
+          feature: "discovery",
           onUsage: meter,
           maxTokens: 300
         });
@@ -56152,6 +56163,7 @@ ${text}`
         toolDescription: "Write one short grounded briefing of the discovery findings",
         toolSchema: { type: "object", properties: { summary: { type: "string", description: "The briefing text, plain prose, no markdown headers." } }, required: ["summary"] },
         workspaceId,
+        feature: "discovery",
         onUsage: meter,
         maxTokens: 700,
         system: wantReviewsOverview ? "You analyze REAL customer reviews for a business user researching a company/competitor. Using ONLY the reviews below, write a short plain briefing: 1) the sentiment balance (use the given counts), 2) the 2-3 most common COMPLAINTS (pitch angles for a competitor), 3) the main PRAISE, 4) one sentence on the opportunity. NEVER invent a complaint, praise, name, or number not supported by the reviews." : "You summarize web-discovery results for a business user in 2-4 short sentences describing ONLY what the findings show \u2014 counts, platforms, contactability. Never add a fact not in the findings.",
@@ -69628,17 +69640,21 @@ router43.get("/summary", async (c2) => {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
   const [{ data: usage }, { data: ledger }, { data: wsRow }] = await Promise.all([
-    supabase.from("ai_usage").select("model, total_tokens, message_count, created_at").eq("workspace_id", ws).gte("created_at", monthStart),
+    supabase.from("ai_usage").select("*").eq("workspace_id", ws).gte("created_at", monthStart),
     supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws),
     supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle()
   ]);
   let monthTokens = 0, monthCalls = 0;
   const byModel = {};
+  const byFeature = {};
   for (const r2 of usage ?? []) {
     const t2 = Number(r2.total_tokens ?? 0);
     monthTokens += t2;
     monthCalls += Number(r2.message_count ?? 1);
-    byModel[r2.model ?? "unknown"] = (byModel[r2.model ?? "unknown"] ?? 0) + t2;
+    const model = String(r2.model ?? "unknown");
+    byModel[model] = (byModel[model] ?? 0) + t2;
+    const feature = String(r2.feature ?? "other");
+    byFeature[feature] = (byFeature[feature] ?? 0) + t2;
   }
   const list = ledger ?? [];
   const enrolled = list.length > 0;
@@ -69647,7 +69663,7 @@ router43.get("/summary", async (c2) => {
   const settings = wsRow?.settings ?? {};
   return c2.json({
     period: { start: monthStart, resets_at: nextMonth },
-    month: { credits_used: monthTokens, ai_calls: monthCalls, by_model: byModel },
+    month: { credits_used: monthTokens, ai_calls: monthCalls, by_model: byModel, by_feature: byFeature },
     wallet: {
       enrolled,
       tier: settings.account_tier ?? settings.track ?? "scout",

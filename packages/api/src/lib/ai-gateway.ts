@@ -63,6 +63,9 @@ export type GatewayToolRequest = {
    *  metering for every background/agent tool call — no per-caller onUsage wiring needed). */
   workspaceId?: string;
   userId?: string;
+  /** Tags the metered usage row with the product surface (e.g. "discovery", "chat") for the
+   *  per-feature usage dashboard. */
+  feature?: string;
 };
 
 // ── Internal routing ────────────────────────────────────────────────────────────
@@ -337,7 +340,7 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
     if (req.onUsage) req.onUsage(usage);
     // Default metering: every tool call with a workspaceId records to ai_usage + the credit wallet,
     // so background/agent inference (scoring, enrichment, generation) is no longer free/untracked.
-    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, { userId: req.userId });
+    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, { userId: req.userId, feature: req.feature });
   }
 
   const toolCall = completion.choices[0]?.message.tool_calls?.[0];

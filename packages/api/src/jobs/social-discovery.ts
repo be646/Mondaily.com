@@ -280,7 +280,7 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
           toolName: "extract_from_page",
           toolDescription: "Extract real leads/reviews from one web page",
           toolSchema: perPageSchema,
-          workspaceId,          // meter to ai_usage / credit wallet
+          workspaceId, feature: "discovery",  // meter to ai_usage / credit wallet
           onUsage: meter,       // + accumulate for this search's cost display
           maxTokens: wantReviews ? 6000 : 1600,
           system:
@@ -366,7 +366,7 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
             toolSchema: { type: "object", properties: { districts: { type: "array", items: { type: "string" }, description: "up to 12 main districts/boroughs of the city" } }, required: ["districts"] },
             system: "List the main administrative districts or well-known neighborhoods of the given city, for looping a local-business search. Return names only, no country.",
             prompt: region,
-            workspaceId, onUsage: meter, maxTokens: 300,
+            workspaceId, feature: "discovery", onUsage: meter, maxTokens: 300,
           });
           districts = Array.isArray((d as { districts?: unknown }).districts) ? (d as { districts: string[] }).districts.filter((x) => typeof x === "string").slice(0, 12) : [];
         } catch { /* fall back to the single-area result */ }
@@ -554,7 +554,7 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
           toolName: "write_overview",
           toolDescription: "Write one short grounded briefing of the discovery findings",
           toolSchema: { type: "object", properties: { summary: { type: "string", description: "The briefing text, plain prose, no markdown headers." } }, required: ["summary"] },
-          workspaceId, onUsage: meter,
+          workspaceId, feature: "discovery", onUsage: meter,
           maxTokens: 700,
           system: wantReviewsOverview
             ? "You analyze REAL customer reviews for a business user researching a company/competitor. Using ONLY the reviews below, write a short plain briefing: " +
