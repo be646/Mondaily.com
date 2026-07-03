@@ -126,18 +126,27 @@ export function DiscoveryPage() {
           if (ev.type === "progress" && ev.message) patch((t) => ({ ...t, steps: [...t.steps, String(ev.message)] }));
           else if (ev.type === "overview" && ev.text) patch((t) => ({ ...t, overview: String(ev.text) }));
           else if (ev.type === "error") patch((t) => ({ ...t, status: "error", error: String(ev.error || "Search failed") }));
+          else if (ev.type === "results") {
+            // Results are streamed BEFORE the overview/done, so they render even if the tail is cut short.
+            patch((t) => ({
+              ...t,
+              kind: ev.kind === "REVIEWS" ? "REVIEWS" : "INTENT_LEADS",
+              results: Array.isArray(ev.results) ? ev.results : t.results,
+              discovered: ev.discovered ?? t.discovered,
+              scanned: ev.scanned ?? t.scanned,
+            }));
+          }
           else if (ev.type === "done") {
-            const kind: Kind = ev.classified?.searchType === "REVIEWS" ? "REVIEWS" : "INTENT_LEADS";
             patch((t) => ({
               ...t,
               status: "done",
-              kind,
-              subject: ev.classified?.targetSubject ?? null,
+              kind: ev.classified?.searchType === "REVIEWS" ? "REVIEWS" : t.kind,
+              subject: ev.classified?.targetSubject ?? t.subject,
               overview: ev.overview ?? t.overview,
-              results: Array.isArray(ev.results) ? ev.results : [],
-              discovered: ev.discovered ?? (Array.isArray(ev.results) ? ev.results.length : 0),
-              scanned: ev.scanned ?? 0,
-              error: ev.reason && (!ev.results || ev.results.length === 0) ? String(ev.reason) : undefined,
+              results: Array.isArray(ev.results) && ev.results.length ? ev.results : t.results,
+              discovered: ev.discovered ?? t.discovered,
+              scanned: ev.scanned ?? t.scanned,
+              error: ev.reason && !(t.results && t.results.length) && !(Array.isArray(ev.results) && ev.results.length) ? String(ev.reason) : undefined,
             }));
             qc.invalidateQueries({ queryKey: ["nodes"] });
           }
@@ -280,36 +289,34 @@ function TurnView({ turn, lists }: { turn: Turn; lists: ListRow[] }) {
           </div>
         )}
 
-        {turn.status === "done" && (
-          <>
-            {turn.overview && (
-              <div className="mt-2 flex items-start gap-2 rounded-lg border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-                <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
-                <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{turn.overview}</p>
-              </div>
-            )}
-
-            {turn.results.length > 0 ? (
-              <>
-                <div className="mt-3 mb-2 flex items-center gap-2 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
-                  <strong style={{ color: "var(--text-primary)" }}>{turn.results.length}</strong> {reviews ? "reviews / mentions" : "leads"}
-                  <span aria-hidden>·</span> from {turn.scanned ?? 0} sources
-                  {reviews && <SentimentSummary results={turn.results} />}
-                </div>
-                <div className="space-y-2">
-                  {turn.results.map((r, i) =>
-                    reviews
-                      ? <ReviewCard key={`${r.source_url}-${i}`} r={r} />
-                      : <LeadCard key={`${r.source_url}-${i}`} r={r} query={turn.query} lists={lists} />,
-                  )}
-                </div>
-                <WatchButton query={turn.query} />
-              </>
-            ) : turn.status === "done" && !turn.error ? (
-              <p className="mt-2 text-[12.5px]" style={{ color: "var(--text-faint)" }}>No on-topic {reviews ? "reviews" : "leads"} found in the pages read. Try a clearer name or sector.</p>
-            ) : null}
-          </>
+        {/* Overview (shows once available). */}
+        {turn.overview && (
+          <div className="mt-2 flex items-start gap-2 rounded-lg border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
+            <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{turn.overview}</p>
+          </div>
         )}
+
+        {/* Results render as soon as they stream in — independent of the final done event. */}
+        {turn.results.length > 0 ? (
+          <>
+            <div className="mt-3 mb-2 flex items-center gap-2 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+              <strong style={{ color: "var(--text-primary)" }}>{turn.results.length}</strong> {reviews ? "reviews / mentions" : "leads"}
+              <span aria-hidden>·</span> from {turn.scanned ?? 0} sources
+              {reviews && <SentimentSummary results={turn.results} />}
+            </div>
+            <div className="space-y-2">
+              {turn.results.map((r, i) =>
+                reviews
+                  ? <ReviewCard key={`${r.source_url}-${i}`} r={r} />
+                  : <LeadCard key={`${r.source_url}-${i}`} r={r} query={turn.query} lists={lists} />,
+              )}
+            </div>
+            <WatchButton query={turn.query} />
+          </>
+        ) : turn.status === "done" && !turn.error ? (
+          <p className="mt-2 text-[12.5px]" style={{ color: "var(--text-faint)" }}>No on-topic {reviews ? "reviews" : "leads"} found in the pages read. Try a clearer name or sector.</p>
+        ) : null}
       </div>
     </div>
   );

@@ -57852,6 +57852,21 @@ ${p2.text}`
     if (!prev || (r2.confidence_score ?? 0) > (prev.confidence_score ?? 0)) byFp.set(r2.fingerprint, r2);
   }
   const dedupedRows = [...byFp.values()];
+  const results = [...dedupedRows].sort((a2, b2) => (b2.confidence_score ?? 0) - (a2.confidence_score ?? 0)).slice(0, 60).map((r2) => ({
+    source_url: r2.source_url,
+    platform: r2.platform,
+    author_name: r2.author_name,
+    intent_type: r2.intent_type,
+    sentiment: r2.contact?.sentiment ?? null,
+    confidence_score: r2.confidence_score ?? 0,
+    region: r2.region,
+    target_subject: r2.target_subject,
+    snippet: (r2.contact?.summary || r2.raw_content || "").slice(0, 400),
+    email: r2.contact?.email ?? null,
+    phone: r2.contact?.phone ?? null,
+    handle: r2.contact?.handle ?? null
+  }));
+  await emit({ type: "results", kind: searchType, discovered: dedupedRows.length, scanned: unique.length, results });
   const upsertLeads = async (batch) => {
     let r2 = await supabase.from("discovered_leads").upsert(batch, { onConflict: "workspace_id,fingerprint" });
     if (r2.error && /fingerprint/i.test(r2.error.message)) {
@@ -57936,20 +57951,6 @@ ${digest}`,
     }).catch(() => {
     });
   }
-  const results = [...dedupedRows].sort((a2, b2) => (b2.confidence_score ?? 0) - (a2.confidence_score ?? 0)).slice(0, 60).map((r2) => ({
-    source_url: r2.source_url,
-    platform: r2.platform,
-    author_name: r2.author_name,
-    intent_type: r2.intent_type,
-    sentiment: r2.contact?.sentiment ?? null,
-    confidence_score: r2.confidence_score ?? 0,
-    region: r2.region,
-    target_subject: r2.target_subject,
-    snippet: (r2.contact?.summary || r2.raw_content || "").slice(0, 400),
-    email: r2.contact?.email ?? null,
-    phone: r2.contact?.phone ?? null,
-    handle: r2.contact?.handle ?? null
-  }));
   return { discovered: dedupedRows.length, scanned: unique.length, queued, overview, kind: searchType, results, diag };
 }
 async function runDiscoveryMonitors() {

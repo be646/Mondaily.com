@@ -371,6 +371,30 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     }
     const dedupedRows = [...byFp.values()];
 
+    // Compact display rows for the chat UI — strongest first, no fabricated fields.
+    const results = [...dedupedRows]
+      .sort((a, b) => (b.confidence_score ?? 0) - (a.confidence_score ?? 0))
+      .slice(0, 60)
+      .map((r) => ({
+        source_url: r.source_url,
+        platform: r.platform,
+        author_name: r.author_name,
+        intent_type: r.intent_type,
+        sentiment: r.contact?.sentiment ?? null,
+        confidence_score: r.confidence_score ?? 0,
+        region: r.region,
+        target_subject: r.target_subject,
+        snippet: (r.contact?.summary || r.raw_content || "").slice(0, 400),
+        email: r.contact?.email ?? null,
+        phone: r.contact?.phone ?? null,
+        handle: r.contact?.handle ?? null,
+      }));
+
+    // Stream the results NOW — before the slow DB upsert + AI overview — so the browser renders them
+    // even if the tail of the run is cut short by the serverless time limit. This is what fixes
+    // "found N results" but the UI showing nothing.
+    await emit({ type: "results", kind: searchType, discovered: dedupedRows.length, scanned: unique.length, results });
+
     // 3) Upsert on the per-workspace fingerprint so every distinct review is kept. Falls back through
     //    older shapes if a migration hasn't run yet, so discovery keeps working during rollout.
     const upsertLeads = async (batch: typeof dedupedRows) => {
@@ -471,26 +495,6 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
         metadata: { source: "discovery", count: dedupedRows.length, queued, search_type: searchType },
       }).catch(() => {});
     }
-
-    // Compact display rows for the chat UI — exactly what was found THIS turn (no global refetch,
-    // no fabricated fields). Ordered strongest-first.
-    const results = [...dedupedRows]
-      .sort((a, b) => (b.confidence_score ?? 0) - (a.confidence_score ?? 0))
-      .slice(0, 60)
-      .map((r) => ({
-        source_url: r.source_url,
-        platform: r.platform,
-        author_name: r.author_name,
-        intent_type: r.intent_type,
-        sentiment: r.contact?.sentiment ?? null,
-        confidence_score: r.confidence_score ?? 0,
-        region: r.region,
-        target_subject: r.target_subject,
-        snippet: (r.contact?.summary || r.raw_content || "").slice(0, 400),
-        email: r.contact?.email ?? null,
-        phone: r.contact?.phone ?? null,
-        handle: r.contact?.handle ?? null,
-      }));
 
     return { discovered: dedupedRows.length, scanned: unique.length, queued, overview, kind: searchType, results, diag };
 }
