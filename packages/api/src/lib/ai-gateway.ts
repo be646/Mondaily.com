@@ -75,10 +75,10 @@ type ResolvedModel = { type: "openai-compat"; modelId: string };
 // Cerebras-powered default. Mondaily runs primary inference exclusively on its
 // own openai-compatible streaming gateway (AI_GATEWAY_BASE_URL → Cerebras).
 // No proprietary Anthropic/OpenAI endpoint is referenced at the default layer.
-export const CEREBRAS_DEFAULT_SPEC = "openai-compat/gpt-oss-120b";
+export const DEFAULT_MODEL_SPEC = "openai-compat/gpt-oss-120b";
 
 function resolveModel(spec?: string): ResolvedModel {
-  const s = spec ?? process.env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC;
+  const s = spec ?? process.env.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC;
   const modelId = s.startsWith("openai-compat/") ? s.slice("openai-compat/".length) : s;
   return { type: "openai-compat", modelId: modelId || "gpt-oss-120b" };
 }
@@ -101,7 +101,7 @@ function resolveModel(spec?: string): ResolvedModel {
 // non-data chat ("hi") 404'd and fell through to the "trouble connecting" reply.
 // Fall back to the proven main model; set AI_FAST_MODEL to a real faster Cerebras
 // model (e.g. llama3.1-8b) if you want a lighter conversational tier.
-const FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? CEREBRAS_DEFAULT_SPEC;
+const FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? DEFAULT_MODEL_SPEC;
 
 // Captures the most recent REAL gateway failure (normally swallowed by the graceful
 // "trouble connecting" fallback) so GET /api/v1/ask/health can surface it. Purely
@@ -115,7 +115,7 @@ const CONVERSATIONAL_RE = /^\s*(hi|hey|hello|yo|sup|thanks|thank you|thx|ty|good
 const DATA_INTENT_RE = /\b(task|deal|contact|lead|invoice|report|list|note|record|company|companies|people|person|pipeline|finance|overdue|create|update|delete|add|remove|find|search|show|who|whose|how many|summar|enrich|prospect|decision|workflow|email|call|due|assign|revenue|stage|status|score|relationship)\b/i;
 
 function routeAgentModel(req: AgentRequest): { spec: string; useTools: boolean; tier: "fast" | "deep" } {
-  const requested = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC;
+  const requested = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC;
   const lastUser = [...req.messages].reverse().find(m => m.role === "user");
   const msg = (typeof lastUser?.content === "string" ? lastUser.content : "").trim();
   if (msg.length > 0 && msg.length < 80 && CONVERSATIONAL_RE.test(msg) && !DATA_INTENT_RE.test(msg)) {
@@ -167,13 +167,14 @@ export function redactPII(text: string): string {
 const PROVIDER_FALLBACK_MODELS = (process.env.AI_FALLBACK_MODELS ?? "")
   .split(",").map(s => s.trim()).filter(Boolean);
 
-/** Resolve the sovereign gateway credentials. Reads the canonical AI_GATEWAY_*
- *  names first, then CEREBRAS_* as a fallback so a naming mismatch can't silently
- *  break inference. Still 100% Cerebras — never api.openai.com. */
+/** Resolve the sovereign gateway credentials. AI_GATEWAY_* is the SOLE, provider-
+ *  neutral inference endpoint — no provider-specific env aliases, no default public
+ *  endpoint. Point it at any openai-compatible server you control (self-hosted vLLM/
+ *  Ollama/TGI for true sovereignty, or a sovereign-compatible hosted gateway). */
 export function gatewayEnv(): { baseURL?: string; apiKey?: string } {
   return {
-    baseURL: process.env.AI_GATEWAY_BASE_URL || process.env.CEREBRAS_BASE_URL || process.env.CEREBRAS_API_BASE_URL,
-    apiKey: process.env.AI_GATEWAY_API_KEY || process.env.CEREBRAS_API_KEY,
+    baseURL: process.env.AI_GATEWAY_BASE_URL,
+    apiKey: process.env.AI_GATEWAY_API_KEY,
   };
 }
 
@@ -184,10 +185,10 @@ function openAIClient(): OpenAI {
   // Cerebras gateway isn't configured, fail loudly rather than leak traffic to
   // a proprietary third-party endpoint.
   if (!baseURL) {
-    throw new Error("[gateway] AI_GATEWAY_BASE_URL is not set — refusing to route inference to a default OpenAI endpoint. Configure the Cerebras gateway base URL.");
+    throw new Error("[gateway] AI_GATEWAY_BASE_URL is not set — refusing to route inference to a default OpenAI endpoint. Configure your sovereign openai-compatible gateway base URL.");
   }
   if (!apiKey) {
-    throw new Error("[gateway] AI_GATEWAY_API_KEY is not set — Cerebras gateway credentials missing.");
+    throw new Error("[gateway] AI_GATEWAY_API_KEY is not set — sovereign gateway credentials missing.");
   }
 
   return new OpenAI({
@@ -247,8 +248,8 @@ export async function gatewayHealthCheck(opts?: { probe?: boolean }): Promise<{
   }
 
   const strip = (m: string) => m.replace(/^openai-compat\//, "");
-  const providerModel = strip(env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC);
-  const agentModel = strip(env.AI_AGENT_MODEL ?? env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC);
+  const providerModel = strip(env.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC);
+  const agentModel = strip(env.AI_AGENT_MODEL ?? env.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC);
   // Conversational turns ("hi") route to the fast model — the surface that was 404ing.
   const fastModel = strip(FAST_MODEL_SPEC);
   const client = new OpenAI({ baseURL, apiKey, timeout: 12000, maxRetries: 0 });
@@ -554,7 +555,7 @@ async function runOpenAICompatAgent(
 /**
  * Multi-round agentic loop (Cerebras openai-compat only).
  *
- * Priority: req.model → AI_AGENT_MODEL → AI_PROVIDER_MODEL → CEREBRAS_DEFAULT_SPEC
+ * Priority: req.model → AI_AGENT_MODEL → AI_PROVIDER_MODEL → DEFAULT_MODEL_SPEC
  *
  * SOVEREIGN: the only provider is the openai-compatible gateway (Cerebras). There is NO fallback to
  * api.anthropic.com or api.openai.com — if the primary attempt fails, we return a graceful reply
@@ -628,7 +629,7 @@ export async function aiGatewayAgentStream(
     // never sees an empty "No response." — mirrors the non-streaming fallback.
     if (!r.reply || !r.reply.trim()) {
       console.warn(`[gateway:agent-stream] empty streamed reply — recovering on default model`);
-      const fbModel = resolveModel(CEREBRAS_DEFAULT_SPEC);
+      const fbModel = resolveModel(DEFAULT_MODEL_SPEC);
       const fb = await runOpenAICompatAgent(fbModel.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
       if (fb?.reply?.trim()) {
         await onEvent({ type: "token", text: fb.reply });
@@ -648,7 +649,7 @@ export async function aiGatewayAgentStream(
     // Recover on the PROVEN default model directly (bypass routeAgentModel, which
     // would re-pick the same failing fast model). This makes a broken/Preview
     // AI_FAST_MODEL — e.g. one that 400s — non-fatal instead of breaking chat.
-    const fb = resolveModel(CEREBRAS_DEFAULT_SPEC);
+    const fb = resolveModel(DEFAULT_MODEL_SPEC);
     const r = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
     // Rate-limit-aware message: a 429 means the per-minute AI quota is spent, not that the service
     // is down. Tell the user plainly so they wait, not retry-spam. NEVER name the AI provider — the

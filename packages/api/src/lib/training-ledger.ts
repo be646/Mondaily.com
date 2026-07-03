@@ -18,6 +18,57 @@ import { redactPII } from "./ai-gateway";
 
 export type TrainingAction = "APPROVED" | "REJECTED" | "EDITED";
 
+/** Max characters allowed per prompt/output field in an EXPORTED training example. Oversized
+ *  fields are truncated (not dropped) so one giant paste can't bloat/poison the corpus. */
+export const MAX_EXAMPLE_CHARS = 20_000;
+
+// Common prompt-injection lead-ins. Matches are neutralized (prefixed) on export so an example
+// captured from user-influenced text can't act as an instruction when the corpus is reused.
+const INJECTION_RE = /(ignore (?:all |the |your )?(?:previous|above|prior) (?:instructions|prompts?)|disregard (?:the |all )?(?:above|previous)|you are now\b|system prompt\s*:|<\/?(?:system|assistant|user)>|reveal (?:your )?(?:system )?prompt|override (?:your )?(?:instructions|rules))/gi;
+
+/** Neutralize prompt-injection phrasing in a captured field without deleting content (so the
+ *  example is still legible for review). Returns the defanged string. */
+export function neutralizeInjection(text: string): string {
+  if (!text) return text;
+  return text.replace(INJECTION_RE, (m) => `[NEUTRALIZED_INSTRUCTION:${m.slice(0, 24)}…]`);
+}
+
+export interface ExportRow {
+  agent_name?: string | null;
+  system_prompt?: string | null;
+  user_prompt?: string | null;
+  model_output?: unknown;
+  user_action?: string | null;
+  edited_output?: unknown;
+  created_at?: string | null;
+}
+
+/**
+ * Sanitize ONE row for export. Returns null for empty examples (dropped), truncates oversized
+ * fields, and neutralizes prompt-injection phrasing in the text fields. Redaction already ran at
+ * capture time, but we re-run it here so a pre-opt-in / legacy row can't leak on export.
+ */
+export function sanitizeExportRow(row: ExportRow): ExportRow | null {
+  const clean = (v: string | null | undefined): string | null => {
+    if (!v || !v.trim()) return null;
+    const red = neutralizeInjection(redactPII(v));
+    return red.length > MAX_EXAMPLE_CHARS ? `${red.slice(0, MAX_EXAMPLE_CHARS)}…[TRUNCATED]` : red;
+  };
+  const system_prompt = clean(row.system_prompt);
+  const user_prompt = clean(row.user_prompt);
+  // Empty example: no usable prompt content on either side → drop it.
+  if (!system_prompt && !user_prompt) return null;
+  return {
+    agent_name: row.agent_name ?? null,
+    system_prompt,
+    user_prompt,
+    model_output: row.model_output ?? null,
+    user_action: row.user_action ?? null,
+    edited_output: row.edited_output ?? null,
+    created_at: row.created_at ?? null,
+  };
+}
+
 export interface TrainingPolicy { enabled: boolean; retention_days: number }
 const DEFAULT_POLICY: TrainingPolicy = { enabled: false, retention_days: 365 }; // opt-in by default
 

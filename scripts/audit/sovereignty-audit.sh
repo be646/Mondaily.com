@@ -68,8 +68,25 @@ grep -q "OPT-IN gate" "$API/lib/training-ledger.ts" && ok "training capture is o
 grep -q "redactPII" "$API/lib/training-ledger.ts" && ok "training prompts run through redactPII" || bad "training capture does not redact PII"
 [ -f "$API/routes/training.ts" ] && ok "visible controls: /training policy/export/purge exist" || warn "no /training controls route"
 
-# ── 8. ENV DEPENDENCY SCAN ────────────────────────────────────────────────────
-sec "6. Env dependency scan (what the API reads)"
+# ── 8. STALE WORDING SCAN ─────────────────────────────────────────────────────
+sec "8. Stale wording scan (Mondaily CRM / CRM records / active legacy providers)"
+STALE=$(grep -rInE "Mondaily CRM|CRM records|CRM: (Lead|Enrich|Deal)|our CRM|the CRM\b|Nylas (is|handles|powers)|powered by (OpenAI|Anthropic|Tavily|Clerk)|Tavily (search|is used)" \
+  "$API" "$APP" "$WEB/app" "$WEB/components" packages/prompts 2>/dev/null | grep -vE ":\s*(//|\*)|LEGACY|DISABLED|removed")
+if [ -z "$STALE" ]; then ok "no stale 'Mondaily CRM' / 'CRM records' / active-legacy-provider wording"; else bad "stale wording found:"; echo "$STALE" | sed 's/^/      /'; fi
+
+# ── 9. PUBLIC ROUTE JUSTIFICATION SCAN ────────────────────────────────────────
+sec "9. Public route justification (routes without requireAuth must be explicitly justified)"
+# Allow-list of routers that are intentionally public, each with a reason.
+# health/status(auth'd separately), auth, webhooks(sig-validated), public ask, oauth callbacks, mcp(own key), inngest(sig).
+ALLOWED='auth|public-ask|webhooks|status|health|onboarding|integrations|mcp|realtime'
+for f in $(ls "$API/routes"/*.ts); do
+  base=$(basename "$f" .ts)
+  if grep -qE "requireAuth|requireJwt|requireAdmin" "$f"; then continue; fi
+  if echo "$base" | grep -qE "^($ALLOWED)$"; then ok "public (justified): $base"; else bad "route '$base' has no auth middleware and is not in the justified public allow-list"; fi
+done
+
+# ── 10. ENV DEPENDENCY SCAN ───────────────────────────────────────────────────
+sec "10. Env dependency scan (what the API reads)"
 grep -rhoE "process\.env\.[A-Z0-9_]+" "$API" --include="*.ts" | sed 's/process.env.//' | sort -u | tr '\n' ' '
 echo ""
 

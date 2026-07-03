@@ -44,6 +44,7 @@ import { ObjectsSettings } from "./routes/dashboard/settings/objects";
 import { IntegrationsSettings } from "./routes/dashboard/settings/integrations";
 import { EmailSettings } from "./routes/dashboard/settings/email";
 import { SecuritySettings } from "./routes/dashboard/settings/security";
+import { TrainingSettings } from "./routes/dashboard/settings/training";
 import { AskMondailySettings } from "./routes/dashboard/settings/ask-mondaily";
 import { AIControlRoomSettings } from "./routes/dashboard/settings/ai-control-room";
 import { ListPage } from "./routes/dashboard/lists/[listId]";
@@ -164,6 +165,7 @@ export function App() {
           <Route path="security" element={<SecuritySettings />} />
           <Route path="ask-mondaily" element={<AskMondailySettings />} />
           <Route path="ai-control-room" element={<AIControlRoomSettings />} />
+          <Route path="training" element={<TrainingSettings />} />
         </Route>
       </Route>
       <Route path="/dashboard/*" element={<Navigate to="/home" replace />} />

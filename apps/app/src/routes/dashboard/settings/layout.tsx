@@ -1,4 +1,4 @@
-import { Building2, CreditCard, Database, Mail, Plug, Shield, ShieldCheck, Sparkles, User, Users, ChevronRight, ArrowLeft } from "lucide-react";
+import { Brain, Building2, CreditCard, Database, Mail, Plug, Shield, ShieldCheck, Sparkles, User, Users, ChevronRight, ArrowLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
@@ -21,6 +21,7 @@ const GROUPS: { title: string; items: NavTuple[] }[] = [
     ["billing", CreditCard, "Billing & Usage"],
     ["ask-mondaily", Sparkles, "Ask Mondaily"],
     ["ai-control-room", ShieldCheck, "AI Control Room"],
+    ["training", Brain, "Training data"],
   ] },
 ];
 

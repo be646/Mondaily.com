@@ -14,7 +14,10 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
-    "test": "pnpm --filter @mondaily/api test"
+    "test": "pnpm --filter @mondaily/api test",
+    "audit:sovereignty": "bash scripts/audit/sovereignty-audit.sh",
+    "audit:isolation": "node scripts/audit/workspace-isolation-scan.mjs",
+    "audit": "pnpm run audit:sovereignty && pnpm run audit:isolation"
   },
   "devDependencies": {
     "turbo": "^2.5.4",

@@ -466,7 +466,7 @@ const TOOL_GROUPS: { tools: string[]; keywords: RegExp }[] = [
 /** Pick the tools a query plausibly needs: CORE + any keyword-matched group.
  *  Also scans the last couple turns so a vague follow-up ("chase them") still
  *  loads the domain tools the earlier turn implied. */
-function selectTools(query: string, history?: { role?: string; content?: string }[]): typeof TOOLS {
+export function selectTools(query: string, history?: { role?: string; content?: string }[]): typeof TOOLS {
   if (process.env.LAZY_TOOLS === "off") return TOOLS;
   const text = [query, ...(history ?? []).slice(-2).map((h) => h?.content ?? "")].join(" ");
   const keep = new Set(CORE_TOOLS);
@@ -1325,7 +1325,7 @@ const HISTORY_TURN_LIMIT = 16; // last N turns (user+assistant messages combined
 
 /** Builds the "what the user currently has open" note appended to the system
  *  prompt. Shared by the non-streaming and streaming ask endpoints. */
-function buildContextNote(context: Record<string, any> | undefined): string {
+export function buildContextNote(context: Record<string, any> | undefined): string {
   let contextNote = "";
   if (!context) return contextNote;
   if (context.node_id || context.node_name) {

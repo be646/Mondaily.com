@@ -33,6 +33,23 @@ async function probeTable(table: string, columns = "id"): Promise<boolean> {
   return !error;
 }
 
+/**
+ * Live reachability probe for a sovereign appliance (search or scraper). Returns
+ * true only if the endpoint actually answered (any HTTP status < 500). Never
+ * throws — a probe failure reports as "unreachable", not a 500 on this page.
+ * Bounded by a short AbortController so a hung appliance can't stall /status.
+ */
+async function probeHttp(url: string, headers: Record<string, string> = {}): Promise<boolean> {
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 4000);
+    const res = await fetch(url, { headers, signal: ctl.signal }).finally(() => clearTimeout(t));
+    return res.status < 500;
+  } catch {
+    return false;
+  }
+}
+
 router.get("/", async (c) => {
   const now = new Date().toISOString();
   const checks: Check[] = [];
@@ -92,16 +109,101 @@ router.get("/", async (c) => {
     action: inngestConfigured ? undefined : `Set INNGEST_EVENT_KEY (from your Inngest dashboard) to enable scheduled + event-triggered jobs. ${ENV_STEP}`,
   });
 
-  // Sovereign web search (self-hosted SearXNG + scraper appliance)
-  const searchConfigured = Boolean(process.env.SOVEREIGN_SEARCH_URL);
+  // Sovereign web search (self-hosted SearXNG). URL presence + a LIVE reachability
+  // probe (a real sample query) so we never mark it operational unless it answers.
+  const searchUrl = process.env.SOVEREIGN_SEARCH_URL;
+  const searchKeySet = Boolean(process.env.SOVEREIGN_SEARCH_KEY);
+  const searchHeaders: Record<string, string> = searchKeySet ? { Authorization: `Bearer ${process.env.SOVEREIGN_SEARCH_KEY}` } : {};
+  const searchLive = searchUrl ? await probeHttp(`${searchUrl}?q=mondaily&format=json`, searchHeaders) : false;
   checks.push({
     id: "sovereign_search", label: "Sovereign web search appliance",
-    state: searchConfigured ? "operational" : "needs_setup",
-    explanation: searchConfigured
-      ? "SOVEREIGN_SEARCH_URL is set — enrichment and the Prospecting Agent search the live web via your own SearXNG + scraper."
-      : "Discovery and web enrichment will return nothing — the self-hosted search appliance isn't connected.",
-    action: searchConfigured ? undefined : `Deploy the SearXNG search appliance (see deploy/search-appliance) and set SOVEREIGN_SEARCH_URL to its address. ${ENV_STEP}`,
+    state: !searchUrl ? "needs_setup" : searchLive ? "operational" : "error",
+    explanation: !searchUrl
+      ? "Discovery and web enrichment will return nothing — the self-hosted SearXNG appliance isn't connected."
+      : searchLive
+        ? "SOVEREIGN_SEARCH_URL is set and a live sample query reached your own SearXNG — search routes only through your appliance (no third-party search)."
+        : "SOVEREIGN_SEARCH_URL is set but a live sample query did not get a healthy response — the appliance may be down or unreachable.",
+    action: !searchUrl
+      ? `Deploy the SearXNG appliance (see deploy/discovery-appliance) and set SOVEREIGN_SEARCH_URL to its /search address. ${ENV_STEP}`
+      : searchLive ? undefined : "Check the appliance is running and reachable from your host (firewall / Caddy bearer auth), then retry.",
   });
+
+  // Sovereign search auth key — recommended so only Mondaily can query the appliance.
+  checks.push({
+    id: "sovereign_search_key", label: "Sovereign search auth key",
+    state: !searchUrl ? "not_checked" : searchKeySet ? "operational" : "needs_setup",
+    explanation: searchKeySet
+      ? "SOVEREIGN_SEARCH_KEY is set — requests to the appliance are bearer-authenticated so it isn't an open proxy."
+      : "The search appliance has no shared key, so anyone who finds its URL could query it.",
+    action: searchKeySet ? undefined : `Set a bearer token on the appliance (Caddy) and the same value as SOVEREIGN_SEARCH_KEY here. ${ENV_STEP}`,
+  });
+
+  // Sovereign scraper (self-hosted Playwright) — distinct from search: Discovery reads page
+  // content through it. URL presence + a live reachability probe.
+  const scrapeUrl = process.env.SOVEREIGN_SCRAPE_URL;
+  const scrapeLive = scrapeUrl ? await probeHttp(scrapeUrl.replace(/\/v1\/scrape\/?$/, "/health"), searchHeaders) : false;
+  checks.push({
+    id: "sovereign_scraper", label: "Sovereign scraper appliance",
+    state: !scrapeUrl ? "needs_setup" : scrapeLive ? "operational" : "error",
+    explanation: !scrapeUrl
+      ? "Discovery can find result URLs but can't read page content (reviews, contacts) — the self-hosted scraper isn't connected."
+      : scrapeLive
+        ? "SOVEREIGN_SCRAPE_URL is set and its health endpoint answered — Discovery reads pages through your own scraper."
+        : "SOVEREIGN_SCRAPE_URL is set but its health endpoint didn't answer — the scraper may be down.",
+    action: !scrapeUrl
+      ? `Deploy the scraper (see deploy/discovery-appliance/scraper) and set SOVEREIGN_SCRAPE_URL to its /v1/scrape address. ${ENV_STEP}`
+      : scrapeLive ? undefined : "Check the scraper container is running and reachable, then retry.",
+  });
+
+  // Internal messaging — native member-to-member messaging. Table-backed, no third party.
+  try {
+    const ok = await probeTable("internal_messages");
+    checks.push({
+      id: "messaging", label: "Internal messaging",
+      state: ok ? "operational" : "needs_setup",
+      explanation: ok
+        ? "The internal_messages table is reachable — native, workspace- and member-scoped messaging is live (no third-party chat provider)."
+        : "Internal messaging can't store messages yet — its migration hasn't been applied.",
+      action: ok ? undefined : "Apply the messaging migration (internal_messages) in Supabase.",
+    });
+  } catch {
+    checks.push({ id: "messaging", label: "Internal messaging", state: "error", explanation: "Could not query internal_messages." });
+  }
+
+  // LiveKit / calls — OPTIONAL self-hosted/private realtime. Fails closed: if env is missing,
+  // calls show "not configured" in the UI rather than breaking. Not marked operational unless set.
+  const livekitReady = Boolean(process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET);
+  checks.push({
+    id: "calls", label: "Voice/video calls (LiveKit)",
+    state: livekitReady ? "operational" : "disabled",
+    explanation: livekitReady
+      ? "LIVEKIT_URL/API_KEY/API_SECRET are set — in-workspace calls can issue tokens. Sovereign only when LiveKit is self-hosted/private; a hosted LiveKit cloud is an optional external connector."
+      : "Calls are OFF by design until configured — the UI shows 'calls not configured' and nothing breaks. This is not an error.",
+    action: livekitReady ? undefined : `Stand up a (preferably self-hosted) LiveKit server and set LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET. ${ENV_STEP}`,
+  });
+
+  // Training-data controls — capture is opt-in (default OFF) and per-workspace. Report whether the
+  // ledger table exists and whether THIS workspace has opted in.
+  try {
+    const ok = await probeTable("ai_training_logs");
+    let enabled = false;
+    if (ok) {
+      const { data } = await supabase.from("workspaces").select("settings").eq("id", c.get("workspaceId")).maybeSingle();
+      enabled = Boolean((data?.settings as { training_policy?: { enabled?: boolean } } | null)?.training_policy?.enabled);
+    }
+    checks.push({
+      id: "training", label: "Training-data controls",
+      state: !ok ? "needs_setup" : "operational",
+      explanation: !ok
+        ? "Training controls aren't available yet — the ai_training_logs migration hasn't been applied."
+        : enabled
+          ? "Training capture is ENABLED for this workspace (opt-in). Prompts are PII-redacted; you can export or delete your data and set retention under Settings → Training."
+          : "Training capture is OFF for this workspace (the default). No workspace data enters any training corpus until an owner explicitly opts in.",
+      action: !ok ? "Apply the ai_training_logs migration in Supabase." : undefined,
+    });
+  } catch {
+    checks.push({ id: "training", label: "Training-data controls", state: "error", explanation: "Could not query ai_training_logs." });
+  }
 
   // Google (Gmail + Calendar) — an OPTIONAL, client-authorized connector (direct OAuth, no Nylas).
   // Not core AI infrastructure: data is only accessed after a user connects, stays workspace-scoped.

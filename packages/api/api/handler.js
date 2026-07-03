@@ -55119,7 +55119,7 @@ var init_ai_usage = __esm({
 
 // src/lib/ai-gateway.ts
 function resolveModel(spec) {
-  const s2 = spec ?? process.env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC;
+  const s2 = spec ?? process.env.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC;
   const modelId = s2.startsWith("openai-compat/") ? s2.slice("openai-compat/".length) : s2;
   return { type: "openai-compat", modelId: modelId || "gpt-oss-120b" };
 }
@@ -55127,7 +55127,7 @@ function getLastGatewayError() {
   return lastGatewayError;
 }
 function routeAgentModel(req) {
-  const requested = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC;
+  const requested = req.model ?? process.env.AI_AGENT_MODEL ?? process.env.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC;
   const lastUser = [...req.messages].reverse().find((m2) => m2.role === "user");
   const msg = (typeof lastUser?.content === "string" ? lastUser.content : "").trim();
   if (msg.length > 0 && msg.length < 80 && CONVERSATIONAL_RE.test(msg) && !DATA_INTENT_RE.test(msg)) {
@@ -55145,17 +55145,17 @@ function redactPII(text) {
 }
 function gatewayEnv() {
   return {
-    baseURL: process.env.AI_GATEWAY_BASE_URL || process.env.CEREBRAS_BASE_URL || process.env.CEREBRAS_API_BASE_URL,
-    apiKey: process.env.AI_GATEWAY_API_KEY || process.env.CEREBRAS_API_KEY
+    baseURL: process.env.AI_GATEWAY_BASE_URL,
+    apiKey: process.env.AI_GATEWAY_API_KEY
   };
 }
 function openAIClient() {
   const { baseURL, apiKey } = gatewayEnv();
   if (!baseURL) {
-    throw new Error("[gateway] AI_GATEWAY_BASE_URL is not set \u2014 refusing to route inference to a default OpenAI endpoint. Configure the Cerebras gateway base URL.");
+    throw new Error("[gateway] AI_GATEWAY_BASE_URL is not set \u2014 refusing to route inference to a default OpenAI endpoint. Configure your sovereign openai-compatible gateway base URL.");
   }
   if (!apiKey) {
-    throw new Error("[gateway] AI_GATEWAY_API_KEY is not set \u2014 Cerebras gateway credentials missing.");
+    throw new Error("[gateway] AI_GATEWAY_API_KEY is not set \u2014 sovereign gateway credentials missing.");
   }
   return new openai_default({
     baseURL,
@@ -55193,8 +55193,8 @@ async function gatewayHealthCheck(opts) {
     };
   }
   const strip = (m2) => m2.replace(/^openai-compat\//, "");
-  const providerModel = strip(env2.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC);
-  const agentModel = strip(env2.AI_AGENT_MODEL ?? env2.AI_PROVIDER_MODEL ?? CEREBRAS_DEFAULT_SPEC);
+  const providerModel = strip(env2.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC);
+  const agentModel = strip(env2.AI_AGENT_MODEL ?? env2.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC);
   const fastModel = strip(FAST_MODEL_SPEC);
   const client = new openai_default({ baseURL, apiKey, timeout: 12e3, maxRetries: 0 });
   async function probe3(model, withTools) {
@@ -55416,7 +55416,7 @@ async function aiGatewayAgentStream(req, onEvent) {
     const r2 = await runOpenAICompatAgentStream(resolved.modelId, effectiveReq, MAX_ROUNDS, onEvent);
     if (!r2.reply || !r2.reply.trim()) {
       console.warn(`[gateway:agent-stream] empty streamed reply \u2014 recovering on default model`);
-      const fbModel = resolveModel(CEREBRAS_DEFAULT_SPEC);
+      const fbModel = resolveModel(DEFAULT_MODEL_SPEC);
       const fb = await runOpenAICompatAgent(fbModel.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
       if (fb?.reply?.trim()) {
         await onEvent({ type: "token", text: fb.reply });
@@ -55430,7 +55430,7 @@ async function aiGatewayAgentStream(req, onEvent) {
   } catch (err2) {
     lastGatewayError = { at: "agent-stream", message: err2?.message ?? String(err2), status: err2?.status, when: (/* @__PURE__ */ new Date()).toISOString() };
     console.error(`[gateway:agent-stream] streaming failed: ${err2?.message} \u2014 recovering on default model`);
-    const fb = resolveModel(CEREBRAS_DEFAULT_SPEC);
+    const fb = resolveModel(DEFAULT_MODEL_SPEC);
     const r2 = await runOpenAICompatAgent(fb.modelId, { ...effectiveReq, tools: [] }, 1).catch(() => null);
     const rateLimited = err2?.status === 429 || /\b429\b|rate limit/i.test(String(err2?.message ?? ""));
     const reply = r2?.reply || (rateLimited ? "\u23F3 Mondaily AI is at its current throughput limit \u2014 give it about a minute and try again. High-volume plans get higher limits." : "I'm having trouble reaching Mondaily AI right now. Please try again in a moment.");
@@ -55562,14 +55562,14 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId });
   return { reply, provider: "openai-compat", model: modelId, rounds, usage: streamUsage };
 }
-var CEREBRAS_DEFAULT_SPEC, FAST_MODEL_SPEC, lastGatewayError, CONVERSATIONAL_RE, DATA_INTENT_RE, PROVIDER_FALLBACK_MODELS;
+var DEFAULT_MODEL_SPEC, FAST_MODEL_SPEC, lastGatewayError, CONVERSATIONAL_RE, DATA_INTENT_RE, PROVIDER_FALLBACK_MODELS;
 var init_ai_gateway = __esm({
   "src/lib/ai-gateway.ts"() {
     "use strict";
     init_openai();
     init_ai_usage();
-    CEREBRAS_DEFAULT_SPEC = "openai-compat/gpt-oss-120b";
-    FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? CEREBRAS_DEFAULT_SPEC;
+    DEFAULT_MODEL_SPEC = "openai-compat/gpt-oss-120b";
+    FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? DEFAULT_MODEL_SPEC;
     lastGatewayError = null;
     CONVERSATIONAL_RE = /^\s*(hi|hey|hello|yo|sup|thanks|thank you|thx|ty|good (morning|afternoon|evening)|how are you|who are you|what(?:'s| is| are| can) you|what can you do|tell me about yourself|help|capabilities|ok(ay)?|cool|nice|great|awesome|got it|sounds good)\b/i;
     DATA_INTENT_RE = /\b(task|deal|contact|lead|invoice|report|list|note|record|company|companies|people|person|pipeline|finance|overdue|create|update|delete|add|remove|find|search|show|who|whose|how many|summar|enrich|prospect|decision|workflow|email|call|due|assign|revenue|stage|status|score|relationship)\b/i;
@@ -60539,6 +60539,31 @@ init_inngest2();
 // src/lib/training-ledger.ts
 init_client();
 init_ai_gateway();
+var MAX_EXAMPLE_CHARS = 2e4;
+var INJECTION_RE = /(ignore (?:all |the |your )?(?:previous|above|prior) (?:instructions|prompts?)|disregard (?:the |all )?(?:above|previous)|you are now\b|system prompt\s*:|<\/?(?:system|assistant|user)>|reveal (?:your )?(?:system )?prompt|override (?:your )?(?:instructions|rules))/gi;
+function neutralizeInjection(text) {
+  if (!text) return text;
+  return text.replace(INJECTION_RE, (m2) => `[NEUTRALIZED_INSTRUCTION:${m2.slice(0, 24)}\u2026]`);
+}
+function sanitizeExportRow(row) {
+  const clean2 = (v2) => {
+    if (!v2 || !v2.trim()) return null;
+    const red = neutralizeInjection(redactPII(v2));
+    return red.length > MAX_EXAMPLE_CHARS ? `${red.slice(0, MAX_EXAMPLE_CHARS)}\u2026[TRUNCATED]` : red;
+  };
+  const system_prompt = clean2(row.system_prompt);
+  const user_prompt = clean2(row.user_prompt);
+  if (!system_prompt && !user_prompt) return null;
+  return {
+    agent_name: row.agent_name ?? null,
+    system_prompt,
+    user_prompt,
+    model_output: row.model_output ?? null,
+    user_action: row.user_action ?? null,
+    edited_output: row.edited_output ?? null,
+    created_at: row.created_at ?? null
+  };
+}
 var DEFAULT_POLICY = { enabled: false, retention_days: 365 };
 async function getTrainingPolicy(workspaceId) {
   try {
@@ -63042,8 +63067,27 @@ router11.get("/policy", async (c2) => {
   const ws = c2.get("workspaceId");
   const policy = await getTrainingPolicy(ws);
   const { count } = await supabase.from("ai_training_logs").select("id", { count: "exact", head: true }).eq("workspace_id", ws);
-  return c2.json({ ...policy, captured: count ?? 0 });
+  const { data: latest } = await supabase.from("ai_training_logs").select("created_at").eq("workspace_id", ws).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const tp = wsRow?.settings?.training_policy ?? {};
+  return c2.json({
+    ...policy,
+    captured: count ?? 0,
+    last_capture_at: latest?.created_at ?? null,
+    last_export_at: tp.last_export_at ?? null,
+    last_purge_at: tp.last_purge_at ?? null,
+    updated_at: tp.updated_at ?? null
+  });
 });
+async function stampPolicy(ws, patch) {
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const settings = data?.settings ?? {};
+  const tp = settings.training_policy ?? {};
+  settings.training_policy = { ...tp, ...patch };
+  await supabase.from("workspaces").update({ settings }).eq("id", ws).then(() => {
+  }, () => {
+  });
+}
 router11.post("/policy", requireAdminRole, zValidator("json", external_exports.object({ enabled: external_exports.boolean(), retention_days: external_exports.number().int().min(7).max(3650).optional() })), async (c2) => {
   const ws = c2.get("workspaceId");
   const body = c2.req.valid("json");
@@ -63059,12 +63103,17 @@ router11.get("/export", requireAdminRole, async (c2) => {
   const ws = c2.get("workspaceId");
   const { data, error } = await supabase.from("ai_training_logs").select("agent_name, system_prompt, user_prompt, model_output, user_action, edited_output, created_at").eq("workspace_id", ws).order("created_at", { ascending: true }).limit(5e4);
   if (error) return c2.json({ error: error.message }, 400);
-  return c2.json({ workspace_id: ws, exported_at: (/* @__PURE__ */ new Date()).toISOString(), count: data?.length ?? 0, rows: data ?? [] });
+  const rows2 = (data ?? []).map((r2) => sanitizeExportRow(r2)).filter((r2) => r2 !== null);
+  const exportedAt = (/* @__PURE__ */ new Date()).toISOString();
+  await stampPolicy(ws, { last_export_at: exportedAt });
+  return c2.json({ workspace_id: ws, exported_at: exportedAt, count: rows2.length, rows: rows2 });
 });
 router11.delete("/", requireAdminRole, async (c2) => {
   const ws = c2.get("workspaceId");
   const { error } = await supabase.from("ai_training_logs").delete().eq("workspace_id", ws);
-  return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
+  if (error) return c2.json({ error: error.message }, 400);
+  await stampPolicy(ws, { last_purge_at: (/* @__PURE__ */ new Date()).toISOString() });
+  return c2.json({ ok: true });
 });
 
 // src/routes/live-calls.ts
@@ -68483,6 +68532,16 @@ async function probeTable(table, columns = "id") {
   const { error } = await supabase.from(table).select(columns).limit(1);
   return !error;
 }
+async function probeHttp(url, headers = {}) {
+  try {
+    const ctl = new AbortController();
+    const t2 = setTimeout(() => ctl.abort(), 4e3);
+    const res = await fetch(url, { headers, signal: ctl.signal }).finally(() => clearTimeout(t2));
+    return res.status < 500;
+  } catch {
+    return false;
+  }
+}
 router43.get("/", async (c2) => {
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const checks = [];
@@ -68534,14 +68593,70 @@ router43.get("/", async (c2) => {
     explanation: inngestConfigured ? "INNGEST_EVENT_KEY is set \u2014 scheduled/triggered jobs (enrichment, invoice chasing, relationship health, etc.) run for real." : "Background jobs are registered in code, but we can't confirm they're actually firing without the Inngest key.",
     action: inngestConfigured ? void 0 : `Set INNGEST_EVENT_KEY (from your Inngest dashboard) to enable scheduled + event-triggered jobs. ${ENV_STEP}`
   });
-  const searchConfigured = Boolean(process.env.SOVEREIGN_SEARCH_URL);
+  const searchUrl = process.env.SOVEREIGN_SEARCH_URL;
+  const searchKeySet = Boolean(process.env.SOVEREIGN_SEARCH_KEY);
+  const searchHeaders = searchKeySet ? { Authorization: `Bearer ${process.env.SOVEREIGN_SEARCH_KEY}` } : {};
+  const searchLive = searchUrl ? await probeHttp(`${searchUrl}?q=mondaily&format=json`, searchHeaders) : false;
   checks.push({
     id: "sovereign_search",
     label: "Sovereign web search appliance",
-    state: searchConfigured ? "operational" : "needs_setup",
-    explanation: searchConfigured ? "SOVEREIGN_SEARCH_URL is set \u2014 enrichment and the Prospecting Agent search the live web via your own SearXNG + scraper." : "Discovery and web enrichment will return nothing \u2014 the self-hosted search appliance isn't connected.",
-    action: searchConfigured ? void 0 : `Deploy the SearXNG search appliance (see deploy/search-appliance) and set SOVEREIGN_SEARCH_URL to its address. ${ENV_STEP}`
+    state: !searchUrl ? "needs_setup" : searchLive ? "operational" : "error",
+    explanation: !searchUrl ? "Discovery and web enrichment will return nothing \u2014 the self-hosted SearXNG appliance isn't connected." : searchLive ? "SOVEREIGN_SEARCH_URL is set and a live sample query reached your own SearXNG \u2014 search routes only through your appliance (no third-party search)." : "SOVEREIGN_SEARCH_URL is set but a live sample query did not get a healthy response \u2014 the appliance may be down or unreachable.",
+    action: !searchUrl ? `Deploy the SearXNG appliance (see deploy/discovery-appliance) and set SOVEREIGN_SEARCH_URL to its /search address. ${ENV_STEP}` : searchLive ? void 0 : "Check the appliance is running and reachable from your host (firewall / Caddy bearer auth), then retry."
   });
+  checks.push({
+    id: "sovereign_search_key",
+    label: "Sovereign search auth key",
+    state: !searchUrl ? "not_checked" : searchKeySet ? "operational" : "needs_setup",
+    explanation: searchKeySet ? "SOVEREIGN_SEARCH_KEY is set \u2014 requests to the appliance are bearer-authenticated so it isn't an open proxy." : "The search appliance has no shared key, so anyone who finds its URL could query it.",
+    action: searchKeySet ? void 0 : `Set a bearer token on the appliance (Caddy) and the same value as SOVEREIGN_SEARCH_KEY here. ${ENV_STEP}`
+  });
+  const scrapeUrl = process.env.SOVEREIGN_SCRAPE_URL;
+  const scrapeLive = scrapeUrl ? await probeHttp(scrapeUrl.replace(/\/v1\/scrape\/?$/, "/health"), searchHeaders) : false;
+  checks.push({
+    id: "sovereign_scraper",
+    label: "Sovereign scraper appliance",
+    state: !scrapeUrl ? "needs_setup" : scrapeLive ? "operational" : "error",
+    explanation: !scrapeUrl ? "Discovery can find result URLs but can't read page content (reviews, contacts) \u2014 the self-hosted scraper isn't connected." : scrapeLive ? "SOVEREIGN_SCRAPE_URL is set and its health endpoint answered \u2014 Discovery reads pages through your own scraper." : "SOVEREIGN_SCRAPE_URL is set but its health endpoint didn't answer \u2014 the scraper may be down.",
+    action: !scrapeUrl ? `Deploy the scraper (see deploy/discovery-appliance/scraper) and set SOVEREIGN_SCRAPE_URL to its /v1/scrape address. ${ENV_STEP}` : scrapeLive ? void 0 : "Check the scraper container is running and reachable, then retry."
+  });
+  try {
+    const ok2 = await probeTable("internal_messages");
+    checks.push({
+      id: "messaging",
+      label: "Internal messaging",
+      state: ok2 ? "operational" : "needs_setup",
+      explanation: ok2 ? "The internal_messages table is reachable \u2014 native, workspace- and member-scoped messaging is live (no third-party chat provider)." : "Internal messaging can't store messages yet \u2014 its migration hasn't been applied.",
+      action: ok2 ? void 0 : "Apply the messaging migration (internal_messages) in Supabase."
+    });
+  } catch {
+    checks.push({ id: "messaging", label: "Internal messaging", state: "error", explanation: "Could not query internal_messages." });
+  }
+  const livekitReady = Boolean(process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET);
+  checks.push({
+    id: "calls",
+    label: "Voice/video calls (LiveKit)",
+    state: livekitReady ? "operational" : "disabled",
+    explanation: livekitReady ? "LIVEKIT_URL/API_KEY/API_SECRET are set \u2014 in-workspace calls can issue tokens. Sovereign only when LiveKit is self-hosted/private; a hosted LiveKit cloud is an optional external connector." : "Calls are OFF by design until configured \u2014 the UI shows 'calls not configured' and nothing breaks. This is not an error.",
+    action: livekitReady ? void 0 : `Stand up a (preferably self-hosted) LiveKit server and set LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET. ${ENV_STEP}`
+  });
+  try {
+    const ok2 = await probeTable("ai_training_logs");
+    let enabled2 = false;
+    if (ok2) {
+      const { data } = await supabase.from("workspaces").select("settings").eq("id", c2.get("workspaceId")).maybeSingle();
+      enabled2 = Boolean(data?.settings?.training_policy?.enabled);
+    }
+    checks.push({
+      id: "training",
+      label: "Training-data controls",
+      state: !ok2 ? "needs_setup" : "operational",
+      explanation: !ok2 ? "Training controls aren't available yet \u2014 the ai_training_logs migration hasn't been applied." : enabled2 ? "Training capture is ENABLED for this workspace (opt-in). Prompts are PII-redacted; you can export or delete your data and set retention under Settings \u2192 Training." : "Training capture is OFF for this workspace (the default). No workspace data enters any training corpus until an owner explicitly opts in.",
+      action: !ok2 ? "Apply the ai_training_logs migration in Supabase." : void 0
+    });
+  } catch {
+    checks.push({ id: "training", label: "Training-data controls", state: "error", explanation: "Could not query ai_training_logs." });
+  }
   const googleConfigured2 = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
   checks.push({
     id: "email",
