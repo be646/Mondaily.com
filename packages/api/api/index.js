@@ -69968,6 +69968,29 @@ router44.post("/enrich", denyViewerWrites, zValidator("json", external_exports.o
   }
   return c2.json({ emails, phones, people, company, scanned: texts.filter(Boolean).length });
 });
+router44.post("/outreach", denyViewerWrites, zValidator("json", external_exports.object({
+  name: external_exports.string().max(200),
+  context: external_exports.string().max(1500).optional(),
+  sector: external_exports.string().max(160).optional(),
+  kind: external_exports.enum(["lead", "review"]).default("lead")
+})), async (c2) => {
+  const b2 = c2.req.valid("json");
+  try {
+    const out = await aiGatewayToolUse({
+      toolName: "draft_outreach",
+      toolDescription: "Write a short, personalized first-touch outreach grounded in the real context",
+      toolSchema: { type: "object", properties: { subject: { type: "string", description: "a short email subject line" }, message: { type: "string", description: "3-5 sentence outreach body" } }, required: ["message"] },
+      system: "Write a SHORT, warm, personalized first-touch outreach message (3\u20135 sentences) to a prospect, grounded ONLY in the real context provided. Reference the specific signal (what they do, their situation, or \u2014 for an intent post \u2014 the exact thing they're looking for). No fabricated facts, no fake stats, no hard sell. End with a light call to action. Use a '[Your name]' sign-off placeholder only. " + (b2.kind === "review" ? "This person publicly complained about / reviewed a competitor \u2014 acknowledge their experience tactfully and offer a better alternative." : ""),
+      prompt: `Prospect: ${b2.name}.${b2.sector ? ` I offer services relevant to: ${b2.sector}.` : ""} Real context about them: ${b2.context || "(limited \u2014 keep it general but relevant)"}. Write the outreach.`,
+      workspaceId: c2.get("workspaceId"),
+      feature: "discovery",
+      maxTokens: 500
+    });
+    return c2.json({ subject: typeof out.subject === "string" ? out.subject : null, message: typeof out.message === "string" ? out.message : "" });
+  } catch {
+    return c2.json({ subject: null, message: "" });
+  }
+});
 router44.post("/save-batch", denyViewerWrites, zValidator("json", external_exports.object({ leads: external_exports.array(saveSchema).min(1).max(200) })), async (c2) => {
   const { leads } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");

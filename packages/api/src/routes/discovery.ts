@@ -329,6 +329,34 @@ router.post("/enrich", denyViewerWrites, zValidator("json", z.object({ url: z.st
   return c.json({ emails, phones, people, company, scanned: texts.filter(Boolean).length });
 });
 
+// Draft a personalized first-touch outreach message, grounded ONLY in the real signal (their
+// situation / what they do / their intent post) — never fabricated. The Discovery → action step.
+router.post("/outreach", denyViewerWrites, zValidator("json", z.object({
+  name: z.string().max(200),
+  context: z.string().max(1500).optional(),
+  sector: z.string().max(160).optional(),
+  kind: z.enum(["lead", "review"]).default("lead"),
+})), async (c) => {
+  const b = c.req.valid("json");
+  try {
+    const out = await aiGatewayToolUse({
+      toolName: "draft_outreach",
+      toolDescription: "Write a short, personalized first-touch outreach grounded in the real context",
+      toolSchema: { type: "object", properties: { subject: { type: "string", description: "a short email subject line" }, message: { type: "string", description: "3-5 sentence outreach body" } }, required: ["message"] },
+      system:
+        "Write a SHORT, warm, personalized first-touch outreach message (3–5 sentences) to a prospect, grounded ONLY in the real context provided. " +
+        "Reference the specific signal (what they do, their situation, or — for an intent post — the exact thing they're looking for). " +
+        "No fabricated facts, no fake stats, no hard sell. End with a light call to action. Use a '[Your name]' sign-off placeholder only. " +
+        (b.kind === "review" ? "This person publicly complained about / reviewed a competitor — acknowledge their experience tactfully and offer a better alternative." : ""),
+      prompt: `Prospect: ${b.name}.${b.sector ? ` I offer services relevant to: ${b.sector}.` : ""} Real context about them: ${b.context || "(limited — keep it general but relevant)"}. Write the outreach.`,
+      workspaceId: c.get("workspaceId"), feature: "discovery", maxTokens: 500,
+    });
+    return c.json({ subject: typeof out.subject === "string" ? out.subject : null, message: typeof out.message === "string" ? out.message : "" });
+  } catch {
+    return c.json({ subject: null, message: "" });
+  }
+});
+
 // Bulk "Save all leads" — promote a whole result set into the graph in one insert.
 router.post("/save-batch", denyViewerWrites, zValidator("json", z.object({ leads: z.array(saveSchema).min(1).max(200) })), async (c) => {
   const { leads } = c.req.valid("json");

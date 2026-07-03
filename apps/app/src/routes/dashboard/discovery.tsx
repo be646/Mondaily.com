@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowUp, Check, ChevronDown, ExternalLink, Globe2, Loader2, MessageSquare,
-  Plus, Radar, Sparkles, Star, ThumbsDown, ThumbsUp, Minus, Users, Trash2, Bell,
+  Plus, Radar, Sparkles, Star, ThumbsDown, ThumbsUp, Minus, Users, Trash2, Bell, Send, Copy,
 } from "lucide-react";
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
 import { requestAsk } from "../../lib/ask-bus";
@@ -617,6 +617,9 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
   const enrich = useMutation({
     mutationFn: () => apiClient.post<Enrichment>("/discovery/enrich", { url: r.source_url, name: r.author_name }),
   });
+  const outreach = useMutation({
+    mutationFn: () => apiClient.post<{ subject: string | null; message: string }>("/discovery/outreach", { name: r.author_name || hostOf(r.source_url), context: r.snippet, sector: r.target_subject ?? query, kind: "lead" }),
+  });
 
   const save = useMutation({
     mutationFn: () => apiClient.post<{ id: string }>("/discovery/save", {
@@ -696,6 +699,10 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
           className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
           {enrich.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} style={{ color: "var(--section-accent)" }} />} Enrich
         </button>
+        <button onClick={() => outreach.mutate()} disabled={outreach.isPending}
+          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          {outreach.isPending ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} style={{ color: "var(--section-accent)" }} />} Draft message
+        </button>
         <button onClick={() => requestAsk(`Research this Discovery lead using only source-backed info: ${name}. Source: ${r.source_url}. Why do they match "${query}", what evidence exists, red flags, and best next action. If no reviews are found, say "No review source found".`)}
           className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
           <MessageSquare size={11} /> Ask AI
@@ -720,6 +727,18 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
             )}
           </div>
         ) : <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>No extra contacts found on their site.</p>
+      )}
+
+      {/* Drafted outreach — grounded in the lead's real signal; copy to send. */}
+      {outreach.data?.message && (
+        <div className="mt-2 rounded-md border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+          {outreach.data.subject && <p className="mb-1 text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{outreach.data.subject}</p>}
+          <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{outreach.data.message}</p>
+          <button onClick={() => navigator.clipboard?.writeText(`${outreach.data?.subject ? outreach.data.subject + "\n\n" : ""}${outreach.data?.message ?? ""}`)}
+            className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}>
+            <Copy size={11} /> Copy
+          </button>
+        </div>
       )}
     </div>
   );
