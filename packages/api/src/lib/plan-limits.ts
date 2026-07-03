@@ -1,4 +1,4 @@
-import { supabase } from "@mondaily/db/client";
+import { getEntitlement } from "./entitlements";
 
 /**
  * Per-tier limits — the source of truth for "accounts align with account type". -1 = unlimited.
@@ -25,9 +25,7 @@ export function planLimits(tier?: string | null): PlanLimits {
   return LIMITS[normalizeTier(tier)] ?? LIMITS.scout!;
 }
 
-/** Resolve a workspace's tier from settings.account_tier (legacy track fallback). */
+/** Resolve a workspace's tier — delegates to the single entitlement resolver. */
 export async function workspaceTier(workspaceId: string): Promise<string> {
-  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
-  const s = (data?.settings as { account_tier?: string; track?: string } | null) ?? {};
-  return normalizeTier(s.account_tier ?? s.track);
+  return (await getEntitlement(workspaceId)).tier;
 }

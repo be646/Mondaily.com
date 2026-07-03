@@ -55124,6 +55124,67 @@ var init_auto_refill = __esm({
   }
 });
 
+// src/lib/entitlements.ts
+function resolveEntitlement(settings, planColumn, now = Date.now()) {
+  const s2 = settings ?? {};
+  const trialEndsAt = s2.trial_ends_at ?? null;
+  const trialActive = trialEndsAt ? new Date(trialEndsAt).getTime() > now : false;
+  const billingStatus = s2.billing_status ?? null;
+  const pendingRaw = s2.pending_plan ?? null;
+  const pendingPlan = pendingRaw ? normalizeTierId(pendingRaw) : null;
+  const explicitTier = normalizeTierId(s2.account_tier ?? planColumn);
+  const hasPaidTier = explicitTier !== "scout";
+  const paid = billingStatus === "active" && Boolean(s2.stripe_subscription_id);
+  let tier;
+  let source;
+  if (billingStatus === "cancelled") {
+    tier = "scout";
+    source = "free";
+  } else if (paid) {
+    tier = explicitTier;
+    source = "paid";
+  } else if (trialEndsAt) {
+    if (trialActive) {
+      tier = "operator";
+      source = "trial";
+    } else {
+      tier = "scout";
+      source = "free";
+    }
+  } else if (hasPaidTier) {
+    tier = explicitTier;
+    source = "paid";
+  } else {
+    tier = "scout";
+    source = "free";
+  }
+  return {
+    tier,
+    source,
+    isTrial: source === "trial",
+    trialEndsAt,
+    trialActive,
+    pendingPlan: pendingPlan && pendingPlan !== tier ? pendingPlan : null,
+    includedMonthlyCredits: monthlyCreditsFor(tier),
+    seats: PLAN_TIERS[tier].seats,
+    billingStatus
+  };
+}
+async function getEntitlement(workspaceId) {
+  const { data } = await supabase.from("workspaces").select("plan, settings").eq("id", workspaceId).maybeSingle();
+  return resolveEntitlement(
+    data?.settings ?? null,
+    data?.plan ?? null
+  );
+}
+var init_entitlements = __esm({
+  "src/lib/entitlements.ts"() {
+    "use strict";
+    init_client();
+    init_pricing();
+  }
+});
+
 // src/lib/credits.ts
 async function grantTierCredits(workspaceId, tier, description) {
   const target = grantAmountFor(normalizeTierId(tier));
@@ -55132,8 +55193,24 @@ async function grantTierCredits(workspaceId, tier, description) {
   if (delta > 0) await grantCredits(workspaceId, delta, "grant", description);
 }
 async function resolveTier(workspaceId) {
-  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
-  return normalizeTierId(data?.settings?.account_tier);
+  return (await getEntitlement(workspaceId)).tier;
+}
+async function reconcileIncludedCredits(workspaceId, opts = {}) {
+  const ent = await getEntitlement(workspaceId);
+  const target = grantAmountFor(ent.tier);
+  let granted = opts.grantedSoFar;
+  let enrolled = opts.enrolled;
+  if (granted === void 0 || enrolled === void 0) {
+    const { data: rows2 } = await supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", workspaceId);
+    const list = rows2 ?? [];
+    enrolled = list.length > 0;
+    granted = list.filter((r2) => r2.transaction_type === "grant").reduce((s2, r2) => s2 + Number(r2.amount), 0);
+  }
+  if (!enrolled) return 0;
+  const shortfall = target - granted;
+  if (shortfall <= 0) return 0;
+  await grantCredits(workspaceId, shortfall, "grant", `reconcile: included-credits top-up to ${ent.tier} entitlement`);
+  return shortfall;
 }
 async function burstStatus(workspaceId) {
   const cap = burstCapFor(normalizeTierId(await resolveTier(workspaceId)));
@@ -55193,6 +55270,7 @@ var init_credits = __esm({
     init_client();
     init_pricing();
     init_auto_refill();
+    init_entitlements();
     CreditsExhaustedError = class extends Error {
       constructor(kind2, resetsAt, message) {
         super(message);
@@ -65465,6 +65543,7 @@ init_client();
 // src/lib/credit-pack.ts
 init_client();
 init_pricing();
+init_entitlements();
 var STRIPE_API2 = "https://api.stripe.com/v1";
 var appUrl2 = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
 function encodeForm2(params) {
@@ -65485,7 +65564,8 @@ async function workspacePlanContext(workspaceId) {
   const { data } = await supabase.from("workspaces").select("settings, stripe_customer_id").eq("id", workspaceId).maybeSingle();
   const settings = data?.settings ?? {};
   return {
-    tier: normalizeTierId(settings.account_tier),
+    tier: (await getEntitlement(workspaceId)).tier,
+    // resolved entitlement — same tier the bonus UI shows
     interval: settings.billing_interval === "year" ? "year" : "month",
     customer: data?.stripe_customer_id
   };
@@ -65532,6 +65612,7 @@ async function createCreditPackCheckout(workspaceId, userId, packId) {
 
 // src/routes/credits.ts
 init_credits();
+init_entitlements();
 init_pricing();
 var router15 = new Hono2();
 router15.use("*", requireAuth);
@@ -65541,32 +65622,55 @@ function nextResetIso() {
 }
 router15.get("/balance", async (c2) => {
   const ws = c2.get("workspaceId");
-  const { data: rows2 } = await supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws);
-  const list = rows2 ?? [];
-  const granted = list.filter((r2) => r2.transaction_type === "grant").reduce((s2, r2) => s2 + Number(r2.amount), 0);
-  const purchased = list.filter((r2) => r2.transaction_type === "purchase").reduce((s2, r2) => s2 + Number(r2.amount), 0);
-  const usedNeg = list.filter((r2) => r2.transaction_type === "usage").reduce((s2, r2) => s2 + Number(r2.amount), 0);
+  const { data: wsRow } = await supabase.from("workspaces").select("plan, settings").eq("id", ws).maybeSingle();
+  const settings = wsRow?.settings ?? {};
+  const ent = await getEntitlement(ws);
+  const tier = ent.tier;
+  const readLedger = async () => {
+    const { data: rows2 } = await supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws);
+    const list = rows2 ?? [];
+    return {
+      enrolled: list.length > 0,
+      granted: list.filter((r2) => r2.transaction_type === "grant").reduce((s2, r2) => s2 + Number(r2.amount), 0),
+      purchased: list.filter((r2) => r2.transaction_type === "purchase").reduce((s2, r2) => s2 + Number(r2.amount), 0),
+      usedNeg: list.filter((r2) => r2.transaction_type === "usage").reduce((s2, r2) => s2 + Number(r2.amount), 0)
+      // ≤ 0
+    };
+  };
+  let { enrolled, granted, purchased, usedNeg } = await readLedger();
+  const added = await reconcileIncludedCredits(ws, { grantedSoFar: granted, enrolled });
+  if (added > 0) ({ enrolled, granted, purchased, usedNeg } = await readLedger());
+  const included = ent.includedMonthlyCredits;
+  const used = Math.abs(usedNeg);
   const rawBalance = granted + purchased + usedNeg;
   const remaining = Math.max(0, rawBalance);
-  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
-  const settings = wsRow?.settings ?? {};
+  const capacity = (included ?? granted) + purchased;
   const ar2 = settings.auto_refill ?? {};
-  const tier = normalizeTierId(settings.account_tier ?? settings.track);
-  const burst = list.length > 0 ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
+  const burst = enrolled ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
   return c2.json({
-    enrolled: list.length > 0,
+    enrolled,
+    // ── the one balance model, named exactly per spec ──
+    entitlement_tier: tier,
+    included_monthly_credits: included,
+    purchased_credits: purchased,
+    used_credits: used,
+    remaining_credits: remaining,
+    raw_ledger_balance: rawBalance,
+    // may be < 0 for an un-reconciled legacy wallet
+    reset_at: nextResetIso(),
+    // ── back-compat aliases the existing UI already reads ──
     balance: remaining,
-    // floored (never < 0)
     remaining,
     granted,
     purchased,
-    used: Math.abs(usedNeg),
-    included_monthly: monthlyCreditsFor(tier),
+    used,
+    included_monthly: included,
+    capacity,
     account_tier: tier,
-    reset_at: nextResetIso(),
-    trial_ends_at: settings.trial_ends_at ?? null,
-    low: remaining > 0 && remaining < (monthlyCreditsFor(tier) ?? 1e5) * 0.1,
-    exhausted: list.length > 0 && remaining <= 0,
+    source: ent.source,
+    trial_ends_at: ent.trialEndsAt,
+    low: remaining > 0 && capacity > 0 && remaining < capacity * 0.1,
+    exhausted: enrolled && remaining <= 0,
     burst: { used: burst.used, cap: burst.cap, limited: burst.limited, resets_at: burst.resetsAt },
     auto_refill: {
       enabled: Boolean(ar2.enabled),
@@ -65579,10 +65683,14 @@ router15.get("/packs", async (c2) => {
   const ws = c2.get("workspaceId");
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
   const settings = wsRow?.settings ?? {};
-  const tier = normalizeTierId(settings.account_tier);
+  const tier = (await getEntitlement(ws)).tier;
   const interval = settings.billing_interval === "year" ? "year" : "month";
   const packs = CREDIT_PACK_ORDER.map((id) => ({ ...CREDIT_PACKS[id], quote: computePackCredits(id, tier, interval) }));
   return c2.json({ tier, interval, plan_bonus_pct: PLAN_TIERS[tier].packBonusPct, packs });
+});
+router15.post("/reconcile", requireAdminRole, async (c2) => {
+  const added = await reconcileIncludedCredits(c2.get("workspaceId"));
+  return c2.json({ ok: true, credits_added: added });
 });
 router15.get("/diagnostics", requireAdminRole, async (c2) => {
   const ws = c2.get("workspaceId");
@@ -65592,14 +65700,18 @@ router15.get("/diagnostics", requireAdminRole, async (c2) => {
   const purchased = list.filter((r2) => r2.transaction_type === "purchase").reduce((s2, r2) => s2 + Number(r2.amount), 0);
   const used = Math.abs(list.filter((r2) => r2.transaction_type === "usage").reduce((s2, r2) => s2 + Number(r2.amount), 0));
   const rawBalance = included + purchased - used;
-  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
-  const settings = wsRow?.settings ?? {};
-  const tier = normalizeTierId(settings.account_tier);
+  const ent = await getEntitlement(ws);
+  const tier = ent.tier;
+  const target = monthlyCreditsFor(tier);
   const burst = list.length > 0 ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
   return c2.json({
     plan: tier,
-    monthly_included_credits: monthlyCreditsFor(tier),
+    entitlement_source: ent.source,
+    monthly_included_credits: target,
     granted_credits: included,
+    // grant rows actually in the ledger
+    grant_shortfall: target != null ? Math.max(0, target - included) : 0,
+    // > 0 → needs reconcile
     purchased_credits: purchased,
     used_credits: used,
     remaining_credits: Math.max(0, rawBalance),
@@ -65610,8 +65722,8 @@ router15.get("/diagnostics", requireAdminRole, async (c2) => {
     // if true, run migration 0021 to floor it
     burst: { used: burst.used, cap: burst.cap, window_hours: 5, limited: burst.limited, resets_at: burst.resetsAt },
     reset_date: nextResetIso(),
-    trial_ends_at: settings.trial_ends_at ?? null,
-    on_trial: tier === "operator" && Boolean(settings.trial_ends_at)
+    trial_ends_at: ent.trialEndsAt,
+    on_trial: ent.isTrial
   });
 });
 router15.post("/auto-refill", async (c2) => {
@@ -65649,9 +65761,9 @@ init_credits();
 // src/lib/billing-tiers.ts
 init_client();
 init_credits();
-var REAL_TIERS = /* @__PURE__ */ new Set(["scout", "operator", "command", "sovereign"]);
+init_pricing();
 function normalizeTier(raw2) {
-  return raw2 && REAL_TIERS.has(raw2.toLowerCase()) ? raw2.toLowerCase() : "operator";
+  return normalizeTierId(raw2);
 }
 async function activateTier(workspaceId, tier, subscriptionId) {
   const { data: ws } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
@@ -66029,7 +66141,7 @@ init_credits();
 init_pricing();
 
 // src/lib/plan-limits.ts
-init_client();
+init_entitlements();
 var LIMITS = {
   scout: { maxAutomations: 3, maxAgents: 1 },
   operator: { maxAutomations: -1, maxAgents: -1 },
@@ -66056,14 +66168,12 @@ function planLimits(tier) {
   return LIMITS[normalizeTier2(tier)] ?? LIMITS.scout;
 }
 async function workspaceTier(workspaceId) {
-  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
-  const s2 = data?.settings ?? {};
-  return normalizeTier2(s2.account_tier ?? s2.track);
+  return (await getEntitlement(workspaceId)).tier;
 }
 
 // src/routes/app-data.ts
-var SEAT_LIMIT = { scout: 1, operator: 1, command: 10, sovereign: 999, business: 1, personal: 1, free: 1, trial: 1 };
-var seatLimitFor = (settings) => SEAT_LIMIT[settings?.account_tier ?? settings?.track ?? "scout"] ?? 1;
+init_entitlements();
+var seatLimitFor = (settings, planColumn) => PLAN_TIERS[resolveEntitlement(settings, planColumn).tier].seats;
 function sanitizeModuleAccess(input) {
   const out = {};
   for (const k2 of MODULE_KEYS) {
@@ -66101,7 +66211,7 @@ router18.get("/me/access", async (c2) => {
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
   const settings = wsRow?.settings ?? {};
   const wsModules = settings.modules ?? [];
-  const tier = settings.account_tier ?? settings.track ?? "scout";
+  const tier = resolveEntitlement(settings).tier;
   return c2.json({
     role: c2.get("role"),
     tier,
@@ -66769,24 +66879,25 @@ router18.get("/billing", async (c2) => {
     supabase.from("workspace_members").select("user_id", { count: "exact", head: true }).eq("workspace_id", workspaceId)
   ]);
   const settings = data?.settings ?? {};
-  const tier = settings.account_tier ?? data?.plan ?? "scout";
-  const trialEndsAt = settings.trial_ends_at;
-  const trialDaysLeft = trialEndsAt ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 864e5)) : null;
+  const ent = resolveEntitlement(settings, data?.plan ?? null);
+  const trialDaysLeft = ent.trialEndsAt ? Math.max(0, Math.ceil((new Date(ent.trialEndsAt).getTime() - Date.now()) / 864e5)) : null;
   const trialUsed = Boolean(settings.trial_used);
   return c2.json({
-    plan: tier,
+    plan: ent.tier,
+    // resolved entitlement tier (paid / trial-operator / scout)
+    source: ent.source,
     // A tier the user selected at onboarding but hasn't paid for yet (Command/Sovereign). Billing
     // surfaces this as "activate <plan> — payment required" rather than granting it for free.
-    pending_plan: settings.pending_plan ?? null,
+    pending_plan: ent.pendingPlan,
     seats_used: memberCount ?? 1,
-    seats_limit: seatLimitFor(settings),
+    seats_limit: PLAN_TIERS[ent.tier].seats,
     invoices: [],
-    trial_ends_at: trialEndsAt ?? null,
+    trial_ends_at: ent.trialEndsAt,
     trial_days_left: trialDaysLeft,
     trial_used: trialUsed,
     // The 14-day Operator trial is a one-time offer, available anytime UNTIL USED — but only to a
-    // free Scout workspace (paid tiers don't need it).
-    trial_eligible: !trialUsed && tier === "scout"
+    // free Scout workspace that hasn't already consumed it.
+    trial_eligible: !trialUsed && ent.tier === "scout"
   });
 });
 router18.post("/start-trial", async (c2) => {
@@ -66795,10 +66906,11 @@ router18.post("/start-trial", async (c2) => {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = data?.settings ?? {};
   if (settings.trial_used) return c2.json({ error: "Your Operator trial has already been used." }, 409);
-  const tier = settings.account_tier ?? settings.track ?? "scout";
-  if (tier !== "scout") return c2.json({ error: "Trials are only available on the free Scout plan." }, 409);
+  if (resolveEntitlement(settings).tier !== "scout") return c2.json({ error: "Trials are only available on the free Scout plan." }, 409);
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString();
   await supabase.from("workspaces").update({
+    plan: "operator",
+    // keep the top-level column in lockstep with settings
     settings: { ...settings, account_tier: "operator", plan: "operator", track: "business", trial_ends_at: trialEndsAt, trial_used: true }
   }).eq("id", ws);
   const { balance } = await creditStatus(ws);
@@ -70352,6 +70464,8 @@ router42.post("/complete", requireAuth, async (c2) => {
   const { trial_ends_at: _t2, pending_plan: _p, ...baseSettings } = settings;
   await supabase.from("workspaces").update({
     onboarded: true,
+    plan: effectiveTier,
+    // keep the top-level column in lockstep with settings
     settings: {
       ...baseSettings,
       plan: effectiveTier,

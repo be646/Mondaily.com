@@ -3,8 +3,9 @@ import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { createCreditPackCheckout } from "../lib/credit-pack";
-import { burstStatus } from "../lib/credits";
-import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER, computePackCredits, monthlyCreditsFor, normalizeTierId, type BillingInterval } from "@mondaily/shared/pricing";
+import { burstStatus, reconcileIncludedCredits } from "../lib/credits";
+import { getEntitlement } from "../lib/entitlements";
+import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER, computePackCredits, monthlyCreditsFor, type BillingInterval } from "@mondaily/shared/pricing";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string; financeRole: string } }>();
 router.use("*", requireAuth);
@@ -15,35 +16,65 @@ function nextResetIso(): string {
   return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 1)).toISOString();
 }
 
-// GET /credits/balance — current wallet state for the sidebar bar + billing summary. NEVER negative.
+// GET /credits/balance — THE wallet state for the sidebar bar + billing summary. NEVER negative.
+// Same shape drives both surfaces, so they can't disagree. Self-heals the wallet on read: if the
+// account is entitled to more included credits than the ledger has actually granted (the legacy
+// under-grant bug), it tops up the shortfall before computing the balance it returns.
 router.get("/balance", async (c) => {
   const ws = c.get("workspaceId");
-  const { data: rows } = await supabase
-    .from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws);
-  const list = rows ?? [];
-  const granted = list.filter(r => r.transaction_type === "grant").reduce((s, r) => s + Number(r.amount), 0);
-  const purchased = list.filter(r => r.transaction_type === "purchase").reduce((s, r) => s + Number(r.amount), 0);
-  const usedNeg = list.filter(r => r.transaction_type === "usage").reduce((s, r) => s + Number(r.amount), 0); // ≤ 0
-  const rawBalance = granted + purchased + usedNeg;
-  const remaining = Math.max(0, rawBalance); // floor — users never see a negative balance
-  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const { data: wsRow } = await supabase.from("workspaces").select("plan, settings").eq("id", ws).maybeSingle();
   const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
+  const ent = await getEntitlement(ws);   // resolved tier (paid / trial / free)
+  const tier = ent.tier;
+
+  const readLedger = async () => {
+    const { data: rows } = await supabase
+      .from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws);
+    const list = rows ?? [];
+    return {
+      enrolled: list.length > 0,
+      granted: list.filter(r => r.transaction_type === "grant").reduce((s, r) => s + Number(r.amount), 0),
+      purchased: list.filter(r => r.transaction_type === "purchase").reduce((s, r) => s + Number(r.amount), 0),
+      usedNeg: list.filter(r => r.transaction_type === "usage").reduce((s, r) => s + Number(r.amount), 0), // ≤ 0
+    };
+  };
+
+  let { enrolled, granted, purchased, usedNeg } = await readLedger();
+  // Self-heal: make included monthly credits ACTUALLY usable before we report the balance.
+  const added = await reconcileIncludedCredits(ws, { grantedSoFar: granted, enrolled });
+  if (added > 0) ({ enrolled, granted, purchased, usedNeg } = await readLedger());
+
+  const included = ent.includedMonthlyCredits;         // catalog allotment for the resolved tier
+  const used = Math.abs(usedNeg);
+  const rawBalance = granted + purchased + usedNeg;      // grants + purchases − usage
+  const remaining = Math.max(0, rawBalance);            // floor — users never see a negative balance
+  // Denominator for the meter: included monthly + anything they purchased on top.
+  const capacity = (included ?? granted) + purchased;
   const ar = (settings.auto_refill ?? {}) as Record<string, unknown>;
-  const tier = normalizeTierId((settings.account_tier as string) ?? (settings.track as string));
-  const burst = list.length > 0 ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
+  const burst = enrolled ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
   return c.json({
-    enrolled: list.length > 0,
-    balance: remaining,          // floored (never < 0)
+    enrolled,
+    // ── the one balance model, named exactly per spec ──
+    entitlement_tier: tier,
+    included_monthly_credits: included,
+    purchased_credits: purchased,
+    used_credits: used,
+    remaining_credits: remaining,
+    raw_ledger_balance: rawBalance,                      // may be < 0 for an un-reconciled legacy wallet
+    reset_at: nextResetIso(),
+    // ── back-compat aliases the existing UI already reads ──
+    balance: remaining,
     remaining,
     granted,
     purchased,
-    used: Math.abs(usedNeg),
-    included_monthly: monthlyCreditsFor(tier),
+    used,
+    included_monthly: included,
+    capacity,
     account_tier: tier,
-    reset_at: nextResetIso(),
-    trial_ends_at: (settings.trial_ends_at as string) ?? null,
-    low: remaining > 0 && remaining < (monthlyCreditsFor(tier) ?? 100_000) * 0.1,
-    exhausted: list.length > 0 && remaining <= 0,
+    source: ent.source,
+    trial_ends_at: ent.trialEndsAt,
+    low: remaining > 0 && capacity > 0 && remaining < capacity * 0.1,
+    exhausted: enrolled && remaining <= 0,
     burst: { used: burst.used, cap: burst.cap, limited: burst.limited, resets_at: burst.resetsAt },
     auto_refill: {
       enabled: Boolean(ar.enabled),
@@ -58,11 +89,19 @@ router.get("/balance", async (c) => {
 router.get("/packs", async (c) => {
   const ws = c.get("workspaceId");
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
-  const settings = (wsRow?.settings ?? {}) as { account_tier?: string; billing_interval?: string };
-  const tier = normalizeTierId(settings.account_tier);
+  const settings = (wsRow?.settings ?? {}) as { billing_interval?: string };
+  const tier = (await getEntitlement(ws)).tier;   // resolved entitlement drives the pack bonus
   const interval: BillingInterval = settings.billing_interval === "year" ? "year" : "month";
   const packs = CREDIT_PACK_ORDER.map((id) => ({ ...CREDIT_PACKS[id]!, quote: computePackCredits(id, tier, interval) }));
   return c.json({ tier, interval, plan_bonus_pct: PLAN_TIERS[tier].packBonusPct, packs });
+});
+
+// POST /credits/reconcile — admin-safe manual reconciliation (tops included credits up to the
+// resolved entitlement). Idempotent; returns how many credits were added. Backstop for the
+// on-read self-heal in /balance.
+router.post("/reconcile", requireAdminRole, async (c) => {
+  const added = await reconcileIncludedCredits(c.get("workspaceId"));
+  return c.json({ ok: true, credits_added: added });
 });
 
 // GET /credits/diagnostics — admin-safe explanation of the whole wallet (item 8). Read-only.
@@ -74,14 +113,16 @@ router.get("/diagnostics", requireAdminRole, async (c) => {
   const purchased = list.filter(r => r.transaction_type === "purchase").reduce((s, r) => s + Number(r.amount), 0);
   const used = Math.abs(list.filter(r => r.transaction_type === "usage").reduce((s, r) => s + Number(r.amount), 0));
   const rawBalance = included + purchased - used;
-  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
-  const settings = (wsRow?.settings ?? {}) as { account_tier?: string; trial_ends_at?: string };
-  const tier = normalizeTierId(settings.account_tier);
+  const ent = await getEntitlement(ws);
+  const tier = ent.tier;
+  const target = monthlyCreditsFor(tier);
   const burst = list.length > 0 ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
   return c.json({
     plan: tier,
-    monthly_included_credits: monthlyCreditsFor(tier),
-    granted_credits: included,
+    entitlement_source: ent.source,
+    monthly_included_credits: target,
+    granted_credits: included,                          // grant rows actually in the ledger
+    grant_shortfall: target != null ? Math.max(0, target - included) : 0, // > 0 → needs reconcile
     purchased_credits: purchased,
     used_credits: used,
     remaining_credits: Math.max(0, rawBalance),        // floored
@@ -89,8 +130,8 @@ router.get("/diagnostics", requireAdminRole, async (c) => {
     negative_flagged: rawBalance < 0,                  // if true, run migration 0021 to floor it
     burst: { used: burst.used, cap: burst.cap, window_hours: 5, limited: burst.limited, resets_at: burst.resetsAt },
     reset_date: nextResetIso(),
-    trial_ends_at: settings.trial_ends_at ?? null,
-    on_trial: tier === "operator" && Boolean(settings.trial_ends_at),
+    trial_ends_at: ent.trialEndsAt,
+    on_trial: ent.isTrial,
   });
 });
 

@@ -189,6 +189,7 @@ router.post("/complete", requireAuth, async (c) => {
   const { trial_ends_at: _t, pending_plan: _p, ...baseSettings } = settings;
   await supabase.from("workspaces").update({
     onboarded: true,
+    plan: effectiveTier,                        // keep the top-level column in lockstep with settings
     settings: {
       ...baseSettings,
       plan: effectiveTier,

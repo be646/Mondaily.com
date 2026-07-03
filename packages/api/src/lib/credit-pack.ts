@@ -1,5 +1,6 @@
 import { supabase } from "@mondaily/db/client";
-import { CREDIT_PACKS, computePackCredits, normalizeTierId, type BillingInterval, type TierId } from "@mondaily/shared/pricing";
+import { CREDIT_PACKS, computePackCredits, type BillingInterval, type TierId } from "@mondaily/shared/pricing";
+import { getEntitlement } from "./entitlements";
 
 /**
  * Pay-as-you-go AI credit-pack Stripe Checkout. The pack's BONUS (plan + annual) is computed by the
@@ -31,9 +32,9 @@ async function stripePost(path: string, params: Record<string, string | undefine
 /** Read a workspace's tier + billing interval (for pack-bonus computation). */
 async function workspacePlanContext(workspaceId: string): Promise<{ tier: TierId; interval: BillingInterval; customer?: string }> {
   const { data } = await supabase.from("workspaces").select("settings, stripe_customer_id").eq("id", workspaceId).maybeSingle();
-  const settings = (data?.settings ?? {}) as { account_tier?: string; billing_interval?: string };
+  const settings = (data?.settings ?? {}) as { billing_interval?: string };
   return {
-    tier: normalizeTierId(settings.account_tier),
+    tier: (await getEntitlement(workspaceId)).tier,   // resolved entitlement — same tier the bonus UI shows
     interval: settings.billing_interval === "year" ? "year" : "month",
     customer: (data as { stripe_customer_id?: string } | null)?.stripe_customer_id,
   };

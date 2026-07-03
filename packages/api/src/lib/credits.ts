@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 import { supabase } from "@mondaily/db/client";
 import { grantAmountFor, burstCapFor, normalizeTierId, BURST_WINDOW_HOURS } from "@mondaily/shared/pricing";
 import { maybeAutoRefill } from "./auto-refill";
+import { getEntitlement } from "./entitlements";
 
 export { BURST_WINDOW_HOURS };
 
@@ -34,8 +35,44 @@ export async function grantTierCredits(workspaceId: string, tier: string, descri
 }
 
 async function resolveTier(workspaceId: string): Promise<string> {
-  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
-  return normalizeTierId((data?.settings as { account_tier?: string } | null)?.account_tier);
+  return (await getEntitlement(workspaceId)).tier;   // single source of truth
+}
+
+/**
+ * RECONCILE included credits — bring a workspace's GRANT rows up to its resolved entitlement.
+ *
+ * This heals the class of bug behind the screenshot: a wallet whose grant rows were seeded at an old
+ * value (e.g. the legacy 50k Scout seed) while the account was later entitled to Operator (1,000,000)
+ * — so the "1M included" the UI advertised was never actually usable. We compare the sum of `grant`
+ * rows to the tier's allotment and, if short, insert ONE top-up grant for exactly the shortfall.
+ *
+ * Idempotent: re-running computes a shortfall of ≤ 0 and inserts nothing. Never touches `purchase`
+ * or `usage` rows, so purchased credits are always preserved and it can never double-grant.
+ *
+ * Pass `grantedSoFar` when the caller already has the ledger rows in hand (e.g. /credits/balance) to
+ * avoid a redundant round-trip. Returns the number of credits added (0 when already reconciled).
+ */
+export async function reconcileIncludedCredits(
+  workspaceId: string,
+  opts: { grantedSoFar?: number; enrolled?: boolean } = {},
+): Promise<number> {
+  const ent = await getEntitlement(workspaceId);
+  const target = grantAmountFor(ent.tier);
+
+  let granted = opts.grantedSoFar;
+  let enrolled = opts.enrolled;
+  if (granted === undefined || enrolled === undefined) {
+    const { data: rows } = await supabase
+      .from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", workspaceId);
+    const list = rows ?? [];
+    enrolled = list.length > 0;
+    granted = list.filter(r => r.transaction_type === "grant").reduce((s, r) => s + Number(r.amount), 0);
+  }
+  if (!enrolled) return 0;                       // never enroll a workspace just by looking at it
+  const shortfall = target - granted;
+  if (shortfall <= 0) return 0;                  // already at/above entitlement — idempotent no-op
+  await grantCredits(workspaceId, shortfall, "grant", `reconcile: included-credits top-up to ${ent.tier} entitlement`);
+  return shortfall;
 }
 
 export interface BurstStatus { limited: boolean; used: number; cap: number; resetsAt: string | null }

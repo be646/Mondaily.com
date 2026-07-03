@@ -8,7 +8,23 @@ import { Check } from "lucide-react";
 import { StripePaymentModal } from "../../../components/billing/stripe-payment-form";
 
 interface AutoRefill { enabled: boolean; threshold: number; amount_usd: number }
-interface CreditBalance { enrolled: boolean; balance: number; remaining: number; granted: number; purchased: number; used: number; included_monthly: number | null; account_tier: string; reset_at: string; trial_ends_at: string | null; low: boolean; exhausted: boolean; auto_refill?: AutoRefill }
+interface CreditBalance {
+  enrolled: boolean;
+  // the one balance model (mirrors GET /credits/balance)
+  entitlement_tier: string;
+  included_monthly_credits: number | null;
+  purchased_credits: number;
+  used_credits: number;
+  remaining_credits: number;
+  raw_ledger_balance: number;
+  reset_at: string;
+  // back-compat aliases the UI reads
+  balance: number; remaining: number; granted: number; purchased: number; used: number;
+  included_monthly: number | null; capacity: number; account_tier: string;
+  trial_ends_at: string | null; low: boolean; exhausted: boolean;
+  burst?: { used: number; cap: number; limited: boolean; resets_at: string | null };
+  auto_refill?: AutoRefill;
+}
 interface PackQuote { final_credits: number; base_credits: number; plan_bonus: number; annual_bonus: number }
 interface CreditPackRow { id: string; name: string; price_usd: number; base_credits: number; quote: PackQuote }
 interface PacksResp { tier: string; interval: string; plan_bonus_pct: number; packs: CreditPackRow[] }
@@ -126,7 +142,11 @@ export function BillingSettings() {
   if (query.isLoading) return <PageSkeleton />;
   const wallet = balanceQuery.data;
   const ledger = ledgerQuery.data?.ledger ?? [];
-  const walletPct = wallet && wallet.granted > 0 ? Math.max(0, Math.min(100, Math.round((wallet.balance / wallet.granted) * 100))) : 0;
+  // Meter denominator: included monthly + purchased (NOT the raw ledger grant-row sum). Matches the
+  // sidebar exactly — same /credits/balance source, same math.
+  const walletCapacity = wallet ? (wallet.capacity || (wallet.included_monthly_credits ?? 0) + (wallet.purchased_credits ?? 0) || wallet.remaining_credits) : 0;
+  const walletRemaining = wallet ? (wallet.remaining_credits ?? wallet.remaining ?? wallet.balance) : 0;
+  const walletPct = wallet && walletCapacity > 0 ? Math.max(0, Math.min(100, Math.round((walletRemaining / walletCapacity) * 100))) : 0;
   const fmtCredits = (n: number) => n.toLocaleString();
   const billing = query.data ?? { plan: "free", seats_used: 1, seats_limit: 3, invoices: [] };
   const currentPlanId = normalizePlan(billing.plan);
@@ -282,7 +302,7 @@ export function BillingSettings() {
             {billingMsg}
           </div>
         )}
-        <div className="grid gap-3 p-5 lg:grid-cols-4 sm:grid-cols-2">
+        <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
           {PLANS.map(plan => {
             const isCurrent = plan.id === currentPlanId;
             // Only the CURRENT plan gets the accent border. "Popular" shows a badge, not a border —
@@ -334,9 +354,10 @@ export function BillingSettings() {
       <section className="settings-section">
         <div className="settings-section-header">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">AI usage</h2>
-          <span className="text-xs text-[var(--text-muted)]">This month</span>
+          <span className="text-xs text-[var(--text-muted)]">This month · engine telemetry</span>
         </div>
         <div className="p-5">
+          <p className="mb-3 text-[11px] text-[var(--text-faint)]">Raw engine telemetry for transparency — roughly 1 AI credit per token. Your billable balance is the AI credit wallet below.</p>
           {(() => {
             const u = usageQuery.data;
             const t = u?.totals;
@@ -411,31 +432,53 @@ export function BillingSettings() {
         <section className="settings-section">
           <div className="settings-section-header">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><Wallet size={14} className="text-[var(--text-muted)]" /> AI credit wallet</h2>
-            <span className="text-xs capitalize text-[var(--text-muted)]">{wallet.account_tier} tier</span>
+            <span className="text-xs capitalize text-[var(--text-muted)]">{wallet.entitlement_tier ?? wallet.account_tier} tier{wallet.trial_ends_at ? " · trial" : ""}</span>
           </div>
           <div className="p-5">
-            {/* Exhausted / low warnings — never show a negative balance. */}
+            {/* Exhausted / low warnings — premium, not a harsh red box. Never shows a negative balance. */}
             {wallet.exhausted ? (
-              <div className="mb-4 rounded-sm border px-3 py-2.5 text-[12.5px]" style={{ borderColor: "#ef444433", background: "#ef44440d", color: "#b91c1c" }}>
-                You're out of AI credits. AI chat, agents, enrichment and Discovery are paused until you add a pack or upgrade your plan.
+              <div className="mb-4 flex items-start gap-3 rounded-md border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#ef44441a" }}><Zap size={12} style={{ color: "#ef4444" }} /></span>
+                <div>
+                  <p className="text-[13px] font-semibold text-[var(--text-primary)]">You're out of AI credits</p>
+                  <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">Chat, agents, enrichment and Discovery pause until you add a pack below or upgrade your plan. Nothing else is affected.</p>
+                </div>
               </div>
             ) : wallet.low ? (
-              <div className="mb-4 rounded-sm border px-3 py-2.5 text-[12.5px]" style={{ borderColor: "#d9770633", background: "#d977060d", color: "#92400e" }}>
-                Credits running low — top up below or enable Auto-Refill so AI never stops mid-task.
+              <div className="mb-4 flex items-start gap-3 rounded-md border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#d977061a" }}><Zap size={12} style={{ color: "#d97706" }} /></span>
+                <div>
+                  <p className="text-[13px] font-semibold text-[var(--text-primary)]">Credits running low</p>
+                  <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">Top up below or enable Auto-Refill so AI never stops mid-task.</p>
+                </div>
               </div>
             ) : null}
             <div className="flex items-end justify-between">
               <div>
-                <div className="text-3xl font-semibold tabular-nums text-[var(--text-primary)]">{fmtCredits(wallet.remaining ?? wallet.balance)}</div>
-                <div className="mt-0.5 text-xs text-[var(--text-muted)]">
-                  credits remaining · {wallet.included_monthly != null ? `${fmtCredits(wallet.included_monthly)}/mo included` : "custom plan"}{wallet.purchased > 0 ? ` · ${fmtCredits(wallet.purchased)} purchased` : ""} · {fmtCredits(wallet.used)} used
-                </div>
-                <div className="mt-0.5 text-[11px] text-[var(--text-faint)]">Resets {new Date(wallet.reset_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</div>
+                <div className="text-3xl font-semibold tabular-nums" style={{ color: wallet.exhausted ? "#ef4444" : "var(--text-primary)" }}>{fmtCredits(walletRemaining)}</div>
+                <div className="mt-0.5 text-xs text-[var(--text-muted)]">AI credits remaining</div>
               </div>
               <span className="tabular-nums text-sm text-[var(--text-faint)]">{walletPct}%</span>
             </div>
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
               <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#ef4444" : "var(--section-accent)" }} />
+            </div>
+
+            {/* One clear wallet summary — the exact figures, so nothing looks contradictory. */}
+            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {[
+                ["Included / mo", wallet.included_monthly_credits != null ? fmtCredits(wallet.included_monthly_credits) : "Custom"],
+                ["Purchased", fmtCredits(wallet.purchased_credits ?? wallet.purchased ?? 0)],
+                ["Used", fmtCredits(wallet.used_credits ?? wallet.used ?? 0)],
+                ["Remaining", fmtCredits(walletRemaining)],
+                ["Resets", new Date(wallet.reset_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })],
+                ["Burst", wallet.burst && wallet.burst.cap > 0 ? `${fmtCredits(wallet.burst.used)} / ${fmtCredits(wallet.burst.cap)}` : "—"],
+              ].map(([label, val]) => (
+                <div key={label} className="rounded-sm border p-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
+                  <div className="text-[10.5px] uppercase tracking-wide text-[var(--text-muted)]">{label}</div>
+                  <div className="mt-0.5 text-[13px] font-semibold tabular-nums text-[var(--text-primary)]">{val}</div>
+                </div>
+              ))}
             </div>
 
             {/* Pay-as-you-go credit packs (from the shared catalog) + auto-refill toggle */}

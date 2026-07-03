@@ -443,8 +443,10 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   });
   const unreadCount = notifications.filter(n => !n.read_at).length;
 
-  // AI credit wallet — sidebar telemetry. Shows nothing until the workspace is enrolled.
-  const { data: wallet } = useQuery<{ enrolled: boolean; balance: number; granted: number; account_tier: string; trial_ends_at: string | null; burst?: { used: number; cap: number; limited: boolean; resets_at: string | null } }>({
+  // AI credit wallet — sidebar telemetry. SAME /credits/balance source as the Billing page, so the
+  // two can never disagree. The meter denominator is the included monthly allotment (+ purchased),
+  // never the raw ledger grant-row sum (which caused the stale "0 / 50,000" line).
+  const { data: wallet } = useQuery<{ enrolled: boolean; remaining: number; included_monthly: number | null; purchased: number; capacity: number; account_tier: string; trial_ends_at: string | null; low?: boolean; exhausted?: boolean; burst?: { used: number; cap: number; limited: boolean; resets_at: string | null } }>({
     queryKey: ["credits-balance"],
     queryFn: () => apiClient.get("/credits/balance"),
     staleTime: 60_000,
@@ -455,7 +457,9 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const trialDaysLeft = wallet?.trial_ends_at
     ? Math.max(0, Math.ceil((new Date(wallet.trial_ends_at).getTime() - Date.now()) / 86_400_000))
     : null;
-  const walletPct = wallet && wallet.granted > 0 ? Math.max(0, Math.min(100, Math.round((wallet.balance / wallet.granted) * 100))) : 0;
+  // Denominator: included monthly + purchased (falls back to remaining so the bar is never > 100%).
+  const walletCapacity = wallet ? (wallet.capacity || (wallet.included_monthly ?? 0) + (wallet.purchased ?? 0) || wallet.remaining) : 0;
+  const walletPct = wallet && walletCapacity > 0 ? Math.max(0, Math.min(100, Math.round((wallet.remaining / walletCapacity) * 100))) : 0;
 
   return (
     <>
@@ -618,10 +622,10 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                 {wallet?.enrolled && (
                   <Link to="/settings/billing" className="flex items-center justify-between px-1.5 pt-1.5 text-[10.5px] tabular-nums" title="Credits & billing">
                     <span style={{ color: "var(--text-faint)" }}>
-                      <span style={{ color: "var(--text-secondary)" }}>{wallet.balance.toLocaleString()}</span> / {wallet.granted.toLocaleString()} credits
+                      <span style={{ color: wallet.exhausted ? "#ef4444" : "var(--text-secondary)" }}>{wallet.remaining.toLocaleString()}</span> / {walletCapacity.toLocaleString()} credits
                     </span>
                     <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: walletPct <= 10 ? "#ef4444" : "var(--text-faint)" }}>
-                      {TIER_LABEL[wallet.account_tier] ?? "Scout"}
+                      {tierLabel}
                     </span>
                   </Link>
                 )}

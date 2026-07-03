@@ -9,14 +9,14 @@ import { isWorkspaceAdmin } from "../middleware/rbac";
 import { ACCESS_COOKIE, REFRESH_COOKIE, sha256 } from "../lib/auth-tokens";
 import { MODULE_KEYS, resolveModuleMatrix, enabledModules } from "../lib/modules";
 import { creditStatus, grantCredits } from "../lib/credits";
-import { grantAmountFor } from "@mondaily/shared/pricing";
+import { grantAmountFor, PLAN_TIERS } from "@mondaily/shared/pricing";
 import { planLimits } from "../lib/plan-limits";
+import { resolveEntitlement } from "../lib/entitlements";
 
-// Seat limits per tier — Scout & Operator are SINGLE-operator; only Command/Sovereign are teams.
-// The single source used by both /settings/members (can_invite) and /billing (seats_limit).
-const SEAT_LIMIT: Record<string, number> = { scout: 1, operator: 1, command: 10, sovereign: 999, business: 1, personal: 1, free: 1, trial: 1 };
-const seatLimitFor = (settings: Record<string, unknown> | null | undefined) =>
-  SEAT_LIMIT[(settings?.account_tier as string) ?? (settings?.track as string) ?? "scout"] ?? 1;
+// Seat limit for a workspace — resolved entitlement tier → catalog seats (the ONE source). Scout 1,
+// Operator 5, Command 20, Sovereign 999. Used by both /settings/members (can_invite) and /billing.
+const seatLimitFor = (settings: Record<string, unknown> | null | undefined, planColumn?: string | null) =>
+  PLAN_TIERS[resolveEntitlement(settings, planColumn).tier].seats;
 
 // Keep only known module keys with a valid level — never trust arbitrary jsonb from the client.
 function sanitizeModuleAccess(input: Record<string, string>): Record<string, string> {
@@ -68,7 +68,7 @@ router.get("/me/access", async (c) => {
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
   const settings = (wsRow?.settings as Record<string, unknown> | null) ?? {};
   const wsModules = (settings.modules as string[] | undefined) ?? [];
-  const tier = (settings.account_tier as string) ?? (settings.track as string) ?? "scout";
+  const tier = resolveEntitlement(settings).tier;   // single source of truth
   return c.json({
     role: c.get("role"),
     tier,
@@ -876,28 +876,27 @@ router.get("/billing", async (c) => {
     supabase.from("workspace_members").select("user_id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
   ]);
   const settings = (data?.settings as Record<string, unknown> | null) ?? {};
-  // The plan the user actually chose lives in settings.account_tier; fall back to the legacy column.
-  const tier = (settings.account_tier as string) ?? (data?.plan as string) ?? "scout";
-  // Seat allowance per tier (matches lib/plans.ts + credit tiers).
-  const trialEndsAt = settings.trial_ends_at as string | undefined;
-  const trialDaysLeft = trialEndsAt
-    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86_400_000))
+  // ONE resolver — same tier the wallet + sidebar show, so the "Current plan" card can't disagree.
+  const ent = resolveEntitlement(settings, (data as { plan?: string } | null)?.plan ?? null);
+  const trialDaysLeft = ent.trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(ent.trialEndsAt).getTime() - Date.now()) / 86_400_000))
     : null;
   const trialUsed = Boolean(settings.trial_used);
   return c.json({
-    plan: tier,
+    plan: ent.tier,                     // resolved entitlement tier (paid / trial-operator / scout)
+    source: ent.source,
     // A tier the user selected at onboarding but hasn't paid for yet (Command/Sovereign). Billing
     // surfaces this as "activate <plan> — payment required" rather than granting it for free.
-    pending_plan: (settings.pending_plan as string) ?? null,
+    pending_plan: ent.pendingPlan,
     seats_used: memberCount ?? 1,
-    seats_limit: seatLimitFor(settings),
+    seats_limit: PLAN_TIERS[ent.tier].seats,
     invoices: [],
-    trial_ends_at: trialEndsAt ?? null,
+    trial_ends_at: ent.trialEndsAt,
     trial_days_left: trialDaysLeft,
     trial_used: trialUsed,
     // The 14-day Operator trial is a one-time offer, available anytime UNTIL USED — but only to a
-    // free Scout workspace (paid tiers don't need it).
-    trial_eligible: !trialUsed && tier === "scout",
+    // free Scout workspace that hasn't already consumed it.
+    trial_eligible: !trialUsed && ent.tier === "scout",
   });
 });
 
@@ -909,10 +908,10 @@ router.post("/start-trial", async (c) => {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = (data?.settings as Record<string, unknown> | null) ?? {};
   if (settings.trial_used) return c.json({ error: "Your Operator trial has already been used." }, 409);
-  const tier = (settings.account_tier as string) ?? (settings.track as string) ?? "scout";
-  if (tier !== "scout") return c.json({ error: "Trials are only available on the free Scout plan." }, 409);
+  if (resolveEntitlement(settings).tier !== "scout") return c.json({ error: "Trials are only available on the free Scout plan." }, 409);
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
   await supabase.from("workspaces").update({
+    plan: "operator",                      // keep the top-level column in lockstep with settings
     settings: { ...settings, account_tier: "operator", plan: "operator", track: "business", trial_ends_at: trialEndsAt, trial_used: true },
   }).eq("id", ws);
   // Top credits up to the Operator allotment (shortfall only — never stack). From the catalog:

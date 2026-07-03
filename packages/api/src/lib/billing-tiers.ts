@@ -1,9 +1,12 @@
 import { supabase } from "@mondaily/db/client";
 import { grantTierCredits } from "./credits";
+import { normalizeTierId } from "@mondaily/shared/pricing";
 
-const REAL_TIERS = new Set(["scout", "operator", "command", "sovereign"]);
+/** Canonicalize a tier string. Delegates to the shared catalog normalizer (unknown → scout).
+ *  NOTE: this used to default unknowns to "operator", which silently upgraded bad input — one of the
+ *  sources of the cross-surface tier disagreement. It now matches every other resolver. */
 export function normalizeTier(raw: string | undefined): string {
-  return raw && REAL_TIERS.has(raw.toLowerCase()) ? raw.toLowerCase() : "operator";
+  return normalizeTierId(raw);
 }
 
 /** Flip a workspace to a real, PAID tier after a Stripe subscription is actually confirmed active —
