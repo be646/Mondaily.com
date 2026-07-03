@@ -86,6 +86,9 @@ export function DiscoveryPage() {
 
   const statusQ = useQuery({ queryKey: ["discovery-status"], queryFn: () => apiClient.get<DiscoveryStatus>("/discovery/status"), staleTime: 60_000 });
   const listsQ = useQuery({ queryKey: ["lists"], queryFn: () => apiClient.get<ListRow[]>("/lists"), staleTime: 30_000 });
+  const connectorsQ = useQuery<{ places: { provider: string; ok: boolean; detail: string }; reddit: { enabled: boolean; ok: boolean; detail: string } }>({
+    queryKey: ["discovery-connectors"], queryFn: () => apiClient.get("/discovery/connectors"), staleTime: 120_000, retry: false,
+  });
   const degraded = statusQ.data?.status === "DEGRADED";
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [turns]);
@@ -171,9 +174,17 @@ export function DiscoveryPage() {
           </span>
           <div>
             <h1 className="text-[16px] font-semibold leading-none" style={{ color: "var(--text-primary)" }}>Discovery</h1>
-            <div className="mt-1 flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-faint)" }}>
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: degraded ? "#d97706" : "#15803d" }} />
-              {degraded ? "Search engine offline" : "Sovereign web search online"}
+            <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px]" style={{ color: "var(--text-faint)" }}>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: degraded ? "#d97706" : "#15803d" }} />
+                {degraded ? "Search engine offline" : "Web search online"}
+              </span>
+              {connectorsQ.data && (
+                <>
+                  <Source label={connectorsQ.data.places.provider === "google" ? "Google Maps" : "OpenStreetMap"} ok={connectorsQ.data.places.ok} detail={connectorsQ.data.places.detail} />
+                  <Source label="Reddit" ok={connectorsQ.data.reddit.ok} detail={connectorsQ.data.reddit.detail} muted={!connectorsQ.data.reddit.enabled} />
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -240,6 +251,17 @@ export function DiscoveryPage() {
         </>
       )}
     </div>
+  );
+}
+
+/** Tiny data-source status chip in the header — hover shows the live diagnostic detail. */
+function Source({ label, ok, detail, muted }: { label: string; ok: boolean; detail: string; muted?: boolean }) {
+  const color = muted ? "var(--text-faint)" : ok ? "#15803d" : "#d97706";
+  return (
+    <span className="inline-flex items-center gap-1" title={detail} style={{ color: "var(--text-faint)" }}>
+      <span aria-hidden>·</span>
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} /> {label}
+    </span>
   );
 }
 
