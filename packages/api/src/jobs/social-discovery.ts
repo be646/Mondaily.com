@@ -171,22 +171,25 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     await emit({ type: "progress", stage: "search", message: `Found ${hits.length} candidate pages — reading the most promising…` });
 
     const isReviews = searchType === "REVIEWS";
-    // Known review-listing hosts — where actual reviews live (incl. regional sites like the Polish
-    // ZnanyLekarz/GoWork/Opineo). For a REVIEWS search these MUST be scraped first, or we'd waste
-    // the 8 scrape slots on social pages that have no reviews (the "found 70, extracted 0" bug).
-    const REVIEW_HOSTS = /(trustpilot|znanylekarz|gowork|opineo|opinie|ratingcaptain|yelp|glassdoor|tripadvisor|google\.|goo\.gl|maps\.|g\.page|booking\.|kliniki|clinic|facebook|reddit)/i;
-    // Dedupe the raw hits by URL, then order by what's most likely to contain what we want.
+    // TIERED review ranking — the 8 scrape slots must go to pages that actually LIST reviews.
+    //   Tier 0: dedicated review-listing pages (GoWork/opinie, ZnanyLekarz, Trustpilot, RatingCaptain,
+    //           Opineo, Nuzle, Yelp, Google Maps, /opinie|/reviews paths).
+    //   Tier 1: social (Reddit/Facebook) — some reviews.
+    //   Tier 2: everything else, incl. clinic HOMEPAGES (few/no reviews) — these were wrongly tied
+    //           with real review sites before and crowded GoWork's 97-review page out of the top 8.
+    const REVIEW_LISTING = /(gowork|znanylekarz|trustpilot|ratingcaptain|opineo|nuzle|yelp|glassdoor|tripadvisor|\/opinie|\/reviews|\brecenzje\b|google\.[a-z.]+\/maps|g\.page)/i;
+    const SOCIAL_HOSTS = /(reddit|facebook|instagram|twitter|x\.com|youtube|tiktok)/i;
     const seen = new Set<string>();
     const uniqueAll = hits.filter((h) => (seen.has(h.url) ? false : (seen.add(h.url), true)));
     const ranked = [...uniqueAll].sort((a, b) => {
       const rank = isReviews
-        ? (u: string) => (REVIEW_HOSTS.test(u) ? 0 : 1)                                   // review sites first
+        ? (u: string) => (REVIEW_LISTING.test(u) ? 0 : SOCIAL_HOSTS.test(u) ? 1 : 2)
         : (u: string) => (platformOf(u) === "web" || platformOf(u).includes(".") ? 1 : 0); // people/social first
       return rank(a.url) - rank(b.url);
     });
     // Reviews deep-scroll each page (slow but rich — 1 page can yield ~90 reviews), so we analyze
     // FEWER, higher-quality pages to stay well under the 60s serverless limit. Leads stay broad.
-    const unique = ranked.slice(0, isReviews ? 12 : 40);
+    const unique = ranked.slice(0, isReviews ? 14 : 40);
 
     // 2) Scrape the top pages to full text, then run ONE FOCUSED extraction call PER PAGE, in
     //    parallel batches. This replaces the old single-blob call (36 concatenated pages in one
