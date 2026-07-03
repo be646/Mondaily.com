@@ -97,6 +97,7 @@ async function classifyQuery(workspaceId: string, query: string, deep?: boolean)
       },
       system: "You classify a Mondaily Discovery search query into structured parameters. Be precise: REVIEWS needs one specific named subject; if the query names no specific entity, it's INTENT_LEADS (finding prospects in a sector/region) even if the word 'review' appears generically.",
       prompt: query,
+      model: process.env.AI_FAST_MODEL || undefined, // light task → cheap model when configured
       maxTokens: 200,
     }).catch(() => ({} as Record<string, unknown>));
   } catch { /* fall through to heuristic below */ }
@@ -151,6 +152,7 @@ router.post("/coach", zValidator("json", z.object({ query: z.string().min(1).max
         "If it's already specific, set specific=true, suggestions=[]. Suggestions must be complete runnable queries, not fragments.",
       prompt: query,
       workspaceId: c.get("workspaceId"),
+      model: process.env.AI_FAST_MODEL || undefined, // route this light task to the cheap model if configured
       maxTokens: 300,
     }).catch(() => ({} as Record<string, unknown>));
     const specific = out.specific !== false; // default to letting it run if the coach fails

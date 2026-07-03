@@ -74,4 +74,47 @@ router.get("/", async (c) => {
   });
 });
 
+/**
+ * GET /api/v1/usage/summary — everything a usage dashboard needs in one call: this month's credit
+ * (token) spend, a per-model breakdown, and the wallet/plan status (tier, remaining, reset).
+ */
+router.get("/summary", async (c) => {
+  const ws = c.get("workspaceId");
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+
+  const [{ data: usage }, { data: ledger }, { data: wsRow }] = await Promise.all([
+    supabase.from("ai_usage").select("model, total_tokens, message_count, created_at").eq("workspace_id", ws).gte("created_at", monthStart),
+    supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws),
+    supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle(),
+  ]);
+
+  let monthTokens = 0, monthCalls = 0;
+  const byModel: Record<string, number> = {};
+  for (const r of usage ?? []) {
+    const t = Number(r.total_tokens ?? 0);
+    monthTokens += t; monthCalls += Number(r.message_count ?? 1);
+    byModel[r.model ?? "unknown"] = (byModel[r.model ?? "unknown"] ?? 0) + t;
+  }
+
+  const list = ledger ?? [];
+  const enrolled = list.length > 0;
+  const granted = list.filter(r => r.transaction_type !== "usage").reduce((s, r) => s + Number(r.amount), 0);
+  const used = Math.abs(list.filter(r => r.transaction_type === "usage").reduce((s, r) => s + Number(r.amount), 0));
+  const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
+
+  return c.json({
+    period: { start: monthStart, resets_at: nextMonth },
+    month: { credits_used: monthTokens, ai_calls: monthCalls, by_model: byModel },
+    wallet: {
+      enrolled,
+      tier: (settings.account_tier as string) ?? (settings.track as string) ?? "scout",
+      granted,
+      used,
+      balance: enrolled ? granted - used : null,
+    },
+  });
+});
+
 export { router as usageRouter };

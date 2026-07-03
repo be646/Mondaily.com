@@ -68541,6 +68541,41 @@ router43.get("/", async (c2) => {
     by_model: byModel
   });
 });
+router43.get("/summary", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const now = /* @__PURE__ */ new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+  const [{ data: usage }, { data: ledger }, { data: wsRow }] = await Promise.all([
+    supabase.from("ai_usage").select("model, total_tokens, message_count, created_at").eq("workspace_id", ws).gte("created_at", monthStart),
+    supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws),
+    supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle()
+  ]);
+  let monthTokens = 0, monthCalls = 0;
+  const byModel = {};
+  for (const r2 of usage ?? []) {
+    const t2 = Number(r2.total_tokens ?? 0);
+    monthTokens += t2;
+    monthCalls += Number(r2.message_count ?? 1);
+    byModel[r2.model ?? "unknown"] = (byModel[r2.model ?? "unknown"] ?? 0) + t2;
+  }
+  const list = ledger ?? [];
+  const enrolled = list.length > 0;
+  const granted = list.filter((r2) => r2.transaction_type !== "usage").reduce((s2, r2) => s2 + Number(r2.amount), 0);
+  const used = Math.abs(list.filter((r2) => r2.transaction_type === "usage").reduce((s2, r2) => s2 + Number(r2.amount), 0));
+  const settings = wsRow?.settings ?? {};
+  return c2.json({
+    period: { start: monthStart, resets_at: nextMonth },
+    month: { credits_used: monthTokens, ai_calls: monthCalls, by_model: byModel },
+    wallet: {
+      enrolled,
+      tier: settings.account_tier ?? settings.track ?? "scout",
+      granted,
+      used,
+      balance: enrolled ? granted - used : null
+    }
+  });
+});
 
 // src/routes/discovery.ts
 init_client();
@@ -68608,6 +68643,8 @@ async function classifyQuery(workspaceId, query, deep) {
       },
       system: "You classify a Mondaily Discovery search query into structured parameters. Be precise: REVIEWS needs one specific named subject; if the query names no specific entity, it's INTENT_LEADS (finding prospects in a sector/region) even if the word 'review' appears generically.",
       prompt: query,
+      model: process.env.AI_FAST_MODEL || void 0,
+      // light task → cheap model when configured
       maxTokens: 200
     }).catch(() => ({}));
   } catch {
@@ -68646,6 +68683,8 @@ router44.post("/coach", zValidator("json", external_exports.object({ query: exte
       system: "You are a search coach for a B2B discovery tool that finds business leads and customer reviews on the open web. Judge if the user's query is specific enough to return good results. A good LEADS query names an INDUSTRY/role and ideally a CITY (e.g. 'aesthetic clinics in Warsaw'). A good REVIEWS query names a SPECIFIC business (e.g. 'reviews about Klinika Ambroziak'). If the query is vague (missing industry, or just 'leads in <city>'), set specific=false and propose 4-5 concrete ready-to-run queries covering likely industries for that context, plus a refined_query. If it's already specific, set specific=true, suggestions=[]. Suggestions must be complete runnable queries, not fragments.",
       prompt: query,
       workspaceId: c2.get("workspaceId"),
+      model: process.env.AI_FAST_MODEL || void 0,
+      // route this light task to the cheap model if configured
       maxTokens: 300
     }).catch(() => ({}));
     const specific = out.specific !== false;
