@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowUp, Check, ChevronDown, ExternalLink, Globe2, Loader2, MessageSquare,
   Plus, Radar, Sparkles, Star, ThumbsDown, ThumbsUp, Minus, Users, Trash2, Bell, Send, Copy,
+  CheckSquare, ShieldCheck,
 } from "lucide-react";
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
 import { requestAsk } from "../../lib/ask-bus";
@@ -613,8 +614,11 @@ interface Enrichment { emails: string[]; phones: string[]; people: { name: strin
 function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: ListRow[] }) {
   const qc = useQueryClient();
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [existed, setExisted] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+
+  const leadName = r.author_name && r.author_name !== "Anonymous" ? r.author_name : (hostOf(r.source_url) || "Discovered lead");
 
   const enrich = useMutation({
     mutationFn: () => apiClient.post<Enrichment>("/discovery/enrich", { url: r.source_url, name: r.author_name }),
@@ -624,8 +628,8 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
   });
 
   const save = useMutation({
-    mutationFn: () => apiClient.post<{ id: string }>("/discovery/save", {
-      name: r.author_name && r.author_name !== "Anonymous" ? r.author_name : (hostOf(r.source_url) || "Discovered lead"),
+    mutationFn: () => apiClient.post<{ id: string; existed?: boolean }>("/discovery/save", {
+      name: leadName,
       object_type: "company",
       source_url: r.source_url,
       discovery_query: query,
@@ -635,8 +639,20 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
       region: r.region ?? undefined,
       summary: r.snippet || undefined,
     }),
-    onSuccess: (d) => { setSavedId(d.id); setMsg("Saved to graph"); qc.invalidateQueries({ queryKey: ["nodes"] }); },
+    onSuccess: (d) => { setSavedId(d.id); setExisted(Boolean(d.existed)); setMsg(d.existed ? "Already in your graph" : "Saved to graph"); qc.invalidateQueries({ queryKey: ["nodes"] }); },
     onError: (e) => setMsg((e as Error)?.message ?? "Couldn't save"),
+  });
+  // Lead → task / decision (golden pipeline). Both work whether or not the lead is saved yet
+  // (they link to the saved node when there is one).
+  const leadTask = useMutation({
+    mutationFn: () => apiClient.post<{ id: string }>("/discovery/lead-task", { name: leadName, node_id: savedId ?? undefined, source_url: r.source_url }),
+    onSuccess: () => { setMsg("Task created"); qc.invalidateQueries({ queryKey: ["tasks"] }); },
+    onError: (e) => setMsg((e as Error)?.message ?? "Couldn't create task"),
+  });
+  const leadDecision = useMutation({
+    mutationFn: () => apiClient.post<{ id: string }>("/discovery/lead-decision", { name: leadName, node_id: savedId ?? undefined, summary: r.snippet || undefined, email: r.email ?? undefined, phone: r.phone ?? undefined, source_url: r.source_url }),
+    onSuccess: () => { setMsg("Sent to Decision Queue"); qc.invalidateQueries({ queryKey: ["decisions"] }); },
+    onError: (e) => setMsg((e as Error)?.message ?? "Couldn't queue"),
   });
   const addToList = useMutation({
     mutationFn: (listId: string) => apiClient.post(`/lists/${listId}/entries`, { node_id: savedId }),
@@ -669,7 +685,7 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
         {savedId ? (
-          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: "#15803d", background: "#15803d14" }}><Check size={11} /> Saved</span>
+          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: existed ? "var(--text-muted)" : "#15803d", background: existed ? "var(--surface-hover)" : "#15803d14" }}><Check size={11} /> {existed ? "In graph" : "Saved"}</span>
         ) : (
           <button onClick={() => save.mutate()} disabled={save.isPending}
             className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
@@ -704,6 +720,14 @@ function LeadCard({ r, query, lists }: { r: ResultRow; query: string; lists: Lis
         <button onClick={() => outreach.mutate()} disabled={outreach.isPending}
           className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
           {outreach.isPending ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} style={{ color: "var(--section-accent)" }} />} Draft message
+        </button>
+        <button onClick={() => leadTask.mutate()} disabled={leadTask.isPending}
+          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          {leadTask.isPending ? <Loader2 size={11} className="animate-spin" /> : <CheckSquare size={11} style={{ color: "var(--section-accent)" }} />} Create task
+        </button>
+        <button onClick={() => leadDecision.mutate()} disabled={leadDecision.isPending}
+          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          {leadDecision.isPending ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} style={{ color: "var(--section-accent)" }} />} To Decision Queue
         </button>
         <button onClick={() => requestAsk(`Research this Discovery lead using only source-backed info: ${name}. Source: ${r.source_url}. Why do they match "${query}", what evidence exists, red flags, and best next action. If no reviews are found, say "No review source found".`)}
           className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>

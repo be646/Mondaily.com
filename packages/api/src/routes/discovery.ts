@@ -12,6 +12,7 @@ import { placesDiagnostic } from "../lib/places";
 import { redditDiagnostic } from "../lib/reddit";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { streamSSE } from "hono/streaming";
+import { graphDedupeKey, buildLeadTask, buildLeadDecision } from "../lib/discovery-pipeline";
 
 /**
  * Social listening & intent discovery.
@@ -233,21 +234,41 @@ const saveSchema = z.object({
   handle: z.string().max(120).optional(),
   region: z.string().max(160).optional(),
   summary: z.string().max(1000).optional(),
+  owner_id: z.string().max(120).optional(),   // assign a reviewer/owner (defaults to the saver)
+  list_id: z.string().uuid().optional(),      // atomically add the new record to a list
 });
 router.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c) => {
   const b = c.req.valid("json");
   const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
   const website = b.website || undefined;
   let domain: string | undefined;
   try { if (b.source_url) domain = new URL(b.source_url).host.replace(/^www\./, ""); } catch { /* ignore */ }
+
+  // Dedupe against the GRAPH: if a node with the same domain/name already exists for this object
+  // type, return it instead of creating a duplicate (the golden pipeline never double-saves).
+  const key = graphDedupeKey(b.name, website, b.source_url);
+  if (key) {
+    const { data: existing } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).eq("object_type", b.object_type).limit(5000);
+    const match = (existing ?? []).find((n) => {
+      const d = (n.data ?? {}) as Record<string, string | undefined>;
+      return graphDedupeKey(d.name, d.website, d.source_url) === key;
+    });
+    if (match) {
+      if (b.list_id) await addToList(workspaceId, b.list_id, match.id as string);
+      return c.json({ id: match.id, existed: true, list_added: Boolean(b.list_id) });
+    }
+  }
+
   const { data, error } = await supabase.from("nodes").insert({
     workspace_id: workspaceId,
     vertical: objectTypeToVertical(b.object_type),
     object_type: b.object_type,
-    created_by: c.get("userId"),
+    created_by: userId,
     data: {
       name: b.name,
       source: "discovery",
+      owner_id: b.owner_id || userId,   // real owner (assignee) on the saved record
       discovery_query: b.discovery_query,
       source_url: b.source_url,
       email: b.email,
@@ -260,8 +281,17 @@ router.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c)
     },
   }).select("id").single();
   if (error) return c.json({ error: error.message }, 400);
-  return c.json({ id: data.id }, 201);
+  if (b.list_id) await addToList(workspaceId, b.list_id, data.id as string);
+  return c.json({ id: data.id, existed: false, list_added: Boolean(b.list_id) }, 201);
 });
+
+/** Add a node to a list (workspace-scoped, idempotent-ish position). Best-effort. */
+async function addToList(workspaceId: string, listId: string, nodeId: string): Promise<void> {
+  const { data: list } = await supabase.from("lists").select("id").eq("workspace_id", workspaceId).eq("id", listId).maybeSingle();
+  if (!list) return;
+  const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", listId);
+  await supabase.from("list_entries").upsert({ list_id: listId, node_id: nodeId, position: (count ?? 0) + 1 }).then(() => {}, () => {});
+}
 
 // ── Ideal Customer Profile (ICP) — one saved description of the user's ideal lead. Boosts scoring
 //    (leads matching the ICP rank higher) and tailors the coach's suggestions. Stored on the workspace. ──
@@ -357,45 +387,57 @@ router.post("/outreach", denyViewerWrites, zValidator("json", z.object({
   }
 });
 
-// Bulk "Save all leads" — promote a whole result set into the graph in one insert.
-router.post("/save-batch", denyViewerWrites, zValidator("json", z.object({ leads: z.array(saveSchema).min(1).max(200) })), async (c) => {
-  const { leads } = c.req.valid("json");
+// Bulk "Save all leads" — promote a whole result set into the graph in one insert. Reports which
+// leads were newly created vs already in the graph (with the existing node id), sets an owner on
+// each new record, and can drop them all into a list.
+router.post("/save-batch", denyViewerWrites, zValidator("json", z.object({
+  leads: z.array(saveSchema).min(1).max(200),
+  owner_id: z.string().max(120).optional(),
+  list_id: z.string().uuid().optional(),
+})), async (c) => {
+  const { leads, owner_id, list_id } = c.req.valid("json");
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
-
-  // Entity resolution — don't create duplicates of leads already in the graph. Key each lead by its
-  // domain (from website/source_url), else its normalized name, and skip ones that already exist.
   const domainOf = (website?: string, source_url?: string) => {
     const u = website || source_url || "";
     try { return new URL(u.startsWith("http") ? u : `https://${u}`).host.replace(/^www\./, "").toLowerCase(); } catch { return ""; }
   };
-  const keyOf = (name?: string, website?: string, source_url?: string) => domainOf(website, source_url) || (name ?? "").trim().toLowerCase();
 
+  // Map each existing graph key → its node id, so we can REPORT "already in graph as node X".
   const objectTypes = [...new Set(leads.map((l) => l.object_type))];
-  const { data: existingNodes } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).in("object_type", objectTypes).limit(5000);
-  const existingKeys = new Set((existingNodes ?? []).map((n) => {
+  const { data: existingNodes } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).in("object_type", objectTypes).limit(5000);
+  const existingByKey = new Map<string, string>();
+  for (const n of existingNodes ?? []) {
     const d = (n.data ?? {}) as Record<string, string | undefined>;
-    return keyOf(d.name, d.website, d.source_url);
-  }).filter(Boolean));
+    const k = graphDedupeKey(d.name, d.website, d.source_url);
+    if (k && !existingByKey.has(k)) existingByKey.set(k, n.id as string);
+  }
 
+  const already_existed: { name: string; node_id: string }[] = [];
   const seen = new Set<string>();
-  const rows = leads.filter((b) => {
-    const k = keyOf(b.name, b.website, b.source_url);
-    if (!k || existingKeys.has(k) || seen.has(k)) return false;
+  const toInsert = leads.filter((b) => {
+    const k = graphDedupeKey(b.name, b.website, b.source_url);
+    if (!k) return false;
+    if (existingByKey.has(k)) { already_existed.push({ name: b.name, node_id: existingByKey.get(k)! }); return false; }
+    if (seen.has(k)) return false;
     seen.add(k); return true;
-  }).map((b) => ({
+  });
+  const rows = toInsert.map((b) => ({
     workspace_id: workspaceId,
     vertical: objectTypeToVertical(b.object_type),
     object_type: b.object_type,
     created_by: userId,
-    data: { name: b.name, source: "discovery", discovery_query: b.discovery_query, source_url: b.source_url, email: b.email, phone: b.phone, website: b.website || undefined, domain: domainOf(b.website, b.source_url) || undefined, handle: b.handle, description: b.summary, location: b.region },
+    data: { name: b.name, source: "discovery", owner_id: owner_id || userId, discovery_query: b.discovery_query, source_url: b.source_url, email: b.email, phone: b.phone, website: b.website || undefined, domain: domainOf(b.website, b.source_url) || undefined, handle: b.handle, description: b.summary, location: b.region },
   }));
 
   const skipped = leads.length - rows.length;
-  if (rows.length === 0) return c.json({ saved: 0, skipped, ids: [] }, 200);
+  if (rows.length === 0) return c.json({ saved: 0, skipped, ids: [], created: [], already_existed }, 200);
   const { data, error } = await supabase.from("nodes").insert(rows).select("id");
   if (error) return c.json({ error: error.message }, 400);
-  return c.json({ saved: data?.length ?? 0, skipped, ids: (data ?? []).map((r) => r.id) }, 201);
+  const ids = (data ?? []).map((r) => r.id as string);
+  const created = ids.map((id, i) => ({ name: toInsert[i]?.name ?? "", node_id: id }));
+  if (list_id) for (const id of ids) await addToList(workspaceId, list_id, id);
+  return c.json({ saved: ids.length, skipped, ids, created, already_existed }, 201);
 });
 
 // ── Saved-search monitors ("watch this search") — stored as nodes, re-run by the daily cron. ──
@@ -508,6 +550,42 @@ router.get("/status", async (c) => {
     codes: { search: search.code, scrape: scrape.code },
     diagnostic,
   });
+});
+
+// ── Lead → Task : create a "follow up" task from a discovered lead (workspace-scoped). ──
+router.post("/lead-task", denyViewerWrites, zValidator("json", z.object({
+  name: z.string().min(1).max(200),
+  node_id: z.string().uuid().optional(),
+  title: z.string().max(200).optional(),
+  assignee_id: z.string().max(120).optional(),
+  due_date: z.string().optional(),
+  priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+  source_url: z.string().max(600).optional(),
+})), async (c) => {
+  const b = c.req.valid("json");
+  const row = buildLeadTask({ workspaceId: c.get("workspaceId"), userId: c.get("userId"), ...b });
+  const { data, error } = await supabase.from("tasks").insert(row).select("id, title").single();
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json(data, 201);
+});
+
+// ── Lead → Decision : queue a discovered lead into the Decision Queue for review (workspace-scoped). ──
+router.post("/lead-decision", denyViewerWrites, zValidator("json", z.object({
+  name: z.string().min(1).max(200),
+  node_id: z.string().uuid().optional(),
+  title: z.string().max(200).optional(),
+  summary: z.string().max(1000).optional(),
+  recommended_action: z.string().max(300).optional(),
+  risk_level: z.enum(["low", "medium", "high"]).optional(),
+  email: z.string().max(200).optional(),
+  phone: z.string().max(60).optional(),
+  source_url: z.string().max(600).optional(),
+})), async (c) => {
+  const b = c.req.valid("json");
+  const row = buildLeadDecision({ workspaceId: c.get("workspaceId"), ...b });
+  const { data, error } = await supabase.from("decision_queue").insert(row).select("id, title").single();
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json(data, 201);
 });
 
 export { router as discoveryRouter };

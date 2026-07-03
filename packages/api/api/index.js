@@ -70401,6 +70401,55 @@ init_social_discovery();
 init_places();
 init_reddit();
 init_ai_gateway();
+
+// src/lib/discovery-pipeline.ts
+function graphDedupeKey(name, website, source_url) {
+  const domainOf = (w2, s2) => {
+    const u2 = (w2 || s2 || "").trim();
+    if (!u2) return "";
+    try {
+      return new URL(u2.startsWith("http") ? u2 : `https://${u2}`).host.replace(/^www\./, "").toLowerCase();
+    } catch {
+      return "";
+    }
+  };
+  return domainOf(website, source_url) || (name ?? "").trim().toLowerCase();
+}
+function buildLeadTask(o2) {
+  return {
+    workspace_id: o2.workspaceId,
+    title: o2.title && o2.title.trim() || `Follow up on ${o2.name}`,
+    assignee_id: o2.assignee_id ?? o2.userId,
+    completed: false,
+    due_date: o2.due_date ?? null,
+    record_id: o2.node_id ?? null,
+    priority: o2.priority ?? "medium",
+    status: "todo",
+    created_by: o2.userId,
+    notes: o2.source_url ? `From Discovery \xB7 ${o2.source_url}` : "From Discovery"
+  };
+}
+function buildLeadDecision(o2) {
+  return {
+    workspace_id: o2.workspaceId,
+    source_type: "discovered_lead",
+    source_id: o2.node_id ?? null,
+    agent_name: "discovery",
+    title: o2.title && o2.title.trim() || `Review lead: ${o2.name}`,
+    summary: o2.summary ?? null,
+    recommended_action: o2.recommended_action ?? "Save this lead to the graph and follow up",
+    risk_level: o2.risk_level ?? "low",
+    evidence: [{
+      type: "discovered_lead",
+      title: o2.name,
+      node_id: o2.node_id ?? void 0,
+      match_reason: o2.summary ?? void 0,
+      lead: { name: o2.name, email: o2.email ?? null, phone: o2.phone ?? null, source_url: o2.source_url ?? null }
+    }]
+  };
+}
+
+// src/routes/discovery.ts
 var router45 = new Hono2();
 router45.get("/connectors", requireJwt, async (c2) => {
   const [places, reddit] = await Promise.all([
@@ -70560,25 +70609,44 @@ var saveSchema = external_exports.object({
   website: external_exports.string().max(300).optional(),
   handle: external_exports.string().max(120).optional(),
   region: external_exports.string().max(160).optional(),
-  summary: external_exports.string().max(1e3).optional()
+  summary: external_exports.string().max(1e3).optional(),
+  owner_id: external_exports.string().max(120).optional(),
+  // assign a reviewer/owner (defaults to the saver)
+  list_id: external_exports.string().uuid().optional()
+  // atomically add the new record to a list
 });
 router45.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c2) => {
   const b2 = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
+  const userId = c2.get("userId");
   const website = b2.website || void 0;
   let domain;
   try {
     if (b2.source_url) domain = new URL(b2.source_url).host.replace(/^www\./, "");
   } catch {
   }
+  const key = graphDedupeKey(b2.name, website, b2.source_url);
+  if (key) {
+    const { data: existing } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).eq("object_type", b2.object_type).limit(5e3);
+    const match2 = (existing ?? []).find((n2) => {
+      const d2 = n2.data ?? {};
+      return graphDedupeKey(d2.name, d2.website, d2.source_url) === key;
+    });
+    if (match2) {
+      if (b2.list_id) await addToList(workspaceId, b2.list_id, match2.id);
+      return c2.json({ id: match2.id, existed: true, list_added: Boolean(b2.list_id) });
+    }
+  }
   const { data, error } = await supabase.from("nodes").insert({
     workspace_id: workspaceId,
     vertical: objectTypeToVertical(b2.object_type),
     object_type: b2.object_type,
-    created_by: c2.get("userId"),
+    created_by: userId,
     data: {
       name: b2.name,
       source: "discovery",
+      owner_id: b2.owner_id || userId,
+      // real owner (assignee) on the saved record
       discovery_query: b2.discovery_query,
       source_url: b2.source_url,
       email: b2.email,
@@ -70591,8 +70659,17 @@ router45.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (
     }
   }).select("id").single();
   if (error) return c2.json({ error: error.message }, 400);
-  return c2.json({ id: data.id }, 201);
+  if (b2.list_id) await addToList(workspaceId, b2.list_id, data.id);
+  return c2.json({ id: data.id, existed: false, list_added: Boolean(b2.list_id) }, 201);
 });
+async function addToList(workspaceId, listId, nodeId) {
+  const { data: list } = await supabase.from("lists").select("id").eq("workspace_id", workspaceId).eq("id", listId).maybeSingle();
+  if (!list) return;
+  const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", listId);
+  await supabase.from("list_entries").upsert({ list_id: listId, node_id: nodeId, position: (count ?? 0) + 1 }).then(() => {
+  }, () => {
+  });
+}
 router45.get("/icp", async (c2) => {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", c2.get("workspaceId")).maybeSingle();
   const icp = data?.settings?.discovery_icp ?? null;
@@ -70680,8 +70757,12 @@ router45.post("/outreach", denyViewerWrites, zValidator("json", external_exports
     return c2.json({ subject: null, message: "" });
   }
 });
-router45.post("/save-batch", denyViewerWrites, zValidator("json", external_exports.object({ leads: external_exports.array(saveSchema).min(1).max(200) })), async (c2) => {
-  const { leads } = c2.req.valid("json");
+router45.post("/save-batch", denyViewerWrites, zValidator("json", external_exports.object({
+  leads: external_exports.array(saveSchema).min(1).max(200),
+  owner_id: external_exports.string().max(120).optional(),
+  list_id: external_exports.string().uuid().optional()
+})), async (c2) => {
+  const { leads, owner_id, list_id } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const domainOf = (website, source_url) => {
@@ -70692,31 +70773,42 @@ router45.post("/save-batch", denyViewerWrites, zValidator("json", external_expor
       return "";
     }
   };
-  const keyOf = (name, website, source_url) => domainOf(website, source_url) || (name ?? "").trim().toLowerCase();
   const objectTypes = [...new Set(leads.map((l2) => l2.object_type))];
-  const { data: existingNodes } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).in("object_type", objectTypes).limit(5e3);
-  const existingKeys = new Set((existingNodes ?? []).map((n2) => {
+  const { data: existingNodes } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).in("object_type", objectTypes).limit(5e3);
+  const existingByKey = /* @__PURE__ */ new Map();
+  for (const n2 of existingNodes ?? []) {
     const d2 = n2.data ?? {};
-    return keyOf(d2.name, d2.website, d2.source_url);
-  }).filter(Boolean));
+    const k2 = graphDedupeKey(d2.name, d2.website, d2.source_url);
+    if (k2 && !existingByKey.has(k2)) existingByKey.set(k2, n2.id);
+  }
+  const already_existed = [];
   const seen = /* @__PURE__ */ new Set();
-  const rows2 = leads.filter((b2) => {
-    const k2 = keyOf(b2.name, b2.website, b2.source_url);
-    if (!k2 || existingKeys.has(k2) || seen.has(k2)) return false;
+  const toInsert = leads.filter((b2) => {
+    const k2 = graphDedupeKey(b2.name, b2.website, b2.source_url);
+    if (!k2) return false;
+    if (existingByKey.has(k2)) {
+      already_existed.push({ name: b2.name, node_id: existingByKey.get(k2) });
+      return false;
+    }
+    if (seen.has(k2)) return false;
     seen.add(k2);
     return true;
-  }).map((b2) => ({
+  });
+  const rows2 = toInsert.map((b2) => ({
     workspace_id: workspaceId,
     vertical: objectTypeToVertical(b2.object_type),
     object_type: b2.object_type,
     created_by: userId,
-    data: { name: b2.name, source: "discovery", discovery_query: b2.discovery_query, source_url: b2.source_url, email: b2.email, phone: b2.phone, website: b2.website || void 0, domain: domainOf(b2.website, b2.source_url) || void 0, handle: b2.handle, description: b2.summary, location: b2.region }
+    data: { name: b2.name, source: "discovery", owner_id: owner_id || userId, discovery_query: b2.discovery_query, source_url: b2.source_url, email: b2.email, phone: b2.phone, website: b2.website || void 0, domain: domainOf(b2.website, b2.source_url) || void 0, handle: b2.handle, description: b2.summary, location: b2.region }
   }));
   const skipped = leads.length - rows2.length;
-  if (rows2.length === 0) return c2.json({ saved: 0, skipped, ids: [] }, 200);
+  if (rows2.length === 0) return c2.json({ saved: 0, skipped, ids: [], created: [], already_existed }, 200);
   const { data, error } = await supabase.from("nodes").insert(rows2).select("id");
   if (error) return c2.json({ error: error.message }, 400);
-  return c2.json({ saved: data?.length ?? 0, skipped, ids: (data ?? []).map((r2) => r2.id) }, 201);
+  const ids = (data ?? []).map((r2) => r2.id);
+  const created = ids.map((id, i2) => ({ name: toInsert[i2]?.name ?? "", node_id: id }));
+  if (list_id) for (const id of ids) await addToList(workspaceId, list_id, id);
+  return c2.json({ saved: ids.length, skipped, ids, created, already_existed }, 201);
 });
 router45.get("/monitors", async (c2) => {
   const { data } = await supabase.from("nodes").select("id, data, created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "discovery_monitor").order("created_at", { ascending: false });
@@ -70790,6 +70882,38 @@ router45.get("/status", async (c2) => {
     codes: { search: search.code, scrape: scrape.code },
     diagnostic
   });
+});
+router45.post("/lead-task", denyViewerWrites, zValidator("json", external_exports.object({
+  name: external_exports.string().min(1).max(200),
+  node_id: external_exports.string().uuid().optional(),
+  title: external_exports.string().max(200).optional(),
+  assignee_id: external_exports.string().max(120).optional(),
+  due_date: external_exports.string().optional(),
+  priority: external_exports.enum(["low", "medium", "high", "urgent"]).optional(),
+  source_url: external_exports.string().max(600).optional()
+})), async (c2) => {
+  const b2 = c2.req.valid("json");
+  const row = buildLeadTask({ workspaceId: c2.get("workspaceId"), userId: c2.get("userId"), ...b2 });
+  const { data, error } = await supabase.from("tasks").insert(row).select("id, title").single();
+  if (error) return c2.json({ error: error.message }, 400);
+  return c2.json(data, 201);
+});
+router45.post("/lead-decision", denyViewerWrites, zValidator("json", external_exports.object({
+  name: external_exports.string().min(1).max(200),
+  node_id: external_exports.string().uuid().optional(),
+  title: external_exports.string().max(200).optional(),
+  summary: external_exports.string().max(1e3).optional(),
+  recommended_action: external_exports.string().max(300).optional(),
+  risk_level: external_exports.enum(["low", "medium", "high"]).optional(),
+  email: external_exports.string().max(200).optional(),
+  phone: external_exports.string().max(60).optional(),
+  source_url: external_exports.string().max(600).optional()
+})), async (c2) => {
+  const b2 = c2.req.valid("json");
+  const row = buildLeadDecision({ workspaceId: c2.get("workspaceId"), ...b2 });
+  const { data, error } = await supabase.from("decision_queue").insert(row).select("id, title").single();
+  if (error) return c2.json({ error: error.message }, 400);
+  return c2.json(data, 201);
 });
 
 // src/routes/workspaces.ts
