@@ -14,11 +14,15 @@ import { type SourceCardData, type SourceType } from "./ask-shared";
  */
 
 export interface DecisionEvidence { type: string; title: string; node_id?: string; object_type?: string; relationship?: string; match_reason?: string; timestamp?: string; }
+export interface ExecutionPreview { text: string; side_effect: boolean }
 export interface Decision {
   id: string; source_type: string; source_id: string | null; agent_name: string;
   title: string; summary: string | null; recommended_action: string | null;
   risk_level: "low" | "medium" | "high"; confidence: number | null;
   evidence: DecisionEvidence[]; status: string; created_at: string;
+  resolved_at?: string | null; resolved_by?: string | null; snoozed_until?: string | null;
+  execution_preview?: ExecutionPreview;
+  generation_context?: { system_prompt?: string; user_prompt?: string; model_output?: unknown } | null;
 }
 
 export const RISK_STYLE: Record<Decision["risk_level"], string> = {
@@ -58,6 +62,17 @@ export function useDecisionQueue() {
     // The decision_queue table only exists once migration 0016 has been
     // applied — if it 404s/500s on a workspace that hasn't run it yet,
     // treat that as "no decisions" rather than breaking the page.
+    retry: false,
+  });
+}
+
+/** Cockpit feed — open lanes (pending + snoozed) plus a bounded window of recently resolved. */
+export function useCockpitDecisions() {
+  return useQuery({
+    queryKey: ["decisions", "cockpit"],
+    queryFn: () => apiClient.get<Decision[]>("/decisions?view=cockpit"),
+    staleTime: 20_000,
+    refetchInterval: 20_000,
     retry: false,
   });
 }

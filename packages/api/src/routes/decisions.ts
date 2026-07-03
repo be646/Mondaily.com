@@ -9,6 +9,8 @@ import { inngest } from "../lib/inngest";
 import { objectTypeToVertical, type ProspectCandidate } from "./prospecting";
 import { logDecisionTrainingExample, type TrainingAction } from "../lib/training-ledger";
 import { sendWorkspaceEmail } from "../lib/mail";
+import { describeExecution } from "../lib/decision-actions";
+import { aiGateway } from "../lib/ai-gateway";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -46,9 +48,26 @@ const createSchema = z.object({
   evidence: z.array(evidenceItem).default([]),
 });
 
+// Attach a human-readable "what happens if approved" preview to each decision (no new columns).
+const withPreview = (d: Record<string, unknown>) => ({ ...d, execution_preview: describeExecution(d as { agent_name?: string; source_type?: string; evidence?: unknown }) });
+
 router.get("/", async (c) => {
   const workspaceId = c.get("workspaceId");
   const status = c.req.query("status");
+  const view = c.req.query("view");
+
+  // Cockpit view: open lanes (pending + snoozed) in full, plus a bounded window of recently
+  // resolved decisions (approved/rejected/completed) so the "recent activity" lanes stay light.
+  if (view === "cockpit") {
+    const [open, resolved] = await Promise.all([
+      supabase.from("decision_queue").select("*").eq("workspace_id", workspaceId).in("status", ["pending", "snoozed"]).order("created_at", { ascending: false }).limit(1000),
+      supabase.from("decision_queue").select("*").eq("workspace_id", workspaceId).in("status", ["approved", "rejected", "completed"]).order("resolved_at", { ascending: false }).limit(120),
+    ]);
+    if (open.error) return c.json({ error: open.error.message }, 500);
+    const rows = [...(open.data ?? []), ...(resolved.data ?? [])].map(withPreview);
+    return c.json(rows);
+  }
+
   let query = supabase
     .from("decision_queue")
     .select("*")
@@ -60,7 +79,7 @@ router.get("/", async (c) => {
   if (status) query = query.eq("status", status);
   const { data, error } = await query;
   if (error) return c.json({ error: error.message }, 500);
-  return c.json(data ?? []);
+  return c.json((data ?? []).map(withPreview));
 });
 
 router.get("/:id", async (c) => {
@@ -310,6 +329,60 @@ router.post("/bulk", zValidator("json", z.object({
     .eq("workspace_id", ws).in("id", ids).eq("status", "pending").select("id");
   if (error) return c.json({ error: error.message }, 400);
   return c.json({ ok: true, count: data?.length ?? 0 });
+});
+
+/**
+ * Grounded per-decision Ask — "explain this", "what happens if I approve?", "show evidence".
+ * Uses ONLY the decision's own real fields (title, summary, recommended_action, risk, confidence,
+ * evidence, generation_context, execution preview). No tools, no invented facts. Refuses when the
+ * decision has no substance to ground on. Workspace-scoped.
+ */
+router.post("/:id/ask", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const body = await c.req.json().catch(() => ({})) as { question?: string };
+  const question = (body.question ?? "").trim() || "Explain this decision.";
+
+  const { data: d } = await supabase
+    .from("decision_queue").select("*").eq("workspace_id", workspaceId).eq("id", c.req.param("id")).maybeSingle();
+  if (!d) return c.json({ answer: "That decision no longer exists.", sources: [], sufficient: false }, 404);
+
+  const evidence = Array.isArray(d.evidence) ? d.evidence : [];
+  const exec = describeExecution(d);
+  const gen = (d.generation_context ?? null) as { user_prompt?: string; model_output?: unknown } | null;
+
+  // Nothing to ground on → refuse rather than invent.
+  const hasSubstance = Boolean(d.summary || d.recommended_action || evidence.length || gen?.user_prompt);
+  if (!hasSubstance) {
+    return c.json({ answer: "I don't have enough recorded detail on this decision to explain it.", sources: [], sufficient: false });
+  }
+
+  const evidenceLines = evidence.slice(0, 12).map((e: Record<string, unknown>, i: number) =>
+    `  ${i + 1}. ${e.title ?? "evidence"}${e.match_reason ? ` — ${e.match_reason}` : e.relationship ? ` — ${e.relationship}` : ""}`);
+  const digest = [
+    `Decision: ${d.title}`,
+    `Raised by agent: ${d.agent_name}. Source type: ${d.source_type}. Risk: ${d.risk_level}.`,
+    d.confidence != null ? `Confidence (real, computed): ${d.confidence}%.` : "Confidence: not computed (source-backed, no number).",
+    d.summary ? `Why it was raised: ${d.summary}` : "",
+    d.recommended_action ? `Recommended action: ${d.recommended_action}` : "",
+    `Exactly what approving does: ${exec.text}`,
+    evidenceLines.length ? `Evidence:\n${evidenceLines.join("\n")}` : "Evidence: none recorded.",
+    gen?.user_prompt ? `Original AI context: ${String(gen.user_prompt).slice(0, 1500)}` : "",
+  ].filter(Boolean).join("\n");
+
+  const system =
+    "You are a workspace approval assistant. Answer the admin's question about ONE decision using ONLY the data provided. " +
+    "Never invent evidence, numbers, confidence, or consequences. If confidence is 'not computed', do NOT make one up. " +
+    "Be concise and factual (2-5 sentences). Do NOT mention tools, prompts, or your reasoning process. " +
+    "If the data doesn't answer the question, say so plainly.";
+
+  const sources = evidence.slice(0, 12).map((e: Record<string, unknown>) => ({ type: "evidence" as const, title: String(e.title ?? "evidence"), relevance: (e.match_reason ?? e.relationship) as string | undefined }));
+  try {
+    const { text } = await aiGateway({ system, prompt: `Question: ${question}\n\nData:\n${digest}`, maxTokens: 320 });
+    const answer = (text || "").trim();
+    return c.json({ answer: answer || "I couldn't produce an explanation for this decision.", sources, sufficient: true });
+  } catch {
+    return c.json({ answer: "The AI service is unavailable right now — please try again in a moment.", sources, sufficient: true });
+  }
 });
 
 export { router as decisionsRouter };

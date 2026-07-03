@@ -61758,6 +61758,33 @@ async function logDecisionTrainingExample(workspaceId, decision, action, editedO
 
 // src/routes/decisions.ts
 init_mail();
+
+// src/lib/decision-actions.ts
+function describeExecution(d2) {
+  const agent = d2.agent_name ?? "";
+  const st2 = d2.source_type ?? "";
+  const ev0 = Array.isArray(d2.evidence) ? d2.evidence[0] : null;
+  if (agent === "prospecting" && st2 === "prospecting_candidate") {
+    const c2 = ev0?.candidate ?? {};
+    const list = ev0?.destination_list_id ? " and add it to the destination list" : "";
+    return { text: `Create a ${c2.object_type ?? "record"}${c2.name ? ` for \u201C${c2.name}\u201D` : ""}${list}.`, side_effect: true };
+  }
+  if (agent === "discovery" && st2 === "discovered_lead") {
+    const l2 = ev0?.lead ?? {};
+    const who = l2.name ? ` for \u201C${l2.name}\u201D` : l2.email ? ` for ${l2.email}` : "";
+    return { text: `Create a person record${who}.`, side_effect: true };
+  }
+  if (agent === "invoice_chaser" && st2 === "invoice") {
+    return { text: "Send the invoice chase email to the client (or create a send-it task if no inbox is connected), then mark the invoice chased.", side_effect: true };
+  }
+  if (agent === "workflow") {
+    return { text: "Send the workflow email to the linked record's contact (or create a send-it task if there's no clear recipient).", side_effect: true };
+  }
+  return { text: "Advisory only \u2014 approving records your decision; no automated action runs.", side_effect: false };
+}
+
+// src/routes/decisions.ts
+init_ai_gateway();
 var router5 = new Hono2();
 router5.use("*", requireAuth);
 router5.use("*", denyViewerWrites);
@@ -61781,14 +61808,25 @@ var createSchema = external_exports.object({
   confidence: external_exports.number().min(0).max(100).optional(),
   evidence: external_exports.array(evidenceItem).default([])
 });
+var withPreview = (d2) => ({ ...d2, execution_preview: describeExecution(d2) });
 router5.get("/", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const status = c2.req.query("status");
+  const view = c2.req.query("view");
+  if (view === "cockpit") {
+    const [open, resolved] = await Promise.all([
+      supabase.from("decision_queue").select("*").eq("workspace_id", workspaceId).in("status", ["pending", "snoozed"]).order("created_at", { ascending: false }).limit(1e3),
+      supabase.from("decision_queue").select("*").eq("workspace_id", workspaceId).in("status", ["approved", "rejected", "completed"]).order("resolved_at", { ascending: false }).limit(120)
+    ]);
+    if (open.error) return c2.json({ error: open.error.message }, 500);
+    const rows2 = [...open.data ?? [], ...resolved.data ?? []].map(withPreview);
+    return c2.json(rows2);
+  }
   let query = supabase.from("decision_queue").select("*").eq("workspace_id", workspaceId).order("created_at", { ascending: false }).limit(1e3);
   if (status) query = query.eq("status", status);
   const { data, error } = await query;
   if (error) return c2.json({ error: error.message }, 500);
-  return c2.json(data ?? []);
+  return c2.json((data ?? []).map(withPreview));
 });
 router5.get("/:id", async (c2) => {
   const { data, error } = await supabase.from("decision_queue").select("*").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
@@ -61972,6 +62010,44 @@ router5.post("/bulk", zValidator("json", external_exports.object({
   const { data, error } = await supabase.from("decision_queue").update({ status, resolved_at: (/* @__PURE__ */ new Date()).toISOString(), resolved_by: c2.get("userId"), ...extra }).eq("workspace_id", ws).in("id", ids).eq("status", "pending").select("id");
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json({ ok: true, count: data?.length ?? 0 });
+});
+router5.post("/:id/ask", async (c2) => {
+  const workspaceId = c2.get("workspaceId");
+  const body = await c2.req.json().catch(() => ({}));
+  const question = (body.question ?? "").trim() || "Explain this decision.";
+  const { data: d2 } = await supabase.from("decision_queue").select("*").eq("workspace_id", workspaceId).eq("id", c2.req.param("id")).maybeSingle();
+  if (!d2) return c2.json({ answer: "That decision no longer exists.", sources: [], sufficient: false }, 404);
+  const evidence = Array.isArray(d2.evidence) ? d2.evidence : [];
+  const exec = describeExecution(d2);
+  const gen = d2.generation_context ?? null;
+  const hasSubstance = Boolean(d2.summary || d2.recommended_action || evidence.length || gen?.user_prompt);
+  if (!hasSubstance) {
+    return c2.json({ answer: "I don't have enough recorded detail on this decision to explain it.", sources: [], sufficient: false });
+  }
+  const evidenceLines = evidence.slice(0, 12).map((e2, i2) => `  ${i2 + 1}. ${e2.title ?? "evidence"}${e2.match_reason ? ` \u2014 ${e2.match_reason}` : e2.relationship ? ` \u2014 ${e2.relationship}` : ""}`);
+  const digest = [
+    `Decision: ${d2.title}`,
+    `Raised by agent: ${d2.agent_name}. Source type: ${d2.source_type}. Risk: ${d2.risk_level}.`,
+    d2.confidence != null ? `Confidence (real, computed): ${d2.confidence}%.` : "Confidence: not computed (source-backed, no number).",
+    d2.summary ? `Why it was raised: ${d2.summary}` : "",
+    d2.recommended_action ? `Recommended action: ${d2.recommended_action}` : "",
+    `Exactly what approving does: ${exec.text}`,
+    evidenceLines.length ? `Evidence:
+${evidenceLines.join("\n")}` : "Evidence: none recorded.",
+    gen?.user_prompt ? `Original AI context: ${String(gen.user_prompt).slice(0, 1500)}` : ""
+  ].filter(Boolean).join("\n");
+  const system = "You are a workspace approval assistant. Answer the admin's question about ONE decision using ONLY the data provided. Never invent evidence, numbers, confidence, or consequences. If confidence is 'not computed', do NOT make one up. Be concise and factual (2-5 sentences). Do NOT mention tools, prompts, or your reasoning process. If the data doesn't answer the question, say so plainly.";
+  const sources = evidence.slice(0, 12).map((e2) => ({ type: "evidence", title: String(e2.title ?? "evidence"), relevance: e2.match_reason ?? e2.relationship }));
+  try {
+    const { text } = await aiGateway({ system, prompt: `Question: ${question}
+
+Data:
+${digest}`, maxTokens: 320 });
+    const answer = (text || "").trim();
+    return c2.json({ answer: answer || "I couldn't produce an explanation for this decision.", sources, sufficient: true });
+  } catch {
+    return c2.json({ answer: "The AI service is unavailable right now \u2014 please try again in a moment.", sources, sufficient: true });
+  }
 });
 
 // src/routes/ask.ts
