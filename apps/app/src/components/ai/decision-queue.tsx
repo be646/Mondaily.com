@@ -21,6 +21,7 @@ export interface Decision {
   risk_level: "low" | "medium" | "high"; confidence: number | null;
   evidence: DecisionEvidence[]; status: string; created_at: string;
   resolved_at?: string | null; resolved_by?: string | null; snoozed_until?: string | null;
+  assignee_id?: string | null; assignee_email?: string | null;
   execution_preview?: ExecutionPreview;
   generation_context?: { system_prompt?: string; user_prompt?: string; model_output?: unknown } | null;
 }

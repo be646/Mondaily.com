@@ -11,6 +11,7 @@ import { logDecisionTrainingExample, type TrainingAction } from "../lib/training
 import { sendWorkspaceEmail } from "../lib/mail";
 import { describeExecution } from "../lib/decision-actions";
 import { aiGateway } from "../lib/ai-gateway";
+import { createNotification } from "../lib/notify";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -383,6 +384,86 @@ router.post("/:id/ask", async (c) => {
   } catch {
     return c.json({ answer: "The AI service is unavailable right now — please try again in a moment.", sources, sufficient: true });
   }
+});
+
+/** Confirm a decision belongs to this workspace before touching its children (comments/assignee). */
+async function decisionInWorkspace(workspaceId: string, id: string): Promise<{ id: string; assignee_id: string | null; title: string } | null> {
+  const { data } = await supabase.from("decision_queue").select("id, assignee_id, title").eq("workspace_id", workspaceId).eq("id", id).maybeSingle();
+  return data as { id: string; assignee_id: string | null; title: string } | null;
+}
+
+/** GET /:id/comments — threaded comments for a decision (workspace-scoped). */
+router.get("/:id/comments", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const id = c.req.param("id");
+  if (!(await decisionInWorkspace(workspaceId, id))) return c.json({ error: "Decision not found" }, 404);
+  const { data, error } = await supabase
+    .from("decision_comments")
+    .select("id, author_id, author_name, body, created_at")
+    .eq("workspace_id", workspaceId).eq("decision_id", id)
+    .order("created_at", { ascending: true }).limit(500);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json(data ?? []);
+});
+
+/** POST /:id/comments — add a comment. Notifies the assignee (if any and not the author). */
+router.post("/:id/comments", zValidator("json", z.object({ body: z.string().min(1).max(5000) })), async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+  const decision = await decisionInWorkspace(workspaceId, id);
+  if (!decision) return c.json({ error: "Decision not found" }, 404);
+  const { body } = c.req.valid("json");
+
+  const { data: me } = await supabase.from("workspace_members").select("name, email").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle();
+  const authorName = (me?.name as string) || (me?.email as string) || "A member";
+
+  const { data, error } = await supabase.from("decision_comments").insert({
+    workspace_id: workspaceId, decision_id: id, author_id: userId, author_name: authorName, body,
+  }).select("id, author_id, author_name, body, created_at").single();
+  if (error) return c.json({ error: error.message }, 500);
+
+  // Notify the assignee (deep-links to the decision) — never the author, never fabricated.
+  if (decision.assignee_id && decision.assignee_id !== userId) {
+    await createNotification({
+      workspace_id: workspaceId, user_id: decision.assignee_id, type: "decision",
+      title: "New comment on a decision you're reviewing",
+      body: `${authorName} commented on "${decision.title}".`,
+      source: { decision_id: id, route: `/decisions?id=${id}` },
+    }).catch(() => {});
+  }
+  return c.json(data, 201);
+});
+
+/** POST /:id/assign — assign or unassign a reviewer. Body: { assignee_id, assignee_email? } or
+ *  { assignee_id: null } to clear. Notifies the newly-assigned reviewer. */
+router.post("/:id/assign", zValidator("json", z.object({
+  assignee_id: z.string().nullable(),
+  assignee_email: z.string().email().optional().nullable(),
+})), async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+  const id = c.req.param("id");
+  const decision = await decisionInWorkspace(workspaceId, id);
+  if (!decision) return c.json({ error: "Decision not found" }, 404);
+  const { assignee_id, assignee_email } = c.req.valid("json");
+
+  const { data, error } = await supabase.from("decision_queue")
+    .update({ assignee_id, assignee_email: assignee_id ? (assignee_email ?? null) : null })
+    .eq("workspace_id", workspaceId).eq("id", id)
+    .select("*").single();
+  if (error) return c.json({ error: error.message }, 400);
+
+  // Notify the assignee when newly assigned to someone other than themselves.
+  if (assignee_id && assignee_id !== userId && assignee_id !== decision.assignee_id) {
+    await createNotification({
+      workspace_id: workspaceId, user_id: assignee_id, type: "decision",
+      title: "You were assigned a decision to review",
+      body: `"${decision.title}" is now assigned to you.`,
+      source: { decision_id: id, route: `/decisions?id=${id}` },
+    }).catch(() => {});
+  }
+  return c.json(withPreview(data));
 });
 
 export { router as decisionsRouter };

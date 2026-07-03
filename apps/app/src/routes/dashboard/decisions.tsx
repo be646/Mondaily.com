@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton } from "../../components/ui/page-state";
 import { SourceCard } from "../../components/ai/ask-shared";
@@ -10,6 +10,14 @@ import { agentByRaw } from "../../lib/agents";
 
 const RISK_DOT: Record<Decision["risk_level"], string> = { high: "#dc2626", medium: "#d97706", low: "#10b981" };
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
+interface Member { user_id: string; name?: string | null; email?: string | null }
+interface DecisionComment { id: string; author_id: string; author_name: string | null; body: string; created_at: string }
+const memberLabel = (members: Member[], id?: string | null, email?: string | null) => {
+  if (!id && !email) return null;
+  const m = members.find(x => x.user_id === id);
+  return m?.name || m?.email || email || "Assigned";
+};
 
 function relTime(iso?: string | null) {
   if (!iso) return "";
@@ -43,6 +51,9 @@ export function DecisionsPage() {
   const [agentFilter, setAgentFilter] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
   const [riskFilter, setRiskFilter] = useState<Decision["risk_level"] | null>(null);
+  const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null);
+  const { data: members } = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members"), staleTime: 300_000 });
+  const memberList = members ?? [];
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [acting, setActing] = useState<{ id: string; action: string } | null>(null);
@@ -56,10 +67,12 @@ export function DecisionsPage() {
   const laneItems = useMemo(() => items.filter(d => laneDef.statuses.includes(d.status)), [items, lane]); // eslint-disable-line
   const agents = useMemo(() => Array.from(new Set(laneItems.map(d => d.agent_name))), [laneItems]);
   const types = useMemo(() => Array.from(new Set(laneItems.map(d => d.source_type))), [laneItems]);
+  const assignees = useMemo(() => Array.from(new Set(laneItems.map(d => d.assignee_id).filter((x): x is string => !!x))), [laneItems]);
   const visible = laneItems.filter(d =>
     (!agentFilter || d.agent_name === agentFilter) &&
     (!typeFilter || d.source_type === typeFilter) &&
-    (!riskFilter || d.risk_level === riskFilter));
+    (!riskFilter || d.risk_level === riskFilter) &&
+    (!assigneeFilter || (assigneeFilter === "__none" ? !d.assignee_id : d.assignee_id === assigneeFilter)));
 
   const laneCount = (k: LaneKey) => items.filter(d => LANES.find(l => l.key === k)!.statuses.includes(d.status)).length;
 
@@ -70,9 +83,9 @@ export function DecisionsPage() {
       if (d) { const l = LANES.find(ln => ln.statuses.includes(d.status)); if (l) setLane(l.key); setSelectedId(focusId); return; }
     }
     if (!selectedId || !visible.some(d => d.id === selectedId)) setSelectedId(visible[0]?.id ?? null);
-  }, [focusId, decisions, lane, agentFilter, typeFilter, riskFilter]); // eslint-disable-line
+  }, [focusId, decisions, lane, agentFilter, typeFilter, riskFilter, assigneeFilter]); // eslint-disable-line
 
-  useEffect(() => { setChecked(new Set()); }, [lane, agentFilter, typeFilter, riskFilter]);
+  useEffect(() => { setChecked(new Set()); }, [lane, agentFilter, typeFilter, riskFilter, assigneeFilter]);
 
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["decisions"] }); qc.invalidateQueries({ queryKey: ["agent-registry"] }); };
   const act = useMutation({ mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" | "snooze" }) => apiClient.post(`/decisions/${id}/${action}`, {}) });
@@ -145,6 +158,10 @@ export function DecisionsPage() {
               <FilterChips label="Agent" value={agentFilter} options={agents.map(a => ({ v: a, l: agentByRaw(a).name.replace(" Agent", "") }))} onChange={setAgentFilter} />
               <FilterChips label="Type" value={typeFilter} options={types.map(t => ({ v: t, l: t.replace(/_/g, " ") }))} onChange={setTypeFilter} />
               <FilterChips label="Risk" value={riskFilter} options={[{ v: "high", l: "High" }, { v: "medium", l: "Med" }, { v: "low", l: "Low" }]} onChange={(v) => setRiskFilter(v as Decision["risk_level"] | null)} dot={(v) => RISK_DOT[v as Decision["risk_level"]]} />
+              {(assignees.length > 0) && (
+                <FilterChips label="Reviewer" value={assigneeFilter} onChange={setAssigneeFilter}
+                  options={[{ v: "__none", l: "Unassigned" }, ...assignees.map(a => ({ v: a, l: memberLabel(memberList, a) ?? "Assigned" }))]} />
+              )}
             </div>
           )}
 
@@ -202,7 +219,7 @@ export function DecisionsPage() {
 
               {/* RIGHT — dossier */}
               <div className="relative min-w-0 flex-1 overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-                {selected ? <Dossier key={selected.id} d={selected} lane={laneDef} acting={acting} onResolve={resolve} /> : (
+                {selected ? <Dossier key={selected.id} d={selected} lane={laneDef} acting={acting} onResolve={resolve} members={memberList} onChanged={invalidate} /> : (
                   <div className="flex h-full items-center justify-center text-[13px]" style={{ color: "var(--text-muted)" }}>Select a decision to review it.</div>
                 )}
                 {banner && (
@@ -240,7 +257,7 @@ function FilterChips<T extends string>({ label, value, options, onChange, dot }:
   );
 }
 
-function Dossier({ d, lane, acting, onResolve }: { d: Decision; lane: { key: LaneKey; open: boolean }; acting: { id: string; action: string } | null; onResolve: (d: Decision, a: "approve" | "reject" | "snooze") => void }) {
+function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decision; lane: { key: LaneKey; open: boolean }; acting: { id: string; action: string } | null; onResolve: (d: Decision, a: "approve" | "reject" | "snooze") => void; members: Member[]; onChanged: () => void }) {
   const a = agentByRaw(d.agent_name);
   const sources = mapEvidence(d.evidence ?? []);
   const target = (d.evidence ?? [])[0];
@@ -344,6 +361,12 @@ function Dossier({ d, lane, acting, onResolve }: { d: Decision; lane: { key: Lan
           </div>
         </div>
 
+        {/* Assigned reviewer */}
+        <AssigneePicker d={d} members={members} onChanged={onChanged} />
+
+        {/* Comments thread */}
+        <DecisionComments decision={d} />
+
         {/* Grounded Ask */}
         <DecisionAsk decision={d} />
       </div>
@@ -373,6 +396,74 @@ function Dossier({ d, lane, acting, onResolve }: { d: Decision; lane: { key: Lan
           {d.status} · resolved {relTime(d.resolved_at)} ago
         </div>
       )}
+    </div>
+  );
+}
+
+/** Assigned reviewer — pick a member (or unassign). Persists via POST /decisions/:id/assign. */
+function AssigneePicker({ d, members, onChanged }: { d: Decision; members: Member[]; onChanged: () => void }) {
+  const [open, setOpen] = useState(false);
+  const assign = useMutation({
+    mutationFn: (m: { assignee_id: string | null; assignee_email?: string | null }) => apiClient.post(`/decisions/${d.id}/assign`, m),
+    onSuccess: () => { setOpen(false); onChanged(); },
+  });
+  const current = memberLabel(members, d.assignee_id, d.assignee_email);
+  return (
+    <div className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}><UserPlus size={12} /> Assigned reviewer</div>
+        <button onClick={() => setOpen(o => !o)} className="text-[11px]" style={{ color: "var(--section-accent)" }}>{current ? "Change" : "Assign"}</button>
+      </div>
+      <div className="mt-1 text-[12px]" style={{ color: current ? "var(--text-primary)" : "var(--text-faint)" }}>{current ?? "Unassigned"}</div>
+      {open && (
+        <div className="mt-2 space-y-0.5 rounded-sm border p-1" style={{ borderColor: "var(--border-soft)" }}>
+          {d.assignee_id && (
+            <button onClick={() => assign.mutate({ assignee_id: null })} disabled={assign.isPending} className="block w-full rounded px-2 py-1 text-left text-[11.5px] hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-muted)" }}>Unassign</button>
+          )}
+          {members.map(m => (
+            <button key={m.user_id} onClick={() => assign.mutate({ assignee_id: m.user_id, assignee_email: m.email ?? null })} disabled={assign.isPending}
+              className="block w-full truncate rounded px-2 py-1 text-left text-[11.5px] hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-secondary)" }}>
+              {m.name || m.email || m.user_id}
+            </button>
+          ))}
+          {members.length === 0 && <div className="px-2 py-1 text-[11px]" style={{ color: "var(--text-faint)" }}>No members to assign.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Comments thread — real decision_comments rows + an add-comment form. */
+function DecisionComments({ decision }: { decision: Decision }) {
+  const qc = useQueryClient();
+  const [text, setText] = useState("");
+  const q = useQuery({ queryKey: ["decision-comments", decision.id], queryFn: () => apiClient.get<DecisionComment[]>(`/decisions/${decision.id}/comments`), retry: false });
+  const add = useMutation({
+    mutationFn: (body: string) => apiClient.post(`/decisions/${decision.id}/comments`, { body }),
+    onSuccess: () => { setText(""); qc.invalidateQueries({ queryKey: ["decision-comments", decision.id] }); },
+  });
+  const comments = q.data ?? [];
+  return (
+    <div className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}><MessageSquare size={12} /> Comments{comments.length > 0 ? ` · ${comments.length}` : ""}</div>
+      {comments.length > 0 && (
+        <div className="mb-2 space-y-2">
+          {comments.map(cm => (
+            <div key={cm.id}>
+              <div className="flex items-center gap-1.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+                <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{cm.author_name || "Member"}</span> · {exactTime(cm.created_at)}
+              </div>
+              <p className="mt-0.5 whitespace-pre-wrap break-words text-[12px]" style={{ color: "var(--text-secondary)" }}>{cm.body}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      <form onSubmit={(e) => { e.preventDefault(); if (text.trim()) add.mutate(text.trim()); }} className="flex gap-2">
+        <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a comment…" className="key-input h-8 flex-1 px-2.5 text-[12px]" />
+        <button type="submit" disabled={add.isPending || !text.trim()} className="flex items-center gap-1 rounded-lg border px-2.5 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          {add.isPending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+        </button>
+      </form>
     </div>
   );
 }

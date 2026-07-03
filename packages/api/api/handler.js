@@ -60736,6 +60736,7 @@ function describeExecution(d2) {
 
 // src/routes/decisions.ts
 init_ai_gateway();
+init_notify();
 var router5 = new Hono2();
 router5.use("*", requireAuth);
 router5.use("*", denyViewerWrites);
@@ -60999,6 +61000,73 @@ ${digest}`, maxTokens: 320 });
   } catch {
     return c2.json({ answer: "The AI service is unavailable right now \u2014 please try again in a moment.", sources, sufficient: true });
   }
+});
+async function decisionInWorkspace(workspaceId, id) {
+  const { data } = await supabase.from("decision_queue").select("id, assignee_id, title").eq("workspace_id", workspaceId).eq("id", id).maybeSingle();
+  return data;
+}
+router5.get("/:id/comments", async (c2) => {
+  const workspaceId = c2.get("workspaceId");
+  const id = c2.req.param("id");
+  if (!await decisionInWorkspace(workspaceId, id)) return c2.json({ error: "Decision not found" }, 404);
+  const { data, error } = await supabase.from("decision_comments").select("id, author_id, author_name, body, created_at").eq("workspace_id", workspaceId).eq("decision_id", id).order("created_at", { ascending: true }).limit(500);
+  if (error) return c2.json({ error: error.message }, 500);
+  return c2.json(data ?? []);
+});
+router5.post("/:id/comments", zValidator("json", external_exports.object({ body: external_exports.string().min(1).max(5e3) })), async (c2) => {
+  const workspaceId = c2.get("workspaceId");
+  const userId = c2.get("userId");
+  const id = c2.req.param("id");
+  const decision = await decisionInWorkspace(workspaceId, id);
+  if (!decision) return c2.json({ error: "Decision not found" }, 404);
+  const { body } = c2.req.valid("json");
+  const { data: me2 } = await supabase.from("workspace_members").select("name, email").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle();
+  const authorName = me2?.name || me2?.email || "A member";
+  const { data, error } = await supabase.from("decision_comments").insert({
+    workspace_id: workspaceId,
+    decision_id: id,
+    author_id: userId,
+    author_name: authorName,
+    body
+  }).select("id, author_id, author_name, body, created_at").single();
+  if (error) return c2.json({ error: error.message }, 500);
+  if (decision.assignee_id && decision.assignee_id !== userId) {
+    await createNotification({
+      workspace_id: workspaceId,
+      user_id: decision.assignee_id,
+      type: "decision",
+      title: "New comment on a decision you're reviewing",
+      body: `${authorName} commented on "${decision.title}".`,
+      source: { decision_id: id, route: `/decisions?id=${id}` }
+    }).catch(() => {
+    });
+  }
+  return c2.json(data, 201);
+});
+router5.post("/:id/assign", zValidator("json", external_exports.object({
+  assignee_id: external_exports.string().nullable(),
+  assignee_email: external_exports.string().email().optional().nullable()
+})), async (c2) => {
+  const workspaceId = c2.get("workspaceId");
+  const userId = c2.get("userId");
+  const id = c2.req.param("id");
+  const decision = await decisionInWorkspace(workspaceId, id);
+  if (!decision) return c2.json({ error: "Decision not found" }, 404);
+  const { assignee_id, assignee_email } = c2.req.valid("json");
+  const { data, error } = await supabase.from("decision_queue").update({ assignee_id, assignee_email: assignee_id ? assignee_email ?? null : null }).eq("workspace_id", workspaceId).eq("id", id).select("*").single();
+  if (error) return c2.json({ error: error.message }, 400);
+  if (assignee_id && assignee_id !== userId && assignee_id !== decision.assignee_id) {
+    await createNotification({
+      workspace_id: workspaceId,
+      user_id: assignee_id,
+      type: "decision",
+      title: "You were assigned a decision to review",
+      body: `"${decision.title}" is now assigned to you.`,
+      source: { decision_id: id, route: `/decisions?id=${id}` }
+    }).catch(() => {
+    });
+  }
+  return c2.json(withPreview(data));
 });
 
 // src/routes/ask.ts

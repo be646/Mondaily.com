@@ -77,3 +77,34 @@ describe("preserved logic + isolation (source-read guards)", () => {
     expect(src).toMatch(/do NOT make one up/);
   });
 });
+
+describe("comments + assignment (Increment 2) — source-read guards", () => {
+  const src = readFileSync(fileURLToPath(new URL("../routes/decisions.ts", import.meta.url)), "utf8");
+
+  it("GET/POST comments verify the decision is in this workspace first", () => {
+    expect(src).toMatch(/router\.get\("\/:id\/comments"/);
+    expect(src).toMatch(/router\.post\("\/:id\/comments"/);
+    expect(src).toMatch(/decisionInWorkspace\(workspaceId, id\)/);
+  });
+  it("comment reads/writes are workspace-scoped", () => {
+    expect(src).toMatch(/from\("decision_comments"\)[\s\S]*?\.eq\("workspace_id", workspaceId\)\.eq\("decision_id", id\)/);
+    expect(src).toMatch(/decision_comments"\)\.insert\(\{\s*workspace_id: workspaceId, decision_id: id/);
+  });
+  it("decisionInWorkspace itself is workspace-scoped", () => {
+    expect(src).toMatch(/from\("decision_queue"\)\.select\("id, assignee_id, title"\)\.eq\("workspace_id", workspaceId\)\.eq\("id", id\)/);
+  });
+  it("assign endpoint updates workspace-scoped and clears email on unassign", () => {
+    expect(src).toMatch(/router\.post\("\/:id\/assign"/);
+    expect(src).toMatch(/from\("decision_queue"\)\s*\.update\(\{ assignee_id, assignee_email: assignee_id \? \(assignee_email \?\? null\) : null \}\)\s*\.eq\("workspace_id", workspaceId\)\.eq\("id", id\)/);
+  });
+  it("assign + comment notify the assignee, never the actor, and deep-link the decision", () => {
+    expect(src).toMatch(/createNotification\(\{[\s\S]*?user_id: decision\.assignee_id[\s\S]*?source: \{ decision_id: id/);
+    expect(src).toMatch(/assignee_id !== userId/);
+  });
+  it("training capture path is untouched (still fires on approve/reject/edit)", () => {
+    // No change to the resolve()/PATCH training calls.
+    expect(src).toMatch(/logDecisionTrainingExample\(c\.get\("workspaceId"\), data, "EDITED", body\)/);
+    expect(src).toMatch(/resolve\(c, "approved", \{\}, "APPROVED"\)/);
+    expect(src).toMatch(/resolve\(c, "rejected", \{\}, "REJECTED"\)/);
+  });
+});
