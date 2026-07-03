@@ -27,8 +27,13 @@ export async function sovereignSearchUrls(query: string, limit = 4): Promise<str
 
 /** Render one page to clean Markdown via the self-hosted scraper ("" on failure).
  *  Pass { deep:true } for review/listing pages so the scraper scrolls to load lazy content
- *  (e.g. ZnanyLekarz/GoWork load reviews on scroll) and returns much more text. */
+ *  (e.g. ZnanyLekarz/GoWork load reviews on scroll) and returns much more text.
+ *  Result is cached 24h (fail-open) so repeat runs/monitors don't re-scrape. */
 export async function sovereignScrape(targetUrl: string, opts?: { deep?: boolean }): Promise<string> {
+  const { cacheGet, cacheSet, cacheKey } = await import("./discovery-cache");
+  const ck = cacheKey("scrape", `${opts?.deep ? "d" : "s"}:${targetUrl}`);
+  const cached = await cacheGet<string>(ck);
+  if (cached != null) return cached;
   try {
     const res = await fetch(SCRAPE_URL(), {
       method: "POST",
@@ -37,7 +42,9 @@ export async function sovereignScrape(targetUrl: string, opts?: { deep?: boolean
     });
     if (!res.ok) return "";
     const data = await res.json() as { markdown?: string; content?: string; data?: { markdown?: string; content?: string } };
-    return data.markdown ?? data.data?.markdown ?? data.content ?? data.data?.content ?? "";
+    const md = data.markdown ?? data.data?.markdown ?? data.content ?? data.data?.content ?? "";
+    if (md && md.length > 100) void cacheSet(ck, "scrape", md, 86_400); // cache real content 24h
+    return md;
   } catch { return ""; }
 }
 

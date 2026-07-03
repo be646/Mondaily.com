@@ -2,6 +2,7 @@ import { inngest } from "../lib/inngest";
 import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignHeaders, sovereignScrape } from "../lib/sovereign-search";
+import { cacheGet, cacheSet, cacheKey } from "../lib/discovery-cache";
 import { placesSearch, placesProvider } from "../lib/places";
 import { redditSearch } from "../lib/reddit";
 import { createNotification } from "../lib/notify";
@@ -25,6 +26,10 @@ const SOVEREIGN_SEARCH_ENGINES = process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,
 type SearchResult = { hits: SearchHit[]; unreachable: boolean };
 
 async function searxng(query: string): Promise<SearchResult> {
+  // Cache hit → skip the (rate-limited) engine entirely. 24h TTL.
+  const ck = cacheKey("search", `${SOVEREIGN_SEARCH_ENGINES}:${query}`);
+  const cached = await cacheGet<SearchHit[]>(ck);
+  if (cached) return { hits: cached, unreachable: false };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12_000); // never let one slow query hang the whole sweep
   try {
@@ -42,6 +47,7 @@ async function searxng(query: string): Promise<SearchResult> {
     const hits = (data.results ?? [])
       .filter((r) => r.url)
       .map((r) => ({ title: r.title ?? "", content: r.content ?? "", url: r.url as string }));
+    if (hits.length) void cacheSet(ck, "search", hits, 86_400); // cache real results for 24h
     return { hits, unreachable: false };
   } catch (e) {
     // Connection drop / DNS / abort (timeout) reaching the self-hosted instance.

@@ -180,6 +180,9 @@ app.get("/api/cron/monitors", async (c) => {
   if (provided !== `Bearer ${secret}`) return c.json({ error: "Unauthorized" }, 401);
   const { runDiscoveryMonitors } = await import("./jobs/social-discovery");
   const result = await runDiscoveryMonitors().catch((e) => ({ error: String(e) }));
+  // Purge expired Discovery cache rows so the table stays bounded.
+  const { supabase } = await import("@mondaily/db/client");
+  await supabase.from("discovery_cache").delete().lt("expires_at", new Date().toISOString()).then(() => {}, () => {});
   return c.json({ ran: true, at: new Date().toISOString(), result });
 });
 

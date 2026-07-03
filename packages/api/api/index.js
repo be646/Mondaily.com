@@ -255,15 +255,15 @@ var init_url = __esm({
       }
       const match2 = label.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);
       if (match2) {
-        const cacheKey2 = `${label}#${next}`;
-        if (!patternCache[cacheKey2]) {
+        const cacheKey3 = `${label}#${next}`;
+        if (!patternCache[cacheKey3]) {
           if (match2[2]) {
-            patternCache[cacheKey2] = next && next[0] !== ":" && next[0] !== "*" ? [cacheKey2, match2[1], new RegExp(`^${match2[2]}(?=/${next})`)] : [label, match2[1], new RegExp(`^${match2[2]}$`)];
+            patternCache[cacheKey3] = next && next[0] !== ":" && next[0] !== "*" ? [cacheKey3, match2[1], new RegExp(`^${match2[2]}(?=/${next})`)] : [label, match2[1], new RegExp(`^${match2[2]}$`)];
           } else {
-            patternCache[cacheKey2] = [label, match2[1], true];
+            patternCache[cacheKey3] = [label, match2[1], true];
           }
         }
-        return patternCache[cacheKey2];
+        return patternCache[cacheKey3];
       }
       return null;
     };
@@ -3637,14 +3637,14 @@ var require_templates = __commonJS({
       return results;
     }
     function buildStyle(chalk3, styles) {
-      const enabled = {};
+      const enabled2 = {};
       for (const layer of styles) {
         for (const style of layer.styles) {
-          enabled[style[0]] = layer.inverse ? null : style.slice(1);
+          enabled2[style[0]] = layer.inverse ? null : style.slice(1);
         }
       }
       let current = chalk3;
-      for (const [styleName, styles2] of Object.entries(enabled)) {
+      for (const [styleName, styles2] of Object.entries(enabled2)) {
         if (!Array.isArray(styles2)) {
           continue;
         }
@@ -5628,12 +5628,12 @@ var require_hmac = __commonJS({
     "use strict";
     var utils = require_utils();
     var assert = require_minimalistic_assert();
-    function Hmac(hash, key, enc) {
+    function Hmac(hash2, key, enc) {
       if (!(this instanceof Hmac))
-        return new Hmac(hash, key, enc);
-      this.Hash = hash;
-      this.blockSize = hash.blockSize / 8;
-      this.outSize = hash.outSize / 8;
+        return new Hmac(hash2, key, enc);
+      this.Hash = hash2;
+      this.blockSize = hash2.blockSize / 8;
+      this.outSize = hash2.outSize / 8;
       this.inner = null;
       this.outer = null;
       this._init(utils.toArray(key, enc));
@@ -5667,18 +5667,18 @@ var require_hmac = __commonJS({
 var require_hash = __commonJS({
   "../../node_modules/.pnpm/hash.js@1.1.7/node_modules/hash.js/lib/hash.js"(exports2) {
     "use strict";
-    var hash = exports2;
-    hash.utils = require_utils();
-    hash.common = require_common();
-    hash.sha = require_sha();
-    hash.ripemd = require_ripemd();
-    hash.hmac = require_hmac();
-    hash.sha1 = hash.sha.sha1;
-    hash.sha256 = hash.sha.sha256;
-    hash.sha224 = hash.sha.sha224;
-    hash.sha384 = hash.sha.sha384;
-    hash.sha512 = hash.sha.sha512;
-    hash.ripemd160 = hash.ripemd.ripemd160;
+    var hash2 = exports2;
+    hash2.utils = require_utils();
+    hash2.common = require_common();
+    hash2.sha = require_sha();
+    hash2.ripemd = require_ripemd();
+    hash2.hmac = require_hmac();
+    hash2.sha1 = hash2.sha.sha1;
+    hash2.sha256 = hash2.sha.sha256;
+    hash2.sha224 = hash2.sha.sha224;
+    hash2.sha384 = hash2.sha.sha384;
+    hash2.sha512 = hash2.sha.sha512;
+    hash2.ripemd160 = hash2.ripemd.ripemd160;
   }
 });
 
@@ -10861,7 +10861,7 @@ var require_common3 = __commonJS({
       createDebug.coerce = coerce2;
       createDebug.disable = disable;
       createDebug.enable = enable;
-      createDebug.enabled = enabled;
+      createDebug.enabled = enabled2;
       createDebug.humanize = require_ms();
       createDebug.destroy = destroy;
       Object.keys(env2).forEach((key) => {
@@ -10871,12 +10871,12 @@ var require_common3 = __commonJS({
       createDebug.skips = [];
       createDebug.formatters = {};
       function selectColor(namespace) {
-        let hash = 0;
+        let hash2 = 0;
         for (let i2 = 0; i2 < namespace.length; i2++) {
-          hash = (hash << 5) - hash + namespace.charCodeAt(i2);
-          hash |= 0;
+          hash2 = (hash2 << 5) - hash2 + namespace.charCodeAt(i2);
+          hash2 |= 0;
         }
-        return createDebug.colors[Math.abs(hash) % createDebug.colors.length];
+        return createDebug.colors[Math.abs(hash2) % createDebug.colors.length];
       }
       createDebug.selectColor = selectColor;
       function createDebug(namespace) {
@@ -11000,7 +11000,7 @@ var require_common3 = __commonJS({
         createDebug.enable("");
         return namespaces;
       }
-      function enabled(name) {
+      function enabled2(name) {
         for (const skip of createDebug.skips) {
           if (matchesTemplate(name, skip)) {
             return false;
@@ -19541,52 +19541,6 @@ var init_inngest2 = __esm({
   }
 });
 
-// src/lib/sovereign-search.ts
-function sovereignHeaders() {
-  const key = process.env.SOVEREIGN_SEARCH_KEY;
-  return key ? { Authorization: `Bearer ${key}` } : {};
-}
-async function sovereignSearchUrls(query, limit2 = 4) {
-  try {
-    const url = `${SEARCH_URL()}?q=${encodeURIComponent(query)}&format=json&language=en-US&engines=${encodeURIComponent(SEARCH_ENGINES())}`;
-    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return (data.results ?? []).map((r2) => r2.url).filter((u2) => typeof u2 === "string" && u2.length > 0).slice(0, limit2);
-  } catch {
-    return [];
-  }
-}
-async function sovereignScrape(targetUrl, opts) {
-  try {
-    const res = await fetch(SCRAPE_URL(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...sovereignHeaders() },
-      body: JSON.stringify({ url: targetUrl, formats: ["markdown"], deep: !!opts?.deep })
-    });
-    if (!res.ok) return "";
-    const data = await res.json();
-    return data.markdown ?? data.data?.markdown ?? data.content ?? data.data?.content ?? "";
-  } catch {
-    return "";
-  }
-}
-async function sovereignWebContext(query, maxPages = 2) {
-  const urls = await sovereignSearchUrls(query, maxPages);
-  if (!urls.length) return "";
-  const pages = await Promise.all(urls.map((u2) => sovereignScrape(u2)));
-  return pages.filter(Boolean).map((p2) => p2.slice(0, 2200)).join("\n\n---\n\n");
-}
-var SEARCH_URL, SCRAPE_URL, SEARCH_ENGINES;
-var init_sovereign_search = __esm({
-  "src/lib/sovereign-search.ts"() {
-    "use strict";
-    SEARCH_URL = () => process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
-    SCRAPE_URL = () => process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3002/v1/scrape";
-    SEARCH_ENGINES = () => process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,yahoo";
-  }
-});
-
 // ../../node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
 function __rest(s2, e2) {
   var t2 = {};
@@ -20241,8 +20195,8 @@ var init_dist = __esm({
       *   .retry(false)
       * ```
       */
-      retry(enabled) {
-        this.retryEnabled = enabled;
+      retry(enabled2) {
+        this.retryEnabled = enabled2;
         return this;
       }
       then(onfulfilled, onrejected) {
@@ -32679,8 +32633,8 @@ function generatePKCEVerifier() {
 async function sha2563(randomString) {
   const encoder = new TextEncoder();
   const encodedData = encoder.encode(randomString);
-  const hash = await crypto.subtle.digest("SHA-256", encodedData);
-  const bytes = new Uint8Array(hash);
+  const hash2 = await crypto.subtle.digest("SHA-256", encodedData);
+  const bytes = new Uint8Array(hash2);
   return Array.from(bytes).map((c2) => String.fromCharCode(c2)).join("");
 }
 async function generatePKCEChallenge(verifier) {
@@ -40831,6 +40785,10 @@ var init_dist4 = __esm({
 });
 
 // ../db/src/client.ts
+var client_exports = {};
+__export(client_exports, {
+  supabase: () => supabase
+});
 var supabase;
 var init_client = __esm({
   "../db/src/client.ts"() {
@@ -40840,6 +40798,100 @@ var init_client = __esm({
       process.env.SUPABASE_URL ?? "https://placeholder.supabase.co",
       process.env.SUPABASE_SERVICE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "placeholder"
     );
+  }
+});
+
+// src/lib/discovery-cache.ts
+var discovery_cache_exports = {};
+__export(discovery_cache_exports, {
+  cacheGet: () => cacheGet,
+  cacheKey: () => cacheKey2,
+  cacheSet: () => cacheSet
+});
+function cacheKey2(kind2, raw2) {
+  return `${kind2}:${hash(raw2)}`;
+}
+async function cacheGet(key) {
+  if (!enabled()) return null;
+  try {
+    const { data } = await supabase.from("discovery_cache").select("value, expires_at").eq("key", key).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).maybeSingle();
+    return data?.value ?? null;
+  } catch {
+    return null;
+  }
+}
+async function cacheSet(key, kind2, value, ttlSeconds) {
+  if (!enabled()) return;
+  try {
+    await supabase.from("discovery_cache").upsert({
+      key,
+      kind: kind2,
+      value,
+      expires_at: new Date(Date.now() + ttlSeconds * 1e3).toISOString()
+    });
+  } catch {
+  }
+}
+var import_node_crypto, enabled, hash;
+var init_discovery_cache = __esm({
+  "src/lib/discovery-cache.ts"() {
+    "use strict";
+    init_client();
+    import_node_crypto = require("crypto");
+    enabled = () => process.env.DISCOVERY_CACHE_DISABLE !== "1";
+    hash = (s2) => (0, import_node_crypto.createHash)("md5").update(s2).digest("hex");
+  }
+});
+
+// src/lib/sovereign-search.ts
+function sovereignHeaders() {
+  const key = process.env.SOVEREIGN_SEARCH_KEY;
+  return key ? { Authorization: `Bearer ${key}` } : {};
+}
+async function sovereignSearchUrls(query, limit2 = 4) {
+  try {
+    const url = `${SEARCH_URL()}?q=${encodeURIComponent(query)}&format=json&language=en-US&engines=${encodeURIComponent(SEARCH_ENGINES())}`;
+    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.results ?? []).map((r2) => r2.url).filter((u2) => typeof u2 === "string" && u2.length > 0).slice(0, limit2);
+  } catch {
+    return [];
+  }
+}
+async function sovereignScrape(targetUrl, opts) {
+  const { cacheGet: cacheGet2, cacheSet: cacheSet2, cacheKey: cacheKey3 } = await Promise.resolve().then(() => (init_discovery_cache(), discovery_cache_exports));
+  const ck = cacheKey3("scrape", `${opts?.deep ? "d" : "s"}:${targetUrl}`);
+  const cached = await cacheGet2(ck);
+  if (cached != null) return cached;
+  try {
+    const res = await fetch(SCRAPE_URL(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...sovereignHeaders() },
+      body: JSON.stringify({ url: targetUrl, formats: ["markdown"], deep: !!opts?.deep })
+    });
+    if (!res.ok) return "";
+    const data = await res.json();
+    const md = data.markdown ?? data.data?.markdown ?? data.content ?? data.data?.content ?? "";
+    if (md && md.length > 100) void cacheSet2(ck, "scrape", md, 86400);
+    return md;
+  } catch {
+    return "";
+  }
+}
+async function sovereignWebContext(query, maxPages = 2) {
+  const urls = await sovereignSearchUrls(query, maxPages);
+  if (!urls.length) return "";
+  const pages = await Promise.all(urls.map((u2) => sovereignScrape(u2)));
+  return pages.filter(Boolean).map((p2) => p2.slice(0, 2200)).join("\n\n---\n\n");
+}
+var SEARCH_URL, SCRAPE_URL, SEARCH_ENGINES;
+var init_sovereign_search = __esm({
+  "src/lib/sovereign-search.ts"() {
+    "use strict";
+    SEARCH_URL = () => process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
+    SCRAPE_URL = () => process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3002/v1/scrape";
+    SEARCH_ENGINES = () => process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,yahoo";
   }
 });
 
@@ -55668,6 +55720,9 @@ __export(social_discovery_exports, {
   socialDiscoveryWorker: () => socialDiscoveryWorker
 });
 async function searxng(query) {
+  const ck = cacheKey2("search", `${SOVEREIGN_SEARCH_ENGINES}:${query}`);
+  const cached = await cacheGet(ck);
+  if (cached) return { hits: cached, unreachable: false };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12e3);
   try {
@@ -55679,6 +55734,7 @@ async function searxng(query) {
     }
     const data = await res.json();
     const hits = (data.results ?? []).filter((r2) => r2.url).map((r2) => ({ title: r2.title ?? "", content: r2.content ?? "", url: r2.url }));
+    if (hits.length) void cacheSet(ck, "search", hits, 86400);
     return { hits, unreachable: false };
   } catch (e2) {
     console.error("[social-discovery] searxng unreachable:", e2 instanceof Error ? e2.message : String(e2));
@@ -56163,7 +56219,7 @@ async function runDiscoveryMonitors() {
   }
   return { monitors: (monitors ?? []).length, new_results: totalNew };
 }
-var import_node_crypto, leadFingerprint, SEARCH_TIMEOUT_REASON, SOVEREIGN_SEARCH_URL2, SOVEREIGN_SEARCH_ENGINES, socialDiscoveryWorker;
+var import_node_crypto2, leadFingerprint, SEARCH_TIMEOUT_REASON, SOVEREIGN_SEARCH_URL2, SOVEREIGN_SEARCH_ENGINES, socialDiscoveryWorker;
 var init_social_discovery = __esm({
   "src/jobs/social-discovery.ts"() {
     "use strict";
@@ -56171,11 +56227,12 @@ var init_social_discovery = __esm({
     init_client();
     init_ai_gateway();
     init_sovereign_search();
+    init_discovery_cache();
     init_places();
     init_reddit();
     init_notify();
-    import_node_crypto = require("crypto");
-    leadFingerprint = (url, author, content) => (0, import_node_crypto.createHash)("md5").update(`${url}|${author}|${(content || "").slice(0, 200)}`).digest("hex");
+    import_node_crypto2 = require("crypto");
+    leadFingerprint = (url, author, content) => (0, import_node_crypto2.createHash)("md5").update(`${url}|${author}|${(content || "").slice(0, 200)}`).digest("hex");
     SEARCH_TIMEOUT_REASON = "Self-hosted search engine instance was temporarily unreachable.";
     SOVEREIGN_SEARCH_URL2 = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
     SOVEREIGN_SEARCH_ENGINES = process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,yahoo";
@@ -57145,21 +57202,21 @@ async function verifyResetToken(token) {
   }
 }
 function sha2565(s2) {
-  return (0, import_node_crypto2.createHash)("sha256").update(s2).digest("hex");
+  return (0, import_node_crypto3.createHash)("sha256").update(s2).digest("hex");
 }
 function newRefreshToken() {
-  const raw2 = (0, import_node_crypto2.randomBytes)(32).toString("hex");
+  const raw2 = (0, import_node_crypto3.randomBytes)(32).toString("hex");
   return { raw: raw2, hash: sha2565(raw2) };
 }
 function refreshExpiry() {
   return new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1e3);
 }
-var import_node_crypto2, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS, VERIFY_TTL_SECONDS, RESET_TTL_SECONDS;
+var import_node_crypto3, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS, VERIFY_TTL_SECONDS, RESET_TTL_SECONDS;
 var init_auth_tokens = __esm({
   "src/lib/auth-tokens.ts"() {
     "use strict";
     init_jwt4();
-    import_node_crypto2 = require("crypto");
+    import_node_crypto3 = require("crypto");
     ACCESS_TTL_SECONDS = 15 * 60;
     REFRESH_TTL_DAYS = 30;
     ACCESS_COOKIE = "md_at";
@@ -57180,7 +57237,7 @@ function secret3() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 function sign4(payload) {
-  return b64url2((0, import_node_crypto9.createHmac)("sha256", secret3()).update(payload).digest());
+  return b64url2((0, import_node_crypto10.createHmac)("sha256", secret3()).update(payload).digest());
 }
 function mintMcpToken(workspaceId) {
   const p2 = b64url2(`mcp:${workspaceId}`);
@@ -57196,7 +57253,7 @@ function verifyMcpToken(token) {
   const expected = sign4(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto9.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto10.timingSafeEqual)(a2, b2)) return null;
   try {
     const decoded = Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
     return decoded.startsWith("mcp:") ? decoded.slice(4) || null : null;
@@ -57204,11 +57261,11 @@ function verifyMcpToken(token) {
     return null;
   }
 }
-var import_node_crypto9, b64url2;
+var import_node_crypto10, b64url2;
 var init_mcp_token = __esm({
   "src/lib/mcp-token.ts"() {
     "use strict";
-    import_node_crypto9 = require("crypto");
+    import_node_crypto10 = require("crypto");
     b64url2 = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 });
@@ -60606,8 +60663,8 @@ var MODULES = [
 var MODULE_KEYS = MODULES.map((m2) => m2.key);
 var OPTIONAL_MODULE_KEYS = MODULES.filter((m2) => m2.optional).map((m2) => m2.key);
 function enabledModules(settingsModules) {
-  const enabled = new Set(settingsModules ?? []);
-  return MODULES.filter((m2) => !m2.optional || enabled.has(m2.key));
+  const enabled2 = new Set(settingsModules ?? []);
+  return MODULES.filter((m2) => !m2.optional || enabled2.has(m2.key));
 }
 var OPTIONAL = new Set(OPTIONAL_MODULE_KEYS);
 function roleDefault(role, moduleKey) {
@@ -62708,8 +62765,8 @@ ${list}`;
         if (error) return `Error listing workflows: ${error.message}`;
         const wfs = (rows2 ?? []).map((r2) => {
           const d2 = r2.data ?? {};
-          const enabled = d2.enabled === true || d2.status === "active";
-          return { id: r2.id, name: String(d2.name ?? "Untitled workflow"), enabled };
+          const enabled2 = d2.enabled === true || d2.status === "active";
+          return { id: r2.id, name: String(d2.name ?? "Untitled workflow"), enabled: enabled2 };
         });
         if (!wfs.length) return "No workflows yet. Ask me to 'build a workflow that\u2026' to create one.";
         for (const w2 of wfs.slice(0, 8)) sources.push({ type: "workflow", title: w2.name, node_id: w2.id, object_type: "automation" });
@@ -63561,11 +63618,11 @@ router8.get("/activity", async (c2) => {
 init_client();
 
 // src/lib/pow-claims.ts
-var import_node_crypto3 = require("crypto");
+var import_node_crypto4 = require("crypto");
 init_client();
 function logPowClaim(userId, challenge, nonce, context2) {
   if (!userId || !challenge || !nonce) return;
-  const challenge_hash = (0, import_node_crypto3.createHash)("sha256").update(challenge).digest("hex");
+  const challenge_hash = (0, import_node_crypto4.createHash)("sha256").update(challenge).digest("hex");
   void supabase.from("pow_claims").insert({ user_id: userId, challenge_hash, nonce, context: context2 }).then(() => {
   }, () => {
   });
@@ -64071,14 +64128,14 @@ router12.get("/token", async (c2) => {
 
 // src/routes/auth.ts
 init_cookie2();
-var import_node_crypto6 = require("crypto");
+var import_node_crypto7 = require("crypto");
 init_client();
 
 // src/lib/password.ts
-var import_node_crypto4 = require("crypto");
+var import_node_crypto5 = require("crypto");
 function scryptAsync(password, salt, keylen, options) {
   return new Promise((resolve2, reject) => {
-    (0, import_node_crypto4.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
+    (0, import_node_crypto5.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
   });
 }
 var N2 = 32768;
@@ -64087,7 +64144,7 @@ var P2 = 1;
 var KEYLEN = 64;
 var MAXMEM = 64 * 1024 * 1024;
 async function hashPassword(plain) {
-  const salt = (0, import_node_crypto4.randomBytes)(16);
+  const salt = (0, import_node_crypto5.randomBytes)(16);
   const dk = await scryptAsync(plain, salt, KEYLEN, { N: N2, r: R2, p: P2, maxmem: MAXMEM });
   return `scrypt$${N2}$${R2}$${P2}$${salt.toString("base64")}$${dk.toString("base64")}`;
 }
@@ -64099,7 +64156,7 @@ async function verifyPassword(stored, plain) {
     const salt = Buffer.from(saltB64, "base64");
     const expected = Buffer.from(hashB64, "base64");
     const dk = await scryptAsync(plain, salt, expected.length, { N: Number(n2), r: Number(r2), p: Number(p2), maxmem: MAXMEM });
-    return dk.length === expected.length && (0, import_node_crypto4.timingSafeEqual)(dk, expected);
+    return dk.length === expected.length && (0, import_node_crypto5.timingSafeEqual)(dk, expected);
   } catch {
     return false;
   }
@@ -64193,7 +64250,7 @@ init_credits();
 
 // src/lib/pow.ts
 init_jwt4();
-var import_node_crypto5 = require("crypto");
+var import_node_crypto6 = require("crypto");
 init_factory();
 init_http_exception();
 var DIFFICULTY = "0000";
@@ -64205,7 +64262,7 @@ function secret() {
 }
 async function issuePowChallenge() {
   const now = Math.floor(Date.now() / 1e3);
-  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto5.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
+  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto6.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
   return { challenge, difficulty: DIFFICULTY.length };
 }
 async function verifyPow(challenge, nonce) {
@@ -64216,7 +64273,7 @@ async function verifyPow(challenge, nonce) {
   } catch {
     return false;
   }
-  return (0, import_node_crypto5.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
+  return (0, import_node_crypto6.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
 }
 var requirePow = createMiddleware(async (c2, next) => {
   let body = {};
@@ -64247,19 +64304,19 @@ function clientIp2(c2) {
   const fwd = c2.req.header("x-forwarded-for") ?? c2.req.header("x-real-ip") ?? "";
   return fwd.split(",")[0]?.trim() || null;
 }
-async function insertRefreshRow(userId, hash, userAgent, ip) {
+async function insertRefreshRow(userId, hash2, userAgent, ip) {
   const expires_at = refreshExpiry().toISOString();
-  const full = { user_id: userId, token_hash: hash, expires_at, user_agent: userAgent, ip_address: ip, last_active_at: (/* @__PURE__ */ new Date()).toISOString() };
+  const full = { user_id: userId, token_hash: hash2, expires_at, user_agent: userAgent, ip_address: ip, last_active_at: (/* @__PURE__ */ new Date()).toISOString() };
   let res = await supabase.from("auth_refresh_tokens").insert(full).select("id").single();
   if (res.error) {
-    res = await supabase.from("auth_refresh_tokens").insert({ user_id: userId, token_hash: hash, expires_at, user_agent: userAgent }).select("id").single();
+    res = await supabase.from("auth_refresh_tokens").insert({ user_id: userId, token_hash: hash2, expires_at, user_agent: userAgent }).select("id").single();
   }
   return res.data?.id ?? null;
 }
 async function issueSession(c2, userId, email, userAgent) {
   const access = await signAccessToken(userId, email);
-  const { raw: raw2, hash } = newRefreshToken();
-  await insertRefreshRow(userId, hash, userAgent ?? null, clientIp2(c2));
+  const { raw: raw2, hash: hash2 } = newRefreshToken();
+  await insertRefreshRow(userId, hash2, userAgent ?? null, clientIp2(c2));
   setSessionCookies(c2, access, raw2);
 }
 async function memberByEmail(email) {
@@ -64287,7 +64344,7 @@ router13.get("/challenge", async (c2) => c2.json(await issuePowChallenge()));
 router13.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
   const { email, password, name } = c2.req.valid("json");
   if (await credByEmail(email)) return c2.json({ error: "An account with this email already exists." }, 409);
-  const userId = `usr_${(0, import_node_crypto6.randomBytes)(12).toString("hex")}`;
+  const userId = `usr_${(0, import_node_crypto7.randomBytes)(12).toString("hex")}`;
   const password_hash = await hashPassword(password);
   const { error } = await supabase.from("auth_credentials").insert({ user_id: userId, email, password_hash });
   if (error) return c2.json({ error: error.message }, 400);
@@ -64641,7 +64698,7 @@ router14.post("/checkout-session", requireAdminRole, async (c2) => {
 });
 
 // src/routes/webhooks.ts
-var import_node_crypto7 = require("crypto");
+var import_node_crypto8 = require("crypto");
 init_client();
 init_notify();
 init_credits();
@@ -64686,7 +64743,7 @@ router15.post("/nylas", async (c2) => {
   const sig = c2.req.header("x-nylas-signature") ?? "";
   const secret4 = process.env.NYLAS_WEBHOOK_SECRET ?? "";
   if (secret4 && sig) {
-    const expected = (0, import_node_crypto7.createHmac)("sha256", secret4).update(rawBody).digest("hex");
+    const expected = (0, import_node_crypto8.createHmac)("sha256", secret4).update(rawBody).digest("hex");
     if (sig !== expected) return c2.json({ error: "invalid signature" }, 401);
   }
   const payload = JSON.parse(rawBody);
@@ -64720,9 +64777,9 @@ router15.post("/stripe", async (c2) => {
     const age = Math.abs(Date.now() / 1e3 - parseInt(timestamp));
     if (age > 300) return c2.json({ error: "timestamp too old" }, 400);
     const payload = `${timestamp}.${rawBody}`;
-    const expected = (0, import_node_crypto7.createHmac)("sha256", secret4).update(payload).digest("hex");
+    const expected = (0, import_node_crypto8.createHmac)("sha256", secret4).update(payload).digest("hex");
     const provided = parts["v1"] ?? "";
-    if (!(0, import_node_crypto7.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
+    if (!(0, import_node_crypto8.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
       return c2.json({ error: "invalid signature" }, 401);
     }
   }
@@ -64987,13 +65044,13 @@ init_cookie2();
 init_client();
 
 // src/lib/tracking.ts
-var import_node_crypto8 = require("crypto");
+var import_node_crypto9 = require("crypto");
 function secret2() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 var b64url = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 function sign3(payload) {
-  return b64url((0, import_node_crypto8.createHmac)("sha256", secret2()).update(payload).digest());
+  return b64url((0, import_node_crypto9.createHmac)("sha256", secret2()).update(payload).digest());
 }
 function makeTrackingToken(nodeId) {
   const p2 = b64url(nodeId);
@@ -65007,7 +65064,7 @@ function verifyTrackingToken(token) {
   const expected = sign3(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto8.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto9.timingSafeEqual)(a2, b2)) return null;
   try {
     return Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8") || null;
   } catch {
@@ -65655,8 +65712,8 @@ router17.post("/settings/integrations/api-keys", async (c2) => {
   const secret4 = `md_live_${crypto.randomUUID().replaceAll("-", "")}`;
   const bytes = new TextEncoder().encode(secret4);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
-  const hash = Array.from(new Uint8Array(digest)).map((value) => value.toString(16).padStart(2, "0")).join("");
-  const { data, error } = await supabase.from("api_keys").insert({ workspace_id: c2.get("workspaceId"), name: body.name ?? "API key", key_hash: hash, key_prefix: secret4.slice(0, 12), created_by: c2.get("userId") }).select("id, name, key_prefix, created_at").single();
+  const hash2 = Array.from(new Uint8Array(digest)).map((value) => value.toString(16).padStart(2, "0")).join("");
+  const { data, error } = await supabase.from("api_keys").insert({ workspace_id: c2.get("workspaceId"), name: body.name ?? "API key", key_hash: hash2, key_prefix: secret4.slice(0, 12), created_by: c2.get("userId") }).select("id, name, key_prefix, created_at").single();
   return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, name: data.name, prefix: data.key_prefix, secret: secret4 }, 201);
 });
 router17.delete("/settings/integrations/api-keys/:id", async (c2) => {
@@ -65888,7 +65945,7 @@ router17.patch("/settings/general", requireAuth, async (c2) => {
 });
 
 // src/routes/invites.ts
-var import_node_crypto10 = require("crypto");
+var import_node_crypto11 = require("crypto");
 init_client();
 init_mail();
 var inviteUrl = (token) => `${process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com"}/invite/${token}`;
@@ -65944,7 +66001,7 @@ router18.post("/link", requireAuth, async (c2) => {
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { data, error } = await supabase.from("workspace_invites").insert({
     workspace_id: c2.get("workspaceId"),
-    email: `link-${(0, import_node_crypto10.randomUUID)().slice(0, 8)}@invite.local`,
+    email: `link-${(0, import_node_crypto11.randomUUID)().slice(0, 8)}@invite.local`,
     // placeholder; the unique key is (workspace,email)
     role: "member",
     finance_role: "none",
@@ -69877,7 +69934,7 @@ router45.post("/", requireJwt, async (c2) => {
 });
 
 // src/routes/integrations.ts
-var import_node_crypto11 = require("crypto");
+var import_node_crypto12 = require("crypto");
 init_client();
 init_google();
 init_microsoft();
@@ -69886,7 +69943,7 @@ var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CRON_SECRE
 var b64url3 = (b2) => Buffer.from(b2).toString("base64url");
 function signState(payload) {
   const body = b64url3(JSON.stringify(payload));
-  const sig = b64url3((0, import_node_crypto11.createHmac)("sha256", stateSecret()).update(body).digest());
+  const sig = b64url3((0, import_node_crypto12.createHmac)("sha256", stateSecret()).update(body).digest());
   return `${body}.${sig}`;
 }
 function verifyState(token) {
@@ -69894,10 +69951,10 @@ function verifyState(token) {
   if (i2 <= 0) return null;
   const body = token.slice(0, i2);
   const sig = token.slice(i2 + 1);
-  const expected = b64url3((0, import_node_crypto11.createHmac)("sha256", stateSecret()).update(body).digest());
+  const expected = b64url3((0, import_node_crypto12.createHmac)("sha256", stateSecret()).update(body).digest());
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto11.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto12.timingSafeEqual)(a2, b2)) return null;
   try {
     const obj = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     if (typeof obj.exp === "number" && obj.exp < Math.floor(Date.now() / 1e3)) return null;
@@ -70184,12 +70241,16 @@ app.get("/api/cron/monitors", async (c2) => {
   if (provided !== `Bearer ${secret4}`) return c2.json({ error: "Unauthorized" }, 401);
   const { runDiscoveryMonitors: runDiscoveryMonitors2 } = await Promise.resolve().then(() => (init_social_discovery(), social_discovery_exports));
   const result = await runDiscoveryMonitors2().catch((e2) => ({ error: String(e2) }));
+  const { supabase: supabase2 } = await Promise.resolve().then(() => (init_client(), client_exports));
+  await supabase2.from("discovery_cache").delete().lt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).then(() => {
+  }, () => {
+  });
   return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), result });
 });
 app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.8.0-objreg" }));
 app.get("/api/debug-auth", async (c2) => {
-  const enabled = process.env.DEBUG_AUTH === "1" && process.env.NODE_ENV !== "production";
-  if (!enabled) return c2.json({ error: "Not found" }, 404);
+  const enabled2 = process.env.DEBUG_AUTH === "1" && process.env.NODE_ENV !== "production";
+  if (!enabled2) return c2.json({ error: "Not found" }, 404);
   const { getCookie: getCookie2 } = await Promise.resolve().then(() => (init_cookie2(), cookie_exports));
   const { verifyAccessToken: verifyAccessToken2, ACCESS_COOKIE: ACCESS_COOKIE2 } = await Promise.resolve().then(() => (init_auth_tokens(), auth_tokens_exports));
   const at2 = getCookie2(c2, ACCESS_COOKIE2);
