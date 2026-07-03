@@ -43,16 +43,42 @@ export interface ExportRow {
   created_at?: string | null;
 }
 
+/** Redact + injection-neutralize one string, with the export size cap. */
+function cleanString(v: string): string {
+  const red = neutralizeInjection(redactPII(v));
+  return red.length > MAX_EXAMPLE_CHARS ? `${red.slice(0, MAX_EXAMPLE_CHARS)}…[TRUNCATED]` : red;
+}
+
+/**
+ * Recursively redact every STRING inside a JSON value while PRESERVING structure (keys, arrays,
+ * nesting, numbers, booleans, null). This is what scrubs sensitive values buried in model_output /
+ * edited_output — nested `evidence[].title`, `recommended_action`, `candidate.email`,
+ * `contact.email`, etc. — which are exactly where contact emails/phones hide. Depth-guarded so a
+ * pathologically nested payload can't blow the stack.
+ */
+export function redactDeep(value: unknown, depth = 0): unknown {
+  if (depth > 16) return "[REDACTED_DEPTH_LIMIT]";
+  if (typeof value === "string") return cleanString(value);
+  if (Array.isArray(value)) return value.map((v) => redactDeep(v, depth + 1));
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) out[k] = redactDeep(v, depth + 1);
+    return out;
+  }
+  return value; // numbers / booleans / null pass through unchanged
+}
+
 /**
  * Sanitize ONE row for export. Returns null for empty examples (dropped), truncates oversized
- * fields, and neutralizes prompt-injection phrasing in the text fields. Redaction already ran at
- * capture time, but we re-run it here so a pre-opt-in / legacy row can't leak on export.
+ * fields, neutralizes prompt-injection, and — critically — DEEP-redacts the JSON payloads
+ * (model_output, edited_output) so PII/secrets nested in evidence/candidate/contact fields never
+ * leave the workspace. Redaction already runs at capture time; this is the last line of defense on
+ * every export (covers legacy / pre-opt-in / pre-sanitizer rows).
  */
 export function sanitizeExportRow(row: ExportRow): ExportRow | null {
   const clean = (v: string | null | undefined): string | null => {
     if (!v || !v.trim()) return null;
-    const red = neutralizeInjection(redactPII(v));
-    return red.length > MAX_EXAMPLE_CHARS ? `${red.slice(0, MAX_EXAMPLE_CHARS)}…[TRUNCATED]` : red;
+    return cleanString(v);
   };
   const system_prompt = clean(row.system_prompt);
   const user_prompt = clean(row.user_prompt);
@@ -62,9 +88,9 @@ export function sanitizeExportRow(row: ExportRow): ExportRow | null {
     agent_name: row.agent_name ?? null,
     system_prompt,
     user_prompt,
-    model_output: row.model_output ?? null,
+    model_output: row.model_output != null ? redactDeep(row.model_output) : null,
     user_action: row.user_action ?? null,
-    edited_output: row.edited_output ?? null,
+    edited_output: row.edited_output != null ? redactDeep(row.edited_output) : null,
     created_at: row.created_at ?? null,
   };
 }

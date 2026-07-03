@@ -61675,11 +61675,25 @@ function neutralizeInjection(text) {
   if (!text) return text;
   return text.replace(INJECTION_RE, (m2) => `[NEUTRALIZED_INSTRUCTION:${m2.slice(0, 24)}\u2026]`);
 }
+function cleanString(v2) {
+  const red = neutralizeInjection(redactPII(v2));
+  return red.length > MAX_EXAMPLE_CHARS ? `${red.slice(0, MAX_EXAMPLE_CHARS)}\u2026[TRUNCATED]` : red;
+}
+function redactDeep(value, depth = 0) {
+  if (depth > 16) return "[REDACTED_DEPTH_LIMIT]";
+  if (typeof value === "string") return cleanString(value);
+  if (Array.isArray(value)) return value.map((v2) => redactDeep(v2, depth + 1));
+  if (value && typeof value === "object") {
+    const out = {};
+    for (const [k2, v2] of Object.entries(value)) out[k2] = redactDeep(v2, depth + 1);
+    return out;
+  }
+  return value;
+}
 function sanitizeExportRow(row) {
   const clean2 = (v2) => {
     if (!v2 || !v2.trim()) return null;
-    const red = neutralizeInjection(redactPII(v2));
-    return red.length > MAX_EXAMPLE_CHARS ? `${red.slice(0, MAX_EXAMPLE_CHARS)}\u2026[TRUNCATED]` : red;
+    return cleanString(v2);
   };
   const system_prompt = clean2(row.system_prompt);
   const user_prompt = clean2(row.user_prompt);
@@ -61688,9 +61702,9 @@ function sanitizeExportRow(row) {
     agent_name: row.agent_name ?? null,
     system_prompt,
     user_prompt,
-    model_output: row.model_output ?? null,
+    model_output: row.model_output != null ? redactDeep(row.model_output) : null,
     user_action: row.user_action ?? null,
-    edited_output: row.edited_output ?? null,
+    edited_output: row.edited_output != null ? redactDeep(row.edited_output) : null,
     created_at: row.created_at ?? null
   };
 }
