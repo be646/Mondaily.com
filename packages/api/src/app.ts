@@ -200,7 +200,10 @@ app.get("/api/cron/monitors", async (c) => {
   return c.json({ ran: true, at: new Date().toISOString(), result });
 });
 
-app.get("/api/health", (c) => c.json({ ok: true, version: "1.8.0-objreg" }));
+// `commit` surfaces the actually-deployed git SHA (Vercel injects VERCEL_GIT_COMMIT_SHA at build
+// time) so a deploy can be VERIFIED from outside — if this doesn't match the pushed HEAD, the build
+// didn't ship. `null` locally / where the env isn't set.
+app.get("/api/health", (c) => c.json({ ok: true, version: "1.8.0-objreg", commit: process.env.VERCEL_GIT_COMMIT_SHA ?? null }));
 
 // Auth diagnostics — DEV/DEBUG ONLY. Gated behind an explicit flag so it never exposes session
 // state in production. Set DEBUG_AUTH=1 (only in a non-prod environment) to enable it; otherwise
