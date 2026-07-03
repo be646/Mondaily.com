@@ -6,15 +6,19 @@
  * Usage:
  *   MONDAILY_API=https://api.mondaily.com \
  *   MONDAILY_COOKIE='md_at=<paste from browser devtools → Application → Cookies>' \
+ *   MONDAILY_WORKSPACE='<your workspace uuid>' \
  *   node scripts/audit/live-readiness.mjs
  *
- *   # or via pnpm:  pnpm readiness:live
+ *   # or via pnpm:  MONDAILY_COOKIE='md_at=…' MONDAILY_WORKSPACE='workspace_uuid' pnpm readiness:live
  *
  * Env:
- *   MONDAILY_API     API base URL (default https://api.mondaily.com)
- *   MONDAILY_COOKIE  full Cookie header, or just the `md_at=…` value — needed for the authed
- *                    /status + /training probes. Copy it from your logged-in browser session.
- *   MONDAILY_TOKEN   alternative to the cookie: a bearer token (sent as Authorization: Bearer …)
+ *   MONDAILY_API       API base URL (default https://api.mondaily.com)
+ *   MONDAILY_COOKIE    full Cookie header, or just the `md_at=…` value — needed for the authed
+ *                      /status + /training probes. Copy it from your logged-in browser session.
+ *   MONDAILY_WORKSPACE your workspace uuid — sent as the X-Workspace-Id header that every authed
+ *                      route requires. Without it the authed probes return 400. Find it in the app
+ *                      URL or devtools (the X-Workspace-Id request header on any API call).
+ *   MONDAILY_TOKEN     alternative to the cookie: a bearer token (sent as Authorization: Bearer …)
  *
  * Exit code: 0 if no CORE pillar is in error/needs_setup, else 1 (CI-friendly).
  * Optional connectors (Google/Microsoft/Stripe/LiveKit) never fail the run — they're reported
@@ -24,6 +28,7 @@
 const API = (process.env.MONDAILY_API || "https://api.mondaily.com").replace(/\/+$/, "");
 const COOKIE = process.env.MONDAILY_COOKIE || "";
 const TOKEN = process.env.MONDAILY_TOKEN || "";
+const WORKSPACE = process.env.MONDAILY_WORKSPACE || "";
 
 // ANSI (skipped if not a TTY / NO_COLOR set)
 const useColor = process.stdout.isTTY && !process.env.NO_COLOR;
@@ -39,6 +44,8 @@ const authHeaders = () => {
   const h = { Accept: "application/json" };
   if (COOKIE) h.Cookie = COOKIE.includes("=") ? COOKIE : `md_at=${COOKIE}`;
   if (TOKEN) h.Authorization = `Bearer ${TOKEN}`;
+  // Every authed route requires the workspace context header, or it 400s before auth even runs.
+  if (WORKSPACE) h["X-Workspace-Id"] = WORKSPACE;
   return h;
 };
 
@@ -78,6 +85,9 @@ async function main() {
   if (!COOKIE && !TOKEN) {
     console.log(yellow("\n! No MONDAILY_COOKIE / MONDAILY_TOKEN set — skipping authed /status + /training probes."));
     console.log(dim("  Copy the `md_at` cookie from your logged-in browser (devtools → Application → Cookies) and re-run.\n"));
+  } else if (!WORKSPACE) {
+    console.log(yellow("\n! MONDAILY_WORKSPACE not set — authed routes require the X-Workspace-Id header and will 400 without it."));
+    console.log(dim("  Set MONDAILY_WORKSPACE to your workspace uuid (from the app URL or the X-Workspace-Id request header) and re-run.\n"));
   } else {
     console.log(bold("\nWorkspace readiness (/status)"));
     const st = await get("/api/v1/status", { auth: true });

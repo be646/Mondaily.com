@@ -59,3 +59,24 @@ Every pillar (auth, database, AI gateway, sovereign search, scraper, jobs,
 messaging, calls, Stripe, Google/Microsoft, training) reports live state with a
 plain-language "Do this" for anything not operational. Nothing is marked
 operational unless it was actually probed.
+
+### One-shot readiness script
+
+Probes public health + the authed `/status` pillars + `/training` policy in one
+command and prints pass/fail:
+
+```bash
+MONDAILY_COOKIE='md_at=...' MONDAILY_WORKSPACE='workspace_uuid' pnpm readiness:live
+```
+
+- `MONDAILY_COOKIE` — the `md_at` session cookie (devtools → Application → Cookies).
+- `MONDAILY_WORKSPACE` — your workspace uuid, sent as the `X-Workspace-Id` header
+  that every authed route requires (find it in the app URL or the `X-Workspace-Id`
+  request header on any API call). Without it the authed probes return `400`.
+- `MONDAILY_API` — defaults to `https://api.mondaily.com`.
+
+Public-only run (no cookie needed) still checks API health + AI gateway:
+
+```bash
+pnpm readiness:live
+```
