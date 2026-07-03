@@ -56220,7 +56220,12 @@ ${digest}`
   }
   let queued = 0;
   if (searchType !== "REVIEWS") {
-    const strong = dedupedRows.filter((r2) => (r2.confidence_score ?? 0) >= 70 && (r2.contact?.email || r2.contact?.phone));
+    const strong = dedupedRows.filter((r2) => priorityOf(
+      r2.confidence_score ?? 0,
+      !!(r2.contact?.email || r2.contact?.phone),
+      r2.platform,
+      icpMatch(`${r2.author_name ?? ""} ${r2.contact?.summary ?? ""} ${r2.raw_content ?? ""}`)
+    ) === "hot" && (r2.contact?.email || r2.contact?.phone));
     if (strong.length) {
       const { data: pending } = await supabase.from("decision_queue").select("evidence").eq("workspace_id", workspaceId).eq("agent_name", "discovery").eq("status", "pending");
       const seenUrls = new Set((pending ?? []).flatMap((d2) => Array.isArray(d2.evidence) ? d2.evidence.map((e2) => e2?.lead?.source_url) : []));

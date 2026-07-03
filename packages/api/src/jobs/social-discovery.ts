@@ -621,7 +621,12 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     //    the Discovery list for manual review (they don't spam the queue).
     let queued = 0;
     if (searchType !== "REVIEWS") {
-      const strong = dedupedRows.filter((r) => (r.confidence_score ?? 0) >= 70 && (r.contact?.email || r.contact?.phone));
+      // Auto-queue the HOT leads — priority already factors confidence + a real contact + being a
+      // real business + ICP fit, so the autonomous loop queues exactly the best-fit, reachable leads.
+      const strong = dedupedRows.filter((r) =>
+        priorityOf(r.confidence_score ?? 0, !!(r.contact?.email || r.contact?.phone), r.platform,
+          icpMatch(`${r.author_name ?? ""} ${r.contact?.summary ?? ""} ${r.raw_content ?? ""}`)) === "hot"
+        && (r.contact?.email || r.contact?.phone));
       if (strong.length) {
         // Dedup against already-pending discovery decisions (by source_url in their evidence).
         const { data: pending } = await supabase.from("decision_queue")
