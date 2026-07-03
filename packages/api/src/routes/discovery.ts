@@ -125,6 +125,47 @@ async function classifyQuery(workspaceId: string, query: string, deep?: boolean)
   };
 }
 
+// SEARCH COACH — a fast, cheap pre-flight that judges whether a query is specific enough to run a
+// good (expensive) sweep. Vague queries ("leads in warsaw") get a coaching message + clickable
+// suggestions instead of wasting a full search. Specific queries pass straight through.
+router.post("/coach", zValidator("json", z.object({ query: z.string().min(1).max(300) })), async (c) => {
+  const { query } = c.req.valid("json");
+  try {
+    const out = await aiGatewayToolUse({
+      toolName: "assess_search_query",
+      toolDescription: "Judge if a lead/review discovery query is specific enough, and suggest better ones",
+      toolSchema: {
+        type: "object",
+        properties: {
+          specific: { type: "boolean", description: "true if the query is specific enough to return good results as-is" },
+          coach_message: { type: "string", description: "One short friendly sentence. If specific, a brief confirmation; if not, what's missing and to pick below." },
+          suggestions: { type: "array", items: { type: "string" }, description: "3-5 concrete, ready-to-run refined queries (empty if already specific). Each must be a full query someone could run." },
+          refined_query: { type: "string", description: "The single best refined version of their query (or the original if already good)." },
+        },
+        required: ["specific", "coach_message"],
+      },
+      system:
+        "You are a search coach for a B2B discovery tool that finds business leads and customer reviews on the open web. " +
+        "Judge if the user's query is specific enough to return good results. A good LEADS query names an INDUSTRY/role and ideally a CITY (e.g. 'aesthetic clinics in Warsaw'). A good REVIEWS query names a SPECIFIC business (e.g. 'reviews about Klinika Ambroziak'). " +
+        "If the query is vague (missing industry, or just 'leads in <city>'), set specific=false and propose 4-5 concrete ready-to-run queries covering likely industries for that context, plus a refined_query. " +
+        "If it's already specific, set specific=true, suggestions=[]. Suggestions must be complete runnable queries, not fragments.",
+      prompt: query,
+      workspaceId: c.get("workspaceId"),
+      maxTokens: 300,
+    }).catch(() => ({} as Record<string, unknown>));
+    const specific = out.specific !== false; // default to letting it run if the coach fails
+    return c.json({
+      specific,
+      coach_message: typeof out.coach_message === "string" ? out.coach_message : "",
+      suggestions: Array.isArray(out.suggestions) ? (out.suggestions as unknown[]).filter((s): s is string => typeof s === "string").slice(0, 5) : [],
+      refined_query: typeof out.refined_query === "string" ? out.refined_query : query,
+    });
+  } catch {
+    // Never block a search on the coach — degrade to "specific" so the sweep runs.
+    return c.json({ specific: true, coach_message: "", suggestions: [], refined_query: query });
+  }
+});
+
 router.post("/search", zValidator("json", searchSchema), async (c) => {
   const { query, deep } = c.req.valid("json");
   const params = await classifyQuery(c.get("workspaceId"), query, deep);

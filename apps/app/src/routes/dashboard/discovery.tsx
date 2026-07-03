@@ -48,8 +48,10 @@ interface Turn {
   results: ResultRow[];
   discovered?: number;
   scanned?: number;
-  status: "streaming" | "done" | "error";
+  status: "streaming" | "done" | "error" | "coach";
   error?: string;
+  coach?: { message: string; suggestions: string[] };
+  usage?: { tokens: number; ai_calls: number; pages_skipped: number };
 }
 
 interface ListRow { id: string; name: string; object_type: string; entry_count?: number }
@@ -93,6 +95,21 @@ export function DiscoveryPage() {
 
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [turns]);
 
+  // Coach preflight: a fast, cheap check BEFORE the expensive sweep. Vague queries get a coaching
+  // turn with clickable refinements; specific queries run straight through. Never blocks (fails open).
+  async function onSubmit(q: string, force = false) {
+    const query = q.trim();
+    if (!query || busy) return;
+    setInput("");
+    if (force) { runSearch(query); return; }
+    setBusy(true);
+    let coach: { specific?: boolean; coach_message?: string; suggestions?: string[] } | null = null;
+    try { coach = await apiClient.post("/discovery/coach", { query }); } catch { coach = { specific: true }; }
+    setBusy(false);
+    if (!coach || coach.specific !== false) { runSearch(query); return; }
+    setTurns((t) => [...t, { id: uid(), query, deep, steps: [], results: [], status: "coach", coach: { message: coach!.coach_message || "That's a bit broad — pick one to get sharper results:", suggestions: (coach!.suggestions || []).slice(0, 5) } }]);
+  }
+
   async function runSearch(q: string) {
     const query = q.trim();
     if (!query || busy) return;
@@ -128,6 +145,7 @@ export function DiscoveryPage() {
           try { ev = JSON.parse(line.slice(5).trim()); } catch { continue; }
           if (ev.type === "progress" && ev.message) patch((t) => ({ ...t, steps: [...t.steps, String(ev.message)] }));
           else if (ev.type === "overview" && ev.text) patch((t) => ({ ...t, overview: String(ev.text) }));
+          else if (ev.type === "usage") patch((t) => ({ ...t, usage: { tokens: Number(ev.tokens ?? 0), ai_calls: Number(ev.ai_calls ?? 0), pages_skipped: Number(ev.pages_skipped ?? 0) } }));
           else if (ev.type === "error") patch((t) => ({ ...t, status: "error", error: String(ev.error || "Search failed") }));
           else if (ev.type === "results") {
             // Results are streamed BEFORE the overview/done, so they render even if the tail is cut short.
@@ -212,10 +230,10 @@ export function DiscoveryPage() {
           {/* conversation */}
           <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto pb-4">
             {turns.length === 0 ? (
-              <Empty onPick={runSearch} />
+              <Empty onPick={onSubmit} />
             ) : (
               <div className="space-y-6">
-                {turns.map((t) => <TurnView key={t.id} turn={t} lists={listsQ.data ?? []} />)}
+                {turns.map((t) => <TurnView key={t.id} turn={t} lists={listsQ.data ?? []} onRun={onSubmit} />)}
               </div>
             )}
           </div>
@@ -226,7 +244,7 @@ export function DiscoveryPage() {
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); runSearch(input); } }}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSubmit(input); } }}
                 rows={1}
                 placeholder="Find leads or reviews — e.g. “aesthetic clinics in London” or “reviews about Acme Corp”"
                 className="max-h-32 w-full resize-none bg-transparent text-[14px] outline-none"
@@ -238,7 +256,7 @@ export function DiscoveryPage() {
                   style={{ borderColor: deep ? "var(--section-accent)" : "var(--border-soft)", color: deep ? "var(--section-accent)" : "var(--text-muted)" }}>
                   <Sparkles size={12} /> Deep mode {deep ? "on" : "off"}
                 </button>
-                <button onClick={() => runSearch(input)} disabled={!input.trim() || busy}
+                <button onClick={() => onSubmit(input)} disabled={!input.trim() || busy}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white transition-opacity disabled:opacity-40" style={{ background: "var(--section-accent)" }}>
                   {busy ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={16} />}
                 </button>
@@ -289,7 +307,7 @@ function Empty({ onPick }: { onPick: (q: string) => void }) {
   );
 }
 
-function TurnView({ turn, lists }: { turn: Turn; lists: ListRow[] }) {
+function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun: (q: string, force?: boolean) => void }) {
   const reviews = turn.kind === "REVIEWS";
   return (
     <div>
@@ -301,7 +319,24 @@ function TurnView({ turn, lists }: { turn: Turn; lists: ListRow[] }) {
         </div>
       </div>
 
+      {/* Coach turn — vague query: guide instead of running a poor sweep. */}
+      {turn.status === "coach" && turn.coach && (
+        <div className="mt-3">
+          <div className="flex items-start gap-2 rounded-lg border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
+            <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{turn.coach.message}</p>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {turn.coach.suggestions.map((s) => (
+              <button key={s} onClick={() => onRun(s)} className="rounded-full border px-2.5 py-1 text-[12px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{s}</button>
+            ))}
+            <button onClick={() => onRun(turn.query, true)} className="rounded-full px-2.5 py-1 text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Search “{turn.query}” anyway →</button>
+          </div>
+        </div>
+      )}
+
       {/* assistant response */}
+      {turn.status !== "coach" && (
       <div className="mt-3">
         <StepTrace steps={turn.steps} status={turn.status} />
 
@@ -339,7 +374,39 @@ function TurnView({ turn, lists }: { turn: Turn; lists: ListRow[] }) {
         ) : turn.status === "done" && !turn.error ? (
           <p className="mt-2 text-[12.5px]" style={{ color: "var(--text-faint)" }}>No on-topic {reviews ? "reviews" : "leads"} found in the pages read. Try a clearer name or sector.</p>
         ) : null}
+
+        {/* Next-move suggestions after a completed search. */}
+        {turn.status === "done" && <NextMoves turn={turn} onRun={onRun} />}
+
+        {/* Per-search cost — real tokens + AI calls, with pages the pre-filter saved. */}
+        {turn.usage && turn.usage.tokens > 0 && (
+          <p className="mt-2 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+            ~{turn.usage.tokens.toLocaleString()} credits · {turn.usage.ai_calls} AI calls{turn.usage.pages_skipped > 0 ? ` · saved ${turn.usage.pages_skipped} page${turn.usage.pages_skipped === 1 ? "" : "s"}` : ""}
+          </p>
+        )}
       </div>
+      )}
+    </div>
+  );
+}
+
+/** Heuristic "what next" chips after a search — client-side, no extra AI call. */
+function NextMoves({ turn, onRun }: { turn: Turn; onRun: (q: string, force?: boolean) => void }) {
+  const chips: string[] = [];
+  const reviews = turn.kind === "REVIEWS";
+  const thin = turn.results.length > 0 && turn.results.length < 10;
+  if (!reviews && turn.results[0]) {
+    const top = turn.results[0].author_name;
+    if (top && top !== "Anonymous" && !top.startsWith("u/")) chips.push(`reviews about ${top}`);
+  }
+  if (thin) chips.push(`${turn.query} — deep`);
+  if (!chips.length) return null;
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+      <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Next:</span>
+      {chips.map((c) => (
+        <button key={c} onClick={() => onRun(c)} className="rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{c}</button>
+      ))}
     </div>
   );
 }

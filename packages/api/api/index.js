@@ -55812,12 +55812,28 @@ async function runSocialDiscovery(data, onProgress) {
   const deepScrape = searchType === "REVIEWS" || !!deep;
   const scraped = await Promise.all(toScrape.map((h2) => sovereignScrape(h2.url, { deep: deepScrape }).catch(() => "")));
   const pageTextCap = deepScrape ? 36e3 : 6e3;
-  const pages = unique.map((h2, i2) => ({
+  const allPages = unique.map((h2, i2) => ({
     url: h2.url,
     title: h2.title,
     text: (i2 < SCRAPE_TOP && scraped[i2] ? scraped[i2] : h2.content).slice(0, pageTextCap)
   })).filter((p2) => p2.text.trim().length > 60);
-  await emit({ type: "progress", stage: "extract", message: `Analyzing ${pages.length} pages with the agent\u2026` });
+  const subjectTokens = `${sector ?? ""} ${targetSubject ?? ""}`.toLowerCase().split(/\s+/).filter((w2) => w2.length > 3);
+  const REVIEW_SIGNAL = /(review|opinion|opini|rating|star|gwiazd|testimonial|recommend|polec|complaint|skarga|verified|customer|avis|bewert|reseñ|recension)/i;
+  const LEAD_SIGNAL = /(@|e-?mail|contact|kontakt|phone|tel[:.]|call|linkedin|company|founder|ceo|director|manager|owner|clinic|klinik|office)/i;
+  const hasSignal = (text) => {
+    const t2 = text.toLowerCase();
+    if (subjectTokens.some((w2) => t2.includes(w2))) return true;
+    return (searchType === "REVIEWS" ? REVIEW_SIGNAL : LEAD_SIGNAL).test(text);
+  };
+  const signalPages = allPages.filter((p2) => hasSignal(p2.text));
+  const pages = signalPages.length >= Math.min(4, allPages.length) ? signalPages : allPages;
+  const skipped = allPages.length - pages.length;
+  let usedTokens = 0, aiCalls = 0;
+  const meter = (u2) => {
+    usedTokens += u2.total_tokens;
+    aiCalls++;
+  };
+  await emit({ type: "progress", stage: "extract", message: `Analyzing ${pages.length} pages with the agent${skipped > 0 ? ` (skipped ${skipped} with no signal)` : ""}\u2026` });
   const wantReviews = searchType === "REVIEWS";
   const perPageSchema = {
     type: "object",
@@ -55854,6 +55870,10 @@ async function runSocialDiscovery(data, onProgress) {
         toolName: "extract_from_page",
         toolDescription: "Extract real leads/reviews from one web page",
         toolSchema: perPageSchema,
+        workspaceId,
+        // meter to ai_usage / credit wallet
+        onUsage: meter,
+        // + accumulate for this search's cost display
         maxTokens: wantReviews ? 6e3 : 1600,
         system: `You extract REAL ${wantReviews ? "reviews and opinions" : "leads and prospects"} from a single web page. ABSOLUTE RULES: only report what is literally on the page \u2014 never invent names, emails, phones, or review text. Contact details ONLY when they appear verbatim. ${region ? `Region "${region}" is a preference, not a hard filter \u2014 keep unclear-region results at lower confidence.` : ""} Return an empty array if the page genuinely has nothing on-topic. Do not pad.`,
         prompt: `${ask}
@@ -56142,7 +56162,9 @@ ${digest}`,
     }).catch(() => {
     });
   }
-  return { discovered: dedupedRows.length, scanned: unique.length, queued, overview, kind: searchType, results, diag };
+  const usage = { tokens: usedTokens, ai_calls: aiCalls, pages_skipped: skipped };
+  await emit({ type: "usage", ...usage });
+  return { discovered: dedupedRows.length, scanned: unique.length, queued, overview, kind: searchType, results, usage, diag };
 }
 async function runDiscoveryMonitors() {
   const { data: monitors } = await supabase.from("nodes").select("id, workspace_id, data").eq("object_type", "discovery_monitor");
@@ -69625,6 +69647,38 @@ async function classifyQuery(workspaceId, query, deep) {
     deep
   };
 }
+router44.post("/coach", zValidator("json", external_exports.object({ query: external_exports.string().min(1).max(300) })), async (c2) => {
+  const { query } = c2.req.valid("json");
+  try {
+    const out = await aiGatewayToolUse({
+      toolName: "assess_search_query",
+      toolDescription: "Judge if a lead/review discovery query is specific enough, and suggest better ones",
+      toolSchema: {
+        type: "object",
+        properties: {
+          specific: { type: "boolean", description: "true if the query is specific enough to return good results as-is" },
+          coach_message: { type: "string", description: "One short friendly sentence. If specific, a brief confirmation; if not, what's missing and to pick below." },
+          suggestions: { type: "array", items: { type: "string" }, description: "3-5 concrete, ready-to-run refined queries (empty if already specific). Each must be a full query someone could run." },
+          refined_query: { type: "string", description: "The single best refined version of their query (or the original if already good)." }
+        },
+        required: ["specific", "coach_message"]
+      },
+      system: "You are a search coach for a B2B discovery tool that finds business leads and customer reviews on the open web. Judge if the user's query is specific enough to return good results. A good LEADS query names an INDUSTRY/role and ideally a CITY (e.g. 'aesthetic clinics in Warsaw'). A good REVIEWS query names a SPECIFIC business (e.g. 'reviews about Klinika Ambroziak'). If the query is vague (missing industry, or just 'leads in <city>'), set specific=false and propose 4-5 concrete ready-to-run queries covering likely industries for that context, plus a refined_query. If it's already specific, set specific=true, suggestions=[]. Suggestions must be complete runnable queries, not fragments.",
+      prompt: query,
+      workspaceId: c2.get("workspaceId"),
+      maxTokens: 300
+    }).catch(() => ({}));
+    const specific = out.specific !== false;
+    return c2.json({
+      specific,
+      coach_message: typeof out.coach_message === "string" ? out.coach_message : "",
+      suggestions: Array.isArray(out.suggestions) ? out.suggestions.filter((s2) => typeof s2 === "string").slice(0, 5) : [],
+      refined_query: typeof out.refined_query === "string" ? out.refined_query : query
+    });
+  } catch {
+    return c2.json({ specific: true, coach_message: "", suggestions: [], refined_query: query });
+  }
+});
 router44.post("/search", zValidator("json", searchSchema), async (c2) => {
   const { query, deep } = c2.req.valid("json");
   const params = await classifyQuery(c2.get("workspaceId"), query, deep);

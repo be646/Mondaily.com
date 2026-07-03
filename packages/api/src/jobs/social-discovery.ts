@@ -206,12 +206,33 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     const deepScrape = searchType === "REVIEWS" || !!deep;
     const scraped = await Promise.all(toScrape.map((h) => sovereignScrape(h.url, { deep: deepScrape }).catch(() => "")));
     const pageTextCap = deepScrape ? 36_000 : 6_000; // feeds up to 3 multi-pass extraction chunks
-    const pages = unique.map((h, i) => ({
+    const allPages = unique.map((h, i) => ({
       url: h.url,
       title: h.title,
       text: (i < SCRAPE_TOP && scraped[i] ? scraped[i]! : h.content).slice(0, pageTextCap),
     })).filter((p) => p.text.trim().length > 60); // nothing meaningful to extract from
-    await emit({ type: "progress", stage: "extract", message: `Analyzing ${pages.length} pages with the agent…` });
+
+    // PRE-FILTER (token saver): only spend an AI extraction call on a page that plausibly contains
+    // what we're after. Pages with zero on-topic signal are skipped — they had nothing anyway, so
+    // this cuts AI calls with no quality loss. Fall back to all pages if the filter is too strict.
+    const subjectTokens = `${sector ?? ""} ${targetSubject ?? ""}`.toLowerCase().split(/\s+/).filter((w) => w.length > 3);
+    const REVIEW_SIGNAL = /(review|opinion|opini|rating|star|gwiazd|testimonial|recommend|polec|complaint|skarga|verified|customer|avis|bewert|reseñ|recension)/i;
+    const LEAD_SIGNAL = /(@|e-?mail|contact|kontakt|phone|tel[:.]|call|linkedin|company|founder|ceo|director|manager|owner|clinic|klinik|office)/i;
+    const hasSignal = (text: string) => {
+      const t = text.toLowerCase();
+      if (subjectTokens.some((w) => t.includes(w))) return true;
+      return (searchType === "REVIEWS" ? REVIEW_SIGNAL : LEAD_SIGNAL).test(text);
+    };
+    const signalPages = allPages.filter((p) => hasSignal(p.text));
+    const pages = signalPages.length >= Math.min(4, allPages.length) ? signalPages : allPages;
+    const skipped = allPages.length - pages.length;
+
+    // Per-search usage meter — accumulate real provider tokens across every AI call this run so the
+    // UI can show cost and it's recorded to ai_usage/credits (Discovery was previously un-metered).
+    let usedTokens = 0, aiCalls = 0;
+    const meter = (u: { total_tokens: number }) => { usedTokens += u.total_tokens; aiCalls++; };
+
+    await emit({ type: "progress", stage: "extract", message: `Analyzing ${pages.length} pages with the agent${skipped > 0 ? ` (skipped ${skipped} with no signal)` : ""}…` });
 
     const wantReviews = searchType === "REVIEWS";
     const perPageSchema: GatewayToolRequest["toolSchema"] = {
@@ -253,6 +274,8 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
           toolName: "extract_from_page",
           toolDescription: "Extract real leads/reviews from one web page",
           toolSchema: perPageSchema,
+          workspaceId,          // meter to ai_usage / credit wallet
+          onUsage: meter,       // + accumulate for this search's cost display
           maxTokens: wantReviews ? 6000 : 1600,
           system:
             `You extract REAL ${wantReviews ? "reviews and opinions" : "leads and prospects"} from a single web page. ` +
@@ -583,7 +606,11 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
       }).catch(() => {});
     }
 
-    return { discovered: dedupedRows.length, scanned: unique.length, queued, overview, kind: searchType, results, diag };
+    // Per-search cost telemetry — real tokens spent + AI calls + pages saved by the pre-filter.
+    const usage = { tokens: usedTokens, ai_calls: aiCalls, pages_skipped: skipped };
+    await emit({ type: "usage", ...usage });
+
+    return { discovered: dedupedRows.length, scanned: unique.length, queued, overview, kind: searchType, results, usage, diag };
 }
 
 /**
