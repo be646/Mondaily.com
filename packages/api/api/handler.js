@@ -69962,6 +69962,18 @@ router45.post("/lead-decision", denyViewerWrites, zValidator("json", external_ex
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json(data, 201);
 });
+router45.post("/assign-owner", denyViewerWrites, zValidator("json", external_exports.object({
+  node_id: external_exports.string().uuid(),
+  owner_id: external_exports.string().max(120).nullable()
+})), async (c2) => {
+  const workspaceId = c2.get("workspaceId");
+  const { node_id, owner_id } = c2.req.valid("json");
+  const { data: node } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).eq("id", node_id).maybeSingle();
+  if (!node) return c2.json({ error: "Record not found" }, 404);
+  const nextData = { ...node.data ?? {}, owner_id: owner_id ?? null };
+  const { error } = await supabase.from("nodes").update({ data: nextData }).eq("workspace_id", workspaceId).eq("id", node_id);
+  return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true, owner_id });
+});
 var bulkLeadSchema = external_exports.object({
   name: external_exports.string().min(1).max(200),
   node_id: external_exports.string().uuid().optional(),
@@ -70382,7 +70394,7 @@ app.get("/api/cron/monitors", async (c2) => {
   }
   return c2.json({ ran: true, at: (/* @__PURE__ */ new Date()).toISOString(), result });
 });
-app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.8.0-objreg" }));
+app.get("/api/health", (c2) => c2.json({ ok: true, version: "1.8.0-objreg", commit: process.env.VERCEL_GIT_COMMIT_SHA ?? null }));
 app.get("/api/debug-auth", async (c2) => {
   const enabled2 = process.env.DEBUG_AUTH === "1" && process.env.NODE_ENV !== "production";
   if (!enabled2) return c2.json({ error: "Not found" }, 404);

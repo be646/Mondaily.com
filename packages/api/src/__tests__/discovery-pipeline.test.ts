@@ -102,6 +102,12 @@ describe("bulk task/decision endpoints — per-lead status + isolation (source-r
     expect(src).toMatch(/router\.post\("\/bulk-decision"/);
     expect(src).toMatch(/buildLeadDecision\(\{ workspaceId, name: b\.name/);
   });
+  it("assign-owner updates a saved node's owner, workspace-scoped", () => {
+    expect(src).toMatch(/router\.post\("\/assign-owner"/);
+    expect(src).toMatch(/from\("nodes"\)\.select\("id, data"\)\.eq\("workspace_id", workspaceId\)\.eq\("id", node_id\)/);
+    expect(src).toMatch(/\.update\(\{ data: nextData \}\)\.eq\("workspace_id", workspaceId\)\.eq\("id", node_id\)/);
+    expect(src).toMatch(/owner_id: owner_id \?\? null/);
+  });
   it("bulk endpoints are workspace-scoped (workspaceId from context, not client)", () => {
     // Both pull workspaceId from c.get, never from the request body.
     const bulk = src.slice(src.indexOf('router.post("/bulk-task"'));

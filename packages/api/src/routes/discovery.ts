@@ -617,6 +617,20 @@ router.post("/lead-decision", denyViewerWrites, zValidator("json", z.object({
   return c.json(data, 201);
 });
 
+// ── Assign owner : set data.owner_id on a saved graph record (workspace-scoped). Used by the
+//    detail drawer to (re)assign a reviewer to an already-saved lead. ──
+router.post("/assign-owner", denyViewerWrites, zValidator("json", z.object({
+  node_id: z.string().uuid(), owner_id: z.string().max(120).nullable(),
+})), async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const { node_id, owner_id } = c.req.valid("json");
+  const { data: node } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).eq("id", node_id).maybeSingle();
+  if (!node) return c.json({ error: "Record not found" }, 404);
+  const nextData = { ...((node.data ?? {}) as Record<string, unknown>), owner_id: owner_id ?? null };
+  const { error } = await supabase.from("nodes").update({ data: nextData }).eq("workspace_id", workspaceId).eq("id", node_id);
+  return error ? c.json({ error: error.message }, 400) : c.json({ ok: true, owner_id });
+});
+
 // ── Bulk lead → tasks : create a follow-up task per selected lead, with PER-LEAD status so a
 //    partial failure is reported honestly (never a blanket "success"). ──
 const bulkLeadSchema = z.object({

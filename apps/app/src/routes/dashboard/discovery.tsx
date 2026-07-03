@@ -642,6 +642,17 @@ interface Enrichment { dossier?: Dossier; emails: string[]; phones: string[]; pe
 // Per-lead pipeline state — reflected as status chips (all real; set only after a real action).
 interface LeadStatus { saved?: boolean; existed?: boolean; listed?: boolean; tasked?: boolean; queued?: boolean; node_id?: string; owner?: string }
 interface Member { user_id: string; name?: string | null; email?: string | null }
+// "Why this lead matched" — honest signals derived ONLY from real row fields (never fabricated).
+function matchReasons(r: ResultRow): string[] {
+  const out: string[] = [];
+  if (r.priority) out.push(`${PRIORITY[r.priority].label.toLowerCase()} priority`);
+  if (r.confidence_score > 0) out.push(`${r.confidence_score}% match`);
+  if (r.email || r.phone) out.push("has contact");
+  else out.push("no contact yet");
+  if (r.region) out.push(r.region);
+  return out;
+}
+
 // Map a display row → the save/batch lead payload (one place, reused by single + bulk).
 function toLeadPayload(r: ResultRow, query: string) {
   return {
@@ -822,6 +833,16 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
   const task = useMutation({ mutationFn: () => apiClient.post("/discovery/lead-task", { name, node_id: status?.node_id, source_url: r.source_url }), onSuccess: () => onStatus({ tasked: true }) });
   const decision = useMutation({ mutationFn: () => apiClient.post("/discovery/lead-decision", { name, node_id: status?.node_id, summary: r.snippet || undefined, email: r.email ?? undefined, phone: r.phone ?? undefined, source_url: r.source_url }), onSuccess: () => onStatus({ queued: true }) });
   const addList = useMutation({ mutationFn: (listId: string) => apiClient.post(`/lists/${listId}/entries`, { node_id: status?.node_id }), onSuccess: () => onStatus({ listed: true }) });
+  // Assign owner — updates a saved node's owner, or saves-with-owner if not saved yet.
+  const assign = useMutation({
+    mutationFn: async (ownerId: string) => {
+      if (status?.node_id) { await apiClient.post("/discovery/assign-owner", { node_id: status.node_id, owner_id: ownerId }); return; }
+      const d = await apiClient.post<{ id: string; existed?: boolean }>("/discovery/save", { ...p, owner_id: ownerId });
+      onStatus({ saved: !d.existed, existed: d.existed, node_id: d.id });
+    },
+    onSuccess: (_r, ownerId) => { onStatus({ owner: ownerId }); qc.invalidateQueries({ queryKey: ["nodes"] }); },
+  });
+  const askPrompt = `Assess this discovered lead as a prospect, using ONLY this info — name: ${name}; site: ${hostOf(r.source_url)}; what it is: ${r.snippet || "(no summary)"}; contact: ${r.email || r.phone || "none found"}. Source: ${r.source_url}. Say if it's worth pursuing and why, and do not invent details.`;
   return (
     <>
       <div className="fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.35)" }} onClick={onClose} />
@@ -835,6 +856,7 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
           <PipelineChips st={{ ...(status ?? {}) }} />
+          <div className="mt-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Why it matched: {matchReasons(r).join(" · ")}</div>
           {r.snippet && <p className="mt-2 text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{r.snippet}</p>}
           {enrich.isLoading ? <div className="mt-3 flex items-center gap-2 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Building dossier…</div>
             : enrich.data?.dossier ? <DossierPanel d={enrich.data.dossier} />
@@ -843,11 +865,17 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
         <div className="flex flex-wrap gap-1.5 border-t px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
           {(status?.saved || status?.existed) ? <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: status.existed ? "var(--text-muted)" : "#15803d", background: status.existed ? "var(--surface-hover)" : "#15803d14" }}><Check size={11} /> {status.existed ? "In graph" : "Saved"}</span>
             : <button onClick={() => save.mutate()} disabled={save.isPending} className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>{save.isPending ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Save</button>}
-          {status?.node_id && lists.length > 0 && (
-            <select onChange={(e) => e.target.value && addList.mutate(e.target.value)} className="key-input h-7 rounded-full px-2 text-[11px]" style={{ maxWidth: 130 }} defaultValue=""><option value="">Add to list…</option>{lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
+          {lists.length > 0 && (
+            <select onChange={(e) => e.target.value && addList.mutate(e.target.value)} disabled={!status?.node_id} title={status?.node_id ? "" : "Save the lead first"} className="key-input h-7 rounded-full px-2 text-[11px] disabled:opacity-50" style={{ maxWidth: 120 }} defaultValue=""><option value="">Add to list…</option>{lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
+          )}
+          {members.length > 0 && (
+            <select value={status?.owner ?? ""} onChange={(e) => e.target.value && assign.mutate(e.target.value)} className="key-input h-7 rounded-full px-2 text-[11px]" style={{ maxWidth: 130 }}>
+              <option value="">Assign owner…</option>{members.map((m) => <option key={m.user_id} value={m.user_id}>{m.name || m.email || m.user_id}</option>)}
+            </select>
           )}
           <button onClick={() => task.mutate()} disabled={task.isPending} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{task.isPending ? <Loader2 size={11} className="animate-spin" /> : <CheckSquare size={11} />} Task</button>
           <button onClick={() => decision.mutate()} disabled={decision.isPending} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{decision.isPending ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />} Decision</button>
+          <button onClick={() => { requestAsk(askPrompt); onClose(); }} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><MessageSquare size={11} /> Ask AI</button>
         </div>
       </div>
     </>
@@ -927,6 +955,7 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
             {r.phone && <span>☎ <span style={{ color: "var(--text-secondary)" }}>{r.phone}</span></span>}
             {r.handle && <span style={{ color: "var(--text-secondary)" }}>{r.handle}</span>}
           </div>
+          <div className="mt-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Why matched: {matchReasons(r).join(" · ")}</div>
         </div>
         {onDetails && (
           <button onClick={onDetails} className="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Details</button>
