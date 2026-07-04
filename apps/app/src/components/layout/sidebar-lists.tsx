@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
+import { useLanguage } from "../../hooks/useLanguage";
 import { apiClient } from "../../lib/api-client";
 
 interface ListItem {
@@ -47,6 +48,7 @@ export function SidebarLists() {
 
   // AI form
   const { data: wsSuggestions } = useWorkspaceSuggestions();   // profile-aware list examples
+  const { t } = useLanguage();
   const listExamples = wsSuggestions?.list_examples ?? [];
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
@@ -347,7 +349,7 @@ export function SidebarLists() {
                 {aiError && <p className="text-[11px] text-stone-400">{aiError}</p>}
                 <button onClick={createWithAI} disabled={aiLoading || !aiPrompt.trim()}
                   className="flex w-full items-center justify-center gap-2 rounded-sm bg-stone-600 py-2 text-xs font-semibold text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-500 transition-colors">
-                  {aiLoading ? <><Loader2 size={13} className="animate-spin" /> Creating list…</> : <><AIMark size={13}/> Create</>}
+                  {aiLoading ? <><Loader2 size={13} className="animate-spin" /> Creating list…</> : <><AIMark size={13}/> {t("common.create")}</>}
                 </button>
               </div>
             )}

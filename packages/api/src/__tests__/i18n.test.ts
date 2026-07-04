@@ -213,6 +213,54 @@ describe("PHASE 3 — route/path safety: translation keys are never route paths"
   });
 });
 
+describe("PHASE 4 — page body keys resolve in all 12 languages", () => {
+  const PAGE_KEYS = TRANSLATION_KEYS.filter(k =>
+    k.startsWith("tasks.") || k.startsWith("notifications.") || k.startsWith("decisions.") ||
+    k.startsWith("agents.") || k.startsWith("home."));
+  it("every tasks/notifications/decisions/agents/home key is translated in all 12 languages", () => {
+    expect(PAGE_KEYS.length).toBeGreaterThan(8);
+    for (const key of PAGE_KEYS) {
+      for (const l of SUPPORTED_LANGUAGES) {
+        const v = t(l.code, key);
+        expect(v, `${key}/${l.code}`).not.toBe(key);
+        expect(v.length).toBeGreaterThan(0);
+      }
+    }
+  });
+  it("missing page key still falls back to English (never blank)", () => {
+    expect(t("ar", "tasks.does_not_exist")).toBe("tasks.does_not_exist");
+    expect(t("klingon", "tasks.new")).toBe(t("en", "tasks.new"));
+  });
+});
+
+describe("PHASE 4 — page wiring uses t(); route paths + handlers untouched", () => {
+  const read = (p: string) => readFileSync(fileURLToPath(new URL(`../../../../apps/app/src/routes/dashboard/${p}`, import.meta.url)), "utf8");
+  it("Tasks: labels via t(), API path + handlers unchanged", () => {
+    const src = read("tasks.tsx");
+    expect(src).toMatch(/t\("tasks\.new"\)/);
+    expect(src).toMatch(/t\("tasks\.filter\.mine"\)/);
+    expect(src).toMatch(/t\("tasks\.empty"\)/);
+    expect(src).toMatch(/apiClient\.get<Task\[\]>\(`\/tasks/);   // API route literal intact
+    expect(src).toMatch(/apiClient\.post\("\/tasks"/);           // create handler intact
+  });
+  it("Notifications: labels via t(), poll + routes intact", () => {
+    const src = read("notifications.tsx");
+    expect(src).toMatch(/t\("notifications\.mark_all"\)/);
+    expect(src).toMatch(/t\("nav\.notifications"\)/);
+    expect(src).toMatch(/apiClient\.get<Notification\[\]>\("\/notifications"\)/);
+  });
+  it("Activity + Decisions: labels via t(), no route/path translated", () => {
+    expect(read("activity.tsx")).toMatch(/t\("agents\.subtitle"\)/);
+    const dec = read("decisions.tsx");
+    expect(dec).toMatch(/t\("decisions\.approve_safe"\)/);
+    // approve/reject/snooze semantics are still the untranslated backend action strings
+    expect(dec).toMatch(/"approve" \| "reject" \| "snooze"/);
+  });
+  it("no translation key is a route path (page keys included)", () => {
+    for (const k of TRANSLATION_KEYS) expect(k.startsWith("/")).toBe(false);
+  });
+});
+
 describe("wiring guards — language flows through the app", () => {
   const read = (p: string) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), "utf8");
   it("Ask backend appends the language instruction, resolving user pref → profile → en", () => {

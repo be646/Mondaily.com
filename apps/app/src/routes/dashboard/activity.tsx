@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Loader2, RefreshCw, ChevronDown, Play, RotateCcw, ArrowUpRight, ArrowRight, ShieldCheck } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { agentByRaw, AGENTS } from "../../lib/agents";
+import { useLanguage } from "../../hooks/useLanguage";
 import { useAgentJobsRealtime } from "../../hooks/useAgentJobsRealtime";
 import { useAgentData, CONSTELLATION_STATE_LABEL, type ConstellationState } from "../../components/ai/agent-dock";
 import { useDecisionQueue } from "../../components/ai/decision-queue";
@@ -120,6 +121,7 @@ function StatusDot({ color }: { color: string }) {
 }
 
 export function AgentActivityPage() {
+  const { t } = useLanguage();
   const [agentFilter, setAgentFilter] = useState<string | null>(null); // by LABEL
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -202,7 +204,7 @@ export function AgentActivityPage() {
       {/* ── 2. Agent roster (GET /agents) ── */}
       <section className="mb-8">
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Agents</h2>
+          <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("nav.agents")}</h2>
           <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{constellation.length} in this workspace</span>
         </div>
         <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
@@ -256,7 +258,7 @@ export function AgentActivityPage() {
           <div className="text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}>
             {pendingCount > 0 ? `${pendingCount} awaiting your approval` : "Nothing awaiting approval"}
           </div>
-          <div className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>Agents prepare, you approve — every action is queued for your sign-off in the Decision Deck.</div>
+          <div className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>{t("agents.subtitle")}</div>
         </div>
         <ArrowRight size={15} className="shrink-0" style={{ color: pendingCount > 0 ? "var(--section-accent)" : "var(--text-faint)" }} />
       </Link>

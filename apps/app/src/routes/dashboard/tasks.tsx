@@ -10,6 +10,7 @@ import { useIsViewer } from "../../hooks/useModules";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { apiClient } from "../../lib/api-client";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
+import { useLanguage } from "../../hooks/useLanguage";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
 interface Task {
@@ -386,6 +387,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
 // ── Main page ─────────────────────────────────────────────────────────────────
 export function TasksPage() {
   const qc = useQueryClient();
+  const { t } = useLanguage();
   const me = useCurrentUser();
   const isViewer = useIsViewer();   // read-only member — gate write controls (backend also enforces)
   const location = useLocation();
@@ -551,7 +553,7 @@ export function TasksPage() {
               </button>
               <button onClick={() => setShowCreate(true)}
                 className="flex items-center gap-1.5 rounded-sm bg-stone-600 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
-                <Plus size={13}/> New Task
+                <Plus size={13}/> {t("tasks.new")}
               </button>
             </>
           )}
@@ -564,10 +566,10 @@ export function TasksPage() {
         {/* Status */}
         <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
           {([
-            { key: "mine",    label: "Mine" },
-            { key: "all",     label: "All" },
-            { key: "overdue", label: "Overdue", badge: overdueTasks.length },
-            { key: "review",  label: "Review" },
+            { key: "mine",    label: t("tasks.filter.mine") },
+            { key: "all",     label: t("tasks.filter.all") },
+            { key: "overdue", label: t("tasks.filter.overdue"), badge: overdueTasks.length },
+            { key: "review",  label: t("tasks.filter.review") },
           ]).map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
               className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
@@ -668,7 +670,7 @@ export function TasksPage() {
       {/* ── LIST VIEW ── */}
       {viewMode === "list" && (
         query.isLoading ? <PageSkeleton label="Loading tasks…"/> : query.isError ? <ErrorState error={query.error as Error} onRetry={() => query.refetch()}/> : tasks.length === 0 ? (
-          <EmptyState icon={Check} title="No tasks" description="You're all caught up."/>
+          <EmptyState icon={Check} title={t("tasks.empty")} description={t("tasks.caught_up")}/>
         ) : (
           <div className="space-y-1.5">
             {tasks.map(task => {
@@ -778,7 +780,7 @@ export function TasksPage() {
       {/* ── SHEET VIEW ── */}
       {viewMode === "sheet" && (
         query.isLoading ? <PageSkeleton label="Loading tasks…"/> : allTasks.length === 0 ? (
-          <EmptyState icon={Check} title="No tasks" description="You're all caught up."/>
+          <EmptyState icon={Check} title={t("tasks.empty")} description={t("tasks.caught_up")}/>
         ) : (
           <>
             <div className="flex justify-end mb-3">

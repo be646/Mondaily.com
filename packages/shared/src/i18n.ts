@@ -402,6 +402,28 @@ const TRANSLATIONS: Translations = {
   "landing.footer.legal":    { en: "Legal", pl: "Prawne", ru: "Правовое", uk: "Правове", ar: "قانوني", fr: "Mentions légales", de: "Rechtliches", es: "Legal", pt: "Jurídico", it: "Legale", tr: "Yasal", nl: "Juridisch" },
   "landing.footer.contact":  { en: "Contact", pl: "Kontakt", ru: "Контакты", uk: "Контакти", ar: "اتصل بنا", fr: "Contact", de: "Kontakt", es: "Contacto", pt: "Contato", it: "Contatti", tr: "İletişim", nl: "Contact" },
   "landing.rights":          { en: "All rights reserved.", pl: "Wszelkie prawa zastrzeżone.", ru: "Все права защищены.", uk: "Усі права захищені.", ar: "جميع الحقوق محفوظة.", fr: "Tous droits réservés.", de: "Alle Rechte vorbehalten.", es: "Todos los derechos reservados.", pt: "Todos os direitos reservados.", it: "Tutti i diritti riservati.", tr: "Tüm hakları saklıdır.", nl: "Alle rechten voorbehouden." },
+
+  // ── Tasks page ──
+  "tasks.new":         { en: "New Task", pl: "Nowe zadanie", ru: "Новая задача", uk: "Нове завдання", ar: "مهمة جديدة", fr: "Nouvelle tâche", de: "Neue Aufgabe", es: "Nueva tarea", pt: "Nova tarefa", it: "Nuova attività", tr: "Yeni görev", nl: "Nieuwe taak" },
+  "tasks.empty":       { en: "No tasks", pl: "Brak zadań", ru: "Нет задач", uk: "Немає завдань", ar: "لا توجد مهام", fr: "Aucune tâche", de: "Keine Aufgaben", es: "Sin tareas", pt: "Sem tarefas", it: "Nessuna attività", tr: "Görev yok", nl: "Geen taken" },
+  "tasks.caught_up":   { en: "You're all caught up.", pl: "Wszystko na bieżąco.", ru: "Всё сделано.", uk: "Усе виконано.", ar: "أنجزت كل شيء.", fr: "Vous êtes à jour.", de: "Alles erledigt.", es: "Estás al día.", pt: "Está tudo em dia.", it: "Sei aggiornato.", tr: "Her şey tamam.", nl: "Je bent helemaal bij." },
+  "tasks.filter.mine":    { en: "Mine", pl: "Moje", ru: "Мои", uk: "Мої", ar: "مهامي", fr: "Les miennes", de: "Meine", es: "Mías", pt: "Minhas", it: "Le mie", tr: "Benimkiler", nl: "Van mij" },
+  "tasks.filter.all":     { en: "All", pl: "Wszystkie", ru: "Все", uk: "Усі", ar: "الكل", fr: "Toutes", de: "Alle", es: "Todas", pt: "Todas", it: "Tutte", tr: "Tümü", nl: "Alle" },
+  "tasks.filter.overdue": { en: "Overdue", pl: "Zaległe", ru: "Просроченные", uk: "Прострочені", ar: "متأخرة", fr: "En retard", de: "Überfällig", es: "Vencidas", pt: "Atrasadas", it: "In ritardo", tr: "Gecikmiş", nl: "Te laat" },
+  "tasks.filter.review":  { en: "Review", pl: "Do przeglądu", ru: "На проверке", uk: "На перевірці", ar: "قيد المراجعة", fr: "À revoir", de: "Zu prüfen", es: "Revisión", pt: "Revisão", it: "Da rivedere", tr: "İnceleme", nl: "Beoordelen" },
+
+  // ── Decisions cockpit ──
+  "decisions.empty":     { en: "No decisions waiting", pl: "Brak decyzji do podjęcia", ru: "Нет решений в ожидании", uk: "Немає рішень в очікуванні", ar: "لا قرارات في الانتظار", fr: "Aucune décision en attente", de: "Keine ausstehenden Entscheidungen", es: "Sin decisiones pendientes", pt: "Sem decisões pendentes", it: "Nessuna decisione in attesa", tr: "Bekleyen karar yok", nl: "Geen beslissingen in afwachting" },
+  "decisions.approve_safe": { en: "Approve all safe", pl: "Zatwierdź bezpieczne", ru: "Одобрить безопасные", uk: "Схвалити безпечні", ar: "الموافقة على الآمنة", fr: "Approuver les sûres", de: "Alle sicheren genehmigen", es: "Aprobar las seguras", pt: "Aprovar as seguras", it: "Approva quelle sicure", tr: "Güvenli olanları onayla", nl: "Veilige goedkeuren" },
+
+  // ── Notifications ──
+  "notifications.mark_all":  { en: "Mark all read", pl: "Oznacz wszystkie jako przeczytane", ru: "Отметить всё прочитанным", uk: "Позначити все прочитаним", ar: "تعليم الكل كمقروء", fr: "Tout marquer comme lu", de: "Alle als gelesen markieren", es: "Marcar todo como leído", pt: "Marcar tudo como lido", it: "Segna tutto come letto", tr: "Tümünü okundu işaretle", nl: "Alles als gelezen markeren" },
+  "notifications.caught_up": { en: "All caught up", pl: "Wszystko na bieżąco", ru: "Всё прочитано", uk: "Усе прочитано", ar: "لا جديد", fr: "Tout est à jour", de: "Alles gelesen", es: "Todo al día", pt: "Tudo em dia", it: "Tutto aggiornato", tr: "Her şey güncel", nl: "Helemaal bij" },
+
+  // ── Agents / Activity ──
+  "home.quick_prompts": { en: "Quick prompts", pl: "Szybkie polecenia", ru: "Быстрые запросы", uk: "Швидкі запити", ar: "أوامر سريعة", fr: "Invites rapides", de: "Schnellbefehle", es: "Sugerencias rápidas", pt: "Comandos rápidos", it: "Prompt rapidi", tr: "Hızlı komutlar", nl: "Snelle prompts" },
+  "home.today":         { en: "Today", pl: "Dzisiaj", ru: "Сегодня", uk: "Сьогодні", ar: "اليوم", fr: "Aujourd’hui", de: "Heute", es: "Hoy", pt: "Hoje", it: "Oggi", tr: "Bugün", nl: "Vandaag" },
+  "agents.subtitle": { en: "Agents prepare, you approve — every action is queued for your sign-off.", pl: "Agenci przygotowują, Ty zatwierdzasz — każda akcja czeka na Twoją zgodę.", ru: "Агенты готовят, вы одобряете — каждое действие ждёт вашего подтверждения.", uk: "Агенти готують, ви схвалюєте — кожна дія очікує вашого підтвердження.", ar: "الوكلاء يجهّزون، وأنت توافق — كل إجراء ينتظر موافقتك.", fr: "Les agents préparent, vous approuvez — chaque action attend votre validation.", de: "Agenten bereiten vor, Sie genehmigen — jede Aktion wartet auf Ihre Freigabe.", es: "Los agentes preparan, tú apruebas — cada acción espera tu visto bueno.", pt: "Os agentes preparam, você aprova — cada ação aguarda seu aval.", it: "Gli agenti preparano, tu approvi — ogni azione attende il tuo via libera.", tr: "Ajanlar hazırlar, siz onaylarsınız — her işlem onayınızı bekler.", nl: "Agents bereiden voor, jij keurt goed — elke actie wacht op je akkoord." },
 };
 
 /** Look up a translated string. Falls back to English, then to the key itself. Never throws. */

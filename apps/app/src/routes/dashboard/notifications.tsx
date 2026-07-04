@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Check, CheckCheck, Trash2, ShieldAlert, ArrowUpRight } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
+import { useLanguage } from "../../hooks/useLanguage";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { resolveNotificationLink } from "../../lib/notification-link";
@@ -23,6 +24,7 @@ function relTime(iso: string) {
 export function NotificationsPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const query = useQuery({
@@ -62,8 +64,8 @@ export function NotificationsPage() {
         <div className="mb-6 flex items-end justify-between gap-4">
           <div>
             <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// SIGNAL FEED</p>
-            <h1 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">Notifications</h1>
-            <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">{unread > 0 ? `${unread} unread · live` : "all caught up · live"}</p>
+            <h1 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">{t("nav.notifications")}</h1>
+            <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">{unread > 0 ? `${unread} unread · live` : `${t("notifications.caught_up")} · live`}</p>
           </div>
           {unread > 0 && (
             <button
@@ -71,7 +73,7 @@ export function NotificationsPage() {
               disabled={markAll.isPending}
               className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-[12px] text-[var(--text-faint)] transition-colors hover:border-[var(--border-strong)] disabled:opacity-50"
             >
-              <CheckCheck size={13} /> Mark all read
+              <CheckCheck size={13} /> {t("notifications.mark_all")}
             </button>
           )}
         </div>

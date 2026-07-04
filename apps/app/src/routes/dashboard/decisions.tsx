@@ -7,6 +7,7 @@ import { PageSkeleton } from "../../components/ui/page-state";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
+import { useLanguage } from "../../hooks/useLanguage";
 
 const RISK_DOT: Record<Decision["risk_level"], string> = { high: "#dc2626", medium: "#d97706", low: "#10b981" };
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
@@ -46,6 +47,7 @@ const LANES: { key: LaneKey; label: string; statuses: string[]; open: boolean }[
  */
 export function DecisionsPage() {
   const qc = useQueryClient();
+  const { t } = useLanguage();
   const { data: decisions, isLoading, isError } = useCockpitDecisions();
   const [lane, setLane] = useState<LaneKey>("approval");
   const [agentFilter, setAgentFilter] = useState<string | null>(null);
@@ -173,7 +175,7 @@ export function DecisionsPage() {
               <button onClick={bulkApproveSafe} disabled={bulkBusy || safeToApprove.length === 0}
                 className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-medium transition-colors disabled:opacity-50"
                 style={{ borderColor: "color-mix(in srgb, #3f8f6e 55%, transparent)", color: "#5fae8b" }}>
-                {bulkBusy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />} Approve {safeToApprove.length} safe
+                {bulkBusy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />} {t("decisions.approve_safe")} ({safeToApprove.length})
               </button>
               <button onClick={bulkDismiss} disabled={bulkBusy}
                 className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-medium transition-colors disabled:opacity-50"

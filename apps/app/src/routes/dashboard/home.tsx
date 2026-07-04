@@ -786,7 +786,7 @@ export function HomePage() {
           {promptPickerOpen && (
             <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-sm border shadow-[0_8px_24px_rgba(15,23,42,0.08)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
               <div className="border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
-                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Quick prompts</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{loc.t("home.quick_prompts")}</p>
               </div>
               <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
@@ -1004,7 +1004,7 @@ export function HomePage() {
           <div className="flow-panel-heading flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CheckSquare size={13} className="text-stone-500 dark:text-stone-400"/>
-              <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Tasks</span>
+              <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{loc.t("nav.tasks")}</span>
               <span className="flow-micro-badge">
                 <LogoMark size={8}/> AI sorted
               </span>
@@ -1118,7 +1118,7 @@ export function HomePage() {
                     </span>
                   )}
                 </div>
-                <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Today</span>
+                <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{loc.t("home.today")}</span>
               </div>
               <div className="flex-1">
                 {loading ? (
