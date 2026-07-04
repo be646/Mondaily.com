@@ -1594,3 +1594,24 @@ html[data-theme="light"] .record-scroll { scrollbar-color: rgba(0,0,0,0.15) tran
 }
 .sidebar-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
 .sidebar-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
+
+/* ── Arabic / RTL safety foundation ───────────────────────────────────────────
+   Phase-2 SAFE foundation only — we flip document direction (see useLanguage) and
+   guard the obvious breakage, WITHOUT a full component-by-component RTL redesign.
+   The rule: prose/text flows naturally RTL, while anything that must stay
+   left-to-right (numbers, credits, code, URLs, keyboard hints, latin identifiers)
+   is pinned LTR so it can never render reversed/garbled. */
+[dir="rtl"] input,
+[dir="rtl"] textarea { text-align: right; }
+
+/* Keep numeric, monospace and identifier content LTR even inside RTL prose.
+   unicode-bidi: plaintext makes each run follow its own first strong character,
+   so mixed Arabic + Latin/number strings (e.g. "1,000,000 رصيد") stay correct. */
+[dir="rtl"] .tabular-nums,
+[dir="rtl"] .font-mono,
+[dir="rtl"] kbd,
+[dir="rtl"] code,
+[dir="rtl"] .keep-ltr { direction: ltr; unicode-bidi: plaintext; }
+
+/* Opt-in helper for any element that must remain LTR regardless of language. */
+.force-ltr { direction: ltr !important; text-align: left; }

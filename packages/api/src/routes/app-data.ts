@@ -438,16 +438,21 @@ router.get("/settings/workspace", async (c) => {
 router.get("/workspace/suggestions", async (c) => {
   const settings = await workspaceSettings(c.get("workspaceId"));
   const profile = resolveProfile(settings);
+  // Effective language: this user's override → workspace profile language → English. Dynamic
+  // suggestions are generated in that language (frames translated, profile data kept verbatim).
+  const userLang = (settings.user_preferences as Record<string, { language?: string }> | undefined)?.[c.get("userId")]?.language;
+  const lang = userLang || profile.language || "en";
   return c.json({
     profile,
+    language: lang,
     // Discovery
-    discovery: discoverySuggestions(profile),
-    discovery_placeholder: discoveryPlaceholder(profile),
-    discovery_next: discoveryNextSuggestions(profile),
+    discovery: discoverySuggestions(profile, 4, lang),
+    discovery_placeholder: discoveryPlaceholder(profile, lang),
+    discovery_next: discoveryNextSuggestions(profile, 3, lang),
     deep_research: deepResearchPhrasing(profile),
     // Ask + Home
-    ask: askStarterPrompts(profile),
-    home: homeQuickPrompts(profile),
+    ask: askStarterPrompts(profile, 4, lang),
+    home: homeQuickPrompts(profile, lang),
     // Builders (objects / lists / tables / import)
     objects: profileObjects(profile),
     object_examples: objectCreationExamples(profile),
@@ -462,8 +467,11 @@ router.get("/workspace/suggestions", async (c) => {
 
 // GET /workspace/refine?q=... — broad-query refinements for Discovery (narrow by region/customer/signal).
 router.get("/workspace/refine", async (c) => {
-  const profile = resolveProfile(await workspaceSettings(c.get("workspaceId")));
-  return c.json({ refinements: broadQueryRefinements(profile, c.req.query("q") ?? "") });
+  const settings = await workspaceSettings(c.get("workspaceId"));
+  const profile = resolveProfile(settings);
+  const userLang = (settings.user_preferences as Record<string, { language?: string }> | undefined)?.[c.get("userId")]?.language;
+  const lang = userLang || profile.language || "en";
+  return c.json({ refinements: broadQueryRefinements(profile, c.req.query("q") ?? "", 3, lang) });
 });
 
 // Persist a data:-URL logo into Supabase Storage and return its public URL. Login-safe & resilient:

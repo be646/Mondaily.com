@@ -7,6 +7,7 @@ import { grantAmountFor, normalizeTierId, PLAN_TIERS, PLAN_ORDER } from "@mondai
 import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { recordCreditUsage } from "../lib/credits";
 import { resolveProfile, mergeProfile, type WorkspaceProfile } from "@mondaily/shared/profile";
+import { normalizeLang, languageMeta } from "@mondaily/shared/i18n";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string; financeRole: string } }>();
 
@@ -17,7 +18,7 @@ const router = new Hono<{ Variables: { userId: string; workspaceId: string; role
 // gateway is unconfigured or errors.
 router.post("/analyze", requireAuth, async (c) => {
   const ws = c.get("workspaceId");
-  const body = await c.req.json<{ description?: string; purpose?: string; team_size?: string; goals?: string[] }>().catch(() => ({} as Record<string, never>));
+  const body = await c.req.json<{ description?: string; purpose?: string; team_size?: string; goals?: string[]; language?: string }>().catch(() => ({} as Record<string, never>));
   const purpose = (body.purpose ?? "").trim();
   const goals = Array.isArray(body.goals) ? body.goals : [];
   const teamSize = (body.team_size ?? "").trim();
@@ -60,6 +61,10 @@ router.post("/analyze", requireAuth, async (c) => {
         "recommend_pack — true if their expected usage is likely to exceed the plan's included monthly credits (then suggest pay-as-you-go packs). " +
         "plan_reason — ONE short sentence (<=20 words) on why that plan fits. " +
         "summary — ONE friendly sentence (<=22 words) on how their workspace will be set up. " +
+        // Localize the user-facing helper copy to the chosen onboarding language (labels/enums stay English).
+        (normalizeLang(body.language) !== "en"
+          ? `Write the "summary" and "plan_reason" fields in ${languageMeta(body.language).name} (${languageMeta(body.language).nativeName}); keep all other fields (enums, module names) in English. `
+          : "") +
         // Industry-aware profile inference (tunes examples/terms only — Mondaily stays general).
         "business_model — a concise label like 'B2B services', 'B2C ecommerce', 'Marketplace', 'B2B SaaS'. " +
         "target_customers — a short phrase for who they sell to / serve. " +

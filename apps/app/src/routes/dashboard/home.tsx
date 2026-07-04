@@ -20,6 +20,7 @@ import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { useModules } from "../../hooks/useModules";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { applyTerms, EMPTY_PROFILE } from "@mondaily/shared/profile";
+import { useLanguage } from "../../hooks/useLanguage";
 
 // Converts markdown to clean readable JSX — strips tables, stars, dashes
 function renderMarkdown(text: string): React.ReactNode {
@@ -157,6 +158,7 @@ export function HomePage() {
   const { hasFinance } = useModules();
   const { data: wsSuggestions } = useWorkspaceSuggestions();  // profile-aware prompts + terms
   const wsProfile = wsSuggestions?.profile ?? EMPTY_PROFILE;
+  const loc = useLanguage();   // locale-aware date formatting (+ keeps <html dir> synced app-wide)
   const qc = useQueryClient();
   const askSectionRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
@@ -523,7 +525,7 @@ export function HomePage() {
     inputRef.current?.focus();
   }, []);
 
-  const todayLabel = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const todayLabel = loc.formatDate(new Date(), { weekday: "long", month: "long", day: "numeric" });
   const overdueCount = activeTasks.filter(t => t.due_date && new Date(t.due_date) < new Date()).length;
   const openTaskCount = activeTasks.length;
   const urgentCount  = activeTasks.filter(t => t.priority === "urgent").length;

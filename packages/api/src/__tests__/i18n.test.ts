@@ -2,10 +2,13 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
-  SUPPORTED_LANGUAGES, normalizeLang, isRtl, dir, localeFor, languageInstruction, t,
+  SUPPORTED_LANGUAGES, normalizeLang, isRtl, dir, localeFor, languageInstruction, t, tList, fillTemplate,
   formatNumber, formatCredits, formatCurrency, formatDate, languageMeta,
 } from "@mondaily/shared/i18n";
-import { resolveProfile } from "@mondaily/shared/profile";
+import {
+  resolveProfile, mergeProfile, EMPTY_PROFILE, discoverySuggestions, discoveryNextSuggestions,
+  broadQueryRefinements, askStarterPrompts, homeQuickPrompts,
+} from "@mondaily/shared/profile";
 
 describe("supported languages", () => {
   it("includes all 12 required languages", () => {
@@ -104,6 +107,58 @@ describe("language is stored in the profile + resolvable", () => {
   });
 });
 
+describe("PHASE 2 — dynamic suggestions are localized AND keep profile personalization", () => {
+  const clinicPL = mergeProfile(EMPTY_PROFILE, { industry: "Aesthetic clinics", region: "Warszawa", target_customers: "kliniki" });
+
+  it("Discovery suggestions translate the FRAME and keep the profile DATA verbatim", () => {
+    const pl = discoverySuggestions(clinicPL, 4, "pl");
+    // Polish frame "Znajdź {who} w {region}" filled with the user's own words.
+    expect(pl.some(s => s.includes("Znajdź") && s.includes("kliniki") && s.includes("Warszawa"))).toBe(true);
+  });
+  it("combines with region + customers across languages", () => {
+    const de = discoverySuggestions(mergeProfile(EMPTY_PROFILE, { target_customers: "Zahnärzte", region: "Berlin" }), 4, "de");
+    expect(de.some(s => s.includes("Zahnärzte") && s.includes("Berlin"))).toBe(true);
+  });
+  it("Ask starter prompts are localized", () => {
+    expect(askStarterPrompts(clinicPL, 4, "de").join(" ")).toMatch(/Zeig|Woche|Nachfass/);
+    expect(askStarterPrompts(clinicPL, 4, "ar").join(" ")).toMatch(/[؀-ۿ]/); // contains Arabic
+  });
+  it("Home quick prompts localize (attention/decisions translated, discovery keeps data)", () => {
+    const home = homeQuickPrompts(clinicPL, "pl");
+    expect(home.find(h => h.key === "attention")?.prompt).toMatch(/uwagi|pilności/i);
+    expect(home.find(h => h.key === "discovery")?.prompt).toContain("kliniki");
+  });
+  it("broad-query refinements localize the frame around the typed query", () => {
+    const ru = broadQueryRefinements(clinicPL, "клиники", 3, "ru");
+    expect(ru.some(s => s.includes("клиники") && s.includes("Warszawa"))).toBe(true);
+  });
+  it("discoveryNextSuggestions localize", () => {
+    expect(discoveryNextSuggestions(clinicPL, 3, "fr").join(" ").toLowerCase()).toMatch(/avis|région|similaires/);
+  });
+
+  it("ENGLISH path is UNCHANGED — still the rich family-specific behavior", () => {
+    const en = discoverySuggestions(mergeProfile(EMPTY_PROFILE, { industry: "Aesthetic clinics", region: "London" }), 4);
+    expect(en.join(" ").toLowerCase()).toContain("clinics in london");   // English family template
+    expect(discoverySuggestions(EMPTY_PROFILE, 4, "en")).toEqual(discoverySuggestions(EMPTY_PROFILE, 4)); // "en" == default
+  });
+  it("unknown language falls back to English suggestions", () => {
+    const p = mergeProfile(EMPTY_PROFILE, { industry: "Real estate", region: "Miami" });
+    expect(discoverySuggestions(p, 4, "klingon")).toEqual(discoverySuggestions(p, 4));
+  });
+  it("empty profile localized suggestions are still non-empty + neutral", () => {
+    const ar = discoverySuggestions(EMPTY_PROFILE, 4, "ar");
+    expect(ar.length).toBeGreaterThan(0);
+    expect(ar.join(" ")).toMatch(/[؀-ۿ]/);
+  });
+  it("tList + fillTemplate: frame localized, {placeholders} filled, no leftover braces", () => {
+    const frames = tList("es", "tpl.discovery");
+    expect(frames.length).toBeGreaterThan(0);
+    const filled = fillTemplate(frames[0]!, { who: "clínicas", region: "Madrid" });
+    expect(filled).not.toMatch(/[{}]/);
+    expect(filled).toContain("clínicas");
+  });
+});
+
 describe("wiring guards — language flows through the app", () => {
   const read = (p: string) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), "utf8");
   it("Ask backend appends the language instruction, resolving user pref → profile → en", () => {
@@ -125,5 +180,30 @@ describe("wiring guards — language flows through the app", () => {
     expect(read("../../../../apps/app/src/routes/dashboard/settings/account.tsx")).toMatch(/SUPPORTED_LANGUAGES/);
     expect(read("../../../../apps/app/src/routes/dashboard/discovery.tsx")).toMatch(/t\("discovery\.heading"\)/);
     expect(read("../../../../apps/app/src/components/ai/ask-mondaily.tsx")).toMatch(/t\("ask\.heading"\)/);
+  });
+  it("backend resolves the effective language and passes it to the suggestion generators", () => {
+    const src = read("../routes/app-data.ts");
+    expect(src).toMatch(/discoverySuggestions\(profile, 4, lang\)/);
+    expect(src).toMatch(/askStarterPrompts\(profile, 4, lang\)/);
+    expect(src).toMatch(/homeQuickPrompts\(profile, lang\)/);
+    expect(src).toMatch(/broadQueryRefinements\(profile, .*, 3, lang\)/);
+  });
+  it("Discovery no-results + tabs + Home date are localized", () => {
+    const disc = read("../../../../apps/app/src/routes/dashboard/discovery.tsx");
+    expect(disc).toMatch(/t\("discovery\.no_results"\)/);
+    expect(disc).toMatch(/t\("discovery\.search_deeper"\)/);
+    expect(read("../../../../apps/app/src/routes/dashboard/home.tsx")).toMatch(/loc\.formatDate/);
+  });
+  it("onboarding passes the chosen language so the AI helper copy is localized", () => {
+    expect(read("../routes/onboarding.ts")).toMatch(/languageMeta\(body\.language\)/);
+    expect(read("../../../../apps/app/src/routes/onboarding/terminal-console.tsx")).toMatch(/language: answers\.language/);
+  });
+  it("ROUTE PATHS are never translated/broken — nav literals + route table intact", () => {
+    const sidebar = read("../../../../apps/app/src/components/layout/sidebar.tsx");
+    expect(sidebar).not.toMatch(/\bt\(/);                    // sidebar nav does not run translations
+    expect(sidebar).toMatch(/to: "\/discovery"/);
+    expect(sidebar).toMatch(/to: "\/search"/);
+    // translation keys are dotted identifiers, never route paths
+    for (const k of ["discovery.heading", "ask.heading", "settings.language"]) expect(k).not.toMatch(/^\//);
   });
 });

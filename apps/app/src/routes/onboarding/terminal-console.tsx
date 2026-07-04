@@ -172,6 +172,7 @@ export function TerminalOnboardingPage() {
     try {
       ai = await apiClient.post("/onboarding/analyze", {
         purpose: answers.purpose, team_size: answers.team_size, goals: answers.goals, description: freeText.trim(),
+        language: answers.language,   // localize the AI summary/helper copy to the chosen language
       });
     } catch { /* heuristic-free fallback below */ }
     // Capture the inferred industry profile to persist at /complete (adapts examples + AI context).

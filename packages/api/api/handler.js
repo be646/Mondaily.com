@@ -2663,7 +2663,7 @@ var require_conversions = __commonJS({
       const h2 = hsl[0] / 360;
       const s2 = hsl[1] / 100;
       const l2 = hsl[2] / 100;
-      let t2;
+      let t22;
       let t3;
       let val;
       if (s2 === 0) {
@@ -2671,11 +2671,11 @@ var require_conversions = __commonJS({
         return [val, val, val];
       }
       if (l2 < 0.5) {
-        t2 = l2 * (1 + s2);
+        t22 = l2 * (1 + s2);
       } else {
-        t2 = l2 + s2 - l2 * s2;
+        t22 = l2 + s2 - l2 * s2;
       }
-      const t1 = 2 * l2 - t2;
+      const t1 = 2 * l2 - t22;
       const rgb = [0, 0, 0];
       for (let i2 = 0; i2 < 3; i2++) {
         t3 = h2 + 1 / 3 * -(i2 - 1);
@@ -2686,11 +2686,11 @@ var require_conversions = __commonJS({
           t3--;
         }
         if (6 * t3 < 1) {
-          val = t1 + (t2 - t1) * 6 * t3;
+          val = t1 + (t22 - t1) * 6 * t3;
         } else if (2 * t3 < 1) {
-          val = t2;
+          val = t22;
         } else if (3 * t3 < 2) {
-          val = t1 + (t2 - t1) * (2 / 3 - t3) * 6;
+          val = t1 + (t22 - t1) * (2 / 3 - t3) * 6;
         } else {
           val = t1;
         }
@@ -2719,19 +2719,19 @@ var require_conversions = __commonJS({
       const f2 = h2 - Math.floor(h2);
       const p2 = 255 * v2 * (1 - s2);
       const q2 = 255 * v2 * (1 - s2 * f2);
-      const t2 = 255 * v2 * (1 - s2 * (1 - f2));
+      const t3 = 255 * v2 * (1 - s2 * (1 - f2));
       v2 *= 255;
       switch (hi) {
         case 0:
-          return [v2, t2, p2];
+          return [v2, t3, p2];
         case 1:
           return [q2, v2, p2];
         case 2:
-          return [p2, v2, t2];
+          return [p2, v2, t3];
         case 3:
           return [p2, q2, v2];
         case 4:
-          return [t2, p2, v2];
+          return [t3, p2, v2];
         case 5:
           return [v2, p2, q2];
       }
@@ -4353,7 +4353,7 @@ var require_common = __commonJS({
         res[i2] = 0;
       len <<= 3;
       if (this.endian === "big") {
-        for (var t2 = 8; t2 < this.padLength; t2++)
+        for (var t3 = 8; t3 < this.padLength; t3++)
           res[i2++] = 0;
         res[i2++] = 0;
         res[i2++] = 0;
@@ -4372,7 +4372,7 @@ var require_common = __commonJS({
         res[i2++] = 0;
         res[i2++] = 0;
         res[i2++] = 0;
-        for (t2 = 8; t2 < this.padLength; t2++)
+        for (t3 = 8; t3 < this.padLength; t3++)
           res[i2++] = 0;
       }
       return res;
@@ -4476,12 +4476,12 @@ var require__ = __commonJS({
       var e2 = this.h[4];
       for (i2 = 0; i2 < W2.length; i2++) {
         var s2 = ~~(i2 / 20);
-        var t2 = sum32_5(rotl32(a2, 5), ft_1(s2, b2, c2, d2), e2, W2[i2], sha1_K[s2]);
+        var t3 = sum32_5(rotl32(a2, 5), ft_1(s2, b2, c2, d2), e2, W2[i2], sha1_K[s2]);
         e2 = d2;
         d2 = c2;
         c2 = rotl32(b2, 30);
         b2 = a2;
-        a2 = t2;
+        a2 = t3;
       }
       this.h[0] = sum32(this.h[0], a2);
       this.h[1] = sum32(this.h[1], b2);
@@ -6315,8 +6315,8 @@ var init_util = __esm({
       "set"
     ]);
     getParsedType = (data) => {
-      const t2 = typeof data;
-      switch (t2) {
+      const t3 = typeof data;
+      switch (t3) {
         case "undefined":
           return ZodParsedType.undefined;
         case "string":
@@ -11644,18 +11644,18 @@ var require_canonicalize = __commonJS({
         return JSON.stringify(object);
       }
       if (Array.isArray(object)) {
-        return "[" + object.reduce((t2, cv, ci) => {
+        return "[" + object.reduce((t3, cv, ci) => {
           const comma = ci === 0 ? "" : ",";
           const value = cv === void 0 || typeof cv === "symbol" ? null : cv;
-          return t2 + comma + serialize2(value);
+          return t3 + comma + serialize2(value);
         }, "") + "]";
       }
-      return "{" + Object.keys(object).sort().reduce((t2, cv, ci) => {
+      return "{" + Object.keys(object).sort().reduce((t3, cv, ci) => {
         if (object[cv] === void 0 || typeof object[cv] === "symbol") {
-          return t2;
+          return t3;
         }
-        const comma = t2.length === 0 ? "" : ",";
-        return t2 + comma + serialize2(cv) + ":" + serialize2(object[cv]);
+        const comma = t3.length === 0 ? "" : ",";
+        return t3 + comma + serialize2(cv) + ":" + serialize2(object[cv]);
       }, "") + "}";
     };
   }
@@ -12543,15 +12543,15 @@ var require_gemini2 = __commonJS({
   "../../node_modules/.pnpm/@inngest+ai@0.1.7/node_modules/@inngest/ai/dist/models/gemini.js"(exports2) {
     "use strict";
     var __rest2 = exports2 && exports2.__rest || function(s2, e2) {
-      var t2 = {};
+      var t3 = {};
       for (var p2 in s2) if (Object.prototype.hasOwnProperty.call(s2, p2) && e2.indexOf(p2) < 0)
-        t2[p2] = s2[p2];
+        t3[p2] = s2[p2];
       if (s2 != null && typeof Object.getOwnPropertySymbols === "function")
         for (var i2 = 0, p2 = Object.getOwnPropertySymbols(s2); i2 < p2.length; i2++) {
           if (e2.indexOf(p2[i2]) < 0 && Object.prototype.propertyIsEnumerable.call(s2, p2[i2]))
-            t2[p2[i2]] = s2[p2[i2]];
+            t3[p2[i2]] = s2[p2[i2]];
         }
-      return t2;
+      return t3;
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.gemini = void 0;
@@ -19543,15 +19543,15 @@ var init_inngest2 = __esm({
 
 // ../../node_modules/.pnpm/tslib@2.8.1/node_modules/tslib/tslib.es6.mjs
 function __rest(s2, e2) {
-  var t2 = {};
+  var t3 = {};
   for (var p2 in s2) if (Object.prototype.hasOwnProperty.call(s2, p2) && e2.indexOf(p2) < 0)
-    t2[p2] = s2[p2];
+    t3[p2] = s2[p2];
   if (s2 != null && typeof Object.getOwnPropertySymbols === "function")
     for (var i2 = 0, p2 = Object.getOwnPropertySymbols(s2); i2 < p2.length; i2++) {
       if (e2.indexOf(p2[i2]) < 0 && Object.prototype.propertyIsEnumerable.call(s2, p2[i2]))
-        t2[p2[i2]] = s2[p2[i2]];
+        t3[p2[i2]] = s2[p2[i2]];
     }
-  return t2;
+  return t3;
 }
 function __awaiter(thisArg, _arguments, P3, generator) {
   function adopt(value) {
@@ -19970,45 +19970,45 @@ function _typeof(o2) {
     return o$1 && "function" == typeof Symbol && o$1.constructor === Symbol && o$1 !== Symbol.prototype ? "symbol" : typeof o$1;
   }, _typeof(o2);
 }
-function toPrimitive(t2, r2) {
-  if ("object" != _typeof(t2) || !t2) return t2;
-  var e2 = t2[Symbol.toPrimitive];
+function toPrimitive(t3, r2) {
+  if ("object" != _typeof(t3) || !t3) return t3;
+  var e2 = t3[Symbol.toPrimitive];
   if (void 0 !== e2) {
-    var i2 = e2.call(t2, r2 || "default");
+    var i2 = e2.call(t3, r2 || "default");
     if ("object" != _typeof(i2)) return i2;
     throw new TypeError("@@toPrimitive must return a primitive value.");
   }
-  return ("string" === r2 ? String : Number)(t2);
+  return ("string" === r2 ? String : Number)(t3);
 }
-function toPropertyKey(t2) {
-  var i2 = toPrimitive(t2, "string");
+function toPropertyKey(t3) {
+  var i2 = toPrimitive(t3, "string");
   return "symbol" == _typeof(i2) ? i2 : i2 + "";
 }
-function _defineProperty(e2, r2, t2) {
+function _defineProperty(e2, r2, t3) {
   return (r2 = toPropertyKey(r2)) in e2 ? Object.defineProperty(e2, r2, {
-    value: t2,
+    value: t3,
     enumerable: true,
     configurable: true,
     writable: true
-  }) : e2[r2] = t2, e2;
+  }) : e2[r2] = t3, e2;
 }
 function ownKeys(e2, r2) {
-  var t2 = Object.keys(e2);
+  var t3 = Object.keys(e2);
   if (Object.getOwnPropertySymbols) {
     var o2 = Object.getOwnPropertySymbols(e2);
     r2 && (o2 = o2.filter(function(r$1) {
       return Object.getOwnPropertyDescriptor(e2, r$1).enumerable;
-    })), t2.push.apply(t2, o2);
+    })), t3.push.apply(t3, o2);
   }
-  return t2;
+  return t3;
 }
 function _objectSpread2(e2) {
   for (var r2 = 1; r2 < arguments.length; r2++) {
-    var t2 = null != arguments[r2] ? arguments[r2] : {};
-    r2 % 2 ? ownKeys(Object(t2), true).forEach(function(r$1) {
-      _defineProperty(e2, r$1, t2[r$1]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e2, Object.getOwnPropertyDescriptors(t2)) : ownKeys(Object(t2)).forEach(function(r$1) {
-      Object.defineProperty(e2, r$1, Object.getOwnPropertyDescriptor(t2, r$1));
+    var t3 = null != arguments[r2] ? arguments[r2] : {};
+    r2 % 2 ? ownKeys(Object(t3), true).forEach(function(r$1) {
+      _defineProperty(e2, r$1, t3[r$1]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e2, Object.getOwnPropertyDescriptors(t3)) : ownKeys(Object(t3)).forEach(function(r$1) {
+      Object.defineProperty(e2, r$1, Object.getOwnPropertyDescriptor(t3, r$1));
     });
   }
   return e2;
@@ -29520,45 +29520,45 @@ function _typeof2(o2) {
     return o$1 && "function" == typeof Symbol && o$1.constructor === Symbol && o$1 !== Symbol.prototype ? "symbol" : typeof o$1;
   }, _typeof2(o2);
 }
-function toPrimitive2(t2, r2) {
-  if ("object" != _typeof2(t2) || !t2) return t2;
-  var e2 = t2[Symbol.toPrimitive];
+function toPrimitive2(t3, r2) {
+  if ("object" != _typeof2(t3) || !t3) return t3;
+  var e2 = t3[Symbol.toPrimitive];
   if (void 0 !== e2) {
-    var i2 = e2.call(t2, r2 || "default");
+    var i2 = e2.call(t3, r2 || "default");
     if ("object" != _typeof2(i2)) return i2;
     throw new TypeError("@@toPrimitive must return a primitive value.");
   }
-  return ("string" === r2 ? String : Number)(t2);
+  return ("string" === r2 ? String : Number)(t3);
 }
-function toPropertyKey2(t2) {
-  var i2 = toPrimitive2(t2, "string");
+function toPropertyKey2(t3) {
+  var i2 = toPrimitive2(t3, "string");
   return "symbol" == _typeof2(i2) ? i2 : i2 + "";
 }
-function _defineProperty2(e2, r2, t2) {
+function _defineProperty2(e2, r2, t3) {
   return (r2 = toPropertyKey2(r2)) in e2 ? Object.defineProperty(e2, r2, {
-    value: t2,
+    value: t3,
     enumerable: true,
     configurable: true,
     writable: true
-  }) : e2[r2] = t2, e2;
+  }) : e2[r2] = t3, e2;
 }
 function ownKeys2(e2, r2) {
-  var t2 = Object.keys(e2);
+  var t3 = Object.keys(e2);
   if (Object.getOwnPropertySymbols) {
     var o2 = Object.getOwnPropertySymbols(e2);
     r2 && (o2 = o2.filter(function(r$1) {
       return Object.getOwnPropertyDescriptor(e2, r$1).enumerable;
-    })), t2.push.apply(t2, o2);
+    })), t3.push.apply(t3, o2);
   }
-  return t2;
+  return t3;
 }
 function _objectSpread22(e2) {
   for (var r2 = 1; r2 < arguments.length; r2++) {
-    var t2 = null != arguments[r2] ? arguments[r2] : {};
-    r2 % 2 ? ownKeys2(Object(t2), true).forEach(function(r$1) {
-      _defineProperty2(e2, r$1, t2[r$1]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e2, Object.getOwnPropertyDescriptors(t2)) : ownKeys2(Object(t2)).forEach(function(r$1) {
-      Object.defineProperty(e2, r$1, Object.getOwnPropertyDescriptor(t2, r$1));
+    var t3 = null != arguments[r2] ? arguments[r2] : {};
+    r2 % 2 ? ownKeys2(Object(t3), true).forEach(function(r$1) {
+      _defineProperty2(e2, r$1, t3[r$1]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e2, Object.getOwnPropertyDescriptors(t3)) : ownKeys2(Object(t3)).forEach(function(r$1) {
+      Object.defineProperty(e2, r$1, Object.getOwnPropertyDescriptor(t3, r$1));
     });
   }
   return e2;
@@ -40173,45 +40173,45 @@ function _typeof3(o2) {
     return o$1 && "function" == typeof Symbol && o$1.constructor === Symbol && o$1 !== Symbol.prototype ? "symbol" : typeof o$1;
   }, _typeof3(o2);
 }
-function toPrimitive3(t2, r2) {
-  if ("object" != _typeof3(t2) || !t2) return t2;
-  var e2 = t2[Symbol.toPrimitive];
+function toPrimitive3(t3, r2) {
+  if ("object" != _typeof3(t3) || !t3) return t3;
+  var e2 = t3[Symbol.toPrimitive];
   if (void 0 !== e2) {
-    var i2 = e2.call(t2, r2 || "default");
+    var i2 = e2.call(t3, r2 || "default");
     if ("object" != _typeof3(i2)) return i2;
     throw new TypeError("@@toPrimitive must return a primitive value.");
   }
-  return ("string" === r2 ? String : Number)(t2);
+  return ("string" === r2 ? String : Number)(t3);
 }
-function toPropertyKey3(t2) {
-  var i2 = toPrimitive3(t2, "string");
+function toPropertyKey3(t3) {
+  var i2 = toPrimitive3(t3, "string");
   return "symbol" == _typeof3(i2) ? i2 : i2 + "";
 }
-function _defineProperty3(e2, r2, t2) {
+function _defineProperty3(e2, r2, t3) {
   return (r2 = toPropertyKey3(r2)) in e2 ? Object.defineProperty(e2, r2, {
-    value: t2,
+    value: t3,
     enumerable: true,
     configurable: true,
     writable: true
-  }) : e2[r2] = t2, e2;
+  }) : e2[r2] = t3, e2;
 }
 function ownKeys3(e2, r2) {
-  var t2 = Object.keys(e2);
+  var t3 = Object.keys(e2);
   if (Object.getOwnPropertySymbols) {
     var o2 = Object.getOwnPropertySymbols(e2);
     r2 && (o2 = o2.filter(function(r$1) {
       return Object.getOwnPropertyDescriptor(e2, r$1).enumerable;
-    })), t2.push.apply(t2, o2);
+    })), t3.push.apply(t3, o2);
   }
-  return t2;
+  return t3;
 }
 function _objectSpread23(e2) {
   for (var r2 = 1; r2 < arguments.length; r2++) {
-    var t2 = null != arguments[r2] ? arguments[r2] : {};
-    r2 % 2 ? ownKeys3(Object(t2), true).forEach(function(r$1) {
-      _defineProperty3(e2, r$1, t2[r$1]);
-    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e2, Object.getOwnPropertyDescriptors(t2)) : ownKeys3(Object(t2)).forEach(function(r$1) {
-      Object.defineProperty(e2, r$1, Object.getOwnPropertyDescriptor(t2, r$1));
+    var t3 = null != arguments[r2] ? arguments[r2] : {};
+    r2 % 2 ? ownKeys3(Object(t3), true).forEach(function(r$1) {
+      _defineProperty3(e2, r$1, t3[r$1]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e2, Object.getOwnPropertyDescriptors(t3)) : ownKeys3(Object(t3)).forEach(function(r$1) {
+      Object.defineProperty(e2, r$1, Object.getOwnPropertyDescriptor(t3, r$1));
     });
   }
   return e2;
@@ -40966,8 +40966,8 @@ async function exchangeCode(code, redirectUri) {
     console.error("[google] code exchange failed", res.status, await res.text().catch(() => ""));
     return null;
   }
-  const t2 = await res.json();
-  return { access_token: t2.access_token, refresh_token: t2.refresh_token, expires_in: t2.expires_in, email: decodeJwtEmail(t2.id_token) };
+  const t3 = await res.json();
+  return { access_token: t3.access_token, refresh_token: t3.refresh_token, expires_in: t3.expires_in, email: decodeJwtEmail(t3.id_token) };
 }
 async function freshAccessToken(conn) {
   const stillValid = conn.access_token && conn.token_expiry && new Date(conn.token_expiry).getTime() > Date.now() + 6e4;
@@ -40987,12 +40987,12 @@ async function freshAccessToken(conn) {
     console.error("[google] token refresh failed", res.status, await res.text().catch(() => ""));
     return null;
   }
-  const t2 = await res.json();
+  const t3 = await res.json();
   await supabase.from("email_connections").update({
-    access_token: t2.access_token,
-    token_expiry: new Date(Date.now() + t2.expires_in * 1e3).toISOString()
+    access_token: t3.access_token,
+    token_expiry: new Date(Date.now() + t3.expires_in * 1e3).toISOString()
   }).eq("id", conn.id);
-  return t2.access_token;
+  return t3.access_token;
 }
 async function gmailSend(accessToken, msg) {
   const headers = [
@@ -41024,15 +41024,15 @@ async function gmailThreads(accessToken, opts = {}) {
   const listRes = await fetch(`${GMAIL_BASE}/threads?${params.toString()}`, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!listRes.ok) return [];
   const list = await listRes.json();
-  const ids = (list.threads ?? []).map((t2) => t2.id);
+  const ids = (list.threads ?? []).map((t3) => t3.id);
   const summaries = await Promise.all(ids.map(async (id) => {
     const r2 = await fetch(`${GMAIL_BASE}/threads/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`, { headers: { Authorization: `Bearer ${accessToken}` } });
     if (!r2.ok) return null;
-    const t2 = await r2.json();
-    const msgs = t2.messages ?? [];
+    const t3 = await r2.json();
+    const msgs = t3.messages ?? [];
     const last = msgs[msgs.length - 1];
     return {
-      id: t2.id,
+      id: t3.id,
       subject: header(last?.payload?.headers, "Subject"),
       from: header(last?.payload?.headers, "From"),
       date: header(last?.payload?.headers, "Date"),
@@ -41094,8 +41094,8 @@ async function googleCalendarEvents(accessToken, timeMin, timeMax) {
 async function gmailThread(accessToken, threadId) {
   const r2 = await fetch(`${GMAIL_BASE}/threads/${threadId}?format=full`, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!r2.ok) return [];
-  const t2 = await r2.json();
-  return (t2.messages ?? []).map((m2) => ({
+  const t3 = await r2.json();
+  return (t3.messages ?? []).map((m2) => ({
     id: m2.id,
     messageId: header(m2.payload?.headers, "Message-ID"),
     from: header(m2.payload?.headers, "From"),
@@ -41135,7 +41135,7 @@ async function sendViaGoogle(workspaceId, msg) {
     const token = await freshAccessToken(conn);
     if (!token) return false;
     return gmailSend(token, {
-      to: msg.to.map((t2) => t2.email),
+      to: msg.to.map((t3) => t3.email),
       subject: msg.subject,
       html: msg.body,
       from: conn.email || void 0
@@ -41153,7 +41153,7 @@ async function sendViaTransactional(msg) {
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         from: CORPORATE_FROM,
-        to: msg.to.map((t2) => t2.email),
+        to: msg.to.map((t3) => t3.email),
         subject: msg.subject,
         html: msg.body
       })
@@ -44739,9 +44739,9 @@ function t() {
 function r(e2) {
   return "object" == typeof e2 && null !== e2 || "function" == typeof e2;
 }
-function n(e2, t2) {
+function n(e2, t3) {
   try {
-    Object.defineProperty(e2, "name", { value: t2, configurable: true });
+    Object.defineProperty(e2, "name", { value: t3, configurable: true });
   } catch (e3) {
   }
 }
@@ -44754,83 +44754,83 @@ function c(e2) {
 function d(e2) {
   return s(e2);
 }
-function f(e2, t2, r2) {
-  return i.call(e2, t2, r2);
+function f(e2, t3, r2) {
+  return i.call(e2, t3, r2);
 }
-function b(e2, t2, r2) {
-  f(f(e2, t2, r2), void 0, o);
+function b(e2, t3, r2) {
+  f(f(e2, t3, r2), void 0, o);
 }
-function h(e2, t2) {
-  b(e2, t2);
+function h(e2, t3) {
+  b(e2, t3);
 }
-function _(e2, t2) {
-  b(e2, void 0, t2);
+function _(e2, t3) {
+  b(e2, void 0, t3);
 }
-function p(e2, t2, r2) {
-  return f(e2, t2, r2);
+function p(e2, t3, r2) {
+  return f(e2, t3, r2);
 }
 function m(e2) {
   f(e2, void 0, o);
 }
-function g(e2, t2, r2) {
+function g(e2, t3, r2) {
   if ("function" != typeof e2) throw new TypeError("Argument is not a function");
-  return Function.prototype.apply.call(e2, t2, r2);
+  return Function.prototype.apply.call(e2, t3, r2);
 }
-function w(e2, t2, r2) {
+function w(e2, t3, r2) {
   try {
-    return c(g(e2, t2, r2));
+    return c(g(e2, t3, r2));
   } catch (e3) {
     return d(e3);
   }
 }
-function E(e2, t2) {
-  e2._ownerReadableStream = t2, t2._reader = e2, "readable" === t2._state ? O(e2) : "closed" === t2._state ? (function(e3) {
+function E(e2, t3) {
+  e2._ownerReadableStream = t3, t3._reader = e2, "readable" === t3._state ? O(e2) : "closed" === t3._state ? (function(e3) {
     O(e3), j(e3);
-  })(e2) : B(e2, t2._storedError);
+  })(e2) : B(e2, t3._storedError);
 }
-function P(e2, t2) {
-  return Gt(e2._ownerReadableStream, t2);
+function P(e2, t3) {
+  return Gt(e2._ownerReadableStream, t3);
 }
 function W(e2) {
-  const t2 = e2._ownerReadableStream;
-  "readable" === t2._state ? A(e2, new TypeError("Reader was released and can no longer be used to monitor the stream's closedness")) : (function(e3, t3) {
-    B(e3, t3);
-  })(e2, new TypeError("Reader was released and can no longer be used to monitor the stream's closedness")), t2._readableStreamController[C](), t2._reader = void 0, e2._ownerReadableStream = void 0;
+  const t3 = e2._ownerReadableStream;
+  "readable" === t3._state ? A(e2, new TypeError("Reader was released and can no longer be used to monitor the stream's closedness")) : (function(e3, t4) {
+    B(e3, t4);
+  })(e2, new TypeError("Reader was released and can no longer be used to monitor the stream's closedness")), t3._readableStreamController[C](), t3._reader = void 0, e2._ownerReadableStream = void 0;
 }
 function k(e2) {
   return new TypeError("Cannot " + e2 + " a stream using a released reader");
 }
 function O(e2) {
-  e2._closedPromise = u(((t2, r2) => {
-    e2._closedPromise_resolve = t2, e2._closedPromise_reject = r2;
+  e2._closedPromise = u(((t3, r2) => {
+    e2._closedPromise_resolve = t3, e2._closedPromise_reject = r2;
   }));
 }
-function B(e2, t2) {
-  O(e2), A(e2, t2);
+function B(e2, t3) {
+  O(e2), A(e2, t3);
 }
-function A(e2, t2) {
-  void 0 !== e2._closedPromise_reject && (m(e2._closedPromise), e2._closedPromise_reject(t2), e2._closedPromise_resolve = void 0, e2._closedPromise_reject = void 0);
+function A(e2, t3) {
+  void 0 !== e2._closedPromise_reject && (m(e2._closedPromise), e2._closedPromise_reject(t3), e2._closedPromise_resolve = void 0, e2._closedPromise_reject = void 0);
 }
 function j(e2) {
   void 0 !== e2._closedPromise_resolve && (e2._closedPromise_resolve(void 0), e2._closedPromise_resolve = void 0, e2._closedPromise_reject = void 0);
 }
-function F(e2, t2) {
-  if (void 0 !== e2 && ("object" != typeof (r2 = e2) && "function" != typeof r2)) throw new TypeError(`${t2} is not an object.`);
+function F(e2, t3) {
+  if (void 0 !== e2 && ("object" != typeof (r2 = e2) && "function" != typeof r2)) throw new TypeError(`${t3} is not an object.`);
   var r2;
 }
-function I(e2, t2) {
-  if ("function" != typeof e2) throw new TypeError(`${t2} is not a function.`);
+function I(e2, t3) {
+  if ("function" != typeof e2) throw new TypeError(`${t3} is not a function.`);
 }
-function D(e2, t2) {
+function D(e2, t3) {
   if (!/* @__PURE__ */ (function(e3) {
     return "object" == typeof e3 && null !== e3 || "function" == typeof e3;
-  })(e2)) throw new TypeError(`${t2} is not an object.`);
+  })(e2)) throw new TypeError(`${t3} is not an object.`);
 }
-function $(e2, t2, r2) {
-  if (void 0 === e2) throw new TypeError(`Parameter ${t2} is required in '${r2}'.`);
+function $(e2, t3, r2) {
+  if (void 0 === e2) throw new TypeError(`Parameter ${t3} is required in '${r2}'.`);
 }
-function M(e2, t2, r2) {
-  if (void 0 === e2) throw new TypeError(`${t2} is required in '${r2}'.`);
+function M(e2, t3, r2) {
+  if (void 0 === e2) throw new TypeError(`${t3} is required in '${r2}'.`);
 }
 function Y(e2) {
   return Number(e2);
@@ -44838,13 +44838,13 @@ function Y(e2) {
 function Q(e2) {
   return 0 === e2 ? 0 : e2;
 }
-function N(e2, t2) {
+function N(e2, t3) {
   const r2 = Number.MAX_SAFE_INTEGER;
   let o2 = Number(e2);
-  if (o2 = Q(o2), !z(o2)) throw new TypeError(`${t2} is not a finite number`);
+  if (o2 = Q(o2), !z(o2)) throw new TypeError(`${t3} is not a finite number`);
   if (o2 = (function(e3) {
     return Q(L(e3));
-  })(o2), o2 < 0 || o2 > r2) throw new TypeError(`${t2} is outside the accepted range of 0 to ${r2}, inclusive`);
+  })(o2), o2 < 0 || o2 > r2) throw new TypeError(`${t3} is outside the accepted range of 0 to ${r2}, inclusive`);
   return z(o2) && 0 !== o2 ? o2 : 0;
 }
 function H(e2) {
@@ -44865,30 +44865,30 @@ function x(e2) {
     return false;
   }
 }
-function V(e2, t2) {
-  if (!Vt(e2)) throw new TypeError(`${t2} is not a ReadableStream.`);
+function V(e2, t3) {
+  if (!Vt(e2)) throw new TypeError(`${t3} is not a ReadableStream.`);
 }
-function U(e2, t2) {
-  e2._reader._readRequests.push(t2);
+function U(e2, t3) {
+  e2._reader._readRequests.push(t3);
 }
-function G(e2, t2, r2) {
+function G(e2, t3, r2) {
   const o2 = e2._reader._readRequests.shift();
-  r2 ? o2._closeSteps() : o2._chunkSteps(t2);
+  r2 ? o2._closeSteps() : o2._chunkSteps(t3);
 }
 function X(e2) {
   return e2._reader._readRequests.length;
 }
 function J(e2) {
-  const t2 = e2._reader;
-  return void 0 !== t2 && !!K(t2);
+  const t3 = e2._reader;
+  return void 0 !== t3 && !!K(t3);
 }
 function K(e2) {
   return !!r(e2) && (!!Object.prototype.hasOwnProperty.call(e2, "_readRequests") && e2 instanceof ReadableStreamDefaultReader);
 }
-function Z(e2, t2) {
+function Z(e2, t3) {
   const r2 = e2._readRequests;
   e2._readRequests = new S(), r2.forEach(((e3) => {
-    e3._errorSteps(t2);
+    e3._errorSteps(t3);
   }));
 }
 function ee(e2) {
@@ -44906,25 +44906,25 @@ function oe(e2) {
 function ne(e2) {
   return new TypeError(`ReadableStreamAsyncIterator.${e2} can only be used on a ReadableSteamAsyncIterator`);
 }
-function ie(e2, t2, r2, o2, n2) {
-  new Uint8Array(e2).set(new Uint8Array(r2, o2, n2), t2);
+function ie(e2, t3, r2, o2, n2) {
+  new Uint8Array(e2).set(new Uint8Array(r2, o2, n2), t3);
 }
 function le(e2) {
-  const t2 = (function(e3, t3, r2) {
-    if (e3.slice) return e3.slice(t3, r2);
-    const o2 = r2 - t3, n2 = new ArrayBuffer(o2);
-    return ie(n2, 0, e3, t3, o2), n2;
+  const t3 = (function(e3, t4, r2) {
+    if (e3.slice) return e3.slice(t4, r2);
+    const o2 = r2 - t4, n2 = new ArrayBuffer(o2);
+    return ie(n2, 0, e3, t4, o2), n2;
   })(e2.buffer, e2.byteOffset, e2.byteOffset + e2.byteLength);
-  return new Uint8Array(t2);
+  return new Uint8Array(t3);
 }
 function se(e2) {
-  const t2 = e2._queue.shift();
-  return e2._queueTotalSize -= t2.size, e2._queueTotalSize < 0 && (e2._queueTotalSize = 0), t2.value;
+  const t3 = e2._queue.shift();
+  return e2._queueTotalSize -= t3.size, e2._queueTotalSize < 0 && (e2._queueTotalSize = 0), t3.value;
 }
-function ue(e2, t2, r2) {
+function ue(e2, t3, r2) {
   if ("number" != typeof (o2 = r2) || ae(o2) || o2 < 0 || r2 === 1 / 0) throw new RangeError("Size must be a finite, non-NaN, non-negative number.");
   var o2;
-  e2._queue.push({ value: t2, size: r2 }), e2._queueTotalSize += r2;
+  e2._queue.push({ value: t3, size: r2 }), e2._queueTotalSize += r2;
 }
 function ce(e2) {
   e2._queue = new S(), e2._queueTotalSize = 0;
@@ -44936,65 +44936,65 @@ function fe(e2) {
   return !!r(e2) && (!!Object.prototype.hasOwnProperty.call(e2, "_associatedReadableByteStreamController") && e2 instanceof ReadableStreamBYOBRequest);
 }
 function be(e2) {
-  const t2 = (function(e3) {
-    const t3 = e3._controlledReadableByteStream;
-    if ("readable" !== t3._state) return false;
+  const t3 = (function(e3) {
+    const t4 = e3._controlledReadableByteStream;
+    if ("readable" !== t4._state) return false;
     if (e3._closeRequested) return false;
     if (!e3._started) return false;
-    if (J(t3) && X(t3) > 0) return true;
-    if (Le(t3) && ze(t3) > 0) return true;
+    if (J(t4) && X(t4) > 0) return true;
+    if (Le(t4) && ze(t4) > 0) return true;
     if (ke(e3) > 0) return true;
     return false;
   })(e2);
-  if (!t2) return;
+  if (!t3) return;
   if (e2._pulling) return void (e2._pullAgain = true);
   e2._pulling = true;
-  b(e2._pullAlgorithm(), (() => (e2._pulling = false, e2._pullAgain && (e2._pullAgain = false, be(e2)), null)), ((t3) => (Pe(e2, t3), null)));
+  b(e2._pullAlgorithm(), (() => (e2._pulling = false, e2._pullAgain && (e2._pullAgain = false, be(e2)), null)), ((t4) => (Pe(e2, t4), null)));
 }
 function he(e2) {
   Re(e2), e2._pendingPullIntos = new S();
 }
-function _e(e2, t2) {
+function _e(e2, t3) {
   let r2 = false;
   "closed" === e2._state && (r2 = true);
-  const o2 = pe(t2);
-  "default" === t2.readerType ? G(e2, o2, r2) : (function(e3, t3, r3) {
+  const o2 = pe(t3);
+  "default" === t3.readerType ? G(e2, o2, r2) : (function(e3, t4, r3) {
     const o3 = e3._reader._readIntoRequests.shift();
-    r3 ? o3._closeSteps(t3) : o3._chunkSteps(t3);
+    r3 ? o3._closeSteps(t4) : o3._chunkSteps(t4);
   })(e2, o2, r2);
 }
 function pe(e2) {
-  const t2 = e2.bytesFilled, r2 = e2.elementSize;
-  return new e2.viewConstructor(e2.buffer, e2.byteOffset, t2 / r2);
+  const t3 = e2.bytesFilled, r2 = e2.elementSize;
+  return new e2.viewConstructor(e2.buffer, e2.byteOffset, t3 / r2);
 }
-function me(e2, t2, r2, o2) {
-  e2._queue.push({ buffer: t2, byteOffset: r2, byteLength: o2 }), e2._queueTotalSize += o2;
+function me(e2, t3, r2, o2) {
+  e2._queue.push({ buffer: t3, byteOffset: r2, byteLength: o2 }), e2._queueTotalSize += o2;
 }
-function ye(e2, t2, r2, o2) {
+function ye(e2, t3, r2, o2) {
   let n2;
   try {
-    n2 = t2.slice(r2, r2 + o2);
-  } catch (t3) {
-    throw Pe(e2, t3), t3;
+    n2 = t3.slice(r2, r2 + o2);
+  } catch (t4) {
+    throw Pe(e2, t4), t4;
   }
   me(e2, n2, 0, o2);
 }
-function ge(e2, t2) {
-  t2.bytesFilled > 0 && ye(e2, t2.buffer, t2.byteOffset, t2.bytesFilled), Ce(e2);
+function ge(e2, t3) {
+  t3.bytesFilled > 0 && ye(e2, t3.buffer, t3.byteOffset, t3.bytesFilled), Ce(e2);
 }
-function we(e2, t2) {
-  const r2 = t2.elementSize, o2 = t2.bytesFilled - t2.bytesFilled % r2, n2 = Math.min(e2._queueTotalSize, t2.byteLength - t2.bytesFilled), a2 = t2.bytesFilled + n2, i2 = a2 - a2 % r2;
+function we(e2, t3) {
+  const r2 = t3.elementSize, o2 = t3.bytesFilled - t3.bytesFilled % r2, n2 = Math.min(e2._queueTotalSize, t3.byteLength - t3.bytesFilled), a2 = t3.bytesFilled + n2, i2 = a2 - a2 % r2;
   let l2 = n2, s2 = false;
-  i2 > o2 && (l2 = i2 - t2.bytesFilled, s2 = true);
+  i2 > o2 && (l2 = i2 - t3.bytesFilled, s2 = true);
   const u2 = e2._queue;
   for (; l2 > 0; ) {
-    const r3 = u2.peek(), o3 = Math.min(l2, r3.byteLength), n3 = t2.byteOffset + t2.bytesFilled;
-    ie(t2.buffer, n3, r3.buffer, r3.byteOffset, o3), r3.byteLength === o3 ? u2.shift() : (r3.byteOffset += o3, r3.byteLength -= o3), e2._queueTotalSize -= o3, Se(e2, o3, t2), l2 -= o3;
+    const r3 = u2.peek(), o3 = Math.min(l2, r3.byteLength), n3 = t3.byteOffset + t3.bytesFilled;
+    ie(t3.buffer, n3, r3.buffer, r3.byteOffset, o3), r3.byteLength === o3 ? u2.shift() : (r3.byteOffset += o3, r3.byteLength -= o3), e2._queueTotalSize -= o3, Se(e2, o3, t3), l2 -= o3;
   }
   return s2;
 }
-function Se(e2, t2, r2) {
-  r2.bytesFilled += t2;
+function Se(e2, t3, r2) {
+  r2.bytesFilled += t3;
 }
 function ve(e2) {
   0 === e2._queueTotalSize && e2._closeRequested ? (Ee(e2), Xt(e2._controlledReadableByteStream)) : be(e2);
@@ -45005,28 +45005,28 @@ function Re(e2) {
 function Te(e2) {
   for (; e2._pendingPullIntos.length > 0; ) {
     if (0 === e2._queueTotalSize) return;
-    const t2 = e2._pendingPullIntos.peek();
-    we(e2, t2) && (Ce(e2), _e(e2._controlledReadableByteStream, t2));
+    const t3 = e2._pendingPullIntos.peek();
+    we(e2, t3) && (Ce(e2), _e(e2._controlledReadableByteStream, t3));
   }
 }
-function qe(e2, t2) {
+function qe(e2, t3) {
   const r2 = e2._pendingPullIntos.peek();
   Re(e2);
-  "closed" === e2._controlledReadableByteStream._state ? (function(e3, t3) {
-    "none" === t3.readerType && Ce(e3);
+  "closed" === e2._controlledReadableByteStream._state ? (function(e3, t4) {
+    "none" === t4.readerType && Ce(e3);
     const r3 = e3._controlledReadableByteStream;
     if (Le(r3)) for (; ze(r3) > 0; ) _e(r3, Ce(e3));
-  })(e2, r2) : (function(e3, t3, r3) {
-    if (Se(0, t3, r3), "none" === r3.readerType) return ge(e3, r3), void Te(e3);
+  })(e2, r2) : (function(e3, t4, r3) {
+    if (Se(0, t4, r3), "none" === r3.readerType) return ge(e3, r3), void Te(e3);
     if (r3.bytesFilled < r3.elementSize) return;
     Ce(e3);
     const o2 = r3.bytesFilled % r3.elementSize;
     if (o2 > 0) {
-      const t4 = r3.byteOffset + r3.bytesFilled;
-      ye(e3, r3.buffer, t4 - o2, o2);
+      const t5 = r3.byteOffset + r3.bytesFilled;
+      ye(e3, r3.buffer, t5 - o2, o2);
     }
     r3.bytesFilled -= o2, _e(e3._controlledReadableByteStream, r3), Te(e3);
-  })(e2, t2, r2), be(e2);
+  })(e2, t3, r2), be(e2);
 }
 function Ce(e2) {
   return e2._pendingPullIntos.shift();
@@ -45034,29 +45034,29 @@ function Ce(e2) {
 function Ee(e2) {
   e2._pullAlgorithm = void 0, e2._cancelAlgorithm = void 0;
 }
-function Pe(e2, t2) {
+function Pe(e2, t3) {
   const r2 = e2._controlledReadableByteStream;
-  "readable" === r2._state && (he(e2), ce(e2), Ee(e2), Jt(r2, t2));
+  "readable" === r2._state && (he(e2), ce(e2), Ee(e2), Jt(r2, t3));
 }
-function We(e2, t2) {
+function We(e2, t3) {
   const r2 = e2._queue.shift();
   e2._queueTotalSize -= r2.byteLength, ve(e2);
   const o2 = new Uint8Array(r2.buffer, r2.byteOffset, r2.byteLength);
-  t2._chunkSteps(o2);
+  t3._chunkSteps(o2);
 }
 function ke(e2) {
-  const t2 = e2._controlledReadableByteStream._state;
-  return "errored" === t2 ? null : "closed" === t2 ? 0 : e2._strategyHWM - e2._queueTotalSize;
+  const t3 = e2._controlledReadableByteStream._state;
+  return "errored" === t3 ? null : "closed" === t3 ? 0 : e2._strategyHWM - e2._queueTotalSize;
 }
-function Oe(e2, t2, r2) {
+function Oe(e2, t3, r2) {
   const o2 = Object.create(ReadableByteStreamController.prototype);
   let n2, a2, i2;
-  n2 = void 0 !== t2.start ? () => t2.start(o2) : () => {
-  }, a2 = void 0 !== t2.pull ? () => t2.pull(o2) : () => c(void 0), i2 = void 0 !== t2.cancel ? (e3) => t2.cancel(e3) : () => c(void 0);
-  const l2 = t2.autoAllocateChunkSize;
+  n2 = void 0 !== t3.start ? () => t3.start(o2) : () => {
+  }, a2 = void 0 !== t3.pull ? () => t3.pull(o2) : () => c(void 0), i2 = void 0 !== t3.cancel ? (e3) => t3.cancel(e3) : () => c(void 0);
+  const l2 = t3.autoAllocateChunkSize;
   if (0 === l2) throw new TypeError("autoAllocateChunkSize must be greater than 0");
-  !(function(e3, t3, r3, o3, n3, a3, i3) {
-    t3._controlledReadableByteStream = e3, t3._pullAgain = false, t3._pulling = false, t3._byobRequest = null, t3._queue = t3._queueTotalSize = void 0, ce(t3), t3._closeRequested = false, t3._started = false, t3._strategyHWM = a3, t3._pullAlgorithm = o3, t3._cancelAlgorithm = n3, t3._autoAllocateChunkSize = i3, t3._pendingPullIntos = new S(), e3._readableStreamController = t3, b(c(r3()), (() => (t3._started = true, be(t3), null)), ((e4) => (Pe(t3, e4), null)));
+  !(function(e3, t4, r3, o3, n3, a3, i3) {
+    t4._controlledReadableByteStream = e3, t4._pullAgain = false, t4._pulling = false, t4._byobRequest = null, t4._queue = t4._queueTotalSize = void 0, ce(t4), t4._closeRequested = false, t4._started = false, t4._strategyHWM = a3, t4._pullAlgorithm = o3, t4._cancelAlgorithm = n3, t4._autoAllocateChunkSize = i3, t4._pendingPullIntos = new S(), e3._readableStreamController = t4, b(c(r3()), (() => (t4._started = true, be(t4), null)), ((e4) => (Pe(t4, e4), null)));
   })(e2, o2, n2, a2, i2, r2, l2);
 }
 function Be(e2) {
@@ -45065,57 +45065,57 @@ function Be(e2) {
 function Ae(e2) {
   return new TypeError(`ReadableByteStreamController.prototype.${e2} can only be used on a ReadableByteStreamController`);
 }
-function je(e2, t2) {
-  e2._reader._readIntoRequests.push(t2);
+function je(e2, t3) {
+  e2._reader._readIntoRequests.push(t3);
 }
 function ze(e2) {
   return e2._reader._readIntoRequests.length;
 }
 function Le(e2) {
-  const t2 = e2._reader;
-  return void 0 !== t2 && !!Fe(t2);
+  const t3 = e2._reader;
+  return void 0 !== t3 && !!Fe(t3);
 }
 function Fe(e2) {
   return !!r(e2) && (!!Object.prototype.hasOwnProperty.call(e2, "_readIntoRequests") && e2 instanceof ReadableStreamBYOBReader);
 }
-function Ie(e2, t2) {
+function Ie(e2, t3) {
   const r2 = e2._readIntoRequests;
   e2._readIntoRequests = new S(), r2.forEach(((e3) => {
-    e3._errorSteps(t2);
+    e3._errorSteps(t3);
   }));
 }
 function De(e2) {
   return new TypeError(`ReadableStreamBYOBReader.prototype.${e2} can only be used on a ReadableStreamBYOBReader`);
 }
-function $e(e2, t2) {
+function $e(e2, t3) {
   const { highWaterMark: r2 } = e2;
-  if (void 0 === r2) return t2;
+  if (void 0 === r2) return t3;
   if (ae(r2) || r2 < 0) throw new RangeError("Invalid highWaterMark");
   return r2;
 }
 function Me(e2) {
-  const { size: t2 } = e2;
-  return t2 || (() => 1);
+  const { size: t3 } = e2;
+  return t3 || (() => 1);
 }
-function Ye(e2, t2) {
-  F(e2, t2);
+function Ye(e2, t3) {
+  F(e2, t3);
   const r2 = null == e2 ? void 0 : e2.highWaterMark, o2 = null == e2 ? void 0 : e2.size;
-  return { highWaterMark: void 0 === r2 ? void 0 : Y(r2), size: void 0 === o2 ? void 0 : Qe(o2, `${t2} has member 'size' that`) };
+  return { highWaterMark: void 0 === r2 ? void 0 : Y(r2), size: void 0 === o2 ? void 0 : Qe(o2, `${t3} has member 'size' that`) };
 }
-function Qe(e2, t2) {
-  return I(e2, t2), (t3) => Y(e2(t3));
+function Qe(e2, t3) {
+  return I(e2, t3), (t4) => Y(e2(t4));
 }
-function Ne(e2, t2, r2) {
-  return I(e2, r2), (r3) => w(e2, t2, [r3]);
+function Ne(e2, t3, r2) {
+  return I(e2, r2), (r3) => w(e2, t3, [r3]);
 }
-function He(e2, t2, r2) {
-  return I(e2, r2), () => w(e2, t2, []);
+function He(e2, t3, r2) {
+  return I(e2, r2), () => w(e2, t3, []);
 }
-function xe(e2, t2, r2) {
-  return I(e2, r2), (r3) => g(e2, t2, [r3]);
+function xe(e2, t3, r2) {
+  return I(e2, r2), (r3) => g(e2, t3, [r3]);
 }
-function Ve(e2, t2, r2) {
-  return I(e2, r2), (r3, o2) => w(e2, t2, [r3, o2]);
+function Ve(e2, t3, r2) {
+  return I(e2, r2), (r3, o2) => w(e2, t3, [r3, o2]);
 }
 function Ge(e2) {
   return !!r(e2) && (!!Object.prototype.hasOwnProperty.call(e2, "_writableStreamController") && e2 instanceof WritableStream);
@@ -45123,73 +45123,73 @@ function Ge(e2) {
 function Xe(e2) {
   return void 0 !== e2._writer;
 }
-function Je(e2, t2) {
+function Je(e2, t3) {
   var r2;
   if ("closed" === e2._state || "errored" === e2._state) return c(void 0);
-  e2._writableStreamController._abortReason = t2, null === (r2 = e2._writableStreamController._abortController) || void 0 === r2 || r2.abort(t2);
+  e2._writableStreamController._abortReason = t3, null === (r2 = e2._writableStreamController._abortController) || void 0 === r2 || r2.abort(t3);
   const o2 = e2._state;
   if ("closed" === o2 || "errored" === o2) return c(void 0);
   if (void 0 !== e2._pendingAbortRequest) return e2._pendingAbortRequest._promise;
   let n2 = false;
-  "erroring" === o2 && (n2 = true, t2 = void 0);
+  "erroring" === o2 && (n2 = true, t3 = void 0);
   const a2 = u(((r3, o3) => {
-    e2._pendingAbortRequest = { _promise: void 0, _resolve: r3, _reject: o3, _reason: t2, _wasAlreadyErroring: n2 };
+    e2._pendingAbortRequest = { _promise: void 0, _resolve: r3, _reject: o3, _reason: t3, _wasAlreadyErroring: n2 };
   }));
-  return e2._pendingAbortRequest._promise = a2, n2 || et(e2, t2), a2;
+  return e2._pendingAbortRequest._promise = a2, n2 || et(e2, t3), a2;
 }
 function Ke(e2) {
-  const t2 = e2._state;
-  if ("closed" === t2 || "errored" === t2) return d(new TypeError(`The stream (in ${t2} state) is not in the writable state and cannot be closed`));
-  const r2 = u(((t3, r3) => {
-    const o3 = { _resolve: t3, _reject: r3 };
+  const t3 = e2._state;
+  if ("closed" === t3 || "errored" === t3) return d(new TypeError(`The stream (in ${t3} state) is not in the writable state and cannot be closed`));
+  const r2 = u(((t4, r3) => {
+    const o3 = { _resolve: t4, _reject: r3 };
     e2._closeRequest = o3;
   })), o2 = e2._writer;
   var n2;
-  return void 0 !== o2 && e2._backpressure && "writable" === t2 && Et(o2), ue(n2 = e2._writableStreamController, lt, 0), dt(n2), r2;
+  return void 0 !== o2 && e2._backpressure && "writable" === t3 && Et(o2), ue(n2 = e2._writableStreamController, lt, 0), dt(n2), r2;
 }
-function Ze(e2, t2) {
-  "writable" !== e2._state ? tt(e2) : et(e2, t2);
+function Ze(e2, t3) {
+  "writable" !== e2._state ? tt(e2) : et(e2, t3);
 }
-function et(e2, t2) {
+function et(e2, t3) {
   const r2 = e2._writableStreamController;
-  e2._state = "erroring", e2._storedError = t2;
+  e2._state = "erroring", e2._storedError = t3;
   const o2 = e2._writer;
-  void 0 !== o2 && it(o2, t2), !(function(e3) {
+  void 0 !== o2 && it(o2, t3), !(function(e3) {
     if (void 0 === e3._inFlightWriteRequest && void 0 === e3._inFlightCloseRequest) return false;
     return true;
   })(e2) && r2._started && tt(e2);
 }
 function tt(e2) {
   e2._state = "errored", e2._writableStreamController[R]();
-  const t2 = e2._storedError;
+  const t3 = e2._storedError;
   if (e2._writeRequests.forEach(((e3) => {
-    e3._reject(t2);
+    e3._reject(t3);
   })), e2._writeRequests = new S(), void 0 === e2._pendingAbortRequest) return void ot(e2);
   const r2 = e2._pendingAbortRequest;
-  if (e2._pendingAbortRequest = void 0, r2._wasAlreadyErroring) return r2._reject(t2), void ot(e2);
-  b(e2._writableStreamController[v](r2._reason), (() => (r2._resolve(), ot(e2), null)), ((t3) => (r2._reject(t3), ot(e2), null)));
+  if (e2._pendingAbortRequest = void 0, r2._wasAlreadyErroring) return r2._reject(t3), void ot(e2);
+  b(e2._writableStreamController[v](r2._reason), (() => (r2._resolve(), ot(e2), null)), ((t4) => (r2._reject(t4), ot(e2), null)));
 }
 function rt(e2) {
   return void 0 !== e2._closeRequest || void 0 !== e2._inFlightCloseRequest;
 }
 function ot(e2) {
   void 0 !== e2._closeRequest && (e2._closeRequest._reject(e2._storedError), e2._closeRequest = void 0);
-  const t2 = e2._writer;
-  void 0 !== t2 && St(t2, e2._storedError);
+  const t3 = e2._writer;
+  void 0 !== t3 && St(t3, e2._storedError);
 }
-function nt(e2, t2) {
+function nt(e2, t3) {
   const r2 = e2._writer;
-  void 0 !== r2 && t2 !== e2._backpressure && (t2 ? (function(e3) {
+  void 0 !== r2 && t3 !== e2._backpressure && (t3 ? (function(e3) {
     Rt(e3);
-  })(r2) : Et(r2)), e2._backpressure = t2;
+  })(r2) : Et(r2)), e2._backpressure = t3;
 }
 function at(e2) {
   return !!r(e2) && (!!Object.prototype.hasOwnProperty.call(e2, "_ownerWritableStream") && e2 instanceof WritableStreamDefaultWriter);
 }
-function it(e2, t2) {
-  "pending" === e2._readyPromiseState ? Ct(e2, t2) : (function(e3, t3) {
-    Tt(e3, t3);
-  })(e2, t2);
+function it(e2, t3) {
+  "pending" === e2._readyPromiseState ? Ct(e2, t3) : (function(e3, t4) {
+    Tt(e3, t4);
+  })(e2, t3);
 }
 function st(e2) {
   return !!r(e2) && (!!Object.prototype.hasOwnProperty.call(e2, "_controlledWritableStream") && e2 instanceof WritableStreamDefaultController);
@@ -45201,54 +45201,54 @@ function ct(e2) {
   return e2._strategyHWM - e2._queueTotalSize;
 }
 function dt(e2) {
-  const t2 = e2._controlledWritableStream;
+  const t3 = e2._controlledWritableStream;
   if (!e2._started) return;
-  if (void 0 !== t2._inFlightWriteRequest) return;
-  if ("erroring" === t2._state) return void tt(t2);
+  if (void 0 !== t3._inFlightWriteRequest) return;
+  if ("erroring" === t3._state) return void tt(t3);
   if (0 === e2._queue.length) return;
   const r2 = e2._queue.peek().value;
   r2 === lt ? (function(e3) {
-    const t3 = e3._controlledWritableStream;
+    const t4 = e3._controlledWritableStream;
     (function(e4) {
       e4._inFlightCloseRequest = e4._closeRequest, e4._closeRequest = void 0;
-    })(t3), se(e3);
+    })(t4), se(e3);
     const r3 = e3._closeAlgorithm();
     ut(e3), b(r3, (() => ((function(e4) {
       e4._inFlightCloseRequest._resolve(void 0), e4._inFlightCloseRequest = void 0, "erroring" === e4._state && (e4._storedError = void 0, void 0 !== e4._pendingAbortRequest && (e4._pendingAbortRequest._resolve(), e4._pendingAbortRequest = void 0)), e4._state = "closed";
-      const t4 = e4._writer;
-      void 0 !== t4 && vt(t4);
-    })(t3), null)), ((e4) => ((function(e5, t4) {
-      e5._inFlightCloseRequest._reject(t4), e5._inFlightCloseRequest = void 0, void 0 !== e5._pendingAbortRequest && (e5._pendingAbortRequest._reject(t4), e5._pendingAbortRequest = void 0), Ze(e5, t4);
-    })(t3, e4), null)));
-  })(e2) : (function(e3, t3) {
+      const t5 = e4._writer;
+      void 0 !== t5 && vt(t5);
+    })(t4), null)), ((e4) => ((function(e5, t5) {
+      e5._inFlightCloseRequest._reject(t5), e5._inFlightCloseRequest = void 0, void 0 !== e5._pendingAbortRequest && (e5._pendingAbortRequest._reject(t5), e5._pendingAbortRequest = void 0), Ze(e5, t5);
+    })(t4, e4), null)));
+  })(e2) : (function(e3, t4) {
     const r3 = e3._controlledWritableStream;
     !(function(e4) {
       e4._inFlightWriteRequest = e4._writeRequests.shift();
     })(r3);
-    b(e3._writeAlgorithm(t3), (() => {
+    b(e3._writeAlgorithm(t4), (() => {
       !(function(e4) {
         e4._inFlightWriteRequest._resolve(void 0), e4._inFlightWriteRequest = void 0;
       })(r3);
-      const t4 = r3._state;
-      if (se(e3), !rt(r3) && "writable" === t4) {
-        const t5 = bt(e3);
-        nt(r3, t5);
+      const t5 = r3._state;
+      if (se(e3), !rt(r3) && "writable" === t5) {
+        const t6 = bt(e3);
+        nt(r3, t6);
       }
       return dt(e3), null;
-    }), ((t4) => ("writable" === r3._state && ut(e3), (function(e4, t5) {
-      e4._inFlightWriteRequest._reject(t5), e4._inFlightWriteRequest = void 0, Ze(e4, t5);
-    })(r3, t4), null)));
+    }), ((t5) => ("writable" === r3._state && ut(e3), (function(e4, t6) {
+      e4._inFlightWriteRequest._reject(t6), e4._inFlightWriteRequest = void 0, Ze(e4, t6);
+    })(r3, t5), null)));
   })(e2, r2);
 }
-function ft(e2, t2) {
-  "writable" === e2._controlledWritableStream._state && ht(e2, t2);
+function ft(e2, t3) {
+  "writable" === e2._controlledWritableStream._state && ht(e2, t3);
 }
 function bt(e2) {
   return ct(e2) <= 0;
 }
-function ht(e2, t2) {
+function ht(e2, t3) {
   const r2 = e2._controlledWritableStream;
-  ut(e2), et(r2, t2);
+  ut(e2), et(r2, t3);
 }
 function _t(e2) {
   return new TypeError(`WritableStream.prototype.${e2} can only be used on a WritableStream`);
@@ -45263,38 +45263,38 @@ function yt(e2) {
   return new TypeError("Cannot " + e2 + " a stream using a released writer");
 }
 function gt(e2) {
-  e2._closedPromise = u(((t2, r2) => {
-    e2._closedPromise_resolve = t2, e2._closedPromise_reject = r2, e2._closedPromiseState = "pending";
+  e2._closedPromise = u(((t3, r2) => {
+    e2._closedPromise_resolve = t3, e2._closedPromise_reject = r2, e2._closedPromiseState = "pending";
   }));
 }
-function wt(e2, t2) {
-  gt(e2), St(e2, t2);
+function wt(e2, t3) {
+  gt(e2), St(e2, t3);
 }
-function St(e2, t2) {
-  void 0 !== e2._closedPromise_reject && (m(e2._closedPromise), e2._closedPromise_reject(t2), e2._closedPromise_resolve = void 0, e2._closedPromise_reject = void 0, e2._closedPromiseState = "rejected");
+function St(e2, t3) {
+  void 0 !== e2._closedPromise_reject && (m(e2._closedPromise), e2._closedPromise_reject(t3), e2._closedPromise_resolve = void 0, e2._closedPromise_reject = void 0, e2._closedPromiseState = "rejected");
 }
 function vt(e2) {
   void 0 !== e2._closedPromise_resolve && (e2._closedPromise_resolve(void 0), e2._closedPromise_resolve = void 0, e2._closedPromise_reject = void 0, e2._closedPromiseState = "resolved");
 }
 function Rt(e2) {
-  e2._readyPromise = u(((t2, r2) => {
-    e2._readyPromise_resolve = t2, e2._readyPromise_reject = r2;
+  e2._readyPromise = u(((t3, r2) => {
+    e2._readyPromise_resolve = t3, e2._readyPromise_reject = r2;
   })), e2._readyPromiseState = "pending";
 }
-function Tt(e2, t2) {
-  Rt(e2), Ct(e2, t2);
+function Tt(e2, t3) {
+  Rt(e2), Ct(e2, t3);
 }
 function qt(e2) {
   Rt(e2), Et(e2);
 }
-function Ct(e2, t2) {
-  void 0 !== e2._readyPromise_reject && (m(e2._readyPromise), e2._readyPromise_reject(t2), e2._readyPromise_resolve = void 0, e2._readyPromise_reject = void 0, e2._readyPromiseState = "rejected");
+function Ct(e2, t3) {
+  void 0 !== e2._readyPromise_reject && (m(e2._readyPromise), e2._readyPromise_reject(t3), e2._readyPromise_resolve = void 0, e2._readyPromise_reject = void 0, e2._readyPromiseState = "rejected");
 }
 function Et(e2) {
   void 0 !== e2._readyPromise_resolve && (e2._readyPromise_resolve(void 0), e2._readyPromise_resolve = void 0, e2._readyPromise_reject = void 0, e2._readyPromiseState = "fulfilled");
 }
-function kt(e2, t2, r2, o2, n2, a2) {
-  const i2 = e2.getReader(), l2 = t2.getWriter();
+function kt(e2, t3, r2, o2, n2, a2) {
+  const i2 = e2.getReader(), l2 = t3.getWriter();
   Vt(e2) && (e2._disturbed = true);
   let s2, _2, g2, w2 = false, S2 = false, v2 = "readable", R3 = "writable", T2 = false, q2 = false;
   const C2 = u(((e3) => {
@@ -45305,18 +45305,18 @@ function kt(e2, t2, r2, o2, n2, a2) {
     let k2;
     function O2() {
       if (w2) return;
-      const e3 = u(((e4, t3) => {
+      const e3 = u(((e4, t4) => {
         !(function r3(o3) {
           o3 ? e4() : f((function() {
             if (w2) return c(true);
             return f(l2.ready, (() => f(i2.read(), ((e5) => !!e5.done || (E2 = l2.write(e5.value), m(E2), false)))));
-          })(), r3, t3);
+          })(), r3, t4);
         })(false);
       }));
       m(e3);
     }
     function B2() {
-      return v2 = "closed", r2 ? L2() : z2((() => (Ge(t2) && (T2 = rt(t2), R3 = t2._state), T2 || "closed" === R3 ? c(void 0) : "erroring" === R3 || "errored" === R3 ? d(_2) : (T2 = true, l2.close()))), false, void 0), null;
+      return v2 = "closed", r2 ? L2() : z2((() => (Ge(t3) && (T2 = rt(t3), R3 = t3._state), T2 || "closed" === R3 ? c(void 0) : "erroring" === R3 || "errored" === R3 ? d(_2) : (T2 = true, l2.close()))), false, void 0), null;
     }
     function A2(e3) {
       return w2 || (v2 = "errored", s2 = e3, o2 ? L2(true, e3) : z2((() => l2.abort(e3)), true, e3)), null;
@@ -45325,34 +45325,34 @@ function kt(e2, t2, r2, o2, n2, a2) {
       return S2 || (R3 = "errored", _2 = e3, n2 ? L2(true, e3) : z2((() => i2.cancel(e3)), true, e3)), null;
     }
     if (void 0 !== a2 && (k2 = () => {
-      const e3 = void 0 !== a2.reason ? a2.reason : new Wt("Aborted", "AbortError"), t3 = [];
-      o2 || t3.push((() => "writable" === R3 ? l2.abort(e3) : c(void 0))), n2 || t3.push((() => "readable" === v2 ? i2.cancel(e3) : c(void 0))), z2((() => Promise.all(t3.map(((e4) => e4())))), true, e3);
-    }, a2.aborted ? k2() : a2.addEventListener("abort", k2)), Vt(e2) && (v2 = e2._state, s2 = e2._storedError), Ge(t2) && (R3 = t2._state, _2 = t2._storedError, T2 = rt(t2)), Vt(e2) && Ge(t2) && (q2 = true, g2()), "errored" === v2) A2(s2);
+      const e3 = void 0 !== a2.reason ? a2.reason : new Wt("Aborted", "AbortError"), t4 = [];
+      o2 || t4.push((() => "writable" === R3 ? l2.abort(e3) : c(void 0))), n2 || t4.push((() => "readable" === v2 ? i2.cancel(e3) : c(void 0))), z2((() => Promise.all(t4.map(((e4) => e4())))), true, e3);
+    }, a2.aborted ? k2() : a2.addEventListener("abort", k2)), Vt(e2) && (v2 = e2._state, s2 = e2._storedError), Ge(t3) && (R3 = t3._state, _2 = t3._storedError, T2 = rt(t3)), Vt(e2) && Ge(t3) && (q2 = true, g2()), "errored" === v2) A2(s2);
     else if ("erroring" === R3 || "errored" === R3) j2(_2);
     else if ("closed" === v2) B2();
     else if (T2 || "closed" === R3) {
       const e3 = new TypeError("the destination writable stream closed before all data could be piped to it");
       n2 ? L2(true, e3) : z2((() => i2.cancel(e3)), true, e3);
     }
-    function z2(e3, t3, r3) {
+    function z2(e3, t4, r3) {
       function o3() {
         return "writable" !== R3 || T2 ? n3() : h((function() {
           let e4;
-          return c((function t4() {
-            if (e4 !== E2) return e4 = E2, p(E2, t4, t4);
+          return c((function t5() {
+            if (e4 !== E2) return e4 = E2, p(E2, t5, t5);
           })());
         })(), n3), null;
       }
       function n3() {
-        return e3 ? b(e3(), (() => F2(t3, r3)), ((e4) => F2(true, e4))) : F2(t3, r3), null;
+        return e3 ? b(e3(), (() => F2(t4, r3)), ((e4) => F2(true, e4))) : F2(t4, r3), null;
       }
       w2 || (w2 = true, q2 ? o3() : h(C2, o3));
     }
-    function L2(e3, t3) {
-      z2(void 0, e3, t3);
+    function L2(e3, t4) {
+      z2(void 0, e3, t4);
     }
-    function F2(e3, t3) {
-      return S2 = true, l2.releaseLock(), i2.releaseLock(), void 0 !== a2 && a2.removeEventListener("abort", k2), e3 ? W2(t3) : P3(void 0), null;
+    function F2(e3, t4) {
+      return S2 = true, l2.releaseLock(), i2.releaseLock(), void 0 !== a2 && a2.removeEventListener("abort", k2), e3 ? W2(t4) : P3(void 0), null;
     }
     w2 || (b(i2.closed, B2, A2), b(l2.closed, (function() {
       return S2 || (R3 = "closed"), null;
@@ -45361,7 +45361,7 @@ function kt(e2, t2, r2, o2, n2, a2) {
     }));
   }));
 }
-function Ot(e2, t2) {
+function Ot(e2, t3) {
   return (function(e3) {
     try {
       return e3.getReader({ mode: "byob" }).releaseLock(), true;
@@ -45369,17 +45369,17 @@ function Ot(e2, t2) {
       return false;
     }
   })(e2) ? (function(e3) {
-    let t3, r2, o2, n2, a2, i2 = e3.getReader(), l2 = false, s2 = false, d2 = false, f2 = false, h2 = false, p2 = false;
+    let t4, r2, o2, n2, a2, i2 = e3.getReader(), l2 = false, s2 = false, d2 = false, f2 = false, h2 = false, p2 = false;
     const m2 = u(((e4) => {
       a2 = e4;
     }));
     function y2(e4) {
-      _(e4.closed, ((t4) => (e4 !== i2 || (o2.error(t4), n2.error(t4), h2 && p2 || a2(void 0)), null)));
+      _(e4.closed, ((t5) => (e4 !== i2 || (o2.error(t5), n2.error(t5), h2 && p2 || a2(void 0)), null)));
     }
     function g2() {
       l2 && (i2.releaseLock(), i2 = e3.getReader(), y2(i2), l2 = false), b(i2.read(), ((e4) => {
-        var t4, r3;
-        if (d2 = false, f2 = false, e4.done) return h2 || o2.close(), p2 || n2.close(), null === (t4 = o2.byobRequest) || void 0 === t4 || t4.respond(0), null === (r3 = n2.byobRequest) || void 0 === r3 || r3.respond(0), h2 && p2 || a2(void 0), null;
+        var t5, r3;
+        if (d2 = false, f2 = false, e4.done) return h2 || o2.close(), p2 || n2.close(), null === (t5 = o2.byobRequest) || void 0 === t5 || t5.respond(0), null === (r3 = n2.byobRequest) || void 0 === r3 || r3.respond(0), h2 && p2 || a2(void 0), null;
         const l3 = e4.value, u2 = l3;
         let c2 = l3;
         if (!h2 && !p2) try {
@@ -45390,17 +45390,17 @@ function Ot(e2, t2) {
         return h2 || o2.enqueue(u2), p2 || n2.enqueue(c2), s2 = false, d2 ? S2() : f2 && v2(), null;
       }), (() => (s2 = false, null)));
     }
-    function w2(t4, r3) {
+    function w2(t5, r3) {
       l2 || (i2.releaseLock(), i2 = e3.getReader({ mode: "byob" }), y2(i2), l2 = true);
       const u2 = r3 ? n2 : o2, c2 = r3 ? o2 : n2;
-      b(i2.read(t4), ((e4) => {
-        var t5;
+      b(i2.read(t5), ((e4) => {
+        var t6;
         d2 = false, f2 = false;
         const o3 = r3 ? p2 : h2, n3 = r3 ? h2 : p2;
         if (e4.done) {
           o3 || u2.close(), n3 || c2.close();
           const r4 = e4.value;
-          return void 0 !== r4 && (o3 || u2.byobRequest.respondWithNewView(r4), n3 || null === (t5 = c2.byobRequest) || void 0 === t5 || t5.respond(0)), o3 && n3 || a2(void 0), null;
+          return void 0 !== r4 && (o3 || u2.byobRequest.respondWithNewView(r4), n3 || null === (t6 = c2.byobRequest) || void 0 === t6 || t6.respond(0)), o3 && n3 || a2(void 0), null;
         }
         const l3 = e4.value;
         if (n3) o3 || u2.byobRequest.respondWithNewView(l3);
@@ -45429,15 +45429,15 @@ function Ot(e2, t2) {
       return null === e4 ? g2() : w2(e4.view, true), c(void 0);
     }
     function R3(e4) {
-      if (h2 = true, t3 = e4, p2) {
-        const e5 = [t3, r2], o3 = i2.cancel(e5);
+      if (h2 = true, t4 = e4, p2) {
+        const e5 = [t4, r2], o3 = i2.cancel(e5);
         a2(o3);
       }
       return m2;
     }
     function T2(e4) {
       if (p2 = true, r2 = e4, h2) {
-        const e5 = [t3, r2], o3 = i2.cancel(e5);
+        const e5 = [t4, r2], o3 = i2.cancel(e5);
         a2(o3);
       }
       return m2;
@@ -45448,7 +45448,7 @@ function Ot(e2, t2) {
       n2 = e4;
     }, pull: v2, cancel: T2 });
     return y2(i2), [q2, C2];
-  })(e2) : (function(e3, t3) {
+  })(e2) : (function(e3, t4) {
     const r2 = e3.getReader();
     let o2, n2, a2, i2, l2, s2 = false, d2 = false, f2 = false, h2 = false;
     const p2 = u(((e4) => {
@@ -45457,21 +45457,21 @@ function Ot(e2, t2) {
     function m2() {
       return s2 ? (d2 = true, c(void 0)) : (s2 = true, b(r2.read(), ((e4) => {
         if (d2 = false, e4.done) return f2 || a2.close(), h2 || i2.close(), f2 && h2 || l2(void 0), null;
-        const t4 = e4.value, r3 = t4, o3 = t4;
+        const t5 = e4.value, r3 = t5, o3 = t5;
         return f2 || a2.enqueue(r3), h2 || i2.enqueue(o3), s2 = false, d2 && m2(), null;
       }), (() => (s2 = false, null))), c(void 0));
     }
     function y2(e4) {
       if (f2 = true, o2 = e4, h2) {
-        const e5 = [o2, n2], t4 = r2.cancel(e5);
-        l2(t4);
+        const e5 = [o2, n2], t5 = r2.cancel(e5);
+        l2(t5);
       }
       return p2;
     }
     function g2(e4) {
       if (h2 = true, n2 = e4, f2) {
-        const e5 = [o2, n2], t4 = r2.cancel(e5);
-        l2(t4);
+        const e5 = [o2, n2], t5 = r2.cancel(e5);
+        l2(t5);
       }
       return p2;
     }
@@ -45487,65 +45487,65 @@ function Bt(e2) {
   return !!r(e2) && (!!Object.prototype.hasOwnProperty.call(e2, "_controlledReadableStream") && e2 instanceof ReadableStreamDefaultController);
 }
 function At(e2) {
-  const t2 = (function(e3) {
-    const t3 = e3._controlledReadableStream;
+  const t3 = (function(e3) {
+    const t4 = e3._controlledReadableStream;
     if (!Ft(e3)) return false;
     if (!e3._started) return false;
-    if (Ut(t3) && X(t3) > 0) return true;
+    if (Ut(t4) && X(t4) > 0) return true;
     if (Lt(e3) > 0) return true;
     return false;
   })(e2);
-  if (!t2) return;
+  if (!t3) return;
   if (e2._pulling) return void (e2._pullAgain = true);
   e2._pulling = true;
-  b(e2._pullAlgorithm(), (() => (e2._pulling = false, e2._pullAgain && (e2._pullAgain = false, At(e2)), null)), ((t3) => (zt(e2, t3), null)));
+  b(e2._pullAlgorithm(), (() => (e2._pulling = false, e2._pullAgain && (e2._pullAgain = false, At(e2)), null)), ((t4) => (zt(e2, t4), null)));
 }
 function jt(e2) {
   e2._pullAlgorithm = void 0, e2._cancelAlgorithm = void 0, e2._strategySizeAlgorithm = void 0;
 }
-function zt(e2, t2) {
+function zt(e2, t3) {
   const r2 = e2._controlledReadableStream;
-  "readable" === r2._state && (ce(e2), jt(e2), Jt(r2, t2));
+  "readable" === r2._state && (ce(e2), jt(e2), Jt(r2, t3));
 }
 function Lt(e2) {
-  const t2 = e2._controlledReadableStream._state;
-  return "errored" === t2 ? null : "closed" === t2 ? 0 : e2._strategyHWM - e2._queueTotalSize;
+  const t3 = e2._controlledReadableStream._state;
+  return "errored" === t3 ? null : "closed" === t3 ? 0 : e2._strategyHWM - e2._queueTotalSize;
 }
 function Ft(e2) {
   return !e2._closeRequested && "readable" === e2._controlledReadableStream._state;
 }
-function It(e2, t2, r2, o2) {
+function It(e2, t3, r2, o2) {
   const n2 = Object.create(ReadableStreamDefaultController.prototype);
   let a2, i2, l2;
-  a2 = void 0 !== t2.start ? () => t2.start(n2) : () => {
-  }, i2 = void 0 !== t2.pull ? () => t2.pull(n2) : () => c(void 0), l2 = void 0 !== t2.cancel ? (e3) => t2.cancel(e3) : () => c(void 0), (function(e3, t3, r3, o3, n3, a3, i3) {
-    t3._controlledReadableStream = e3, t3._queue = void 0, t3._queueTotalSize = void 0, ce(t3), t3._started = false, t3._closeRequested = false, t3._pullAgain = false, t3._pulling = false, t3._strategySizeAlgorithm = i3, t3._strategyHWM = a3, t3._pullAlgorithm = o3, t3._cancelAlgorithm = n3, e3._readableStreamController = t3, b(c(r3()), (() => (t3._started = true, At(t3), null)), ((e4) => (zt(t3, e4), null)));
+  a2 = void 0 !== t3.start ? () => t3.start(n2) : () => {
+  }, i2 = void 0 !== t3.pull ? () => t3.pull(n2) : () => c(void 0), l2 = void 0 !== t3.cancel ? (e3) => t3.cancel(e3) : () => c(void 0), (function(e3, t4, r3, o3, n3, a3, i3) {
+    t4._controlledReadableStream = e3, t4._queue = void 0, t4._queueTotalSize = void 0, ce(t4), t4._started = false, t4._closeRequested = false, t4._pullAgain = false, t4._pulling = false, t4._strategySizeAlgorithm = i3, t4._strategyHWM = a3, t4._pullAlgorithm = o3, t4._cancelAlgorithm = n3, e3._readableStreamController = t4, b(c(r3()), (() => (t4._started = true, At(t4), null)), ((e4) => (zt(t4, e4), null)));
   })(e2, n2, a2, i2, l2, r2, o2);
 }
 function Dt(e2) {
   return new TypeError(`ReadableStreamDefaultController.prototype.${e2} can only be used on a ReadableStreamDefaultController`);
 }
-function $t(e2, t2, r2) {
-  return I(e2, r2), (r3) => w(e2, t2, [r3]);
+function $t(e2, t3, r2) {
+  return I(e2, r2), (r3) => w(e2, t3, [r3]);
 }
-function Mt(e2, t2, r2) {
-  return I(e2, r2), (r3) => w(e2, t2, [r3]);
+function Mt(e2, t3, r2) {
+  return I(e2, r2), (r3) => w(e2, t3, [r3]);
 }
-function Yt(e2, t2, r2) {
-  return I(e2, r2), (r3) => g(e2, t2, [r3]);
+function Yt(e2, t3, r2) {
+  return I(e2, r2), (r3) => g(e2, t3, [r3]);
 }
-function Qt(e2, t2) {
-  if ("bytes" !== (e2 = `${e2}`)) throw new TypeError(`${t2} '${e2}' is not a valid enumeration value for ReadableStreamType`);
+function Qt(e2, t3) {
+  if ("bytes" !== (e2 = `${e2}`)) throw new TypeError(`${t3} '${e2}' is not a valid enumeration value for ReadableStreamType`);
   return e2;
 }
-function Nt(e2, t2) {
-  if ("byob" !== (e2 = `${e2}`)) throw new TypeError(`${t2} '${e2}' is not a valid enumeration value for ReadableStreamReaderMode`);
+function Nt(e2, t3) {
+  if ("byob" !== (e2 = `${e2}`)) throw new TypeError(`${t3} '${e2}' is not a valid enumeration value for ReadableStreamReaderMode`);
   return e2;
 }
-function Ht(e2, t2) {
-  F(e2, t2);
+function Ht(e2, t3) {
+  F(e2, t3);
   const r2 = null == e2 ? void 0 : e2.preventAbort, o2 = null == e2 ? void 0 : e2.preventCancel, n2 = null == e2 ? void 0 : e2.preventClose, a2 = null == e2 ? void 0 : e2.signal;
-  return void 0 !== a2 && (function(e3, t3) {
+  return void 0 !== a2 && (function(e3, t4) {
     if (!(function(e4) {
       if ("object" != typeof e4 || null === e4) return false;
       try {
@@ -45553,19 +45553,19 @@ function Ht(e2, t2) {
       } catch (e5) {
         return false;
       }
-    })(e3)) throw new TypeError(`${t3} is not an AbortSignal.`);
-  })(a2, `${t2} has member 'signal' that`), { preventAbort: Boolean(r2), preventCancel: Boolean(o2), preventClose: Boolean(n2), signal: a2 };
+    })(e3)) throw new TypeError(`${t4} is not an AbortSignal.`);
+  })(a2, `${t3} has member 'signal' that`), { preventAbort: Boolean(r2), preventCancel: Boolean(o2), preventClose: Boolean(n2), signal: a2 };
 }
-function xt(e2, t2) {
-  F(e2, t2);
+function xt(e2, t3) {
+  F(e2, t3);
   const r2 = null == e2 ? void 0 : e2.readable;
-  M(r2, "readable", "ReadableWritablePair"), (function(e3, t3) {
-    if (!H(e3)) throw new TypeError(`${t3} is not a ReadableStream.`);
-  })(r2, `${t2} has member 'readable' that`);
+  M(r2, "readable", "ReadableWritablePair"), (function(e3, t4) {
+    if (!H(e3)) throw new TypeError(`${t4} is not a ReadableStream.`);
+  })(r2, `${t3} has member 'readable' that`);
   const o2 = null == e2 ? void 0 : e2.writable;
-  return M(o2, "writable", "ReadableWritablePair"), (function(e3, t3) {
-    if (!x(e3)) throw new TypeError(`${t3} is not a WritableStream.`);
-  })(o2, `${t2} has member 'writable' that`), { readable: r2, writable: o2 };
+  return M(o2, "writable", "ReadableWritablePair"), (function(e3, t4) {
+    if (!x(e3)) throw new TypeError(`${t4} is not a WritableStream.`);
+  })(o2, `${t3} has member 'writable' that`), { readable: r2, writable: o2 };
 }
 function Vt(e2) {
   return !!r(e2) && (!!Object.prototype.hasOwnProperty.call(e2, "_readableStreamController") && e2 instanceof ReadableStream3);
@@ -45588,24 +45588,24 @@ function Gt(e2, r2) {
 }
 function Xt(e2) {
   e2._state = "closed";
-  const t2 = e2._reader;
-  if (void 0 !== t2 && (j(t2), K(t2))) {
-    const e3 = t2._readRequests;
-    t2._readRequests = new S(), e3.forEach(((e4) => {
+  const t3 = e2._reader;
+  if (void 0 !== t3 && (j(t3), K(t3))) {
+    const e3 = t3._readRequests;
+    t3._readRequests = new S(), e3.forEach(((e4) => {
       e4._closeSteps();
     }));
   }
 }
-function Jt(e2, t2) {
-  e2._state = "errored", e2._storedError = t2;
+function Jt(e2, t3) {
+  e2._state = "errored", e2._storedError = t3;
   const r2 = e2._reader;
-  void 0 !== r2 && (A(r2, t2), K(r2) ? Z(r2, t2) : Ie(r2, t2));
+  void 0 !== r2 && (A(r2, t3), K(r2) ? Z(r2, t3) : Ie(r2, t3));
 }
 function Kt(e2) {
   return new TypeError(`ReadableStream.prototype.${e2} can only be used on a ReadableStream`);
 }
-function Zt(e2, t2) {
-  F(e2, t2);
+function Zt(e2, t3) {
+  F(e2, t3);
   const r2 = null == e2 ? void 0 : e2.highWaterMark;
   return M(r2, "highWaterMark", "QueuingStrategyInit"), { highWaterMark: Y(r2) };
 }
@@ -45621,31 +45621,31 @@ function nr(e2) {
 function ar(e2) {
   return !!r(e2) && (!!Object.prototype.hasOwnProperty.call(e2, "_countQueuingStrategyHighWaterMark") && e2 instanceof CountQueuingStrategy);
 }
-function ir(e2, t2, r2) {
-  return I(e2, r2), (r3) => w(e2, t2, [r3]);
+function ir(e2, t3, r2) {
+  return I(e2, r2), (r3) => w(e2, t3, [r3]);
 }
-function lr(e2, t2, r2) {
-  return I(e2, r2), (r3) => g(e2, t2, [r3]);
+function lr(e2, t3, r2) {
+  return I(e2, r2), (r3) => g(e2, t3, [r3]);
 }
-function sr(e2, t2, r2) {
-  return I(e2, r2), (r3, o2) => w(e2, t2, [r3, o2]);
+function sr(e2, t3, r2) {
+  return I(e2, r2), (r3, o2) => w(e2, t3, [r3, o2]);
 }
 function ur(e2) {
   return !!r(e2) && (!!Object.prototype.hasOwnProperty.call(e2, "_transformStreamController") && e2 instanceof TransformStream2);
 }
-function cr(e2, t2) {
-  Sr(e2, t2), dr(e2, t2);
+function cr(e2, t3) {
+  Sr(e2, t3), dr(e2, t3);
 }
-function dr(e2, t2) {
-  hr(e2._transformStreamController), (function(e3, t3) {
-    e3._writableController.error(t3);
-    "writable" === e3._writableState && Tr(e3, t3);
-  })(e2, t2), e2._backpressure && fr(e2, false);
+function dr(e2, t3) {
+  hr(e2._transformStreamController), (function(e3, t4) {
+    e3._writableController.error(t4);
+    "writable" === e3._writableState && Tr(e3, t4);
+  })(e2, t3), e2._backpressure && fr(e2, false);
 }
-function fr(e2, t2) {
-  void 0 !== e2._backpressureChangePromise && e2._backpressureChangePromise_resolve(), e2._backpressureChangePromise = u(((t3) => {
-    e2._backpressureChangePromise_resolve = t3;
-  })), e2._backpressure = t2;
+function fr(e2, t3) {
+  void 0 !== e2._backpressureChangePromise && e2._backpressureChangePromise_resolve(), e2._backpressureChangePromise = u(((t4) => {
+    e2._backpressureChangePromise_resolve = t4;
+  })), e2._backpressure = t3;
 }
 function br(e2) {
   return !!r(e2) && (!!Object.prototype.hasOwnProperty.call(e2, "_controlledTransformStream") && e2 instanceof TransformStreamDefaultController);
@@ -45653,18 +45653,18 @@ function br(e2) {
 function hr(e2) {
   e2._transformAlgorithm = void 0, e2._flushAlgorithm = void 0;
 }
-function _r(e2, t2) {
+function _r(e2, t3) {
   const r2 = e2._controlledTransformStream;
   if (!gr(r2)) throw new TypeError("Readable side is not in a state that permits enqueue");
   try {
-    !(function(e3, t3) {
+    !(function(e3, t4) {
       e3._readablePulling = false;
       try {
-        e3._readableController.enqueue(t3);
-      } catch (t4) {
-        throw Sr(e3, t4), t4;
+        e3._readableController.enqueue(t4);
+      } catch (t5) {
+        throw Sr(e3, t5), t5;
       }
-    })(r2, t2);
+    })(r2, t3);
   } catch (e3) {
     throw dr(r2, e3), r2._readableStoredError;
   }
@@ -45678,9 +45678,9 @@ function _r(e2, t2) {
   })(r2);
   o2 !== r2._backpressure && fr(r2, true);
 }
-function pr(e2, t2) {
-  return p(e2._transformAlgorithm(t2), void 0, ((t3) => {
-    throw cr(e2._controlledTransformStream, t3), t3;
+function pr(e2, t3) {
+  return p(e2._transformAlgorithm(t3), void 0, ((t4) => {
+    throw cr(e2._controlledTransformStream, t4), t4;
   }));
 }
 function mr(e2) {
@@ -45695,17 +45695,17 @@ function gr(e2) {
 function wr(e2) {
   e2._readableState = "closed", e2._readableCloseRequested = true, e2._readableController.close();
 }
-function Sr(e2, t2) {
-  "readable" === e2._readableState && (e2._readableState = "errored", e2._readableStoredError = t2), e2._readableController.error(t2);
+function Sr(e2, t3) {
+  "readable" === e2._readableState && (e2._readableState = "errored", e2._readableStoredError = t3), e2._readableController.error(t3);
 }
 function vr(e2) {
   return e2._readableController.desiredSize;
 }
-function Rr(e2, t2) {
-  "writable" !== e2._writableState ? qr(e2) : Tr(e2, t2);
+function Rr(e2, t3) {
+  "writable" !== e2._writableState ? qr(e2) : Tr(e2, t3);
 }
-function Tr(e2, t2) {
-  e2._writableState = "erroring", e2._writableStoredError = t2, !(function(e3) {
+function Tr(e2, t3) {
+  e2._writableState = "erroring", e2._writableStoredError = t3, !(function(e3) {
     return e3._writableHasInFlightOperation;
   })(e2) && e2._writableStarted && qr(e2);
 }
@@ -45729,7 +45729,7 @@ var init_ponyfill = __esm({
       if ("function" == typeof queueMicrotask) y = queueMicrotask;
       else {
         const e3 = c(void 0);
-        y = (t2) => f(e3, t2);
+        y = (t3) => f(e3, t3);
       }
       return y(e2);
     };
@@ -45741,25 +45741,25 @@ var init_ponyfill = __esm({
         return this._size;
       }
       push(e2) {
-        const t2 = this._back;
-        let r2 = t2;
-        16383 === t2._elements.length && (r2 = { _elements: [], _next: void 0 }), t2._elements.push(e2), r2 !== t2 && (this._back = r2, t2._next = r2), ++this._size;
+        const t3 = this._back;
+        let r2 = t3;
+        16383 === t3._elements.length && (r2 = { _elements: [], _next: void 0 }), t3._elements.push(e2), r2 !== t3 && (this._back = r2, t3._next = r2), ++this._size;
       }
       shift() {
         const e2 = this._front;
-        let t2 = e2;
+        let t3 = e2;
         const r2 = this._cursor;
         let o2 = r2 + 1;
         const n2 = e2._elements, a2 = n2[r2];
-        return 16384 === o2 && (t2 = e2._next, o2 = 0), --this._size, this._cursor = o2, e2 !== t2 && (this._front = t2), n2[r2] = void 0, a2;
+        return 16384 === o2 && (t3 = e2._next, o2 = 0), --this._size, this._cursor = o2, e2 !== t3 && (this._front = t3), n2[r2] = void 0, a2;
       }
       forEach(e2) {
-        let t2 = this._cursor, r2 = this._front, o2 = r2._elements;
-        for (; !(t2 === o2.length && void 0 === r2._next || t2 === o2.length && (r2 = r2._next, o2 = r2._elements, t2 = 0, 0 === o2.length)); ) e2(o2[t2]), ++t2;
+        let t3 = this._cursor, r2 = this._front, o2 = r2._elements;
+        for (; !(t3 === o2.length && void 0 === r2._next || t3 === o2.length && (r2 = r2._next, o2 = r2._elements, t3 = 0, 0 === o2.length)); ) e2(o2[t3]), ++t3;
       }
       peek() {
-        const e2 = this._front, t2 = this._cursor;
-        return e2._elements[t2];
+        const e2 = this._front, t3 = this._cursor;
+        return e2._elements[t3];
       }
     };
     v = e("[[AbortSteps]]");
@@ -45787,58 +45787,58 @@ var init_ponyfill = __esm({
       read() {
         if (!K(this)) return d(ee("read"));
         if (void 0 === this._ownerReadableStream) return d(k("read from"));
-        let e2, t2;
+        let e2, t3;
         const r2 = u(((r3, o2) => {
-          e2 = r3, t2 = o2;
+          e2 = r3, t3 = o2;
         }));
-        return (function(e3, t3) {
+        return (function(e3, t4) {
           const r3 = e3._ownerReadableStream;
-          r3._disturbed = true, "closed" === r3._state ? t3._closeSteps() : "errored" === r3._state ? t3._errorSteps(r3._storedError) : r3._readableStreamController[q](t3);
-        })(this, { _chunkSteps: (t3) => e2({ value: t3, done: false }), _closeSteps: () => e2({ value: void 0, done: true }), _errorSteps: (e3) => t2(e3) }), r2;
+          r3._disturbed = true, "closed" === r3._state ? t4._closeSteps() : "errored" === r3._state ? t4._errorSteps(r3._storedError) : r3._readableStreamController[q](t4);
+        })(this, { _chunkSteps: (t4) => e2({ value: t4, done: false }), _closeSteps: () => e2({ value: void 0, done: true }), _errorSteps: (e3) => t3(e3) }), r2;
       }
       releaseLock() {
         if (!K(this)) throw ee("releaseLock");
         void 0 !== this._ownerReadableStream && (function(e2) {
           W(e2);
-          const t2 = new TypeError("Reader was released");
-          Z(e2, t2);
+          const t3 = new TypeError("Reader was released");
+          Z(e2, t3);
         })(this);
       }
     };
     Object.defineProperties(ReadableStreamDefaultReader.prototype, { cancel: { enumerable: true }, read: { enumerable: true }, releaseLock: { enumerable: true }, closed: { enumerable: true } }), n(ReadableStreamDefaultReader.prototype.cancel, "cancel"), n(ReadableStreamDefaultReader.prototype.read, "read"), n(ReadableStreamDefaultReader.prototype.releaseLock, "releaseLock"), "symbol" == typeof e.toStringTag && Object.defineProperty(ReadableStreamDefaultReader.prototype, e.toStringTag, { value: "ReadableStreamDefaultReader", configurable: true });
     te = class {
-      constructor(e2, t2) {
-        this._ongoingPromise = void 0, this._isFinished = false, this._reader = e2, this._preventCancel = t2;
+      constructor(e2, t3) {
+        this._ongoingPromise = void 0, this._isFinished = false, this._reader = e2, this._preventCancel = t3;
       }
       next() {
         const e2 = () => this._nextSteps();
         return this._ongoingPromise = this._ongoingPromise ? p(this._ongoingPromise, e2, e2) : e2(), this._ongoingPromise;
       }
       return(e2) {
-        const t2 = () => this._returnSteps(e2);
-        return this._ongoingPromise ? p(this._ongoingPromise, t2, t2) : t2();
+        const t3 = () => this._returnSteps(e2);
+        return this._ongoingPromise ? p(this._ongoingPromise, t3, t3) : t3();
       }
       _nextSteps() {
         if (this._isFinished) return Promise.resolve({ value: void 0, done: true });
         const e2 = this._reader;
         return void 0 === e2 ? d(k("iterate")) : f(e2.read(), ((e3) => {
-          var t2;
-          return this._ongoingPromise = void 0, e3.done && (this._isFinished = true, null === (t2 = this._reader) || void 0 === t2 || t2.releaseLock(), this._reader = void 0), e3;
+          var t3;
+          return this._ongoingPromise = void 0, e3.done && (this._isFinished = true, null === (t3 = this._reader) || void 0 === t3 || t3.releaseLock(), this._reader = void 0), e3;
         }), ((e3) => {
-          var t2;
-          throw this._ongoingPromise = void 0, this._isFinished = true, null === (t2 = this._reader) || void 0 === t2 || t2.releaseLock(), this._reader = void 0, e3;
+          var t3;
+          throw this._ongoingPromise = void 0, this._isFinished = true, null === (t3 = this._reader) || void 0 === t3 || t3.releaseLock(), this._reader = void 0, e3;
         }));
       }
       _returnSteps(e2) {
         if (this._isFinished) return Promise.resolve({ value: e2, done: true });
         this._isFinished = true;
-        const t2 = this._reader;
-        if (void 0 === t2) return d(k("finish iterating"));
+        const t3 = this._reader;
+        if (void 0 === t3) return d(k("finish iterating"));
         if (this._reader = void 0, !this._preventCancel) {
-          const r2 = t2.cancel(e2);
-          return t2.releaseLock(), p(r2, (() => ({ value: e2, done: true })));
+          const r2 = t3.cancel(e2);
+          return t3.releaseLock(), p(r2, (() => ({ value: e2, done: true })));
         }
-        return t2.releaseLock(), c({ value: e2, done: true });
+        return t3.releaseLock(), c({ value: e2, done: true });
       }
     };
     re2 = { next() {
@@ -45863,31 +45863,31 @@ var init_ponyfill = __esm({
       respond(e2) {
         if (!fe(this)) throw Be("respond");
         if ($(e2, 1, "respond"), e2 = N(e2, "First parameter"), void 0 === this._associatedReadableByteStreamController) throw new TypeError("This BYOB request has been invalidated");
-        this._view.buffer, (function(e3, t2) {
+        this._view.buffer, (function(e3, t3) {
           const r2 = e3._pendingPullIntos.peek();
           if ("closed" === e3._controlledReadableByteStream._state) {
-            if (0 !== t2) throw new TypeError("bytesWritten must be 0 when calling respond() on a closed stream");
+            if (0 !== t3) throw new TypeError("bytesWritten must be 0 when calling respond() on a closed stream");
           } else {
-            if (0 === t2) throw new TypeError("bytesWritten must be greater than 0 when calling respond() on a readable stream");
-            if (r2.bytesFilled + t2 > r2.byteLength) throw new RangeError("bytesWritten out of range");
+            if (0 === t3) throw new TypeError("bytesWritten must be greater than 0 when calling respond() on a readable stream");
+            if (r2.bytesFilled + t3 > r2.byteLength) throw new RangeError("bytesWritten out of range");
           }
-          r2.buffer = r2.buffer, qe(e3, t2);
+          r2.buffer = r2.buffer, qe(e3, t3);
         })(this._associatedReadableByteStreamController, e2);
       }
       respondWithNewView(e2) {
         if (!fe(this)) throw Be("respondWithNewView");
         if ($(e2, 1, "respondWithNewView"), !ArrayBuffer.isView(e2)) throw new TypeError("You can only respond with array buffer views");
         if (void 0 === this._associatedReadableByteStreamController) throw new TypeError("This BYOB request has been invalidated");
-        e2.buffer, (function(e3, t2) {
+        e2.buffer, (function(e3, t3) {
           const r2 = e3._pendingPullIntos.peek();
           if ("closed" === e3._controlledReadableByteStream._state) {
-            if (0 !== t2.byteLength) throw new TypeError("The view's length must be 0 when calling respondWithNewView() on a closed stream");
-          } else if (0 === t2.byteLength) throw new TypeError("The view's length must be greater than 0 when calling respondWithNewView() on a readable stream");
-          if (r2.byteOffset + r2.bytesFilled !== t2.byteOffset) throw new RangeError("The region specified by view does not match byobRequest");
-          if (r2.bufferByteLength !== t2.buffer.byteLength) throw new RangeError("The buffer of view has different capacity than byobRequest");
-          if (r2.bytesFilled + t2.byteLength > r2.byteLength) throw new RangeError("The region specified by view is larger than byobRequest");
-          const o2 = t2.byteLength;
-          r2.buffer = t2.buffer, qe(e3, o2);
+            if (0 !== t3.byteLength) throw new TypeError("The view's length must be 0 when calling respondWithNewView() on a closed stream");
+          } else if (0 === t3.byteLength) throw new TypeError("The view's length must be greater than 0 when calling respondWithNewView() on a readable stream");
+          if (r2.byteOffset + r2.bytesFilled !== t3.byteOffset) throw new RangeError("The region specified by view does not match byobRequest");
+          if (r2.bufferByteLength !== t3.buffer.byteLength) throw new RangeError("The buffer of view has different capacity than byobRequest");
+          if (r2.bytesFilled + t3.byteLength > r2.byteLength) throw new RangeError("The region specified by view is larger than byobRequest");
+          const o2 = t3.byteLength;
+          r2.buffer = t3.buffer, qe(e3, o2);
         })(this._associatedReadableByteStreamController, e2);
       }
     };
@@ -45900,9 +45900,9 @@ var init_ponyfill = __esm({
         if (!de(this)) throw Ae("byobRequest");
         return (function(e2) {
           if (null === e2._byobRequest && e2._pendingPullIntos.length > 0) {
-            const t2 = e2._pendingPullIntos.peek(), r2 = new Uint8Array(t2.buffer, t2.byteOffset + t2.bytesFilled, t2.byteLength - t2.bytesFilled), o2 = Object.create(ReadableStreamBYOBRequest.prototype);
-            !(function(e3, t3, r3) {
-              e3._associatedReadableByteStreamController = t3, e3._view = r3;
+            const t3 = e2._pendingPullIntos.peek(), r2 = new Uint8Array(t3.buffer, t3.byteOffset + t3.bytesFilled, t3.byteLength - t3.bytesFilled), o2 = Object.create(ReadableStreamBYOBRequest.prototype);
+            !(function(e3, t4, r3) {
+              e3._associatedReadableByteStreamController = t4, e3._view = r3;
             })(o2, e2, r2), e2._byobRequest = o2;
           }
           return e2._byobRequest;
@@ -45918,16 +45918,16 @@ var init_ponyfill = __esm({
         const e2 = this._controlledReadableByteStream._state;
         if ("readable" !== e2) throw new TypeError(`The stream (in ${e2} state) is not in the readable state and cannot be closed`);
         !(function(e3) {
-          const t2 = e3._controlledReadableByteStream;
-          if (e3._closeRequested || "readable" !== t2._state) return;
+          const t3 = e3._controlledReadableByteStream;
+          if (e3._closeRequested || "readable" !== t3._state) return;
           if (e3._queueTotalSize > 0) return void (e3._closeRequested = true);
           if (e3._pendingPullIntos.length > 0) {
             if (e3._pendingPullIntos.peek().bytesFilled > 0) {
-              const t3 = new TypeError("Insufficient bytes to fill elements in the given buffer");
-              throw Pe(e3, t3), t3;
+              const t4 = new TypeError("Insufficient bytes to fill elements in the given buffer");
+              throw Pe(e3, t4), t4;
             }
           }
-          Ee(e3), Xt(t2);
+          Ee(e3), Xt(t3);
         })(this);
       }
       enqueue(e2) {
@@ -45936,21 +45936,21 @@ var init_ponyfill = __esm({
         if (0 === e2.byteLength) throw new TypeError("chunk must have non-zero byteLength");
         if (0 === e2.buffer.byteLength) throw new TypeError("chunk's buffer must have non-zero byteLength");
         if (this._closeRequested) throw new TypeError("stream is closed or draining");
-        const t2 = this._controlledReadableByteStream._state;
-        if ("readable" !== t2) throw new TypeError(`The stream (in ${t2} state) is not in the readable state and cannot be enqueued to`);
-        !(function(e3, t3) {
+        const t3 = this._controlledReadableByteStream._state;
+        if ("readable" !== t3) throw new TypeError(`The stream (in ${t3} state) is not in the readable state and cannot be enqueued to`);
+        !(function(e3, t4) {
           const r2 = e3._controlledReadableByteStream;
           if (e3._closeRequested || "readable" !== r2._state) return;
-          const o2 = t3.buffer, n2 = t3.byteOffset, a2 = t3.byteLength, i2 = o2;
+          const o2 = t4.buffer, n2 = t4.byteOffset, a2 = t4.byteLength, i2 = o2;
           if (e3._pendingPullIntos.length > 0) {
-            const t4 = e3._pendingPullIntos.peek();
-            t4.buffer, 0, Re(e3), t4.buffer = t4.buffer, "none" === t4.readerType && ge(e3, t4);
+            const t5 = e3._pendingPullIntos.peek();
+            t5.buffer, 0, Re(e3), t5.buffer = t5.buffer, "none" === t5.readerType && ge(e3, t5);
           }
           if (J(r2)) if ((function(e4) {
-            const t4 = e4._controlledReadableByteStream._reader;
-            for (; t4._readRequests.length > 0; ) {
+            const t5 = e4._controlledReadableByteStream._reader;
+            for (; t5._readRequests.length > 0; ) {
               if (0 === e4._queueTotalSize) return;
-              We(e4, t4._readRequests.shift());
+              We(e4, t5._readRequests.shift());
             }
           })(e3), 0 === X(r2)) me(e3, i2, n2, a2);
           else {
@@ -45967,24 +45967,24 @@ var init_ponyfill = __esm({
       }
       [T](e2) {
         he(this), ce(this);
-        const t2 = this._cancelAlgorithm(e2);
-        return Ee(this), t2;
+        const t3 = this._cancelAlgorithm(e2);
+        return Ee(this), t3;
       }
       [q](e2) {
-        const t2 = this._controlledReadableByteStream;
+        const t3 = this._controlledReadableByteStream;
         if (this._queueTotalSize > 0) return void We(this, e2);
         const r2 = this._autoAllocateChunkSize;
         if (void 0 !== r2) {
-          let t3;
+          let t4;
           try {
-            t3 = new ArrayBuffer(r2);
-          } catch (t4) {
-            return void e2._errorSteps(t4);
+            t4 = new ArrayBuffer(r2);
+          } catch (t5) {
+            return void e2._errorSteps(t5);
           }
-          const o2 = { buffer: t3, bufferByteLength: r2, byteOffset: 0, byteLength: r2, bytesFilled: 0, elementSize: 1, viewConstructor: Uint8Array, readerType: "default" };
+          const o2 = { buffer: t4, bufferByteLength: r2, byteOffset: 0, byteLength: r2, bytesFilled: 0, elementSize: 1, viewConstructor: Uint8Array, readerType: "default" };
           this._pendingPullIntos.push(o2);
         }
-        U(t2, e2), be(this);
+        U(t3, e2), be(this);
       }
       [C]() {
         if (this._pendingPullIntos.length > 0) {
@@ -46012,27 +46012,27 @@ var init_ponyfill = __esm({
         if (0 === e2.byteLength) return d(new TypeError("view must have non-zero byteLength"));
         if (0 === e2.buffer.byteLength) return d(new TypeError("view's buffer must have non-zero byteLength"));
         if (e2.buffer, void 0 === this._ownerReadableStream) return d(k("read from"));
-        let t2, r2;
+        let t3, r2;
         const o2 = u(((e3, o3) => {
-          t2 = e3, r2 = o3;
+          t3 = e3, r2 = o3;
         }));
-        return (function(e3, t3, r3) {
+        return (function(e3, t4, r3) {
           const o3 = e3._ownerReadableStream;
-          o3._disturbed = true, "errored" === o3._state ? r3._errorSteps(o3._storedError) : (function(e4, t4, r4) {
+          o3._disturbed = true, "errored" === o3._state ? r3._errorSteps(o3._storedError) : (function(e4, t5, r4) {
             const o4 = e4._controlledReadableByteStream;
             let n2 = 1;
-            t4.constructor !== DataView && (n2 = t4.constructor.BYTES_PER_ELEMENT);
-            const a2 = t4.constructor, i2 = t4.buffer, l2 = { buffer: i2, bufferByteLength: i2.byteLength, byteOffset: t4.byteOffset, byteLength: t4.byteLength, bytesFilled: 0, elementSize: n2, viewConstructor: a2, readerType: "byob" };
+            t5.constructor !== DataView && (n2 = t5.constructor.BYTES_PER_ELEMENT);
+            const a2 = t5.constructor, i2 = t5.buffer, l2 = { buffer: i2, bufferByteLength: i2.byteLength, byteOffset: t5.byteOffset, byteLength: t5.byteLength, bytesFilled: 0, elementSize: n2, viewConstructor: a2, readerType: "byob" };
             if (e4._pendingPullIntos.length > 0) return e4._pendingPullIntos.push(l2), void je(o4, r4);
             if ("closed" !== o4._state) {
               if (e4._queueTotalSize > 0) {
                 if (we(e4, l2)) {
-                  const t5 = pe(l2);
-                  return ve(e4), void r4._chunkSteps(t5);
+                  const t6 = pe(l2);
+                  return ve(e4), void r4._chunkSteps(t6);
                 }
                 if (e4._closeRequested) {
-                  const t5 = new TypeError("Insufficient bytes to fill elements in the given buffer");
-                  return Pe(e4, t5), void r4._errorSteps(t5);
+                  const t6 = new TypeError("Insufficient bytes to fill elements in the given buffer");
+                  return Pe(e4, t6), void r4._errorSteps(t6);
                 }
               }
               e4._pendingPullIntos.push(l2), je(o4, r4), be(e4);
@@ -46040,48 +46040,48 @@ var init_ponyfill = __esm({
               const e5 = new a2(l2.buffer, l2.byteOffset, 0);
               r4._closeSteps(e5);
             }
-          })(o3._readableStreamController, t3, r3);
-        })(this, e2, { _chunkSteps: (e3) => t2({ value: e3, done: false }), _closeSteps: (e3) => t2({ value: e3, done: true }), _errorSteps: (e3) => r2(e3) }), o2;
+          })(o3._readableStreamController, t4, r3);
+        })(this, e2, { _chunkSteps: (e3) => t3({ value: e3, done: false }), _closeSteps: (e3) => t3({ value: e3, done: true }), _errorSteps: (e3) => r2(e3) }), o2;
       }
       releaseLock() {
         if (!Fe(this)) throw De("releaseLock");
         void 0 !== this._ownerReadableStream && (function(e2) {
           W(e2);
-          const t2 = new TypeError("Reader was released");
-          Ie(e2, t2);
+          const t3 = new TypeError("Reader was released");
+          Ie(e2, t3);
         })(this);
       }
     };
     Object.defineProperties(ReadableStreamBYOBReader.prototype, { cancel: { enumerable: true }, read: { enumerable: true }, releaseLock: { enumerable: true }, closed: { enumerable: true } }), n(ReadableStreamBYOBReader.prototype.cancel, "cancel"), n(ReadableStreamBYOBReader.prototype.read, "read"), n(ReadableStreamBYOBReader.prototype.releaseLock, "releaseLock"), "symbol" == typeof e.toStringTag && Object.defineProperty(ReadableStreamBYOBReader.prototype, e.toStringTag, { value: "ReadableStreamBYOBReader", configurable: true });
     Ue = "function" == typeof AbortController;
     WritableStream = class {
-      constructor(e2 = {}, t2 = {}) {
+      constructor(e2 = {}, t3 = {}) {
         void 0 === e2 ? e2 = null : D(e2, "First parameter");
-        const r2 = Ye(t2, "Second parameter"), o2 = (function(e3, t3) {
-          F(e3, t3);
+        const r2 = Ye(t3, "Second parameter"), o2 = (function(e3, t4) {
+          F(e3, t4);
           const r3 = null == e3 ? void 0 : e3.abort, o3 = null == e3 ? void 0 : e3.close, n3 = null == e3 ? void 0 : e3.start, a3 = null == e3 ? void 0 : e3.type, i2 = null == e3 ? void 0 : e3.write;
-          return { abort: void 0 === r3 ? void 0 : Ne(r3, e3, `${t3} has member 'abort' that`), close: void 0 === o3 ? void 0 : He(o3, e3, `${t3} has member 'close' that`), start: void 0 === n3 ? void 0 : xe(n3, e3, `${t3} has member 'start' that`), write: void 0 === i2 ? void 0 : Ve(i2, e3, `${t3} has member 'write' that`), type: a3 };
+          return { abort: void 0 === r3 ? void 0 : Ne(r3, e3, `${t4} has member 'abort' that`), close: void 0 === o3 ? void 0 : He(o3, e3, `${t4} has member 'close' that`), start: void 0 === n3 ? void 0 : xe(n3, e3, `${t4} has member 'start' that`), write: void 0 === i2 ? void 0 : Ve(i2, e3, `${t4} has member 'write' that`), type: a3 };
         })(e2, "First parameter");
         var n2;
         (n2 = this)._state = "writable", n2._storedError = void 0, n2._writer = void 0, n2._writableStreamController = void 0, n2._writeRequests = new S(), n2._inFlightWriteRequest = void 0, n2._closeRequest = void 0, n2._inFlightCloseRequest = void 0, n2._pendingAbortRequest = void 0, n2._backpressure = false;
         if (void 0 !== o2.type) throw new RangeError("Invalid type is specified");
         const a2 = Me(r2);
-        !(function(e3, t3, r3, o3) {
+        !(function(e3, t4, r3, o3) {
           const n3 = Object.create(WritableStreamDefaultController.prototype);
           let a3, i2, l2, s2;
-          a3 = void 0 !== t3.start ? () => t3.start(n3) : () => {
+          a3 = void 0 !== t4.start ? () => t4.start(n3) : () => {
           };
-          i2 = void 0 !== t3.write ? (e4) => t3.write(e4, n3) : () => c(void 0);
-          l2 = void 0 !== t3.close ? () => t3.close() : () => c(void 0);
-          s2 = void 0 !== t3.abort ? (e4) => t3.abort(e4) : () => c(void 0);
-          !(function(e4, t4, r4, o4, n4, a4, i3, l3) {
-            t4._controlledWritableStream = e4, e4._writableStreamController = t4, t4._queue = void 0, t4._queueTotalSize = void 0, ce(t4), t4._abortReason = void 0, t4._abortController = (function() {
+          i2 = void 0 !== t4.write ? (e4) => t4.write(e4, n3) : () => c(void 0);
+          l2 = void 0 !== t4.close ? () => t4.close() : () => c(void 0);
+          s2 = void 0 !== t4.abort ? (e4) => t4.abort(e4) : () => c(void 0);
+          !(function(e4, t5, r4, o4, n4, a4, i3, l3) {
+            t5._controlledWritableStream = e4, e4._writableStreamController = t5, t5._queue = void 0, t5._queueTotalSize = void 0, ce(t5), t5._abortReason = void 0, t5._abortController = (function() {
               if (Ue) return new AbortController();
-            })(), t4._started = false, t4._strategySizeAlgorithm = l3, t4._strategyHWM = i3, t4._writeAlgorithm = o4, t4._closeAlgorithm = n4, t4._abortAlgorithm = a4;
-            const s3 = bt(t4);
+            })(), t5._started = false, t5._strategySizeAlgorithm = l3, t5._strategyHWM = i3, t5._writeAlgorithm = o4, t5._closeAlgorithm = n4, t5._abortAlgorithm = a4;
+            const s3 = bt(t5);
             nt(e4, s3);
             const u2 = r4();
-            b(c(u2), (() => (t4._started = true, dt(t4), null)), ((r5) => (t4._started = true, Ze(e4, r5), null)));
+            b(c(u2), (() => (t5._started = true, dt(t5), null)), ((r5) => (t5._started = true, Ze(e4, r5), null)));
           })(e3, n3, a3, i2, l2, s2, r3, o3);
         })(this, o2, $e(r2, 1), a2);
       }
@@ -46103,17 +46103,17 @@ var init_ponyfill = __esm({
     Object.defineProperties(WritableStream.prototype, { abort: { enumerable: true }, close: { enumerable: true }, getWriter: { enumerable: true }, locked: { enumerable: true } }), n(WritableStream.prototype.abort, "abort"), n(WritableStream.prototype.close, "close"), n(WritableStream.prototype.getWriter, "getWriter"), "symbol" == typeof e.toStringTag && Object.defineProperty(WritableStream.prototype, e.toStringTag, { value: "WritableStream", configurable: true });
     WritableStreamDefaultWriter = class {
       constructor(e2) {
-        if ($(e2, 1, "WritableStreamDefaultWriter"), (function(e3, t3) {
-          if (!Ge(e3)) throw new TypeError(`${t3} is not a WritableStream.`);
+        if ($(e2, 1, "WritableStreamDefaultWriter"), (function(e3, t4) {
+          if (!Ge(e3)) throw new TypeError(`${t4} is not a WritableStream.`);
         })(e2, "First parameter"), Xe(e2)) throw new TypeError("This stream has already been locked for exclusive writing by another writer");
         this._ownerWritableStream = e2, e2._writer = this;
-        const t2 = e2._state;
-        if ("writable" === t2) !rt(e2) && e2._backpressure ? Rt(this) : qt(this), gt(this);
-        else if ("erroring" === t2) Tt(this, e2._storedError), gt(this);
-        else if ("closed" === t2) qt(this), gt(r2 = this), vt(r2);
+        const t3 = e2._state;
+        if ("writable" === t3) !rt(e2) && e2._backpressure ? Rt(this) : qt(this), gt(this);
+        else if ("erroring" === t3) Tt(this, e2._storedError), gt(this);
+        else if ("closed" === t3) qt(this), gt(r2 = this), vt(r2);
         else {
-          const t3 = e2._storedError;
-          Tt(this, t3), wt(this, t3);
+          const t4 = e2._storedError;
+          Tt(this, t4), wt(this, t4);
         }
         var r2;
       }
@@ -46124,18 +46124,18 @@ var init_ponyfill = __esm({
         if (!at(this)) throw mt("desiredSize");
         if (void 0 === this._ownerWritableStream) throw yt("desiredSize");
         return (function(e2) {
-          const t2 = e2._ownerWritableStream, r2 = t2._state;
+          const t3 = e2._ownerWritableStream, r2 = t3._state;
           if ("errored" === r2 || "erroring" === r2) return null;
           if ("closed" === r2) return 0;
-          return ct(t2._writableStreamController);
+          return ct(t3._writableStreamController);
         })(this);
       }
       get ready() {
         return at(this) ? this._readyPromise : d(mt("ready"));
       }
       abort(e2) {
-        return at(this) ? void 0 === this._ownerWritableStream ? d(yt("abort")) : (function(e3, t2) {
-          return Je(e3._ownerWritableStream, t2);
+        return at(this) ? void 0 === this._ownerWritableStream ? d(yt("abort")) : (function(e3, t3) {
+          return Je(e3._ownerWritableStream, t3);
         })(this, e2) : d(mt("abort"));
       }
       close() {
@@ -46146,46 +46146,46 @@ var init_ponyfill = __esm({
       releaseLock() {
         if (!at(this)) throw mt("releaseLock");
         void 0 !== this._ownerWritableStream && (function(e2) {
-          const t2 = e2._ownerWritableStream, r2 = new TypeError("Writer was released and can no longer be used to monitor the stream's closedness");
-          it(e2, r2), (function(e3, t3) {
-            "pending" === e3._closedPromiseState ? St(e3, t3) : (function(e4, t4) {
-              wt(e4, t4);
-            })(e3, t3);
-          })(e2, r2), t2._writer = void 0, e2._ownerWritableStream = void 0;
+          const t3 = e2._ownerWritableStream, r2 = new TypeError("Writer was released and can no longer be used to monitor the stream's closedness");
+          it(e2, r2), (function(e3, t4) {
+            "pending" === e3._closedPromiseState ? St(e3, t4) : (function(e4, t5) {
+              wt(e4, t5);
+            })(e3, t4);
+          })(e2, r2), t3._writer = void 0, e2._ownerWritableStream = void 0;
         })(this);
       }
       write(e2) {
-        return at(this) ? void 0 === this._ownerWritableStream ? d(yt("write to")) : (function(e3, t2) {
-          const r2 = e3._ownerWritableStream, o2 = r2._writableStreamController, n2 = (function(e4, t3) {
+        return at(this) ? void 0 === this._ownerWritableStream ? d(yt("write to")) : (function(e3, t3) {
+          const r2 = e3._ownerWritableStream, o2 = r2._writableStreamController, n2 = (function(e4, t4) {
             try {
-              return e4._strategySizeAlgorithm(t3);
-            } catch (t4) {
-              return ft(e4, t4), 1;
+              return e4._strategySizeAlgorithm(t4);
+            } catch (t5) {
+              return ft(e4, t5), 1;
             }
-          })(o2, t2);
+          })(o2, t3);
           if (r2 !== e3._ownerWritableStream) return d(yt("write to"));
           const a2 = r2._state;
           if ("errored" === a2) return d(r2._storedError);
           if (rt(r2) || "closed" === a2) return d(new TypeError("The stream is closing or closed and cannot be written to"));
           if ("erroring" === a2) return d(r2._storedError);
           const i2 = (function(e4) {
-            return u(((t3, r3) => {
-              const o3 = { _resolve: t3, _reject: r3 };
+            return u(((t4, r3) => {
+              const o3 = { _resolve: t4, _reject: r3 };
               e4._writeRequests.push(o3);
             }));
           })(r2);
-          return (function(e4, t3, r3) {
+          return (function(e4, t4, r3) {
             try {
-              ue(e4, t3, r3);
-            } catch (t4) {
-              return void ft(e4, t4);
+              ue(e4, t4, r3);
+            } catch (t5) {
+              return void ft(e4, t5);
             }
             const o3 = e4._controlledWritableStream;
             if (!rt(o3) && "writable" === o3._state) {
               nt(o3, bt(e4));
             }
             dt(e4);
-          })(o2, t2, n2), i2;
+          })(o2, t3, n2), i2;
         })(this, e2) : d(mt("write"));
       }
     };
@@ -46209,8 +46209,8 @@ var init_ponyfill = __esm({
         "writable" === this._controlledWritableStream._state && ht(this, e2);
       }
       [v](e2) {
-        const t2 = this._abortAlgorithm(e2);
-        return ut(this), t2;
+        const t3 = this._abortAlgorithm(e2);
+        return ut(this), t3;
       }
       [R]() {
         ce(this);
@@ -46226,8 +46226,8 @@ var init_ponyfill = __esm({
         return false;
       }
     })(Pt) ? Pt : (function() {
-      const e2 = function(e3, t2) {
-        this.message = e3 || "", this.name = t2 || "Error", Error.captureStackTrace && Error.captureStackTrace(this, this.constructor);
+      const e2 = function(e3, t3) {
+        this.message = e3 || "", this.name = t3 || "Error", Error.captureStackTrace && Error.captureStackTrace(this, this.constructor);
       };
       return e2.prototype = Object.create(Error.prototype), Object.defineProperty(e2.prototype, "constructor", { value: e2, writable: true, configurable: true }), e2;
     })();
@@ -46244,28 +46244,28 @@ var init_ponyfill = __esm({
         if (!Ft(this)) throw new TypeError("The stream is not in a state that permits close");
         !(function(e2) {
           if (!Ft(e2)) return;
-          const t2 = e2._controlledReadableStream;
-          e2._closeRequested = true, 0 === e2._queue.length && (jt(e2), Xt(t2));
+          const t3 = e2._controlledReadableStream;
+          e2._closeRequested = true, 0 === e2._queue.length && (jt(e2), Xt(t3));
         })(this);
       }
       enqueue(e2) {
         if (!Bt(this)) throw Dt("enqueue");
         if (!Ft(this)) throw new TypeError("The stream is not in a state that permits enqueue");
-        return (function(e3, t2) {
+        return (function(e3, t3) {
           if (!Ft(e3)) return;
           const r2 = e3._controlledReadableStream;
-          if (Ut(r2) && X(r2) > 0) G(r2, t2, false);
+          if (Ut(r2) && X(r2) > 0) G(r2, t3, false);
           else {
             let r3;
             try {
-              r3 = e3._strategySizeAlgorithm(t2);
-            } catch (t3) {
-              throw zt(e3, t3), t3;
+              r3 = e3._strategySizeAlgorithm(t3);
+            } catch (t4) {
+              throw zt(e3, t4), t4;
             }
             try {
-              ue(e3, t2, r3);
-            } catch (t3) {
-              throw zt(e3, t3), t3;
+              ue(e3, t3, r3);
+            } catch (t4) {
+              throw zt(e3, t4), t4;
             }
           }
           At(e3);
@@ -46277,27 +46277,27 @@ var init_ponyfill = __esm({
       }
       [T](e2) {
         ce(this);
-        const t2 = this._cancelAlgorithm(e2);
-        return jt(this), t2;
+        const t3 = this._cancelAlgorithm(e2);
+        return jt(this), t3;
       }
       [q](e2) {
-        const t2 = this._controlledReadableStream;
+        const t3 = this._controlledReadableStream;
         if (this._queue.length > 0) {
           const r2 = se(this);
-          this._closeRequested && 0 === this._queue.length ? (jt(this), Xt(t2)) : At(this), e2._chunkSteps(r2);
-        } else U(t2, e2), At(this);
+          this._closeRequested && 0 === this._queue.length ? (jt(this), Xt(t3)) : At(this), e2._chunkSteps(r2);
+        } else U(t3, e2), At(this);
       }
       [C]() {
       }
     };
     Object.defineProperties(ReadableStreamDefaultController.prototype, { close: { enumerable: true }, enqueue: { enumerable: true }, error: { enumerable: true }, desiredSize: { enumerable: true } }), n(ReadableStreamDefaultController.prototype.close, "close"), n(ReadableStreamDefaultController.prototype.enqueue, "enqueue"), n(ReadableStreamDefaultController.prototype.error, "error"), "symbol" == typeof e.toStringTag && Object.defineProperty(ReadableStreamDefaultController.prototype, e.toStringTag, { value: "ReadableStreamDefaultController", configurable: true });
     ReadableStream3 = class {
-      constructor(e2 = {}, t2 = {}) {
+      constructor(e2 = {}, t3 = {}) {
         void 0 === e2 ? e2 = null : D(e2, "First parameter");
-        const r2 = Ye(t2, "Second parameter"), o2 = (function(e3, t3) {
-          F(e3, t3);
+        const r2 = Ye(t3, "Second parameter"), o2 = (function(e3, t4) {
+          F(e3, t4);
           const r3 = e3, o3 = null == r3 ? void 0 : r3.autoAllocateChunkSize, n3 = null == r3 ? void 0 : r3.cancel, a2 = null == r3 ? void 0 : r3.pull, i2 = null == r3 ? void 0 : r3.start, l2 = null == r3 ? void 0 : r3.type;
-          return { autoAllocateChunkSize: void 0 === o3 ? void 0 : N(o3, `${t3} has member 'autoAllocateChunkSize' that`), cancel: void 0 === n3 ? void 0 : $t(n3, r3, `${t3} has member 'cancel' that`), pull: void 0 === a2 ? void 0 : Mt(a2, r3, `${t3} has member 'pull' that`), start: void 0 === i2 ? void 0 : Yt(i2, r3, `${t3} has member 'start' that`), type: void 0 === l2 ? void 0 : Qt(l2, `${t3} has member 'type' that`) };
+          return { autoAllocateChunkSize: void 0 === o3 ? void 0 : N(o3, `${t4} has member 'autoAllocateChunkSize' that`), cancel: void 0 === n3 ? void 0 : $t(n3, r3, `${t4} has member 'cancel' that`), pull: void 0 === a2 ? void 0 : Mt(a2, r3, `${t4} has member 'pull' that`), start: void 0 === i2 ? void 0 : Yt(i2, r3, `${t4} has member 'start' that`), type: void 0 === l2 ? void 0 : Qt(l2, `${t4} has member 'type' that`) };
         })(e2, "First parameter");
         var n2;
         if ((n2 = this)._state = "readable", n2._reader = void 0, n2._storedError = void 0, n2._disturbed = false, "bytes" === o2.type) {
@@ -46317,29 +46317,29 @@ var init_ponyfill = __esm({
       }
       getReader(e2) {
         if (!Vt(this)) throw Kt("getReader");
-        return void 0 === (function(e3, t2) {
-          F(e3, t2);
+        return void 0 === (function(e3, t3) {
+          F(e3, t3);
           const r2 = null == e3 ? void 0 : e3.mode;
-          return { mode: void 0 === r2 ? void 0 : Nt(r2, `${t2} has member 'mode' that`) };
+          return { mode: void 0 === r2 ? void 0 : Nt(r2, `${t3} has member 'mode' that`) };
         })(e2, "First parameter").mode ? new ReadableStreamDefaultReader(this) : (function(e3) {
           return new ReadableStreamBYOBReader(e3);
         })(this);
       }
-      pipeThrough(e2, t2 = {}) {
+      pipeThrough(e2, t3 = {}) {
         if (!H(this)) throw Kt("pipeThrough");
         $(e2, 1, "pipeThrough");
-        const r2 = xt(e2, "First parameter"), o2 = Ht(t2, "Second parameter");
+        const r2 = xt(e2, "First parameter"), o2 = Ht(t3, "Second parameter");
         if (this.locked) throw new TypeError("ReadableStream.prototype.pipeThrough cannot be used on a locked ReadableStream");
         if (r2.writable.locked) throw new TypeError("ReadableStream.prototype.pipeThrough cannot be used on a locked WritableStream");
         return m(kt(this, r2.writable, o2.preventClose, o2.preventAbort, o2.preventCancel, o2.signal)), r2.readable;
       }
-      pipeTo(e2, t2 = {}) {
+      pipeTo(e2, t3 = {}) {
         if (!H(this)) return d(Kt("pipeTo"));
         if (void 0 === e2) return d("Parameter 1 is required in 'pipeTo'.");
         if (!x(e2)) return d(new TypeError("ReadableStream.prototype.pipeTo's first argument must be a WritableStream"));
         let r2;
         try {
-          r2 = Ht(t2, "Second parameter");
+          r2 = Ht(t3, "Second parameter");
         } catch (e3) {
           return d(e3);
         }
@@ -46352,11 +46352,11 @@ var init_ponyfill = __esm({
       }
       values(e2) {
         if (!H(this)) throw Kt("values");
-        return (function(e3, t2) {
-          const r2 = e3.getReader(), o2 = new te(r2, t2), n2 = Object.create(re2);
+        return (function(e3, t3) {
+          const r2 = e3.getReader(), o2 = new te(r2, t3), n2 = Object.create(re2);
           return n2._asyncIteratorImpl = o2, n2;
-        })(this, (function(e3, t2) {
-          F(e3, t2);
+        })(this, (function(e3, t3) {
+          F(e3, t3);
           const r2 = null == e3 ? void 0 : e3.preventCancel;
           return { preventCancel: Boolean(r2) };
         })(e2, "First parameter").preventCancel);
@@ -46396,46 +46396,46 @@ var init_ponyfill = __esm({
     };
     Object.defineProperties(CountQueuingStrategy.prototype, { highWaterMark: { enumerable: true }, size: { enumerable: true } }), "symbol" == typeof e.toStringTag && Object.defineProperty(CountQueuingStrategy.prototype, e.toStringTag, { value: "CountQueuingStrategy", configurable: true });
     TransformStream2 = class {
-      constructor(e2 = {}, t2 = {}, r2 = {}) {
+      constructor(e2 = {}, t3 = {}, r2 = {}) {
         void 0 === e2 && (e2 = null);
-        const o2 = Ye(t2, "Second parameter"), n2 = Ye(r2, "Third parameter"), a2 = (function(e3, t3) {
-          F(e3, t3);
+        const o2 = Ye(t3, "Second parameter"), n2 = Ye(r2, "Third parameter"), a2 = (function(e3, t4) {
+          F(e3, t4);
           const r3 = null == e3 ? void 0 : e3.flush, o3 = null == e3 ? void 0 : e3.readableType, n3 = null == e3 ? void 0 : e3.start, a3 = null == e3 ? void 0 : e3.transform, i3 = null == e3 ? void 0 : e3.writableType;
-          return { flush: void 0 === r3 ? void 0 : ir(r3, e3, `${t3} has member 'flush' that`), readableType: o3, start: void 0 === n3 ? void 0 : lr(n3, e3, `${t3} has member 'start' that`), transform: void 0 === a3 ? void 0 : sr(a3, e3, `${t3} has member 'transform' that`), writableType: i3 };
+          return { flush: void 0 === r3 ? void 0 : ir(r3, e3, `${t4} has member 'flush' that`), readableType: o3, start: void 0 === n3 ? void 0 : lr(n3, e3, `${t4} has member 'start' that`), transform: void 0 === a3 ? void 0 : sr(a3, e3, `${t4} has member 'transform' that`), writableType: i3 };
         })(e2, "First parameter");
         if (void 0 !== a2.readableType) throw new RangeError("Invalid readableType specified");
         if (void 0 !== a2.writableType) throw new RangeError("Invalid writableType specified");
         const i2 = $e(n2, 0), l2 = Me(n2), s2 = $e(o2, 1), f2 = Me(o2);
         let b2;
-        !(function(e3, t3, r3, o3, n3, a3) {
+        !(function(e3, t4, r3, o3, n3, a3) {
           function i3() {
-            return t3;
+            return t4;
           }
-          function l3(t4) {
-            return (function(e4, t5) {
+          function l3(t5) {
+            return (function(e4, t6) {
               const r4 = e4._transformStreamController;
               if (e4._backpressure) {
                 return p(e4._backpressureChangePromise, (() => {
                   if ("erroring" === (Ge(e4._writable) ? e4._writable._state : e4._writableState)) throw Ge(e4._writable) ? e4._writable._storedError : e4._writableStoredError;
-                  return pr(r4, t5);
+                  return pr(r4, t6);
                 }));
               }
-              return pr(r4, t5);
-            })(e3, t4);
+              return pr(r4, t6);
+            })(e3, t5);
           }
-          function s3(t4) {
-            return (function(e4, t5) {
-              return cr(e4, t5), c(void 0);
-            })(e3, t4);
+          function s3(t5) {
+            return (function(e4, t6) {
+              return cr(e4, t6), c(void 0);
+            })(e3, t5);
           }
           function u2() {
             return (function(e4) {
-              const t4 = e4._transformStreamController, r4 = t4._flushAlgorithm();
-              return hr(t4), p(r4, (() => {
+              const t5 = e4._transformStreamController, r4 = t5._flushAlgorithm();
+              return hr(t5), p(r4, (() => {
                 if ("errored" === e4._readableState) throw e4._readableStoredError;
                 gr(e4) && wr(e4);
-              }), ((t5) => {
-                throw cr(e4, t5), e4._readableStoredError;
+              }), ((t6) => {
+                throw cr(e4, t6), e4._readableStoredError;
               }));
             })(e3);
           }
@@ -46444,63 +46444,63 @@ var init_ponyfill = __esm({
               return fr(e4, false), e4._backpressureChangePromise;
             })(e3);
           }
-          function f3(t4) {
-            return dr(e3, t4), c(void 0);
+          function f3(t5) {
+            return dr(e3, t5), c(void 0);
           }
-          e3._writableState = "writable", e3._writableStoredError = void 0, e3._writableHasInFlightOperation = false, e3._writableStarted = false, e3._writable = (function(e4, t4, r4, o4, n4, a4, i4) {
+          e3._writableState = "writable", e3._writableStoredError = void 0, e3._writableHasInFlightOperation = false, e3._writableStarted = false, e3._writable = (function(e4, t5, r4, o4, n4, a4, i4) {
             return new WritableStream({ start(r5) {
               e4._writableController = r5;
               try {
-                const t5 = r5.signal;
-                void 0 !== t5 && t5.addEventListener("abort", (() => {
-                  "writable" === e4._writableState && (e4._writableState = "erroring", t5.reason && (e4._writableStoredError = t5.reason));
+                const t6 = r5.signal;
+                void 0 !== t6 && t6.addEventListener("abort", (() => {
+                  "writable" === e4._writableState && (e4._writableState = "erroring", t6.reason && (e4._writableStoredError = t6.reason));
                 }));
               } catch (e5) {
               }
-              return p(t4(), (() => (e4._writableStarted = true, Cr(e4), null)), ((t5) => {
-                throw e4._writableStarted = true, Rr(e4, t5), t5;
+              return p(t5(), (() => (e4._writableStarted = true, Cr(e4), null)), ((t6) => {
+                throw e4._writableStarted = true, Rr(e4, t6), t6;
               }));
-            }, write: (t5) => ((function(e5) {
+            }, write: (t6) => ((function(e5) {
               e5._writableHasInFlightOperation = true;
-            })(e4), p(r4(t5), (() => ((function(e5) {
+            })(e4), p(r4(t6), (() => ((function(e5) {
               e5._writableHasInFlightOperation = false;
-            })(e4), Cr(e4), null)), ((t6) => {
-              throw (function(e5, t7) {
-                e5._writableHasInFlightOperation = false, Rr(e5, t7);
-              })(e4, t6), t6;
+            })(e4), Cr(e4), null)), ((t7) => {
+              throw (function(e5, t8) {
+                e5._writableHasInFlightOperation = false, Rr(e5, t8);
+              })(e4, t7), t7;
             }))), close: () => ((function(e5) {
               e5._writableHasInFlightOperation = true;
             })(e4), p(o4(), (() => ((function(e5) {
               e5._writableHasInFlightOperation = false;
               "erroring" === e5._writableState && (e5._writableStoredError = void 0);
               e5._writableState = "closed";
-            })(e4), null)), ((t5) => {
-              throw (function(e5, t6) {
-                e5._writableHasInFlightOperation = false, e5._writableState, Rr(e5, t6);
-              })(e4, t5), t5;
-            }))), abort: (t5) => (e4._writableState = "errored", e4._writableStoredError = t5, n4(t5)) }, { highWaterMark: a4, size: i4 });
-          })(e3, i3, l3, u2, s3, r3, o3), e3._readableState = "readable", e3._readableStoredError = void 0, e3._readableCloseRequested = false, e3._readablePulling = false, e3._readable = (function(e4, t4, r4, o4, n4, a4) {
-            return new ReadableStream3({ start: (r5) => (e4._readableController = r5, t4().catch(((t5) => {
-              Sr(e4, t5);
-            }))), pull: () => (e4._readablePulling = true, r4().catch(((t5) => {
-              Sr(e4, t5);
-            }))), cancel: (t5) => (e4._readableState = "closed", o4(t5)) }, { highWaterMark: n4, size: a4 });
+            })(e4), null)), ((t6) => {
+              throw (function(e5, t7) {
+                e5._writableHasInFlightOperation = false, e5._writableState, Rr(e5, t7);
+              })(e4, t6), t6;
+            }))), abort: (t6) => (e4._writableState = "errored", e4._writableStoredError = t6, n4(t6)) }, { highWaterMark: a4, size: i4 });
+          })(e3, i3, l3, u2, s3, r3, o3), e3._readableState = "readable", e3._readableStoredError = void 0, e3._readableCloseRequested = false, e3._readablePulling = false, e3._readable = (function(e4, t5, r4, o4, n4, a4) {
+            return new ReadableStream3({ start: (r5) => (e4._readableController = r5, t5().catch(((t6) => {
+              Sr(e4, t6);
+            }))), pull: () => (e4._readablePulling = true, r4().catch(((t6) => {
+              Sr(e4, t6);
+            }))), cancel: (t6) => (e4._readableState = "closed", o4(t6)) }, { highWaterMark: n4, size: a4 });
           })(e3, i3, d2, f3, n3, a3), e3._backpressure = void 0, e3._backpressureChangePromise = void 0, e3._backpressureChangePromise_resolve = void 0, fr(e3, true), e3._transformStreamController = void 0;
         })(this, u(((e3) => {
           b2 = e3;
-        })), s2, f2, i2, l2), (function(e3, t3) {
+        })), s2, f2, i2, l2), (function(e3, t4) {
           const r3 = Object.create(TransformStreamDefaultController.prototype);
           let o3, n3;
-          o3 = void 0 !== t3.transform ? (e4) => t3.transform(e4, r3) : (e4) => {
+          o3 = void 0 !== t4.transform ? (e4) => t4.transform(e4, r3) : (e4) => {
             try {
               return _r(r3, e4), c(void 0);
             } catch (e5) {
               return d(e5);
             }
           };
-          n3 = void 0 !== t3.flush ? () => t3.flush(r3) : () => c(void 0);
-          !(function(e4, t4, r4, o4) {
-            t4._controlledTransformStream = e4, e4._transformStreamController = t4, t4._transformAlgorithm = r4, t4._flushAlgorithm = o4;
+          n3 = void 0 !== t4.flush ? () => t4.flush(r3) : () => c(void 0);
+          !(function(e4, t5, r4, o4) {
+            t5._controlledTransformStream = e4, e4._transformStreamController = t5, t5._transformAlgorithm = r4, t5._flushAlgorithm = o4;
           })(e3, r3, o3, n3);
         })(this, a2), void 0 !== a2.start ? b2(a2.start(this._transformStreamController)) : b2(void 0);
       }
@@ -46528,16 +46528,16 @@ var init_ponyfill = __esm({
       }
       error(e2) {
         if (!br(this)) throw mr("error");
-        var t2;
-        t2 = e2, cr(this._controlledTransformStream, t2);
+        var t3;
+        t3 = e2, cr(this._controlledTransformStream, t3);
       }
       terminate() {
         if (!br(this)) throw mr("terminate");
         !(function(e2) {
-          const t2 = e2._controlledTransformStream;
-          gr(t2) && wr(t2);
+          const t3 = e2._controlledTransformStream;
+          gr(t3) && wr(t3);
           const r2 = new TypeError("TransformStream terminated");
-          dr(t2, r2);
+          dr(t3, r2);
         })(this);
       }
     };
@@ -46969,11 +46969,11 @@ var require_humanize_ms = __commonJS({
     "use strict";
     var util2 = require("util");
     var ms5 = require_ms();
-    module2.exports = function(t2) {
-      if (typeof t2 === "number") return t2;
-      var r2 = ms5(t2);
+    module2.exports = function(t3) {
+      if (typeof t3 === "number") return t3;
+      var r2 = ms5(t3);
       if (r2 === void 0) {
-        var err2 = new Error(util2.format("humanize-ms(%j) result undefined", t2));
+        var err2 = new Error(util2.format("humanize-ms(%j) result undefined", t3));
         console.warn(err2.stack);
       }
       return r2;
@@ -51204,7 +51204,7 @@ function hasAutoParseableInput(params) {
   if (isAutoParsableResponseFormat(params.response_format)) {
     return true;
   }
-  return params.tools?.some((t2) => isAutoParsableTool(t2) || t2.type === "function" && t2.function.strict === true) ?? false;
+  return params.tools?.some((t3) => isAutoParsableTool(t3) || t3.type === "function" && t3.function.strict === true) ?? false;
 }
 function validateInputTools(tools) {
   for (const tool of tools ?? []) {
@@ -51446,15 +51446,15 @@ var init_AbstractChatCompletionRunner = __esm({
             functionsByName[f2.function.name || f2.function.function.name] = f2.function;
           }
         }
-        const tools = "tools" in params ? inputTools.map((t2) => t2.type === "function" ? {
+        const tools = "tools" in params ? inputTools.map((t3) => t3.type === "function" ? {
           type: "function",
           function: {
-            name: t2.function.name || t2.function.function.name,
-            parameters: t2.function.parameters,
-            description: t2.function.description,
-            strict: t2.function.strict
+            name: t3.function.name || t3.function.function.name,
+            parameters: t3.function.parameters,
+            description: t3.function.description,
+            strict: t3.function.strict
           }
-        } : t2) : void 0;
+        } : t3) : void 0;
         for (const message of params.messages) {
           this._addMessage(message, false);
         }
@@ -54973,8 +54973,8 @@ function computePackCredits(packId, tier, interval) {
     annual_bonus_pct: annualPct
   };
 }
-function normalizeTierId(t2) {
-  const s2 = (t2 ?? "").toLowerCase();
+function normalizeTierId(t3) {
+  const s2 = (t3 ?? "").toLowerCase();
   if (s2 === "operator" || s2 === "command" || s2 === "sovereign" || s2 === "scout") return s2;
   if (s2 === "business") return "operator";
   return "scout";
@@ -55523,9 +55523,9 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
     );
   }
   const client = new openai_default({ baseURL, apiKey, timeout: 45e3, maxRetries: 1 });
-  const openaiTools = req.tools.map((t2) => ({
+  const openaiTools = req.tools.map((t3) => ({
     type: "function",
-    function: { name: t2.name, description: t2.description, parameters: t2.input_schema }
+    function: { name: t3.name, description: t3.description, parameters: t3.input_schema }
   }));
   const messages = [
     { role: "system", content: redactSecrets(req.system) },
@@ -55695,9 +55695,9 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
   const { baseURL, apiKey } = gatewayEnv();
   if (!baseURL || !apiKey) throw new Error(`openai-compat requires AI_GATEWAY_BASE_URL and AI_GATEWAY_API_KEY`);
   const client = new openai_default({ baseURL, apiKey, timeout: 55e3, maxRetries: 1 });
-  const openaiTools = req.tools.map((t2) => ({
+  const openaiTools = req.tools.map((t3) => ({
     type: "function",
-    function: { name: t2.name, description: t2.description, parameters: t2.input_schema }
+    function: { name: t3.name, description: t3.description, parameters: t3.input_schema }
   }));
   const messages = [
     { role: "system", content: redactSecrets(req.system) },
@@ -55771,24 +55771,24 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
       throw streamErr;
     }
     if (content.trim()) reply = content;
-    const calls = Object.values(toolAcc).filter((t2) => t2.name);
+    const calls = Object.values(toolAcc).filter((t3) => t3.name);
     if (finishReason !== "tool_calls" || calls.length === 0) break;
     messages.push({
       role: "assistant",
       content: content || null,
-      tool_calls: calls.map((t2) => ({ id: t2.id, type: "function", function: { name: t2.name, arguments: t2.args || "{}" } }))
+      tool_calls: calls.map((t3) => ({ id: t3.id, type: "function", function: { name: t3.name, arguments: t3.args || "{}" } }))
     });
-    for (const t2 of calls) {
-      await onEvent({ type: "status", text: `Running ${t2.name.replace(/_/g, " ")}\u2026` });
+    for (const t3 of calls) {
+      await onEvent({ type: "status", text: `Running ${t3.name.replace(/_/g, " ")}\u2026` });
     }
-    const settled = await Promise.all(calls.map(async (t2) => {
+    const settled = await Promise.all(calls.map(async (t3) => {
       let args = {};
       try {
-        args = JSON.parse(t2.args || "{}");
+        args = JSON.parse(t3.args || "{}");
       } catch {
       }
-      const result = await req.onToolCall(t2.name, args);
-      return { id: t2.id, result };
+      const result = await req.onToolCall(t3.name, args);
+      return { id: t3.id, result };
     }));
     for (const r2 of settled) {
       messages.push({ role: "tool", tool_call_id: r2.id, content: redactSecrets(r2.result) });
@@ -56155,8 +56155,8 @@ async function runSocialDiscovery(data, onProgress) {
   const REVIEW_SIGNAL = /(review|opinion|opini|rating|star|gwiazd|testimonial|recommend|polec|complaint|skarga|verified|customer|avis|bewert|reseñ|recension)/i;
   const LEAD_SIGNAL = /(@|e-?mail|contact|kontakt|phone|tel[:.]|call|linkedin|company|founder|ceo|director|manager|owner|clinic|klinik|office)/i;
   const hasSignal = (text) => {
-    const t2 = text.toLowerCase();
-    if (subjectTokens.some((w2) => t2.includes(w2))) return true;
+    const t3 = text.toLowerCase();
+    if (subjectTokens.some((w2) => t3.includes(w2))) return true;
     return (searchType === "REVIEWS" ? REVIEW_SIGNAL : LEAD_SIGNAL).test(text);
   };
   const signalPages = allPages.filter((p2) => hasSignal(p2.text));
@@ -57687,8 +57687,8 @@ async function exchangeCode2(code, redirectUri) {
     console.error("[microsoft] code exchange failed", res.status, await res.text().catch(() => ""));
     return null;
   }
-  const t2 = await res.json();
-  return { access_token: t2.access_token, refresh_token: t2.refresh_token, expires_in: t2.expires_in, email: decodeJwtEmail2(t2.id_token) };
+  const t3 = await res.json();
+  return { access_token: t3.access_token, refresh_token: t3.refresh_token, expires_in: t3.expires_in, email: decodeJwtEmail2(t3.id_token) };
 }
 async function freshAccessToken2(conn) {
   const stillValid = conn.access_token && conn.token_expiry && new Date(conn.token_expiry).getTime() > Date.now() + 6e4;
@@ -57709,12 +57709,12 @@ async function freshAccessToken2(conn) {
     console.error("[microsoft] token refresh failed", res.status, await res.text().catch(() => ""));
     return null;
   }
-  const t2 = await res.json();
+  const t3 = await res.json();
   await supabase.from("email_connections").update({
-    access_token: t2.access_token,
-    token_expiry: new Date(Date.now() + t2.expires_in * 1e3).toISOString()
+    access_token: t3.access_token,
+    token_expiry: new Date(Date.now() + t3.expires_in * 1e3).toISOString()
   }).eq("id", conn.id);
-  return t2.access_token;
+  return t3.access_token;
 }
 async function microsoftCalendarEvents(accessToken, timeMin, timeMax) {
   const params = new URLSearchParams({
@@ -58109,7 +58109,7 @@ var enrichRecord = inngest.createFunction(
     const { workspaceId, nodeId, objectType: objectType2 } = event.data;
     let recordData = event.data.recordData ?? {};
     const normalizedType = String(objectType2 ?? "").toLowerCase();
-    if (!normalizedType || !ENRICHABLE.some((t2) => normalizedType.includes(t2))) {
+    if (!normalizedType || !ENRICHABLE.some((t3) => normalizedType.includes(t3))) {
       return { skipped: true, reason: "object_type not enrichable" };
     }
     let jobId;
@@ -58125,7 +58125,7 @@ var enrichRecord = inngest.createFunction(
         const { data: n2 } = await supabase.from("nodes").select("data").eq("id", nodeId).single();
         recordData = n2?.data ?? {};
       }
-      const isPerson = ["contact", "person", "people", "lead"].some((t2) => normalizedType.includes(t2));
+      const isPerson = ["contact", "person", "people", "lead"].some((t3) => normalizedType.includes(t3));
       let fields = {};
       const usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0, reasoning_tokens: 0 };
       const collect = (u2) => {
@@ -58301,8 +58301,8 @@ async function listWorkspaceIds(workspaceId) {
 }
 var PERSON_OR_COMPANY_STEMS = ["contact", "person", "people", "lead", "client", "compan", "account", "organization", "org", "investor", "supplier", "employee", "candidate"];
 function isRelationshipType(objectType2) {
-  const t2 = objectType2.toLowerCase();
-  return PERSON_OR_COMPANY_STEMS.some((s2) => t2.includes(s2));
+  const t3 = objectType2.toLowerCase();
+  return PERSON_OR_COMPANY_STEMS.some((s2) => t3.includes(s2));
 }
 async function runDealAlerts(workspaceId) {
   const jobId = await startJob({
@@ -58382,12 +58382,12 @@ async function runRelationshipHealth(workspaceId) {
       const openTasksByRecord = /* @__PURE__ */ new Map();
       const openDealsByContact = /* @__PURE__ */ new Map();
       for (const n2 of nodes) {
-        const t2 = String(n2.object_type).toLowerCase();
+        const t3 = String(n2.object_type).toLowerCase();
         const d2 = n2.data ?? {};
-        if (t2.includes("task") && String(d2.status ?? "") === "todo" && d2.record_id) {
+        if (t3.includes("task") && String(d2.status ?? "") === "todo" && d2.record_id) {
           openTasksByRecord.set(String(d2.record_id), (openTasksByRecord.get(String(d2.record_id)) ?? 0) + 1);
         }
-        if (t2.includes("deal")) {
+        if (t3.includes("deal")) {
           const stage = String(d2.stage ?? "").toLowerCase();
           if (stage !== "closed_won" && stage !== "closed_lost" && d2.contact_id) {
             openDealsByContact.set(String(d2.contact_id), (openDealsByContact.get(String(d2.contact_id)) ?? 0) + 1);
@@ -58676,7 +58676,7 @@ async function runRecurringInvoices(workspaceId) {
 var ENRICHABLE2 = ["contact", "person", "people", "lead", "client", "compan", "account", "organization", "org"];
 async function enrichOne(nodeId, objectType2, recordData, workspaceId) {
   const normalizedType = objectType2.toLowerCase();
-  const isPerson = ["contact", "person", "people", "lead"].some((t2) => normalizedType.includes(t2));
+  const isPerson = ["contact", "person", "people", "lead"].some((t3) => normalizedType.includes(t3));
   const name = recordData.name ?? recordData.Name ?? recordData.company_name ?? recordData.full_name ?? "";
   const email = recordData.email ?? recordData.Email ?? "";
   const domain = recordData.domain ?? recordData.website ?? "";
@@ -58712,7 +58712,7 @@ async function runEnrichWorkspace(workspaceId, limit2 = 10) {
   });
   try {
     const { data: nodes } = await supabase.from("nodes").select("id, object_type, data").eq("workspace_id", workspaceId).order("updated_at", { ascending: false }).limit(200);
-    const enrichable = (nodes ?? []).filter((n2) => ENRICHABLE2.some((t2) => String(n2.object_type).toLowerCase().includes(t2))).slice(0, limit2);
+    const enrichable = (nodes ?? []).filter((n2) => ENRICHABLE2.some((t3) => String(n2.object_type).toLowerCase().includes(t3))).slice(0, limit2);
     let enrichedCount = 0;
     for (const n2 of enrichable) {
       const added = await enrichOne(n2.id, n2.object_type, n2.data ?? {}, workspaceId);
@@ -58737,8 +58737,8 @@ async function runEnrichWorkspace(workspaceId, limit2 = 10) {
 }
 var DEAL_STEMS = ["deal", "opportunit", "pipeline"];
 function isDealType(objectType2) {
-  const t2 = objectType2.toLowerCase();
-  return DEAL_STEMS.some((s2) => t2.includes(s2));
+  const t3 = objectType2.toLowerCase();
+  return DEAL_STEMS.some((s2) => t3.includes(s2));
 }
 function stageIntent(stage) {
   const s2 = stage.toLowerCase();
@@ -58785,9 +58785,9 @@ async function runLeadScoring(workspaceId) {
       for (const a2 of acts ?? []) activityByNode.set(String(a2.node_id), (activityByNode.get(String(a2.node_id)) ?? 0) + 1);
       const openTasksByRecord = /* @__PURE__ */ new Map();
       for (const n2 of nodes) {
-        const t2 = String(n2.object_type).toLowerCase();
+        const t3 = String(n2.object_type).toLowerCase();
         const d2 = n2.data ?? {};
-        if (t2.includes("task") && String(d2.status ?? "") !== "done" && d2.record_id) {
+        if (t3.includes("task") && String(d2.status ?? "") !== "done" && d2.record_id) {
           openTasksByRecord.set(String(d2.record_id), (openTasksByRecord.get(String(d2.record_id)) ?? 0) + 1);
         }
       }
@@ -59082,14 +59082,14 @@ function parseWorkflow(blocks) {
   };
 }
 async function candidateRecords(workspaceId, trigger, recordId) {
-  const t2 = `${trigger.type} ${trigger.label ?? ""}`.toLowerCase();
+  const t3 = `${trigger.type} ${trigger.label ?? ""}`.toLowerCase();
   const base = supabase.from("nodes").select("id, object_type, data, updated_at, lead_score, relationship_health").eq("workspace_id", workspaceId);
   let q2 = base;
-  if (t2.includes("deal")) q2 = base.ilike("object_type", "%deal%");
-  else if (t2.includes("invoice")) q2 = base.eq("object_type", "invoice");
-  else if (t2.includes("contact") || t2.includes("person") || t2.includes("lead") || t2.includes("compan")) {
+  if (t3.includes("deal")) q2 = base.ilike("object_type", "%deal%");
+  else if (t3.includes("invoice")) q2 = base.eq("object_type", "invoice");
+  else if (t3.includes("contact") || t3.includes("person") || t3.includes("lead") || t3.includes("compan")) {
     q2 = base.or("object_type.ilike.%contact%,object_type.ilike.%people%,object_type.ilike.%lead%,object_type.ilike.%compan%");
-  } else if (t2.includes("task")) q2 = base.ilike("object_type", "%task%");
+  } else if (t3.includes("task")) q2 = base.ilike("object_type", "%task%");
   if (recordId) q2 = q2.eq("id", recordId);
   const { data } = await q2.order("updated_at", { ascending: false }).limit(recordId ? 1 : 200);
   return (data ?? []).map((row) => {
@@ -59107,8 +59107,8 @@ async function candidateRecords(workspaceId, trigger, recordId) {
   });
 }
 function triggerKeyFor(trigger, record) {
-  const t2 = `${trigger.type}`.toLowerCase();
-  if (t2.includes("stage") || t2.includes("deal")) {
+  const t3 = `${trigger.type}`.toLowerCase();
+  if (t3.includes("stage") || t3.includes("deal")) {
     const stage = String(record.data.stage ?? record.data.status ?? record.data.deal_stage ?? "");
     return `stage:${stage}`;
   }
@@ -59568,9 +59568,9 @@ var dailyBrief = inngest.createFunction(
       const wsId = ws.id;
       try {
         const { data: tasks2 } = await supabase.from("tasks").select("completed, due_date, status").eq("workspace_id", wsId);
-        const active = (tasks2 ?? []).filter((t2) => !t2.completed && t2.status !== "done");
+        const active = (tasks2 ?? []).filter((t3) => !t3.completed && t3.status !== "done");
         const openCount = active.length;
-        const overdue = active.filter((t2) => t2.due_date && new Date(t2.due_date) < now).length;
+        const overdue = active.filter((t3) => t3.due_date && new Date(t3.due_date) < now).length;
         const { count: pending } = await supabase.from("decision_queue").select("id", { count: "exact", head: true }).eq("workspace_id", wsId).eq("status", "pending");
         const { count: recent } = await supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", wsId).gte("updated_at", dayAgo);
         const pendingN = pending ?? 0;
@@ -59606,8 +59606,8 @@ async function loadNodes(workspaceId) {
   return data ?? [];
 }
 function matches(objectType2, stems) {
-  const t2 = objectType2.toLowerCase();
-  return stems.some((s2) => t2.includes(s2));
+  const t3 = objectType2.toLowerCase();
+  return stems.some((s2) => t3.includes(s2));
 }
 var DAY = 864e5;
 function daysSince(iso) {
@@ -60294,11 +60294,11 @@ router2.post("/", requireAuth, zValidator("json", external_exports.object({
     seen.add(r2.id);
     return true;
   }).map((r2) => ({ id: r2.id, object_type: r2.object_type, data: r2.data, updated_at: r2.updated_at }));
-  const taskItems = (taskResults.data ?? []).map((t2) => ({
-    id: t2.id,
+  const taskItems = (taskResults.data ?? []).map((t3) => ({
+    id: t3.id,
     object_type: "task",
-    data: { name: t2.title, status: t2.status, priority: t2.priority, due_date: t2.due_date },
-    updated_at: t2.updated_at
+    data: { name: t3.title, status: t3.status, priority: t3.priority, due_date: t3.due_date },
+    updated_at: t3.updated_at
   }));
   return c2.json([...nodeItems, ...taskItems]);
 });
@@ -60462,6 +60462,352 @@ init_context();
 init_credits();
 init_client();
 
+// ../shared/src/i18n.ts
+var SUPPORTED_LANGUAGES = [
+  { code: "en", name: "English", nativeName: "English", rtl: false, locale: "en" },
+  { code: "pl", name: "Polish", nativeName: "Polski", rtl: false, locale: "pl" },
+  { code: "ru", name: "Russian", nativeName: "\u0420\u0443\u0441\u0441\u043A\u0438\u0439", rtl: false, locale: "ru" },
+  { code: "uk", name: "Ukrainian", nativeName: "\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430", rtl: false, locale: "uk" },
+  { code: "ar", name: "Arabic", nativeName: "\u0627\u0644\u0639\u0631\u0628\u064A\u0629", rtl: true, locale: "ar" },
+  { code: "fr", name: "French", nativeName: "Fran\xE7ais", rtl: false, locale: "fr" },
+  { code: "de", name: "German", nativeName: "Deutsch", rtl: false, locale: "de" },
+  { code: "es", name: "Spanish", nativeName: "Espa\xF1ol", rtl: false, locale: "es" },
+  { code: "pt", name: "Portuguese", nativeName: "Portugu\xEAs", rtl: false, locale: "pt" },
+  { code: "it", name: "Italian", nativeName: "Italiano", rtl: false, locale: "it" },
+  { code: "tr", name: "Turkish", nativeName: "T\xFCrk\xE7e", rtl: false, locale: "tr" },
+  { code: "nl", name: "Dutch", nativeName: "Nederlands", rtl: false, locale: "nl" }
+];
+var BY_CODE = new Map(SUPPORTED_LANGUAGES.map((l2) => [l2.code, l2]));
+function normalizeLang(raw2) {
+  const base = (raw2 ?? "").toLowerCase().trim().split(/[-_]/)[0];
+  return base && BY_CODE.has(base) ? base : "en";
+}
+function languageMeta(code) {
+  return BY_CODE.get(normalizeLang(code));
+}
+function languageInstruction(code) {
+  const lang = languageMeta(code);
+  if (lang.code === "en") return "";
+  return `
+
+Respond in ${lang.name} (${lang.nativeName}) by default. If the user writes in or explicitly asks for another language, use that instead. Keep proper nouns, identifiers, code, URLs and stored data values exactly as they are \u2014 only your prose should be in ${lang.name}.`;
+}
+var TRANSLATIONS = {
+  "onboarding.language_q": {
+    en: "Preferred language for AI responses?",
+    pl: "Preferowany j\u0119zyk odpowiedzi AI?",
+    ru: "\u041F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0435\u043C\u044B\u0439 \u044F\u0437\u044B\u043A \u043E\u0442\u0432\u0435\u0442\u043E\u0432 \u0418\u0418?",
+    uk: "\u0411\u0430\u0436\u0430\u043D\u0430 \u043C\u043E\u0432\u0430 \u0432\u0456\u0434\u043F\u043E\u0432\u0456\u0434\u0435\u0439 \u0428\u0406?",
+    ar: "\u0627\u0644\u0644\u063A\u0629 \u0627\u0644\u0645\u0641\u0636\u0644\u0629 \u0644\u0631\u062F\u0648\u062F \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A\u061F",
+    fr: "Langue pr\xE9f\xE9r\xE9e pour les r\xE9ponses de l\u2019IA ?",
+    de: "Bevorzugte Sprache f\xFCr KI-Antworten?",
+    es: "\xBFIdioma preferido para las respuestas de la IA?",
+    pt: "Idioma preferido para as respostas da IA?",
+    it: "Lingua preferita per le risposte dell\u2019IA?",
+    tr: "Yapay zek\xE2 yan\u0131tlar\u0131 i\xE7in tercih edilen dil?",
+    nl: "Voorkeurstaal voor AI-antwoorden?"
+  },
+  "settings.language": {
+    en: "Language",
+    pl: "J\u0119zyk",
+    ru: "\u042F\u0437\u044B\u043A",
+    uk: "\u041C\u043E\u0432\u0430",
+    ar: "\u0627\u0644\u0644\u063A\u0629",
+    fr: "Langue",
+    de: "Sprache",
+    es: "Idioma",
+    pt: "Idioma",
+    it: "Lingua",
+    tr: "Dil",
+    nl: "Taal"
+  },
+  "settings.language_help": {
+    en: "Language for AI responses and number/date formatting.",
+    pl: "J\u0119zyk odpowiedzi AI oraz formatowania liczb i dat.",
+    ru: "\u042F\u0437\u044B\u043A \u043E\u0442\u0432\u0435\u0442\u043E\u0432 \u0418\u0418 \u0438 \u0444\u043E\u0440\u043C\u0430\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F \u0447\u0438\u0441\u0435\u043B \u0438 \u0434\u0430\u0442.",
+    uk: "\u041C\u043E\u0432\u0430 \u0432\u0456\u0434\u043F\u043E\u0432\u0456\u0434\u0435\u0439 \u0428\u0406 \u0442\u0430 \u0444\u043E\u0440\u043C\u0430\u0442\u0443\u0432\u0430\u043D\u043D\u044F \u0447\u0438\u0441\u0435\u043B \u0456 \u0434\u0430\u0442.",
+    ar: "\u0644\u063A\u0629 \u0631\u062F\u0648\u062F \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0648\u062A\u0646\u0633\u064A\u0642 \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0648\u0627\u0644\u062A\u0648\u0627\u0631\u064A\u062E.",
+    fr: "Langue des r\xE9ponses de l\u2019IA et du format des nombres et dates.",
+    de: "Sprache f\xFCr KI-Antworten und Zahlen-/Datumsformat.",
+    es: "Idioma de las respuestas de la IA y del formato de n\xFAmeros y fechas.",
+    pt: "Idioma das respostas da IA e da formata\xE7\xE3o de n\xFAmeros e datas.",
+    it: "Lingua delle risposte dell\u2019IA e del formato di numeri e date.",
+    tr: "Yapay zek\xE2 yan\u0131tlar\u0131 ve say\u0131/tarih bi\xE7imi i\xE7in dil.",
+    nl: "Taal voor AI-antwoorden en getal-/datumnotatie."
+  },
+  "discovery.heading": {
+    en: "Find real leads & reviews online",
+    pl: "Znajd\u017A prawdziwych klient\xF3w i opinie online",
+    ru: "\u041D\u0430\u0445\u043E\u0434\u0438\u0442\u0435 \u0440\u0435\u0430\u043B\u044C\u043D\u044B\u0445 \u043A\u043B\u0438\u0435\u043D\u0442\u043E\u0432 \u0438 \u043E\u0442\u0437\u044B\u0432\u044B \u0432 \u0438\u043D\u0442\u0435\u0440\u043D\u0435\u0442\u0435",
+    uk: "\u0417\u043D\u0430\u0445\u043E\u0434\u044C\u0442\u0435 \u0440\u0435\u0430\u043B\u044C\u043D\u0438\u0445 \u043A\u043B\u0456\u0454\u043D\u0442\u0456\u0432 \u0456 \u0432\u0456\u0434\u0433\u0443\u043A\u0438 \u043E\u043D\u043B\u0430\u0439\u043D",
+    ar: "\u0627\u0639\u062B\u0631 \u0639\u0644\u0649 \u0639\u0645\u0644\u0627\u0621 \u0645\u062D\u062A\u0645\u0644\u064A\u0646 \u0648\u0645\u0631\u0627\u062C\u0639\u0627\u062A \u062D\u0642\u064A\u0642\u064A\u0629 \u0639\u0628\u0631 \u0627\u0644\u0625\u0646\u062A\u0631\u0646\u062A",
+    fr: "Trouvez de vrais prospects et avis en ligne",
+    de: "Finden Sie echte Leads & Bewertungen online",
+    es: "Encuentra clientes potenciales y rese\xF1as reales en l\xEDnea",
+    pt: "Encontre leads e avalia\xE7\xF5es reais online",
+    it: "Trova lead e recensioni reali online",
+    tr: "Ger\xE7ek m\xFC\u015Fteri adaylar\u0131 ve yorumlar\u0131 \xE7evrimi\xE7i bulun",
+    nl: "Vind echte leads en reviews online"
+  },
+  "discovery.sub": {
+    en: "Ask in plain language. Discovery searches the open web, reads the pages, and brings back source-backed prospects.",
+    pl: "Pytaj naturalnym j\u0119zykiem. Discovery przeszukuje sie\u0107, czyta strony i zwraca zweryfikowane kontakty.",
+    ru: "\u0421\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0439\u0442\u0435 \u043E\u0431\u044B\u0447\u043D\u044B\u043C \u044F\u0437\u044B\u043A\u043E\u043C. Discovery \u0438\u0449\u0435\u0442 \u0432 \u043E\u0442\u043A\u0440\u044B\u0442\u043E\u043C \u0432\u0435\u0431\u0435, \u0447\u0438\u0442\u0430\u0435\u0442 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u044B \u0438 \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 \u043F\u0440\u043E\u0432\u0435\u0440\u0451\u043D\u043D\u044B\u0435 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u044B.",
+    uk: "\u0417\u0430\u043F\u0438\u0442\u0443\u0439\u0442\u0435 \u0437\u0432\u0438\u0447\u0430\u0439\u043D\u043E\u044E \u043C\u043E\u0432\u043E\u044E. Discovery \u0448\u0443\u043A\u0430\u0454 \u0443 \u0432\u0456\u0434\u043A\u0440\u0438\u0442\u043E\u043C\u0443 \u0432\u0435\u0431\u0456, \u0447\u0438\u0442\u0430\u0454 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438 \u0439 \u043F\u043E\u0432\u0435\u0440\u0442\u0430\u0454 \u043F\u0435\u0440\u0435\u0432\u0456\u0440\u0435\u043D\u0456 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u0438.",
+    ar: "\u0627\u0633\u0623\u0644 \u0628\u0644\u063A\u0629 \u0628\u0633\u064A\u0637\u0629. \u064A\u0628\u062D\u062B Discovery \u0641\u064A \u0627\u0644\u0648\u064A\u0628 \u0648\u064A\u0642\u0631\u0623 \u0627\u0644\u0635\u0641\u062D\u0627\u062A \u0648\u064A\u0639\u064A\u062F \u0639\u0645\u0644\u0627\u0621 \u0645\u062D\u062A\u0645\u0644\u064A\u0646 \u0645\u0648\u062B\u0651\u0642\u064A\u0646 \u0628\u0627\u0644\u0645\u0635\u0627\u062F\u0631.",
+    fr: "Demandez en langage naturel. Discovery parcourt le web, lit les pages et renvoie des prospects sourc\xE9s.",
+    de: "Fragen Sie in normaler Sprache. Discovery durchsucht das Web, liest Seiten und liefert quellenbasierte Kontakte.",
+    es: "Pregunta en lenguaje natural. Discovery busca en la web, lee las p\xE1ginas y devuelve prospectos con fuentes.",
+    pt: "Pergunte em linguagem natural. O Discovery pesquisa na web, l\xEA as p\xE1ginas e retorna leads com fontes.",
+    it: "Chiedi in linguaggio naturale. Discovery cerca sul web, legge le pagine e restituisce contatti con fonti.",
+    tr: "Do\u011Fal dille sorun. Discovery web\u2019de arar, sayfalar\u0131 okur ve kaynakl\u0131 m\xFC\u015Fteri adaylar\u0131 getirir.",
+    nl: "Vraag in gewone taal. Discovery doorzoekt het web, leest pagina\u2019s en levert onderbouwde leads."
+  },
+  "ask.heading": {
+    en: "What do you want to know about the workspace graph?",
+    pl: "Co chcesz wiedzie\u0107 o grafie przestrzeni roboczej?",
+    ru: "\u0427\u0442\u043E \u0432\u044B \u0445\u043E\u0442\u0438\u0442\u0435 \u0443\u0437\u043D\u0430\u0442\u044C \u043E \u0433\u0440\u0430\u0444\u0435 \u0440\u0430\u0431\u043E\u0447\u0435\u0433\u043E \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u0430?",
+    uk: "\u0429\u043E \u0432\u0438 \u0445\u043E\u0447\u0435\u0442\u0435 \u0434\u0456\u0437\u043D\u0430\u0442\u0438\u0441\u044F \u043F\u0440\u043E \u0433\u0440\u0430\u0444 \u0440\u043E\u0431\u043E\u0447\u043E\u0433\u043E \u043F\u0440\u043E\u0441\u0442\u043E\u0440\u0443?",
+    ar: "\u0645\u0627\u0630\u0627 \u062A\u0631\u064A\u062F \u0623\u0646 \u062A\u0639\u0631\u0641 \u0639\u0646 \u0631\u0633\u0645 \u0645\u0633\u0627\u062D\u0629 \u0627\u0644\u0639\u0645\u0644\u061F",
+    fr: "Que voulez-vous savoir sur le graphe de votre espace ?",
+    de: "Was m\xF6chten Sie \xFCber den Workspace-Graphen wissen?",
+    es: "\xBFQu\xE9 quieres saber sobre el grafo del espacio de trabajo?",
+    pt: "O que voc\xEA quer saber sobre o grafo do espa\xE7o de trabalho?",
+    it: "Cosa vuoi sapere sul grafo dello spazio di lavoro?",
+    tr: "\xC7al\u0131\u015Fma alan\u0131 grafi\u011Fi hakk\u0131nda ne bilmek istiyorsunuz?",
+    nl: "Wat wil je weten over de workspace-graph?"
+  },
+  // ── Short static UI strings (Discovery chrome) ──
+  "discovery.search_deeper": {
+    en: "Search deeper",
+    pl: "Szukaj g\u0142\u0119biej",
+    ru: "\u0418\u0441\u043A\u0430\u0442\u044C \u0433\u043B\u0443\u0431\u0436\u0435",
+    uk: "\u0428\u0443\u043A\u0430\u0442\u0438 \u0433\u043B\u0438\u0431\u0448\u0435",
+    ar: "\u0628\u062D\u062B \u0623\u0639\u0645\u0642",
+    fr: "Chercher plus loin",
+    de: "Tiefer suchen",
+    es: "Buscar m\xE1s a fondo",
+    pt: "Pesquisar mais fundo",
+    it: "Cerca pi\xF9 a fondo",
+    tr: "Daha derin ara",
+    nl: "Dieper zoeken"
+  },
+  "discovery.deep_research": {
+    en: "Deep research",
+    pl: "Dog\u0142\u0119bne badanie",
+    ru: "\u0413\u043B\u0443\u0431\u043E\u043A\u043E\u0435 \u0438\u0441\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u043D\u0438\u0435",
+    uk: "\u0413\u043B\u0438\u0431\u043E\u043A\u0435 \u0434\u043E\u0441\u043B\u0456\u0434\u0436\u0435\u043D\u043D\u044F",
+    ar: "\u0628\u062D\u062B \u0645\u0639\u0645\u0651\u0642",
+    fr: "Recherche approfondie",
+    de: "Tiefenrecherche",
+    es: "Investigaci\xF3n profunda",
+    pt: "Pesquisa aprofundada",
+    it: "Ricerca approfondita",
+    tr: "Derin ara\u015Ft\u0131rma",
+    nl: "Diepgaand onderzoek"
+  },
+  "discovery.no_results": {
+    en: "No results yet \u2014 try a broader search or search deeper.",
+    pl: "Brak wynik\xF3w \u2014 spr\xF3buj szerszego wyszukiwania lub szukaj g\u0142\u0119biej.",
+    ru: "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442\u043E\u0432 \u2014 \u043F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0431\u043E\u043B\u0435\u0435 \u0448\u0438\u0440\u043E\u043A\u0438\u0439 \u0437\u0430\u043F\u0440\u043E\u0441 \u0438\u043B\u0438 \u0438\u0449\u0438\u0442\u0435 \u0433\u043B\u0443\u0431\u0436\u0435.",
+    uk: "\u041F\u043E\u043A\u0438 \u043D\u0435\u043C\u0430\u0454 \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442\u0456\u0432 \u2014 \u0441\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0448\u0438\u0440\u0448\u0438\u0439 \u0437\u0430\u043F\u0438\u0442 \u0430\u0431\u043E \u0448\u0443\u043A\u0430\u0439\u0442\u0435 \u0433\u043B\u0438\u0431\u0448\u0435.",
+    ar: "\u0644\u0627 \u062A\u0648\u062C\u062F \u0646\u062A\u0627\u0626\u062C \u0628\u0639\u062F \u2014 \u062C\u0631\u0651\u0628 \u0628\u062D\u062B\u064B\u0627 \u0623\u0648\u0633\u0639 \u0623\u0648 \u0627\u0628\u062D\u062B \u0628\u0639\u0645\u0642 \u0623\u0643\u0628\u0631.",
+    fr: "Aucun r\xE9sultat \u2014 \xE9largissez la recherche ou cherchez plus loin.",
+    de: "Noch keine Ergebnisse \u2014 versuchen Sie eine breitere oder tiefere Suche.",
+    es: "A\xFAn no hay resultados \u2014 prueba una b\xFAsqueda m\xE1s amplia o m\xE1s profunda.",
+    pt: "Ainda sem resultados \u2014 tente uma busca mais ampla ou mais profunda.",
+    it: "Ancora nessun risultato \u2014 prova una ricerca pi\xF9 ampia o pi\xF9 approfondita.",
+    tr: "Hen\xFCz sonu\xE7 yok \u2014 daha geni\u015F veya daha derin bir arama deneyin.",
+    nl: "Nog geen resultaten \u2014 probeer een bredere of diepere zoekopdracht."
+  },
+  "discovery.saved": {
+    en: "Saved",
+    pl: "Zapisane",
+    ru: "\u0421\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0435",
+    uk: "\u0417\u0431\u0435\u0440\u0435\u0436\u0435\u043D\u0456",
+    ar: "\u0627\u0644\u0645\u062D\u0641\u0648\u0638\u0629",
+    fr: "Enregistr\xE9",
+    de: "Gespeichert",
+    es: "Guardado",
+    pt: "Salvos",
+    it: "Salvati",
+    tr: "Kaydedilenler",
+    nl: "Opgeslagen"
+  },
+  "discovery.recent": {
+    en: "Recent",
+    pl: "Ostatnie",
+    ru: "\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435",
+    uk: "\u041E\u0441\u0442\u0430\u043D\u043D\u0456",
+    ar: "\u0627\u0644\u0623\u062E\u064A\u0631\u0629",
+    fr: "R\xE9cents",
+    de: "Zuletzt",
+    es: "Recientes",
+    pt: "Recentes",
+    it: "Recenti",
+    tr: "Son",
+    nl: "Recent"
+  },
+  "ask.empty_hint": {
+    en: "Tasks, finance, relationships, notes, workflows \u2014 one connected graph, this workspace only.",
+    pl: "Zadania, finanse, relacje, notatki, przep\u0142ywy \u2014 jeden po\u0142\u0105czony graf, tylko ta przestrze\u0144.",
+    ru: "\u0417\u0430\u0434\u0430\u0447\u0438, \u0444\u0438\u043D\u0430\u043D\u0441\u044B, \u0441\u0432\u044F\u0437\u0438, \u0437\u0430\u043C\u0435\u0442\u043A\u0438, \u043F\u0440\u043E\u0446\u0435\u0441\u0441\u044B \u2014 \u043E\u0434\u0438\u043D \u0441\u0432\u044F\u0437\u0430\u043D\u043D\u044B\u0439 \u0433\u0440\u0430\u0444, \u0442\u043E\u043B\u044C\u043A\u043E \u044D\u0442\u043E \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u043E.",
+    uk: "\u0417\u0430\u0432\u0434\u0430\u043D\u043D\u044F, \u0444\u0456\u043D\u0430\u043D\u0441\u0438, \u0437\u0432\u2019\u044F\u0437\u043A\u0438, \u043D\u043E\u0442\u0430\u0442\u043A\u0438, \u043F\u0440\u043E\u0446\u0435\u0441\u0438 \u2014 \u043E\u0434\u0438\u043D \u0437\u0432\u2019\u044F\u0437\u0430\u043D\u0438\u0439 \u0433\u0440\u0430\u0444, \u043B\u0438\u0448\u0435 \u0446\u0435\u0439 \u043F\u0440\u043E\u0441\u0442\u0456\u0440.",
+    ar: "\u0627\u0644\u0645\u0647\u0627\u0645 \u0648\u0627\u0644\u0645\u0627\u0644\u064A\u0629 \u0648\u0627\u0644\u0639\u0644\u0627\u0642\u0627\u062A \u0648\u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A \u0648\u0633\u064A\u0631 \u0627\u0644\u0639\u0645\u0644 \u2014 \u0631\u0633\u0645 \u0648\u0627\u062D\u062F \u0645\u062A\u0635\u0644\u060C \u0647\u0630\u0647 \u0627\u0644\u0645\u0633\u0627\u062D\u0629 \u0641\u0642\u0637.",
+    fr: "T\xE2ches, finances, relations, notes, workflows \u2014 un seul graphe connect\xE9, cet espace uniquement.",
+    de: "Aufgaben, Finanzen, Beziehungen, Notizen, Workflows \u2014 ein verbundener Graph, nur dieser Workspace.",
+    es: "Tareas, finanzas, relaciones, notas, flujos \u2014 un grafo conectado, solo este espacio.",
+    pt: "Tarefas, finan\xE7as, rela\xE7\xF5es, notas, fluxos \u2014 um grafo conectado, apenas este espa\xE7o.",
+    it: "Attivit\xE0, finanze, relazioni, note, flussi \u2014 un grafo connesso, solo questo spazio.",
+    tr: "G\xF6revler, finans, ili\u015Fkiler, notlar, ak\u0131\u015Flar \u2014 tek ba\u011Fl\u0131 grafik, yaln\u0131zca bu \xE7al\u0131\u015Fma alan\u0131.",
+    nl: "Taken, financi\xEBn, relaties, notities, workflows \u2014 \xE9\xE9n verbonden graph, alleen deze workspace."
+  },
+  // ── Localized placeholder defaults for template fills ──
+  "tpl.who_default": {
+    en: "your ideal customers",
+    pl: "Twoi idealni klienci",
+    ru: "\u0432\u0430\u0448\u0438 \u0438\u0434\u0435\u0430\u043B\u044C\u043D\u044B\u0435 \u043A\u043B\u0438\u0435\u043D\u0442\u044B",
+    uk: "\u0432\u0430\u0448\u0456 \u0456\u0434\u0435\u0430\u043B\u044C\u043D\u0456 \u043A\u043B\u0456\u0454\u043D\u0442\u0438",
+    ar: "\u0639\u0645\u0644\u0627\u0624\u0643 \u0627\u0644\u0645\u062B\u0627\u0644\u064A\u0648\u0646",
+    fr: "vos clients id\xE9aux",
+    de: "Ihre idealen Kunden",
+    es: "tus clientes ideales",
+    pt: "seus clientes ideais",
+    it: "i tuoi clienti ideali",
+    tr: "ideal m\xFC\u015Fterileriniz",
+    nl: "je ideale klanten"
+  },
+  "tpl.region_default": {
+    en: "your region",
+    pl: "Tw\xF3j region",
+    ru: "\u0432\u0430\u0448 \u0440\u0435\u0433\u0438\u043E\u043D",
+    uk: "\u0432\u0430\u0448 \u0440\u0435\u0433\u0456\u043E\u043D",
+    ar: "\u0645\u0646\u0637\u0642\u062A\u0643",
+    fr: "votre r\xE9gion",
+    de: "Ihrer Region",
+    es: "tu regi\xF3n",
+    pt: "sua regi\xE3o",
+    it: "la tua regione",
+    tr: "b\xF6lgeniz",
+    nl: "je regio"
+  },
+  // ── Localized DYNAMIC suggestion frames ({who}/{region}/{base} filled from the profile) ──
+  "tpl.discovery": {
+    en: ["Find {who} in {region}", "Reviews and complaints about {who}"],
+    pl: ["Znajd\u017A {who} w {region}", "Opinie i skargi na temat {who}"],
+    ru: ["\u041D\u0430\u0439\u0442\u0438 {who} \u0432 {region}", "\u041E\u0442\u0437\u044B\u0432\u044B \u0438 \u0436\u0430\u043B\u043E\u0431\u044B \u043E {who}"],
+    uk: ["\u0417\u043D\u0430\u0439\u0442\u0438 {who} \u0443 {region}", "\u0412\u0456\u0434\u0433\u0443\u043A\u0438 \u0442\u0430 \u0441\u043A\u0430\u0440\u0433\u0438 \u043F\u0440\u043E {who}"],
+    ar: ["\u0627\u0628\u062D\u062B \u0639\u0646 {who} \u0641\u064A {region}", "\u0627\u0644\u0645\u0631\u0627\u062C\u0639\u0627\u062A \u0648\u0627\u0644\u0634\u0643\u0627\u0648\u0649 \u062D\u0648\u0644 {who}"],
+    fr: ["Trouver {who} \xE0 {region}", "Avis et plaintes sur {who}"],
+    de: ["{who} in {region} finden", "Bewertungen und Beschwerden \xFCber {who}"],
+    es: ["Encontrar {who} en {region}", "Rese\xF1as y quejas sobre {who}"],
+    pt: ["Encontrar {who} em {region}", "Avalia\xE7\xF5es e reclama\xE7\xF5es sobre {who}"],
+    it: ["Trova {who} a {region}", "Recensioni e reclami su {who}"],
+    tr: ["{region} b\xF6lgesindeki {who} bul", "{who} hakk\u0131nda yorumlar ve \u015Fikayetler"],
+    nl: ["Vind {who} in {region}", "Reviews en klachten over {who}"]
+  },
+  "tpl.discovery_next": {
+    en: ["Reviews and complaints about {who}", "Similar {who} in a new region", "{who} that recently changed or expanded"],
+    pl: ["Opinie i skargi na temat {who}", "Podobni {who} w nowym regionie", "{who}, kt\xF3rzy niedawno si\u0119 zmienili lub rozro\u015Bli"],
+    ru: ["\u041E\u0442\u0437\u044B\u0432\u044B \u0438 \u0436\u0430\u043B\u043E\u0431\u044B \u043E {who}", "\u041F\u043E\u0445\u043E\u0436\u0438\u0435 {who} \u0432 \u043D\u043E\u0432\u043E\u043C \u0440\u0435\u0433\u0438\u043E\u043D\u0435", "{who}, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u043D\u0435\u0434\u0430\u0432\u043D\u043E \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u0438\u0441\u044C \u0438\u043B\u0438 \u0432\u044B\u0440\u043E\u0441\u043B\u0438"],
+    uk: ["\u0412\u0456\u0434\u0433\u0443\u043A\u0438 \u0442\u0430 \u0441\u043A\u0430\u0440\u0433\u0438 \u043F\u0440\u043E {who}", "\u0421\u0445\u043E\u0436\u0456 {who} \u0443 \u043D\u043E\u0432\u043E\u043C\u0443 \u0440\u0435\u0433\u0456\u043E\u043D\u0456", "{who}, \u0449\u043E \u043D\u0435\u0449\u043E\u0434\u0430\u0432\u043D\u043E \u0437\u043C\u0456\u043D\u0438\u043B\u0438\u0441\u044F \u0430\u0431\u043E \u0437\u0440\u043E\u0441\u043B\u0438"],
+    ar: ["\u0627\u0644\u0645\u0631\u0627\u062C\u0639\u0627\u062A \u0648\u0627\u0644\u0634\u0643\u0627\u0648\u0649 \u062D\u0648\u0644 {who}", "{who} \u0645\u0645\u0627\u062B\u0644\u0648\u0646 \u0641\u064A \u0645\u0646\u0637\u0642\u0629 \u062C\u062F\u064A\u062F\u0629", "{who} \u0627\u0644\u0630\u064A\u0646 \u062A\u063A\u064A\u0651\u0631\u0648\u0627 \u0623\u0648 \u062A\u0648\u0633\u0651\u0639\u0648\u0627 \u0645\u0624\u062E\u0631\u064B\u0627"],
+    fr: ["Avis et plaintes sur {who}", "{who} similaires dans une nouvelle r\xE9gion", "{who} ayant r\xE9cemment chang\xE9 ou grandi"],
+    de: ["Bewertungen und Beschwerden \xFCber {who}", "\xC4hnliche {who} in einer neuen Region", "{who}, die sich k\xFCrzlich ver\xE4ndert oder vergr\xF6\xDFert haben"],
+    es: ["Rese\xF1as y quejas sobre {who}", "{who} similares en una regi\xF3n nueva", "{who} que cambiaron o crecieron recientemente"],
+    pt: ["Avalia\xE7\xF5es e reclama\xE7\xF5es sobre {who}", "{who} semelhantes em uma nova regi\xE3o", "{who} que mudaram ou cresceram recentemente"],
+    it: ["Recensioni e reclami su {who}", "{who} simili in una nuova regione", "{who} che sono cambiati o cresciuti di recente"],
+    tr: ["{who} hakk\u0131nda yorumlar ve \u015Fikayetler", "Yeni bir b\xF6lgede benzer {who}", "Yak\u0131n zamanda de\u011Fi\u015Fen veya b\xFCy\xFCyen {who}"],
+    nl: ["Reviews en klachten over {who}", "Vergelijkbare {who} in een nieuwe regio", "{who} die recent zijn veranderd of gegroeid"]
+  },
+  "tpl.discovery_broad": {
+    en: ["{base} in {region}", "{base} with public contact details"],
+    pl: ["{base} w {region}", "{base} z publicznymi danymi kontaktowymi"],
+    ru: ["{base} \u0432 {region}", "{base} \u0441 \u043F\u0443\u0431\u043B\u0438\u0447\u043D\u044B\u043C\u0438 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u043D\u044B\u043C\u0438 \u0434\u0430\u043D\u043D\u044B\u043C\u0438"],
+    uk: ["{base} \u0443 {region}", "{base} \u0437 \u043F\u0443\u0431\u043B\u0456\u0447\u043D\u0438\u043C\u0438 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u043D\u0438\u043C\u0438 \u0434\u0430\u043D\u0438\u043C\u0438"],
+    ar: ["{base} \u0641\u064A {region}", "{base} \u0645\u0639 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u062A\u0635\u0627\u0644 \u0639\u0627\u0645\u0629"],
+    fr: ["{base} \xE0 {region}", "{base} avec coordonn\xE9es publiques"],
+    de: ["{base} in {region}", "{base} mit \xF6ffentlichen Kontaktdaten"],
+    es: ["{base} en {region}", "{base} con datos de contacto p\xFAblicos"],
+    pt: ["{base} em {region}", "{base} com dados de contato p\xFAblicos"],
+    it: ["{base} a {region}", "{base} con contatti pubblici"],
+    tr: ["{region} b\xF6lgesinde {base}", "Herkese a\xE7\u0131k ileti\u015Fim bilgileriyle {base}"],
+    nl: ["{base} in {region}", "{base} met openbare contactgegevens"]
+  },
+  "tpl.ask": {
+    en: ["Show what needs attention today", "Summarize this week", "Draft a follow-up for a stalled item"],
+    pl: ["Poka\u017C, co wymaga uwagi dzisiaj", "Podsumuj ten tydzie\u0144", "Napisz follow-up dla utkni\u0119tej sprawy"],
+    ru: ["\u041F\u043E\u043A\u0430\u0436\u0438, \u0447\u0442\u043E \u0442\u0440\u0435\u0431\u0443\u0435\u0442 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u044F \u0441\u0435\u0433\u043E\u0434\u043D\u044F", "\u041F\u043E\u0434\u0432\u0435\u0434\u0438 \u0438\u0442\u043E\u0433\u0438 \u043D\u0435\u0434\u0435\u043B\u0438", "\u0421\u043E\u0441\u0442\u0430\u0432\u044C \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u0435 \u043F\u043E \u0437\u0430\u0441\u0442\u043E\u043F\u043E\u0440\u0438\u0432\u0448\u0435\u043C\u0443\u0441\u044F \u0434\u0435\u043B\u0443"],
+    uk: ["\u041F\u043E\u043A\u0430\u0436\u0438, \u0449\u043E \u043F\u043E\u0442\u0440\u0435\u0431\u0443\u0454 \u0443\u0432\u0430\u0433\u0438 \u0441\u044C\u043E\u0433\u043E\u0434\u043D\u0456", "\u041F\u0456\u0434\u0441\u0443\u043C\u0443\u0439 \u0446\u0435\u0439 \u0442\u0438\u0436\u0434\u0435\u043D\u044C", "\u0421\u043A\u043B\u0430\u0434\u0438 \u043D\u0430\u0433\u0430\u0434\u0443\u0432\u0430\u043D\u043D\u044F \u0434\u043B\u044F \u0437\u0430\u0441\u0442\u0440\u044F\u0433\u043B\u043E\u0457 \u0441\u043F\u0440\u0430\u0432\u0438"],
+    ar: ["\u0623\u0638\u0647\u0631 \u0645\u0627 \u064A\u062D\u062A\u0627\u062C \u0625\u0644\u0649 \u0627\u0647\u062A\u0645\u0627\u0645 \u0627\u0644\u064A\u0648\u0645", "\u0644\u062E\u0651\u0635 \u0647\u0630\u0627 \u0627\u0644\u0623\u0633\u0628\u0648\u0639", "\u0627\u0643\u062A\u0628 \u0631\u0633\u0627\u0644\u0629 \u0645\u062A\u0627\u0628\u0639\u0629 \u0644\u0639\u0646\u0635\u0631 \u0645\u062A\u0648\u0642\u0641"],
+    fr: ["Montre ce qui n\xE9cessite mon attention aujourd\u2019hui", "R\xE9sume cette semaine", "R\xE9dige une relance pour un dossier bloqu\xE9"],
+    de: ["Zeig, was heute Aufmerksamkeit braucht", "Fasse diese Woche zusammen", "Entwirf eine Nachfass-Nachricht f\xFCr einen stockenden Vorgang"],
+    es: ["Muestra qu\xE9 necesita atenci\xF3n hoy", "Resume esta semana", "Redacta un seguimiento para un caso estancado"],
+    pt: ["Mostre o que precisa de aten\xE7\xE3o hoje", "Resuma esta semana", "Escreva um follow-up para um item parado"],
+    it: ["Mostra cosa richiede attenzione oggi", "Riepiloga questa settimana", "Scrivi un follow-up per un elemento fermo"],
+    tr: ["Bug\xFCn dikkat gerektirenleri g\xF6ster", "Bu haftay\u0131 \xF6zetle", "Tak\u0131lm\u0131\u015F bir \xF6\u011Fe i\xE7in takip mesaj\u0131 yaz"],
+    nl: ["Laat zien wat vandaag aandacht nodig heeft", "Vat deze week samen", "Schrijf een follow-up voor een vastgelopen item"]
+  },
+  "tpl.home_attention": {
+    en: "What needs my attention right now? Rank by urgency and tell me exactly what to do.",
+    pl: "Co wymaga mojej uwagi teraz? Uszereguj wed\u0142ug pilno\u015Bci i powiedz dok\u0142adnie, co zrobi\u0107.",
+    ru: "\u0427\u0442\u043E \u0442\u0440\u0435\u0431\u0443\u0435\u0442 \u043C\u043E\u0435\u0433\u043E \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u044F \u043F\u0440\u044F\u043C\u043E \u0441\u0435\u0439\u0447\u0430\u0441? \u041E\u0442\u0441\u043E\u0440\u0442\u0438\u0440\u0443\u0439 \u043F\u043E \u0441\u0440\u043E\u0447\u043D\u043E\u0441\u0442\u0438 \u0438 \u0441\u043A\u0430\u0436\u0438, \u0447\u0442\u043E \u0438\u043C\u0435\u043D\u043D\u043E \u0434\u0435\u043B\u0430\u0442\u044C.",
+    uk: "\u0429\u043E \u043F\u043E\u0442\u0440\u0435\u0431\u0443\u0454 \u043C\u043E\u0454\u0457 \u0443\u0432\u0430\u0433\u0438 \u0437\u0430\u0440\u0430\u0437? \u0412\u0456\u0434\u0441\u043E\u0440\u0442\u0443\u0439 \u0437\u0430 \u0442\u0435\u0440\u043C\u0456\u043D\u043E\u0432\u0456\u0441\u0442\u044E \u0456 \u0441\u043A\u0430\u0436\u0438, \u0449\u043E \u0441\u0430\u043C\u0435 \u0440\u043E\u0431\u0438\u0442\u0438.",
+    ar: "\u0645\u0627 \u0627\u0644\u0630\u064A \u064A\u062D\u062A\u0627\u062C \u0625\u0644\u0649 \u0627\u0646\u062A\u0628\u0627\u0647\u064A \u0627\u0644\u0622\u0646\u061F \u0631\u062A\u0651\u0628\u0647 \u062D\u0633\u0628 \u0627\u0644\u0623\u0648\u0644\u0648\u064A\u0629 \u0648\u0623\u062E\u0628\u0631\u0646\u064A \u0628\u0645\u0627 \u064A\u062C\u0628 \u0641\u0639\u0644\u0647 \u0628\u0627\u0644\u0636\u0628\u0637.",
+    fr: "Qu\u2019est-ce qui n\xE9cessite mon attention maintenant ? Classe par urgence et dis-moi quoi faire.",
+    de: "Was braucht jetzt meine Aufmerksamkeit? Nach Dringlichkeit ordnen und mir genau sagen, was zu tun ist.",
+    es: "\xBFQu\xE9 necesita mi atenci\xF3n ahora? Ord\xE9nalo por urgencia y dime exactamente qu\xE9 hacer.",
+    pt: "O que precisa da minha aten\xE7\xE3o agora? Ordene por urg\xEAncia e diga exatamente o que fazer.",
+    it: "Cosa richiede la mia attenzione ora? Ordina per urgenza e dimmi esattamente cosa fare.",
+    tr: "\u015Eu anda neyle ilgilenmeliyim? Aciliyete g\xF6re s\u0131rala ve tam olarak ne yapaca\u011F\u0131m\u0131 s\xF6yle.",
+    nl: "Wat heeft nu mijn aandacht nodig? Rangschik op urgentie en zeg precies wat ik moet doen."
+  },
+  "tpl.home_decisions": {
+    en: "What decisions are waiting on me? Summarize each with the context I need, and recommend an action.",
+    pl: "Jakie decyzje czekaj\u0105 na mnie? Podsumuj ka\u017Cd\u0105 z potrzebnym kontekstem i zaproponuj dzia\u0142anie.",
+    ru: "\u041A\u0430\u043A\u0438\u0435 \u0440\u0435\u0448\u0435\u043D\u0438\u044F \u0436\u0434\u0443\u0442 \u043C\u0435\u043D\u044F? \u041A\u0440\u0430\u0442\u043A\u043E \u043E\u043F\u0438\u0448\u0438 \u043A\u0430\u0436\u0434\u043E\u0435 \u0441 \u043D\u0443\u0436\u043D\u044B\u043C \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442\u043E\u043C \u0438 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0438 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435.",
+    uk: "\u042F\u043A\u0456 \u0440\u0456\u0448\u0435\u043D\u043D\u044F \u0447\u0435\u043A\u0430\u044E\u0442\u044C \u043D\u0430 \u043C\u0435\u043D\u0435? \u0421\u0442\u0438\u0441\u043B\u043E \u043E\u043F\u0438\u0448\u0438 \u043A\u043E\u0436\u043D\u0435 \u0437 \u043F\u043E\u0442\u0440\u0456\u0431\u043D\u0438\u043C \u043A\u043E\u043D\u0442\u0435\u043A\u0441\u0442\u043E\u043C \u0456 \u0437\u0430\u043F\u0440\u043E\u043F\u043E\u043D\u0443\u0439 \u0434\u0456\u044E.",
+    ar: "\u0645\u0627 \u0627\u0644\u0642\u0631\u0627\u0631\u0627\u062A \u0627\u0644\u062A\u064A \u062A\u0646\u062A\u0638\u0631\u0646\u064A\u061F \u0644\u062E\u0651\u0635 \u0643\u0644\u064B\u0651\u0627 \u0645\u0646\u0647\u0627 \u0628\u0627\u0644\u0633\u064A\u0627\u0642 \u0627\u0644\u0644\u0627\u0632\u0645 \u0648\u0627\u0642\u062A\u0631\u062D \u0625\u062C\u0631\u0627\u0621\u064B.",
+    fr: "Quelles d\xE9cisions m\u2019attendent ? R\xE9sume chacune avec le contexte utile et recommande une action.",
+    de: "Welche Entscheidungen warten auf mich? Fasse jede mit dem n\xF6tigen Kontext zusammen und empfiehl eine Aktion.",
+    es: "\xBFQu\xE9 decisiones me esperan? Resume cada una con el contexto necesario y recomienda una acci\xF3n.",
+    pt: "Quais decis\xF5es est\xE3o \xE0 minha espera? Resuma cada uma com o contexto necess\xE1rio e recomende uma a\xE7\xE3o.",
+    it: "Quali decisioni mi aspettano? Riepiloga ciascuna con il contesto necessario e consiglia un\u2019azione.",
+    tr: "Beni bekleyen kararlar neler? Her birini gerekli ba\u011Flamla \xF6zetle ve bir aksiyon \xF6ner.",
+    nl: "Welke beslissingen wachten op mij? Vat elk samen met de nodige context en beveel een actie aan."
+  },
+  "tpl.home_discovery": {
+    en: "Find {who} in {region} on the web and bring back source-backed prospects.",
+    pl: "Znajd\u017A {who} w {region} w sieci i zwr\xF3\u0107 zweryfikowane kontakty.",
+    ru: "\u041D\u0430\u0439\u0434\u0438 {who} \u0432 {region} \u0432 \u0438\u043D\u0442\u0435\u0440\u043D\u0435\u0442\u0435 \u0438 \u0432\u0435\u0440\u043D\u0438 \u043F\u0440\u043E\u0432\u0435\u0440\u0451\u043D\u043D\u044B\u0435 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u044B.",
+    uk: "\u0417\u043D\u0430\u0439\u0434\u0438 {who} \u0443 {region} \u0432 \u0456\u043D\u0442\u0435\u0440\u043D\u0435\u0442\u0456 \u0442\u0430 \u043F\u043E\u0432\u0435\u0440\u043D\u0438 \u043F\u0435\u0440\u0435\u0432\u0456\u0440\u0435\u043D\u0456 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u0438.",
+    ar: "\u0627\u0628\u062D\u062B \u0639\u0646 {who} \u0641\u064A {region} \u0639\u0644\u0649 \u0627\u0644\u0648\u064A\u0628 \u0648\u0623\u0639\u062F \u0639\u0645\u0644\u0627\u0621 \u0645\u062D\u062A\u0645\u0644\u064A\u0646 \u0645\u0648\u062B\u0651\u0642\u064A\u0646 \u0628\u0627\u0644\u0645\u0635\u0627\u062F\u0631.",
+    fr: "Trouve {who} \xE0 {region} sur le web et rapporte des prospects sourc\xE9s.",
+    de: "Finde {who} in {region} im Web und liefere quellenbasierte Kontakte.",
+    es: "Encuentra {who} en {region} en la web y trae prospectos con fuentes.",
+    pt: "Encontre {who} em {region} na web e traga leads com fontes.",
+    it: "Trova {who} a {region} sul web e riporta contatti con fonti.",
+    tr: "{region} b\xF6lgesindeki {who} web\u2019de bul ve kaynakl\u0131 m\xFC\u015Fteri adaylar\u0131 getir.",
+    nl: "Vind {who} in {region} op het web en lever onderbouwde leads."
+  }
+};
+function t2(code, key) {
+  const lang = normalizeLang(code);
+  const entry = TRANSLATIONS[key];
+  const val = entry?.[lang] ?? entry?.en;
+  return typeof val === "string" ? val : key;
+}
+function tList(code, key) {
+  const lang = normalizeLang(code);
+  const entry = TRANSLATIONS[key];
+  const val = entry?.[lang] ?? entry?.en;
+  return Array.isArray(val) ? val : [];
+}
+function fillTemplate(tpl, vars) {
+  return tpl.replace(/\{(\w+)\}/g, (_m, k2) => vars[k2] ?? "").replace(/\s+/g, " ").trim();
+}
+var TRANSLATION_KEYS = Object.keys(TRANSLATIONS);
+
 // ../shared/src/profile.ts
 function hasProfileSignal(p2) {
   return Boolean(p2.industry.trim() || p2.discovery_focus.trim() || p2.target_customers.trim() || p2.main_objects_tracked.length);
@@ -60577,6 +60923,18 @@ function dedupe(list, limit2) {
   }
   return out;
 }
+function tplVars(p2, lang, base = "") {
+  const who = p2.target_customers.trim() || p2.discovery_focus.trim() || t2(lang, "tpl.who_default");
+  return {
+    who,
+    region: p2.region.trim() || t2(lang, "tpl.region_default"),
+    base: base.trim() || who
+  };
+}
+function useLocalized(lang) {
+  const L2 = normalizeLang(lang);
+  return L2 === "en" ? null : L2;
+}
 function profileObjects(p2) {
   if (p2.main_objects_tracked.length) return p2.main_objects_tracked;
   return FAMILY_FLAVOR[industryFamily(p2.industry)].objects;
@@ -60584,15 +60942,23 @@ function profileObjects(p2) {
 function profileTerms(p2) {
   return { ...FAMILY_FLAVOR[industryFamily(p2.industry)].terms, ...p2.preferred_terms };
 }
-function discoverySuggestions(p2, limit2 = 4) {
+function discoverySuggestions(p2, limit2 = 4, lang) {
+  const L2 = useLocalized(lang);
+  if (L2) {
+    const vars = tplVars(p2, L2);
+    const out2 = tList(L2, "tpl.discovery").map((t3) => fillTemplate(t3, vars));
+    return dedupe(out2, limit2);
+  }
   const family = industryFamily(p2.industry);
   const out = [];
   if (p2.discovery_focus.trim()) out.push(fill(`Find ${p2.discovery_focus.trim()} in {region}`, p2));
-  out.push(...FAMILY_FLAVOR[family].discovery.map((t2) => fill(t2, p2)));
-  if (family !== "generic") out.push(...FAMILY_FLAVOR.generic.discovery.map((t2) => fill(t2, p2)));
+  out.push(...FAMILY_FLAVOR[family].discovery.map((t3) => fill(t3, p2)));
+  if (family !== "generic") out.push(...FAMILY_FLAVOR.generic.discovery.map((t3) => fill(t3, p2)));
   return dedupe(out, limit2);
 }
-function askStarterPrompts(p2, limit2 = 4) {
+function askStarterPrompts(p2, limit2 = 4, lang) {
+  const L2 = useLocalized(lang);
+  if (L2) return dedupe(tList(L2, "tpl.ask").map((t3) => fillTemplate(t3, tplVars(p2, L2))), limit2);
   const family = industryFamily(p2.industry);
   const out = [];
   for (const g2 of p2.primary_goals.slice(0, 2)) out.push(`Help me ${g2.replace(/^to\s+/i, "")}`);
@@ -60629,11 +60995,13 @@ function applyTerms(text, p2) {
   }
   return out;
 }
-function discoveryPlaceholder(p2) {
-  const ex = discoverySuggestions(p2, 1)[0] ?? "companies matching your ideal customer";
-  return `Find leads or reviews \u2014 e.g. "${ex}"`;
+function discoveryPlaceholder(p2, lang) {
+  const ex = discoverySuggestions(p2, 1, lang)[0] ?? "companies matching your ideal customer";
+  return useLocalized(lang) ? ex : `Find leads or reviews \u2014 e.g. "${ex}"`;
 }
-function discoveryNextSuggestions(p2, limit2 = 3) {
+function discoveryNextSuggestions(p2, limit2 = 3, lang) {
+  const L2 = useLocalized(lang);
+  if (L2) return dedupe(tList(L2, "tpl.discovery_next").map((t3) => fillTemplate(t3, tplVars(p2, L2))), limit2);
   const who = p2.target_customers.trim() || p2.discovery_focus.trim() || "your ideal customers";
   const region = p2.region.trim();
   const out = [
@@ -60643,7 +61011,9 @@ function discoveryNextSuggestions(p2, limit2 = 3) {
   ];
   return dedupe([...out, ...discoverySuggestions(p2, limit2)], limit2);
 }
-function broadQueryRefinements(p2, query, limit2 = 3) {
+function broadQueryRefinements(p2, query, limit2 = 3, lang) {
+  const L2 = useLocalized(lang);
+  if (L2) return dedupe(tList(L2, "tpl.discovery_broad").map((t3) => fillTemplate(t3, tplVars(p2, L2, query))), limit2);
   const base = query.trim() || (p2.target_customers.trim() || "results");
   const region = p2.region.trim();
   const out = [
@@ -60681,7 +61051,16 @@ function tableNlpExamples(p2, limit2 = 4) {
 function importExamples(p2, limit2 = 3) {
   return dedupe(profileObjects(p2).map((o2) => `Import ${o2} from a CSV`), limit2);
 }
-function homeQuickPrompts(p2) {
+function homeQuickPrompts(p2, lang) {
+  const L2 = useLocalized(lang);
+  if (L2) {
+    const vars = tplVars(p2, L2);
+    return [
+      { key: "attention", prompt: t2(L2, "tpl.home_attention") },
+      { key: "decisions", prompt: t2(L2, "tpl.home_decisions") },
+      { key: "discovery", prompt: fillTemplate(t2(L2, "tpl.home_discovery"), vars) }
+    ];
+  }
   const who = p2.target_customers.trim() || p2.discovery_focus.trim() || "your ideal customers";
   const region = p2.region.trim();
   const discovery = `Find ${who}${region ? ` in ${region}` : ""} on the web and bring back source-backed prospects.`;
@@ -60717,124 +61096,6 @@ function profileContextBlock(p2) {
   return `Workspace context \u2014 use it to make your examples, phrasing and terminology relevant to this business, and answer in their preferred language when set. NEVER invent workspace data: only state records/numbers you actually retrieved via tools.
 ${lines.map((l2) => `- ${l2}`).join("\n")}`;
 }
-
-// ../shared/src/i18n.ts
-var SUPPORTED_LANGUAGES = [
-  { code: "en", name: "English", nativeName: "English", rtl: false, locale: "en" },
-  { code: "pl", name: "Polish", nativeName: "Polski", rtl: false, locale: "pl" },
-  { code: "ru", name: "Russian", nativeName: "\u0420\u0443\u0441\u0441\u043A\u0438\u0439", rtl: false, locale: "ru" },
-  { code: "uk", name: "Ukrainian", nativeName: "\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430", rtl: false, locale: "uk" },
-  { code: "ar", name: "Arabic", nativeName: "\u0627\u0644\u0639\u0631\u0628\u064A\u0629", rtl: true, locale: "ar" },
-  { code: "fr", name: "French", nativeName: "Fran\xE7ais", rtl: false, locale: "fr" },
-  { code: "de", name: "German", nativeName: "Deutsch", rtl: false, locale: "de" },
-  { code: "es", name: "Spanish", nativeName: "Espa\xF1ol", rtl: false, locale: "es" },
-  { code: "pt", name: "Portuguese", nativeName: "Portugu\xEAs", rtl: false, locale: "pt" },
-  { code: "it", name: "Italian", nativeName: "Italiano", rtl: false, locale: "it" },
-  { code: "tr", name: "Turkish", nativeName: "T\xFCrk\xE7e", rtl: false, locale: "tr" },
-  { code: "nl", name: "Dutch", nativeName: "Nederlands", rtl: false, locale: "nl" }
-];
-var BY_CODE = new Map(SUPPORTED_LANGUAGES.map((l2) => [l2.code, l2]));
-function normalizeLang(raw2) {
-  const base = (raw2 ?? "").toLowerCase().trim().split(/[-_]/)[0];
-  return base && BY_CODE.has(base) ? base : "en";
-}
-function languageMeta(code) {
-  return BY_CODE.get(normalizeLang(code));
-}
-function languageInstruction(code) {
-  const lang = languageMeta(code);
-  if (lang.code === "en") return "";
-  return `
-
-Respond in ${lang.name} (${lang.nativeName}) by default. If the user writes in or explicitly asks for another language, use that instead. Keep proper nouns, identifiers, code, URLs and stored data values exactly as they are \u2014 only your prose should be in ${lang.name}.`;
-}
-var TRANSLATIONS = {
-  "onboarding.language_q": {
-    en: "Preferred language for AI responses?",
-    pl: "Preferowany j\u0119zyk odpowiedzi AI?",
-    ru: "\u041F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0435\u043C\u044B\u0439 \u044F\u0437\u044B\u043A \u043E\u0442\u0432\u0435\u0442\u043E\u0432 \u0418\u0418?",
-    uk: "\u0411\u0430\u0436\u0430\u043D\u0430 \u043C\u043E\u0432\u0430 \u0432\u0456\u0434\u043F\u043E\u0432\u0456\u0434\u0435\u0439 \u0428\u0406?",
-    ar: "\u0627\u0644\u0644\u063A\u0629 \u0627\u0644\u0645\u0641\u0636\u0644\u0629 \u0644\u0631\u062F\u0648\u062F \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A\u061F",
-    fr: "Langue pr\xE9f\xE9r\xE9e pour les r\xE9ponses de l\u2019IA ?",
-    de: "Bevorzugte Sprache f\xFCr KI-Antworten?",
-    es: "\xBFIdioma preferido para las respuestas de la IA?",
-    pt: "Idioma preferido para as respostas da IA?",
-    it: "Lingua preferita per le risposte dell\u2019IA?",
-    tr: "Yapay zek\xE2 yan\u0131tlar\u0131 i\xE7in tercih edilen dil?",
-    nl: "Voorkeurstaal voor AI-antwoorden?"
-  },
-  "settings.language": {
-    en: "Language",
-    pl: "J\u0119zyk",
-    ru: "\u042F\u0437\u044B\u043A",
-    uk: "\u041C\u043E\u0432\u0430",
-    ar: "\u0627\u0644\u0644\u063A\u0629",
-    fr: "Langue",
-    de: "Sprache",
-    es: "Idioma",
-    pt: "Idioma",
-    it: "Lingua",
-    tr: "Dil",
-    nl: "Taal"
-  },
-  "settings.language_help": {
-    en: "Language for AI responses and number/date formatting.",
-    pl: "J\u0119zyk odpowiedzi AI oraz formatowania liczb i dat.",
-    ru: "\u042F\u0437\u044B\u043A \u043E\u0442\u0432\u0435\u0442\u043E\u0432 \u0418\u0418 \u0438 \u0444\u043E\u0440\u043C\u0430\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F \u0447\u0438\u0441\u0435\u043B \u0438 \u0434\u0430\u0442.",
-    uk: "\u041C\u043E\u0432\u0430 \u0432\u0456\u0434\u043F\u043E\u0432\u0456\u0434\u0435\u0439 \u0428\u0406 \u0442\u0430 \u0444\u043E\u0440\u043C\u0430\u0442\u0443\u0432\u0430\u043D\u043D\u044F \u0447\u0438\u0441\u0435\u043B \u0456 \u0434\u0430\u0442.",
-    ar: "\u0644\u063A\u0629 \u0631\u062F\u0648\u062F \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0648\u062A\u0646\u0633\u064A\u0642 \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0648\u0627\u0644\u062A\u0648\u0627\u0631\u064A\u062E.",
-    fr: "Langue des r\xE9ponses de l\u2019IA et du format des nombres et dates.",
-    de: "Sprache f\xFCr KI-Antworten und Zahlen-/Datumsformat.",
-    es: "Idioma de las respuestas de la IA y del formato de n\xFAmeros y fechas.",
-    pt: "Idioma das respostas da IA e da formata\xE7\xE3o de n\xFAmeros e datas.",
-    it: "Lingua delle risposte dell\u2019IA e del formato di numeri e date.",
-    tr: "Yapay zek\xE2 yan\u0131tlar\u0131 ve say\u0131/tarih bi\xE7imi i\xE7in dil.",
-    nl: "Taal voor AI-antwoorden en getal-/datumnotatie."
-  },
-  "discovery.heading": {
-    en: "Find real leads & reviews online",
-    pl: "Znajd\u017A prawdziwych klient\xF3w i opinie online",
-    ru: "\u041D\u0430\u0445\u043E\u0434\u0438\u0442\u0435 \u0440\u0435\u0430\u043B\u044C\u043D\u044B\u0445 \u043A\u043B\u0438\u0435\u043D\u0442\u043E\u0432 \u0438 \u043E\u0442\u0437\u044B\u0432\u044B \u0432 \u0438\u043D\u0442\u0435\u0440\u043D\u0435\u0442\u0435",
-    uk: "\u0417\u043D\u0430\u0445\u043E\u0434\u044C\u0442\u0435 \u0440\u0435\u0430\u043B\u044C\u043D\u0438\u0445 \u043A\u043B\u0456\u0454\u043D\u0442\u0456\u0432 \u0456 \u0432\u0456\u0434\u0433\u0443\u043A\u0438 \u043E\u043D\u043B\u0430\u0439\u043D",
-    ar: "\u0627\u0639\u062B\u0631 \u0639\u0644\u0649 \u0639\u0645\u0644\u0627\u0621 \u0645\u062D\u062A\u0645\u0644\u064A\u0646 \u0648\u0645\u0631\u0627\u062C\u0639\u0627\u062A \u062D\u0642\u064A\u0642\u064A\u0629 \u0639\u0628\u0631 \u0627\u0644\u0625\u0646\u062A\u0631\u0646\u062A",
-    fr: "Trouvez de vrais prospects et avis en ligne",
-    de: "Finden Sie echte Leads & Bewertungen online",
-    es: "Encuentra clientes potenciales y rese\xF1as reales en l\xEDnea",
-    pt: "Encontre leads e avalia\xE7\xF5es reais online",
-    it: "Trova lead e recensioni reali online",
-    tr: "Ger\xE7ek m\xFC\u015Fteri adaylar\u0131 ve yorumlar\u0131 \xE7evrimi\xE7i bulun",
-    nl: "Vind echte leads en reviews online"
-  },
-  "discovery.sub": {
-    en: "Ask in plain language. Discovery searches the open web, reads the pages, and brings back source-backed prospects.",
-    pl: "Pytaj naturalnym j\u0119zykiem. Discovery przeszukuje sie\u0107, czyta strony i zwraca zweryfikowane kontakty.",
-    ru: "\u0421\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0439\u0442\u0435 \u043E\u0431\u044B\u0447\u043D\u044B\u043C \u044F\u0437\u044B\u043A\u043E\u043C. Discovery \u0438\u0449\u0435\u0442 \u0432 \u043E\u0442\u043A\u0440\u044B\u0442\u043E\u043C \u0432\u0435\u0431\u0435, \u0447\u0438\u0442\u0430\u0435\u0442 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u044B \u0438 \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 \u043F\u0440\u043E\u0432\u0435\u0440\u0451\u043D\u043D\u044B\u0435 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u044B.",
-    uk: "\u0417\u0430\u043F\u0438\u0442\u0443\u0439\u0442\u0435 \u0437\u0432\u0438\u0447\u0430\u0439\u043D\u043E\u044E \u043C\u043E\u0432\u043E\u044E. Discovery \u0448\u0443\u043A\u0430\u0454 \u0443 \u0432\u0456\u0434\u043A\u0440\u0438\u0442\u043E\u043C\u0443 \u0432\u0435\u0431\u0456, \u0447\u0438\u0442\u0430\u0454 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438 \u0439 \u043F\u043E\u0432\u0435\u0440\u0442\u0430\u0454 \u043F\u0435\u0440\u0435\u0432\u0456\u0440\u0435\u043D\u0456 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u0438.",
-    ar: "\u0627\u0633\u0623\u0644 \u0628\u0644\u063A\u0629 \u0628\u0633\u064A\u0637\u0629. \u064A\u0628\u062D\u062B Discovery \u0641\u064A \u0627\u0644\u0648\u064A\u0628 \u0648\u064A\u0642\u0631\u0623 \u0627\u0644\u0635\u0641\u062D\u0627\u062A \u0648\u064A\u0639\u064A\u062F \u0639\u0645\u0644\u0627\u0621 \u0645\u062D\u062A\u0645\u0644\u064A\u0646 \u0645\u0648\u062B\u0651\u0642\u064A\u0646 \u0628\u0627\u0644\u0645\u0635\u0627\u062F\u0631.",
-    fr: "Demandez en langage naturel. Discovery parcourt le web, lit les pages et renvoie des prospects sourc\xE9s.",
-    de: "Fragen Sie in normaler Sprache. Discovery durchsucht das Web, liest Seiten und liefert quellenbasierte Kontakte.",
-    es: "Pregunta en lenguaje natural. Discovery busca en la web, lee las p\xE1ginas y devuelve prospectos con fuentes.",
-    pt: "Pergunte em linguagem natural. O Discovery pesquisa na web, l\xEA as p\xE1ginas e retorna leads com fontes.",
-    it: "Chiedi in linguaggio naturale. Discovery cerca sul web, legge le pagine e restituisce contatti con fonti.",
-    tr: "Do\u011Fal dille sorun. Discovery web\u2019de arar, sayfalar\u0131 okur ve kaynakl\u0131 m\xFC\u015Fteri adaylar\u0131 getirir.",
-    nl: "Vraag in gewone taal. Discovery doorzoekt het web, leest pagina\u2019s en levert onderbouwde leads."
-  },
-  "ask.heading": {
-    en: "What do you want to know about the workspace graph?",
-    pl: "Co chcesz wiedzie\u0107 o grafie przestrzeni roboczej?",
-    ru: "\u0427\u0442\u043E \u0432\u044B \u0445\u043E\u0442\u0438\u0442\u0435 \u0443\u0437\u043D\u0430\u0442\u044C \u043E \u0433\u0440\u0430\u0444\u0435 \u0440\u0430\u0431\u043E\u0447\u0435\u0433\u043E \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u0430?",
-    uk: "\u0429\u043E \u0432\u0438 \u0445\u043E\u0447\u0435\u0442\u0435 \u0434\u0456\u0437\u043D\u0430\u0442\u0438\u0441\u044F \u043F\u0440\u043E \u0433\u0440\u0430\u0444 \u0440\u043E\u0431\u043E\u0447\u043E\u0433\u043E \u043F\u0440\u043E\u0441\u0442\u043E\u0440\u0443?",
-    ar: "\u0645\u0627\u0630\u0627 \u062A\u0631\u064A\u062F \u0623\u0646 \u062A\u0639\u0631\u0641 \u0639\u0646 \u0631\u0633\u0645 \u0645\u0633\u0627\u062D\u0629 \u0627\u0644\u0639\u0645\u0644\u061F",
-    fr: "Que voulez-vous savoir sur le graphe de votre espace ?",
-    de: "Was m\xF6chten Sie \xFCber den Workspace-Graphen wissen?",
-    es: "\xBFQu\xE9 quieres saber sobre el grafo del espacio de trabajo?",
-    pt: "O que voc\xEA quer saber sobre o grafo do espa\xE7o de trabalho?",
-    it: "Cosa vuoi sapere sul grafo dello spazio di lavoro?",
-    tr: "\xC7al\u0131\u015Fma alan\u0131 grafi\u011Fi hakk\u0131nda ne bilmek istiyorsunuz?",
-    nl: "Wat wil je weten over de workspace-graph?"
-  }
-};
-var TRANSLATION_KEYS = Object.keys(TRANSLATIONS);
 
 // src/routes/reports.ts
 init_client();
@@ -61126,11 +61387,11 @@ async function addNodeToList(listId, nodeId) {
   return !error;
 }
 function objectTypeToVertical(objectType2) {
-  const t2 = objectType2.toLowerCase();
-  if (t2.includes("invest") || t2.includes("fund") || t2.includes("portfolio")) return "investments";
-  if (t2.includes("property") || t2.includes("asset") || t2.includes("supplier")) return "realestate";
-  if (t2.includes("employee") || t2.includes("candidate") || t2.includes("hire")) return "hr";
-  if (t2.includes("invoice") || t2.includes("expense")) return "finance";
+  const t3 = objectType2.toLowerCase();
+  if (t3.includes("invest") || t3.includes("fund") || t3.includes("portfolio")) return "investments";
+  if (t3.includes("property") || t3.includes("asset") || t3.includes("supplier")) return "realestate";
+  if (t3.includes("employee") || t3.includes("candidate") || t3.includes("hire")) return "hr";
+  if (t3.includes("invoice") || t3.includes("expense")) return "finance";
   return "shared";
 }
 async function runProspecting(workspaceId, userId, input) {
@@ -62144,8 +62405,8 @@ function selectTools(query, history) {
   if (process.env.LAZY_TOOLS === "off") return TOOLS;
   const text = [query, ...(history ?? []).slice(-2).map((h2) => h2?.content ?? "")].join(" ");
   const keep = new Set(CORE_TOOLS);
-  for (const g2 of TOOL_GROUPS) if (g2.keywords.test(text)) g2.tools.forEach((t2) => keep.add(t2));
-  return TOOLS.filter((t2) => keep.has(t2.name));
+  for (const g2 of TOOL_GROUPS) if (g2.keywords.test(text)) g2.tools.forEach((t3) => keep.add(t3));
+  return TOOLS.filter((t3) => keep.has(t3.name));
 }
 async function searchWeb(query) {
   try {
@@ -62159,9 +62420,9 @@ ${context2}` : "";
   }
 }
 function validateToolCall(name, input) {
-  const tool = TOOLS.find((t2) => t2.name === name);
+  const tool = TOOLS.find((t3) => t3.name === name);
   if (!tool) {
-    return `Error: "${name}" is not a real tool. Available tools: ${TOOLS.map((t2) => t2.name).join(", ")}. Call one of these exactly, or answer directly without a tool.`;
+    return `Error: "${name}" is not a real tool. Available tools: ${TOOLS.map((t3) => t3.name).join(", ")}. Call one of these exactly, or answer directly without a tool.`;
   }
   if (input == null || typeof input !== "object" || Array.isArray(input)) {
     return `Error: arguments for "${name}" must be a JSON object.`;
@@ -62211,19 +62472,19 @@ async function executeTool(name, input, workspaceId, userId, sources) {
         const { data, error } = await taskQuery.order("created_at", { ascending: false }).limit(60);
         if (error) return `Error fetching tasks: ${error.message}`;
         const now = Date.now();
-        const isDone = (t2) => t2.completed === true || t2.status === "done";
+        const isDone = (t3) => t3.completed === true || t3.status === "done";
         let rows2 = data ?? [];
-        if (filter !== "all" && filter !== "review") rows2 = rows2.filter((t2) => !isDone(t2));
-        if (filter === "overdue") rows2 = rows2.filter((t2) => t2.due_date && new Date(t2.due_date).getTime() < now);
+        if (filter !== "all" && filter !== "review") rows2 = rows2.filter((t3) => !isDone(t3));
+        if (filter === "overdue") rows2 = rows2.filter((t3) => t3.due_date && new Date(t3.due_date).getTime() < now);
         rows2 = rows2.slice(0, 20);
         if (!rows2.length) {
           return filter === "overdue" ? "No overdue tasks \u2014 nothing open is past its due date." : "No open tasks found.";
         }
-        for (const t2 of rows2.slice(0, 8)) {
-          sources.push({ type: "task", title: t2.title, node_id: t2.id, match_reason: `status: ${t2.status || "todo"}`, timestamp: t2.due_date ?? void 0 });
+        for (const t3 of rows2.slice(0, 8)) {
+          sources.push({ type: "task", title: t3.title, node_id: t3.id, match_reason: `status: ${t3.status || "todo"}`, timestamp: t3.due_date ?? void 0 });
         }
         const list = rows2.map(
-          (t2) => `- [${t2.id}] ${t2.title} | priority: ${t2.priority || "medium"} | status: ${t2.status || "todo"}${t2.due_date ? ` | due: ${new Date(t2.due_date).toLocaleDateString()}` : ""}`
+          (t3) => `- [${t3.id}] ${t3.title} | priority: ${t3.priority || "medium"} | status: ${t3.status || "todo"}${t3.due_date ? ` | due: ${new Date(t3.due_date).toLocaleDateString()}` : ""}`
         ).join("\n");
         return `Found ${rows2.length} ${filter === "overdue" ? "overdue" : "open"} task(s):
 ${list}`;
@@ -63265,8 +63526,8 @@ router8.get("/", async (c2) => {
   const hasInvestments = modules.includes("investments");
   const now = Date.now();
   const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1e3;
-  const overdueTasks = tasks2.filter((t2) => !t2.completed && t2.due_date && new Date(t2.due_date).getTime() < now);
-  const reviewTasks = tasks2.filter((t2) => !t2.completed && t2.status === "review");
+  const overdueTasks = tasks2.filter((t3) => !t3.completed && t3.due_date && new Date(t3.due_date).getTime() < now);
+  const reviewTasks = tasks2.filter((t3) => !t3.completed && t3.status === "review");
   const deals = nodes.filter((n2) => n2.object_type.toLowerCase().includes("deal"));
   const staleDeals = deals.filter((d2) => {
     const stage = String(d2.data?.deal_stage ?? "");
@@ -63589,8 +63850,8 @@ router8.get("/activity", async (c2) => {
     const label = new Date(end).toLocaleTimeString(void 0, { hour: "2-digit" });
     let completed = 0, failed = 0;
     for (const r2 of tl ?? []) {
-      const t2 = new Date(r2.started_at).getTime();
-      if (t2 > start && t2 <= end) {
+      const t3 = new Date(r2.started_at).getTime();
+      if (t3 > start && t3 <= end) {
         if (r2.status === "failed") failed++;
         else completed++;
       }
@@ -63627,9 +63888,9 @@ init_ai_gateway();
 var DAY2 = 864e5;
 function daysSince2(iso) {
   if (!iso) return null;
-  const t2 = new Date(iso).getTime();
-  if (Number.isNaN(t2)) return null;
-  return Math.floor((Date.now() - t2) / DAY2);
+  const t3 = new Date(iso).getTime();
+  if (Number.isNaN(t3)) return null;
+  return Math.floor((Date.now() - t3) / DAY2);
 }
 function workQuality(op) {
   const signals = [];
@@ -63669,8 +63930,8 @@ function workQuality(op) {
 }
 var OWNER_FIELDS = ["owner_id", "owner", "assignee", "assigned_to", "rep", "account_owner"];
 function isDealType2(objectType2) {
-  const t2 = (objectType2 ?? "").toLowerCase();
-  return t2.includes("deal") || t2.includes("opportunit");
+  const t3 = (objectType2 ?? "").toLowerCase();
+  return t3.includes("deal") || t3.includes("opportunit");
 }
 function dealStageClass(data) {
   const s2 = String(data.deal_stage ?? data.stage ?? data.status ?? "").toLowerCase();
@@ -63705,10 +63966,10 @@ function aggregateDeals(deals, members3) {
         break;
       }
       if (!matched) continue;
-      const t2 = out.get(m2.uid) ?? { owned: 0, won: 0, lost: 0, open: 0 };
-      t2.owned += 1;
-      t2[cls] += 1;
-      out.set(m2.uid, t2);
+      const t3 = out.get(m2.uid) ?? { owned: 0, won: 0, lost: 0, open: 0 };
+      t3.owned += 1;
+      t3[cls] += 1;
+      out.set(m2.uid, t3);
     }
   }
   return out;
@@ -63871,23 +64132,23 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
     dealsUpdatedBy.get(uid).add(nid);
   }
   const nowMs = Date.now();
-  const completedTasks = (tasks2 ?? []).filter((t2) => t2.completed && t2.completed_at);
+  const completedTasks = (tasks2 ?? []).filter((t3) => t3.completed && t3.completed_at);
   const trends = {
     activity: dailyTrend(acts ?? [], (a2) => a2.created_at, 30, nowMs),
     ai_usage: dailyTrend(usage ?? [], (u2) => u2.created_at, 30, nowMs, (u2) => Number(u2.total_tokens ?? 0)),
     decisions: dailyTrend(decisions ?? [], (d2) => d2.resolved_at, 30, nowMs),
     // Real completed-work trend, now that tasks carry completed_at (migration 0019).
-    tasks_completed: dailyTrend(completedTasks, (t2) => t2.completed_at, 30, nowMs)
+    tasks_completed: dailyTrend(completedTasks, (t3) => t3.completed_at, 30, nowMs)
   };
   const taskAgg = /* @__PURE__ */ new Map();
-  for (const t2 of tasks2 ?? []) {
-    const uid = String(t2.assignee_id ?? "");
+  for (const t3 of tasks2 ?? []) {
+    const uid = String(t3.assignee_id ?? "");
     if (!uid) continue;
     const cur = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
-    if (t2.completed) cur.completed += 1;
+    if (t3.completed) cur.completed += 1;
     else {
       cur.open += 1;
-      if (t2.due_date && String(t2.due_date) < nowIso) cur.overdue += 1;
+      if (t3.due_date && String(t3.due_date) < nowIso) cur.overdue += 1;
     }
     taskAgg.set(uid, cur);
   }
@@ -63994,11 +64255,11 @@ router9.post("/member-insight", requireAuth, requireAdminRole, async (c2) => {
     supabase.from("tasks").select("completed, due_date").eq("workspace_id", ws).eq("assignee_id", actorId).limit(2e3)
   ]);
   const taskRoll = { open: 0, overdue: 0, completed: 0 };
-  for (const t2 of tasks2 ?? []) {
-    if (t2.completed) taskRoll.completed += 1;
+  for (const t3 of tasks2 ?? []) {
+    if (t3.completed) taskRoll.completed += 1;
     else {
       taskRoll.open += 1;
-      if (t2.due_date && String(t2.due_date) < nowIso) taskRoll.overdue += 1;
+      if (t3.due_date && String(t3.due_date) < nowIso) taskRoll.overdue += 1;
     }
   }
   if (!member) return c2.json({ error: "Member not found in this workspace." }, 404);
@@ -64055,14 +64316,14 @@ router9.post("/oversight-ask", requireAuth, requireAdminRole, async (c2) => {
     if (k2) tokBy.set(k2, (tokBy.get(k2) ?? 0) + Number(u2.total_tokens ?? 0));
   }
   const taskAgg = /* @__PURE__ */ new Map();
-  for (const t2 of tasks2 ?? []) {
-    const uid = String(t2.assignee_id ?? "");
+  for (const t3 of tasks2 ?? []) {
+    const uid = String(t3.assignee_id ?? "");
     if (!uid) continue;
     const cur = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
-    if (t2.completed) cur.completed += 1;
+    if (t3.completed) cur.completed += 1;
     else {
       cur.open += 1;
-      if (t2.due_date && String(t2.due_date) < nowIso) cur.overdue += 1;
+      if (t3.due_date && String(t3.due_date) < nowIso) cur.overdue += 1;
     }
     taskAgg.set(uid, cur);
   }
@@ -64075,9 +64336,9 @@ router9.post("/oversight-ask", requireAuth, requireAdminRole, async (c2) => {
   const dealBy = aggregateDeals(deals ?? [], memberRefs);
   const lines = (members3 ?? []).map((m2) => {
     const uid = String(m2.user_id ?? "");
-    const t2 = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
+    const t3 = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
     const d2 = dealBy.get(uid) ?? { owned: 0, won: 0, lost: 0, open: 0 };
-    return `${m2.name ?? m2.email ?? "Member"} (${m2.role ?? "member"}): tasks open ${t2.open}, overdue ${t2.overdue}, completed ${t2.completed}; decisions resolved ${decBy.get(uid) ?? 0}; deals owned ${d2.owned} (won ${d2.won}, lost ${d2.lost}, open ${d2.open}); AI credits ${tokBy.get(uid) ?? 0}.`;
+    return `${m2.name ?? m2.email ?? "Member"} (${m2.role ?? "member"}): tasks open ${t3.open}, overdue ${t3.overdue}, completed ${t3.completed}; decisions resolved ${decBy.get(uid) ?? 0}; deals owned ${d2.owned} (won ${d2.won}, lost ${d2.lost}, open ${d2.open}); AI credits ${tokBy.get(uid) ?? 0}.`;
   });
   const anyData = (tasks2?.length ?? 0) > 0 || (usage?.length ?? 0) > 0 || (decisions?.length ?? 0) > 0 || (deals?.length ?? 0) > 0;
   if (!anyData || lines.length === 0) {
@@ -64143,14 +64404,14 @@ router10.get("/inbox", async (c2) => {
     }
     if (r2.recipient_id === me2 && !r2.read_at) threads.get(r2.thread_key).unread += 1;
   }
-  const inbox = [...threads.values()].filter((t2) => {
-    const a2 = archivedAt.get(t2.thread_key);
-    return !a2 || t2.last_at > a2;
-  }).map((t2) => {
-    const m2 = dir.get(t2.other_id);
-    return { ...t2, name: m2?.name || m2?.email || "Member", email: m2?.email ?? null, avatar_url: m2?.avatar_url ?? null };
+  const inbox = [...threads.values()].filter((t3) => {
+    const a2 = archivedAt.get(t3.thread_key);
+    return !a2 || t3.last_at > a2;
+  }).map((t3) => {
+    const m2 = dir.get(t3.other_id);
+    return { ...t3, name: m2?.name || m2?.email || "Member", email: m2?.email ?? null, avatar_url: m2?.avatar_url ?? null };
   });
-  const unreadTotal = inbox.reduce((s2, t2) => s2 + t2.unread, 0);
+  const unreadTotal = inbox.reduce((s2, t3) => s2 + t3.unread, 0);
   return c2.json({ inbox, unread_total: unreadTotal });
 });
 router10.get("/thread/:otherId", async (c2) => {
@@ -64517,7 +64778,7 @@ function rateLimit(opts) {
     }
     const key = `${c2.req.path}|${clientIp(c2)}|${email}`;
     const now = Date.now();
-    const hits = (buckets.get(key) ?? []).filter((t2) => now - t2 < windowMs);
+    const hits = (buckets.get(key) ?? []).filter((t3) => now - t3 < windowMs);
     if (hits.length >= max) {
       const retry = Math.max(1, Math.ceil((windowMs - (now - hits[0])) / 1e3));
       c2.header("Retry-After", String(retry));
@@ -64527,7 +64788,7 @@ function rateLimit(opts) {
     buckets.set(key, hits);
     if (buckets.size > 1e4) {
       for (const [k2, ts] of buckets) {
-        if (ts.every((t2) => now - t2 >= windowMs)) buckets.delete(k2);
+        if (ts.every((t3) => now - t3 >= windowMs)) buckets.delete(k2);
       }
     }
     await next();
@@ -64844,7 +65105,7 @@ router14.delete("/account", async (c2) => {
   const ownedIds = (owned ?? []).map((r2) => r2.workspace_id);
   const wsTables = ["activities", "agent_jobs", "decision_queue", "notifications", "ai_usage", "discovered_leads", "chat_threads", "email_connections", "workflows", "sequences", "lists", "notes", "invoices", "credit_notes", "quotes", "expenses", "reports", "dashboards", "edges", "nodes", "workspace_members"];
   for (const ws of ownedIds) {
-    for (const t2 of wsTables) await supabase.from(t2).delete().eq("workspace_id", ws).then(() => {
+    for (const t3 of wsTables) await supabase.from(t3).delete().eq("workspace_id", ws).then(() => {
     }, () => {
     });
     await supabase.from("workspaces").delete().eq("id", ws).then(() => {
@@ -65866,16 +66127,19 @@ router18.get("/settings/workspace", async (c2) => {
 router18.get("/workspace/suggestions", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const profile = resolveProfile(settings);
+  const userLang = settings.user_preferences?.[c2.get("userId")]?.language;
+  const lang = userLang || profile.language || "en";
   return c2.json({
     profile,
+    language: lang,
     // Discovery
-    discovery: discoverySuggestions(profile),
-    discovery_placeholder: discoveryPlaceholder(profile),
-    discovery_next: discoveryNextSuggestions(profile),
+    discovery: discoverySuggestions(profile, 4, lang),
+    discovery_placeholder: discoveryPlaceholder(profile, lang),
+    discovery_next: discoveryNextSuggestions(profile, 3, lang),
     deep_research: deepResearchPhrasing(profile),
     // Ask + Home
-    ask: askStarterPrompts(profile),
-    home: homeQuickPrompts(profile),
+    ask: askStarterPrompts(profile, 4, lang),
+    home: homeQuickPrompts(profile, lang),
     // Builders (objects / lists / tables / import)
     objects: profileObjects(profile),
     object_examples: objectCreationExamples(profile),
@@ -65888,8 +66152,11 @@ router18.get("/workspace/suggestions", async (c2) => {
   });
 });
 router18.get("/workspace/refine", async (c2) => {
-  const profile = resolveProfile(await workspaceSettings(c2.get("workspaceId")));
-  return c2.json({ refinements: broadQueryRefinements(profile, c2.req.query("q") ?? "") });
+  const settings = await workspaceSettings(c2.get("workspaceId"));
+  const profile = resolveProfile(settings);
+  const userLang = settings.user_preferences?.[c2.get("userId")]?.language;
+  const lang = userLang || profile.language || "en";
+  return c2.json({ refinements: broadQueryRefinements(profile, c2.req.query("q") ?? "", 3, lang) });
 });
 async function persistLogo(workspaceId, dataUrl) {
   const m2 = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUrl);
@@ -65975,8 +66242,8 @@ router18.delete("/settings/workspace", async (c2) => {
     "nodes",
     "workspace_members"
   ];
-  for (const t2 of tables) {
-    await supabase.from(t2).delete().eq("workspace_id", ws).then(() => {
+  for (const t3 of tables) {
+    await supabase.from(t3).delete().eq("workspace_id", ws).then(() => {
     }, () => {
     });
   }
@@ -66025,8 +66292,8 @@ router18.get("/settings/members", async (c2) => {
   const lastActiveBy = /* @__PURE__ */ new Map();
   for (const s2 of sessions ?? []) {
     const k2 = String(s2.user_id ?? "");
-    const t2 = s2.last_active_at;
-    if (k2 && t2 && (!lastActiveBy.has(k2) || t2 > lastActiveBy.get(k2))) lastActiveBy.set(k2, t2);
+    const t3 = s2.last_active_at;
+    if (k2 && t3 && (!lastActiveBy.has(k2) || t3 > lastActiveBy.get(k2))) lastActiveBy.set(k2, t3);
   }
   return c2.json({
     // Authoritative role of the *requesting* user, straight from the auth context — so the UI
@@ -66741,8 +67008,8 @@ function parseAddr(s2) {
   return { email: (s2 ?? "").trim() };
 }
 function toUnixSeconds(dateStr) {
-  const t2 = Date.parse(dateStr ?? "");
-  return Number.isNaN(t2) ? Math.floor(Date.now() / 1e3) : Math.floor(t2 / 1e3);
+  const t3 = Date.parse(dateStr ?? "");
+  return Number.isNaN(t3) ? Math.floor(Date.now() / 1e3) : Math.floor(t3 / 1e3);
 }
 router21.get("/threads", zValidator("query", external_exports.object({
   search: external_exports.string().default(""),
@@ -66760,13 +67027,13 @@ router21.get("/threads", zValidator("query", external_exports.object({
       const filterQ = input.filter === "unread" ? "is:unread" : input.filter === "sent" ? "in:sent" : input.filter === "inbox" ? "in:inbox" : "";
       const q2 = [filterQ, input.search.trim()].filter(Boolean).join(" ");
       const gthreads = await gmailThreads(token, { q: q2, max: 25 });
-      const mapped = gthreads.map((t2) => ({
-        id: t2.id,
-        subject: t2.subject,
-        snippet: t2.snippet,
-        participants: [parseAddr(t2.from)],
-        latest_message_received_date: toUnixSeconds(t2.date),
-        unread: t2.unread,
+      const mapped = gthreads.map((t3) => ({
+        id: t3.id,
+        subject: t3.subject,
+        snippet: t3.snippet,
+        participants: [parseAddr(t3.from)],
+        latest_message_received_date: toUnixSeconds(t3.date),
+        unread: t3.unread,
         folders: []
       }));
       return c2.json({ threads: mapped, connected: true, connected_email: gc.email, next_cursor: void 0 });
@@ -67242,7 +67509,7 @@ router25.post("/:id/enrich", async (c2) => {
   const { data: list } = await supabase.from("lists").select("id,object_type").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!list) return c2.json({ error: "List not found" }, 404);
   const ENRICHABLE3 = ["contact", "person", "people", "lead", "company", "account", "organization"];
-  if (!ENRICHABLE3.some((t2) => list.object_type.toLowerCase().includes(t2))) {
+  if (!ENRICHABLE3.some((t3) => list.object_type.toLowerCase().includes(t3))) {
     return c2.json({ error: "This list type is not enrichable" }, 400);
   }
   const { data: entries } = await supabase.from("list_entries").select("node_id, nodes(id, data, object_type)").eq("list_id", list.id);
@@ -68055,7 +68322,7 @@ Example output: {"name":"Text","revenue":"Currency","active":"Boolean"}`,
     }
   }
   const ENRICHABLE3 = ["contact", "person", "people", "lead", "company", "account", "organization"];
-  if (ENRICHABLE3.some((t2) => safeType.toLowerCase().includes(t2))) {
+  if (ENRICHABLE3.some((t3) => safeType.toLowerCase().includes(t3))) {
     for (const nodeId of created) {
       inngest.send({
         name: "crm/record.created",
@@ -68063,7 +68330,7 @@ Example output: {"name":"Text","revenue":"Currency","active":"Boolean"}`,
       }).catch((e2) => console.error("[bg-task] swallowed error:", e2));
     }
   }
-  return c2.json({ ok: true, created: created.length, errors, column_types: columnTypes, auto_enriching: ENRICHABLE3.some((t2) => safeType.toLowerCase().includes(t2)) }, 201);
+  return c2.json({ ok: true, created: created.length, errors, column_types: columnTypes, auto_enriching: ENRICHABLE3.some((t3) => safeType.toLowerCase().includes(t3)) }, 201);
 });
 
 // src/routes/generate.ts
@@ -68729,8 +68996,8 @@ router33.post("/risk-alerts", requireAuth, async (c2) => {
   const tasks2 = tasksRes.data ?? [];
   const nodes = nodesRes.data ?? [];
   const recentTitles = new Set((existingRes.data ?? []).map((n2) => n2.title));
-  const overdueTasks = tasks2.filter((t2) => t2.due_date && new Date(t2.due_date) < now);
-  const urgentTasks = tasks2.filter((t2) => t2.priority === "urgent");
+  const overdueTasks = tasks2.filter((t3) => t3.due_date && new Date(t3.due_date) < now);
+  const urgentTasks = tasks2.filter((t3) => t3.priority === "urgent");
   const staleNodes = nodes.filter((n2) => n2.updated_at && new Date(n2.updated_at) < new Date(now.getTime() - 14 * 24 * 60 * 60 * 1e3));
   const dealNodes = nodes.filter((n2) => n2.object_type === "deals");
   const highValueStaleDeals = dealNodes.filter((n2) => {
@@ -68739,13 +69006,13 @@ router33.post("/risk-alerts", requireAuth, async (c2) => {
   });
   const context2 = [
     `Total open tasks: ${tasks2.length}`,
-    `Overdue tasks: ${overdueTasks.length}${overdueTasks.length ? " \u2014 titles: " + overdueTasks.slice(0, 5).map((t2) => t2.title).join(", ") : ""}`,
+    `Overdue tasks: ${overdueTasks.length}${overdueTasks.length ? " \u2014 titles: " + overdueTasks.slice(0, 5).map((t3) => t3.title).join(", ") : ""}`,
     `Urgent tasks: ${urgentTasks.length}`,
     `Total graph records: ${nodes.length}`,
     `Stale records (no update in 14d): ${staleNodes.length}`,
     `Open deals: ${dealNodes.length}`,
     `High-value stale deals (no activity 14d): ${highValueStaleDeals.length}${highValueStaleDeals.length ? " \u2014 " + highValueStaleDeals.slice(0, 3).map((n2) => n2.data?.name ?? "unnamed").join(", ") : ""}`,
-    `Old open tasks (created > 14d ago, still open): ${tasks2.filter((t2) => new Date(t2.created_at) < new Date(cutoff14d)).length}`
+    `Old open tasks (created > 14d ago, still open): ${tasks2.filter((t3) => new Date(t3.created_at) < new Date(cutoff14d)).length}`
   ].join("\n");
   if (!context2.trim()) return c2.json({ created: 0 });
   try {
@@ -69781,23 +70048,25 @@ router42.post("/analyze", requireAuth, async (c2) => {
     return `${p2.name}: ${p2.priceMonthly === null ? "custom" : "$" + p2.priceMonthly + "/mo"}, ${p2.monthlyCredits === null ? "custom" : p2.monthlyCredits.toLocaleString()} credits/mo, up to ${p2.seats} seat(s).`;
   }).join(" ");
   const heuristic = () => {
-    const t2 = text.toLowerCase();
+    const t3 = text.toLowerCase();
     const modules = [];
-    if (/(invoice|billing|payment|quote|finance|revenue|account)/.test(t2)) modules.push("finance");
-    if (/(asset|portfolio|fund|invest|round|return|capital|equity)/.test(t2)) modules.push("investments");
-    if (/(headcount|hire|recruit|contract|hr|payroll|workforce|staff)/.test(t2)) modules.push("hr");
+    if (/(invoice|billing|payment|quote|finance|revenue|account)/.test(t3)) modules.push("finance");
+    if (/(asset|portfolio|fund|invest|round|return|capital|equity)/.test(t3)) modules.push("investments");
+    if (/(headcount|hire|recruit|contract|hr|payroll|workforce|staff)/.test(t3)) modules.push("hr");
     const size = parseInt(teamSize.replace(/[^0-9]/g, ""), 10) || (teamSize.includes("just me") || teamSize.includes("solo") ? 1 : 0);
     let plan = "scout";
-    if (/(compliance|self-host|private infra|sovereign|on-?prem|regulated)/.test(t2)) plan = "sovereign";
-    else if (size > 5 || /(oversight|team|manage|approvals|decision queue)/.test(t2)) plan = "command";
-    else if (size >= 1 && /(discovery|enrich|research|prospect|finance|agents|deep)/.test(t2)) plan = "operator";
+    if (/(compliance|self-host|private infra|sovereign|on-?prem|regulated)/.test(t3)) plan = "sovereign";
+    else if (size > 5 || /(oversight|team|manage|approvals|decision queue)/.test(t3)) plan = "command";
+    else if (size >= 1 && /(discovery|enrich|research|prospect|finance|agents|deep)/.test(t3)) plan = "operator";
     else if (size > 1) plan = "operator";
     return { industry_vertical: purpose || "General Operations", recommended_modules: modules, summary: "", recommended_plan: plan, recommend_pack: false, plan_reason: "", business_model: "", target_customers: "", discovery_focus: "", suggested_objects: [] };
   };
   let result = heuristic();
   try {
     const extracted = await aiGatewayToolUse({
-      system: "You are the Mondaily Workspace Architect onboarding a new operator. Mondaily is an autonomous AI workspace (operators + AI agents) \u2014 it is NOT a CRM; never use that word. From the operator's answers, return: industry_vertical (a concise 1-4 word label); recommended_modules \u2014 a subset of ['finance','investments','hr']; only what the operation clearly needs; empty is fine. recommended_plan \u2014 one of ['scout','operator','command','sovereign'] using ONLY these facts: " + planFacts + " Recommend based on: team size, expected AI usage (chat/agents/enrichment/Discovery deep research/report generation), finance workflows, Decision-Queue approvals, Team Oversight need, and compliance/private-infrastructure needs. Solo/just trying \u2192 scout; a team running on AI (Discovery, finance, agents) \u2192 operator; a larger team (>5) or one needing oversight/approvals at scale \u2192 command; compliance/self-hosted/private \u2192 sovereign. recommend_pack \u2014 true if their expected usage is likely to exceed the plan's included monthly credits (then suggest pay-as-you-go packs). plan_reason \u2014 ONE short sentence (<=20 words) on why that plan fits. summary \u2014 ONE friendly sentence (<=22 words) on how their workspace will be set up. business_model \u2014 a concise label like 'B2B services', 'B2C ecommerce', 'Marketplace', 'B2B SaaS'. target_customers \u2014 a short phrase for who they sell to / serve. discovery_focus \u2014 a short phrase for what web/Discovery searches should hunt for (e.g. 'clinics with poor reviews'). suggested_objects \u2014 2-4 short lowercase nouns for the records they track (e.g. ['clinics','patients','follow-ups']).",
+      system: "You are the Mondaily Workspace Architect onboarding a new operator. Mondaily is an autonomous AI workspace (operators + AI agents) \u2014 it is NOT a CRM; never use that word. From the operator's answers, return: industry_vertical (a concise 1-4 word label); recommended_modules \u2014 a subset of ['finance','investments','hr']; only what the operation clearly needs; empty is fine. recommended_plan \u2014 one of ['scout','operator','command','sovereign'] using ONLY these facts: " + planFacts + " Recommend based on: team size, expected AI usage (chat/agents/enrichment/Discovery deep research/report generation), finance workflows, Decision-Queue approvals, Team Oversight need, and compliance/private-infrastructure needs. Solo/just trying \u2192 scout; a team running on AI (Discovery, finance, agents) \u2192 operator; a larger team (>5) or one needing oversight/approvals at scale \u2192 command; compliance/self-hosted/private \u2192 sovereign. recommend_pack \u2014 true if their expected usage is likely to exceed the plan's included monthly credits (then suggest pay-as-you-go packs). plan_reason \u2014 ONE short sentence (<=20 words) on why that plan fits. summary \u2014 ONE friendly sentence (<=22 words) on how their workspace will be set up. " + // Localize the user-facing helper copy to the chosen onboarding language (labels/enums stay English).
+      (normalizeLang(body.language) !== "en" ? `Write the "summary" and "plan_reason" fields in ${languageMeta(body.language).name} (${languageMeta(body.language).nativeName}); keep all other fields (enums, module names) in English. ` : "") + // Industry-aware profile inference (tunes examples/terms only — Mondaily stays general).
+      "business_model \u2014 a concise label like 'B2B services', 'B2C ecommerce', 'Marketplace', 'B2B SaaS'. target_customers \u2014 a short phrase for who they sell to / serve. discovery_focus \u2014 a short phrase for what web/Discovery searches should hunt for (e.g. 'clinics with poor reviews'). suggested_objects \u2014 2-4 short lowercase nouns for the records they track (e.g. ['clinics','patients','follow-ups']).",
       prompt: text + (teamSize ? `
 
 Team size: ${teamSize}` : ""),
@@ -69961,8 +70230,8 @@ async function probeTable(table, columns = "id") {
 async function probeHttp(url, headers = {}) {
   try {
     const ctl = new AbortController();
-    const t2 = setTimeout(() => ctl.abort(), 4e3);
-    const res = await fetch(url, { headers, signal: ctl.signal }).finally(() => clearTimeout(t2));
+    const t3 = setTimeout(() => ctl.abort(), 4e3);
+    const res = await fetch(url, { headers, signal: ctl.signal }).finally(() => clearTimeout(t3));
     return res.status < 500;
   } catch {
     return false;
@@ -70232,13 +70501,13 @@ router44.get("/summary", async (c2) => {
   const byModel = {};
   const byFeature = {};
   for (const r2 of usage ?? []) {
-    const t2 = Number(r2.total_tokens ?? 0);
-    monthTokens += t2;
+    const t3 = Number(r2.total_tokens ?? 0);
+    monthTokens += t3;
     monthCalls += Number(r2.message_count ?? 1);
     const model = String(r2.model ?? "unknown");
-    byModel[model] = (byModel[model] ?? 0) + t2;
+    byModel[model] = (byModel[model] ?? 0) + t3;
     const feature = String(r2.feature ?? "other");
-    byFeature[feature] = (byFeature[feature] ?? 0) + t2;
+    byFeature[feature] = (byFeature[feature] ?? 0) + t3;
   }
   const list = ledger ?? [];
   const enrolled = list.length > 0;

@@ -91,6 +91,7 @@ const SENTIMENT: Record<Exclude<Sentiment, null>, { label: string; tone: string;
 export function DiscoveryPage() {
   const qc = useQueryClient();
   const { data: suggestions } = useWorkspaceSuggestions();  // profile-aware placeholder/examples
+  const { t } = useLanguage();
   const [view, setView] = useState<"chat" | "saved">("chat");
   const [input, setInput] = useState("");
   const [deep, setDeep] = useState(false);
@@ -262,7 +263,7 @@ export function DiscoveryPage() {
             {(["chat", "saved"] as const).map((v) => (
               <button key={v} onClick={() => setView(v)} className="px-3 py-1.5 text-[12px] font-medium capitalize transition-colors"
                 style={{ background: view === v ? "var(--surface-selected)" : "transparent", color: view === v ? "var(--text-primary)" : "var(--text-muted)" }}>
-                {v === "chat" ? "Discover" : "Saved leads"}
+                {v === "chat" ? "Discover" : t("discovery.saved")}
               </button>
             ))}
           </div>
@@ -717,23 +718,21 @@ function ViaChip({ via, source }: { via: CiteVia; source: string }) {
 /** Honest no-results state — distinguishes "appliance returned nothing" from "no on-topic matches",
  *  and suggests concrete query / coverage expansions (never pretends there were results). */
 function NoResults({ reviews, scanned, query, onRun }: { reviews: boolean; scanned?: number; query: string; onRun: (q: string, force?: boolean) => void }) {
+  const { t } = useLanguage();
+  const { data: wsSug } = useWorkspaceSuggestions();
   const noPages = !scanned || scanned === 0;
-  const suggestions = reviews
-    ? [`${query} reviews`, `${query} complaints`, `${query} trustpilot`]
-    : [`${query} in London`, `${query} email contact`, `${query} directory`];
+  // Profile-aware refinements (already localized by the backend) instead of a hardcoded "in London".
+  const refinements = (wsSug?.discovery_next?.length
+    ? wsSug.discovery_next
+    : reviews ? [`${query} reviews`, `${query} complaints`] : [`${query} email contact`, `${query} directory`]).slice(0, 3);
   return (
     <div className="mt-2 rounded-md border px-3.5 py-3 text-[12.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
-      <p style={{ color: "var(--text-secondary)" }}>
-        {noPages
-          ? "The search appliance returned no pages to read — the query may be too narrow, or the appliance found nothing indexable."
-          : `Read ${scanned} page(s), but found no on-topic ${reviews ? "reviews" : "leads"} in them.`}
-      </p>
-      <p className="mt-1.5 text-[11px]" style={{ color: "var(--text-faint)" }}>Try a clearer name/sector, add a location, or broaden the source:</p>
+      <p style={{ color: "var(--text-secondary)" }}>{t("discovery.no_results")}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
-        {suggestions.map((s) => (
+        {refinements.map((s) => (
           <button key={s} onClick={() => onRun(s)} className="rounded-full border px-2.5 py-1 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{s}</button>
         ))}
-        <button onClick={() => onRun(query, true)} className="rounded-full px-2.5 py-1 text-[11.5px] font-medium" style={{ color: "var(--section-accent)" }}>Search deeper →</button>
+        <button onClick={() => onRun(query, true)} className="rounded-full px-2.5 py-1 text-[11.5px] font-medium" style={{ color: "var(--section-accent)" }}>{t("discovery.search_deeper")} →</button>
       </div>
     </div>
   );
