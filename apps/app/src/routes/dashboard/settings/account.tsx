@@ -7,8 +7,8 @@ import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { useSovereignAuthOptional } from "../../../components/auth/sovereign-auth-context";
 import { THEMES, type ThemeId, applyTheme as applyAppTheme, normalizeTheme } from "../../../lib/theme";
-import { SUPPORTED_LANGUAGES } from "@mondaily/shared/i18n";
 import { useLanguage } from "../../../hooks/useLanguage";
+import { LanguageSelect } from "../../../components/ui/language-select";
 
 type Appearance = string;
 type NotificationChannel = { in_app: boolean; email: boolean };
@@ -340,16 +340,11 @@ export function AccountSettings() {
               </select>
             </label>
           </div>
-          <label className="block">
+          <div className="block">
             <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">{t("settings.language")}</span>
-            <select value={language} onChange={e => setLanguage(e.target.value)} className="key-input w-full p-2.5 text-sm" dir="ltr">
-              <option value="">Follow workspace default</option>
-              {SUPPORTED_LANGUAGES.map(l => (
-                <option key={l.code} value={l.code}>{l.name} — {l.nativeName}</option>
-              ))}
-            </select>
+            <LanguageSelect value={language} onChange={setLanguage} includeFollowDefault followLabel={t("lang.follow_workspace")} />
             <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">{t("settings.language_help")}</p>
-          </label>
+          </div>
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Context for the assistant</span>
             <textarea value={aiContext} onChange={e => setAiContext(e.target.value)} rows={3} placeholder="e.g. I run a B2B SaaS sales team; prioritize pipeline and revenue framing." className="key-input w-full resize-none p-3 text-sm" />

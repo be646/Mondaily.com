@@ -12,6 +12,7 @@ import { apiClient } from "../../lib/api-client";
 import { useModules } from "../../hooks/useModules";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useSovereignAuthOptional } from "../auth/sovereign-auth-context";
+import { useLanguage } from "../../hooks/useLanguage";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
@@ -270,10 +271,26 @@ function Logo({ size = 24 }: { size?: number }) {
   );
 }
 
+// English nav/section label → translation key. Routes/paths are NEVER translated — only the visible
+// label text. Unmapped labels fall back to their English string unchanged.
+const NAV_TKEY: Record<string, string> = {
+  Home: "nav.home", Ask: "nav.ask", Graph: "nav.graph", Tasks: "nav.tasks", Decisions: "nav.decisions",
+  Agents: "nav.agents", Discovery: "nav.discovery", Automations: "nav.automations", Reports: "nav.reports",
+  Notifications: "nav.notifications", Inbox: "nav.inbox", Notes: "nav.notes", Emails: "nav.emails",
+  Calls: "nav.calls", Canvas: "nav.canvas", "Team Oversight": "nav.team_oversight",
+  Work: "section.work", Workspace: "section.workspace", Finance: "section.finance",
+};
+/** Localize a known nav/section label; return the original for anything unmapped. */
+function useNavLabel(label: string): string {
+  const { t } = useLanguage();
+  return NAV_TKEY[label] ? t(NAV_TKEY[label]) : label;
+}
+
 // ─── Single nav item ──────────────────────────────────────────────────────────
 function NavItem({
-  to, label, icon: Icon, collapsed, badge,
+  to, label: rawLabel, icon: Icon, collapsed, badge,
 }: { to: string; label: string; icon: React.ElementType; collapsed: boolean; badge?: number; tint?: string }) {
+  const label = useNavLabel(rawLabel);
   const location = useLocation();
   const active = location.pathname.startsWith(to);
   // Monochrome by design: ONE active indicator (accent bar + primary text/icon). Inactive rows are
@@ -318,10 +335,11 @@ function NavItem({
 
 // ─── Section label ────────────────────────────────────────────────────────────
 function SectionLabel({ label }: { label: string }) {
+  const localized = useNavLabel(label);
   if (!label) return null;
   return (
     <div className="mb-1.5 mt-4 px-2.5">
-      <span className="text-[11px] font-semibold uppercase tracking-widest text-[#9ca3af] dark:text-stone-700">{label}</span>
+      <span className="text-[11px] font-semibold uppercase tracking-widest text-[#9ca3af] dark:text-stone-700">{localized}</span>
     </div>
   );
 }
@@ -336,6 +354,7 @@ function NavGroup({ label, items, unreadCount }: {
   unreadCount: number;
 }) {
   const location = useLocation();
+  const groupLabel = useNavLabel(label);
   const hasActive = items.some(i => location.pathname.startsWith(i.to));
   const storeKey = `sb_group_${label}`;
   // Consistent with the other sidebar sections: open by default, and remembers
@@ -352,7 +371,7 @@ function NavGroup({ label, items, unreadCount }: {
         onClick={toggle}
         className="flex w-full items-center gap-1.5 rounded-md px-2.5 py-1 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900"
       >
-        <span className="flex-1 text-left text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{label}</span>
+        <span className="flex-1 text-left text-[11px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{groupLabel}</span>
         <ChevronDown size={11} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} style={{ color: "var(--text-faint)" }}/>
       </button>
       {open && items.map(item => (

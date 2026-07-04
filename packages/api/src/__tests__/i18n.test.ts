@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   SUPPORTED_LANGUAGES, normalizeLang, isRtl, dir, localeFor, languageInstruction, t, tList, fillTemplate,
-  formatNumber, formatCredits, formatCurrency, formatDate, languageMeta,
+  formatNumber, formatCredits, formatCurrency, formatDate, languageMeta, TRANSLATION_KEYS,
 } from "@mondaily/shared/i18n";
 import {
   resolveProfile, mergeProfile, EMPTY_PROFILE, discoverySuggestions, discoveryNextSuggestions,
@@ -159,6 +159,60 @@ describe("PHASE 2 — dynamic suggestions are localized AND keep profile persona
   });
 });
 
+describe("PHASE 3 — selector metadata (flags + native names)", () => {
+  it("every language has a non-empty flag, native name and English name", () => {
+    for (const l of SUPPORTED_LANGUAGES) {
+      expect(l.flag.length, `${l.code} flag`).toBeGreaterThan(0);
+      expect(l.nativeName.length, `${l.code} nativeName`).toBeGreaterThan(0);
+      expect(l.name.length, `${l.code} name`).toBeGreaterThan(0);
+    }
+  });
+  it("flags are distinct per language (no duplicated/placeholder flag)", () => {
+    const flags = SUPPORTED_LANGUAGES.map(l => l.flag);
+    expect(new Set(flags).size).toBe(flags.length);
+  });
+  it("languageMeta exposes the flag for the selector", () => {
+    expect(languageMeta("pl").flag).toBe("🇵🇱");
+    expect(languageMeta("ar").flag.length).toBeGreaterThan(0);
+  });
+});
+
+describe("PHASE 3 — high-traffic chrome keys: full coverage + English fallback", () => {
+  const NAV_KEYS = TRANSLATION_KEYS.filter(k => k.startsWith("nav.") || k.startsWith("common.") || k.startsWith("section."));
+  it("nav/common/section keys are translated in ALL 12 languages", () => {
+    for (const key of NAV_KEYS) {
+      for (const l of SUPPORTED_LANGUAGES) {
+        const v = t(l.code, key);
+        expect(v, `${key}/${l.code}`).not.toBe(key);   // never the raw key
+        expect(v.length).toBeGreaterThan(0);
+      }
+    }
+  });
+  it("missing key → English; unknown-language key → English value", () => {
+    expect(t("pl", "common.definitely_missing")).toBe("common.definitely_missing"); // no entry → key
+    expect(t("klingon", "common.save")).toBe(t("en", "common.save"));               // unknown lang → en
+  });
+  it("common buttons cover the required verb set", () => {
+    for (const verb of ["save", "cancel", "delete", "edit", "filter", "search", "create", "add", "remove", "assign", "approve", "reject", "snooze", "open", "close", "back", "next"]) {
+      expect(t("de", `common.${verb}`), `common.${verb} de`).not.toBe(`common.${verb}`);
+    }
+  });
+});
+
+describe("PHASE 3 — route/path safety: translation keys are never route paths", () => {
+  it("no translation key is (or contains) a URL/route path", () => {
+    for (const key of TRANSLATION_KEYS) {
+      expect(key.startsWith("/"), key).toBe(false);
+      expect(key.includes("://"), key).toBe(false);
+    }
+  });
+  it("translated nav VALUES never introduce a leading slash (labels, not links)", () => {
+    for (const l of SUPPORTED_LANGUAGES) {
+      for (const k of ["nav.home", "nav.discovery", "nav.tasks"]) expect(t(l.code, k).startsWith("/")).toBe(false);
+    }
+  });
+});
+
 describe("wiring guards — language flows through the app", () => {
   const read = (p: string) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), "utf8");
   it("Ask backend appends the language instruction, resolving user pref → profile → en", () => {
@@ -177,7 +231,7 @@ describe("wiring guards — language flows through the app", () => {
     expect(read("../../../../apps/app/src/routes/dashboard/layout.tsx")).toMatch(/useLanguage\(\)/);
   });
   it("Settings exposes a language selector; Discovery + Ask use translated headings", () => {
-    expect(read("../../../../apps/app/src/routes/dashboard/settings/account.tsx")).toMatch(/SUPPORTED_LANGUAGES/);
+    expect(read("../../../../apps/app/src/routes/dashboard/settings/account.tsx")).toMatch(/<LanguageSelect/);
     expect(read("../../../../apps/app/src/routes/dashboard/discovery.tsx")).toMatch(/t\("discovery\.heading"\)/);
     expect(read("../../../../apps/app/src/components/ai/ask-mondaily.tsx")).toMatch(/t\("ask\.heading"\)/);
   });
@@ -198,12 +252,27 @@ describe("wiring guards — language flows through the app", () => {
     expect(read("../routes/onboarding.ts")).toMatch(/languageMeta\(body\.language\)/);
     expect(read("../../../../apps/app/src/routes/onboarding/terminal-console.tsx")).toMatch(/language: answers\.language/);
   });
-  it("ROUTE PATHS are never translated/broken — nav literals + route table intact", () => {
+  it("sidebar localizes nav LABELS via NAV_TKEY while keeping route literals intact", () => {
     const sidebar = read("../../../../apps/app/src/components/layout/sidebar.tsx");
-    expect(sidebar).not.toMatch(/\bt\(/);                    // sidebar nav does not run translations
-    expect(sidebar).toMatch(/to: "\/discovery"/);
+    expect(sidebar).toMatch(/NAV_TKEY/);
+    expect(sidebar).toMatch(/useNavLabel/);
+    expect(sidebar).toMatch(/to: "\/discovery"/);   // route path unchanged
     expect(sidebar).toMatch(/to: "\/search"/);
-    // translation keys are dotted identifiers, never route paths
     for (const k of ["discovery.heading", "ask.heading", "settings.language"]) expect(k).not.toMatch(/^\//);
+  });
+  it("app Settings uses the polished LanguageSelect (flag + native name) with follow-default", () => {
+    const sel = read("../../../../apps/app/src/components/ui/language-select.tsx");
+    expect(sel).toMatch(/l\.flag/);
+    expect(sel).toMatch(/l\.nativeName/);
+    const acct = read("../../../../apps/app/src/routes/dashboard/settings/account.tsx");
+    expect(acct).toMatch(/<LanguageSelect/);
+    expect(acct).toMatch(/includeFollowDefault/);
+  });
+  it("landing footer selector: localStorage-backed, no account API, translated footer", () => {
+    const src = read("../../../../apps/web/components/landing-page.tsx");
+    expect(src).toMatch(/SiteLanguageSelect/);
+    expect(src).toMatch(/mondaily_site_lang/);                    // persisted to localStorage
+    expect(src).toMatch(/st\("landing\.footer\.product"\)/);      // footer translated
+    expect(src).not.toMatch(/\/settings\/account/);              // never touches account settings
   });
 });

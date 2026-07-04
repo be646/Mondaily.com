@@ -1,6 +1,10 @@
 import { Brain, Building2, CreditCard, Database, Mail, Plug, Shield, ShieldCheck, Sparkles, User, Users, ChevronRight, ArrowLeft } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useLanguage } from "../../../hooks/useLanguage";
+
+// Settings group title → translation key (labels/paths otherwise unchanged; English fallback).
+const GROUP_TKEY: Record<string, string> = { You: "settings.you", Workspace: "section.workspace", Plan: "settings.plan" };
 
 // Grouped settings IA — You / Workspace / Plan — instead of a flat list, so the cluster reads as
 // a clear, friendly hierarchy. Members & finance now live under one "Members" entry (consolidated).
@@ -30,6 +34,7 @@ const ALL_ITEMS: NavTuple[] = GROUPS.flatMap(g => g.items);
 export function SettingsLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const isRoot = location.pathname === "/settings" || location.pathname === "/settings/";
   const currentItem = ALL_ITEMS.find(([to]) => location.pathname.includes(to));
 
@@ -41,7 +46,7 @@ export function SettingsLayout() {
         <p className="mb-4 px-3 text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// Settings</p>
         {GROUPS.map(group => (
           <div key={group.title} className="mb-4">
-            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">{group.title}</p>
+            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">{(k => k ? t(k) : group.title)(GROUP_TKEY[group.title])}</p>
             {group.items.map(([to, Icon, label]) => (
               <NavLink
                 key={to}

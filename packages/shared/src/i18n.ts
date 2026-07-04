@@ -15,21 +15,22 @@ export interface Language {
   nativeName: string;  // endonym
   rtl: boolean;
   locale: string;      // BCP-47 for Intl
+  flag: string;        // small emoji flag for selectors (tasteful, no asset files)
 }
 
 export const SUPPORTED_LANGUAGES: Language[] = [
-  { code: "en", name: "English",    nativeName: "English",   rtl: false, locale: "en" },
-  { code: "pl", name: "Polish",     nativeName: "Polski",    rtl: false, locale: "pl" },
-  { code: "ru", name: "Russian",    nativeName: "Русский",   rtl: false, locale: "ru" },
-  { code: "uk", name: "Ukrainian",  nativeName: "Українська",rtl: false, locale: "uk" },
-  { code: "ar", name: "Arabic",     nativeName: "العربية",   rtl: true,  locale: "ar" },
-  { code: "fr", name: "French",     nativeName: "Français",  rtl: false, locale: "fr" },
-  { code: "de", name: "German",     nativeName: "Deutsch",   rtl: false, locale: "de" },
-  { code: "es", name: "Spanish",    nativeName: "Español",   rtl: false, locale: "es" },
-  { code: "pt", name: "Portuguese", nativeName: "Português", rtl: false, locale: "pt" },
-  { code: "it", name: "Italian",    nativeName: "Italiano",  rtl: false, locale: "it" },
-  { code: "tr", name: "Turkish",    nativeName: "Türkçe",    rtl: false, locale: "tr" },
-  { code: "nl", name: "Dutch",      nativeName: "Nederlands",rtl: false, locale: "nl" },
+  { code: "en", name: "English",    nativeName: "English",   rtl: false, locale: "en", flag: "🇬🇧" },
+  { code: "pl", name: "Polish",     nativeName: "Polski",    rtl: false, locale: "pl", flag: "🇵🇱" },
+  { code: "ru", name: "Russian",    nativeName: "Русский",   rtl: false, locale: "ru", flag: "🇷🇺" },
+  { code: "uk", name: "Ukrainian",  nativeName: "Українська",rtl: false, locale: "uk", flag: "🇺🇦" },
+  { code: "ar", name: "Arabic",     nativeName: "العربية",   rtl: true,  locale: "ar", flag: "🇸🇦" },
+  { code: "fr", name: "French",     nativeName: "Français",  rtl: false, locale: "fr", flag: "🇫🇷" },
+  { code: "de", name: "German",     nativeName: "Deutsch",   rtl: false, locale: "de", flag: "🇩🇪" },
+  { code: "es", name: "Spanish",    nativeName: "Español",   rtl: false, locale: "es", flag: "🇪🇸" },
+  { code: "pt", name: "Portuguese", nativeName: "Português", rtl: false, locale: "pt", flag: "🇵🇹" },
+  { code: "it", name: "Italian",    nativeName: "Italiano",  rtl: false, locale: "it", flag: "🇮🇹" },
+  { code: "tr", name: "Turkish",    nativeName: "Türkçe",    rtl: false, locale: "tr", flag: "🇹🇷" },
+  { code: "nl", name: "Dutch",      nativeName: "Nederlands",rtl: false, locale: "nl", flag: "🇳🇱" },
 ];
 
 const BY_CODE = new Map(SUPPORTED_LANGUAGES.map((l) => [l.code, l]));
@@ -327,6 +328,80 @@ const TRANSLATIONS: Translations = {
     tr: "{region} bölgesindeki {who} web’de bul ve kaynaklı müşteri adayları getir.",
     nl: "Vind {who} in {region} op het web en lever onderbouwde leads.",
   },
+
+  // ── Common buttons / verbs (single words — reused everywhere) ──
+  "common.save":    { en: "Save", pl: "Zapisz", ru: "Сохранить", uk: "Зберегти", ar: "حفظ", fr: "Enregistrer", de: "Speichern", es: "Guardar", pt: "Salvar", it: "Salva", tr: "Kaydet", nl: "Opslaan" },
+  "common.cancel":  { en: "Cancel", pl: "Anuluj", ru: "Отмена", uk: "Скасувати", ar: "إلغاء", fr: "Annuler", de: "Abbrechen", es: "Cancelar", pt: "Cancelar", it: "Annulla", tr: "İptal", nl: "Annuleren" },
+  "common.delete":  { en: "Delete", pl: "Usuń", ru: "Удалить", uk: "Видалити", ar: "حذف", fr: "Supprimer", de: "Löschen", es: "Eliminar", pt: "Excluir", it: "Elimina", tr: "Sil", nl: "Verwijderen" },
+  "common.edit":    { en: "Edit", pl: "Edytuj", ru: "Изменить", uk: "Редагувати", ar: "تعديل", fr: "Modifier", de: "Bearbeiten", es: "Editar", pt: "Editar", it: "Modifica", tr: "Düzenle", nl: "Bewerken" },
+  "common.filter":  { en: "Filter", pl: "Filtruj", ru: "Фильтр", uk: "Фільтр", ar: "تصفية", fr: "Filtrer", de: "Filter", es: "Filtrar", pt: "Filtrar", it: "Filtra", tr: "Filtrele", nl: "Filter" },
+  "common.search":  { en: "Search", pl: "Szukaj", ru: "Поиск", uk: "Пошук", ar: "بحث", fr: "Rechercher", de: "Suchen", es: "Buscar", pt: "Pesquisar", it: "Cerca", tr: "Ara", nl: "Zoeken" },
+  "common.create":  { en: "Create", pl: "Utwórz", ru: "Создать", uk: "Створити", ar: "إنشاء", fr: "Créer", de: "Erstellen", es: "Crear", pt: "Criar", it: "Crea", tr: "Oluştur", nl: "Aanmaken" },
+  "common.add":     { en: "Add", pl: "Dodaj", ru: "Добавить", uk: "Додати", ar: "إضافة", fr: "Ajouter", de: "Hinzufügen", es: "Añadir", pt: "Adicionar", it: "Aggiungi", tr: "Ekle", nl: "Toevoegen" },
+  "common.remove":  { en: "Remove", pl: "Usuń", ru: "Убрать", uk: "Прибрати", ar: "إزالة", fr: "Retirer", de: "Entfernen", es: "Quitar", pt: "Remover", it: "Rimuovi", tr: "Kaldır", nl: "Verwijderen" },
+  "common.assign":  { en: "Assign", pl: "Przypisz", ru: "Назначить", uk: "Призначити", ar: "تعيين", fr: "Attribuer", de: "Zuweisen", es: "Asignar", pt: "Atribuir", it: "Assegna", tr: "Ata", nl: "Toewijzen" },
+  "common.approve": { en: "Approve", pl: "Zatwierdź", ru: "Одобрить", uk: "Схвалити", ar: "موافقة", fr: "Approuver", de: "Genehmigen", es: "Aprobar", pt: "Aprovar", it: "Approva", tr: "Onayla", nl: "Goedkeuren" },
+  "common.reject":  { en: "Reject", pl: "Odrzuć", ru: "Отклонить", uk: "Відхилити", ar: "رفض", fr: "Rejeter", de: "Ablehnen", es: "Rechazar", pt: "Rejeitar", it: "Rifiuta", tr: "Reddet", nl: "Afwijzen" },
+  "common.snooze":  { en: "Snooze", pl: "Odłóż", ru: "Отложить", uk: "Відкласти", ar: "تأجيل", fr: "Reporter", de: "Später", es: "Posponer", pt: "Adiar", it: "Posticipa", tr: "Ertele", nl: "Uitstellen" },
+  "common.open":    { en: "Open", pl: "Otwórz", ru: "Открыть", uk: "Відкрити", ar: "فتح", fr: "Ouvrir", de: "Öffnen", es: "Abrir", pt: "Abrir", it: "Apri", tr: "Aç", nl: "Openen" },
+  "common.close":   { en: "Close", pl: "Zamknij", ru: "Закрыть", uk: "Закрити", ar: "إغلاق", fr: "Fermer", de: "Schließen", es: "Cerrar", pt: "Fechar", it: "Chiudi", tr: "Kapat", nl: "Sluiten" },
+  "common.back":    { en: "Back", pl: "Wstecz", ru: "Назад", uk: "Назад", ar: "رجوع", fr: "Retour", de: "Zurück", es: "Atrás", pt: "Voltar", it: "Indietro", tr: "Geri", nl: "Terug" },
+  "common.next":    { en: "Next", pl: "Dalej", ru: "Далее", uk: "Далі", ar: "التالي", fr: "Suivant", de: "Weiter", es: "Siguiente", pt: "Próximo", it: "Avanti", tr: "İleri", nl: "Volgende" },
+
+  // ── Sidebar / nav labels ──
+  "nav.home":          { en: "Home", pl: "Start", ru: "Главная", uk: "Головна", ar: "الرئيسية", fr: "Accueil", de: "Start", es: "Inicio", pt: "Início", it: "Home", tr: "Ana Sayfa", nl: "Home" },
+  "nav.ask":           { en: "Ask", pl: "Zapytaj", ru: "Спросить", uk: "Запитати", ar: "اسأل", fr: "Demander", de: "Fragen", es: "Preguntar", pt: "Perguntar", it: "Chiedi", tr: "Sor", nl: "Vragen" },
+  "nav.graph":         { en: "Graph", pl: "Graf", ru: "Граф", uk: "Граф", ar: "الرسم البياني", fr: "Graphe", de: "Graph", es: "Grafo", pt: "Grafo", it: "Grafo", tr: "Grafik", nl: "Graph" },
+  "nav.tasks":         { en: "Tasks", pl: "Zadania", ru: "Задачи", uk: "Завдання", ar: "المهام", fr: "Tâches", de: "Aufgaben", es: "Tareas", pt: "Tarefas", it: "Attività", tr: "Görevler", nl: "Taken" },
+  "nav.decisions":     { en: "Decisions", pl: "Decyzje", ru: "Решения", uk: "Рішення", ar: "القرارات", fr: "Décisions", de: "Entscheidungen", es: "Decisiones", pt: "Decisões", it: "Decisioni", tr: "Kararlar", nl: "Beslissingen" },
+  "nav.agents":        { en: "Agents", pl: "Agenci", ru: "Агенты", uk: "Агенти", ar: "الوكلاء", fr: "Agents", de: "Agenten", es: "Agentes", pt: "Agentes", it: "Agenti", tr: "Ajanlar", nl: "Agents" },
+  "nav.discovery":     { en: "Discovery", pl: "Odkrywanie", ru: "Поиск", uk: "Пошук", ar: "الاكتشاف", fr: "Découverte", de: "Discovery", es: "Descubrimiento", pt: "Descoberta", it: "Scoperta", tr: "Keşif", nl: "Ontdekken" },
+  "nav.automations":   { en: "Automations", pl: "Automatyzacje", ru: "Автоматизации", uk: "Автоматизації", ar: "الأتمتة", fr: "Automatisations", de: "Automationen", es: "Automatizaciones", pt: "Automações", it: "Automazioni", tr: "Otomasyonlar", nl: "Automatiseringen" },
+  "nav.reports":       { en: "Reports", pl: "Raporty", ru: "Отчёты", uk: "Звіти", ar: "التقارير", fr: "Rapports", de: "Berichte", es: "Informes", pt: "Relatórios", it: "Report", tr: "Raporlar", nl: "Rapporten" },
+  "nav.notifications": { en: "Notifications", pl: "Powiadomienia", ru: "Уведомления", uk: "Сповіщення", ar: "الإشعارات", fr: "Notifications", de: "Benachrichtigungen", es: "Notificaciones", pt: "Notificações", it: "Notifiche", tr: "Bildirimler", nl: "Meldingen" },
+  "nav.inbox":         { en: "Inbox", pl: "Skrzynka", ru: "Входящие", uk: "Вхідні", ar: "الوارد", fr: "Boîte de réception", de: "Posteingang", es: "Bandeja", pt: "Caixa de entrada", it: "In arrivo", tr: "Gelen kutusu", nl: "Postvak" },
+  "nav.notes":         { en: "Notes", pl: "Notatki", ru: "Заметки", uk: "Нотатки", ar: "الملاحظات", fr: "Notes", de: "Notizen", es: "Notas", pt: "Notas", it: "Note", tr: "Notlar", nl: "Notities" },
+  "nav.emails":        { en: "Emails", pl: "E-maile", ru: "Письма", uk: "Листи", ar: "الرسائل", fr: "E-mails", de: "E-Mails", es: "Correos", pt: "E-mails", it: "Email", tr: "E-postalar", nl: "E-mails" },
+  "nav.calls":         { en: "Calls", pl: "Połączenia", ru: "Звонки", uk: "Дзвінки", ar: "المكالمات", fr: "Appels", de: "Anrufe", es: "Llamadas", pt: "Chamadas", it: "Chiamate", tr: "Aramalar", nl: "Gesprekken" },
+  "nav.canvas":        { en: "Canvas", pl: "Kanwa", ru: "Холст", uk: "Полотно", ar: "اللوحة", fr: "Canevas", de: "Canvas", es: "Lienzo", pt: "Tela", it: "Canvas", tr: "Tuval", nl: "Canvas" },
+  "nav.team_oversight":{ en: "Team Oversight", pl: "Nadzór zespołu", ru: "Контроль команды", uk: "Нагляд за командою", ar: "إشراف الفريق", fr: "Supervision d’équipe", de: "Team-Übersicht", es: "Supervisión del equipo", pt: "Supervisão da equipe", it: "Supervisione team", tr: "Ekip Gözetimi", nl: "Teamtoezicht" },
+
+  // ── Section labels ──
+  "section.work":      { en: "Work", pl: "Praca", ru: "Работа", uk: "Робота", ar: "العمل", fr: "Travail", de: "Arbeit", es: "Trabajo", pt: "Trabalho", it: "Lavoro", tr: "Çalışma", nl: "Werk" },
+  "section.workspace": { en: "Workspace", pl: "Przestrzeń", ru: "Пространство", uk: "Простір", ar: "مساحة العمل", fr: "Espace", de: "Workspace", es: "Espacio", pt: "Espaço", it: "Spazio", tr: "Çalışma alanı", nl: "Workspace" },
+  "section.finance":   { en: "Finance", pl: "Finanse", ru: "Финансы", uk: "Фінанси", ar: "المالية", fr: "Finance", de: "Finanzen", es: "Finanzas", pt: "Finanças", it: "Finanza", tr: "Finans", nl: "Financiën" },
+  "settings.you":  { en: "You", pl: "Ty", ru: "Вы", uk: "Ви", ar: "أنت", fr: "Vous", de: "Du", es: "Tú", pt: "Você", it: "Tu", tr: "Sen", nl: "Jij" },
+  "settings.plan": { en: "Plan", pl: "Plan", ru: "Тариф", uk: "Тариф", ar: "الخطة", fr: "Formule", de: "Tarif", es: "Plan", pt: "Plano", it: "Piano", tr: "Plan", nl: "Abonnement" },
+  "settings.title":{ en: "Settings", pl: "Ustawienia", ru: "Настройки", uk: "Налаштування", ar: "الإعدادات", fr: "Paramètres", de: "Einstellungen", es: "Ajustes", pt: "Configurações", it: "Impostazioni", tr: "Ayarlar", nl: "Instellingen" },
+
+  // ── Generic empty / loading states ──
+  "state.empty":    { en: "Nothing here yet", pl: "Jeszcze nic tu nie ma", ru: "Здесь пока пусто", uk: "Тут поки порожньо", ar: "لا شيء هنا بعد", fr: "Rien pour l’instant", de: "Noch nichts hier", es: "Aún no hay nada", pt: "Nada aqui ainda", it: "Ancora niente qui", tr: "Henüz burada bir şey yok", nl: "Nog niets hier" },
+  "state.loading":  { en: "Loading…", pl: "Ładowanie…", ru: "Загрузка…", uk: "Завантаження…", ar: "جارٍ التحميل…", fr: "Chargement…", de: "Wird geladen…", es: "Cargando…", pt: "Carregando…", it: "Caricamento…", tr: "Yükleniyor…", nl: "Laden…" },
+
+  // ── Language selector chrome ──
+  "lang.follow_workspace": { en: "Follow workspace default", pl: "Zgodnie z domyślnym językiem przestrzeni", ru: "Как в рабочем пространстве", uk: "Як у робочому просторі", ar: "اتّبع لغة مساحة العمل", fr: "Langue par défaut de l’espace", de: "Workspace-Standard folgen", es: "Seguir el idioma del espacio", pt: "Seguir o idioma do espaço", it: "Usa la lingua dello spazio", tr: "Çalışma alanı varsayılanı", nl: "Volg workspace-standaard" },
+  "lang.select": { en: "Language", pl: "Język", ru: "Язык", uk: "Мова", ar: "اللغة", fr: "Langue", de: "Sprache", es: "Idioma", pt: "Idioma", it: "Lingua", tr: "Dil", nl: "Taal" },
+
+  // ── Public landing footer (marketing) ──
+  "landing.tagline": {
+    en: "Autonomous AI workspace platform. Built for teams that move fast.",
+    pl: "Autonomiczna platforma AI. Stworzona dla zespołów, które działają szybko.",
+    ru: "Платформа автономного ИИ-пространства. Для команд, которые двигаются быстро.",
+    uk: "Платформа автономного ШІ-простору. Для команд, які працюють швидко.",
+    ar: "منصة مساحة عمل ذكاء اصطناعي مستقلة. مبنية لفرق تتحرك بسرعة.",
+    fr: "Plateforme d’espace de travail IA autonome. Conçue pour les équipes rapides.",
+    de: "Autonome KI-Workspace-Plattform. Für Teams, die schnell handeln.",
+    es: "Plataforma de espacio de trabajo con IA autónoma. Para equipos que van rápido.",
+    pt: "Plataforma de espaço de trabalho com IA autônoma. Para equipes ágeis.",
+    it: "Piattaforma di workspace IA autonoma. Per team che vanno veloci.",
+    tr: "Otonom yapay zekâ çalışma alanı platformu. Hızlı hareket eden ekipler için.",
+    nl: "Autonoom AI-workspaceplatform. Gebouwd voor teams die snel bewegen.",
+  },
+  "landing.footer.product":  { en: "Product", pl: "Produkt", ru: "Продукт", uk: "Продукт", ar: "المنتج", fr: "Produit", de: "Produkt", es: "Producto", pt: "Produto", it: "Prodotto", tr: "Ürün", nl: "Product" },
+  "landing.footer.platform": { en: "Platform", pl: "Platforma", ru: "Платформа", uk: "Платформа", ar: "المنصة", fr: "Plateforme", de: "Plattform", es: "Plataforma", pt: "Plataforma", it: "Piattaforma", tr: "Platform", nl: "Platform" },
+  "landing.footer.legal":    { en: "Legal", pl: "Prawne", ru: "Правовое", uk: "Правове", ar: "قانوني", fr: "Mentions légales", de: "Rechtliches", es: "Legal", pt: "Jurídico", it: "Legale", tr: "Yasal", nl: "Juridisch" },
+  "landing.footer.contact":  { en: "Contact", pl: "Kontakt", ru: "Контакты", uk: "Контакти", ar: "اتصل بنا", fr: "Contact", de: "Kontakt", es: "Contacto", pt: "Contato", it: "Contatti", tr: "İletişim", nl: "Contact" },
+  "landing.rights":          { en: "All rights reserved.", pl: "Wszelkie prawa zastrzeżone.", ru: "Все права защищены.", uk: "Усі права захищені.", ar: "جميع الحقوق محفوظة.", fr: "Tous droits réservés.", de: "Alle Rechte vorbehalten.", es: "Todos los derechos reservados.", pt: "Todos os direitos reservados.", it: "Tutti i diritti riservati.", tr: "Tüm hakları saklıdır.", nl: "Alle rechten voorbehouden." },
 };
 
 /** Look up a translated string. Falls back to English, then to the key itself. Never throws. */

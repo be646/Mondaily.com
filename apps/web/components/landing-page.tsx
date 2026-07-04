@@ -7,6 +7,7 @@ import { Nav } from "./nav";
 import { HeroChat } from "./hero-chat";
 import { Logo } from "./logo";
 import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER } from "@mondaily/shared/pricing";
+import { SUPPORTED_LANGUAGES, normalizeLang, languageMeta, t, dir as i18nDir } from "@mondaily/shared/i18n";
 
 // Credit display helper — shared catalog is the source of truth for the numbers.
 function fmtCredits(n: number | null): string {
@@ -3092,10 +3093,61 @@ function FooterThemeToggle({ theme, onToggle }: { theme: "light" | "dark"; onTog
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+/** Public-site language dropdown — flag + native name, premium/minimal, localStorage-backed, no auth. */
+function SiteLanguageSelect({ value, onChange }: { value: string; onChange: (code: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+  const cur = languageMeta(value);
+  return (
+    <div ref={ref} className="relative" dir="ltr">
+      <button type="button" onClick={() => setOpen(o => !o)} aria-haspopup="listbox" aria-expanded={open}
+        className="flex items-center gap-1.5 rounded-md border border-black/[.08] px-2.5 py-1.5 text-[12px] text-zinc-500 transition-colors hover:text-zinc-800">
+        <span className="text-[14px] leading-none">{cur.flag}</span>
+        <span>{cur.nativeName}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" className="opacity-60"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+      </button>
+      {open && (
+        <div role="listbox" className="absolute bottom-full right-0 z-50 mb-1 max-h-72 w-56 overflow-y-auto rounded-lg border border-black/[.08] bg-white p-1 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.25)]">
+          {SUPPORTED_LANGUAGES.map(l => (
+            <button key={l.code} type="button" role="option" aria-selected={value === l.code}
+              onClick={() => { onChange(l.code); setOpen(false); }}
+              className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] transition-colors hover:bg-black/[.04] ${value === l.code ? "text-zinc-900" : "text-zinc-600"}`}>
+              <span className="text-[15px] leading-none">{l.flag}</span>
+              <span className="flex-1">{l.nativeName}</span>
+              <span className="text-[11px] text-zinc-400">{l.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function LandingPage() {
   const [ready, setReady] = useState(false);
   const [skipPreloader, setSkipPreloader] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  // Public-site language — persisted in localStorage only. NEVER touches account/API state, needs no
+  // sign-in. Sets <html dir> so Arabic reads RTL. Marketing copy falls back to English per key.
+  const [siteLang, setSiteLang] = useState("en");
+  useEffect(() => {
+    const saved = normalizeLang(typeof localStorage !== "undefined" ? localStorage.getItem("mondaily_site_lang") : "en");
+    setSiteLang(saved);
+  }, []);
+  useEffect(() => {
+    if (typeof document !== "undefined") { document.documentElement.lang = siteLang; document.documentElement.dir = i18nDir(siteLang); }
+  }, [siteLang]);
+  const chooseSiteLang = (code: string) => {
+    setSiteLang(code);
+    try { localStorage.setItem("mondaily_site_lang", code); } catch { /* ignore */ }
+  };
+  const st = (key: string) => t(siteLang, key);
 
   useLayoutEffect(() => {
     if (sessionStorage.getItem(PRELOADER_SESSION_KEY)) {
@@ -3306,17 +3358,17 @@ export function LandingPage() {
                 <div className="mb-4">
                   <Logo size={38} />
                 </div>
-                <p className="text-[13px] leading-relaxed text-zinc-500">Autonomous AI workspace platform. Built for teams that move fast.</p>
+                <p className="text-[13px] leading-relaxed text-zinc-500">{st("landing.tagline")}</p>
               </div>
 
               <div className="flex flex-wrap gap-x-14 gap-y-8 text-[13px]">
                 <div className="flex flex-col gap-2.5">
-                  <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Product</span>
+                  <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">{st("landing.footer.product")}</span>
                   <a href="#pricing" className="text-zinc-500 hover:text-zinc-700 transition-colors">Pricing</a>
                   <a href="/changelog" className="text-zinc-500 hover:text-zinc-700 transition-colors">Changelog</a>
                 </div>
                 <div className="flex flex-col gap-2.5">
-                  <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Platform</span>
+                  <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">{st("landing.footer.platform")}</span>
                   <a href="/status" className="text-zinc-500 hover:text-zinc-700 transition-colors">System status</a>
                   <a href="/roadmap" className="text-zinc-500 hover:text-zinc-700 transition-colors">Roadmap</a>
                   <a href="/security" className="text-zinc-500 hover:text-zinc-700 transition-colors">Security</a>
@@ -3324,24 +3376,25 @@ export function LandingPage() {
                   <a href="/help" className="text-zinc-500 hover:text-zinc-700 transition-colors">Help center</a>
                 </div>
                 <div className="flex flex-col gap-2.5">
-                  <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Legal</span>
+                  <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">{st("landing.footer.legal")}</span>
                   <a href="/privacy" className="text-zinc-500 hover:text-zinc-700 transition-colors">Privacy</a>
                   <a href="/terms" className="text-zinc-500 hover:text-zinc-700 transition-colors">Terms</a>
                   <a href="/dpa" className="text-zinc-500 hover:text-zinc-700 transition-colors">DPA</a>
                 </div>
                 <div className="flex flex-col gap-2.5">
-                  <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">Contact</span>
+                  <span className="text-zinc-400 text-[11px] uppercase tracking-widest mb-1">{st("landing.footer.contact")}</span>
                   <a href="mailto:support@mondaily.com" className="text-zinc-500 hover:text-zinc-700 transition-colors">Support</a>
                   <a href="mailto:sales@mondaily.com" className="text-zinc-500 hover:text-zinc-700 transition-colors">Sales</a>
                 </div>
               </div>
             </div>
             <div className="flex flex-col gap-3 border-t border-black/[.05] pt-6 text-[12px] text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
-              <span>© {new Date().getFullYear()} Mondaily. All rights reserved.</span>
+              <span>© {new Date().getFullYear()} Mondaily. {st("landing.rights")}</span>
               <div className="flex items-center gap-3">
                 <a href="/status" className="flex items-center gap-1.5 text-zinc-400 hover:text-zinc-700 transition-colors">
                   System status
                 </a>
+                <SiteLanguageSelect value={siteLang} onChange={chooseSiteLang} />
               </div>
             </div>
           </div>
