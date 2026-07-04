@@ -60613,12 +60613,108 @@ function profileContextLines(p2) {
   if (p2.tone) lines.push(`Tone: ${p2.tone}`);
   return lines;
 }
+function preferredTerm(p2, generic) {
+  return profileTerms(p2)[generic.toLowerCase()] ?? generic;
+}
+function applyTerms(text, p2) {
+  const terms = profileTerms(p2);
+  let out = text;
+  for (const [generic, replacement] of Object.entries(terms)) {
+    if (!generic || !replacement) continue;
+    const re3 = new RegExp(`\\b(${generic})(s?)\\b`, "gi");
+    out = out.replace(re3, (_m, word, plural) => {
+      const cased = word[0] === word[0]?.toUpperCase() ? replacement[0]?.toUpperCase() + replacement.slice(1) : replacement;
+      return cased + (plural ? "s" : "");
+    });
+  }
+  return out;
+}
+function discoveryPlaceholder(p2) {
+  const ex = discoverySuggestions(p2, 1)[0] ?? "companies matching your ideal customer";
+  return `Find leads or reviews \u2014 e.g. "${ex}"`;
+}
+function discoveryNextSuggestions(p2, limit2 = 3) {
+  const who = p2.target_customers.trim() || p2.discovery_focus.trim() || "your ideal customers";
+  const region = p2.region.trim();
+  const out = [
+    `Reviews and complaints about ${who}`,
+    region ? `More ${who} outside ${region}` : `Similar ${who} in a new region`,
+    `${who} that recently changed or expanded`
+  ];
+  return dedupe([...out, ...discoverySuggestions(p2, limit2)], limit2);
+}
+function broadQueryRefinements(p2, query, limit2 = 3) {
+  const base = query.trim() || (p2.target_customers.trim() || "results");
+  const region = p2.region.trim();
+  const out = [
+    region ? `${base} in ${region}` : `${base} in a specific region`,
+    p2.discovery_focus.trim() ? `${base} \u2014 ${p2.discovery_focus.trim()}` : `${base} with recent buying signals`,
+    `${base} with public contact details`
+  ];
+  return dedupe(out, limit2);
+}
+function deepResearchPhrasing(p2) {
+  const who = p2.target_customers.trim() || p2.discovery_focus.trim() || "your ideal customers";
+  return `Deep research: profile ${who}${p2.region.trim() ? ` in ${p2.region.trim()}` : ""} \u2014 pull firmographics, reviews, and contacts.`;
+}
+function objectCreationExamples(p2, limit2 = 4) {
+  const objs = profileObjects(p2);
+  const out = objs.map((o2) => `${o2.charAt(0).toUpperCase() + o2.slice(1)} with key fields and status`);
+  out.push("Client contracts with value, dates and status", "Product inventory with SKU, stock and pricing");
+  return dedupe(out, limit2);
+}
+function listExamples(p2, limit2 = 3) {
+  const who = p2.target_customers.trim() || profileObjects(p2)[0] || "high-value companies";
+  const out = [`High-value ${who}`, `${who} not yet contacted`, `${who} needing follow-up`];
+  return dedupe(out, limit2);
+}
+function tableNlpExamples(p2, limit2 = 4) {
+  const obj = profileObjects(p2)[0] ?? "records";
+  const out = [
+    `Sort by most recent and show the total`,
+    `Filter ${p2.region.trim() || "by region"} and sort by value`,
+    `Show ${obj} with no activity in 30 days`,
+    `Group by status and count`
+  ];
+  return dedupe(out, limit2);
+}
+function importExamples(p2, limit2 = 3) {
+  return dedupe(profileObjects(p2).map((o2) => `Import ${o2} from a CSV`), limit2);
+}
+function homeQuickPrompts(p2) {
+  const who = p2.target_customers.trim() || p2.discovery_focus.trim() || "your ideal customers";
+  const region = p2.region.trim();
+  const discovery = `Find ${who}${region ? ` in ${region}` : ""} on the web and bring back source-backed prospects.`;
+  return [
+    { key: "attention", prompt: applyTerms("Review the workspace graph. Which deals, assets, or relationships are stalled or overdue for follow-up? Rank them by urgency and tell me exactly what to do on each.", p2) },
+    { key: "decisions", prompt: applyTerms("What decisions are waiting on me? Summarize each with the context I need to decide, and recommend an action.", p2) },
+    { key: "discovery", prompt: discovery }
+  ];
+}
+function profileRecommendations(p2) {
+  const objs = profileObjects(p2);
+  const who = p2.target_customers.trim() || "your ideal customers";
+  return {
+    agents: dedupe([
+      `Follow-up agent for ${objs[0] ?? "records"}`,
+      `Enrichment agent for new ${objs[0] ?? "records"}`,
+      p2.discovery_focus.trim() ? `Discovery monitor: ${p2.discovery_focus.trim()}` : `Discovery monitor for ${who}`
+    ], 3),
+    automations: dedupe([
+      `When a ${preferredTerm(p2, "deal")} stalls, create a follow-up task`,
+      `When a new ${preferredTerm(p2, "contact")} is added, enrich it automatically`,
+      `Weekly digest of ${objs[0] ?? "records"} needing attention`
+    ], 3),
+    object_types: dedupe(objs.map((o2) => o2.charAt(0).toUpperCase() + o2.slice(1)), 4),
+    discovery_searches: discoverySuggestions(p2, 4)
+  };
+}
 function profileContextBlock(p2) {
   const hasContext = hasProfileSignal(p2) || p2.primary_goals.length > 0 || Boolean(p2.region.trim()) || Boolean(p2.business_model.trim()) || Object.keys(p2.preferred_terms).length > 0;
   if (!hasContext) return "";
   const lines = profileContextLines(p2);
   if (!lines.length) return "";
-  return `Workspace context (use for relevance and terminology \u2014 never fabricate data):
+  return `Workspace context \u2014 use it to make your examples, phrasing and terminology relevant to this business, and answer in their preferred language when set. NEVER invent workspace data: only state records/numbers you actually retrieved via tools.
 ${lines.map((l2) => `- ${l2}`).join("\n")}`;
 }
 
@@ -65648,11 +65744,28 @@ router18.get("/workspace/suggestions", async (c2) => {
   const profile = resolveProfile(settings);
   return c2.json({
     profile,
+    // Discovery
     discovery: discoverySuggestions(profile),
+    discovery_placeholder: discoveryPlaceholder(profile),
+    discovery_next: discoveryNextSuggestions(profile),
+    deep_research: deepResearchPhrasing(profile),
+    // Ask + Home
     ask: askStarterPrompts(profile),
+    home: homeQuickPrompts(profile),
+    // Builders (objects / lists / tables / import)
     objects: profileObjects(profile),
-    terms: profileTerms(profile)
+    object_examples: objectCreationExamples(profile),
+    list_examples: listExamples(profile),
+    table_examples: tableNlpExamples(profile),
+    import_examples: importExamples(profile),
+    // Terms + recommendations (recommendations are surfaced, never auto-created)
+    terms: profileTerms(profile),
+    recommendations: profileRecommendations(profile)
   });
+});
+router18.get("/workspace/refine", async (c2) => {
+  const profile = resolveProfile(await workspaceSettings(c2.get("workspaceId")));
+  return c2.json({ refinements: broadQueryRefinements(profile, c2.req.query("q") ?? "") });
 });
 async function persistLogo(workspaceId, dataUrl) {
   const m2 = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUrl);

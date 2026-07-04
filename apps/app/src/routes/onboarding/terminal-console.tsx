@@ -37,7 +37,7 @@ const BOOT: Line[] = [
 
 // ── Survey ────────────────────────────────────────────────────────────────────
 interface Choice { value: string; label: string }
-interface Question { key: "purpose" | "team_size" | "goals"; prompt: string; multi?: boolean; choices: Choice[] }
+interface Question { key: "purpose" | "team_size" | "goals" | "region" | "language"; prompt: string; multi?: boolean; choices: Choice[] }
 
 const SURVEY: Question[] = [
   {
@@ -74,6 +74,30 @@ const SURVEY: Question[] = [
       { value: "oversight", label: "Reports & oversight" },
     ],
   },
+  {
+    key: "region",
+    prompt: "Which region do you mainly operate in?",
+    choices: [
+      { value: "North America", label: "North America" },
+      { value: "Europe", label: "Europe" },
+      { value: "United Kingdom", label: "United Kingdom" },
+      { value: "Middle East", label: "Middle East" },
+      { value: "Asia-Pacific", label: "Asia-Pacific" },
+      { value: "", label: "Global / other" },
+    ],
+  },
+  {
+    key: "language",
+    prompt: "Preferred language for AI responses?",
+    choices: [
+      { value: "en", label: "English" },
+      { value: "es", label: "Spanish" },
+      { value: "fr", label: "French" },
+      { value: "de", label: "German" },
+      { value: "pl", label: "Polish" },
+      { value: "ar", label: "Arabic" },
+    ],
+  },
 ];
 
 // Team size → the license we lead with. This is the fix for the "15 people → Operator (1 seat)"
@@ -88,7 +112,7 @@ export function TerminalOnboardingPage() {
   const [lines, setLines] = useState<Line[]>([]);
   const [phase, setPhase] = useState<Phase>("survey");
   const [step, setStep] = useState(0);                    // survey question index
-  const [answers, setAnswers] = useState<{ purpose?: string; team_size?: string; goals: string[] }>({ goals: [] });
+  const [answers, setAnswers] = useState<{ purpose?: string; team_size?: string; goals: string[]; region?: string; language?: string }>({ goals: [] });
   const [recommended, setRecommended] = useState<PlanId>("operator");
   const [aiModules, setAiModules] = useState<string[]>([]);   // AI-recommended product modules
   const [freeText, setFreeText] = useState("");                // optional "anything else" input
@@ -158,6 +182,8 @@ export function TerminalOnboardingPage() {
       discovery_focus: ai.discovery_focus || "",
       main_objects_tracked: Array.isArray(ai.suggested_objects) ? ai.suggested_objects : [],
       primary_goals: answers.goals ?? [],
+      ...(answers.region ? { region: answers.region } : {}),
+      ...(answers.language ? { language: answers.language } : {}),
     };
     if (!mounted.current) return;
     setLines(prev => prev.filter(l => l.text !== "[...MONDAILY ARCHITECT ANALYZING YOUR OPERATION...]"));

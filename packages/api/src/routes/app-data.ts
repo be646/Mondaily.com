@@ -12,7 +12,12 @@ import { reconcileIncludedCredits } from "../lib/credits";
 import { PLAN_TIERS } from "@mondaily/shared/pricing";
 import { planLimits } from "../lib/plan-limits";
 import { resolveEntitlement, getEntitlement } from "../lib/entitlements";
-import { resolveProfile, mergeProfile, discoverySuggestions, askStarterPrompts, profileObjects, profileTerms, type WorkspaceProfile } from "@mondaily/shared/profile";
+import {
+  resolveProfile, mergeProfile, discoverySuggestions, askStarterPrompts, profileObjects, profileTerms,
+  discoveryPlaceholder, discoveryNextSuggestions, broadQueryRefinements, deepResearchPhrasing,
+  objectCreationExamples, listExamples, tableNlpExamples, importExamples, homeQuickPrompts,
+  profileRecommendations, type WorkspaceProfile,
+} from "@mondaily/shared/profile";
 
 // Seat limit for a workspace — resolved entitlement tier → catalog seats (the ONE source). Scout 1,
 // Operator 5, Command 20, Sovereign 999. Used by both /settings/members (can_invite) and /billing.
@@ -434,11 +439,30 @@ router.get("/workspace/suggestions", async (c) => {
   const profile = resolveProfile(settings);
   return c.json({
     profile,
+    // Discovery
     discovery: discoverySuggestions(profile),
+    discovery_placeholder: discoveryPlaceholder(profile),
+    discovery_next: discoveryNextSuggestions(profile),
+    deep_research: deepResearchPhrasing(profile),
+    // Ask + Home
     ask: askStarterPrompts(profile),
+    home: homeQuickPrompts(profile),
+    // Builders (objects / lists / tables / import)
     objects: profileObjects(profile),
+    object_examples: objectCreationExamples(profile),
+    list_examples: listExamples(profile),
+    table_examples: tableNlpExamples(profile),
+    import_examples: importExamples(profile),
+    // Terms + recommendations (recommendations are surfaced, never auto-created)
     terms: profileTerms(profile),
+    recommendations: profileRecommendations(profile),
   });
+});
+
+// GET /workspace/refine?q=... — broad-query refinements for Discovery (narrow by region/customer/signal).
+router.get("/workspace/refine", async (c) => {
+  const profile = resolveProfile(await workspaceSettings(c.get("workspaceId")));
+  return c.json({ refinements: broadQueryRefinements(profile, c.req.query("q") ?? "") });
 });
 
 // Persist a data:-URL logo into Supabase Storage and return its public URL. Login-safe & resilient:

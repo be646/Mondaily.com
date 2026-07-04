@@ -89,6 +89,7 @@ const SENTIMENT: Record<Exclude<Sentiment, null>, { label: string; tone: string;
 
 export function DiscoveryPage() {
   const qc = useQueryClient();
+  const { data: suggestions } = useWorkspaceSuggestions();  // profile-aware placeholder/examples
   const [view, setView] = useState<"chat" | "saved">("chat");
   const [input, setInput] = useState("");
   const [deep, setDeep] = useState(false);
@@ -315,7 +316,7 @@ export function DiscoveryPage() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSubmit(input); } }}
                 rows={1}
-                placeholder="Find leads or reviews — e.g. “aesthetic clinics in London” or “reviews about Acme Corp”"
+                placeholder={suggestions?.discovery_placeholder ?? "Find leads or reviews — e.g. “companies matching your ideal customer” or “reviews about a competitor”"}
                 className="max-h-32 w-full resize-none bg-transparent text-[14px] outline-none"
                 style={{ color: "var(--text-primary)" }}
               />
@@ -489,8 +490,9 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
   );
 }
 
-/** Heuristic "what next" chips after a search — client-side, no extra AI call. */
+/** "What next" chips after a search — result heuristics + profile-aware follow-ons. */
 function NextMoves({ turn, onRun }: { turn: Turn; onRun: (q: string, force?: boolean) => void }) {
+  const { data: suggestions } = useWorkspaceSuggestions();
   const chips: string[] = [];
   const reviews = turn.kind === "REVIEWS";
   const thin = turn.results.length > 0 && turn.results.length < 10;
@@ -499,6 +501,8 @@ function NextMoves({ turn, onRun }: { turn: Turn; onRun: (q: string, force?: boo
     if (top && top !== "Anonymous" && !top.startsWith("u/")) chips.push(`reviews about ${top}`);
   }
   if (thin) chips.push(`${turn.query} — deep`);
+  // Profile-aware follow-ons ("what to search next"), deduped against the heuristic chips.
+  for (const s of suggestions?.discovery_next ?? []) { if (chips.length >= 4) break; if (!chips.includes(s)) chips.push(s); }
   if (!chips.length) return null;
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5">

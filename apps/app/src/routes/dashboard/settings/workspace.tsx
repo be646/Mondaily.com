@@ -5,7 +5,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 import { PageSkeleton } from "../../../components/ui/page-state";
-import { EMPTY_PROFILE, type WorkspaceProfile } from "@mondaily/shared/profile";
+import { EMPTY_PROFILE, discoverySuggestions, askStarterPrompts, profileRecommendations, type WorkspaceProfile } from "@mondaily/shared/profile";
 
 interface WorkspaceData {
   name: string;
@@ -283,6 +283,7 @@ function ProfileSection({ initial }: { initial: WorkspaceProfile }) {
   useEffect(() => { setP(initial); }, [initial]);
 
   const set = <K extends keyof WorkspaceProfile>(k: K, v: WorkspaceProfile[K]) => setP(prev => ({ ...prev, [k]: v }));
+  const rec = profileRecommendations(p);   // live recommendations from the current edits
 
   const save = useMutation({
     mutationFn: () => apiClient.patch("/settings/workspace", { profile: p }),
@@ -329,6 +330,30 @@ function ProfileSection({ initial }: { initial: WorkspaceProfile }) {
         </button>
         {saved && <span className="flex items-center gap-1.5 text-[12px] text-emerald-500"><Check size={13} /> Saved</span>}
       </div>
+
+      {/* Live preview — generated from the CURRENT edits (before save), so admins see the effect. */}
+      <div className="mt-6 rounded-xl border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
+        <p className="text-[12px] font-medium text-[var(--text-primary)]">Preview</p>
+        <p className="mb-3 text-[11px] text-[var(--text-muted)]">These update Discovery examples and Ask AI context. Saving applies them across the app.</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <PreviewList title="Discovery examples" items={discoverySuggestions(p, 3)} />
+          <PreviewList title="Ask prompts" items={askStarterPrompts(p, 3)} />
+          <PreviewList title="Suggested agents" items={rec.agents} />
+          <PreviewList title="Suggested automations" items={rec.automations} />
+        </div>
+        <p className="mt-2 text-[10.5px] text-[var(--text-faint)]">Suggestions are recommendations only — nothing is created automatically.</p>
+      </div>
+    </div>
+  );
+}
+
+function PreviewList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <p className="mb-1 text-[10.5px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{title}</p>
+      <ul className="space-y-0.5">
+        {items.map(i => <li key={i} className="truncate text-[12px] text-[var(--text-secondary)]" title={i}>· {i}</li>)}
+      </ul>
     </div>
   );
 }

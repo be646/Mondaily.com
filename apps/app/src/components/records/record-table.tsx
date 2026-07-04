@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { LogoMark } from "@/components/logo";
 import {
   Database, User, Hash, Calendar, Tag, Mail, Phone, Globe, Building2,
@@ -930,13 +931,16 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
   const [lastApplied, setLastApplied] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const EXAMPLES = [
-    "Sort by ARR descending and show total revenue",
-    "Filter by USA and sort by funding raised",
-    "Show sum of deal value sorted by stage",
-    "Average ARR and filter by Series A",
+  // Profile-aware NLP examples (from the workspace's object nouns/region); generic fallback.
+  const { data: wsSuggestions } = useWorkspaceSuggestions();
+  const FALLBACK_EXAMPLES = [
+    "Sort by most recent and show the total",
+    "Filter by region and sort by value",
+    "Show records with no activity in 30 days",
+    "Group by status and count",
   ];
-  const [placeholder] = useState(() => EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)]);
+  const examples = wsSuggestions?.table_examples?.length ? wsSuggestions.table_examples : FALLBACK_EXAMPLES;
+  const placeholder = examples[0] ?? FALLBACK_EXAMPLES[0];
 
   const apply = useCallback(async () => {
     const trimmed = value.trim();

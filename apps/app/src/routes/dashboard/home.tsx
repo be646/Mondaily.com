@@ -18,6 +18,8 @@ import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { getThreads } from "../../lib/chat-store";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { useModules } from "../../hooks/useModules";
+import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
+import { applyTerms, EMPTY_PROFILE } from "@mondaily/shared/profile";
 
 // Converts markdown to clean readable JSX — strips tables, stars, dashes
 function renderMarkdown(text: string): React.ReactNode {
@@ -153,6 +155,8 @@ export function HomePage() {
   const navigate = useNavigate();
   const firstName = me.name?.split(" ")[0];
   const { hasFinance } = useModules();
+  const { data: wsSuggestions } = useWorkspaceSuggestions();  // profile-aware prompts + terms
+  const wsProfile = wsSuggestions?.profile ?? EMPTY_PROFILE;
   const qc = useQueryClient();
   const askSectionRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
@@ -505,10 +509,12 @@ export function HomePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doSend]);
 
+  // Apply the workspace's preferred terminology to a prompt before sending (display/help copy only —
+  // e.g. "deal" → "case" for a clinic). No-op when the profile has no preferred terms.
   const firePrompt = useCallback((text: string) => {
     setPromptPickerOpen(false);
-    sendSuggestion(text);
-  }, [sendSuggestion]);
+    sendSuggestion(applyTerms(text, wsProfile));
+  }, [sendSuggestion, wsProfile]);
 
   // Route/context chips fill the input and focus it rather than auto-sending
   // — the user reviews and completes the question before it goes anywhere.
@@ -919,13 +925,15 @@ export function HomePage() {
                 : { Icon: Brain, label: "Plan my week", sub: "an opinionated brief", prompt: "Review my open tasks and recent activity, then build me an opinionated day-by-day plan for this week with specific next actions." },
               {
                 Icon: Search,
-                label: "Discover leads on the web",
+                label: wsProfile.target_customers.trim()
+                  ? `Find ${wsProfile.target_customers.trim()}${wsProfile.region.trim() ? ` in ${wsProfile.region.trim()}` : ""}`
+                  : "Discover leads on the web",
                 sub: "AI search across the open web + social",
                 prompt: "",
                 to: "/discovery",
               },
             ].map(s => (
-              <button key={s.label} onClick={() => ("to" in s && s.to ? navigate(s.to) : sendSuggestion(s.prompt))}
+              <button key={s.label} onClick={() => ("to" in s && s.to ? navigate(s.to) : sendSuggestion(applyTerms(s.prompt, wsProfile)))}
                 className="group flex items-start gap-3 rounded-sm border px-4 py-3 text-left transition-colors"
                 style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--section-accent)"; }}

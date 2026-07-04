@@ -241,6 +241,138 @@ export function profileContextLines(p: WorkspaceProfile): string[] {
   return lines;
 }
 
+// ── Phase 2: deeper application ────────────────────────────────────────────────────────────────
+
+/** The workspace's word for a generic noun (e.g. "deal" → "case"), or the generic word unchanged. */
+export function preferredTerm(p: WorkspaceProfile, generic: string): string {
+  return profileTerms(p)[generic.toLowerCase()] ?? generic;
+}
+
+/**
+ * Soft display-term substitution for HELP / EXAMPLE / PROMPT copy only — never routes, nav, or data.
+ * Replaces whole-word generic nouns (and their simple plural) with the workspace's preferred terms,
+ * preserving the leading letter's case. Safe on any string; a no-op when there are no preferred terms.
+ */
+export function applyTerms(text: string, p: WorkspaceProfile): string {
+  const terms = profileTerms(p);
+  let out = text;
+  for (const [generic, replacement] of Object.entries(terms)) {
+    if (!generic || !replacement) continue;
+    const re = new RegExp(`\\b(${generic})(s?)\\b`, "gi");
+    out = out.replace(re, (_m, word: string, plural: string) => {
+      const cased = word[0] === word[0]?.toUpperCase() ? replacement[0]?.toUpperCase() + replacement.slice(1) : replacement;
+      return cased + (plural ? "s" : "");
+    });
+  }
+  return out;
+}
+
+/** A concise Discovery search-box placeholder tuned to the profile (generic when empty). */
+export function discoveryPlaceholder(p: WorkspaceProfile): string {
+  const ex = discoverySuggestions(p, 1)[0] ?? "companies matching your ideal customer";
+  return `Find leads or reviews — e.g. "${ex}"`;
+}
+
+/** "What to search next" — follow-on Discovery ideas from the profile (always returns some). */
+export function discoveryNextSuggestions(p: WorkspaceProfile, limit = 3): string[] {
+  const who = p.target_customers.trim() || p.discovery_focus.trim() || "your ideal customers";
+  const region = p.region.trim();
+  const out = [
+    `Reviews and complaints about ${who}`,
+    region ? `More ${who} outside ${region}` : `Similar ${who} in a new region`,
+    `${who} that recently changed or expanded`,
+  ];
+  return dedupe([...out, ...discoverySuggestions(p, limit)], limit);
+}
+
+/** Refinements shown when a query is too broad — narrows by region / customer / signal from profile. */
+export function broadQueryRefinements(p: WorkspaceProfile, query: string, limit = 3): string[] {
+  const base = query.trim() || (p.target_customers.trim() || "results");
+  const region = p.region.trim();
+  const out = [
+    region ? `${base} in ${region}` : `${base} in a specific region`,
+    p.discovery_focus.trim() ? `${base} — ${p.discovery_focus.trim()}` : `${base} with recent buying signals`,
+    `${base} with public contact details`,
+  ];
+  return dedupe(out, limit);
+}
+
+/** Deep-research phrasing hint for the profile (used to frame a longer Discovery run). */
+export function deepResearchPhrasing(p: WorkspaceProfile): string {
+  const who = p.target_customers.trim() || p.discovery_focus.trim() || "your ideal customers";
+  return `Deep research: profile ${who}${p.region.trim() ? ` in ${p.region.trim()}` : ""} — pull firmographics, reviews, and contacts.`;
+}
+
+/** Example prompts for the "create an object type" flow, seeded from the workspace's tracked objects. */
+export function objectCreationExamples(p: WorkspaceProfile, limit = 4): string[] {
+  const objs = profileObjects(p);
+  const out = objs.map((o) => `${o.charAt(0).toUpperCase() + o.slice(1)} with key fields and status`);
+  out.push("Client contracts with value, dates and status", "Product inventory with SKU, stock and pricing");
+  return dedupe(out, limit);
+}
+
+/** Example prompts for creating a list / sheet, seeded from the profile. */
+export function listExamples(p: WorkspaceProfile, limit = 3): string[] {
+  const who = p.target_customers.trim() || profileObjects(p)[0] || "high-value companies";
+  const out = [`High-value ${who}`, `${who} not yet contacted`, `${who} needing follow-up`];
+  return dedupe(out, limit);
+}
+
+/** Natural-language example queries for a record table, using the workspace's object nouns. */
+export function tableNlpExamples(p: WorkspaceProfile, limit = 4): string[] {
+  const obj = profileObjects(p)[0] ?? "records";
+  const out = [
+    `Sort by most recent and show the total`,
+    `Filter ${p.region.trim() || "by region"} and sort by value`,
+    `Show ${obj} with no activity in 30 days`,
+    `Group by status and count`,
+  ];
+  return dedupe(out, limit);
+}
+
+/** Example prompts for the import flow — what kinds of records they'd bring in. */
+export function importExamples(p: WorkspaceProfile, limit = 3): string[] {
+  return dedupe(profileObjects(p).map((o) => `Import ${o} from a CSV`), limit);
+}
+
+/** Profile-aware Home quick prompts — daily brief / attention / discovery, term-substituted. */
+export function homeQuickPrompts(p: WorkspaceProfile): { key: string; prompt: string }[] {
+  const who = p.target_customers.trim() || p.discovery_focus.trim() || "your ideal customers";
+  const region = p.region.trim();
+  const discovery = `Find ${who}${region ? ` in ${region}` : ""} on the web and bring back source-backed prospects.`;
+  return [
+    { key: "attention", prompt: applyTerms("Review the workspace graph. Which deals, assets, or relationships are stalled or overdue for follow-up? Rank them by urgency and tell me exactly what to do on each.", p) },
+    { key: "decisions", prompt: applyTerms("What decisions are waiting on me? Summarize each with the context I need to decide, and recommend an action.", p) },
+    { key: "discovery", prompt: discovery },
+  ];
+}
+
+// Recommendations (NOT auto-created — surfaced for the user to approve). Data-driven from the profile.
+export interface ProfileRecommendations {
+  agents: string[];
+  automations: string[];
+  object_types: string[];
+  discovery_searches: string[];
+}
+export function profileRecommendations(p: WorkspaceProfile): ProfileRecommendations {
+  const objs = profileObjects(p);
+  const who = p.target_customers.trim() || "your ideal customers";
+  return {
+    agents: dedupe([
+      `Follow-up agent for ${objs[0] ?? "records"}`,
+      `Enrichment agent for new ${objs[0] ?? "records"}`,
+      p.discovery_focus.trim() ? `Discovery monitor: ${p.discovery_focus.trim()}` : `Discovery monitor for ${who}`,
+    ], 3),
+    automations: dedupe([
+      `When a ${preferredTerm(p, "deal")} stalls, create a follow-up task`,
+      `When a new ${preferredTerm(p, "contact")} is added, enrich it automatically`,
+      `Weekly digest of ${objs[0] ?? "records"} needing attention`,
+    ], 3),
+    object_types: dedupe(objs.map((o) => o.charAt(0).toUpperCase() + o.slice(1)), 4),
+    discovery_searches: discoverySuggestions(p, 4),
+  };
+}
+
 /** Single-block workspace-context string for a system prompt. Empty string unless the profile has
  *  REAL signal (industry / customers / goals / region / model / terms) — so a blank profile never
  *  injects a lone "Tone" line that adds noise without value. */
@@ -250,5 +382,5 @@ export function profileContextBlock(p: WorkspaceProfile): string {
   if (!hasContext) return "";
   const lines = profileContextLines(p);
   if (!lines.length) return "";
-  return `Workspace context (use for relevance and terminology — never fabricate data):\n${lines.map((l) => `- ${l}`).join("\n")}`;
+  return `Workspace context — use it to make your examples, phrasing and terminology relevant to this business, and answer in their preferred language when set. NEVER invent workspace data: only state records/numbers you actually retrieved via tools.\n${lines.map((l) => `- ${l}`).join("\n")}`;
 }

@@ -9,6 +9,7 @@ import {
 import { useEffect, useState, useCallback } from "react";
 import { apiClient, apiFetch, getAuthHeaders } from "../../../lib/api-client";
 import { EmptyState, PageHeader, ConsoleSkeleton } from "../../../components/ui/page-state";
+import { useWorkspaceSuggestions } from "../../../hooks/useWorkspaceSuggestions";
 
 type AttributeType = "text" | "long_text" | "number" | "currency" | "percentage" | "date" | "datetime" | "checkbox" | "select" | "multi_select" | "url" | "email" | "phone" | "relation" | "formula" | "file";
 interface Attribute { id?: string; name: string; type: AttributeType; required?: boolean; unique?: boolean }
@@ -73,6 +74,9 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [schema, setSchema] = useState<GeneratedSchema | null>(null);
+  // Prefer profile-aware object examples (from the workspace's tracked objects); fall back to generic.
+  const { data: wsSuggestions } = useWorkspaceSuggestions();
+  const examples = wsSuggestions?.object_examples?.length ? [...wsSuggestions.object_examples, ...EXAMPLES] : EXAMPLES;
   const [example] = useState(() => EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)]);
 
   const generate = useCallback(async () => {
@@ -178,7 +182,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
             {/* Examples */}
             <p className="mt-4 mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Examples</p>
             <div className="flex flex-wrap gap-1.5">
-              {EXAMPLES.slice(0, 6).map(ex => (
+              {examples.slice(0, 6).map(ex => (
                 <button
                   key={ex}
                   onClick={() => setPrompt(ex)}

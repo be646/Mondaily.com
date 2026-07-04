@@ -5,6 +5,7 @@ import { LogoMark } from "@/components/logo";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
+import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { apiClient } from "../../lib/api-client";
 
 interface ListItem {
@@ -45,6 +46,8 @@ export function SidebarLists() {
   const [sharedWith, setSharedWith] = useState<string[]>([]);
 
   // AI form
+  const { data: wsSuggestions } = useWorkspaceSuggestions();   // profile-aware list examples
+  const listExamples = wsSuggestions?.list_examples ?? [];
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
@@ -339,7 +342,7 @@ export function SidebarLists() {
               <div className="space-y-3.5 p-5">
                 <p className="text-[11px] text-stone-600">Describe the list you want. AI will name it, pick the right object type, and populate it with matching records.</p>
                 <textarea autoFocus value={aiPrompt} onChange={e => setAiPrompt(e.target.value)} rows={4}
-                  placeholder={`e.g. "High-value fintech companies" or "Leads from referrals not yet contacted"`}
+                  placeholder={listExamples.length ? `e.g. "${listExamples[0]}" or "${listExamples[1] ?? listExamples[0]}"` : `e.g. "High-value companies" or "Leads not yet contacted"`}
                   className="w-full resize-none rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-stone-500/40 transition-colors" />
                 {aiError && <p className="text-[11px] text-stone-400">{aiError}</p>}
                 <button onClick={createWithAI} disabled={aiLoading || !aiPrompt.trim()}
