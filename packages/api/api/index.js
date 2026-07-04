@@ -61511,6 +61511,166 @@ init_context();
 init_credits();
 init_client();
 
+// ../shared/src/profile.ts
+function hasProfileSignal(p2) {
+  return Boolean(p2.industry.trim() || p2.discovery_focus.trim() || p2.target_customers.trim() || p2.main_objects_tracked.length);
+}
+var asStr = (v2) => typeof v2 === "string" ? v2 : "";
+var asArr = (v2) => Array.isArray(v2) ? v2.filter((x2) => typeof x2 === "string") : [];
+function resolveProfile(settings) {
+  const s2 = settings ?? {};
+  const stored = s2.profile ?? {};
+  const icp = s2.discovery_icp ?? {};
+  const legacyGoals = asArr(s2.goals);
+  const level = asStr(stored.ai_help_level);
+  return {
+    industry: asStr(stored.industry) || asStr(s2.industry) || asStr(s2.industry_vertical),
+    business_model: asStr(stored.business_model) || asStr(s2.business_model),
+    target_customers: asStr(stored.target_customers) || asStr(icp.description),
+    main_objects_tracked: stored.main_objects_tracked?.length ? asArr(stored.main_objects_tracked) : [],
+    preferred_terms: stored.preferred_terms && typeof stored.preferred_terms === "object" ? stored.preferred_terms : {},
+    primary_goals: stored.primary_goals?.length ? asArr(stored.primary_goals) : legacyGoals,
+    region: asStr(stored.region) || asStr(s2.region),
+    language: asStr(stored.language) || asStr(s2.language) || "en",
+    tone: asStr(stored.tone) || "professional",
+    discovery_focus: asStr(stored.discovery_focus) || asStr(icp.description),
+    ai_help_level: ["low", "balanced", "high"].includes(level) ? level : "balanced"
+  };
+}
+function mergeProfile(base, patch) {
+  return {
+    ...base,
+    ...Object.fromEntries(Object.entries(patch).filter(([, v2]) => v2 !== void 0))
+  };
+}
+var FAMILY_KEYWORDS = [
+  ["healthcare", /clinic|health|medical|dental|patient|aesthetic|wellness|therapy|pharma/i],
+  ["real_estate", /real ?estate|property|realtor|broker|landlord|investor|housing|mortgage/i],
+  ["agency", /agency|marketing|creative|consult|studio|freelanc|services firm/i],
+  ["ecommerce", /ecommerce|e-commerce|retail|shop|store|dtc|d2c|cosmetic|skin ?care|fashion|brand/i],
+  ["saas", /saas|software|b2b tech|platform|app|startup|developer tool/i],
+  ["recruiting", /recruit|staffing|talent|hr|hiring|headhunt/i],
+  ["hospitality", /hotel|restaurant|hospitality|travel|event|catering|venue/i]
+];
+function industryFamily(industry) {
+  const text = industry.trim();
+  if (!text) return "generic";
+  for (const [family, re3] of FAMILY_KEYWORDS) if (re3.test(text)) return family;
+  return "generic";
+}
+var FAMILY_FLAVOR = {
+  healthcare: {
+    objects: ["clinics", "patients", "follow-ups"],
+    terms: { contact: "patient", deal: "case", pipeline: "care pipeline" },
+    discovery: ["Find clinics in {region} with poor reviews", "Find {who} not yet using a booking system"],
+    ask: ["Track patient follow-ups", "Show overdue clinic tasks", "Which patients haven't been contacted in 30 days?"]
+  },
+  real_estate: {
+    objects: ["properties", "owners", "investors"],
+    terms: { contact: "owner", deal: "listing", pipeline: "deal pipeline" },
+    discovery: ["Find property owners in {region}", "Find {who} with listings older than 60 days"],
+    ask: ["Track investor follow-ups", "Show stale opportunities", "Which listings need a price review?"]
+  },
+  agency: {
+    objects: ["clients", "projects", "deliverables"],
+    terms: { deal: "project", pipeline: "client pipeline" },
+    discovery: ["Find companies hiring agencies in {region}", "Find {who} actively spending on ads"],
+    ask: ["Show client work at risk", "Draft a follow-up for overdue deliverables", "Which retainers renew this month?"]
+  },
+  ecommerce: {
+    objects: ["stores", "suppliers", "wholesale leads"],
+    terms: { contact: "buyer", deal: "order" },
+    discovery: ["Find {who} in {region} without wholesale pricing", "Find retailers stocking similar products"],
+    ask: ["Show wholesale leads to follow up", "Which stockists haven't reordered?", "Draft an outreach to new retailers"]
+  },
+  saas: {
+    objects: ["accounts", "champions", "opportunities"],
+    terms: { contact: "champion" },
+    discovery: ["Find companies in {region} using a competitor", "Find {who} that recently raised funding"],
+    ask: ["Show opportunities with no activity in 2 weeks", "Which trials are expiring soon?", "Draft a re-engagement email"]
+  },
+  recruiting: {
+    objects: ["candidates", "roles", "clients"],
+    terms: { contact: "candidate", deal: "placement" },
+    discovery: ["Find companies in {region} hiring for {who}", "Find candidates with skills in ..."],
+    ask: ["Show roles waiting on candidates", "Which placements need follow-up?", "Draft a candidate outreach"]
+  },
+  hospitality: {
+    objects: ["venues", "guests", "events"],
+    terms: { deal: "booking", contact: "guest" },
+    discovery: ["Find event planners in {region}", "Find {who} without online booking"],
+    ask: ["Show upcoming bookings needing confirmation", "Which venues have open dates?", "Draft a follow-up to past guests"]
+  },
+  generic: {
+    objects: ["companies", "contacts", "opportunities"],
+    terms: {},
+    discovery: ["Find {who} in {region}", "Find companies matching your ideal customer"],
+    ask: ["Show opportunities with no recent activity", "Summarize what needs attention today", "Draft a follow-up for a stalled deal"]
+  }
+};
+function fill(template, p2) {
+  const region = p2.region.trim() || "your region";
+  const who = p2.target_customers.trim() || p2.discovery_focus.trim() || "your ideal customers";
+  return template.replace(/\{region\}/g, region).replace(/\{who\}/g, who).trim();
+}
+function dedupe(list, limit2) {
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const s2 of list) {
+    const k2 = s2.toLowerCase();
+    if (s2 && !seen.has(k2)) {
+      seen.add(k2);
+      out.push(s2);
+    }
+    if (out.length >= limit2) break;
+  }
+  return out;
+}
+function profileObjects(p2) {
+  if (p2.main_objects_tracked.length) return p2.main_objects_tracked;
+  return FAMILY_FLAVOR[industryFamily(p2.industry)].objects;
+}
+function profileTerms(p2) {
+  return { ...FAMILY_FLAVOR[industryFamily(p2.industry)].terms, ...p2.preferred_terms };
+}
+function discoverySuggestions(p2, limit2 = 4) {
+  const family = industryFamily(p2.industry);
+  const out = [];
+  if (p2.discovery_focus.trim()) out.push(fill(`Find ${p2.discovery_focus.trim()} in {region}`, p2));
+  out.push(...FAMILY_FLAVOR[family].discovery.map((t2) => fill(t2, p2)));
+  if (family !== "generic") out.push(...FAMILY_FLAVOR.generic.discovery.map((t2) => fill(t2, p2)));
+  return dedupe(out, limit2);
+}
+function askStarterPrompts(p2, limit2 = 4) {
+  const family = industryFamily(p2.industry);
+  const out = [];
+  for (const g2 of p2.primary_goals.slice(0, 2)) out.push(`Help me ${g2.replace(/^to\s+/i, "")}`);
+  out.push(...FAMILY_FLAVOR[family].ask);
+  if (family !== "generic") out.push(...FAMILY_FLAVOR.generic.ask);
+  return dedupe(out, limit2);
+}
+function profileContextLines(p2) {
+  const lines = [];
+  if (p2.industry) lines.push(`Industry: ${p2.industry}`);
+  if (p2.business_model) lines.push(`Business model: ${p2.business_model}`);
+  if (p2.target_customers) lines.push(`Target customers: ${p2.target_customers}`);
+  if (p2.primary_goals.length) lines.push(`Primary goals: ${p2.primary_goals.join("; ")}`);
+  if (p2.region) lines.push(`Primary region: ${p2.region}`);
+  if (p2.language && p2.language !== "en") lines.push(`Preferred language: ${p2.language}`);
+  const terms = Object.entries(profileTerms(p2));
+  if (terms.length) lines.push(`Preferred terminology: ${terms.map(([k2, v2]) => `"${k2}" \u2192 "${v2}"`).join(", ")}`);
+  if (p2.tone) lines.push(`Tone: ${p2.tone}`);
+  return lines;
+}
+function profileContextBlock(p2) {
+  const hasContext = hasProfileSignal(p2) || p2.primary_goals.length > 0 || Boolean(p2.region.trim()) || Boolean(p2.business_model.trim()) || Object.keys(p2.preferred_terms).length > 0;
+  if (!hasContext) return "";
+  const lines = profileContextLines(p2);
+  if (!lines.length) return "";
+  return `Workspace context (use for relevance and terminology \u2014 never fabricate data):
+${lines.map((l2) => `- ${l2}`).join("\n")}`;
+}
+
 // src/routes/reports.ts
 init_client();
 init_ai_gateway();
@@ -63466,6 +63626,18 @@ var OBJECT_LABEL = {
 };
 var router6 = new Hono2();
 var HISTORY_TURN_LIMIT = 16;
+async function workspaceProfileBlock(workspaceId) {
+  if (!workspaceId) return "";
+  try {
+    const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+    const block = profileContextBlock(resolveProfile(data?.settings ?? null));
+    return block ? `
+
+${block}` : "";
+  } catch {
+    return "";
+  }
+}
 function buildContextNote(context2) {
   let contextNote = "";
   if (!context2) return contextNote;
@@ -63582,7 +63754,8 @@ router6.post("/", requireAuth, verifyAiCredits, zValidator("json", external_expo
       webContext = await searchWeb(message);
     }
     const contextNote = buildContextNote(context2);
-    const systemPrompt = SYSTEM_PROMPT + (webContext ? `
+    const profileBlock = await workspaceProfileBlock(workspaceId);
+    const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `
 
 Web context:
 ${webContext}` : "") + contextNote;
@@ -63680,7 +63853,8 @@ router6.post("/stream", requireAuth, verifyAiCredits, zValidator("json", externa
     try {
       let webContext = "";
       if (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true") webContext = await searchWeb(message);
-      const systemPrompt = SYSTEM_PROMPT + (webContext ? `
+      const profileBlock = await workspaceProfileBlock(workspaceId);
+      const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `
 
 Web context:
 ${webContext}` : "") + buildContextNote(context2);
@@ -66513,7 +66687,20 @@ router18.get("/settings/workspace", async (c2) => {
     logo_url: data?.logo_url ?? null,
     onboarded: data?.onboarded ?? false,
     member_count: memberCount ?? 1,
-    modules: settings.modules ?? ["crm"]
+    modules: settings.modules ?? ["crm"],
+    // Industry-aware profile — resolved (falls back to legacy onboarding fields for old workspaces).
+    profile: resolveProfile(settings)
+  });
+});
+router18.get("/workspace/suggestions", async (c2) => {
+  const settings = await workspaceSettings(c2.get("workspaceId"));
+  const profile = resolveProfile(settings);
+  return c2.json({
+    profile,
+    discovery: discoverySuggestions(profile),
+    ask: askStarterPrompts(profile),
+    objects: profileObjects(profile),
+    terms: profileTerms(profile)
   });
 });
 async function persistLogo(workspaceId, dataUrl) {
@@ -66533,11 +66720,13 @@ router18.patch("/settings/workspace", async (c2) => {
   const wid = c2.get("workspaceId");
   const body = await c2.req.json();
   const settings = await workspaceSettings(wid);
+  const nextProfile = body.profile !== void 0 ? mergeProfile(resolveProfile(settings), body.profile) : void 0;
   const update = {
     settings: {
       ...settings,
       ...body.timezone !== void 0 ? { timezone: body.timezone } : {},
-      ...body.modules !== void 0 ? { modules: body.modules } : {}
+      ...body.modules !== void 0 ? { modules: body.modules } : {},
+      ...nextProfile !== void 0 ? { profile: nextProfile } : {}
     }
   };
   if (body.name !== void 0) update.name = body.name;
@@ -70415,12 +70604,12 @@ router42.post("/analyze", requireAuth, async (c2) => {
     else if (size > 5 || /(oversight|team|manage|approvals|decision queue)/.test(t2)) plan = "command";
     else if (size >= 1 && /(discovery|enrich|research|prospect|finance|agents|deep)/.test(t2)) plan = "operator";
     else if (size > 1) plan = "operator";
-    return { industry_vertical: purpose || "General Operations", recommended_modules: modules, summary: "", recommended_plan: plan, recommend_pack: false, plan_reason: "" };
+    return { industry_vertical: purpose || "General Operations", recommended_modules: modules, summary: "", recommended_plan: plan, recommend_pack: false, plan_reason: "", business_model: "", target_customers: "", discovery_focus: "", suggested_objects: [] };
   };
   let result = heuristic();
   try {
     const extracted = await aiGatewayToolUse({
-      system: "You are the Mondaily Workspace Architect onboarding a new operator. Mondaily is an autonomous AI workspace (operators + AI agents) \u2014 it is NOT a CRM; never use that word. From the operator's answers, return: industry_vertical (a concise 1-4 word label); recommended_modules \u2014 a subset of ['finance','investments','hr']; only what the operation clearly needs; empty is fine. recommended_plan \u2014 one of ['scout','operator','command','sovereign'] using ONLY these facts: " + planFacts + " Recommend based on: team size, expected AI usage (chat/agents/enrichment/Discovery deep research/report generation), finance workflows, Decision-Queue approvals, Team Oversight need, and compliance/private-infrastructure needs. Solo/just trying \u2192 scout; a team running on AI (Discovery, finance, agents) \u2192 operator; a larger team (>5) or one needing oversight/approvals at scale \u2192 command; compliance/self-hosted/private \u2192 sovereign. recommend_pack \u2014 true if their expected usage is likely to exceed the plan's included monthly credits (then suggest pay-as-you-go packs). plan_reason \u2014 ONE short sentence (<=20 words) on why that plan fits. summary \u2014 ONE friendly sentence (<=22 words) on how their workspace will be set up.",
+      system: "You are the Mondaily Workspace Architect onboarding a new operator. Mondaily is an autonomous AI workspace (operators + AI agents) \u2014 it is NOT a CRM; never use that word. From the operator's answers, return: industry_vertical (a concise 1-4 word label); recommended_modules \u2014 a subset of ['finance','investments','hr']; only what the operation clearly needs; empty is fine. recommended_plan \u2014 one of ['scout','operator','command','sovereign'] using ONLY these facts: " + planFacts + " Recommend based on: team size, expected AI usage (chat/agents/enrichment/Discovery deep research/report generation), finance workflows, Decision-Queue approvals, Team Oversight need, and compliance/private-infrastructure needs. Solo/just trying \u2192 scout; a team running on AI (Discovery, finance, agents) \u2192 operator; a larger team (>5) or one needing oversight/approvals at scale \u2192 command; compliance/self-hosted/private \u2192 sovereign. recommend_pack \u2014 true if their expected usage is likely to exceed the plan's included monthly credits (then suggest pay-as-you-go packs). plan_reason \u2014 ONE short sentence (<=20 words) on why that plan fits. summary \u2014 ONE friendly sentence (<=22 words) on how their workspace will be set up. business_model \u2014 a concise label like 'B2B services', 'B2C ecommerce', 'Marketplace', 'B2B SaaS'. target_customers \u2014 a short phrase for who they sell to / serve. discovery_focus \u2014 a short phrase for what web/Discovery searches should hunt for (e.g. 'clinics with poor reviews'). suggested_objects \u2014 2-4 short lowercase nouns for the records they track (e.g. ['clinics','patients','follow-ups']).",
       prompt: text + (teamSize ? `
 
 Team size: ${teamSize}` : ""),
@@ -70434,23 +70623,32 @@ Team size: ${teamSize}` : ""),
           recommended_plan: { type: "string", enum: ["scout", "operator", "command", "sovereign"] },
           recommend_pack: { type: "boolean" },
           plan_reason: { type: "string" },
-          summary: { type: "string" }
+          summary: { type: "string" },
+          business_model: { type: "string" },
+          target_customers: { type: "string" },
+          discovery_focus: { type: "string" },
+          suggested_objects: { type: "array", items: { type: "string" } }
         },
         required: ["industry_vertical", "recommended_plan"]
       },
-      maxTokens: 360,
+      maxTokens: 420,
       onUsage: (u2) => recordCreditUsage(ws, u2.total_tokens, "Onboarding semantic analysis")
     });
     const vertical = typeof extracted.industry_vertical === "string" && extracted.industry_vertical.trim() ? extracted.industry_vertical.trim() : result.industry_vertical;
     const mods = Array.isArray(extracted.recommended_modules) ? extracted.recommended_modules.filter((m2) => ["finance", "investments", "hr"].includes(m2)) : result.recommended_modules;
     const plan = ["scout", "operator", "command", "sovereign"].includes(String(extracted.recommended_plan)) ? String(extracted.recommended_plan) : result.recommended_plan;
+    const asText = (v2) => typeof v2 === "string" ? v2.trim() : "";
     result = {
       industry_vertical: vertical,
       recommended_modules: mods,
       summary: typeof extracted.summary === "string" ? extracted.summary.trim() : "",
       recommended_plan: plan,
       recommend_pack: Boolean(extracted.recommend_pack),
-      plan_reason: typeof extracted.plan_reason === "string" ? extracted.plan_reason.trim() : ""
+      plan_reason: typeof extracted.plan_reason === "string" ? extracted.plan_reason.trim() : "",
+      business_model: asText(extracted.business_model),
+      target_customers: asText(extracted.target_customers),
+      discovery_focus: asText(extracted.discovery_focus),
+      suggested_objects: Array.isArray(extracted.suggested_objects) ? extracted.suggested_objects.filter((x2) => typeof x2 === "string" && x2.trim().length > 0).map((x2) => x2.trim()).slice(0, 4) : []
     };
   } catch {
   }
@@ -70516,6 +70714,12 @@ router42.post("/complete", requireAuth, async (c2) => {
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = wsRow?.settings ?? {};
   const { trial_ends_at: _t2, pending_plan: _p, ...baseSettings } = settings;
+  const nextProfile = mergeProfile(resolveProfile(settings), {
+    ...body.industry ? { industry: body.industry } : {},
+    ...Array.isArray(body.goals) && body.goals.length ? { primary_goals: body.goals } : {},
+    ...body.description?.trim() ? { target_customers: body.description.trim() } : {},
+    ...body.profile && typeof body.profile === "object" ? body.profile : {}
+  });
   await supabase.from("workspaces").update({
     onboarded: true,
     settings: {
@@ -70531,7 +70735,8 @@ router42.post("/complete", requireAuth, async (c2) => {
       ...typeof body.concurrency === "number" ? { target_concurrency: body.concurrency } : {},
       ...Array.isArray(body.goals) ? { goals: body.goals } : {},
       ...enabledMods.length ? { modules: enabledMods } : {},
-      ...trialEndsAt ? { trial_ends_at: trialEndsAt, trial_used: true } : {}
+      ...trialEndsAt ? { trial_ends_at: trialEndsAt, trial_used: true } : {},
+      profile: nextProfile
     }
   }).eq("id", ws);
   await supabase.from("workspaces").update({ plan: effectiveTier }).eq("id", ws).then(() => {

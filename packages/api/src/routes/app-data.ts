@@ -12,6 +12,7 @@ import { reconcileIncludedCredits } from "../lib/credits";
 import { PLAN_TIERS } from "@mondaily/shared/pricing";
 import { planLimits } from "../lib/plan-limits";
 import { resolveEntitlement, getEntitlement } from "../lib/entitlements";
+import { resolveProfile, mergeProfile, discoverySuggestions, askStarterPrompts, profileObjects, profileTerms, type WorkspaceProfile } from "@mondaily/shared/profile";
 
 // Seat limit for a workspace — resolved entitlement tier → catalog seats (the ONE source). Scout 1,
 // Operator 5, Command 20, Sovereign 999. Used by both /settings/members (can_invite) and /billing.
@@ -420,6 +421,23 @@ router.get("/settings/workspace", async (c) => {
     onboarded: (data as Record<string, unknown> | null)?.onboarded ?? false,
     member_count: memberCount ?? 1,
     modules: (settings.modules as string[] | undefined) ?? ["crm"],
+    // Industry-aware profile — resolved (falls back to legacy onboarding fields for old workspaces).
+    profile: resolveProfile(settings),
+  });
+});
+
+// GET /workspace/suggestions — industry-aware examples/prompts derived from the workspace profile.
+// One source for Discovery examples, Ask starter prompts, canonical object nouns and preferred terms.
+// Empty/near-empty profiles yield neutral generic suggestions, so it's always safe to render.
+router.get("/workspace/suggestions", async (c) => {
+  const settings = await workspaceSettings(c.get("workspaceId"));
+  const profile = resolveProfile(settings);
+  return c.json({
+    profile,
+    discovery: discoverySuggestions(profile),
+    ask: askStarterPrompts(profile),
+    objects: profileObjects(profile),
+    terms: profileTerms(profile),
   });
 });
 
@@ -442,13 +460,16 @@ async function persistLogo(workspaceId: string, dataUrl: string): Promise<string
 
 router.patch("/settings/workspace", async (c) => {
   const wid = c.get("workspaceId");
-  const body = await c.req.json<{ name?: string; slug?: string; timezone?: string; modules?: string[]; logo_url?: string }>();
+  const body = await c.req.json<{ name?: string; slug?: string; timezone?: string; modules?: string[]; logo_url?: string; profile?: Partial<WorkspaceProfile> }>();
   const settings = await workspaceSettings(wid);
+  // Merge any profile patch onto the resolved profile so partial edits don't wipe other fields.
+  const nextProfile = body.profile !== undefined ? mergeProfile(resolveProfile(settings), body.profile) : undefined;
   const update: Record<string, unknown> = {
     settings: {
       ...settings,
       ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
       ...(body.modules !== undefined ? { modules: body.modules } : {}),
+      ...(nextProfile !== undefined ? { profile: nextProfile } : {}),
     },
   };
   if (body.name !== undefined) update.name = body.name;

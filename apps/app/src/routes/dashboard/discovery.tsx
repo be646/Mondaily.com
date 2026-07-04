@@ -7,6 +7,7 @@ import {
   CheckSquare, ShieldCheck, ArrowRight,
 } from "lucide-react";
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
+import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { requestAsk } from "../../lib/ask-bus";
 
 /**
@@ -59,11 +60,12 @@ interface Turn {
 interface ListRow { id: string; name: string; object_type: string; entry_count?: number }
 interface DiscoveryStatus { status: "HEALTHY" | "DEGRADED"; services: { searxng_reachable: boolean; scraper_reachable: boolean }; diagnostic?: string }
 
-const EXAMPLES = [
-  { icon: Users, label: "Aesthetic clinics in London", q: "aesthetic clinics in London" },
-  { icon: Star, label: "Reviews about Trustpilot", q: "what do people say about Trustpilot" },
-  { icon: Users, label: "Solar installers in Texas", q: "commercial solar installers in Texas" },
-  { icon: Star, label: "Reviews about Acme Corp", q: "reviews and complaints about Acme Corp" },
+// Neutral generic fallback shown while the workspace profile loads, or when it has no signal.
+const FALLBACK_EXAMPLES = [
+  { icon: Users, label: "Find companies matching your ideal customer", q: "companies matching my ideal customer profile" },
+  { icon: Star, label: "Reviews about a competitor", q: "reviews and complaints about a competitor" },
+  { icon: Users, label: "Find prospects in your region", q: "prospects in my region" },
+  { icon: Star, label: "What people say about a business", q: "what do people say about a business" },
 ];
 
 const hostOf = (url?: string | null) => {
@@ -358,6 +360,12 @@ function Source({ label, ok, detail, muted }: { label: string; ok: boolean; deta
 }
 
 function Empty({ onPick }: { onPick: (q: string) => void }) {
+  // Industry-aware examples from the workspace profile; fall back to neutral generic ones while
+  // loading or when the profile has no signal. Free-form search is always available regardless.
+  const { data: suggestions } = useWorkspaceSuggestions();
+  const examples = suggestions?.discovery?.length
+    ? suggestions.discovery.map((q, i) => ({ icon: i % 2 === 0 ? Users : Star, label: q, q }))
+    : FALLBACK_EXAMPLES;
   return (
     <div className="flex h-full flex-col items-center justify-center py-10 text-center">
       <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: "var(--surface-hover)" }}>
@@ -369,7 +377,7 @@ function Empty({ onPick }: { onPick: (q: string) => void }) {
         source-backed prospects — or what people are really saying about a business.
       </p>
       <div className="mt-6 grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
-        {EXAMPLES.map((ex) => (
+        {examples.map((ex) => (
           <button key={ex.q} onClick={() => onPick(ex.q)}
             className="flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-[12.5px] transition-colors hover:border-[color:var(--section-accent)]"
             style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>

@@ -20,6 +20,7 @@ import { useAskEngine } from "./use-ask-engine";
 import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, TokenLedger, Markdown, sourcesToLinks } from "./ask-shared";
 import { useAttachments, AttachPicker, AttachChips, AttachButton } from "./use-attachments";
 import { useVoiceDictation } from "./use-voice";
+import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 
 
 // ── Accent palette (same as home) ─────────────────────────────────────────────
@@ -86,6 +87,10 @@ const EMPTY_SUGGESTION_GROUPS = [
 export function AskMondaily() {
   const { threadId } = useParams();
   const askMode = askModeForPath(useLocation().pathname);
+  // Industry-aware starter prompts from the workspace profile, followed by the general defaults
+  // (deduped). Falls back to the generic defaults while loading / when the profile has no signal.
+  const { data: wsSuggestions } = useWorkspaceSuggestions();
+  const emptySuggestions = [...new Set([...(wsSuggestions?.ask ?? []), ...EMPTY_SUGGESTION_GROUPS])].slice(0, 9);
   const [input, setInput] = useState("");
   const voice = useVoiceDictation(setInput);
   const [feedbackGiven, setFeedbackGiven] = useState<Record<number, 1 | -1>>({});
@@ -290,7 +295,7 @@ export function AskMondaily() {
               <p className="text-sm font-medium text-[#111827] dark:text-[var(--text-primary)] mb-1">What do you want to know about the workspace graph?</p>
               <p className="text-xs text-[#9ca3af] dark:text-stone-500 mb-6">Tasks, finance, relationships, notes, workflows — one connected graph, this workspace only.</p>
               <div className="chat-suggestion-stack mx-auto max-w-md">
-                {EMPTY_SUGGESTION_GROUPS.map(s => (
+                {emptySuggestions.map(s => (
                   <button key={s} onClick={() => sendSuggestion(s)} className="chat-suggestion-row group">
                     <span className="flex-1 truncate">{s}</span>
                     <CornerDownLeft size={12} className="shrink-0 opacity-45 transition-opacity group-hover:opacity-100"/>

@@ -6,6 +6,7 @@ import { grantCredits, creditStatus } from "../lib/credits";
 import { grantAmountFor, normalizeTierId, PLAN_TIERS, PLAN_ORDER } from "@mondaily/shared/pricing";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { recordCreditUsage } from "../lib/credits";
+import { resolveProfile, mergeProfile, type WorkspaceProfile } from "@mondaily/shared/profile";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string; financeRole: string } }>();
 
@@ -44,7 +45,7 @@ router.post("/analyze", requireAuth, async (c) => {
     else if (size > 5 || /(oversight|team|manage|approvals|decision queue)/.test(t)) plan = "command";
     else if (size >= 1 && /(discovery|enrich|research|prospect|finance|agents|deep)/.test(t)) plan = "operator";
     else if (size > 1) plan = "operator";
-    return { industry_vertical: purpose || "General Operations", recommended_modules: modules, summary: "", recommended_plan: plan, recommend_pack: false, plan_reason: "" };
+    return { industry_vertical: purpose || "General Operations", recommended_modules: modules, summary: "", recommended_plan: plan, recommend_pack: false, plan_reason: "", business_model: "", target_customers: "", discovery_focus: "", suggested_objects: [] as string[] };
   };
 
   let result = heuristic();
@@ -58,7 +59,12 @@ router.post("/analyze", requireAuth, async (c) => {
         "Recommend based on: team size, expected AI usage (chat/agents/enrichment/Discovery deep research/report generation), finance workflows, Decision-Queue approvals, Team Oversight need, and compliance/private-infrastructure needs. Solo/just trying → scout; a team running on AI (Discovery, finance, agents) → operator; a larger team (>5) or one needing oversight/approvals at scale → command; compliance/self-hosted/private → sovereign. " +
         "recommend_pack — true if their expected usage is likely to exceed the plan's included monthly credits (then suggest pay-as-you-go packs). " +
         "plan_reason — ONE short sentence (<=20 words) on why that plan fits. " +
-        "summary — ONE friendly sentence (<=22 words) on how their workspace will be set up.",
+        "summary — ONE friendly sentence (<=22 words) on how their workspace will be set up. " +
+        // Industry-aware profile inference (tunes examples/terms only — Mondaily stays general).
+        "business_model — a concise label like 'B2B services', 'B2C ecommerce', 'Marketplace', 'B2B SaaS'. " +
+        "target_customers — a short phrase for who they sell to / serve. " +
+        "discovery_focus — a short phrase for what web/Discovery searches should hunt for (e.g. 'clinics with poor reviews'). " +
+        "suggested_objects — 2-4 short lowercase nouns for the records they track (e.g. ['clinics','patients','follow-ups']).",
       prompt: text + (teamSize ? `\n\nTeam size: ${teamSize}` : ""),
       toolName: "configure_workspace",
       toolDescription: "Return the inferred workspace architecture profile + plan recommendation.",
@@ -71,10 +77,14 @@ router.post("/analyze", requireAuth, async (c) => {
           recommend_pack: { type: "boolean" },
           plan_reason: { type: "string" },
           summary: { type: "string" },
+          business_model: { type: "string" },
+          target_customers: { type: "string" },
+          discovery_focus: { type: "string" },
+          suggested_objects: { type: "array", items: { type: "string" } },
         },
         required: ["industry_vertical", "recommended_plan"],
       },
-      maxTokens: 360,
+      maxTokens: 420,
       onUsage: (u) => recordCreditUsage(ws, u.total_tokens, "Onboarding semantic analysis"),
     });
     const vertical = typeof extracted.industry_vertical === "string" && extracted.industry_vertical.trim() ? extracted.industry_vertical.trim() : result.industry_vertical;
@@ -82,6 +92,7 @@ router.post("/analyze", requireAuth, async (c) => {
       ? (extracted.recommended_modules as unknown[]).filter((m): m is string => ["finance", "investments", "hr"].includes(m as string))
       : result.recommended_modules;
     const plan = ["scout", "operator", "command", "sovereign"].includes(String(extracted.recommended_plan)) ? String(extracted.recommended_plan) : result.recommended_plan;
+    const asText = (v: unknown) => (typeof v === "string" ? v.trim() : "");
     result = {
       industry_vertical: vertical,
       recommended_modules: mods,
@@ -89,6 +100,12 @@ router.post("/analyze", requireAuth, async (c) => {
       recommended_plan: plan,
       recommend_pack: Boolean(extracted.recommend_pack),
       plan_reason: typeof extracted.plan_reason === "string" ? extracted.plan_reason.trim() : "",
+      business_model: asText(extracted.business_model),
+      target_customers: asText(extracted.target_customers),
+      discovery_focus: asText(extracted.discovery_focus),
+      suggested_objects: Array.isArray(extracted.suggested_objects)
+        ? (extracted.suggested_objects as unknown[]).filter((x): x is string => typeof x === "string" && x.trim().length > 0).map((x) => x.trim()).slice(0, 4)
+        : [],
     };
   } catch { /* keep heuristic — onboarding must never hard-fail */ }
 
@@ -162,7 +179,7 @@ router.get("/status", requireAuth, async (c) => {
 router.post("/complete", requireAuth, async (c) => {
   const ws = c.get("workspaceId");
   const userId = c.get("userId");
-  const body = await c.req.json<{ plan?: string; track?: string; account_tier?: string; industry?: string; team_size?: string; concurrency?: number; goals?: string[]; modules?: string[] }>().catch(() => ({} as Record<string, never>));
+  const body = await c.req.json<{ plan?: string; track?: string; account_tier?: string; industry?: string; team_size?: string; concurrency?: number; goals?: string[]; modules?: string[]; profile?: Partial<WorkspaceProfile>; description?: string }>().catch(() => ({} as Record<string, never>));
   // Optional product modules to switch on (finance/investments/hr) — from the AI recommendation.
   const enabledMods = Array.isArray(body.modules) ? body.modules.filter((m) => ["finance", "investments", "hr"].includes(m)) : [];
   // Resolve the chosen tier. Prefer the explicit `plan`; fall back to legacy track/account_tier.
@@ -187,6 +204,15 @@ router.post("/complete", requireAuth, async (c) => {
   const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
   // Clear any stale trial/pending flags first, then set the correct ones for this tier.
   const { trial_ends_at: _t, pending_plan: _p, ...baseSettings } = settings;
+  // Build the industry-aware workspace profile from the onboarding answers + AI inference. Saved
+  // explicitly so Discovery examples, Ask context and suggestions can adapt. Only tunes examples/
+  // terms/defaults — Mondaily stays a general autonomous workspace.
+  const nextProfile = mergeProfile(resolveProfile(settings), {
+    ...(body.industry ? { industry: body.industry } : {}),
+    ...(Array.isArray(body.goals) && body.goals.length ? { primary_goals: body.goals } : {}),
+    ...(body.description?.trim() ? { target_customers: body.description.trim() } : {}),
+    ...(body.profile && typeof body.profile === "object" ? body.profile : {}),
+  });
   // Write `settings` + `onboarded` on their own (jsonb — the entitlement source of truth). The
   // top-level `plan` column is written SEPARATELY and best-effort: the workspaces_plan_check
   // constraint historically rejects non-legacy values, and a combined update would roll BACK the
@@ -205,6 +231,7 @@ router.post("/complete", requireAuth, async (c) => {
       ...(Array.isArray(body.goals) ? { goals: body.goals } : {}),
       ...(enabledMods.length ? { modules: enabledMods } : {}),
       ...(trialEndsAt ? { trial_ends_at: trialEndsAt, trial_used: true } : {}),
+      profile: nextProfile,
     },
   }).eq("id", ws);
   await supabase.from("workspaces").update({ plan: effectiveTier }).eq("id", ws).then(() => {}, () => {});

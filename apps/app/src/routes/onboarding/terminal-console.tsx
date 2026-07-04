@@ -99,6 +99,8 @@ export function TerminalOnboardingPage() {
   const idRef = useRef(100);
   const scrollRef = useRef<HTMLDivElement>(null);
   const mounted = useRef(true);
+  // Inferred industry profile captured at /analyze, persisted at /complete (adapts examples + AI context).
+  const aiProfileRef = useRef<Record<string, unknown>>({});
 
   const push = (text: string, tone: Tone = "dim") =>
     setLines(prev => [...prev, { id: ++idRef.current, text, tone }]);
@@ -142,12 +144,21 @@ export function TerminalOnboardingPage() {
 
     // Smart step: Cerebras infers the sector, a tailored summary, and which product modules to
     // switch on — from the survey answers + any free text. Falls back gracefully if it errors.
-    let ai: { industry_vertical?: string; recommended_modules?: string[]; summary?: string } = {};
+    let ai: { industry_vertical?: string; recommended_modules?: string[]; summary?: string; business_model?: string; target_customers?: string; discovery_focus?: string; suggested_objects?: string[] } = {};
     try {
       ai = await apiClient.post("/onboarding/analyze", {
         purpose: answers.purpose, team_size: answers.team_size, goals: answers.goals, description: freeText.trim(),
       });
     } catch { /* heuristic-free fallback below */ }
+    // Capture the inferred industry profile to persist at /complete (adapts examples + AI context).
+    aiProfileRef.current = {
+      industry: ai.industry_vertical || answers.purpose || "",
+      business_model: ai.business_model || "",
+      target_customers: ai.target_customers || freeText.trim() || "",
+      discovery_focus: ai.discovery_focus || "",
+      main_objects_tracked: Array.isArray(ai.suggested_objects) ? ai.suggested_objects : [],
+      primary_goals: answers.goals ?? [],
+    };
     if (!mounted.current) return;
     setLines(prev => prev.filter(l => l.text !== "[...MONDAILY ARCHITECT ANALYZING YOUR OPERATION...]"));
 
@@ -196,6 +207,8 @@ export function TerminalOnboardingPage() {
         team_size: answers.team_size,
         goals: answers.goals,
         modules: aiModules,   // switch on the AI-recommended product modules
+        description: freeText.trim(),
+        profile: aiProfileRef.current,  // industry-aware profile inferred at /analyze
       });
     } catch { /* even if persistence hiccups, do not trap the user in onboarding */ }
     push("[✓ WORKSPACE PROVISIONED]", "ok");

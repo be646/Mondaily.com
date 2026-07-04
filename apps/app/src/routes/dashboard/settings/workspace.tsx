@@ -5,6 +5,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 import { PageSkeleton } from "../../../components/ui/page-state";
+import { EMPTY_PROFILE, type WorkspaceProfile } from "@mondaily/shared/profile";
 
 interface WorkspaceData {
   name: string;
@@ -13,6 +14,7 @@ interface WorkspaceData {
   currency?: string;
   logo_url?: string;
   modules?: string[];
+  profile?: WorkspaceProfile;
 }
 
 interface InviteResult {
@@ -35,7 +37,7 @@ const currencies = ["USD", "GBP", "EUR", "CAD", "AUD", "PLN", "AED", "SGD", "JPY
 
 // Members & finance access were consolidated into the dedicated Members page (Settings → Members)
 // to remove the duplicate people/roles surface. Workspace settings = identity + modules + danger.
-type Section = "general" | "modules" | "danger";
+type Section = "general" | "profile" | "modules" | "danger";
 
 interface NavItem {
   key: Section;
@@ -46,6 +48,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { key: "general",  label: "General",     icon: Building2 },
+  { key: "profile",  label: "Workspace profile", icon: Globe },
   { key: "modules",  label: "Modules",     icon: Zap },
   { key: "danger",   label: "Danger Zone", icon: AlertCircle, danger: true },
 ];
@@ -270,6 +273,66 @@ function DangerZoneSection({ form }: { form: WorkspaceData }) {
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
 
+// ─── Workspace profile ───────────────────────────────────────────────────────
+// Industry-aware personalization. Only tunes examples, terminology and defaults across Discovery,
+// Ask and suggestions — Mondaily stays a general autonomous workspace + asset-graph engine.
+function ProfileSection({ initial }: { initial: WorkspaceProfile }) {
+  const qc = useQueryClient();
+  const [p, setP] = useState<WorkspaceProfile>(initial);
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { setP(initial); }, [initial]);
+
+  const set = <K extends keyof WorkspaceProfile>(k: K, v: WorkspaceProfile[K]) => setP(prev => ({ ...prev, [k]: v }));
+
+  const save = useMutation({
+    mutationFn: () => apiClient.patch("/settings/workspace", { profile: p }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["workspace-settings"] });
+      qc.invalidateQueries({ queryKey: ["workspace-suggestions"] });
+      setSaved(true); setTimeout(() => setSaved(false), 2000);
+    },
+    onError: (e: unknown) => alert(e instanceof Error ? e.message : "Could not save the workspace profile."),
+  });
+
+  const field = "w-full rounded-lg border px-3 py-2 text-[13px] bg-transparent";
+  const style = { borderColor: "var(--border-soft)", color: "var(--text-primary)" } as const;
+  const Label = ({ children }: { children: React.ReactNode }) =>
+    <label className="mb-1 block text-[12px] font-medium text-[var(--text-secondary)]">{children}</label>;
+
+  return (
+    <div className="max-w-2xl">
+      <div className="mb-4">
+        <h2 className="text-sm font-semibold text-[var(--text-primary)] mb-0.5">Workspace profile</h2>
+        <p className="text-[12px] text-[var(--text-muted)]">Tell Mondaily about your business so Discovery examples, Ask prompts and AI context adapt to you. This only changes examples and wording — never your data.</p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div><Label>Industry</Label><input className={field} style={style} value={p.industry} onChange={e => set("industry", e.target.value)} placeholder="e.g. Aesthetic clinics" /></div>
+        <div><Label>Region</Label><input className={field} style={style} value={p.region} onChange={e => set("region", e.target.value)} placeholder="e.g. London, Poland" /></div>
+        <div className="sm:col-span-2"><Label>Target customers</Label><input className={field} style={style} value={p.target_customers} onChange={e => set("target_customers", e.target.value)} placeholder="Who you sell to / serve" /></div>
+        <div className="sm:col-span-2"><Label>Discovery focus</Label><input className={field} style={style} value={p.discovery_focus} onChange={e => set("discovery_focus", e.target.value)} placeholder="e.g. clinics with poor reviews" /></div>
+        <div><Label>Language</Label><input className={field} style={style} value={p.language} onChange={e => set("language", e.target.value)} placeholder="en" /></div>
+        <div><Label>Business model</Label><input className={field} style={style} value={p.business_model} onChange={e => set("business_model", e.target.value)} placeholder="e.g. B2B services" /></div>
+        <div className="sm:col-span-2"><Label>Primary goals <span className="text-[var(--text-faint)]">(comma-separated)</span></Label>
+          <input className={field} style={style} value={p.primary_goals.join(", ")} onChange={e => set("primary_goals", e.target.value.split(",").map(s => s.trim()).filter(Boolean))} placeholder="book more consultations, reduce no-shows" /></div>
+        <div className="sm:col-span-2"><Label>Preferred terms <span className="text-[var(--text-faint)]">(one per line, generic = yours)</span></Label>
+          <textarea className={`${field} min-h-[70px] font-mono text-[12px]`} style={style}
+            value={Object.entries(p.preferred_terms).map(([k, v]) => `${k} = ${v}`).join("\n")}
+            onChange={e => set("preferred_terms", Object.fromEntries(e.target.value.split("\n").map(l => l.split("=").map(s => s.trim())).filter(pair => pair.length === 2 && pair[0] && pair[1]) as [string, string][]))}
+            placeholder={"contact = patient\ndeal = case"} /></div>
+      </div>
+
+      <div className="mt-5 flex items-center gap-3">
+        <button onClick={() => save.mutate()} disabled={save.isPending}
+          className="rounded-lg bg-stone-950 px-4 py-2 text-[13px] font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-black">
+          {save.isPending ? "Saving…" : "Save profile"}
+        </button>
+        {saved && <span className="flex items-center gap-1.5 text-[12px] text-emerald-500"><Check size={13} /> Saved</span>}
+      </div>
+    </div>
+  );
+}
+
 export function WorkspaceSettings() {
   const qc = useQueryClient();
   const logoRef = useRef<HTMLInputElement>(null);
@@ -372,6 +435,9 @@ export function WorkspaceSettings() {
             logoError={logoError}
             logoBusy={logoBusy}
           />
+        )}
+        {section === "profile" && (
+          <ProfileSection initial={query.data?.profile ?? EMPTY_PROFILE} />
         )}
         {section === "modules" && (
           <ModulesSection form={form} setForm={setForm} save={save} saved={saved} />

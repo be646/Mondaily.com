@@ -6,7 +6,8 @@
   "exports": {
     "./types": "./src/types.ts",
     "./constants": "./src/constants.ts",
-    "./pricing": "./src/pricing.ts"
+    "./pricing": "./src/pricing.ts",
+    "./profile": "./src/profile.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

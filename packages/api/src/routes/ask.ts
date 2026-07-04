@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { verifyAiCredits } from "../lib/credits";
 import { supabase } from "@mondaily/db/client";
+import { resolveProfile, profileContextBlock } from "@mondaily/shared/profile";
 import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
 import { runProspecting } from "./prospecting";
@@ -1325,6 +1326,18 @@ const HISTORY_TURN_LIMIT = 16; // last N turns (user+assistant messages combined
 
 /** Builds the "what the user currently has open" note appended to the system
  *  prompt. Shared by the non-streaming and streaming ask endpoints. */
+/** Load the workspace's industry profile as a compact system-prompt block (relevance/terms only —
+ *  the model is still told never to fabricate data). Empty string when there's no profile signal or
+ *  on any error, so it can never break a chat request. */
+export async function workspaceProfileBlock(workspaceId: string | undefined): Promise<string> {
+  if (!workspaceId) return "";
+  try {
+    const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+    const block = profileContextBlock(resolveProfile((data?.settings as Record<string, unknown> | null) ?? null));
+    return block ? `\n\n${block}` : "";
+  } catch { return ""; }
+}
+
 export function buildContextNote(context: Record<string, any> | undefined): string {
   let contextNote = "";
   if (!context) return contextNote;
@@ -1429,8 +1442,9 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
     }
 
     const contextNote = buildContextNote(context);
+    const profileBlock = await workspaceProfileBlock(workspaceId);
 
-    const systemPrompt = SYSTEM_PROMPT + (webContext ? `\n\nWeb context:\n${webContext}` : "") + contextNote;
+    const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + contextNote;
 
     // Prepend prior conversation turns (capped) so the model has real memory
     // of this thread instead of treating every message as the first one.
@@ -1572,7 +1586,8 @@ router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object
     try {
       let webContext = "";
       if (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true") webContext = await searchWeb(message);
-      const systemPrompt = SYSTEM_PROMPT + (webContext ? `\n\nWeb context:\n${webContext}` : "") + buildContextNote(context as Record<string, any> | undefined);
+      const profileBlock = await workspaceProfileBlock(workspaceId);
+      const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + buildContextNote(context as Record<string, any> | undefined);
       const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content }));
       const messages: any[] = [...priorTurns, { role: "user", content: message }];
       const sources: SourceMeta[] = [];
