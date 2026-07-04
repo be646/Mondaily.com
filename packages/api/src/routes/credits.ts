@@ -4,7 +4,7 @@ import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { createCreditPackCheckout } from "../lib/credit-pack";
 import { burstStatus, reconcileIncludedCredits } from "../lib/credits";
-import { getEntitlement } from "../lib/entitlements";
+import { getEntitlement, resolveEntitlement } from "../lib/entitlements";
 import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER, computePackCredits, monthlyCreditsFor, type BillingInterval } from "@mondaily/shared/pricing";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string; financeRole: string } }>();
@@ -48,8 +48,10 @@ router.get("/balance", async (c) => {
   const used = Math.abs(usedNeg);
   const rawBalance = granted + purchased + usedNeg;      // grants + purchases − usage
   const remaining = Math.max(0, rawBalance);            // floor — users never see a negative balance
-  // Denominator for the meter: included monthly + anything they purchased on top.
-  const capacity = (included ?? granted) + purchased;
+  // Denominator for the meter: included monthly + anything they purchased on top. Floored at
+  // `remaining` so the bar is NEVER < the number it contains (guards the "984k / 550k" impossibility
+  // if the entitlement is briefly inconsistent).
+  const capacity = Math.max(remaining, (included ?? granted) + purchased);
   const ar = (settings.auto_refill ?? {}) as Record<string, unknown>;
   const burst = enrolled ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
   return c.json({
@@ -104,33 +106,89 @@ router.post("/reconcile", requireAdminRole, async (c) => {
   return c.json({ ok: true, credits_added: added });
 });
 
-// GET /credits/diagnostics — admin-safe explanation of the whole wallet (item 8). Read-only.
+// GET /credits/diagnostics — admin-safe, read-only. Exposes BOTH the raw stored fields and the
+// resolved entitlement side-by-side, plus WHY it resolved that way and whether the two disagree —
+// so a "credits granted but tier still Scout" disconnect is diagnosable without guessing.
 router.get("/diagnostics", requireAdminRole, async (c) => {
   const ws = c.get("workspaceId");
-  const { data: rows } = await supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws);
+  const [{ data: wsRow }, { data: rows }] = await Promise.all([
+    supabase.from("workspaces").select("plan, settings").eq("id", ws).maybeSingle(),
+    supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws),
+  ]);
+  const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
+  const planColumn = (wsRow as { plan?: string } | null)?.plan ?? null;
   const list = rows ?? [];
   const included = list.filter(r => r.transaction_type === "grant").reduce((s, r) => s + Number(r.amount), 0);
   const purchased = list.filter(r => r.transaction_type === "purchase").reduce((s, r) => s + Number(r.amount), 0);
   const used = Math.abs(list.filter(r => r.transaction_type === "usage").reduce((s, r) => s + Number(r.amount), 0));
   const rawBalance = included + purchased - used;
-  const ent = await getEntitlement(ws);
+  const remaining = Math.max(0, rawBalance);
+
+  const ent = resolveEntitlement(settings, planColumn);
   const tier = ent.tier;
-  const target = monthlyCreditsFor(tier);
+  const target = monthlyCreditsFor(tier);                 // included monthly for the RESOLVED tier
+  const capacity = Math.max(remaining, (target ?? included) + purchased);
+  const trialEndsAt = (settings.trial_ends_at as string) ?? null;
+  const trialActive = trialEndsAt ? new Date(trialEndsAt).getTime() > Date.now() : false;
+  const trialUsed = Boolean(settings.trial_used);
+
+  // Human-readable reason the resolver landed on this tier.
+  let why: string;
+  if (settings.billing_status === "cancelled") why = "billing_status is 'cancelled' → Scout";
+  else if (settings.billing_status === "active" && settings.stripe_subscription_id) why = `active paid subscription → ${tier}`;
+  else if (trialEndsAt && trialActive) why = "trial_ends_at is in the future → Operator (trial)";
+  else if (trialEndsAt && !trialActive) why = "trial_ends_at is in the PAST → Scout (expired trial)";
+  else if (tier !== "scout") why = `account_tier/plan resolves to '${tier}' with no trial marker → ${tier}`;
+  else why = `no trial marker and account_tier/plan ('${(settings.account_tier as string) ?? planColumn ?? "none"}') normalizes to Scout`;
+
+  // The tell-tale disconnect: an Operator-sized grant sitting on a Scout entitlement.
+  const grantSuggestsOperator = included >= 1_000_000;
+  const tierCreditMismatch = grantSuggestsOperator && tier === "scout";
+
   const burst = list.length > 0 ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
   return c.json({
+    workspace_id: ws,
+    // ── raw stored fields ──
+    workspaces_plan_column: planColumn,
+    settings_account_tier: (settings.account_tier as string) ?? null,
+    settings_plan: (settings.plan as string) ?? null,
+    settings_track: (settings.track as string) ?? null,
+    settings_trial_used: trialUsed,
+    settings_trial_ends_at: trialEndsAt,
+    settings_billing_status: (settings.billing_status as string) ?? null,
+    settings_pending_plan: (settings.pending_plan as string) ?? null,
+    // ── resolved entitlement ──
+    resolved_tier: tier,
+    resolved_source: ent.source,
+    resolved_why: why,
+    trial_active: trialActive,
+    // ── credit model ──
+    included_monthly_credits: target,
+    grant_row_total: included,
+    purchased_total: purchased,
+    usage_total: used,
+    raw_balance: rawBalance,
+    remaining,
+    capacity,
+    trial_eligible: !trialUsed && tier === "scout",
+    // ── what the frontend receives (must agree) ──
+    billing_plan_returned: tier,               // GET /billing `plan`
+    balance_account_tier_returned: tier,       // GET /credits/balance `account_tier`
+    // ── health flags ──
+    tier_credit_mismatch: tierCreditMismatch,  // true = Operator-sized grant on a Scout entitlement
+    grant_shortfall: target != null ? Math.max(0, target - included) : 0,
+    negative_flagged: rawBalance < 0,
+    // ── legacy field names kept for back-compat ──
     plan: tier,
     entitlement_source: ent.source,
     monthly_included_credits: target,
-    granted_credits: included,                          // grant rows actually in the ledger
-    grant_shortfall: target != null ? Math.max(0, target - included) : 0, // > 0 → needs reconcile
+    granted_credits: included,
     purchased_credits: purchased,
     used_credits: used,
-    remaining_credits: Math.max(0, rawBalance),        // floored
-    raw_balance: rawBalance,                            // may be < 0 for an un-reconciled legacy wallet
-    negative_flagged: rawBalance < 0,                  // if true, run migration 0021 to floor it
+    remaining_credits: remaining,
     burst: { used: burst.used, cap: burst.cap, window_hours: 5, limited: burst.limited, resets_at: burst.resetsAt },
     reset_date: nextResetIso(),
-    trial_ends_at: ent.trialEndsAt,
+    trial_ends_at: trialEndsAt,
     on_trial: ent.isTrial,
   });
 });

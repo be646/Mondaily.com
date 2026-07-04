@@ -137,7 +137,7 @@ describe("Start 14-day trial — one consistent activation, no double-grant", ()
   const appData = readFileSync(fileURLToPath(new URL("../routes/app-data.ts", import.meta.url)), "utf8");
   const credits = readFileSync(fileURLToPath(new URL("../lib/credits.ts", import.meta.url)), "utf8");
   const billing = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/settings/billing.tsx", import.meta.url)), "utf8");
-  const startTrial = appData.slice(appData.indexOf('router.post("/start-trial"'), appData.indexOf('router.post("/start-trial"') + 2100);
+  const startTrial = appData.slice(appData.indexOf('router.post("/start-trial"'), appData.indexOf('router.post("/start-trial"') + 2900);
 
   it("activates the Operator trial: account_tier=operator, trial_used, trial_ends_at, plan column", () => {
     expect(startTrial).toMatch(/account_tier: "operator"/);
@@ -177,5 +177,63 @@ describe("Start 14-day trial — one consistent activation, no double-grant", ()
     expect(billing).toMatch(/refreshEntitlementSurfaces/);
     // the Start button is gated on trial_eligible, which the backend flips to false on activation
     expect(billing).toMatch(/billing\.trial_eligible/);
+  });
+});
+
+describe("REPRO: plan-check constraint disconnect (1M credits but tier still Scout)", () => {
+  it("the broken live state — grant landed, settings markers did NOT — resolves to Scout", () => {
+    // Exactly what the DB showed: settings has no account_tier / trial_ends_at, plan column = 'trial'.
+    const e = resolveEntitlement({ track: "business" }, "trial");
+    expect(e.tier).toBe("scout");                 // 'trial' normalizes to scout — the disconnect
+    expect(e.includedMonthlyCredits).toBe(100_000);
+  });
+  it("Scout NEVER advertises 1,000,000 included credits", () => {
+    expect(resolveEntitlement({}, "trial").includedMonthlyCredits).toBe(100_000);
+    expect(resolveEntitlement({ track: "business" }).includedMonthlyCredits).toBe(100_000);
+  });
+  it("once the trial is ACTUALLY activated (markers persisted), it resolves to Operator trial + 1M", () => {
+    const future = new Date(Date.now() + 14 * 86_400_000).toISOString();
+    const e = resolveEntitlement({ account_tier: "operator", track: "business", trial_used: true, trial_ends_at: future }, "operator");
+    expect(e.tier).toBe("operator");
+    expect(e.source).toBe("trial");
+    expect(e.includedMonthlyCredits).toBe(1_000_000);
+  });
+});
+
+describe("plan-column write can never roll back the settings write (the fix)", () => {
+  const read = (p: string) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), "utf8");
+  const appData = read("../routes/app-data.ts");
+  const onboarding = read("../routes/onboarding.ts");
+  const billingTiers = read("../lib/billing-tiers.ts");
+
+  it("start-trial writes settings on its own CHECKED statement, fails closed, THEN grants", () => {
+    const fn = appData.slice(appData.indexOf('router.post("/start-trial"'), appData.indexOf('router.post("/start-trial"') + 2900);
+    expect(fn).toMatch(/const \{ error: settingsErr \} = await supabase\.from\("workspaces"\)\.update\(\{\s*settings:/);
+    expect(fn).toMatch(/if \(settingsErr\) return c\.json/);           // never grants if activation failed
+    // the plan column is a SEPARATE, tolerated write — not combined with settings
+    expect(fn).toMatch(/\.update\(\{ plan: "operator" \}\)\.eq\("id", ws\)\.then\(\(\) => \{\}, \(\) => \{\}\)/);
+    expect(fn).not.toMatch(/update\(\{\s*plan: "operator",\s*settings:/);
+  });
+  it("onboarding + activateTier also split settings from the constrained plan column", () => {
+    expect(onboarding).toMatch(/\.update\(\{ plan: effectiveTier \}\).*then/);
+    expect(onboarding).not.toMatch(/onboarded: true,\s*plan: effectiveTier,\s*settings:/);
+    expect(billingTiers).toMatch(/const \{ error: settingsErr \} = await supabase[\s\S]*update\(\{ settings \}\)/);
+    expect(billingTiers).toMatch(/\.update\(\{ plan: tier \}\).*then/);
+  });
+});
+
+describe("capacity is floored at remaining (no 984k / 550k impossible ratio)", () => {
+  const read = (p: string) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), "utf8");
+  it("backend /credits/balance floors capacity at remaining", () => {
+    expect(read("../routes/credits.ts")).toMatch(/const capacity = Math\.max\(remaining,/);
+  });
+  it("sidebar floors the denominator at remaining", () => {
+    expect(read("../../../../apps/app/src/components/layout/sidebar.tsx")).toMatch(/Math\.max\(wallet\.remaining,/);
+  });
+  it("diagnostics exposes the raw fields, resolved tier, and the mismatch flag", () => {
+    const src = read("../routes/credits.ts");
+    for (const f of ["workspaces_plan_column", "settings_account_tier", "settings_trial_ends_at", "resolved_tier", "resolved_why", "tier_credit_mismatch", "billing_plan_returned", "balance_account_tier_returned"]) {
+      expect(src, `diagnostics should return ${f}`).toMatch(new RegExp(f));
+    }
   });
 });

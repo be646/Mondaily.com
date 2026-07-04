@@ -187,9 +187,12 @@ router.post("/complete", requireAuth, async (c) => {
   const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
   // Clear any stale trial/pending flags first, then set the correct ones for this tier.
   const { trial_ends_at: _t, pending_plan: _p, ...baseSettings } = settings;
+  // Write `settings` + `onboarded` on their own (jsonb — the entitlement source of truth). The
+  // top-level `plan` column is written SEPARATELY and best-effort: the workspaces_plan_check
+  // constraint historically rejects non-legacy values, and a combined update would roll BACK the
+  // settings write too (that's the class of bug that left trials granted-but-not-activated).
   await supabase.from("workspaces").update({
     onboarded: true,
-    plan: effectiveTier,                        // keep the top-level column in lockstep with settings
     settings: {
       ...baseSettings,
       plan: effectiveTier,
@@ -204,6 +207,7 @@ router.post("/complete", requireAuth, async (c) => {
       ...(trialEndsAt ? { trial_ends_at: trialEndsAt, trial_used: true } : {}),
     },
   }).eq("id", ws);
+  await supabase.from("workspaces").update({ plan: effectiveTier }).eq("id", ws).then(() => {}, () => {});
 
   // Bring credits up to EXACTLY the entitled tier's allotment — grant only the shortfall, so we
   // never stack on the register-time baseline and re-running onboarding is idempotent.

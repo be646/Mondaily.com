@@ -24,7 +24,11 @@ export async function activateTier(workspaceId: string, tier: string, subscripti
   settings.track = tier === "scout" ? "solo" : "business";
   settings.billing_status = "active";
   if (subscriptionId) settings.stripe_subscription_id = subscriptionId;
-  await supabase.from("workspaces").update({ settings, plan: tier }).eq("id", workspaceId);
+  // Write settings (source of truth) first, checked; the `plan` column follows best-effort so a
+  // legacy plan-check constraint can't roll back the activation. Grant only after settings landed.
+  const { error: settingsErr } = await supabase.from("workspaces").update({ settings }).eq("id", workspaceId);
+  if (settingsErr) throw new Error(`activateTier: could not persist settings — ${settingsErr.message}`);
+  await supabase.from("workspaces").update({ plan: tier }).eq("id", workspaceId).then(() => {}, () => {});
   await grantTierCredits(workspaceId, tier, `${tier} plan activated via Stripe`);
 }
 

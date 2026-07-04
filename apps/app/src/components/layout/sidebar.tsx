@@ -457,8 +457,9 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
   const trialDaysLeft = wallet?.trial_ends_at
     ? Math.max(0, Math.ceil((new Date(wallet.trial_ends_at).getTime() - Date.now()) / 86_400_000))
     : null;
-  // Denominator: included monthly + purchased (falls back to remaining so the bar is never > 100%).
-  const walletCapacity = wallet ? (wallet.capacity || (wallet.included_monthly ?? 0) + (wallet.purchased ?? 0) || wallet.remaining) : 0;
+  // Denominator: included monthly + purchased, but NEVER lower than remaining (requirement 4 — no
+  // "984k / 550k" impossible ratio if the entitlement is briefly inconsistent).
+  const walletCapacity = wallet ? Math.max(wallet.remaining, wallet.capacity || (wallet.included_monthly ?? 0) + (wallet.purchased ?? 0)) : 0;
   const walletPct = wallet && walletCapacity > 0 ? Math.max(0, Math.min(100, Math.round((wallet.remaining / walletCapacity) * 100))) : 0;
 
   return (

@@ -914,16 +914,24 @@ router.post("/start-trial", async (c) => {
   }
   if (resolveEntitlement(settings).tier !== "scout") return c.json({ error: "Trials are only available on the free Scout plan." }, 409);
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
-  await supabase.from("workspaces").update({
-    plan: "operator",                      // keep the top-level column in lockstep with settings
+
+  // CRITICAL: write `settings` (jsonb — the entitlement source of truth) on its OWN update, and
+  // CHECK the error. Previously this was combined with a `plan: "operator"` column write; the
+  // workspaces_plan_check constraint rejects 'operator', so the WHOLE update was rolled back and the
+  // trial markers never persisted — yet the separate credit grant still ran, producing the
+  // "1,000,000 credits but tier still Scout" disconnect. Settings must land before we grant anything.
+  const { error: settingsErr } = await supabase.from("workspaces").update({
     settings: { ...settings, account_tier: "operator", plan: "operator", track: "business", trial_ends_at: trialEndsAt, trial_used: true },
   }).eq("id", ws);
-  // Top the INCLUDED credits up to the Operator allotment using the SAME grant-row reconciliation
-  // that /credits/balance uses — grant-row based, idempotent, never double-grants, and preserves any
-  // purchased credits on top. (The old balance-based delta grant disagreed with that reconciler and
-  // caused the transient "1,000,000 / 550,000" double-grant.)
+  if (settingsErr) return c.json({ error: "Could not activate the trial. Please try again." }, 500);
+
+  // Best-effort: keep the top-level `plan` column in lockstep. Tolerated to fail (legacy
+  // constraint) — the resolver reads settings.account_tier first, so entitlement is already correct.
+  await supabase.from("workspaces").update({ plan: "operator" }).eq("id", ws).then(() => {}, () => {});
+
+  // Now that the trial is truly ACTIVE, top included credits up to the Operator allotment via the
+  // SAME grant-row reconciler /credits/balance uses (idempotent, preserves purchased credits).
   await reconcileIncludedCredits(ws, { enrollIfEmpty: true });
-  // Return the fresh resolved state so the frontend updates immediately, even before refetch.
   const ent = await getEntitlement(ws);
   return c.json({ ok: true, plan: ent.tier, source: ent.source, trial_ends_at: ent.trialEndsAt, trial_used: true });
 });

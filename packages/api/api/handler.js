@@ -64595,7 +64595,7 @@ router15.get("/balance", async (c2) => {
   const used = Math.abs(usedNeg);
   const rawBalance = granted + purchased + usedNeg;
   const remaining = Math.max(0, rawBalance);
-  const capacity = (included ?? granted) + purchased;
+  const capacity = Math.max(remaining, (included ?? granted) + purchased);
   const ar2 = settings.auto_refill ?? {};
   const burst = enrolled ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
   return c2.json({
@@ -64645,35 +64645,81 @@ router15.post("/reconcile", requireAdminRole, async (c2) => {
 });
 router15.get("/diagnostics", requireAdminRole, async (c2) => {
   const ws = c2.get("workspaceId");
-  const { data: rows2 } = await supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws);
+  const [{ data: wsRow }, { data: rows2 }] = await Promise.all([
+    supabase.from("workspaces").select("plan, settings").eq("id", ws).maybeSingle(),
+    supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws)
+  ]);
+  const settings = wsRow?.settings ?? {};
+  const planColumn = wsRow?.plan ?? null;
   const list = rows2 ?? [];
   const included = list.filter((r2) => r2.transaction_type === "grant").reduce((s2, r2) => s2 + Number(r2.amount), 0);
   const purchased = list.filter((r2) => r2.transaction_type === "purchase").reduce((s2, r2) => s2 + Number(r2.amount), 0);
   const used = Math.abs(list.filter((r2) => r2.transaction_type === "usage").reduce((s2, r2) => s2 + Number(r2.amount), 0));
   const rawBalance = included + purchased - used;
-  const ent = await getEntitlement(ws);
+  const remaining = Math.max(0, rawBalance);
+  const ent = resolveEntitlement(settings, planColumn);
   const tier = ent.tier;
   const target = monthlyCreditsFor(tier);
+  const capacity = Math.max(remaining, (target ?? included) + purchased);
+  const trialEndsAt = settings.trial_ends_at ?? null;
+  const trialActive = trialEndsAt ? new Date(trialEndsAt).getTime() > Date.now() : false;
+  const trialUsed = Boolean(settings.trial_used);
+  let why;
+  if (settings.billing_status === "cancelled") why = "billing_status is 'cancelled' \u2192 Scout";
+  else if (settings.billing_status === "active" && settings.stripe_subscription_id) why = `active paid subscription \u2192 ${tier}`;
+  else if (trialEndsAt && trialActive) why = "trial_ends_at is in the future \u2192 Operator (trial)";
+  else if (trialEndsAt && !trialActive) why = "trial_ends_at is in the PAST \u2192 Scout (expired trial)";
+  else if (tier !== "scout") why = `account_tier/plan resolves to '${tier}' with no trial marker \u2192 ${tier}`;
+  else why = `no trial marker and account_tier/plan ('${settings.account_tier ?? planColumn ?? "none"}') normalizes to Scout`;
+  const grantSuggestsOperator = included >= 1e6;
+  const tierCreditMismatch = grantSuggestsOperator && tier === "scout";
   const burst = list.length > 0 ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
   return c2.json({
+    workspace_id: ws,
+    // ── raw stored fields ──
+    workspaces_plan_column: planColumn,
+    settings_account_tier: settings.account_tier ?? null,
+    settings_plan: settings.plan ?? null,
+    settings_track: settings.track ?? null,
+    settings_trial_used: trialUsed,
+    settings_trial_ends_at: trialEndsAt,
+    settings_billing_status: settings.billing_status ?? null,
+    settings_pending_plan: settings.pending_plan ?? null,
+    // ── resolved entitlement ──
+    resolved_tier: tier,
+    resolved_source: ent.source,
+    resolved_why: why,
+    trial_active: trialActive,
+    // ── credit model ──
+    included_monthly_credits: target,
+    grant_row_total: included,
+    purchased_total: purchased,
+    usage_total: used,
+    raw_balance: rawBalance,
+    remaining,
+    capacity,
+    trial_eligible: !trialUsed && tier === "scout",
+    // ── what the frontend receives (must agree) ──
+    billing_plan_returned: tier,
+    // GET /billing `plan`
+    balance_account_tier_returned: tier,
+    // GET /credits/balance `account_tier`
+    // ── health flags ──
+    tier_credit_mismatch: tierCreditMismatch,
+    // true = Operator-sized grant on a Scout entitlement
+    grant_shortfall: target != null ? Math.max(0, target - included) : 0,
+    negative_flagged: rawBalance < 0,
+    // ── legacy field names kept for back-compat ──
     plan: tier,
     entitlement_source: ent.source,
     monthly_included_credits: target,
     granted_credits: included,
-    // grant rows actually in the ledger
-    grant_shortfall: target != null ? Math.max(0, target - included) : 0,
-    // > 0 → needs reconcile
     purchased_credits: purchased,
     used_credits: used,
-    remaining_credits: Math.max(0, rawBalance),
-    // floored
-    raw_balance: rawBalance,
-    // may be < 0 for an un-reconciled legacy wallet
-    negative_flagged: rawBalance < 0,
-    // if true, run migration 0021 to floor it
+    remaining_credits: remaining,
     burst: { used: burst.used, cap: burst.cap, window_hours: 5, limited: burst.limited, resets_at: burst.resetsAt },
     reset_date: nextResetIso(),
-    trial_ends_at: ent.trialEndsAt,
+    trial_ends_at: trialEndsAt,
     on_trial: ent.isTrial
   });
 });
@@ -64726,7 +64772,11 @@ async function activateTier(workspaceId, tier, subscriptionId) {
   settings.track = tier === "scout" ? "solo" : "business";
   settings.billing_status = "active";
   if (subscriptionId) settings.stripe_subscription_id = subscriptionId;
-  await supabase.from("workspaces").update({ settings, plan: tier }).eq("id", workspaceId);
+  const { error: settingsErr } = await supabase.from("workspaces").update({ settings }).eq("id", workspaceId);
+  if (settingsErr) throw new Error(`activateTier: could not persist settings \u2014 ${settingsErr.message}`);
+  await supabase.from("workspaces").update({ plan: tier }).eq("id", workspaceId).then(() => {
+  }, () => {
+  });
   await grantTierCredits(workspaceId, tier, `${tier} plan activated via Stripe`);
 }
 async function downgradeToScout(workspaceId) {
@@ -65862,11 +65912,13 @@ router18.post("/start-trial", async (c2) => {
   }
   if (resolveEntitlement(settings).tier !== "scout") return c2.json({ error: "Trials are only available on the free Scout plan." }, 409);
   const trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1e3).toISOString();
-  await supabase.from("workspaces").update({
-    plan: "operator",
-    // keep the top-level column in lockstep with settings
+  const { error: settingsErr } = await supabase.from("workspaces").update({
     settings: { ...settings, account_tier: "operator", plan: "operator", track: "business", trial_ends_at: trialEndsAt, trial_used: true }
   }).eq("id", ws);
+  if (settingsErr) return c2.json({ error: "Could not activate the trial. Please try again." }, 500);
+  await supabase.from("workspaces").update({ plan: "operator" }).eq("id", ws).then(() => {
+  }, () => {
+  });
   await reconcileIncludedCredits(ws, { enrollIfEmpty: true });
   const ent = await getEntitlement(ws);
   return c2.json({ ok: true, plan: ent.tier, source: ent.source, trial_ends_at: ent.trialEndsAt, trial_used: true });
@@ -69417,8 +69469,6 @@ router42.post("/complete", requireAuth, async (c2) => {
   const { trial_ends_at: _t2, pending_plan: _p, ...baseSettings } = settings;
   await supabase.from("workspaces").update({
     onboarded: true,
-    plan: effectiveTier,
-    // keep the top-level column in lockstep with settings
     settings: {
       ...baseSettings,
       plan: effectiveTier,
@@ -69435,6 +69485,9 @@ router42.post("/complete", requireAuth, async (c2) => {
       ...trialEndsAt ? { trial_ends_at: trialEndsAt, trial_used: true } : {}
     }
   }).eq("id", ws);
+  await supabase.from("workspaces").update({ plan: effectiveTier }).eq("id", ws).then(() => {
+  }, () => {
+  });
   const { balance } = await creditStatus(ws);
   const delta = target - balance;
   if (delta > 0) {
