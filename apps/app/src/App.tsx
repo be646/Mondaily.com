@@ -41,6 +41,7 @@ import { WorkspaceSettings } from "./routes/dashboard/settings/workspace";
 import { MembersSettings } from "./routes/dashboard/settings/members";
 import { BillingSettings } from "./routes/dashboard/settings/billing";
 import { ObjectsSettings } from "./routes/dashboard/settings/objects";
+import { SupportSettings } from "./routes/dashboard/settings/support";
 import { IntegrationsSettings } from "./routes/dashboard/settings/integrations";
 import { EmailSettings } from "./routes/dashboard/settings/email";
 import { SecuritySettings } from "./routes/dashboard/settings/security";
@@ -166,6 +167,7 @@ export function App() {
           <Route path="ask-mondaily" element={<AskMondailySettings />} />
           <Route path="ai-control-room" element={<AIControlRoomSettings />} />
           <Route path="training" element={<TrainingSettings />} />
+          <Route path="support" element={<SupportSettings />} />
         </Route>
       </Route>
       <Route path="/dashboard/*" element={<Navigate to="/home" replace />} />

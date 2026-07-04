@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { SUPPORT_CATEGORIES } from "../routes/support";
+import { SUPPORT_CATEGORIES, SUPPORT_STATUSES } from "../routes/support";
+import { HELP_DOCS, selectHelpDocs, helpDocsBlock } from "../lib/help-docs";
 
 const src = readFileSync(fileURLToPath(new URL("../routes/support.ts", import.meta.url)), "utf8");
 
@@ -68,10 +69,10 @@ describe("support agent — AI call is unmetered (help works at zero credits) + 
 
 describe("support tickets — creation + workspace isolation", () => {
   it("POST /tickets inserts a support_ticket node scoped to the workspace + user", () => {
-    const t = src.slice(src.indexOf('router.post("/tickets"'));
+    const t = src.slice(src.indexOf('router.post("/tickets"'), src.indexOf('router.get("/tickets"'));
     expect(t).toMatch(/object_type: "support_ticket"/);
-    expect(t).toMatch(/workspace_id: c\.get\("workspaceId"\)/);
-    expect(t).toMatch(/created_by: c\.get\("userId"\)/);
+    expect(t).toMatch(/workspace_id: ws/);          // ws = c.get("workspaceId")
+    expect(src).toMatch(/const ws = c\.get\("workspaceId"\); const userId = c\.get\("userId"\)/);
     expect(t).toMatch(/status: "open"/);
   });
   it("the ticket category is validated against the enum", () => {
@@ -82,6 +83,88 @@ describe("support tickets — creation + workspace isolation", () => {
     const scoped = src.match(/\.eq\("workspace_id"/g) ?? [];
     expect(scoped.length).toBeGreaterThanOrEqual(4); // context reads (ledger, contacts, members) + ticket list
     expect(src).toMatch(/router\.get\("\/tickets", requireAdminRole/); // admin-gated queue
+  });
+});
+
+describe("PHASE 2 — ticket lifecycle", () => {
+  it("defines the 5 required statuses", () => {
+    expect([...SUPPORT_STATUSES]).toEqual(["open", "in_review", "waiting_on_user", "resolved", "closed"]);
+  });
+  it("PATCH status is admin/owner-gated, workspace-scoped, and validates the enum", () => {
+    const fn = src.slice(src.indexOf('router.patch("/tickets/:id"'));
+    expect(fn).toMatch(/router\.patch\("\/tickets\/:id", requireAdminRole/);
+    expect(fn).toMatch(/status: z\.enum\(SUPPORT_STATUSES\)/);
+    expect(fn).toMatch(/\.update\(\{ data: updated \}\)/);
+    expect(fn).toMatch(/\.eq\("workspace_id", ws\)/);
+  });
+  it("comments allow the requester OR an admin, and are workspace-scoped", () => {
+    const fn = src.slice(src.indexOf('router.post("/tickets/:id/comments"'));
+    expect(fn).toMatch(/isAdmin.*isRequester|const isRequester/);
+    expect(fn).toMatch(/if \(!isAdmin && !isRequester\) return c\.json\([\s\S]{0,30}403\)/);
+    expect(fn).toMatch(/\.eq\("workspace_id", ws\)/);
+  });
+  it("ticket detail is visible to the requester OR an admin (workspace-scoped)", () => {
+    const fn = src.slice(src.indexOf('router.get("/tickets/:id"'));
+    expect(fn).toMatch(/t\.created_by !== c\.get\("userId"\) && !isWorkspaceAdmin/);
+  });
+  it("getTicket is always scoped by workspace_id + object_type", () => {
+    const fn = src.slice(src.indexOf("async function getTicket"), src.indexOf("async function getTicket") + 400);
+    expect(fn).toMatch(/\.eq\("workspace_id", workspaceId\)/);
+    expect(fn).toMatch(/\.eq\("object_type", "support_ticket"\)/);
+  });
+});
+
+describe("PHASE 2 — notifications", () => {
+  it("new ticket notifies workspace admins/owners", () => {
+    const fn = src.slice(src.indexOf('router.post("/tickets"'), src.indexOf('router.get("/tickets"'));
+    expect(fn).toMatch(/workspaceAdminIds\(ws, userId\)/);
+    expect(fn).toMatch(/createNotification\(\{[\s\S]{0,120}New support request/);
+  });
+  it("status change notifies the requester (not the actor)", () => {
+    const fn = src.slice(src.indexOf('router.patch("/tickets/:id"'));
+    expect(fn).toMatch(/if \(t\.created_by && t\.created_by !== userId\)/);
+    expect(fn).toMatch(/createNotification\(\{[\s\S]{0,120}user_id: t\.created_by/);
+  });
+  it("uses the existing notification system (no direct email send)", () => {
+    expect(src).toMatch(/import \{ createNotification \} from "\.\.\/lib\/notify"/);
+    expect(src).not.toMatch(/sendEmail|resend|nodemailer|smtp/i);
+  });
+});
+
+describe("PHASE 2 — help knowledge base + citation", () => {
+  it("covers every required topic", () => {
+    const ids = HELP_DOCS.map(d => d.id);
+    for (const id of ["discovery", "credits", "plans", "onboarding", "sovereign", "training_data", "integrations", "decisions_agents"]) {
+      expect(ids).toContain(id);
+    }
+  });
+  it("selects relevant docs by keyword and cites [id] in the block", () => {
+    const docs = selectHelpDocs("why are my credits low and how do I buy more?");
+    expect(docs.map(d => d.id)).toContain("credits");
+    expect(helpDocsBlock(docs)).toMatch(/\[credits\]/);
+  });
+  it("returns [] when nothing matches (agent then says docs don't cover it)", () => {
+    expect(selectHelpDocs("xyzzy quux frobnicate")).toEqual([]);
+    expect(helpDocsBlock([])).toBe("");
+  });
+  it("/ask injects the docs block, instructs citation + insufficient-fallback, returns cited_docs", () => {
+    expect(src).toMatch(/helpDocsBlock\(docs\)/);
+    expect(src).toMatch(/cite the \[id\]/);
+    expect(src).toMatch(/cited_docs: docs\.map/);
+    expect(src).toMatch(/If the docs don't cover the question/);   // insufficient-fallback instruction
+    expect(helpDocsBlock(HELP_DOCS.slice(0, 1))).toMatch(/if none of these answer the question, say the docs don't cover it and offer a support ticket/);
+  });
+});
+
+describe("PHASE 2 — diagnostics are read-only + never invented", () => {
+  it("diagnostics probe env presence (gateway/search/scrape) + db, not fabricated outages", () => {
+    expect(src).toMatch(/ai_gateway: Boolean\(env\.baseURL && env\.apiKey\)/);
+    expect(src).toMatch(/sovereign_search: Boolean\(process\.env\.SOVEREIGN_SEARCH_URL\)/);
+    expect(src).toMatch(/training_policy/);
+    expect(src).toMatch(/recent_tickets/);
+  });
+  it("the prompt still forbids inventing outages/issues", () => {
+    expect(src).toMatch(/never invent numbers, statuses, outages, or history/);
   });
 });
 

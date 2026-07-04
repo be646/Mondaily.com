@@ -60881,6 +60881,14 @@ var TRANSLATIONS = {
   "help.subtitle": { en: "Answers use your workspace's real data. I can't change your account \u2014 I'll open a request for anything sensitive.", pl: "Odpowiedzi korzystaj\u0105 z rzeczywistych danych Twojej przestrzeni. Nie mog\u0119 zmienia\u0107 konta \u2014 dla wra\u017Cliwych spraw otworz\u0119 zg\u0142oszenie.", ru: "\u041E\u0442\u0432\u0435\u0442\u044B \u043E\u0441\u043D\u043E\u0432\u0430\u043D\u044B \u043D\u0430 \u0440\u0435\u0430\u043B\u044C\u043D\u044B\u0445 \u0434\u0430\u043D\u043D\u044B\u0445 \u0432\u0430\u0448\u0435\u0433\u043E \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u0430. \u042F \u043D\u0435 \u043C\u0435\u043D\u044F\u044E \u0430\u043A\u043A\u0430\u0443\u043D\u0442 \u2014 \u043F\u043E \u0432\u0430\u0436\u043D\u044B\u043C \u0432\u043E\u043F\u0440\u043E\u0441\u0430\u043C \u0441\u043E\u0437\u0434\u0430\u043C \u0437\u0430\u043F\u0440\u043E\u0441.", uk: "\u0412\u0456\u0434\u043F\u043E\u0432\u0456\u0434\u0456 \u0431\u0430\u0437\u0443\u044E\u0442\u044C\u0441\u044F \u043D\u0430 \u0440\u0435\u0430\u043B\u044C\u043D\u0438\u0445 \u0434\u0430\u043D\u0438\u0445 \u043F\u0440\u043E\u0441\u0442\u043E\u0440\u0443. \u042F \u043D\u0435 \u0437\u043C\u0456\u043D\u044E\u044E \u0430\u043A\u0430\u0443\u043D\u0442 \u2014 \u0434\u043B\u044F \u0432\u0430\u0436\u043B\u0438\u0432\u0438\u0445 \u043F\u0438\u0442\u0430\u043D\u044C \u0441\u0442\u0432\u043E\u0440\u044E \u0437\u0430\u043F\u0438\u0442.", ar: "\u0627\u0644\u0625\u062C\u0627\u0628\u0627\u062A \u062A\u0633\u062A\u0646\u062F \u0625\u0644\u0649 \u0628\u064A\u0627\u0646\u0627\u062A \u0645\u0633\u0627\u062D\u062A\u0643 \u0627\u0644\u062D\u0642\u064A\u0642\u064A\u0629. \u0644\u0627 \u064A\u0645\u0643\u0646\u0646\u064A \u062A\u063A\u064A\u064A\u0631 \u062D\u0633\u0627\u0628\u0643 \u2014 \u0633\u0623\u0641\u062A\u062D \u0637\u0644\u0628\u064B\u0627 \u0644\u0623\u064A \u0623\u0645\u0631 \u062D\u0633\u0627\u0633.", fr: "Les r\xE9ponses utilisent les donn\xE9es r\xE9elles de votre espace. Je ne peux pas modifier votre compte \u2014 j'ouvrirai une demande pour tout \xE9l\xE9ment sensible.", de: "Antworten nutzen die echten Daten Ihres Workspace. Ich kann Ihr Konto nicht \xE4ndern \u2014 f\xFCr Sensibles \xF6ffne ich eine Anfrage.", es: "Las respuestas usan los datos reales de tu espacio. No puedo cambiar tu cuenta \u2014 abrir\xE9 una solicitud para lo sensible.", pt: "As respostas usam os dados reais do seu espa\xE7o. N\xE3o posso alterar sua conta \u2014 abrirei uma solicita\xE7\xE3o para o que for sens\xEDvel.", it: "Le risposte usano i dati reali del tuo spazio. Non posso modificare il tuo account \u2014 aprir\xF2 una richiesta per le cose sensibili.", tr: "Yan\u0131tlar \xE7al\u0131\u015Fma alan\u0131n\u0131z\u0131n ger\xE7ek verilerini kullan\u0131r. Hesab\u0131n\u0131z\u0131 de\u011Fi\u015Ftiremem \u2014 hassas konularda talep a\xE7ar\u0131m.", nl: "Antwoorden gebruiken de echte gegevens van je workspace. Ik kan je account niet wijzigen \u2014 voor gevoelige zaken open ik een verzoek." },
   "help.create_ticket": { en: "Create support request", pl: "Utw\xF3rz zg\u0142oszenie", ru: "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0437\u0430\u043F\u0440\u043E\u0441", uk: "\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 \u0437\u0430\u043F\u0438\u0442", ar: "\u0625\u0646\u0634\u0627\u0621 \u0637\u0644\u0628 \u062F\u0639\u0645", fr: "Cr\xE9er une demande", de: "Anfrage erstellen", es: "Crear solicitud", pt: "Criar solicita\xE7\xE3o", it: "Crea richiesta", tr: "Destek talebi olu\u015Ftur", nl: "Verzoek aanmaken" },
   "help.ticket_created": { en: "Support request created \u2014 our team will follow up.", pl: "Zg\u0142oszenie utworzone \u2014 nasz zesp\xF3\u0142 si\u0119 odezwie.", ru: "\u0417\u0430\u043F\u0440\u043E\u0441 \u0441\u043E\u0437\u0434\u0430\u043D \u2014 \u043D\u0430\u0448\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u0441\u0432\u044F\u0436\u0435\u0442\u0441\u044F \u0441 \u0432\u0430\u043C\u0438.", uk: "\u0417\u0430\u043F\u0438\u0442 \u0441\u0442\u0432\u043E\u0440\u0435\u043D\u043E \u2014 \u043D\u0430\u0448\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u0437\u0432\u2019\u044F\u0436\u0435\u0442\u044C\u0441\u044F \u0437 \u0432\u0430\u043C\u0438.", ar: "\u062A\u0645 \u0625\u0646\u0634\u0627\u0621 \u0637\u0644\u0628 \u0627\u0644\u062F\u0639\u0645 \u2014 \u0633\u064A\u062A\u0627\u0628\u0639 \u0641\u0631\u064A\u0642\u0646\u0627 \u0645\u0639\u0643.", fr: "Demande cr\xE9\xE9e \u2014 notre \xE9quipe vous recontactera.", de: "Anfrage erstellt \u2014 unser Team meldet sich.", es: "Solicitud creada \u2014 nuestro equipo te contactar\xE1.", pt: "Solicita\xE7\xE3o criada \u2014 nossa equipe entrar\xE1 em contato.", it: "Richiesta creata \u2014 il nostro team ti ricontatter\xE0.", tr: "Talep olu\u015Fturuldu \u2014 ekibimiz sizinle ileti\u015Fime ge\xE7ecek.", nl: "Verzoek aangemaakt \u2014 ons team neemt contact op." },
+  "support.title": { en: "Support", pl: "Wsparcie", ru: "\u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", uk: "\u041F\u0456\u0434\u0442\u0440\u0438\u043C\u043A\u0430", ar: "\u0627\u0644\u062F\u0639\u0645", fr: "Support", de: "Support", es: "Soporte", pt: "Suporte", it: "Supporto", tr: "Destek", nl: "Ondersteuning" },
+  "support.reply": { en: "Reply", pl: "Odpowiedz", ru: "\u041E\u0442\u0432\u0435\u0442\u0438\u0442\u044C", uk: "\u0412\u0456\u0434\u043F\u043E\u0432\u0456\u0441\u0442\u0438", ar: "\u0631\u062F", fr: "R\xE9pondre", de: "Antworten", es: "Responder", pt: "Responder", it: "Rispondi", tr: "Yan\u0131tla", nl: "Antwoorden" },
+  "support.empty": { en: "No support requests yet.", pl: "Brak zg\u0142osze\u0144.", ru: "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043E\u0431\u0440\u0430\u0449\u0435\u043D\u0438\u0439.", uk: "\u041F\u043E\u043A\u0438 \u043D\u0435\u043C\u0430\u0454 \u0437\u0432\u0435\u0440\u043D\u0435\u043D\u044C.", ar: "\u0644\u0627 \u062A\u0648\u062C\u062F \u0637\u0644\u0628\u0627\u062A \u062F\u0639\u0645 \u0628\u0639\u062F.", fr: "Aucune demande pour l'instant.", de: "Noch keine Anfragen.", es: "A\xFAn no hay solicitudes.", pt: "Ainda sem solicita\xE7\xF5es.", it: "Ancora nessuna richiesta.", tr: "Hen\xFCz talep yok.", nl: "Nog geen verzoeken." },
+  "support.status.open": { en: "Open", pl: "Otwarte", ru: "\u041E\u0442\u043A\u0440\u044B\u0442\u043E", uk: "\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u043E", ar: "\u0645\u0641\u062A\u0648\u062D", fr: "Ouvert", de: "Offen", es: "Abierto", pt: "Aberto", it: "Aperto", tr: "A\xE7\u0131k", nl: "Open" },
+  "support.status.in_review": { en: "In review", pl: "W trakcie", ru: "\u041D\u0430 \u0440\u0430\u0441\u0441\u043C\u043E\u0442\u0440\u0435\u043D\u0438\u0438", uk: "\u041D\u0430 \u0440\u043E\u0437\u0433\u043B\u044F\u0434\u0456", ar: "\u0642\u064A\u062F \u0627\u0644\u0645\u0631\u0627\u062C\u0639\u0629", fr: "En cours", de: "In Pr\xFCfung", es: "En revisi\xF3n", pt: "Em an\xE1lise", it: "In esame", tr: "\u0130ncelemede", nl: "In behandeling" },
+  "support.status.waiting_on_user": { en: "Waiting on you", pl: "Oczekuje na Ciebie", ru: "\u041E\u0436\u0438\u0434\u0430\u0435\u0442 \u0432\u0430\u0441", uk: "\u041E\u0447\u0456\u043A\u0443\u0454 \u043D\u0430 \u0432\u0430\u0441", ar: "\u0628\u0627\u0646\u062A\u0638\u0627\u0631\u0643", fr: "En attente de vous", de: "Wartet auf Sie", es: "Esper\xE1ndote", pt: "Aguardando voc\xEA", it: "In attesa di te", tr: "Sizi bekliyor", nl: "Wacht op jou" },
+  "support.status.resolved": { en: "Resolved", pl: "Rozwi\u0105zane", ru: "\u0420\u0435\u0448\u0435\u043D\u043E", uk: "\u0412\u0438\u0440\u0456\u0448\u0435\u043D\u043E", ar: "\u062A\u0645 \u0627\u0644\u062D\u0644", fr: "R\xE9solu", de: "Gel\xF6st", es: "Resuelto", pt: "Resolvido", it: "Risolto", tr: "\xC7\xF6z\xFCld\xFC", nl: "Opgelost" },
+  "support.status.closed": { en: "Closed", pl: "Zamkni\u0119te", ru: "\u0417\u0430\u043A\u0440\u044B\u0442\u043E", uk: "\u0417\u0430\u043A\u0440\u0438\u0442\u043E", ar: "\u0645\u063A\u0644\u0642", fr: "Ferm\xE9", de: "Geschlossen", es: "Cerrado", pt: "Fechado", it: "Chiuso", tr: "Kapal\u0131", nl: "Gesloten" },
   "agents.subtitle": { en: "Agents prepare, you approve \u2014 every action is queued for your sign-off.", pl: "Agenci przygotowuj\u0105, Ty zatwierdzasz \u2014 ka\u017Cda akcja czeka na Twoj\u0105 zgod\u0119.", ru: "\u0410\u0433\u0435\u043D\u0442\u044B \u0433\u043E\u0442\u043E\u0432\u044F\u0442, \u0432\u044B \u043E\u0434\u043E\u0431\u0440\u044F\u0435\u0442\u0435 \u2014 \u043A\u0430\u0436\u0434\u043E\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0436\u0434\u0451\u0442 \u0432\u0430\u0448\u0435\u0433\u043E \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u044F.", uk: "\u0410\u0433\u0435\u043D\u0442\u0438 \u0433\u043E\u0442\u0443\u044E\u0442\u044C, \u0432\u0438 \u0441\u0445\u0432\u0430\u043B\u044E\u0454\u0442\u0435 \u2014 \u043A\u043E\u0436\u043D\u0430 \u0434\u0456\u044F \u043E\u0447\u0456\u043A\u0443\u0454 \u0432\u0430\u0448\u043E\u0433\u043E \u043F\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043D\u043D\u044F.", ar: "\u0627\u0644\u0648\u0643\u0644\u0627\u0621 \u064A\u062C\u0647\u0651\u0632\u0648\u0646\u060C \u0648\u0623\u0646\u062A \u062A\u0648\u0627\u0641\u0642 \u2014 \u0643\u0644 \u0625\u062C\u0631\u0627\u0621 \u064A\u0646\u062A\u0638\u0631 \u0645\u0648\u0627\u0641\u0642\u062A\u0643.", fr: "Les agents pr\xE9parent, vous approuvez \u2014 chaque action attend votre validation.", de: "Agenten bereiten vor, Sie genehmigen \u2014 jede Aktion wartet auf Ihre Freigabe.", es: "Los agentes preparan, t\xFA apruebas \u2014 cada acci\xF3n espera tu visto bueno.", pt: "Os agentes preparam, voc\xEA aprova \u2014 cada a\xE7\xE3o aguarda seu aval.", it: "Gli agenti preparano, tu approvi \u2014 ogni azione attende il tuo via libera.", tr: "Ajanlar haz\u0131rlar, siz onaylars\u0131n\u0131z \u2014 her i\u015Flem onay\u0131n\u0131z\u0131 bekler.", nl: "Agents bereiden voor, jij keurt goed \u2014 elke actie wacht op je akkoord." }
 };
 function t2(code, key) {
@@ -65498,6 +65506,74 @@ router15.post("/checkout-session", requireAdminRole, async (c2) => {
 init_client();
 init_ai_gateway();
 init_entitlements();
+init_notify();
+
+// src/lib/help-docs.ts
+var HELP_DOCS = [
+  {
+    id: "discovery",
+    topics: ["discovery", "search", "leads", "prospect", "scrape", "reviews", "enrich", "web"],
+    title: "Discovery \u2014 find leads & reviews on the open web",
+    content: "Discovery searches the open web in plain language, reads the pages it finds, and returns source-backed prospects or reviews. Type a query (e.g. 'clinics in <region> with poor reviews'); results are grounded in the pages actually read. Save a result to add it to your workspace graph. Deep research runs a longer multi-step pass. Discovery needs the sovereign search + scraper appliances configured; if they're not reachable, results will be empty and the Status page shows the appliance as degraded."
+  },
+  {
+    id: "credits",
+    topics: ["credit", "credits", "wallet", "token", "usage", "run out", "low", "exhausted", "refill"],
+    title: "AI credits \u2014 how the wallet works",
+    content: "Every AI action (chat, agents, enrichment, Discovery) spends AI credits from your workspace wallet. Each plan includes a monthly credit allotment; you can also buy pay-as-you-go credit packs, which never expire and stack on top of the monthly amount. Remaining = included + purchased \u2212 used, floored at zero. When credits hit zero, AI actions pause until you add a pack or upgrade \u2014 the rest of the workspace keeps working. Usage is metered from real provider usage. The wallet is shown on Settings \u2192 Billing."
+  },
+  {
+    id: "plans",
+    topics: ["plan", "plans", "upgrade", "downgrade", "billing", "invoice", "subscription", "seats", "operator", "command", "sovereign", "scout", "trial"],
+    title: "Plans & billing",
+    content: "Plans are Scout (free), Operator, Command, and Sovereign (custom). Higher tiers include more monthly AI credits, more seats, and more capabilities. Operator offers a 14-day trial. Upgrade or manage your plan on Settings \u2192 Billing (card entry is embedded and secure). Seat limits come from your plan. Billing changes, refunds, and credit adjustments are handled by a human \u2014 the Help agent can explain plans and guide you, but cannot change billing or issue refunds/credits itself."
+  },
+  {
+    id: "onboarding",
+    topics: ["onboarding", "profile", "industry", "region", "language", "setup", "get started", "workspace profile"],
+    title: "Workspace profile & onboarding",
+    content: "Onboarding captures your industry, region, goals, team size, and preferred language, and recommends modules and a plan. Your workspace profile (Settings \u2192 Workspace \u2192 Workspace profile) tunes examples, terminology, and AI context across Discovery, Ask, and Home \u2014 it personalizes wording and defaults but never changes the product or your data. You can edit the profile any time; a live preview shows how suggestions will adapt."
+  },
+  {
+    id: "sovereign",
+    topics: ["sovereign", "self-host", "private", "search appliance", "scraper", "sovereignty", "provider", "infrastructure"],
+    title: "Sovereign AI & Search",
+    content: "Mondaily is built to run on its own sovereign infrastructure \u2014 inference goes through a self-hosted, OpenAI-compatible gateway, and web search/scraping go through self-hosted search + scraper appliances (Sovereign Search). Nothing is routed to a default third-party AI provider; if the sovereign gateway or appliances aren't configured, those features fail closed rather than falling back to an outside service. The Sovereign plan adds private/self-hosted infrastructure, encryption/KMS, audit logs, and SLAs."
+  },
+  {
+    id: "training_data",
+    topics: ["training", "training data", "export", "delete", "purge", "privacy", "data", "retention", "gdpr"],
+    title: "Training data \u2014 export & delete",
+    content: "AI training capture is OFF by default and opt-in per workspace. When enabled, captured prompts are redacted for PII and kept for the configured retention window. Settings \u2192 Training data lets admins view the policy, export the captured data (JSONL), and purge it. Turning the policy off stops new capture. For a full data-privacy request beyond these controls, open a support ticket."
+  },
+  {
+    id: "integrations",
+    topics: ["integration", "integrations", "email", "gmail", "outlook", "calendar", "connect", "sync", "invite", "members", "seats"],
+    title: "Integrations & members",
+    content: "Connect email (Gmail/Outlook) and calendar under Settings \u2192 Email & calendar so messages and events log against the right records. Inviting teammates happens under Settings \u2192 Members and is limited by your plan's seat count \u2014 if you can't invite, you may be at your seat limit or lack owner/admin rights, so upgrade the plan or ask an owner. Integration availability depends on the connectors configured for your workspace."
+  },
+  {
+    id: "decisions_agents",
+    topics: ["agent", "agents", "decision", "decisions", "approve", "automation", "workflow", "queue", "oversight"],
+    title: "Agents & decisions",
+    content: "Agents prepare work; you approve it. Every consequential action an agent proposes is queued in the Decisions cockpit for your sign-off \u2014 nothing runs against your data without approval. The Agents/Activity page shows what each agent did and links to the related surface. Automations run rule-based workflows on record events. This 'agents recommend, humans approve' model is core to how Mondaily stays safe."
+  }
+];
+function selectHelpDocs(question, limit2 = 3) {
+  const q2 = question.toLowerCase();
+  const scored = HELP_DOCS.map((d2) => ({
+    d: d2,
+    score: d2.topics.reduce((s2, kw) => s2 + (q2.includes(kw) ? 1 : 0), 0)
+  })).filter((x2) => x2.score > 0).sort((a2, b2) => b2.score - a2.score);
+  return scored.slice(0, limit2).map((x2) => x2.d);
+}
+function helpDocsBlock(docs) {
+  if (!docs.length) return "";
+  return `HELP DOCS (cite the [id] when you use one; if none of these answer the question, say the docs don't cover it and offer a support ticket):
+${docs.map((d2) => `[${d2.id}] ${d2.title}: ${d2.content}`).join("\n")}`;
+}
+
+// src/routes/support.ts
 init_pricing();
 var router16 = new Hono2();
 router16.use("*", requireAuth);
@@ -65511,12 +65587,15 @@ var SUPPORT_CATEGORIES = [
   "bug_report",
   "feature_request"
 ];
+var SUPPORT_STATUSES = ["open", "in_review", "waiting_on_user", "resolved", "closed"];
 async function buildSupportContext(workspaceId, userId) {
-  const [wsRow, ledgerRes, contactsRes, membersRes] = await Promise.all([
+  const env2 = gatewayEnv();
+  const [wsRow, ledgerRes, contactsRes, membersRes, ticketRes] = await Promise.all([
     supabase.from("workspaces").select("plan, settings, onboarded").eq("id", workspaceId).maybeSingle(),
     supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", workspaceId),
     supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).in("object_type", ["person", "company"]),
-    supabase.from("workspace_members").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId)
+    supabase.from("workspace_members").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+    supabase.from("nodes").select("data, created_at").eq("workspace_id", workspaceId).eq("object_type", "support_ticket").order("created_at", { ascending: false }).limit(5)
   ]);
   const settings = wsRow.data?.settings ?? {};
   const ent = await getEntitlement(workspaceId);
@@ -65529,10 +65608,16 @@ async function buildSupportContext(workspaceId, userId) {
   const remaining = Math.max(0, granted + purchased + usedNeg);
   const integrations = settings.integrations ?? {};
   const modules = settings.modules ?? [];
+  const training = settings.training_policy ?? {};
   const userLang = settings.user_preferences?.[userId]?.language;
   const language = normalizeLang(userLang || profile.language);
+  const recentTickets = (ticketRes.data ?? []).map((n2) => {
+    const d2 = n2.data ?? {};
+    return { subject: d2.subject ?? "", status: d2.status ?? "open", category: d2.category ?? "bug_report" };
+  });
   return {
     language,
+    profile,
     entitlement: { tier: ent.tier, source: ent.source, trial_ends_at: ent.trialEndsAt, seats: ent.seats },
     wallet: { included_monthly_credits: included ?? monthlyCreditsFor(ent.tier), remaining, purchased, used: Math.abs(usedNeg), enrolled: rows2.length > 0 },
     readiness: {
@@ -65543,16 +65628,26 @@ async function buildSupportContext(workspaceId, userId) {
       calendar_connected: Boolean(integrations["google-calendar"]),
       enabled_modules: modules
     },
-    profile
+    // Diagnostics mirror the /status readiness rows (env-presence probes — never invented).
+    diagnostics: {
+      database: !wsRow.error,
+      ai_gateway: Boolean(env2.baseURL && env2.apiKey),
+      sovereign_search: Boolean(process.env.SOVEREIGN_SEARCH_URL),
+      sovereign_scrape: Boolean(process.env.SOVEREIGN_SCRAPE_URL)
+    },
+    training_policy: { enabled: Boolean(training.enabled), retention_days: training.retention_days ?? null },
+    recent_tickets: recentTickets
   };
 }
 function contextBlock(ctx) {
-  const w2 = ctx.wallet;
-  const r2 = ctx.readiness;
+  const w2 = ctx.wallet, r2 = ctx.readiness, d2 = ctx.diagnostics;
   const lines = [
     `Plan/tier: ${ctx.entitlement.tier} (source: ${ctx.entitlement.source}${ctx.entitlement.trial_ends_at ? `, trial ends ${ctx.entitlement.trial_ends_at}` : ""}); seats: ${ctx.entitlement.seats}.`,
     w2.enrolled ? `AI credit wallet: ${w2.remaining.toLocaleString()} remaining of ${(w2.included_monthly_credits ?? 0).toLocaleString()} included/mo${w2.purchased ? ` + ${w2.purchased.toLocaleString()} purchased` : ""}; ${w2.used.toLocaleString()} used.` : "AI credit wallet: not enrolled yet.",
-    `Workspace readiness: onboarded=${r2.onboarded}, contacts=${r2.contacts}, members=${r2.members}, email_connected=${r2.email_connected}, calendar_connected=${r2.calendar_connected}, modules=[${r2.enabled_modules.join(", ") || "none"}].`
+    `Workspace readiness: onboarded=${r2.onboarded}, contacts=${r2.contacts}, members=${r2.members}, email_connected=${r2.email_connected}, calendar_connected=${r2.calendar_connected}, modules=[${r2.enabled_modules.join(", ") || "none"}].`,
+    `System diagnostics: database=${d2.database ? "ok" : "unreachable"}, ai_gateway=${d2.ai_gateway ? "configured" : "not configured"}, sovereign_search=${d2.sovereign_search ? "configured" : "not configured"}, sovereign_scrape=${d2.sovereign_scrape ? "configured" : "not configured"}.`,
+    `Training data policy: ${ctx.training_policy.enabled ? `on (retention ${ctx.training_policy.retention_days ?? "?"} days)` : "off (no capture)"}.`,
+    ctx.recent_tickets.length ? `Recent support tickets: ${ctx.recent_tickets.map((t3) => `"${t3.subject}" (${t3.status})`).join("; ")}.` : "Recent support tickets: none."
   ];
   const prof = profileContextBlock(ctx.profile);
   return `WORKSPACE FACTS (read-only \u2014 the ONLY data you may state as fact about this account):
@@ -65562,11 +65657,11 @@ ${prof}` : ""}`;
 var SUPPORT_SYSTEM = `You are Mondaily's built-in Help & Support agent. You help users understand and use Mondaily \u2014 Discovery, the workspace graph, agents, decisions, finance, plans, AI credits, integrations, and data/privacy.
 
 STRICT RULES:
-- Be accurate and source-backed. State account facts ONLY from the provided WORKSPACE FACTS. If a fact isn't there, say you don't have it \u2014 never invent numbers, statuses, or history.
-- You are READ-ONLY. You CANNOT change plans, grant/refund credits, modify billing, invite members, connect integrations, or take any account action. NEVER claim you did, and NEVER promise refunds, discounts, credit top-ups, or that "it's been fixed/applied".
-- For anything requiring an account change, human review, or a bug fix: explain the situation, tell the user you'll open a support request, and set needs_ticket=true with a concise suggested_subject. Do not pretend the action is done.
-- Classify the user's issue into exactly one category.
-- Keep answers concise, friendly and actionable (a few short paragraphs or a short list). Never mention the underlying AI provider.`;
+- Be accurate and source-backed. Explain features using the provided HELP DOCS and cite the [id] you used. If the docs don't cover the question, say so plainly and offer to open a support ticket \u2014 do not guess.
+- State account facts ONLY from the provided WORKSPACE FACTS / diagnostics. If a fact isn't there, say you don't have it \u2014 never invent numbers, statuses, outages, or history.
+- You are READ-ONLY. You CANNOT change plans, grant/refund credits, modify billing, invite members, connect integrations, or take any account action. NEVER claim you did, and NEVER promise refunds, discounts, credit top-ups, or that "it's been fixed/applied". You may explain plans/credits and point users to Settings \u2192 Billing to buy credits or upgrade.
+- For anything requiring an account change, human review, refund/credit adjustment, or a bug fix: explain the situation, tell the user you'll open a support request, and set needs_ticket=true with a concise suggested_subject. Do not pretend the action is done.
+- Classify the user's issue into exactly one category. Keep answers concise, friendly and actionable. Never mention the underlying AI provider.`;
 router16.post("/ask", zValidator("json", external_exports.object({
   message: external_exports.string().min(1).max(4e3),
   history: external_exports.array(external_exports.object({ role: external_exports.enum(["user", "assistant"]), content: external_exports.string() })).optional()
@@ -65580,14 +65675,18 @@ router16.post("/ask", zValidator("json", external_exports.object({
       needs_ticket: true,
       suggested_subject: "Help AI unavailable",
       language: "en",
+      cited_docs: [],
       degraded: true
     });
   }
   const ctx = await buildSupportContext(c2.get("workspaceId"), c2.get("userId"));
+  const docs = selectHelpDocs(message);
   const priorTurns = (history ?? []).slice(-6).map((h2) => `${h2.role === "user" ? "User" : "Assistant"}: ${h2.content}`).join("\n");
   const system = `${SUPPORT_SYSTEM}
 
-${contextBlock(ctx)}${languageInstruction(ctx.language)}
+${contextBlock(ctx)}
+
+${helpDocsBlock(docs)}${languageInstruction(ctx.language)}
 
 Respond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIES.join(", ")}], "needs_ticket": boolean, "suggested_subject": string}. The "answer" must be in the user's language; the other fields stay in English.`;
   const prompt = `${priorTurns ? priorTurns + "\n" : ""}User: ${message}`;
@@ -65596,7 +65695,7 @@ Respond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIE
     const res = await aiGateway({ system, prompt, maxTokens: 700, feature: "support" });
     raw2 = res.text ?? "";
   } catch {
-    return c2.json({ answer: "I couldn't reach the help service just now. Please try again, or create a support request.", category: "bug_report", needs_ticket: true, suggested_subject: "Help service error", language: ctx.language, degraded: true });
+    return c2.json({ answer: "I couldn't reach the help service just now. Please try again, or create a support request.", category: "bug_report", needs_ticket: true, suggested_subject: "Help service error", language: ctx.language, cited_docs: [], degraded: true });
   }
   let parsed = {};
   try {
@@ -65610,35 +65709,60 @@ Respond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIE
     category,
     needs_ticket: Boolean(parsed.needs_ticket),
     suggested_subject: (parsed.suggested_subject ?? "").toString().slice(0, 120),
-    language: ctx.language
+    language: ctx.language,
+    cited_docs: docs.map((d2) => d2.id)
   });
 });
+async function workspaceAdminIds(workspaceId, exclude) {
+  const { data } = await supabase.from("workspace_members").select("user_id, role").eq("workspace_id", workspaceId).in("role", ["owner", "admin"]);
+  return (data ?? []).map((m2) => m2.user_id).filter((id) => id && id !== exclude);
+}
+async function getTicket(workspaceId, id) {
+  const { data } = await supabase.from("nodes").select("id, data, created_by, created_at, updated_at").eq("workspace_id", workspaceId).eq("object_type", "support_ticket").eq("id", id).maybeSingle();
+  return data ? { ...data, data: data.data ?? {} } : null;
+}
 router16.post("/tickets", zValidator("json", external_exports.object({
   category: external_exports.enum(SUPPORT_CATEGORIES),
   subject: external_exports.string().min(1).max(200),
   message: external_exports.string().min(1).max(8e3),
   metadata: external_exports.record(external_exports.unknown()).optional()
 })), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const userId = c2.get("userId");
   const body = c2.req.valid("json");
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  const ticketData = {
+    category: body.category,
+    subject: body.subject,
+    message: body.message,
+    status: "open",
+    metadata: body.metadata ?? {},
+    created_by_user: userId,
+    updated_at: now,
+    comments: [],
+    status_history: [{ status: "open", at: now, by: userId }]
+  };
   const { data, error } = await supabase.from("nodes").insert({
-    workspace_id: c2.get("workspaceId"),
+    workspace_id: ws,
     vertical: "shared",
     object_type: "support_ticket",
-    created_by: c2.get("userId"),
-    data: {
-      category: body.category,
-      subject: body.subject,
-      message: body.message,
-      status: "open",
-      metadata: body.metadata ?? {},
-      created_by_user: c2.get("userId")
-    }
+    created_by: userId,
+    data: ticketData
   }).select("id, created_at").single();
   if (error) return c2.json({ error: "Could not create the support request." }, 500);
+  const admins = await workspaceAdminIds(ws, userId);
+  await Promise.all(admins.map((uid) => createNotification({
+    workspace_id: ws,
+    user_id: uid,
+    type: "support",
+    title: `New support request: ${body.subject}`,
+    body: `A ${body.category.replace(/_/g, " ")} request was opened.`,
+    metadata: { support_ticket_id: data.id, category: body.category }
+  }).catch(() => false)));
   return c2.json({ id: data.id, status: "open", created_at: data.created_at }, 201);
 });
 router16.get("/tickets", requireAdminRole, async (c2) => {
-  const { data } = await supabase.from("nodes").select("id, data, created_by, created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "support_ticket").order("created_at", { ascending: false }).limit(50);
+  const { data } = await supabase.from("nodes").select("id, data, created_by, created_at, updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "support_ticket").order("created_at", { ascending: false }).limit(100);
   const tickets = (data ?? []).map((n2) => {
     const d2 = n2.data ?? {};
     return {
@@ -65647,10 +65771,101 @@ router16.get("/tickets", requireAdminRole, async (c2) => {
       subject: d2.subject ?? "",
       status: d2.status ?? "open",
       created_by: n2.created_by,
-      created_at: n2.created_at
+      created_at: n2.created_at,
+      last_updated: d2.updated_at ?? n2.updated_at ?? n2.created_at,
+      comment_count: (d2.comments ?? []).length
     };
   });
   return c2.json({ tickets });
+});
+router16.get("/my-tickets", async (c2) => {
+  const { data } = await supabase.from("nodes").select("id, data, created_at, updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "support_ticket").eq("created_by", c2.get("userId")).order("created_at", { ascending: false }).limit(50);
+  const tickets = (data ?? []).map((n2) => {
+    const d2 = n2.data ?? {};
+    return { id: n2.id, category: d2.category ?? "bug_report", subject: d2.subject ?? "", status: d2.status ?? "open", created_at: n2.created_at, last_updated: d2.updated_at ?? n2.updated_at ?? n2.created_at };
+  });
+  return c2.json({ tickets });
+});
+router16.get("/tickets/:id", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const t3 = await getTicket(ws, c2.req.param("id"));
+  if (!t3) return c2.json({ error: "Ticket not found." }, 404);
+  if (t3.created_by !== c2.get("userId") && !isWorkspaceAdmin(c2.get("role"))) return c2.json({ error: "Not allowed." }, 403);
+  return c2.json({
+    id: t3.id,
+    ...t3.data,
+    created_by: t3.created_by,
+    created_at: t3.created_at,
+    comments: t3.data.comments ?? [],
+    status_history: t3.data.status_history ?? []
+  });
+});
+router16.patch("/tickets/:id", requireAdminRole, zValidator("json", external_exports.object({
+  status: external_exports.enum(SUPPORT_STATUSES)
+})), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const userId = c2.get("userId");
+  const t3 = await getTicket(ws, c2.req.param("id"));
+  if (!t3) return c2.json({ error: "Ticket not found." }, 404);
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  const nextStatus = c2.req.valid("json").status;
+  const updated = {
+    ...t3.data,
+    status: nextStatus,
+    updated_at: now,
+    status_history: [...t3.data.status_history ?? [], { status: nextStatus, at: now, by: userId }]
+  };
+  const { error } = await supabase.from("nodes").update({ data: updated }).eq("workspace_id", ws).eq("id", t3.id).eq("object_type", "support_ticket");
+  if (error) return c2.json({ error: "Could not update the ticket." }, 500);
+  if (t3.created_by && t3.created_by !== userId) {
+    await createNotification({
+      workspace_id: ws,
+      user_id: t3.created_by,
+      type: "support",
+      title: `Support request ${nextStatus.replace(/_/g, " ")}: ${t3.data.subject}`,
+      body: `Your support request is now ${nextStatus.replace(/_/g, " ")}.`,
+      metadata: { support_ticket_id: t3.id, status: nextStatus }
+    }).catch(() => false);
+  }
+  return c2.json({ id: t3.id, status: nextStatus, last_updated: now });
+});
+router16.post("/tickets/:id/comments", zValidator("json", external_exports.object({
+  body: external_exports.string().min(1).max(8e3)
+})), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const userId = c2.get("userId");
+  const role = c2.get("role");
+  const t3 = await getTicket(ws, c2.req.param("id"));
+  if (!t3) return c2.json({ error: "Ticket not found." }, 404);
+  const isAdmin = isWorkspaceAdmin(role);
+  const isRequester = t3.created_by === userId;
+  if (!isAdmin && !isRequester) return c2.json({ error: "Not allowed." }, 403);
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  const comment = { author_id: userId, author_role: isAdmin && !isRequester ? "admin" : "requester", body: c2.req.valid("json").body, at: now };
+  const updated = { ...t3.data, updated_at: now, comments: [...t3.data.comments ?? [], comment] };
+  const { error } = await supabase.from("nodes").update({ data: updated }).eq("workspace_id", ws).eq("id", t3.id).eq("object_type", "support_ticket");
+  if (error) return c2.json({ error: "Could not add the comment." }, 500);
+  if (comment.author_role === "admin") {
+    if (t3.created_by && t3.created_by !== userId) await createNotification({
+      workspace_id: ws,
+      user_id: t3.created_by,
+      type: "support",
+      title: `New reply on: ${t3.data.subject}`,
+      body: "Support replied to your request.",
+      metadata: { support_ticket_id: t3.id }
+    }).catch(() => false);
+  } else {
+    const admins = await workspaceAdminIds(ws, userId);
+    await Promise.all(admins.map((uid) => createNotification({
+      workspace_id: ws,
+      user_id: uid,
+      type: "support",
+      title: `Requester replied on: ${t3.data.subject}`,
+      body: "The requester added a comment.",
+      metadata: { support_ticket_id: t3.id }
+    }).catch(() => false)));
+  }
+  return c2.json({ ok: true, comment });
 });
 
 // src/routes/webhooks.ts
