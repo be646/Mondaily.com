@@ -65690,9 +65690,11 @@ STRICT RULES:
 - Classify the user's issue into exactly one category. Keep answers concise, friendly and actionable. Never mention the underlying AI provider.`;
 router16.post("/ask", zValidator("json", external_exports.object({
   message: external_exports.string().min(1).max(4e3),
-  history: external_exports.array(external_exports.object({ role: external_exports.enum(["user", "assistant"]), content: external_exports.string() })).optional()
+  history: external_exports.array(external_exports.object({ role: external_exports.enum(["user", "assistant"]), content: external_exports.string() })).optional(),
+  route: external_exports.string().max(200).optional()
+  // the page the user is on (context only — never acted on)
 })), async (c2) => {
-  const { message, history } = c2.req.valid("json");
+  const { message, history, route } = c2.req.valid("json");
   const env2 = gatewayEnv();
   if (!env2.baseURL || !env2.apiKey) {
     return c2.json({
@@ -65708,9 +65710,12 @@ router16.post("/ask", zValidator("json", external_exports.object({
   const ctx = await buildSupportContext(c2.get("workspaceId"), c2.get("userId"));
   const docs = selectHelpDocs(message);
   const priorTurns = (history ?? []).slice(-6).map((h2) => `${h2.role === "user" ? "User" : "Assistant"}: ${h2.content}`).join("\n");
+  const routeLine = route ? `
+
+The user is currently on the page: ${route}. Use this only as context for what they might be asking about.` : "";
   const system = `${SUPPORT_SYSTEM}
 
-${contextBlock(ctx)}
+${contextBlock(ctx)}${routeLine}
 
 ${helpDocsBlock(docs)}${languageInstruction(ctx.language)}
 
@@ -66378,13 +66383,20 @@ var router19 = new Hono2();
 router19.use("*", requireAuth);
 router19.get("/me/access", async (c2) => {
   const workspaceId = c2.get("workspaceId");
-  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const [{ data: wsRow }, { data: member }] = await Promise.all([
+    supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle(),
+    // DB-authoritative identity (the session name/email can be sparse on restore) — used as a
+    // fallback for the display-name resolver so greetings never degrade to "there".
+    supabase.from("workspace_members").select("name, email").eq("workspace_id", workspaceId).eq("user_id", c2.get("userId")).maybeSingle()
+  ]);
   const settings = wsRow?.settings ?? {};
   const wsModules = settings.modules ?? [];
   const tier = resolveEntitlement(settings).tier;
   return c2.json({
     role: c2.get("role"),
     tier,
+    name: member?.name ?? null,
+    email: member?.email ?? null,
     limits: planLimits(tier),
     // { maxAutomations, maxAgents } — -1 = unlimited
     seats_limit: seatLimitFor(settings),

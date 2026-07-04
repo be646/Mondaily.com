@@ -146,8 +146,9 @@ STRICT RULES:
 router.post("/ask", zValidator("json", z.object({
   message: z.string().min(1).max(4000),
   history: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() })).optional(),
+  route: z.string().max(200).optional(),   // the page the user is on (context only — never acted on)
 })), async (c) => {
-  const { message, history } = c.req.valid("json");
+  const { message, history, route } = c.req.valid("json");
 
   // Fail closed if the sovereign gateway isn't configured — never route to a default provider.
   const env = gatewayEnv();
@@ -161,7 +162,8 @@ router.post("/ask", zValidator("json", z.object({
   const ctx = await buildSupportContext(c.get("workspaceId"), c.get("userId"));
   const docs = selectHelpDocs(message);
   const priorTurns = (history ?? []).slice(-6).map(h => `${h.role === "user" ? "User" : "Assistant"}: ${h.content}`).join("\n");
-  const system = `${SUPPORT_SYSTEM}\n\n${contextBlock(ctx)}\n\n${helpDocsBlock(docs)}${languageInstruction(ctx.language)}\n\nRespond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIES.join(", ")}], "needs_ticket": boolean, "suggested_subject": string}. The "answer" must be in the user's language; the other fields stay in English.`;
+  const routeLine = route ? `\n\nThe user is currently on the page: ${route}. Use this only as context for what they might be asking about.` : "";
+  const system = `${SUPPORT_SYSTEM}\n\n${contextBlock(ctx)}${routeLine}\n\n${helpDocsBlock(docs)}${languageInstruction(ctx.language)}\n\nRespond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIES.join(", ")}], "needs_ticket": boolean, "suggested_subject": string}. The "answer" must be in the user's language; the other fields stay in English.`;
   const prompt = `${priorTurns ? priorTurns + "\n" : ""}User: ${message}`;
 
   // UNMETERED on purpose (no workspaceId) so users with 0 credits can still get help about credits.

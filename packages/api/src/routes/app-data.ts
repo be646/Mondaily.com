@@ -71,13 +71,20 @@ router.use("*", requireAuth);
 // are no dead 403 links), keeping the UI in lockstep with backend enforcement.
 router.get("/me/access", async (c) => {
   const workspaceId = c.get("workspaceId");
-  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const [{ data: wsRow }, { data: member }] = await Promise.all([
+    supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle(),
+    // DB-authoritative identity (the session name/email can be sparse on restore) — used as a
+    // fallback for the display-name resolver so greetings never degrade to "there".
+    supabase.from("workspace_members").select("name, email").eq("workspace_id", workspaceId).eq("user_id", c.get("userId")).maybeSingle(),
+  ]);
   const settings = (wsRow?.settings as Record<string, unknown> | null) ?? {};
   const wsModules = (settings.modules as string[] | undefined) ?? [];
   const tier = resolveEntitlement(settings).tier;   // single source of truth
   return c.json({
     role: c.get("role"),
     tier,
+    name: (member as { name?: string } | null)?.name ?? null,
+    email: (member as { email?: string } | null)?.email ?? null,
     limits: planLimits(tier),                 // { maxAutomations, maxAgents } — -1 = unlimited
     seats_limit: seatLimitFor(settings),
     enabled_modules: enabledModules(wsModules).map((m) => m.key),

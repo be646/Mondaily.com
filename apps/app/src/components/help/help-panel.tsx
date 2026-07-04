@@ -86,7 +86,7 @@ function HelpPanel({ prefill, onClose }: { prefill: string; onClose: () => void 
     setMsgs(m => [...m, { role: "user", content: text }]);
     setBusy(true);
     try {
-      const r = await apiClient.post<AskResp>("/support/ask", { message: text, history });
+      const r = await apiClient.post<AskResp>("/support/ask", { message: text, history, route: window.location.pathname });
       setMsgs(m => [...m, { role: "assistant", content: r.answer, category: r.category, needsTicket: r.needs_ticket, suggestedSubject: r.suggested_subject }]);
     } catch {
       setMsgs(m => [...m, { role: "assistant", content: "I couldn't reach the help service. Please try again in a moment.", needsTicket: true, category: "bug_report", suggestedSubject: "Help service error" }]);
@@ -108,7 +108,7 @@ function HelpPanel({ prefill, onClose }: { prefill: string; onClose: () => void 
   }
 
   const c = ctx.data;
-  const suggestions = ["What plan am I on?", "How many credits do I have?", "How do I use Discovery?"];
+  const suggestions = ["What plan am I on?", "How many credits do I have?", "How do I use Discovery?", "What is my name?"];
 
   return (
     <>
