@@ -65575,6 +65575,20 @@ ${docs.map((d2) => `[${d2.id}] ${d2.title}: ${d2.content}`).join("\n")}`;
 
 // src/routes/support.ts
 init_pricing();
+
+// ../shared/src/identity.ts
+function humanizeLocalPart(local) {
+  return local.split(/[._-]+/).filter(Boolean).map((w2) => w2.charAt(0).toUpperCase() + w2.slice(1)).join(" ");
+}
+function resolveDisplayName(u2) {
+  const name = (u2?.name ?? "").trim();
+  if (name) return name;
+  const local = (u2?.email ?? "").split("@")[0]?.trim() ?? "";
+  const humanized = local ? humanizeLocalPart(local) : "";
+  return humanized || "there";
+}
+
+// src/routes/support.ts
 var router16 = new Hono2();
 router16.use("*", requireAuth);
 var SUPPORT_CATEGORIES = [
@@ -65590,16 +65604,25 @@ var SUPPORT_CATEGORIES = [
 var SUPPORT_STATUSES = ["open", "in_review", "waiting_on_user", "resolved", "closed"];
 async function buildSupportContext(workspaceId, userId) {
   const env2 = gatewayEnv();
-  const [wsRow, ledgerRes, contactsRes, membersRes, ticketRes] = await Promise.all([
-    supabase.from("workspaces").select("plan, settings, onboarded").eq("id", workspaceId).maybeSingle(),
+  const [wsRow, ledgerRes, contactsRes, membersRes, ticketRes, meRes] = await Promise.all([
+    supabase.from("workspaces").select("name, plan, settings, onboarded").eq("id", workspaceId).maybeSingle(),
     supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", workspaceId),
     supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).in("object_type", ["person", "company"]),
     supabase.from("workspace_members").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
-    supabase.from("nodes").select("data, created_at").eq("workspace_id", workspaceId).eq("object_type", "support_ticket").order("created_at", { ascending: false }).limit(5)
+    supabase.from("nodes").select("data, created_at").eq("workspace_id", workspaceId).eq("object_type", "support_ticket").order("created_at", { ascending: false }).limit(5),
+    supabase.from("workspace_members").select("name, email, role").eq("workspace_id", workspaceId).eq("user_id", userId).maybeSingle()
   ]);
   const settings = wsRow.data?.settings ?? {};
   const ent = await getEntitlement(workspaceId);
   const profile = resolveProfile(settings);
+  const me2 = meRes.data ?? {};
+  const identity = {
+    display_name: resolveDisplayName(me2),
+    name: me2.name ?? null,
+    email: me2.email ?? null,
+    role: me2.role ?? "member",
+    workspace_name: wsRow.data?.name ?? "your workspace"
+  };
   const rows2 = ledgerRes.data ?? [];
   const granted = rows2.filter((r2) => r2.transaction_type === "grant").reduce((s2, r2) => s2 + Number(r2.amount), 0);
   const purchased = rows2.filter((r2) => r2.transaction_type === "purchase").reduce((s2, r2) => s2 + Number(r2.amount), 0);
@@ -65618,6 +65641,7 @@ async function buildSupportContext(workspaceId, userId) {
   return {
     language,
     profile,
+    identity,
     entitlement: { tier: ent.tier, source: ent.source, trial_ends_at: ent.trialEndsAt, seats: ent.seats },
     wallet: { included_monthly_credits: included ?? monthlyCreditsFor(ent.tier), remaining, purchased, used: Math.abs(usedNeg), enrolled: rows2.length > 0 },
     readiness: {
@@ -65640,8 +65664,9 @@ async function buildSupportContext(workspaceId, userId) {
   };
 }
 function contextBlock(ctx) {
-  const w2 = ctx.wallet, r2 = ctx.readiness, d2 = ctx.diagnostics;
+  const w2 = ctx.wallet, r2 = ctx.readiness, d2 = ctx.diagnostics, id = ctx.identity;
   const lines = [
+    `User: ${id.display_name}${id.email ? ` (${id.email})` : ""}, role ${id.role}, in workspace "${id.workspace_name}". When asked "what is my name?" answer with this name.`,
     `Plan/tier: ${ctx.entitlement.tier} (source: ${ctx.entitlement.source}${ctx.entitlement.trial_ends_at ? `, trial ends ${ctx.entitlement.trial_ends_at}` : ""}); seats: ${ctx.entitlement.seats}.`,
     w2.enrolled ? `AI credit wallet: ${w2.remaining.toLocaleString()} remaining of ${(w2.included_monthly_credits ?? 0).toLocaleString()} included/mo${w2.purchased ? ` + ${w2.purchased.toLocaleString()} purchased` : ""}; ${w2.used.toLocaleString()} used.` : "AI credit wallet: not enrolled yet.",
     `Workspace readiness: onboarded=${r2.onboarded}, contacts=${r2.contacts}, members=${r2.members}, email_connected=${r2.email_connected}, calendar_connected=${r2.calendar_connected}, modules=[${r2.enabled_modules.join(", ") || "none"}].`,
@@ -65658,8 +65683,9 @@ var SUPPORT_SYSTEM = `You are Mondaily's built-in Help & Support agent. You help
 
 STRICT RULES:
 - Be accurate and source-backed. Explain features using the provided HELP DOCS and cite the [id] you used. If the docs don't cover the question, say so plainly and offer to open a support ticket \u2014 do not guess.
-- State account facts ONLY from the provided WORKSPACE FACTS / diagnostics. If a fact isn't there, say you don't have it \u2014 never invent numbers, statuses, outages, or history.
-- You are READ-ONLY. You CANNOT change plans, grant/refund credits, modify billing, invite members, connect integrations, or take any account action. NEVER claim you did, and NEVER promise refunds, discounts, credit top-ups, or that "it's been fixed/applied". You may explain plans/credits and point users to Settings \u2192 Billing to buy credits or upgrade.
+- Answer identity/account questions DIRECTLY from the WORKSPACE FACTS: the user's name, email, role, workspace, plan/tier, trial status, credits remaining, and language are all provided \u2014 use them (e.g. "You're <name>", "You're on <plan>", "You have <n> credits left"). State account facts ONLY from these facts; if something isn't there, say you don't have it \u2014 never invent numbers, statuses, outages, or history.
+- SAFE UPSELL: when usage or needs suggest it, you MAY recommend a higher plan (e.g. "Based on your usage, Operator or Command may fit better") or a credit pack, and tell the user they can do it themselves at Settings \u2192 Billing. Frame it as a helpful suggestion, not pressure.
+- You are READ-ONLY and take NO account actions. You CANNOT change plans, grant/refund credits, apply discounts, modify billing, invite members, or connect integrations. NEVER say "I upgraded you", "I refunded you", "I applied a discount/credit", or "it's been fixed/applied" \u2014 you can only guide the user to do it or open a ticket.
 - For anything requiring an account change, human review, refund/credit adjustment, or a bug fix: explain the situation, tell the user you'll open a support request, and set needs_ticket=true with a concise suggested_subject. Do not pretend the action is done.
 - Classify the user's issue into exactly one category. Keep answers concise, friendly and actionable. Never mention the underlying AI provider.`;
 router16.post("/ask", zValidator("json", external_exports.object({
@@ -65713,6 +65739,19 @@ Respond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIE
     cited_docs: docs.map((d2) => d2.id)
   });
 });
+router16.get("/context", async (c2) => {
+  const ctx = await buildSupportContext(c2.get("workspaceId"), c2.get("userId"));
+  return c2.json({
+    identity: ctx.identity,
+    language: ctx.language,
+    entitlement: ctx.entitlement,
+    wallet: ctx.wallet,
+    readiness: ctx.readiness,
+    diagnostics: ctx.diagnostics,
+    training_policy: ctx.training_policy,
+    industry: ctx.profile.industry || null
+  });
+});
 async function workspaceAdminIds(workspaceId, exclude) {
   const { data } = await supabase.from("workspace_members").select("user_id, role").eq("workspace_id", workspaceId).in("role", ["owner", "admin"]);
   return (data ?? []).map((m2) => m2.user_id).filter((id) => id && id !== exclude);
@@ -65725,18 +65764,29 @@ router16.post("/tickets", zValidator("json", external_exports.object({
   category: external_exports.enum(SUPPORT_CATEGORIES),
   subject: external_exports.string().min(1).max(200),
   message: external_exports.string().min(1).max(8e3),
+  route: external_exports.string().max(200).optional(),
+  // the page the user was on (context, not a route we act on)
   metadata: external_exports.record(external_exports.unknown()).optional()
 })), async (c2) => {
   const ws = c2.get("workspaceId");
   const userId = c2.get("userId");
   const body = c2.req.valid("json");
   const now = (/* @__PURE__ */ new Date()).toISOString();
+  const ctx = await buildSupportContext(ws, userId);
   const ticketData = {
     category: body.category,
     subject: body.subject,
     message: body.message,
     status: "open",
-    metadata: body.metadata ?? {},
+    metadata: {
+      ...body.metadata ?? {},
+      requester: { name: ctx.identity.name, email: ctx.identity.email, display_name: ctx.identity.display_name, role: ctx.identity.role },
+      workspace_name: ctx.identity.workspace_name,
+      plan: ctx.entitlement.tier,
+      credits_remaining: ctx.wallet.remaining,
+      route: body.route ?? null,
+      language: ctx.language
+    },
     created_by_user: userId,
     updated_at: now,
     comments: [],

@@ -21,6 +21,7 @@ import { useModules } from "../../hooks/useModules";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { applyTerms, EMPTY_PROFILE } from "@mondaily/shared/profile";
 import { useLanguage } from "../../hooks/useLanguage";
+import { firstNameOf } from "@mondaily/shared/identity";
 
 // Converts markdown to clean readable JSX — strips tables, stars, dashes
 function renderMarkdown(text: string): React.ReactNode {
@@ -154,7 +155,8 @@ const PRIORITY_STYLE: Record<string, string> = {
 export function HomePage() {
   const me = useCurrentUser();
   const navigate = useNavigate();
-  const firstName = me.name?.split(" ")[0];
+  // Resolve a real display name (name → email local-part → "there"); fixes "Good morning, there".
+  const firstName = firstNameOf(me);
   const { hasFinance } = useModules();
   const { data: wsSuggestions } = useWorkspaceSuggestions();  // profile-aware prompts + terms
   const wsProfile = wsSuggestions?.profile ?? EMPTY_PROFILE;

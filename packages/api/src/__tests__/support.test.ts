@@ -29,8 +29,8 @@ describe("support agent — language aware", () => {
 
 describe("support agent — never fakes refunds or account actions", () => {
   it("the system prompt forbids refunds/discounts/account actions and 'it's done' claims", () => {
-    expect(src).toMatch(/NEVER claim you did/);
-    expect(src).toMatch(/NEVER promise refunds, discounts/);
+    expect(src).toMatch(/take NO account actions/);
+    expect(src).toMatch(/NEVER say "I upgraded you", "I refunded you"/);
     expect(src).toMatch(/READ-ONLY/);
   });
   it("sensitive requests set needs_ticket instead of performing the action", () => {
@@ -165,6 +165,65 @@ describe("PHASE 2 — diagnostics are read-only + never invented", () => {
   });
   it("the prompt still forbids inventing outages/issues", () => {
     expect(src).toMatch(/never invent numbers, statuses, outages, or history/);
+  });
+});
+
+describe("PHASE 2.1 — identity + context in Help", () => {
+  it("buildSupportContext loads the requester's identity (name/email/role) + workspace name", () => {
+    expect(src).toMatch(/from\("workspace_members"\)\.select\("name, email, role"\)\.eq\("workspace_id", workspaceId\)\.eq\("user_id", userId\)/);
+    expect(src).toMatch(/display_name: resolveDisplayName\(me\)/);
+    expect(src).toMatch(/workspace_name:/);
+  });
+  it("the system prompt tells the agent to answer identity questions from the facts", () => {
+    expect(src).toMatch(/When asked "what is my name\?" answer with this name/);
+    expect(src).toMatch(/the user's name, email, role, workspace, plan\/tier, trial status, credits remaining/);
+  });
+  it("GET /support/context exposes identity + plan + wallet for the terminal panel (read-only)", () => {
+    const fn = src.slice(src.indexOf('router.get("/context"'));
+    expect(fn).toMatch(/identity: ctx\.identity/);
+    expect(fn).toMatch(/entitlement: ctx\.entitlement/);
+    expect(fn).toMatch(/wallet: ctx\.wallet/);
+    expect(fn).toMatch(/diagnostics: ctx\.diagnostics/);
+  });
+});
+
+describe("PHASE 2.1 — safe upsell, never fake actions", () => {
+  it("explicitly ALLOWS recommending a higher plan / credit pack", () => {
+    expect(src).toMatch(/SAFE UPSELL/);
+    expect(src).toMatch(/Operator or Command may fit better|recommend a higher plan/);
+  });
+  it("explicitly FORBIDS claiming it upgraded / refunded / discounted", () => {
+    expect(src).toMatch(/NEVER say "I upgraded you", "I refunded you", "I applied a discount\/credit"/);
+  });
+});
+
+describe("PHASE 2.1 — ticket metadata carries identity + context", () => {
+  it("create-ticket stamps requester identity, plan, credits and route", () => {
+    const fn = src.slice(src.indexOf('router.post("/tickets"'), src.indexOf('router.get("/tickets"'));
+    expect(fn).toMatch(/requester: \{ name: ctx\.identity\.name, email: ctx\.identity\.email/);
+    expect(fn).toMatch(/plan: ctx\.entitlement\.tier/);
+    expect(fn).toMatch(/credits_remaining: ctx\.wallet\.remaining/);
+    expect(fn).toMatch(/route: body\.route/);
+  });
+});
+
+describe("PHASE 2.1 — Help launcher moved off the sidebar/user area", () => {
+  const read = (p: string) => readFileSync(fileURLToPath(new URL(p, import.meta.url)), "utf8");
+  it("HelpProvider no longer mounts a fixed bottom-left floating button", () => {
+    const panel = read("../../../../apps/app/src/components/help/help-panel.tsx");
+    expect(panel).not.toMatch(/fixed bottom-5 left-5/);   // the old placement over sidebar identity
+    expect(panel).toMatch(/export function HelpTopButton/);
+  });
+  it("the top header mounts HelpTopButton as the main entry", () => {
+    expect(read("../../../../apps/app/src/routes/dashboard/layout.tsx")).toMatch(/<HelpTopButton \/>/);
+  });
+  it("Billing still opens Help with a billing prefill", () => {
+    expect(read("../../../../apps/app/src/routes/dashboard/settings/billing.tsx")).toMatch(/help\.open\(/);
+  });
+  it("the panel shows REAL context rows from /support/context (no fake diagnostics)", () => {
+    const panel = read("../../../../apps/app/src/components/help/help-panel.tsx");
+    expect(panel).toMatch(/apiClient\.get\("\/support\/context"\)/);
+    expect(panel).toMatch(/reading workspace context/);
   });
 });
 

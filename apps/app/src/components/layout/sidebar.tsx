@@ -13,6 +13,7 @@ import { useModules } from "../../hooks/useModules";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useSovereignAuthOptional } from "../auth/sovereign-auth-context";
 import { useLanguage } from "../../hooks/useLanguage";
+import { resolveDisplayName } from "@mondaily/shared/identity";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
@@ -657,7 +658,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                       </div>
                   }
                   <div className="flex-1 min-w-0">
-                    <div className="truncate text-[13px] leading-tight" style={{ color: "var(--text-primary)" }}>{me.name || "You"}</div>
+                    <div className="truncate text-[13px] leading-tight" style={{ color: "var(--text-primary)" }}>{resolveDisplayName(me)}</div>
                     <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>{me.email}</div>
                   </div>
                   <Settings size={13} style={{ color: "var(--text-faint)" }}/>

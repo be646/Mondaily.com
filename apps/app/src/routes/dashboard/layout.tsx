@@ -13,7 +13,7 @@ import { sectionHue } from "../../lib/sections";
 import { agentForRoute } from "../../lib/agents";
 import { VerifyEmailBanner } from "../../components/ui/verify-email-banner";
 import { useLanguage } from "../../hooks/useLanguage";
-import { HelpProvider } from "../../components/help/help-panel";
+import { HelpProvider, HelpTopButton } from "../../components/help/help-panel";
 import {
   Home, CheckSquare, Users, MessageCircle, Menu, Search,
   FileText, Bell, BarChart2, Zap, Phone, Mail, Settings,
@@ -204,6 +204,8 @@ export function DashboardLayout() {
             >
               <Activity size={15}/>
             </Link>
+            {/* Help & Support — the main Help entry point (opens the terminal-style panel) */}
+            <HelpTopButton />
             {/* Page-specific action buttons are portaled here by sub-pages */}
             <div id="mondaily-page-actions" className="flex items-center gap-1.5"/>
           </div>
