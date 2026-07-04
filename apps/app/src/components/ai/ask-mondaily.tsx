@@ -21,6 +21,7 @@ import { GRAPH_REASONING_STEPS, EvidenceStrip, SourceList, TokenLedger, Markdown
 import { useAttachments, AttachPicker, AttachChips, AttachButton } from "./use-attachments";
 import { useVoiceDictation } from "./use-voice";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
+import { useLanguage } from "../../hooks/useLanguage";
 
 
 // ── Accent palette (same as home) ─────────────────────────────────────────────
@@ -90,6 +91,7 @@ export function AskMondaily() {
   // Industry-aware starter prompts from the workspace profile, followed by the general defaults
   // (deduped). Falls back to the generic defaults while loading / when the profile has no signal.
   const { data: wsSuggestions } = useWorkspaceSuggestions();
+  const lang = useLanguage();
   const emptySuggestions = [...new Set([...(wsSuggestions?.ask ?? []), ...EMPTY_SUGGESTION_GROUPS])].slice(0, 9);
   const [input, setInput] = useState("");
   const voice = useVoiceDictation(setInput);
@@ -292,7 +294,7 @@ export function AskMondaily() {
               <div className="mx-auto mb-5 flex items-center justify-center text-stone-500 dark:text-[var(--text-secondary)]">
                 <LogoSymbol size={52} />
               </div>
-              <p className="text-sm font-medium text-[#111827] dark:text-[var(--text-primary)] mb-1">What do you want to know about the workspace graph?</p>
+              <p className="text-sm font-medium text-[#111827] dark:text-[var(--text-primary)] mb-1">{lang.t("ask.heading")}</p>
               <p className="text-xs text-[#9ca3af] dark:text-stone-500 mb-6">Tasks, finance, relationships, notes, workflows — one connected graph, this workspace only.</p>
               <div className="chat-suggestion-stack mx-auto max-w-md">
                 {emptySuggestions.map(s => (

@@ -7,6 +7,8 @@ import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { useSovereignAuthOptional } from "../../../components/auth/sovereign-auth-context";
 import { THEMES, type ThemeId, applyTheme as applyAppTheme, normalizeTheme } from "../../../lib/theme";
+import { SUPPORTED_LANGUAGES } from "@mondaily/shared/i18n";
+import { useLanguage } from "../../../hooks/useLanguage";
 
 type Appearance = string;
 type NotificationChannel = { in_app: boolean; email: boolean };
@@ -24,6 +26,7 @@ interface Preferences {
   ai_response_length?: "concise" | "balanced" | "detailed";
   ai_address?: string;
   ai_context?: string;
+  language?: string | null;
 }
 
 type Expertise = "novice" | "intermediate" | "expert";
@@ -71,6 +74,7 @@ export function AccountSettings() {
   const me = useCurrentUser();
   const sov = useSovereignAuthOptional();
   const navigate = useNavigate();
+  const { t } = useLanguage();   // localized settings labels (falls back to English)
   const qc = useQueryClient();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -123,6 +127,7 @@ export function AccountSettings() {
   const [aiLength, setAiLength] = useState<ResponseLength>("balanced");
   const [aiAddress, setAiAddress] = useState("");
   const [aiContext, setAiContext] = useState("");
+  const [language, setLanguage] = useState<string>("");   // per-user AI language override ("" = follow workspace)
 
   useEffect(() => {
     if (!query.data) return;
@@ -136,6 +141,7 @@ export function AccountSettings() {
     setAiLength(query.data.ai_response_length ?? "balanced");
     setAiAddress(query.data.ai_address ?? "");
     setAiContext(query.data.ai_context ?? "");
+    setLanguage(query.data.language ?? "");
   }, [query.data, me.name]);
 
   // Apply theme on change and on mount (applyAppTheme persists to localStorage too)
@@ -153,10 +159,12 @@ export function AccountSettings() {
         ai_response_length: aiLength,
         ai_address: aiAddress,
         ai_context: aiContext,
+        language,
       });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["account-settings"] });
+      qc.invalidateQueries({ queryKey: ["workspace-suggestions"] });
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     },
@@ -332,6 +340,16 @@ export function AccountSettings() {
               </select>
             </label>
           </div>
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">{t("settings.language")}</span>
+            <select value={language} onChange={e => setLanguage(e.target.value)} className="key-input w-full p-2.5 text-sm" dir="ltr">
+              <option value="">Follow workspace default</option>
+              {SUPPORTED_LANGUAGES.map(l => (
+                <option key={l.code} value={l.code}>{l.name} — {l.nativeName}</option>
+              ))}
+            </select>
+            <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">{t("settings.language_help")}</p>
+          </label>
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Context for the assistant</span>
             <textarea value={aiContext} onChange={e => setAiContext(e.target.value)} rows={3} placeholder="e.g. I run a B2B SaaS sales team; prioritize pipeline and revenue framing." className="key-input w-full resize-none p-3 text-sm" />

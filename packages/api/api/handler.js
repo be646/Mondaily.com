@@ -60718,6 +60718,124 @@ function profileContextBlock(p2) {
 ${lines.map((l2) => `- ${l2}`).join("\n")}`;
 }
 
+// ../shared/src/i18n.ts
+var SUPPORTED_LANGUAGES = [
+  { code: "en", name: "English", nativeName: "English", rtl: false, locale: "en" },
+  { code: "pl", name: "Polish", nativeName: "Polski", rtl: false, locale: "pl" },
+  { code: "ru", name: "Russian", nativeName: "\u0420\u0443\u0441\u0441\u043A\u0438\u0439", rtl: false, locale: "ru" },
+  { code: "uk", name: "Ukrainian", nativeName: "\u0423\u043A\u0440\u0430\u0457\u043D\u0441\u044C\u043A\u0430", rtl: false, locale: "uk" },
+  { code: "ar", name: "Arabic", nativeName: "\u0627\u0644\u0639\u0631\u0628\u064A\u0629", rtl: true, locale: "ar" },
+  { code: "fr", name: "French", nativeName: "Fran\xE7ais", rtl: false, locale: "fr" },
+  { code: "de", name: "German", nativeName: "Deutsch", rtl: false, locale: "de" },
+  { code: "es", name: "Spanish", nativeName: "Espa\xF1ol", rtl: false, locale: "es" },
+  { code: "pt", name: "Portuguese", nativeName: "Portugu\xEAs", rtl: false, locale: "pt" },
+  { code: "it", name: "Italian", nativeName: "Italiano", rtl: false, locale: "it" },
+  { code: "tr", name: "Turkish", nativeName: "T\xFCrk\xE7e", rtl: false, locale: "tr" },
+  { code: "nl", name: "Dutch", nativeName: "Nederlands", rtl: false, locale: "nl" }
+];
+var BY_CODE = new Map(SUPPORTED_LANGUAGES.map((l2) => [l2.code, l2]));
+function normalizeLang(raw2) {
+  const base = (raw2 ?? "").toLowerCase().trim().split(/[-_]/)[0];
+  return base && BY_CODE.has(base) ? base : "en";
+}
+function languageMeta(code) {
+  return BY_CODE.get(normalizeLang(code));
+}
+function languageInstruction(code) {
+  const lang = languageMeta(code);
+  if (lang.code === "en") return "";
+  return `
+
+Respond in ${lang.name} (${lang.nativeName}) by default. If the user writes in or explicitly asks for another language, use that instead. Keep proper nouns, identifiers, code, URLs and stored data values exactly as they are \u2014 only your prose should be in ${lang.name}.`;
+}
+var TRANSLATIONS = {
+  "onboarding.language_q": {
+    en: "Preferred language for AI responses?",
+    pl: "Preferowany j\u0119zyk odpowiedzi AI?",
+    ru: "\u041F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0435\u043C\u044B\u0439 \u044F\u0437\u044B\u043A \u043E\u0442\u0432\u0435\u0442\u043E\u0432 \u0418\u0418?",
+    uk: "\u0411\u0430\u0436\u0430\u043D\u0430 \u043C\u043E\u0432\u0430 \u0432\u0456\u0434\u043F\u043E\u0432\u0456\u0434\u0435\u0439 \u0428\u0406?",
+    ar: "\u0627\u0644\u0644\u063A\u0629 \u0627\u0644\u0645\u0641\u0636\u0644\u0629 \u0644\u0631\u062F\u0648\u062F \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A\u061F",
+    fr: "Langue pr\xE9f\xE9r\xE9e pour les r\xE9ponses de l\u2019IA ?",
+    de: "Bevorzugte Sprache f\xFCr KI-Antworten?",
+    es: "\xBFIdioma preferido para las respuestas de la IA?",
+    pt: "Idioma preferido para as respostas da IA?",
+    it: "Lingua preferita per le risposte dell\u2019IA?",
+    tr: "Yapay zek\xE2 yan\u0131tlar\u0131 i\xE7in tercih edilen dil?",
+    nl: "Voorkeurstaal voor AI-antwoorden?"
+  },
+  "settings.language": {
+    en: "Language",
+    pl: "J\u0119zyk",
+    ru: "\u042F\u0437\u044B\u043A",
+    uk: "\u041C\u043E\u0432\u0430",
+    ar: "\u0627\u0644\u0644\u063A\u0629",
+    fr: "Langue",
+    de: "Sprache",
+    es: "Idioma",
+    pt: "Idioma",
+    it: "Lingua",
+    tr: "Dil",
+    nl: "Taal"
+  },
+  "settings.language_help": {
+    en: "Language for AI responses and number/date formatting.",
+    pl: "J\u0119zyk odpowiedzi AI oraz formatowania liczb i dat.",
+    ru: "\u042F\u0437\u044B\u043A \u043E\u0442\u0432\u0435\u0442\u043E\u0432 \u0418\u0418 \u0438 \u0444\u043E\u0440\u043C\u0430\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F \u0447\u0438\u0441\u0435\u043B \u0438 \u0434\u0430\u0442.",
+    uk: "\u041C\u043E\u0432\u0430 \u0432\u0456\u0434\u043F\u043E\u0432\u0456\u0434\u0435\u0439 \u0428\u0406 \u0442\u0430 \u0444\u043E\u0440\u043C\u0430\u0442\u0443\u0432\u0430\u043D\u043D\u044F \u0447\u0438\u0441\u0435\u043B \u0456 \u0434\u0430\u0442.",
+    ar: "\u0644\u063A\u0629 \u0631\u062F\u0648\u062F \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0648\u062A\u0646\u0633\u064A\u0642 \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0648\u0627\u0644\u062A\u0648\u0627\u0631\u064A\u062E.",
+    fr: "Langue des r\xE9ponses de l\u2019IA et du format des nombres et dates.",
+    de: "Sprache f\xFCr KI-Antworten und Zahlen-/Datumsformat.",
+    es: "Idioma de las respuestas de la IA y del formato de n\xFAmeros y fechas.",
+    pt: "Idioma das respostas da IA e da formata\xE7\xE3o de n\xFAmeros e datas.",
+    it: "Lingua delle risposte dell\u2019IA e del formato di numeri e date.",
+    tr: "Yapay zek\xE2 yan\u0131tlar\u0131 ve say\u0131/tarih bi\xE7imi i\xE7in dil.",
+    nl: "Taal voor AI-antwoorden en getal-/datumnotatie."
+  },
+  "discovery.heading": {
+    en: "Find real leads & reviews online",
+    pl: "Znajd\u017A prawdziwych klient\xF3w i opinie online",
+    ru: "\u041D\u0430\u0445\u043E\u0434\u0438\u0442\u0435 \u0440\u0435\u0430\u043B\u044C\u043D\u044B\u0445 \u043A\u043B\u0438\u0435\u043D\u0442\u043E\u0432 \u0438 \u043E\u0442\u0437\u044B\u0432\u044B \u0432 \u0438\u043D\u0442\u0435\u0440\u043D\u0435\u0442\u0435",
+    uk: "\u0417\u043D\u0430\u0445\u043E\u0434\u044C\u0442\u0435 \u0440\u0435\u0430\u043B\u044C\u043D\u0438\u0445 \u043A\u043B\u0456\u0454\u043D\u0442\u0456\u0432 \u0456 \u0432\u0456\u0434\u0433\u0443\u043A\u0438 \u043E\u043D\u043B\u0430\u0439\u043D",
+    ar: "\u0627\u0639\u062B\u0631 \u0639\u0644\u0649 \u0639\u0645\u0644\u0627\u0621 \u0645\u062D\u062A\u0645\u0644\u064A\u0646 \u0648\u0645\u0631\u0627\u062C\u0639\u0627\u062A \u062D\u0642\u064A\u0642\u064A\u0629 \u0639\u0628\u0631 \u0627\u0644\u0625\u0646\u062A\u0631\u0646\u062A",
+    fr: "Trouvez de vrais prospects et avis en ligne",
+    de: "Finden Sie echte Leads & Bewertungen online",
+    es: "Encuentra clientes potenciales y rese\xF1as reales en l\xEDnea",
+    pt: "Encontre leads e avalia\xE7\xF5es reais online",
+    it: "Trova lead e recensioni reali online",
+    tr: "Ger\xE7ek m\xFC\u015Fteri adaylar\u0131 ve yorumlar\u0131 \xE7evrimi\xE7i bulun",
+    nl: "Vind echte leads en reviews online"
+  },
+  "discovery.sub": {
+    en: "Ask in plain language. Discovery searches the open web, reads the pages, and brings back source-backed prospects.",
+    pl: "Pytaj naturalnym j\u0119zykiem. Discovery przeszukuje sie\u0107, czyta strony i zwraca zweryfikowane kontakty.",
+    ru: "\u0421\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0439\u0442\u0435 \u043E\u0431\u044B\u0447\u043D\u044B\u043C \u044F\u0437\u044B\u043A\u043E\u043C. Discovery \u0438\u0449\u0435\u0442 \u0432 \u043E\u0442\u043A\u0440\u044B\u0442\u043E\u043C \u0432\u0435\u0431\u0435, \u0447\u0438\u0442\u0430\u0435\u0442 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u044B \u0438 \u0432\u043E\u0437\u0432\u0440\u0430\u0449\u0430\u0435\u0442 \u043F\u0440\u043E\u0432\u0435\u0440\u0451\u043D\u043D\u044B\u0435 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u044B.",
+    uk: "\u0417\u0430\u043F\u0438\u0442\u0443\u0439\u0442\u0435 \u0437\u0432\u0438\u0447\u0430\u0439\u043D\u043E\u044E \u043C\u043E\u0432\u043E\u044E. Discovery \u0448\u0443\u043A\u0430\u0454 \u0443 \u0432\u0456\u0434\u043A\u0440\u0438\u0442\u043E\u043C\u0443 \u0432\u0435\u0431\u0456, \u0447\u0438\u0442\u0430\u0454 \u0441\u0442\u043E\u0440\u0456\u043D\u043A\u0438 \u0439 \u043F\u043E\u0432\u0435\u0440\u0442\u0430\u0454 \u043F\u0435\u0440\u0435\u0432\u0456\u0440\u0435\u043D\u0456 \u043A\u043E\u043D\u0442\u0430\u043A\u0442\u0438.",
+    ar: "\u0627\u0633\u0623\u0644 \u0628\u0644\u063A\u0629 \u0628\u0633\u064A\u0637\u0629. \u064A\u0628\u062D\u062B Discovery \u0641\u064A \u0627\u0644\u0648\u064A\u0628 \u0648\u064A\u0642\u0631\u0623 \u0627\u0644\u0635\u0641\u062D\u0627\u062A \u0648\u064A\u0639\u064A\u062F \u0639\u0645\u0644\u0627\u0621 \u0645\u062D\u062A\u0645\u0644\u064A\u0646 \u0645\u0648\u062B\u0651\u0642\u064A\u0646 \u0628\u0627\u0644\u0645\u0635\u0627\u062F\u0631.",
+    fr: "Demandez en langage naturel. Discovery parcourt le web, lit les pages et renvoie des prospects sourc\xE9s.",
+    de: "Fragen Sie in normaler Sprache. Discovery durchsucht das Web, liest Seiten und liefert quellenbasierte Kontakte.",
+    es: "Pregunta en lenguaje natural. Discovery busca en la web, lee las p\xE1ginas y devuelve prospectos con fuentes.",
+    pt: "Pergunte em linguagem natural. O Discovery pesquisa na web, l\xEA as p\xE1ginas e retorna leads com fontes.",
+    it: "Chiedi in linguaggio naturale. Discovery cerca sul web, legge le pagine e restituisce contatti con fonti.",
+    tr: "Do\u011Fal dille sorun. Discovery web\u2019de arar, sayfalar\u0131 okur ve kaynakl\u0131 m\xFC\u015Fteri adaylar\u0131 getirir.",
+    nl: "Vraag in gewone taal. Discovery doorzoekt het web, leest pagina\u2019s en levert onderbouwde leads."
+  },
+  "ask.heading": {
+    en: "What do you want to know about the workspace graph?",
+    pl: "Co chcesz wiedzie\u0107 o grafie przestrzeni roboczej?",
+    ru: "\u0427\u0442\u043E \u0432\u044B \u0445\u043E\u0442\u0438\u0442\u0435 \u0443\u0437\u043D\u0430\u0442\u044C \u043E \u0433\u0440\u0430\u0444\u0435 \u0440\u0430\u0431\u043E\u0447\u0435\u0433\u043E \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u0430?",
+    uk: "\u0429\u043E \u0432\u0438 \u0445\u043E\u0447\u0435\u0442\u0435 \u0434\u0456\u0437\u043D\u0430\u0442\u0438\u0441\u044F \u043F\u0440\u043E \u0433\u0440\u0430\u0444 \u0440\u043E\u0431\u043E\u0447\u043E\u0433\u043E \u043F\u0440\u043E\u0441\u0442\u043E\u0440\u0443?",
+    ar: "\u0645\u0627\u0630\u0627 \u062A\u0631\u064A\u062F \u0623\u0646 \u062A\u0639\u0631\u0641 \u0639\u0646 \u0631\u0633\u0645 \u0645\u0633\u0627\u062D\u0629 \u0627\u0644\u0639\u0645\u0644\u061F",
+    fr: "Que voulez-vous savoir sur le graphe de votre espace ?",
+    de: "Was m\xF6chten Sie \xFCber den Workspace-Graphen wissen?",
+    es: "\xBFQu\xE9 quieres saber sobre el grafo del espacio de trabajo?",
+    pt: "O que voc\xEA quer saber sobre o grafo do espa\xE7o de trabalho?",
+    it: "Cosa vuoi sapere sul grafo dello spazio di lavoro?",
+    tr: "\xC7al\u0131\u015Fma alan\u0131 grafi\u011Fi hakk\u0131nda ne bilmek istiyorsunuz?",
+    nl: "Wat wil je weten over de workspace-graph?"
+  }
+};
+var TRANSLATION_KEYS = Object.keys(TRANSLATIONS);
+
 // src/routes/reports.ts
 init_client();
 init_ai_gateway();
@@ -62673,14 +62791,18 @@ var OBJECT_LABEL = {
 };
 var router6 = new Hono2();
 var HISTORY_TURN_LIMIT = 16;
-async function workspaceProfileBlock(workspaceId) {
+async function workspaceProfileBlock(workspaceId, userId) {
   if (!workspaceId) return "";
   try {
     const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
-    const block = profileContextBlock(resolveProfile(data?.settings ?? null));
-    return block ? `
+    const settings = data?.settings ?? null;
+    const profile = resolveProfile(settings);
+    const userLang = userId ? settings?.user_preferences?.[userId]?.language : void 0;
+    const lang = normalizeLang(userLang || profile.language);
+    const block = profileContextBlock(profile);
+    return `${block ? `
 
-${block}` : "";
+${block}` : ""}${languageInstruction(lang)}`;
   } catch {
     return "";
   }
@@ -62801,7 +62923,7 @@ router6.post("/", requireAuth, verifyAiCredits, zValidator("json", external_expo
       webContext = await searchWeb(message);
     }
     const contextNote = buildContextNote(context2);
-    const profileBlock = await workspaceProfileBlock(workspaceId);
+    const profileBlock = await workspaceProfileBlock(workspaceId, userId);
     const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `
 
 Web context:
@@ -62900,7 +63022,7 @@ router6.post("/stream", requireAuth, verifyAiCredits, zValidator("json", externa
     try {
       let webContext = "";
       if (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true") webContext = await searchWeb(message);
-      const profileBlock = await workspaceProfileBlock(workspaceId);
+      const profileBlock = await workspaceProfileBlock(workspaceId, userId);
       const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `
 
 Web context:
@@ -65694,6 +65816,8 @@ router18.get("/settings/account", async (c2) => {
     agent_notifications: userPreferences.agent_notifications ?? true,
     task_notifications: userPreferences.task_notifications ?? true,
     appearance: userPreferences.appearance ?? "dark",
+    language: userPreferences.language ?? null,
+    // per-user AI language override (falls back to workspace)
     connected_accounts: userPreferences.connected_accounts ?? []
   });
 });

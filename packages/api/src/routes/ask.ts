@@ -6,6 +6,7 @@ import { requireAuth } from "../middleware/auth";
 import { verifyAiCredits } from "../lib/credits";
 import { supabase } from "@mondaily/db/client";
 import { resolveProfile, profileContextBlock } from "@mondaily/shared/profile";
+import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
 import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
 import { runProspecting } from "./prospecting";
@@ -1326,15 +1327,24 @@ const HISTORY_TURN_LIMIT = 16; // last N turns (user+assistant messages combined
 
 /** Builds the "what the user currently has open" note appended to the system
  *  prompt. Shared by the non-streaming and streaming ask endpoints. */
-/** Load the workspace's industry profile as a compact system-prompt block (relevance/terms only —
- *  the model is still told never to fabricate data). Empty string when there's no profile signal or
- *  on any error, so it can never break a chat request. */
-export async function workspaceProfileBlock(workspaceId: string | undefined): Promise<string> {
+/**
+ * Load the workspace's industry profile (relevance/terms only — the model is still told never to
+ * fabricate data) AND the effective response language, as a compact system-prompt block. The
+ * language is resolved per-user first (settings.user_preferences[userId].language), falling back to
+ * the workspace profile language, then English. Empty/error → "" so it can never break a request.
+ */
+export async function workspaceProfileBlock(workspaceId: string | undefined, userId?: string): Promise<string> {
   if (!workspaceId) return "";
   try {
     const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
-    const block = profileContextBlock(resolveProfile((data?.settings as Record<string, unknown> | null) ?? null));
-    return block ? `\n\n${block}` : "";
+    const settings = (data?.settings as Record<string, unknown> | null) ?? null;
+    const profile = resolveProfile(settings);
+    const userLang = userId
+      ? ((settings?.user_preferences as Record<string, { language?: string }> | undefined)?.[userId]?.language)
+      : undefined;
+    const lang = normalizeLang(userLang || profile.language);
+    const block = profileContextBlock(profile);
+    return `${block ? `\n\n${block}` : ""}${languageInstruction(lang)}`;
   } catch { return ""; }
 }
 
@@ -1442,7 +1452,7 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
     }
 
     const contextNote = buildContextNote(context);
-    const profileBlock = await workspaceProfileBlock(workspaceId);
+    const profileBlock = await workspaceProfileBlock(workspaceId, userId);
 
     const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + contextNote;
 
@@ -1586,7 +1596,7 @@ router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object
     try {
       let webContext = "";
       if (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true") webContext = await searchWeb(message);
-      const profileBlock = await workspaceProfileBlock(workspaceId);
+      const profileBlock = await workspaceProfileBlock(workspaceId, userId);
       const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + buildContextNote(context as Record<string, any> | undefined);
       const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content }));
       const messages: any[] = [...priorTurns, { role: "user", content: message }];

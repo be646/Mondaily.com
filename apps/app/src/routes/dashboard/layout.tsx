@@ -12,6 +12,7 @@ import { apiClient } from "../../lib/api-client";
 import { sectionHue } from "../../lib/sections";
 import { agentForRoute } from "../../lib/agents";
 import { VerifyEmailBanner } from "../../components/ui/verify-email-banner";
+import { useLanguage } from "../../hooks/useLanguage";
 import {
   Home, CheckSquare, Users, MessageCircle, Menu, Search,
   FileText, Bell, BarChart2, Zap, Phone, Mail, Settings,
@@ -116,6 +117,7 @@ export function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  useLanguage();   // keep <html lang/dir> in sync with the effective language (RTL foundation)
 
   const { data: wsSettings } = useQuery<{ onboarded?: boolean; member_count?: number }>({
     queryKey: ["workspace-settings"],

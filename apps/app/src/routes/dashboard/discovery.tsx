@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
+import { useLanguage } from "../../hooks/useLanguage";
 import { requestAsk } from "../../lib/ask-bus";
 
 /**
@@ -364,6 +365,7 @@ function Empty({ onPick }: { onPick: (q: string) => void }) {
   // Industry-aware examples from the workspace profile; fall back to neutral generic ones while
   // loading or when the profile has no signal. Free-form search is always available regardless.
   const { data: suggestions } = useWorkspaceSuggestions();
+  const { t } = useLanguage();
   const examples = suggestions?.discovery?.length
     ? suggestions.discovery.map((q, i) => ({ icon: i % 2 === 0 ? Users : Star, label: q, q }))
     : FALLBACK_EXAMPLES;
@@ -372,10 +374,9 @@ function Empty({ onPick }: { onPick: (q: string) => void }) {
       <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: "var(--surface-hover)" }}>
         <Radar size={22} style={{ color: "var(--section-accent)" }} />
       </span>
-      <h2 className="mt-4 text-[17px] font-semibold" style={{ color: "var(--text-primary)" }}>Find real leads & reviews online</h2>
+      <h2 className="mt-4 text-[17px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("discovery.heading")}</h2>
       <p className="mt-1.5 max-w-md text-[13px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-        Ask in plain language. Discovery searches the open web, reads the pages, and brings back
-        source-backed prospects — or what people are really saying about a business.
+        {t("discovery.sub")}
       </p>
       <div className="mt-6 grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
         {examples.map((ex) => (

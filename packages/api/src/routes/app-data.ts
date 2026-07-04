@@ -384,6 +384,7 @@ router.get("/settings/account", async (c) => {
     agent_notifications: userPreferences.agent_notifications ?? true,
     task_notifications: userPreferences.task_notifications ?? true,
     appearance: userPreferences.appearance ?? "dark",
+    language: userPreferences.language ?? null,   // per-user AI language override (falls back to workspace)
     connected_accounts: userPreferences.connected_accounts ?? []
   });
 });
