@@ -13,6 +13,7 @@ import { sectionHue } from "../../lib/sections";
 import { agentForRoute } from "../../lib/agents";
 import { VerifyEmailBanner } from "../../components/ui/verify-email-banner";
 import { useLanguage } from "../../hooks/useLanguage";
+import { HelpProvider } from "../../components/help/help-panel";
 import {
   Home, CheckSquare, Users, MessageCircle, Menu, Search,
   FileText, Bell, BarChart2, Zap, Phone, Mail, Settings,
@@ -142,7 +143,8 @@ export function DashboardLayout() {
   const isGrid = /^\/objects\/[^/]+$/.test(location.pathname);
 
   return (
-    // Dual-font: the shell defaults to Geist Sans (UI/structure); data/AI surfaces opt into font-mono.
+   <HelpProvider>
+    {/* Dual-font: the shell defaults to Geist Sans (UI/structure); data/AI surfaces opt into font-mono. */}
     <div className="flex h-screen w-screen overflow-hidden surface-page">
       {/* Change toasts — slide-in pop-ups for new notifications/activity */}
       <ToastHost />
@@ -227,5 +229,6 @@ export function DashboardLayout() {
       <CallHost />
       <MobileNav />
     </div>
+   </HelpProvider>
   );
 }

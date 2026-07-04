@@ -20,6 +20,7 @@ import { liveCallsRouter } from "./routes/live-calls";
 import { realtimeRouter } from "./routes/realtime";
 import { authRouter } from "./routes/auth";
 import { creditsRouter } from "./routes/credits";
+import { supportRouter } from "./routes/support";
 import { webhooksRouter } from "./routes/webhooks";
 import { billingRouter } from "./routes/billing";
 import { appDataRouter } from "./routes/app-data";
@@ -121,6 +122,7 @@ app.route("/api/v1/quotes", quotesRouter);
 app.route("/api/v1/expenses", expensesRouter);
 app.route("/api/v1/tags", tagsRouter);
 app.route("/api/v1/onboarding", onboardingRouter);
+app.route("/api/v1/support", supportRouter);
 app.route("/api/v1/integrations", integrationsRouter);
 app.route("/api/mcp", mcpRouter); // external AI clients (MCP), own key-based auth
 app.route("/api/v1", appDataRouter);

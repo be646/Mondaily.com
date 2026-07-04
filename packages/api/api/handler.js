@@ -2029,20 +2029,20 @@ var init_router3 = __esm({
         let i2 = 0;
         let res;
         for (; i2 < len; i2++) {
-          const router49 = routers[i2];
+          const router50 = routers[i2];
           try {
             for (let i22 = 0, len2 = routes.length; i22 < len2; i22++) {
-              router49.add(...routes[i22]);
+              router50.add(...routes[i22]);
             }
-            res = router49.match(method, path);
+            res = router50.match(method, path);
           } catch (e2) {
             if (e2 instanceof UnsupportedPathError) {
               continue;
             }
             throw e2;
           }
-          this.match = router49.match.bind(router49);
-          this.#routers = [router49];
+          this.match = router50.match.bind(router50);
+          this.#routers = [router50];
           this.#routes = void 0;
           break;
         }
@@ -60875,6 +60875,12 @@ var TRANSLATIONS = {
   // ── Agents / Activity ──
   "home.quick_prompts": { en: "Quick prompts", pl: "Szybkie polecenia", ru: "\u0411\u044B\u0441\u0442\u0440\u044B\u0435 \u0437\u0430\u043F\u0440\u043E\u0441\u044B", uk: "\u0428\u0432\u0438\u0434\u043A\u0456 \u0437\u0430\u043F\u0438\u0442\u0438", ar: "\u0623\u0648\u0627\u0645\u0631 \u0633\u0631\u064A\u0639\u0629", fr: "Invites rapides", de: "Schnellbefehle", es: "Sugerencias r\xE1pidas", pt: "Comandos r\xE1pidos", it: "Prompt rapidi", tr: "H\u0131zl\u0131 komutlar", nl: "Snelle prompts" },
   "home.today": { en: "Today", pl: "Dzisiaj", ru: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F", uk: "\u0421\u044C\u043E\u0433\u043E\u0434\u043D\u0456", ar: "\u0627\u0644\u064A\u0648\u0645", fr: "Aujourd\u2019hui", de: "Heute", es: "Hoy", pt: "Hoje", it: "Oggi", tr: "Bug\xFCn", nl: "Vandaag" },
+  // ── Help / Support agent ──
+  "help.title": { en: "Help & Support", pl: "Pomoc i wsparcie", ru: "\u041F\u043E\u043C\u043E\u0449\u044C \u0438 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", uk: "\u0414\u043E\u0432\u0456\u0434\u043A\u0430 \u0442\u0430 \u043F\u0456\u0434\u0442\u0440\u0438\u043C\u043A\u0430", ar: "\u0627\u0644\u0645\u0633\u0627\u0639\u062F\u0629 \u0648\u0627\u0644\u062F\u0639\u0645", fr: "Aide et support", de: "Hilfe & Support", es: "Ayuda y soporte", pt: "Ajuda e suporte", it: "Aiuto e supporto", tr: "Yard\u0131m ve destek", nl: "Hulp en ondersteuning" },
+  "help.placeholder": { en: "Ask a question about Mondaily\u2026", pl: "Zadaj pytanie o Mondaily\u2026", ru: "\u0417\u0430\u0434\u0430\u0439\u0442\u0435 \u0432\u043E\u043F\u0440\u043E\u0441 \u043E Mondaily\u2026", uk: "\u041F\u043E\u0441\u0442\u0430\u0432\u0442\u0435 \u0437\u0430\u043F\u0438\u0442\u0430\u043D\u043D\u044F \u043F\u0440\u043E Mondaily\u2026", ar: "\u0627\u0637\u0631\u062D \u0633\u0624\u0627\u0644\u0627\u064B \u0639\u0646 Mondaily\u2026", fr: "Posez une question sur Mondaily\u2026", de: "Stellen Sie eine Frage zu Mondaily\u2026", es: "Haz una pregunta sobre Mondaily\u2026", pt: "Fa\xE7a uma pergunta sobre o Mondaily\u2026", it: "Fai una domanda su Mondaily\u2026", tr: "Mondaily hakk\u0131nda bir soru sorun\u2026", nl: "Stel een vraag over Mondaily\u2026" },
+  "help.subtitle": { en: "Answers use your workspace's real data. I can't change your account \u2014 I'll open a request for anything sensitive.", pl: "Odpowiedzi korzystaj\u0105 z rzeczywistych danych Twojej przestrzeni. Nie mog\u0119 zmienia\u0107 konta \u2014 dla wra\u017Cliwych spraw otworz\u0119 zg\u0142oszenie.", ru: "\u041E\u0442\u0432\u0435\u0442\u044B \u043E\u0441\u043D\u043E\u0432\u0430\u043D\u044B \u043D\u0430 \u0440\u0435\u0430\u043B\u044C\u043D\u044B\u0445 \u0434\u0430\u043D\u043D\u044B\u0445 \u0432\u0430\u0448\u0435\u0433\u043E \u043F\u0440\u043E\u0441\u0442\u0440\u0430\u043D\u0441\u0442\u0432\u0430. \u042F \u043D\u0435 \u043C\u0435\u043D\u044F\u044E \u0430\u043A\u043A\u0430\u0443\u043D\u0442 \u2014 \u043F\u043E \u0432\u0430\u0436\u043D\u044B\u043C \u0432\u043E\u043F\u0440\u043E\u0441\u0430\u043C \u0441\u043E\u0437\u0434\u0430\u043C \u0437\u0430\u043F\u0440\u043E\u0441.", uk: "\u0412\u0456\u0434\u043F\u043E\u0432\u0456\u0434\u0456 \u0431\u0430\u0437\u0443\u044E\u0442\u044C\u0441\u044F \u043D\u0430 \u0440\u0435\u0430\u043B\u044C\u043D\u0438\u0445 \u0434\u0430\u043D\u0438\u0445 \u043F\u0440\u043E\u0441\u0442\u043E\u0440\u0443. \u042F \u043D\u0435 \u0437\u043C\u0456\u043D\u044E\u044E \u0430\u043A\u0430\u0443\u043D\u0442 \u2014 \u0434\u043B\u044F \u0432\u0430\u0436\u043B\u0438\u0432\u0438\u0445 \u043F\u0438\u0442\u0430\u043D\u044C \u0441\u0442\u0432\u043E\u0440\u044E \u0437\u0430\u043F\u0438\u0442.", ar: "\u0627\u0644\u0625\u062C\u0627\u0628\u0627\u062A \u062A\u0633\u062A\u0646\u062F \u0625\u0644\u0649 \u0628\u064A\u0627\u0646\u0627\u062A \u0645\u0633\u0627\u062D\u062A\u0643 \u0627\u0644\u062D\u0642\u064A\u0642\u064A\u0629. \u0644\u0627 \u064A\u0645\u0643\u0646\u0646\u064A \u062A\u063A\u064A\u064A\u0631 \u062D\u0633\u0627\u0628\u0643 \u2014 \u0633\u0623\u0641\u062A\u062D \u0637\u0644\u0628\u064B\u0627 \u0644\u0623\u064A \u0623\u0645\u0631 \u062D\u0633\u0627\u0633.", fr: "Les r\xE9ponses utilisent les donn\xE9es r\xE9elles de votre espace. Je ne peux pas modifier votre compte \u2014 j'ouvrirai une demande pour tout \xE9l\xE9ment sensible.", de: "Antworten nutzen die echten Daten Ihres Workspace. Ich kann Ihr Konto nicht \xE4ndern \u2014 f\xFCr Sensibles \xF6ffne ich eine Anfrage.", es: "Las respuestas usan los datos reales de tu espacio. No puedo cambiar tu cuenta \u2014 abrir\xE9 una solicitud para lo sensible.", pt: "As respostas usam os dados reais do seu espa\xE7o. N\xE3o posso alterar sua conta \u2014 abrirei uma solicita\xE7\xE3o para o que for sens\xEDvel.", it: "Le risposte usano i dati reali del tuo spazio. Non posso modificare il tuo account \u2014 aprir\xF2 una richiesta per le cose sensibili.", tr: "Yan\u0131tlar \xE7al\u0131\u015Fma alan\u0131n\u0131z\u0131n ger\xE7ek verilerini kullan\u0131r. Hesab\u0131n\u0131z\u0131 de\u011Fi\u015Ftiremem \u2014 hassas konularda talep a\xE7ar\u0131m.", nl: "Antwoorden gebruiken de echte gegevens van je workspace. Ik kan je account niet wijzigen \u2014 voor gevoelige zaken open ik een verzoek." },
+  "help.create_ticket": { en: "Create support request", pl: "Utw\xF3rz zg\u0142oszenie", ru: "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0437\u0430\u043F\u0440\u043E\u0441", uk: "\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 \u0437\u0430\u043F\u0438\u0442", ar: "\u0625\u0646\u0634\u0627\u0621 \u0637\u0644\u0628 \u062F\u0639\u0645", fr: "Cr\xE9er une demande", de: "Anfrage erstellen", es: "Crear solicitud", pt: "Criar solicita\xE7\xE3o", it: "Crea richiesta", tr: "Destek talebi olu\u015Ftur", nl: "Verzoek aanmaken" },
+  "help.ticket_created": { en: "Support request created \u2014 our team will follow up.", pl: "Zg\u0142oszenie utworzone \u2014 nasz zesp\xF3\u0142 si\u0119 odezwie.", ru: "\u0417\u0430\u043F\u0440\u043E\u0441 \u0441\u043E\u0437\u0434\u0430\u043D \u2014 \u043D\u0430\u0448\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u0441\u0432\u044F\u0436\u0435\u0442\u0441\u044F \u0441 \u0432\u0430\u043C\u0438.", uk: "\u0417\u0430\u043F\u0438\u0442 \u0441\u0442\u0432\u043E\u0440\u0435\u043D\u043E \u2014 \u043D\u0430\u0448\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u0437\u0432\u2019\u044F\u0436\u0435\u0442\u044C\u0441\u044F \u0437 \u0432\u0430\u043C\u0438.", ar: "\u062A\u0645 \u0625\u0646\u0634\u0627\u0621 \u0637\u0644\u0628 \u0627\u0644\u062F\u0639\u0645 \u2014 \u0633\u064A\u062A\u0627\u0628\u0639 \u0641\u0631\u064A\u0642\u0646\u0627 \u0645\u0639\u0643.", fr: "Demande cr\xE9\xE9e \u2014 notre \xE9quipe vous recontactera.", de: "Anfrage erstellt \u2014 unser Team meldet sich.", es: "Solicitud creada \u2014 nuestro equipo te contactar\xE1.", pt: "Solicita\xE7\xE3o criada \u2014 nossa equipe entrar\xE1 em contato.", it: "Richiesta creata \u2014 il nostro team ti ricontatter\xE0.", tr: "Talep olu\u015Fturuldu \u2014 ekibimiz sizinle ileti\u015Fime ge\xE7ecek.", nl: "Verzoek aangemaakt \u2014 ons team neemt contact op." },
   "agents.subtitle": { en: "Agents prepare, you approve \u2014 every action is queued for your sign-off.", pl: "Agenci przygotowuj\u0105, Ty zatwierdzasz \u2014 ka\u017Cda akcja czeka na Twoj\u0105 zgod\u0119.", ru: "\u0410\u0433\u0435\u043D\u0442\u044B \u0433\u043E\u0442\u043E\u0432\u044F\u0442, \u0432\u044B \u043E\u0434\u043E\u0431\u0440\u044F\u0435\u0442\u0435 \u2014 \u043A\u0430\u0436\u0434\u043E\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0436\u0434\u0451\u0442 \u0432\u0430\u0448\u0435\u0433\u043E \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u044F.", uk: "\u0410\u0433\u0435\u043D\u0442\u0438 \u0433\u043E\u0442\u0443\u044E\u0442\u044C, \u0432\u0438 \u0441\u0445\u0432\u0430\u043B\u044E\u0454\u0442\u0435 \u2014 \u043A\u043E\u0436\u043D\u0430 \u0434\u0456\u044F \u043E\u0447\u0456\u043A\u0443\u0454 \u0432\u0430\u0448\u043E\u0433\u043E \u043F\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043D\u043D\u044F.", ar: "\u0627\u0644\u0648\u0643\u0644\u0627\u0621 \u064A\u062C\u0647\u0651\u0632\u0648\u0646\u060C \u0648\u0623\u0646\u062A \u062A\u0648\u0627\u0641\u0642 \u2014 \u0643\u0644 \u0625\u062C\u0631\u0627\u0621 \u064A\u0646\u062A\u0638\u0631 \u0645\u0648\u0627\u0641\u0642\u062A\u0643.", fr: "Les agents pr\xE9parent, vous approuvez \u2014 chaque action attend votre validation.", de: "Agenten bereiten vor, Sie genehmigen \u2014 jede Aktion wartet auf Ihre Freigabe.", es: "Los agentes preparan, t\xFA apruebas \u2014 cada acci\xF3n espera tu visto bueno.", pt: "Os agentes preparam, voc\xEA aprova \u2014 cada a\xE7\xE3o aguarda seu aval.", it: "Gli agenti preparano, tu approvi \u2014 ogni azione attende il tuo via libera.", tr: "Ajanlar haz\u0131rlar, siz onaylars\u0131n\u0131z \u2014 her i\u015Flem onay\u0131n\u0131z\u0131 bekler.", nl: "Agents bereiden voor, jij keurt goed \u2014 elke actie wacht op je akkoord." }
 };
 function t2(code, key) {
@@ -65488,6 +65494,165 @@ router15.post("/checkout-session", requireAdminRole, async (c2) => {
   return r2.url ? c2.json({ url: r2.url }) : c2.json({ error: r2.error }, r2.status);
 });
 
+// src/routes/support.ts
+init_client();
+init_ai_gateway();
+init_entitlements();
+init_pricing();
+var router16 = new Hono2();
+router16.use("*", requireAuth);
+var SUPPORT_CATEGORIES = [
+  "billing",
+  "credits",
+  "onboarding",
+  "discovery",
+  "integrations",
+  "data_privacy",
+  "bug_report",
+  "feature_request"
+];
+async function buildSupportContext(workspaceId, userId) {
+  const [wsRow, ledgerRes, contactsRes, membersRes] = await Promise.all([
+    supabase.from("workspaces").select("plan, settings, onboarded").eq("id", workspaceId).maybeSingle(),
+    supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", workspaceId),
+    supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).in("object_type", ["person", "company"]),
+    supabase.from("workspace_members").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId)
+  ]);
+  const settings = wsRow.data?.settings ?? {};
+  const ent = await getEntitlement(workspaceId);
+  const profile = resolveProfile(settings);
+  const rows2 = ledgerRes.data ?? [];
+  const granted = rows2.filter((r2) => r2.transaction_type === "grant").reduce((s2, r2) => s2 + Number(r2.amount), 0);
+  const purchased = rows2.filter((r2) => r2.transaction_type === "purchase").reduce((s2, r2) => s2 + Number(r2.amount), 0);
+  const usedNeg = rows2.filter((r2) => r2.transaction_type === "usage").reduce((s2, r2) => s2 + Number(r2.amount), 0);
+  const included = ent.includedMonthlyCredits;
+  const remaining = Math.max(0, granted + purchased + usedNeg);
+  const integrations = settings.integrations ?? {};
+  const modules = settings.modules ?? [];
+  const userLang = settings.user_preferences?.[userId]?.language;
+  const language = normalizeLang(userLang || profile.language);
+  return {
+    language,
+    entitlement: { tier: ent.tier, source: ent.source, trial_ends_at: ent.trialEndsAt, seats: ent.seats },
+    wallet: { included_monthly_credits: included ?? monthlyCreditsFor(ent.tier), remaining, purchased, used: Math.abs(usedNeg), enrolled: rows2.length > 0 },
+    readiness: {
+      onboarded: Boolean(wsRow.data?.onboarded),
+      contacts: contactsRes.count ?? 0,
+      members: membersRes.count ?? 0,
+      email_connected: Boolean(integrations.gmail || integrations.outlook),
+      calendar_connected: Boolean(integrations["google-calendar"]),
+      enabled_modules: modules
+    },
+    profile
+  };
+}
+function contextBlock(ctx) {
+  const w2 = ctx.wallet;
+  const r2 = ctx.readiness;
+  const lines = [
+    `Plan/tier: ${ctx.entitlement.tier} (source: ${ctx.entitlement.source}${ctx.entitlement.trial_ends_at ? `, trial ends ${ctx.entitlement.trial_ends_at}` : ""}); seats: ${ctx.entitlement.seats}.`,
+    w2.enrolled ? `AI credit wallet: ${w2.remaining.toLocaleString()} remaining of ${(w2.included_monthly_credits ?? 0).toLocaleString()} included/mo${w2.purchased ? ` + ${w2.purchased.toLocaleString()} purchased` : ""}; ${w2.used.toLocaleString()} used.` : "AI credit wallet: not enrolled yet.",
+    `Workspace readiness: onboarded=${r2.onboarded}, contacts=${r2.contacts}, members=${r2.members}, email_connected=${r2.email_connected}, calendar_connected=${r2.calendar_connected}, modules=[${r2.enabled_modules.join(", ") || "none"}].`
+  ];
+  const prof = profileContextBlock(ctx.profile);
+  return `WORKSPACE FACTS (read-only \u2014 the ONLY data you may state as fact about this account):
+${lines.map((l2) => `- ${l2}`).join("\n")}${prof ? `
+${prof}` : ""}`;
+}
+var SUPPORT_SYSTEM = `You are Mondaily's built-in Help & Support agent. You help users understand and use Mondaily \u2014 Discovery, the workspace graph, agents, decisions, finance, plans, AI credits, integrations, and data/privacy.
+
+STRICT RULES:
+- Be accurate and source-backed. State account facts ONLY from the provided WORKSPACE FACTS. If a fact isn't there, say you don't have it \u2014 never invent numbers, statuses, or history.
+- You are READ-ONLY. You CANNOT change plans, grant/refund credits, modify billing, invite members, connect integrations, or take any account action. NEVER claim you did, and NEVER promise refunds, discounts, credit top-ups, or that "it's been fixed/applied".
+- For anything requiring an account change, human review, or a bug fix: explain the situation, tell the user you'll open a support request, and set needs_ticket=true with a concise suggested_subject. Do not pretend the action is done.
+- Classify the user's issue into exactly one category.
+- Keep answers concise, friendly and actionable (a few short paragraphs or a short list). Never mention the underlying AI provider.`;
+router16.post("/ask", zValidator("json", external_exports.object({
+  message: external_exports.string().min(1).max(4e3),
+  history: external_exports.array(external_exports.object({ role: external_exports.enum(["user", "assistant"]), content: external_exports.string() })).optional()
+})), async (c2) => {
+  const { message, history } = c2.req.valid("json");
+  const env2 = gatewayEnv();
+  if (!env2.baseURL || !env2.apiKey) {
+    return c2.json({
+      answer: "Help AI isn't available right now. You can still create a support request and our team will follow up.",
+      category: "bug_report",
+      needs_ticket: true,
+      suggested_subject: "Help AI unavailable",
+      language: "en",
+      degraded: true
+    });
+  }
+  const ctx = await buildSupportContext(c2.get("workspaceId"), c2.get("userId"));
+  const priorTurns = (history ?? []).slice(-6).map((h2) => `${h2.role === "user" ? "User" : "Assistant"}: ${h2.content}`).join("\n");
+  const system = `${SUPPORT_SYSTEM}
+
+${contextBlock(ctx)}${languageInstruction(ctx.language)}
+
+Respond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIES.join(", ")}], "needs_ticket": boolean, "suggested_subject": string}. The "answer" must be in the user's language; the other fields stay in English.`;
+  const prompt = `${priorTurns ? priorTurns + "\n" : ""}User: ${message}`;
+  let raw2 = "";
+  try {
+    const res = await aiGateway({ system, prompt, maxTokens: 700, feature: "support" });
+    raw2 = res.text ?? "";
+  } catch {
+    return c2.json({ answer: "I couldn't reach the help service just now. Please try again, or create a support request.", category: "bug_report", needs_ticket: true, suggested_subject: "Help service error", language: ctx.language, degraded: true });
+  }
+  let parsed = {};
+  try {
+    parsed = JSON.parse(raw2.slice(raw2.indexOf("{"), raw2.lastIndexOf("}") + 1));
+  } catch {
+    parsed = { answer: raw2 };
+  }
+  const category = SUPPORT_CATEGORIES.includes(parsed.category ?? "") ? parsed.category : "bug_report";
+  return c2.json({
+    answer: parsed.answer && parsed.answer.trim() || "I'm not sure \u2014 want me to open a support request so a human can help?",
+    category,
+    needs_ticket: Boolean(parsed.needs_ticket),
+    suggested_subject: (parsed.suggested_subject ?? "").toString().slice(0, 120),
+    language: ctx.language
+  });
+});
+router16.post("/tickets", zValidator("json", external_exports.object({
+  category: external_exports.enum(SUPPORT_CATEGORIES),
+  subject: external_exports.string().min(1).max(200),
+  message: external_exports.string().min(1).max(8e3),
+  metadata: external_exports.record(external_exports.unknown()).optional()
+})), async (c2) => {
+  const body = c2.req.valid("json");
+  const { data, error } = await supabase.from("nodes").insert({
+    workspace_id: c2.get("workspaceId"),
+    vertical: "shared",
+    object_type: "support_ticket",
+    created_by: c2.get("userId"),
+    data: {
+      category: body.category,
+      subject: body.subject,
+      message: body.message,
+      status: "open",
+      metadata: body.metadata ?? {},
+      created_by_user: c2.get("userId")
+    }
+  }).select("id, created_at").single();
+  if (error) return c2.json({ error: "Could not create the support request." }, 500);
+  return c2.json({ id: data.id, status: "open", created_at: data.created_at }, 201);
+});
+router16.get("/tickets", requireAdminRole, async (c2) => {
+  const { data } = await supabase.from("nodes").select("id, data, created_by, created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "support_ticket").order("created_at", { ascending: false }).limit(50);
+  const tickets = (data ?? []).map((n2) => {
+    const d2 = n2.data ?? {};
+    return {
+      id: n2.id,
+      category: d2.category ?? "bug_report",
+      subject: d2.subject ?? "",
+      status: d2.status ?? "open",
+      created_by: n2.created_by,
+      created_at: n2.created_at
+    };
+  });
+  return c2.json({ tickets });
+});
+
 // src/routes/webhooks.ts
 var import_node_crypto8 = require("crypto");
 init_client();
@@ -65530,8 +65695,8 @@ async function downgradeToScout(workspaceId) {
 }
 
 // src/routes/webhooks.ts
-var router16 = new Hono2();
-router16.post("/nylas", async (c2) => {
+var router17 = new Hono2();
+router17.post("/nylas", async (c2) => {
   const challenge = c2.req.query("challenge");
   if (challenge) return c2.text(challenge);
   if (!process.env.NYLAS_WEBHOOK_SECRET) {
@@ -65565,7 +65730,7 @@ router16.post("/nylas", async (c2) => {
   }
   return c2.json({ ok: true });
 });
-router16.post("/stripe", async (c2) => {
+router17.post("/stripe", async (c2) => {
   const sig = c2.req.header("stripe-signature") ?? "";
   const secret4 = process.env.STRIPE_WEBHOOK_SECRET ?? "";
   const rawBody = await c2.req.text();
@@ -65662,8 +65827,8 @@ router16.post("/stripe", async (c2) => {
 
 // src/routes/billing.ts
 init_client();
-var router17 = new Hono2();
-router17.use("*", requireAuth);
+var router18 = new Hono2();
+router18.use("*", requireAuth);
 var STRIPE_API3 = "https://api.stripe.com/v1";
 var appUrl3 = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
 function encodeForm3(params) {
@@ -65684,7 +65849,7 @@ function priceFor(plan, interval) {
   const key = `STRIPE_PRICE_${plan.toUpperCase()}_${interval.toUpperCase()}`;
   return process.env[key];
 }
-router17.post("/checkout", async (c2) => {
+router18.post("/checkout", async (c2) => {
   const body = await c2.req.json().catch(() => ({}));
   const plan = (body.plan ?? "").toLowerCase();
   const interval = (body.interval ?? "month").toLowerCase();
@@ -65717,13 +65882,13 @@ router17.post("/checkout", async (c2) => {
     return c2.json({ error: e2 instanceof Error ? e2.message : "Could not start checkout." }, 500);
   }
 });
-router17.post("/credits-checkout", async (c2) => {
+router18.post("/credits-checkout", async (c2) => {
   const body = await c2.req.json().catch(() => ({}));
   const packId = body.pack_id ?? "standard";
   const r2 = await createCreditPackCheckout(c2.get("workspaceId"), c2.get("userId"), packId);
   return r2.url ? c2.json({ url: r2.url }) : c2.json({ error: r2.error, configured: r2.status !== 503 }, r2.status);
 });
-router17.post("/portal", async (c2) => {
+router18.post("/portal", async (c2) => {
   if (!process.env.STRIPE_SECRET_KEY) {
     return c2.json({ error: "Billing isn't connected yet.", configured: false }, 503);
   }
@@ -65763,7 +65928,7 @@ async function ensureCustomer(workspaceId, userId) {
   await supabase.from("workspaces").update({ stripe_customer_id: customer.id }).eq("id", workspaceId);
   return customer.id;
 }
-router17.post("/setup-intent", async (c2) => {
+router18.post("/setup-intent", async (c2) => {
   if (!process.env.STRIPE_SECRET_KEY) {
     return c2.json({ error: "Billing isn't connected yet. Add STRIPE_SECRET_KEY to enable upgrades.", configured: false }, 503);
   }
@@ -65784,7 +65949,7 @@ router17.post("/setup-intent", async (c2) => {
     return c2.json({ error: e2 instanceof Error ? e2.message : "Could not start card setup." }, 500);
   }
 });
-router17.post("/subscribe", async (c2) => {
+router18.post("/subscribe", async (c2) => {
   const body = await c2.req.json().catch(() => ({}));
   const plan = normalizeTier(body.plan);
   const interval = (body.interval ?? "month").toLowerCase();
@@ -65824,7 +65989,7 @@ router17.post("/subscribe", async (c2) => {
     return c2.json({ error: e2 instanceof Error ? e2.message : "Could not start your subscription." }, 500);
   }
 });
-router17.post("/confirm-subscription", async (c2) => {
+router18.post("/confirm-subscription", async (c2) => {
   if (!process.env.STRIPE_SECRET_KEY) return c2.json({ error: "Billing isn't connected yet.", configured: false }, 503);
   if (!isWorkspaceAdmin(c2.get("role"))) return c2.json({ error: "Only owners and admins can manage billing." }, 403);
   const body = await c2.req.json().catch(() => ({}));
@@ -65944,9 +66109,9 @@ function relTime(iso) {
   if (s2 < 86400) return `${Math.floor(s2 / 3600)}h ago`;
   return `${Math.floor(s2 / 86400)}d ago`;
 }
-var router18 = new Hono2();
-router18.use("*", requireAuth);
-router18.get("/me/access", async (c2) => {
+var router19 = new Hono2();
+router19.use("*", requireAuth);
+router19.get("/me/access", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
   const settings = wsRow?.settings ?? {};
@@ -65971,7 +66136,7 @@ var ADMIN_SETTINGS_AREAS = [
   "/settings/security",
   "/settings/general"
 ];
-router18.use("/settings/*", async (c2, next) => {
+router19.use("/settings/*", async (c2, next) => {
   const m2 = c2.req.method;
   if (m2 === "GET" || m2 === "HEAD" || m2 === "OPTIONS") return next();
   const path = c2.req.path;
@@ -66060,37 +66225,37 @@ async function bootstrapWorkspace(workspaceId, createdBy) {
   ).select();
   if (defErr || !defs?.length) return;
 }
-router18.get("/objects", async (c2) => {
+router19.get("/objects", async (c2) => {
   await bootstrapWorkspace(c2.get("workspaceId"), c2.get("userId"));
   const data = await rows("object_definitions", c2.get("workspaceId"));
   return c2.json(data);
 });
-router18.get("/notifications", async (c2) => c2.json(await rows("notifications", c2.get("workspaceId"))));
-router18.post("/notifications/:id/read", async (c2) => {
+router19.get("/notifications", async (c2) => c2.json(await rows("notifications", c2.get("workspaceId"))));
+router19.post("/notifications/:id/read", async (c2) => {
   await supabase.from("notifications").update({ is_read: true, read_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
   return c2.json({ ok: true });
 });
-router18.post("/notifications/read-all", async (c2) => {
+router19.post("/notifications/read-all", async (c2) => {
   await supabase.from("notifications").update({ is_read: true, read_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("workspace_id", c2.get("workspaceId")).eq("is_read", false);
   return c2.json({ ok: true });
 });
-router18.get("/tasks", async (c2) => {
+router19.get("/tasks", async (c2) => {
   const nodes = await rows("nodes", c2.get("workspaceId"), { objectType: "task" });
   return c2.json(nodes.map((node) => ({ id: node.id, ...node.data ?? {} })));
 });
-router18.get("/meetings/today", async (c2) => {
+router19.get("/meetings/today", async (c2) => {
   const nodes = await rows("nodes", c2.get("workspaceId"), { objectType: "meeting" });
   const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
   return c2.json(nodes.map((node) => ({ id: node.id, ...node.data ?? {} })).filter((meeting) => String(meeting.start_time ?? "").startsWith(today)));
 });
-router18.post("/tasks", zValidator("json", external_exports.object({ title: external_exports.string().min(1), due_date: external_exports.string().optional(), assignee_id: external_exports.string().optional() })), async (c2) => {
+router19.post("/tasks", zValidator("json", external_exports.object({ title: external_exports.string().min(1), due_date: external_exports.string().optional(), assignee_id: external_exports.string().optional() })), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "tasks", object_type: "task", data: { ...body, completed: false }, created_by: c2.get("userId") }).select().single();
   if (error) return c2.json({ error: error.message }, 400);
   await supabase.from("activities").insert({ node_id: data.id, workspace_id: c2.get("workspaceId"), actor_type: "human", actor_id: c2.get("userId"), action: "created", diff: body });
   return c2.json({ id: data.id, ...data.data }, 201);
 });
-router18.patch("/tasks/:id", async (c2) => {
+router19.patch("/tasks/:id", async (c2) => {
   const updates = await c2.req.json();
   const { data: existing } = await supabase.from("nodes").select("data").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).single();
   const { data, error } = await supabase.from("nodes").update({ data: { ...existing?.data ?? {}, ...updates } }).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).select().single();
@@ -66098,7 +66263,7 @@ router18.patch("/tasks/:id", async (c2) => {
   await supabase.from("activities").insert({ node_id: data.id, workspace_id: c2.get("workspaceId"), actor_type: "human", actor_id: c2.get("userId"), action: "updated", diff: updates });
   return c2.json({ id: data.id, ...data.data });
 });
-router18.post("/emails/send", zValidator("json", external_exports.object({
+router19.post("/emails/send", zValidator("json", external_exports.object({
   to: external_exports.string().email(),
   subject: external_exports.string().min(1),
   body: external_exports.string().min(1)
@@ -66129,21 +66294,21 @@ router18.post("/emails/send", zValidator("json", external_exports.object({
 });
 for (const objectType2 of ["email_thread", "call"]) {
   const path = objectType2 === "email_thread" ? "/emails" : "/calls";
-  router18.get(path, async (c2) => {
+  router19.get(path, async (c2) => {
     const nodes = await rows("nodes", c2.get("workspaceId"), { objectType: objectType2 });
     return c2.json(nodes.map((node) => ({ id: node.id, ...node.data ?? {} })));
   });
-  router18.get(`${path}/:id`, async (c2) => {
+  router19.get(`${path}/:id`, async (c2) => {
     const { data } = await supabase.from("nodes").select("*").eq("workspace_id", c2.get("workspaceId")).eq("object_type", objectType2).eq("id", c2.req.param("id")).single();
     if (!data) return c2.json({ error: "Not found" }, 404);
     return c2.json({ id: data.id, ...data.data });
   });
 }
-router18.get("/reports", async (c2) => {
+router19.get("/reports", async (c2) => {
   const reports = await rows("nodes", c2.get("workspaceId"), { objectType: "report" });
   return c2.json({ charts: [], reports: reports.map((node) => ({ id: node.id, ...node.data ?? {} })) });
 });
-router18.get("/automations", async (c2) => {
+router19.get("/automations", async (c2) => {
   const { data } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "automation").order("updated_at", { ascending: false });
   return c2.json((data ?? []).map((node) => ({
     id: node.id,
@@ -66151,7 +66316,7 @@ router18.get("/automations", async (c2) => {
     ...node.data
   })));
 });
-router18.get("/settings/account", async (c2) => {
+router19.get("/settings/account", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const userPreferences = settings.user_preferences?.[c2.get("userId")] ?? {};
   return c2.json({
@@ -66168,7 +66333,7 @@ router18.get("/settings/account", async (c2) => {
     connected_accounts: userPreferences.connected_accounts ?? []
   });
 });
-router18.patch("/settings/account", async (c2) => {
+router19.patch("/settings/account", async (c2) => {
   const body = await c2.req.json();
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const preferences = settings.user_preferences ?? {};
@@ -66178,7 +66343,7 @@ router18.patch("/settings/account", async (c2) => {
   });
   return c2.json({ ok: true });
 });
-router18.delete("/settings/account/connections/:id", async (c2) => {
+router19.delete("/settings/account/connections/:id", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const preferences = settings.user_preferences ?? {};
   const current = preferences[c2.get("userId")] ?? {};
@@ -66191,7 +66356,7 @@ router18.delete("/settings/account/connections/:id", async (c2) => {
   });
   return c2.json({ ok: true });
 });
-router18.get("/settings/workspace", async (c2) => {
+router19.get("/settings/workspace", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const [{ data }, { count: memberCount }] = await Promise.all([
     supabase.from("workspaces").select("name, slug, settings, onboarded, timezone, logo_url").eq("id", workspaceId).single(),
@@ -66210,7 +66375,7 @@ router18.get("/settings/workspace", async (c2) => {
     profile: resolveProfile(settings)
   });
 });
-router18.get("/workspace/suggestions", async (c2) => {
+router19.get("/workspace/suggestions", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const profile = resolveProfile(settings);
   const userLang = settings.user_preferences?.[c2.get("userId")]?.language;
@@ -66237,7 +66402,7 @@ router18.get("/workspace/suggestions", async (c2) => {
     recommendations: profileRecommendations(profile)
   });
 });
-router18.get("/workspace/refine", async (c2) => {
+router19.get("/workspace/refine", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const profile = resolveProfile(settings);
   const userLang = settings.user_preferences?.[c2.get("userId")]?.language;
@@ -66257,7 +66422,7 @@ async function persistLogo(workspaceId, dataUrl) {
   const { data } = supabase.storage.from("workspace-logos").getPublicUrl(path);
   return data?.publicUrl ? `${data.publicUrl}?v=${Date.now()}` : null;
 }
-router18.patch("/settings/workspace", async (c2) => {
+router19.patch("/settings/workspace", async (c2) => {
   const wid = c2.get("workspaceId");
   const body = await c2.req.json();
   const settings = await workspaceSettings(wid);
@@ -66289,7 +66454,7 @@ router18.patch("/settings/workspace", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true, slug: update.slug ?? void 0, logo_url: update.logo_url ?? void 0 });
 });
-router18.patch("/settings/profile", async (c2) => {
+router19.patch("/settings/profile", async (c2) => {
   const userId = c2.get("userId");
   const body = await c2.req.json().catch(() => ({}));
   const patch = {};
@@ -66300,7 +66465,7 @@ router18.patch("/settings/profile", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true, ...patch });
 });
-router18.delete("/settings/workspace", async (c2) => {
+router19.delete("/settings/workspace", async (c2) => {
   const ws = c2.get("workspaceId");
   const userId = c2.get("userId");
   const { data: m2 } = await supabase.from("workspace_members").select("role").eq("workspace_id", ws).eq("user_id", userId).maybeSingle();
@@ -66339,7 +66504,7 @@ router18.delete("/settings/workspace", async (c2) => {
   deleteCookie(c2, REFRESH_COOKIE, { path: "/api/v1/auth" });
   return c2.json({ ok: true });
 });
-router18.get("/settings/members", async (c2) => {
+router19.get("/settings/members", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString();
   const [{ data: members3 }, { data: teams }, { data: inviteRows }, { data: usage }, { data: wsRow }] = await Promise.all([
@@ -66420,7 +66585,7 @@ router18.get("/settings/members", async (c2) => {
     teams: (teams ?? []).map((team) => ({ id: team.id, name: team.name, member_count: team.team_members?.length ?? 0, member_ids: team.team_members?.map((item) => item.user_id) ?? [] }))
   });
 });
-router18.patch("/settings/members/:id", async (c2) => {
+router19.patch("/settings/members/:id", async (c2) => {
   if (!["owner", "admin"].includes(c2.get("role"))) return c2.json({ error: "Only owners and admins can update members" }, 403);
   const body = await c2.req.json().catch(() => ({}));
   const patch = {};
@@ -66437,25 +66602,25 @@ router18.patch("/settings/members/:id", async (c2) => {
   const { error } = await supabase.from("workspace_members").update(patch).eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router18.delete("/settings/members/:id", async (c2) => {
+router19.delete("/settings/members/:id", async (c2) => {
   await supabase.from("workspace_members").delete().eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.req.param("id"));
   return c2.json({ ok: true });
 });
-router18.post("/settings/teams", zValidator("json", external_exports.object({ name: external_exports.string().min(1), member_ids: external_exports.array(external_exports.string()) })), async (c2) => {
+router19.post("/settings/teams", zValidator("json", external_exports.object({ name: external_exports.string().min(1), member_ids: external_exports.array(external_exports.string()) })), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("teams").insert({ workspace_id: c2.get("workspaceId"), name: body.name }).select().single();
   if (error) return c2.json({ error: error.message }, 400);
   if (body.member_ids.length) await supabase.from("team_members").insert(body.member_ids.map((user_id) => ({ team_id: data.id, user_id })));
   return c2.json({ id: data.id, name: data.name, member_count: body.member_ids.length, member_ids: body.member_ids }, 201);
 });
-router18.get("/settings/objects", async (c2) => c2.json(await rows("object_definitions", c2.get("workspaceId"))));
+router19.get("/settings/objects", async (c2) => c2.json(await rows("object_definitions", c2.get("workspaceId"))));
 function pluralize2(word) {
   const w2 = word.trim();
   if (/[^aeiou]y$/i.test(w2)) return w2.slice(0, -1) + "ies";
   if (/(s|x|z|ch|sh)$/i.test(w2)) return w2 + "es";
   return w2 + "s";
 }
-router18.post("/settings/objects", zValidator("json", external_exports.object({
+router19.post("/settings/objects", zValidator("json", external_exports.object({
   name: external_exports.string().min(1),
   // singular (kept for back-compat with older callers)
   singular: external_exports.string().min(1).optional(),
@@ -66480,7 +66645,7 @@ router18.post("/settings/objects", zValidator("json", external_exports.object({
   }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data, 201);
 });
-router18.post("/settings/objects/:id/attributes", zValidator("json", external_exports.object({
+router19.post("/settings/objects/:id/attributes", zValidator("json", external_exports.object({
   name: external_exports.string().min(1),
   type: external_exports.enum(["text", "number", "date", "select", "relation"])
 })), async (c2) => {
@@ -66491,7 +66656,7 @@ router18.post("/settings/objects/:id/attributes", zValidator("json", external_ex
   const { data, error } = await supabase.from("object_definitions").update({ attributes }).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data, 201);
 });
-router18.delete("/settings/objects/:id", async (c2) => {
+router19.delete("/settings/objects/:id", async (c2) => {
   const id = c2.req.param("id");
   const wid = c2.get("workspaceId");
   const { data: obj } = await supabase.from("object_definitions").select("slug").eq("workspace_id", wid).eq("id", id).single();
@@ -66500,7 +66665,7 @@ router18.delete("/settings/objects/:id", async (c2) => {
   const { error } = await supabase.from("object_definitions").delete().eq("workspace_id", wid).eq("id", id);
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router18.get("/settings/integrations", async (c2) => {
+router19.get("/settings/integrations", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const settings = await workspaceSettings(workspaceId);
   const connected = settings.integrations ?? {};
@@ -66528,7 +66693,7 @@ var MOCK_SCOPES = {
   "google-calendar": ["calendar.events", "calendar.readonly"],
   zapier: ["zap.trigger"]
 };
-router18.patch("/settings/integrations/:id", async (c2) => {
+router19.patch("/settings/integrations/:id", async (c2) => {
   const id = c2.req.param("id");
   const body = await c2.req.json();
   const settings = await workspaceSettings(c2.get("workspaceId"));
@@ -66549,7 +66714,7 @@ router18.patch("/settings/integrations/:id", async (c2) => {
   });
   return c2.json({ ok: true, profile: profiles[id] ?? null });
 });
-router18.post("/settings/integrations/api-keys", async (c2) => {
+router19.post("/settings/integrations/api-keys", async (c2) => {
   const body = await c2.req.json();
   const secret4 = `md_live_${crypto.randomUUID().replaceAll("-", "")}`;
   const bytes = new TextEncoder().encode(secret4);
@@ -66558,20 +66723,20 @@ router18.post("/settings/integrations/api-keys", async (c2) => {
   const { data, error } = await supabase.from("api_keys").insert({ workspace_id: c2.get("workspaceId"), name: body.name ?? "API key", key_hash: hash2, key_prefix: secret4.slice(0, 12), created_by: c2.get("userId") }).select("id, name, key_prefix, created_at").single();
   return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, name: data.name, prefix: data.key_prefix, secret: secret4 }, 201);
 });
-router18.delete("/settings/integrations/api-keys/:id", async (c2) => {
+router19.delete("/settings/integrations/api-keys/:id", async (c2) => {
   await supabase.from("api_keys").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
   return c2.json({ ok: true });
 });
-router18.post("/settings/integrations/webhooks", async (c2) => {
+router19.post("/settings/integrations/webhooks", async (c2) => {
   const body = await c2.req.json();
   const { data, error } = await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "shared", object_type: "webhook", data: body, created_by: c2.get("userId") }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, ...data.data }, 201);
 });
-router18.delete("/settings/integrations/webhooks/:id", async (c2) => {
+router19.delete("/settings/integrations/webhooks/:id", async (c2) => {
   await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "webhook").eq("id", c2.req.param("id"));
   return c2.json({ ok: true });
 });
-router18.get("/settings/tax-codes", requireAuth, async (c2) => {
+router19.get("/settings/tax-codes", requireAuth, async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const defaults2 = [
     { id: "vat_20", name: "VAT 20%", rate: 20 },
@@ -66582,7 +66747,7 @@ router18.get("/settings/tax-codes", requireAuth, async (c2) => {
   const custom2 = settings.tax_codes ?? [];
   return c2.json([...defaults2, ...custom2]);
 });
-router18.post("/settings/tax-codes", requireAuth, async (c2) => {
+router19.post("/settings/tax-codes", requireAuth, async (c2) => {
   const body = await c2.req.json();
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const existing = settings.tax_codes ?? [];
@@ -66590,13 +66755,13 @@ router18.post("/settings/tax-codes", requireAuth, async (c2) => {
   await supabase.from("workspaces").update({ settings: { ...settings, tax_codes: [...existing, newCode] } }).eq("id", c2.get("workspaceId"));
   return c2.json(newCode, 201);
 });
-router18.post("/settings/integrations/mcp-token", async (c2) => {
+router19.post("/settings/integrations/mcp-token", async (c2) => {
   const { mintMcpToken: mintMcpToken2 } = await Promise.resolve().then(() => (init_mcp_token(), mcp_token_exports));
   const token = mintMcpToken2(c2.get("workspaceId"));
   await mergeWorkspaceSettings(c2.get("workspaceId"), { mcp_token: token });
   return c2.json({ token }, 201);
 });
-router18.get("/settings/security", async (c2) => {
+router19.get("/settings/security", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const { data: rows2 } = await supabase.from("auth_refresh_tokens").select("id, user_agent, ip_address, created_at, last_active_at, expires_at, token_hash").eq("user_id", c2.get("userId")).is("revoked_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("created_at", { ascending: false });
   const rawRt = getCookie(c2, REFRESH_COOKIE);
@@ -66623,17 +66788,17 @@ router18.get("/settings/security", async (c2) => {
     sessions
   });
 });
-router18.patch("/settings/security", async (c2) => {
+router19.patch("/settings/security", async (c2) => {
   const updates = await c2.req.json();
   await mergeWorkspaceSettings(c2.get("workspaceId"), updates);
   return c2.json({ ok: true });
 });
-router18.delete("/settings/security/sessions/:id", async (c2) => {
+router19.delete("/settings/security/sessions/:id", async (c2) => {
   const { error } = await supabase.from("auth_refresh_tokens").delete().eq("id", c2.req.param("id")).eq("user_id", c2.get("userId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router18.delete("/settings/security/sessions", async (c2) => {
+router19.delete("/settings/security/sessions", async (c2) => {
   const rawRt = getCookie(c2, REFRESH_COOKIE);
   const keepHash = rawRt ? sha2565(rawRt) : null;
   let q2 = supabase.from("auth_refresh_tokens").delete().eq("user_id", c2.get("userId"));
@@ -66642,7 +66807,7 @@ router18.delete("/settings/security/sessions", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router18.get("/settings/email", async (c2) => {
+router19.get("/settings/email", async (c2) => {
   const settings = await workspaceSettings(c2.get("workspaceId"));
   const integrations = settings.integrations ?? {};
   const { data: conn } = await supabase.from("email_connections").select("email, provider").eq("workspace_id", c2.get("workspaceId")).eq("provider", "google").limit(1).maybeSingle();
@@ -66652,7 +66817,7 @@ router18.get("/settings/email", async (c2) => {
     { id: "outlook", name: "Outlook", connected: Boolean(integrations.outlook) }
   ] });
 });
-router18.get("/billing", async (c2) => {
+router19.get("/billing", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const [{ data }, { count: memberCount }] = await Promise.all([
     supabase.from("workspaces").select("plan, settings").eq("id", workspaceId).single(),
@@ -66680,7 +66845,7 @@ router18.get("/billing", async (c2) => {
     trial_eligible: !trialUsed && ent.tier === "scout"
   });
 });
-router18.post("/start-trial", async (c2) => {
+router19.post("/start-trial", async (c2) => {
   if (!["owner", "admin"].includes(c2.get("role"))) return c2.json({ error: "Only owners/admins can start the trial." }, 403);
   const ws = c2.get("workspaceId");
   const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
@@ -66702,7 +66867,7 @@ router18.post("/start-trial", async (c2) => {
   const ent = await getEntitlement(ws);
   return c2.json({ ok: true, plan: ent.tier, source: ent.source, trial_ends_at: ent.trialEndsAt, trial_used: true });
 });
-router18.get("/workspace/members", async (c2) => {
+router19.get("/workspace/members", async (c2) => {
   const { data, error } = await supabase.from("workspace_members").select("user_id, role, finance_role").eq("workspace_id", c2.get("workspaceId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(
@@ -66713,7 +66878,7 @@ router18.get("/workspace/members", async (c2) => {
     }))
   );
 });
-router18.get("/workspace/members-full", async (c2) => {
+router19.get("/workspace/members-full", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const [membersRes, invitesRes] = await Promise.all([
     supabase.from("workspace_members").select("user_id, email, name, role, finance_role").eq("workspace_id", workspaceId),
@@ -66735,7 +66900,7 @@ router18.get("/workspace/members-full", async (c2) => {
   }));
   return c2.json({ members: members3, invitations });
 });
-router18.patch("/workspace/members/:userId/role", requireAuth, async (c2) => {
+router19.patch("/workspace/members/:userId/role", requireAuth, async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { role } = await c2.req.json();
@@ -66751,7 +66916,7 @@ router18.patch("/workspace/members/:userId/role", requireAuth, async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router18.delete("/workspace/members/:userId", requireAuth, async (c2) => {
+router19.delete("/workspace/members/:userId", requireAuth, async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const targetId = c2.req.param("userId");
@@ -66764,7 +66929,7 @@ router18.delete("/workspace/members/:userId", requireAuth, async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router18.patch("/workspace/members/:userId/finance-role", async (c2) => {
+router19.patch("/workspace/members/:userId/finance-role", async (c2) => {
   const role = c2.get("role");
   if (!["admin", "owner"].includes(role)) return c2.json({ error: "Forbidden" }, 403);
   const { finance_role } = await c2.req.json();
@@ -66774,12 +66939,12 @@ router18.patch("/workspace/members/:userId/finance-role", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router18.post("/settings/complete-onboarding", requireAuth, async (c2) => {
+router19.post("/settings/complete-onboarding", requireAuth, async (c2) => {
   const { error } = await supabase.from("workspaces").update({ onboarded: true }).eq("id", c2.get("workspaceId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router18.patch("/settings/general", requireAuth, async (c2) => {
+router19.patch("/settings/general", requireAuth, async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const body = await c2.req.json();
@@ -66797,7 +66962,7 @@ var import_node_crypto11 = require("crypto");
 init_client();
 init_mail();
 var inviteUrl = (token) => `${process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com"}/invite/${token}`;
-var router19 = new Hono2();
+var router20 = new Hono2();
 var inviteSchema = external_exports.object({
   email: external_exports.string().email(),
   role: external_exports.enum(["admin", "member", "viewer", "guest"]).default("member"),
@@ -66805,12 +66970,12 @@ var inviteSchema = external_exports.object({
   // Per-module access matrix { crm: "edit", finance: "view", ... }. Empty → role defaults apply.
   module_access: external_exports.record(external_exports.enum(["none", "view", "edit"])).default({})
 });
-router19.get("/", requireAuth, async (c2) => {
+router20.get("/", requireAuth, async (c2) => {
   const { data, error } = await supabase.from("workspace_invites").select("id,email,role,finance_role,invited_by,token,expires_at,created_at").eq("workspace_id", c2.get("workspaceId")).is("accepted_at", null).gt("expires_at", (/* @__PURE__ */ new Date()).toISOString()).order("created_at", { ascending: false });
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router19.post("/", requireAuth, zValidator("json", inviteSchema), async (c2) => {
+router20.post("/", requireAuth, zValidator("json", inviteSchema), async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const body = c2.req.valid("json");
@@ -66844,7 +67009,7 @@ router19.post("/", requireAuth, zValidator("json", inviteSchema), async (c2) => 
   });
   return c2.json({ ...data, invite_link: inviteLink, email_sent: emailSent }, 201);
 });
-router19.post("/link", requireAuth, async (c2) => {
+router20.post("/link", requireAuth, async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { data, error } = await supabase.from("workspace_invites").insert({
@@ -66859,14 +67024,14 @@ router19.post("/link", requireAuth, async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ invite_link: inviteUrl(data.token) }, 201);
 });
-router19.delete("/:id", requireAuth, async (c2) => {
+router20.delete("/:id", requireAuth, async (c2) => {
   const callerRole = c2.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { error } = await supabase.from("workspace_invites").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router19.post("/accept", requireJwt, async (c2) => {
+router20.post("/accept", requireJwt, async (c2) => {
   const { token } = await c2.req.json().catch(() => ({ token: "" }));
   const userId = c2.get("userId");
   if (!token) return c2.json({ error: "Missing invite token" }, 400);
@@ -66906,9 +67071,9 @@ router19.post("/accept", requireJwt, async (c2) => {
 
 // src/routes/notes.ts
 init_client();
-var router20 = new Hono2();
-router20.use("*", requireAuth);
-router20.use("*", denyViewerWrites);
+var router21 = new Hono2();
+router21.use("*", requireAuth);
+router21.use("*", denyViewerWrites);
 var noteBody = external_exports.object({
   content: external_exports.string().min(1),
   node_id: external_exports.string().uuid()
@@ -66917,7 +67082,7 @@ async function getRootNote(workspaceId, id) {
   const { data } = await supabase.from("activities").select("*").eq("workspace_id", workspaceId).eq("id", id).eq("action", "note").maybeSingle();
   return data;
 }
-router20.get("/", zValidator("query", external_exports.object({
+router21.get("/", zValidator("query", external_exports.object({
   filter: external_exports.enum(["all", "mine", "following"]).default("all"),
   sort: external_exports.enum(["newest", "oldest", "updated"]).default("newest"),
   search: external_exports.string().default(""),
@@ -66969,7 +67134,7 @@ router20.get("/", zValidator("query", external_exports.object({
   });
   return c2.json(result);
 });
-router20.post("/", zValidator("json", noteBody), async (c2) => {
+router21.post("/", zValidator("json", noteBody), async (c2) => {
   const body = c2.req.valid("json");
   const { data: node } = await supabase.from("nodes").select("id").eq("workspace_id", c2.get("workspaceId")).eq("id", body.node_id).maybeSingle();
   if (!node) return c2.json({ error: "Linked record not found" }, 404);
@@ -66984,7 +67149,7 @@ router20.post("/", zValidator("json", noteBody), async (c2) => {
   }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data, 201);
 });
-router20.patch("/:id", zValidator("json", external_exports.object({ content: external_exports.string().min(1) })), async (c2) => {
+router21.patch("/:id", zValidator("json", external_exports.object({ content: external_exports.string().min(1) })), async (c2) => {
   const root = await getRootNote(c2.get("workspaceId"), c2.req.param("id"));
   if (!root) return c2.json({ error: "Note not found" }, 404);
   if (root.actor_id !== c2.get("userId") && !["owner", "admin"].includes(c2.get("role"))) return c2.json({ error: "Forbidden" }, 403);
@@ -66999,7 +67164,7 @@ router20.patch("/:id", zValidator("json", external_exports.object({ content: ext
   }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data);
 });
-router20.delete("/:id", async (c2) => {
+router21.delete("/:id", async (c2) => {
   const root = await getRootNote(c2.get("workspaceId"), c2.req.param("id"));
   if (!root) return c2.json({ error: "Note not found" }, 404);
   if (root.actor_id !== c2.get("userId") && !["owner", "admin"].includes(c2.get("role"))) return c2.json({ error: "Forbidden" }, 403);
@@ -67023,8 +67188,8 @@ var PIXEL_GIF = Buffer.from(
   "base64"
 );
 var API_BASE = process.env.API_BASE_URL ?? "https://api.mondaily.com";
-var router21 = new Hono2();
-router21.get("/track/:token/open.gif", async (c2) => {
+var router22 = new Hono2();
+router22.get("/track/:token/open.gif", async (c2) => {
   const trackingId = verifyTrackingToken(c2.req.param("token"));
   if (trackingId) {
     supabase.from("nodes").select("id,data").eq("object_type", "email_outbox").eq("id", trackingId).maybeSingle().then(({ data: node }) => {
@@ -67041,7 +67206,7 @@ router21.get("/track/:token/open.gif", async (c2) => {
     headers: { "Content-Type": "image/gif", "Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache" }
   });
 });
-router21.get("/track/:token/click", async (c2) => {
+router22.get("/track/:token/click", async (c2) => {
   const trackingId = verifyTrackingToken(c2.req.param("token"));
   const url = c2.req.query("url") ?? "/";
   if (trackingId) {
@@ -67055,7 +67220,7 @@ router21.get("/track/:token/click", async (c2) => {
   }
   return c2.redirect(url, 302);
 });
-router21.use("*", requireAuth);
+router22.use("*", requireAuth);
 async function getSettings(workspaceId) {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
   return data?.settings ?? {};
@@ -67097,7 +67262,7 @@ function toUnixSeconds(dateStr) {
   const t3 = Date.parse(dateStr ?? "");
   return Number.isNaN(t3) ? Math.floor(Date.now() / 1e3) : Math.floor(t3 / 1e3);
 }
-router21.get("/threads", zValidator("query", external_exports.object({
+router22.get("/threads", zValidator("query", external_exports.object({
   search: external_exports.string().default(""),
   filter: external_exports.enum(["all", "inbox", "sent", "unread"]).default("all"),
   page_token: external_exports.string().optional()
@@ -67137,7 +67302,7 @@ router21.get("/threads", zValidator("query", external_exports.object({
   const connected = Boolean(grantId) || Boolean(conn?.grant_id || conn?.refresh_token);
   return c2.json({ threads: filtered, connected, connected_email: conn?.email, next_cursor: nextCursor });
 });
-router21.get("/threads/:id", async (c2) => {
+router22.get("/threads/:id", async (c2) => {
   const settings = await getSettings(c2.get("workspaceId"));
   const grantId = getGrantId(settings);
   const { data: gconn } = await supabase.from("email_connections").select("id, refresh_token, access_token, token_expiry").eq("workspace_id", c2.get("workspaceId")).eq("provider", "google").limit(1).maybeSingle();
@@ -67174,7 +67339,7 @@ function injectTracking(html, trackingId) {
   const pixel = `<img src="${API_BASE}/api/v1/emails/track/${trackingId}/open.gif" width="1" height="1" style="display:block;width:1px;height:1px;opacity:0;" alt=""/>`;
   return withLinks.includes("</body>") ? withLinks.replace("</body>", `${pixel}</body>`) : withLinks + pixel;
 }
-router21.post("/threads/:id/reply", zValidator("json", external_exports.object({ body: external_exports.string().min(1) })), async (c2) => {
+router22.post("/threads/:id/reply", zValidator("json", external_exports.object({ body: external_exports.string().min(1) })), async (c2) => {
   const settings = await getSettings(c2.get("workspaceId"));
   const grantId = getGrantId(settings);
   const { data: gconn } = await supabase.from("email_connections").select("id, refresh_token, access_token, token_expiry, email").eq("workspace_id", c2.get("workspaceId")).eq("provider", "google").limit(1).maybeSingle();
@@ -67201,7 +67366,7 @@ router21.post("/threads/:id/reply", zValidator("json", external_exports.object({
   }
   return c2.json({ error: "Connect a Gmail inbox in Settings \u2192 Email before replying." }, 400);
 });
-router21.post("/compose", zValidator("json", external_exports.object({
+router22.post("/compose", zValidator("json", external_exports.object({
   to: external_exports.string().email(),
   subject: external_exports.string().min(1).max(300),
   body: external_exports.string().min(1),
@@ -67220,7 +67385,7 @@ router21.post("/compose", zValidator("json", external_exports.object({
   if (!ok2) return c2.json({ error: "Couldn't send \u2014 connect a Gmail inbox in Settings \u2192 Email, or set RESEND_API_KEY on the API." }, 502);
   return c2.json({ ok: true, tracking_id: trackNode?.id }, 201);
 });
-router21.get("/outbox", async (c2) => {
+router22.get("/outbox", async (c2) => {
   const { data } = await supabase.from("nodes").select("id,data,created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_outbox").order("created_at", { ascending: false }).limit(100);
   return c2.json((data ?? []).map((n2) => ({
     id: n2.id,
@@ -67230,7 +67395,7 @@ router21.get("/outbox", async (c2) => {
     click_count: Array.isArray(n2.data.clicks) ? n2.data.clicks.length : 0
   })));
 });
-router21.post("/threads/:id/link", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
+router22.post("/threads/:id/link", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const threadId = c2.req.param("id");
   const { data: target } = await supabase.from("nodes").select("id").eq("workspace_id", workspaceId).eq("id", c2.req.valid("json").node_id).maybeSingle();
@@ -67255,9 +67420,9 @@ router21.post("/threads/:id/link", zValidator("json", external_exports.object({ 
 // src/routes/calls.ts
 init_client();
 init_ai_gateway();
-var router22 = new Hono2();
-router22.use("*", requireAuth);
-router22.use("*", denyViewerWrites);
+var router23 = new Hono2();
+router23.use("*", requireAuth);
+router23.use("*", denyViewerWrites);
 function normalizeCall(node) {
   const data = node.data ?? {};
   return {
@@ -67284,7 +67449,7 @@ async function getCall(workspaceId, id) {
   const { data } = await supabase.from("nodes").select("id,data,ai_summary,created_by,created_at,updated_at").eq("workspace_id", workspaceId).eq("vertical", "sales").eq("object_type", "call").eq("id", id).maybeSingle();
   return data;
 }
-router22.get("/", zValidator("query", external_exports.object({
+router23.get("/", zValidator("query", external_exports.object({
   filter: external_exports.enum(["all", "mine", "week", "month"]).default("all"),
   search: external_exports.string().default("")
 })), async (c2) => {
@@ -67299,11 +67464,11 @@ router22.get("/", zValidator("query", external_exports.object({
   const calls = (data ?? []).map(normalizeCall).filter((call) => !search || `${call.contact_name} ${call.company_name ?? ""} ${call.ai_summary}`.toLowerCase().includes(search));
   return c2.json(calls);
 });
-router22.get("/:id", async (c2) => {
+router23.get("/:id", async (c2) => {
   const node = await getCall(c2.get("workspaceId"), c2.req.param("id"));
   return node ? c2.json(normalizeCall(node)) : c2.json({ error: "Call not found" }, 404);
 });
-router22.post("/:id/link", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
+router23.post("/:id/link", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const call = await getCall(workspaceId, c2.req.param("id"));
   if (!call) return c2.json({ error: "Call not found" }, 404);
@@ -67314,7 +67479,7 @@ router22.post("/:id/link", zValidator("json", external_exports.object({ node_id:
   await supabase.from("activities").insert({ node_id: target.id, workspace_id: workspaceId, actor_type: "human", actor_id: c2.get("userId"), action: "call_linked", diff: { call_id: call.id } });
   return c2.json({ ok: true });
 });
-router22.post("/:id/analyze", zValidator("json", external_exports.object({ template_id: external_exports.enum(["objections", "quality", "upsell", "competitors", "commitments"]) })), async (c2) => {
+router23.post("/:id/analyze", zValidator("json", external_exports.object({ template_id: external_exports.enum(["objections", "quality", "upsell", "competitors", "commitments"]) })), async (c2) => {
   const call = await getCall(c2.get("workspaceId"), c2.req.param("id"));
   if (!call) return c2.json({ error: "Call not found" }, 404);
   const normalized = normalizeCall(call);
@@ -67369,43 +67534,43 @@ ${transcript ? `Transcript reviewed: ${normalized.transcript.length} segments.` 
 
 // src/routes/dashboards.ts
 init_client();
-var router23 = new Hono2();
-router23.use("*", requireAuth);
-router23.use("*", denyViewerWrites);
+var router24 = new Hono2();
+router24.use("*", requireAuth);
+router24.use("*", denyViewerWrites);
 function unpack2(node) {
   return { id: node.id, ...node.data, updated_at: node.updated_at };
 }
-router23.get("/", async (c2) => {
+router24.get("/", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "dashboard").order("updated_at", { ascending: false });
   return error ? c2.json({ error: error.message }, 400) : c2.json((data ?? []).map((node) => unpack2(node)));
 });
-router23.post("/", zValidator("json", external_exports.object({ name: external_exports.string().min(1) })), async (c2) => {
+router24.post("/", zValidator("json", external_exports.object({ name: external_exports.string().min(1) })), async (c2) => {
   const { data, error } = await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "shared", object_type: "dashboard", data: { name: c2.req.valid("json").name, access: "private", widgets: [] }, created_by: c2.get("userId") }).select("id,data,updated_at").single();
   if (error) return c2.json({ error: error.message }, 400);
   await supabase.from("activities").insert({ node_id: data.id, workspace_id: c2.get("workspaceId"), actor_type: "human", actor_id: c2.get("userId"), action: "created", diff: { object_type: "dashboard" } });
   return c2.json(unpack2(data), 201);
 });
-router23.get("/:id", async (c2) => {
+router24.get("/:id", async (c2) => {
   const { data } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "dashboard").eq("id", c2.req.param("id")).maybeSingle();
   return data ? c2.json(unpack2(data)) : c2.json({ error: "Dashboard not found" }, 404);
 });
-router23.patch("/:id", async (c2) => {
+router24.patch("/:id", async (c2) => {
   const body = await c2.req.json();
   const { data, error } = await supabase.from("nodes").update({ data: body }).eq("workspace_id", c2.get("workspaceId")).eq("object_type", "dashboard").eq("id", c2.req.param("id")).select("id,data,updated_at").single();
   if (error) return c2.json({ error: error.message }, 400);
   await supabase.from("activities").insert({ node_id: data.id, workspace_id: c2.get("workspaceId"), actor_type: "human", actor_id: c2.get("userId"), action: "updated", diff: { dashboard: body } });
   return c2.json(unpack2(data));
 });
-router23.delete("/:id", async (c2) => {
+router24.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "dashboard").eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
 
 // src/routes/sequences.ts
 init_client();
-var router24 = new Hono2();
-router24.use("*", requireAuth);
-router24.use("*", denyViewerWrites);
+var router25 = new Hono2();
+router25.use("*", requireAuth);
+router25.use("*", denyViewerWrites);
 var stepSchema = external_exports.object({
   id: external_exports.string().optional(),
   type: external_exports.enum(["email", "task"]),
@@ -67441,13 +67606,13 @@ function response(node, extra) {
 async function saveData(workspaceId, id, data) {
   return supabase.from("nodes").update({ data }).eq("workspace_id", workspaceId).eq("object_type", "automation").eq("id", id).select("id,data").single();
 }
-router24.get("/:id", async (c2) => {
+router25.get("/:id", async (c2) => {
   const extra = await context(c2.get("workspaceId"), c2.get("userId"));
   if (c2.req.param("id") === "new") return c2.json({ id: "new", name: "Untitled sequence", status: "draft", settings: defaultSettings, steps: [], enrollments: [], ...extra });
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   return node ? c2.json(response({ id: node.id, data: node.data }, extra)) : c2.json({ error: "Sequence not found" }, 404);
 });
-router24.patch("/:id", async (c2) => {
+router25.patch("/:id", async (c2) => {
   const body = await c2.req.json();
   const workspaceId = c2.get("workspaceId");
   let result;
@@ -67457,11 +67622,11 @@ router24.patch("/:id", async (c2) => {
   await supabase.from("activities").insert({ node_id: result.data.id, workspace_id: workspaceId, actor_type: "human", actor_id: c2.get("userId"), action: c2.req.param("id") === "new" ? "created" : "updated", diff: { sequence: true } });
   return c2.json(response({ id: result.data.id, data: result.data.data }, await context(workspaceId, c2.get("userId"))));
 });
-router24.get("/:id/steps", async (c2) => {
+router25.get("/:id/steps", async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   return node ? c2.json((node.data.steps ?? []).sort((a2, b2) => Number(a2.position) - Number(b2.position))) : c2.json({ error: "Sequence not found" }, 404);
 });
-router24.post("/:id/steps", zValidator("json", stepSchema.omit({ id: true })), async (c2) => {
+router25.post("/:id/steps", zValidator("json", stepSchema.omit({ id: true })), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
@@ -67469,7 +67634,7 @@ router24.post("/:id/steps", zValidator("json", stepSchema.omit({ id: true })), a
   const result = await saveData(c2.get("workspaceId"), node.id, { ...current, steps: [...current.steps ?? [], step3] });
   return result.error ? c2.json({ error: result.error.message }, 400) : c2.json(step3, 201);
 });
-router24.patch("/:id/steps/:sid", zValidator("json", stepSchema.partial()), async (c2) => {
+router25.patch("/:id/steps/:sid", zValidator("json", stepSchema.partial()), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
@@ -67477,11 +67642,11 @@ router24.patch("/:id/steps/:sid", zValidator("json", stepSchema.partial()), asyn
   const result = await saveData(c2.get("workspaceId"), node.id, { ...current, steps });
   return result.error ? c2.json({ error: result.error.message }, 400) : c2.json(steps.find((step3) => step3.id === c2.req.param("sid")));
 });
-router24.delete("/:id", async (c2) => {
+router25.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "automation").eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router24.delete("/:id/steps/:sid", async (c2) => {
+router25.delete("/:id/steps/:sid", async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
@@ -67489,11 +67654,11 @@ router24.delete("/:id/steps/:sid", async (c2) => {
   const result = await saveData(c2.get("workspaceId"), node.id, { ...current, steps });
   return result.error ? c2.json({ error: result.error.message }, 400) : c2.json({ ok: true });
 });
-router24.get("/:id/enrollments", async (c2) => {
+router25.get("/:id/enrollments", async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   return node ? c2.json(node.data.enrollments ?? []) : c2.json({ error: "Sequence not found" }, 404);
 });
-router24.post("/:id/enroll", zValidator("json", external_exports.object({ node_ids: external_exports.array(external_exports.string().uuid()).min(1) })), async (c2) => {
+router25.post("/:id/enroll", zValidator("json", external_exports.object({ node_ids: external_exports.array(external_exports.string().uuid()).min(1) })), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const { data: contacts } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).in("id", c2.req.valid("json").node_ids);
@@ -67503,7 +67668,7 @@ router24.post("/:id/enroll", zValidator("json", external_exports.object({ node_i
   const result = await saveData(c2.get("workspaceId"), node.id, { ...current, enrollments: [...current.enrollments ?? [], ...additions] });
   return result.error ? c2.json({ error: result.error.message }, 400) : c2.json(additions, 201);
 });
-router24.patch("/:id/enrollments/:eid", zValidator("json", external_exports.object({ action: external_exports.enum(["pause", "resume", "unenroll", "remove"]) })), async (c2) => {
+router25.patch("/:id/enrollments/:eid", zValidator("json", external_exports.object({ action: external_exports.enum(["pause", "resume", "unenroll", "remove"]) })), async (c2) => {
   const node = await getSequence(c2.get("workspaceId"), c2.req.param("id"));
   if (!node) return c2.json({ error: "Sequence not found" }, 404);
   const current = node.data;
@@ -67516,10 +67681,10 @@ router24.patch("/:id/enrollments/:eid", zValidator("json", external_exports.obje
 // src/routes/lists.ts
 init_client();
 init_inngest2();
-var router25 = new Hono2();
-router25.use("*", requireAuth);
-router25.use("*", denyViewerWrites);
-router25.get("/", async (c2) => {
+var router26 = new Hono2();
+router26.use("*", requireAuth);
+router26.use("*", denyViewerWrites);
+router26.get("/", async (c2) => {
   const userId = c2.get("userId");
   const role = c2.get("role");
   const objectTypeFilter = c2.req.query("object_type");
@@ -67534,16 +67699,16 @@ router25.get("/", async (c2) => {
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json((data ?? []).map((list) => ({ ...list, entry_count: Array.isArray(list.list_entries) ? Number(list.list_entries[0]?.count ?? 0) : 0 })));
 });
-router25.post("/", zValidator("json", external_exports.object({ name: external_exports.string().min(1), object_type: external_exports.string().min(1) })), async (c2) => {
+router26.post("/", zValidator("json", external_exports.object({ name: external_exports.string().min(1), object_type: external_exports.string().min(1) })), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("lists").insert({ workspace_id: c2.get("workspaceId"), owner_id: c2.get("userId"), visibility: "workspace", access_level: "workspace", ...body }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ...data, entry_count: 0 }, 201);
 });
-router25.get("/:id", async (c2) => {
+router26.get("/:id", async (c2) => {
   const { data } = await supabase.from("lists").select("id,name,object_type,access_level,visibility,owner_id,shared_with,created_at,list_entries(count)").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   return data ? c2.json({ ...data, entry_count: Array.isArray(data.list_entries) ? Number(data.list_entries[0]?.count ?? 0) : 0 }) : c2.json({ error: "List not found" }, 404);
 });
-router25.patch("/:id", async (c2) => {
+router26.patch("/:id", async (c2) => {
   const raw2 = await c2.req.json().catch(() => ({}));
   const allowed = ["name", "visibility", "access_level", "filters", "views", "shared_with", "owner_id"];
   const body = {};
@@ -67557,7 +67722,7 @@ router25.patch("/:id", async (c2) => {
   const { data, error } = await supabase.from("lists").update(body).eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data);
 });
-router25.delete("/:id", async (c2) => {
+router26.delete("/:id", async (c2) => {
   const { data: existing } = await supabase.from("lists").select("owner_id").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!existing) return c2.json({ error: "List not found" }, 404);
   if (!isWorkspaceAdmin(c2.get("role")) && existing.owner_id !== c2.get("userId")) {
@@ -67566,14 +67731,14 @@ router25.delete("/:id", async (c2) => {
   const { error } = await supabase.from("lists").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router25.get("/:id/entries", async (c2) => {
+router26.get("/:id/entries", async (c2) => {
   const { data: list } = await supabase.from("lists").select("id").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!list) return c2.json({ error: "List not found" }, 404);
   const { data: entries, error } = await supabase.from("list_entries").select("position,nodes(id,object_type,data,updated_at,ai_summary,lead_score,lead_score_signals,relationship_health,created_by)").eq("list_id", list.id).order("position");
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json((entries ?? []).flatMap((entry) => entry.nodes ? [entry.nodes] : []));
 });
-router25.post("/:id/entries", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
+router26.post("/:id/entries", zValidator("json", external_exports.object({ node_id: external_exports.string().uuid() })), async (c2) => {
   const { data: list } = await supabase.from("lists").select("id,object_type").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!list) return c2.json({ error: "List not found" }, 404);
   const { data: node } = await supabase.from("nodes").select("id,object_type").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.valid("json").node_id).maybeSingle();
@@ -67585,13 +67750,13 @@ router25.post("/:id/entries", zValidator("json", external_exports.object({ node_
   const { data, error } = await supabase.from("list_entries").upsert({ list_id: list.id, node_id: node.id, position: (count ?? 0) + 1 }).select().single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(data, 201);
 });
-router25.delete("/:id/entries/:nodeId", async (c2) => {
+router26.delete("/:id/entries/:nodeId", async (c2) => {
   const { data: list } = await supabase.from("lists").select("id").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!list) return c2.json({ error: "List not found" }, 404);
   const { error } = await supabase.from("list_entries").delete().eq("list_id", list.id).eq("node_id", c2.req.param("nodeId"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router25.post("/:id/enrich", async (c2) => {
+router26.post("/:id/enrich", async (c2) => {
   const { data: list } = await supabase.from("lists").select("id,object_type").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).maybeSingle();
   if (!list) return c2.json({ error: "List not found" }, 404);
   const ENRICHABLE3 = ["contact", "person", "people", "lead", "company", "account", "organization"];
@@ -67802,14 +67967,14 @@ var tasks_default = tasks;
 
 // src/routes/chats.ts
 init_client();
-var router26 = new Hono2();
-router26.use("*", requireAuth);
-router26.get("/", async (c2) => {
+var router27 = new Hono2();
+router27.use("*", requireAuth);
+router27.get("/", async (c2) => {
   const { data, error } = await supabase.from("chat_threads").select("id, title, updated_at, messages").eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.get("userId")).order("updated_at", { ascending: false }).limit(50);
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router26.post("/", async (c2) => {
+router27.post("/", async (c2) => {
   const body = await c2.req.json();
   const { data, error } = await supabase.from("chat_threads").insert({
     workspace_id: c2.get("workspaceId"),
@@ -67820,7 +67985,7 @@ router26.post("/", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data, 201);
 });
-router26.patch("/:id", async (c2) => {
+router27.patch("/:id", async (c2) => {
   const body = await c2.req.json();
   const id = c2.req.param("id");
   const { data, error } = await supabase.from("chat_threads").upsert({
@@ -67834,7 +67999,7 @@ router26.patch("/:id", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data);
 });
-router26.delete("/:id", async (c2) => {
+router27.delete("/:id", async (c2) => {
   const { error } = await supabase.from("chat_threads").delete().eq("id", c2.req.param("id")).eq("user_id", c2.get("userId")).eq("workspace_id", c2.get("workspaceId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.body(null, 204);
@@ -67842,9 +68007,9 @@ router26.delete("/:id", async (c2) => {
 
 // src/routes/feedback.ts
 init_client();
-var router27 = new Hono2();
-router27.use("*", requireAuth);
-router27.post("/", zValidator("json", external_exports.object({
+var router28 = new Hono2();
+router28.use("*", requireAuth);
+router28.post("/", zValidator("json", external_exports.object({
   message: external_exports.string(),
   response: external_exports.string(),
   rating: external_exports.union([external_exports.literal(1), external_exports.literal(-1)]),
@@ -67862,14 +68027,14 @@ router27.post("/", zValidator("json", external_exports.object({
 
 // src/routes/members.ts
 init_client();
-var router28 = new Hono2();
-router28.get("/", requireAuth, async (c2) => {
+var router29 = new Hono2();
+router29.get("/", requireAuth, async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const { data, error } = await supabase.from("workspace_members").select("id, user_id, email, name, role, position, avatar_url").eq("workspace_id", workspaceId).order("name");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router28.patch("/:userId", requireAuth, async (c2) => {
+router29.patch("/:userId", requireAuth, async (c2) => {
   const requesterRole = c2.get("role");
   if (!["owner", "admin"].includes(requesterRole)) {
     return c2.json({ error: "Only owners and admins can update member roles" }, 403);
@@ -67879,7 +68044,7 @@ router28.patch("/:userId", requireAuth, async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data);
 });
-router28.post("/sync", requireJwt, async (c2) => {
+router29.post("/sync", requireJwt, async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   let body = {};
@@ -67908,9 +68073,9 @@ router28.post("/sync", requireJwt, async (c2) => {
 // src/routes/notifications.ts
 init_client();
 init_notify();
-var router29 = new Hono2();
-router29.use("*", requireAuth);
-router29.get("/", async (c2) => {
+var router30 = new Hono2();
+router30.use("*", requireAuth);
+router30.get("/", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const { data, error } = await supabase.from("notifications").select("*").eq("workspace_id", workspaceId).or(`user_id.eq.${userId},user_id.is.null`).order("created_at", { ascending: false }).limit(100);
@@ -67922,7 +68087,7 @@ router29.get("/", async (c2) => {
   }));
   return c2.json(rows2);
 });
-router29.post("/", async (c2) => {
+router30.post("/", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const body = await c2.req.json();
@@ -67940,21 +68105,21 @@ router29.post("/", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data, 201);
 });
-router29.patch("/read-all", async (c2) => {
+router30.patch("/read-all", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const { error } = await supabase.from("notifications").update({ is_read: true, read_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("workspace_id", workspaceId).or(`user_id.eq.${userId},user_id.is.null`).eq("is_read", false);
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router29.patch("/:id/read", async (c2) => {
+router30.patch("/:id/read", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const { error } = await supabase.from("notifications").update({ is_read: true, read_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", c2.req.param("id")).eq("workspace_id", workspaceId).or(`user_id.eq.${userId},user_id.is.null`);
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router29.delete("/:id", async (c2) => {
+router30.delete("/:id", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const { error } = await supabase.from("notifications").delete().eq("id", c2.req.param("id")).eq("workspace_id", workspaceId).or(`user_id.eq.${userId},user_id.is.null`);
@@ -67964,14 +68129,14 @@ router29.delete("/:id", async (c2) => {
 
 // src/routes/task-reviews.ts
 init_client();
-var router30 = new Hono2();
-router30.use("*", requireAuth);
-router30.use("*", denyViewerWrites);
+var router31 = new Hono2();
+router31.use("*", requireAuth);
+router31.use("*", denyViewerWrites);
 async function assertTaskOwnership(taskId, workspaceId) {
   const { data } = await supabase.from("tasks").select("id").eq("id", taskId).eq("workspace_id", workspaceId).single();
   if (!data) throw new Error("Task not found or access denied");
 }
-router30.get("/:id/reviews", async (c2) => {
+router31.get("/:id/reviews", async (c2) => {
   try {
     await assertTaskOwnership(c2.req.param("id"), c2.get("workspaceId"));
   } catch {
@@ -67981,7 +68146,7 @@ router30.get("/:id/reviews", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router30.post("/:id/reviews", async (c2) => {
+router31.post("/:id/reviews", async (c2) => {
   const userId = c2.get("userId");
   const workspaceId = c2.get("workspaceId");
   try {
@@ -68027,7 +68192,7 @@ router30.post("/:id/reviews", async (c2) => {
   });
   return c2.json(data, 201);
 });
-router30.patch("/:id/reviews/:reviewId", async (c2) => {
+router31.patch("/:id/reviews/:reviewId", async (c2) => {
   const userId = c2.get("userId");
   const workspaceId = c2.get("workspaceId");
   try {
@@ -68122,14 +68287,14 @@ Note: ${body.action_note}` : ""}`;
 // src/routes/task-details.ts
 init_client();
 init_http_exception();
-var router31 = new Hono2();
-router31.use("*", requireAuth);
-router31.use("*", denyViewerWrites);
+var router32 = new Hono2();
+router32.use("*", requireAuth);
+router32.use("*", denyViewerWrites);
 async function assertTaskOwnership2(taskId, workspaceId) {
   const { data } = await supabase.from("tasks").select("id").eq("id", taskId).eq("workspace_id", workspaceId).maybeSingle();
   if (!data) throw new HTTPException(404, { message: "Task not found" });
 }
-router31.patch("/:id/labels", async (c2) => {
+router32.patch("/:id/labels", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, workspaceId);
@@ -68140,14 +68305,14 @@ router31.patch("/:id/labels", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data);
 });
-router31.get("/:id/assignees", async (c2) => {
+router32.get("/:id/assignees", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data, error } = await supabase.from("task_assignees").select("*").eq("task_id", taskId);
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router31.post("/:id/assignees", async (c2) => {
+router32.post("/:id/assignees", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, workspaceId);
@@ -68163,21 +68328,21 @@ router31.post("/:id/assignees", async (c2) => {
   });
   return c2.json(data);
 });
-router31.delete("/:id/assignees/:userId", async (c2) => {
+router32.delete("/:id/assignees/:userId", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { error } = await supabase.from("task_assignees").delete().eq("task_id", taskId).eq("user_id", c2.req.param("userId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.body(null, 204);
 });
-router31.get("/:id/checklist", async (c2) => {
+router32.get("/:id/checklist", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data, error } = await supabase.from("task_checklist").select("*").eq("task_id", taskId).order("created_at");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router31.post("/:id/checklist", async (c2) => {
+router32.post("/:id/checklist", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, workspaceId);
@@ -68193,7 +68358,7 @@ router31.post("/:id/checklist", async (c2) => {
   });
   return c2.json(data, 201);
 });
-router31.patch("/:id/checklist/:itemId", async (c2) => {
+router32.patch("/:id/checklist/:itemId", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, workspaceId);
@@ -68212,21 +68377,21 @@ router31.patch("/:id/checklist/:itemId", async (c2) => {
   }
   return c2.json(data);
 });
-router31.delete("/:id/checklist/:itemId", async (c2) => {
+router32.delete("/:id/checklist/:itemId", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { error } = await supabase.from("task_checklist").delete().eq("id", c2.req.param("itemId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.body(null, 204);
 });
-router31.get("/:id/comments", async (c2) => {
+router32.get("/:id/comments", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data, error } = await supabase.from("task_comments").select("*").eq("task_id", taskId).order("created_at");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router31.post("/:id/comments", async (c2) => {
+router32.post("/:id/comments", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const taskId = c2.req.param("id");
@@ -68249,20 +68414,20 @@ router31.post("/:id/comments", async (c2) => {
   }
   return c2.json(data, 201);
 });
-router31.delete("/:id/comments/:commentId", async (c2) => {
+router32.delete("/:id/comments/:commentId", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { error } = await supabase.from("task_comments").delete().eq("id", c2.req.param("commentId")).eq("user_id", c2.get("userId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.body(null, 204);
 });
-router31.get("/:id/comments/:commentId/reactions", async (c2) => {
+router32.get("/:id/comments/:commentId/reactions", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data } = await supabase.from("task_comment_reactions").select("*").eq("comment_id", c2.req.param("commentId"));
   return c2.json(data ?? []);
 });
-router31.post("/:id/comments/:commentId/reactions", async (c2) => {
+router32.post("/:id/comments/:commentId/reactions", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { emoji } = await c2.req.json();
@@ -68277,14 +68442,14 @@ router31.post("/:id/comments/:commentId/reactions", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data);
 });
-router31.get("/:id/attachments", async (c2) => {
+router32.get("/:id/attachments", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data, error } = await supabase.from("task_attachments").select("*").eq("task_id", taskId).order("created_at");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data ?? []);
 });
-router31.post("/:id/attachments", async (c2) => {
+router32.post("/:id/attachments", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, workspaceId);
@@ -68293,14 +68458,14 @@ router31.post("/:id/attachments", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json(data, 201);
 });
-router31.delete("/:id/attachments/:attachmentId", async (c2) => {
+router32.delete("/:id/attachments/:attachmentId", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { error } = await supabase.from("task_attachments").delete().eq("id", c2.req.param("attachmentId")).eq("uploaded_by", c2.get("userId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.body(null, 204);
 });
-router31.post("/:id/view", async (c2) => {
+router32.post("/:id/view", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   await supabase.from("task_views").upsert(
@@ -68309,19 +68474,19 @@ router31.post("/:id/view", async (c2) => {
   );
   return c2.json({ ok: true });
 });
-router31.get("/:id/views", async (c2) => {
+router32.get("/:id/views", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data } = await supabase.from("task_views").select("user_id, viewed_at").eq("task_id", taskId).order("viewed_at", { ascending: false });
   return c2.json(data ?? []);
 });
-router31.get("/:id/activity", async (c2) => {
+router32.get("/:id/activity", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
   const { data } = await supabase.from("task_activity").select("*").eq("task_id", taskId).order("created_at", { ascending: true });
   return c2.json(data ?? []);
 });
-router31.post("/:id/activity", async (c2) => {
+router32.post("/:id/activity", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, workspaceId);
@@ -68334,7 +68499,7 @@ router31.post("/:id/activity", async (c2) => {
 // src/routes/import.ts
 init_inngest2();
 init_ai_gateway();
-var router32 = new Hono2();
+var router33 = new Hono2();
 var importBodySchema = external_exports.object({
   headers: external_exports.array(external_exports.string()),
   samples: external_exports.array(external_exports.array(external_exports.string())),
@@ -68346,7 +68511,7 @@ var importBodySchema = external_exports.object({
   object_type: external_exports.string().min(1),
   vertical: external_exports.enum(["sales", "realestate", "hr", "finance", "investments", "tasks", "shared"]).default("shared")
 });
-router32.post("/", requireAuth, denyViewerWrites, zValidator("json", importBodySchema), async (c2) => {
+router33.post("/", requireAuth, denyViewerWrites, zValidator("json", importBodySchema), async (c2) => {
   const { headers, samples, rows: rows2, object_type, vertical } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
@@ -68423,7 +68588,7 @@ Example output: {"name":"Text","revenue":"Currency","active":"Boolean"}`,
 init_client();
 init_ai_gateway();
 init_sovereign_search();
-var router33 = new Hono2();
+var router34 = new Hono2();
 async function callGatewayTool(body) {
   const tool = body.tools?.[0];
   const lastMsg = body.messages?.[body.messages.length - 1];
@@ -68438,7 +68603,7 @@ async function callGatewayTool(body) {
   });
   return { content: [{ type: "tool_use", name: tool.name, input }] };
 }
-router33.post("/schema", requireAuth, zValidator("json", external_exports.object({ prompt: external_exports.string().min(1) })), async (c2) => {
+router34.post("/schema", requireAuth, zValidator("json", external_exports.object({ prompt: external_exports.string().min(1) })), async (c2) => {
   const { prompt } = c2.req.valid("json");
   try {
     const data = await callGatewayTool({
@@ -68486,7 +68651,7 @@ Use appropriate field types: currency for money, date for dates, checkbox for ye
     return c2.json({ error: e2.message }, 500);
   }
 });
-router33.post("/nlp", requireAuth, zValidator("json", external_exports.object({
+router34.post("/nlp", requireAuth, zValidator("json", external_exports.object({
   query: external_exports.string().min(1),
   columns: external_exports.array(external_exports.string())
 })), async (c2) => {
@@ -68522,7 +68687,7 @@ Only include fields that are clearly requested. sortCol MUST exactly match one o
     return c2.json({ error: e2.message }, 500);
   }
 });
-router33.post("/enrich/company", requireAuth, zValidator("json", external_exports.object({ name: external_exports.string() })), async (c2) => {
+router34.post("/enrich/company", requireAuth, zValidator("json", external_exports.object({ name: external_exports.string() })), async (c2) => {
   const { name } = c2.req.valid("json");
   const webContext = await sovereignWebContext(`${name} company funding employees ARR revenue headquarters`);
   try {
@@ -68555,7 +68720,7 @@ ${webContext}` : "No web context was available."}`,
     return c2.json({ error: e2.message }, 500);
   }
 });
-router33.post("/enrich/person", requireAuth, zValidator("json", external_exports.object({ email: external_exports.string() })), async (c2) => {
+router34.post("/enrich/person", requireAuth, zValidator("json", external_exports.object({ email: external_exports.string() })), async (c2) => {
   const { email } = c2.req.valid("json");
   const domain = email.split("@")[1] ?? "";
   const webContext = domain ? await sovereignWebContext(`${email} ${domain} linkedin job title company`) : "";
@@ -68587,7 +68752,7 @@ ${webContext}` : "No web context was available."}`,
     return c2.json({ error: e2.message }, 500);
   }
 });
-router33.post("/records", requireAuth, zValidator("json", external_exports.object({
+router34.post("/records", requireAuth, zValidator("json", external_exports.object({
   objectType: external_exports.string().min(1),
   columns: external_exports.array(external_exports.string()).min(1),
   prompt: external_exports.string().min(1),
@@ -68632,7 +68797,7 @@ ${webContext.slice(0, 12e3)}`
     return c2.json({ error: e2.message }, 500);
   }
 });
-router33.post("/tasks", requireAuth, zValidator("json", external_exports.object({
+router34.post("/tasks", requireAuth, zValidator("json", external_exports.object({
   prompt: external_exports.string().min(1),
   count: external_exports.number().int().min(1).max(20).default(5),
   members: external_exports.array(external_exports.object({ email: external_exports.string(), name: external_exports.string() })).optional(),
@@ -68689,7 +68854,7 @@ Make tasks specific, actionable, and realistic. Set priority based on urgency. S
     return c2.json({ error: e2.message }, 500);
   }
 });
-router33.post("/insights", requireAuth, zValidator("json", external_exports.object({
+router34.post("/insights", requireAuth, zValidator("json", external_exports.object({
   objectType: external_exports.string().min(1),
   records: external_exports.array(external_exports.record(external_exports.unknown()))
 })), async (c2) => {
@@ -68748,7 +68913,7 @@ For each insight, also provide a concrete, specific action the user should take 
     return c2.json({ error: e2.message }, 500);
   }
 });
-router33.post("/sequence", requireAuth, zValidator("json", external_exports.object({
+router34.post("/sequence", requireAuth, zValidator("json", external_exports.object({
   prompt: external_exports.string().min(1),
   steps: external_exports.number().int().min(2).max(8).default(4)
 })), async (c2) => {
@@ -68804,7 +68969,7 @@ Guidelines:
     return c2.json({ error: e2.message }, 500);
   }
 });
-router33.post("/list-name", requireAuth, zValidator("json", external_exports.object({
+router34.post("/list-name", requireAuth, zValidator("json", external_exports.object({
   prompt: external_exports.string().min(1),
   objectTypes: external_exports.array(external_exports.string())
 })), async (c2) => {
@@ -68838,7 +69003,7 @@ Available object types: ${objectTypes.join(", ")}`
     return c2.json({ name: "New List", object_type: objectTypes[0] ?? "companies" });
   }
 });
-router33.post("/list-entries", requireAuth, zValidator("json", external_exports.object({
+router34.post("/list-entries", requireAuth, zValidator("json", external_exports.object({
   prompt: external_exports.string().min(1),
   objectType: external_exports.string().min(1),
   records: external_exports.array(external_exports.object({ id: external_exports.string(), data: external_exports.record(external_exports.unknown()) }))
@@ -68882,7 +69047,7 @@ Select the IDs that best match. If none match, return an empty array. Be generou
     return c2.json({ error: e2.message }, 500);
   }
 });
-router33.post("/workflow", requireAuth, zValidator("json", external_exports.object({
+router34.post("/workflow", requireAuth, zValidator("json", external_exports.object({
   prompt: external_exports.string().min(1)
 })), async (c2) => {
   const { prompt } = c2.req.valid("json");
@@ -68968,7 +69133,7 @@ Example: Deal stage changed \u2192 Field equals "Won" \u2192 Send email, Create 
     return c2.json({ error: e2.message }, 500);
   }
 });
-router33.post("/forecast", requireAuth, zValidator("json", external_exports.object({
+router34.post("/forecast", requireAuth, zValidator("json", external_exports.object({
   objectType: external_exports.string().min(1),
   valueCol: external_exports.string().nullable(),
   stageCol: external_exports.string().nullable(),
@@ -69068,7 +69233,7 @@ invent "N deals in stage X" or similar specifics you were not actually given. Co
     return c2.json({ error: e2.message }, 500);
   }
 });
-router33.post("/risk-alerts", requireAuth, async (c2) => {
+router34.post("/risk-alerts", requireAuth, async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
   const now = /* @__PURE__ */ new Date();
@@ -69164,8 +69329,8 @@ Focus on: overdue tasks, stale high-value deals, urgent items piling up, or patt
 
 // src/routes/digests.ts
 init_client();
-var router34 = new Hono2();
-router34.use("*", requireAuth);
+var router35 = new Hono2();
+router35.use("*", requireAuth);
 function unpack3(node) {
   return { id: node.id, ...node.data, updated_at: node.updated_at };
 }
@@ -69179,11 +69344,11 @@ var DigestSchema = external_exports.object({
   recipients: external_exports.array(external_exports.string().email()).min(1),
   label: external_exports.string().optional()
 });
-router34.get("/", async (c2) => {
+router35.get("/", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "digest_schedule").order("updated_at", { ascending: false });
   return error ? c2.json({ error: error.message }, 400) : c2.json((data ?? []).map((n2) => unpack3(n2)));
 });
-router34.post("/", zValidator("json", DigestSchema), async (c2) => {
+router35.post("/", zValidator("json", DigestSchema), async (c2) => {
   const body = c2.req.valid("json");
   const { data, error } = await supabase.from("nodes").insert({
     workspace_id: c2.get("workspaceId"),
@@ -69194,11 +69359,11 @@ router34.post("/", zValidator("json", DigestSchema), async (c2) => {
   }).select("id,data,updated_at").single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(unpack3(data), 201);
 });
-router34.delete("/:id", async (c2) => {
+router35.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "digest_schedule").eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router34.post("/:id/send", async (c2) => {
+router35.post("/:id/send", async (c2) => {
   const { data: node } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "digest_schedule").eq("id", c2.req.param("id")).maybeSingle();
   if (!node) return c2.json({ error: "Digest not found" }, 404);
   const cfg = node.data;
@@ -69294,20 +69459,20 @@ router34.post("/:id/send", async (c2) => {
 
 // src/routes/annotations.ts
 init_client();
-var router35 = new Hono2();
-router35.use("*", requireAuth);
-router35.use("*", denyViewerWrites);
+var router36 = new Hono2();
+router36.use("*", requireAuth);
+router36.use("*", denyViewerWrites);
 function unpack4(node) {
   return { id: node.id, ...node.data, updated_at: node.updated_at };
 }
-router35.get("/", zValidator("query", external_exports.object({ object_type: external_exports.string().optional() })), async (c2) => {
+router36.get("/", zValidator("query", external_exports.object({ object_type: external_exports.string().optional() })), async (c2) => {
   let q2 = supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "chart_annotation").order("updated_at", { ascending: false });
   const { object_type } = c2.req.valid("query");
   if (object_type) q2 = q2.eq("data->>source_object", object_type);
   const { data, error } = await q2;
   return error ? c2.json({ error: error.message }, 400) : c2.json((data ?? []).map((n2) => unpack4(n2)));
 });
-router35.post("/", zValidator("json", external_exports.object({
+router36.post("/", zValidator("json", external_exports.object({
   source_object: external_exports.string().min(1),
   bucket_label: external_exports.string().min(1),
   text: external_exports.string().min(1),
@@ -69323,15 +69488,15 @@ router35.post("/", zValidator("json", external_exports.object({
   }).select("id,data,updated_at").single();
   return error ? c2.json({ error: error.message }, 400) : c2.json(unpack4(data), 201);
 });
-router35.delete("/:id", async (c2) => {
+router36.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "chart_annotation").eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
 
 // src/routes/workflows.ts
 init_client();
-var router36 = new Hono2();
-router36.use("*", requireAuth);
+var router37 = new Hono2();
+router37.use("*", requireAuth);
 async function getWorkflow(workspaceId, id) {
   const { data } = await supabase.from("nodes").select("id,data,updated_at").eq("workspace_id", workspaceId).eq("object_type", "automation").eq("data->>type", "workflow").eq("id", id).maybeSingle();
   return data;
@@ -69345,14 +69510,14 @@ function response2(node) {
     updated_at: node.updated_at
   };
 }
-router36.get("/:id", async (c2) => {
+router37.get("/:id", async (c2) => {
   if (c2.req.param("id") === "new") {
     return c2.json({ id: "new", name: "New Workflow", status: "draft", nodes: [] });
   }
   const node = await getWorkflow(c2.get("workspaceId"), c2.req.param("id"));
   return node ? c2.json(response2(node)) : c2.json({ error: "Workflow not found" }, 404);
 });
-router36.patch("/:id", async (c2) => {
+router37.patch("/:id", async (c2) => {
   const body = await c2.req.json();
   const workspaceId = c2.get("workspaceId");
   let result;
@@ -69385,7 +69550,7 @@ router36.patch("/:id", async (c2) => {
   });
   return c2.json(response2(result.data));
 });
-router36.post("/:id/run", async (c2) => {
+router37.post("/:id/run", async (c2) => {
   const id = c2.req.param("id");
   if (id === "new") return c2.json({ error: "Save the workflow before running it." }, 400);
   try {
@@ -69395,7 +69560,7 @@ router36.post("/:id/run", async (c2) => {
     return c2.json({ error: err2 instanceof Error ? err2.message : String(err2) }, 500);
   }
 });
-router36.get("/:id/runs", async (c2) => {
+router37.get("/:id/runs", async (c2) => {
   const id = c2.req.param("id");
   if (id === "new") return c2.json({ runs: [] });
   const { data: runs } = await supabase.from("workflow_runs").select("id,record_id,trigger_key,status,actions,detail,created_at").eq("workspace_id", c2.get("workspaceId")).eq("workflow_id", id).order("created_at", { ascending: false }).limit(50);
@@ -69412,16 +69577,16 @@ router36.get("/:id/runs", async (c2) => {
     runs: (runs ?? []).map((r2) => ({ ...r2, record_title: titles.get(r2.record_id) ?? r2.record_id }))
   });
 });
-router36.delete("/:id", async (c2) => {
+router37.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "automation").eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
 
 // src/routes/invoices.ts
 init_client();
-var router37 = new Hono2();
-router37.use("*", requireAuth);
-router37.use("*", requireModuleRW("finance"));
+var router38 = new Hono2();
+router38.use("*", requireAuth);
+router38.use("*", requireModuleRW("finance"));
 var lineItemSchema = external_exports.object({
   description: external_exports.string(),
   quantity: external_exports.number().positive(),
@@ -69453,7 +69618,7 @@ async function nextInvoiceNumber2(workspaceId) {
   const n2 = (count ?? 0) + 1;
   return `INV-${String(n2).padStart(4, "0")}`;
 }
-router37.get("/", async (c2) => {
+router38.get("/", async (c2) => {
   const status = c2.req.query("status");
   const search = c2.req.query("search") ?? "";
   const linkedRecordId = c2.req.query("linked_record_id");
@@ -69469,13 +69634,13 @@ router37.get("/", async (c2) => {
   }).map((row) => ({ id: row.id, ...row.data, created_at: row.created_at, updated_at: row.updated_at, created_by: row.created_by }));
   return c2.json(result);
 });
-router37.get("/:id", async (c2) => {
+router38.get("/:id", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,created_at,updated_at,created_by").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "invoice").maybeSingle();
   if (error) return c2.json({ error: error.message }, 500);
   if (!data) return c2.json({ error: "Not found" }, 404);
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, updated_at: data.updated_at, created_by: data.created_by });
 });
-router37.post("/", zValidator("json", invoiceBodySchema), async (c2) => {
+router38.post("/", zValidator("json", invoiceBodySchema), async (c2) => {
   const body = c2.req.valid("json");
   const number = body.number || await nextInvoiceNumber2(c2.get("workspaceId"));
   const { subtotal, tax_total, total } = calcTotals(body.line_items);
@@ -69519,7 +69684,7 @@ router37.post("/", zValidator("json", invoiceBodySchema), async (c2) => {
   }
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
-router37.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c2) => {
+router38.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c2) => {
   const { data: existing, error: fetchErr } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "invoice").maybeSingle();
   if (fetchErr) return c2.json({ error: fetchErr.message }, 500);
   if (!existing) return c2.json({ error: "Not found" }, 404);
@@ -69543,12 +69708,12 @@ router37.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data.id, ...data.data, updated_at: data.updated_at });
 });
-router37.delete("/:id", async (c2) => {
+router38.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "invoice");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router37.post("/:id/payments", zValidator("json", external_exports.object({
+router38.post("/:id/payments", zValidator("json", external_exports.object({
   amount: external_exports.number().positive(),
   method: external_exports.enum(["bank_transfer", "card", "cash", "cheque", "other"]).default("bank_transfer"),
   reference: external_exports.string().optional(),
@@ -69581,7 +69746,7 @@ router37.post("/:id/payments", zValidator("json", external_exports.object({
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data.id, ...data.data, updated_at: data.updated_at });
 });
-router37.get("/:id/credit-notes", async (c2) => {
+router38.get("/:id/credit-notes", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const invoiceId = c2.req.param("id");
   const { data: edges, error: edgeErr } = await supabase.from("edges").select("from_node_id").eq("workspace_id", workspaceId).eq("to_node_id", invoiceId).eq("relationship", "APPLIED_TO");
@@ -69598,9 +69763,9 @@ init_http_exception();
 init_client();
 init_inngest2();
 init_notify();
-var router38 = new Hono2();
-router38.use("*", requireAuth);
-router38.use("*", requireModuleRW("finance"));
+var router39 = new Hono2();
+router39.use("*", requireAuth);
+router39.use("*", requireModuleRW("finance"));
 var VALID_TRANSITIONS = {
   draft: ["pending_review", "void"],
   pending_review: ["verified", "rejected", "void"],
@@ -69656,7 +69821,7 @@ async function getCreditNote(workspaceId, id) {
   if (!data) throw new HTTPException(404, { message: "Credit note not found" });
   return data;
 }
-router38.get("/", async (c2) => {
+router39.get("/", async (c2) => {
   const status = c2.req.query("status");
   const search = c2.req.query("search") ?? "";
   const linkedRecordId = c2.req.query("linked_record_id");
@@ -69689,14 +69854,14 @@ router38.get("/", async (c2) => {
   }
   return c2.json(result);
 });
-router38.get("/:id", async (c2) => {
+router39.get("/:id", async (c2) => {
   const node = await getCreditNote(c2.get("workspaceId"), c2.req.param("id"));
   const { data: edges } = await supabase.from("edges").select("to_node_id,relationship").eq("from_node_id", node.id).in("relationship", ["APPLIED_TO", "ASSIGNED_REVIEWER"]);
   const edgeMap = {};
   for (const e2 of edges ?? []) edgeMap[e2.relationship] = e2.to_node_id;
   return c2.json({ id: node.id, ...node.data, created_at: node.created_at, updated_at: node.updated_at, created_by: node.created_by, edges: edgeMap });
 });
-router38.post("/", zValidator("json", creditNoteSchema), async (c2) => {
+router39.post("/", zValidator("json", creditNoteSchema), async (c2) => {
   const body = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const { data, error } = await supabase.from("nodes").insert({
@@ -69732,7 +69897,7 @@ router38.post("/", zValidator("json", creditNoteSchema), async (c2) => {
   }).catch((e2) => console.error("[bg-task] swallowed error:", e2));
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
-router38.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c2) => {
+router39.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const node = await getCreditNote(workspaceId, c2.req.param("id"));
   const current = node.data;
@@ -69793,7 +69958,7 @@ router38.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c2
   }
   return c2.json({ id: data.id, ...data.data, updated_at: data.updated_at });
 });
-router38.post("/:id/apply-to-invoice", zValidator("json", external_exports.object({ invoice_id: external_exports.string().uuid() })), async (c2) => {
+router39.post("/:id/apply-to-invoice", zValidator("json", external_exports.object({ invoice_id: external_exports.string().uuid() })), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   await getCreditNote(workspaceId, c2.req.param("id"));
   const { invoice_id } = c2.req.valid("json");
@@ -69806,7 +69971,7 @@ router38.post("/:id/apply-to-invoice", zValidator("json", external_exports.objec
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router38.post("/:id/assign-reviewer", zValidator("json", external_exports.object({ user_id: external_exports.string() })), async (c2) => {
+router39.post("/:id/assign-reviewer", zValidator("json", external_exports.object({ user_id: external_exports.string() })), async (c2) => {
   const workspaceId = c2.get("workspaceId");
   await getCreditNote(workspaceId, c2.req.param("id"));
   const { user_id } = c2.req.valid("json");
@@ -69820,7 +69985,7 @@ router38.post("/:id/assign-reviewer", zValidator("json", external_exports.object
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router38.delete("/:id", async (c2) => {
+router39.delete("/:id", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const node = await getCreditNote(workspaceId, c2.req.param("id"));
   const status = String(node.data.status ?? "");
@@ -69833,9 +69998,9 @@ router38.delete("/:id", async (c2) => {
 
 // src/routes/quotes.ts
 init_client();
-var router39 = new Hono2();
-router39.use("*", requireAuth);
-router39.use("*", requireModuleRW("finance"));
+var router40 = new Hono2();
+router40.use("*", requireAuth);
+router40.use("*", requireModuleRW("finance"));
 var lineItemSchema2 = external_exports.object({
   description: external_exports.string(),
   quantity: external_exports.number().positive(),
@@ -69868,7 +70033,7 @@ async function nextInvoiceNumber3(workspaceId) {
   const n2 = (count ?? 0) + 1;
   return `INV-${String(n2).padStart(4, "0")}`;
 }
-router39.get("/", async (c2) => {
+router40.get("/", async (c2) => {
   const status = c2.req.query("status");
   const search = c2.req.query("search") ?? "";
   const linkedRecordId = c2.req.query("linked_record_id");
@@ -69884,13 +70049,13 @@ router39.get("/", async (c2) => {
   }).map((row) => ({ id: row.id, ...row.data, created_at: row.created_at, updated_at: row.updated_at, created_by: row.created_by }));
   return c2.json(result);
 });
-router39.get("/:id", async (c2) => {
+router40.get("/:id", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,created_at,updated_at,created_by").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "quote").maybeSingle();
   if (error) return c2.json({ error: error.message }, 500);
   if (!data) return c2.json({ error: "Not found" }, 404);
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, updated_at: data.updated_at, created_by: data.created_by });
 });
-router39.post("/", zValidator("json", quoteBodySchema), async (c2) => {
+router40.post("/", zValidator("json", quoteBodySchema), async (c2) => {
   const body = c2.req.valid("json");
   const number = body.number || await nextQuoteNumber(c2.get("workspaceId"));
   const { subtotal, tax_total, total } = calcTotals2(body.line_items);
@@ -69928,7 +70093,7 @@ router39.post("/", zValidator("json", quoteBodySchema), async (c2) => {
   }
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
-router39.patch("/:id", zValidator("json", quoteBodySchema.partial()), async (c2) => {
+router40.patch("/:id", zValidator("json", quoteBodySchema.partial()), async (c2) => {
   const { data: existing, error: fetchErr } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "quote").maybeSingle();
   if (fetchErr) return c2.json({ error: fetchErr.message }, 500);
   if (!existing) return c2.json({ error: "Not found" }, 404);
@@ -69951,12 +70116,12 @@ router39.patch("/:id", zValidator("json", quoteBodySchema.partial()), async (c2)
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data.id, ...data.data, updated_at: data.updated_at });
 });
-router39.delete("/:id", async (c2) => {
+router40.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "quote");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
 });
-router39.post("/:id/convert", async (c2) => {
+router40.post("/:id/convert", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const { data: quote, error: fetchErr } = await supabase.from("nodes").select("id,data").eq("workspace_id", workspaceId).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "quote").maybeSingle();
   if (fetchErr) return c2.json({ error: fetchErr.message }, 500);
@@ -69994,9 +70159,9 @@ router39.post("/:id/convert", async (c2) => {
 
 // src/routes/expenses.ts
 init_client();
-var router40 = new Hono2();
-router40.use("*", requireAuth);
-router40.use("*", requireModuleRW("finance"));
+var router41 = new Hono2();
+router41.use("*", requireAuth);
+router41.use("*", requireModuleRW("finance"));
 var EXPENSE_CATEGORIES = ["travel", "software", "hardware", "meals", "marketing", "professional_services", "office", "other"];
 var expenseBodySchema = external_exports.object({
   description: external_exports.string().min(1),
@@ -70009,7 +70174,7 @@ var expenseBodySchema = external_exports.object({
   linked_record_id: external_exports.string().uuid().optional(),
   status: external_exports.enum(["draft", "submitted", "approved", "rejected"]).default("draft")
 });
-router40.get("/", async (c2) => {
+router41.get("/", async (c2) => {
   const category = c2.req.query("category");
   const status = c2.req.query("status");
   const linkedRecordId = c2.req.query("linked_record_id");
@@ -70021,13 +70186,13 @@ router40.get("/", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json((data ?? []).map((row) => ({ id: row.id, ...row.data, created_at: row.created_at, updated_at: row.updated_at, created_by: row.created_by })));
 });
-router40.get("/:id", async (c2) => {
+router41.get("/:id", async (c2) => {
   const { data, error } = await supabase.from("nodes").select("id,data,created_at,updated_at,created_by").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "expense").maybeSingle();
   if (error) return c2.json({ error: error.message }, 500);
   if (!data) return c2.json({ error: "Not found" }, 404);
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, updated_at: data.updated_at, created_by: data.created_by });
 });
-router40.post("/", zValidator("json", expenseBodySchema), async (c2) => {
+router41.post("/", zValidator("json", expenseBodySchema), async (c2) => {
   const body = c2.req.valid("json");
   const expenseData = {
     description: body.description,
@@ -70050,7 +70215,7 @@ router40.post("/", zValidator("json", expenseBodySchema), async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data.id, ...data.data, created_at: data.created_at, created_by: data.created_by }, 201);
 });
-router40.patch("/:id", zValidator("json", expenseBodySchema.partial()), async (c2) => {
+router41.patch("/:id", zValidator("json", expenseBodySchema.partial()), async (c2) => {
   const { data: existing, error: fetchErr } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "expense").maybeSingle();
   if (fetchErr) return c2.json({ error: fetchErr.message }, 500);
   if (!existing) return c2.json({ error: "Not found" }, 404);
@@ -70061,7 +70226,7 @@ router40.patch("/:id", zValidator("json", expenseBodySchema.partial()), async (c
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data.id, ...data.data, updated_at: data.updated_at });
 });
-router40.delete("/:id", async (c2) => {
+router41.delete("/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id")).eq("vertical", "finance").eq("object_type", "expense");
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ ok: true });
@@ -70069,14 +70234,14 @@ router40.delete("/:id", async (c2) => {
 
 // src/routes/tags.ts
 init_client();
-var router41 = new Hono2();
-router41.use("*", requireAuth);
-router41.use("*", denyViewerWrites);
-router41.get("/", async (c2) => {
+var router42 = new Hono2();
+router42.use("*", requireAuth);
+router42.use("*", denyViewerWrites);
+router42.get("/", async (c2) => {
   const { data } = await supabase.from("tags").select("*").eq("workspace_id", c2.get("workspaceId")).order("name");
   return c2.json(data ?? []);
 });
-router41.post("/", requireAuth, zValidator("json", external_exports.object({
+router42.post("/", requireAuth, zValidator("json", external_exports.object({
   name: external_exports.string().min(1),
   color: external_exports.string().default("#6366f1")
 })), async (c2) => {
@@ -70089,15 +70254,15 @@ router41.post("/", requireAuth, zValidator("json", external_exports.object({
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json(data, 201);
 });
-router41.delete("/:id", requireAuth, async (c2) => {
+router42.delete("/:id", requireAuth, async (c2) => {
   await supabase.from("tags").delete().eq("id", c2.req.param("id")).eq("workspace_id", c2.get("workspaceId"));
   return c2.json({ ok: true });
 });
-router41.get("/node/:nodeId", requireAuth, async (c2) => {
+router42.get("/node/:nodeId", requireAuth, async (c2) => {
   const { data } = await supabase.from("node_tags").select("tag_id, tags(id, name, color)").eq("node_id", c2.req.param("nodeId")).eq("workspace_id", c2.get("workspaceId"));
   return c2.json((data ?? []).map((r2) => r2.tags));
 });
-router41.post("/node/:nodeId", requireAuth, zValidator("json", external_exports.object({
+router42.post("/node/:nodeId", requireAuth, zValidator("json", external_exports.object({
   tag_id: external_exports.string().uuid()
 })), async (c2) => {
   const { tag_id } = c2.req.valid("json");
@@ -70109,7 +70274,7 @@ router41.post("/node/:nodeId", requireAuth, zValidator("json", external_exports.
   if (error && !error.message.includes("duplicate")) return c2.json({ error: error.message }, 400);
   return c2.json({ ok: true });
 });
-router41.delete("/node/:nodeId/:tagId", requireAuth, async (c2) => {
+router42.delete("/node/:nodeId/:tagId", requireAuth, async (c2) => {
   await supabase.from("node_tags").delete().eq("node_id", c2.req.param("nodeId")).eq("tag_id", c2.req.param("tagId")).eq("workspace_id", c2.get("workspaceId"));
   return c2.json({ ok: true });
 });
@@ -70120,8 +70285,8 @@ init_credits();
 init_pricing();
 init_ai_gateway();
 init_credits();
-var router42 = new Hono2();
-router42.post("/analyze", requireAuth, async (c2) => {
+var router43 = new Hono2();
+router43.post("/analyze", requireAuth, async (c2) => {
   const ws = c2.get("workspaceId");
   const body = await c2.req.json().catch(() => ({}));
   const purpose = (body.purpose ?? "").trim();
@@ -70197,7 +70362,7 @@ Team size: ${teamSize}` : ""),
   }
   return c2.json(result);
 });
-router42.post("/bootstrap", requireJwt, async (c2) => {
+router43.post("/bootstrap", requireJwt, async (c2) => {
   const userId = c2.get("userId");
   const body = await c2.req.json().catch(() => ({}));
   try {
@@ -70207,7 +70372,7 @@ router42.post("/bootstrap", requireJwt, async (c2) => {
     return c2.json({ error: e2 instanceof Error ? e2.message : "Failed to create workspace" }, 500);
   }
 });
-router42.get("/status", requireAuth, async (c2) => {
+router43.get("/status", requireAuth, async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const [
     { count: contactCount },
@@ -70243,7 +70408,7 @@ router42.get("/status", requireAuth, async (c2) => {
     apps: false
   });
 });
-router42.post("/complete", requireAuth, async (c2) => {
+router43.post("/complete", requireAuth, async (c2) => {
   const ws = c2.get("workspaceId");
   const userId = c2.get("userId");
   const body = await c2.req.json().catch(() => ({}));
@@ -70306,8 +70471,8 @@ router42.post("/complete", requireAuth, async (c2) => {
 
 // src/routes/status.ts
 init_client();
-var router43 = new Hono2();
-router43.use("*", requireAuth);
+var router44 = new Hono2();
+router44.use("*", requireAuth);
 var ENV_STEP = "Add it in your host's dashboard (Vercel \u2192 Settings \u2192 Environment Variables), then redeploy.";
 async function probeTable(table, columns = "id") {
   const { error } = await supabase.from(table).select(columns).limit(1);
@@ -70323,7 +70488,7 @@ async function probeHttp(url, headers = {}) {
     return false;
   }
 }
-router43.get("/", async (c2) => {
+router44.get("/", async (c2) => {
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const checks = [];
   checks.push({ id: "api", label: "API health", state: "operational", explanation: "This request reached the API and is responding normally." });
@@ -70486,7 +70651,7 @@ router43.get("/", async (c2) => {
     migrations
   });
 });
-router43.get("/log", async (c2) => {
+router44.get("/log", async (c2) => {
   const { data, error } = await supabase.from("project_log").select("id,kind,title,detail,category,status,sort_order,created_at,completed_at").order("sort_order", { ascending: true });
   if (error) return c2.json({ available: false, reason: error.message, updates: [], roadmap: [] });
   const rows2 = data ?? [];
@@ -70496,7 +70661,7 @@ router43.get("/log", async (c2) => {
     roadmap: rows2.filter((r2) => r2.kind === "roadmap")
   });
 });
-router43.post("/log", async (c2) => {
+router44.post("/log", async (c2) => {
   const body = await c2.req.json().catch(() => ({}));
   if (!body.kind || !body.title || !body.status) {
     return c2.json({ error: "kind, title and status are required" }, 400);
@@ -70513,7 +70678,7 @@ router43.post("/log", async (c2) => {
   if (error) return c2.json({ error: error.message }, 500);
   return c2.json({ id: data?.id, created: true });
 });
-router43.patch("/log/:id", async (c2) => {
+router44.patch("/log/:id", async (c2) => {
   const id = c2.req.param("id");
   const body = await c2.req.json().catch(() => ({}));
   const patch = {};
@@ -70533,9 +70698,9 @@ router43.patch("/log/:id", async (c2) => {
 
 // src/routes/usage.ts
 init_client();
-var router44 = new Hono2();
-router44.use("*", requireAuth);
-router44.get("/", async (c2) => {
+var router45 = new Hono2();
+router45.use("*", requireAuth);
+router45.get("/", async (c2) => {
   const workspaceId = c2.get("workspaceId");
   const allTime = c2.req.query("period") === "all";
   let q2 = supabase.from("ai_usage").select("model, message_count, prompt_tokens, completion_tokens, total_tokens").eq("workspace_id", workspaceId);
@@ -70573,7 +70738,7 @@ router44.get("/", async (c2) => {
     by_model: byModel
   });
 });
-router44.get("/summary", async (c2) => {
+router45.get("/summary", async (c2) => {
   const ws = c2.get("workspaceId");
   const now = /* @__PURE__ */ new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -70715,15 +70880,15 @@ function buildLeadDecision(o2) {
 }
 
 // src/routes/discovery.ts
-var router45 = new Hono2();
-router45.get("/connectors", requireJwt, async (c2) => {
+var router46 = new Hono2();
+router46.get("/connectors", requireJwt, async (c2) => {
   const [places, reddit] = await Promise.all([
     placesDiagnostic().catch(() => ({ provider: "osm", ok: true, detail: "probe failed", sample: 0 })),
     redditDiagnostic().catch(() => ({ enabled: false, ok: false, detail: "probe failed" }))
   ]);
   return c2.json({ places, reddit });
 });
-router45.use("*", requireAuth);
+router46.use("*", requireAuth);
 var runSchema2 = external_exports.object({
   searchType: external_exports.enum(["INTENT_LEADS", "REVIEWS"]),
   sector: external_exports.string().max(120).optional(),
@@ -70752,8 +70917,8 @@ async function triggerSweep(c2) {
     return c2.json({ ok: false, error: e2 instanceof Error ? e2.message : "Sweep failed" }, 200);
   }
 }
-router45.post("/trigger", zValidator("json", runSchema2), triggerSweep);
-router45.post("/run", zValidator("json", runSchema2), triggerSweep);
+router46.post("/trigger", zValidator("json", runSchema2), triggerSweep);
+router46.post("/run", zValidator("json", runSchema2), triggerSweep);
 var searchSchema = external_exports.object({ query: external_exports.string().min(2).max(300), deep: external_exports.boolean().optional(), exhaustive: external_exports.boolean().optional() });
 async function classifyQuery(workspaceId, query, deep, exhaustive) {
   let classified = {};
@@ -70793,7 +70958,7 @@ async function classifyQuery(workspaceId, query, deep, exhaustive) {
     exhaustive
   };
 }
-router45.post("/coach", zValidator("json", external_exports.object({ query: external_exports.string().min(1).max(300) })), async (c2) => {
+router46.post("/coach", zValidator("json", external_exports.object({ query: external_exports.string().min(1).max(300) })), async (c2) => {
   const { query } = c2.req.valid("json");
   try {
     const icp = await loadIcp(c2.get("workspaceId"));
@@ -70833,7 +70998,7 @@ router45.post("/coach", zValidator("json", external_exports.object({ query: exte
     return c2.json({ specific: true, coach_message: "", suggestions: [], refined_query: query });
   }
 });
-router45.post("/search", zValidator("json", searchSchema), async (c2) => {
+router46.post("/search", zValidator("json", searchSchema), async (c2) => {
   const { query, deep } = c2.req.valid("json");
   const params = await classifyQuery(c2.get("workspaceId"), query, deep);
   inngest.send({ name: "app/social.discovery.trigger", data: params }).catch(() => {
@@ -70846,7 +71011,7 @@ router45.post("/search", zValidator("json", searchSchema), async (c2) => {
     return c2.json({ ok: false, error: e2 instanceof Error ? e2.message : "Sweep failed" }, 200);
   }
 });
-router45.post("/search/stream", zValidator("json", searchSchema), async (c2) => {
+router46.post("/search/stream", zValidator("json", searchSchema), async (c2) => {
   const { query, deep, exhaustive } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   return streamSSE(c2, async (stream2) => {
@@ -70880,7 +71045,7 @@ var saveSchema = external_exports.object({
   list_id: external_exports.string().uuid().optional()
   // atomically add the new record to a list
 });
-router45.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c2) => {
+router46.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c2) => {
   const b2 = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const userId = c2.get("userId");
@@ -70935,12 +71100,12 @@ async function addToList(workspaceId, listId, nodeId) {
   }, () => {
   });
 }
-router45.get("/icp", async (c2) => {
+router46.get("/icp", async (c2) => {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", c2.get("workspaceId")).maybeSingle();
   const icp = data?.settings?.discovery_icp ?? null;
   return c2.json({ description: icp?.description ?? "" });
 });
-router45.post("/icp", denyViewerWrites, zValidator("json", external_exports.object({ description: external_exports.string().max(1e3) })), async (c2) => {
+router46.post("/icp", denyViewerWrites, zValidator("json", external_exports.object({ description: external_exports.string().max(1e3) })), async (c2) => {
   const ws = c2.get("workspaceId");
   const { data } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
   const settings = { ...data?.settings ?? {}, discovery_icp: { description: c2.req.valid("json").description.trim(), updated_at: (/* @__PURE__ */ new Date()).toISOString() } };
@@ -70952,7 +71117,7 @@ async function loadIcp(workspaceId) {
   const d2 = data?.settings?.discovery_icp?.description;
   return d2 && d2.trim() ? d2.trim() : void 0;
 }
-router45.post("/enrich", denyViewerWrites, zValidator("json", external_exports.object({
+router46.post("/enrich", denyViewerWrites, zValidator("json", external_exports.object({
   url: external_exports.string().max(600),
   name: external_exports.string().max(200).optional(),
   region: external_exports.string().max(160).optional(),
@@ -71027,7 +71192,7 @@ router45.post("/enrich", denyViewerWrites, zValidator("json", external_exports.o
   const dossier = buildDossier({ name: name ?? domain ?? "Lead", domain, pages, emails, phones, ai, places, graphMatch });
   return c2.json({ dossier, emails, phones, people: ai.people ?? [], company: ai.company ?? null, scanned: pages.length });
 });
-router45.post("/outreach", denyViewerWrites, zValidator("json", external_exports.object({
+router46.post("/outreach", denyViewerWrites, zValidator("json", external_exports.object({
   name: external_exports.string().max(200),
   context: external_exports.string().max(1500).optional(),
   sector: external_exports.string().max(160).optional(),
@@ -71050,7 +71215,7 @@ router45.post("/outreach", denyViewerWrites, zValidator("json", external_exports
     return c2.json({ subject: null, message: "" });
   }
 });
-router45.post("/save-batch", denyViewerWrites, zValidator("json", external_exports.object({
+router46.post("/save-batch", denyViewerWrites, zValidator("json", external_exports.object({
   leads: external_exports.array(saveSchema).min(1).max(200),
   owner_id: external_exports.string().max(120).optional(),
   list_id: external_exports.string().uuid().optional()
@@ -71103,11 +71268,11 @@ router45.post("/save-batch", denyViewerWrites, zValidator("json", external_expor
   if (list_id) for (const id of [...ids, ...already_existed.map((a2) => a2.node_id)]) await addToList(workspaceId, list_id, id);
   return c2.json({ saved: ids.length, skipped, ids, created, already_existed }, 201);
 });
-router45.get("/monitors", async (c2) => {
+router46.get("/monitors", async (c2) => {
   const { data } = await supabase.from("nodes").select("id, data, created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "discovery_monitor").order("created_at", { ascending: false });
   return c2.json((data ?? []).map((n2) => ({ id: n2.id, ...n2.data, created_at: n2.created_at })));
 });
-router45.post("/monitors", zValidator("json", external_exports.object({ query: external_exports.string().min(2).max(300) })), async (c2) => {
+router46.post("/monitors", zValidator("json", external_exports.object({ query: external_exports.string().min(2).max(300) })), async (c2) => {
   const { query } = c2.req.valid("json");
   const workspaceId = c2.get("workspaceId");
   const params = await classifyQuery(workspaceId, query);
@@ -71120,11 +71285,11 @@ router45.post("/monitors", zValidator("json", external_exports.object({ query: e
   }).select("id").single();
   return error ? c2.json({ error: error.message }, 400) : c2.json({ id: data.id, query }, 201);
 });
-router45.delete("/monitors/:id", async (c2) => {
+router46.delete("/monitors/:id", async (c2) => {
   const { error } = await supabase.from("nodes").delete().eq("workspace_id", c2.get("workspaceId")).eq("object_type", "discovery_monitor").eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router45.get("/", async (c2) => {
+router46.get("/", async (c2) => {
   const intent = c2.req.query("intent_type");
   let q2 = supabase.from("discovered_leads").select("*").eq("workspace_id", c2.get("workspaceId")).order("created_at", { ascending: false }).limit(200);
   if (intent) q2 = q2.eq("intent_type", intent);
@@ -71135,11 +71300,11 @@ router45.get("/", async (c2) => {
   }
   return c2.json(data ?? []);
 });
-router45.delete("/all", async (c2) => {
+router46.delete("/all", async (c2) => {
   const { error } = await supabase.from("discovered_leads").delete().eq("workspace_id", c2.get("workspaceId"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
-router45.delete("/:id", async (c2) => {
+router46.delete("/:id", async (c2) => {
   const { error } = await supabase.from("discovered_leads").delete().eq("workspace_id", c2.get("workspaceId")).eq("id", c2.req.param("id"));
   return error ? c2.json({ error: error.message }, 400) : c2.json({ ok: true });
 });
@@ -71155,7 +71320,7 @@ async function probe2(url) {
     clearTimeout(timer);
   }
 }
-router45.get("/status", async (c2) => {
+router46.get("/status", async (c2) => {
   const searchUrl = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
   const scrapeUrl = process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3002/v1/scrape";
   const searchHealth = searchUrl.replace(/\/search\/?$/, "/healthz");
@@ -71176,7 +71341,7 @@ router45.get("/status", async (c2) => {
     diagnostic
   });
 });
-router45.post("/lead-task", denyViewerWrites, zValidator("json", external_exports.object({
+router46.post("/lead-task", denyViewerWrites, zValidator("json", external_exports.object({
   name: external_exports.string().min(1).max(200),
   node_id: external_exports.string().uuid().optional(),
   title: external_exports.string().max(200).optional(),
@@ -71191,7 +71356,7 @@ router45.post("/lead-task", denyViewerWrites, zValidator("json", external_export
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json(data, 201);
 });
-router45.post("/lead-decision", denyViewerWrites, zValidator("json", external_exports.object({
+router46.post("/lead-decision", denyViewerWrites, zValidator("json", external_exports.object({
   name: external_exports.string().min(1).max(200),
   node_id: external_exports.string().uuid().optional(),
   title: external_exports.string().max(200).optional(),
@@ -71208,7 +71373,7 @@ router45.post("/lead-decision", denyViewerWrites, zValidator("json", external_ex
   if (error) return c2.json({ error: error.message }, 400);
   return c2.json(data, 201);
 });
-router45.post("/assign-owner", denyViewerWrites, zValidator("json", external_exports.object({
+router46.post("/assign-owner", denyViewerWrites, zValidator("json", external_exports.object({
   node_id: external_exports.string().uuid(),
   owner_id: external_exports.string().max(120).nullable()
 })), async (c2) => {
@@ -71228,7 +71393,7 @@ var bulkLeadSchema = external_exports.object({
   phone: external_exports.string().max(60).optional(),
   summary: external_exports.string().max(1e3).optional()
 });
-router45.post("/bulk-task", denyViewerWrites, zValidator("json", external_exports.object({
+router46.post("/bulk-task", denyViewerWrites, zValidator("json", external_exports.object({
   leads: external_exports.array(bulkLeadSchema).min(1).max(200),
   assignee_id: external_exports.string().max(120).optional()
 })), async (c2) => {
@@ -71242,7 +71407,7 @@ router45.post("/bulk-task", denyViewerWrites, zValidator("json", external_export
   }));
   return c2.json({ created: results.filter((r2) => r2.ok).length, failed: results.filter((r2) => !r2.ok).length, results });
 });
-router45.post("/bulk-decision", denyViewerWrites, zValidator("json", external_exports.object({
+router46.post("/bulk-decision", denyViewerWrites, zValidator("json", external_exports.object({
   leads: external_exports.array(bulkLeadSchema).min(1).max(200)
 })), async (c2) => {
   const { leads } = c2.req.valid("json");
@@ -71257,8 +71422,8 @@ router45.post("/bulk-decision", denyViewerWrites, zValidator("json", external_ex
 
 // src/routes/workspaces.ts
 init_client();
-var router46 = new Hono2();
-router46.get("/mine", requireJwt, async (c2) => {
+var router47 = new Hono2();
+router47.get("/mine", requireJwt, async (c2) => {
   const userId = c2.get("userId");
   const { data: memberships, error } = await supabase.from("workspace_members").select("workspace_id, role, joined_at, workspaces(id, name, created_at)").eq("user_id", userId);
   if (error) return c2.json({ error: error.message }, 500);
@@ -71290,7 +71455,7 @@ router46.get("/mine", requireJwt, async (c2) => {
   workspaces.sort((a2, b2) => b2.counts.tasks + b2.counts.lists + b2.counts.nodes - (a2.counts.tasks + a2.counts.lists + a2.counts.nodes));
   return c2.json({ workspaces });
 });
-router46.post("/", requireJwt, async (c2) => {
+router47.post("/", requireJwt, async (c2) => {
   const userId = c2.get("userId");
   const body = await c2.req.json().catch(() => ({}));
   const name = (body.name ?? "").trim();
@@ -71317,7 +71482,7 @@ var import_node_crypto12 = require("crypto");
 init_client();
 init_google();
 init_microsoft();
-var router47 = new Hono2();
+var router48 = new Hono2();
 var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CRON_SECRET || "mondaily-dev-oauth-state";
 var b64url3 = (b2) => Buffer.from(b2).toString("base64url");
 function signState(payload) {
@@ -71356,7 +71521,7 @@ function popupHtml(message, ok2) {
 <script>try{window.opener&&window.opener.postMessage({type:"nylas-connect",ok:${ok2}},"*")}catch(e){}setTimeout(function(){window.close()},1500)</script>
 </body></html>`;
 }
-router47.post("/connect", requireAuth, async (c2) => {
+router48.post("/connect", requireAuth, async (c2) => {
   const body = await c2.req.json().catch(() => ({}));
   const provider = normalizeProvider(body.provider);
   if (provider === "imap") {
@@ -71372,7 +71537,7 @@ router47.post("/connect", requireAuth, async (c2) => {
   const state = signState({ u: c2.get("userId"), w: c2.get("workspaceId"), p: "google", exp: Math.floor(Date.now() / 1e3) + 600 });
   return c2.json({ auth_url: googleAuthUrl(callbackUrl(), state) });
 });
-router47.get("/callback", async (c2) => {
+router48.get("/callback", async (c2) => {
   const code = c2.req.query("code");
   const state = c2.req.query("state");
   const oauthErr = c2.req.query("error");
@@ -71406,7 +71571,7 @@ router47.get("/callback", async (c2) => {
     return c2.html(popupHtml("Something went wrong connecting your account.", false));
   }
 });
-router47.get("/calendar/events", requireAuth, async (c2) => {
+router48.get("/calendar/events", requireAuth, async (c2) => {
   const { data: conn } = await supabase.from("email_connections").select("id, provider, refresh_token, access_token, token_expiry, email").eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.get("userId")).maybeSingle();
   if (!conn) return c2.json({ connected: false, events: [] });
   const now = /* @__PURE__ */ new Date();
@@ -71429,7 +71594,7 @@ router47.get("/calendar/events", requireAuth, async (c2) => {
     return c2.json({ connected: true, provider: conn.provider, error: "Could not read your calendar.", events: [] });
   }
 });
-router47.get("/mcp-token", requireAuth, async (c2) => {
+router48.get("/mcp-token", requireAuth, async (c2) => {
   const { mintMcpToken: mintMcpToken2 } = await Promise.resolve().then(() => (init_mcp_token(), mcp_token_exports));
   const base = process.env.API_BASE_URL || "https://api.mondaily.com";
   return c2.json({
@@ -71443,7 +71608,7 @@ router47.get("/mcp-token", requireAuth, async (c2) => {
 // src/routes/mcp.ts
 init_client();
 init_mcp_token();
-var router48 = new Hono2();
+var router49 = new Hono2();
 var TOOLS2 = [
   {
     name: "search_records",
@@ -71488,7 +71653,7 @@ async function runTool(workspaceId, name, args) {
   }
   throw new Error(`Unknown tool: ${name}`);
 }
-router48.post("/", async (c2) => {
+router49.post("/", async (c2) => {
   const token = (c2.req.header("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   const workspaceId = verifyMcpToken(token);
   const body = await c2.req.json().catch(() => null);
@@ -71523,7 +71688,7 @@ router48.post("/", async (c2) => {
   const res = await handle(body);
   return res ? c2.json(res) : c2.body(null, 202);
 });
-router48.get("/", (c2) => c2.json({ name: "mondaily-mcp", transport: "streamable-http", protocolVersion: "2024-11-05" }));
+router49.get("/", (c2) => c2.json({ name: "mondaily-mcp", transport: "streamable-http", protocolVersion: "2024-11-05" }));
 
 // src/app.ts
 var app = new Hono2();
@@ -71536,8 +71701,8 @@ app.use("*", async (c2, next) => {
   c2.header("Cache-Control", "private, no-store");
   await next();
 });
-app.route("/api/v1/import", router32);
-app.route("/api/v1/generate", router33);
+app.route("/api/v1/import", router33);
+app.route("/api/v1/generate", router34);
 app.route("/api/v1/nodes", router);
 app.route("/api/v1/search", router2);
 app.route("/api/v1/ask", router6);
@@ -71545,46 +71710,47 @@ app.route("/api/v1/public/ask", router7);
 app.route("/api/v1/agents", router8);
 app.route("/api/v1/decisions", router5);
 app.route("/api/v1/prospecting", router4);
-app.route("/api/v1/status", router43);
-app.route("/api/v1/usage", router44);
-app.route("/api/v1/discovery", router45);
-app.route("/api/v1/workspaces", router46);
+app.route("/api/v1/status", router44);
+app.route("/api/v1/usage", router45);
+app.route("/api/v1/discovery", router46);
+app.route("/api/v1/workspaces", router47);
 app.route("/api/v1/activities", router9);
 app.route("/api/v1/realtime", router13);
 app.route("/api/v1/auth", router14);
 app.route("/api/v1/credits", router15);
-app.route("/api/v1/webhooks", router16);
-app.route("/api/v1/billing", router17);
-app.route("/api/v1/invites", router19);
-app.route("/api/v1/notes", router20);
-app.route("/api/v1/emails", router21);
-app.route("/api/v1/calls", router22);
+app.route("/api/v1/webhooks", router17);
+app.route("/api/v1/billing", router18);
+app.route("/api/v1/invites", router20);
+app.route("/api/v1/notes", router21);
+app.route("/api/v1/emails", router22);
+app.route("/api/v1/calls", router23);
 app.route("/api/v1/reports", router3);
-app.route("/api/v1/dashboards", router23);
-app.route("/api/v1/sequences", router24);
-app.route("/api/v1/lists", router25);
-app.route("/api/v1/chats", router26);
-app.route("/api/v1/feedback", router27);
-app.route("/api/v1/members", router28);
-app.route("/api/v1/notifications", router29);
+app.route("/api/v1/dashboards", router24);
+app.route("/api/v1/sequences", router25);
+app.route("/api/v1/lists", router26);
+app.route("/api/v1/chats", router27);
+app.route("/api/v1/feedback", router28);
+app.route("/api/v1/members", router29);
+app.route("/api/v1/notifications", router30);
 app.route("/api/v1/messages", router10);
 app.route("/api/v1/training", router11);
 app.route("/api/v1/live-calls", router12);
-app.route("/api/v1/tasks", router30);
 app.route("/api/v1/tasks", router31);
+app.route("/api/v1/tasks", router32);
 app.route("/api/v1/tasks", tasks_default);
-app.route("/api/v1/digests", router34);
-app.route("/api/v1/annotations", router35);
-app.route("/api/v1/workflows", router36);
-app.route("/api/v1/invoices", router37);
-app.route("/api/v1/credit-notes", router38);
-app.route("/api/v1/quotes", router39);
-app.route("/api/v1/expenses", router40);
-app.route("/api/v1/tags", router41);
-app.route("/api/v1/onboarding", router42);
-app.route("/api/v1/integrations", router47);
-app.route("/api/mcp", router48);
-app.route("/api/v1", router18);
+app.route("/api/v1/digests", router35);
+app.route("/api/v1/annotations", router36);
+app.route("/api/v1/workflows", router37);
+app.route("/api/v1/invoices", router38);
+app.route("/api/v1/credit-notes", router39);
+app.route("/api/v1/quotes", router40);
+app.route("/api/v1/expenses", router41);
+app.route("/api/v1/tags", router42);
+app.route("/api/v1/onboarding", router43);
+app.route("/api/v1/support", router16);
+app.route("/api/v1/integrations", router48);
+app.route("/api/mcp", router49);
+app.route("/api/v1", router19);
 var inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport, socialDiscoveryWorker, dailyBrief] });
 app.all("/api/inngest", inngestHandler);
 app.get("/api/cron/daily", async (c2) => {
