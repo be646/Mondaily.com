@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { EVENT_STATUSES } from "../routes/calendar";
 import { buildNotificationPayload, extractSource, categorizeNotification } from "../lib/notify";
-import { analyzeMeetings, type MeetingLite } from "../jobs/meeting-agent";
+import { analyzeMeetings, relatedFollowUps, type MeetingLite } from "../jobs/meeting-agent";
 
 const src = readFileSync(fileURLToPath(new URL("../routes/calendar.ts", import.meta.url)), "utf8");
 const page = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/calendar.tsx", import.meta.url)), "utf8");
@@ -170,14 +170,27 @@ describe("Meeting Agent — real backend agent (registry + runner + honest statu
     // idle label is honest until it actually runs
     expect(agentsSrc).toMatch(/jobSummary\(meetingJobRow, "No runs yet"\)/);
   });
-  it("the runner logs real proof-of-work: startJob → 5 structured steps → completeJob", () => {
+  it("the runner logs real proof-of-work: startJob → structured steps → completeJob", () => {
     expect(runnerSrc).toMatch(/startJob\(\{ workspace_id: workspaceId, agent_name: "meeting"/);
     expect(runnerSrc).toMatch(/step\(`Loaded \$\{a\.active\.length\} meeting\(s\)`/);
     expect(runnerSrc).toMatch(/step\(`Found \$\{a\.conflicts\.length\} conflict\(s\)`/);
     expect(runnerSrc).toMatch(/step\(`Found \$\{a\.missingAgenda\.length\} missing agenda\(s\)`/);
     expect(runnerSrc).toMatch(/step\(`Found \$\{a\.missingCall\.length\} missing call link\(s\)`/);
+    expect(runnerSrc).toMatch(/step\(`Found \$\{followUps\.length\} related follow-up\(s\)`/);
     expect(runnerSrc).toMatch(/step\(`Queued \$\{queued\} attention item\(s\)`/);
     expect(runnerSrc).toMatch(/completeJob\(jobId, output, steps\)/);
+  });
+  it("detects meeting-related open follow-up tasks by shared title keywords (real, not invented)", () => {
+    const events: MeetingLite[] = [{ id: "m", title: "Acme onboarding", start_at: "2026-07-06T10:00:00Z" }];
+    const tasks = [
+      { id: "t1", title: "Send Acme onboarding docs" },   // matches "acme"/"onboarding"
+      { id: "t2", title: "Buy milk" },                     // unrelated
+    ];
+    const r = relatedFollowUps(events, tasks);
+    expect(r.map(t => t.id)).toEqual(["t1"]);
+    // honest empties: no meetings, or no tasks → no matches (never fabricated)
+    expect(relatedFollowUps([], tasks)).toEqual([]);
+    expect(relatedFollowUps(events, [])).toEqual([]);
   });
   it("only queues Decision Queue items for REAL conflicts, deduped (no fabricated attention)", () => {
     expect(runnerSrc).toMatch(/for \(const \[x, y\] of a\.conflicts\)/);

@@ -64666,6 +64666,20 @@ init_client();
 init_client();
 var startMs = (m2) => new Date(m2.start_at).getTime();
 var endMs = (m2) => new Date(m2.end_at || m2.start_at).getTime();
+function titleTokens(text) {
+  const stop = /* @__PURE__ */ new Set(["the", "and", "for", "with", "meeting", "call", "sync", "weekly", "review", "team", "about", "from", "into", "this", "that", "our"]);
+  return new Set((text || "").toLowerCase().match(/[a-z0-9][a-z0-9-]{3,}/g)?.filter((w2) => !stop.has(w2)) ?? []);
+}
+function relatedFollowUps(events, tasks2) {
+  const meetingTokens = events.flatMap((e2) => [...titleTokens(e2.title ?? "")]);
+  if (meetingTokens.length === 0) return [];
+  const wanted = new Set(meetingTokens);
+  return tasks2.filter((t3) => {
+    const tt2 = titleTokens(t3.title);
+    for (const w2 of tt2) if (wanted.has(w2)) return true;
+    return false;
+  });
+}
 function analyzeMeetings(events) {
   const active = events.filter((e2) => (e2.status ?? "scheduled") !== "cancelled" && !Number.isNaN(startMs(e2)));
   const sorted = [...active].sort((a2, b2) => startMs(a2) - startMs(b2));
@@ -64694,11 +64708,17 @@ async function runMeetingAgent(workspaceId) {
       return { id: n2.id, title: String(d2.title ?? ""), start_at: String(d2.start_at ?? ""), end_at: String(d2.end_at ?? ""), description: String(d2.description ?? ""), call_url: d2.call_url ?? null, status: String(d2.status ?? "scheduled") };
     });
     const a2 = analyzeMeetings(events);
+    let followUps = [];
+    if (a2.active.length > 0) {
+      const { data: taskRows } = await supabase.from("tasks").select("id, title").eq("workspace_id", workspaceId).eq("completed", false).limit(500);
+      followUps = relatedFollowUps(a2.active, (taskRows ?? []).map((r2) => ({ id: String(r2.id), title: String(r2.title ?? "") })));
+    }
     const steps = [
       step2(`Loaded ${a2.active.length} meeting(s)`, { detail: "today + next 7 days" }),
       step2(`Found ${a2.conflicts.length} conflict(s)`, { status: a2.conflicts.length ? "warn" : "ok" }),
       step2(`Found ${a2.missingAgenda.length} missing agenda(s)`, { status: a2.missingAgenda.length ? "warn" : "ok" }),
-      step2(`Found ${a2.missingCall.length} missing call link(s)`, { status: a2.missingCall.length ? "warn" : "ok" })
+      step2(`Found ${a2.missingCall.length} missing call link(s)`, { status: a2.missingCall.length ? "warn" : "ok" }),
+      step2(`Found ${followUps.length} related follow-up(s)`, { status: followUps.length ? "info" : "ok" })
     ];
     let queued = 0;
     for (const [x2, y2] of a2.conflicts) {
@@ -64727,6 +64747,7 @@ async function runMeetingAgent(workspaceId) {
       conflicts: a2.conflicts.length,
       missing_agenda: a2.missingAgenda.length,
       missing_call_link: a2.missingCall.length,
+      related_followups: followUps.length,
       queued,
       summary: `Checked ${a2.active.length} meeting(s): ${a2.conflicts.length} conflict(s), ${a2.missingAgenda.length} without agenda, ${a2.missingCall.length} without call link`
     };
