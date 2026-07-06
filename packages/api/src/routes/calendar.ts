@@ -80,14 +80,18 @@ function shape(id: string, d: EventData, dir: Map<string, { name?: string; email
   };
 }
 
-/** Notify attendees (not the actor) about a create/update/cancel. In-app only; deep-links to event. */
+/** Notify attendees (not the actor) about a create/update/cancel. In-app only; deep-links to event.
+ *  Attributed to the Meeting Agent (canonical source_agent="meeting") — this is real calendar work,
+ *  not a fabricated agent run: the notification only exists because a user actually created/changed
+ *  a meeting. No agent_job_id is set (there is no scheduled job), so nothing implies a "running" agent. */
 async function notifyAttendees(ws: string, eventId: string, d: EventData, actor: string, verb: "created" | "updated" | "cancelled") {
   const targets = [...new Set([d.organizer_id, ...(d.attendee_ids ?? [])])].filter((u) => u && u !== actor);
   await Promise.all(targets.map((uid) => createNotification({
     workspace_id: ws, user_id: uid, type: "calendar",
     title: `Meeting ${verb}: ${d.title}`,
     body: verb === "cancelled" ? "This meeting was cancelled." : `${new Date(d.start_at).toUTCString()}`,
-    metadata: { route: `/calendar?event=${eventId}`, event_id: eventId },
+    source: { source_agent: "meeting", node_id: eventId, object_type: "calendar_event", route: `/calendar?event=${eventId}` },
+    metadata: { event_id: eventId },
   }).catch(() => false)));
 }
 

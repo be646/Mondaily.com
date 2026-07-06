@@ -65822,7 +65822,8 @@ async function notifyAttendees(ws, eventId, d2, actor, verb) {
     type: "calendar",
     title: `Meeting ${verb}: ${d2.title}`,
     body: verb === "cancelled" ? "This meeting was cancelled." : `${new Date(d2.start_at).toUTCString()}`,
-    metadata: { route: `/calendar?event=${eventId}`, event_id: eventId }
+    source: { source_agent: "meeting", node_id: eventId, object_type: "calendar_event", route: `/calendar?event=${eventId}` },
+    metadata: { event_id: eventId }
   }).catch(() => false)));
 }
 var EventInput = external_exports.object({

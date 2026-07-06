@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { EVENT_STATUSES } from "../routes/calendar";
+import { buildNotificationPayload, extractSource, categorizeNotification } from "../lib/notify";
 
 const src = readFileSync(fileURLToPath(new URL("../routes/calendar.ts", import.meta.url)), "utf8");
 const page = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/calendar.tsx", import.meta.url)), "utf8");
@@ -82,15 +83,71 @@ describe("Calendar — call links (Mondaily-owned, no fake, fail-closed)", () =>
 
 describe("Calendar — notifications to attendees (deep-linked)", () => {
   it("notifies attendees (excluding the actor) with a deep-link route to the event", () => {
-    const fn = src.slice(src.indexOf("async function notifyAttendees"), src.indexOf("async function notifyAttendees") + 700);
+    const fn = src.slice(src.indexOf("async function notifyAttendees"), src.indexOf("async function notifyAttendees") + 900);
     expect(fn).toMatch(/\.filter\(\(u\) => u && u !== actor\)/);
     expect(fn).toMatch(/createNotification\(\{[\s\S]*?type: "calendar"/);
-    expect(fn).toMatch(/metadata: \{ route: `\/calendar\?event=\$\{eventId\}`/);
+    expect(fn).toMatch(/route: `\/calendar\?event=\$\{eventId\}`/);
   });
   it("create + patch + delete all notify attendees", () => {
     expect(src).toMatch(/notifyAttendees\(ws, node\.id, data, me, "created"\)/);
     expect(src).toMatch(/notifyAttendees\(ws, ev\.id, next, me, next\.status === "cancelled" \? "cancelled" : "updated"\)/);
     expect(src).toMatch(/notifyAttendees\(ws, ev\.id, next, me, "cancelled"\)/);
+  });
+});
+
+describe("Meeting Agent attribution — real calendar notifications (no fabricated runs)", () => {
+  const fn = src.slice(src.indexOf("async function notifyAttendees"), src.indexOf("async function notifyAttendees") + 1100);
+
+  it("calendar notifications carry canonical Meeting Agent source metadata", () => {
+    // source_agent="meeting" + node_id (event) + object_type="calendar_event" + event route
+    expect(fn).toMatch(/source: \{ source_agent: "meeting", node_id: eventId, object_type: "calendar_event", route: `\/calendar\?event=\$\{eventId\}` \}/);
+  });
+
+  it("NEVER implies a running/scheduled Meeting Agent job (no agent_job_id, no agent_jobs write)", () => {
+    expect(fn).not.toMatch(/agent_job_id/);
+    // the whole calendar route registers no scheduled/active Meeting Agent job
+    expect(src).not.toMatch(/agent_jobs/);
+    expect(src).not.toMatch(/source_agent: "meeting"[\s\S]*?agent_job_id/);
+  });
+
+  it("the resolver folds Meeting Agent provenance into a real, deep-linkable notification", () => {
+    const payload = buildNotificationPayload({
+      workspace_id: "w1", user_id: "u2", type: "calendar", title: "Meeting created: Sync",
+      source: { source_agent: "meeting", node_id: "evt_1", object_type: "calendar_event", route: "/calendar?event=evt_1" },
+      metadata: { event_id: "evt_1" },
+    });
+    const md = payload.metadata as Record<string, unknown>;
+    expect(md.source_agent).toBe("meeting");
+    expect(md.node_id).toBe("evt_1");
+    expect(md.object_type).toBe("calendar_event");
+    expect(md.route).toBe("/calendar?event=evt_1");
+    expect(md.event_id).toBe("evt_1");
+    expect(md.agent_job_id).toBeUndefined();            // no fabricated run linkage
+  });
+
+  it("categorizes as an agent notification and round-trips the Meeting Agent source", () => {
+    const md = { source_agent: "meeting", node_id: "evt_1", object_type: "calendar_event", route: "/calendar?event=evt_1" };
+    expect(categorizeNotification({ type: "calendar", metadata: md })).toBe("agent");
+    const s = extractSource({ metadata: md });
+    expect(s.source_agent).toBe("meeting");             // the bell reads this → "by Meeting Agent"
+    expect(s.route).toBe("/calendar?event=evt_1");
+    expect(s.object_type).toBe("calendar_event");
+    expect(s.agent_job_id).toBeUndefined();
+  });
+
+  it("the frontend resolver maps the 'meeting' slug to the Meeting Agent name (bell attribution)", () => {
+    const agents = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/lib/agents.ts", import.meta.url)), "utf8");
+    const groups = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/lib/notification-groups.ts", import.meta.url)), "utf8");
+    expect(agents).toMatch(/meeting:\s*\{ id: "meeting",\s*name: "Meeting Agent"/);
+    expect(groups).toMatch(/agentByRaw\(slug\)\.name/);   // actorLabel resolves source_agent via the registry
+  });
+
+  it("create / update / call-link / prep behavior is untouched (still wired)", () => {
+    expect(src).toMatch(/router\.post\("\/events", zValidator/);            // create
+    expect(src).toMatch(/router\.patch\("\/events\/:id"/);                  // update
+    expect(src).toMatch(/router\.post\("\/events\/:id\/call-link"/);        // add call link
+    expect(src).toMatch(/router\.post\("\/events\/:id\/prepare"/);          // prepare me
+    expect(src).toMatch(/router\.post\("\/events\/:id\/call-token"/);       // join flow
   });
 });
 
