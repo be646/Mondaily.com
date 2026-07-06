@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Send, StickyNote, Circle } from "lucide-react";
+import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Send, StickyNote, Circle, CalendarClock } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -26,6 +26,128 @@ const fmtTime = (iso: string, loc: string) => { try { return new Date(iso).toLoc
 const dayKey = (iso: string) => new Date(iso).toDateString();
 const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
+// ── Time-grid geometry (real calendar rendering) ──────────────────────────────────────────────────
+const HOUR_PX = 48;                                   // vertical scale: 48px per hour
+const minOfDay = (iso: string) => { const d = new Date(iso); return d.getHours() * 60 + d.getMinutes(); };
+
+/** The visible hour window for a set of events — a sensible 8–18 default that expands to fit outliers. */
+function hourWindow(evs: CalEvent[]): { startH: number; endH: number } {
+  let startH = 8, endH = 18;
+  for (const e of evs) {
+    const s = new Date(e.start_at), en = new Date(e.end_at || e.start_at);
+    startH = Math.min(startH, s.getHours());
+    endH = Math.max(endH, en.getHours() + (en.getMinutes() > 0 || en.getHours() === s.getHours() ? 1 : 0));
+  }
+  startH = Math.max(0, Math.min(startH, 22));
+  endH = Math.min(24, Math.max(endH, startH + 2));
+  return { startH, endH };
+}
+
+interface Placed { e: CalEvent; top: number; height: number; leftPct: number; widthPct: number }
+/** Position a day's events by time, laying overlapping ones side-by-side (standard calendar columns). */
+function layoutDay(evs: CalEvent[], startH: number, endH: number): Placed[] {
+  const lo = startH * 60, hi = endH * 60;
+  const items = evs
+    .map(e => ({ e, s: Math.max(lo, Math.min(minOfDay(e.start_at), hi)), en: Math.max(lo, Math.min(minOfDay(e.end_at || e.start_at), hi)) }))
+    .map(it => ({ ...it, en: Math.max(it.en, it.s + 20) }))   // enforce a minimum readable height
+    .sort((a, b) => a.s - b.s || a.en - b.en);
+  const out: Placed[] = [];
+  let cluster: (typeof items[number] & { col?: number })[] = [];
+  let clusterEnd = -1;
+  const flush = () => {
+    const colEnds: number[] = [];
+    for (const it of cluster) {
+      let c = colEnds.findIndex(end => end <= it.s);
+      if (c === -1) { c = colEnds.length; colEnds.push(it.en); } else colEnds[c] = it.en;
+      it.col = c;
+    }
+    const n = colEnds.length || 1;
+    for (const it of cluster) out.push({ e: it.e, top: (it.s - lo) / 60 * HOUR_PX, height: Math.max(18, (it.en - it.s) / 60 * HOUR_PX), leftPct: ((it.col ?? 0) / n) * 100, widthPct: (1 / n) * 100 });
+    cluster = []; clusterEnd = -1;
+  };
+  for (const it of items) {
+    if (cluster.length && it.s >= clusterEnd) flush();
+    cluster.push(it); clusterEnd = Math.max(clusterEnd, it.en);
+  }
+  flush();
+  return out;
+}
+
+/**
+ * A real calendar time grid — a left time rail, horizontal hour lines, day columns, time-positioned
+ * event blocks (overlaps laid side-by-side), today shading, and a live current-time line. Drives both
+ * the Today day-timeline (single column) and the Week grid (seven columns).
+ */
+function TimeGrid({ days, events, selected, onOpen, lang, single }: {
+  days: Date[]; events: CalEvent[]; selected: string | null; onOpen: (id: string) => void; lang: string; single?: boolean;
+}) {
+  const now = new Date();
+  const perDay = days.map(d => events.filter(e => isSameDay(new Date(e.start_at), d)));
+  const { startH, endH } = hourWindow(perDay.flat());
+  const hours = Array.from({ length: endH - startH }, (_, i) => startH + i);
+  const bodyH = (endH - startH) * HOUR_PX;
+  const nowTop = (now.getHours() * 60 + now.getMinutes() - startH * 60) / 60 * HOUR_PX;
+  const nowVisible = now.getHours() >= startH && now.getHours() < endH;
+
+  return (
+    <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 15rem)" }}>
+      <div className="flex min-w-full">
+        {/* Time rail */}
+        <div className="sticky left-0 z-20 w-12 shrink-0" style={{ background: "var(--surface-page)" }}>
+          <div style={{ height: 28 }} />
+          <div className="relative" style={{ height: bodyH }}>
+            {hours.map((h, i) => (
+              <div key={h} className="absolute right-1.5 -translate-y-1/2 text-[10px] tabular-nums" style={{ top: i * HOUR_PX, color: "var(--text-faint)" }}>{String(h).padStart(2, "0")}:00</div>
+            ))}
+          </div>
+        </div>
+        {/* Day columns */}
+        <div className="flex flex-1">
+          {days.map((d, di) => {
+            const placed = layoutDay(perDay[di]!, startH, endH);
+            const isToday = isSameDay(d, now);
+            return (
+              <div key={d.toISOString()} className="relative min-w-0 flex-1 border-l" style={{ borderColor: "var(--border-soft)" }}>
+                {single ? <div style={{ height: 28 }} /> : (
+                  <div className="sticky top-0 z-10 flex h-7 items-center justify-center gap-1 text-[11px] font-semibold" style={{ background: "var(--surface-page)", color: isToday ? "var(--section-accent)" : "var(--text-muted)" }}>
+                    {d.toLocaleDateString(lang, { weekday: "short" })} <span className="tabular-nums">{d.getDate()}</span>
+                  </div>
+                )}
+                <div className="relative" style={{ height: bodyH }}>
+                  {isToday && <div className="absolute inset-0" style={{ background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }} />}
+                  {/* Horizontal hour lines */}
+                  {hours.map((h, i) => <div key={h} className="absolute inset-x-0 border-t" style={{ top: i * HOUR_PX, borderColor: "var(--border-soft)" }} />)}
+                  {/* Current-time line (only on today, when in the visible window) */}
+                  {isToday && nowVisible && (
+                    <div className="absolute inset-x-0 z-30 flex items-center" style={{ top: nowTop }}>
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#ef4444" }} />
+                      <span className="h-px flex-1" style={{ background: "#ef4444" }} />
+                    </div>
+                  )}
+                  {/* Time-positioned event blocks */}
+                  {placed.map(pl => {
+                    const on = pl.e.id === selected;
+                    return (
+                      <button key={pl.e.id} onClick={() => onOpen(pl.e.id)} title={pl.e.title}
+                        className="absolute z-10 overflow-hidden rounded-md px-1.5 py-0.5 text-left transition-shadow hover:shadow-md"
+                        style={{ top: pl.top, height: pl.height, left: `calc(${pl.leftPct}% + 2px)`, width: `calc(${pl.widthPct}% - 4px)`,
+                          background: on ? "var(--section-accent)" : "color-mix(in srgb, var(--section-accent) 13%, var(--surface-card))",
+                          borderLeft: "2px solid var(--section-accent)", color: on ? "#fff" : "var(--text-primary)" }}>
+                        <div className="flex items-center gap-1 truncate text-[11px] font-semibold leading-tight">{pl.e.call_url && <Video size={9} className="shrink-0" />}<span className="truncate">{pl.e.title}</span></div>
+                        {pl.height > 30 && <div className="truncate text-[10px] leading-tight opacity-75">{fmtTime(pl.e.start_at, lang)}</div>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function CalendarPage() {
   const { t, lang } = useLanguage();
   const [params, setParams] = useSearchParams();
@@ -41,9 +163,14 @@ export function CalendarPage() {
   const events = (eventsQ.data?.events ?? []).filter(e => e.status !== "cancelled");
   const now = new Date();
 
-  const todayEvents = useMemo(() => events.filter(e => isSameDay(new Date(e.start_at), now)), [events]);
-  // Week = the 7 days starting today (a clean rolling-week timeline foundation, not a full month grid).
-  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => { const d = new Date(now); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + i); return d; }), []);   // eslint-disable-line react-hooks/exhaustive-deps
+  const todayStart = useMemo(() => { const d = new Date(now); d.setHours(0, 0, 0, 0); return d; }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  const todayEvents = useMemo(() => events.filter(e => isSameDay(new Date(e.start_at), now)), [events]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // Week = the current Mon–Sun calendar week (a real weekly grid, not a rolling list).
+  const weekDays = useMemo(() => {
+    const monday = new Date(now); monday.setHours(0, 0, 0, 0);
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    return Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const groups = useMemo(() => {
     const map = new Map<string, CalEvent[]>();
@@ -88,7 +215,15 @@ export function CalendarPage() {
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-[20px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("cal.title")}</h1>
-          <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-muted)" }}>{t("cal.subtitle")}</p>
+          {/* Visible Meeting Agent identity. Status is honest: on-demand, never a fake "running" job. */}
+          <p className="mt-1 flex items-center gap-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}>
+            <CalendarClock size={13} style={{ color: "var(--section-accent)" }} />
+            <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{t("cal.meeting_agent")}</span>
+            <span style={{ color: "var(--text-faint)" }}>· {t("cal.agent_monitoring")}</span>
+            <span className="ml-1 flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#22c55e" }} /> {t("cal.agent_available")}
+            </span>
+          </p>
         </div>
         <button onClick={() => setCreateOpen(true)} className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-white" style={{ background: "var(--section-accent)" }}>
           <Plus size={13} /> {t("cal.new_meeting")}
@@ -115,29 +250,11 @@ export function CalendarPage() {
           ) : eventsQ.isError ? (
             <div className="rounded-xl border py-12 text-center text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>Couldn't load your calendar. <button onClick={() => eventsQ.refetch()} className="underline">Retry</button></div>
           ) : view === "today" ? (
-            todayEvents.length === 0 ? <EmptyState label={t("cal.all_clear")} onNew={() => setCreateOpen(true)} newLabel={t("cal.new_meeting")} />
-              : <div className="relative space-y-2 border-l pl-4" style={{ borderColor: "var(--border-soft)" }}>{todayEvents.map(e => <Row key={e.id} e={e} active={e.id === selected} />)}</div>
+            todayEvents.length === 0
+              ? <EmptyState label={t("cal.all_clear")} onNew={() => setCreateOpen(true)} newLabel={t("cal.new_meeting")} />
+              : <div className="rounded-xl border" style={{ borderColor: "var(--border-soft)" }}><TimeGrid days={[todayStart]} events={events} selected={selected} onOpen={openEvent} lang={lang} single /></div>
           ) : view === "week" ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {weekDays.map(d => {
-                const evs = events.filter(e => isSameDay(new Date(e.start_at), d));
-                return (
-                  <div key={d.toISOString()} className="rounded-xl border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: isSameDay(d, now) ? "var(--section-accent)" : "var(--text-muted)" }}>{isSameDay(d, now) ? t("cal.today") : d.toLocaleDateString(lang, { weekday: "short", day: "numeric" })}</p>
-                    {evs.length === 0 ? <p className="py-2 text-[11px]" style={{ color: "var(--text-faint)" }}>—</p> : (
-                      <div className="space-y-1.5">
-                        {evs.map(e => (
-                          <button key={e.id} onClick={() => openEvent(e.id)} className="block w-full rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[var(--surface-hover)]" style={e.id === selected ? { background: "var(--surface-selected)" } : undefined}>
-                            <div className="flex items-center gap-1.5 text-[11px] tabular-nums" style={{ color: "var(--text-faint)" }}>{fmtTime(e.start_at, lang)}{e.call_url && <Video size={10} />}</div>
-                            <div className="truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{e.title}</div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <div className="rounded-xl border" style={{ borderColor: "var(--border-soft)" }}><TimeGrid days={weekDays} events={events} selected={selected} onOpen={openEvent} lang={lang} /></div>
           ) : groups.length === 0 ? (
             <EmptyState label={t("cal.empty")} onNew={() => setCreateOpen(true)} newLabel={t("cal.new_meeting")} />
           ) : (
@@ -210,11 +327,13 @@ function TodayStrip({ onOpen }: { onOpen: (id: string) => void }) {
   );
 
   return (
-    <div className="rounded-2xl border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="rounded-xl border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex items-center gap-2">
           <Sparkles size={15} style={{ color: "var(--section-accent)" }} />
           <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.brief_heading")}</span>
+          {/* subtle Meeting Agent source */}
+          <span className="hidden items-center gap-1 text-[10px] sm:flex" style={{ color: "var(--text-faint)" }}><CalendarClock size={10} /> {t("cal.meeting_agent")}</span>
         </div>
         <Stat icon={<CalendarDays size={14} />} n={b.count} label={t("cal.meetings_today")} />
         {b.conflicts.length > 0 && <Stat icon={<AlertTriangle size={14} />} n={b.conflicts.length} label={t("cal.overlaps")} tone="#f59e0b" />}
@@ -280,12 +399,14 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
 
   return (
     <>
-        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.meeting_brief")}</p>
-            <span className="block truncate text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{e?.title ?? "…"}</span>
+        {/* AI co-pilot header — Meeting Agent identity + attribution. */}
+        <div className="border-b px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--section-accent) 5%, var(--surface-page))" }}>
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}><CalendarClock size={13} style={{ color: "var(--section-accent)" }} /> {t("cal.meeting_agent")}</span>
+            {onClose && <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>}
           </div>
-          {onClose && <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>}
+          <span className="mt-1.5 block truncate text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{e?.title ?? "…"}</span>
+          <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{t("cal.prepared_by")} {t("cal.meeting_agent")}</span>
         </div>
         {!e ? <div className="p-5"><Loader2 size={16} className="animate-spin" /></div> : (
           <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 text-[13px]">
@@ -348,6 +469,8 @@ function PrepView({ r, onOpenRecord }: { r: PrepResult; onOpenRecord: (objectTyp
   );
   return (
     <div className="mt-1">
+      {/* Attribution — this prep came from the Meeting Agent. */}
+      <p className="mb-1 flex items-center gap-1 text-[10px]" style={{ color: "var(--text-faint)" }}><CalendarClock size={10} /> {t("cal.agent_source")}</p>
       {!r.ai_available && <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>{t("cal.ai_unavailable")}</p>}
       {r.agenda_summary && <Section label={t("cal.ai_summary")}><p className="text-[12.5px]" style={{ color: "var(--text-secondary)" }}>{r.agenda_summary}</p></Section>}
       {r.talking_points.length > 0 && <Section label={t("cal.talking_points")}><ul className="list-disc space-y-0.5 pl-4 text-[12.5px]" style={{ color: "var(--text-secondary)" }}>{r.talking_points.map((p, i) => <li key={i}>{p}</li>)}</ul></Section>}

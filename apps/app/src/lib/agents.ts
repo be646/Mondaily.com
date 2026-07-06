@@ -1,7 +1,7 @@
 import type { ElementType } from "react";
 import {
   MessageCircle, Workflow, Users, Receipt, ShieldAlert, GitBranch, Search,
-  TrendingUp, Briefcase, Building2, BarChart2, Bot,
+  TrendingUp, Briefcase, Building2, BarChart2, Bot, CalendarClock,
 } from "lucide-react";
 
 /**
@@ -27,6 +27,8 @@ export const AGENTS: Record<string, AgentIdentity> = {
   portfolio:          { id: "portfolio",        name: "Portfolio Agent",        Icon: TrendingUp },
   asset:              { id: "asset",            name: "Asset Agent",            Icon: Building2 },
   insights:           { id: "insights",         name: "Insights Agent",         Icon: BarChart2 },
+  // On-demand only (no scheduled backend job) — surfaces as the Calendar/Calls section owner.
+  meeting:            { id: "meeting",          name: "Meeting Agent",          Icon: CalendarClock },
 };
 
 const FALLBACK: AgentIdentity = { id: "agent", name: "Agent", Icon: Bot };
@@ -51,7 +53,8 @@ const ROUTE_TO_AGENT: [string, string][] = [
   ["/search", "graph-enrichment"],
   ["/graph", "graph-enrichment"],
   ["/emails", "relationship"],
-  ["/calls", "relationship"],
+  ["/calendar", "meeting"],
+  ["/calls", "meeting"],
   ["/notes", "relationship"],
   ["/ask", "ask-mondaily"],
   ["/home", "ask-mondaily"],

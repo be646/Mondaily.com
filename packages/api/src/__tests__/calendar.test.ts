@@ -288,6 +288,48 @@ describe("Smart Calendar UI — command-center layout", () => {
   });
 });
 
+describe("Smart Calendar — real time grid (rail, hour lines, positioned events)", () => {
+  it("has a TimeGrid with a left time rail and horizontal hour lines", () => {
+    expect(page).toMatch(/function TimeGrid/);
+    expect(page).toMatch(/Time rail/);                                  // labelled rail
+    expect(page).toMatch(/String\(h\)\.padStart\(2, "0"\) \+ ":00"|padStart\(2, "0"\)\}:00/);   // hour labels
+    expect(page).toMatch(/Horizontal hour lines/);
+    expect(page).toMatch(/HOUR_PX/);                                    // pixel-per-hour scale
+  });
+  it("positions events by time and lays overlaps side-by-side", () => {
+    expect(page).toMatch(/function layoutDay/);
+    expect(page).toMatch(/top: pl\.top, height: pl\.height/);           // time-positioned blocks
+    expect(page).toMatch(/widthPct/);                                   // side-by-side overlap columns
+  });
+  it("draws a current-time line when today is visible", () => {
+    expect(page).toMatch(/Current-time line/);
+    expect(page).toMatch(/isToday && nowVisible/);
+  });
+  it("Today view renders a single-column day timeline; Week renders seven columns", () => {
+    expect(page).toMatch(/<TimeGrid days=\{\[todayStart\]\}[^>]*single/);
+    expect(page).toMatch(/<TimeGrid days=\{weekDays\}/);
+    expect(page).toMatch(/monday\.setDate\(monday\.getDate\(\) - \(\(monday\.getDay\(\) \+ 6\) % 7\)\)/);   // real Mon–Sun week
+  });
+});
+
+describe("Smart Calendar — visible Meeting Agent identity (honest, on-demand)", () => {
+  it("shows the Meeting Agent in the calendar header, brief, and prep result", () => {
+    expect(page).toMatch(/t\("cal\.meeting_agent"\)/);
+    expect(page).toMatch(/t\("cal\.agent_monitoring"\)/);               // header subtitle
+    expect(page).toMatch(/t\("cal\.prepared_by"\)/);                    // Meeting Brief attribution
+    expect(page).toMatch(/t\("cal\.agent_source"\)/);                   // AI prep result attribution
+  });
+  it("agent status is honest — available/on-demand, never a fabricated 'running' job", () => {
+    expect(page).toMatch(/t\("cal\.agent_available"\)/);
+    expect(page).not.toMatch(/Meeting Agent[^"]*running|running[^"]*Meeting Agent/i);
+  });
+  it("Meeting Agent is registered canonically (name + icon), owning the /calendar section", () => {
+    const agents = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/lib/agents.ts", import.meta.url)), "utf8");
+    expect(agents).toMatch(/meeting:\s*\{ id: "meeting",\s*name: "Meeting Agent"/);
+    expect(agents).toMatch(/\["\/calendar", "meeting"\]/);
+  });
+});
+
 describe("Calendar UI — page behavior", () => {
   it("has a create modal, attendee picker (excludes self), and a call-link toggle gated on calls_enabled", () => {
     expect(page).toMatch(/function CreateModal/);
