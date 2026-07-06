@@ -394,6 +394,9 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
   const cancel = useMutation({ mutationFn: () => apiClient.delete(`/calendar/events/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ["calendar-events"] }); onClose?.(); } });
   const addCall = useMutation({ mutationFn: () => apiClient.post(`/calendar/events/${id}/call-link`, {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar-event", id] }) });
   const prepare = useMutation<PrepResult>({ mutationFn: () => apiClient.post(`/calendar/events/${id}/prepare`, {}) });
+  // Reuse the (cached) Today brief only to know if THIS meeting overlaps another — real data, no fabrication.
+  const briefQ = useQuery<TodayBrief>({ queryKey: ["calendar-brief-today"], queryFn: () => apiClient.get("/calendar/brief/today"), staleTime: 30_000 });
+  const conflict = !!briefQ.data?.conflicts?.some(c => c.a === id || c.b === id);
   const e = detail.data;
   const isOrganizer = e?.organizer.user_id === me.userId;
 
@@ -417,7 +420,27 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
             {e.status === "cancelled" && <span className="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ background: "#ef44441a", color: "#ef4444" }}>{t("cal.cancelled")}</span>}
             {e.call_url && <button onClick={() => navigate(`/calls/${e.id}`)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-white" style={{ background: "var(--section-accent)" }}><Video size={13} /> {t("cal.join_call")}</button>}
             {e.location && <div className="flex items-center gap-2" style={{ color: "var(--text-secondary)" }}><MapPin size={13} style={{ color: "var(--text-faint)" }} /> {e.location}</div>}
-            {e.description && <div className="whitespace-pre-wrap rounded-lg border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>{e.description}</div>}
+
+            {/* Co-pilot readiness — real signals derived from this meeting's own fields (never fabricated). */}
+            {(() => {
+              const hasAgenda = !!(e.description ?? "").trim();
+              const S = (key: string, label: string, good: boolean, value: string, neutral = false) =>
+                ({ key, label, value, dot: neutral ? "var(--text-faint)" : good ? "#22c55e" : "#f59e0b", tone: neutral ? "var(--text-faint)" : good ? "var(--text-secondary)" : "#f59e0b" });
+              const signals = [
+                S("agenda", t("cal.agenda"), hasAgenda, hasAgenda ? t("cal.st_set") : t("cal.st_missing")),
+                e.call_url ? S("call", t("cal.sig_call"), true, t("cal.st_linked")) : S("call", t("cal.sig_call"), false, t("cal.st_none"), !e.calls_enabled),
+                S("prep", t("cal.sig_prep"), !!prepare.data, prepare.data ? t("cal.st_ready") : t("cal.st_pending"), !prepare.data),
+                S("conflict", t("cal.overlaps"), !conflict, conflict ? t("cal.st_overlap") : t("cal.st_clear")),
+              ];
+              const action = e.status === "cancelled" ? null
+                : (!e.call_url && e.calls_enabled && isOrganizer) ? { label: t("cal.add_call"), run: () => addCall.mutate() }
+                : !prepare.data ? { label: t("cal.prepare"), run: () => prepare.mutate() }
+                : e.call_url ? { label: t("cal.join_call"), run: () => navigate(`/calls/${e.id}`) }
+                : null;
+              return <CoPilot signals={signals} action={action} label={t("cal.readiness")} nextLabel={t("cal.next_action")} />;
+            })()}
+
+            {e.description && <div className="whitespace-pre-wrap border-l-2 pl-3 text-[12.5px]" style={{ borderColor: "var(--section-accent)", color: "var(--text-secondary)" }}>{e.description}</div>}
 
             <div>
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.attendees")}</p>
@@ -427,8 +450,8 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               </div>
             </div>
 
-            {/* AI preparation — source-backed, never fabricated. */}
-            <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            {/* AI preparation — source-backed, never fabricated. Flat section (thin divider, no card chrome). */}
+            <div className="border-t pt-4" style={{ borderColor: "var(--border-soft)" }}>
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}><Wand2 size={13} style={{ color: "var(--section-accent)" }} /> {t("cal.meeting_brief")}</span>
                 {!prepare.data && <button onClick={() => prepare.mutate()} disabled={prepare.isPending} className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}>{prepare.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {t("cal.prepare")}</button>}
@@ -459,6 +482,37 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
           </div>
         )}
     </>
+  );
+}
+
+interface Signal { key: string; label: string; value: string; dot: string; tone: string }
+/**
+ * The Meeting Agent co-pilot panel — a compact, terminal-styled readout of a meeting's readiness
+ * (agenda / call link / prep / conflicts) plus one suggested next action. Subtle command aesthetic
+ * (mono labels, a leading caret, hairline rows, small status dots) — no neon, no fake signals.
+ */
+function CoPilot({ signals, action, label, nextLabel }: { signals: Signal[]; action: { label: string; run: () => void } | null; label: string; nextLabel: string }) {
+  return (
+    <div className="rounded-lg" style={{ border: "1px solid var(--border-soft)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
+      <div className="flex items-center gap-1.5 border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
+        <span className="font-mono text-[11px]" style={{ color: "var(--section-accent)" }}>›</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{label}</span>
+      </div>
+      {signals.map((s, i) => (
+        <div key={s.key} className="flex items-center justify-between px-3 py-1.5" style={i > 0 ? { borderTop: "1px solid var(--border-soft)" } : undefined}>
+          <span className="font-mono text-[11px]" style={{ color: "var(--text-muted)" }}>{s.label}</span>
+          <span className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: s.tone }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />{s.value}
+          </span>
+        </div>
+      ))}
+      {action && (
+        <button onClick={action.run} className="flex w-full items-center justify-between border-t px-3 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)" }}>
+          <span className="font-mono text-[10px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{nextLabel}</span>
+          <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}>{action.label} <ArrowRight size={12} /></span>
+        </button>
+      )}
+    </div>
   );
 }
 

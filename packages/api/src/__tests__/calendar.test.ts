@@ -330,6 +330,27 @@ describe("Smart Calendar — visible Meeting Agent identity (honest, on-demand)"
   });
 });
 
+describe("Smart Calendar — Meeting Agent co-pilot readiness (real signals, no fabrication)", () => {
+  it("renders a co-pilot readiness panel with agenda / call-link / prep / conflict signals", () => {
+    expect(page).toMatch(/function CoPilot/);
+    expect(page).toMatch(/t\("cal\.readiness"\)/);
+    expect(page).toMatch(/<CoPilot signals=\{signals\}/);
+    expect(page).toMatch(/t\("cal\.sig_call"\)/);
+    expect(page).toMatch(/t\("cal\.sig_prep"\)/);
+  });
+  it("derives every signal from the meeting's own real fields (never fabricated)", () => {
+    expect(page).toMatch(/const hasAgenda = !!\(e\.description \?\? ""\)\.trim\(\)/);   // agenda from real field
+    expect(page).toMatch(/e\.call_url \? S\("call"/);                                     // call link from real field
+    expect(page).toMatch(/!!prepare\.data/);                                              // prep status from real state
+    expect(page).toMatch(/briefQ\.data\?\.conflicts\?\.some\(c => c\.a === id \|\| c\.b === id\)/); // conflict from real brief
+  });
+  it("suggested next action reuses real, existing actions only (add call / prepare / join)", () => {
+    expect(page).toMatch(/label: t\("cal\.add_call"\), run: \(\) => addCall\.mutate\(\)/);
+    expect(page).toMatch(/label: t\("cal\.prepare"\), run: \(\) => prepare\.mutate\(\)/);
+    expect(page).toMatch(/label: t\("cal\.join_call"\), run: \(\) => navigate\(`\/calls\/\$\{e\.id\}`\)/);
+  });
+});
+
 describe("Calendar UI — page behavior", () => {
   it("has a create modal, attendee picker (excludes self), and a call-link toggle gated on calls_enabled", () => {
     expect(page).toMatch(/function CreateModal/);
