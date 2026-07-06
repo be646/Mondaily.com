@@ -60922,6 +60922,30 @@ var TRANSLATIONS = {
   "cal.cancel_meeting": { en: "Cancel meeting", pl: "Odwo\u0142aj spotkanie", ru: "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u0432\u0441\u0442\u0440\u0435\u0447\u0443", uk: "\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0437\u0443\u0441\u0442\u0440\u0456\u0447", ar: "\u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u0627\u062C\u062A\u0645\u0627\u0639", fr: "Annuler la r\xE9union", de: "Meeting absagen", es: "Cancelar reuni\xF3n", pt: "Cancelar reuni\xE3o", it: "Annulla riunione", tr: "Toplant\u0131y\u0131 iptal et", nl: "Vergadering annuleren" },
   "cal.cancelled": { en: "Cancelled", pl: "Odwo\u0142ane", ru: "\u041E\u0442\u043C\u0435\u043D\u0435\u043D\u043E", uk: "\u0421\u043A\u0430\u0441\u043E\u0432\u0430\u043D\u043E", ar: "\u0645\u0644\u063A\u0649", fr: "Annul\xE9e", de: "Abgesagt", es: "Cancelada", pt: "Cancelada", it: "Annullata", tr: "\u0130ptal edildi", nl: "Geannuleerd" },
   "cal.draft_agenda": { en: "Draft agenda with AI", pl: "Napisz agend\u0119 z AI", ru: "\u0421\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u043F\u043E\u0432\u0435\u0441\u0442\u043A\u0443 \u0441 \u0418\u0418", uk: "\u0421\u043A\u043B\u0430\u0441\u0442\u0438 \u043F\u043E\u0440\u044F\u0434\u043E\u043A \u0437 \u0428\u0406", ar: "\u0635\u064A\u0627\u063A\u0629 \u0627\u0644\u0623\u062C\u0646\u062F\u0629 \u0628\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A", fr: "R\xE9diger l\u2019ordre du jour avec l\u2019IA", de: "Agenda mit KI entwerfen", es: "Redactar agenda con IA", pt: "Rascunhar pauta com IA", it: "Bozza agenda con IA", tr: "Yapay zek\xE2 ile g\xFCndem tasla\u011F\u0131", nl: "Agenda opstellen met AI" },
+  "cal.view_today": { en: "Today", pl: "Dzisiaj", ru: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F", uk: "\u0421\u044C\u043E\u0433\u043E\u0434\u043D\u0456", ar: "\u0627\u0644\u064A\u0648\u0645", fr: "Aujourd\u2019hui", de: "Heute", es: "Hoy", pt: "Hoje", it: "Oggi", tr: "Bug\xFCn", nl: "Vandaag" },
+  "cal.view_week": { en: "Week", pl: "Tydzie\u0144", ru: "\u041D\u0435\u0434\u0435\u043B\u044F", uk: "\u0422\u0438\u0436\u0434\u0435\u043D\u044C", ar: "\u0627\u0644\u0623\u0633\u0628\u0648\u0639", fr: "Semaine", de: "Woche", es: "Semana", pt: "Semana", it: "Settimana", tr: "Hafta", nl: "Week" },
+  "cal.view_upcoming": { en: "Upcoming", pl: "Nadchodz\u0105ce", ru: "\u041F\u0440\u0435\u0434\u0441\u0442\u043E\u044F\u0449\u0438\u0435", uk: "\u041C\u0430\u0439\u0431\u0443\u0442\u043D\u0456", ar: "\u0627\u0644\u0642\u0627\u062F\u0645\u0629", fr: "\xC0 venir", de: "Anstehend", es: "Pr\xF3ximas", pt: "Pr\xF3ximas", it: "In arrivo", tr: "Yakla\u015Fan", nl: "Aankomend" },
+  "cal.brief_heading": { en: "Today\u2019s brief", pl: "Podsumowanie dnia", ru: "\u0421\u0432\u043E\u0434\u043A\u0430 \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F", uk: "\u0417\u0432\u0435\u0434\u0435\u043D\u043D\u044F \u043D\u0430 \u0441\u044C\u043E\u0433\u043E\u0434\u043D\u0456", ar: "\u0645\u0648\u062C\u0632 \u0627\u0644\u064A\u0648\u0645", fr: "R\xE9sum\xE9 du jour", de: "Tages\xFCberblick", es: "Resumen de hoy", pt: "Resumo de hoje", it: "Riepilogo di oggi", tr: "Bug\xFCn\xFCn \xF6zeti", nl: "Overzicht van vandaag" },
+  "cal.meetings_today": { en: "meetings today", pl: "spotka\u0144 dzi\u015B", ru: "\u0432\u0441\u0442\u0440\u0435\u0447 \u0441\u0435\u0433\u043E\u0434\u043D\u044F", uk: "\u0437\u0443\u0441\u0442\u0440\u0456\u0447\u0435\u0439 \u0441\u044C\u043E\u0433\u043E\u0434\u043D\u0456", ar: "\u0627\u062C\u062A\u0645\u0627\u0639\u0627\u062A \u0627\u0644\u064A\u0648\u0645", fr: "r\xE9unions aujourd\u2019hui", de: "Meetings heute", es: "reuniones hoy", pt: "reuni\xF5es hoje", it: "riunioni oggi", tr: "bug\xFCn toplant\u0131", nl: "vergaderingen vandaag" },
+  "cal.next_up": { en: "Next up", pl: "Nast\u0119pne", ru: "\u0414\u0430\u043B\u0435\u0435", uk: "\u0414\u0430\u043B\u0456", ar: "\u0627\u0644\u062A\u0627\u0644\u064A", fr: "\xC0 suivre", de: "Als N\xE4chstes", es: "A continuaci\xF3n", pt: "A seguir", it: "Prossimo", tr: "S\u0131rada", nl: "Volgende" },
+  "cal.overlaps": { en: "Overlaps", pl: "Nak\u0142adki", ru: "\u041D\u0430\u043B\u043E\u0436\u0435\u043D\u0438\u044F", uk: "\u041D\u0430\u043A\u043B\u0430\u0434\u043A\u0438", ar: "\u062A\u062F\u0627\u062E\u0644\u0627\u062A", fr: "Chevauchements", de: "\xDCberschneidungen", es: "Solapamientos", pt: "Sobreposi\xE7\xF5es", it: "Sovrapposizioni", tr: "\xC7ak\u0131\u015Fmalar", nl: "Overlappingen" },
+  "cal.needs_agenda": { en: "Needs agenda", pl: "Brak agendy", ru: "\u041D\u0443\u0436\u043D\u0430 \u043F\u043E\u0432\u0435\u0441\u0442\u043A\u0430", uk: "\u041F\u043E\u0442\u0440\u0456\u0431\u0435\u043D \u043F\u043E\u0440\u044F\u0434\u043E\u043A", ar: "\u0628\u062D\u0627\u062C\u0629 \u0644\u062C\u062F\u0648\u0644", fr: "Sans ordre du jour", de: "Ohne Agenda", es: "Sin agenda", pt: "Sem pauta", it: "Senza agenda", tr: "G\xFCndem gerek", nl: "Agenda nodig" },
+  "cal.needs_call": { en: "No call link", pl: "Brak linku", ru: "\u041D\u0435\u0442 \u0441\u0441\u044B\u043B\u043A\u0438", uk: "\u041D\u0435\u043C\u0430\u0454 \u043F\u043E\u0441\u0438\u043B\u0430\u043D\u043D\u044F", ar: "\u0644\u0627 \u0631\u0627\u0628\u0637 \u0645\u0643\u0627\u0644\u0645\u0629", fr: "Sans lien d\u2019appel", de: "Kein Anruflink", es: "Sin enlace", pt: "Sem link", it: "Senza link", tr: "Arama linki yok", nl: "Geen gesprekslink" },
+  "cal.all_clear": { en: "You\u2019re all set for today.", pl: "Wszystko gotowe na dzi\u015B.", ru: "\u041D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u0432\u0441\u0451 \u0433\u043E\u0442\u043E\u0432\u043E.", uk: "\u041D\u0430 \u0441\u044C\u043E\u0433\u043E\u0434\u043D\u0456 \u0432\u0441\u0435 \u0433\u043E\u0442\u043E\u0432\u043E.", ar: "\u0643\u0644 \u0634\u064A\u0621 \u062C\u0627\u0647\u0632 \u0644\u0644\u064A\u0648\u0645.", fr: "Tout est pr\xEAt pour aujourd\u2019hui.", de: "F\xFCr heute ist alles bereit.", es: "Todo listo para hoy.", pt: "Tudo pronto para hoje.", it: "Tutto pronto per oggi.", tr: "Bug\xFCn i\xE7in her \u015Fey haz\u0131r.", nl: "Alles klaar voor vandaag." },
+  "cal.meeting_brief": { en: "Meeting brief", pl: "Brief spotkania", ru: "\u0411\u0440\u0438\u0444 \u0432\u0441\u0442\u0440\u0435\u0447\u0438", uk: "\u0411\u0440\u0438\u0444 \u0437\u0443\u0441\u0442\u0440\u0456\u0447\u0456", ar: "\u0645\u0648\u062C\u0632 \u0627\u0644\u0627\u062C\u062A\u0645\u0627\u0639", fr: "Brief de r\xE9union", de: "Meeting-Brief", es: "Resumen de reuni\xF3n", pt: "Brief da reuni\xE3o", it: "Brief riunione", tr: "Toplant\u0131 \xF6zeti", nl: "Vergaderbrief" },
+  "cal.prepare": { en: "Prepare me for this meeting", pl: "Przygotuj mnie na to spotkanie", ru: "\u041F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u0438\u0442\u044C \u043C\u0435\u043D\u044F \u043A \u0432\u0441\u0442\u0440\u0435\u0447\u0435", uk: "\u041F\u0456\u0434\u0433\u043E\u0442\u0443\u0432\u0430\u0442\u0438 \u043C\u0435\u043D\u0435 \u0434\u043E \u0437\u0443\u0441\u0442\u0440\u0456\u0447\u0456", ar: "\u062C\u0647\u0651\u0632\u0646\u064A \u0644\u0647\u0630\u0627 \u0627\u0644\u0627\u062C\u062A\u0645\u0627\u0639", fr: "Pr\xE9parez-moi \xE0 cette r\xE9union", de: "Bereite mich auf dieses Meeting vor", es: "Prep\xE1rame para esta reuni\xF3n", pt: "Prepare-me para esta reuni\xE3o", it: "Preparami per questa riunione", tr: "Beni bu toplant\u0131ya haz\u0131rla", nl: "Bereid me voor op deze vergadering" },
+  "cal.ai_summary": { en: "Agenda summary", pl: "Streszczenie agendy", ru: "\u041A\u0440\u0430\u0442\u043A\u0430\u044F \u043F\u043E\u0432\u0435\u0441\u0442\u043A\u0430", uk: "\u0421\u0442\u0438\u0441\u043B\u0438\u0439 \u043F\u043E\u0440\u044F\u0434\u043E\u043A", ar: "\u0645\u0644\u062E\u0635 \u0627\u0644\u0623\u062C\u0646\u062F\u0629", fr: "R\xE9sum\xE9 de l\u2019ordre du jour", de: "Agenda-Zusammenfassung", es: "Resumen de agenda", pt: "Resumo da pauta", it: "Riepilogo agenda", tr: "G\xFCndem \xF6zeti", nl: "Agenda-samenvatting" },
+  "cal.talking_points": { en: "Talking points", pl: "Punkty do om\xF3wienia", ru: "\u0422\u0435\u0437\u0438\u0441\u044B", uk: "\u0422\u0435\u0437\u0438", ar: "\u0646\u0642\u0627\u0637 \u0627\u0644\u0646\u0642\u0627\u0634", fr: "Points \xE0 aborder", de: "Gespr\xE4chspunkte", es: "Puntos de conversaci\xF3n", pt: "Pontos de discuss\xE3o", it: "Punti da discutere", tr: "Konu\u015Fma noktalar\u0131", nl: "Gesprekspunten" },
+  "cal.follow_ups": { en: "Suggested follow-ups", pl: "Sugerowane dzia\u0142ania", ru: "\u041F\u0440\u0435\u0434\u043B\u0430\u0433\u0430\u0435\u043C\u044B\u0435 \u0437\u0430\u0434\u0430\u0447\u0438", uk: "\u041F\u0440\u043E\u043F\u043E\u043D\u043E\u0432\u0430\u043D\u0456 \u0437\u0430\u0434\u0430\u0447\u0456", ar: "\u0645\u062A\u0627\u0628\u0639\u0627\u062A \u0645\u0642\u062A\u0631\u062D\u0629", fr: "Suivis sugg\xE9r\xE9s", de: "Vorgeschlagene Follow-ups", es: "Seguimientos sugeridos", pt: "A\xE7\xF5es sugeridas", it: "Follow-up suggeriti", tr: "\xD6nerilen takipler", nl: "Voorgestelde follow-ups" },
+  "cal.related_records": { en: "Related records", pl: "Powi\u0105zane rekordy", ru: "\u0421\u0432\u044F\u0437\u0430\u043D\u043D\u044B\u0435 \u0437\u0430\u043F\u0438\u0441\u0438", uk: "\u041F\u043E\u0432\u2019\u044F\u0437\u0430\u043D\u0456 \u0437\u0430\u043F\u0438\u0441\u0438", ar: "\u0633\u062C\u0644\u0627\u062A \u0630\u0627\u062A \u0635\u0644\u0629", fr: "Enregistrements li\xE9s", de: "Verwandte Datens\xE4tze", es: "Registros relacionados", pt: "Registros relacionados", it: "Record correlati", tr: "\u0130lgili kay\u0131tlar", nl: "Gerelateerde records" },
+  "cal.no_related": { en: "No related records found", pl: "Brak powi\u0105zanych rekord\xF3w", ru: "\u0421\u0432\u044F\u0437\u0430\u043D\u043D\u044B\u0445 \u0437\u0430\u043F\u0438\u0441\u0435\u0439 \u043D\u0435\u0442", uk: "\u041F\u043E\u0432\u2019\u044F\u0437\u0430\u043D\u0438\u0445 \u0437\u0430\u043F\u0438\u0441\u0456\u0432 \u043D\u0435\u043C\u0430\u0454", ar: "\u0644\u0627 \u0633\u062C\u0644\u0627\u062A \u0630\u0627\u062A \u0635\u0644\u0629", fr: "Aucun enregistrement li\xE9", de: "Keine verwandten Datens\xE4tze", es: "Sin registros relacionados", pt: "Nenhum registro relacionado", it: "Nessun record correlato", tr: "\u0130lgili kay\u0131t yok", nl: "Geen gerelateerde records" },
+  "cal.ai_unavailable": { en: "AI prep isn\u2019t available right now.", pl: "Przygotowanie AI jest niedost\u0119pne.", ru: "\u0418\u0418-\u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u0441\u0435\u0439\u0447\u0430\u0441 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430.", uk: "\u0428\u0406-\u043F\u0456\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430.", ar: "\u062A\u062D\u0636\u064A\u0631 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u063A\u064A\u0631 \u0645\u062A\u0627\u062D \u0627\u0644\u0622\u0646.", fr: "La pr\xE9paration IA n\u2019est pas disponible.", de: "KI-Vorbereitung ist gerade nicht verf\xFCgbar.", es: "La preparaci\xF3n con IA no est\xE1 disponible.", pt: "A prepara\xE7\xE3o com IA n\xE3o est\xE1 dispon\xEDvel.", it: "La preparazione IA non \xE8 disponibile.", tr: "Yapay zek\xE2 haz\u0131rl\u0131\u011F\u0131 \u015Fu an mevcut de\u011Fil.", nl: "AI-voorbereiding is nu niet beschikbaar." },
+  "cal.after_meeting": { en: "After the meeting", pl: "Po spotkaniu", ru: "\u041F\u043E\u0441\u043B\u0435 \u0432\u0441\u0442\u0440\u0435\u0447\u0438", uk: "\u041F\u0456\u0441\u043B\u044F \u0437\u0443\u0441\u0442\u0440\u0456\u0447\u0456", ar: "\u0628\u0639\u062F \u0627\u0644\u0627\u062C\u062A\u0645\u0627\u0639", fr: "Apr\xE8s la r\xE9union", de: "Nach dem Meeting", es: "Despu\xE9s de la reuni\xF3n", pt: "Ap\xF3s a reuni\xE3o", it: "Dopo la riunione", tr: "Toplant\u0131dan sonra", nl: "Na de vergadering" },
+  "cal.followup_task": { en: "Create follow-up task", pl: "Utw\xF3rz zadanie", ru: "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0437\u0430\u0434\u0430\u0447\u0443", uk: "\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 \u0437\u0430\u0434\u0430\u0447\u0443", ar: "\u0625\u0646\u0634\u0627\u0621 \u0645\u0647\u0645\u0629 \u0645\u062A\u0627\u0628\u0639\u0629", fr: "Cr\xE9er une t\xE2che de suivi", de: "Follow-up-Aufgabe erstellen", es: "Crear tarea de seguimiento", pt: "Criar tarefa de acompanhamento", it: "Crea attivit\xE0 di follow-up", tr: "Takip g\xF6revi olu\u015Ftur", nl: "Follow-uptaak maken" },
+  "cal.draft_notes": { en: "Draft meeting notes", pl: "Szkic notatek", ru: "\u0427\u0435\u0440\u043D\u043E\u0432\u0438\u043A \u0437\u0430\u043C\u0435\u0442\u043E\u043A", uk: "\u0427\u0435\u0440\u043D\u0435\u0442\u043A\u0430 \u043D\u043E\u0442\u0430\u0442\u043E\u043A", ar: "\u0645\u0633\u0648\u062F\u0629 \u0627\u0644\u0645\u0644\u0627\u062D\u0638\u0627\u062A", fr: "R\xE9diger des notes", de: "Notizen entwerfen", es: "Redactar notas", pt: "Rascunhar notas", it: "Bozza note", tr: "Not tasla\u011F\u0131", nl: "Notulen opstellen" },
+  "cal.send_recap": { en: "Send recap", pl: "Wy\u015Blij podsumowanie", ru: "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u0438\u0442\u043E\u0433\u0438", uk: "\u041D\u0430\u0434\u0456\u0441\u043B\u0430\u0442\u0438 \u043F\u0456\u0434\u0441\u0443\u043C\u043E\u043A", ar: "\u0625\u0631\u0633\u0627\u0644 \u0645\u0644\u062E\u0635", fr: "Envoyer le r\xE9capitulatif", de: "Zusammenfassung senden", es: "Enviar resumen", pt: "Enviar resumo", it: "Invia riepilogo", tr: "\xD6zet g\xF6nder", nl: "Samenvatting sturen" },
+  "cal.coming_soon": { en: "Coming soon", pl: "Wkr\xF3tce", ru: "\u0421\u043A\u043E\u0440\u043E", uk: "\u041D\u0435\u0437\u0430\u0431\u0430\u0440\u043E\u043C", ar: "\u0642\u0631\u064A\u0628\u064B\u0627", fr: "Bient\xF4t", de: "Demn\xE4chst", es: "Pr\xF3ximamente", pt: "Em breve", it: "Prossimamente", tr: "Yak\u0131nda", nl: "Binnenkort" },
+  "cal.sources_note": { en: "Grounded in your workspace records \u2014 no invented sources.", pl: "Na podstawie rekord\xF3w przestrzeni \u2014 bez zmy\u015Blonych \u017Ar\xF3de\u0142.", ru: "\u041D\u0430 \u043E\u0441\u043D\u043E\u0432\u0435 \u0437\u0430\u043F\u0438\u0441\u0435\u0439 \u0440\u0430\u0431\u043E\u0447\u0435\u0439 \u043E\u0431\u043B\u0430\u0441\u0442\u0438 \u2014 \u0431\u0435\u0437 \u0432\u044B\u0434\u0443\u043C\u0430\u043D\u043D\u044B\u0445 \u0438\u0441\u0442\u043E\u0447\u043D\u0438\u043A\u043E\u0432.", uk: "\u041D\u0430 \u043E\u0441\u043D\u043E\u0432\u0456 \u0437\u0430\u043F\u0438\u0441\u0456\u0432 \u0440\u043E\u0431\u043E\u0447\u043E\u0457 \u043E\u0431\u043B\u0430\u0441\u0442\u0456 \u2014 \u0431\u0435\u0437 \u0432\u0438\u0433\u0430\u0434\u0430\u043D\u0438\u0445 \u0434\u0436\u0435\u0440\u0435\u043B.", ar: "\u0645\u0633\u062A\u0646\u062F \u0625\u0644\u0649 \u0633\u062C\u0644\u0627\u062A \u0645\u0633\u0627\u062D\u0629 \u0639\u0645\u0644\u0643 \u2014 \u062F\u0648\u0646 \u0645\u0635\u0627\u062F\u0631 \u0645\u064F\u062E\u062A\u0644\u0642\u0629.", fr: "Bas\xE9 sur vos enregistrements \u2014 aucune source invent\xE9e.", de: "Basiert auf Ihren Workspace-Daten \u2014 keine erfundenen Quellen.", es: "Basado en tus registros \u2014 sin fuentes inventadas.", pt: "Baseado nos seus registros \u2014 sem fontes inventadas.", it: "Basato sui tuoi record \u2014 nessuna fonte inventata.", tr: "\xC7al\u0131\u015Fma alan\u0131 kay\u0131tlar\u0131n\u0131za dayal\u0131 \u2014 uydurma kaynak yok.", nl: "Gebaseerd op je workspace-records \u2014 geen verzonnen bronnen." },
   "agents.subtitle": { en: "Agents prepare, you approve \u2014 every action is queued for your sign-off.", pl: "Agenci przygotowuj\u0105, Ty zatwierdzasz \u2014 ka\u017Cda akcja czeka na Twoj\u0105 zgod\u0119.", ru: "\u0410\u0433\u0435\u043D\u0442\u044B \u0433\u043E\u0442\u043E\u0432\u044F\u0442, \u0432\u044B \u043E\u0434\u043E\u0431\u0440\u044F\u0435\u0442\u0435 \u2014 \u043A\u0430\u0436\u0434\u043E\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u0436\u0434\u0451\u0442 \u0432\u0430\u0448\u0435\u0433\u043E \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u044F.", uk: "\u0410\u0433\u0435\u043D\u0442\u0438 \u0433\u043E\u0442\u0443\u044E\u0442\u044C, \u0432\u0438 \u0441\u0445\u0432\u0430\u043B\u044E\u0454\u0442\u0435 \u2014 \u043A\u043E\u0436\u043D\u0430 \u0434\u0456\u044F \u043E\u0447\u0456\u043A\u0443\u0454 \u0432\u0430\u0448\u043E\u0433\u043E \u043F\u0456\u0434\u0442\u0432\u0435\u0440\u0434\u0436\u0435\u043D\u043D\u044F.", ar: "\u0627\u0644\u0648\u0643\u0644\u0627\u0621 \u064A\u062C\u0647\u0651\u0632\u0648\u0646\u060C \u0648\u0623\u0646\u062A \u062A\u0648\u0627\u0641\u0642 \u2014 \u0643\u0644 \u0625\u062C\u0631\u0627\u0621 \u064A\u0646\u062A\u0638\u0631 \u0645\u0648\u0627\u0641\u0642\u062A\u0643.", fr: "Les agents pr\xE9parent, vous approuvez \u2014 chaque action attend votre validation.", de: "Agenten bereiten vor, Sie genehmigen \u2014 jede Aktion wartet auf Ihre Freigabe.", es: "Los agentes preparan, t\xFA apruebas \u2014 cada acci\xF3n espera tu visto bueno.", pt: "Os agentes preparam, voc\xEA aprova \u2014 cada a\xE7\xE3o aguarda seu aval.", it: "Gli agenti preparano, tu approvi \u2014 ogni azione attende il tuo via libera.", tr: "Ajanlar haz\u0131rlar, siz onaylars\u0131n\u0131z \u2014 her i\u015Flem onay\u0131n\u0131z\u0131 bekler.", nl: "Agents bereiden voor, jij keurt goed \u2014 elke actie wacht op je akkoord." }
 };
 function t2(code, key) {
@@ -64647,6 +64671,7 @@ router10.delete("/:id", async (c2) => {
 });
 
 // src/routes/calendar.ts
+init_jwt4();
 init_client();
 init_notify();
 init_ai_gateway();
@@ -64655,10 +64680,26 @@ router11.use("*", requireAuth);
 var EVENT_STATUSES = ["scheduled", "cancelled", "completed"];
 var callsEnabled = () => !!(process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET);
 var appUrl2 = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
+var internalRoom = (ws, eventId) => `ws_${ws}__meeting__${eventId}`;
 function makeCallLink(ws, eventId) {
   if (!callsEnabled()) return null;
-  const room = `ws_${ws}__meeting__${eventId}`;
-  return { call_room_id: room, call_url: `${appUrl2()}/calls/${eventId}` };
+  return { call_room_id: internalRoom(ws, eventId), call_url: `${appUrl2()}/calls/${eventId}` };
+}
+async function mintCallToken(identity, name, room) {
+  const now = Math.floor(Date.now() / 1e3);
+  return sign2(
+    {
+      iss: process.env.LIVEKIT_API_KEY,
+      sub: identity,
+      name,
+      nbf: now,
+      iat: now,
+      exp: now + 60 * 60,
+      video: { room, roomJoin: true, canPublish: true, canSubscribe: true, canPublishData: true }
+    },
+    process.env.LIVEKIT_API_SECRET,
+    "HS256"
+  );
 }
 async function members2(ws) {
   const { data } = await supabase.from("workspace_members").select("user_id, name, email").eq("workspace_id", ws);
@@ -64815,6 +64856,20 @@ router11.post("/events/:id/call-link", async (c2) => {
   await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
   return c2.json({ call_url: link.call_url, call_room_id: link.call_room_id });
 });
+router11.post("/events/:id/call-token", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const role = c2.get("role");
+  const ev = await getEvent(ws, c2.req.param("id"));
+  if (!ev) return c2.json({ error: "Event not found." }, 404);
+  if (!canView(ev.data, me2) && !isWorkspaceAdmin(role)) return c2.json({ error: "Not allowed." }, 403);
+  if (!callsEnabled()) return c2.json({ error: "Calls aren't configured on this workspace.", calls_enabled: false }, 503);
+  const room = ev.data.call_room_id || internalRoom(ws, ev.id);
+  const dir = await members2(ws);
+  const meRow = dir.get(me2);
+  const token = await mintCallToken(me2, meRow?.name || meRow?.email || "Member", room);
+  return c2.json({ token, url: process.env.LIVEKIT_URL, room });
+});
 router11.post("/draft-agenda", zValidator("json", external_exports.object({ title: external_exports.string().max(200).optional(), prompt: external_exports.string().min(1).max(1e3) })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
@@ -64835,6 +64890,111 @@ Context/goal: ${b2.prompt}`;
     return c2.json({ agenda });
   } catch {
     return c2.json({ error: "Couldn't draft that \u2014 please try again." }, 200);
+  }
+});
+function tokenize(text) {
+  const stop = /* @__PURE__ */ new Set(["the", "and", "for", "with", "meeting", "call", "sync", "weekly", "review", "team", "about", "from", "into", "this", "that", "our"]);
+  return [...new Set((text || "").toLowerCase().match(/[a-z0-9][a-z0-9-]{2,}/g) ?? [])].filter((w2) => w2.length >= 4 && !stop.has(w2)).slice(0, 6);
+}
+var orIlike = (col, toks) => toks.map((t3) => `${col}.ilike.%${t3.replace(/[%,()]/g, "")}%`).join(",");
+async function relatedGraph(ws, ev, dir) {
+  const nameToks = [ev.organizer_id, ...ev.attendee_ids ?? []].map((u2) => dir.get(u2)?.name).filter(Boolean).flatMap((n2) => tokenize(String(n2)));
+  const toks = [.../* @__PURE__ */ new Set([...tokenize(ev.title), ...nameToks])].slice(0, 8);
+  if (toks.length === 0) return [];
+  const out = [];
+  const [people, tasks2, decisions] = await Promise.all([
+    supabase.from("nodes").select("id, object_type, data").eq("workspace_id", ws).in("object_type", ["person", "company"]).or(orIlike("data->>name", toks)).limit(5),
+    supabase.from("tasks").select("id, title, status").eq("workspace_id", ws).or(orIlike("title", toks)).limit(5),
+    supabase.from("decision_queue").select("id, title, status, risk_level").eq("workspace_id", ws).eq("status", "pending").or(orIlike("title", toks)).limit(5)
+  ]);
+  for (const r2 of people.data ?? []) out.push({ type: "record", object_type: r2.object_type, node_id: r2.id, title: r2.data?.name || "Untitled", match_reason: "name matches meeting" });
+  for (const t3 of tasks2.data ?? []) out.push({ type: "task", object_type: "task", node_id: t3.id, title: t3.title, match_reason: `task \xB7 ${t3.status || "todo"}` });
+  for (const d2 of decisions.data ?? []) out.push({ type: "decision", object_type: "decision", node_id: d2.id, title: d2.title, match_reason: `${d2.risk_level ?? "open"} decision` });
+  return out;
+}
+router11.get("/brief/today", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const now = /* @__PURE__ */ new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  const { data } = await supabase.from("nodes").select("id, data").eq("workspace_id", ws).eq("object_type", "calendar_event").gte("data->>start_at", start.toISOString()).lt("data->>start_at", end.toISOString()).order("data->>start_at", { ascending: true }).limit(200);
+  const dir = await members2(ws);
+  const evs = (data ?? []).map((n2) => ({ id: n2.id, d: n2.data ?? {} })).filter((e2) => canView(e2.d, me2) && e2.d.status !== "cancelled");
+  const nextEv = evs.find((e2) => new Date(e2.d.end_at || e2.d.start_at) >= now);
+  const conflicts = [];
+  for (let i2 = 0; i2 < evs.length; i2++) for (let j2 = i2 + 1; j2 < evs.length; j2++) {
+    const ei = evs[i2], ej = evs[j2];
+    const a2 = ei.d, b2 = ej.d;
+    if (new Date(a2.start_at) < new Date(b2.end_at || b2.start_at) && new Date(b2.start_at) < new Date(a2.end_at || a2.start_at))
+      conflicts.push({ a: ei.id, b: ej.id, a_title: a2.title, b_title: b2.title });
+  }
+  const noAgenda = evs.filter((e2) => !(e2.d.description ?? "").trim()).map((e2) => ({ id: e2.id, title: e2.d.title }));
+  const noCall = callsEnabled() ? evs.filter((e2) => !e2.d.call_url).map((e2) => ({ id: e2.id, title: e2.d.title })) : [];
+  const suggestions = [];
+  if (conflicts.length) suggestions.push(`Resolve ${conflicts.length} overlapping meeting${conflicts.length > 1 ? "s" : ""}.`);
+  if (noAgenda.length) suggestions.push(`Add an agenda to ${noAgenda.length} meeting${noAgenda.length > 1 ? "s" : ""}.`);
+  if (noCall.length) suggestions.push(`Add a call link to ${noCall.length} meeting${noCall.length > 1 ? "s" : ""}.`);
+  return c2.json({
+    count: evs.length,
+    next: nextEv ? { id: nextEv.id, title: nextEv.d.title, start_at: nextEv.d.start_at, call_url: nextEv.d.call_url ?? null } : null,
+    conflicts,
+    no_agenda: noAgenda,
+    no_call_link: noCall,
+    suggestions,
+    calls_enabled: callsEnabled()
+  });
+});
+router11.post("/events/:id/prepare", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const role = c2.get("role");
+  const ev = await getEvent(ws, c2.req.param("id"));
+  if (!ev) return c2.json({ error: "Event not found." }, 404);
+  if (!canView(ev.data, me2) && !isWorkspaceAdmin(role)) return c2.json({ error: "Not allowed." }, 403);
+  const dir = await members2(ws);
+  const shaped = shape(ev.id, ev.data, dir, ev.created_at);
+  const sources = await relatedGraph(ws, ev.data, dir);
+  const env2 = gatewayEnv();
+  const hasAgenda = !!(ev.data.description ?? "").trim();
+  if (!env2.baseURL || !env2.apiKey) {
+    return c2.json({ event: shaped, sources, agenda_summary: null, talking_points: [], follow_ups: [], ai_available: false });
+  }
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const settings = wsRow?.settings ?? {};
+  const userLang = settings.user_preferences?.[me2]?.language;
+  const lang = normalizeLang(userLang || resolveProfile(settings).language);
+  const ctx = [
+    `Meeting: ${ev.data.title}`,
+    `When: ${ev.data.start_at}`,
+    `Attendees: ${[shaped.organizer.name, ...shaped.attendees.map((a2) => a2.name)].join(", ")}`,
+    hasAgenda ? `Agenda:
+${ev.data.description}` : `Agenda: (none set)`,
+    sources.length ? `Related workspace records (the ONLY facts you may cite):
+${sources.map((s2) => `- [${s2.type}] ${s2.title} (${s2.match_reason})`).join("\n")}` : `Related workspace records: none found.`
+  ].join("\n\n");
+  const system = `You prepare a Mondaily user for a meeting. Use ONLY the context provided \u2014 never invent people, records, numbers, or facts not present. Respond as strict JSON: {"agenda_summary": string, "talking_points": string[3-5], "follow_ups": string[2-4]}. If the agenda is empty, infer a reasonable focus from the title and related records but keep talking points grounded. No preamble.${languageInstruction(lang)}`;
+  try {
+    const res = await aiGateway({ system, prompt: ctx, maxTokens: 500, workspaceId: ws, userId: me2, feature: "meeting_prep" });
+    const txt = (res.text ?? "").trim();
+    if (!txt || res.provider === "none") return c2.json({ event: shaped, sources, agenda_summary: null, talking_points: [], follow_ups: [], ai_available: false });
+    let parsed = {};
+    try {
+      parsed = JSON.parse(txt.replace(/^```json?\s*|\s*```$/g, ""));
+    } catch {
+    }
+    return c2.json({
+      event: shaped,
+      sources,
+      agenda_summary: typeof parsed.agenda_summary === "string" ? parsed.agenda_summary : null,
+      talking_points: Array.isArray(parsed.talking_points) ? parsed.talking_points.slice(0, 5).map(String) : [],
+      follow_ups: Array.isArray(parsed.follow_ups) ? parsed.follow_ups.slice(0, 4).map(String) : [],
+      ai_available: true
+    });
+  } catch {
+    return c2.json({ event: shaped, sources, agenda_summary: null, talking_points: [], follow_ups: [], ai_available: false });
   }
 });
 

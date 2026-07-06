@@ -19,17 +19,24 @@ describe("Calendar — model + mounting", () => {
 });
 
 describe("Calendar — workspace isolation", () => {
-  it("every nodes access is scoped by workspace_id + object_type calendar_event", () => {
+  it("every nodes access is workspace-scoped, and every calendar_event access is object-typed", () => {
     let idx = src.indexOf('.from("nodes")');
-    let count = 0;
+    let calCount = 0;
     while (idx !== -1) {
       const w = src.slice(idx, idx + 320);
-      expect(w, w.slice(0, 90)).toMatch(/\.eq\("workspace_id", ws\)|workspace_id: ws/);
-      expect(w, w.slice(0, 90)).toMatch(/calendar_event/);
-      count++;
+      expect(w, w.slice(0, 90)).toMatch(/\.eq\("workspace_id", ws\)|workspace_id: ws/);   // ALWAYS ws-scoped
+      // calendar_event rows must additionally be object-typed; the related-records lookup (person/company)
+      // is legitimately a different object_type but is still workspace-scoped (asserted above).
+      if (/calendar_event/.test(w)) calCount++;
+      else expect(w, w.slice(0, 90)).toMatch(/object_type/);   // some explicit object_type filter present
       idx = src.indexOf('.from("nodes")', idx + 1);
     }
-    expect(count).toBeGreaterThan(2);
+    expect(calCount).toBeGreaterThan(2);
+  });
+  it("the related-records lookup and today brief are workspace-scoped across every table", () => {
+    const fn = src.slice(src.indexOf("async function relatedGraph"), src.indexOf("router.get(\"/brief/today\""));
+    // people/companies, tasks, and decisions are all scoped to the caller's workspace
+    expect((fn.match(/\.eq\("workspace_id", ws\)/g) ?? []).length).toBeGreaterThanOrEqual(3);
   });
 });
 
@@ -162,6 +169,77 @@ describe("Calendar — event detail opens the native call room", () => {
   it("'Join call' navigates internally to /calls/:eventId (not an external link)", () => {
     expect(page).toMatch(/navigate\(`\/calls\/\$\{e\.id\}`\)/);
     expect(page).not.toMatch(/href=\{e\.call_url\}/);   // no external/new-tab anchor anymore
+  });
+});
+
+describe("Smart Calendar — Today brief (deterministic, real data, no fabrication)", () => {
+  const fn = src.slice(src.indexOf('router.get("/brief/today"'), src.indexOf("// POST /calendar/events/:id/prepare"));
+  it("reads only the caller's real events for today (workspace + participant scoped)", () => {
+    expect(fn).toMatch(/\.eq\("workspace_id", ws\)\.eq\("object_type", "calendar_event"\)/);
+    expect(fn).toMatch(/\.filter\(\(e\) => canView\(e\.d, me\) && e\.d\.status !== "cancelled"\)/);
+  });
+  it("detects overlaps from actual start/end intervals — never a fake/random conflict", () => {
+    expect(fn).toMatch(/new Date\(a\.start_at\) < new Date\(b\.end_at \|\| b\.start_at\) && new Date\(b\.start_at\) < new Date\(a\.end_at \|\| a\.start_at\)/);
+    expect(fn).not.toMatch(/Math\.random/);
+  });
+  it("derives no-agenda and no-call-link gaps from real fields (call gap only when calls are on)", () => {
+    expect(fn).toMatch(/const noAgenda = evs\.filter\(\(e\) => !\(e\.d\.description \?\? ""\)\.trim\(\)\)/);
+    expect(fn).toMatch(/const noCall = callsEnabled\(\) \? evs\.filter\(\(e\) => !e\.d\.call_url\)/);
+  });
+  it("suggestions are built strictly from those facts (no invented advice)", () => {
+    expect(fn).toMatch(/if \(conflicts\.length\) suggestions\.push/);
+    expect(fn).toMatch(/if \(noAgenda\.length\) suggestions\.push/);
+    expect(fn).toMatch(/if \(noCall\.length\) suggestions\.push/);
+  });
+});
+
+describe("Smart Calendar — AI meeting prep (source-backed, never fabricates)", () => {
+  const fn = src.slice(src.indexOf('router.post("/events/:id/prepare"'), src.indexOf("export { router as calendarRouter }"));
+  it("access = organizer / attendee / admin; others 403", () => {
+    expect(fn).toMatch(/if \(!canView\(ev\.data, me\) && !isWorkspaceAdmin\(role\)\) return c\.json\(.*403\)/);
+  });
+  it("sources come ONLY from real workspace rows (relatedGraph), never from the model output", () => {
+    expect(fn).toMatch(/const sources = await relatedGraph\(ws, ev\.data, dir\)/);
+    // the parsed model output is used ONLY for summary/talking points/follow-ups — NOT for sources
+    const parsedUse = fn.slice(fn.indexOf("JSON.parse"));
+    expect(parsedUse).not.toMatch(/sources[\s]*[:=][\s]*parsed/);
+    expect(parsedUse).toMatch(/event: shaped, sources,/);   // sources echoed straight from the DB set
+  });
+  it("the prompt forbids inventing facts/sources", () => {
+    expect(fn).toMatch(/never invent/i);
+    expect(fn).toMatch(/Use ONLY the context provided/);
+  });
+  it("degrades cleanly when AI is unavailable — real sources kept, ai_available:false, no fake output", () => {
+    expect(fn).toMatch(/if \(!env\.baseURL \|\| !env\.apiKey\)[\s\S]*?agenda_summary: null, talking_points: \[\], follow_ups: \[\], ai_available: false/);
+  });
+  it("relatedGraph builds rows only from query results (people/tasks/decisions), not from AI", () => {
+    const rg = src.slice(src.indexOf("async function relatedGraph"), src.indexOf('router.get("/brief/today"'));
+    expect(rg).toMatch(/for \(const r of people\.data \?\? \[\]\) out\.push/);
+    expect(rg).toMatch(/for \(const t of tasks\.data \?\? \[\]\) out\.push/);
+    expect(rg).toMatch(/for \(const d of decisions\.data \?\? \[\]\) out\.push/);
+    expect(rg).not.toMatch(/aiGateway|gatewayEnv/);   // grounding set never touches the model
+  });
+});
+
+describe("Smart Calendar UI — command-center layout", () => {
+  it("has Today / Week / Upcoming view modes", () => {
+    expect(page).toMatch(/type ViewMode = "today" \| "week" \| "upcoming"/);
+    expect(page).toMatch(/t\("cal\.view_today"\)/);
+    expect(page).toMatch(/t\("cal\.view_week"\)/);
+    expect(page).toMatch(/t\("cal\.view_upcoming"\)/);
+  });
+  it("renders a Today intelligence strip fed by the real brief endpoint", () => {
+    expect(page).toMatch(/function TodayStrip/);
+    expect(page).toMatch(/apiClient\.get\("\/calendar\/brief\/today"\)/);
+  });
+  it("event detail is a Meeting Brief with source-backed AI preparation", () => {
+    expect(page).toMatch(/t\("cal\.meeting_brief"\)/);
+    expect(page).toMatch(/apiClient\.post\(`\/calendar\/events\/\$\{id\}\/prepare`/);
+    expect(page).toMatch(/t\("cal\.sources_note"\)/);   // grounding disclosure shown to the user
+  });
+  it("after-meeting actions are clearly marked not-ready (no fake completion)", () => {
+    expect(page).toMatch(/t\("cal\.coming_soon"\)/);
+    expect(page).toMatch(/cursor-not-allowed/);
   });
 });
 

@@ -241,4 +241,122 @@ router.post("/draft-agenda", zValidator("json", z.object({ title: z.string().max
   } catch { return c.json({ error: "Couldn't draft that — please try again." }, 200); }
 });
 
+// ── Smart Calendar intelligence ──────────────────────────────────────────────────────────────────
+// Everything below is SOURCE-BACKED: related records are real workspace rows (never invented), and the
+// Today brief is computed deterministically from the caller's real events (no fake conflicts/scores).
+
+/** Keyword tokens from a meeting title — used to look up genuinely-related workspace records. */
+function tokenize(text: string): string[] {
+  const stop = new Set(["the", "and", "for", "with", "meeting", "call", "sync", "weekly", "review", "team", "about", "from", "into", "this", "that", "our"]);
+  return [...new Set((text || "").toLowerCase().match(/[a-z0-9][a-z0-9-]{2,}/g) ?? [])].filter((w) => w.length >= 4 && !stop.has(w)).slice(0, 6);
+}
+const orIlike = (col: string, toks: string[]) => toks.map((t) => `${col}.ilike.%${t.replace(/[%,()]/g, "")}%`).join(",");
+
+interface RelatedRow { type: "record" | "task" | "decision"; object_type: string; node_id: string; title: string; match_reason: string }
+
+/**
+ * Real workspace rows related to a meeting, found by matching the title keywords (and attendee names)
+ * against people/companies, tasks, and open decisions. Every row returned actually exists — this is the
+ * SOURCE set the AI is grounded on; the model never adds to it.
+ */
+async function relatedGraph(ws: string, ev: EventData, dir: Map<string, { name?: string; email?: string }>): Promise<RelatedRow[]> {
+  const nameToks = [ev.organizer_id, ...(ev.attendee_ids ?? [])].map((u) => dir.get(u)?.name).filter(Boolean).flatMap((n) => tokenize(String(n)));
+  const toks = [...new Set([...tokenize(ev.title), ...nameToks])].slice(0, 8);
+  if (toks.length === 0) return [];
+  const out: RelatedRow[] = [];
+  const [people, tasks, decisions] = await Promise.all([
+    supabase.from("nodes").select("id, object_type, data").eq("workspace_id", ws).in("object_type", ["person", "company"]).or(orIlike("data->>name", toks)).limit(5),
+    supabase.from("tasks").select("id, title, status").eq("workspace_id", ws).or(orIlike("title", toks)).limit(5),
+    supabase.from("decision_queue").select("id, title, status, risk_level").eq("workspace_id", ws).eq("status", "pending").or(orIlike("title", toks)).limit(5),
+  ]);
+  for (const r of people.data ?? []) out.push({ type: "record", object_type: r.object_type, node_id: r.id, title: (r.data as { name?: string })?.name || "Untitled", match_reason: "name matches meeting" });
+  for (const t of tasks.data ?? []) out.push({ type: "task", object_type: "task", node_id: t.id, title: t.title, match_reason: `task · ${t.status || "todo"}` });
+  for (const d of decisions.data ?? []) out.push({ type: "decision", object_type: "decision", node_id: d.id, title: d.title, match_reason: `${d.risk_level ?? "open"} decision` });
+  return out;
+}
+
+// GET /calendar/brief/today — deterministic "today's meeting brief" from the caller's real events.
+// No AI, no fabrication: counts, next meeting, real time-overlap conflicts, gaps (no agenda / no call).
+router.get("/brief/today", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const now = new Date();
+  const start = new Date(now); start.setHours(0, 0, 0, 0);
+  const end = new Date(start); end.setDate(end.getDate() + 1);
+  const { data } = await supabase.from("nodes").select("id, data").eq("workspace_id", ws).eq("object_type", "calendar_event")
+    .gte("data->>start_at", start.toISOString()).lt("data->>start_at", end.toISOString()).order("data->>start_at", { ascending: true }).limit(200);
+  const dir = await members(ws);
+  const evs = (data ?? []).map((n) => ({ id: n.id, d: (n.data ?? {}) as EventData }))
+    .filter((e) => canView(e.d, me) && e.d.status !== "cancelled");
+
+  const nextEv = evs.find((e) => new Date(e.d.end_at || e.d.start_at) >= now);
+  // Real overlaps only: two meetings whose [start,end) intervals intersect.
+  const conflicts: { a: string; b: string; a_title: string; b_title: string }[] = [];
+  for (let i = 0; i < evs.length; i++) for (let j = i + 1; j < evs.length; j++) {
+    const ei = evs[i]!, ej = evs[j]!; const a = ei.d, b = ej.d;
+    if (new Date(a.start_at) < new Date(b.end_at || b.start_at) && new Date(b.start_at) < new Date(a.end_at || a.start_at))
+      conflicts.push({ a: ei.id, b: ej.id, a_title: a.title, b_title: b.title });
+  }
+  const noAgenda = evs.filter((e) => !(e.d.description ?? "").trim()).map((e) => ({ id: e.id, title: e.d.title }));
+  const noCall = callsEnabled() ? evs.filter((e) => !e.d.call_url).map((e) => ({ id: e.id, title: e.d.title })) : [];
+
+  // Suggestions are derived strictly from the facts above (never fabricated).
+  const suggestions: string[] = [];
+  if (conflicts.length) suggestions.push(`Resolve ${conflicts.length} overlapping meeting${conflicts.length > 1 ? "s" : ""}.`);
+  if (noAgenda.length) suggestions.push(`Add an agenda to ${noAgenda.length} meeting${noAgenda.length > 1 ? "s" : ""}.`);
+  if (noCall.length) suggestions.push(`Add a call link to ${noCall.length} meeting${noCall.length > 1 ? "s" : ""}.`);
+
+  return c.json({
+    count: evs.length,
+    next: nextEv ? { id: nextEv.id, title: nextEv.d.title, start_at: nextEv.d.start_at, call_url: nextEv.d.call_url ?? null } : null,
+    conflicts, no_agenda: noAgenda, no_call_link: noCall, suggestions, calls_enabled: callsEnabled(),
+  });
+});
+
+// POST /calendar/events/:id/prepare — "Prepare me for this meeting". Grounds on REAL related workspace
+// rows (people/tasks/decisions); the AI only summarizes + suggests talking points/follow-ups from that
+// context and never invents sources. Access = organizer/attendee/admin. Degrades cleanly with no AI.
+router.post("/events/:id/prepare", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId"); const role = c.get("role");
+  const ev = await getEvent(ws, c.req.param("id"));
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canView(ev.data, me) && !isWorkspaceAdmin(role)) return c.json({ error: "Not allowed." }, 403);
+  const dir = await members(ws);
+  const shaped = shape(ev.id, ev.data, dir, ev.created_at);
+  const sources = await relatedGraph(ws, ev.data, dir);   // real rows only — the grounding set
+
+  const env = gatewayEnv();
+  const hasAgenda = !!(ev.data.description ?? "").trim();
+  if (!env.baseURL || !env.apiKey) {
+    // No AI configured — still return the fully source-backed brief; mark AI parts unavailable (no fake).
+    return c.json({ event: shaped, sources, agenda_summary: null, talking_points: [], follow_ups: [], ai_available: false });
+  }
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
+  const userLang = (settings.user_preferences as Record<string, { language?: string }> | undefined)?.[me]?.language;
+  const lang = normalizeLang(userLang || resolveProfile(settings).language);
+
+  const ctx = [
+    `Meeting: ${ev.data.title}`,
+    `When: ${ev.data.start_at}`,
+    `Attendees: ${[shaped.organizer.name, ...shaped.attendees.map((a) => a.name)].join(", ")}`,
+    hasAgenda ? `Agenda:\n${ev.data.description}` : `Agenda: (none set)`,
+    sources.length ? `Related workspace records (the ONLY facts you may cite):\n${sources.map((s) => `- [${s.type}] ${s.title} (${s.match_reason})`).join("\n")}` : `Related workspace records: none found.`,
+  ].join("\n\n");
+  const system = `You prepare a Mondaily user for a meeting. Use ONLY the context provided — never invent people, records, numbers, or facts not present. Respond as strict JSON: {"agenda_summary": string, "talking_points": string[3-5], "follow_ups": string[2-4]}. If the agenda is empty, infer a reasonable focus from the title and related records but keep talking points grounded. No preamble.${languageInstruction(lang)}`;
+  try {
+    const res = await aiGateway({ system, prompt: ctx, maxTokens: 500, workspaceId: ws, userId: me, feature: "meeting_prep" });
+    const txt = (res.text ?? "").trim();
+    if (!txt || res.provider === "none") return c.json({ event: shaped, sources, agenda_summary: null, talking_points: [], follow_ups: [], ai_available: false });
+    let parsed: { agenda_summary?: string; talking_points?: string[]; follow_ups?: string[] } = {};
+    try { parsed = JSON.parse(txt.replace(/^```json?\s*|\s*```$/g, "")); } catch { /* keep empty */ }
+    return c.json({
+      event: shaped, sources,
+      agenda_summary: typeof parsed.agenda_summary === "string" ? parsed.agenda_summary : null,
+      talking_points: Array.isArray(parsed.talking_points) ? parsed.talking_points.slice(0, 5).map(String) : [],
+      follow_ups: Array.isArray(parsed.follow_ups) ? parsed.follow_ups.slice(0, 4).map(String) : [],
+      ai_available: true,
+    });
+  } catch { return c.json({ event: shaped, sources, agenda_summary: null, talking_points: [], follow_ups: [], ai_available: false }); }
+});
+
 export { router as calendarRouter };
