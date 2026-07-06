@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Send, User as UserIcon, Inbox as InboxIcon, Archive } from "lucide-react";
+import { Loader2, Send, User as UserIcon, Inbox as InboxIcon, Archive, Plus, X, Search } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useTableRealtime } from "../../hooks/useTableRealtime";
+import { useLanguage } from "../../hooks/useLanguage";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 
 /**
  * Mondaily Inbox — internal, workspace-scoped member-to-member messaging.
@@ -28,8 +30,10 @@ function Avatar({ name, url, size = 32 }: { name: string; url: string | null; si
 
 export function MessagesPage() {
   const qc = useQueryClient();
+  const { t } = useLanguage();
   const [params, setParams] = useSearchParams();
   const active = params.get("to");
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // Live updates on any message change in this workspace; invalidate inbox + the open thread.
   const live = useTableRealtime("internal_messages", () => {
@@ -49,34 +53,48 @@ export function MessagesPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <div className="mb-6">
-        <h1 className="text-[20px] font-semibold" style={{ color: "var(--text-primary)" }}>Inbox</h1>
-        <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-muted)" }}>Private messages with your workspace members.</p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[20px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("inbox.title")}</h1>
+          <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-muted)" }}>{t("inbox.subtitle")}</p>
+        </div>
+        <button onClick={() => setPickerOpen(true)}
+          className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-white" style={{ background: "var(--section-accent)" }}>
+          <Plus size={13} /> {t("inbox.new_message")}
+        </button>
       </div>
+
+      {pickerOpen && <NewMessageModal onClose={() => setPickerOpen(false)} onPick={(id) => { setPickerOpen(false); setActive(id); }} />}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)]">
         {/* conversation list */}
         <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
           {inboxQ.isLoading ? (
-            <div className="flex items-center gap-2 px-4 py-10 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> Loading…</div>
+            <div className="flex items-center gap-2 px-4 py-10 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> {t("state.loading")}</div>
+          ) : inboxQ.isError ? (
+            <div className="px-4 py-10 text-center text-[12.5px]" style={{ color: "var(--text-muted)" }}>Couldn't load your inbox. <button onClick={() => inboxQ.refetch()} className="underline">Retry</button></div>
           ) : inbox.length === 0 && !active ? (
             <div className="px-4 py-12 text-center">
-              <InboxIcon size={18} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
-              <p className="text-[12.5px]" style={{ color: "var(--text-muted)" }}>No conversations yet.</p>
+              <InboxIcon size={20} className="mx-auto mb-2.5" style={{ color: "var(--text-faint)" }} />
+              <p className="mb-3 text-[12.5px]" style={{ color: "var(--text-muted)" }}>{t("inbox.empty_title")}</p>
+              <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
+                style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
+                <Plus size={13} /> {t("inbox.message_teammate")}
+              </button>
             </div>
           ) : (
             <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
-              {inbox.map((t) => (
-                <button key={t.thread_key} onClick={() => setActive(t.other_id)}
+              {inbox.map((th) => (
+                <button key={th.thread_key} onClick={() => setActive(th.other_id)}
                   className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
-                  style={{ background: active === t.other_id ? "var(--surface-selected)" : undefined }}>
-                  <Avatar name={t.name} url={t.avatar_url} />
+                  style={{ background: active === th.other_id ? "var(--surface-selected)" : undefined }}>
+                  <Avatar name={th.name} url={th.avatar_url} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{t.name}</span>
-                      {t.unread > 0 && <span className="shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold text-white" style={{ background: "var(--section-accent)" }}>{t.unread}</span>}
+                      <span className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{th.name}</span>
+                      {th.unread > 0 && <span className="shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold text-white" style={{ background: "var(--section-accent)" }}>{th.unread}</span>}
                     </div>
-                    <span className="truncate text-[11.5px]" style={{ color: "var(--text-faint)" }}>{t.outgoing ? "You: " : ""}{t.last}</span>
+                    <span className="truncate text-[11.5px]" style={{ color: "var(--text-faint)" }}>{th.outgoing ? "You: " : ""}{th.last}</span>
                   </div>
                 </button>
               ))}
@@ -86,8 +104,12 @@ export function MessagesPage() {
 
         {/* thread */}
         {active ? <Thread otherId={active} live={live.current} onSent={() => { qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onArchived={() => { setActive(""); qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} />
-          : <div className="hidden items-center justify-center rounded-sm border lg:flex" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", minHeight: 320 }}>
-              <p className="text-[13px]" style={{ color: "var(--text-faint)" }}>Select a conversation</p>
+          : <div className="hidden flex-col items-center justify-center gap-3 rounded-sm border lg:flex" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", minHeight: 320 }}>
+              <p className="text-[13px]" style={{ color: "var(--text-faint)" }}>{t("inbox.select_conversation")}</p>
+              <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
+                style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
+                <Plus size={13} /> {t("inbox.new_message")}
+              </button>
             </div>}
       </div>
     </div>
@@ -96,6 +118,7 @@ export function MessagesPage() {
 
 function Thread({ otherId, live, onSent, onArchived }: { otherId: string; live: boolean; onSent: () => void; onArchived: () => void }) {
   const qc = useQueryClient();
+  const { t } = useLanguage();
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -139,7 +162,7 @@ function Thread({ otherId, live, onSent, onArchived }: { otherId: string; live: 
         {threadQ.isLoading ? (
           <div className="flex items-center gap-2 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> Loading…</div>
         ) : messages.length === 0 ? (
-          <p className="py-8 text-center text-[12.5px]" style={{ color: "var(--text-faint)" }}>No messages yet — say hello.</p>
+          <p className="py-8 text-center text-[12.5px]" style={{ color: "var(--text-faint)" }}>{t("inbox.no_messages")}</p>
         ) : messages.map((m) => (
           <div key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
             <div className="max-w-[78%] rounded-lg px-3 py-2" style={{ background: m.mine ? "var(--section-accent)" : "var(--surface-hover)", color: m.mine ? "#fff" : "var(--text-primary)" }}>
@@ -151,15 +174,65 @@ function Thread({ otherId, live, onSent, onArchived }: { otherId: string; live: 
       </div>
 
       <div className="flex items-end gap-2 border-t px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
-        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={1} placeholder="Write a message…"
+        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={1} placeholder={t("inbox.write_message")}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
           className="flex-1 resize-none bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)", maxHeight: 120 }} />
         <button onClick={submit} disabled={!draft.trim() || send.isPending}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
-          {send.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} Send
+          {send.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} {t("inbox.send")}
         </button>
       </div>
       {send.isError && <p className="px-4 pb-2 text-[11.5px]" style={{ color: "#e11d48" }}>Couldn't send — {(send.error as Error)?.message ?? "try again"}.</p>}
     </div>
+  );
+}
+
+// ── New-message member picker ─────────────────────────────────────────────────
+interface MemberRow { id: string; name?: string; email: string; role: string }
+function NewMessageModal({ onClose, onPick }: { onClose: () => void; onPick: (userId: string) => void }) {
+  const { t } = useLanguage();
+  const me = useCurrentUser();
+  const [q, setQ] = useState("");
+  const membersQ = useQuery<{ members: MemberRow[] }>({
+    queryKey: ["workspace-members-full"],
+    queryFn: () => apiClient.get("/workspace/members-full"),
+    staleTime: 60_000,
+  });
+  const list = (membersQ.data?.members ?? [])
+    .filter((m) => m.id !== me.userId)   // can't DM yourself
+    .filter((m) => { const s = q.trim().toLowerCase(); return !s || (m.name ?? "").toLowerCase().includes(s) || m.email.toLowerCase().includes(s); });
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border shadow-2xl" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
+        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+          <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("inbox.new_message")}</span>
+          <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>
+        </div>
+        <div className="border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
+            <Search size={13} style={{ color: "var(--text-faint)" }} />
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("inbox.search_members")}
+              className="flex-1 bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)" }} />
+          </div>
+        </div>
+        <div className="max-h-72 overflow-y-auto p-1.5">
+          {membersQ.isLoading ? (
+            <div className="flex items-center gap-2 px-3 py-6 text-[12.5px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> {t("state.loading")}</div>
+          ) : list.length === 0 ? (
+            <p className="px-3 py-6 text-center text-[12.5px]" style={{ color: "var(--text-muted)" }}>{t("state.empty")}</p>
+          ) : list.map((m) => (
+            <button key={m.id} onClick={() => onPick(m.id)} className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]">
+              <Avatar name={m.name || m.email} url={null} size={28} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{m.name || m.email}</div>
+                <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>{m.email} · {m.role}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
