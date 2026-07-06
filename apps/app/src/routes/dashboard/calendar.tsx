@@ -73,6 +73,24 @@ function layoutDay(evs: CalEvent[], startH: number, endH: number): Placed[] {
   return out;
 }
 
+// Semantic, MUTED meeting tones — derived only from real event fields (never random). Missing agenda
+// reads rose; finance/billing amber; client/external green; everything else a neutral slate. No cyan
+// "AI-prepared" tone here because the event list carries no per-event prep signal (stays neutral).
+const TONE = {
+  slate: { edge: "#6f7683", tint: "rgba(111,118,131,0.10)" },
+  green: { edge: "#5f8a6a", tint: "rgba(95,138,106,0.10)" },
+  amber: { edge: "#a2854f", tint: "rgba(162,133,79,0.10)" },
+  rose:  { edge: "#a86a72", tint: "rgba(168,106,114,0.12)" },
+} as const;
+const FINANCE_RE = /\b(invoice|billing|payment|finance|budget|quote|renewal|pricing)\b/i;
+const EXTERNAL_RE = /\b(client|customer|external|prospect|demo|onboard\w*|kickoff|vendor|partner|intro)\b/i;
+function meetingTone(e: CalEvent): { edge: string; tint: string } {
+  if (!(e.description ?? "").trim()) return TONE.rose;      // missing agenda → gentle attention
+  if (FINANCE_RE.test(e.title)) return TONE.amber;
+  if (EXTERNAL_RE.test(e.title)) return TONE.green;
+  return TONE.slate;                                        // internal / team (neutral default)
+}
+
 /**
  * A real calendar time grid — a left time rail, horizontal hour lines, day columns, time-positioned
  * event blocks (overlaps laid side-by-side), today shading, and a live current-time line. Drives both
@@ -109,32 +127,33 @@ function TimeGrid({ days, events, selected, onOpen, lang, single }: {
             return (
               <div key={d.toISOString()} className="relative min-w-0 flex-1 border-l" style={{ borderColor: "var(--border-soft)" }}>
                 {single ? <div style={{ height: 28 }} /> : (
-                  <div className="sticky top-0 z-10 flex h-7 items-center justify-center gap-1 text-[11px] font-semibold" style={{ background: "var(--surface-page)", color: isToday ? "var(--section-accent)" : "var(--text-muted)" }}>
+                  <div className="sticky top-0 z-10 flex h-7 items-center justify-center gap-1 border-b text-[11px] font-medium" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)", color: isToday ? "var(--text-primary)" : "var(--text-muted)" }}>
                     {d.toLocaleDateString(lang, { weekday: "short" })} <span className="tabular-nums">{d.getDate()}</span>
                   </div>
                 )}
                 <div className="relative" style={{ height: bodyH }}>
-                  {isToday && <div className="absolute inset-0" style={{ background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }} />}
-                  {/* Horizontal hour lines */}
-                  {hours.map((h, i) => <div key={h} className="absolute inset-x-0 border-t" style={{ top: i * HOUR_PX, borderColor: "var(--border-soft)" }} />)}
+                  {isToday && <div className="absolute inset-0" style={{ background: "color-mix(in srgb, var(--text-muted) 4%, transparent)" }} />}
+                  {/* Horizontal hour lines — thin + soft */}
+                  {hours.map((h, i) => <div key={h} className="absolute inset-x-0 border-t" style={{ top: i * HOUR_PX, borderColor: "color-mix(in srgb, var(--border-soft) 55%, transparent)" }} />)}
                   {/* Current-time line (only on today, when in the visible window) */}
                   {isToday && nowVisible && (
                     <div className="absolute inset-x-0 z-30 flex items-center" style={{ top: nowTop }}>
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#ef4444" }} />
-                      <span className="h-px flex-1" style={{ background: "#ef4444" }} />
+                      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#b45454" }} />
+                      <span className="h-px flex-1" style={{ background: "color-mix(in srgb, #b45454 70%, transparent)" }} />
                     </div>
                   )}
-                  {/* Time-positioned event blocks */}
+                  {/* Time-positioned event blocks — semantic muted tone from real fields */}
                   {placed.map(pl => {
                     const on = pl.e.id === selected;
+                    const tone = meetingTone(pl.e);
                     return (
                       <button key={pl.e.id} onClick={() => onOpen(pl.e.id)} title={pl.e.title}
-                        className="absolute z-10 overflow-hidden rounded-md px-1.5 py-0.5 text-left transition-shadow hover:shadow-md"
-                        style={{ top: pl.top, height: pl.height, left: `calc(${pl.leftPct}% + 2px)`, width: `calc(${pl.widthPct}% - 4px)`,
-                          background: on ? "var(--section-accent)" : "color-mix(in srgb, var(--section-accent) 13%, var(--surface-card))",
-                          borderLeft: "2px solid var(--section-accent)", color: on ? "#fff" : "var(--text-primary)" }}>
-                        <div className="flex items-center gap-1 truncate text-[11px] font-semibold leading-tight">{pl.e.call_url && <Video size={9} className="shrink-0" />}<span className="truncate">{pl.e.title}</span></div>
-                        {pl.height > 30 && <div className="truncate text-[10px] leading-tight opacity-75">{fmtTime(pl.e.start_at, lang)}</div>}
+                        className="absolute z-10 overflow-hidden rounded-[3px] px-1.5 py-0.5 text-left transition-colors"
+                        style={{ top: pl.top, height: pl.height, left: `calc(${pl.leftPct}% + 1px)`, width: `calc(${pl.widthPct}% - 2px)`,
+                          background: on ? tone.edge : tone.tint,
+                          borderLeft: `2px solid ${tone.edge}`, color: on ? "#fff" : "var(--text-primary)" }}>
+                        <div className="flex items-center gap-1 truncate text-[11px] font-medium leading-tight">{pl.e.call_url && <Video size={9} className="shrink-0" style={{ opacity: 0.6 }} />}<span className="truncate">{pl.e.title}</span></div>
+                        {pl.height > 30 && <div className="truncate text-[10px] leading-tight opacity-70">{fmtTime(pl.e.start_at, lang)}</div>}
                       </button>
                     );
                   })}
@@ -196,7 +215,8 @@ export function CalendarPage() {
   const openEvent = (id: string) => setParams({ event: id }, { replace: true });
   const Row = ({ e, active }: { e: CalEvent; active?: boolean }) => (
     <button onClick={() => openEvent(e.id)}
-      className="flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: active ? "var(--section-accent)" : "var(--border-soft)", background: active ? "var(--surface-selected)" : "var(--surface-card)" }}>
+      className="flex w-full items-center gap-3 rounded-sm border px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
+      style={{ borderColor: "var(--border-soft)", borderLeft: `3px solid ${meetingTone(e).edge}`, background: active ? "var(--surface-selected)" : "var(--surface-card)" }}>
       <div className="w-14 shrink-0 text-[12px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{fmtTime(e.start_at, lang)}</div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{e.title}</div>
@@ -218,64 +238,66 @@ export function CalendarPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <div className="mb-5 flex items-start justify-between gap-4">
+      <div className="mb-4 flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-[20px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("cal.title")}</h1>
-          {/* Visible Meeting Agent identity. Status is honest: on-demand, never a fake "running" job. */}
+          <h1 className="text-[19px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("cal.title")}</h1>
+          {/* Meeting Agent identity — one calm line, a single status dot. Honest: on-demand / available only. */}
           <p className="mt-1 flex items-center gap-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}>
-            <CalendarClock size={13} style={{ color: "var(--section-accent)" }} />
-            <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{t("cal.meeting_agent")}</span>
-            <span style={{ color: "var(--text-faint)" }}>· {t("cal.agent_monitoring")}</span>
-            <span className="ml-1 flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#22c55e" }} /> {t("cal.agent_available")}
-            </span>
+            <CalendarClock size={12} style={{ color: "var(--text-muted)" }} />
+            <span style={{ color: "var(--text-secondary)" }}>{t("cal.meeting_agent")}</span>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#5f8a6a" }} title={t("cal.agent_available")} />
+            <span style={{ color: "var(--text-faint)" }}>{t("cal.agent_available")} · {t("cal.agent_monitoring")}</span>
           </p>
         </div>
-        <button onClick={() => setCreateOpen(true)} className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-white" style={{ background: "var(--section-accent)" }}>
-          <Plus size={13} /> {t("cal.new_meeting")}
-        </button>
       </div>
 
       {/* Today intelligence strip — real data only, no fabricated scores/conflicts. */}
       <TodayStrip onOpen={openEvent} />
 
-      {/* Command-center split: agenda/timeline on the left, a persistent Meeting Brief on the right (lg+). */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-w-0">
-          {/* Calendar controls: Today · ‹ › · range label · Day/Week/Upcoming switch. */}
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5">
-              <button onClick={goToday} disabled={isAnchorToday && view !== "upcoming"} className="rounded-md border px-2.5 py-1 text-[12px] font-medium transition-colors disabled:opacity-40 hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{t("cal.today")}</button>
-              {view !== "upcoming" && (
-                <div className="flex items-center gap-0.5">
-                  <button onClick={() => shift(-1)} aria-label={t("cal.prev")} className="btn-icon h-7 w-7"><ChevronLeft size={15} /></button>
-                  <button onClick={() => shift(1)} aria-label={t("cal.next")} className="btn-icon h-7 w-7"><ChevronRight size={15} /></button>
-                  <span className="ml-1.5 text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{rangeLabel}</span>
-                </div>
-              )}
+      {/* One clean control bar: Today · ‹ › · range · Day/Week/Upcoming · New meeting. */}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="flex items-center gap-2">
+          <button onClick={goToday} disabled={isAnchorToday && view !== "upcoming"} className="rounded-sm border px-2.5 py-1 text-[12px] font-medium transition-colors disabled:opacity-40" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{t("cal.today")}</button>
+          {view !== "upcoming" && (
+            <div className="flex items-center gap-0.5">
+              <button onClick={() => shift(-1)} aria-label={t("cal.prev")} className="btn-icon h-7 w-7"><ChevronLeft size={15} /></button>
+              <button onClick={() => shift(1)} aria-label={t("cal.next")} className="btn-icon h-7 w-7"><ChevronRight size={15} /></button>
+              <span className="ml-1.5 text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{rangeLabel}</span>
             </div>
-            <div className="inline-flex rounded-lg border p-0.5" style={{ borderColor: "var(--border-soft)" }}>
-              {tabs.map(tab => (
-                <button key={tab.k} onClick={() => setView(tab.k)}
-                  className="rounded-md px-3 py-1 text-[12px] font-medium transition-colors" style={view === tab.k ? { background: "var(--section-accent)", color: "#fff" } : { color: "var(--text-muted)" }}>
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-md border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+            {tabs.map(tab => (
+              <button key={tab.k} onClick={() => setView(tab.k)}
+                className="rounded-[3px] px-2.5 py-1 text-[12px] font-medium transition-colors"
+                style={view === tab.k ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
+                {tab.label}
+              </button>
+            ))}
           </div>
+          <button onClick={() => setCreateOpen(true)} className="flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
+            <Plus size={13} /> {t("cal.new_meeting")}
+          </button>
+        </div>
+      </div>
+
+      {/* Command-center split: agenda/timeline on the left, a persistent Meeting Brief on the right (lg+). */}
+      <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0">
 
           {eventsQ.isLoading ? (
-            <div className="flex items-center gap-2 rounded-xl border py-12 px-4 text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> {t("state.loading")}</div>
+            <div className="flex items-center gap-2 rounded-md border py-12 px-4 text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> {t("state.loading")}</div>
           ) : eventsQ.isError ? (
-            <div className="rounded-xl border py-12 text-center text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>Couldn't load your calendar. <button onClick={() => eventsQ.refetch()} className="underline">Retry</button></div>
+            <div className="rounded-md border py-12 text-center text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>Couldn't load your calendar. <button onClick={() => eventsQ.refetch()} className="underline">Retry</button></div>
           ) : view === "today" ? (
             // Always a real day timeline — even with zero meetings, a subtle in-grid hint + suggestions.
-            <div className="relative rounded-xl border" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="relative overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
               <TimeGrid days={[anchor]} events={events} selected={selected} onOpen={openEvent} lang={lang} single />
               {dayCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={() => setCreateOpen(true)} onDraft={() => setCreateOpen(true)} onFollowups={() => navigateTo("/tasks")} t={t} />}
             </div>
           ) : view === "week" ? (
-            <div className="relative rounded-xl border" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="relative overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
               <TimeGrid days={anchorWeek} events={events} selected={selected} onOpen={openEvent} lang={lang} />
               {weekCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={() => setCreateOpen(true)} onDraft={() => setCreateOpen(true)} onFollowups={() => navigateTo("/tasks")} t={t} />}
             </div>
@@ -295,7 +317,7 @@ export function CalendarPage() {
 
         {/* Persistent Meeting Brief (desktop). Mobile uses the drawer below. */}
         <aside className="hidden lg:block">
-          <div className="sticky top-6 flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
+          <div className="sticky top-6 flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
             {openId ? <MeetingBriefBody id={openId} /> : <TodayBriefingPanel onOpen={openEvent} onFollowups={() => navigateTo("/tasks")} />}
           </div>
         </aside>
@@ -310,27 +332,29 @@ export function CalendarPage() {
 
 function EmptyState({ label, onNew, newLabel }: { label: string; onNew: () => void; newLabel: string }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border py-16 text-center" style={{ borderColor: "var(--border-soft)" }}>
+    <div className="flex flex-col items-center gap-3 rounded-md border py-16 text-center" style={{ borderColor: "var(--border-soft)" }}>
       <CalendarDays size={22} style={{ color: "var(--text-faint)" }} />
       <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{label}</p>
-      <button onClick={onNew} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
+      <button onClick={onNew} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
         <Plus size={13} /> {newLabel}
       </button>
     </div>
   );
 }
 
-/** Subtle in-grid overlay when the visible range has no meetings — the real time grid stays behind it. */
+/** A small native-calendar placeholder inside the grid when the range is empty — not a big floating box. */
 function GridEmpty({ hint, onCreate, onDraft, onFollowups, t }: { hint: string; onCreate: () => void; onDraft: () => void; onFollowups: () => void; t: (k: string) => string }) {
-  const chip = "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]";
+  const link = "text-[12px] font-medium transition-colors hover:text-[color:var(--text-primary)]";
   return (
-    <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-16">
-      <div className="pointer-events-auto flex flex-col items-center gap-3 rounded-xl px-6 py-5 text-center" style={{ background: "color-mix(in srgb, var(--surface-page) 82%, transparent)", backdropFilter: "blur(2px)" }}>
+    <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center pt-14">
+      <div className="pointer-events-auto flex flex-col items-center gap-1.5 text-center">
         <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{hint}</p>
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <button onClick={onCreate} className={chip} style={{ borderColor: "var(--section-accent)", color: "var(--section-accent)" }}><Plus size={13} /> {t("cal.new_meeting")}</button>
-          <button onClick={onDraft} className={chip} style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><Sparkles size={13} /> {t("cal.draft_agenda")}</button>
-          <button onClick={onFollowups} className={chip} style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><ListChecks size={13} /> {t("cal.suggest_followups")}</button>
+        <div className="flex flex-wrap items-center justify-center gap-1.5" style={{ color: "var(--text-faint)" }}>
+          <button onClick={onCreate} className={link} style={{ color: "var(--text-secondary)" }}>{t("cal.new_meeting")}</button>
+          <span>·</span>
+          <button onClick={onDraft} className={link} style={{ color: "var(--text-secondary)" }}>{t("cal.draft_agenda")}</button>
+          <span>·</span>
+          <button onClick={onFollowups} className={link} style={{ color: "var(--text-secondary)" }}>{t("cal.suggest_followups")}</button>
         </div>
       </div>
     </div>
@@ -346,39 +370,39 @@ function TodayBriefingPanel({ onOpen, onFollowups }: { onOpen: (id: string) => v
   const { t, lang } = useLanguage();
   const q = useQuery<TodayBrief>({ queryKey: ["calendar-brief-today"], queryFn: () => apiClient.get("/calendar/brief/today"), staleTime: 30_000 });
   const b = q.data;
+  const AMBER = "#a2854f";
   const RowLine = ({ label, value, tone }: { label: string; value: string; tone?: string }) => (
     <div className="flex items-center justify-between px-4 py-2" style={{ borderTop: "1px solid var(--border-soft)" }}>
-      <span className="font-mono text-[11px]" style={{ color: "var(--text-muted)" }}>{label}</span>
-      <span className="text-[12px] font-medium" style={{ color: tone ?? "var(--text-secondary)" }}>{value}</span>
+      <span className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>{label}</span>
+      <span className="text-[12px] font-medium tabular-nums" style={{ color: tone ?? "var(--text-secondary)" }}>{value}</span>
     </div>
   );
   return (
     <>
-      <div className="border-b px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--section-accent) 5%, var(--surface-page))" }}>
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}><CalendarClock size={13} style={{ color: "var(--section-accent)" }} /> {t("cal.meeting_agent")}</span>
-        <span className="mt-1.5 block text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("cal.today_briefing")}</span>
-        <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{t("cal.prepared_by")} {t("cal.meeting_agent")}</span>
+      <div className="border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+        <span className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}><CalendarClock size={12} style={{ color: "var(--text-muted)" }} /> {t("cal.meeting_agent")}</span>
+        <span className="mt-1 block text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("cal.today_briefing")}</span>
       </div>
       {!b ? <div className="p-5"><Loader2 size={16} className="animate-spin" /></div> : (
         <div className="flex-1 overflow-y-auto py-1 text-[13px]">
           {b.next ? (
             <button onClick={() => onOpen(b.next!.id)} className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
               <span className="min-w-0"><span className="block text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.next_up")}</span><span className="block truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{b.next.title}</span></span>
-              <span className="flex items-center gap-1 text-[12px] tabular-nums" style={{ color: "var(--text-muted)" }}>{fmtTime(b.next.start_at, lang)} <ArrowRight size={12} style={{ color: "var(--section-accent)" }} /></span>
+              <span className="flex items-center gap-1 text-[12px] tabular-nums" style={{ color: "var(--text-muted)" }}>{fmtTime(b.next.start_at, lang)} <ArrowRight size={12} style={{ color: "var(--text-faint)" }} /></span>
             </button>
           ) : <div className="px-4 py-2.5 text-[12px]" style={{ color: "var(--text-muted)" }}>{t("cal.all_clear")}</div>}
           <RowLine label={t("cal.meetings_today")} value={String(b.count)} />
-          <RowLine label={t("cal.overlaps")} value={String(b.conflicts.length)} tone={b.conflicts.length ? "#f59e0b" : undefined} />
-          <RowLine label={t("cal.needs_agenda")} value={String(b.no_agenda.length)} tone={b.no_agenda.length ? "#f59e0b" : undefined} />
-          {b.calls_enabled && <RowLine label={t("cal.needs_call")} value={String(b.no_call_link.length)} tone={b.no_call_link.length ? "#f59e0b" : undefined} />}
+          <RowLine label={t("cal.overlaps")} value={String(b.conflicts.length)} tone={b.conflicts.length ? AMBER : undefined} />
+          <RowLine label={t("cal.needs_agenda")} value={String(b.no_agenda.length)} tone={b.no_agenda.length ? AMBER : undefined} />
+          {b.calls_enabled && <RowLine label={t("cal.needs_call")} value={String(b.no_call_link.length)} tone={b.no_call_link.length ? AMBER : undefined} />}
           <button onClick={onFollowups} className="flex w-full items-center justify-between px-4 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]" style={{ borderTop: "1px solid var(--border-soft)" }}>
-            <span className="font-mono text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.open_followups")}</span>
-            <ArrowRight size={12} style={{ color: "var(--section-accent)" }} />
+            <span className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>{t("cal.open_followups")}</span>
+            <ArrowRight size={12} style={{ color: "var(--text-faint)" }} />
           </button>
           {b.suggestions.length > 0 && (
             <div className="px-4 py-3" style={{ borderTop: "1px solid var(--border-soft)" }}>
-              <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.next_action")}</p>
-              <div className="flex flex-wrap gap-1.5">{b.suggestions.map((s, i) => <span key={i} className="rounded-full px-2.5 py-1 text-[11px]" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>{s}</span>)}</div>
+              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.next_action")}</p>
+              <div className="flex flex-wrap gap-1.5">{b.suggestions.map((s, i) => <span key={i} className="rounded-sm px-2 py-0.5 text-[11px]" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>{s}</span>)}</div>
             </div>
           )}
         </div>
@@ -402,10 +426,11 @@ function TodayStrip({ onOpen }: { onOpen: (id: string) => void }) {
   const { t, lang } = useLanguage();
   const q = useQuery<TodayBrief>({ queryKey: ["calendar-brief-today"], queryFn: () => apiClient.get("/calendar/brief/today"), retry: false });
   const b = q.data;
-  if (q.isLoading || !b) return <div className="h-[74px] animate-pulse rounded-2xl border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }} />;
+  if (q.isLoading || !b) return <div className="h-[64px] animate-pulse rounded-md border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }} />;
+  const AMBER = "#a2854f";
 
   const Stat = ({ icon, n, label, tone }: { icon: React.ReactNode; n: number; label: string; tone?: string }) => (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-1.5">
       <span style={{ color: tone ?? "var(--text-faint)" }}>{icon}</span>
       <span className="text-[13px] font-semibold tabular-nums" style={{ color: tone ?? "var(--text-primary)" }}>{n}</span>
       <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{label}</span>
@@ -413,33 +438,28 @@ function TodayStrip({ onOpen }: { onOpen: (id: string) => void }) {
   );
 
   return (
-    <div className="rounded-xl border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="rounded-md border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <div className="flex items-center gap-2">
-          <Sparkles size={15} style={{ color: "var(--section-accent)" }} />
-          <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.brief_heading")}</span>
-          {/* subtle Meeting Agent source */}
-          <span className="hidden items-center gap-1 text-[10px] sm:flex" style={{ color: "var(--text-faint)" }}><CalendarClock size={10} /> {t("cal.meeting_agent")}</span>
-        </div>
+        <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.brief_heading")}</span>
         <Stat icon={<CalendarDays size={14} />} n={b.count} label={t("cal.meetings_today")} />
-        {b.conflicts.length > 0 && <Stat icon={<AlertTriangle size={14} />} n={b.conflicts.length} label={t("cal.overlaps")} tone="#f59e0b" />}
+        {b.conflicts.length > 0 && <Stat icon={<AlertTriangle size={14} />} n={b.conflicts.length} label={t("cal.overlaps")} tone={AMBER} />}
         {b.no_agenda.length > 0 && <Stat icon={<FileText size={14} />} n={b.no_agenda.length} label={t("cal.needs_agenda")} />}
         {b.calls_enabled && b.no_call_link.length > 0 && <Stat icon={<Link2 size={14} />} n={b.no_call_link.length} label={t("cal.needs_call")} />}
       </div>
 
       {(b.next || b.suggestions.length > 0 || b.count === 0) && (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3 border-t pt-2.5" style={{ borderColor: "var(--border-soft)" }}>
           {b.next ? (
             <button onClick={() => onOpen(b.next!.id)} className="flex items-center gap-2 text-left">
               <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.next_up")}</span>
               <span className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{b.next.title}</span>
               <span className="text-[12px] tabular-nums" style={{ color: "var(--text-muted)" }}>{fmtTime(b.next.start_at, lang)}</span>
-              <ArrowRight size={13} style={{ color: "var(--section-accent)" }} />
+              <ArrowRight size={13} style={{ color: "var(--text-faint)" }} />
             </button>
           ) : <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{t("cal.all_clear")}</span>}
           {b.suggestions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              {b.suggestions.map((s, i) => <span key={i} className="rounded-full px-2.5 py-1 text-[11px]" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>{s}</span>)}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {b.suggestions.map((s, i) => <span key={i} className="rounded-sm px-2 py-0.5 text-[11px]" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>{s}</span>)}
             </div>
           )}
         </div>
@@ -488,14 +508,13 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
 
   return (
     <>
-        {/* AI co-pilot header — Meeting Agent identity + attribution. */}
-        <div className="border-b px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--section-accent) 5%, var(--surface-page))" }}>
+        {/* Meeting Brief header — Meeting Agent attribution, calm and flat (no colour wash). */}
+        <div className="border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}><CalendarClock size={13} style={{ color: "var(--section-accent)" }} /> {t("cal.meeting_agent")}</span>
+            <span className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}><CalendarClock size={12} style={{ color: "var(--text-muted)" }} /> {t("cal.prepared_by")} {t("cal.meeting_agent")}</span>
             {onClose && <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>}
           </div>
           <span className="mt-1.5 block truncate text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{e?.title ?? "…"}</span>
-          <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{t("cal.prepared_by")} {t("cal.meeting_agent")}</span>
         </div>
         {!e ? <div className="p-5"><Loader2 size={16} className="animate-spin" /></div> : (
           <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 text-[13px]">
@@ -503,15 +522,15 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               {(() => { try { return new Date(e.start_at).toLocaleString(lang, { weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return e.start_at; } })()} – {fmtTime(e.end_at, lang)}
               {e.timezone && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}> · {e.timezone}</span>}
             </div>
-            {e.status === "cancelled" && <span className="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ background: "#ef44441a", color: "#ef4444" }}>{t("cal.cancelled")}</span>}
-            {e.call_url && <button onClick={() => navigate(`/calls/${e.id}`)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-white" style={{ background: "var(--section-accent)" }}><Video size={13} /> {t("cal.join_call")}</button>}
+            {e.status === "cancelled" && <span className="inline-block rounded-sm px-2 py-0.5 text-[11px] font-medium" style={{ background: "rgba(168,106,114,0.14)", color: "#a86a72" }}>{t("cal.cancelled")}</span>}
+            {e.call_url && <button onClick={() => navigate(`/calls/${e.id}`)} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}><Video size={13} /> {t("cal.join_call")}</button>}
             {e.location && <div className="flex items-center gap-2" style={{ color: "var(--text-secondary)" }}><MapPin size={13} style={{ color: "var(--text-faint)" }} /> {e.location}</div>}
 
             {/* Co-pilot readiness — real signals derived from this meeting's own fields (never fabricated). */}
             {(() => {
               const hasAgenda = !!(e.description ?? "").trim();
               const S = (key: string, label: string, good: boolean, value: string, neutral = false) =>
-                ({ key, label, value, dot: neutral ? "var(--text-faint)" : good ? "#22c55e" : "#f59e0b", tone: neutral ? "var(--text-faint)" : good ? "var(--text-secondary)" : "#f59e0b" });
+                ({ key, label, value, dot: neutral ? "var(--text-faint)" : good ? "#5f8a6a" : "#a2854f", tone: neutral ? "var(--text-faint)" : good ? "var(--text-secondary)" : "#a2854f" });
               const signals = [
                 S("agenda", t("cal.agenda"), hasAgenda, hasAgenda ? t("cal.st_set") : t("cal.st_missing")),
                 e.call_url ? S("call", t("cal.sig_call"), true, t("cal.st_linked")) : S("call", t("cal.sig_call"), false, t("cal.st_none"), !e.calls_enabled),
@@ -526,7 +545,7 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               return <CoPilot signals={signals} action={action} label={t("cal.readiness")} nextLabel={t("cal.next_action")} />;
             })()}
 
-            {e.description && <div className="whitespace-pre-wrap border-l-2 pl-3 text-[12.5px]" style={{ borderColor: "var(--section-accent)", color: "var(--text-secondary)" }}>{e.description}</div>}
+            {e.description && <div className="whitespace-pre-wrap border-l-2 pl-3 text-[12.5px]" style={{ borderColor: meetingTone(e).edge, color: "var(--text-secondary)" }}>{e.description}</div>}
 
             <div>
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.attendees")}</p>
@@ -539,8 +558,8 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
             {/* AI preparation — source-backed, never fabricated. Flat section (thin divider, no card chrome). */}
             <div className="border-t pt-4" style={{ borderColor: "var(--border-soft)" }}>
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}><Wand2 size={13} style={{ color: "var(--section-accent)" }} /> {t("cal.meeting_brief")}</span>
-                {!prepare.data && <button onClick={() => prepare.mutate()} disabled={prepare.isPending} className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}>{prepare.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {t("cal.prepare")}</button>}
+                <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}><Wand2 size={13} style={{ color: "var(--text-muted)" }} /> {t("cal.meeting_brief")}</span>
+                {!prepare.data && <button onClick={() => prepare.mutate()} disabled={prepare.isPending} className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{prepare.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {t("cal.prepare")}</button>}
               </div>
               {prepare.data && <PrepView r={prepare.data} onOpenRecord={(oid, nid) => navigate(`/objects/${oid}/${nid}`)} />}
               {prepare.isError && <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>{t("cal.ai_unavailable")}</p>}
@@ -551,8 +570,8 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.after_meeting")}</p>
               <div className="flex flex-wrap gap-2">
                 {[{ i: <ListChecks size={12} />, l: t("cal.followup_task") }, { i: <StickyNote size={12} />, l: t("cal.draft_notes") }, { i: <Send size={12} />, l: t("cal.send_recap") }].map((a, i) => (
-                  <span key={i} title={t("cal.coming_soon")} className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] opacity-60" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-                    {a.i} {a.l} <span className="ml-0.5 rounded-full px-1.5 py-px text-[9px]" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>{t("cal.coming_soon")}</span>
+                  <span key={i} title={t("cal.coming_soon")} className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] opacity-60" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                    {a.i} {a.l} <span className="ml-0.5 rounded-sm px-1.5 py-px text-[9px]" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>{t("cal.coming_soon")}</span>
                   </span>
                 ))}
               </div>
@@ -573,29 +592,28 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
 
 interface Signal { key: string; label: string; value: string; dot: string; tone: string }
 /**
- * The Meeting Agent co-pilot panel — a compact, terminal-styled readout of a meeting's readiness
- * (agenda / call link / prep / conflicts) plus one suggested next action. Subtle command aesthetic
- * (mono labels, a leading caret, hairline rows, small status dots) — no neon, no fake signals.
+ * The Meeting Agent co-pilot panel — a compact ledger of a meeting's readiness (agenda / call link /
+ * prep / conflicts) plus one suggested next action. Flat rows, hairline dividers, small muted status
+ * dots — no terminal styling, no neon, no fabricated signals.
  */
 function CoPilot({ signals, action, label, nextLabel }: { signals: Signal[]; action: { label: string; run: () => void } | null; label: string; nextLabel: string }) {
   return (
-    <div className="rounded-lg" style={{ border: "1px solid var(--border-soft)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
-      <div className="flex items-center gap-1.5 border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
-        <span className="font-mono text-[11px]" style={{ color: "var(--section-accent)" }}>›</span>
-        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{label}</span>
+    <div className="rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="border-b px-3 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
+        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</span>
       </div>
       {signals.map((s, i) => (
         <div key={s.key} className="flex items-center justify-between px-3 py-1.5" style={i > 0 ? { borderTop: "1px solid var(--border-soft)" } : undefined}>
-          <span className="font-mono text-[11px]" style={{ color: "var(--text-muted)" }}>{s.label}</span>
-          <span className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: s.tone }}>
+          <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{s.label}</span>
+          <span className="flex items-center gap-1.5 text-[11.5px] font-medium" style={{ color: s.tone }}>
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />{s.value}
           </span>
         </div>
       ))}
       {action && (
         <button onClick={action.run} className="flex w-full items-center justify-between border-t px-3 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)" }}>
-          <span className="font-mono text-[10px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{nextLabel}</span>
-          <span className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}>{action.label} <ArrowRight size={12} /></span>
+          <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{nextLabel}</span>
+          <span className="flex items-center gap-1 text-[11.5px] font-medium" style={{ color: "var(--text-secondary)" }}>{action.label} <ArrowRight size={12} style={{ color: "var(--text-faint)" }} /></span>
         </button>
       )}
     </div>
