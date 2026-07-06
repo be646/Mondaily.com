@@ -65,6 +65,56 @@ describe("Inbox — notification for the recipient (in-app; email only if config
   });
 });
 
+describe("PHASE 2 — AI draft assist (drafts only, never sends)", () => {
+  it("POST /messages/draft returns text and does NOT insert/send a message", () => {
+    const fn = src.slice(src.indexOf('router.post("/draft"'), src.indexOf('router.delete("/:id"'));
+    expect(fn).toMatch(/return c\.json\(\{ draft \}\)/);
+    expect(fn).not.toMatch(/\.from\("internal_messages"\)\.insert/);   // never writes a message
+    expect(fn).not.toMatch(/from\("notifications"\)/);                  // never notifies
+  });
+  it("the draft is language-aware but never translates existing message content", () => {
+    const fn = src.slice(src.indexOf('router.post("/draft"'), src.indexOf('router.delete("/:id"'));
+    expect(fn).toMatch(/languageInstruction\(lang\)/);
+    expect(fn).toMatch(/user_preferences.*language|resolveProfile\(settings\)\.language/);
+  });
+  it("draft fails closed without the sovereign gateway (no default provider)", () => {
+    const fn = src.slice(src.indexOf('router.post("/draft"'), src.indexOf('router.delete("/:id"'));
+    expect(fn).toMatch(/if \(!env\.baseURL \|\| !env\.apiKey\) return c\.json\(.*503\)/);
+  });
+  it("the compose UI drafts into the box and never auto-sends", () => {
+    const fn = page.slice(page.indexOf("async function aiDraft"), page.indexOf("async function aiDraft") + 600);
+    expect(fn).toMatch(/apiClient\.post<\{ draft\?: string; error\?: string \}>\("\/messages\/draft"/);
+    expect(fn).toMatch(/setDraft\(r\.draft\)/);       // fills the box for review
+    expect(fn).not.toMatch(/send\.mutate|apiClient\.post\("\/messages"/);  // no auto-send
+  });
+});
+
+describe("PHASE 2 — delete own message (sender-only)", () => {
+  it("DELETE /messages/:id is scoped to workspace AND the sender", () => {
+    const fn = src.slice(src.indexOf('router.delete("/:id"'));
+    expect(fn).toMatch(/\.eq\("workspace_id", ws\)/);
+    expect(fn).toMatch(/\.eq\("id", c\.req\.param\("id"\)\)/);
+    expect(fn).toMatch(/\.eq\("sender_id", me\)/);    // ONLY the sender can delete
+    expect(fn).toMatch(/if \(!count\) return c\.json\(.*404\)/);   // can't delete others' → not found
+  });
+});
+
+describe("PHASE 2 — notification deep-link + read state", () => {
+  it("message notification carries a metadata.route that opens the exact thread", () => {
+    const send = src.slice(src.indexOf('router.post("/"'), src.indexOf('router.post("/draft"'));
+    expect(send).toMatch(/metadata: \{ route: `\/messages\?to=\$\{me\}`/);
+  });
+  it("resolveNotificationLink handles the 'message' type", () => {
+    const link = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/lib/notification-link.ts", import.meta.url)), "utf8");
+    expect(link).toMatch(/case "message": return "\/messages"/);
+    expect(link).toMatch(/const route = str\(m\.route\)/);   // honors metadata.route first
+  });
+  it("read/sent state comes from real read_at, not a faked receipt", () => {
+    expect(page).toMatch(/m\.mine && \(m\.read_at \? <><CheckCheck/);
+    expect(page).toMatch(/read_at: string \| null/);   // surfaced from the API row
+  });
+});
+
 describe("Inbox UI — functional page (picker, empty CTA, i18n)", () => {
   it("has a New-message member picker that excludes yourself and calls the thread route", () => {
     expect(page).toMatch(/function NewMessageModal/);

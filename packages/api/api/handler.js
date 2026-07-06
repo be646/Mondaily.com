@@ -64484,6 +64484,7 @@ router9.get("/", requireAuth, async (c2) => {
 // src/routes/messages.ts
 init_client();
 init_mail();
+init_ai_gateway();
 var router10 = new Hono2();
 router10.use("*", requireAuth);
 var threadKey = (a2, b2) => [a2, b2].sort().join(":");
@@ -64565,7 +64566,8 @@ router10.post("/", zValidator("json", external_exports.object({ recipient_id: ex
     message: `New message from ${senderName}`,
     body: body.slice(0, 120),
     type: "message",
-    is_read: false
+    is_read: false,
+    metadata: { route: `/messages?to=${me2}`, thread_key: threadKey(me2, recipient_id) }
   }).then(() => {
   }, () => {
   });
@@ -64586,6 +64588,41 @@ router10.patch("/thread/:otherId/archive", async (c2) => {
   const key = threadKey(me2, c2.req.param("otherId"));
   const { error } = await supabase.from("internal_message_thread_state").upsert({ workspace_id: ws, thread_key: key, user_id: me2, archived_at: now, updated_at: now }, { onConflict: "workspace_id,thread_key,user_id" });
   if (error) return c2.json({ error: error.message }, 400);
+  return c2.json({ ok: true });
+});
+router10.post("/draft", zValidator("json", external_exports.object({
+  prompt: external_exports.string().min(1).max(1e3),
+  existing: external_exports.string().max(5e3).optional()
+  // an existing draft to rewrite/improve
+})), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const { prompt, existing } = c2.req.valid("json");
+  const env2 = gatewayEnv();
+  if (!env2.baseURL || !env2.apiKey) return c2.json({ error: "AI drafting isn't available right now." }, 503);
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const settings = wsRow?.settings ?? {};
+  const userLang = settings.user_preferences?.[me2]?.language;
+  const lang = normalizeLang(userLang || resolveProfile(settings).language);
+  const system = `You help a workspace member write a short, professional internal message to a teammate. Return ONLY the message text \u2014 no preamble, quotes, or explanation. Keep it concise and natural.${languageInstruction(lang)}`;
+  const userPrompt = existing?.trim() ? `Rewrite/improve this draft: "${existing.trim()}"
+
+Instruction: ${prompt}` : `Write the message. Instruction: ${prompt}`;
+  try {
+    const res = await aiGateway({ system, prompt: userPrompt, maxTokens: 300, workspaceId: ws, userId: me2, feature: "message_draft" });
+    const draft = (res.text ?? "").trim();
+    if (!draft || res.provider === "none") return c2.json({ error: "AI draft unavailable (check your AI credits)." }, 200);
+    return c2.json({ draft });
+  } catch {
+    return c2.json({ error: "Couldn't draft that \u2014 please try again." }, 200);
+  }
+});
+router10.delete("/:id", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const { error, count } = await supabase.from("internal_messages").delete({ count: "exact" }).eq("workspace_id", ws).eq("id", c2.req.param("id")).eq("sender_id", me2);
+  if (error) return c2.json({ error: error.message }, 400);
+  if (!count) return c2.json({ error: "Message not found or not yours." }, 404);
   return c2.json({ ok: true });
 });
 

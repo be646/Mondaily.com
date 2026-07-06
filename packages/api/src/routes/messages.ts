@@ -4,6 +4,9 @@ import { z } from "zod";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import { sendTransactionalEmail } from "../lib/mail";
+import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
+import { resolveProfile } from "@mondaily/shared/profile";
+import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
 
 /**
  * Internal Mondaily messaging — workspace-scoped, member-to-member.
@@ -141,7 +144,8 @@ router.post("/", zValidator("json", z.object({ recipient_id: z.string().min(1), 
   const sender = dir.get(me);
   const senderName = sender?.name || sender?.email || "A teammate";
 
-  // In-app notification (best-effort).
+  // In-app notification (best-effort). metadata.route deep-links the recipient straight to THIS
+  // thread (opened against the sender) — resolveNotificationLink honors metadata.route.
   await supabase.from("notifications").insert({
     workspace_id: ws,
     user_id: recipient_id,
@@ -150,6 +154,7 @@ router.post("/", zValidator("json", z.object({ recipient_id: z.string().min(1), 
     body: body.slice(0, 120),
     type: "message",
     is_read: false,
+    metadata: { route: `/messages?to=${me}`, thread_key: threadKey(me, recipient_id) },
   }).then(() => {}, () => {});
 
   // Email notification (best-effort; only if a mail provider is configured).
@@ -176,6 +181,61 @@ router.patch("/thread/:otherId/archive", async (c) => {
     .from("internal_message_thread_state")
     .upsert({ workspace_id: ws, thread_key: key, user_id: me, archived_at: now, updated_at: now }, { onConflict: "workspace_id,thread_key,user_id" });
   if (error) return c.json({ error: error.message }, 400);
+  return c.json({ ok: true });
+});
+
+/**
+ * POST /messages/draft — AI writing assist. Drafts or rewrites a short internal message and RETURNS
+ * the text; it NEVER sends. The user reviews it in the compose box and clicks Send themselves.
+ * Language-aware (per-user override → workspace profile → English). Fails closed if the sovereign
+ * gateway isn't configured. Metered like any AI action (workspaceId passed).
+ */
+router.post("/draft", zValidator("json", z.object({
+  prompt: z.string().min(1).max(1000),
+  existing: z.string().max(5000).optional(),   // an existing draft to rewrite/improve
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const { prompt, existing } = c.req.valid("json");
+
+  const env = gatewayEnv();
+  if (!env.baseURL || !env.apiKey) return c.json({ error: "AI drafting isn't available right now." }, 503);
+
+  // Resolve the writer's language (never translates message CONTENT — only guides the draft language).
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
+  const userLang = (settings.user_preferences as Record<string, { language?: string }> | undefined)?.[me]?.language;
+  const lang = normalizeLang(userLang || resolveProfile(settings).language);
+
+  const system = `You help a workspace member write a short, professional internal message to a teammate. Return ONLY the message text — no preamble, quotes, or explanation. Keep it concise and natural.${languageInstruction(lang)}`;
+  const userPrompt = existing?.trim()
+    ? `Rewrite/improve this draft: "${existing.trim()}"\n\nInstruction: ${prompt}`
+    : `Write the message. Instruction: ${prompt}`;
+
+  try {
+    const res = await aiGateway({ system, prompt: userPrompt, maxTokens: 300, workspaceId: ws, userId: me, feature: "message_draft" });
+    const draft = (res.text ?? "").trim();
+    // If the wallet is exhausted the gateway returns provider "none" — surface a clean message.
+    if (!draft || res.provider === "none") return c.json({ error: "AI draft unavailable (check your AI credits)." }, 200);
+    return c.json({ draft });
+  } catch {
+    return c.json({ error: "Couldn't draft that — please try again." }, 200);
+  }
+});
+
+/** DELETE /messages/:id — delete YOUR OWN message. Sender-only, workspace-scoped. A recipient (or
+ *  anyone else) can never delete someone else's message — the eq(sender_id, me) guard enforces it. */
+router.delete("/:id", async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const { error, count } = await supabase
+    .from("internal_messages")
+    .delete({ count: "exact" })
+    .eq("workspace_id", ws)
+    .eq("id", c.req.param("id"))
+    .eq("sender_id", me);           // ONLY the sender can delete their own message
+  if (error) return c.json({ error: error.message }, 400);
+  if (!count) return c.json({ error: "Message not found or not yours." }, 404);
   return c.json({ ok: true });
 });
 

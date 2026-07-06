@@ -32,6 +32,7 @@ export function resolveNotificationLink(n: NotificationLike): string {
 
   // Type-based fallbacks when no specific id is present.
   switch (n.type) {
+    case "message": return "/messages";   // metadata.route above already deep-links to the exact thread
     case "daily_brief": return "/home";
     case "alert": return "/decisions";
     case "agent": return nodeId ? `/search?focus=${nodeId}` : "/decisions";
