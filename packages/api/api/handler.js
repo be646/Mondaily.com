@@ -60882,6 +60882,8 @@ var TRANSLATIONS = {
   "help.create_ticket": { en: "Create support request", pl: "Utw\xF3rz zg\u0142oszenie", ru: "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0437\u0430\u043F\u0440\u043E\u0441", uk: "\u0421\u0442\u0432\u043E\u0440\u0438\u0442\u0438 \u0437\u0430\u043F\u0438\u0442", ar: "\u0625\u0646\u0634\u0627\u0621 \u0637\u0644\u0628 \u062F\u0639\u0645", fr: "Cr\xE9er une demande", de: "Anfrage erstellen", es: "Crear solicitud", pt: "Criar solicita\xE7\xE3o", it: "Crea richiesta", tr: "Destek talebi olu\u015Ftur", nl: "Verzoek aanmaken" },
   "help.ticket_created": { en: "Support request created \u2014 our team will follow up.", pl: "Zg\u0142oszenie utworzone \u2014 nasz zesp\xF3\u0142 si\u0119 odezwie.", ru: "\u0417\u0430\u043F\u0440\u043E\u0441 \u0441\u043E\u0437\u0434\u0430\u043D \u2014 \u043D\u0430\u0448\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u0441\u0432\u044F\u0436\u0435\u0442\u0441\u044F \u0441 \u0432\u0430\u043C\u0438.", uk: "\u0417\u0430\u043F\u0438\u0442 \u0441\u0442\u0432\u043E\u0440\u0435\u043D\u043E \u2014 \u043D\u0430\u0448\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u0437\u0432\u2019\u044F\u0436\u0435\u0442\u044C\u0441\u044F \u0437 \u0432\u0430\u043C\u0438.", ar: "\u062A\u0645 \u0625\u0646\u0634\u0627\u0621 \u0637\u0644\u0628 \u0627\u0644\u062F\u0639\u0645 \u2014 \u0633\u064A\u062A\u0627\u0628\u0639 \u0641\u0631\u064A\u0642\u0646\u0627 \u0645\u0639\u0643.", fr: "Demande cr\xE9\xE9e \u2014 notre \xE9quipe vous recontactera.", de: "Anfrage erstellt \u2014 unser Team meldet sich.", es: "Solicitud creada \u2014 nuestro equipo te contactar\xE1.", pt: "Solicita\xE7\xE3o criada \u2014 nossa equipe entrar\xE1 em contato.", it: "Richiesta creata \u2014 il nostro team ti ricontatter\xE0.", tr: "Talep olu\u015Fturuldu \u2014 ekibimiz sizinle ileti\u015Fime ge\xE7ecek.", nl: "Verzoek aangemaakt \u2014 ons team neemt contact op." },
   "support.title": { en: "Support", pl: "Wsparcie", ru: "\u041F\u043E\u0434\u0434\u0435\u0440\u0436\u043A\u0430", uk: "\u041F\u0456\u0434\u0442\u0440\u0438\u043C\u043A\u0430", ar: "\u0627\u0644\u062F\u0639\u0645", fr: "Support", de: "Support", es: "Soporte", pt: "Suporte", it: "Supporto", tr: "Destek", nl: "Ondersteuning" },
+  "support.my_requests": { en: "My support requests", pl: "Moje zg\u0142oszenia", ru: "\u041C\u043E\u0438 \u043E\u0431\u0440\u0430\u0449\u0435\u043D\u0438\u044F", uk: "\u041C\u043E\u0457 \u0437\u0432\u0435\u0440\u043D\u0435\u043D\u043D\u044F", ar: "\u0637\u0644\u0628\u0627\u062A \u0627\u0644\u062F\u0639\u0645 \u0627\u0644\u062E\u0627\u0635\u0629 \u0628\u064A", fr: "Mes demandes", de: "Meine Anfragen", es: "Mis solicitudes", pt: "Minhas solicita\xE7\xF5es", it: "Le mie richieste", tr: "Taleplerim", nl: "Mijn verzoeken" },
+  "support.new_request": { en: "New request", pl: "Nowe zg\u0142oszenie", ru: "\u041D\u043E\u0432\u043E\u0435 \u043E\u0431\u0440\u0430\u0449\u0435\u043D\u0438\u0435", uk: "\u041D\u043E\u0432\u0435 \u0437\u0432\u0435\u0440\u043D\u0435\u043D\u043D\u044F", ar: "\u0637\u0644\u0628 \u062C\u062F\u064A\u062F", fr: "Nouvelle demande", de: "Neue Anfrage", es: "Nueva solicitud", pt: "Nova solicita\xE7\xE3o", it: "Nuova richiesta", tr: "Yeni talep", nl: "Nieuw verzoek" },
   "support.reply": { en: "Reply", pl: "Odpowiedz", ru: "\u041E\u0442\u0432\u0435\u0442\u0438\u0442\u044C", uk: "\u0412\u0456\u0434\u043F\u043E\u0432\u0456\u0441\u0442\u0438", ar: "\u0631\u062F", fr: "R\xE9pondre", de: "Antworten", es: "Responder", pt: "Responder", it: "Rispondi", tr: "Yan\u0131tla", nl: "Antwoorden" },
   "support.empty": { en: "No support requests yet.", pl: "Brak zg\u0142osze\u0144.", ru: "\u041F\u043E\u043A\u0430 \u043D\u0435\u0442 \u043E\u0431\u0440\u0430\u0449\u0435\u043D\u0438\u0439.", uk: "\u041F\u043E\u043A\u0438 \u043D\u0435\u043C\u0430\u0454 \u0437\u0432\u0435\u0440\u043D\u0435\u043D\u044C.", ar: "\u0644\u0627 \u062A\u0648\u062C\u062F \u0637\u0644\u0628\u0627\u062A \u062F\u0639\u0645 \u0628\u0639\u062F.", fr: "Aucune demande pour l'instant.", de: "Noch keine Anfragen.", es: "A\xFAn no hay solicitudes.", pt: "Ainda sem solicita\xE7\xF5es.", it: "Ancora nessuna richiesta.", tr: "Hen\xFCz talep yok.", nl: "Nog geen verzoeken." },
   "support.status.open": { en: "Open", pl: "Otwarte", ru: "\u041E\u0442\u043A\u0440\u044B\u0442\u043E", uk: "\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u043E", ar: "\u0645\u0641\u062A\u0648\u062D", fr: "Ouvert", de: "Offen", es: "Abierto", pt: "Aberto", it: "Aperto", tr: "A\xE7\u0131k", nl: "Open" },
@@ -65679,9 +65681,56 @@ function contextBlock(ctx) {
 ${lines.map((l2) => `- ${l2}`).join("\n")}${prof ? `
 ${prof}` : ""}`;
 }
-var SUPPORT_SYSTEM = `You are Mondaily's built-in Help & Support agent. You help users understand and use Mondaily \u2014 Discovery, the workspace graph, agents, decisions, finance, plans, AI credits, integrations, and data/privacy.
+function detectTopic(message) {
+  const m2 = message.toLowerCase();
+  if (/discover|search|scrap|lead|prospect|reviews|enrich|web/.test(m2)) return "discovery";
+  if (/credit|token|run out|out of|paused|low balance|refill/.test(m2)) return "credits";
+  if (/bill|plan|upgrade|invoice|subscription|refund|charge|price|trial/.test(m2)) return "billing";
+  if (/email|calendar|gmail|outlook|integration|connect|invite|member|seat/.test(m2)) return "integrations";
+  return "general";
+}
+function buildDiagnostics(ctx, topic) {
+  const w2 = ctx.wallet, d2 = ctx.diagnostics, ent = ctx.entitlement;
+  const rows2 = [];
+  rows2.push({ label: "Workspace context", status: "ok", detail: `${ctx.identity.workspace_name} \xB7 plan ${ent.tier}${ent.trial_ends_at ? " (trial)" : ""}`, source: "account" });
+  const creditStatus2 = !w2.enrolled ? "info" : w2.remaining <= 0 ? "error" : w2.included_monthly_credits && w2.remaining < w2.included_monthly_credits * 0.1 ? "warn" : "ok";
+  rows2.push({
+    label: "AI credits",
+    status: creditStatus2,
+    detail: !w2.enrolled ? "not enrolled" : `${w2.remaining.toLocaleString()} remaining${w2.included_monthly_credits ? ` of ${w2.included_monthly_credits.toLocaleString()}/mo` : ""}${w2.remaining <= 0 ? " \u2014 AI is paused" : ""}`,
+    source: "wallet"
+  });
+  if (topic === "discovery") {
+    rows2.push({ label: "Sovereign Search", status: d2.sovereign_search ? "ok" : "error", detail: d2.sovereign_search ? "online (configured)" : "not configured \u2014 Discovery returns no results until an admin sets SOVEREIGN_SEARCH_URL", source: "status" });
+    rows2.push({ label: "Scraper", status: d2.sovereign_scrape ? "ok" : "error", detail: d2.sovereign_scrape ? "online (configured)" : "not configured \u2014 pages can't be read until an admin sets SOVEREIGN_SCRAPE_URL", source: "status" });
+    rows2.push({ label: "AI gateway", status: d2.ai_gateway ? "ok" : "error", detail: d2.ai_gateway ? "online" : "not configured", source: "status" });
+  }
+  const related = ctx.recent_tickets.filter((t3) => t3.category === topic);
+  rows2.push({ label: "Related requests", status: "info", detail: related.length ? `${related.length} recent ${topic} request(s)` : "none open", source: "tickets" });
+  return rows2;
+}
+function buildSuggestedActions(ctx, topic, needsTicket, diags) {
+  const actions = [];
+  if (needsTicket) actions.push({ label: "Create support request", action: "create_ticket" });
+  if (topic === "discovery") {
+    actions.push({ label: "Open Discovery", action: "navigate", payload: "/discovery" });
+    actions.push({ label: "Check status", action: "navigate", payload: "/status" });
+  }
+  const creditsLow = diags.some((x2) => x2.label === "AI credits" && (x2.status === "warn" || x2.status === "error"));
+  if (topic === "credits" || topic === "billing" || creditsLow) actions.push({ label: "Open billing", action: "navigate", payload: "/settings/billing" });
+  actions.push({ label: "Ask a follow-up", action: "follow_up" });
+  const seen = /* @__PURE__ */ new Set();
+  return actions.filter((a2) => seen.has(a2.label) ? false : (seen.add(a2.label), true)).slice(0, 5);
+}
+function diagnosticsForPrompt(diags) {
+  return `DIAGNOSTICS I already ran (read-only \u2014 reference these in your answer, describe what you found, and give the user something to try BEFORE suggesting a ticket):
+${diags.map((x2) => `- ${x2.label}: ${x2.status.toUpperCase()} \u2014 ${x2.detail}`).join("\n")}`;
+}
+var SUPPORT_SYSTEM = `You are Mondaily's built-in Help & Support agent \u2014 a smart diagnostic terminal, not a generic support chat. You help users understand and use Mondaily \u2014 Discovery, the workspace graph, agents, decisions, finance, plans, AI credits, integrations, and data/privacy.
 
 STRICT RULES:
+- INVESTIGATE FIRST. Real read-only diagnostics have already been run for you (see DIAGNOSTICS). Use them: explain what you found, what it means, and what the user can try or check themselves. Resolve or guide before escalating.
+- Only set needs_ticket=true when the problem genuinely needs human action, a refund/credit adjustment, infra/admin setup (e.g. Sovereign Search not configured), or is a real bug you cannot resolve with guidance. Do NOT open a ticket for questions you can answer or things the user can self-serve.
 - Be accurate and source-backed. Explain features using the provided HELP DOCS and cite the [id] you used. If the docs don't cover the question, say so plainly and offer to open a support ticket \u2014 do not guess.
 - Answer identity/account questions DIRECTLY from the WORKSPACE FACTS: the user's name, email, role, workspace, plan/tier, trial status, credits remaining, and language are all provided \u2014 use them (e.g. "You're <name>", "You're on <plan>", "You have <n> credits left"). State account facts ONLY from these facts; if something isn't there, say you don't have it \u2014 never invent numbers, statuses, outages, or history.
 - SAFE UPSELL: when usage or needs suggest it, you MAY recommend a higher plan (e.g. "Based on your usage, Operator or Command may fit better") or a credit pack, and tell the user they can do it themselves at Settings \u2192 Billing. Frame it as a helpful suggestion, not pressure.
@@ -65709,6 +65758,8 @@ router16.post("/ask", zValidator("json", external_exports.object({
   }
   const ctx = await buildSupportContext(c2.get("workspaceId"), c2.get("userId"));
   const docs = selectHelpDocs(message);
+  const topic = detectTopic(message);
+  const diagnostics = buildDiagnostics(ctx, topic);
   const priorTurns = (history ?? []).slice(-6).map((h2) => `${h2.role === "user" ? "User" : "Assistant"}: ${h2.content}`).join("\n");
   const routeLine = route ? `
 
@@ -65716,6 +65767,8 @@ The user is currently on the page: ${route}. Use this only as context for what t
   const system = `${SUPPORT_SYSTEM}
 
 ${contextBlock(ctx)}${routeLine}
+
+${diagnosticsForPrompt(diagnostics)}
 
 ${helpDocsBlock(docs)}${languageInstruction(ctx.language)}
 
@@ -65726,7 +65779,7 @@ Respond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIE
     const res = await aiGateway({ system, prompt, maxTokens: 700, feature: "support" });
     raw2 = res.text ?? "";
   } catch {
-    return c2.json({ answer: "I couldn't reach the help service just now. Please try again, or create a support request.", category: "bug_report", needs_ticket: true, suggested_subject: "Help service error", language: ctx.language, cited_docs: [], degraded: true });
+    return c2.json({ answer: "I couldn't reach the help service just now. Please try again, or create a support request.", category: "bug_report", needs_ticket: true, suggested_subject: "Help service error", language: ctx.language, cited_docs: [], diagnostics, suggested_actions: buildSuggestedActions(ctx, topic, true, diagnostics), degraded: true });
   }
   let parsed = {};
   try {
@@ -65735,13 +65788,17 @@ Respond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIE
     parsed = { answer: raw2 };
   }
   const category = SUPPORT_CATEGORIES.includes(parsed.category ?? "") ? parsed.category : "bug_report";
+  const needsTicket = Boolean(parsed.needs_ticket);
   return c2.json({
     answer: parsed.answer && parsed.answer.trim() || "I'm not sure \u2014 want me to open a support request so a human can help?",
     category,
-    needs_ticket: Boolean(parsed.needs_ticket),
+    needs_ticket: needsTicket,
     suggested_subject: (parsed.suggested_subject ?? "").toString().slice(0, 120),
     language: ctx.language,
-    cited_docs: docs.map((d2) => d2.id)
+    cited_docs: docs.map((d2) => d2.id),
+    // REAL diagnostics + contextual next steps (shown after every answer).
+    diagnostics,
+    suggested_actions: buildSuggestedActions(ctx, topic, needsTicket, diagnostics)
   });
 });
 router16.get("/context", async (c2) => {

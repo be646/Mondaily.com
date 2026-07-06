@@ -132,9 +132,73 @@ function contextBlock(ctx: Awaited<ReturnType<typeof buildSupportContext>>): str
   return `WORKSPACE FACTS (read-only — the ONLY data you may state as fact about this account):\n${lines.map(l => `- ${l}`).join("\n")}${prof ? `\n${prof}` : ""}`;
 }
 
-const SUPPORT_SYSTEM = `You are Mondaily's built-in Help & Support agent. You help users understand and use Mondaily — Discovery, the workspace graph, agents, decisions, finance, plans, AI credits, integrations, and data/privacy.
+// ── Structured diagnostics + suggested actions (REAL, computed from context — not the LLM) ────────
+type DiagStatus = "ok" | "warn" | "error" | "info";
+interface Diagnostic { label: string; status: DiagStatus; detail: string; source: string }
+interface SuggestedAction { label: string; action: "navigate" | "create_ticket" | "follow_up"; payload?: string }
+
+/** Coarse topic of the question, so we only run the diagnostics that are actually relevant. */
+export function detectTopic(message: string): "discovery" | "credits" | "billing" | "integrations" | "general" {
+  const m = message.toLowerCase();
+  if (/discover|search|scrap|lead|prospect|reviews|enrich|web/.test(m)) return "discovery";
+  if (/credit|token|run out|out of|paused|low balance|refill/.test(m)) return "credits";
+  if (/bill|plan|upgrade|invoice|subscription|refund|charge|price|trial/.test(m)) return "billing";
+  if (/email|calendar|gmail|outlook|integration|connect|invite|member|seat/.test(m)) return "integrations";
+  return "general";
+}
+
+/** REAL read-only diagnostic rows — every row reflects data we actually loaded. Never fabricated. */
+function buildDiagnostics(ctx: Awaited<ReturnType<typeof buildSupportContext>>, topic: string): Diagnostic[] {
+  const w = ctx.wallet, d = ctx.diagnostics, ent = ctx.entitlement;
+  const rows: Diagnostic[] = [];
+  rows.push({ label: "Workspace context", status: "ok", detail: `${ctx.identity.workspace_name} · plan ${ent.tier}${ent.trial_ends_at ? " (trial)" : ""}`, source: "account" });
+
+  const creditStatus: DiagStatus = !w.enrolled ? "info" : w.remaining <= 0 ? "error"
+    : (w.included_monthly_credits && w.remaining < w.included_monthly_credits * 0.1) ? "warn" : "ok";
+  rows.push({
+    label: "AI credits",
+    status: creditStatus,
+    detail: !w.enrolled ? "not enrolled" : `${w.remaining.toLocaleString()} remaining${w.included_monthly_credits ? ` of ${w.included_monthly_credits.toLocaleString()}/mo` : ""}${w.remaining <= 0 ? " — AI is paused" : ""}`,
+    source: "wallet",
+  });
+
+  if (topic === "discovery") {
+    rows.push({ label: "Sovereign Search", status: d.sovereign_search ? "ok" : "error", detail: d.sovereign_search ? "online (configured)" : "not configured — Discovery returns no results until an admin sets SOVEREIGN_SEARCH_URL", source: "status" });
+    rows.push({ label: "Scraper", status: d.sovereign_scrape ? "ok" : "error", detail: d.sovereign_scrape ? "online (configured)" : "not configured — pages can't be read until an admin sets SOVEREIGN_SCRAPE_URL", source: "status" });
+    rows.push({ label: "AI gateway", status: d.ai_gateway ? "ok" : "error", detail: d.ai_gateway ? "online" : "not configured", source: "status" });
+  }
+
+  const related = ctx.recent_tickets.filter(t => t.category === topic);
+  rows.push({ label: "Related requests", status: "info", detail: related.length ? `${related.length} recent ${topic} request(s)` : "none open", source: "tickets" });
+  return rows;
+}
+
+/** Contextual next-step buttons — surfaced after EVERY answer (create-ticket only when needed). */
+function buildSuggestedActions(ctx: Awaited<ReturnType<typeof buildSupportContext>>, topic: string, needsTicket: boolean, diags: Diagnostic[]): SuggestedAction[] {
+  const actions: SuggestedAction[] = [];
+  if (needsTicket) actions.push({ label: "Create support request", action: "create_ticket" });
+  if (topic === "discovery") {
+    actions.push({ label: "Open Discovery", action: "navigate", payload: "/discovery" });
+    actions.push({ label: "Check status", action: "navigate", payload: "/status" });
+  }
+  const creditsLow = diags.some(x => x.label === "AI credits" && (x.status === "warn" || x.status === "error"));
+  if (topic === "credits" || topic === "billing" || creditsLow) actions.push({ label: "Open billing", action: "navigate", payload: "/settings/billing" });
+  actions.push({ label: "Ask a follow-up", action: "follow_up" });
+  // De-dupe by label, keep first occurrence.
+  const seen = new Set<string>();
+  return actions.filter(a => (seen.has(a.label) ? false : (seen.add(a.label), true))).slice(0, 5);
+}
+
+/** One-line summary of the diagnostics for the LLM, so its prose matches what we actually checked. */
+function diagnosticsForPrompt(diags: Diagnostic[]): string {
+  return `DIAGNOSTICS I already ran (read-only — reference these in your answer, describe what you found, and give the user something to try BEFORE suggesting a ticket):\n${diags.map(x => `- ${x.label}: ${x.status.toUpperCase()} — ${x.detail}`).join("\n")}`;
+}
+
+const SUPPORT_SYSTEM = `You are Mondaily's built-in Help & Support agent — a smart diagnostic terminal, not a generic support chat. You help users understand and use Mondaily — Discovery, the workspace graph, agents, decisions, finance, plans, AI credits, integrations, and data/privacy.
 
 STRICT RULES:
+- INVESTIGATE FIRST. Real read-only diagnostics have already been run for you (see DIAGNOSTICS). Use them: explain what you found, what it means, and what the user can try or check themselves. Resolve or guide before escalating.
+- Only set needs_ticket=true when the problem genuinely needs human action, a refund/credit adjustment, infra/admin setup (e.g. Sovereign Search not configured), or is a real bug you cannot resolve with guidance. Do NOT open a ticket for questions you can answer or things the user can self-serve.
 - Be accurate and source-backed. Explain features using the provided HELP DOCS and cite the [id] you used. If the docs don't cover the question, say so plainly and offer to open a support ticket — do not guess.
 - Answer identity/account questions DIRECTLY from the WORKSPACE FACTS: the user's name, email, role, workspace, plan/tier, trial status, credits remaining, and language are all provided — use them (e.g. "You're <name>", "You're on <plan>", "You have <n> credits left"). State account facts ONLY from these facts; if something isn't there, say you don't have it — never invent numbers, statuses, outages, or history.
 - SAFE UPSELL: when usage or needs suggest it, you MAY recommend a higher plan (e.g. "Based on your usage, Operator or Command may fit better") or a credit pack, and tell the user they can do it themselves at Settings → Billing. Frame it as a helpful suggestion, not pressure.
@@ -161,9 +225,11 @@ router.post("/ask", zValidator("json", z.object({
 
   const ctx = await buildSupportContext(c.get("workspaceId"), c.get("userId"));
   const docs = selectHelpDocs(message);
+  const topic = detectTopic(message);
+  const diagnostics = buildDiagnostics(ctx, topic);   // REAL rows, computed before the LLM
   const priorTurns = (history ?? []).slice(-6).map(h => `${h.role === "user" ? "User" : "Assistant"}: ${h.content}`).join("\n");
   const routeLine = route ? `\n\nThe user is currently on the page: ${route}. Use this only as context for what they might be asking about.` : "";
-  const system = `${SUPPORT_SYSTEM}\n\n${contextBlock(ctx)}${routeLine}\n\n${helpDocsBlock(docs)}${languageInstruction(ctx.language)}\n\nRespond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIES.join(", ")}], "needs_ticket": boolean, "suggested_subject": string}. The "answer" must be in the user's language; the other fields stay in English.`;
+  const system = `${SUPPORT_SYSTEM}\n\n${contextBlock(ctx)}${routeLine}\n\n${diagnosticsForPrompt(diagnostics)}\n\n${helpDocsBlock(docs)}${languageInstruction(ctx.language)}\n\nRespond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIES.join(", ")}], "needs_ticket": boolean, "suggested_subject": string}. The "answer" must be in the user's language; the other fields stay in English.`;
   const prompt = `${priorTurns ? priorTurns + "\n" : ""}User: ${message}`;
 
   // UNMETERED on purpose (no workspaceId) so users with 0 credits can still get help about credits.
@@ -172,21 +238,25 @@ router.post("/ask", zValidator("json", z.object({
     const res = await aiGateway({ system, prompt, maxTokens: 700, feature: "support" });
     raw = res.text ?? "";
   } catch {
-    return c.json({ answer: "I couldn't reach the help service just now. Please try again, or create a support request.", category: "bug_report" as SupportCategory, needs_ticket: true, suggested_subject: "Help service error", language: ctx.language, cited_docs: [], degraded: true });
+    return c.json({ answer: "I couldn't reach the help service just now. Please try again, or create a support request.", category: "bug_report" as SupportCategory, needs_ticket: true, suggested_subject: "Help service error", language: ctx.language, cited_docs: [], diagnostics, suggested_actions: buildSuggestedActions(ctx, topic, true, diagnostics), degraded: true });
   }
 
   let parsed: { answer?: string; category?: string; needs_ticket?: boolean; suggested_subject?: string } = {};
   try { parsed = JSON.parse(raw.slice(raw.indexOf("{"), raw.lastIndexOf("}") + 1)); } catch { parsed = { answer: raw }; }
   const category: SupportCategory = (SUPPORT_CATEGORIES as readonly string[]).includes(parsed.category ?? "")
     ? (parsed.category as SupportCategory) : "bug_report";
+  const needsTicket = Boolean(parsed.needs_ticket);
 
   return c.json({
     answer: (parsed.answer && parsed.answer.trim()) || "I'm not sure — want me to open a support request so a human can help?",
     category,
-    needs_ticket: Boolean(parsed.needs_ticket),
+    needs_ticket: needsTicket,
     suggested_subject: (parsed.suggested_subject ?? "").toString().slice(0, 120),
     language: ctx.language,
     cited_docs: docs.map(d => d.id),
+    // REAL diagnostics + contextual next steps (shown after every answer).
+    diagnostics,
+    suggested_actions: buildSuggestedActions(ctx, topic, needsTicket, diagnostics),
   });
 });
 

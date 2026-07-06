@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { HelpCircle, X, Send, Loader2, Check, Terminal } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
@@ -16,8 +17,10 @@ import { useLanguage } from "../../hooks/useLanguage";
  * (e.g. Billing). No floating button over the sidebar/user area.
  */
 
-interface HelpMsg { role: "user" | "assistant"; content: string; category?: string; needsTicket?: boolean; suggestedSubject?: string }
-type AskResp = { answer: string; category: string; needs_ticket: boolean; suggested_subject: string; language: string; cited_docs: string[] };
+interface Diagnostic { label: string; status: "ok" | "warn" | "error" | "info"; detail: string; source: string }
+interface SuggestedAction { label: string; action: "navigate" | "create_ticket" | "follow_up"; payload?: string }
+interface HelpMsg { role: "user" | "assistant"; content: string; category?: string; needsTicket?: boolean; suggestedSubject?: string; diagnostics?: Diagnostic[]; actions?: SuggestedAction[] }
+type AskResp = { answer: string; category: string; needs_ticket: boolean; suggested_subject: string; language: string; cited_docs: string[]; diagnostics?: Diagnostic[]; suggested_actions?: SuggestedAction[] };
 interface SupportContext {
   identity: { display_name: string; email: string | null; role: string; workspace_name: string };
   language: string;
@@ -64,13 +67,28 @@ function StatusRow({ label, value, ok }: { label: string; value: string; ok?: bo
   );
 }
 
+/** One diagnostic line inside an answer — command-style label + colored state dot + detail. */
+function DiagRow({ d }: { d: Diagnostic }) {
+  const color = d.status === "ok" ? "#5fae8b" : d.status === "warn" ? "#a3946b" : d.status === "error" ? "#ef4444" : "var(--text-faint)";
+  return (
+    <div className="flex items-start gap-2 font-mono text-[11px]">
+      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
+      <span className="shrink-0" style={{ color: "var(--text-muted)" }}>{d.label}</span>
+      <span className="truncate" style={{ color: "var(--text-secondary)" }} title={`${d.detail} · ${d.source}`}>{d.detail}</span>
+    </div>
+  );
+}
+
 function HelpPanel({ prefill, onClose }: { prefill: string; onClose: () => void }) {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [input, setInput] = useState(prefill);
   const [msgs, setMsgs] = useState<HelpMsg[]>([]);
   const [busy, setBusy] = useState(false);
   const [ticketDone, setTicketDone] = useState<Record<number, boolean>>({});
+  const [ticketMade, setTicketMade] = useState(false);   // avoid silent duplicate tickets in one chat
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // REAL context — the terminal status rows reflect data actually loaded (no fake diagnostics).
   const ctx = useQuery<SupportContext>({ queryKey: ["support-context"], queryFn: () => apiClient.get("/support/context"), staleTime: 60_000, retry: false });
@@ -86,13 +104,14 @@ function HelpPanel({ prefill, onClose }: { prefill: string; onClose: () => void 
     setBusy(true);
     try {
       const r = await apiClient.post<AskResp>("/support/ask", { message: text, history, route: window.location.pathname });
-      setMsgs(m => [...m, { role: "assistant", content: r.answer, category: r.category, needsTicket: r.needs_ticket, suggestedSubject: r.suggested_subject }]);
+      setMsgs(m => [...m, { role: "assistant", content: r.answer, category: r.category, needsTicket: r.needs_ticket, suggestedSubject: r.suggested_subject, diagnostics: r.diagnostics, actions: r.suggested_actions }]);
     } catch {
       setMsgs(m => [...m, { role: "assistant", content: "I couldn't reach the help service. Please try again in a moment.", needsTicket: true, category: "bug_report", suggestedSubject: "Help service error" }]);
     } finally { setBusy(false); }
   }
 
   async function createTicket(idx: number, m: HelpMsg) {
+    if (ticketMade) return;   // one request per chat — never create duplicates silently
     const priorUser = [...msgs].slice(0, idx).reverse().find(x => x.role === "user");
     try {
       await apiClient.post("/support/tickets", {
@@ -100,10 +119,18 @@ function HelpPanel({ prefill, onClose }: { prefill: string; onClose: () => void 
         subject: (m.suggestedSubject || priorUser?.content || "Support request").slice(0, 200),
         message: `${priorUser?.content ?? ""}\n\n---\nAgent summary: ${m.content}`.trim(),
         route: window.location.pathname,   // context only — the backend never acts on this
-        metadata: { source: "help_agent" },
+        metadata: { source: "help_agent", diagnostics: m.diagnostics ?? [] },
       });
       setTicketDone(d => ({ ...d, [idx]: true }));
+      setTicketMade(true);
     } catch { /* keep the chat usable even if ticket creation hiccups */ }
+  }
+
+  // Run a suggested action. Only explicit user clicks act — navigation, focus, or (confirmed) ticket.
+  function runAction(idx: number, m: HelpMsg, a: SuggestedAction) {
+    if (a.action === "navigate" && a.payload) { navigate(a.payload); onClose(); }
+    else if (a.action === "create_ticket") createTicket(idx, m);
+    else if (a.action === "follow_up") inputRef.current?.focus();
   }
 
   const c = ctx.data;
@@ -150,17 +177,36 @@ function HelpPanel({ prefill, onClose }: { prefill: string; onClose: () => void 
             </>
           )}
           {msgs.map((m, i) => (
-            <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
-              <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${m.role === "user" ? "rounded-br-sm" : "rounded-bl-sm"}`}
+            <div key={i} className={m.role === "user" ? "flex justify-end" : "flex flex-col items-start"}>
+              <div className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${m.role === "user" ? "self-end rounded-br-sm" : "rounded-bl-sm"}`}
                 style={{ background: m.role === "user" ? "var(--surface-selected)" : "var(--surface-card)", color: "var(--text-primary)", border: "1px solid var(--border-soft)" }}>
                 <p className="whitespace-pre-wrap">{m.content}</p>
-                {m.role === "assistant" && m.needsTicket && (
-                  ticketDone[i]
-                    ? <p className="mt-2 flex items-center gap-1.5 text-[11.5px] text-emerald-500"><Check size={12} /> {t("help.ticket_created")}</p>
-                    : <button onClick={() => createTicket(i, m)} className="mt-2 rounded-lg border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
-                        style={{ borderColor: "var(--border-strong)", color: "var(--section-accent)" }}>{t("help.create_ticket")}</button>
+                {/* Terminal-style diagnostics — real rows the agent checked (green/amber/red). */}
+                {m.role === "assistant" && (m.diagnostics?.length ?? 0) > 0 && (
+                  <div className="mt-2.5 space-y-1 rounded-lg border p-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
+                    {m.diagnostics!.map((d, k) => <DiagRow key={k} d={d} />)}
+                  </div>
+                )}
+                {m.role === "assistant" && m.needsTicket && ticketDone[i] && (
+                  <p className="mt-2 flex items-center gap-1.5 text-[11.5px] text-emerald-500"><Check size={12} /> {t("help.ticket_created")}</p>
                 )}
               </div>
+              {/* Suggested actions — shown after EVERY assistant answer. */}
+              {m.role === "assistant" && (m.actions?.length ?? 0) > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {m.actions!.map((a, k) => {
+                    const isTicket = a.action === "create_ticket";
+                    if (isTicket && (ticketMade || ticketDone[i])) return null;   // no duplicate-ticket action
+                    return (
+                      <button key={k} onClick={() => runAction(i, m, a)}
+                        className="rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
+                        style={{ borderColor: isTicket ? "var(--border-strong)" : "var(--border-soft)", color: isTicket ? "var(--section-accent)" : "var(--text-secondary)" }}>
+                        {a.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           ))}
           {busy && <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> …</div>}
@@ -168,7 +214,7 @@ function HelpPanel({ prefill, onClose }: { prefill: string; onClose: () => void 
 
         <div className="border-t p-3" style={{ borderColor: "var(--border-soft)" }}>
           <div className="flex items-end gap-2">
-            <textarea value={input} onChange={e => setInput(e.target.value)} rows={1}
+            <textarea ref={inputRef} value={input} onChange={e => setInput(e.target.value)} rows={1}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               placeholder={t("help.placeholder")}
               className="max-h-28 flex-1 resize-none rounded-lg border bg-transparent px-3 py-2 text-[13px] outline-none"

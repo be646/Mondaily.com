@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { SUPPORT_CATEGORIES, SUPPORT_STATUSES } from "../routes/support";
+import { SUPPORT_CATEGORIES, SUPPORT_STATUSES, detectTopic } from "../routes/support";
 import { HELP_DOCS, selectHelpDocs, helpDocsBlock } from "../lib/help-docs";
 
 const src = readFileSync(fileURLToPath(new URL("../routes/support.ts", import.meta.url)), "utf8");
@@ -240,6 +240,72 @@ describe("PHASE 2.1 — Help launcher moved off the sidebar/user area", () => {
     const panel = read("../../../../apps/app/src/components/help/help-panel.tsx");
     expect(panel).toMatch(/apiClient\.get\("\/support\/context"\)/);
     expect(panel).toMatch(/reading workspace context/);
+  });
+});
+
+describe("PHASE 2.2 — role-split support UI (admin queue vs my requests)", () => {
+  const src = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/settings/support.tsx", import.meta.url)), "utf8");
+  it("normal members load ONLY their own tickets; admins load the full queue", () => {
+    expect(src).toMatch(/isAdmin \? "\/support\/tickets" : "\/support\/my-tickets"/);
+    expect(src).toMatch(/\["owner", "admin"\]\.includes\(role/);
+  });
+  it("the status control is admin-only in the UI (members see a read-only badge)", () => {
+    expect(src).toMatch(/canManageStatus \? \(/);
+    expect(src).toMatch(/<StatusBadge status=\{d\.status\}/);   // member branch
+  });
+  it("backend PATCH status stays admin/owner-gated (defence in depth)", () => {
+    const back = readFileSync(fileURLToPath(new URL("../routes/support.ts", import.meta.url)), "utf8");
+    expect(back).toMatch(/router\.patch\("\/tickets\/:id", requireAdminRole/);
+  });
+});
+
+describe("PHASE 2.2 — investigate-first diagnostics + suggested actions", () => {
+  const src = readFileSync(fileURLToPath(new URL("../routes/support.ts", import.meta.url)), "utf8");
+  it("detectTopic routes Discovery/credits/billing questions", () => {
+    expect(detectTopic("Why is Discovery slow?")).toBe("discovery");
+    expect(detectTopic("Is search online?")).toBe("discovery");
+    expect(detectTopic("Am I out of credits?")).toBe("credits");
+    expect(detectTopic("What plan should I upgrade to?")).toBe("billing");
+    expect(detectTopic("hello")).toBe("general");
+  });
+  it("Discovery diagnostics include real Sovereign Search + Scraper rows", () => {
+    const fn = src.slice(src.indexOf("function buildDiagnostics"));
+    expect(fn).toMatch(/label: "Sovereign Search", status: d\.sovereign_search \? "ok" : "error"/);
+    expect(fn).toMatch(/label: "Scraper", status: d\.sovereign_scrape \? "ok" : "error"/);
+    expect(fn).toMatch(/label: "AI credits"/);
+    expect(fn).toMatch(/label: "Related requests"/);
+  });
+  it("the prompt tells the agent to investigate + resolve BEFORE escalating", () => {
+    expect(src).toMatch(/INVESTIGATE FIRST/);
+    expect(src).toMatch(/Resolve or guide before escalating/);
+    expect(src).toMatch(/Only set needs_ticket=true when the problem genuinely needs human action/);
+  });
+  it("/ask returns diagnostics + suggested_actions (backward-compatible with existing fields)", () => {
+    const fn = src.slice(src.indexOf('router.post("/ask"'), src.indexOf('router.get("/context"'));
+    expect(fn).toMatch(/diagnostics,\n\s*suggested_actions: buildSuggestedActions/);
+    expect(fn).toMatch(/cited_docs: docs\.map/);   // existing fields preserved
+  });
+  it("suggested actions always include a follow-up; create-ticket only when needed", () => {
+    const fn = src.slice(src.indexOf("function buildSuggestedActions"));
+    expect(fn).toMatch(/if \(needsTicket\) actions\.push\(\{ label: "Create support request", action: "create_ticket" \}\)/);
+    expect(fn).toMatch(/action: "follow_up"/);
+  });
+});
+
+describe("PHASE 2.2 — Help panel renders diagnostics + actions, explicit ticket only", () => {
+  const panel = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/components/help/help-panel.tsx", import.meta.url)), "utf8");
+  it("renders diagnostics rows + suggested-action buttons after each answer", () => {
+    expect(panel).toMatch(/m\.diagnostics!\.map/);
+    expect(panel).toMatch(/m\.actions!\.map/);
+    expect(panel).toMatch(/function DiagRow/);
+  });
+  it("a ticket is created ONLY on explicit action, and never duplicated in one chat", () => {
+    expect(panel).toMatch(/if \(ticketMade\) return;/);           // guard against silent dupes
+    expect(panel).toMatch(/a\.action === "create_ticket"\) createTicket/);
+    expect(panel).toMatch(/if \(isTicket && \(ticketMade \|\| ticketDone\[i\]\)\) return null/);
+  });
+  it("ticket metadata carries the diagnostics from the chat", () => {
+    expect(panel).toMatch(/diagnostics: m\.diagnostics \?\? \[\]/);
   });
 });
 

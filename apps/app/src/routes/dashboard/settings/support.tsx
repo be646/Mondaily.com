@@ -1,14 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { LifeBuoy, X, MessageSquare, Send } from "lucide-react";
+import { LifeBuoy, X, MessageSquare, Send, Plus } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 import { useLanguage } from "../../../hooks/useLanguage";
+import { useModules } from "../../../hooks/useModules";
+import { useHelp } from "../../../components/help/help-panel";
 
 /**
- * Support queue — the admin/owner operational view over `support_ticket` nodes. Lists tickets, opens
- * a detail panel to change status and reply. Every call is workspace-scoped by the backend; a
- * non-admin gets a 403 from GET /support/tickets and sees the access notice.
+ * Support — role-branched. ADMIN/OWNER see the workspace queue (all tickets) with status controls.
+ * Normal members see "My support requests" — only their own tickets, read + reply, NO status control
+ * (the PATCH endpoint is admin-gated server-side; the UI hides the control so it's not misleading).
  */
 const STATUSES = ["open", "in_review", "waiting_on_user", "resolved", "closed"] as const;
 type Status = (typeof STATUSES)[number];
@@ -25,29 +27,33 @@ const CATEGORY_LABEL: Record<string, string> = {
 export function SupportSettings() {
   const { t } = useLanguage();
   const qc = useQueryClient();
+  const help = useHelp();
+  const { role } = useModules();
+  const isAdmin = ["owner", "admin"].includes(role ?? "");
   const [openId, setOpenId] = useState<string | null>(null);
   const statusLabel = (s: string) => t(`support.status.${s}`);
 
+  // Admins → the whole workspace queue; members → only their own requests.
   const query = useQuery<{ tickets: TicketRow[] }>({
-    queryKey: ["support-tickets"],
-    queryFn: () => apiClient.get("/support/tickets"),
+    queryKey: isAdmin ? ["support-tickets"] : ["my-support-tickets"],
+    queryFn: () => apiClient.get(isAdmin ? "/support/tickets" : "/support/my-tickets"),
     retry: false,
   });
 
   if (query.isLoading) return <PageSkeleton rows={5} />;
-  if (query.isError) {
-    return (
-      <div className="max-w-2xl">
-        <PageHeader title={t("support.title")} description="The support queue is available to workspace owners and admins." />
-        <p className="mt-4 text-sm text-[var(--text-muted)]">You don't have access to the support queue. Ask an owner or admin.</p>
-      </div>
-    );
-  }
   const tickets = query.data?.tickets ?? [];
+  const title = isAdmin ? t("support.title") : t("support.my_requests");
+  const description = isAdmin ? "All support requests from this workspace. Update status and reply." : "Your support requests. Track status and reply.";
 
   return (
     <div className="max-w-3xl">
-      <PageHeader title={t("support.title")} description="Support requests from this workspace. Update status and reply." />
+      <div className="flex items-start justify-between gap-4">
+        <PageHeader title={title} description={description} />
+        <button onClick={() => help.open()} className="mt-1 flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
+          style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
+          <Plus size={13} /> {t("support.new_request")}
+        </button>
+      </div>
       {tickets.length === 0 ? (
         <div className="mt-6 flex flex-col items-center gap-2 rounded-xl border py-12 text-center" style={{ borderColor: "var(--border-soft)" }}>
           <LifeBuoy size={22} style={{ color: "var(--text-faint)" }} />
@@ -81,7 +87,7 @@ export function SupportSettings() {
           </table>
         </div>
       )}
-      {openId && <TicketPanel id={openId} onClose={() => setOpenId(null)} onChanged={() => qc.invalidateQueries({ queryKey: ["support-tickets"] })} statusLabel={statusLabel} />}
+      {openId && <TicketPanel id={openId} canManageStatus={isAdmin} onClose={() => setOpenId(null)} onChanged={() => qc.invalidateQueries({ queryKey: isAdmin ? ["support-tickets"] : ["my-support-tickets"] })} statusLabel={statusLabel} />}
     </div>
   );
 }
@@ -94,7 +100,7 @@ function StatusBadge({ status, label }: { status: string; label: string }) {
   return <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ background: `color-mix(in srgb, ${c} 14%, transparent)`, color: c }}>{label}</span>;
 }
 
-function TicketPanel({ id, onClose, onChanged, statusLabel }: { id: string; onClose: () => void; onChanged: () => void; statusLabel: (s: string) => string }) {
+function TicketPanel({ id, canManageStatus, onClose, onChanged, statusLabel }: { id: string; canManageStatus: boolean; onClose: () => void; onChanged: () => void; statusLabel: (s: string) => string }) {
   const { t } = useLanguage();
   const qc = useQueryClient();
   const [reply, setReply] = useState("");
@@ -121,10 +127,15 @@ function TicketPanel({ id, onClose, onChanged, statusLabel }: { id: string; onCl
         {!d ? <div className="p-5"><PageSkeleton rows={4} /></div> : (
           <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
             <div className="flex items-center gap-2">
-              <select value={d.status} onChange={e => setStatus.mutate(e.target.value as Status)} disabled={setStatus.isPending}
-                className="rounded-lg border bg-transparent px-2.5 py-1.5 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
-                {STATUSES.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
-              </select>
+              {/* Status control ONLY for admins/owners; members see a read-only status badge. */}
+              {canManageStatus ? (
+                <select value={d.status} onChange={e => setStatus.mutate(e.target.value as Status)} disabled={setStatus.isPending}
+                  className="rounded-lg border bg-transparent px-2.5 py-1.5 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
+                  {STATUSES.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
+                </select>
+              ) : (
+                <StatusBadge status={d.status} label={statusLabel(d.status)} />
+              )}
               <span className="text-[11px] text-[var(--text-faint)]">{CATEGORY_LABEL[d.category] ?? d.category}</span>
             </div>
             <div className="rounded-lg border p-3 text-[13px] whitespace-pre-wrap" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>{d.message}</div>
