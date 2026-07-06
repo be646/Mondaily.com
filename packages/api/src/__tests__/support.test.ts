@@ -214,8 +214,24 @@ describe("PHASE 2.1 — Help launcher moved off the sidebar/user area", () => {
     expect(panel).not.toMatch(/fixed bottom-5 left-5/);   // the old placement over sidebar identity
     expect(panel).toMatch(/export function HelpTopButton/);
   });
-  it("the top header mounts HelpTopButton as the main entry", () => {
-    expect(read("../../../../apps/app/src/routes/dashboard/layout.tsx")).toMatch(/<HelpTopButton \/>/);
+  it("exactly ONE Help launcher, in the right-side global controls (AgentStatusBar)", () => {
+    const layout = read("../../../../apps/app/src/routes/dashboard/layout.tsx");
+    const agentStatus = read("../../../../apps/app/src/components/ai/agent-status.tsx");
+    // The launcher lives in the right-side controls, NOT in the layout's left slot.
+    expect(agentStatus).toMatch(/<HelpTopButton \/>/);
+    expect(layout).not.toMatch(/<HelpTopButton \/>/);
+    // Only one mounted instance across the two header files (no duplicate icon).
+    const count = (layout.match(/<HelpTopButton \/>/g) ?? []).length + (agentStatus.match(/<HelpTopButton \/>/g) ?? []).length;
+    expect(count).toBe(1);
+    // The old static, non-working Help icon (no onClick) is gone.
+    expect(agentStatus).not.toMatch(/title="Help"\s*>\s*<HelpCircle/);
+  });
+  it("HelpTopButton opens the panel via useHelp().open() with a clear aria-label", () => {
+    const panel = read("../../../../apps/app/src/components/help/help-panel.tsx");
+    const fn = panel.slice(panel.indexOf("export function HelpTopButton"));
+    expect(fn).toMatch(/const \{ open \} = useHelp\(\)/);
+    expect(fn).toMatch(/onClick=\{\(\) => open\(\)\}/);
+    expect(fn).toMatch(/aria-label="Open Help"/);
   });
   it("Billing still opens Help with a billing prefill", () => {
     expect(read("../../../../apps/app/src/routes/dashboard/settings/billing.tsx")).toMatch(/help\.open\(/);

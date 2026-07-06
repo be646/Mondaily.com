@@ -5,10 +5,11 @@ import { useSovereignAuthOptional } from "../auth/sovereign-auth-context";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import {
   MessageCircle, Settings, LogOut, User, X, Send, Share2,
-  HelpCircle, MoreHorizontal, Copy, Check, Loader2,
+  MoreHorizontal, Copy, Check, Loader2,
   ThumbsUp, ThumbsDown, Palette, ListChecks, Network, Brain, Square, RotateCcw, Mic,
 } from "lucide-react";
 import { NotificationsBell } from "../ui/notifications-bell";
+import { HelpTopButton } from "../help/help-panel";
 import { LogoMark } from "../logo";
 import { apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { useAskEngine } from "./use-ask-engine";
@@ -408,12 +409,8 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
             </button>
           )}
 
-          <button
-            className="rounded-lg p-1.5 text-[#9ca3af] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:text-stone-600 dark:hover:bg-[var(--surface-hover)] dark:hover:text-stone-300"
-            title="Help"
-          >
-            <HelpCircle size={14}/>
-          </button>
+          {/* The ONE Help launcher — right-side global controls; opens the Smart Help panel. */}
+          <HelpTopButton />
 
           <button
             type="button"

@@ -46,9 +46,8 @@ export function HelpProvider({ children }: { children: React.ReactNode }) {
 export function HelpTopButton() {
   const { open } = useHelp();
   return (
-    <button onClick={() => open()} title="Help & Support" aria-label="Help & Support"
-      className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-stone-100 dark:hover:bg-stone-900"
-      style={{ color: "var(--text-faint)" }}>
+    <button onClick={() => open()} title="Help & Support" aria-label="Open Help"
+      className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-50">
       <HelpCircle size={15} />
     </button>
   );
