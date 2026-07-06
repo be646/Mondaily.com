@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { EVENT_STATUSES } from "../routes/calendar";
+import { EVENT_STATUSES, groupFollowUps, type FollowTask } from "../routes/calendar";
 import { buildNotificationPayload, extractSource, categorizeNotification } from "../lib/notify";
 import { analyzeMeetings, relatedFollowUps, type MeetingLite } from "../jobs/meeting-agent";
 
@@ -404,12 +404,14 @@ describe("Smart Calendar UI — command-center layout", () => {
     expect(page).toMatch(/function TodayStrip/);
     expect(page).toMatch(/apiClient\.get\("\/calendar\/brief\/today"\)/);
   });
-  it("event detail is a Meeting Brief with source-backed AI preparation", () => {
-    expect(page).toMatch(/t\("cal\.meeting_brief"\)/);
+  it("event detail is an AI Meeting Brief with source-backed AI preparation", () => {
+    expect(page).toMatch(/t\("cal\.ai_meeting_brief"\)/);   // framed as the AI Meeting Brief
     expect(page).toMatch(/apiClient\.post\(`\/calendar\/events\/\$\{id\}\/prepare`/);
     expect(page).toMatch(/t\("cal\.sources_note"\)/);   // grounding disclosure shown to the user
   });
-  it("after-meeting actions are clearly marked not-ready (no fake completion)", () => {
+  it("after-meeting: create follow-up task is REAL; notes/recap stay honest 'Coming soon'", () => {
+    expect(page).toMatch(/createTask\.mutate\(`Follow up on \$\{e\.title\}`\)/);   // real task create
+    expect(page).toMatch(/apiClient\.post\("\/tasks", \{ title \}\)/);
     expect(page).toMatch(/t\("cal\.coming_soon"\)/);
     expect(page).toMatch(/cursor-not-allowed/);
   });
@@ -484,6 +486,75 @@ describe("Smart Calendar — visible Meeting Agent identity (honest, on-demand)"
     const agents = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/lib/agents.ts", import.meta.url)), "utf8");
     expect(agents).toMatch(/meeting:\s*\{ id: "meeting",\s*name: "Meeting Agent"/);
     expect(agents).toMatch(/\["\/calendar", "meeting"\]/);
+  });
+});
+
+describe("Calendar UX — click-to-create + review panel + semantic colours", () => {
+  it("clicking an empty grid slot opens New Meeting prefilled with the slot time (30-min default)", () => {
+    expect(page).toMatch(/const openSlot = \(start: Date\) =>/);
+    expect(page).toMatch(/new Date\(start\.getTime\(\) \+ 30 \* 60_000\)/);   // 30-minute default end
+    expect(page).toMatch(/<TimeGrid days=\{\[anchor\]\}[^>]*onSlot=\{openSlot\}/);
+    expect(page).toMatch(/<TimeGrid days=\{anchorWeek\}[^>]*onSlot=\{openSlot\}/);
+    expect(page).toMatch(/initialStart=\{createInit\?\.start\}/);
+    // CreateModal seeds its start/end from the prefilled values
+    expect(page).toMatch(/useState\(initialStart \?\? ""\)/);
+    expect(page).toMatch(/useState\(initialEnd \?\? ""\)/);
+  });
+  it("clicking an existing meeting opens the review panel (event, not slot)", () => {
+    expect(page).toMatch(/onClick=\{\(ev\) => \{ ev\.stopPropagation\(\); onOpen\(pl\.e\.id\); \}\}/);
+    expect(page).toMatch(/openId \? <MeetingBriefBody id=\{openId\} \/> : <TodayBriefingPanel/);
+  });
+  it("review panel carries the required actions (join / prepare / add-edit agenda / create task)", () => {
+    expect(page).toMatch(/navigate\(`\/calls\/\$\{e\.id\}`\)/);                 // join call
+    expect(page).toMatch(/prepare\.mutate\(\)/);                                // prepare with AI
+    expect(page).toMatch(/apiClient\.patch\(`\/calendar\/events\/\$\{id\}`, \{ description: agendaDraft \}\)/);  // add/edit agenda
+    expect(page).toMatch(/t\("cal\.edit_agenda"\)/);
+    expect(page).toMatch(/t\("cal\.create_task"\)/);
+  });
+  it("AI Meeting Brief readiness rows are derived from REAL fields only (incl. related + follow-ups)", () => {
+    expect(page).toMatch(/t\("cal\.ai_meeting_brief"\)/);
+    expect(page).toMatch(/const relN = prepare\.data\?\.sources\.length \?\? 0/);        // related from real prep sources
+    expect(page).toMatch(/followTotal > 0/);                                            // follow-ups from real tasks
+    expect(page).toMatch(/t\("cal\.st_none_found"\)/);                                  // says what was NOT found
+  });
+  it("follow-ups are grouped and only suggested is a marked draft", () => {
+    expect(page).toMatch(/function FollowUpGroups/);
+    expect(page).toMatch(/t\("cal\.overdue"\)/);
+    expect(page).toMatch(/t\("cal\.due_today"\)/);
+    expect(page).toMatch(/t\("cal\.related_meeting"\)/);
+    expect(page).toMatch(/t\("cal\.draft_tag"\)/);
+    expect(page).toMatch(/apiClient\.get\(`\/calendar\/events\/\$\{id\}\/followups`\)/);
+  });
+  it("the meeting colour classifier is deterministic — real fields only, no randomness", () => {
+    expect(page).toMatch(/function meetingTone\(e: CalEvent\)/);
+    expect(page).not.toMatch(/meetingTone[\s\S]{0,400}Math\.random/);
+    // maps by real fields: missing agenda → rose, finance → amber, external → green, else slate
+    expect(page).toMatch(/if \(!\(e\.description \?\? ""\)\.trim\(\)\) return TONE\.rose/);
+    expect(page).toMatch(/if \(FINANCE_RE\.test\(e\.title\)\) return TONE\.amber/);
+    expect(page).toMatch(/if \(EXTERNAL_RE\.test\(e\.title\)\) return TONE\.green/);
+    expect(page).toMatch(/return TONE\.slate/);
+  });
+});
+
+describe("Calendar — grouped follow-ups (real tasks, deterministic)", () => {
+  const now = new Date("2026-07-06T12:00:00Z");
+  const iso = (s: string) => new Date(s).toISOString();
+  const tasks: FollowTask[] = [
+    { id: "o", title: "Old thing", due_date: iso("2026-07-01T09:00:00Z") },      // overdue
+    { id: "d", title: "Due thing", due_date: iso("2026-07-06T15:00:00Z") },      // due today
+    { id: "r", title: "Acme renewal follow-up", due_date: null },                 // related to "Acme onboarding"
+    { id: "n", title: "Buy milk", due_date: null },                               // unrelated, no date
+  ];
+  it("splits tasks into overdue / due-today / related without duplication", () => {
+    const g = groupFollowUps(tasks, "Acme onboarding", now);
+    expect(g.overdue.map(t => t.id)).toEqual(["o"]);
+    expect(g.due_today.map(t => t.id)).toEqual(["d"]);
+    expect(g.related.map(t => t.id)).toEqual(["r"]);   // "n" unrelated; dated ones not double-counted
+  });
+  it("an overdue task that also matches keywords stays in overdue only (single group)", () => {
+    const g = groupFollowUps([{ id: "x", title: "Acme overdue", due_date: iso("2026-07-01T09:00:00Z") }], "Acme onboarding", now);
+    expect(g.overdue.map(t => t.id)).toEqual(["x"]);
+    expect(g.related).toEqual([]);
   });
 });
 

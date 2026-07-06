@@ -363,4 +363,36 @@ router.post("/events/:id/prepare", async (c) => {
   } catch { return c.json({ event: shaped, sources, agenda_summary: null, talking_points: [], follow_ups: [], ai_available: false }); }
 });
 
+// GET /calendar/events/:id/followups — REAL open tasks grouped for this meeting's review panel:
+// overdue / due-today / related (title-keyword match) + a clearly-marked SUGGESTED draft (never created
+// here). Read-only, workspace-scoped, access = organizer/attendee/admin. No fabricated tasks.
+export interface FollowTask { id: string; title: string; due_date: string | null; priority?: string | null }
+export function groupFollowUps(tasks: FollowTask[], meetingTitle: string, now: Date): { overdue: FollowTask[]; due_today: FollowTask[]; related: FollowTask[] } {
+  const todayStr = now.toDateString();
+  const isOverdue = (d?: string | null) => !!d && new Date(d) < now && new Date(d).toDateString() !== todayStr;
+  const isToday = (d?: string | null) => !!d && new Date(d).toDateString() === todayStr;
+  const toks = new Set(tokenize(meetingTitle));
+  const relatedIds = new Set(tasks.filter((t) => tokenize(t.title || "").some((w) => toks.has(w))).map((t) => t.id));
+  const overdue = tasks.filter((t) => isOverdue(t.due_date));
+  const due_today = tasks.filter((t) => isToday(t.due_date));
+  const seen = new Set([...overdue, ...due_today].map((t) => t.id));   // a task shows in ONE group only
+  const related = tasks.filter((t) => relatedIds.has(t.id) && !seen.has(t.id));
+  return { overdue, due_today, related };
+}
+
+router.get("/events/:id/followups", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId"); const role = c.get("role");
+  const ev = await getEvent(ws, c.req.param("id"));
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canView(ev.data, me) && !isWorkspaceAdmin(role)) return c.json({ error: "Not allowed." }, 403);
+  const { data: taskRows } = await supabase.from("tasks").select("id, title, due_date, priority").eq("workspace_id", ws).eq("completed", false).limit(500);
+  const tasks: FollowTask[] = (taskRows ?? []).map((t) => ({ id: String(t.id), title: String(t.title ?? ""), due_date: (t.due_date as string | null) ?? null, priority: (t.priority as string | null) ?? null }));
+  const g = groupFollowUps(tasks, ev.data.title, new Date());
+  return c.json({
+    ...g,
+    suggested: { title: `Follow up on ${ev.data.title}`, draft: true },   // a template the user may create — NOT inserted
+    total_open: tasks.length,
+  });
+});
+
 export { router as calendarRouter };

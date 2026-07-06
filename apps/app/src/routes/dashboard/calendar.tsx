@@ -23,6 +23,8 @@ interface MemberRow { id: string; name?: string; email: string }
 type ViewMode = "today" | "week" | "upcoming";
 
 const fmtTime = (iso: string, loc: string) => { try { return new Date(iso).toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" }); } catch { return ""; } };
+/** A Date → "YYYY-MM-DDTHH:mm" string for <input type="datetime-local"> (local time, no seconds). */
+const toLocalInput = (d: Date) => { const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
 const dayKey = (iso: string) => new Date(iso).toDateString();
 const isSameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
@@ -96,8 +98,8 @@ function meetingTone(e: CalEvent): { edge: string; tint: string } {
  * event blocks (overlaps laid side-by-side), today shading, and a live current-time line. Drives both
  * the Today day-timeline (single column) and the Week grid (seven columns).
  */
-function TimeGrid({ days, events, selected, onOpen, lang, single }: {
-  days: Date[]; events: CalEvent[]; selected: string | null; onOpen: (id: string) => void; lang: string; single?: boolean;
+function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
+  days: Date[]; events: CalEvent[]; selected: string | null; onOpen: (id: string) => void; onSlot?: (start: Date) => void; lang: string; single?: boolean;
 }) {
   const now = new Date();
   const perDay = days.map(d => events.filter(e => isSameDay(new Date(e.start_at), d)));
@@ -131,7 +133,15 @@ function TimeGrid({ days, events, selected, onOpen, lang, single }: {
                     {d.toLocaleDateString(lang, { weekday: "short" })} <span className="tabular-nums">{d.getDate()}</span>
                   </div>
                 )}
-                <div className="relative" style={{ height: bodyH }}>
+                <div className="relative" style={{ height: bodyH, cursor: onSlot ? "pointer" : "default" }}
+                  onClick={onSlot ? (ev) => {
+                    // Click an empty slot → open New Meeting with the clicked time (rounded to 15m), 30m default.
+                    const rect = ev.currentTarget.getBoundingClientRect();
+                    let mins = Math.round((startH * 60 + ((ev.clientY - rect.top) / HOUR_PX) * 60) / 15) * 15;
+                    mins = Math.max(0, Math.min(mins, 24 * 60 - 30));
+                    const slot = new Date(d); slot.setHours(0, 0, 0, 0); slot.setMinutes(mins);
+                    onSlot(slot);
+                  } : undefined}>
                   {isToday && <div className="absolute inset-0" style={{ background: "color-mix(in srgb, var(--text-muted) 4%, transparent)" }} />}
                   {/* Horizontal hour lines — thin + soft */}
                   {hours.map((h, i) => <div key={h} className="absolute inset-x-0 border-t" style={{ top: i * HOUR_PX, borderColor: "color-mix(in srgb, var(--border-soft) 55%, transparent)" }} />)}
@@ -147,13 +157,18 @@ function TimeGrid({ days, events, selected, onOpen, lang, single }: {
                     const on = pl.e.id === selected;
                     const tone = meetingTone(pl.e);
                     return (
-                      <button key={pl.e.id} onClick={() => onOpen(pl.e.id)} title={pl.e.title}
+                      <button key={pl.e.id} onClick={(ev) => { ev.stopPropagation(); onOpen(pl.e.id); }} title={pl.e.title}
                         className="absolute z-10 overflow-hidden rounded-[3px] px-1.5 py-0.5 text-left transition-colors"
                         style={{ top: pl.top, height: pl.height, left: `calc(${pl.leftPct}% + 1px)`, width: `calc(${pl.widthPct}% - 2px)`,
                           background: on ? tone.edge : tone.tint,
                           borderLeft: `2px solid ${tone.edge}`, color: on ? "#fff" : "var(--text-primary)" }}>
-                        <div className="flex items-center gap-1 truncate text-[11px] font-medium leading-tight">{pl.e.call_url && <Video size={9} className="shrink-0" style={{ opacity: 0.6 }} />}<span className="truncate">{pl.e.title}</span></div>
-                        {pl.height > 30 && <div className="truncate text-[10px] leading-tight opacity-70">{fmtTime(pl.e.start_at, lang)}</div>}
+                        <div className="flex items-center gap-1 truncate text-[11px] font-medium leading-tight">
+                          {/* small semantic icons: missing agenda, call link */}
+                          {!(pl.e.description ?? "").trim() && <FileText size={9} className="shrink-0" style={{ opacity: 0.55 }} />}
+                          {pl.e.call_url && <Video size={9} className="shrink-0" style={{ opacity: 0.6 }} />}
+                          <span className="truncate">{pl.e.title}</span>
+                        </div>
+                        {pl.height > 30 && <div className="flex items-center gap-1 truncate text-[10px] leading-tight opacity-70">{fmtTime(pl.e.start_at, lang)}{pl.e.call_url && <span className="h-1 w-1 rounded-full" style={{ background: "#5f8a6a" }} />}</div>}
                       </button>
                     );
                   })}
@@ -173,7 +188,11 @@ export function CalendarPage() {
   const [params, setParams] = useSearchParams();
   const openId = params.get("event");
   const [createOpen, setCreateOpen] = useState(false);
+  const [createInit, setCreateInit] = useState<{ start: string; end: string } | null>(null);
   const [view, setView] = useState<ViewMode>("today");
+  // Click an empty grid slot → open New Meeting prefilled with that time + a 30-minute default end.
+  const openSlot = (start: Date) => { setCreateInit({ start: toLocalInput(start), end: toLocalInput(new Date(start.getTime() + 30 * 60_000)) }); setCreateOpen(true); };
+  const openCreate = () => { setCreateInit(null); setCreateOpen(true); };
   // The date the Day/Week grid is centered on — moved by the Today / ‹ / › controls.
   const [anchor, setAnchor] = useState<Date>(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; });
 
@@ -276,7 +295,7 @@ export function CalendarPage() {
               </button>
             ))}
           </div>
-          <button onClick={() => setCreateOpen(true)} className="flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
+          <button onClick={openCreate} className="flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
             <Plus size={13} /> {t("cal.new_meeting")}
           </button>
         </div>
@@ -293,16 +312,16 @@ export function CalendarPage() {
           ) : view === "today" ? (
             // Always a real day timeline — even with zero meetings, a subtle in-grid hint + suggestions.
             <div className="relative overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
-              <TimeGrid days={[anchor]} events={events} selected={selected} onOpen={openEvent} lang={lang} single />
-              {dayCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={() => setCreateOpen(true)} onDraft={() => setCreateOpen(true)} onFollowups={() => navigateTo("/tasks")} t={t} />}
+              <TimeGrid days={[anchor]} events={events} selected={selected} onOpen={openEvent} onSlot={openSlot} lang={lang} single />
+              {dayCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} t={t} />}
             </div>
           ) : view === "week" ? (
             <div className="relative overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
-              <TimeGrid days={anchorWeek} events={events} selected={selected} onOpen={openEvent} lang={lang} />
-              {weekCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={() => setCreateOpen(true)} onDraft={() => setCreateOpen(true)} onFollowups={() => navigateTo("/tasks")} t={t} />}
+              <TimeGrid days={anchorWeek} events={events} selected={selected} onOpen={openEvent} onSlot={openSlot} lang={lang} />
+              {weekCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} t={t} />}
             </div>
           ) : groups.length === 0 ? (
-            <EmptyState label={t("cal.empty")} onNew={() => setCreateOpen(true)} newLabel={t("cal.new_meeting")} />
+            <EmptyState label={t("cal.empty")} onNew={openCreate} newLabel={t("cal.new_meeting")} />
           ) : (
             <div className="space-y-5">
               {groups.map(([key, evs]) => (
@@ -325,7 +344,7 @@ export function CalendarPage() {
 
       {/* Mobile drawer — same brief body, shown only below lg. */}
       {openId && <div className="lg:hidden"><EventDrawer id={openId} onClose={() => setParams({}, { replace: true })} /></div>}
-      {createOpen && <CreateModal callsEnabled={eventsQ.data?.calls_enabled ?? false} onClose={() => setCreateOpen(false)} onCreated={(id) => { setCreateOpen(false); openEvent(id); }} />}
+      {createOpen && <CreateModal callsEnabled={eventsQ.data?.calls_enabled ?? false} initialStart={createInit?.start} initialEnd={createInit?.end} onClose={() => { setCreateOpen(false); setCreateInit(null); }} onCreated={(id) => { setCreateOpen(false); setCreateInit(null); openEvent(id); }} />}
     </div>
   );
 }
@@ -473,6 +492,8 @@ interface PrepResult {
   agenda_summary: string | null; talking_points: string[]; follow_ups: string[];
   sources: { type: string; object_type: string; node_id: string; title: string; match_reason: string }[];
 }
+interface FollowTaskLite { id: string; title: string; due_date: string | null }
+interface FollowUps { overdue: FollowTaskLite[]; due_today: FollowTaskLite[]; related: FollowTaskLite[]; suggested: { title: string; draft: boolean }; total_open: number }
 
 /** Mobile-only drawer wrapping the shared brief body. Desktop uses the persistent right panel. */
 function EventDrawer({ id, onClose }: { id: string; onClose: () => void }) {
@@ -503,8 +524,16 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
   // Reuse the (cached) Today brief only to know if THIS meeting overlaps another — real data, no fabrication.
   const briefQ = useQuery<TodayBrief>({ queryKey: ["calendar-brief-today"], queryFn: () => apiClient.get("/calendar/brief/today"), staleTime: 30_000 });
   const conflict = !!briefQ.data?.conflicts?.some(c => c.a === id || c.b === id);
+  // Real open tasks grouped for this meeting (overdue / due today / related) + a suggested draft.
+  const followQ = useQuery<FollowUps>({ queryKey: ["calendar-followups", id], queryFn: () => apiClient.get(`/calendar/events/${id}/followups`), staleTime: 30_000 });
+  // Add/edit agenda inline (organizer) → PATCH description. Create a real follow-up task → POST /tasks.
+  const [editAgenda, setEditAgenda] = useState(false);
+  const [agendaDraft, setAgendaDraft] = useState("");
+  const saveAgenda = useMutation({ mutationFn: () => apiClient.patch(`/calendar/events/${id}`, { description: agendaDraft }), onSuccess: () => { setEditAgenda(false); qc.invalidateQueries({ queryKey: ["calendar-event", id] }); qc.invalidateQueries({ queryKey: ["calendar-events"] }); } });
+  const createTask = useMutation({ mutationFn: (title: string) => apiClient.post("/tasks", { title }), onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar-followups", id] }) });
   const e = detail.data;
   const isOrganizer = e?.organizer.user_id === me.userId;
+  const followTotal = followQ.data ? followQ.data.overdue.length + followQ.data.due_today.length + followQ.data.related.length : 0;
 
   return (
     <>
@@ -531,11 +560,16 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               const hasAgenda = !!(e.description ?? "").trim();
               const S = (key: string, label: string, good: boolean, value: string, neutral = false) =>
                 ({ key, label, value, dot: neutral ? "var(--text-faint)" : good ? "#5f8a6a" : "#a2854f", tone: neutral ? "var(--text-faint)" : good ? "var(--text-secondary)" : "#a2854f" });
+              // Every readiness row is derived from REAL fields — agenda/call/prep/conflict/related/follow-ups.
+              // When nothing is found we say so ("None found"), never fabricating content.
+              const relN = prepare.data?.sources.length ?? 0;
               const signals = [
                 S("agenda", t("cal.agenda"), hasAgenda, hasAgenda ? t("cal.st_set") : t("cal.st_missing")),
                 e.call_url ? S("call", t("cal.sig_call"), true, t("cal.st_linked")) : S("call", t("cal.sig_call"), false, t("cal.st_none"), !e.calls_enabled),
                 S("prep", t("cal.sig_prep"), !!prepare.data, prepare.data ? t("cal.st_ready") : t("cal.st_pending"), !prepare.data),
                 S("conflict", t("cal.overlaps"), !conflict, conflict ? t("cal.st_overlap") : t("cal.st_clear")),
+                S("related", t("cal.sig_related"), relN > 0, prepare.data ? (relN ? `${relN} ${t("cal.st_found")}` : t("cal.st_none_found")) : t("cal.st_pending"), relN === 0),
+                S("followups", t("cal.followups"), followTotal > 0, followQ.data ? (followTotal ? `${followTotal} ${t("cal.st_found")}` : t("cal.st_none_found")) : "…", followTotal === 0),
               ];
               const action = e.status === "cancelled" ? null
                 : (!e.call_url && e.calls_enabled && isOrganizer) ? { label: t("cal.add_call"), run: () => addCall.mutate() }
@@ -545,7 +579,26 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               return <CoPilot signals={signals} action={action} label={t("cal.readiness")} nextLabel={t("cal.next_action")} />;
             })()}
 
-            {e.description && <div className="whitespace-pre-wrap border-l-2 pl-3 text-[12.5px]" style={{ borderColor: meetingTone(e).edge, color: "var(--text-secondary)" }}>{e.description}</div>}
+            {/* Agenda — read-only with an inline Add/edit action (organizer). */}
+            <div>
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.agenda")}</span>
+                {isOrganizer && e.status !== "cancelled" && !editAgenda && <button onClick={() => { setAgendaDraft(e.description ?? ""); setEditAgenda(true); }} className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{t("cal.edit_agenda")}</button>}
+              </div>
+              {editAgenda ? (
+                <div>
+                  <textarea autoFocus value={agendaDraft} onChange={ev => setAgendaDraft(ev.target.value)} className="w-full rounded-sm border bg-transparent px-2 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)", minHeight: 70 }} />
+                  <div className="mt-1.5 flex gap-2">
+                    <button onClick={() => saveAgenda.mutate()} disabled={saveAgenda.isPending} className="rounded-sm border px-2.5 py-1 text-[11px] font-semibold" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>{saveAgenda.isPending ? "…" : t("common.save")}</button>
+                    <button onClick={() => setEditAgenda(false)} className="rounded-sm border px-2.5 py-1 text-[11px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{t("common.cancel")}</button>
+                  </div>
+                </div>
+              ) : e.description ? (
+                <div className="whitespace-pre-wrap border-l-2 pl-3 text-[12.5px]" style={{ borderColor: meetingTone(e).edge, color: "var(--text-secondary)" }}>{e.description}</div>
+              ) : (
+                <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>{t("cal.st_missing")}</p>
+              )}
+            </div>
 
             <div>
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.attendees")}</p>
@@ -555,21 +608,36 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               </div>
             </div>
 
-            {/* AI preparation — source-backed, never fabricated. Flat section (thin divider, no card chrome). */}
+            {/* AI Meeting Brief — source-backed, never fabricated. Flat section (thin divider, no card chrome). */}
             <div className="border-t pt-4" style={{ borderColor: "var(--border-soft)" }}>
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}><Wand2 size={13} style={{ color: "var(--text-muted)" }} /> {t("cal.meeting_brief")}</span>
+                <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}><Wand2 size={13} style={{ color: "var(--text-muted)" }} /> {t("cal.ai_meeting_brief")}</span>
                 {!prepare.data && <button onClick={() => prepare.mutate()} disabled={prepare.isPending} className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{prepare.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {t("cal.prepare")}</button>}
               </div>
               {prepare.data && <PrepView r={prepare.data} onOpenRecord={(oid, nid) => navigate(`/objects/${oid}/${nid}`)} />}
               {prepare.isError && <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>{t("cal.ai_unavailable")}</p>}
             </div>
 
-            {/* After-meeting placeholders — clearly marked, not wired (no fake completion). */}
+            {/* Organized follow-ups — REAL open tasks, grouped; suggested is a clearly-marked draft. */}
+            <div className="border-t pt-4" style={{ borderColor: "var(--border-soft)" }}>
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}><ListChecks size={13} style={{ color: "var(--text-muted)" }} /> {t("cal.followups")}</span>
+                <button onClick={() => navigate("/tasks")} className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{t("cal.all_tasks")}</button>
+              </div>
+              {!followQ.data ? <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>…</p> : (
+                <FollowUpGroups f={followQ.data} onOpenTask={() => navigate("/tasks")}
+                  onCreateSuggested={() => createTask.mutate(followQ.data!.suggested.title)} creating={createTask.isPending} />
+              )}
+            </div>
+
+            {/* After-meeting — Create follow-up task is REAL; notes/recap are honestly "Coming soon". */}
             <div>
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.after_meeting")}</p>
               <div className="flex flex-wrap gap-2">
-                {[{ i: <ListChecks size={12} />, l: t("cal.followup_task") }, { i: <StickyNote size={12} />, l: t("cal.draft_notes") }, { i: <Send size={12} />, l: t("cal.send_recap") }].map((a, i) => (
+                <button onClick={() => createTask.mutate(`Follow up on ${e.title}`)} disabled={createTask.isPending} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                  {createTask.isPending ? <Loader2 size={12} className="animate-spin" /> : <ListChecks size={12} />} {t("cal.create_task")}
+                </button>
+                {[{ i: <StickyNote size={12} />, l: t("cal.draft_notes") }, { i: <Send size={12} />, l: t("cal.send_recap") }].map((a, i) => (
                   <span key={i} title={t("cal.coming_soon")} className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] opacity-60" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
                     {a.i} {a.l} <span className="ml-0.5 rounded-sm px-1.5 py-px text-[9px]" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>{t("cal.coming_soon")}</span>
                   </span>
@@ -579,9 +647,9 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
 
             {isOrganizer && e.status !== "cancelled" && (
               <div className="flex flex-wrap gap-2 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>
-                {!e.call_url && e.calls_enabled && <button onClick={() => addCall.mutate()} disabled={addCall.isPending} className="rounded-lg border px-3 py-1.5 text-[12px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}><Video size={12} className="mr-1 inline" /> {t("cal.add_call")}</button>}
+                {!e.call_url && e.calls_enabled && <button onClick={() => addCall.mutate()} disabled={addCall.isPending} className="rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><Video size={12} className="mr-1 inline" /> {t("cal.add_call")}</button>}
                 {!e.calls_enabled && !e.call_url && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{t("cal.calls_off")}</span>}
-                <button onClick={() => cancel.mutate()} disabled={cancel.isPending} className="rounded-lg border px-3 py-1.5 text-[12px] font-medium" style={{ borderColor: "#ef444455", color: "#ef4444" }}>{t("cal.cancel_meeting")}</button>
+                <button onClick={() => cancel.mutate()} disabled={cancel.isPending} className="rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors" style={{ borderColor: "rgba(168,106,114,0.4)", color: "#a86a72" }}>{t("cal.cancel_meeting")}</button>
               </div>
             )}
           </div>
@@ -641,8 +709,8 @@ function PrepView({ r, onOpenRecord }: { r: PrepResult; onOpenRecord: (objectTyp
           <>
             <div className="space-y-1">
               {r.sources.map(s => (
-                <button key={s.node_id} onClick={() => onOpenRecord(s.object_type, s.node_id)} className="flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-left transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)" }}>
-                  <Circle size={7} className="shrink-0" style={{ color: "var(--section-accent)" }} />
+                <button key={s.node_id} onClick={() => onOpenRecord(s.object_type, s.node_id)} className="flex w-full items-center gap-2 rounded-sm border px-2 py-1.5 text-left transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)" }}>
+                  <Circle size={7} className="shrink-0" style={{ color: "var(--text-faint)" }} />
                   <span className="min-w-0 flex-1 truncate text-[12px]" style={{ color: "var(--text-primary)" }}>{s.title}</span>
                   <span className="shrink-0 text-[10px]" style={{ color: "var(--text-faint)" }}>{s.match_reason}</span>
                 </button>
@@ -656,13 +724,47 @@ function PrepView({ r, onOpenRecord }: { r: PrepResult; onOpenRecord: (objectTyp
   );
 }
 
-function CreateModal({ callsEnabled, onClose, onCreated }: { callsEnabled: boolean; onClose: () => void; onCreated: (id: string) => void }) {
+/** Organized follow-ups — real open tasks grouped (overdue / due today / related), plus a clearly
+ *  labelled suggested DRAFT the user can create. Only real tasks are shown; nothing is fabricated. */
+function FollowUpGroups({ f, onOpenTask, onCreateSuggested, creating }: { f: FollowUps; onOpenTask: () => void; onCreateSuggested: () => void; creating: boolean }) {
+  const { t } = useLanguage();
+  const ROSE = "#a86a72", AMBER = "#a2854f";
+  const Group = ({ label, tasks, dot }: { label: string; tasks: FollowTaskLite[]; dot?: string }) => tasks.length === 0 ? null : (
+    <div className="mb-2 last:mb-0">
+      <p className="mb-1 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{dot && <span className="h-1.5 w-1.5 rounded-full" style={{ background: dot }} />}{label} · {tasks.length}</p>
+      <div className="space-y-0.5">
+        {tasks.slice(0, 4).map(tk => (
+          <button key={tk.id} onClick={onOpenTask} className="block w-full truncate rounded-sm px-2 py-1 text-left text-[12px] transition-colors hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-secondary)" }}>{tk.title}</button>
+        ))}
+      </div>
+    </div>
+  );
+  const empty = f.overdue.length + f.due_today.length + f.related.length === 0;
+  return (
+    <div>
+      {empty && <p className="mb-2 text-[11px]" style={{ color: "var(--text-faint)" }}>{t("cal.st_none_found")}</p>}
+      <Group label={t("cal.overdue")} tasks={f.overdue} dot={ROSE} />
+      <Group label={t("cal.due_today")} tasks={f.due_today} dot={AMBER} />
+      <Group label={t("cal.related_meeting")} tasks={f.related} />
+      {/* Suggested next follow-up — a DRAFT template, clearly tagged; created only on click. */}
+      <div className="mt-1 flex items-center justify-between rounded-sm border px-2 py-1.5" style={{ borderColor: "var(--border-soft)", borderStyle: "dashed" }}>
+        <span className="min-w-0 flex-1">
+          <span className="mr-1.5 rounded-sm px-1 py-px text-[9px] font-medium uppercase" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>{t("cal.draft_tag")}</span>
+          <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>{f.suggested.title}</span>
+        </span>
+        <button onClick={onCreateSuggested} disabled={creating} className="ml-2 shrink-0 rounded-sm border px-2 py-0.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{creating ? "…" : t("cal.create_task")}</button>
+      </div>
+    </div>
+  );
+}
+
+function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreated }: { callsEnabled: boolean; initialStart?: string; initialEnd?: string; onClose: () => void; onCreated: (id: string) => void }) {
   const { t } = useLanguage();
   const me = useCurrentUser();
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
+  const [start, setStart] = useState(initialStart ?? "");   // prefilled when opened from a grid slot
+  const [end, setEnd] = useState(initialEnd ?? "");
   const [location, setLocation] = useState("");
   const [attendees, setAttendees] = useState<string[]>([]);
   const [withCall, setWithCall] = useState(false);
@@ -688,13 +790,13 @@ function CreateModal({ callsEnabled, onClose, onCreated }: { callsEnabled: boole
   }
 
   const valid = title.trim() && start;
-  const field = "w-full rounded-lg border bg-transparent px-3 py-2 text-[13px] outline-none";
+  const field = "w-full rounded-sm border bg-transparent px-3 py-2 text-[13px] outline-none";
   const style = { borderColor: "var(--border-soft)", color: "var(--text-primary)" } as const;
 
   return (
     <>
-      <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border shadow-2xl" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
+      <div className="fixed inset-0 z-[200] bg-black/40" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-md border shadow-xl" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
         <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
           <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("cal.new_meeting")}</span>
           <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>
@@ -715,12 +817,12 @@ function CreateModal({ callsEnabled, onClose, onCreated }: { callsEnabled: boole
           </div>
           <div>
             <p className="mb-1 text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.attendees")}</p>
-            <div className="flex max-h-32 flex-col gap-0.5 overflow-y-auto rounded-lg border p-1" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="flex max-h-32 flex-col gap-0.5 overflow-y-auto rounded-sm border p-1" style={{ borderColor: "var(--border-soft)" }}>
               {others.map(m => {
                 const on = attendees.includes(m.id);
                 return (
                   <button key={m.id} onClick={() => setAttendees(a => on ? a.filter(x => x !== m.id) : [...a, m.id])}
-                    className="flex items-center justify-between rounded-md px-2 py-1.5 text-left text-[12.5px] transition-colors hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-primary)" }}>
+                    className="flex items-center justify-between rounded-sm px-2 py-1.5 text-left text-[12.5px] transition-colors hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-primary)" }}>
                     <span className="truncate">{m.name || m.email}</span>
                     {on && <Check size={13} style={{ color: "var(--section-accent)" }} />}
                   </button>
@@ -735,8 +837,8 @@ function CreateModal({ callsEnabled, onClose, onCreated }: { callsEnabled: boole
           </label>
         </div>
         <div className="flex justify-end gap-2 border-t px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
-          <button onClick={onClose} className="rounded-lg border px-3 py-1.5 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{t("common.cancel")}</button>
-          <button onClick={() => valid && create.mutate()} disabled={!valid || create.isPending} className="rounded-lg px-4 py-1.5 text-[12px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
+          <button onClick={onClose} className="rounded-sm border px-3 py-1.5 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{t("common.cancel")}</button>
+          <button onClick={() => valid && create.mutate()} disabled={!valid || create.isPending} className="rounded-sm border px-4 py-1.5 text-[12px] font-semibold disabled:opacity-50" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
             {create.isPending ? <Loader2 size={13} className="animate-spin" /> : t("common.save")}
           </button>
         </div>
