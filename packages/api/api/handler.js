@@ -64658,7 +64658,7 @@ var appUrl2 = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(
 function makeCallLink(ws, eventId) {
   if (!callsEnabled()) return null;
   const room = `ws_${ws}__meeting__${eventId}`;
-  return { call_room_id: room, call_url: `${appUrl2()}/calls?room=${encodeURIComponent(room)}` };
+  return { call_room_id: room, call_url: `${appUrl2()}/calls/${eventId}` };
 }
 async function members2(ws) {
   const { data } = await supabase.from("workspace_members").select("user_id, name, email").eq("workspace_id", ws);

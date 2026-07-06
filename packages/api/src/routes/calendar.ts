@@ -34,11 +34,16 @@ interface EventData {
 const callsEnabled = () => !!(process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET);
 const appUrl = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
 
-/** A Mondaily-owned call link for a meeting — ONLY when LiveKit is configured; else null (no fake). */
+/**
+ * A Mondaily-owned call link for a meeting — ONLY when the real-time engine is configured; else null
+ * (no fake link). The PUBLIC url is a clean Mondaily path (app.mondaily.com/calls/<eventId>); the
+ * workspace-namespaced `call_room_id` stays internal (used to isolate the underlying real-time room
+ * per tenant). No external/third-party meeting provider is ever involved.
+ */
 function makeCallLink(ws: string, eventId: string): { call_room_id: string; call_url: string } | null {
   if (!callsEnabled()) return null;
-  const room = `ws_${ws}__meeting__${eventId}`;   // namespaced by workspace so rooms can't cross tenants
-  return { call_room_id: room, call_url: `${appUrl()}/calls?room=${encodeURIComponent(room)}` };
+  const room = `ws_${ws}__meeting__${eventId}`;   // internal room id — namespaced so rooms can't cross tenants
+  return { call_room_id: room, call_url: `${appUrl()}/calls/${eventId}` };   // Mondaily-owned path link
 }
 
 async function members(ws: string) {

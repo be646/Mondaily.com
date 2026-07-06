@@ -54,9 +54,13 @@ describe("Calendar — call links (Mondaily-owned, no fake, fail-closed)", () =>
     expect(src).toMatch(/function makeCallLink[\s\S]*?if \(!callsEnabled\(\)\) return null/);
     expect(src).toMatch(/callsEnabled = \(\) => !!\(process\.env\.LIVEKIT_URL && process\.env\.LIVEKIT_API_KEY && process\.env\.LIVEKIT_API_SECRET\)/);
   });
-  it("call links are Mondaily-owned URLs — never Zoom/Teams", () => {
-    expect(src).toMatch(/call_url: `\$\{appUrl\(\)\}\/calls\?room=/);
-    expect(src).not.toMatch(/zoom\.us|teams\.microsoft|meet\.google/i);
+  it("call links are Mondaily-owned path URLs (/calls/:id) — never external providers", () => {
+    expect(src).toMatch(/call_url: `\$\{appUrl\(\)\}\/calls\/\$\{eventId\}`/);   // app.mondaily.com/calls/<id>
+    expect(src).not.toMatch(/zoom\.us|teams\.microsoft|meet\.google|outlook/i);
+  });
+  it("never involves an external meeting provider and never exposes engine branding to users", () => {
+    const appSrc = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/calendar.tsx", import.meta.url)), "utf8");
+    expect(appSrc).not.toMatch(/livekit|zoom|teams|google|outlook/i);   // UI shows only "Mondaily call"
   });
   it("POST /events/:id/call-link returns 503 cleanly when calling isn't configured", () => {
     const fn = src.slice(src.indexOf('router.post("/events/:id/call-link"'));
