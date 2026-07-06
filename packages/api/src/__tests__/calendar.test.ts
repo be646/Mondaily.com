@@ -241,6 +241,18 @@ describe("Smart Calendar UI — command-center layout", () => {
     expect(page).toMatch(/t\("cal\.coming_soon"\)/);
     expect(page).toMatch(/cursor-not-allowed/);
   });
+  it("uses a persistent right-side Meeting Brief (desktop) + drawer (mobile), sharing one body", () => {
+    expect(page).toMatch(/function MeetingBriefBody/);
+    expect(page).toMatch(/function EventDrawer/);
+    // desktop panel is always mounted (hidden on small screens); the drawer is mobile-only
+    expect(page).toMatch(/<aside className="hidden lg:block">/);
+    expect(page).toMatch(/<div className="lg:hidden"><EventDrawer/);
+    // the brief tracks the selected meeting, else the next upcoming one
+    expect(page).toMatch(/const briefId = openId \?\? nextEvent\?\.id \?\? null/);
+  });
+  it("when AI prep finds no records, it says it is based only on the meeting details (no fabrication)", () => {
+    expect(page).toMatch(/r\.sources\.length === 0 \?[\s\S]*?t\("cal\.based_on_details"\)/);
+  });
 });
 
 describe("Calendar UI — page behavior", () => {
