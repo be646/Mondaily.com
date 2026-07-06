@@ -22,6 +22,7 @@ import { TasksPage } from "./routes/dashboard/tasks";
 import { NotesPage } from "./routes/dashboard/notes";
 import { EmailsPage } from "./routes/dashboard/emails";
 import { CallsPage } from "./routes/dashboard/calls";
+import { CalendarPage } from "./routes/dashboard/calendar";
 import { CallDetailPage } from "./routes/dashboard/call-detail";
 import { ReportsPage } from "./routes/dashboard/reports";
 import { DashboardViewPage } from "./routes/dashboard/reports/dashboard-view";
@@ -128,6 +129,7 @@ export function App() {
         <Route path="tasks" element={<TasksPage />} />
         <Route path="notes" element={<NotesPage />} />
         <Route path="emails" element={<EmailsPage />} />
+        <Route path="calendar" element={<CalendarPage />} />
         <Route path="calls" element={<CallsPage />} />
         <Route path="calls/:id" element={<CallDetailPage />} />
         <Route path="reports" element={<ReportsPage />} />

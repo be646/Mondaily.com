@@ -4,7 +4,7 @@ import {
   Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
   ChevronsUpDown, Plus, X, Receipt, TrendingUp,
   GitBranch, Activity, Layers, Check, ReceiptText, ShieldCheck,
-  FileSignature, Wallet, MessageCircle, Radar, Inbox,
+  FileSignature, Wallet, MessageCircle, Radar, Inbox, CalendarDays,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -42,6 +42,7 @@ const WORK_NAV: NavEntry[] = [
 const WORKSPACE_NAV: NavEntry[] = [
   { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/messages", label: "Inbox", icon: Inbox },
+  { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/notes",  label: "Notes",  icon: FileText },
   { to: "/emails", label: "Emails", icon: Mail },
   { to: "/calls",  label: "Calls",  icon: Phone },
@@ -278,7 +279,7 @@ const NAV_TKEY: Record<string, string> = {
   Home: "nav.home", Ask: "nav.ask", Graph: "nav.graph", Tasks: "nav.tasks", Decisions: "nav.decisions",
   Agents: "nav.agents", Discovery: "nav.discovery", Automations: "nav.automations", Reports: "nav.reports",
   Notifications: "nav.notifications", Inbox: "nav.inbox", Notes: "nav.notes", Emails: "nav.emails",
-  Calls: "nav.calls", Canvas: "nav.canvas", "Team Oversight": "nav.team_oversight",
+  Calls: "nav.calls", Canvas: "nav.canvas", Calendar: "nav.calendar", "Team Oversight": "nav.team_oversight",
   Work: "section.work", Workspace: "section.workspace", Finance: "section.finance",
 };
 /** Localize a known nav/section label; return the original for anything unmapped. */
