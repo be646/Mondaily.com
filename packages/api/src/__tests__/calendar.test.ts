@@ -165,6 +165,39 @@ describe("Calls — call room page (native, no engine branding, correct access s
   });
 });
 
+describe("Calls — in-call UI polish (named tiles, controls, screen share, no branding)", () => {
+  it("renders named participant tiles with initials placeholders when there's no video", () => {
+    expect(room).toMatch(/function ParticipantTile/);
+    expect(room).toMatch(/function initialsOf/);
+    expect(room).toMatch(/\{initialsOf\(name\)\}/);            // initials shown when hasVideo is false
+    expect(room).toMatch(/\{name\}</);                        // the participant's name is rendered
+  });
+  it("clearly marks the local user's own tile", () => {
+    expect(room).toMatch(/isLocal &&[\s\S]*?youLabel/);
+    expect(room).toMatch(/t\("cal\.you"\)/);
+  });
+  it("highlights the active speaker when the client SDK reports it", () => {
+    expect(room).toMatch(/ActiveSpeakersChanged/);
+    expect(room).toMatch(/speaking \? "2px solid var\(--section-accent\)"/);
+  });
+  it("has mute, camera, and leave controls in the toolbar", () => {
+    expect(room).toMatch(/onClick=\{toggleMic\}/);
+    expect(room).toMatch(/onClick=\{toggleCam\}/);
+    expect(room).toMatch(/onClick=\{leave\}/);
+    expect(room).toMatch(/setMicrophoneEnabled/);
+    expect(room).toMatch(/setCameraEnabled/);
+  });
+  it("supports screen share and device selection via the client SDK (non-breaking extras)", () => {
+    expect(room).toMatch(/setScreenShareEnabled/);
+    expect(room).toMatch(/switchActiveDevice\(kind, deviceId\)/);
+    expect(room).toMatch(/switchDevice\(kind === "audio" \? "audioinput" : "videoinput", e\.target\.value\)/);
+  });
+  it("still shows no engine/provider branding anywhere the user can see", () => {
+    const visible = room.split("\n").filter((l) => !/["']livekit-client["']/.test(l)).join("\n");
+    expect(visible).not.toMatch(/livekit|zoom|teams|google meet|outlook|meet\.google/i);
+  });
+});
+
 describe("Calendar — event detail opens the native call room", () => {
   it("'Join call' navigates internally to /calls/:eventId (not an external link)", () => {
     expect(page).toMatch(/navigate\(`\/calls\/\$\{e\.id\}`\)/);
