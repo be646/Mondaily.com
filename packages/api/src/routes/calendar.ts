@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
+import { sign } from "hono/jwt";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import { isWorkspaceAdmin } from "../middleware/rbac";
@@ -40,10 +41,20 @@ const appUrl = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace
  * workspace-namespaced `call_room_id` stays internal (used to isolate the underlying real-time room
  * per tenant). No external/third-party meeting provider is ever involved.
  */
+const internalRoom = (ws: string, eventId: string) => `ws_${ws}__meeting__${eventId}`;   // never surfaced to users
 function makeCallLink(ws: string, eventId: string): { call_room_id: string; call_url: string } | null {
   if (!callsEnabled()) return null;
-  const room = `ws_${ws}__meeting__${eventId}`;   // internal room id — namespaced so rooms can't cross tenants
-  return { call_room_id: room, call_url: `${appUrl()}/calls/${eventId}` };   // Mondaily-owned path link
+  return { call_room_id: internalRoom(ws, eventId), call_url: `${appUrl()}/calls/${eventId}` };   // Mondaily-owned path link
+}
+
+/** Mint a short-lived join token for the underlying real-time engine (no branding leaks to the UI). */
+async function mintCallToken(identity: string, name: string, room: string): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  return sign(
+    { iss: process.env.LIVEKIT_API_KEY, sub: identity, name, nbf: now, iat: now, exp: now + 60 * 60,
+      video: { room, roomJoin: true, canPublish: true, canSubscribe: true, canPublishData: true } },
+    process.env.LIVEKIT_API_SECRET as string, "HS256",
+  );
 }
 
 async function members(ws: string) {
@@ -193,6 +204,21 @@ router.post("/events/:id/call-link", async (c) => {
   const next: EventData = { ...ev.data, call_room_id: link.call_room_id, call_url: link.call_url };
   await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
   return c.json({ call_url: link.call_url, call_room_id: link.call_room_id });
+});
+
+// POST /calendar/events/:id/call-token — mint a join token for THIS meeting's room. Access =
+// organizer / attendee / admin only. Fails closed (503, no fake token) when the engine isn't
+// configured. The room is the internal, workspace-namespaced id — the public URL stays /calls/:id.
+router.post("/events/:id/call-token", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId"); const role = c.get("role");
+  const ev = await getEvent(ws, c.req.param("id"));
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canView(ev.data, me) && !isWorkspaceAdmin(role)) return c.json({ error: "Not allowed." }, 403);
+  if (!callsEnabled()) return c.json({ error: "Calls aren't configured on this workspace.", calls_enabled: false }, 503);
+  const room = ev.data.call_room_id || internalRoom(ws, ev.id);   // internal room id, never shown to users
+  const dir = await members(ws); const meRow = dir.get(me);
+  const token = await mintCallToken(me, meRow?.name || meRow?.email || "Member", room);
+  return c.json({ token, url: process.env.LIVEKIT_URL, room });
 });
 
 // POST /calendar/draft-agenda — AI agenda draft. Returns TEXT only; never creates/sends an event.

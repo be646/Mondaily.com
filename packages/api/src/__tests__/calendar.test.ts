@@ -5,6 +5,7 @@ import { EVENT_STATUSES } from "../routes/calendar";
 
 const src = readFileSync(fileURLToPath(new URL("../routes/calendar.ts", import.meta.url)), "utf8");
 const page = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/calendar.tsx", import.meta.url)), "utf8");
+const room = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/call-room.tsx", import.meta.url)), "utf8");
 
 describe("Calendar — model + mounting", () => {
   it("has the required statuses", () => {
@@ -99,6 +100,68 @@ describe("Calendar — AI agenda draft (text only, never creates an event)", () 
     expect(fn).toMatch(/apiClient\.post<\{ agenda\?: string \}>\("\/calendar\/draft-agenda"/);
     expect(fn).toMatch(/setDesc\(r\.agenda\)/);
     expect(fn).not.toMatch(/create\.mutate|\/calendar\/events"/);   // no auto-create
+  });
+});
+
+describe("Calls — call room token (server-side, fail-closed, workspace-scoped)", () => {
+  const fn = src.slice(src.indexOf('router.post("/events/:id/call-token"'), src.indexOf('router.post("/draft-agenda"'));
+  it("mints the join token server-side (never on the client) and returns the engine url + room", () => {
+    expect(src).toMatch(/async function mintCallToken/);
+    expect(src).toMatch(/import \{ sign \} from "hono\/jwt"/);
+    expect(fn).toMatch(/const token = await mintCallToken\(/);
+    expect(fn).toMatch(/return c\.json\(\{ token, url: process\.env\.LIVEKIT_URL, room \}\)/);
+  });
+  it("only organizer, attendee, or workspace admin may get a token; others 403", () => {
+    expect(fn).toMatch(/if \(!canView\(ev\.data, me\) && !isWorkspaceAdmin\(role\)\) return c\.json\(.*403\)/);
+  });
+  it("404s an unknown event and never leaks a token across workspaces (getEvent is ws-scoped)", () => {
+    expect(fn).toMatch(/if \(!ev\) return c\.json\(.*404\)/);
+    expect(fn).toMatch(/getEvent\(ws, /);
+  });
+  it("issues NO token when the engine env is missing — clean 503, fail-closed", () => {
+    expect(fn).toMatch(/if \(!callsEnabled\(\)\) return c\.json\(\{ error: "Calls aren't configured on this workspace\.", calls_enabled: false \}, 503\)/);
+    // the 503 guard must precede the token mint (no fake token can be reached)
+    expect(fn.indexOf("callsEnabled()")).toBeLessThan(fn.indexOf("mintCallToken("));
+  });
+  it("the public room uses the EVENT id while the internal room id stays server-side only", () => {
+    expect(src).toMatch(/const internalRoom = \(ws: string, eventId: string\) => `ws_\$\{ws\}__meeting__\$\{eventId\}`/);
+    // join room derives from the stored internal id (or is recomputed) — never the public /calls/:id path
+    expect(fn).toMatch(/const room = ev\.data\.call_room_id \|\| internalRoom\(ws, ev\.id\)/);
+    // the internal room namespace is never surfaced in the client call room
+    expect(room).not.toMatch(/__meeting__|ws_\$\{/);
+  });
+});
+
+describe("Calls — call room page (native, no engine branding, correct access states)", () => {
+  it("loads the event by id and dispatches: meeting room, not-allowed, or the call record", () => {
+    expect(room).toMatch(/apiClient\.get\(`\/calendar\/events\/\$\{id\}`\)/);
+    expect(room).toMatch(/if \(\/not allowed\/i\.test\(msg\)\) return <NotAllowed \/>/);
+    expect(room).toMatch(/return <CallDetailPage \/>/);   // non-breaking fallback for call records
+  });
+  it("requests the join token from the server (client never signs) and connects via the engine", () => {
+    expect(room).toMatch(/apiClient\.post<[^>]*>\(`\/calendar\/events\/\$\{event\.id\}\/call-token`/);
+    expect(room).toMatch(/await room\.connect\(url, token\)/);
+  });
+  it("shows a clean not-configured state when calls are off (no join possible)", () => {
+    expect(room).toMatch(/!event\.calls_enabled \?/);
+    expect(room).toMatch(/t\("cal\.calls_off"\)/);
+  });
+  it("never exposes the underlying engine or any external provider brand to users", () => {
+    // The engine npm package is imported in code (unavoidable); what must never appear is the
+    // engine/provider name in anything the user sees. Strip the package-specifier lines, then assert.
+    const visible = room.split("\n").filter((l) => !/["']livekit-client["']/.test(l)).join("\n");
+    expect(visible).not.toMatch(/livekit|zoom|teams|google meet|outlook|meet\.google/i);
+  });
+  it("the /calls/:id route renders the dispatcher (event id in the public URL)", () => {
+    const app = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/App.tsx", import.meta.url)), "utf8");
+    expect(app).toMatch(/<Route path="calls\/:id" element=\{<CallRoomDispatch \/>\} \/>/);
+  });
+});
+
+describe("Calendar — event detail opens the native call room", () => {
+  it("'Join call' navigates internally to /calls/:eventId (not an external link)", () => {
+    expect(page).toMatch(/navigate\(`\/calls\/\$\{e\.id\}`\)/);
+    expect(page).not.toMatch(/href=\{e\.call_url\}/);   // no external/new-tab anchor anymore
   });
 });
 

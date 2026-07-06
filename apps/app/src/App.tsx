@@ -23,7 +23,7 @@ import { NotesPage } from "./routes/dashboard/notes";
 import { EmailsPage } from "./routes/dashboard/emails";
 import { CallsPage } from "./routes/dashboard/calls";
 import { CalendarPage } from "./routes/dashboard/calendar";
-import { CallDetailPage } from "./routes/dashboard/call-detail";
+import { CallRoomDispatch } from "./routes/dashboard/call-room";
 import { ReportsPage } from "./routes/dashboard/reports";
 import { DashboardViewPage } from "./routes/dashboard/reports/dashboard-view";
 import { ReportBuilderPage } from "./routes/dashboard/reports/report-builder";
@@ -131,7 +131,8 @@ export function App() {
         <Route path="emails" element={<EmailsPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="calls" element={<CallsPage />} />
-        <Route path="calls/:id" element={<CallDetailPage />} />
+        {/* /calls/:id dispatches: a calendar-event id → the live Mondaily call room; else the call record. */}
+        <Route path="calls/:id" element={<CallRoomDispatch />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="reports/sales" element={<SalesReportPage />} />
         <Route path="reports/dashboards/:id" element={<DashboardViewPage />} />

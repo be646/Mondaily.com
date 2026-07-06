@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
@@ -108,6 +108,7 @@ export function CalendarPage() {
 
 function EventPanel({ id, onClose }: { id: string; onClose: () => void }) {
   const { t, lang } = useLanguage();
+  const navigate = useNavigate();
   const me = useCurrentUser();
   const qc = useQueryClient();
   const detail = useQuery<CalEvent & { calls_enabled: boolean }>({ queryKey: ["calendar-event", id], queryFn: () => apiClient.get(`/calendar/events/${id}`) });
@@ -131,7 +132,7 @@ function EventPanel({ id, onClose }: { id: string; onClose: () => void }) {
               {e.timezone && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}> · {e.timezone}</span>}
             </div>
             {e.status === "cancelled" && <span className="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ background: "#ef44441a", color: "#ef4444" }}>{t("cal.cancelled")}</span>}
-            {e.call_url && <a href={e.call_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-white" style={{ background: "var(--section-accent)" }}><Video size={13} /> {t("cal.join_call")}</a>}
+            {e.call_url && <button onClick={() => navigate(`/calls/${e.id}`)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-white" style={{ background: "var(--section-accent)" }}><Video size={13} /> {t("cal.join_call")}</button>}
             {e.location && <div className="flex items-center gap-2" style={{ color: "var(--text-secondary)" }}><MapPin size={13} style={{ color: "var(--text-faint)" }} /> {e.location}</div>}
             {e.description && <div className="whitespace-pre-wrap rounded-lg border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>{e.description}</div>}
             <div>
