@@ -3,6 +3,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { SUPPORT_CATEGORIES, SUPPORT_STATUSES, detectTopic } from "../routes/support";
 import { HELP_DOCS, selectHelpDocs, helpDocsBlock } from "../lib/help-docs";
+import {
+  newSession, isSessionActive, summarizeHistory, latestDiagnostics, type HelpSession,
+} from "../../../../apps/app/src/components/help/help-store";
 
 const src = readFileSync(fileURLToPath(new URL("../routes/support.ts", import.meta.url)), "utf8");
 
@@ -300,12 +303,101 @@ describe("PHASE 2.2 — Help panel renders diagnostics + actions, explicit ticke
     expect(panel).toMatch(/function DiagRow/);
   });
   it("a ticket is created ONLY on explicit action, and never duplicated in one chat", () => {
-    expect(panel).toMatch(/if \(ticketMade\) return;/);           // guard against silent dupes
+    expect(panel).toMatch(/if \(session\.ticketCreated\) return;/);   // guard against silent dupes
     expect(panel).toMatch(/a\.action === "create_ticket"\) createTicket/);
-    expect(panel).toMatch(/if \(isTicket && \(ticketMade \|\| ticketDone\[i\]\)\) return null/);
+    expect(panel).toMatch(/if \(isTicket && session\.ticketCreated\) return null/);
   });
-  it("ticket metadata carries the diagnostics from the chat", () => {
-    expect(panel).toMatch(/diagnostics: m\.diagnostics \?\? \[\]/);
+  it("ticket metadata carries the diagnostics from the case", () => {
+    expect(panel).toMatch(/diagnostics: latestDiagnostics\(session\)/);
+  });
+});
+
+describe("PHASE 3 — persistent help session model", () => {
+  it("newSession starts empty + active with the full state model", () => {
+    const s = newSession();
+    expect(s.messages).toEqual([]);
+    expect(s.state).toBe("active");
+    expect(s.ticketCreated).toBe(false);
+    expect(s.routeHistory).toEqual([]);
+    expect(s.rating).toBeNull();
+    for (const k of ["id", "subject", "category", "ticketId", "lastRoute", "feedback", "createdAt"]) expect(k in s).toBe(true);
+  });
+  it("isSessionActive is true once there are messages and not closed", () => {
+    const s = newSession();
+    expect(isSessionActive(s)).toBe(false);                             // empty → not active
+    const withMsg: HelpSession = { ...s, messages: [{ role: "user", content: "hi" }] };
+    expect(isSessionActive(withMsg)).toBe(true);
+    expect(isSessionActive({ ...withMsg, state: "closed" })).toBe(false); // closed → not active
+  });
+  it("summarizeHistory + latestDiagnostics capture the case for a ticket", () => {
+    const s: HelpSession = { ...newSession(), messages: [
+      { role: "user", content: "Discovery is slow" },
+      { role: "assistant", content: "Checked search", diagnostics: [{ label: "Sovereign Search", status: "error", detail: "not configured", source: "status" }] },
+      { role: "assistant", system: true, content: "I opened Discovery" },
+    ] };
+    expect(summarizeHistory(s)).toMatch(/User: Discovery is slow/);
+    expect(summarizeHistory(s)).toMatch(/System: I opened Discovery/);
+    expect(latestDiagnostics(s)[0]?.label).toBe("Sovereign Search");
+  });
+});
+
+describe("PHASE 3 — persistence + non-destructive navigation (source-read)", () => {
+  const provider = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/components/help/help-panel.tsx", import.meta.url)), "utf8");
+  it("HelpProvider holds the session and mirrors it to localStorage on every change", () => {
+    expect(provider).toMatch(/useState<HelpSession>\(\(\) => loadSession\(key\) \?\? newSession\(\)\)/);
+    expect(provider).toMatch(/useEffect\(\(\) => \{ saveSession\(key, session\); \}, \[key, session\]\)/);
+  });
+  it("HelpProvider lives above the router Outlet (persists across routes)", () => {
+    const layout = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/layout.tsx", import.meta.url)), "utf8");
+    expect(layout).toMatch(/<HelpProvider>/);
+    expect(layout).toMatch(/<Outlet/);
+  });
+  it("a navigate action logs the route + adds a guiding note but does NOT clear messages", () => {
+    const fn = provider.slice(provider.indexOf("function runAction"), provider.indexOf("function runAction") + 700);
+    expect(fn).toMatch(/routeHistory: \[\.\.\.s\.routeHistory, a\.payload!\]/);
+    expect(fn).toMatch(/I opened \$\{a\.label\}\. Try it again/);
+    expect(fn).toMatch(/messages: \[\.\.\.s\.messages,/);   // history preserved, appended
+    expect(fn).not.toMatch(/messages: \[\]/);               // never wiped on navigate
+  });
+  it("a minimized 'resume Help' pill re-opens the active case (bottom-right, not over the sidebar)", () => {
+    expect(provider).toMatch(/isSessionActive\(session\) && <ResumePill/);
+    expect(provider).toMatch(/fixed bottom-4 right-4/);
+    expect(provider).not.toMatch(/fixed bottom-\d+ left-/);
+  });
+  it("a 'Start new help inquiry' control exists", () => {
+    expect(provider).toMatch(/aria-label="Start new help inquiry"/);
+    expect(provider).toMatch(/newInquiry/);
+  });
+});
+
+describe("PHASE 3 — resolution, rating, and explicit escalation (source-read)", () => {
+  const provider = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/components/help/help-panel.tsx", import.meta.url)), "utf8");
+  it("after an answer, Help asks 'Did this solve the issue?' with Fixed / Still / Create request", () => {
+    expect(provider).toMatch(/Did this solve the issue\?/);
+    expect(provider).toMatch(/>Fixed</);
+    expect(provider).toMatch(/>Still having trouble</);
+    expect(provider).toMatch(/>Create support request</);
+  });
+  it("'Fixed' → rating step; rating is stored and closes the case", () => {
+    expect(provider).toMatch(/How helpful was this\? \(1–5\)/);
+    expect(provider).toMatch(/function submitRating/);
+    expect(provider).toMatch(/rating: stars, feedback:.*state: "closed"/);
+  });
+  it("a ticket is created ONLY on explicit click and never duplicated in a session", () => {
+    const fn = provider.slice(provider.indexOf("async function createTicket"), provider.indexOf("async function createTicket") + 900);
+    expect(fn).toMatch(/if \(session\.ticketCreated\) return;/);
+    expect(fn).toMatch(/apiClient\.post<\{ id: string \}>\("\/support\/tickets"/);
+    expect(provider).toMatch(/if \(isTicket && session\.ticketCreated\) return null/);   // hides dup action
+  });
+  it("ticket metadata carries diagnostics, route history, summarized history and rating", () => {
+    const fn = provider.slice(provider.indexOf("async function createTicket"), provider.indexOf("async function createTicket") + 900);
+    expect(fn).toMatch(/diagnostics: latestDiagnostics\(session\)/);
+    expect(fn).toMatch(/route_history: session\.routeHistory/);
+    expect(fn).toMatch(/history_summary: summarizeHistory\(session\)/);
+    expect(fn).toMatch(/rating: session\.rating/);
+  });
+  it("rating/feedback attaches to an existing ticket as a comment (no new table)", () => {
+    expect(provider).toMatch(/if \(session\.ticketId\) apiClient\.post\(`\/support\/tickets\/\$\{session\.ticketId\}\/comments`/);
   });
 });
 
