@@ -69461,6 +69461,10 @@ function normalizeCall(node) {
     transcript: Array.isArray(data.transcript) ? data.transcript : []
   };
 }
+async function memberNames(ws) {
+  const { data } = await supabase.from("workspace_members").select("user_id, name, email").eq("workspace_id", ws);
+  return new Map((data ?? []).map((m2) => [String(m2.user_id), String(m2.name || m2.email || "")]));
+}
 async function getCall(workspaceId, id) {
   const { data } = await supabase.from("nodes").select("id,data,ai_summary,created_by,created_at,updated_at").eq("workspace_id", workspaceId).eq("vertical", "sales").eq("object_type", "call").eq("id", id).maybeSingle();
   return data;
@@ -69479,6 +69483,77 @@ router24.get("/", zValidator("query", external_exports.object({
   const search = input.search.trim().toLowerCase();
   const calls = (data ?? []).map(normalizeCall).filter((call) => !search || `${call.contact_name} ${call.company_name ?? ""} ${call.ai_summary}`.toLowerCase().includes(search));
   return c2.json(calls);
+});
+function callMemory(n2) {
+  const hasTranscript = n2.transcript.length > 0;
+  const hasSummary = !!(n2.ai_summary || "").trim();
+  return {
+    id: n2.id,
+    source: "call_record",
+    title: n2.contact_name,
+    contact_name: n2.contact_name,
+    company_name: n2.company_name,
+    occurred_at: n2.occurred_at,
+    participant_count: n2.participants.length,
+    has_agenda: false,
+    transcript_status: hasTranscript ? "available" : "unavailable",
+    summary_status: hasSummary ? "generated" : hasTranscript ? "pending" : "none",
+    can_summarize: hasTranscript,
+    action_item_count: Array.isArray(n2.action_items) ? n2.action_items.length : 0,
+    href: `/calls/${n2.id}`
+  };
+}
+function eventMemory(id, d2, now) {
+  const hasAgenda = !!(d2.description ?? "").trim();
+  return {
+    id,
+    source: "calendar",
+    title: d2.title || "Untitled meeting",
+    occurred_at: d2.start_at || now.toISOString(),
+    participant_count: (d2.attendee_ids?.length ?? 0) + 1,
+    has_agenda: hasAgenda,
+    transcript_status: "unavailable",
+    summary_status: hasAgenda ? "pending" : "none",
+    // can be summarized from the agenda; not yet done
+    can_summarize: hasAgenda,
+    action_item_count: 0,
+    href: `/calls/${id}`
+  };
+}
+function isPastEvent(d2, now) {
+  if (d2.status === "cancelled") return false;
+  if (d2.status === "completed") return true;
+  const end = new Date(d2.end_at || d2.start_at || 0);
+  return !Number.isNaN(end.getTime()) && end < now;
+}
+router24.get("/memory", zValidator("query", external_exports.object({ search: external_exports.string().default("") })), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const [callsRes, eventsRes] = await Promise.all([
+    supabase.from("nodes").select("id,data,ai_summary,created_by,created_at,updated_at").eq("workspace_id", ws).eq("vertical", "sales").eq("object_type", "call").order("created_at", { ascending: false }).limit(200),
+    supabase.from("nodes").select("id,data").eq("workspace_id", ws).eq("object_type", "calendar_event").order("data->>start_at", { ascending: false }).limit(300)
+  ]);
+  const now = /* @__PURE__ */ new Date();
+  const dir = await memberNames(ws);
+  const callItems = (callsRes.data ?? []).map(normalizeCall).map((n2) => ({
+    row: callMemory(n2),
+    corpus: [
+      n2.contact_name,
+      n2.company_name,
+      n2.ai_summary,
+      n2.overview,
+      ...n2.participants.map((p2) => p2?.name ?? ""),
+      ...n2.transcript.map((l2) => l2?.text ?? "")
+    ].join(" ").toLowerCase()
+  }));
+  const canView2 = (d2) => d2.organizer_id === me2 || (d2.attendee_ids ?? []).includes(me2);
+  const eventItems = (eventsRes.data ?? []).map((n2) => ({ id: n2.id, d: n2.data ?? {} })).filter((e2) => canView2(e2.d) && isPastEvent(e2.d, now)).map((e2) => ({
+    row: eventMemory(e2.id, e2.d, now),
+    corpus: [e2.d.title, e2.d.description, ...(e2.d.attendee_ids ?? []).map((u2) => dir.get(u2) ?? "")].join(" ").toLowerCase()
+  }));
+  const search = c2.req.valid("query").search.trim().toLowerCase();
+  const memories = [...eventItems, ...callItems].filter((it2) => !search || it2.corpus.includes(search)).map((it2) => it2.row).sort((a2, b2) => new Date(b2.occurred_at).getTime() - new Date(a2.occurred_at).getTime());
+  return c2.json({ memories });
 });
 router24.get("/:id", async (c2) => {
   const node = await getCall(c2.get("workspaceId"), c2.req.param("id"));

@@ -1,8 +1,8 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Room, Participant, Track as TrackNS } from "livekit-client";
-import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Wifi } from "lucide-react";
+import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Wifi, Brain, Sparkles, FileText, ListChecks } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useLanguage } from "../../hooks/useLanguage";
 import { CallDetailPage } from "./call-detail";
@@ -31,11 +31,115 @@ export function CallRoomDispatch() {
   const q = useQuery<CalEvent>({ queryKey: ["calendar-event", id], queryFn: () => apiClient.get(`/calendar/events/${id}`), retry: false });
 
   if (q.isLoading) return <div className="flex h-full items-center justify-center"><Loader2 className="animate-spin" style={{ color: "var(--text-muted)" }} /></div>;
-  if (q.data) return <CallRoom event={q.data} />;
+  if (q.data) {
+    // A calendar event: if it already happened → Meeting Memory detail; if it's upcoming/ongoing → the
+    // live call room. Live /calls/:eventId links keep working for current meetings.
+    const e = q.data;
+    const end = new Date(e.end_at || e.start_at);
+    const past = e.status === "completed" || (e.status !== "cancelled" && !Number.isNaN(end.getTime()) && end < new Date());
+    return past ? <MeetingMemoryDetail event={e} /> : <CallRoom event={e} />;
+  }
   const msg = (q.error as Error)?.message ?? "";
   if (/not allowed/i.test(msg)) return <NotAllowed />;
   // Not a calendar event (or genuinely not found) → the id is a call record; show its detail page.
   return <CallDetailPage />;
+}
+
+interface PrepResult { agenda_summary: string | null; talking_points: string[]; follow_ups: string[]; ai_available: boolean; sources: { object_type: string; node_id: string; title: string }[] }
+
+/**
+ * Meeting Memory detail — the after-the-fact view of a PAST calendar meeting. Honest about what exists:
+ * no recording is captured yet, so the transcript is always shown as unavailable; the AI summary can be
+ * generated ONLY from the agenda (via /prepare) and otherwise says "Not enough recorded content yet".
+ * Agenda, attendees, related records and follow-up creation are real. No fabricated transcript/summary.
+ */
+function MeetingMemoryDetail({ event: e }: { event: CalEvent }) {
+  const { t, lang } = useLanguage();
+  const navigate = useNavigate();
+  const hasAgenda = !!(e.description ?? "").trim();
+  const prepare = useMutation<PrepResult>({ mutationFn: () => apiClient.post(`/calendar/events/${e.id}/prepare`, {}) });
+  const createTask = useMutation({ mutationFn: (title: string) => apiClient.post("/tasks", { title }) });
+  const when = (() => { try { return new Date(e.start_at).toLocaleString(lang, { weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return e.start_at; } })();
+  const Section = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="border-t px-5 py-4" style={{ borderColor: "var(--border-soft)" }}>
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{label}</p>
+      {children}
+    </div>
+  );
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+      <button onClick={() => navigate("/calls")} className="mb-4 flex items-center gap-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}><ArrowLeft size={13} /> Meeting Memory</button>
+      <div className="overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
+        <div className="px-5 py-4">
+          <p className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}><Brain size={12} style={{ color: "var(--text-muted)" }} /> Meeting Memory</p>
+          <h1 className="mt-1 text-[18px] font-semibold" style={{ color: "var(--text-primary)" }}>{e.title}</h1>
+          <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>{when}</p>
+          {/* Honest status row — no recording captured yet. */}
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]" style={{ color: "var(--text-faint)" }}>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--text-faint)" }} /><FileText size={11} /> Transcript unavailable</span>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: prepare.data?.agenda_summary ? "#5f8a6a" : hasAgenda ? "#a2854f" : "var(--text-faint)" }} /><Sparkles size={11} /> {prepare.data?.agenda_summary ? "Summary generated" : hasAgenda ? "Summary pending" : "No summary"}</span>
+          </div>
+        </div>
+
+        {/* AI summary — generated from the agenda only, and only when there is content. */}
+        <Section label="AI summary">
+          {!hasAgenda ? (
+            <p className="text-[12.5px]" style={{ color: "var(--text-faint)" }}>Not enough recorded content yet. Add an agenda in Calendar, or capture notes, to summarize this meeting.</p>
+          ) : prepare.data ? (
+            prepare.data.agenda_summary
+              ? <p className="text-[12.5px]" style={{ color: "var(--text-secondary)" }}>{prepare.data.agenda_summary}</p>
+              : <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>{prepare.data.ai_available ? "No summary was produced." : "AI summary isn't available right now."}</p>
+          ) : (
+            <button onClick={() => prepare.mutate()} disabled={prepare.isPending} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              {prepare.isPending ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} Generate summary
+            </button>
+          )}
+          {prepare.data && prepare.data.follow_ups.length > 0 && (
+            <div className="mt-3">
+              <p className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Suggested follow-ups</p>
+              <ul className="list-disc space-y-0.5 pl-4 text-[12.5px]" style={{ color: "var(--text-secondary)" }}>{prepare.data.follow_ups.map((f, i) => <li key={i}>{f}</li>)}</ul>
+            </div>
+          )}
+        </Section>
+
+        {/* Agenda */}
+        <Section label="Agenda">
+          {hasAgenda ? <div className="whitespace-pre-wrap text-[12.5px]" style={{ color: "var(--text-secondary)" }}>{e.description}</div> : <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>No agenda was set.</p>}
+        </Section>
+
+        {/* Attendees */}
+        <Section label={t("cal.attendees")}>
+          <div className="space-y-1 text-[12.5px]">
+            <div style={{ color: "var(--text-primary)" }}>{e.organizer.name} <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>· organizer</span></div>
+            {e.attendees.map(a => <div key={a.user_id} style={{ color: "var(--text-secondary)" }}>{a.name}</div>)}
+          </div>
+        </Section>
+
+        {/* Related records — only if the summary run surfaced real ones. */}
+        {prepare.data && prepare.data.sources.length > 0 && (
+          <Section label="Related records">
+            <div className="space-y-1">
+              {prepare.data.sources.map(s => (
+                <button key={s.node_id} onClick={() => navigate(`/objects/${s.object_type}/${s.node_id}`)} className="block w-full truncate rounded-sm border px-2 py-1.5 text-left text-[12px] transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>{s.title}</button>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* Follow-ups / exports */}
+        <Section label="Follow-ups">
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => createTask.mutate(`Follow up on ${e.title}`)} disabled={createTask.isPending} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              {createTask.isPending ? <Loader2 size={12} className="animate-spin" /> : <ListChecks size={12} />} {createTask.isSuccess ? "Task created" : "Create follow-up task"}
+            </button>
+            <button onClick={() => navigate("/tasks")} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>All tasks</button>
+            <button onClick={() => navigate(`/calendar?event=${e.id}`)} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><CalendarDays size={12} /> Open in Calendar</button>
+          </div>
+        </Section>
+      </div>
+    </div>
+  );
 }
 
 function NotAllowed() {

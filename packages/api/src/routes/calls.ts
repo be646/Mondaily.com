@@ -43,6 +43,12 @@ function normalizeCall(node: CallNode) {
   };
 }
 
+/** user_id → display name, for attendee search on calendar-event memories. */
+async function memberNames(ws: string): Promise<Map<string, string>> {
+  const { data } = await supabase.from("workspace_members").select("user_id, name, email").eq("workspace_id", ws);
+  return new Map((data ?? []).map((m) => [String(m.user_id), String(m.name || m.email || "")]));
+}
+
 async function getCall(workspaceId: string, id: string) {
   const { data } = await supabase.from("nodes").select("id,data,ai_summary,created_by,created_at,updated_at").eq("workspace_id", workspaceId).eq("vertical", "sales").eq("object_type", "call").eq("id", id).maybeSingle();
   return data as CallNode | null;
@@ -62,6 +68,93 @@ router.get("/", zValidator("query", z.object({
   const search = input.search.trim().toLowerCase();
   const calls = ((data ?? []) as CallNode[]).map(normalizeCall).filter((call) => !search || `${call.contact_name} ${call.company_name ?? ""} ${call.ai_summary}`.toLowerCase().includes(search));
   return c.json(calls);
+});
+
+// ── Meeting Memory — unified, HONEST after-the-fact view of past meetings + calls. ────────────────
+// Combines legacy call records with COMPLETED/PAST calendar events. Calendar events have no recording
+// yet, so their transcript is always "unavailable" and summary is "pending" (agenda present) or "none".
+// Nothing is fabricated — a status only says "generated"/"available" when the real field exists.
+export type TranscriptStatus = "available" | "unavailable";
+export type SummaryStatus = "generated" | "pending" | "none";
+export interface MemoryRow {
+  id: string; source: "calendar" | "call_record"; title: string; contact_name?: string; company_name?: string;
+  occurred_at: string; participant_count: number; has_agenda: boolean;
+  transcript_status: TranscriptStatus; summary_status: SummaryStatus; can_summarize: boolean;
+  action_item_count: number; href: string;
+}
+
+/** Pure: a call record → a memory row. Honest statuses derived only from real stored fields. */
+export function callMemory(n: ReturnType<typeof normalizeCall>): MemoryRow {
+  const hasTranscript = n.transcript.length > 0;
+  const hasSummary = !!(n.ai_summary || "").trim();
+  return {
+    id: n.id, source: "call_record", title: n.contact_name, contact_name: n.contact_name, company_name: n.company_name,
+    occurred_at: n.occurred_at, participant_count: n.participants.length,
+    has_agenda: false,
+    transcript_status: hasTranscript ? "available" : "unavailable",
+    summary_status: hasSummary ? "generated" : hasTranscript ? "pending" : "none",
+    can_summarize: hasTranscript,
+    action_item_count: Array.isArray(n.action_items) ? n.action_items.length : 0,
+    href: `/calls/${n.id}`,
+  };
+}
+
+interface CalEventData { title?: string; start_at?: string; end_at?: string; description?: string; status?: string; organizer_id?: string; attendee_ids?: string[] }
+/** A past/completed calendar event → a memory row. No recording exists yet, so transcript is always
+ *  "unavailable" and summary is "pending" (has agenda) or "none" — never fabricated. */
+export function eventMemory(id: string, d: CalEventData, now: Date): MemoryRow {
+  const hasAgenda = !!(d.description ?? "").trim();
+  return {
+    id, source: "calendar", title: d.title || "Untitled meeting",
+    occurred_at: d.start_at || now.toISOString(),
+    participant_count: (d.attendee_ids?.length ?? 0) + 1,
+    has_agenda: hasAgenda,
+    transcript_status: "unavailable",
+    summary_status: hasAgenda ? "pending" : "none",   // can be summarized from the agenda; not yet done
+    can_summarize: hasAgenda,
+    action_item_count: 0,
+    href: `/calls/${id}`,
+  };
+}
+/** Did this calendar event already happen? (completed, or its end time is in the past — not cancelled) */
+export function isPastEvent(d: CalEventData, now: Date): boolean {
+  if (d.status === "cancelled") return false;
+  if (d.status === "completed") return true;
+  const end = new Date(d.end_at || d.start_at || 0);
+  return !Number.isNaN(end.getTime()) && end < now;
+}
+
+router.get("/memory", zValidator("query", z.object({ search: z.string().default("") })), async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const [callsRes, eventsRes] = await Promise.all([
+    supabase.from("nodes").select("id,data,ai_summary,created_by,created_at,updated_at").eq("workspace_id", ws).eq("vertical", "sales").eq("object_type", "call").order("created_at", { ascending: false }).limit(200),
+    supabase.from("nodes").select("id,data").eq("workspace_id", ws).eq("object_type", "calendar_event").order("data->>start_at", { ascending: false }).limit(300),
+  ]);
+  const now = new Date();
+  const dir = await memberNames(ws);
+  // Keep a search corpus per row (title/contact/company/attendees/summary/transcript) — searched
+  // server-side because the transcript/summary aren't shipped in the list payload.
+  const callItems = ((callsRes.data ?? []) as CallNode[]).map(normalizeCall).map((n) => ({
+    row: callMemory(n),
+    corpus: [n.contact_name, n.company_name, n.ai_summary, n.overview,
+      ...n.participants.map((p) => (p as { name?: string })?.name ?? ""),
+      ...n.transcript.map((l) => (l as { text?: string })?.text ?? "")].join(" ").toLowerCase(),
+  }));
+  const canView = (d: CalEventData) => d.organizer_id === me || (d.attendee_ids ?? []).includes(me);
+  const eventItems = (eventsRes.data ?? [])
+    .map((n) => ({ id: n.id as string, d: (n.data ?? {}) as CalEventData }))
+    .filter((e) => canView(e.d) && isPastEvent(e.d, now))            // participant-only, past meetings only
+    .map((e) => ({
+      row: eventMemory(e.id, e.d, now),
+      corpus: [e.d.title, e.d.description, ...(e.d.attendee_ids ?? []).map((u) => dir.get(u) ?? "")].join(" ").toLowerCase(),
+    }));
+
+  const search = c.req.valid("query").search.trim().toLowerCase();
+  const memories = [...eventItems, ...callItems]
+    .filter((it) => !search || it.corpus.includes(search))
+    .map((it) => it.row)
+    .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime());
+  return c.json({ memories });
 });
 
 router.get("/:id", async (c) => {

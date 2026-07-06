@@ -1,61 +1,118 @@
 import { useQuery } from "@tanstack/react-query";
-import { Clock3, Phone, Search } from "lucide-react";
-import { useState } from "react";
+import { CalendarClock, Phone, Search, FileText, Sparkles, ListChecks, Users, Loader2, Brain } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { EmptyState, PageHeader } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
 
-type CallFilter = "all" | "mine" | "week" | "month";
-
-interface CallListItem {
-  id: string;
-  contact_name: string;
-  company_name?: string;
-  occurred_at: string;
-  duration_seconds: number;
-  direction: "inbound" | "outbound";
-  status: "processed" | "processing" | "failed";
-  ai_summary?: string;
+/**
+ * Meeting Memory — Mondaily's after-the-fact call/meeting intelligence. Calendar owns planning + live
+ * rooms; this page is the HISTORY: past meetings + recorded calls with honest transcript / summary /
+ * action-item status. It combines completed calendar events and legacy call records via
+ * GET /calls/memory. Nothing is fabricated — a status only reads "generated"/"available" when the real
+ * field exists; otherwise it says "unavailable" / "pending".
+ */
+type TranscriptStatus = "available" | "unavailable";
+type SummaryStatus = "generated" | "pending" | "none";
+interface MemoryRow {
+  id: string; source: "calendar" | "call_record"; title: string; contact_name?: string; company_name?: string;
+  occurred_at: string; participant_count: number; has_agenda: boolean;
+  transcript_status: TranscriptStatus; summary_status: SummaryStatus; can_summarize: boolean;
+  action_item_count: number; href: string;
 }
+type Tab = "all" | "meetings" | "calls" | "needs_summary" | "action_items";
 
-function initials(name: string) {
-  return name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "?";
-}
+const MUTED = { green: "#5f8a6a", amber: "#a2854f", faint: "var(--text-faint)" };
+const fmtWhen = (iso: string) => { try { return new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }); } catch { return iso; } };
 
-function CallSkeletons() {
-  return <div className="divide-y divide-white/10 overflow-hidden rounded-lg border border-[var(--border-soft)]">{Array.from({ length: 6 }).map((_, index) => <div key={index} className="flex gap-4 p-4"><div className="h-10 w-10 animate-pulse rounded-full bg-[var(--surface-hover)]" /><div className="flex-1 space-y-2"><div className="h-3 w-1/3 animate-pulse rounded bg-[var(--surface-hover)]" /><div className="h-3 w-3/4 animate-pulse rounded bg-[var(--surface-hover)]" /><div className="h-3 w-1/2 animate-pulse rounded bg-[var(--surface-hover)]" /></div></div>)}</div>;
-}
+function Dot({ color }: { color: string }) { return <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />; }
 
 export function CallsPage() {
-  const [filter, setFilter] = useState<CallFilter>("all");
+  const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
   const query = useQuery({
-    queryKey: ["calls", filter, search],
-    queryFn: () => apiClient.get<CallListItem[]>(`/calls?filter=${filter}&search=${encodeURIComponent(search)}`)
+    queryKey: ["meeting-memory", search],
+    queryFn: () => apiClient.get<{ memories: MemoryRow[] }>(`/calls/memory?search=${encodeURIComponent(search)}`),
   });
-  const calls = query.data ?? [];
+  const all = query.data?.memories ?? [];
+
+  const counts = useMemo(() => ({
+    all: all.length,
+    meetings: all.filter(m => m.source === "calendar").length,
+    calls: all.filter(m => m.source === "call_record").length,
+    needs_summary: all.filter(m => m.can_summarize && m.summary_status !== "generated").length,
+    action_items: all.filter(m => m.action_item_count > 0).length,
+  }), [all]);
+
+  const rows = useMemo(() => all.filter(m =>
+    tab === "all" ? true
+    : tab === "meetings" ? m.source === "calendar"
+    : tab === "calls" ? m.source === "call_record"
+    : tab === "needs_summary" ? (m.can_summarize && m.summary_status !== "generated")
+    : m.action_item_count > 0
+  ), [all, tab]);
+
+  const tabs: { k: Tab; label: string }[] = [
+    { k: "all", label: "All" }, { k: "meetings", label: "Meetings" }, { k: "calls", label: "Calls" },
+    { k: "needs_summary", label: "Needs summary" }, { k: "action_items", label: "Action items" },
+  ];
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-      <PageHeader title="Calls" description="Recorded conversations analyzed by Mondaily." />
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-1 overflow-x-auto rounded-lg border border-[var(--border-soft)] p-1">
-          {(["all", "mine", "week", "month"] as const).map((item) => <button key={item} onClick={() => setFilter(item)} className={`shrink-0 rounded-md px-3 py-1.5 text-sm ${filter === item ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"}`}>{{ all: "All", mine: "Mine", week: "This week", month: "This month" }[item]}</button>)}
-        </div>
-        <label className="relative block sm:w-64"><Search className="absolute left-3 top-2.5 text-[var(--text-secondary)]" size={14} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search contact or company" className="h-9 w-full rounded-md border border-[var(--border-soft)] bg-transparent pl-9 pr-3 text-sm outline-none focus:border-[var(--border-soft)]" /></label>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+      <div className="mb-4">
+        <h1 className="text-[19px] font-semibold" style={{ color: "var(--text-primary)" }}>Meeting Memory</h1>
+        <p className="mt-1 flex items-center gap-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}>
+          <Brain size={12} style={{ color: "var(--text-muted)" }} /> After-call intelligence — past meetings, recorded calls, summaries & action items.
+        </p>
       </div>
-      {query.isLoading ? <CallSkeletons /> : calls.length === 0 ? <EmptyState icon={Phone} title="No calls recorded yet" description="Install the Mondaily Chrome extension to record calls." /> : (
-        <div className="divide-y divide-white/10 overflow-hidden rounded-lg border border-[var(--border-soft)]">
-          {calls.map((call) => <Link key={call.id} to={`/calls/${call.id}`} className="flex flex-col gap-3 p-4 hover:bg-[var(--surface-hover)] sm:flex-row sm:items-center">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--surface-hover)] text-xs font-semibold">{initials(call.contact_name)}</div>
-              <div className="min-w-0"><div className="flex items-center gap-2"><p className="truncate text-sm font-medium">{call.contact_name}</p><span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${call.direction === "inbound" ? "bg-blue-500/10 text-blue-400" : "bg-stone-500/10 text-stone-400"}`}>{call.direction === "inbound" ? "Inbound" : "Outbound"}</span></div><p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">{call.company_name || "No linked company"}</p><p className="mt-2 truncate text-sm text-[var(--text-faint)]">{call.ai_summary || "Mondaily is preparing the call summary."}</p></div>
-            </div>
-            <div className="flex shrink-0 items-center justify-between gap-5 pl-13 text-xs text-[var(--text-muted)] sm:pl-0">
-              <span>{new Date(call.occurred_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>
-              <span className="flex items-center gap-1"><Clock3 size={11} /> {Math.max(1, Math.round(call.duration_seconds / 60))} min</span>
-              <span className={`rounded-full px-2 py-1 capitalize ${call.status === "processed" ? "bg-emerald-500/10 text-emerald-400" : call.status === "failed" ? "bg-stone-500/10 text-stone-400" : "bg-amber-500/10 text-amber-400"}`}>{call.status}</span>
-            </div>
-          </Link>)}
+
+      {/* Control bar: tabs + search (flat, monochrome). */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="inline-flex flex-wrap rounded-md border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+          {tabs.map(t => (
+            <button key={t.k} onClick={() => setTab(t.k)} className="rounded-[3px] px-2.5 py-1 text-[12px] font-medium transition-colors"
+              style={tab === t.k ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
+              {t.label}{counts[t.k] > 0 && <span className="ml-1 tabular-nums" style={{ color: "var(--text-faint)" }}>{counts[t.k]}</span>}
+            </button>
+          ))}
+        </div>
+        <label className="relative block sm:w-64">
+          <Search className="absolute left-2.5 top-2 text-[var(--text-faint)]" size={14} />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search title, people, transcript…"
+            className="h-8 w-full rounded-sm border bg-transparent pl-8 pr-3 text-[13px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+        </label>
+      </div>
+
+      {query.isLoading ? (
+        <div className="flex items-center gap-2 rounded-md border py-12 px-4 text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> Loading…</div>
+      ) : rows.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 rounded-md border py-16 text-center" style={{ borderColor: "var(--border-soft)" }}>
+          <Brain size={22} style={{ color: "var(--text-faint)" }} />
+          <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>No meeting memories yet.</p>
+          <p className="max-w-xs text-[12px]" style={{ color: "var(--text-faint)" }}>Completed calendar meetings and recorded calls will appear here.</p>
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
+          {rows.map((m, i) => (
+            <Link key={`${m.source}-${m.id}`} to={m.href}
+              className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--surface-hover)]"
+              style={i > 0 ? { borderTop: "1px solid var(--border-soft)" } : undefined}>
+              <span className="shrink-0" style={{ color: "var(--text-faint)" }}>{m.source === "calendar" ? <CalendarClock size={15} /> : <Phone size={15} />}</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{m.title}</span>
+                  <span className="shrink-0 rounded-sm px-1.5 py-px text-[10px] font-medium" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>{m.source === "calendar" ? "Calendar meeting" : "Call record"}</span>
+                </div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>
+                  <span>{fmtWhen(m.occurred_at)}</span>
+                  {m.company_name && <span className="truncate">{m.company_name}</span>}
+                  <span className="flex items-center gap-1"><Users size={10} /> {m.participant_count}</span>
+                  <span className="flex items-center gap-1" title="Transcript"><Dot color={m.transcript_status === "available" ? MUTED.green : MUTED.faint} /><FileText size={10} /> {m.transcript_status === "available" ? "Transcript" : "No transcript"}</span>
+                  <span className="flex items-center gap-1" title="AI summary"><Dot color={m.summary_status === "generated" ? MUTED.green : m.summary_status === "pending" ? MUTED.amber : MUTED.faint} /><Sparkles size={10} /> {m.summary_status === "generated" ? "Summary" : m.summary_status === "pending" ? "Summary pending" : "No summary"}</span>
+                  {m.action_item_count > 0 && <span className="flex items-center gap-1"><ListChecks size={10} /> {m.action_item_count}</span>}
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
       )}
     </div>
