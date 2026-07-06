@@ -19,7 +19,7 @@ import { useDecisionQueue } from "../../components/ai/decision-queue";
  */
 
 // Agent ids with an on-demand runner (POST /agents/:id/run) — mirrors the backend AGENT_RUNNERS.
-const RUNNABLE = new Set(["relationship", "operations", "finance", "graph-enrichment", "workflow", "opportunity", "people", "portfolio", "asset"]);
+const RUNNABLE = new Set(["relationship", "operations", "finance", "graph-enrichment", "workflow", "opportunity", "people", "portfolio", "asset", "meeting"]);
 
 // Canonical proof-of-work step (matches the API's normalizeStep output).
 type Step = {

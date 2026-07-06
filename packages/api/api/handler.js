@@ -60951,6 +60951,12 @@ var TRANSLATIONS = {
   "cal.agent_on_demand": { en: "On demand", pl: "Na \u017C\u0105danie", ru: "\u041F\u043E \u0437\u0430\u043F\u0440\u043E\u0441\u0443", uk: "\u0417\u0430 \u0437\u0430\u043F\u0438\u0442\u043E\u043C", ar: "\u0639\u0646\u062F \u0627\u0644\u0637\u0644\u0628", fr: "\xC0 la demande", de: "Auf Abruf", es: "Bajo demanda", pt: "Sob demanda", it: "Su richiesta", tr: "\u0130ste\u011Fe ba\u011Fl\u0131", nl: "Op aanvraag" },
   "cal.prepared_by": { en: "Prepared by", pl: "Przygotowane przez", ru: "\u041F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043B\u0435\u043D\u043E", uk: "\u041F\u0456\u0434\u0433\u043E\u0442\u043E\u0432\u043B\u0435\u043D\u043E", ar: "\u0623\u0639\u062F\u0651\u0647", fr: "Pr\xE9par\xE9 par", de: "Erstellt von", es: "Preparado por", pt: "Preparado por", it: "Preparato da", tr: "Haz\u0131rlayan", nl: "Voorbereid door" },
   "cal.agent_source": { en: "via Meeting Agent", pl: "przez Meeting Agent", ru: "\u0447\u0435\u0440\u0435\u0437 Meeting Agent", uk: "\u0447\u0435\u0440\u0435\u0437 Meeting Agent", ar: "\u0639\u0628\u0631 Meeting Agent", fr: "via Meeting Agent", de: "\xFCber Meeting Agent", es: "v\xEDa Meeting Agent", pt: "via Meeting Agent", it: "tramite Meeting Agent", tr: "Meeting Agent ile", nl: "via Meeting Agent" },
+  "cal.prev": { en: "Previous", pl: "Poprzedni", ru: "\u041D\u0430\u0437\u0430\u0434", uk: "\u041D\u0430\u0437\u0430\u0434", ar: "\u0627\u0644\u0633\u0627\u0628\u0642", fr: "Pr\xE9c\xE9dent", de: "Zur\xFCck", es: "Anterior", pt: "Anterior", it: "Precedente", tr: "\xD6nceki", nl: "Vorige" },
+  "cal.next": { en: "Next", pl: "Nast\u0119pny", ru: "\u0412\u043F\u0435\u0440\u0451\u0434", uk: "\u0414\u0430\u043B\u0456", ar: "\u0627\u0644\u062A\u0627\u0644\u064A", fr: "Suivant", de: "Weiter", es: "Siguiente", pt: "Pr\xF3ximo", it: "Successivo", tr: "Sonraki", nl: "Volgende" },
+  "cal.clear_day": { en: "A clear day \u2014 nothing scheduled.", pl: "Wolny dzie\u0144 \u2014 nic zaplanowane.", ru: "\u0421\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0439 \u0434\u0435\u043D\u044C \u2014 \u043D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u0437\u0430\u043F\u043B\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u043E.", uk: "\u0412\u0456\u043B\u044C\u043D\u0438\u0439 \u0434\u0435\u043D\u044C \u2014 \u043D\u0456\u0447\u043E\u0433\u043E \u043D\u0435 \u0437\u0430\u043F\u043B\u0430\u043D\u043E\u0432\u0430\u043D\u043E.", ar: "\u064A\u0648\u0645 \u062E\u0627\u0644\u064D \u2014 \u0644\u0627 \u0634\u064A\u0621 \u0645\u062C\u062F\u0648\u0644.", fr: "Journ\xE9e libre \u2014 rien de pr\xE9vu.", de: "Ein freier Tag \u2014 nichts geplant.", es: "Un d\xEDa libre \u2014 nada programado.", pt: "Um dia livre \u2014 nada agendado.", it: "Giornata libera \u2014 niente in agenda.", tr: "Bo\u015F bir g\xFCn \u2014 planlanm\u0131\u015F bir \u015Fey yok.", nl: "Een vrije dag \u2014 niets gepland." },
+  "cal.suggest_followups": { en: "Check open follow-ups", pl: "Sprawd\u017A otwarte dzia\u0142ania", ru: "\u041E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u0437\u0430\u0434\u0430\u0447\u0438", uk: "\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0456 \u0437\u0430\u0434\u0430\u0447\u0456", ar: "\u0645\u062A\u0627\u0628\u0639\u0627\u062A \u0645\u0641\u062A\u0648\u062D\u0629", fr: "Voir les suivis ouverts", de: "Offene Follow-ups pr\xFCfen", es: "Ver seguimientos abiertos", pt: "Ver acompanhamentos abertos", it: "Follow-up aperti", tr: "A\xE7\u0131k takipler", nl: "Open follow-ups bekijken" },
+  "cal.today_briefing": { en: "Today briefing", pl: "Brief dnia", ru: "\u0421\u0432\u043E\u0434\u043A\u0430 \u0434\u043D\u044F", uk: "\u0417\u0432\u0435\u0434\u0435\u043D\u043D\u044F \u0434\u043D\u044F", ar: "\u0645\u0648\u062C\u0632 \u0627\u0644\u064A\u0648\u0645", fr: "Briefing du jour", de: "Tagesbriefing", es: "Resumen del d\xEDa", pt: "Briefing de hoje", it: "Briefing di oggi", tr: "G\xFCn\xFCn \xF6zeti", nl: "Briefing van vandaag" },
+  "cal.open_followups": { en: "Open follow-ups", pl: "Otwarte dzia\u0142ania", ru: "\u041E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u0437\u0430\u0434\u0430\u0447\u0438", uk: "\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0456 \u0437\u0430\u0434\u0430\u0447\u0456", ar: "\u0627\u0644\u0645\u062A\u0627\u0628\u0639\u0627\u062A \u0627\u0644\u0645\u0641\u062A\u0648\u062D\u0629", fr: "Suivis ouverts", de: "Offene Follow-ups", es: "Seguimientos abiertos", pt: "Acompanhamentos abertos", it: "Follow-up aperti", tr: "A\xE7\u0131k takipler", nl: "Open follow-ups" },
   "cal.readiness": { en: "Meeting readiness", pl: "Gotowo\u015B\u0107 spotkania", ru: "\u0413\u043E\u0442\u043E\u0432\u043D\u043E\u0441\u0442\u044C \u0432\u0441\u0442\u0440\u0435\u0447\u0438", uk: "\u0413\u043E\u0442\u043E\u0432\u043D\u0456\u0441\u0442\u044C \u0437\u0443\u0441\u0442\u0440\u0456\u0447\u0456", ar: "\u062C\u0627\u0647\u0632\u064A\u0629 \u0627\u0644\u0627\u062C\u062A\u0645\u0627\u0639", fr: "Pr\xE9paration de la r\xE9union", de: "Meeting-Bereitschaft", es: "Preparaci\xF3n de la reuni\xF3n", pt: "Prontid\xE3o da reuni\xE3o", it: "Prontezza riunione", tr: "Toplant\u0131 haz\u0131rl\u0131\u011F\u0131", nl: "Vergaderklaar" },
   "cal.sig_call": { en: "Call link", pl: "Link do rozmowy", ru: "\u0421\u0441\u044B\u043B\u043A\u0430 \u043D\u0430 \u0437\u0432\u043E\u043D\u043E\u043A", uk: "\u041F\u043E\u0441\u0438\u043B\u0430\u043D\u043D\u044F \u043D\u0430 \u0434\u0437\u0432\u0456\u043D\u043E\u043A", ar: "\u0631\u0627\u0628\u0637 \u0627\u0644\u0645\u0643\u0627\u0644\u0645\u0629", fr: "Lien d\u2019appel", de: "Anruflink", es: "Enlace de llamada", pt: "Link de chamada", it: "Link chiamata", tr: "Arama ba\u011Flant\u0131s\u0131", nl: "Gesprekslink" },
   "cal.sig_prep": { en: "AI prep", pl: "Przygotowanie AI", ru: "\u0418\u0418-\u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430", uk: "\u0428\u0406-\u043F\u0456\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430", ar: "\u062A\u062D\u0636\u064A\u0631 \u0627\u0644\u0630\u0643\u0627\u0621", fr: "Pr\xE9pa IA", de: "KI-Vorbereitung", es: "Preparaci\xF3n IA", pt: "Preparo IA", it: "Prep IA", tr: "Yapay zek\xE2 haz\u0131rl\u0131\u011F\u0131", nl: "AI-voorbereiding" },
@@ -63606,6 +63612,84 @@ User: ${lastMsg.content}` : lastMsg.content;
 
 // src/routes/agents.ts
 init_client();
+
+// src/jobs/meeting-agent.ts
+init_client();
+var startMs = (m2) => new Date(m2.start_at).getTime();
+var endMs = (m2) => new Date(m2.end_at || m2.start_at).getTime();
+function analyzeMeetings(events) {
+  const active = events.filter((e2) => (e2.status ?? "scheduled") !== "cancelled" && !Number.isNaN(startMs(e2)));
+  const sorted = [...active].sort((a2, b2) => startMs(a2) - startMs(b2));
+  const conflicts = [];
+  for (let i2 = 0; i2 < sorted.length; i2++) {
+    for (let j2 = i2 + 1; j2 < sorted.length; j2++) {
+      const a2 = sorted[i2], b2 = sorted[j2];
+      if (startMs(b2) >= endMs(a2)) break;
+      if (startMs(a2) < endMs(b2) && startMs(b2) < endMs(a2)) conflicts.push([a2, b2]);
+    }
+  }
+  const missingAgenda = active.filter((e2) => !(e2.description ?? "").trim());
+  const missingCall = active.filter((e2) => !e2.call_url);
+  return { active, conflicts, missingAgenda, missingCall };
+}
+async function runMeetingAgent(workspaceId) {
+  const jobId = await startJob({ workspace_id: workspaceId, agent_name: "meeting", trigger_type: "manual", input: {} });
+  try {
+    const start = /* @__PURE__ */ new Date();
+    start.setHours(0, 0, 0, 0);
+    const horizon = new Date(start);
+    horizon.setDate(horizon.getDate() + 7);
+    const { data } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).eq("object_type", "calendar_event").gte("data->>start_at", start.toISOString()).lt("data->>start_at", horizon.toISOString()).order("data->>start_at", { ascending: true }).limit(500);
+    const events = (data ?? []).map((n2) => {
+      const d2 = n2.data ?? {};
+      return { id: n2.id, title: String(d2.title ?? ""), start_at: String(d2.start_at ?? ""), end_at: String(d2.end_at ?? ""), description: String(d2.description ?? ""), call_url: d2.call_url ?? null, status: String(d2.status ?? "scheduled") };
+    });
+    const a2 = analyzeMeetings(events);
+    const steps = [
+      step2(`Loaded ${a2.active.length} meeting(s)`, { detail: "today + next 7 days" }),
+      step2(`Found ${a2.conflicts.length} conflict(s)`, { status: a2.conflicts.length ? "warn" : "ok" }),
+      step2(`Found ${a2.missingAgenda.length} missing agenda(s)`, { status: a2.missingAgenda.length ? "warn" : "ok" }),
+      step2(`Found ${a2.missingCall.length} missing call link(s)`, { status: a2.missingCall.length ? "warn" : "ok" })
+    ];
+    let queued = 0;
+    for (const [x2, y2] of a2.conflicts) {
+      const sourceId = [x2.id, y2.id].sort().join("__");
+      const { data: existing } = await supabase.from("decision_queue").select("id").eq("workspace_id", workspaceId).eq("source_type", "calendar_conflict").eq("source_id", sourceId).eq("agent_name", "meeting").eq("status", "pending").maybeSingle();
+      if (existing) continue;
+      const { error } = await supabase.from("decision_queue").insert({
+        workspace_id: workspaceId,
+        source_type: "calendar_conflict",
+        source_id: sourceId,
+        agent_name: "meeting",
+        title: `Overlapping meetings: ${x2.title || "Untitled"} & ${y2.title || "Untitled"}`,
+        summary: `These two meetings overlap in time.`,
+        recommended_action: "Reschedule one of the meetings",
+        risk_level: "medium",
+        evidence: [
+          { type: "calendar_event", title: x2.title || "Untitled", node_id: x2.id, match_reason: "overlaps", timestamp: x2.start_at },
+          { type: "calendar_event", title: y2.title || "Untitled", node_id: y2.id, match_reason: "overlaps", timestamp: y2.start_at }
+        ]
+      });
+      if (!error) queued++;
+    }
+    steps.push(step2(`Queued ${queued} attention item(s)`, { status: queued ? "warn" : "ok" }));
+    const output = {
+      meetings: a2.active.length,
+      conflicts: a2.conflicts.length,
+      missing_agenda: a2.missingAgenda.length,
+      missing_call_link: a2.missingCall.length,
+      queued,
+      summary: `Checked ${a2.active.length} meeting(s): ${a2.conflicts.length} conflict(s), ${a2.missingAgenda.length} without agenda, ${a2.missingCall.length} without call link`
+    };
+    await completeJob(jobId, output, steps);
+    return output;
+  } catch (err2) {
+    await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    throw err2;
+  }
+}
+
+// src/routes/agents.ts
 init_inngest2();
 var router8 = new Hono2();
 router8.use("*", requireAuth);
@@ -63619,7 +63703,9 @@ var AGENT_RUNNERS = {
   opportunity: async (ws) => ({ ...await runOpportunityScan(ws), ...await runLeadScoring(ws) }),
   people: async (ws) => runPeopleScan(ws),
   portfolio: async (ws) => runPortfolioScan(ws),
-  asset: async (ws) => runAssetScan(ws)
+  asset: async (ws) => runAssetScan(ws),
+  meeting: async (ws) => runMeetingAgent(ws)
+  // real calendar inspection (conflicts / missing agenda / missing call link)
 };
 router8.post("/:id/run", async (c2) => {
   const id = c2.req.param("id");
@@ -63648,7 +63734,8 @@ var RAW_TO_RUNNER = {
   opportunity: "opportunity",
   people: "people",
   portfolio: "portfolio",
-  asset: "asset"
+  asset: "asset",
+  meeting: "meeting"
 };
 router8.post("/replay", async (c2) => {
   const workspaceId = c2.get("workspaceId");
@@ -63758,6 +63845,35 @@ router8.get("/", async (c2) => {
       evidence_count: overdueTasks.length + reviewTasks.length + pendingCount,
       suggested_action: overdueTasks.length > 0 ? "Review and reassign overdue tasks" : null,
       destination: "/tasks"
+    });
+  }
+  {
+    const meetingJobRow = latestJob(jobs, "meeting");
+    const meetingJob = jobSummary(meetingJobRow, "No runs yet");
+    const calEvents = nodes.filter((n2) => n2.object_type === "calendar_event").map((n2) => ({ id: n2.id, d: n2.data ?? {} })).filter((e2) => String(e2.d.status ?? "scheduled") !== "cancelled");
+    const isTodayEvent = (iso) => {
+      const t3 = new Date(String(iso));
+      return !Number.isNaN(t3.getTime()) && t3.toDateString() === (/* @__PURE__ */ new Date()).toDateString();
+    };
+    const todays = calEvents.filter((e2) => isTodayEvent(e2.d.start_at));
+    const missingAgenda = todays.filter((e2) => !String(e2.d.description ?? "").trim());
+    const missingCall = todays.filter((e2) => !e2.d.call_url);
+    const { state: mState, pendingCount: mPending } = withDecisions("monitoring", ["meeting"]);
+    const meetingState = mPending > 0 ? mState : meetingJobRow?.status === "running" ? "active" : "monitoring";
+    const findings = missingAgenda.length + missingCall.length;
+    agents.push({
+      id: "meeting",
+      name: "Meeting Agent",
+      category: "operations",
+      status: mPending > 0 ? `${mPending} item(s) to review` : todays.length > 0 ? `${todays.length} meeting(s) today${findings > 0 ? `, ${findings} to prep` : ""}` : "No meetings today",
+      state: meetingState,
+      backed_by: ["meeting"],
+      last_run_at: meetingJob.lastRunAt,
+      last_action: meetingJob.lastAction,
+      // "No runs yet" until it actually runs — never fabricated
+      evidence_count: findings + mPending,
+      suggested_action: missingAgenda.length > 0 ? "Add agendas to today's meetings" : missingCall.length > 0 ? "Add call links to today's meetings" : null,
+      destination: "/calendar"
     });
   }
   {

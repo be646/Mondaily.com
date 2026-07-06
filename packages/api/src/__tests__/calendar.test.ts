@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { EVENT_STATUSES } from "../routes/calendar";
 import { buildNotificationPayload, extractSource, categorizeNotification } from "../lib/notify";
+import { analyzeMeetings, type MeetingLite } from "../jobs/meeting-agent";
 
 const src = readFileSync(fileURLToPath(new URL("../routes/calendar.ts", import.meta.url)), "utf8");
 const page = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/calendar.tsx", import.meta.url)), "utf8");
@@ -148,6 +149,62 @@ describe("Meeting Agent attribution — real calendar notifications (no fabricat
     expect(src).toMatch(/router\.post\("\/events\/:id\/call-link"/);        // add call link
     expect(src).toMatch(/router\.post\("\/events\/:id\/prepare"/);          // prepare me
     expect(src).toMatch(/router\.post\("\/events\/:id\/call-token"/);       // join flow
+  });
+});
+
+describe("Meeting Agent — real backend agent (registry + runner + honest status)", () => {
+  const agentsSrc = readFileSync(fileURLToPath(new URL("../routes/agents.ts", import.meta.url)), "utf8");
+  const runnerSrc = readFileSync(fileURLToPath(new URL("../jobs/meeting-agent.ts", import.meta.url)), "utf8");
+
+  it("is listed in the /agents registry (Agents page + Home constellation + Activity roster)", () => {
+    // the GET / handler pushes a real Meeting Agent entry
+    expect(agentsSrc).toMatch(/id: "meeting", name: "Meeting Agent", category: "operations"/);
+  });
+  it("has a real on-demand runner wired to POST /agents/meeting/run", () => {
+    expect(agentsSrc).toMatch(/meeting: async \(ws\) => runMeetingAgent\(ws\)/);
+    expect(agentsSrc).toMatch(/import \{ runMeetingAgent \} from "\.\.\/jobs\/meeting-agent"/);
+  });
+  it("never claims a fake 'running'/'active' state without a real running job", () => {
+    // state is derived from the real job row; default rest state is "monitoring", not active/running
+    expect(agentsSrc).toMatch(/meetingJobRow\?\.status === "running" \? "active" : "monitoring"/);
+    // idle label is honest until it actually runs
+    expect(agentsSrc).toMatch(/jobSummary\(meetingJobRow, "No runs yet"\)/);
+  });
+  it("the runner logs real proof-of-work: startJob → 5 structured steps → completeJob", () => {
+    expect(runnerSrc).toMatch(/startJob\(\{ workspace_id: workspaceId, agent_name: "meeting"/);
+    expect(runnerSrc).toMatch(/step\(`Loaded \$\{a\.active\.length\} meeting\(s\)`/);
+    expect(runnerSrc).toMatch(/step\(`Found \$\{a\.conflicts\.length\} conflict\(s\)`/);
+    expect(runnerSrc).toMatch(/step\(`Found \$\{a\.missingAgenda\.length\} missing agenda\(s\)`/);
+    expect(runnerSrc).toMatch(/step\(`Found \$\{a\.missingCall\.length\} missing call link\(s\)`/);
+    expect(runnerSrc).toMatch(/step\(`Queued \$\{queued\} attention item\(s\)`/);
+    expect(runnerSrc).toMatch(/completeJob\(jobId, output, steps\)/);
+  });
+  it("only queues Decision Queue items for REAL conflicts, deduped (no fabricated attention)", () => {
+    expect(runnerSrc).toMatch(/for \(const \[x, y\] of a\.conflicts\)/);
+    expect(runnerSrc).toMatch(/source_type: "calendar_conflict"/);
+    expect(runnerSrc).toMatch(/\.eq\("status", "pending"\)\.maybeSingle\(\)/);   // dedupe existing
+  });
+
+  it("detection is real: overlaps by actual time, gaps by real fields, cancelled excluded", () => {
+    const evs: MeetingLite[] = [
+      { id: "a", title: "A", start_at: "2026-07-06T10:00:00Z", end_at: "2026-07-06T11:00:00Z", description: "agenda", call_url: "x" },
+      { id: "b", title: "B", start_at: "2026-07-06T10:30:00Z", end_at: "2026-07-06T11:30:00Z", description: "", call_url: null }, // overlaps A, no agenda, no call
+      { id: "c", title: "C", start_at: "2026-07-06T12:00:00Z", end_at: "2026-07-06T12:30:00Z", description: "x", call_url: "y" },  // no overlap
+      { id: "d", title: "D", start_at: "2026-07-06T10:15:00Z", end_at: "2026-07-06T10:45:00Z", status: "cancelled" },              // excluded
+    ];
+    const r = analyzeMeetings(evs);
+    expect(r.active.map(e => e.id).sort()).toEqual(["a", "b", "c"]);   // cancelled dropped
+    expect(r.conflicts.length).toBe(1);                                // only A×B
+    expect(r.conflicts[0]!.map(e => e.id).sort()).toEqual(["a", "b"]);
+    expect(r.missingAgenda.map(e => e.id)).toEqual(["b"]);
+    expect(r.missingCall.map(e => e.id)).toEqual(["b"]);
+  });
+  it("no overlap when meetings merely touch (end == next start)", () => {
+    const evs: MeetingLite[] = [
+      { id: "a", start_at: "2026-07-06T10:00:00Z", end_at: "2026-07-06T11:00:00Z", description: "x", call_url: "x" },
+      { id: "b", start_at: "2026-07-06T11:00:00Z", end_at: "2026-07-06T12:00:00Z", description: "x", call_url: "x" },
+    ];
+    expect(analyzeMeetings(evs).conflicts.length).toBe(0);
   });
 });
 
@@ -337,8 +394,8 @@ describe("Smart Calendar UI — command-center layout", () => {
     // desktop panel is always mounted (hidden on small screens); the drawer is mobile-only
     expect(page).toMatch(/<aside className="hidden lg:block">/);
     expect(page).toMatch(/<div className="lg:hidden"><EventDrawer/);
-    // the brief tracks the selected meeting, else the next upcoming one
-    expect(page).toMatch(/const briefId = openId \?\? nextEvent\?\.id \?\? null/);
+    // selected meeting → its brief; nothing selected → the Today briefing (panel never sits empty)
+    expect(page).toMatch(/openId \? <MeetingBriefBody id=\{openId\} \/> : <TodayBriefingPanel/);
   });
   it("when AI prep finds no records, it says it is based only on the meeting details (no fabrication)", () => {
     expect(page).toMatch(/r\.sources\.length === 0 \?[\s\S]*?t\("cal\.based_on_details"\)/);
@@ -363,9 +420,27 @@ describe("Smart Calendar — real time grid (rail, hour lines, positioned events
     expect(page).toMatch(/isToday && nowVisible/);
   });
   it("Today view renders a single-column day timeline; Week renders seven columns", () => {
-    expect(page).toMatch(/<TimeGrid days=\{\[todayStart\]\}[^>]*single/);
-    expect(page).toMatch(/<TimeGrid days=\{weekDays\}/);
+    expect(page).toMatch(/<TimeGrid days=\{\[anchor\]\}[^>]*single/);
+    expect(page).toMatch(/<TimeGrid days=\{anchorWeek\}/);
     expect(page).toMatch(/monday\.setDate\(monday\.getDate\(\) - \(\(monday\.getDay\(\) \+ 6\) % 7\)\)/);   // real Mon–Sun week
+  });
+  it("always renders a real grid even when empty (subtle in-grid suggestions, not a blank card)", () => {
+    expect(page).toMatch(/function GridEmpty/);
+    expect(page).toMatch(/dayCount === 0 && <GridEmpty/);
+    expect(page).toMatch(/weekCount === 0 && <GridEmpty/);
+    expect(page).toMatch(/t\("cal\.suggest_followups"\)/);
+    expect(page).toMatch(/t\("cal\.clear_day"\)/);
+  });
+  it("has Today / prev / next calendar controls", () => {
+    expect(page).toMatch(/onClick=\{goToday\}/);
+    expect(page).toMatch(/onClick=\{\(\) => shift\(-1\)\}/);
+    expect(page).toMatch(/onClick=\{\(\) => shift\(1\)\}/);
+    expect(page).toMatch(/\{rangeLabel\}/);
+  });
+  it("the brief panel never sits empty — shows a Today briefing when nothing is selected", () => {
+    expect(page).toMatch(/function TodayBriefingPanel/);
+    expect(page).toMatch(/t\("cal\.today_briefing"\)/);
+    expect(page).toMatch(/apiClient\.get\("\/calendar\/brief\/today"\)/);   // real brief data, no fabrication
   });
 });
 

@@ -7,6 +7,7 @@ import {
 } from "../jobs/runners";
 import { runWorkflowsForWorkspace } from "../jobs/workflow-engine";
 import { runOpportunityScan, runPeopleScan, runPortfolioScan, runAssetScan } from "../jobs/vertical-agents";
+import { runMeetingAgent } from "../jobs/meeting-agent";
 import { normalizeStep } from "../lib/agent-logger";
 import { inngest } from "../lib/inngest";
 
@@ -30,6 +31,7 @@ const AGENT_RUNNERS: Record<string, (workspaceId: string) => Promise<Record<stri
   people: async (ws) => runPeopleScan(ws),
   portfolio: async (ws) => runPortfolioScan(ws),
   asset: async (ws) => runAssetScan(ws),
+  meeting: async (ws) => runMeetingAgent(ws),   // real calendar inspection (conflicts / missing agenda / missing call link)
 };
 
 router.post("/:id/run", async (c) => {
@@ -53,6 +55,7 @@ const RAW_TO_RUNNER: Record<string, string> = {
   relationship_health: "relationship", deal_alerts: "relationship",
   lead_scoring: "lead-scoring", operations: "operations", overdue_task_decisions: "operations",
   workflow: "workflow", opportunity: "opportunity", people: "people", portfolio: "portfolio", asset: "asset",
+  meeting: "meeting",
 };
 
 /**
@@ -221,6 +224,40 @@ router.get("/", async (c) => {
       evidence_count: overdueTasks.length + reviewTasks.length + pendingCount,
       suggested_action: overdueTasks.length > 0 ? "Review and reassign overdue tasks" : null,
       destination: "/tasks",
+    });
+  }
+
+  // Meeting Agent — inspects the workspace's own calendar_event nodes for conflicts / missing agendas /
+  // missing call links. On-demand (POST /agents/meeting/run) with real proof-of-work in agent_jobs; no
+  // scheduled job yet, so its resting state is honestly "monitoring" and it never claims to be running
+  // unless a real job row is running right now.
+  {
+    const meetingJobRow = latestJob(jobs, "meeting");
+    const meetingJob = jobSummary(meetingJobRow, "No runs yet");
+    const calEvents = nodes
+      .filter(n => n.object_type === "calendar_event")
+      .map(n => ({ id: n.id, d: (n.data ?? {}) as Record<string, unknown> }))
+      .filter(e => String(e.d.status ?? "scheduled") !== "cancelled");
+    const isTodayEvent = (iso: unknown) => { const t = new Date(String(iso)); return !Number.isNaN(t.getTime()) && t.toDateString() === new Date().toDateString(); };
+    const todays = calEvents.filter(e => isTodayEvent(e.d.start_at));
+    const missingAgenda = todays.filter(e => !String(e.d.description ?? "").trim());
+    const missingCall = todays.filter(e => !e.d.call_url);
+    const { state: mState, pendingCount: mPending } = withDecisions("monitoring", ["meeting"]);
+    // Only "active" if a real job is running THIS moment; otherwise "monitoring" (wired but quiet).
+    const meetingState: AgentState = mPending > 0 ? mState : meetingJobRow?.status === "running" ? "active" : "monitoring";
+    const findings = missingAgenda.length + missingCall.length;
+    agents.push({
+      id: "meeting", name: "Meeting Agent", category: "operations",
+      status: mPending > 0 ? `${mPending} item(s) to review`
+        : todays.length > 0 ? `${todays.length} meeting(s) today${findings > 0 ? `, ${findings} to prep` : ""}`
+        : "No meetings today",
+      state: meetingState,
+      backed_by: ["meeting"],
+      last_run_at: meetingJob.lastRunAt,
+      last_action: meetingJob.lastAction,   // "No runs yet" until it actually runs — never fabricated
+      evidence_count: findings + mPending,
+      suggested_action: missingAgenda.length > 0 ? "Add agendas to today's meetings" : missingCall.length > 0 ? "Add call links to today's meetings" : null,
+      destination: "/calendar",
     });
   }
 

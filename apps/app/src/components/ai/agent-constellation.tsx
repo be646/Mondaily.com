@@ -10,7 +10,7 @@ import {
 } from "./agent-dock";
 
 /** Agents that expose an on-demand POST /api/v1/agents/:id/run runner. */
-const RUNNABLE_AGENTS = new Set(["relationship", "operations", "finance", "graph-enrichment", "workflow", "opportunity", "people", "portfolio", "asset"]);
+const RUNNABLE_AGENTS = new Set(["relationship", "operations", "finance", "graph-enrichment", "workflow", "opportunity", "people", "portfolio", "asset", "meeting"]);
 
 /** Turn a runner's result payload into one short human line. */
 function summarizeRun(result: Record<string, unknown>): string {

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Send, StickyNote, Circle, CalendarClock } from "lucide-react";
+import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Send, StickyNote, Circle, CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -150,10 +150,13 @@ function TimeGrid({ days, events, selected, onOpen, lang, single }: {
 
 export function CalendarPage() {
   const { t, lang } = useLanguage();
+  const navigateTo = useNavigate();
   const [params, setParams] = useSearchParams();
   const openId = params.get("event");
   const [createOpen, setCreateOpen] = useState(false);
   const [view, setView] = useState<ViewMode>("today");
+  // The date the Day/Week grid is centered on — moved by the Today / ‹ / › controls.
+  const [anchor, setAnchor] = useState<Date>(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; });
 
   const eventsQ = useQuery<{ events: CalEvent[]; calls_enabled: boolean }>({
     queryKey: ["calendar-events"],
@@ -163,14 +166,19 @@ export function CalendarPage() {
   const events = (eventsQ.data?.events ?? []).filter(e => e.status !== "cancelled");
   const now = new Date();
 
-  const todayStart = useMemo(() => { const d = new Date(now); d.setHours(0, 0, 0, 0); return d; }, []);   // eslint-disable-line react-hooks/exhaustive-deps
-  const todayEvents = useMemo(() => events.filter(e => isSameDay(new Date(e.start_at), now)), [events]);   // eslint-disable-line react-hooks/exhaustive-deps
-  // Week = the current Mon–Sun calendar week (a real weekly grid, not a rolling list).
-  const weekDays = useMemo(() => {
-    const monday = new Date(now); monday.setHours(0, 0, 0, 0);
-    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  // Week = the Mon–Sun calendar week containing the anchor (a real weekly grid).
+  const anchorWeek = useMemo(() => {
+    const monday = new Date(anchor); monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
     return Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
-  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [anchor]);
+  const dayCount = events.filter(e => isSameDay(new Date(e.start_at), anchor)).length;
+  const weekCount = events.filter(e => anchorWeek.some(d => isSameDay(new Date(e.start_at), d))).length;
+  const isAnchorToday = isSameDay(anchor, now);
+  const shift = (dir: number) => setAnchor(a => { const d = new Date(a); d.setDate(d.getDate() + dir * (view === "week" ? 7 : 1)); return d; });
+  const goToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); setAnchor(d); };
+  const rangeLabel = view === "week"
+    ? `${anchorWeek[0]!.toLocaleDateString(lang, { month: "short", day: "numeric" })} – ${anchorWeek[6]!.toLocaleDateString(lang, { month: "short", day: "numeric" })}`
+    : anchor.toLocaleDateString(lang, { weekday: "long", month: "long", day: "numeric" });
 
   const groups = useMemo(() => {
     const map = new Map<string, CalEvent[]>();
@@ -205,9 +213,7 @@ export function CalendarPage() {
     { k: "today", label: t("cal.view_today") }, { k: "week", label: t("cal.view_week") }, { k: "upcoming", label: t("cal.view_upcoming") },
   ];
 
-  // The brief panel tracks the selected meeting, falling back to the next upcoming one.
-  const nextEvent = useMemo(() => events.find(e => new Date(e.end_at || e.start_at) >= now), [events]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const briefId = openId ?? nextEvent?.id ?? null;
+  // The brief panel shows the SELECTED meeting; when nothing is selected it shows a Today briefing.
   const selected = openId;
 
   return (
@@ -236,13 +242,26 @@ export function CalendarPage() {
       {/* Command-center split: agenda/timeline on the left, a persistent Meeting Brief on the right (lg+). */}
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0">
-          <div className="mb-4 inline-flex rounded-lg border p-0.5" style={{ borderColor: "var(--border-soft)" }}>
-            {tabs.map(tab => (
-              <button key={tab.k} onClick={() => setView(tab.k)}
-                className="rounded-md px-3 py-1 text-[12px] font-medium transition-colors" style={view === tab.k ? { background: "var(--section-accent)", color: "#fff" } : { color: "var(--text-muted)" }}>
-                {tab.label}
-              </button>
-            ))}
+          {/* Calendar controls: Today · ‹ › · range label · Day/Week/Upcoming switch. */}
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <button onClick={goToday} disabled={isAnchorToday && view !== "upcoming"} className="rounded-md border px-2.5 py-1 text-[12px] font-medium transition-colors disabled:opacity-40 hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{t("cal.today")}</button>
+              {view !== "upcoming" && (
+                <div className="flex items-center gap-0.5">
+                  <button onClick={() => shift(-1)} aria-label={t("cal.prev")} className="btn-icon h-7 w-7"><ChevronLeft size={15} /></button>
+                  <button onClick={() => shift(1)} aria-label={t("cal.next")} className="btn-icon h-7 w-7"><ChevronRight size={15} /></button>
+                  <span className="ml-1.5 text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{rangeLabel}</span>
+                </div>
+              )}
+            </div>
+            <div className="inline-flex rounded-lg border p-0.5" style={{ borderColor: "var(--border-soft)" }}>
+              {tabs.map(tab => (
+                <button key={tab.k} onClick={() => setView(tab.k)}
+                  className="rounded-md px-3 py-1 text-[12px] font-medium transition-colors" style={view === tab.k ? { background: "var(--section-accent)", color: "#fff" } : { color: "var(--text-muted)" }}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {eventsQ.isLoading ? (
@@ -250,11 +269,16 @@ export function CalendarPage() {
           ) : eventsQ.isError ? (
             <div className="rounded-xl border py-12 text-center text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>Couldn't load your calendar. <button onClick={() => eventsQ.refetch()} className="underline">Retry</button></div>
           ) : view === "today" ? (
-            todayEvents.length === 0
-              ? <EmptyState label={t("cal.all_clear")} onNew={() => setCreateOpen(true)} newLabel={t("cal.new_meeting")} />
-              : <div className="rounded-xl border" style={{ borderColor: "var(--border-soft)" }}><TimeGrid days={[todayStart]} events={events} selected={selected} onOpen={openEvent} lang={lang} single /></div>
+            // Always a real day timeline — even with zero meetings, a subtle in-grid hint + suggestions.
+            <div className="relative rounded-xl border" style={{ borderColor: "var(--border-soft)" }}>
+              <TimeGrid days={[anchor]} events={events} selected={selected} onOpen={openEvent} lang={lang} single />
+              {dayCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={() => setCreateOpen(true)} onDraft={() => setCreateOpen(true)} onFollowups={() => navigateTo("/tasks")} t={t} />}
+            </div>
           ) : view === "week" ? (
-            <div className="rounded-xl border" style={{ borderColor: "var(--border-soft)" }}><TimeGrid days={weekDays} events={events} selected={selected} onOpen={openEvent} lang={lang} /></div>
+            <div className="relative rounded-xl border" style={{ borderColor: "var(--border-soft)" }}>
+              <TimeGrid days={anchorWeek} events={events} selected={selected} onOpen={openEvent} lang={lang} />
+              {weekCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={() => setCreateOpen(true)} onDraft={() => setCreateOpen(true)} onFollowups={() => navigateTo("/tasks")} t={t} />}
+            </div>
           ) : groups.length === 0 ? (
             <EmptyState label={t("cal.empty")} onNew={() => setCreateOpen(true)} newLabel={t("cal.new_meeting")} />
           ) : (
@@ -272,12 +296,7 @@ export function CalendarPage() {
         {/* Persistent Meeting Brief (desktop). Mobile uses the drawer below. */}
         <aside className="hidden lg:block">
           <div className="sticky top-6 flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-2xl border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
-            {briefId ? <MeetingBriefBody id={briefId} /> : (
-              <div className="flex flex-col items-center gap-2 px-6 py-16 text-center">
-                <CalendarDays size={20} style={{ color: "var(--text-faint)" }} />
-                <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>{t("cal.select_meeting")}</p>
-              </div>
-            )}
+            {openId ? <MeetingBriefBody id={openId} /> : <TodayBriefingPanel onOpen={openEvent} onFollowups={() => navigateTo("/tasks")} />}
           </div>
         </aside>
       </div>
@@ -298,6 +317,73 @@ function EmptyState({ label, onNew, newLabel }: { label: string; onNew: () => vo
         <Plus size={13} /> {newLabel}
       </button>
     </div>
+  );
+}
+
+/** Subtle in-grid overlay when the visible range has no meetings — the real time grid stays behind it. */
+function GridEmpty({ hint, onCreate, onDraft, onFollowups, t }: { hint: string; onCreate: () => void; onDraft: () => void; onFollowups: () => void; t: (k: string) => string }) {
+  const chip = "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]";
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-start justify-center pt-16">
+      <div className="pointer-events-auto flex flex-col items-center gap-3 rounded-xl px-6 py-5 text-center" style={{ background: "color-mix(in srgb, var(--surface-page) 82%, transparent)", backdropFilter: "blur(2px)" }}>
+        <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{hint}</p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button onClick={onCreate} className={chip} style={{ borderColor: "var(--section-accent)", color: "var(--section-accent)" }}><Plus size={13} /> {t("cal.new_meeting")}</button>
+          <button onClick={onDraft} className={chip} style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><Sparkles size={13} /> {t("cal.draft_agenda")}</button>
+          <button onClick={onFollowups} className={chip} style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><ListChecks size={13} /> {t("cal.suggest_followups")}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Today briefing — what the persistent panel shows when no meeting is selected. Reuses the REAL Today
+ * brief (counts, next meeting, conflicts, missing agenda/call gaps, suggestions). Attributed to the
+ * Meeting Agent; no fabricated numbers. Follow-ups link out to Tasks (no fake count shown).
+ */
+function TodayBriefingPanel({ onOpen, onFollowups }: { onOpen: (id: string) => void; onFollowups: () => void }) {
+  const { t, lang } = useLanguage();
+  const q = useQuery<TodayBrief>({ queryKey: ["calendar-brief-today"], queryFn: () => apiClient.get("/calendar/brief/today"), staleTime: 30_000 });
+  const b = q.data;
+  const RowLine = ({ label, value, tone }: { label: string; value: string; tone?: string }) => (
+    <div className="flex items-center justify-between px-4 py-2" style={{ borderTop: "1px solid var(--border-soft)" }}>
+      <span className="font-mono text-[11px]" style={{ color: "var(--text-muted)" }}>{label}</span>
+      <span className="text-[12px] font-medium" style={{ color: tone ?? "var(--text-secondary)" }}>{value}</span>
+    </div>
+  );
+  return (
+    <>
+      <div className="border-b px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--section-accent) 5%, var(--surface-page))" }}>
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-primary)" }}><CalendarClock size={13} style={{ color: "var(--section-accent)" }} /> {t("cal.meeting_agent")}</span>
+        <span className="mt-1.5 block text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("cal.today_briefing")}</span>
+        <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{t("cal.prepared_by")} {t("cal.meeting_agent")}</span>
+      </div>
+      {!b ? <div className="p-5"><Loader2 size={16} className="animate-spin" /></div> : (
+        <div className="flex-1 overflow-y-auto py-1 text-[13px]">
+          {b.next ? (
+            <button onClick={() => onOpen(b.next!.id)} className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
+              <span className="min-w-0"><span className="block text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.next_up")}</span><span className="block truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{b.next.title}</span></span>
+              <span className="flex items-center gap-1 text-[12px] tabular-nums" style={{ color: "var(--text-muted)" }}>{fmtTime(b.next.start_at, lang)} <ArrowRight size={12} style={{ color: "var(--section-accent)" }} /></span>
+            </button>
+          ) : <div className="px-4 py-2.5 text-[12px]" style={{ color: "var(--text-muted)" }}>{t("cal.all_clear")}</div>}
+          <RowLine label={t("cal.meetings_today")} value={String(b.count)} />
+          <RowLine label={t("cal.overlaps")} value={String(b.conflicts.length)} tone={b.conflicts.length ? "#f59e0b" : undefined} />
+          <RowLine label={t("cal.needs_agenda")} value={String(b.no_agenda.length)} tone={b.no_agenda.length ? "#f59e0b" : undefined} />
+          {b.calls_enabled && <RowLine label={t("cal.needs_call")} value={String(b.no_call_link.length)} tone={b.no_call_link.length ? "#f59e0b" : undefined} />}
+          <button onClick={onFollowups} className="flex w-full items-center justify-between px-4 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]" style={{ borderTop: "1px solid var(--border-soft)" }}>
+            <span className="font-mono text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.open_followups")}</span>
+            <ArrowRight size={12} style={{ color: "var(--section-accent)" }} />
+          </button>
+          {b.suggestions.length > 0 && (
+            <div className="px-4 py-3" style={{ borderTop: "1px solid var(--border-soft)" }}>
+              <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.next_action")}</p>
+              <div className="flex flex-wrap gap-1.5">{b.suggestions.map((s, i) => <span key={i} className="rounded-full px-2.5 py-1 text-[11px]" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>{s}</span>)}</div>
+            </div>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 
