@@ -197,6 +197,18 @@ describe("Meeting Agent — real backend agent (registry + runner + honest statu
     expect(runnerSrc).toMatch(/source_type: "calendar_conflict"/);
     expect(runnerSrc).toMatch(/\.eq\("status", "pending"\)\.maybeSingle\(\)/);   // dedupe existing
   });
+  it("an empty / no-meeting workspace yields honest zero-result findings (no invented activity)", () => {
+    const r = analyzeMeetings([]);
+    expect(r.active).toEqual([]);
+    expect(r.conflicts).toEqual([]);
+    expect(r.missingAgenda).toEqual([]);
+    expect(r.missingCall).toEqual([]);
+    expect(relatedFollowUps([], [])).toEqual([]);
+    // the step labels are count-driven, so with zero events they read "0 …" (honest, not skipped)
+    expect(runnerSrc).toMatch(/step\(`Loaded \$\{a\.active\.length\} meeting\(s\)`/);
+    expect(runnerSrc).toMatch(/step\(`Found \$\{a\.conflicts\.length\} conflict\(s\)`/);
+    expect(runnerSrc).not.toMatch(/Math\.random/);   // nothing fabricated
+  });
 
   it("detection is real: overlaps by actual time, gaps by real fields, cancelled excluded", () => {
     const evs: MeetingLite[] = [
