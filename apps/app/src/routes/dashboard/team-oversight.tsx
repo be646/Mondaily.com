@@ -382,7 +382,7 @@ function MemberDetail({ op }: { op: Operator }) {
   const timeline = useMemo(() => (Array.isArray(timelineQ.data?.activity) ? timelineQ.data!.activity : []), [timelineQ.data]);
 
   // Is live calling configured on this deployment? (fail-closed → buttons hidden if not)
-  const callCap = useQuery<{ enabled: boolean }>({
+  const callCap = useQuery<{ enabled: boolean; recording?: boolean }>({
     queryKey: ["call-capability"],
     queryFn: () => apiClient.get<{ enabled: boolean }>("/live-calls/capability"),
     staleTime: 10 * 60_000,
@@ -625,6 +625,13 @@ function MemberDetail({ op }: { op: Operator }) {
               className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
               <Video size={11} style={{ color: "var(--section-accent)" }} /> Video
             </button>
+            {callCap.data?.recording && (
+              <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "audio", name: op.name, record: true })}
+                title="Records the call and saves a transcript to Meeting Memory (both participants are notified on screen)."
+                className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                <Phone size={11} style={{ color: "var(--section-accent)" }} /> Call + record
+              </button>
+            )}
           </>
         )}
         <Link to="/settings/members" className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>

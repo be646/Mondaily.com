@@ -9,7 +9,7 @@ import { apiClient } from "../../lib/api-client";
  * never weighs on users who don't call. All media stays peer↔SFU; our server only minted the
  * token. On close we POST /live-calls/rooms/:id/end so the session record reflects reality.
  */
-export interface ActiveCall { sessionId: string; room: string; token: string; url: string; kind: "audio" | "video"; otherName: string }
+export interface ActiveCall { sessionId: string; room: string; token: string; url: string; kind: "audio" | "video"; otherName: string; recording?: boolean }
 
 export function CallOverlay({ call, onClose }: { call: ActiveCall; onClose: () => void }) {
   const [status, setStatus] = useState<"connecting" | "live" | "error">("connecting");
@@ -72,6 +72,13 @@ export function CallOverlay({ call, onClose }: { call: ActiveCall; onClose: () =
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center" style={{ background: "rgba(0,0,0,0.88)" }} role="dialog" aria-label={`Call with ${call.otherName}`}>
+      {/* Honest recording notice — shown only when this call is actually being captured, so
+          participants always know. Consent is the initiator's opt-in; this is the disclosure. */}
+      {call.recording && (
+        <div className="absolute left-1/2 top-6 flex -translate-x-1/2 items-center gap-1.5 rounded-full px-3 py-1 text-[11.5px] font-medium text-white" style={{ background: "rgba(225,29,72,0.9)" }}>
+          <span className="h-1.5 w-1.5 rounded-full bg-white" /> Recording — this call is being transcribed to Meeting Memory
+        </div>
+      )}
       <div className="relative flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-6">
         {/* remote */}
         <div className="flex flex-col items-center">

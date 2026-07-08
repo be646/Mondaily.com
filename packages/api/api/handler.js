@@ -1479,16 +1479,16 @@ var init_hono_base = __esm({
         }
         throw err2;
       }
-      #dispatch(request, executionCtx, env2, method) {
+      #dispatch(request, executionCtx, env3, method) {
         if (method === "HEAD") {
-          return (async () => new Response(null, await this.#dispatch(request, executionCtx, env2, "GET")))();
+          return (async () => new Response(null, await this.#dispatch(request, executionCtx, env3, "GET")))();
         }
-        const path = this.getPath(request, { env: env2 });
+        const path = this.getPath(request, { env: env3 });
         const matchResult = this.router.match(method, path);
         const c2 = new Context(request, {
           path,
           matchResult,
-          env: env2,
+          env: env3,
           executionCtx,
           notFoundHandler: this.#notFoundHandler
         });
@@ -3440,20 +3440,20 @@ var require_supports_color = __commonJS({
     var os = require("os");
     var tty = require("tty");
     var hasFlag = require_has_flag();
-    var { env: env2 } = process;
+    var { env: env3 } = process;
     var forceColor;
     if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false") || hasFlag("color=never")) {
       forceColor = 0;
     } else if (hasFlag("color") || hasFlag("colors") || hasFlag("color=true") || hasFlag("color=always")) {
       forceColor = 1;
     }
-    if ("FORCE_COLOR" in env2) {
-      if (env2.FORCE_COLOR === "true") {
+    if ("FORCE_COLOR" in env3) {
+      if (env3.FORCE_COLOR === "true") {
         forceColor = 1;
-      } else if (env2.FORCE_COLOR === "false") {
+      } else if (env3.FORCE_COLOR === "false") {
         forceColor = 0;
       } else {
-        forceColor = env2.FORCE_COLOR.length === 0 ? 1 : Math.min(parseInt(env2.FORCE_COLOR, 10), 3);
+        forceColor = env3.FORCE_COLOR.length === 0 ? 1 : Math.min(parseInt(env3.FORCE_COLOR, 10), 3);
       }
     }
     function translateLevel(level) {
@@ -3481,7 +3481,7 @@ var require_supports_color = __commonJS({
         return 0;
       }
       const min = forceColor || 0;
-      if (env2.TERM === "dumb") {
+      if (env3.TERM === "dumb") {
         return min;
       }
       if (process.platform === "win32") {
@@ -3491,34 +3491,34 @@ var require_supports_color = __commonJS({
         }
         return 1;
       }
-      if ("CI" in env2) {
-        if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE"].some((sign5) => sign5 in env2) || env2.CI_NAME === "codeship") {
+      if ("CI" in env3) {
+        if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE"].some((sign5) => sign5 in env3) || env3.CI_NAME === "codeship") {
           return 1;
         }
         return min;
       }
-      if ("TEAMCITY_VERSION" in env2) {
-        return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env2.TEAMCITY_VERSION) ? 1 : 0;
+      if ("TEAMCITY_VERSION" in env3) {
+        return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env3.TEAMCITY_VERSION) ? 1 : 0;
       }
-      if (env2.COLORTERM === "truecolor") {
+      if (env3.COLORTERM === "truecolor") {
         return 3;
       }
-      if ("TERM_PROGRAM" in env2) {
-        const version6 = parseInt((env2.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
-        switch (env2.TERM_PROGRAM) {
+      if ("TERM_PROGRAM" in env3) {
+        const version6 = parseInt((env3.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
+        switch (env3.TERM_PROGRAM) {
           case "iTerm.app":
             return version6 >= 3 ? 3 : 2;
           case "Apple_Terminal":
             return 2;
         }
       }
-      if (/-256(color)?$/i.test(env2.TERM)) {
+      if (/-256(color)?$/i.test(env3.TERM)) {
         return 2;
       }
-      if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env2.TERM)) {
+      if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env3.TERM)) {
         return 1;
       }
-      if ("COLORTERM" in env2) {
+      if ("COLORTERM" in env3) {
         return 1;
       }
       return min;
@@ -5904,17 +5904,17 @@ var init_rolldown_runtime = __esm({
 
 // ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/env.js
 function getProcessEnv() {
-  const env2 = {};
+  const env3 = {};
   const whitelist = Object.values(envKeys);
   for (const [k2, v2] of Object.entries(allProcessEnv())) {
     if (!whitelist.includes(k2)) continue;
-    env2[k2] = v2;
+    env3[k2] = v2;
   }
-  return protectEnv(env2);
+  return protectEnv(env3);
 }
-function protectEnv(env2) {
+function protectEnv(env3) {
   return {
-    ...env2,
+    ...env3,
     toJSON: () => {
       return {};
     }
@@ -5928,14 +5928,14 @@ var init_env = __esm({
     init_consts();
     init_version();
     init_strings();
-    devServerHost = (env2 = getProcessEnv()) => {
+    devServerHost = (env3 = getProcessEnv()) => {
       return [
         envKeys.ReactAppInngestBaseUrl,
         envKeys.NextPublicInngestBaseUrl,
         envKeys.ReactAppInngestDevMode,
         envKeys.NextPublicInngestDevMode
       ].map((key) => {
-        return env2[key];
+        return env3[key];
       }).find((v2) => {
         if (!v2) return;
         try {
@@ -5995,8 +5995,8 @@ var init_env = __esm({
       isExplicit;
       explicitDevUrl;
       env;
-      constructor({ type, isExplicit, explicitDevUrl, env: env2 = getProcessEnv() }) {
-        this.env = protectEnv(env2);
+      constructor({ type, isExplicit, explicitDevUrl, env: env3 = getProcessEnv() }) {
+        this.env = protectEnv(env3);
         this.type = type;
         this.isExplicit = isExplicit || Boolean(explicitDevUrl);
         this.explicitDevUrl = explicitDevUrl;
@@ -6025,40 +6025,40 @@ var init_env = __esm({
         if (this.isDev) return defaultDevServerHost;
       }
     };
-    getMode = ({ env: env2 = getProcessEnv(), client, explicitMode } = {}) => {
+    getMode = ({ env: env3 = getProcessEnv(), client, explicitMode } = {}) => {
       if (explicitMode) return new Mode({
         type: explicitMode,
         isExplicit: true,
-        env: env2
+        env: env3
       });
       if (client?.["mode"].isExplicit) return client["mode"];
-      if (envKeys.InngestDevMode in env2) {
-        if (typeof env2[envKeys.InngestDevMode] === "string") try {
+      if (envKeys.InngestDevMode in env3) {
+        if (typeof env3[envKeys.InngestDevMode] === "string") try {
           return new Mode({
             type: "dev",
             isExplicit: true,
-            explicitDevUrl: new URL(env2[envKeys.InngestDevMode]),
-            env: env2
+            explicitDevUrl: new URL(env3[envKeys.InngestDevMode]),
+            env: env3
           });
         } catch {
         }
-        const envIsDev = parseAsBoolean(env2[envKeys.InngestDevMode]);
+        const envIsDev = parseAsBoolean(env3[envKeys.InngestDevMode]);
         if (typeof envIsDev === "boolean") return new Mode({
           type: envIsDev ? "dev" : "cloud",
           isExplicit: true,
-          env: env2
+          env: env3
         });
       }
       return new Mode({
         type: prodChecks.some(([key, checkKey, expected]) => {
-          return checkFns[checkKey](stringifyUnknown(env2[key]), expected);
+          return checkFns[checkKey](stringifyUnknown(env3[key]), expected);
         }) ? "cloud" : "dev",
         isExplicit: false,
-        env: env2
+        env: env3
       });
     };
-    getEnvironmentName = (env2 = getProcessEnv()) => {
-      return env2[envKeys.InngestEnvironment] || env2[envKeys.BranchName] || env2[envKeys.VercelBranch] || env2[envKeys.NetlifyBranch] || env2[envKeys.CloudflarePagesBranch] || env2[envKeys.RenderBranch] || env2[envKeys.RailwayBranch];
+    getEnvironmentName = (env3 = getProcessEnv()) => {
+      return env3[envKeys.InngestEnvironment] || env3[envKeys.BranchName] || env3[envKeys.VercelBranch] || env3[envKeys.NetlifyBranch] || env3[envKeys.CloudflarePagesBranch] || env3[envKeys.RenderBranch] || env3[envKeys.RailwayBranch];
     };
     processEnv = (key) => {
       if (!Object.values(envKeys).includes(key)) throw new Error(`Env var "${key}" is not in the whitelist`);
@@ -6070,13 +6070,13 @@ var init_env = __esm({
       } catch (_err) {
       }
       try {
-        const env2 = Deno.env.toObject();
-        if (env2) return env2;
+        const env3 = Deno.env.toObject();
+        if (env3) return env3;
       } catch (_err) {
       }
       try {
-        const env2 = Netlify.env.toObject();
-        if (env2) return env2;
+        const env3 = Netlify.env.toObject();
+        if (env3) return env3;
       } catch (_err) {
       }
       return {};
@@ -6091,13 +6091,13 @@ var init_env = __esm({
       };
       if (opts?.framework) headers[headerKeys.Framework] = opts.framework;
       if (opts?.expectedServerKind) headers[headerKeys.InngestExpectedServerKind] = opts.expectedServerKind;
-      const env2 = {
+      const env3 = {
         ...getProcessEnv(),
         ...opts?.env
       };
-      const inngestEnv = opts?.inngestEnv || getEnvironmentName(env2);
+      const inngestEnv = opts?.inngestEnv || getEnvironmentName(env3);
       if (inngestEnv) headers[headerKeys.Environment] = inngestEnv;
-      const platform = getPlatformName(env2);
+      const platform = getPlatformName(env3);
       if (platform) headers[headerKeys.Platform] = platform;
       return {
         ...headers,
@@ -6106,23 +6106,23 @@ var init_env = __esm({
       };
     };
     platformChecks = {
-      vercel: (env2) => env2[envKeys.IsVercel] === "1" || typeof EdgeRuntime === "string",
-      netlify: (env2) => env2[envKeys.IsNetlify] === "true",
-      "cloudflare-pages": (env2) => env2[envKeys.IsCloudflarePages] === "1",
-      render: (env2) => env2[envKeys.IsRender] === "true",
-      railway: (env2) => Boolean(env2[envKeys.RailwayEnvironment])
+      vercel: (env3) => env3[envKeys.IsVercel] === "1" || typeof EdgeRuntime === "string",
+      netlify: (env3) => env3[envKeys.IsNetlify] === "true",
+      "cloudflare-pages": (env3) => env3[envKeys.IsCloudflarePages] === "1",
+      render: (env3) => env3[envKeys.IsRender] === "true",
+      railway: (env3) => Boolean(env3[envKeys.RailwayEnvironment])
     };
     streamingChecks = {
       vercel: (_framework, _env) => typeof EdgeRuntime === "string",
       "cloudflare-pages": () => true
     };
-    getPlatformName = (env2) => {
+    getPlatformName = (env3) => {
       return Object.keys(platformChecks).find((key) => {
-        return platformChecks[key](env2);
+        return platformChecks[key](env3);
       });
     };
-    platformSupportsStreaming = (framework, env2 = getProcessEnv()) => {
-      return streamingChecks[getPlatformName(env2)]?.(framework, env2) ?? false;
+    platformSupportsStreaming = (framework, env3 = getProcessEnv()) => {
+      return streamingChecks[getPlatformName(env3)]?.(framework, env3) ?? false;
     };
     CUSTOM_FETCH_MARKER = /* @__PURE__ */ Symbol("Custom fetch implementation");
     getFetch = (givenFetch) => {
@@ -10855,7 +10855,7 @@ var init_types2 = __esm({
 var require_common3 = __commonJS({
   "../../node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/common.js"(exports2, module2) {
     "use strict";
-    function setup(env2) {
+    function setup(env3) {
       createDebug.debug = createDebug;
       createDebug.default = createDebug;
       createDebug.coerce = coerce2;
@@ -10864,8 +10864,8 @@ var require_common3 = __commonJS({
       createDebug.enabled = enabled2;
       createDebug.humanize = require_ms();
       createDebug.destroy = destroy;
-      Object.keys(env2).forEach((key) => {
-        createDebug[key] = env2[key];
+      Object.keys(env3).forEach((key) => {
+        createDebug[key] = env3[key];
       });
       createDebug.names = [];
       createDebug.skips = [];
@@ -12469,16 +12469,16 @@ var require_env = __commonJS({
       } catch (_err) {
       }
       try {
-        const env2 = Deno.env.toObject();
-        if (env2) {
-          return env2;
+        const env3 = Deno.env.toObject();
+        if (env3) {
+          return env3;
         }
       } catch (_err) {
       }
       try {
-        const env2 = Netlify.env.toObject();
-        if (env2) {
-          return env2;
+        const env3 = Netlify.env.toObject();
+        if (env3) {
+          return env3;
         }
       } catch (_err) {
       }
@@ -16985,10 +16985,10 @@ var init_InngestCommHandler = __esm({
       async initRequest(...args) {
         const timer = new ServerTiming();
         const actions = await this.getActions(timer, ...args);
-        const [env2, expectedServerKind] = await Promise.all([actions.env?.("starting to handle request"), actions.headers("checking expected server kind", headerKeys.InngestServerKind)]);
+        const [env3, expectedServerKind] = await Promise.all([actions.env?.("starting to handle request"), actions.headers("checking expected server kind", headerKeys.InngestServerKind)]);
         this.env = protectEnv({
           ...getProcessEnv(),
-          ...env2
+          ...env3
         });
         const headerPromises = forwardedHeaders.map(async (header2) => {
           return {
@@ -17597,7 +17597,7 @@ ${foundStepsSummary}.`;
               throw err2;
             }
           }
-          const env2 = (await getHeaders2())[headerKeys.Environment] ?? null;
+          const env3 = (await getHeaders2())[headerKeys.Environment] ?? null;
           if (method === "GET") {
             const validationResult = await signatureValidation;
             if (!validationResult.success) {
@@ -17613,7 +17613,7 @@ ${foundStepsSummary}.`;
               status: 200,
               body: stringify$1(await this.introspectionBody({
                 actions,
-                env: env2,
+                env: env3,
                 signatureValidation,
                 url
               })),
@@ -17662,7 +17662,7 @@ ${foundStepsSummary}.`;
                 body: stringify$1(await this.inBandRegisterBody({
                   actions,
                   deployId,
-                  env: env2,
+                  env: env3,
                   signatureValidation,
                   url
                 })),
@@ -17901,14 +17901,14 @@ ${foundStepsSummary}.`;
           appVersion: this.client.appVersion
         };
       }
-      async inBandRegisterBody({ actions, deployId, env: env2, signatureValidation, url }) {
+      async inBandRegisterBody({ actions, deployId, env: env3, signatureValidation, url }) {
         const registerBody = this.registerBody({
           deployId,
           url
         });
         const introspectionBody = await this.introspectionBody({
           actions,
-          env: env2,
+          env: env3,
           signatureValidation,
           url
         });
@@ -17916,7 +17916,7 @@ ${foundStepsSummary}.`;
           app_id: this.id,
           appVersion: this.client.appVersion,
           capabilities: registerBody.capabilities,
-          env: env2,
+          env: env3,
           framework: registerBody.framework,
           functions: registerBody.functions,
           inspection: introspectionBody,
@@ -17936,7 +17936,7 @@ ${foundStepsSummary}.`;
         }
         return body;
       }
-      async introspectionBody({ actions, env: env2, signatureValidation, url }) {
+      async introspectionBody({ actions, env: env3, signatureValidation, url }) {
         const registerBody = this.registerBody({
           url: this.reqUrl(url),
           deployId: null
@@ -17965,7 +17965,7 @@ ${foundStepsSummary}.`;
               trust_probe: "v1",
               connect: "v1"
             },
-            env: env2,
+            env: env3,
             event_api_origin: this.eventApiBaseUrl,
             event_key_hash: this.hashedEventKey ?? null,
             extra: {
@@ -18940,9 +18940,9 @@ var init_Inngest = __esm({
       * passed environment variables at runtime instead of as globals and need to
       * update the client with those values as requests come in.
       */
-      setEnvVars(env2 = getProcessEnv()) {
+      setEnvVars(env3 = getProcessEnv()) {
         this.mode = getMode({
-          env: env2,
+          env: env3,
           client: this
         });
         return this;
@@ -19040,8 +19040,8 @@ var init_Inngest = __esm({
       *
       * Send a Signal to Inngest.
       */
-      async sendSignal({ signal, data, env: env2 }) {
-        const headers = { ...env2 ? { [headerKeys.Environment]: env2 } : {} };
+      async sendSignal({ signal, data, env: env3 }) {
+        const headers = { ...env3 ? { [headerKeys.Environment]: env3 } : {} };
         return this._sendSignal({
           signal,
           data,
@@ -25038,15 +25038,15 @@ var init_websocket_factory = __esm({
        * ```
        */
       static getWebSocketConstructor() {
-        const env2 = this.detectEnvironment();
-        if (env2.wsConstructor) {
-          return env2.wsConstructor;
+        const env3 = this.detectEnvironment();
+        if (env3.wsConstructor) {
+          return env3.wsConstructor;
         }
-        let errorMessage = env2.error || "WebSocket not supported in this environment.";
-        if (env2.workaround) {
+        let errorMessage = env3.error || "WebSocket not supported in this environment.";
+        if (env3.workaround) {
           errorMessage += `
 
-Suggested solution: ${env2.workaround}`;
+Suggested solution: ${env3.workaround}`;
         }
         throw new Error(errorMessage);
       }
@@ -25065,8 +25065,8 @@ Suggested solution: ${env2.workaround}`;
        */
       static isWebSocketSupported() {
         try {
-          const env2 = this.detectEnvironment();
-          return env2.type === "native" || env2.type === "ws";
+          const env3 = this.detectEnvironment();
+          return env3.type === "native" || env3.type === "ws";
         } catch (_a2) {
           return false;
         }
@@ -49858,12 +49858,12 @@ var init_core = __esm({
       }
       return new Error(err2);
     };
-    readEnv = (env2) => {
+    readEnv = (env3) => {
       if (typeof process !== "undefined") {
-        return process.env?.[env2]?.trim() ?? void 0;
+        return process.env?.[env3]?.trim() ?? void 0;
       }
       if (typeof Deno !== "undefined") {
-        return Deno.env?.get?.(env2)?.trim();
+        return Deno.env?.get?.(env3)?.trim();
       }
       return void 0;
     };
@@ -55393,7 +55393,7 @@ function openAIClient() {
 }
 async function gatewayHealthCheck(opts) {
   const { baseURL, apiKey } = gatewayEnv();
-  const env2 = {
+  const env3 = {
     AI_PROVIDER_MODEL: process.env.AI_PROVIDER_MODEL ?? null,
     AI_AGENT_MODEL: process.env.AI_AGENT_MODEL ?? null,
     AI_FAST_MODEL: process.env.AI_FAST_MODEL ?? null
@@ -55406,20 +55406,20 @@ async function gatewayHealthCheck(opts) {
   }
   if (!baseURL || !apiKey) {
     const missing = [!baseURL && "AI_GATEWAY_BASE_URL", !apiKey && "AI_GATEWAY_API_KEY"].filter(Boolean).join(" + ");
-    return { ok: false, baseURLHost, env: env2, error: `Missing env: ${missing}` };
+    return { ok: false, baseURLHost, env: env3, error: `Missing env: ${missing}` };
   }
   if (!opts?.probe) {
     return {
       ok: true,
       baseURLHost,
-      env: env2,
+      env: env3,
       lastChatError: lastGatewayError,
       note: "env configured; no live probe run (add ?probe=1 to test models \u2014 costs 4 requests). lastChatError shows the most recent real chat failure."
     };
   }
   const strip = (m2) => m2.replace(/^openai-compat\//, "");
-  const providerModel = strip(env2.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC);
-  const agentModel = strip(env2.AI_AGENT_MODEL ?? env2.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC);
+  const providerModel = strip(env3.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC);
+  const agentModel = strip(env3.AI_AGENT_MODEL ?? env3.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC);
   const fastModel = strip(FAST_MODEL_SPEC);
   const client = new openai_default({ baseURL, apiKey, timeout: 12e3, maxRetries: 0 });
   async function probe3(model, withTools) {
@@ -55449,7 +55449,7 @@ async function gatewayHealthCheck(opts) {
   const fast_plain = await probe3(fastModel, false);
   const tests = { provider_plain, agent_plain, agent_with_tools, fast_plain };
   const ok2 = tests.provider_plain.ok && tests.agent_plain.ok && tests.agent_with_tools.ok && tests.fast_plain.ok;
-  return { ok: ok2, baseURLHost, env: env2, tests, lastChatError: lastGatewayError };
+  return { ok: ok2, baseURLHost, env: env3, tests, lastChatError: lastGatewayError };
 }
 async function aiGateway(req) {
   try {
@@ -57567,21 +57567,21 @@ async function verifyResetToken(token) {
   }
 }
 function sha2565(s2) {
-  return (0, import_node_crypto3.createHash)("sha256").update(s2).digest("hex");
+  return (0, import_node_crypto4.createHash)("sha256").update(s2).digest("hex");
 }
 function newRefreshToken() {
-  const raw2 = (0, import_node_crypto3.randomBytes)(32).toString("hex");
+  const raw2 = (0, import_node_crypto4.randomBytes)(32).toString("hex");
   return { raw: raw2, hash: sha2565(raw2) };
 }
 function refreshExpiry() {
   return new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1e3);
 }
-var import_node_crypto3, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS, VERIFY_TTL_SECONDS, RESET_TTL_SECONDS;
+var import_node_crypto4, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS, VERIFY_TTL_SECONDS, RESET_TTL_SECONDS;
 var init_auth_tokens = __esm({
   "src/lib/auth-tokens.ts"() {
     "use strict";
     init_jwt4();
-    import_node_crypto3 = require("crypto");
+    import_node_crypto4 = require("crypto");
     ACCESS_TTL_SECONDS = 15 * 60;
     REFRESH_TTL_DAYS = 30;
     ACCESS_COOKIE = "md_at";
@@ -57602,7 +57602,7 @@ function secret3() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 function sign4(payload) {
-  return b64url2((0, import_node_crypto10.createHmac)("sha256", secret3()).update(payload).digest());
+  return b64url2((0, import_node_crypto11.createHmac)("sha256", secret3()).update(payload).digest());
 }
 function mintMcpToken(workspaceId) {
   const p2 = b64url2(`mcp:${workspaceId}`);
@@ -57618,7 +57618,7 @@ function verifyMcpToken(token) {
   const expected = sign4(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto10.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto11.timingSafeEqual)(a2, b2)) return null;
   try {
     const decoded = Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
     return decoded.startsWith("mcp:") ? decoded.slice(4) || null : null;
@@ -57626,11 +57626,11 @@ function verifyMcpToken(token) {
     return null;
   }
 }
-var import_node_crypto10, b64url2;
+var import_node_crypto11, b64url2;
 var init_mcp_token = __esm({
   "src/lib/mcp-token.ts"() {
     "use strict";
-    import_node_crypto10 = require("crypto");
+    import_node_crypto11 = require("crypto");
     b64url2 = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 });
@@ -59737,6 +59737,257 @@ var dailyBrief = inngest.createFunction(
       }
     }
     return { briefs_posted: posted };
+  }
+);
+
+// src/jobs/meeting-memory-worker.ts
+init_inngest2();
+
+// src/jobs/meeting-memory.ts
+init_client();
+init_ai_gateway();
+
+// src/lib/livekit.ts
+init_jwt4();
+var import_node_crypto3 = require("crypto");
+var env2 = () => ({
+  url: process.env.LIVEKIT_URL,
+  key: process.env.LIVEKIT_API_KEY,
+  secret: process.env.LIVEKIT_API_SECRET
+});
+var liveKitEnabled = () => {
+  const e2 = env2();
+  return !!(e2.url && e2.key && e2.secret);
+};
+var recordingEnabled = () => liveKitEnabled() && process.env.LIVEKIT_RECORDING_ENABLED === "1";
+var transcriptionEnabled = () => !!(process.env.SOVEREIGN_STT_URL || "").trim();
+var sttBase = () => (process.env.SOVEREIGN_STT_URL || "").replace(/\/$/, "");
+function egressFilepath(room) {
+  const safe = room.replace(/[^a-zA-Z0-9_-]/g, "_");
+  return `recordings/${safe}.ogg`;
+}
+async function mintEgressToken() {
+  const { key, secret: secret4 } = env2();
+  const now = Math.floor(Date.now() / 1e3);
+  return sign2(
+    { iss: key, sub: "egress", nbf: now, iat: now, exp: now + 10 * 60, video: { roomRecord: true } },
+    secret4,
+    "HS256"
+  );
+}
+async function startRoomEgress(room) {
+  if (!recordingEnabled()) return null;
+  const { url } = env2();
+  try {
+    const token = await mintEgressToken();
+    const res = await fetch(`${url.replace(/\/$/, "")}/twirp/livekit.Egress/StartRoomCompositeEgress`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ room_name: room, audio_only: true, file_outputs: [{ filepath: egressFilepath(room) }] })
+    });
+    if (!res.ok) return null;
+    const body = await res.json().catch(() => ({}));
+    const egressId = body.egress_id || body.egressId;
+    return egressId ? { egressId } : null;
+  } catch {
+    return null;
+  }
+}
+async function stopRoomEgress(egressId) {
+  if (!recordingEnabled() || !egressId) return;
+  const { url } = env2();
+  try {
+    const token = await mintEgressToken();
+    await fetch(`${url.replace(/\/$/, "")}/twirp/livekit.Egress/StopEgress`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ egress_id: egressId })
+    });
+  } catch {
+  }
+}
+function parseEgressWebhook(raw2) {
+  if (!raw2 || typeof raw2 !== "object") return null;
+  const b2 = raw2;
+  const event = String(b2.event ?? "");
+  if (!event.startsWith("egress")) return null;
+  const info = b2.egressInfo ?? b2.egress_info ?? {};
+  const file = info.file ?? (Array.isArray(info.fileResults) ? info.fileResults[0] : void 0) ?? (Array.isArray(info.file_results) ? info.file_results[0] : void 0) ?? {};
+  return {
+    event,
+    egressId: info.egressId ?? info.egress_id ?? b2.egressId ?? b2.egress_id ?? null,
+    status: info.status ?? null,
+    url: file.location ?? file.filename ?? file.downloadUrl ?? file.download_url ?? null
+  };
+}
+async function verifyLiveKitWebhook(rawBody, authHeader) {
+  const { secret: secret4 } = env2();
+  if (!secret4 || !authHeader) return false;
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  try {
+    const claims = await verify2(token, secret4, "HS256");
+    if (!claims?.sha256) return false;
+    const expected = (0, import_node_crypto3.createHash)("sha256").update(rawBody).digest("base64");
+    const a2 = Buffer.from(claims.sha256);
+    const b2 = Buffer.from(expected);
+    return a2.length === b2.length && (0, import_node_crypto3.timingSafeEqual)(a2, b2);
+  } catch {
+    return false;
+  }
+}
+function mapSttResponse(payload) {
+  if (!payload || typeof payload !== "object") return [];
+  const p2 = payload;
+  const segs = Array.isArray(p2.segments) ? p2.segments : Array.isArray(p2.transcript) ? p2.transcript : null;
+  if (segs) {
+    return segs.map((s2) => ({
+      speaker: String(s2?.speaker ?? s2?.speaker_label ?? "Speaker"),
+      text: String(s2?.text ?? s2?.content ?? "").trim(),
+      start_time: typeof s2?.start === "number" ? s2.start : typeof s2?.start_time === "number" ? s2.start_time : void 0
+    })).filter((l2) => l2.text.length > 0);
+  }
+  const text = typeof p2.text === "string" ? p2.text.trim() : "";
+  return text ? [{ speaker: "Transcript", text }] : [];
+}
+async function transcribeAudio(audioUrl) {
+  if (!transcriptionEnabled() || !audioUrl) return null;
+  try {
+    const res = await fetch(`${sttBase()}/transcribe`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...process.env.SOVEREIGN_STT_KEY ? { Authorization: `Bearer ${process.env.SOVEREIGN_STT_KEY}` } : {}
+      },
+      body: JSON.stringify({ audio_url: audioUrl, diarize: true })
+    });
+    if (!res.ok) return null;
+    return mapSttResponse(await res.json().catch(() => ({})));
+  } catch {
+    return null;
+  }
+}
+
+// src/jobs/meeting-memory.ts
+init_notify();
+async function memberNames(ws) {
+  const { data } = await supabase.from("workspace_members").select("user_id, name, email").eq("workspace_id", ws);
+  return new Map((data ?? []).map((m2) => [String(m2.user_id), String(m2.name || m2.email || "Member")]));
+}
+async function summarizeTranscript(ws, userId, lines) {
+  const transcript = lines.map((l2) => `${l2.speaker}: ${l2.text}`).join("\n").slice(0, 24e3);
+  const res = await aiGateway({
+    system: "You summarize a call transcript for a busy operator. Write a tight, factual 3-5 sentence overview: who spoke, what was decided, and any clear next step. Use ONLY what the transcript states \u2014 never infer or embellish. If the transcript is too thin to summarize, say so plainly.",
+    prompt: `Transcript:
+${transcript}`,
+    maxTokens: 400,
+    workspaceId: ws,
+    userId,
+    feature: "meeting_memory_summary"
+  });
+  return (res.text || "").trim();
+}
+async function ingestRecording(sessionId) {
+  const { data: s2 } = await supabase.from("call_sessions").select("id, workspace_id, room, initiator_id, invitee_id, kind, started_at, ended_at, created_at, record, recording_url, recording_status, transcript_status, memory_node_id").eq("id", sessionId).maybeSingle();
+  const session = s2;
+  if (!session) return { ok: false, reason: "session_not_found" };
+  if (!session.record) return { ok: false, reason: "not_opted_in" };
+  if (!session.recording_url) return { ok: false, reason: "no_recording" };
+  if (session.transcript_status === "ready" && session.memory_node_id) return { ok: true, node_id: session.memory_node_id };
+  const ws = session.workspace_id;
+  const jobId = await startJob({
+    workspace_id: ws,
+    agent_name: "Meeting Memory",
+    trigger_type: "webhook",
+    input: { session_id: session.id, room: session.room }
+  });
+  const steps = [];
+  try {
+    await supabase.from("call_sessions").update({ transcript_status: "processing" }).eq("id", session.id);
+    if (!transcriptionEnabled()) {
+      await supabase.from("call_sessions").update({ transcript_status: "failed" }).eq("id", session.id);
+      steps.push(step2("Transcription unavailable", { status: "warn", detail: "SOVEREIGN_STT_URL is not configured \u2014 recording stored, no transcript produced." }));
+      await completeJob(jobId, { ok: false, reason: "stt_disabled" }, steps);
+      return { ok: false, reason: "stt_disabled" };
+    }
+    const lines = await transcribeAudio(session.recording_url);
+    if (!lines || lines.length === 0) {
+      await supabase.from("call_sessions").update({ transcript_status: "failed" }).eq("id", session.id);
+      steps.push(step2("Transcription failed", { status: "error", detail: "The STT appliance returned no usable transcript.", sources: [{ title: "Recording", url: session.recording_url }] }));
+      await failJob(jobId, "STT produced no transcript");
+      return { ok: false, reason: "stt_empty" };
+    }
+    steps.push(step2(`Transcribed ${lines.length} segment${lines.length === 1 ? "" : "s"}`, { detail: `From the recording of room ${session.room}.`, sources: [{ title: "Recording", url: session.recording_url }] }));
+    const dir = await memberNames(ws);
+    const participants = [session.initiator_id, session.invitee_id].map((id) => ({ name: dir.get(id) || "Member" }));
+    const other = dir.get(session.invitee_id) || dir.get(session.initiator_id) || "Team call";
+    const startedAt = session.started_at || session.created_at;
+    const durationSeconds = session.started_at && session.ended_at ? Math.max(0, Math.round((new Date(session.ended_at).getTime() - new Date(session.started_at).getTime()) / 1e3)) : 0;
+    let nodeId = session.memory_node_id;
+    const baseData = {
+      contact_name: other,
+      occurred_at: startedAt,
+      duration_seconds: durationSeconds,
+      direction: "outbound",
+      status: "processing",
+      audio_url: session.recording_url,
+      participants,
+      transcript: lines,
+      source: "meeting_recording",
+      call_session_id: session.id
+    };
+    if (nodeId) {
+      await supabase.from("nodes").update({ data: baseData }).eq("id", nodeId).eq("workspace_id", ws);
+    } else {
+      const { data: created } = await supabase.from("nodes").insert({
+        workspace_id: ws,
+        vertical: "sales",
+        object_type: "call",
+        created_by: session.initiator_id,
+        data: baseData
+      }).select("id").single();
+      nodeId = created?.id ?? null;
+    }
+    if (!nodeId) throw new Error("could not persist memory node");
+    await supabase.from("call_sessions").update({ transcript_status: "ready", memory_node_id: nodeId }).eq("id", session.id);
+    steps.push(step2("Saved to Meeting Memory", { detail: "Transcript stored on a searchable call record.", sources: [{ title: other, node_id: nodeId }] }));
+    let summary = "";
+    try {
+      summary = await summarizeTranscript(ws, session.initiator_id, lines);
+    } catch {
+      summary = "";
+    }
+    await supabase.from("nodes").update({
+      ai_summary: summary || null,
+      data: { ...baseData, status: "processed", overview: summary || void 0 }
+    }).eq("id", nodeId).eq("workspace_id", ws);
+    steps.push(summary ? step2("Generated summary", { detail: "AI overview written from the transcript." }) : step2("Summary pending", { status: "warn", detail: "AI gateway unavailable \u2014 transcript saved, summary can be generated later." }));
+    for (const uid of /* @__PURE__ */ new Set([session.initiator_id, session.invitee_id])) {
+      await createNotification({
+        workspace_id: ws,
+        user_id: uid,
+        type: "call",
+        title: "Meeting recording ready",
+        body: `Your ${session.kind} call with ${other} has been transcribed${summary ? " and summarized" : ""}.`,
+        metadata: { call_node_id: nodeId, session_id: session.id }
+      }).catch(() => false);
+    }
+    await completeJob(jobId, { ok: true, node_id: nodeId, segments: lines.length, summarized: !!summary }, steps);
+    return { ok: true, node_id: nodeId };
+  } catch (e2) {
+    await supabase.from("call_sessions").update({ transcript_status: "failed" }).eq("id", session.id);
+    await failJob(jobId, e2 instanceof Error ? e2.message : "ingestion failed");
+    return { ok: false, reason: "error" };
+  }
+}
+
+// src/jobs/meeting-memory-worker.ts
+var meetingRecordingWorker = inngest.createFunction(
+  { id: "meeting-recording-ingest", name: "Meeting Memory ingest", concurrency: { limit: 4 } },
+  { event: "meeting/recording.ready" },
+  async ({ event }) => {
+    const sessionId = event.data?.sessionId;
+    if (!sessionId) return { ok: false, reason: "no_session_id" };
+    return ingestRecording(sessionId);
   }
 );
 
@@ -64262,11 +64513,11 @@ router8.get("/activity", async (c2) => {
 init_client();
 
 // src/lib/pow-claims.ts
-var import_node_crypto4 = require("crypto");
+var import_node_crypto5 = require("crypto");
 init_client();
 function logPowClaim(userId, challenge, nonce, context2) {
   if (!userId || !challenge || !nonce) return;
-  const challenge_hash = (0, import_node_crypto4.createHash)("sha256").update(challenge).digest("hex");
+  const challenge_hash = (0, import_node_crypto5.createHash)("sha256").update(challenge).digest("hex");
   void supabase.from("pow_claims").insert({ user_id: userId, challenge_hash, nonce, context: context2 }).then(() => {
   }, () => {
   });
@@ -64882,8 +65133,8 @@ router10.post("/draft", zValidator("json", external_exports.object({
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const { prompt, existing } = c2.req.valid("json");
-  const env2 = gatewayEnv();
-  if (!env2.baseURL || !env2.apiKey) return c2.json({ error: "AI drafting isn't available right now." }, 503);
+  const env3 = gatewayEnv();
+  if (!env3.baseURL || !env3.apiKey) return c2.json({ error: "AI drafting isn't available right now." }, 503);
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
   const settings = wsRow?.settings ?? {};
   const userLang = settings.user_preferences?.[me2]?.language;
@@ -65114,8 +65365,8 @@ router11.post("/events/:id/call-token", async (c2) => {
 router11.post("/draft-agenda", zValidator("json", external_exports.object({ title: external_exports.string().max(200).optional(), prompt: external_exports.string().min(1).max(1e3) })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
-  const env2 = gatewayEnv();
-  if (!env2.baseURL || !env2.apiKey) return c2.json({ error: "AI drafting isn't available right now." }, 503);
+  const env3 = gatewayEnv();
+  if (!env3.baseURL || !env3.apiKey) return c2.json({ error: "AI drafting isn't available right now." }, 503);
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
   const settings = wsRow?.settings ?? {};
   const userLang = settings.user_preferences?.[me2]?.language;
@@ -65198,9 +65449,9 @@ router11.post("/events/:id/prepare", async (c2) => {
   const dir = await members2(ws);
   const shaped = shape(ev.id, ev.data, dir, ev.created_at);
   const sources = await relatedGraph(ws, ev.data, dir);
-  const env2 = gatewayEnv();
+  const env3 = gatewayEnv();
   const hasAgenda = !!(ev.data.description ?? "").trim();
-  if (!env2.baseURL || !env2.apiKey) {
+  if (!env3.baseURL || !env3.apiKey) {
     return c2.json({ event: shaped, sources, agenda_summary: null, talking_points: [], follow_ups: [], ai_available: false });
   }
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
@@ -65364,19 +65615,29 @@ async function members3(workspaceId) {
   const { data } = await supabase.from("workspace_members").select("user_id, name, email, avatar_url").eq("workspace_id", workspaceId);
   return new Map((data ?? []).map((m2) => [String(m2.user_id), m2]));
 }
-router13.get("/capability", (c2) => c2.json({ enabled: isEnabled(), url: liveKitEnv().url ?? null }));
-router13.post("/rooms", zValidator("json", external_exports.object({ invitee_id: external_exports.string().min(1), kind: external_exports.enum(["audio", "video"]).default("audio") })), async (c2) => {
+router13.get("/capability", (c2) => c2.json({
+  enabled: isEnabled(),
+  url: liveKitEnv().url ?? null,
+  recording: recordingEnabled(),
+  transcription: transcriptionEnabled()
+}));
+router13.post("/rooms", zValidator("json", external_exports.object({ invitee_id: external_exports.string().min(1), kind: external_exports.enum(["audio", "video"]).default("audio"), record: external_exports.boolean().default(false) })), async (c2) => {
   if (!isEnabled()) return c2.json({ error: "Calling isn't configured on this workspace." }, 503);
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
-  const { invitee_id, kind: kind2 } = c2.req.valid("json");
+  const { invitee_id, kind: kind2, record } = c2.req.valid("json");
   if (invitee_id === me2) return c2.json({ error: "You can't call yourself." }, 400);
   const dir = await members3(ws);
   const invitee = dir.get(invitee_id);
   if (!invitee) return c2.json({ error: "Member not found in this workspace." }, 404);
+  const willRecord = record && recordingEnabled();
   const room = `ws_${ws}__${me2}__${invitee_id}__${Math.floor(Date.now() / 1e3)}`;
-  const { data: session, error } = await supabase.from("call_sessions").insert({ workspace_id: ws, room, initiator_id: me2, invitee_id, kind: kind2, status: "ringing" }).select("id, room, created_at").single();
+  const { data: session, error } = await supabase.from("call_sessions").insert({ workspace_id: ws, room, initiator_id: me2, invitee_id, kind: kind2, status: "ringing", record: willRecord }).select("id, room, created_at").single();
   if (error) return c2.json({ error: error.message }, 400);
+  if (willRecord) {
+    const eg = await startRoomEgress(room);
+    if (eg) await supabase.from("call_sessions").update({ egress_id: eg.egressId, recording_status: "recording" }).eq("id", session.id);
+  }
   const meM = dir.get(me2);
   const callerName = meM?.name || meM?.email || "A teammate";
   await supabase.from("notifications").insert({
@@ -65391,7 +65652,7 @@ router13.post("/rooms", zValidator("json", external_exports.object({ invitee_id:
   }, () => {
   });
   const token = await mintToken(me2, callerName, room, true);
-  return c2.json({ session_id: session.id, room, token, url: liveKitEnv().url }, 201);
+  return c2.json({ session_id: session.id, room, token, url: liveKitEnv().url, recording: willRecord }, 201);
 });
 router13.post("/rooms/:id/join", async (c2) => {
   if (!isEnabled()) return c2.json({ error: "Calling isn't configured on this workspace." }, 503);
@@ -65409,10 +65670,11 @@ router13.post("/rooms/:id/join", async (c2) => {
 router13.post("/rooms/:id/end", zValidator("json", external_exports.object({ status: external_exports.enum(["ended", "declined", "missed"]).default("ended") })), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
-  const { data: session } = await supabase.from("call_sessions").select("id, initiator_id, invitee_id, status").eq("workspace_id", ws).eq("id", c2.req.param("id")).maybeSingle();
+  const { data: session } = await supabase.from("call_sessions").select("id, initiator_id, invitee_id, status, egress_id, recording_status").eq("workspace_id", ws).eq("id", c2.req.param("id")).maybeSingle();
   if (!session) return c2.json({ error: "Call not found." }, 404);
   if (me2 !== session.initiator_id && me2 !== session.invitee_id) return c2.json({ error: "You are not part of this call." }, 403);
   await supabase.from("call_sessions").update({ status: c2.req.valid("json").status, ended_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", session.id);
+  if (session.egress_id && session.recording_status === "recording") await stopRoomEgress(session.egress_id);
   return c2.json({ ok: true });
 });
 router13.get("/incoming", async (c2) => {
@@ -65470,14 +65732,14 @@ router14.get("/token", async (c2) => {
 
 // src/routes/auth.ts
 init_cookie2();
-var import_node_crypto7 = require("crypto");
+var import_node_crypto8 = require("crypto");
 init_client();
 
 // src/lib/password.ts
-var import_node_crypto5 = require("crypto");
+var import_node_crypto6 = require("crypto");
 function scryptAsync(password, salt, keylen, options) {
   return new Promise((resolve2, reject) => {
-    (0, import_node_crypto5.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
+    (0, import_node_crypto6.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
   });
 }
 var N2 = 32768;
@@ -65486,7 +65748,7 @@ var P2 = 1;
 var KEYLEN = 64;
 var MAXMEM = 64 * 1024 * 1024;
 async function hashPassword(plain) {
-  const salt = (0, import_node_crypto5.randomBytes)(16);
+  const salt = (0, import_node_crypto6.randomBytes)(16);
   const dk = await scryptAsync(plain, salt, KEYLEN, { N: N2, r: R2, p: P2, maxmem: MAXMEM });
   return `scrypt$${N2}$${R2}$${P2}$${salt.toString("base64")}$${dk.toString("base64")}`;
 }
@@ -65498,7 +65760,7 @@ async function verifyPassword(stored, plain) {
     const salt = Buffer.from(saltB64, "base64");
     const expected = Buffer.from(hashB64, "base64");
     const dk = await scryptAsync(plain, salt, expected.length, { N: Number(n2), r: Number(r2), p: Number(p2), maxmem: MAXMEM });
-    return dk.length === expected.length && (0, import_node_crypto5.timingSafeEqual)(dk, expected);
+    return dk.length === expected.length && (0, import_node_crypto6.timingSafeEqual)(dk, expected);
   } catch {
     return false;
   }
@@ -65593,7 +65855,7 @@ init_pricing();
 
 // src/lib/pow.ts
 init_jwt4();
-var import_node_crypto6 = require("crypto");
+var import_node_crypto7 = require("crypto");
 init_factory();
 init_http_exception();
 var DIFFICULTY = "0000";
@@ -65605,7 +65867,7 @@ function secret() {
 }
 async function issuePowChallenge() {
   const now = Math.floor(Date.now() / 1e3);
-  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto6.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
+  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto7.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
   return { challenge, difficulty: DIFFICULTY.length };
 }
 async function verifyPow(challenge, nonce) {
@@ -65616,7 +65878,7 @@ async function verifyPow(challenge, nonce) {
   } catch {
     return false;
   }
-  return (0, import_node_crypto6.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
+  return (0, import_node_crypto7.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
 }
 var requirePow = createMiddleware(async (c2, next) => {
   let body = {};
@@ -65687,7 +65949,7 @@ router15.get("/challenge", async (c2) => c2.json(await issuePowChallenge()));
 router15.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
   const { email, password, name } = c2.req.valid("json");
   if (await credByEmail(email)) return c2.json({ error: "An account with this email already exists." }, 409);
-  const userId = `usr_${(0, import_node_crypto7.randomBytes)(12).toString("hex")}`;
+  const userId = `usr_${(0, import_node_crypto8.randomBytes)(12).toString("hex")}`;
   const password_hash = await hashPassword(password);
   const { error } = await supabase.from("auth_credentials").insert({ user_id: userId, email, password_hash });
   if (error) return c2.json({ error: error.message }, 400);
@@ -66295,7 +66557,7 @@ var SUPPORT_CATEGORIES = [
 ];
 var SUPPORT_STATUSES = ["open", "in_review", "waiting_on_user", "resolved", "closed"];
 async function buildSupportContext(workspaceId, userId) {
-  const env2 = gatewayEnv();
+  const env3 = gatewayEnv();
   const [wsRow, ledgerRes, contactsRes, membersRes, ticketRes, meRes] = await Promise.all([
     supabase.from("workspaces").select("name, plan, settings, onboarded").eq("id", workspaceId).maybeSingle(),
     supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", workspaceId),
@@ -66347,7 +66609,7 @@ async function buildSupportContext(workspaceId, userId) {
     // Diagnostics mirror the /status readiness rows (env-presence probes — never invented).
     diagnostics: {
       database: !wsRow.error,
-      ai_gateway: Boolean(env2.baseURL && env2.apiKey),
+      ai_gateway: Boolean(env3.baseURL && env3.apiKey),
       sovereign_search: Boolean(process.env.SOVEREIGN_SEARCH_URL),
       sovereign_scrape: Boolean(process.env.SOVEREIGN_SCRAPE_URL)
     },
@@ -66434,8 +66696,8 @@ router17.post("/ask", zValidator("json", external_exports.object({
   // the page the user is on (context only — never acted on)
 })), async (c2) => {
   const { message, history, route } = c2.req.valid("json");
-  const env2 = gatewayEnv();
-  if (!env2.baseURL || !env2.apiKey) {
+  const env3 = gatewayEnv();
+  if (!env3.baseURL || !env3.apiKey) {
     return c2.json({
       answer: "Help AI isn't available right now. You can still create a support request and our team will follow up.",
       category: "bug_report",
@@ -66788,8 +67050,9 @@ router18.post("/tickets/:id/comments", zValidator("json", external_exports.objec
 });
 
 // src/routes/webhooks.ts
-var import_node_crypto8 = require("crypto");
+var import_node_crypto9 = require("crypto");
 init_client();
+init_inngest2();
 init_notify();
 init_credits();
 
@@ -66840,7 +67103,7 @@ router19.post("/nylas", async (c2) => {
   const sig = c2.req.header("x-nylas-signature") ?? "";
   const secret4 = process.env.NYLAS_WEBHOOK_SECRET ?? "";
   if (secret4 && sig) {
-    const expected = (0, import_node_crypto8.createHmac)("sha256", secret4).update(rawBody).digest("hex");
+    const expected = (0, import_node_crypto9.createHmac)("sha256", secret4).update(rawBody).digest("hex");
     if (sig !== expected) return c2.json({ error: "invalid signature" }, 401);
   }
   const payload = JSON.parse(rawBody);
@@ -66874,9 +67137,9 @@ router19.post("/stripe", async (c2) => {
     const age = Math.abs(Date.now() / 1e3 - parseInt(timestamp));
     if (age > 300) return c2.json({ error: "timestamp too old" }, 400);
     const payload = `${timestamp}.${rawBody}`;
-    const expected = (0, import_node_crypto8.createHmac)("sha256", secret4).update(payload).digest("hex");
+    const expected = (0, import_node_crypto9.createHmac)("sha256", secret4).update(payload).digest("hex");
     const provided = parts["v1"] ?? "";
-    if (!(0, import_node_crypto8.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
+    if (!(0, import_node_crypto9.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
       return c2.json({ error: "invalid signature" }, 401);
     }
   }
@@ -66955,6 +67218,41 @@ router19.post("/stripe", async (c2) => {
         await activateTier(workspaceId, normalizeTier(planMeta), sub.id);
       }
     }
+  }
+  return c2.json({ ok: true });
+});
+router19.post("/livekit", async (c2) => {
+  const rawBody = await c2.req.text();
+  const ok2 = await verifyLiveKitWebhook(rawBody, c2.req.header("Authorization"));
+  if (!ok2) return c2.json({ error: "invalid signature" }, 401);
+  let payload;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    return c2.json({ error: "bad payload" }, 400);
+  }
+  const hook = parseEgressWebhook(payload);
+  if (!hook?.egressId) return c2.json({ ok: true });
+  const { data: session } = await supabase.from("call_sessions").select("id, recording_status").eq("egress_id", hook.egressId).maybeSingle();
+  if (!session) return c2.json({ ok: true });
+  if (hook.event === "egress_started") {
+    await supabase.from("call_sessions").update({ recording_status: "recording" }).eq("id", session.id);
+    return c2.json({ ok: true });
+  }
+  if (hook.event === "egress_ended") {
+    const failed = hook.status === "EGRESS_FAILED" || !hook.url;
+    if (failed) {
+      await supabase.from("call_sessions").update({ recording_status: "failed" }).eq("id", session.id);
+      return c2.json({ ok: true });
+    }
+    await supabase.from("call_sessions").update({ recording_status: "ready", recording_url: hook.url }).eq("id", session.id);
+    if (process.env.INNGEST_EVENT_KEY) {
+      await inngest.send({ name: "meeting/recording.ready", data: { sessionId: session.id } }).catch(() => {
+      });
+    } else {
+      void ingestRecording(session.id);
+    }
+    return c2.json({ ok: true });
   }
   return c2.json({ ok: true });
 });
@@ -67146,13 +67444,13 @@ init_cookie2();
 init_client();
 
 // src/lib/tracking.ts
-var import_node_crypto9 = require("crypto");
+var import_node_crypto10 = require("crypto");
 function secret2() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 var b64url = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 function sign3(payload) {
-  return b64url((0, import_node_crypto9.createHmac)("sha256", secret2()).update(payload).digest());
+  return b64url((0, import_node_crypto10.createHmac)("sha256", secret2()).update(payload).digest());
 }
 function makeTrackingToken(nodeId) {
   const p2 = b64url(nodeId);
@@ -67166,7 +67464,7 @@ function verifyTrackingToken(token) {
   const expected = sign3(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto9.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto10.timingSafeEqual)(a2, b2)) return null;
   try {
     return Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8") || null;
   } catch {
@@ -68099,7 +68397,7 @@ router21.patch("/settings/general", requireAuth, async (c2) => {
 });
 
 // src/routes/invites.ts
-var import_node_crypto11 = require("crypto");
+var import_node_crypto12 = require("crypto");
 init_client();
 init_mail();
 var inviteUrl = (token) => `${process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com"}/invite/${token}`;
@@ -68155,7 +68453,7 @@ router22.post("/link", requireAuth, async (c2) => {
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { data, error } = await supabase.from("workspace_invites").insert({
     workspace_id: c2.get("workspaceId"),
-    email: `link-${(0, import_node_crypto11.randomUUID)().slice(0, 8)}@invite.local`,
+    email: `link-${(0, import_node_crypto12.randomUUID)().slice(0, 8)}@invite.local`,
     // placeholder; the unique key is (workspace,email)
     role: "member",
     finance_role: "none",
@@ -68586,7 +68884,7 @@ function normalizeCall(node) {
     transcript: Array.isArray(data.transcript) ? data.transcript : []
   };
 }
-async function memberNames(ws) {
+async function memberNames2(ws) {
   const { data } = await supabase.from("workspace_members").select("user_id, name, email").eq("workspace_id", ws);
   return new Map((data ?? []).map((m2) => [String(m2.user_id), String(m2.name || m2.email || "")]));
 }
@@ -68659,7 +68957,7 @@ router25.get("/memory", zValidator("query", external_exports.object({ search: ex
     supabase.from("nodes").select("id,data").eq("workspace_id", ws).eq("object_type", "calendar_event").order("data->>start_at", { ascending: false }).limit(300)
   ]);
   const now = /* @__PURE__ */ new Date();
-  const dir = await memberNames(ws);
+  const dir = await memberNames2(ws);
   const callItems = (callsRes.data ?? []).map(normalizeCall).map((n2) => ({
     row: callMemory(n2),
     corpus: [
@@ -72694,7 +72992,7 @@ router49.post("/", requireJwt, async (c2) => {
 });
 
 // src/routes/integrations.ts
-var import_node_crypto12 = require("crypto");
+var import_node_crypto13 = require("crypto");
 init_client();
 init_google();
 init_microsoft();
@@ -72703,7 +73001,7 @@ var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CRON_SECRE
 var b64url3 = (b2) => Buffer.from(b2).toString("base64url");
 function signState(payload) {
   const body = b64url3(JSON.stringify(payload));
-  const sig = b64url3((0, import_node_crypto12.createHmac)("sha256", stateSecret()).update(body).digest());
+  const sig = b64url3((0, import_node_crypto13.createHmac)("sha256", stateSecret()).update(body).digest());
   return `${body}.${sig}`;
 }
 function verifyState(token) {
@@ -72711,10 +73009,10 @@ function verifyState(token) {
   if (i2 <= 0) return null;
   const body = token.slice(0, i2);
   const sig = token.slice(i2 + 1);
-  const expected = b64url3((0, import_node_crypto12.createHmac)("sha256", stateSecret()).update(body).digest());
+  const expected = b64url3((0, import_node_crypto13.createHmac)("sha256", stateSecret()).update(body).digest());
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto12.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto13.timingSafeEqual)(a2, b2)) return null;
   try {
     const obj = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     if (typeof obj.exp === "number" && obj.exp < Math.floor(Date.now() / 1e3)) return null;
@@ -72969,7 +73267,7 @@ app.route("/api/v1/platform/support", router18);
 app.route("/api/v1/integrations", router50);
 app.route("/api/mcp", router51);
 app.route("/api/v1", router21);
-var inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport, socialDiscoveryWorker, dailyBrief] });
+var inngestHandler = serve({ client: inngest, functions: [enrichRecord, invoiceChaser, relationshipHealth, leadScoring, dealAlerts, creditNoteDisputeHandler, recurringInvoices, overdueTaskDecisions, workflowTrigger, trainingExport, socialDiscoveryWorker, dailyBrief, meetingRecordingWorker] });
 app.all("/api/inngest", inngestHandler);
 app.get("/api/cron/daily", async (c2) => {
   const secret4 = process.env.CRON_SECRET;

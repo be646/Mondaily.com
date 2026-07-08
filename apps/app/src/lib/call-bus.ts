@@ -4,7 +4,7 @@
  * dashboard layout) picks it up, rings the invitee, and opens the call overlay.
  */
 export const CALL_EVENT = "mondaily:call";
-export interface CallRequest { inviteeId: string; kind: "audio" | "video"; name?: string }
+export interface CallRequest { inviteeId: string; kind: "audio" | "video"; name?: string; record?: boolean }
 
 export function requestCall(req: CallRequest) {
   window.dispatchEvent(new CustomEvent<CallRequest>(CALL_EVENT, { detail: req }));

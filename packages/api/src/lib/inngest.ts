@@ -26,6 +26,11 @@ export type Events = {
   "finance/invoice.overdue.check": {
     data: Record<string, never>;
   };
+  "meeting/recording.ready": {
+    data: {
+      sessionId: string;
+    };
+  };
   "crm/record.enriched": {
     data: {
       workspaceId: string;

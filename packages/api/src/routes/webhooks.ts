@@ -5,6 +5,8 @@ import { inngest } from "../lib/inngest";
 import { createNotification } from "../lib/notify";
 import { grantTierCredits } from "../lib/credits";
 import { activateTier, downgradeToScout, normalizeTier } from "../lib/billing-tiers";
+import { verifyLiveKitWebhook, parseEgressWebhook } from "../lib/livekit";
+import { ingestRecording } from "../jobs/meeting-memory";
 
 const router = new Hono();
 
@@ -168,6 +170,50 @@ router.post("/stripe", async (c) => {
         await activateTier(workspaceId, normalizeTier(planMeta), sub.id as string | undefined);
       }
     }
+  }
+
+  return c.json({ ok: true });
+});
+
+/* ── LiveKit egress webhook — Meeting Memory recording lifecycle ──────────────────
+   Fires when a recording starts / finishes on the self-hosted LiveKit server. Signed with the
+   LiveKit API secret (Authorization JWT whose `sha256` claim must match the body hash); we verify
+   before trusting anything. On completion we correlate the egress id back to the call_session and
+   kick the sovereign transcription pipeline. FAIL-CLOSED: no LIVEKIT_API_SECRET → 401. */
+router.post("/livekit", async (c) => {
+  const rawBody = await c.req.text();
+  const ok = await verifyLiveKitWebhook(rawBody, c.req.header("Authorization"));
+  if (!ok) return c.json({ error: "invalid signature" }, 401);
+
+  let payload: unknown;
+  try { payload = JSON.parse(rawBody); } catch { return c.json({ error: "bad payload" }, 400); }
+  const hook = parseEgressWebhook(payload);
+  if (!hook?.egressId) return c.json({ ok: true }); // not an egress event we track
+
+  const { data: session } = await supabase
+    .from("call_sessions").select("id, recording_status").eq("egress_id", hook.egressId).maybeSingle();
+  if (!session) return c.json({ ok: true }); // unknown egress — nothing to do
+
+  if (hook.event === "egress_started") {
+    await supabase.from("call_sessions").update({ recording_status: "recording" }).eq("id", session.id);
+    return c.json({ ok: true });
+  }
+
+  if (hook.event === "egress_ended") {
+    const failed = hook.status === "EGRESS_FAILED" || !hook.url;
+    if (failed) {
+      await supabase.from("call_sessions").update({ recording_status: "failed" }).eq("id", session.id);
+      return c.json({ ok: true });
+    }
+    await supabase.from("call_sessions").update({ recording_status: "ready", recording_url: hook.url }).eq("id", session.id);
+    // Transcription can outlast a webhook's budget — hand off to Inngest when available, else run
+    // inline (short calls). Either path is idempotent via the session's memory_node_id.
+    if (process.env.INNGEST_EVENT_KEY) {
+      await inngest.send({ name: "meeting/recording.ready", data: { sessionId: session.id } }).catch(() => {});
+    } else {
+      void ingestRecording(session.id);
+    }
+    return c.json({ ok: true });
   }
 
   return c.json({ ok: true });

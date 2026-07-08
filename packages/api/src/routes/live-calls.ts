@@ -4,6 +4,7 @@ import { z } from "zod";
 import { sign } from "hono/jwt";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
+import { recordingEnabled, transcriptionEnabled, startRoomEgress, stopRoomEgress } from "../lib/livekit";
 
 /**
  * Live calls — member-to-member audio/video over a self-hosted LiveKit server (sovereign:
@@ -50,29 +51,46 @@ async function members(workspaceId: string) {
   return new Map((data ?? []).map((m) => [String(m.user_id), m]));
 }
 
-/** GET /live-calls/capability — is calling configured on this deployment? */
-router.get("/capability", (c) => c.json({ enabled: isEnabled(), url: liveKitEnv().url ?? null }));
+/** GET /live-calls/capability — is calling configured on this deployment? Also reports whether
+ *  opt-in recording + sovereign transcription are available, so the UI shows the record toggle
+ *  only when it would actually do something (never a dead switch). */
+router.get("/capability", (c) => c.json({
+  enabled: isEnabled(),
+  url: liveKitEnv().url ?? null,
+  recording: recordingEnabled(),
+  transcription: transcriptionEnabled(),
+}));
 
-/** POST /live-calls/rooms — start a call to a member: create session, notify, return join token. */
-router.post("/rooms", zValidator("json", z.object({ invitee_id: z.string().min(1), kind: z.enum(["audio", "video"]).default("audio") })), async (c) => {
+/** POST /live-calls/rooms — start a call to a member: create session, notify, return join token.
+ *  `record` is OPT-IN and only honored when recording is configured; otherwise it's a no-op and the
+ *  session is simply not recorded (never a fake "recording" state). */
+router.post("/rooms", zValidator("json", z.object({ invitee_id: z.string().min(1), kind: z.enum(["audio", "video"]).default("audio"), record: z.boolean().default(false) })), async (c) => {
   if (!isEnabled()) return c.json({ error: "Calling isn't configured on this workspace." }, 503);
   const ws = c.get("workspaceId");
   const me = c.get("userId");
-  const { invitee_id, kind } = c.req.valid("json");
+  const { invitee_id, kind, record } = c.req.valid("json");
   if (invitee_id === me) return c.json({ error: "You can't call yourself." }, 400);
 
   const dir = await members(ws);
   const invitee = dir.get(invitee_id);
   if (!invitee) return c.json({ error: "Member not found in this workspace." }, 404);
 
+  const willRecord = record && recordingEnabled();
   // Room name namespaced by workspace so tokens can never cross tenants.
   const room = `ws_${ws}__${me}__${invitee_id}__${Math.floor(Date.now() / 1000)}`;
   const { data: session, error } = await supabase
     .from("call_sessions")
-    .insert({ workspace_id: ws, room, initiator_id: me, invitee_id, kind, status: "ringing" })
+    .insert({ workspace_id: ws, room, initiator_id: me, invitee_id, kind, status: "ringing", record: willRecord })
     .select("id, room, created_at")
     .single();
   if (error) return c.json({ error: error.message }, 400);
+
+  // Kick egress up-front so the whole conversation is captured; persist the id for webhook
+  // correlation. If egress won't start, we leave recording null — the call proceeds unrecorded.
+  if (willRecord) {
+    const eg = await startRoomEgress(room);
+    if (eg) await supabase.from("call_sessions").update({ egress_id: eg.egressId, recording_status: "recording" }).eq("id", session.id);
+  }
 
   const meM = dir.get(me);
   const callerName = meM?.name || meM?.email || "A teammate";
@@ -85,7 +103,7 @@ router.post("/rooms", zValidator("json", z.object({ invitee_id: z.string().min(1
   }).then(() => {}, () => {});
 
   const token = await mintToken(me, callerName, room, true);
-  return c.json({ session_id: session.id, room, token, url: liveKitEnv().url }, 201);
+  return c.json({ session_id: session.id, room, token, url: liveKitEnv().url, recording: willRecord }, 201);
 });
 
 /** POST /live-calls/rooms/:id/join — invitee (or initiator reconnecting) gets a join token. */
@@ -111,11 +129,15 @@ router.post("/rooms/:id/end", zValidator("json", z.object({ status: z.enum(["end
   const ws = c.get("workspaceId");
   const me = c.get("userId");
   const { data: session } = await supabase
-    .from("call_sessions").select("id, initiator_id, invitee_id, status")
+    .from("call_sessions").select("id, initiator_id, invitee_id, status, egress_id, recording_status")
     .eq("workspace_id", ws).eq("id", c.req.param("id")).maybeSingle();
   if (!session) return c.json({ error: "Call not found." }, 404);
   if (me !== session.initiator_id && me !== session.invitee_id) return c.json({ error: "You are not part of this call." }, 403);
   await supabase.from("call_sessions").update({ status: c.req.valid("json").status, ended_at: new Date().toISOString() }).eq("id", session.id);
+  // Stop the recording if one is running — egress finalizes the file and fires the egress_ended
+  // webhook, which is what kicks transcription. LiveKit also auto-stops on empty room, so this is
+  // just prompt cleanup.
+  if (session.egress_id && session.recording_status === "recording") await stopRoomEgress(session.egress_id);
   return c.json({ ok: true });
 });
 

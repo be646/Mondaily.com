@@ -18,12 +18,13 @@ export function CallHost() {
   const [active, setActive] = useState<ActiveCall | null>(null);
   const [incoming, setIncoming] = useState<IncomingCall | null>(null);
 
-  const capability = useQuery<{ enabled: boolean }>({
+  const capability = useQuery<{ enabled: boolean; recording?: boolean; transcription?: boolean }>({
     queryKey: ["call-capability"],
     queryFn: () => apiClient.get("/live-calls/capability"),
     staleTime: 10 * 60_000,
   });
   const enabled = !!capability.data?.enabled;
+  const canRecord = !!capability.data?.recording;
 
   // Outbound: someone clicked "Call".
   useEffect(() => {
@@ -31,14 +32,16 @@ export function CallHost() {
     const handler = async (e: Event) => {
       const req = (e as CustomEvent<CallRequest>).detail;
       if (!req?.inviteeId || active) return;
+      // Recording is opt-in AND only possible when the deployment has it configured.
+      const record = !!req.record && canRecord;
       try {
-        const res = await apiClient.post<{ session_id: string; room: string; token: string; url: string }>("/live-calls/rooms", { invitee_id: req.inviteeId, kind: req.kind });
-        setActive({ sessionId: res.session_id, room: res.room, token: res.token, url: res.url, kind: req.kind, otherName: req.name || "Member" });
+        const res = await apiClient.post<{ session_id: string; room: string; token: string; url: string; recording?: boolean }>("/live-calls/rooms", { invitee_id: req.inviteeId, kind: req.kind, record });
+        setActive({ sessionId: res.session_id, room: res.room, token: res.token, url: res.url, kind: req.kind, otherName: req.name || "Member", recording: !!res.recording });
       } catch { /* surfaced by the button's own error path if any */ }
     };
     window.addEventListener(CALL_EVENT, handler);
     return () => window.removeEventListener(CALL_EVENT, handler);
-  }, [enabled, active]);
+  }, [enabled, active, canRecord]);
 
   // Inbound: poll (fallback) + realtime invalidation for ringing calls addressed to me.
   const incomingQ = useQuery<{ incoming: IncomingCall[] }>({
