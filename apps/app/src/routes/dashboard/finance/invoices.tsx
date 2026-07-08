@@ -64,7 +64,7 @@ export function InvoicesPage() {
     return () => useAskContextStore.getState().setContext(null);
   }, []);
 
-  const { data: invoices = [], isLoading } = useQuery<Invoice[]>({
+  const { data: invoices = [], isLoading, isError, refetch } = useQuery<Invoice[]>({
     queryKey: ["invoices", statusFilter, search],
     queryFn: () => {
       const params = new URLSearchParams();
@@ -163,6 +163,8 @@ export function InvoicesPage() {
       <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center text-[12px] text-[var(--text-secondary)]">Loading…</div>
+        ) : isError ? (
+          <div className="flex h-40 flex-col items-center justify-center gap-2 text-[12px] text-[var(--text-muted)]">Couldn't load invoices. <button onClick={() => refetch()} className="underline">Retry</button></div>
         ) : invoices.length === 0 ? (
           <div className="flex h-60 flex-col items-center justify-center gap-3">
             <FileText size={32} className="text-[var(--text-secondary)]"/>

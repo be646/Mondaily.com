@@ -750,7 +750,11 @@ export function HomePage() {
                                       {a.label}
                                     </button>
                                   ))}
-                                  <span title="Coming soon — no report-creation tool exists yet" className="block px-3 py-2 text-[12.5px] cursor-not-allowed" style={{ color: "var(--text-faint)", opacity: 0.6 }}>Create report</span>
+                                  {/* Real: the Ask backend has a create_report tool (ask.ts) and the chip kind exists. */}
+                                  <button onClick={() => { setActionsOpen(false); sendSuggestion(buildChipText("report", i)); }}
+                                    className="block w-full px-3 py-2 text-left text-[12.5px] transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: "var(--text-secondary)" }}>
+                                    Create report
+                                  </button>
                                 </div>
                               )}
                             </div>

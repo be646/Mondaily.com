@@ -78,7 +78,7 @@ const REASON_LABELS: Record<string, string> = {
 };
 
 export function FinanceReportsPage() {
-  const { data: invoices = [] } = useQuery<Invoice[]>({
+  const { data: invoices = [], isError: invoicesError, refetch: refetchInvoices } = useQuery<Invoice[]>({
     queryKey: ["invoices-all"],
     queryFn: () => apiClient.get<Invoice[]>("/invoices"),
   });
@@ -157,6 +157,14 @@ export function FinanceReportsPage() {
 
       <div className="flex-1 overflow-auto">
         <div className="mx-auto max-w-5xl px-6 py-6 space-y-6">
+
+          {/* If the invoice data failed to load, an all-zeros report would be misleading — say so. */}
+          {invoicesError && (
+            <div className="flex items-center justify-between rounded-sm border px-4 py-2.5 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+              Couldn't load invoice data — the numbers below may be incomplete.
+              <button onClick={() => refetchInvoices()} className="underline">Retry</button>
+            </div>
+          )}
 
           {/* Summary cards */}
           <div className="telemetry-strip">

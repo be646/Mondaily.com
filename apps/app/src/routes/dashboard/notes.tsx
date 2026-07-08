@@ -41,10 +41,11 @@ type ViewMode = "list" | "board" | "timeline";
 
 /* ── constants ──────────────────────────────────────────────── */
 
+// Matte semantic tones (flat-line system) — no bright utility colors.
 const OBJECT_COLORS: Record<string, string> = {
-  contacts:  "text-blue-400 bg-blue-500/10 border-blue-500/20",
+  contacts:  "text-[#717784] bg-[#717784]/10 border-[#717784]/20",
   companies: "text-stone-400 bg-stone-500/10 border-stone-500/20",
-  deals:     "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+  deals:     "text-[#5f8169] bg-[#5f8169]/10 border-[#5f8169]/20",
 };
 
 const NOTE_COLORS: Record<string, { ring: string; bg: string; dot: string }> = {
@@ -164,7 +165,7 @@ function NoteCard({
     <div
       className={`group relative flex flex-col gap-3 rounded-sm border p-4 ring-1 transition-all
         ${scheme.bg} ${scheme.ring}
-        ${isPinned ? "border-orange-500/30" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}
+        ${isPinned ? "border-[#97824f]/40" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}
         ${isAI ? "border-stone-500/20" : ""}`}
     >
       {/* AI accent */}
@@ -219,7 +220,7 @@ function NoteCard({
           {onPin && (
             <button onClick={onPin} title={isPinned ? "Unpin" : "Pin"}
               className="grid h-6 w-6 place-items-center rounded-lg hover:bg-[var(--surface-hover)] transition-colors">
-              <Pin size={11} className={isPinned ? "fill-orange-400 text-orange-400" : "text-[var(--text-muted)]"} />
+              <Pin size={11} className={isPinned ? "fill-[#97824f] text-[#97824f]" : "text-[var(--text-muted)]"} />
             </button>
           )}
           {isOwner && onEdit && (
@@ -253,8 +254,8 @@ function NoteCard({
           <span className="max-w-[100px] truncate">{note.record.name}</span>
         </Link>
         {isPinned && (
-          <span className="flex items-center gap-1 text-[10px] text-orange-400">
-            <Pin size={9} className="fill-orange-400" /> Pinned
+          <span className="flex items-center gap-1 text-[10px] text-[#97824f]">
+            <Pin size={9} className="fill-[#97824f]" /> Pinned
           </span>
         )}
       </div>
@@ -587,8 +588,8 @@ export function NotesPage() {
         </select>
 
         {pinned.size > 0 && (
-          <span className="flex items-center gap-1 rounded-sm border border-orange-500/20 bg-orange-500/[.06] px-2.5 py-1 text-[11px] text-orange-400">
-            <Pin size={10} className="fill-orange-400" /> {pinned.size} pinned
+          <span className="flex items-center gap-1 rounded-sm border border-[#97824f]/20 bg-[#97824f]/[.06] px-2.5 py-1 text-[11px] text-[#97824f]">
+            <Pin size={10} className="fill-[#97824f]" /> {pinned.size} pinned
           </span>
         )}
       </div>
@@ -624,8 +625,8 @@ export function NotesPage() {
           {pinnedNotes.length > 0 && (
             <section>
               <div className="mb-3 flex items-center gap-2">
-                <Pin size={11} className="fill-orange-400 text-orange-400" />
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-orange-400/70">Pinned</span>
+                <Pin size={11} className="fill-[#97824f] text-[#97824f]" />
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#97824f]/80">Pinned</span>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {pinnedNotes.map(note => (

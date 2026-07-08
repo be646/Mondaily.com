@@ -145,7 +145,7 @@ export function ExpensesPage() {
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
 
-  const { data: expenses = [], isLoading } = useQuery<Expense[]>({
+  const { data: expenses = [], isLoading, isError, refetch } = useQuery<Expense[]>({
     queryKey: ["expenses", categoryFilter, search],
     queryFn: async () => {
       try {
@@ -222,6 +222,8 @@ export function ExpensesPage() {
       <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center text-[12px] text-[var(--text-secondary)]">Loading…</div>
+        ) : isError ? (
+          <div className="flex h-40 flex-col items-center justify-center gap-2 text-[12px] text-[var(--text-muted)]">Couldn't load expenses. <button onClick={() => refetch()} className="underline">Retry</button></div>
         ) : expenses.length === 0 ? (
           <div className="flex h-60 flex-col items-center justify-center gap-3">
             <Receipt size={32} className="text-[var(--text-secondary)]"/>

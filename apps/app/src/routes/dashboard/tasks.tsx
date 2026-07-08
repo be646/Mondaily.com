@@ -24,27 +24,29 @@ interface Task {
   labels?: string[];
 }
 
+// Matte semantic tones (flat-line design system) — slate for informational, amber for attention,
+// rose for problems, muted green for done. No bright utility colors.
 const LABEL_COLORS: Record<string, string> = {
-  "Help Needed": "text-blue-400 bg-blue-400/10 border-blue-400/30",
-  "Blocked":     "text-stone-400 bg-stone-400/10 border-stone-400/30",
+  "Help Needed": "text-[#717784] bg-[#717784]/10 border-[#717784]/30",
+  "Blocked":     "text-[#9c6b72] bg-[#9c6b72]/10 border-[#9c6b72]/30",
   "Waiting":     "text-stone-400 bg-stone-400/10 border-stone-400/30",
-  "Bug":         "text-red-500 bg-stone-500/10 border-stone-500/30",
+  "Bug":         "text-[#9c6b72] bg-[#9c6b72]/10 border-[#9c6b72]/30",
   "Feature":     "text-stone-400 bg-stone-400/10 border-stone-400/30",
-  "Research":    "text-[var(--section-accent)] bg-[var(--section-accent)]/10 border-[var(--section-accent)]/30",
+  "Research":    "text-[#717784] bg-[#717784]/10 border-[#717784]/30",
 };
 
 const PRIORITY_STYLE: Record<string, string> = {
   low:    "text-stone-400 bg-stone-400/10 border-stone-400/20",
-  medium: "text-blue-400 bg-blue-400/10 border-blue-400/20",
-  high:   "text-orange-400 bg-orange-400/10 border-orange-400/20",
-  urgent: "text-stone-400 bg-stone-400/10 border-stone-400/20",
+  medium: "text-[#717784] bg-[#717784]/10 border-[#717784]/20",
+  high:   "text-[#97824f] bg-[#97824f]/10 border-[#97824f]/20",
+  urgent: "text-[#9c6b72] bg-[#9c6b72]/10 border-[#9c6b72]/20",
 };
 
 const STATUS_META: Record<string, { label: string; dot: string }> = {
   todo:        { label: "To Do",        dot: "bg-stone-500" },
-  in_progress: { label: "In Progress",  dot: "bg-blue-400" },
-  review:      { label: "Needs Review", dot: "bg-yellow-400" },
-  done:        { label: "Done",         dot: "bg-emerald-400" },
+  in_progress: { label: "In Progress",  dot: "bg-[#717784]" },
+  review:      { label: "Needs Review", dot: "bg-[#97824f]" },
+  done:        { label: "Done",         dot: "bg-[#5f8169]" },
 };
 
 function fmtDate(iso: string) {

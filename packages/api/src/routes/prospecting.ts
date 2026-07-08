@@ -253,6 +253,16 @@ export async function runProspecting(
       }
 
       if (input.require_approval) {
+        // Dedup: candidates have no source_id, so key on the exact pending title — repeated runs of
+        // the same query must not pile up duplicate review items for the same candidate.
+        const { data: dupe } = await supabase.from("decision_queue").select("id")
+          .eq("workspace_id", workspaceId).eq("agent_name", "prospecting").eq("status", "pending")
+          .eq("title", `New ${input.object_type}: ${candidate.name}`).maybeSingle();
+        if (dupe) {
+          result.queued_for_review++;
+          result.candidates.push({ ...candidate, status: "queued_for_review", decision_id: dupe.id });
+          continue;
+        }
         const { data: decision } = await supabase.from("decision_queue").insert({
           workspace_id: workspaceId,
           source_type: "prospecting_candidate",

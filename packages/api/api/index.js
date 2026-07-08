@@ -59363,9 +59363,10 @@ async function runDealAlerts(workspaceId) {
   });
   try {
     const wsIds = await listWorkspaceIds(workspaceId);
-    let totalAlerts = 0;
+    let totalAlerts = 0, dealsScanned = 0;
     for (const wsId of wsIds) {
       const { data: deals } = await supabase.from("nodes").select("id, data, updated_at").eq("workspace_id", wsId).ilike("object_type", "%deal%");
+      dealsScanned += deals?.length ?? 0;
       for (const deal of deals ?? []) {
         const data = deal.data;
         const stage = String(data.stage ?? data.status ?? "").toLowerCase();
@@ -59403,7 +59404,10 @@ async function runDealAlerts(workspaceId) {
         totalAlerts++;
       }
     }
-    await completeJob(jobId, { alerts_created: totalAlerts, summary: `Flagged ${totalAlerts} cold deal(s)` }, []);
+    await completeJob(jobId, { alerts_created: totalAlerts, deals_scanned: dealsScanned, summary: `Flagged ${totalAlerts} cold deal(s)` }, [
+      step2(`Scanned ${dealsScanned} deal(s) for 14+ days of inactivity`),
+      step2(`Flagged ${totalAlerts} cold deal(s)`, { status: totalAlerts ? "warn" : "ok" })
+    ]);
     return { alerts_created: totalAlerts };
   } catch (err2) {
     await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
@@ -59516,12 +59520,16 @@ async function runOverdueTaskDecisions(workspaceId) {
   });
   try {
     const wsIds = await listWorkspaceIds(workspaceId);
-    let queued = 0;
+    let queued = 0, scanned = 0, alreadyQueued = 0;
     for (const wsId of wsIds) {
       const { data: tasks2 } = await supabase.from("tasks").select("id, title, due_date, priority, assignee_email").eq("workspace_id", wsId).eq("completed", false).lt("due_date", (/* @__PURE__ */ new Date()).toISOString());
+      scanned += tasks2?.length ?? 0;
       for (const task of tasks2 ?? []) {
         const { data: existing } = await supabase.from("decision_queue").select("id").eq("workspace_id", wsId).eq("source_type", "task").eq("source_id", task.id).eq("agent_name", "operations").eq("status", "pending").maybeSingle();
-        if (existing) continue;
+        if (existing) {
+          alreadyQueued++;
+          continue;
+        }
         const daysOverdue2 = Math.floor((Date.now() - new Date(task.due_date).getTime()) / 864e5);
         await supabase.from("decision_queue").insert({
           workspace_id: wsId,
@@ -59537,7 +59545,12 @@ async function runOverdueTaskDecisions(workspaceId) {
         queued++;
       }
     }
-    await completeJob(jobId, { queued, summary: `Queued ${queued} overdue-task decision(s)` }, []);
+    const opsSteps = [
+      step2(`Scanned ${scanned} overdue open task(s)`),
+      step2(`${alreadyQueued} already in the Decision Queue`, { status: "info" }),
+      step2(`Queued ${queued} new decision(s)`, { status: queued ? "warn" : "ok" })
+    ];
+    await completeJob(jobId, { queued, scanned, already_queued: alreadyQueued, summary: `Queued ${queued} overdue-task decision(s) (${scanned} scanned)` }, opsSteps);
     return { queued };
   } catch (err2) {
     await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
@@ -59943,7 +59956,11 @@ ${list}`,
         throw new Error(`lead_scoring wrote 0/${updates.length} rows \u2014 ${firstError || "unknown write error"}`);
       }
       totalScored += written;
-      await completeJob(jobId, { scored: written, attempted: updates.length, write_errors: updates.length - written, summary: `Scored ${written}/${updates.length} deal(s)` }, []);
+      await completeJob(jobId, { scored: written, attempted: updates.length, write_errors: updates.length - written, summary: `Scored ${written}/${updates.length} deal(s)` }, [
+        step2(`Loaded ${deals.length} deal(s) with 30-day activity + open-task signals`),
+        step2(`Computed ${updates.length} lead score(s)`),
+        step2(`Wrote ${written}/${updates.length} score(s)`, { status: written === updates.length ? "ok" : "warn" })
+      ]);
     } catch (err2) {
       await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
     }
@@ -60209,6 +60226,8 @@ async function runAction(workspaceId, action, record) {
   const type = action.type.toLowerCase();
   const recName2 = String(record.data.name ?? record.data.title ?? record.data.full_name ?? record.id);
   if (RISKY_ACTIONS.has(type) || !SAFE_ACTIONS.has(type)) {
+    const { data: pendingDupe } = await supabase.from("decision_queue").select("id").eq("workspace_id", workspaceId).eq("source_id", record.id).eq("agent_name", "workflow").eq("status", "pending").maybeSingle();
+    if (pendingDupe) return { action: action.type, mode: "queued", detail: "already awaiting approval" };
     const draft = await aiGatewayToolUse({
       prompt: `Workflow action: "${action.label ?? action.type}" for ${record.object_type} "${recName2}".
 Record:
@@ -62681,6 +62700,12 @@ async function runProspecting(workspaceId, userId, input) {
         continue;
       }
       if (input.require_approval) {
+        const { data: dupe } = await supabase.from("decision_queue").select("id").eq("workspace_id", workspaceId).eq("agent_name", "prospecting").eq("status", "pending").eq("title", `New ${input.object_type}: ${candidate.name}`).maybeSingle();
+        if (dupe) {
+          result.queued_for_review++;
+          result.candidates.push({ ...candidate, status: "queued_for_review", decision_id: dupe.id });
+          continue;
+        }
         const { data: decision } = await supabase.from("decision_queue").insert({
           workspace_id: workspaceId,
           source_type: "prospecting_candidate",
@@ -64918,18 +64943,19 @@ router8.get("/", async (c2) => {
       overdueTasks.length > 0 || reviewTasks.length > 0 ? "active" : "monitoring",
       ["operations"]
     );
+    const opsJob = jobSummary(latestJob(jobs, "operations") ?? latestJob(jobs, "overdue_task_decisions"), "No runs yet");
     agents.push({
       id: "operations",
       name: "Operations Agent",
       category: "operations",
-      status: overdueTasks.length > 0 ? `${overdueTasks.length} overdue task(s)` : "No findings",
+      status: pendingCount > 0 ? `${pendingCount} decision(s) awaiting review` : overdueTasks.length > 0 ? `${overdueTasks.length} overdue task(s)` : "No findings",
       state,
-      backed_by: [],
-      last_run_at: null,
-      last_action: overdueTasks.length > 0 ? `Found ${overdueTasks.length} overdue task(s)` : "Checked workspace tasks just now",
+      backed_by: ["operations", "overdue_task_decisions"],
+      last_run_at: opsJob.lastRunAt,
+      last_action: opsJob.lastRunAt ? opsJob.lastAction : overdueTasks.length > 0 ? `Found ${overdueTasks.length} overdue task(s)` : "No runs yet",
       evidence_count: overdueTasks.length + reviewTasks.length + pendingCount,
-      suggested_action: overdueTasks.length > 0 ? "Review and reassign overdue tasks" : null,
-      destination: "/tasks"
+      suggested_action: pendingCount > 0 ? "Review pending operations decisions" : overdueTasks.length > 0 ? "Review and reassign overdue tasks" : null,
+      destination: pendingCount > 0 ? "/decisions" : "/tasks"
     });
   }
   {

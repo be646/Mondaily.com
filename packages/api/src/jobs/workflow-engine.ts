@@ -136,6 +136,12 @@ async function runAction(workspaceId: string, action: WorkflowBlock, record: { i
 
   // RISKY → always queue for approval, with AI-drafted content.
   if (RISKY_ACTIONS.has(type) || (!SAFE_ACTIONS.has(type))) {
+    // Dedup: don't queue a second pending decision for the same record + workflow agent — re-runs
+    // (retries, re-evaluations) must not pile up duplicates while one is still awaiting review.
+    const { data: pendingDupe } = await supabase.from("decision_queue").select("id")
+      .eq("workspace_id", workspaceId).eq("source_id", record.id).eq("agent_name", "workflow")
+      .eq("status", "pending").maybeSingle();
+    if (pendingDupe) return { action: action.type, mode: "queued", detail: "already awaiting approval" };
     const draft = await aiGatewayToolUse({
       prompt: `Workflow action: "${action.label ?? action.type}" for ${record.object_type} "${recName}".\nRecord:\n${JSON.stringify(record.data).slice(0, 1200)}\n\nDraft the content this action would produce (e.g. the email subject+body, or a one-line description).`,
       toolName: "draft_action",

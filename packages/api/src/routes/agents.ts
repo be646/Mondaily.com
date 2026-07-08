@@ -215,15 +215,20 @@ router.get("/", async (c) => {
       overdueTasks.length > 0 || reviewTasks.length > 0 ? "active" : "monitoring",
       ["operations"]
     );
+    // Real run history — the on-demand runner logs agent_jobs rows under agent_name "operations"
+    // (and the daily cron as "overdue_task_decisions"). Previously hardcoded null, which made a
+    // working agent look dormant/broken in Agents + Activity.
+    const opsJob = jobSummary(latestJob(jobs, "operations") ?? latestJob(jobs, "overdue_task_decisions"), "No runs yet");
     agents.push({
       id: "operations", name: "Operations Agent", category: "operations",
-      status: overdueTasks.length > 0 ? `${overdueTasks.length} overdue task(s)` : "No findings",
+      status: pendingCount > 0 ? `${pendingCount} decision(s) awaiting review` : overdueTasks.length > 0 ? `${overdueTasks.length} overdue task(s)` : "No findings",
       state,
-      backed_by: [], last_run_at: null,
-      last_action: overdueTasks.length > 0 ? `Found ${overdueTasks.length} overdue task(s)` : "Checked workspace tasks just now",
+      backed_by: ["operations", "overdue_task_decisions"],
+      last_run_at: opsJob.lastRunAt,
+      last_action: opsJob.lastRunAt ? opsJob.lastAction : overdueTasks.length > 0 ? `Found ${overdueTasks.length} overdue task(s)` : "No runs yet",
       evidence_count: overdueTasks.length + reviewTasks.length + pendingCount,
-      suggested_action: overdueTasks.length > 0 ? "Review and reassign overdue tasks" : null,
-      destination: "/tasks",
+      suggested_action: pendingCount > 0 ? "Review pending operations decisions" : overdueTasks.length > 0 ? "Review and reassign overdue tasks" : null,
+      destination: pendingCount > 0 ? "/decisions" : "/tasks",
     });
   }
 

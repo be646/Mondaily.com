@@ -75,7 +75,7 @@ export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_crea
 
   try {
     const wsIds = await listWorkspaceIds(workspaceId);
-    let totalAlerts = 0;
+    let totalAlerts = 0, dealsScanned = 0;
 
     for (const wsId of wsIds) {
       const { data: deals } = await supabase
@@ -83,6 +83,7 @@ export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_crea
         .select("id, data, updated_at")
         .eq("workspace_id", wsId)
         .ilike("object_type", "%deal%");
+      dealsScanned += deals?.length ?? 0;
 
       for (const deal of deals ?? []) {
         const data = deal.data as Record<string, unknown>;
@@ -128,7 +129,10 @@ export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_crea
       }
     }
 
-    await completeJob(jobId, { alerts_created: totalAlerts, summary: `Flagged ${totalAlerts} cold deal(s)` }, []);
+    await completeJob(jobId, { alerts_created: totalAlerts, deals_scanned: dealsScanned, summary: `Flagged ${totalAlerts} cold deal(s)` }, [
+      step(`Scanned ${dealsScanned} deal(s) for 14+ days of inactivity`),
+      step(`Flagged ${totalAlerts} cold deal(s)`, { status: totalAlerts ? "warn" : "ok" }),
+    ]);
     return { alerts_created: totalAlerts };
   } catch (err: unknown) {
     await failJob(jobId, err instanceof Error ? err.message : String(err));
@@ -248,16 +252,17 @@ export async function runOverdueTaskDecisions(workspaceId?: string): Promise<{ q
   });
   try {
     const wsIds = await listWorkspaceIds(workspaceId);
-    let queued = 0;
+    let queued = 0, scanned = 0, alreadyQueued = 0;
     for (const wsId of wsIds) {
       const { data: tasks } = await supabase
         .from("tasks").select("id, title, due_date, priority, assignee_email")
         .eq("workspace_id", wsId).eq("completed", false).lt("due_date", new Date().toISOString());
+      scanned += tasks?.length ?? 0;
       for (const task of tasks ?? []) {
         const { data: existing } = await supabase.from("decision_queue").select("id")
           .eq("workspace_id", wsId).eq("source_type", "task").eq("source_id", task.id)
           .eq("agent_name", "operations").eq("status", "pending").maybeSingle();
-        if (existing) continue;
+        if (existing) { alreadyQueued++; continue; }
         const daysOverdue = Math.floor((Date.now() - new Date(task.due_date!).getTime()) / 86_400_000);
         await supabase.from("decision_queue").insert({
           workspace_id: wsId, source_type: "task", source_id: task.id, agent_name: "operations",
@@ -270,7 +275,13 @@ export async function runOverdueTaskDecisions(workspaceId?: string): Promise<{ q
         queued++;
       }
     }
-    await completeJob(jobId, { queued, summary: `Queued ${queued} overdue-task decision(s)` }, []);
+    // Structured proof-of-work — honest counts (0s included) so the Activity timeline shows what ran.
+    const opsSteps = [
+      step(`Scanned ${scanned} overdue open task(s)`),
+      step(`${alreadyQueued} already in the Decision Queue`, { status: "info" }),
+      step(`Queued ${queued} new decision(s)`, { status: queued ? "warn" : "ok" }),
+    ];
+    await completeJob(jobId, { queued, scanned, already_queued: alreadyQueued, summary: `Queued ${queued} overdue-task decision(s) (${scanned} scanned)` }, opsSteps);
     return { queued };
   } catch (err: unknown) {
     await failJob(jobId, err instanceof Error ? err.message : String(err));
@@ -693,7 +704,11 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
         throw new Error(`lead_scoring wrote 0/${updates.length} rows — ${firstError || "unknown write error"}`);
       }
       totalScored += written;
-      await completeJob(jobId, { scored: written, attempted: updates.length, write_errors: updates.length - written, summary: `Scored ${written}/${updates.length} deal(s)` }, []);
+      await completeJob(jobId, { scored: written, attempted: updates.length, write_errors: updates.length - written, summary: `Scored ${written}/${updates.length} deal(s)` }, [
+        step(`Loaded ${deals.length} deal(s) with 30-day activity + open-task signals`),
+        step(`Computed ${updates.length} lead score(s)`),
+        step(`Wrote ${written}/${updates.length} score(s)`, { status: written === updates.length ? "ok" : "warn" }),
+      ]);
     } catch (err: unknown) {
       await failJob(jobId, err instanceof Error ? err.message : String(err));
     }

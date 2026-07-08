@@ -137,7 +137,7 @@ export function QuotesPage() {
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
 
-  const { data: quotes = [], isLoading } = useQuery<Quote[]>({
+  const { data: quotes = [], isLoading, isError, refetch } = useQuery<Quote[]>({
     queryKey: ["quotes", statusFilter, search],
     queryFn: () => {
       const p = new URLSearchParams();
@@ -202,6 +202,8 @@ export function QuotesPage() {
       <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center text-[12px] text-[var(--text-secondary)]">Loading…</div>
+        ) : isError ? (
+          <div className="flex h-40 flex-col items-center justify-center gap-2 text-[12px] text-[var(--text-muted)]">Couldn't load quotes. <button onClick={() => refetch()} className="underline">Retry</button></div>
         ) : quotes.length === 0 ? (
           <div className="flex h-60 flex-col items-center justify-center gap-3">
             <ReceiptText size={32} className="text-[var(--text-secondary)]"/>

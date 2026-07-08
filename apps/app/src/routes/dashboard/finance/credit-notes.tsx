@@ -159,7 +159,7 @@ export function CreditNotesPage() {
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
 
-  const { data: creditNotes = [], isLoading } = useQuery<CreditNote[]>({
+  const { data: creditNotes = [], isLoading, isError, refetch } = useQuery<CreditNote[]>({
     queryKey: ["credit-notes", statusFilter, search],
     queryFn: () => {
       const p = new URLSearchParams();
@@ -227,6 +227,8 @@ export function CreditNotesPage() {
       <div className="flex-1 overflow-auto">
         {isLoading ? (
           <div className="flex h-40 items-center justify-center text-[12px] text-[var(--text-secondary)]">Loading…</div>
+        ) : isError ? (
+          <div className="flex h-40 flex-col items-center justify-center gap-2 text-[12px] text-[var(--text-muted)]">Couldn't load credit notes. <button onClick={() => refetch()} className="underline">Retry</button></div>
         ) : creditNotes.length === 0 ? (
           <div className="flex h-60 flex-col items-center justify-center gap-3">
             <ReceiptText size={32} className="text-[var(--text-secondary)]"/>
