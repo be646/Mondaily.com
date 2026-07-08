@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton } from "../../components/ui/page-state";
+import { MenuSelect } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -160,7 +161,7 @@ export function DecisionsPage() {
             <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
               <FilterSelect label="Agent" value={agentFilter} options={agents.map(a => ({ v: a, l: agentByRaw(a).name.replace(" Agent", "") }))} onChange={setAgentFilter} />
               <FilterSelect label="Type" value={typeFilter} options={types.map(t => ({ v: t, l: t.replace(/_/g, " ") }))} onChange={setTypeFilter} />
-              <FilterSelect label="Risk" value={riskFilter} options={[{ v: "high", l: "High" }, { v: "medium", l: "Medium" }, { v: "low", l: "Low" }]} onChange={(v) => setRiskFilter(v as Decision["risk_level"] | null)} />
+              <FilterSelect label="Risk" value={riskFilter} options={[{ v: "high", l: "High" }, { v: "medium", l: "Medium" }, { v: "low", l: "Low" }]} onChange={(v) => setRiskFilter(v as Decision["risk_level"] | null)} dot={(v) => RISK_DOT[v as Decision["risk_level"]]} />
               {(assignees.length > 0) && (
                 <FilterSelect label="Reviewer" value={assigneeFilter} onChange={setAssigneeFilter}
                   options={[{ v: "__none", l: "Unassigned" }, ...assignees.map(a => ({ v: a, l: memberLabel(memberList, a) ?? "Assigned" }))]} />
@@ -254,20 +255,20 @@ export function DecisionsPage() {
 
 /**
  * Compact filter group — a small labelled dropdown instead of a wall of chips. Every option stays
- * reachable (native select), but only ~28px of horizontal space is used per group. Active selections
- * are echoed as removable chips by ActiveFilterChip next to the bar.
+ * reachable. Uses the shared MenuSelect (custom .ui-menu popover) so the OPENED list matches the
+ * app in both modes — native <select> option lists can't be themed. Active selections are echoed
+ * as removable chips by ActiveFilterChip next to the bar.
  */
-function FilterSelect<T extends string>({ label, value, options, onChange }: { label: string; value: T | null; options: { v: T; l: string }[]; onChange: (v: T | null) => void }) {
+function FilterSelect<T extends string>({ label, value, options, onChange, dot }: { label: string; value: T | null; options: { v: T; l: string }[]; onChange: (v: T | null) => void; dot?: (v: T) => string }) {
   if (options.length <= 1) return null;
   return (
-    <label className="inline-flex items-center gap-1.5">
-      <span className="text-[10px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</span>
-      <select value={value ?? ""} onChange={(e) => onChange((e.target.value || null) as T | null)}
-        className="ui-select h-7 rounded-sm pr-7 pl-2 text-[11.5px] capitalize" style={{ maxWidth: 150 }}>
-        <option value="">All</option>
-        {options.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
-      </select>
-    </label>
+    <MenuSelect
+      label={label}
+      value={value ?? ""}
+      options={options.map(o => ({ value: o.v, label: o.l, dot: dot?.(o.v) }))}
+      onChange={(v) => onChange((v || null) as T | null)}
+      maxWidth={170}
+    />
   );
 }
 

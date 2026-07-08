@@ -7,6 +7,7 @@ import {
   CheckSquare, ShieldCheck, ArrowRight,
 } from "lucide-react";
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
+import { MenuSelect } from "../../components/ui/controls";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { useLanguage } from "../../hooks/useLanguage";
 import { requestAsk } from "../../lib/ask-bus";
@@ -233,7 +234,7 @@ export function DiscoveryPage() {
             <Radar size={16} style={{ color: "var(--section-accent)" }} />
           </span>
           <div>
-            <h1 className="text-[16px] font-semibold leading-none" style={{ color: "var(--text-primary)" }}>Discovery</h1>
+            <h1 className="text-[16px] font-semibold leading-none" style={{ color: "var(--text-primary)" }}>{t("discovery.heading")}</h1>
             <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px]" style={{ color: "var(--text-faint)" }}>
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: degraded ? "#97824f" : "#5f8169" }} />
@@ -297,53 +298,60 @@ export function DiscoveryPage() {
 
       {view === "saved" ? (
         <SavedLeads lists={listsQ.data ?? []} />
-      ) : (
-        <>
-          {/* conversation */}
-          <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto pb-4">
-            {turns.length === 0 ? (
-              <Empty onPick={onSubmit} />
-            ) : (
+      ) : (() => {
+        // One composer, two positions: WORKBENCH (no searches yet → input sits right under the
+        // header, suggestions tight beneath it) vs CONVERSATION (results above, input pinned below).
+        const composer = (
+          <div className="rounded-md border px-3 py-2.5 transition-colors focus-within:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSubmit(input); } }}
+              rows={1}
+              autoFocus={turns.length === 0}
+              placeholder={suggestions?.discovery_placeholder ?? "Find leads or reviews…"}
+              className="max-h-32 w-full resize-none bg-transparent text-[14px] outline-none"
+              style={{ color: "var(--text-primary)" }}
+            />
+            <div className="mt-2 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <button onClick={() => setDeep((d) => !d)} title="Deep mode visits each business's own site to harvest emails & phones"
+                  className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
+                  style={deep ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                  <Sparkles size={12} /> Deep
+                </button>
+                <button onClick={() => setExhaustive((e) => !e)} title="Exhaustive sweep loops the city's districts for full coverage (uses more Google Places credits)"
+                  className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
+                  style={exhaustive ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                  <Globe2 size={12} /> Exhaustive
+                </button>
+              </div>
+              <button onClick={() => onSubmit(input)} disabled={!input.trim() || busy}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-white transition-opacity disabled:opacity-40" style={{ background: "var(--section-accent)" }}>
+                {busy ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={16} />}
+              </button>
+            </div>
+          </div>
+        );
+
+        return turns.length === 0 ? (
+          /* WORKBENCH — search-first: composer at the top, compact suggestions right below. */
+          <div className="min-h-0 flex-1 overflow-y-auto pt-3">
+            {composer}
+            <Empty onPick={onSubmit} />
+          </div>
+        ) : (
+          <>
+            {/* conversation */}
+            <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto pb-4">
               <div className="space-y-6">
                 {turns.map((t) => <TurnView key={t.id} turn={t} lists={listsQ.data ?? []} onRun={onSubmit} />)}
               </div>
-            )}
-          </div>
-
-          {/* composer */}
-          <div className="border-t py-3" style={{ borderColor: "var(--border-soft)" }}>
-            <div className="rounded-md border px-3 py-2.5 transition-colors focus-within:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSubmit(input); } }}
-                rows={1}
-                placeholder={suggestions?.discovery_placeholder ?? "Find leads or reviews…"}
-                className="max-h-32 w-full resize-none bg-transparent text-[14px] outline-none"
-                style={{ color: "var(--text-primary)" }}
-              />
-              <div className="mt-2 flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <button onClick={() => setDeep((d) => !d)} title="Deep mode visits each business's own site to harvest emails & phones"
-                    className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
-                    style={deep ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-                    <Sparkles size={12} /> Deep
-                  </button>
-                  <button onClick={() => setExhaustive((e) => !e)} title="Exhaustive sweep loops the city's districts for full coverage (uses more Google Places credits)"
-                    className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
-                    style={exhaustive ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-                    <Globe2 size={12} /> Exhaustive
-                  </button>
-                </div>
-                <button onClick={() => onSubmit(input)} disabled={!input.trim() || busy}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-white transition-opacity disabled:opacity-40" style={{ background: "var(--section-accent)" }}>
-                  {busy ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={16} />}
-                </button>
-              </div>
             </div>
-          </div>
-        </>
-      )}
+            <div className="border-t py-3" style={{ borderColor: "var(--border-soft)" }}>{composer}</div>
+          </>
+        );
+      })()}
     </div>
   );
 }
@@ -363,31 +371,21 @@ function Empty({ onPick }: { onPick: (q: string) => void }) {
   // Industry-aware examples from the workspace profile; fall back to neutral generic ones while
   // loading or when the profile has no signal. Free-form search is always available regardless.
   const { data: suggestions } = useWorkspaceSuggestions();
-  const { t } = useLanguage();
   const examples = suggestions?.discovery?.length
     ? suggestions.discovery.map((q, i) => ({ icon: i % 2 === 0 ? Users : Star, label: q, q }))
     : FALLBACK_EXAMPLES;
   return (
-    // Compact workbench brief — not a hero. Sits high so the composer + examples are near the work area.
-    <div className="flex h-full flex-col items-center justify-center py-6 text-center">
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-sm" style={{ background: "var(--surface-hover)" }}>
-          <Radar size={16} style={{ color: "var(--section-accent)" }} />
-        </span>
-        <h2 className="text-[15px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("discovery.heading")}</h2>
-      </div>
-      <p className="mt-1.5 max-w-md text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-        {t("discovery.sub")}
-      </p>
-      <div className="mt-4 grid w-full max-w-lg grid-cols-1 gap-1.5 sm:grid-cols-2">
-        {examples.map((ex) => (
-          <button key={ex.q} onClick={() => onPick(ex.q)}
-            className="flex items-center gap-2.5 rounded-sm border px-3 py-2 text-left text-[12.5px] transition-colors hover:bg-[var(--surface-hover)]"
-            style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-            <ex.icon size={13} style={{ color: "var(--text-faint)" }} /> {ex.label}
-          </button>
-        ))}
-      </div>
+    // Compact suggestion chips directly under the composer — a workbench, not a hero. Industry-aware
+    // when the workspace profile has signal; small, left-aligned, no icon tile / heading / sub-line.
+    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+      <span className="text-[10.5px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Try</span>
+      {examples.map((ex) => (
+        <button key={ex.q} onClick={() => onPick(ex.q)}
+          className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[12px] transition-colors hover:bg-[var(--surface-hover)]"
+          style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          <ex.icon size={12} style={{ color: "var(--text-faint)" }} /> {ex.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -849,13 +847,9 @@ function BulkBar({ entries, query, lists, members, onApplied, onClear }: {
     <div className="sticky top-2 z-10 mb-2 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 shadow-sm" style={{ borderColor: "var(--section-accent)", background: "var(--surface-card)" }}>
       <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{entries.length} selected</span>
       <B id="save" onClick={() => save(false, !!ownerId)}><Plus size={11} /> Save</B>
-      <select value={listId} onChange={(e) => setListId(e.target.value)} className="key-input h-7 rounded-sm px-2 text-[11px]" style={{ maxWidth: 130 }}>
-        <option value="">List…</option>{lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-      </select>
+      <MenuSelect value={listId} onChange={setListId} allLabel="List…" maxWidth={130} options={lists.map((l) => ({ value: l.id, label: l.name }))} />
       <B id="save" onClick={() => save(true, !!ownerId)}>Add to list</B>
-      <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className="key-input h-7 rounded-sm px-2 text-[11px]" style={{ maxWidth: 140 }}>
-        <option value="">Owner…</option>{members.map((m) => <option key={m.user_id} value={m.user_id}>{m.name || m.email || m.user_id}</option>)}
-      </select>
+      <MenuSelect value={ownerId} onChange={setOwnerId} allLabel="Owner…" maxWidth={140} options={members.map((m) => ({ value: m.user_id, label: m.name || m.email || m.user_id }))} />
       <B id="save" onClick={() => save(false, true)}>Assign owner</B>
       <B id="task" onClick={() => bulk("task")}><CheckSquare size={11} /> Tasks</B>
       <B id="decision" onClick={() => bulk("decision")}><ShieldCheck size={11} /> To Decisions</B>
@@ -911,12 +905,10 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
           {(status?.saved || status?.existed) ? <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: status.existed ? "var(--text-muted)" : "#5f8169", background: status.existed ? "var(--surface-hover)" : "#5f816914" }}><Check size={11} /> {status.existed ? "In graph" : "Saved"}</span>
             : <button onClick={() => save.mutate()} disabled={save.isPending} className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>{save.isPending ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Save</button>}
           {lists.length > 0 && (
-            <select onChange={(e) => e.target.value && addList.mutate(e.target.value)} disabled={!status?.node_id} title={status?.node_id ? "" : "Save the lead first"} className="key-input h-7 rounded-sm px-2 text-[11px] disabled:opacity-50" style={{ maxWidth: 120 }} defaultValue=""><option value="">Add to list…</option>{lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
+            <MenuSelect value="" onChange={(v) => v && addList.mutate(v)} disabled={!status?.node_id} title={status?.node_id ? undefined : "Save the lead first"} allLabel="Add to list…" maxWidth={130} options={lists.map((l) => ({ value: l.id, label: l.name }))} />
           )}
           {members.length > 0 && (
-            <select value={status?.owner ?? ""} onChange={(e) => e.target.value && assign.mutate(e.target.value)} className="key-input h-7 rounded-sm px-2 text-[11px]" style={{ maxWidth: 130 }}>
-              <option value="">Assign owner…</option>{members.map((m) => <option key={m.user_id} value={m.user_id}>{m.name || m.email || m.user_id}</option>)}
-            </select>
+            <MenuSelect value={status?.owner ?? ""} onChange={(v) => v && assign.mutate(v)} allLabel="Assign owner…" maxWidth={140} options={members.map((m) => ({ value: m.user_id, label: m.name || m.email || m.user_id }))} />
           )}
           <button onClick={() => task.mutate()} disabled={task.isPending} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{task.isPending ? <Loader2 size={11} className="animate-spin" /> : <CheckSquare size={11} />} Task</button>
           <button onClick={() => decision.mutate()} disabled={decision.isPending} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{decision.isPending ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />} Decision</button>
