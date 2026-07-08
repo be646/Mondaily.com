@@ -252,13 +252,17 @@ describe("PHASE 2.2 — role-split support UI (admin queue vs my requests)", () 
     expect(src).toMatch(/isAdmin \? "\/support\/tickets" : "\/support\/my-tickets"/);
     expect(src).toMatch(/\["owner", "admin"\]\.includes\(role/);
   });
-  it("the status control is admin-only in the UI (members see a read-only badge)", () => {
-    expect(src).toMatch(/canManageStatus \? \(/);
-    expect(src).toMatch(/<StatusBadge status=\{d\.status\}/);   // member branch
+  it("NO workspace user (incl. workspace admins) can change ticket status from the UI — read-only badge for everyone", () => {
+    expect(src).not.toMatch(/canManageStatus/);                 // the admin status <select> is gone
+    expect(src).not.toMatch(/setStatus/);                       // no status mutation remains
+    expect(src).toMatch(/<StatusBadge status=\{d\.status\}/);   // everyone sees the read-only badge
   });
-  it("backend PATCH status stays admin/owner-gated (defence in depth)", () => {
+  it("backend PATCH status refuses ALL workspace callers — status belongs to Mondaily's support dashboard", () => {
     const back = readFileSync(fileURLToPath(new URL("../routes/support.ts", import.meta.url)), "utf8");
-    expect(back).toMatch(/router\.patch\("\/tickets\/:id", requireAdminRole/);
+    const fn = back.slice(back.indexOf('router.patch("/tickets/:id"'), back.indexOf('router.post("/tickets/:id/comments"'));
+    expect(fn).toMatch(/Ticket status is managed by Mondaily support/);
+    expect(fn).toMatch(/403/);
+    expect(fn).not.toMatch(/\.update\(/);                       // no write path remains in the handler
   });
 });
 

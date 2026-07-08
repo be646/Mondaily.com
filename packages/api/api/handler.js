@@ -66589,31 +66589,7 @@ router17.get("/tickets/:id", async (c2) => {
 router17.patch("/tickets/:id", requireAdminRole, zValidator("json", external_exports.object({
   status: external_exports.enum(SUPPORT_STATUSES)
 })), async (c2) => {
-  const ws = c2.get("workspaceId");
-  const userId = c2.get("userId");
-  const t3 = await getTicket(ws, c2.req.param("id"));
-  if (!t3) return c2.json({ error: "Ticket not found." }, 404);
-  const now = (/* @__PURE__ */ new Date()).toISOString();
-  const nextStatus = c2.req.valid("json").status;
-  const updated = {
-    ...t3.data,
-    status: nextStatus,
-    updated_at: now,
-    status_history: [...t3.data.status_history ?? [], { status: nextStatus, at: now, by: userId }]
-  };
-  const { error } = await supabase.from("nodes").update({ data: updated }).eq("workspace_id", ws).eq("id", t3.id).eq("object_type", "support_ticket");
-  if (error) return c2.json({ error: "Could not update the ticket." }, 500);
-  if (t3.created_by && t3.created_by !== userId) {
-    await createNotification({
-      workspace_id: ws,
-      user_id: t3.created_by,
-      type: "support",
-      title: `Support request ${nextStatus.replace(/_/g, " ")}: ${t3.data.subject}`,
-      body: `Your support request is now ${nextStatus.replace(/_/g, " ")}.`,
-      metadata: { support_ticket_id: t3.id, status: nextStatus }
-    }).catch(() => false);
-  }
-  return c2.json({ id: t3.id, status: nextStatus, last_updated: now });
+  return c2.json({ error: "Ticket status is managed by Mondaily support \u2014 it can't be changed from a workspace." }, 403);
 });
 router17.post("/tickets/:id/comments", zValidator("json", external_exports.object({
   body: external_exports.string().min(1).max(8e3)

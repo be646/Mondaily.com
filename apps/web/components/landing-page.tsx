@@ -227,6 +227,7 @@ function AiReportDemo() {
         <div className="flex items-center gap-2">
           <span className="text-[12.5px] font-semibold text-zinc-800">Reports</span>
           <span className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold text-white" style={{ background: "#6f8068" }}>AI</span>
+          <span className="rounded-sm border border-black/[.08] px-1.5 py-px text-[10px] text-zinc-400">Simulated preview</span>
         </div>
         <span className="text-[10.5px] text-zinc-400">Q3 · pipeline health</span>
       </div>
@@ -1670,6 +1671,7 @@ function RecordsSheetDemo() {
       <div className="flex items-center justify-between gap-3 border-b border-zinc-100 px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="text-[13px] font-semibold text-zinc-800">People</span>
+          <span className="rounded-sm border border-black/[.08] px-1.5 py-px text-[10px] text-zinc-400">Simulated preview</span>
           <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-500">{rows.length + (pending ? 1 : 0)} records</span>
         </div>
         <button onClick={enrich} disabled={!pending || enriching} className="rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white transition-opacity disabled:opacity-50" style={{ background: "#0f172a" }}>
@@ -1767,7 +1769,7 @@ function InvoiceDemo() {
           <div><div className="text-[10px] uppercase tracking-wide text-zinc-400">Outstanding</div><div className="text-[16px] font-semibold text-zinc-900">£6,050.00</div></div>
           <div><div className="text-[10px] uppercase tracking-wide text-zinc-400">Paid</div><div className="text-[16px] font-semibold text-emerald-600">£21,700.00</div></div>
         </div>
-        <span className="rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white" style={{ background: "#0f172a" }}>+ New invoice</span>
+        <span className="flex items-center gap-2"><span className="rounded-sm border border-black/[.08] px-1.5 py-px text-[10px] text-zinc-400">Simulated preview</span><span className="rounded-lg px-3 py-1.5 text-[11px] font-semibold text-white" style={{ background: "#0f172a" }}>+ New invoice</span></span>
       </div>
       <div className="flex items-center gap-1 border-b border-zinc-100 px-4 py-2">
         {([["all", "All"], ["draft", "Draft"], ["sent", "Sent"], ["paid", "Paid"], ["overdue", "Overdue"]] as const).map(([k, l]) => (

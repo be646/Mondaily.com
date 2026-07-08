@@ -77,7 +77,7 @@ export function ReportsPage() {
       {/* AI-engine signature header — the section's unique "well-tech" treatment */}
       <div className="mb-7 overflow-hidden rounded-sm border" style={{ borderColor: "var(--section-accent-line)" }}>
         <div className="flex items-center justify-between gap-3 px-4 py-3.5"
-          style={{ background: "linear-gradient(180deg, var(--section-accent-soft), transparent)" }}>
+          style={{ background: "color-mix(in srgb, var(--section-accent) 5%, transparent)" }}>
           <div className="flex items-center gap-3 min-w-0">
             <div className="grid h-9 w-9 shrink-0 place-items-center rounded-sm border"
               style={{ borderColor: "var(--section-accent-line)", color: "var(--section-accent)", background: "var(--surface-card)" }}>
@@ -90,7 +90,7 @@ export function ReportsPage() {
           </div>
           <div className="hidden shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-wider sm:flex"
             style={{ color: "var(--text-muted)" }}>
-            <span className="soul-dot"/> live · computed from records
+            <span className="soul-dot"/> computed from records
           </div>
         </div>
         <div className="soul-rule"/>
@@ -185,7 +185,7 @@ export function ReportsPage() {
                         {/* Widget type badges */}
                         <div className="mb-2 flex gap-1.5">
                           {liveCount > 0 && (
-                            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                            <span className="rounded-sm border border-[#5f8169]/25 bg-[#5f8169]/10 px-2 py-0.5 text-[10px] font-medium text-[#5f8169]">
                               {liveCount} live
                             </span>
                           )}

@@ -192,12 +192,12 @@ function SentTracker() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   {/* Open indicator */}
-                  <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium border ${opened ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" : "border-transparent"}`} style={!opened ? { background: "var(--surface-hover)", color: "var(--text-faint)" } : undefined}>
+                  <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium border ${opened ? "bg-[#5f8169]/10 text-[#5f8169] border-emerald-500/20" : "border-transparent"}`} style={!opened ? { background: "var(--surface-hover)", color: "var(--text-faint)" } : undefined}>
                     <Eye size={11}/>
                     <span>{email.open_count > 0 ? `Opened ${email.open_count}×` : "Not opened"}</span>
                   </div>
                   {/* Click indicator */}
-                  <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium border ${clicked ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" : "border-transparent"}`} style={!clicked ? { background: "var(--surface-hover)", color: "var(--text-faint)" } : undefined}>
+                  <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium border ${clicked ? "bg-[#717784]/10 text-[#717784] border-blue-500/20" : "border-transparent"}`} style={!clicked ? { background: "var(--surface-hover)", color: "var(--text-faint)" } : undefined}>
                     <MousePointerClick size={11}/>
                     <span>{email.click_count > 0 ? `${email.click_count} click${email.click_count !== 1 ? "s" : ""}` : "No clicks"}</span>
                   </div>
@@ -309,7 +309,7 @@ export function EmailsPage() {
                   <p className="mt-1 truncate text-xs" style={{ color: "var(--text-faint)" }}>{thread.snippet}</p>
                   {thread.linked_records?.[0] ? <span className="mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}><Link2 size={9} /> {thread.linked_records[0].name}</span> : null}
                 </div>
-                {thread.unread ? <span className="absolute right-3 top-10 h-2 w-2 rounded-full bg-blue-500" /> : null}
+                {thread.unread ? <span className="absolute right-3 top-10 h-2 w-2 rounded-full bg-[#717784]" /> : null}
               </button>;
             })}
           </div>

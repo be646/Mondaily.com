@@ -40,8 +40,8 @@ interface ProspectingRunResult {
 }
 
 const CONFIDENCE_STYLE: Record<ProspectCandidate["confidence_label"], string> = {
-  high: "text-emerald-400 border-emerald-400/30 bg-emerald-400/10",
-  medium: "text-amber-400 border-amber-400/30 bg-amber-400/10",
+  high: "text-[#5f8169] border-emerald-400/30 bg-emerald-400/10",
+  medium: "text-[#97824f] border-[#97824f]/30 bg-amber-400/10",
   low: "text-stone-400 border-[var(--border-soft)] bg-[var(--surface-hover)]",
 };
 
@@ -182,8 +182,8 @@ export function ProspectingModal({
         ) : (
           <div className="space-y-3.5">
             <div className="flex flex-wrap gap-1.5 text-[11px]">
-              {result.created > 0 && <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-emerald-400">{result.created} created</span>}
-              {result.queued_for_review > 0 && <span className="rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-amber-400">{result.queued_for_review} awaiting approval</span>}
+              {result.created > 0 && <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[#5f8169]">{result.created} created</span>}
+              {result.queued_for_review > 0 && <span className="rounded-full border border-[#97824f]/30 bg-amber-400/10 px-2 py-0.5 text-[#97824f]">{result.queued_for_review} awaiting approval</span>}
               {result.existing > 0 && <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-0.5 text-stone-400">{result.existing} already in graph</span>}
               {result.added_to_list > 0 && <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-2 py-0.5 text-stone-400">{result.added_to_list} added to list</span>}
             </div>
@@ -203,7 +203,7 @@ export function ProspectingModal({
                           className="mt-0.5 accent-stone-500"
                         />
                       ) : (
-                        <CheckCircle2 size={14} className={`mt-0.5 shrink-0 ${c.status === "created" ? "text-emerald-400" : "text-stone-500"}`} />
+                        <CheckCircle2 size={14} className={`mt-0.5 shrink-0 ${c.status === "created" ? "text-[#5f8169]" : "text-stone-500"}`} />
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">

@@ -55,12 +55,12 @@ export function SupportSettings() {
         </button>
       </div>
       {tickets.length === 0 ? (
-        <div className="mt-6 flex flex-col items-center gap-2 rounded-xl border py-12 text-center" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="mt-6 flex flex-col items-center gap-2 rounded-sm border py-12 text-center" style={{ borderColor: "var(--border-soft)" }}>
           <LifeBuoy size={22} style={{ color: "var(--text-faint)" }} />
           <p className="text-sm text-[var(--text-muted)]">{t("support.empty")}</p>
         </div>
       ) : (
-        <div className="mt-5 overflow-hidden rounded-xl border" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="mt-5 overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
           <table className="w-full text-left text-[13px]">
             <thead>
               <tr className="border-b text-[11px] uppercase tracking-wide text-[var(--text-muted)]" style={{ borderColor: "var(--border-soft)" }}>
@@ -87,7 +87,7 @@ export function SupportSettings() {
           </table>
         </div>
       )}
-      {openId && <TicketPanel id={openId} canManageStatus={isAdmin} onClose={() => setOpenId(null)} onChanged={() => qc.invalidateQueries({ queryKey: isAdmin ? ["support-tickets"] : ["my-support-tickets"] })} statusLabel={statusLabel} />}
+      {openId && <TicketPanel id={openId} onClose={() => setOpenId(null)} onChanged={() => qc.invalidateQueries({ queryKey: isAdmin ? ["support-tickets"] : ["my-support-tickets"] })} statusLabel={statusLabel} />}
     </div>
   );
 }
@@ -100,16 +100,12 @@ function StatusBadge({ status, label }: { status: string; label: string }) {
   return <span className="rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ background: `color-mix(in srgb, ${c} 14%, transparent)`, color: c }}>{label}</span>;
 }
 
-function TicketPanel({ id, canManageStatus, onClose, onChanged, statusLabel }: { id: string; canManageStatus: boolean; onClose: () => void; onChanged: () => void; statusLabel: (s: string) => string }) {
+function TicketPanel({ id, onClose, onChanged, statusLabel }: { id: string; onClose: () => void; onChanged: () => void; statusLabel: (s: string) => string }) {
   const { t } = useLanguage();
   const qc = useQueryClient();
   const [reply, setReply] = useState("");
   const detail = useQuery<TicketDetail>({ queryKey: ["support-ticket", id], queryFn: () => apiClient.get(`/support/tickets/${id}`) });
 
-  const setStatus = useMutation({
-    mutationFn: (status: Status) => apiClient.patch(`/support/tickets/${id}`, { status }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["support-ticket", id] }); onChanged(); },
-  });
   const addComment = useMutation({
     mutationFn: (body: string) => apiClient.post(`/support/tickets/${id}/comments`, { body }),
     onSuccess: () => { setReply(""); qc.invalidateQueries({ queryKey: ["support-ticket", id] }); onChanged(); },
@@ -119,7 +115,7 @@ function TicketPanel({ id, canManageStatus, onClose, onChanged, statusLabel }: {
   return (
     <>
       <div className="fixed inset-0 z-[200] bg-black/30 backdrop-blur-[1px]" onClick={onClose} />
-      <aside className="fixed right-0 top-0 z-[201] flex h-full w-full max-w-lg flex-col border-l shadow-2xl" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
+      <aside className="fixed right-0 top-0 z-[201] flex h-full w-full max-w-lg flex-col border-l shadow-lg" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
         <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
           <span className="truncate text-[14px] font-semibold text-[var(--text-primary)]">{d?.subject ?? "…"}</span>
           <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>
@@ -127,21 +123,16 @@ function TicketPanel({ id, canManageStatus, onClose, onChanged, statusLabel }: {
         {!d ? <div className="p-5"><PageSkeleton rows={4} /></div> : (
           <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
             <div className="flex items-center gap-2">
-              {/* Status control ONLY for admins/owners; members see a read-only status badge. */}
-              {canManageStatus ? (
-                <select value={d.status} onChange={e => setStatus.mutate(e.target.value as Status)} disabled={setStatus.isPending}
-                  className="rounded-lg border bg-transparent px-2.5 py-1.5 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
-                  {STATUSES.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
-                </select>
-              ) : (
-                <StatusBadge status={d.status} label={statusLabel(d.status)} />
-              )}
+              {/* Status is READ-ONLY for every workspace user (incl. workspace admins) — tickets are
+                  handled BY Mondaily support, so status/review/close controls live only in Mondaily's
+                  own support dashboard, never in a customer workspace. */}
+              <StatusBadge status={d.status} label={statusLabel(d.status)} />
               <span className="text-[11px] text-[var(--text-faint)]">{CATEGORY_LABEL[d.category] ?? d.category}</span>
             </div>
-            <div className="rounded-lg border p-3 text-[13px] whitespace-pre-wrap" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>{d.message}</div>
+            <div className="rounded-sm border p-3 text-[13px] whitespace-pre-wrap" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>{d.message}</div>
             <div className="space-y-2">
               {(d.comments ?? []).map((cm, i) => (
-                <div key={i} className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] ${cm.author_role === "admin" ? "ml-auto rounded-br-sm" : "rounded-bl-sm"}`}
+                <div key={i} className={`max-w-[85%] rounded-md px-3.5 py-2.5 text-[13px] ${cm.author_role === "admin" ? "ml-auto rounded-br-sm" : "rounded-bl-sm"}`}
                   style={{ background: cm.author_role === "admin" ? "var(--surface-selected)" : "var(--surface-card)", border: "1px solid var(--border-soft)", color: "var(--text-primary)" }}>
                   <p className="whitespace-pre-wrap">{cm.body}</p>
                   <p className="mt-1 text-[10px] text-[var(--text-faint)]">{cm.author_role} · {new Date(cm.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>

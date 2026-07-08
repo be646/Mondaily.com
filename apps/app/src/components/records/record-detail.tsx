@@ -34,40 +34,42 @@ interface RelatedNode { id: string; object_type: string; data: Record<string, un
 
 // ─── Industry taxonomy ────────────────────────────────────────────────────────
 export const INDUSTRY_TAXONOMY: { name: string; bg: string; text: string; border: string }[] = [
-  { name: "B2B",                    bg: "#1e3a5f", text: "#93c5fd", border: "#3b82f6" },
-  { name: "B2C",                    bg: "#4a1942", text: "#f0abfc", border: "#d946ef" },
-  { name: "SaaS",                   bg: "#2d1b69", text: "#c4b5fd", border: "var(--accent)" },
-  { name: "Web Services & Apps",    bg: "#0c3341", text: "var(--accent)", border: "var(--accent)" },
-  { name: "Consulting",             bg: "#3d2700", text: "#fcd34d", border: "#f59e0b" },
-  { name: "FinTech",                bg: "#052e16", text: "#6ee7b7", border: "#10b981" },
-  { name: "HealthTech",             bg: "#042f2e", text: "#5eead4", border: "#14b8a6" },
-  { name: "EdTech",                 bg: "#1e1b4b", text: "#a5b4fc", border: "var(--accent)" },
-  { name: "E-commerce",             bg: "#3b1206", text: "#fda4af", border: "#f43f5e" },
-  { name: "AI / ML",               bg: "#1a0a2e", text: "#e879f9", border: "#a855f7" },
-  { name: "Cybersecurity",          bg: "#2d0a0a", text: "#fca5a5", border: "#ef4444" },
-  { name: "Marketplace",            bg: "#0c1a3d", text: "#93c5fd", border: "#2563eb" },
-  { name: "Manufacturing",          bg: "#1c1917", text: "#d6d3d1", border: "#78716c" },
-  { name: "Real Estate",            bg: "#1c1100", text: "#fde68a", border: "#d97706" },
-  { name: "Logistics & Supply",     bg: "#0d2d0d", text: "#86efac", border: "#22c55e" },
-  { name: "Media & Entertainment",  bg: "#3b0764", text: "#e9d5ff", border: "#9333ea" },
-  { name: "Legal",                  bg: "#1c1c1c", text: "#e5e7eb", border: "#6b7280" },
-  { name: "Energy",                 bg: "#1a2e05", text: "#bef264", border: "#84cc16" },
-  { name: "Agency",                 bg: "#271100", text: "#fdba74", border: "#ea580c" },
-  { name: "Nonprofit",              bg: "#052e16", text: "#a7f3d0", border: "#059669" },
+  // Matte palette: distinct desaturated hue per industry; bg = 12% tint of the border so chips
+  // render correctly in light AND dark mode (the old hardcoded dark backgrounds broke light mode).
+  { name: "B2B",                    bg: "#6b7d9420", text: "#6b7d94", border: "#6b7d94" },
+  { name: "B2C",                    bg: "#93739c20", text: "#93739c", border: "#93739c" },
+  { name: "SaaS",                   bg: "#84739c20", text: "#84739c", border: "#84739c" },
+  { name: "Web Services & Apps",    bg: "#5f848120", text: "var(--accent)", border: "var(--accent)" },
+  { name: "Consulting",             bg: "#97824f20", text: "#97824f", border: "#97824f" },
+  { name: "FinTech",                bg: "#5f816920", text: "#5f8169", border: "#5f8169" },
+  { name: "HealthTech",             bg: "#5f848120", text: "#5f8481", border: "#5f8481" },
+  { name: "EdTech",                 bg: "#6b7d9420", text: "#6b7d94", border: "#6b7d94" },
+  { name: "E-commerce",             bg: "#9c6b7220", text: "#9c6b72", border: "#9c6b72" },
+  { name: "AI / ML",               bg: "#84739c20", text: "#84739c", border: "#84739c" },
+  { name: "Cybersecurity",          bg: "#9c6b7220", text: "#9c6b72", border: "#9c6b72" },
+  { name: "Marketplace",            bg: "#6b7d9420", text: "#6b7d94", border: "#6b7d94" },
+  { name: "Manufacturing",          bg: "#78716c20", text: "#8a8580", border: "#78716c" },
+  { name: "Real Estate",            bg: "#9a735520", text: "#9a7355", border: "#9a7355" },
+  { name: "Logistics & Supply",     bg: "#5f816920", text: "#5f8169", border: "#5f8169" },
+  { name: "Media & Entertainment",  bg: "#93739c20", text: "#93739c", border: "#93739c" },
+  { name: "Legal",                  bg: "#6b728020", text: "#8a8f99", border: "#6b7280" },
+  { name: "Energy",                 bg: "#7d8a5520", text: "#7d8a55", border: "#7d8a55" },
+  { name: "Agency",                 bg: "#9a735520", text: "#9a7355", border: "#9a7355" },
+  { name: "Nonprofit",              bg: "#5f816920", text: "#5f8169", border: "#5f8169" },
 ];
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
-  "from-red-500/30 to-red-600/10 text-stone-300 border-stone-500/20",
-  "from-blue-500/30 to-blue-600/10 text-blue-300 border-blue-500/20",
-  "from-emerald-500/30 to-emerald-600/10 text-emerald-300 border-emerald-500/20",
+  "from-stone-500/20 to-stone-500/10 text-stone-400 border-stone-500/20",
+  "from-[#717784]/20 to-[#717784]/10 text-[#717784] border-[#717784]/25",
+  "from-[#5f8169]/20 to-[#5f8169]/10 text-[#5f8169] border-[#5f8169]/25",
   "from-stone-500/30 to-stone-600/10 text-stone-300 border-stone-500/20",
-  "from-amber-500/30 to-amber-600/10 text-amber-300 border-amber-500/20",
+  "from-[#97824f]/20 to-[#97824f]/10 text-[#97824f] border-[#97824f]/25",
 ];
 const PIPE_STAGES = ["Lead","Qualified","In Progress","Proposal","Negotiation"] as const;
 const STAGE_DOT: Record<string, string> = {
-  "Lead": "bg-stone-400", "Qualified": "bg-blue-400", "In Progress": "bg-stone-400",
-  "Proposal": "bg-amber-400", "Negotiation": "bg-orange-400",
+  "Lead": "bg-stone-400", "Qualified": "bg-[#717784]", "In Progress": "bg-stone-400",
+  "Proposal": "bg-[#97824f]", "Negotiation": "bg-[#97824f]",
 };
 function getTabsForType(type: string): string[] {
   const t = type.toLowerCase();
@@ -300,7 +302,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
                   >
                     {t.name}
                   </span>
-                  {isOn && <Check size={11} className="text-emerald-400 shrink-0"/>}
+                  {isOn && <Check size={11} className="text-[#5f8169] shrink-0"/>}
                 </button>
               );
             })}
@@ -365,7 +367,7 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
             {fmt(value)}
           </button>
         )}
-        {saved && <Check size={10} className="text-emerald-400 shrink-0"/>}
+        {saved && <Check size={10} className="text-[#5f8169] shrink-0"/>}
       </div>
     </div>
   );
@@ -374,8 +376,8 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
 // ─── Highlight card (fully editable) ─────────────────────────────────────────
 type Accent = "slate"|"red"|"blue"|"emerald"|"amber"|"purple";
 const ACCENT_MAP: Record<Accent, string> = {
-  slate: "text-stone-400", red: "text-stone-400", blue: "text-blue-400",
-  emerald: "text-emerald-400", amber: "text-amber-400", purple: "text-stone-400",
+  slate: "text-stone-400", red: "text-stone-400", blue: "text-[#717784]",
+  emerald: "text-[#5f8169]", amber: "text-[#97824f]", purple: "text-stone-400",
 };
 
 function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, numeric }: {
@@ -399,7 +401,7 @@ function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, num
           <Icon size={12} className={ACCENT_MAP[accent]}/>
           <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-600">{label}</span>
         </div>
-        {saved && <Check size={10} className="text-emerald-400"/>}
+        {saved && <Check size={10} className="text-[#5f8169]"/>}
       </div>
       {editing ? (
         <input
@@ -435,7 +437,7 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
           <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-600">Deal Pipeline</span>
         </div>
         <div className="flex gap-1.5">
-          <button onClick={() => onSave("Closed Won")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isWon ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" : "text-stone-600 border-[var(--border-soft)] hover:text-emerald-300 hover:border-emerald-500/20"}`}>Won</button>
+          <button onClick={() => onSave("Closed Won")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isWon ? "bg-[#5f8169]/15 text-[#5f8169] border-[#5f8169]/30" : "text-stone-600 border-[var(--border-soft)] hover:text-[#5f8169] hover:border-[#5f8169]/25"}`}>Won</button>
           <button onClick={() => onSave("Closed Lost")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isLost ? "bg-stone-500/20 text-stone-300 border-stone-500/30" : "text-stone-600 border-[var(--border-soft)] hover:text-stone-300 hover:border-stone-500/20"}`}>Lost</button>
         </div>
       </div>
@@ -460,7 +462,7 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
         })}
       </div>
       {(isWon || isLost) && (
-        <div className={`mt-4 rounded-md px-3 py-2 text-xs font-semibold text-center ${isWon ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-stone-500/10 text-stone-400 border border-stone-500/20"}`}>
+        <div className={`mt-4 rounded-md px-3 py-2 text-xs font-semibold text-center ${isWon ? "bg-[#5f8169]/10 text-[#5f8169] border border-[#5f8169]/25" : "bg-stone-500/10 text-stone-400 border border-stone-500/20"}`}>
           {isWon ? "✓ Deal Won" : "✗ Deal Lost"}
         </div>
       )}
@@ -595,7 +597,7 @@ function MemberPickerField({ label, currentName, members, onSelect }: {
 
 // ─── Activity feed ────────────────────────────────────────────────────────────
 function ActivityDot({ type }: { type: "create"|"update"|"system" }) {
-  const cls = type === "create" ? "bg-emerald-500" : type === "update" ? "bg-amber-500" : "bg-stone-600";
+  const cls = type === "create" ? "bg-[#5f8169]" : type === "update" ? "bg-[#97824f]" : "bg-stone-600";
   return <div className={`h-2 w-2 rounded-full shrink-0 mt-1.5 ${cls} ring-2 ring-[var(--surface-card)]`}/>;
 }
 
@@ -883,7 +885,7 @@ function InlineTasksPanel({ recordId, vertical }: { recordId: string; vertical: 
               <div key={task.id} className="flex items-center gap-2.5 rounded-md px-2 py-2 hover:bg-[var(--surface-hover)] transition-colors">
                 <button onClick={() => toggleTask.mutate({ id: task.id, data: { ...task.data, done: !isDone } })} className="shrink-0">
                   {isDone
-                    ? <CheckSquare size={13} className="text-emerald-400"/>
+                    ? <CheckSquare size={13} className="text-[#5f8169]"/>
                     : <Square size={13} className="text-stone-600 hover:text-stone-400 transition-colors"/>}
                 </button>
                 <span className={`flex-1 text-xs ${isDone ? "line-through text-stone-600" : "text-stone-300"}`}>{String(task.data.title || "Untitled")}</span>
@@ -1095,7 +1097,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
             return (
               <div key={task.id} className="group flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-[var(--surface-hover)] transition-colors">
                 <button onClick={() => updateTask.mutate({ id: task.id, data: { ...task.data, done: !isDone } })} className="shrink-0">
-                  {isDone ? <CheckSquare size={15} className="text-emerald-400"/> : <Square size={15} className="text-stone-600 hover:text-stone-400 transition-colors"/>}
+                  {isDone ? <CheckSquare size={15} className="text-[#5f8169]"/> : <Square size={15} className="text-stone-600 hover:text-stone-400 transition-colors"/>}
                 </button>
                 {isEditing ? (
                   <input
@@ -1164,10 +1166,10 @@ function DescriptionField({ value, onSave }: { value: string; onSave: (v: string
 
 // ─── Contact log tab (H) ─────────────────────────────────────────────────────
 const CONTACT_LOG_TYPES = [
-  { value: "call",    label: "Call",    icon: PhoneCall,     color: "text-emerald-400", bg: "bg-emerald-400/10" },
-  { value: "email",   label: "Email",   icon: Mail,          color: "text-blue-400",    bg: "bg-blue-400/10" },
+  { value: "call",    label: "Call",    icon: PhoneCall,     color: "text-[#5f8169]", bg: "bg-[#5f8169]/10" },
+  { value: "email",   label: "Email",   icon: Mail,          color: "text-[#717784]",    bg: "bg-[#717784]/10" },
   { value: "meeting", label: "Meeting", icon: Video,         color: "text-stone-400",  bg: "bg-stone-400/10" },
-  { value: "message", label: "Message", icon: MessageSquare, color: "text-amber-400",   bg: "bg-amber-400/10" },
+  { value: "message", label: "Message", icon: MessageSquare, color: "text-[#97824f]",   bg: "bg-[#97824f]/10" },
 ] as const;
 
 const CONTACT_OUTCOMES = ["Positive", "Neutral", "No answer", "Follow-up needed", "Closed"];
@@ -1313,17 +1315,17 @@ interface CreditNoteRecord { id: string; amount_cents: number; currency: string;
 
 const INVOICE_STATUS_COLORS: Record<string, string> = {
   draft:     "text-stone-400 bg-stone-400/10",
-  sent:      "text-blue-400 bg-blue-400/10",
+  sent:      "text-[#717784] bg-[#717784]/10",
   viewed:    "text-stone-400 bg-stone-400/10",
-  paid:      "text-emerald-400 bg-emerald-400/10",
+  paid:      "text-[#5f8169] bg-[#5f8169]/10",
   overdue:   "text-stone-400 bg-stone-400/10",
   cancelled: "text-stone-600 bg-stone-600/10",
 };
 const CN_STATUS_COLORS: Record<string, string> = {
   draft:            "text-stone-400 bg-stone-400/10",
-  pending_review:   "text-amber-400 bg-amber-400/10",
-  manager_approved: "text-blue-400 bg-blue-400/10",
-  executed:         "text-emerald-400 bg-emerald-400/10",
+  pending_review:   "text-[#97824f] bg-[#97824f]/10",
+  manager_approved: "text-[#717784] bg-[#717784]/10",
+  executed:         "text-[#5f8169] bg-[#5f8169]/10",
   void:             "text-stone-600 bg-stone-600/10",
 };
 
@@ -1379,7 +1381,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
         {[
           { label: "Total Billed", value: fmtCcy(totalBilled, defaultCurrency), accent: "text-[var(--text-primary)]" },
           { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-stone-400" },
-          { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-stone-400" : "text-emerald-400" },
+          { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-stone-400" : "text-[#5f8169]" },
         ].map(card => (
           <div key={card.label} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-1.5">{card.label}</p>
@@ -1468,7 +1470,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
                 {invoices.map(inv => (
                   <tr key={inv.id} className="border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors">
                     <td className="px-4 py-2.5">
-                      <Link to={`/finance/invoices/${inv.id}`} className="text-[12px] text-blue-400 hover:text-blue-300 transition-colors">{inv.number}</Link>
+                      <Link to={`/finance/invoices/${inv.id}`} className="text-[12px] text-[#717784] hover:text-[var(--text-primary)] transition-colors">{inv.number}</Link>
                     </td>
                     <td className="px-4 py-2.5 text-[12px] text-[var(--text-primary)]">{fmtCcy(inv.total, inv.currency)}</td>
                     <td className="px-4 py-2.5">
@@ -1780,7 +1782,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
       </div>
 
       {autoMsg && (
-        <div className="flex items-center gap-2 border-b border-emerald-500/20 bg-emerald-500/[.06] px-6 py-2 text-xs text-emerald-400 shrink-0">
+        <div className="flex items-center gap-2 border-b border-[#5f8169]/25 bg-[#5f8169]/[.06] px-6 py-2 text-xs text-[#5f8169] shrink-0">
           <LogoMark size={12} className="shrink-0"/>{autoMsg}
         </div>
       )}
@@ -1805,7 +1807,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 </p>
                 {lastContactLabel && (
                   <p className="text-[10px] text-stone-600 mt-1 flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block"/>
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#5f8169] inline-block"/>
                     {lastContactLabel}
                   </p>
                 )}
@@ -1860,10 +1862,10 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                         return (
                           <button key={list.id}
                             onClick={() => { if (!added) addToList.mutate(list.id); }}
-                            className={`dropdown-item w-full flex items-center gap-2 ${added ? "text-emerald-400 cursor-default" : ""}`}>
+                            className={`dropdown-item w-full flex items-center gap-2 ${added ? "text-[#5f8169] cursor-default" : ""}`}>
                             <List size={11} className="shrink-0 opacity-50"/>
                             <span className="flex-1 text-left">{list.name}</span>
-                            {added && <Check size={11} className="text-emerald-400 shrink-0"/>}
+                            {added && <Check size={11} className="text-[#5f8169] shrink-0"/>}
                           </button>
                         );
                       })}

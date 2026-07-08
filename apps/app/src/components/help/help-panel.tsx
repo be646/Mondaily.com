@@ -203,7 +203,7 @@ function HelpPanel({ prefill }: { prefill: string }) {
   return (
     <>
       <div className="fixed inset-0 z-[200] bg-black/30 backdrop-blur-[1px]" onClick={close} />
-      <aside className="fixed right-0 top-0 z-[201] flex h-full w-full max-w-md flex-col border-l shadow-2xl" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }} dir="auto">
+      <aside className="fixed right-0 top-0 z-[201] flex h-full w-full max-w-md flex-col border-l shadow-lg" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }} dir="auto">
         {/* Persistent case header */}
         <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
           <div className="flex min-w-0 items-center gap-2">
@@ -247,7 +247,7 @@ function HelpPanel({ prefill }: { prefill: string }) {
           )}
           {session.messages.map((m, i) => (
             <div key={i} className={m.role === "user" ? "flex justify-end" : "flex flex-col items-start"}>
-              <div className={`max-w-[90%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${m.role === "user" ? "self-end rounded-br-sm" : "rounded-bl-sm"} ${m.system ? "italic" : ""}`}
+              <div className={`max-w-[90%] rounded-md px-3.5 py-2.5 text-[13px] leading-relaxed ${m.role === "user" ? "self-end rounded-br-sm" : "rounded-bl-sm"} ${m.system ? "italic" : ""}`}
                 style={{ background: m.role === "user" ? "var(--surface-selected)" : "var(--surface-card)", color: m.system ? "var(--text-muted)" : "var(--text-primary)", border: "1px solid var(--border-soft)" }}>
                 <p className="whitespace-pre-wrap">{m.content}</p>
                 {m.role === "assistant" && (m.diagnostics?.length ?? 0) > 0 && (
@@ -278,7 +278,7 @@ function HelpPanel({ prefill }: { prefill: string }) {
 
           {/* Resolution controls — after Help has responded, ask if it's solved */}
           {showResolution && (
-            <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               <p className="mb-2 text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>Did this solve the issue?</p>
               <div className="flex flex-wrap gap-1.5">
                 <button onClick={() => update(s => ({ ...s, state: "resolved" }))} className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-white" style={{ background: "#5fae8b" }}>Fixed</button>
@@ -290,7 +290,7 @@ function HelpPanel({ prefill }: { prefill: string }) {
 
           {/* Rating step after "Fixed" */}
           {showRating && (
-            <div className="rounded-xl border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               <p className="mb-2 text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>How helpful was this? (1–5)</p>
               <div className="mb-2 flex gap-1">
                 {[1, 2, 3, 4, 5].map(n => (

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import { useCurrentUser } from "./hooks/useCurrentUser";
 import { WorkspaceDiagnostic } from "./components/workspace-diagnostic";
@@ -22,20 +23,20 @@ import { TasksPage } from "./routes/dashboard/tasks";
 import { NotesPage } from "./routes/dashboard/notes";
 import { EmailsPage } from "./routes/dashboard/emails";
 import { CallsPage } from "./routes/dashboard/calls";
-import { CalendarPage } from "./routes/dashboard/calendar";
-import { CallRoomDispatch } from "./routes/dashboard/call-room";
-import { ReportsPage } from "./routes/dashboard/reports";
-import { DashboardViewPage } from "./routes/dashboard/reports/dashboard-view";
-import { ReportBuilderPage } from "./routes/dashboard/reports/report-builder";
-import { SalesReportPage } from "./routes/dashboard/reports/sales-report";
+const CalendarPage = lazy(() => import("./routes/dashboard/calendar").then(m => ({ default: m.CalendarPage })));
+const CallRoomDispatch = lazy(() => import("./routes/dashboard/call-room").then(m => ({ default: m.CallRoomDispatch })));
+const ReportsPage = lazy(() => import("./routes/dashboard/reports").then(m => ({ default: m.ReportsPage })));
+const DashboardViewPage = lazy(() => import("./routes/dashboard/reports/dashboard-view").then(m => ({ default: m.DashboardViewPage })));
+const ReportBuilderPage = lazy(() => import("./routes/dashboard/reports/report-builder").then(m => ({ default: m.ReportBuilderPage })));
+const SalesReportPage = lazy(() => import("./routes/dashboard/reports/sales-report").then(m => ({ default: m.SalesReportPage })));
 import { AutomationsPage } from "./routes/dashboard/automations";
-import { WorkflowBuilderPage } from "./routes/dashboard/automations/workflow-builder";
-import { SequenceBuilderPage } from "./routes/dashboard/automations/sequence-builder";
+const WorkflowBuilderPage = lazy(() => import("./routes/dashboard/automations/workflow-builder").then(m => ({ default: m.WorkflowBuilderPage })));
+const SequenceBuilderPage = lazy(() => import("./routes/dashboard/automations/sequence-builder").then(m => ({ default: m.SequenceBuilderPage })));
 import { AskPage } from "./routes/dashboard/ask/[threadId]";
-import CanvasPage from "./routes/dashboard/canvas";
+const CanvasPage = lazy(() => import("./routes/dashboard/canvas"));
 import { ObjectIndexPage } from "./routes/dashboard/objects/[objectType]/index";
 import { PipelinePage } from "./routes/dashboard/pipeline";
-import { RecordDetailPage } from "./routes/dashboard/objects/[objectType]/[recordId]";
+const RecordDetailPage = lazy(() => import("./routes/dashboard/objects/[objectType]/[recordId]").then(m => ({ default: m.RecordDetailPage })));
 import { SettingsLayout } from "./routes/dashboard/settings/layout";
 import { AccountSettings } from "./routes/dashboard/settings/account";
 import { WorkspaceSettings } from "./routes/dashboard/settings/workspace";
@@ -57,7 +58,7 @@ import { CreditNotesPage } from "./routes/dashboard/finance/credit-notes";
 import { CreditNoteDetailPage } from "./routes/dashboard/finance/[creditNoteId]";
 import { ApprovalsPage } from "./routes/dashboard/approvals";
 import { DecisionsPage } from "./routes/dashboard/decisions";
-import { DiscoveryPage } from "./routes/dashboard/discovery";
+const DiscoveryPage = lazy(() => import("./routes/dashboard/discovery").then(m => ({ default: m.DiscoveryPage })));
 import { FinanceReportsPage } from "./routes/dashboard/finance/reports";
 import { QuotesPage } from "./routes/dashboard/finance/quotes";
 import { ExpensesPage } from "./routes/dashboard/finance/expenses";
@@ -98,6 +99,9 @@ function DashboardRoute({ children }: { children: ReactNode }) {
 
 export function App() {
   return (
+    // One Suspense boundary for the lazy-loaded heavy routes (calendar, discovery, reports,
+    // builders, canvas, call room, record detail) — first visit shows a quiet inline loader.
+    <Suspense fallback={<div className="flex h-full items-center justify-center py-24 text-[13px]" style={{ color: "var(--text-muted)" }}>Loading…</div>}>
     <Routes>
       {/* Legacy Clerk auth paths → native login */}
       <Route path="/sign-in/*" element={<RedirectKeepingQuery to="/auth/shadow-login" />} />
@@ -176,5 +180,6 @@ export function App() {
       <Route path="/dashboard/*" element={<Navigate to="/home" replace />} />
       <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
+    </Suspense>
   );
 }

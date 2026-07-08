@@ -9,12 +9,13 @@ function SparklesIcon({ size = 12 }: { size?: number }) {
   );
 }
 
+// Fictional companies only — never real firms with invented metrics.
 const RECORDS = [
-  { name: "Linear",   logo: "L",  arr: "$2.4M",  country: "USA",     employees: "180",  stage: "Series B" },
-  { name: "Figma",    logo: "F",  arr: "$8.1M",  country: "USA",     employees: "820",  stage: "Acquired" },
-  { name: "Vercel",   logo: "V",  arr: "$3.7M",  country: "USA",     employees: "260",  stage: "Series C" },
-  { name: "Resend",   logo: "R",  arr: "$0.9M",  country: "Canada",  employees: "40",   stage: "Seed"     },
-  { name: "Supabase", logo: "S",  arr: "$5.2M",  country: "Singapore","employees":"310", stage: "Series B" },
+  { name: "Lumen Labs", logo: "L",  arr: "$2.4M",  country: "USA",     employees: "180",  stage: "Series B" },
+  { name: "Fathom",     logo: "F",  arr: "$8.1M",  country: "USA",     employees: "820",  stage: "Acquired" },
+  { name: "Vantage",    logo: "V",  arr: "$3.7M",  country: "USA",     employees: "260",  stage: "Series C" },
+  { name: "Relay Co",   logo: "R",  arr: "$0.9M",  country: "Canada",  employees: "40",   stage: "Seed"     },
+  { name: "Substrate",  logo: "S",  arr: "$5.2M",  country: "Singapore","employees":"310", stage: "Series B" },
 ];
 
 const COLS = ["Company", "ARR", "Country", "Employees", "Stage"];
@@ -24,10 +25,10 @@ type RowState = "empty" | "enriching" | "enriched";
 function LogoBadge({ letter }: { letter: string }) {
   const colors: Record<string, string> = {
     L: "bg-violet-500/20 text-violet-300",
-    F: "bg-pink-500/20 text-pink-300",
+    F: "bg-zinc-200/60 text-pink-300",
     V: "bg-slate-500/20 text-slate-300",
     R: "bg-emerald-500/20 text-emerald-300",
-    S: "bg-green-500/20 text-green-300",
+    S: "bg-emerald-100 text-green-300",
   };
   return (
     <span className={`inline-flex h-5 w-5 items-center justify-center rounded-md text-[10px] font-bold ${colors[letter] ?? "bg-indigo-500/20 text-indigo-300"}`}>
@@ -71,9 +72,9 @@ export function CrmGridDemo() {
     <div className="w-full overflow-hidden rounded-xl border border-white/[.07] bg-[#080a10] shadow-2xl">
       {/* Window chrome */}
       <div className="flex items-center gap-1.5 border-b border-white/[.06] bg-[#0a0c14] px-4 py-2.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-red-500/70"/>
-        <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/70"/>
-        <span className="h-2.5 w-2.5 rounded-full bg-green-500/70"/>
+        <span className="h-2.5 w-2.5 rounded-full bg-zinc-300"/>
+        <span className="h-2.5 w-2.5 rounded-full bg-zinc-300"/>
+        <span className="h-2.5 w-2.5 rounded-full bg-zinc-300"/>
         <span className="ml-3 text-[10px] text-slate-600">Companies — Mondaily Graph</span>
       </div>
 

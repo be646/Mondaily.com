@@ -106,11 +106,11 @@ function BrokenWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
   return (
     <WidgetShell
       title={widget.title || "Broken widget"}
-      icon={<AlertTriangle size={13} className="text-amber-400" />}
+      icon={<AlertTriangle size={13} className="text-[#97824f]" />}
       size={widget.size} className={widget.size === "large" ? "lg:col-span-2" : ""}
       onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
     >
-      <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-lg border border-amber-500/10 bg-amber-500/[.04]">
+      <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-lg border border-amber-500/10 bg-[#97824f]/[.05]">
         <AlertTriangle size={22} className="text-amber-500/60" />
         <p className="text-xs text-[var(--text-faint)] text-center px-4">This widget is broken or from an older format.</p>
         <button
@@ -175,7 +175,7 @@ function LiveWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver, o
   const fmt = (n: number) => n >= 1_000_000 ? `$${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `$${(n/1_000).toFixed(0)}K` : `$${n.toLocaleString()}`;
 
   return (
-    <WidgetShell title={title} icon={<Zap size={13} className="text-emerald-400"/>}
+    <WidgetShell title={title} icon={<Zap size={13} className="text-[#5f8169]"/>}
       link={`/reports/sales?object=${slug}`} linkLabel="Full report →"
       size={widget.size} className={widget.size === "large" ? "lg:col-span-2" : ""}
       onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
@@ -374,7 +374,7 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
                       <button key={obj.slug}
                         onClick={() => { onAdd({ id: crypto.randomUUID(), type: "live", slug: obj.slug, title: obj.name_plural }); onClose(); }}
                         className="flex w-full items-center gap-3 rounded-lg border border-[var(--border-soft)] p-3 text-left hover:bg-[var(--surface-hover)] transition-colors">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-400"><BarChart2 size={14}/></div>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#5f8169]/10 text-[#5f8169]"><BarChart2 size={14}/></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-[var(--text-primary)]">{obj.name_plural}</p>
                           <p className="text-[11px] text-[var(--text-muted)]">KPIs + 6-month trend</p>

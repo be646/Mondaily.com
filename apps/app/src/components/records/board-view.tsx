@@ -10,25 +10,25 @@ interface Member { id: string; name: string; email: string; avatar_url?: string 
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const STAGE_COLORS: Record<string, { dot: string; text: string }> = {
-  lead:        { dot: "bg-stone-400",    text: "text-stone-300" },
-  new:         { dot: "bg-stone-400",    text: "text-stone-300" },
-  open:        { dot: "bg-blue-400",    text: "text-blue-300" },
-  qualified:   { dot: "bg-blue-400",    text: "text-blue-300" },
-  "in progress": { dot: "bg-stone-400", text: "text-stone-300" },
-  active:      { dot: "bg-stone-400",  text: "text-stone-300" },
-  proposal:    { dot: "bg-amber-400",   text: "text-amber-300" },
-  review:      { dot: "bg-amber-400",   text: "text-amber-300" },
-  negotiation: { dot: "bg-orange-400",  text: "text-orange-300" },
-  "closed won": { dot: "bg-emerald-400", text: "text-emerald-300" },
-  won:         { dot: "bg-emerald-400", text: "text-emerald-300" },
-  done:        { dot: "bg-emerald-400", text: "text-emerald-300" },
-  completed:   { dot: "bg-emerald-400", text: "text-emerald-300" },
-  "closed lost": { dot: "bg-stone-400",  text: "text-stone-300" },
-  lost:        { dot: "bg-stone-400",     text: "text-stone-300" },
-  rejected:    { dot: "bg-stone-400",     text: "text-stone-300" },
+  lead:        { dot: "bg-stone-400",    text: "text-stone-400" },
+  new:         { dot: "bg-stone-400",    text: "text-stone-400" },
+  open:        { dot: "bg-[#717784]",    text: "text-[#717784]" },
+  qualified:   { dot: "bg-[#717784]",    text: "text-[#717784]" },
+  "in progress": { dot: "bg-stone-400", text: "text-stone-400" },
+  active:      { dot: "bg-stone-400",  text: "text-stone-400" },
+  proposal:    { dot: "bg-[#97824f]",   text: "text-[#97824f]" },
+  review:      { dot: "bg-[#97824f]",   text: "text-[#97824f]" },
+  negotiation: { dot: "bg-[#97824f]",  text: "text-[#97824f]" },
+  "closed won": { dot: "bg-[#5f8169]", text: "text-[#5f8169]" },
+  won:         { dot: "bg-[#5f8169]", text: "text-[#5f8169]" },
+  done:        { dot: "bg-[#5f8169]", text: "text-[#5f8169]" },
+  completed:   { dot: "bg-[#5f8169]", text: "text-[#5f8169]" },
+  "closed lost": { dot: "bg-stone-400",  text: "text-stone-400" },
+  lost:        { dot: "bg-stone-400",     text: "text-stone-400" },
+  rejected:    { dot: "bg-stone-400",     text: "text-stone-400" },
 };
 function stageStyle(s: string) {
-  return STAGE_COLORS[s.toLowerCase()] ?? { dot: "bg-stone-500", text: "text-stone-300" };
+  return STAGE_COLORS[s.toLowerCase()] ?? { dot: "bg-stone-500", text: "text-stone-400" };
 }
 
 function fmtVal(v: unknown): number | null {
@@ -119,7 +119,7 @@ function CalcFooter({ cards, valueCol }: { cards: NodeRecord[]; valueCol: string
     <div ref={ref} className="relative shrink-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-stone-500 hover:text-stone-300 hover:bg-stone-800/30 border-t border-stone-800/50 transition-colors"
+        className="flex w-full items-center justify-between px-3 py-2 text-[11px] text-stone-500 hover:text-stone-400 hover:bg-stone-800/30 border-t border-stone-800/50 transition-colors"
       >
         <span className="text-stone-600">{CALC_LABELS[type]}</span>
         <div className="flex items-center gap-1">
@@ -133,7 +133,7 @@ function CalcFooter({ cards, valueCol }: { cards: NodeRecord[]; valueCol: string
             <button key={t} onClick={() => { setType(t); setOpen(false); }}
               className={`dropdown-item justify-between ${t === type ? "dropdown-item-active" : ""}`}>
               <span>{CALC_LABELS[t]}</span>
-              {t === type && <Check size={10} className="text-stone-300"/>}
+              {t === type && <Check size={10} className="text-stone-400"/>}
             </button>
           ))}
         </div>
@@ -252,7 +252,7 @@ function RecordCard({ record, objectType, groupCol, valueCol, members, stages, o
             onSave={v => onPatch({ [valueCol]: v === "" ? null : v })}
             placeholder="—"
             numeric
-            className="flex-1 text-emerald-400 font-semibold text-right"
+            className="flex-1 text-[#5f8169] font-semibold text-right"
           />
         </div>
       )}
@@ -261,7 +261,7 @@ function RecordCard({ record, objectType, groupCol, valueCol, members, stages, o
       {ownerKey && (
         <div className="flex items-center gap-1.5 mb-2.5">
           {ownerMember ? (
-            <div className="h-4 w-4 rounded-full bg-stone-500/20 flex items-center justify-center text-[8px] font-bold text-stone-300 shrink-0">
+            <div className="h-4 w-4 rounded-full bg-stone-500/20 flex items-center justify-center text-[8px] font-bold text-stone-400 shrink-0">
               {memberInitials(ownerMember.name)}
             </div>
           ) : (
@@ -345,7 +345,7 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
           <button onClick={save} disabled={saving}
             className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-all">
             {saving ? "Creating…" : "Create"}
-            <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
+            <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-stone-400">⌘↵</kbd>
           </button>
         </div>
       </div>
@@ -452,7 +452,7 @@ export function BoardView({ objectType }: { objectType: string }) {
                 <span className="text-[10px] text-stone-600 font-medium shrink-0">{cards.length}</span>
               </div>
               <button onClick={() => setCreateForStage(stage)}
-                className="flex items-center justify-center h-5 w-5 rounded text-stone-600 hover:text-stone-300 hover:bg-stone-800/50 transition-all shrink-0"
+                className="flex items-center justify-center h-5 w-5 rounded text-stone-600 hover:text-stone-400 hover:bg-stone-800/50 transition-all shrink-0"
                 title={`Add to ${stage}`}>
                 <Plus size={11}/>
               </button>
@@ -499,8 +499,8 @@ export function BoardView({ objectType }: { objectType: string }) {
               onKeyDown={e => { if (e.key === "Enter") commitNewStage(); if (e.key === "Escape") { setAddingStage(false); setNewStageName(""); } }}
               placeholder="Stage name…"
               className="flex-1 bg-transparent text-[11px] text-[var(--text-primary)] placeholder-stone-600 outline-none"/>
-            <button onClick={commitNewStage} className="text-stone-500 hover:text-emerald-400 transition-colors"><Check size={12}/></button>
-            <button onClick={() => { setAddingStage(false); setNewStageName(""); }} className="text-stone-600 hover:text-stone-300 transition-colors"><X size={12}/></button>
+            <button onClick={commitNewStage} className="text-stone-500 hover:text-[#5f8169] transition-colors"><Check size={12}/></button>
+            <button onClick={() => { setAddingStage(false); setNewStageName(""); }} className="text-stone-600 hover:text-stone-400 transition-colors"><X size={12}/></button>
           </div>
           <div className="flex-1 flex items-center justify-center min-h-[80px]">
             <span className="text-[10px] text-stone-700">New stage</span>

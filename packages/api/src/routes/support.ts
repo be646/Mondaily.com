@@ -377,31 +377,14 @@ router.get("/tickets/:id", async (c) => {
   });
 });
 
-// PATCH /support/tickets/:id — update status (admin/owner only). Notifies the requester.
+// PATCH /support/tickets/:id — DISABLED for workspace users, including workspace admins.
+// Tickets are handled BY Mondaily, so status/review/close controls belong exclusively to the
+// future Mondaily-internal support dashboard — a customer workspace must never resolve its own
+// tickets. The route stays mounted (documented surface) but always refuses with an honest message.
 router.patch("/tickets/:id", requireAdminRole, zValidator("json", z.object({
   status: z.enum(SUPPORT_STATUSES),
 })), async (c) => {
-  const ws = c.get("workspaceId"); const userId = c.get("userId");
-  const t = await getTicket(ws, c.req.param("id"));
-  if (!t) return c.json({ error: "Ticket not found." }, 404);
-  const now = new Date().toISOString();
-  const nextStatus = c.req.valid("json").status;
-  const updated: TicketData = {
-    ...t.data, status: nextStatus, updated_at: now,
-    status_history: [...(t.data.status_history ?? []), { status: nextStatus, at: now, by: userId }],
-  };
-  const { error } = await supabase.from("nodes").update({ data: updated }).eq("workspace_id", ws).eq("id", t.id).eq("object_type", "support_ticket");
-  if (error) return c.json({ error: "Could not update the ticket." }, 500);
-
-  if (t.created_by && t.created_by !== userId) {
-    await createNotification({
-      workspace_id: ws, user_id: t.created_by, type: "support",
-      title: `Support request ${nextStatus.replace(/_/g, " ")}: ${t.data.subject}`,
-      body: `Your support request is now ${nextStatus.replace(/_/g, " ")}.`,
-      metadata: { support_ticket_id: t.id, status: nextStatus },
-    }).catch(() => false);
-  }
-  return c.json({ id: t.id, status: nextStatus, last_updated: now });
+  return c.json({ error: "Ticket status is managed by Mondaily support — it can't be changed from a workspace." }, 403);
 });
 
 // POST /support/tickets/:id/comments — reply. Allowed for the requester OR an admin/owner. Notifies

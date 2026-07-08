@@ -31,9 +31,9 @@ const NODES: WNode[] = [
 ];
 
 const KIND_STYLE = {
-  trigger:   { ring: "border-red-500/60",    glow: "shadow-[0_0_16px_rgba(239,68,68,0.25)]",    bg: "bg-red-500/[.07]",    text: "text-red-400",    dot: "bg-red-500"    },
-  condition: { ring: "border-yellow-500/60", glow: "shadow-[0_0_16px_rgba(234,179,8,0.25)]",    bg: "bg-yellow-500/[.07]", text: "text-yellow-400", dot: "bg-yellow-400" },
-  action:    { ring: "border-blue-500/60",   glow: "shadow-[0_0_16px_rgba(59,130,246,0.25)]",   bg: "bg-blue-500/[.07]",   text: "text-blue-400",   dot: "bg-blue-500"   },
+  trigger:   { ring: "border-rose-300/70",    glow: "",    bg: "bg-rose-500/[.05]",    text: "text-rose-400/90",    dot: "bg-rose-400"    },
+  condition: { ring: "border-amber-300/70", glow: "", bg: "bg-amber-500/[.05]", text: "text-amber-500/90", dot: "bg-amber-400" },
+  action:    { ring: "border-sky-300/70",   glow: "",   bg: "bg-sky-500/[.05]",   text: "text-sky-500/90",   dot: "bg-sky-400"   },
 };
 
 const IDLE_STYLE = {
