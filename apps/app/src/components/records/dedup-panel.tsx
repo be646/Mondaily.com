@@ -211,9 +211,9 @@ export function DedupPanel({
   const reasonLabel = (r: DupGroup["reason"]) =>
     r === "email" ? "Same email" : r === "phone" ? "Same phone" : "Same name";
   const reasonColor = (r: DupGroup["reason"]) =>
-    r === "email" ? "text-blue-400 bg-blue-400/10 border-blue-400/20"
-    : r === "phone" ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20"
-    : "text-orange-400 bg-orange-400/10 border-orange-400/20";
+    r === "email" ? "text-[#717784] bg-[#717784]/10 border-[#717784]/25"
+    : r === "phone" ? "text-[#5f8169] bg-[#5f8169]/10 border-[#5f8169]/25"
+    : "text-[#97824f] bg-[#97824f]/10 border-[#97824f]/25";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -264,7 +264,7 @@ export function DedupPanel({
             <>
               {groups.length === 0 ? (
                 <div className="flex flex-col items-center gap-3 py-6 text-center">
-                  <Check size={28} className="text-emerald-400" />
+                  <Check size={28} className="text-[#5f8169]" />
                   <p className="text-sm font-semibold text-[var(--text-primary)]">No duplicates found</p>
                   <p className="text-xs text-[var(--text-secondary)]">Your data looks clean</p>
                 </div>
@@ -294,10 +294,10 @@ export function DedupPanel({
                             return (
                               <div
                                 key={r.id}
-                                className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${isKeep ? "bg-emerald-500/5" : "hover:bg-[var(--surface-hover)]"}`}
+                                className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${isKeep ? "bg-[#5f8169]/5" : "hover:bg-[var(--surface-hover)]"}`}
                                 onClick={() => setKeepMap(prev => ({ ...prev, [gi]: ri }))}
                               >
-                                <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isKeep ? "border-emerald-400 bg-emerald-400" : "border-[var(--border-soft)]"}`}>
+                                <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isKeep ? "border-[#5f8169] bg-[#5f8169]" : "border-[var(--border-soft)]"}`}>
                                   {isKeep && <Check size={8} className="text-black" />}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -306,7 +306,7 @@ export function DedupPanel({
                                     {[r.data.email, r.data.phone, r.data.job_title].filter(Boolean).join(" · ")}
                                   </p>
                                 </div>
-                                {isKeep && <span className="text-[10px] text-emerald-400 font-medium flex-shrink-0">Keep</span>}
+                                {isKeep && <span className="text-[10px] text-[#5f8169] font-medium flex-shrink-0">Keep</span>}
                               </div>
                             );
                           })}
@@ -319,10 +319,10 @@ export function DedupPanel({
 
               {/* Missing info summary */}
               {missing && (missing.noEmail.length > 0 || missing.noPhone.length > 0 || missing.noBoth.length > 0) && (
-                <div className="rounded-sm border border-orange-400/15 bg-orange-400/5 p-4 space-y-2">
+                <div className="rounded-sm border border-[#97824f]/20 bg-[#97824f]/5 p-4 space-y-2">
                   <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle size={13} className="text-orange-400" />
-                    <span className="text-xs font-semibold text-orange-400">Missing contact info</span>
+                    <AlertTriangle size={13} className="text-[#97824f]" />
+                    <span className="text-xs font-semibold text-[#97824f]">Missing contact info</span>
                   </div>
                   {missing.noBoth.length > 0 && <p className="text-xs text-[var(--text-secondary)]">{missing.noBoth.length} records missing both email and phone</p>}
                   {missing.noEmail.length > 0 && <p className="text-xs text-[var(--text-secondary)]">{missing.noEmail.length} records missing email only</p>}
@@ -335,8 +335,8 @@ export function DedupPanel({
           {/* STEP: LISTS */}
           {step === "lists" && !done && (
             <div className="flex flex-col items-center gap-4 py-6 text-center">
-              <div className="h-12 w-12 rounded-sm bg-blue-500/10 border border-blue-500/15 flex items-center justify-center">
-                <List size={20} className="text-blue-400" />
+              <div className="h-12 w-12 rounded-sm bg-[#717784]/10 border border-[#717784]/20 flex items-center justify-center">
+                <List size={20} className="text-[#717784]" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">Create smart lists</p>
@@ -344,8 +344,8 @@ export function DedupPanel({
               </div>
               <div className="w-full space-y-2 text-left">
                 {[
-                  { icon: <Mail size={12} />, label: "Contacts with email", color: "text-blue-400" },
-                  { icon: <Phone size={12} />, label: "Contacts with phone", color: "text-emerald-400" },
+                  { icon: <Mail size={12} />, label: "Contacts with email", color: "text-[#717784]" },
+                  { icon: <Phone size={12} />, label: "Contacts with phone", color: "text-[#5f8169]" },
                   { icon: <LogoMark size={12} />, label: "Contacts with both", color: "text-stone-400" },
                 ].map((item, i) => (
                   <div key={i} className={`flex items-center gap-2.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 ${item.color}`}>
@@ -360,8 +360,8 @@ export function DedupPanel({
           {/* DONE */}
           {done && (
             <div className="flex flex-col items-center gap-4 py-6 text-center">
-              <div className="h-12 w-12 rounded-sm bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                <Check size={22} className="text-emerald-400" />
+              <div className="h-12 w-12 rounded-sm bg-[#5f8169]/10 border border-[#5f8169]/20 flex items-center justify-center">
+                <Check size={22} className="text-[#5f8169]" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">All done!</p>
@@ -371,7 +371,7 @@ export function DedupPanel({
                 {listResults.map((l, i) => (
                   <div key={i} className="flex items-center justify-between rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
                     <span className="text-xs text-[var(--text-secondary)]">{l.name}</span>
-                    <span className="text-[10px] text-emerald-400 font-medium">{l.count} records</span>
+                    <span className="text-[10px] text-[#5f8169] font-medium">{l.count} records</span>
                   </div>
                 ))}
               </div>

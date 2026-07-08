@@ -76,16 +76,16 @@ const hostOf = (url?: string | null) => {
 const uid = () => `t_${Math.random().toString(36).slice(2)}_${performance.now().toString(36)}`;
 
 const PRIORITY: Record<"hot" | "warm" | "cold", { label: string; tone: string }> = {
-  hot:  { label: "Hot",  tone: "#be123c" },
-  warm: { label: "Warm", tone: "#d97706" },
+  hot:  { label: "Hot",  tone: "#9c6b72" },
+  warm: { label: "Warm", tone: "#97824f" },
   cold: { label: "Cold", tone: "#737373" },
 };
 
 const SENTIMENT: Record<Exclude<Sentiment, null>, { label: string; tone: string; Icon: typeof ThumbsUp }> = {
-  positive: { label: "Positive", tone: "#15803d", Icon: ThumbsUp },
-  negative: { label: "Negative", tone: "#be123c", Icon: ThumbsDown },
+  positive: { label: "Positive", tone: "#5f8169", Icon: ThumbsUp },
+  negative: { label: "Negative", tone: "#9c6b72", Icon: ThumbsDown },
   neutral:  { label: "Neutral",  tone: "#737373", Icon: Minus },
-  mixed:    { label: "Mixed",    tone: "#a9782a", Icon: Minus },
+  mixed:    { label: "Mixed",    tone: "#97824f", Icon: Minus },
 };
 
 export function DiscoveryPage() {
@@ -236,7 +236,7 @@ export function DiscoveryPage() {
             <h1 className="text-[16px] font-semibold leading-none" style={{ color: "var(--text-primary)" }}>Discovery</h1>
             <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px]" style={{ color: "var(--text-faint)" }}>
               <span className="inline-flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: degraded ? "#d97706" : "#15803d" }} />
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: degraded ? "#97824f" : "#5f8169" }} />
                 {degraded ? "Search engine offline" : "Web search online"}
               </span>
               {connectorsQ.data && (
@@ -289,7 +289,7 @@ export function DiscoveryPage() {
       )}
 
       {degraded && (
-        <div className="mb-3 flex items-start gap-2 rounded-md border px-3 py-2.5 text-[12px]" style={{ borderColor: "#d9770633", background: "#d977060f", color: "#92400e" }}>
+        <div className="mb-3 flex items-start gap-2 rounded-md border px-3 py-2.5 text-[12px]" style={{ borderColor: "#97824f33", background: "#97824f0f", color: "#97824f" }}>
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           <span>{statusQ.data?.diagnostic ?? "The search appliance isn't reachable, so Discovery can't return live results yet."}</span>
         </div>
@@ -312,7 +312,7 @@ export function DiscoveryPage() {
 
           {/* composer */}
           <div className="border-t py-3" style={{ borderColor: "var(--border-soft)" }}>
-            <div className="rounded-2xl border px-3 py-2.5 transition-colors focus-within:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="rounded-md border px-3 py-2.5 transition-colors focus-within:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               <textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -353,7 +353,7 @@ export function DiscoveryPage() {
 
 /** Tiny data-source status chip in the header — hover shows the live diagnostic detail. */
 function Source({ label, ok, detail, muted }: { label: string; ok: boolean; detail: string; muted?: boolean }) {
-  const color = muted ? "var(--text-faint)" : ok ? "#15803d" : "#d97706";
+  const color = muted ? "var(--text-faint)" : ok ? "#5f8169" : "#97824f";
   return (
     <span className="inline-flex items-center gap-1" title={detail} style={{ color: "var(--text-faint)" }}>
       <span aria-hidden>·</span>
@@ -371,20 +371,23 @@ function Empty({ onPick }: { onPick: (q: string) => void }) {
     ? suggestions.discovery.map((q, i) => ({ icon: i % 2 === 0 ? Users : Star, label: q, q }))
     : FALLBACK_EXAMPLES;
   return (
-    <div className="flex h-full flex-col items-center justify-center py-10 text-center">
-      <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: "var(--surface-hover)" }}>
-        <Radar size={22} style={{ color: "var(--section-accent)" }} />
-      </span>
-      <h2 className="mt-4 text-[17px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("discovery.heading")}</h2>
-      <p className="mt-1.5 max-w-md text-[13px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+    // Compact workbench brief — not a hero. Sits high so the composer + examples are near the work area.
+    <div className="flex h-full flex-col items-center justify-center py-6 text-center">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-8 w-8 items-center justify-center rounded-sm" style={{ background: "var(--surface-hover)" }}>
+          <Radar size={16} style={{ color: "var(--section-accent)" }} />
+        </span>
+        <h2 className="text-[15px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("discovery.heading")}</h2>
+      </div>
+      <p className="mt-1.5 max-w-md text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
         {t("discovery.sub")}
       </p>
-      <div className="mt-6 grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="mt-4 grid w-full max-w-lg grid-cols-1 gap-1.5 sm:grid-cols-2">
         {examples.map((ex) => (
           <button key={ex.q} onClick={() => onPick(ex.q)}
-            className="flex items-center gap-2.5 rounded-lg border px-3 py-2.5 text-left text-[12.5px] transition-colors hover:border-[color:var(--section-accent)]"
+            className="flex items-center gap-2.5 rounded-sm border px-3 py-2 text-left text-[12.5px] transition-colors hover:bg-[var(--surface-hover)]"
             style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-            <ex.icon size={14} style={{ color: "var(--section-accent)" }} /> {ex.label}
+            <ex.icon size={13} style={{ color: "var(--text-faint)" }} /> {ex.label}
           </button>
         ))}
       </div>
@@ -406,7 +409,7 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
     <div>
       {/* user query bubble */}
       <div className="flex justify-end">
-        <div className="max-w-[80%] rounded-2xl rounded-br-sm px-3.5 py-2 text-[13.5px]" style={{ background: "var(--section-accent)", color: "#fff" }}>
+        <div className="max-w-[80%] rounded-md rounded-br-sm px-3.5 py-2 text-[13.5px]" style={{ background: "var(--section-accent)", color: "#fff" }}>
           {turn.query}
           {turn.deep && <span className="ml-2 text-[10px] opacity-80">· deep</span>}
         </div>
@@ -434,7 +437,7 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
         <StepTrace steps={turn.steps} status={turn.status} />
 
         {turn.status === "error" && (
-          <div className="mt-2 flex items-start gap-2 rounded-md border px-3 py-2 text-[12.5px]" style={{ borderColor: "#be123c33", background: "#be123c0d", color: "#be123c" }}>
+          <div className="mt-2 flex items-start gap-2 rounded-md border px-3 py-2 text-[12.5px]" style={{ borderColor: "#9c6b7233", background: "#9c6b720d", color: "#9c6b72" }}>
             <AlertTriangle size={14} className="mt-0.5 shrink-0" /> {turn.error}
           </div>
         )}
@@ -450,9 +453,15 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
         {/* Results render as soon as they stream in — independent of the final done event. */}
         {turn.results.length > 0 ? (
           <>
-            <div className="mt-3 mb-2 flex flex-wrap items-center gap-2 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
-              <strong style={{ color: "var(--text-primary)" }}>{turn.results.length}</strong> {reviews ? "reviews / mentions" : "leads"}
-              <span aria-hidden>·</span> from {turn.scanned ?? 0} sources
+            {/* Discovery Agent proof-of-work — real streamed counts only (sources scanned, leads found,
+                AI calls, tokens, pre-filter skips). Nothing here is estimated or invented. */}
+            <div className="mt-3 mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-sm border px-3 py-1.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+              <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}><Radar size={10} /> Discovery Agent</span>
+              <span><strong style={{ color: "var(--text-primary)" }}>{turn.scanned ?? 0}</strong> sources checked</span>
+              <span aria-hidden>·</span>
+              <span><strong style={{ color: "var(--text-primary)" }}>{turn.results.length}</strong> {reviews ? "reviews / mentions" : "leads found"}</span>
+              {turn.usage && turn.usage.ai_calls > 0 && <><span aria-hidden>·</span><span>{turn.usage.ai_calls} AI calls</span></>}
+              {turn.usage && turn.usage.pages_skipped > 0 && <><span aria-hidden>·</span><span>{turn.usage.pages_skipped} skipped by pre-filter</span></>}
               {reviews && <SentimentSummary results={turn.results} />}
               {!reviews && <SaveAllLeads results={turn.results} query={turn.query} />}
             </div>
@@ -525,7 +534,7 @@ function WatchButton({ query }: { query: string }) {
     try { await apiClient.post("/discovery/monitors", { query }); setState("done"); }
     catch { setState("error"); }
   };
-  if (state === "done") return <p className="mt-2 inline-flex items-center gap-1.5 text-[11.5px]" style={{ color: "#15803d" }}><Check size={12} /> Watching — you'll be notified of new results</p>;
+  if (state === "done") return <p className="mt-2 inline-flex items-center gap-1.5 text-[11.5px]" style={{ color: "#5f8169" }}><Check size={12} /> Watching — you'll be notified of new results</p>;
   return (
     <button onClick={save} disabled={state === "saving"}
       className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
@@ -547,7 +556,7 @@ function StepTrace({ steps, status }: { steps: string[]; status: Turn["status"] 
   return (
     <div className="rounded-lg border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px]" style={{ color: "var(--text-muted)" }}>
-        {status === "streaming" ? <Loader2 size={13} className="animate-spin shrink-0" style={{ color: "var(--section-accent)" }} /> : <Check size={13} className="shrink-0" style={{ color: "#15803d" }} />}
+        {status === "streaming" ? <Loader2 size={13} className="animate-spin shrink-0" style={{ color: "var(--section-accent)" }} /> : <Check size={13} className="shrink-0" style={{ color: "#5f8169" }} />}
         <span className="min-w-0 flex-1 truncate">{status === "streaming" ? last : `Searched the web · ${steps.length} steps`}</span>
         <ChevronDown size={13} className="shrink-0 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }} />
       </button>
@@ -589,7 +598,7 @@ function SaveAllLeads({ results, query }: { results: ResultRow[]; query: string 
       qc.invalidateQueries({ queryKey: ["nodes"] });
     } catch { setState("error"); }
   };
-  if (state === "done") return <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "#15803d" }}><Check size={12} /> {result?.saved ?? results.length} saved{result?.skipped ? ` · ${result.skipped} already in graph` : ""}</span>;
+  if (state === "done") return <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "#5f8169" }}><Check size={12} /> {result?.saved ?? results.length} saved{result?.skipped ? ` · ${result.skipped} already in graph` : ""}</span>;
   return (
     <button onClick={save} disabled={state === "saving"} className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
       {state === "saving" ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} {state === "error" ? "Retry save all" : `Save all ${results.length}`}
@@ -843,11 +852,11 @@ function BulkBar({ entries, query, lists, members, onApplied, onClear }: {
     <div className="sticky top-2 z-10 mb-2 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 shadow-sm" style={{ borderColor: "var(--section-accent)", background: "var(--surface-card)" }}>
       <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{entries.length} selected</span>
       <B id="save" onClick={() => save(false, !!ownerId)}><Plus size={11} /> Save</B>
-      <select value={listId} onChange={(e) => setListId(e.target.value)} className="key-input h-7 rounded-full px-2 text-[11px]" style={{ maxWidth: 130 }}>
+      <select value={listId} onChange={(e) => setListId(e.target.value)} className="key-input h-7 rounded-sm px-2 text-[11px]" style={{ maxWidth: 130 }}>
         <option value="">List…</option>{lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
       </select>
       <B id="save" onClick={() => save(true, !!ownerId)}>Add to list</B>
-      <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className="key-input h-7 rounded-full px-2 text-[11px]" style={{ maxWidth: 140 }}>
+      <select value={ownerId} onChange={(e) => setOwnerId(e.target.value)} className="key-input h-7 rounded-sm px-2 text-[11px]" style={{ maxWidth: 140 }}>
         <option value="">Owner…</option>{members.map((m) => <option key={m.user_id} value={m.user_id}>{m.name || m.email || m.user_id}</option>)}
       </select>
       <B id="save" onClick={() => save(false, true)}>Assign owner</B>
@@ -902,13 +911,13 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
             : <p className="mt-3 text-[11.5px]" style={{ color: "var(--text-faint)" }}>No dossier could be built from this site.</p>}
         </div>
         <div className="flex flex-wrap gap-1.5 border-t px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
-          {(status?.saved || status?.existed) ? <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: status.existed ? "var(--text-muted)" : "#15803d", background: status.existed ? "var(--surface-hover)" : "#15803d14" }}><Check size={11} /> {status.existed ? "In graph" : "Saved"}</span>
+          {(status?.saved || status?.existed) ? <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: status.existed ? "var(--text-muted)" : "#5f8169", background: status.existed ? "var(--surface-hover)" : "#5f816914" }}><Check size={11} /> {status.existed ? "In graph" : "Saved"}</span>
             : <button onClick={() => save.mutate()} disabled={save.isPending} className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>{save.isPending ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Save</button>}
           {lists.length > 0 && (
-            <select onChange={(e) => e.target.value && addList.mutate(e.target.value)} disabled={!status?.node_id} title={status?.node_id ? "" : "Save the lead first"} className="key-input h-7 rounded-full px-2 text-[11px] disabled:opacity-50" style={{ maxWidth: 120 }} defaultValue=""><option value="">Add to list…</option>{lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
+            <select onChange={(e) => e.target.value && addList.mutate(e.target.value)} disabled={!status?.node_id} title={status?.node_id ? "" : "Save the lead first"} className="key-input h-7 rounded-sm px-2 text-[11px] disabled:opacity-50" style={{ maxWidth: 120 }} defaultValue=""><option value="">Add to list…</option>{lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
           )}
           {members.length > 0 && (
-            <select value={status?.owner ?? ""} onChange={(e) => e.target.value && assign.mutate(e.target.value)} className="key-input h-7 rounded-full px-2 text-[11px]" style={{ maxWidth: 130 }}>
+            <select value={status?.owner ?? ""} onChange={(e) => e.target.value && assign.mutate(e.target.value)} className="key-input h-7 rounded-sm px-2 text-[11px]" style={{ maxWidth: 130 }}>
               <option value="">Assign owner…</option>{members.map((m) => <option key={m.user_id} value={m.user_id}>{m.name || m.email || m.user_id}</option>)}
             </select>
           )}
@@ -983,7 +992,7 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
             <Globe2 size={11} className="shrink-0" /> <span className="truncate">{hostOf(r.source_url) || r.platform}</span>
             {r.region && <><span aria-hidden>·</span><span>{r.region}</span></>}
             {r.priority && <span className="rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold" style={{ color: PRIORITY[r.priority].tone, background: `${PRIORITY[r.priority].tone}14` }}>{PRIORITY[r.priority].label}</span>}
-            {r.confidence_score > 0 && <span className="rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold" style={{ color: r.confidence_score >= 70 ? "#15803d" : "var(--text-muted)", background: r.confidence_score >= 70 ? "#15803d14" : "var(--surface-hover)" }}>{r.confidence_score}% match</span>}
+            {r.confidence_score > 0 && <span className="rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold" style={{ color: r.confidence_score >= 70 ? "#5f8169" : "var(--text-muted)", background: r.confidence_score >= 70 ? "#5f816914" : "var(--surface-hover)" }}>{r.confidence_score}% match</span>}
           </div>
           <a href={r.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-[14.5px] font-semibold hover:underline" style={{ color: "var(--section-accent)" }}>
             {name} <ExternalLink size={12} className="shrink-0" style={{ color: "var(--text-faint)" }} />
@@ -1005,7 +1014,7 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {(st.saved || st.existed) ? (
-          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: st.existed ? "var(--text-muted)" : "#15803d", background: st.existed ? "var(--surface-hover)" : "#15803d14" }}><Check size={11} /> {st.existed ? "In graph" : "Saved"}</span>
+          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: st.existed ? "var(--text-muted)" : "#5f8169", background: st.existed ? "var(--surface-hover)" : "#5f816914" }}><Check size={11} /> {st.existed ? "In graph" : "Saved"}</span>
         ) : (
           <button onClick={() => save.mutate()} disabled={save.isPending}
             className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
@@ -1124,7 +1133,7 @@ function SavedLeads({ lists }: { lists: ListRow[] }) {
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
                 <Link to={`/objects/${r.object_type}/${r.id}`} className="rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Open</Link>
-                <button onClick={() => remove.mutate(r.id)} disabled={remove.isPending && remove.variables === r.id} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: "#be123c", background: "#be123c0d" }}>
+                <button onClick={() => remove.mutate(r.id)} disabled={remove.isPending && remove.variables === r.id} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: "#9c6b72", background: "#9c6b720d" }}>
                   {remove.isPending && remove.variables === r.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
                 </button>
               </div>

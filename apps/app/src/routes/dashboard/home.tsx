@@ -146,9 +146,9 @@ interface WorkspaceSummary {
 
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_STYLE: Record<string, string> = {
-  urgent: "border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  high:   "border border-stone-300 bg-stone-100 text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300",
-  medium: "border border-stone-300 bg-stone-100 text-stone-700 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300",
+  urgent: "border border-[#97824f]/30 bg-[#97824f]/10 text-[#97824f] dark:text-amber-300",
+  high:   "border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300",
+  medium: "border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300",
   low:    "border border-stone-200 bg-stone-50 text-stone-500 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-500",
 };
 
@@ -617,7 +617,7 @@ export function HomePage() {
       {/* ── Ask Mondaily — frameless console: suggestions/messages plus the
           actual input bar. No outer card around the whole area. ── */}
       {(notificationsQuery.isError || decisionsQuery.isError) && (
-        <div className="mb-4 rounded-sm border border-amber-500/20 bg-amber-500/[.07] px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+        <div className="mb-4 rounded-sm border border-[#97824f]/25 bg-[#97824f]/[.07] px-4 py-3 text-sm text-[#97824f]">
           Could not load activity. Some agent and decision signals may be missing.
         </div>
       )}
@@ -691,17 +691,17 @@ export function HomePage() {
                         )}
                         {!isStreaming && meta && (
                           <div className="flex items-center gap-1 mt-1.5 pl-3.5">
-                            <button onClick={() => copyMessage(m.content, i)} title="Copy" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: copiedIdx === i ? "var(--section-accent)" : "var(--text-faint)" }}>
+                            <button onClick={() => copyMessage(m.content, i)} title="Copy" className="rounded-md p-1.5 transition-colors hover:bg-[var(--surface-hover)]" style={{ color: copiedIdx === i ? "var(--section-accent)" : "var(--text-faint)" }}>
                               {copiedIdx === i ? <Check size={12}/> : <Copy size={12}/>}
                             </button>
-                            <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1, i)} title="Good response" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: feedbackGiven[i] === 1 ? "var(--section-accent)" : "var(--text-faint)" }}>
+                            <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1, i)} title="Good response" className="rounded-md p-1.5 transition-colors hover:bg-[var(--surface-hover)]" style={{ color: feedbackGiven[i] === 1 ? "var(--section-accent)" : "var(--text-faint)" }}>
                               <ThumbsUp size={12}/>
                             </button>
-                            <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1, i)} title="Bad response" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: feedbackGiven[i] === -1 ? "var(--text-muted)" : "var(--text-faint)" }}>
+                            <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1, i)} title="Bad response" className="rounded-md p-1.5 transition-colors hover:bg-[var(--surface-hover)]" style={{ color: feedbackGiven[i] === -1 ? "var(--text-muted)" : "var(--text-faint)" }}>
                               <ThumbsDown size={12}/>
                             </button>
                             {i === messages.length - 1 && !loading && (
-                              <button onClick={regenerate} title="Regenerate" className="rounded-md p-1.5 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: "var(--text-faint)" }}>
+                              <button onClick={regenerate} title="Regenerate" className="rounded-md p-1.5 transition-colors hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-faint)" }}>
                                 <RotateCcw size={12}/>
                               </button>
                             )}
@@ -746,13 +746,13 @@ export function HomePage() {
                                     { key: "workflow", label: "Draft workflow" },
                                   ] as { key: "related" | "explain" | "decision" | "workflow"; label: string }[]).map(a => (
                                     <button key={a.key} onClick={() => { setActionsOpen(false); sendSuggestion(buildChipText(a.key, i)); }}
-                                      className="block w-full px-3 py-2 text-left text-[12.5px] transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: "var(--text-secondary)" }}>
+                                      className="block w-full px-3 py-2 text-left text-[12.5px] transition-colors hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-secondary)" }}>
                                       {a.label}
                                     </button>
                                   ))}
                                   {/* Real: the Ask backend has a create_report tool (ask.ts) and the chip kind exists. */}
                                   <button onClick={() => { setActionsOpen(false); sendSuggestion(buildChipText("report", i)); }}
-                                    className="block w-full px-3 py-2 text-left text-[12.5px] transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ color: "var(--text-secondary)" }}>
+                                    className="block w-full px-3 py-2 text-left text-[12.5px] transition-colors hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-secondary)" }}>
                                     Create report
                                   </button>
                                 </div>
@@ -798,7 +798,7 @@ export function HomePage() {
               <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
                   <button key={label} onClick={() => firePrompt(prompt)}
-                    className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
+                    className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-stone-100 transition-colors group-hover:bg-stone-200 dark:bg-stone-900 dark:group-hover:bg-stone-800">
                       <Icon size={13} className="text-stone-500 dark:text-stone-400"/>
                     </span>
@@ -828,7 +828,7 @@ export function HomePage() {
                 {attachResults.length === 0 ? (
                   <p className="px-2 py-2 text-[12px]" style={{ color: "var(--text-faint)" }}>{attachQuery.trim().length < 2 ? "Type to search records, or attach a text file." : "No matches."}</p>
                 ) : attachResults.map(r => (
-                  <button key={r.id} onClick={() => addRecord(r)} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
+                  <button key={r.id} onClick={() => addRecord(r)} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]">
                     <span className="rounded px-1.5 py-px text-[9px] font-medium uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>{r.object_type}</span>
                     <span className="truncate text-sm" style={{ color: "var(--text-primary)" }}>{recordTitle(r)}</span>
                   </button>
@@ -852,12 +852,12 @@ export function HomePage() {
           <div className="ask-input chat-input-bar chat-input-orbit flex items-end gap-2 rounded-sm px-2.5 py-2 transition-all sm:px-3"
             style={isChatting ? { backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 -2px 24px -6px rgba(15,23,42,0.12), 0 8px 24px -8px rgba(15,23,42,0.14)" } : undefined}>
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-200" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${promptPickerOpen ? "bg-[var(--surface-selected)] text-[var(--text-primary)]" : "hover:bg-[var(--surface-hover)]"}`}
               style={promptPickerOpen ? undefined : { color: "var(--text-muted)" }}>
               <Plus size={18}/>
             </button>
             <button onClick={() => setAttachOpen(o => !o)} title="Attach record or file"
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${attachOpen ? "bg-stone-100 text-stone-700 dark:bg-stone-900 dark:text-stone-200" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${attachOpen ? "bg-[var(--surface-selected)] text-[var(--text-primary)]" : "hover:bg-[var(--surface-hover)]"}`}
               style={attachOpen ? undefined : { color: "var(--text-muted)" }}>
               <Paperclip size={17}/>
             </button>
@@ -877,7 +877,7 @@ export function HomePage() {
             )}
             {voice.supported && (
               <button onClick={voice.toggle} title={voice.listening ? "Stop dictation" : "Dictate"}
-                className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${voice.listening ? "animate-pulse" : "hover:bg-stone-100 dark:hover:bg-stone-900"}`}
+                className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${voice.listening ? "animate-pulse" : "hover:bg-[var(--surface-hover)]"}`}
                 style={{ color: voice.listening ? "var(--section-accent)" : "var(--text-muted)" }}>
                 <Mic size={15}/>
               </button>
@@ -1048,7 +1048,7 @@ export function HomePage() {
                 }).slice(0, 6).map(item => {
                   const isOverdue = item.due_date && new Date(item.due_date) < new Date();
                   const assigneeName = getMemberName(item);
-                  const statusColor = item.status === "review" ? "bg-amber-500" : item.status === "done" ? "btn-solid dark:bg-stone-100" : item.status === "in_progress" ? "bg-stone-500 dark:bg-stone-400" : "bg-stone-300 dark:bg-stone-700";
+                  const statusColor = item.status === "review" ? "bg-[#97824f]" : item.status === "done" ? "btn-solid dark:bg-stone-100" : item.status === "in_progress" ? "bg-stone-500 dark:bg-stone-400" : "bg-stone-300 dark:bg-stone-700";
                   return (
                     <li key={item.id} onClick={() => setDetailTask(item)}
                       className="flow-list-row group flex cursor-pointer items-center gap-3 transition-colors">
@@ -1192,7 +1192,7 @@ export function HomePage() {
       {/* Scan report modal */}
       {(scanReport || scanLoading) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => { if (!scanLoading) setScanReport(null); }}>
-          <div className="relative flex max-h-[80vh] w-full max-w-lg flex-col rounded-sm border shadow-2xl" style={{ background: "var(--surface-modal)", borderColor: "var(--border-soft)" }} onClick={e => e.stopPropagation()}>
+          <div className="relative flex max-h-[80vh] w-full max-w-lg flex-col rounded-sm border shadow-lg" style={{ background: "var(--surface-modal)", borderColor: "var(--border-soft)" }} onClick={e => e.stopPropagation()}>
             <div className="flex shrink-0 items-center justify-between border-b px-5 py-4" style={{ borderColor: "var(--border-soft)" }}>
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full" style={{ background: "var(--surface-hover)" }}>
@@ -1214,7 +1214,7 @@ export function HomePage() {
               </div>
               <div className="flex items-center gap-2">
                 {!scanLoading && scanReport && (
-                  <button onClick={printReport} className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                  <button onClick={printReport} className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
                     <Printer size={11}/> Print
                   </button>
                 )}
@@ -1233,7 +1233,7 @@ export function HomePage() {
             </div>
             {!scanLoading && scanReport && (
               <div className="shrink-0 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
-                <button onClick={() => setScanReport(null)} className="w-full rounded-lg border py-2 text-xs transition-colors hover:bg-stone-100 dark:hover:bg-stone-900" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                <button onClick={() => setScanReport(null)} className="w-full rounded-lg border py-2 text-xs transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
                   Close
                 </button>
               </div>

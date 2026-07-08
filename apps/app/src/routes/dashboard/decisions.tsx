@@ -9,7 +9,7 @@ import { useCockpitDecisions, mapEvidence, type Decision } from "../../component
 import { agentByRaw } from "../../lib/agents";
 import { useLanguage } from "../../hooks/useLanguage";
 
-const RISK_DOT: Record<Decision["risk_level"], string> = { high: "#dc2626", medium: "#d97706", low: "#10b981" };
+const RISK_DOT: Record<Decision["risk_level"], string> = { high: "#9c6b72", medium: "#97824f", low: "#5f8169" };
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 interface Member { user_id: string; name?: string | null; email?: string | null }
@@ -174,7 +174,7 @@ export function DecisionsPage() {
               <div className="flex-1" />
               <button onClick={bulkApproveSafe} disabled={bulkBusy || safeToApprove.length === 0}
                 className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-medium transition-colors disabled:opacity-50"
-                style={{ borderColor: "color-mix(in srgb, #3f8f6e 55%, transparent)", color: "#5fae8b" }}>
+                style={{ borderColor: "color-mix(in srgb, #5f8169 55%, transparent)", color: "#5f8169" }}>
                 {bulkBusy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />} {t("decisions.approve_safe")} ({safeToApprove.length})
               </button>
               <button onClick={bulkDismiss} disabled={bulkBusy}
@@ -226,10 +226,10 @@ export function DecisionsPage() {
                 )}
                 {banner && (
                   <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--surface-card) 70%, transparent)" }}>
-                    <div className="flex items-center gap-2.5 rounded-sm border px-5 py-3 text-[14px] font-semibold shadow-2xl"
+                    <div className="flex items-center gap-2.5 rounded-sm border px-5 py-3 text-[14px] font-semibold shadow-lg"
                       style={banner.kind === "approved"
-                        ? { borderColor: "#10b981", color: "#10b981", background: "color-mix(in srgb, #10b981 12%, var(--surface-card))" }
-                        : { borderColor: banner.kind === "rejected" ? "#ef4444" : "var(--text-faint)", color: banner.kind === "rejected" ? "#ef4444" : "var(--text-muted)", background: "var(--surface-card)" }}>
+                        ? { borderColor: "#5f8169", color: "#5f8169", background: "color-mix(in srgb, #5f8169 12%, var(--surface-card))" }
+                        : { borderColor: banner.kind === "rejected" ? "#9c6b72" : "var(--text-faint)", color: banner.kind === "rejected" ? "#9c6b72" : "var(--text-muted)", background: "var(--surface-card)" }}>
                       {banner.kind === "approved" ? <><CheckCircle2 size={18} /> Approved &amp; running</> : banner.kind === "rejected" ? <><XCircle size={18} /> Rejected</> : <><Clock size={18} /> Snoozed for 24h</>}
                     </div>
                   </div>
@@ -297,13 +297,13 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
             </Link>
           )}
           <div className="flex items-stretch gap-2">
-            <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "#d9770633", background: "#d977060d" }}>
-              <div className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "#d97706" }}>Current</div>
+            <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", borderLeft: "2px solid #97824f" }}>
+              <div className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "#97824f" }}>Current</div>
               <div className="mt-1 break-words text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{currentState}</div>
             </div>
             <div className="flex shrink-0 items-center"><ArrowRight size={18} style={{ color: "var(--text-faint)" }} /></div>
-            <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "#10b98133", background: "#10b9810d" }}>
-              <div className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "#10b981" }}>Proposed</div>
+            <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", borderLeft: "2px solid #5f8169" }}>
+              <div className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "#5f8169" }}>Proposed</div>
               <div className="mt-1 break-words text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{proposed}</div>
             </div>
           </div>
@@ -311,8 +311,8 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
 
         {/* Exactly what approving does (real, mirrors backend execution) */}
         {d.execution_preview && (
-          <div className="flex items-start gap-2 rounded-sm border p-3" style={{ borderColor: d.execution_preview.side_effect ? "#d9770633" : "var(--border-soft)", background: d.execution_preview.side_effect ? "#d977060a" : "transparent" }}>
-            <PlayCircle size={14} className="mt-0.5 shrink-0" style={{ color: d.execution_preview.side_effect ? "#d97706" : "var(--text-faint)" }} />
+          <div className="flex items-start gap-2 rounded-sm border p-3" style={{ borderColor: d.execution_preview.side_effect ? "#97824f55" : "var(--border-soft)", background: d.execution_preview.side_effect ? "#97824f0d" : "transparent" }}>
+            <PlayCircle size={14} className="mt-0.5 shrink-0" style={{ color: d.execution_preview.side_effect ? "#97824f" : "var(--text-faint)" }} />
             <div>
               <div className="text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>If approved{d.execution_preview.side_effect ? " · runs an action" : " · advisory"}</div>
               <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-secondary)" }}>{d.execution_preview.text}</p>
@@ -377,12 +377,12 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
       {lane.open ? (
         <div className="flex items-center gap-2 border-t p-3" style={{ borderColor: "var(--border-soft)" }}>
           <button onClick={() => onResolve(d, "approve")} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-60"
-            style={{ borderColor: "color-mix(in srgb, #3f8f6e 55%, transparent)", background: "color-mix(in srgb, #3f8f6e 14%, transparent)", color: "#5fae8b" }}>
+            style={{ borderColor: "color-mix(in srgb, #5f8169 55%, transparent)", background: "color-mix(in srgb, #5f8169 14%, transparent)", color: "#5f8169" }}>
             {busy && acting?.action === "approve" ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Approve &amp; run
           </button>
           <button onClick={() => onResolve(d, "reject")} disabled={busy} className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
             style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-secondary)" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#c2566a"; e.currentTarget.style.color = "#c2566a"; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#9c6b72"; e.currentTarget.style.color = "#9c6b72"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>
             {busy && acting?.action === "reject" ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Reject
           </button>
@@ -394,7 +394,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           )}
         </div>
       ) : (
-        <div className="border-t p-3 text-center text-[12px] capitalize" style={{ borderColor: "var(--border-soft)", color: d.status === "approved" || d.status === "completed" ? "#10b981" : "#ef4444" }}>
+        <div className="border-t p-3 text-center text-[12px] capitalize" style={{ borderColor: "var(--border-soft)", color: d.status === "approved" || d.status === "completed" ? "#5f8169" : "#9c6b72" }}>
           {d.status} · resolved {relTime(d.resolved_at)} ago
         </div>
       )}

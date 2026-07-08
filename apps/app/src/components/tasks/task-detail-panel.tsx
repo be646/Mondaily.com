@@ -26,7 +26,7 @@ interface TaskView { user_id: string; user_name: string; viewed_at: string; }
 interface LinkedNode { id: string; object_type: string; data: Record<string, unknown>; }
 
 const LABEL_COLORS: Record<string, string> = {
-  "Help Needed": "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-400/10 border-blue-200 dark:border-blue-400/30",
+  "Help Needed": "text-[#717784] bg-[#717784]/10 border-[#717784]/25",
   "Blocked":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Waiting":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Bug":         "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-400/10 border-rose-200 dark:border-rose-400/30",
@@ -47,7 +47,7 @@ function relTime(iso: string) {
 }
 
 function Avatar({ name, size = 6 }: { name: string; size?: number }) {
-  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-blue-500/20 text-blue-600 dark:text-blue-400","bg-emerald-500/20 text-emerald-600 dark:text-emerald-400","bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-amber-500/20 text-amber-600 dark:text-amber-400","bg-[var(--accent)]/20 text-[var(--accent)] dark:text-[var(--accent)]"];
+  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#717784]/15 text-[#717784]","bg-[#5f8169]/15 text-[#5f8169]","bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#97824f]/15 text-[#97824f]","bg-[var(--accent)]/20 text-[var(--accent)] dark:text-[var(--accent)]"];
   const color = colors[(name.charCodeAt(0) ?? 0) % colors.length];
   const sz = `h-${size} w-${size}`;
   return <div className={`${sz} rounded-full ${color} flex items-center justify-center text-xs font-medium shrink-0`}>{name.charAt(0).toUpperCase()}</div>;
@@ -127,7 +127,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
 
         {seenByOthers.length > 0 && (
           <div className="flex items-center gap-1">
-            <CheckCheck size={11} className="text-blue-500 dark:text-blue-400"/>
+            <CheckCheck size={11} className="text-[#717784]"/>
             <div className="flex">
               {seenByOthers.slice(0, 3).map((v, i) => (
                 <div key={v.user_id} title={v.user_name}
@@ -148,14 +148,14 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
 // ── Status/Priority pill ───────────────────────────────────────────────────────
 const STATUS_META: Record<string, { label: string; dot: string }> = {
   todo:        { label: "To Do",        dot: "bg-stone-500" },
-  in_progress: { label: "In Progress",  dot: "bg-blue-400" },
-  review:      { label: "Review",       dot: "bg-yellow-400" },
-  done:        { label: "Done",         dot: "bg-emerald-400" },
+  in_progress: { label: "In Progress",  dot: "bg-[#717784]" },
+  review:      { label: "Review",       dot: "bg-[#97824f]" },
+  done:        { label: "Done",         dot: "bg-[#5f8169]" },
 };
 const PRIORITY_META: Record<string, { label: string; dot: string }> = {
   urgent: { label: "Urgent", dot: "bg-stone-500" },
-  high:   { label: "High",   dot: "bg-orange-400" },
-  medium: { label: "Medium", dot: "bg-yellow-400" },
+  high:   { label: "High",   dot: "bg-[#97824f]" },
+  medium: { label: "Medium", dot: "bg-[#97824f]" },
   low:    { label: "Low",    dot: "bg-stone-400" },
 };
 
@@ -611,7 +611,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                     <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{Math.round(checklist.length ? (completedCount/checklist.length)*100 : 0)}%</span>
                   </div>
                   <div className="h-1 w-full rounded-full" style={{ background: "var(--surface-hover)" }}>
-                    <div className="h-1 rounded-full bg-emerald-500 transition-all" style={{ width: `${checklist.length ? (completedCount/checklist.length)*100 : 0}%` }}/>
+                    <div className="h-1 rounded-full bg-[#5f8169] transition-all" style={{ width: `${checklist.length ? (completedCount/checklist.length)*100 : 0}%` }}/>
                   </div>
                 </div>
               )}
@@ -735,7 +735,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         </a>
                       )}
                       <a href={a.file_url} target="_blank" rel="noopener noreferrer"
-                        className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate block transition-colors">{a.file_name}</a>
+                        className="text-sm text-[#717784] hover:underline truncate block transition-colors">{a.file_name}</a>
                       <p className="text-[11px] mt-0.5" style={{ color: "var(--text-faint)" }}>{a.user_name} · {a.file_size > 0 ? `${(a.file_size/1024).toFixed(1)} KB` : "link"}</p>
                     </div>
                     <button onClick={() => apiClient.delete(`/tasks/${task.id}/attachments/${a.id}`).then(() => attachmentsQ.refetch())}
