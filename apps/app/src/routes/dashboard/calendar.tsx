@@ -79,10 +79,10 @@ function layoutDay(evs: CalEvent[], startH: number, endH: number): Placed[] {
 // reads rose; finance/billing amber; client/external green; everything else a neutral slate. No cyan
 // "AI-prepared" tone here because the event list carries no per-event prep signal (stays neutral).
 const TONE = {
-  slate: { edge: "#6f7683", tint: "rgba(111,118,131,0.10)" },
-  green: { edge: "#5f8a6a", tint: "rgba(95,138,106,0.10)" },
-  amber: { edge: "#a2854f", tint: "rgba(162,133,79,0.10)" },
-  rose:  { edge: "#a86a72", tint: "rgba(168,106,114,0.12)" },
+  slate: { edge: "#717784", tint: "rgba(113,119,132,0.07)" },
+  green: { edge: "#5f8169", tint: "rgba(95,129,105,0.07)" },
+  amber: { edge: "#97824f", tint: "rgba(151,130,79,0.07)" },
+  rose:  { edge: "#9c6b72", tint: "rgba(156,107,114,0.08)" },
 } as const;
 const FINANCE_RE = /\b(invoice|billing|payment|finance|budget|quote|renewal|pricing)\b/i;
 const EXTERNAL_RE = /\b(client|customer|external|prospect|demo|onboard\w*|kickoff|vendor|partner|intro)\b/i;
@@ -276,26 +276,26 @@ export function CalendarPage() {
       {/* One clean control bar: Today · ‹ › · range · Day/Week/Upcoming · New meeting. */}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
         <div className="flex items-center gap-2">
-          <button onClick={goToday} disabled={isAnchorToday && view !== "upcoming"} className="rounded-sm border px-2.5 py-1 text-[12px] font-medium transition-colors disabled:opacity-40" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{t("cal.today")}</button>
+          <button onClick={goToday} disabled={isAnchorToday && view !== "upcoming"} className="flex h-7 items-center rounded-sm border px-2.5 text-[12px] font-medium transition-colors disabled:opacity-40" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{t("cal.today")}</button>
           {view !== "upcoming" && (
             <div className="flex items-center gap-0.5">
               <button onClick={() => shift(-1)} aria-label={t("cal.prev")} className="btn-icon h-7 w-7"><ChevronLeft size={15} /></button>
               <button onClick={() => shift(1)} aria-label={t("cal.next")} className="btn-icon h-7 w-7"><ChevronRight size={15} /></button>
-              <span className="ml-1.5 text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{rangeLabel}</span>
+              <span className="ml-1 text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{rangeLabel}</span>
             </div>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-md border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+          <div className="inline-flex h-7 items-center rounded-sm border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
             {tabs.map(tab => (
               <button key={tab.k} onClick={() => setView(tab.k)}
-                className="rounded-[3px] px-2.5 py-1 text-[12px] font-medium transition-colors"
+                className="flex h-full items-center rounded-[3px] px-2.5 text-[12px] font-medium transition-colors"
                 style={view === tab.k ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
                 {tab.label}
               </button>
             ))}
           </div>
-          <button onClick={openCreate} className="flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
+          <button onClick={openCreate} className="flex h-7 shrink-0 items-center gap-1.5 rounded-sm border px-3 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
             <Plus size={13} /> {t("cal.new_meeting")}
           </button>
         </div>
@@ -306,17 +306,17 @@ export function CalendarPage() {
         <div className="min-w-0">
 
           {eventsQ.isLoading ? (
-            <div className="flex items-center gap-2 rounded-md border py-12 px-4 text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> {t("state.loading")}</div>
+            <div className="flex items-center gap-2 rounded-sm border py-12 px-4 text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> {t("state.loading")}</div>
           ) : eventsQ.isError ? (
-            <div className="rounded-md border py-12 text-center text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>Couldn't load your calendar. <button onClick={() => eventsQ.refetch()} className="underline">Retry</button></div>
+            <div className="rounded-sm border py-12 text-center text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>Couldn't load your calendar. <button onClick={() => eventsQ.refetch()} className="underline">Retry</button></div>
           ) : view === "today" ? (
             // Always a real day timeline — even with zero meetings, a subtle in-grid hint + suggestions.
-            <div className="relative overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="relative overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
               <TimeGrid days={[anchor]} events={events} selected={selected} onOpen={openEvent} onSlot={openSlot} lang={lang} single />
               {dayCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} t={t} />}
             </div>
           ) : view === "week" ? (
-            <div className="relative overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="relative overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
               <TimeGrid days={anchorWeek} events={events} selected={selected} onOpen={openEvent} onSlot={openSlot} lang={lang} />
               {weekCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} t={t} />}
             </div>
@@ -336,7 +336,7 @@ export function CalendarPage() {
 
         {/* Persistent Meeting Brief (desktop). Mobile uses the drawer below. */}
         <aside className="hidden lg:block">
-          <div className="sticky top-6 flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
+          <div className="sticky top-6 flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
             {openId ? <MeetingBriefBody id={openId} /> : <TodayBriefingPanel onOpen={openEvent} onFollowups={() => navigateTo("/tasks")} />}
           </div>
         </aside>
@@ -351,7 +351,7 @@ export function CalendarPage() {
 
 function EmptyState({ label, onNew, newLabel }: { label: string; onNew: () => void; newLabel: string }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-md border py-16 text-center" style={{ borderColor: "var(--border-soft)" }}>
+    <div className="flex flex-col items-center gap-3 rounded-sm border py-16 text-center" style={{ borderColor: "var(--border-soft)" }}>
       <CalendarDays size={22} style={{ color: "var(--text-faint)" }} />
       <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{label}</p>
       <button onClick={onNew} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
@@ -445,7 +445,7 @@ function TodayStrip({ onOpen }: { onOpen: (id: string) => void }) {
   const { t, lang } = useLanguage();
   const q = useQuery<TodayBrief>({ queryKey: ["calendar-brief-today"], queryFn: () => apiClient.get("/calendar/brief/today"), retry: false });
   const b = q.data;
-  if (q.isLoading || !b) return <div className="h-[64px] animate-pulse rounded-md border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }} />;
+  if (q.isLoading || !b) return <div className="h-[64px] animate-pulse rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }} />;
   const AMBER = "#a2854f";
 
   const Stat = ({ icon, n, label, tone }: { icon: React.ReactNode; n: number; label: string; tone?: string }) => (
@@ -457,7 +457,7 @@ function TodayStrip({ onOpen }: { onOpen: (id: string) => void }) {
   );
 
   return (
-    <div className="rounded-md border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="rounded-sm border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.brief_heading")}</span>
         <Stat icon={<CalendarDays size={14} />} n={b.count} label={t("cal.meetings_today")} />
@@ -538,15 +538,15 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
   return (
     <>
         {/* Meeting Brief header — Meeting Agent attribution, calm and flat (no colour wash). */}
-        <div className="border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}><CalendarClock size={12} style={{ color: "var(--text-muted)" }} /> {t("cal.prepared_by")} {t("cal.meeting_agent")}</span>
+            <span className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}><CalendarClock size={11} style={{ color: "var(--text-faint)" }} /> {t("cal.prepared_by")} {t("cal.meeting_agent")}</span>
             {onClose && <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>}
           </div>
-          <span className="mt-1.5 block truncate text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{e?.title ?? "…"}</span>
+          <span className="mt-1 block truncate text-[14.5px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{e?.title ?? "…"}</span>
         </div>
         {!e ? <div className="p-5"><Loader2 size={16} className="animate-spin" /></div> : (
-          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 text-[13px]">
+          <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 text-[13px]">
             <div style={{ color: "var(--text-secondary)" }}>
               {(() => { try { return new Date(e.start_at).toLocaleString(lang, { weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return e.start_at; } })()} – {fmtTime(e.end_at, lang)}
               {e.timezone && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}> · {e.timezone}</span>}
@@ -611,8 +611,8 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
             {/* AI Meeting Brief — source-backed, never fabricated. Flat section (thin divider, no card chrome). */}
             <div className="border-t pt-4" style={{ borderColor: "var(--border-soft)" }}>
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}><Wand2 size={13} style={{ color: "var(--text-muted)" }} /> {t("cal.ai_meeting_brief")}</span>
-                {!prepare.data && <button onClick={() => prepare.mutate()} disabled={prepare.isPending} className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{prepare.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {t("cal.prepare")}</button>}
+                <span className="flex items-center gap-1.5 text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}><span className="flex h-4 w-4 items-center justify-center rounded-sm" style={{ background: "var(--surface-hover)" }}><Wand2 size={11} style={{ color: "var(--text-secondary)" }} /></span> {t("cal.ai_meeting_brief")}</span>
+                {!prepare.data && <button onClick={() => prepare.mutate()} disabled={prepare.isPending} className="flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{prepare.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {t("cal.prepare")}</button>}
               </div>
               {prepare.data && <PrepView r={prepare.data} onOpenRecord={(oid, nid) => navigate(`/objects/${oid}/${nid}`)} />}
               {prepare.isError && <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>{t("cal.ai_unavailable")}</p>}
@@ -796,12 +796,12 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
   return (
     <>
       <div className="fixed inset-0 z-[200] bg-black/40" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-md border shadow-xl" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
-        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-sm border shadow-lg" style={{ background: "var(--surface-modal)", borderColor: "var(--border-strong)" }}>
+        <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
           <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("cal.new_meeting")}</span>
           <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>
         </div>
-        <div className="max-h-[70vh] space-y-3 overflow-y-auto p-4">
+        <div className="max-h-[70vh] space-y-3 overflow-y-auto p-5">
           <input autoFocus className={field} style={style} placeholder={t("cal.title_field")} value={title} onChange={e => setTitle(e.target.value)} />
           <div className="grid grid-cols-2 gap-2">
             <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.starts")}<input type="datetime-local" className={`${field} dark:[color-scheme:dark]`} style={style} value={start} onChange={e => setStart(e.target.value)} /></label>
@@ -836,7 +836,7 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
             <Video size={13} /> {t("cal.add_call")} {!callsEnabled && <span className="text-[11px]">— {t("cal.calls_off")}</span>}
           </label>
         </div>
-        <div className="flex justify-end gap-2 border-t px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="flex justify-end gap-2 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
           <button onClick={onClose} className="rounded-sm border px-3 py-1.5 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{t("common.cancel")}</button>
           <button onClick={() => valid && create.mutate()} disabled={!valid || create.isPending} className="rounded-sm border px-4 py-1.5 text-[12px] font-semibold disabled:opacity-50" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
             {create.isPending ? <Loader2 size={13} className="animate-spin" /> : t("common.save")}
