@@ -133,7 +133,7 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
                     {d.toLocaleDateString(lang, { weekday: "short" })} <span className="tabular-nums">{d.getDate()}</span>
                   </div>
                 )}
-                <div className="relative" style={{ height: bodyH, cursor: onSlot ? "pointer" : "default" }}
+                <div className="group relative" style={{ height: bodyH, cursor: onSlot ? "pointer" : "default" }}
                   onClick={onSlot ? (ev) => {
                     // Click an empty slot → open New Meeting with the clicked time (rounded to 15m), 30m default.
                     const rect = ev.currentTarget.getBoundingClientRect();
@@ -143,12 +143,14 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
                     onSlot(slot);
                   } : undefined}>
                   {isToday && <div className="absolute inset-0" style={{ background: "color-mix(in srgb, var(--text-muted) 4%, transparent)" }} />}
+                  {/* Subtle empty-slot hover affordance (only when slots are clickable) */}
+                  {onSlot && <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-150 group-hover:opacity-100" style={{ background: "color-mix(in srgb, var(--text-muted) 3.5%, transparent)" }} />}
                   {/* Horizontal hour lines — thin + soft */}
                   {hours.map((h, i) => <div key={h} className="absolute inset-x-0 border-t" style={{ top: i * HOUR_PX, borderColor: "color-mix(in srgb, var(--border-soft) 55%, transparent)" }} />)}
-                  {/* Current-time line (only on today, when in the visible window) */}
+                  {/* Current-time line (only on today, when in the visible window) — soft pulse on the dot */}
                   {isToday && nowVisible && (
                     <div className="absolute inset-x-0 z-30 flex items-center" style={{ top: nowTop }}>
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#b45454" }} />
+                      <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full" style={{ background: "#b45454" }} />
                       <span className="h-px flex-1" style={{ background: "color-mix(in srgb, #b45454 70%, transparent)" }} />
                     </div>
                   )}
@@ -271,7 +273,7 @@ export function CalendarPage() {
       </div>
 
       {/* Today intelligence strip — real data only, no fabricated scores/conflicts. */}
-      <TodayStrip onOpen={openEvent} />
+      <TodayStrip onOpen={openEvent} selectedId={selected} events={events.filter(e => isSameDay(new Date(e.start_at), now))} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} />
 
       {/* One clean control bar: Today · ‹ › · range · Day/Week/Upcoming · New meeting. */}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
@@ -390,39 +392,58 @@ function TodayBriefingPanel({ onOpen, onFollowups }: { onOpen: (id: string) => v
   const q = useQuery<TodayBrief>({ queryKey: ["calendar-brief-today"], queryFn: () => apiClient.get("/calendar/brief/today"), staleTime: 30_000 });
   const b = q.data;
   const AMBER = "#a2854f";
-  const RowLine = ({ label, value, tone }: { label: string; value: string; tone?: string }) => (
-    <div className="flex items-center justify-between px-4 py-2" style={{ borderTop: "1px solid var(--border-soft)" }}>
-      <span className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>{label}</span>
-      <span className="text-[12px] font-medium tabular-nums" style={{ color: tone ?? "var(--text-secondary)" }}>{value}</span>
-    </div>
+  // Meetings needing attention today (missing agenda and/or call link) — each clickable to open + fix.
+  const attention = (() => {
+    if (!b) return [] as { id: string; title: string; tags: string[] }[];
+    const m = new Map<string, { id: string; title: string; tags: string[] }>();
+    for (const x of b.no_agenda) m.set(x.id, { id: x.id, title: x.title, tags: [t("cal.needs_agenda")] });
+    if (b.calls_enabled) for (const x of b.no_call_link) { const e = m.get(x.id); if (e) e.tags.push(t("cal.needs_call")); else m.set(x.id, { id: x.id, title: x.title, tags: [t("cal.needs_call")] }); }
+    return [...m.values()];
+  })();
+  const SectionHead = ({ children }: { children: React.ReactNode }) => (
+    <p className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{children}</p>
   );
   return (
     <>
-      <div className="border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
-        <span className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}><CalendarClock size={12} style={{ color: "var(--text-muted)" }} /> {t("cal.meeting_agent")}</span>
-        <span className="mt-1 block text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("cal.today_briefing")}</span>
+      <div className="border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+        <span className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}><CalendarClock size={11} style={{ color: "var(--text-faint)" }} /> {t("cal.meeting_agent")}</span>
+        <span className="mt-1 block text-[14.5px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{t("cal.today_briefing")}</span>
       </div>
       {!b ? <div className="p-5"><Loader2 size={16} className="animate-spin" /></div> : (
-        <div className="flex-1 overflow-y-auto py-1 text-[13px]">
+        <div className="flex-1 overflow-y-auto pb-2 text-[13px]">
+          {/* Next meeting — clickable */}
+          <SectionHead>{t("cal.next_up")}</SectionHead>
           {b.next ? (
-            <button onClick={() => onOpen(b.next!.id)} className="flex w-full items-center justify-between px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
-              <span className="min-w-0"><span className="block text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.next_up")}</span><span className="block truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{b.next.title}</span></span>
-              <span className="flex items-center gap-1 text-[12px] tabular-nums" style={{ color: "var(--text-muted)" }}>{fmtTime(b.next.start_at, lang)} <ArrowRight size={12} style={{ color: "var(--text-faint)" }} /></span>
+            <button onClick={() => onOpen(b.next!.id)} className="flex w-full items-center justify-between px-4 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]">
+              <span className="block min-w-0 truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{b.next.title}</span>
+              <span className="flex shrink-0 items-center gap-1 text-[12px] tabular-nums" style={{ color: "var(--text-muted)" }}>{fmtTime(b.next.start_at, lang)} <ArrowRight size={12} style={{ color: "var(--text-faint)" }} /></span>
             </button>
-          ) : <div className="px-4 py-2.5 text-[12px]" style={{ color: "var(--text-muted)" }}>{t("cal.all_clear")}</div>}
-          <RowLine label={t("cal.meetings_today")} value={String(b.count)} />
-          <RowLine label={t("cal.overlaps")} value={String(b.conflicts.length)} tone={b.conflicts.length ? AMBER : undefined} />
-          <RowLine label={t("cal.needs_agenda")} value={String(b.no_agenda.length)} tone={b.no_agenda.length ? AMBER : undefined} />
-          {b.calls_enabled && <RowLine label={t("cal.needs_call")} value={String(b.no_call_link.length)} tone={b.no_call_link.length ? AMBER : undefined} />}
-          <button onClick={onFollowups} className="flex w-full items-center justify-between px-4 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]" style={{ borderTop: "1px solid var(--border-soft)" }}>
-            <span className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>{t("cal.open_followups")}</span>
+          ) : <div className="px-4 py-2 text-[12px]" style={{ color: "var(--text-muted)" }}>{t("cal.all_clear")}</div>}
+
+          {/* Needs attention — clickable rows that open the meeting to fix agenda / call link */}
+          <SectionHead>{t("cal.needs_attention")}</SectionHead>
+          {attention.length === 0 ? (
+            <div className="px-4 py-2 text-[12px]" style={{ color: "var(--text-faint)" }}>{t("cal.st_none_found")}</div>
+          ) : attention.map(a => (
+            <button key={a.id} onClick={() => onOpen(a.id)} className="flex w-full items-center justify-between gap-2 px-4 py-1.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
+              <span className="min-w-0 truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{a.title}</span>
+              <span className="flex shrink-0 items-center gap-1">{a.tags.map((tag, i) => <span key={i} className="rounded-sm px-1.5 py-px text-[10px] font-medium" style={{ background: "rgba(151,130,79,0.14)", color: AMBER }}>{tag}</span>)}</span>
+            </button>
+          ))}
+
+          {/* Open follow-ups → Tasks */}
+          <SectionHead>{t("cal.open_followups")}</SectionHead>
+          <button onClick={onFollowups} className="flex w-full items-center justify-between px-4 py-1.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
+            <span className="text-[12.5px]" style={{ color: "var(--text-secondary)" }}>{t("cal.all_tasks")}</span>
             <ArrowRight size={12} style={{ color: "var(--text-faint)" }} />
           </button>
+
+          {/* Suggested next action */}
           {b.suggestions.length > 0 && (
-            <div className="px-4 py-3" style={{ borderTop: "1px solid var(--border-soft)" }}>
-              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.next_action")}</p>
-              <div className="flex flex-wrap gap-1.5">{b.suggestions.map((s, i) => <span key={i} className="rounded-sm px-2 py-0.5 text-[11px]" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>{s}</span>)}</div>
-            </div>
+            <>
+              <SectionHead>{t("cal.next_action")}</SectionHead>
+              <div className="flex flex-wrap gap-1.5 px-4 pb-1">{b.suggestions.map((s, i) => <span key={i} className="rounded-sm px-2 py-0.5 text-[11px]" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>{s}</span>)}</div>
+            </>
           )}
         </div>
       )}
@@ -440,13 +461,22 @@ interface TodayBrief {
   calls_enabled: boolean;
 }
 
-/** Today intelligence strip — deterministic brief from real events (counts, next, overlaps, gaps). */
-function TodayStrip({ onOpen }: { onOpen: (id: string) => void }) {
+/**
+ * Today's Brief — an INTERACTIVE intelligence strip. Shows the deterministic counts (real, never
+ * fabricated) plus a compact clickable row per meeting today (time / title / attendees / agenda / call
+ * status). Clicking a row selects the meeting and opens the AI Meeting Brief. No meetings → a calm empty
+ * state with real suggested actions. AI-prep status isn't persisted per meeting, so it's shown neutrally.
+ */
+function TodayStrip({ onOpen, selectedId, events, onCreate, onDraft, onFollowups }: {
+  onOpen: (id: string) => void; selectedId: string | null; events: CalEvent[];
+  onCreate: () => void; onDraft: () => void; onFollowups: () => void;
+}) {
   const { t, lang } = useLanguage();
   const q = useQuery<TodayBrief>({ queryKey: ["calendar-brief-today"], queryFn: () => apiClient.get("/calendar/brief/today"), retry: false });
   const b = q.data;
-  if (q.isLoading || !b) return <div className="h-[64px] animate-pulse rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }} />;
-  const AMBER = "#a2854f";
+  if (q.isLoading || !b) return <div className="h-[72px] animate-pulse rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }} />;
+  const AMBER = "#a2854f", GREEN = "#5f8169";
+  const todays = [...events].sort((a, b2) => new Date(a.start_at).getTime() - new Date(b2.start_at).getTime());
 
   const Stat = ({ icon, n, label, tone }: { icon: React.ReactNode; n: number; label: string; tone?: string }) => (
     <div className="flex items-center gap-1.5">
@@ -455,32 +485,50 @@ function TodayStrip({ onOpen }: { onOpen: (id: string) => void }) {
       <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{label}</span>
     </div>
   );
+  const Ic = ({ on, warn, children }: { on: boolean; warn?: boolean; children: React.ReactNode }) => (
+    <span title="" style={{ color: on ? GREEN : warn ? AMBER : "var(--text-faint)", opacity: on || warn ? 0.9 : 0.5 }}>{children}</span>
+  );
 
   return (
-    <div className="rounded-sm border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.brief_heading")}</span>
+    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      {/* Header: Meeting Agent brief + live counts */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}><CalendarClock size={12} style={{ color: "var(--text-faint)" }} /> {t("cal.brief_heading")}</span>
         <Stat icon={<CalendarDays size={14} />} n={b.count} label={t("cal.meetings_today")} />
         {b.conflicts.length > 0 && <Stat icon={<AlertTriangle size={14} />} n={b.conflicts.length} label={t("cal.overlaps")} tone={AMBER} />}
         {b.no_agenda.length > 0 && <Stat icon={<FileText size={14} />} n={b.no_agenda.length} label={t("cal.needs_agenda")} />}
         {b.calls_enabled && b.no_call_link.length > 0 && <Stat icon={<Link2 size={14} />} n={b.no_call_link.length} label={t("cal.needs_call")} />}
       </div>
 
-      {(b.next || b.suggestions.length > 0 || b.count === 0) && (
-        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-3 border-t pt-2.5" style={{ borderColor: "var(--border-soft)" }}>
-          {b.next ? (
-            <button onClick={() => onOpen(b.next!.id)} className="flex items-center gap-2 text-left">
-              <span className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t("cal.next_up")}</span>
-              <span className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{b.next.title}</span>
-              <span className="text-[12px] tabular-nums" style={{ color: "var(--text-muted)" }}>{fmtTime(b.next.start_at, lang)}</span>
-              <ArrowRight size={13} style={{ color: "var(--text-faint)" }} />
-            </button>
-          ) : <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{t("cal.all_clear")}</span>}
-          {b.suggestions.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {b.suggestions.map((s, i) => <span key={i} className="rounded-sm px-2 py-0.5 text-[11px]" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>{s}</span>)}
-            </div>
-          )}
+      {/* Interactive meeting rows — click to open the AI Meeting Brief. */}
+      {todays.length > 0 ? (
+        <div className="border-t" style={{ borderColor: "var(--border-soft)" }}>
+          {todays.map((e, i) => {
+            const on = e.id === selectedId; const hasAgenda = !!(e.description ?? "").trim();
+            return (
+              <button key={e.id} onClick={() => onOpen(e.id)}
+                className="flex w-full items-center gap-3 px-4 py-1.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
+                style={{ ...(i > 0 ? { borderTop: "1px solid var(--border-soft)" } : {}), ...(on ? { background: "var(--surface-selected)" } : {}) }}>
+                <span className="w-12 shrink-0 text-[11px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{fmtTime(e.start_at, lang)}</span>
+                <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{e.title}</span>
+                <span className="flex shrink-0 items-center gap-2.5 text-[11px]" style={{ color: "var(--text-faint)" }}>
+                  <span className="flex items-center gap-1"><Users size={11} /> {e.attendees.length + 1}</span>
+                  <Ic on={hasAgenda} warn={!hasAgenda}><FileText size={12} /></Ic>
+                  <Ic on={!!e.call_url}><Video size={12} /></Ic>
+                  <Ic on={false}><Sparkles size={12} /></Ic>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t px-4 py-2.5 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
+          <span style={{ color: "var(--text-muted)" }}>{t("cal.all_clear")}</span>
+          <button onClick={onCreate} className="font-medium transition-colors hover:text-[color:var(--text-primary)]" style={{ color: "var(--text-secondary)" }}>{t("cal.new_meeting")}</button>
+          <span>·</span>
+          <button onClick={onDraft} className="font-medium transition-colors hover:text-[color:var(--text-primary)]" style={{ color: "var(--text-secondary)" }}>{t("cal.draft_agenda")}</button>
+          <span>·</span>
+          <button onClick={onFollowups} className="font-medium transition-colors hover:text-[color:var(--text-primary)]" style={{ color: "var(--text-secondary)" }}>{t("cal.suggest_followups")}</button>
         </div>
       )}
     </div>
@@ -537,13 +585,14 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
 
   return (
     <>
-        {/* Meeting Brief header — Meeting Agent attribution, calm and flat (no colour wash). */}
+        {/* AI Meeting Brief header — clearly framed, with Meeting Agent attribution. */}
         <div className="border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}><CalendarClock size={11} style={{ color: "var(--text-faint)" }} /> {t("cal.prepared_by")} {t("cal.meeting_agent")}</span>
+            <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}><Wand2 size={11} style={{ color: "var(--text-faint)" }} /> {t("cal.ai_meeting_brief")}</span>
             {onClose && <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>}
           </div>
           <span className="mt-1 block truncate text-[14.5px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{e?.title ?? "…"}</span>
+          <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{t("cal.prepared_by")} {t("cal.meeting_agent")}</span>
         </div>
         {!e ? <div className="p-5"><Loader2 size={16} className="animate-spin" /></div> : (
           <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 text-[13px]">
@@ -576,7 +625,7 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
                 : !prepare.data ? { label: t("cal.prepare"), run: () => prepare.mutate() }
                 : e.call_url ? { label: t("cal.join_call"), run: () => navigate(`/calls/${e.id}`) }
                 : null;
-              return <CoPilot signals={signals} action={action} label={t("cal.readiness")} nextLabel={t("cal.next_action")} />;
+              return <CoPilot signals={signals} action={action} label={t("cal.agent_checks")} nextLabel={t("cal.next_action")} />;
             })()}
 
             {/* Agenda — read-only with an inline Add/edit action (organizer). */}

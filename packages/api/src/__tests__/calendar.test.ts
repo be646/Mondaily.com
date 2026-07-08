@@ -404,6 +404,20 @@ describe("Smart Calendar UI — command-center layout", () => {
     expect(page).toMatch(/function TodayStrip/);
     expect(page).toMatch(/apiClient\.get\("\/calendar\/brief\/today"\)/);
   });
+  it("Today's Brief lists today's meetings as clickable rows that select the meeting", () => {
+    // a real per-meeting row (time/title/attendees + agenda/call icons) that opens the review panel
+    expect(page).toMatch(/todays\.map\(\(e, i\) =>/);
+    expect(page).toMatch(/<button key=\{e\.id\} onClick=\{\(\) => onOpen\(e\.id\)\}/);
+    // the strip is fed the real today events + selection, no fabricated meetings
+    expect(page).toMatch(/<TodayStrip onOpen=\{openEvent\} selectedId=\{selected\} events=\{events\.filter\(e => isSameDay\(new Date\(e\.start_at\), now\)\)\}/);
+    expect(page).toMatch(/const hasAgenda = !!\(e\.description \?\? ""\)\.trim\(\)/);   // agenda status from real field
+  });
+  it("Today briefing panel is an AI briefing with clickable Next / Needs-attention rows", () => {
+    expect(page).toMatch(/t\("cal\.needs_attention"\)/);
+    expect(page).toMatch(/attention\.map\(a => \(/);                          // needs-attention rows
+    expect(page).toMatch(/onClick=\{\(\) => onOpen\(a\.id\)\}/);              // each opens that meeting to fix it
+    expect(page).toMatch(/for \(const x of b\.no_agenda\)/);                  // built from REAL brief gaps
+  });
   it("event detail is an AI Meeting Brief with source-backed AI preparation", () => {
     expect(page).toMatch(/t\("cal\.ai_meeting_brief"\)/);   // framed as the AI Meeting Brief
     expect(page).toMatch(/apiClient\.post\(`\/calendar\/events\/\$\{id\}\/prepare`/);
@@ -561,7 +575,7 @@ describe("Calendar — grouped follow-ups (real tasks, deterministic)", () => {
 describe("Smart Calendar — Meeting Agent co-pilot readiness (real signals, no fabrication)", () => {
   it("renders a co-pilot readiness panel with agenda / call-link / prep / conflict signals", () => {
     expect(page).toMatch(/function CoPilot/);
-    expect(page).toMatch(/t\("cal\.readiness"\)/);
+    expect(page).toMatch(/t\("cal\.agent_checks"\)/);   // "Meeting Agent checks" strip
     expect(page).toMatch(/<CoPilot signals=\{signals\}/);
     expect(page).toMatch(/t\("cal\.sig_call"\)/);
     expect(page).toMatch(/t\("cal\.sig_prep"\)/);
