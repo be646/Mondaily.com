@@ -4,7 +4,7 @@ import {
   Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
   ChevronsUpDown, Plus, X, Receipt, TrendingUp,
   GitBranch, Activity, Layers, Check, ReceiptText, ShieldCheck,
-  FileSignature, Wallet, MessageCircle, Radar, Inbox, CalendarDays,
+  FileSignature, Wallet, MessageCircle, Radar, Inbox, CalendarDays, LifeBuoy,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -386,6 +386,12 @@ function NavGroup({ label, items, unreadCount }: {
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) {
+  // Platform-admin capability probe (Mondaily operators). false/error → link simply doesn't render.
+  const platformAdmin = useQuery<{ platform_admin: boolean }>({
+    queryKey: ["platform-admin-probe"],
+    queryFn: () => apiClient.get("/platform/support/me"),
+    staleTime: 5 * 60_000, retry: false,
+  }).data?.platform_admin === true;
   const navigate = useNavigate();
   const me = useCurrentUser(); // unified (sovereign) identity for profile display
   const sov = useSovereignAuthOptional();
@@ -607,6 +613,15 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
             <>
               <SidebarLists />
               <SidebarAsk />
+            </>
+          )}
+
+          {/* Mondaily-internal — only for PLATFORM_ADMIN_EMAILS operators (capability probe;
+              the API is hard-gated server-side regardless of what renders here). */}
+          {!collapsed && platformAdmin && (
+            <>
+              <SectionLabel label="Mondaily"/>
+              <NavItem to="/platform/support" label="Platform Support" icon={LifeBuoy} collapsed={false}/>
             </>
           )}
         </nav>

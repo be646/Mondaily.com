@@ -16,7 +16,7 @@ const STATUSES = ["open", "in_review", "waiting_on_user", "resolved", "closed"] 
 type Status = (typeof STATUSES)[number];
 
 interface TicketRow { id: string; category: string; subject: string; status: Status; created_by: string; created_at: string; last_updated: string; comment_count: number }
-interface Comment { author_id: string; author_role: "admin" | "requester"; body: string; at: string }
+interface Comment { author_id: string; author_role: "admin" | "requester" | "mondaily"; body: string; at: string }
 interface TicketDetail { id: string; category: string; subject: string; message: string; status: Status; created_by: string; created_at: string; comments: Comment[] }
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -132,10 +132,10 @@ function TicketPanel({ id, onClose, onChanged, statusLabel }: { id: string; onCl
             <div className="rounded-sm border p-3 text-[13px] whitespace-pre-wrap" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>{d.message}</div>
             <div className="space-y-2">
               {(d.comments ?? []).map((cm, i) => (
-                <div key={i} className={`max-w-[85%] rounded-md px-3.5 py-2.5 text-[13px] ${cm.author_role === "admin" ? "ml-auto rounded-br-sm" : "rounded-bl-sm"}`}
-                  style={{ background: cm.author_role === "admin" ? "var(--surface-selected)" : "var(--surface-card)", border: "1px solid var(--border-soft)", color: "var(--text-primary)" }}>
+                <div key={i} className={`max-w-[85%] rounded-md px-3.5 py-2.5 text-[13px] ${cm.author_role === "requester" ? "rounded-bl-sm" : "ml-auto rounded-br-sm"}`}
+                  style={{ background: cm.author_role === "requester" ? "var(--surface-card)" : "var(--surface-selected)", border: cm.author_role === "mondaily" ? "1px solid var(--border-strong)" : "1px solid var(--border-soft)", color: "var(--text-primary)" }}>
                   <p className="whitespace-pre-wrap">{cm.body}</p>
-                  <p className="mt-1 text-[10px] text-[var(--text-faint)]">{cm.author_role} · {new Date(cm.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                  <p className="mt-1 text-[10px] text-[var(--text-faint)]">{cm.author_role === "mondaily" ? "Mondaily Support" : cm.author_role} · {new Date(cm.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
                 </div>
               ))}
             </div>

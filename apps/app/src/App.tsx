@@ -59,6 +59,7 @@ import { CreditNoteDetailPage } from "./routes/dashboard/finance/[creditNoteId]"
 import { ApprovalsPage } from "./routes/dashboard/approvals";
 import { DecisionsPage } from "./routes/dashboard/decisions";
 const DiscoveryPage = lazy(() => import("./routes/dashboard/discovery").then(m => ({ default: m.DiscoveryPage })));
+const PlatformSupportPage = lazy(() => import("./routes/dashboard/platform-support").then(m => ({ default: m.PlatformSupportPage })));
 import { FinanceReportsPage } from "./routes/dashboard/finance/reports";
 import { QuotesPage } from "./routes/dashboard/finance/quotes";
 import { ExpensesPage } from "./routes/dashboard/finance/expenses";
@@ -161,6 +162,8 @@ export function App() {
         <Route path="approvals" element={<ApprovalsPage />} />
         <Route path="decisions" element={<DecisionsPage />} />
         <Route path="discovery" element={<DiscoveryPage />} />
+        {/* Mondaily-internal (PLATFORM_ADMIN_EMAILS): page self-gates via the capability probe; API is hard-gated. */}
+        <Route path="platform/support" element={<PlatformSupportPage />} />
         <Route path="settings" element={<SettingsLayout />}>
           <Route index element={<Navigate to="account" replace />} />
           <Route path="account" element={<AccountSettings />} />

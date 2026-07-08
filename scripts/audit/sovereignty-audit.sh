@@ -81,7 +81,7 @@ sec "9. Public route justification (routes without requireAuth must be explicitl
 ALLOWED='auth|public-ask|webhooks|status|health|onboarding|integrations|mcp|realtime'
 for f in $(ls "$API/routes"/*.ts); do
   base=$(basename "$f" .ts)
-  if grep -qE "requireAuth|requireJwt|requireAdmin" "$f"; then continue; fi
+  if grep -qE "requireAuth|requireJwt|requireAdmin|requirePlatformAdmin" "$f"; then continue; fi
   if echo "$base" | grep -qE "^($ALLOWED)$"; then ok "public (justified): $base"; else bad "route '$base' has no auth middleware and is not in the justified public allow-list"; fi
 done
 
