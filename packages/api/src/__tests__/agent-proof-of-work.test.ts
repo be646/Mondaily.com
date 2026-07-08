@@ -41,6 +41,29 @@ describe("Agent runners — proof-of-work steps (deal alerts + lead scoring)", (
   });
 });
 
+describe("No silent runs — every completeJob logs structured steps (honest zeros included)", () => {
+  const enrichRecord = readFileSync(fileURLToPath(new URL("../jobs/enrich-record.ts", import.meta.url)), "utf8");
+  it("no agent job completes with an empty steps array anywhere", () => {
+    for (const [name, src] of [["runners", runners], ["workflow", workflow], ["prospecting", prospecting], ["enrich-record", enrichRecord]] as const) {
+      expect(src, `${name} still has completeJob(..., [])`).not.toMatch(/completeJob\([^)]*,\s*\[\]\)/);
+    }
+  });
+  it("zero-work paths log honest zero steps, not fabricated activity", () => {
+    expect(runners).toMatch(/step\("Scanned 0 relationship contact\(s\)"\)/);
+    expect(runners).toMatch(/step\("Scanned invoices — 0 overdue"\)/);
+    expect(runners).toMatch(/step\("Scanned 0 deal\(s\)"\)/);
+    expect(enrichRecord).toMatch(/step\("Searched sources — no usable data found", \{ status: "info" \}\)/);
+  });
+  it("workflow + prospecting + enrichment log real count-driven steps", () => {
+    expect(workflow).toMatch(/step\(`Evaluated \$\{summary\.workflows_evaluated\} active workflow\(s\)`\)/);
+    expect(workflow).toMatch(/step\(`Queued \$\{summary\.actions_queued\} risky action\(s\) for approval`/);
+    expect(prospecting).toMatch(/step\(`Searched the web — \$\{searchResults\.length\} source\(s\)`/);
+    expect(prospecting).toMatch(/step\(`Extracted \$\{candidates\.length\} candidate\(s\)`\)/);
+    expect(runners).toMatch(/step\(`Selected \$\{enrichable\.length\} enrichable record\(s\) \(limit \$\{limit\}\)`\)/);
+    expect(enrichRecord).toMatch(/step\(`Wrote \$\{flatKeys\.length\} field\(s\) to the record`/);
+  });
+});
+
 describe("Decision Queue dedup — no duplicate pending decisions on re-runs", () => {
   it("prospecting dedupes pending candidates by exact title before inserting", () => {
     expect(prospecting).toMatch(/\.eq\("agent_name", "prospecting"\)\.eq\("status", "pending"\)/);

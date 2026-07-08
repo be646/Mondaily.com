@@ -1,5 +1,5 @@
 import { supabase } from "@mondaily/db/client";
-import { startJob, completeJob, failJob } from "../lib/agent-logger";
+import { startJob, completeJob, failJob, step } from "../lib/agent-logger";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { createNotification } from "../lib/notify";
 
@@ -326,7 +326,12 @@ export async function runWorkflowsForWorkspace(
       }
     }
 
-    await completeJob(jobId, { ...summary, summary: `${summary.records_matched} record(s) matched, ${summary.actions_executed} action(s) run, ${summary.actions_queued} queued` }, []);
+    await completeJob(jobId, { ...summary, summary: `${summary.records_matched} record(s) matched, ${summary.actions_executed} action(s) run, ${summary.actions_queued} queued` }, [
+      step(`Evaluated ${summary.workflows_evaluated} active workflow(s)`),
+      step(`${summary.records_matched} record(s) matched trigger conditions`),
+      step(`Executed ${summary.actions_executed} safe action(s)`, { status: "ok" }),
+      step(`Queued ${summary.actions_queued} risky action(s) for approval`, { status: summary.actions_queued ? "warn" : "ok" }),
+    ]);
     return summary;
   } catch (err: unknown) {
     await failJob(jobId, err instanceof Error ? err.message : String(err));

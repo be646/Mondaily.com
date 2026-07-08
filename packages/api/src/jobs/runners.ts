@@ -157,7 +157,7 @@ export async function runRelationshipHealth(workspaceId?: string): Promise<{ tot
         .from("nodes").select("id, data, object_type").eq("workspace_id", wsId).limit(5000);
       const nodes = allNodes ?? [];
       const contacts = nodes.filter((n) => isRelationshipType(String(n.object_type)));
-      if (!contacts.length) { await completeJob(jobId, { scored: 0 }, []); continue; }
+      if (!contacts.length) { await completeJob(jobId, { scored: 0, summary: "No relationship contacts to score" }, [step("Scanned 0 relationship contact(s)"), step("Nothing to score", { status: "info" })]); continue; }
 
       // Bulk-load signals ONCE instead of 3 queries per contact (which times
       // out on serverless for hundreds of records). Build in-memory tallies.
@@ -321,7 +321,7 @@ export async function runInvoiceChaser(workspaceId?: string): Promise<{ total_ch
         .from("nodes").select("id, workspace_id, data")
         .eq("workspace_id", wsId).eq("object_type", "invoice")
         .lt("data->>due_date", today).in("data->>status", ["sent", "overdue", "unpaid"]) as { data: { id: string; data: InvoiceData }[] | null };
-      if (!invoices?.length) { await completeJob(jobId, { chased: 0, message: "no overdue invoices" }, []); continue; }
+      if (!invoices?.length) { await completeJob(jobId, { chased: 0, message: "no overdue invoices" }, [step("Scanned invoices — 0 overdue"), step("No chases needed", { status: "info" })]); continue; }
 
       const steps: unknown[] = []; let chased = 0;
       for (const invoice of invoices) {
@@ -399,7 +399,7 @@ export async function runRecurringInvoices(workspaceId?: string): Promise<{ gene
       const { data: invoices } = await supabase.from("nodes").select("id, workspace_id, data")
         .eq("workspace_id", wsId).eq("object_type", "invoice")
         .eq("data->>is_recurring", "true").neq("data->>status", "cancelled") as { data: { id: string; data: RecurringData }[] | null };
-      if (!invoices?.length) { await completeJob(jobId, { generated: 0, message: "no recurring invoices" }, []); continue; }
+      if (!invoices?.length) { await completeJob(jobId, { generated: 0, message: "no recurring invoices" }, [step("Scanned invoices — 0 recurring templates due"), step("Nothing to generate", { status: "info" })]); continue; }
 
       let generated = 0; const steps: unknown[] = [];
       for (const invoice of invoices) {
@@ -502,7 +502,10 @@ export async function runEnrichWorkspace(workspaceId: string, limit = 10): Promi
         });
       }
     }
-    await completeJob(jobId, { enriched_count: enrichedCount, summary: `Enriched ${enrichedCount} record(s)` }, []);
+    await completeJob(jobId, { enriched_count: enrichedCount, candidates: enrichable.length, summary: `Enriched ${enrichedCount} record(s)` }, [
+      step(`Selected ${enrichable.length} enrichable record(s) (limit ${limit})`),
+      step(`Enriched ${enrichedCount} record(s) with new fields`, { status: enrichedCount ? "ok" : "info" }),
+    ]);
     return { enriched_count: enrichedCount, records: enrichable.length };
   } catch (err: unknown) {
     await failJob(jobId, err instanceof Error ? err.message : String(err));
@@ -566,7 +569,7 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
         .from("nodes").select("id, data, object_type, updated_at").eq("workspace_id", wsId).limit(5000);
       const nodes = allNodes ?? [];
       const deals = nodes.filter((n) => isDealType(String(n.object_type)));
-      if (!deals.length) { await completeJob(jobId, { scored: 0 }, []); continue; }
+      if (!deals.length) { await completeJob(jobId, { scored: 0, summary: "No deals to score" }, [step("Scanned 0 deal(s)"), step("Nothing to score", { status: "info" })]); continue; }
 
       // Recent activity per deal (last 30d) — one query, counted in memory.
       const since = new Date(Date.now() - 30 * 86400000).toISOString();

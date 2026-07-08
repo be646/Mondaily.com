@@ -5,7 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import * as ubc from "@mondaily/db/ubc";
 import { inngest } from "../lib/inngest";
-import { startJob, completeJob, failJob } from "../lib/agent-logger";
+import { startJob, completeJob, failJob, step } from "../lib/agent-logger";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { sovereignSearchUrls, sovereignScrape } from "../lib/sovereign-search";
 
@@ -323,7 +323,12 @@ export async function runProspecting(
     await completeJob(jobId, {
       created: result.created, existing: result.existing,
       queued_for_review: result.queued_for_review, added_to_list: result.added_to_list,
-    }, []);
+    }, [
+      step(`Searched the web — ${searchResults.length} source(s)`, { sources: searchResults.slice(0, 5).map(r => ({ title: r.title, url: r.url })) }),
+      step(`Extracted ${candidates.length} candidate(s)`),
+      step(`${result.existing} already in the graph`, { status: "info" }),
+      step(`Created ${result.created}, queued ${result.queued_for_review} for review`, { status: result.queued_for_review ? "warn" : "ok" }),
+    ]);
 
     return result;
   } catch (err: unknown) {

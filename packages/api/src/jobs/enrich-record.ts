@@ -1,6 +1,6 @@
 import { inngest, type Events } from "../lib/inngest";
 import { sovereignHeaders } from "../lib/sovereign-search";
-import { startJob, completeJob, failJob, logStep } from "../lib/agent-logger";
+import { startJob, completeJob, failJob, logStep, step } from "../lib/agent-logger";
 import { supabase } from "@mondaily/db/client";
 import { createNotification } from "../lib/notify";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
@@ -267,7 +267,7 @@ export const enrichRecord = inngest.createFunction(
         // No source data to extract from (the self-hosted search appliance may be
         // offline, or the record genuinely has nothing to enrich). This is a clean
         // SKIP, not a failure — don't pollute the agent's error count.
-        await completeJob(jobId, { enriched: false, skipped: true, reason: "no source data found (search appliance may be offline)" }, []);
+        await completeJob(jobId, { enriched: false, skipped: true, reason: "no source data found (search appliance may be offline)" }, [step("Searched sources — no usable data found", { status: "info" }), step("Skipped cleanly (0 fields written)", { status: "info" })]);
         return { enriched: false, reason: "no_data" };
       }
 
@@ -296,7 +296,7 @@ export const enrichRecord = inngest.createFunction(
         source: { source_agent: "graph-enrichment", agent_job_id: jobId, node_id: nodeId, object_type: objectType },
       });
 
-      await completeJob(jobId, { fields_added: flatKeys.length, fields: flat, usage }, []);
+      await completeJob(jobId, { fields_added: flatKeys.length, fields: flat, usage }, [step(`Extracted ${flatKeys.length} field(s) from sources`), step(`Wrote ${flatKeys.length} field(s) to the record`, { status: "ok" })]);
       return { enriched: true, fields_count: Object.keys(fields).length };
     } catch (err: unknown) {
       // Best-effort enrichment: do NOT re-throw. Re-throwing turned every failure
@@ -307,7 +307,7 @@ export const enrichRecord = inngest.createFunction(
       // clean skip that retries on the next scheduled run, NOT a real failure.
       if (/\b429\b|rate limit/i.test(msg)) {
         console.warn(`[enrich-record] rate-limited for node ${nodeId} — skipping this run`);
-        if (jobId) await completeJob(jobId, { enriched: false, skipped: true, reason: "rate limited — will retry next run" }, []).catch(() => {});
+        if (jobId) await completeJob(jobId, { enriched: false, skipped: true, reason: "rate limited — will retry next run" }, [step("AI provider rate-limited — skipped, will retry next run", { status: "warn" })]).catch(() => {});
         return { enriched: false, reason: "rate_limited" };
       }
       console.error(`[enrich-record] failed for node ${nodeId} (non-fatal):`, msg);

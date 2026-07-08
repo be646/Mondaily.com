@@ -376,7 +376,7 @@ function RecordIdCell({ id }: { id: string }) {
         title="Copy ID"
       >
         {copied
-          ? <Check size={9} className="text-emerald-400"/>
+          ? <Check size={9} className="text-[#5f8169]"/>
           : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
         }
       </button>
@@ -388,10 +388,10 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
   const initials = String(name).split(" ").map(w => w[0] ?? "").filter(Boolean).join("").slice(0, 2).toUpperCase() || "?";
   const colors = [
     "bg-stone-500/20 text-stone-400",
-    "bg-blue-500/20 text-blue-400",
-    "bg-emerald-500/20 text-emerald-400",
+    "bg-[#717784]/15 text-[#717784]",
+    "bg-[#5f8169]/15 text-[#5f8169]",
     "bg-stone-500/20 text-stone-400",
-    "bg-amber-500/20 text-amber-400",
+    "bg-[#97824f]/15 text-[#97824f]",
   ];
   const color = colors[(initials.charCodeAt(0) || 0) % colors.length];
   return (
@@ -408,23 +408,32 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
   );
 }
 
-// ─── Stage / Status colours ───────────────────────────────────────────────────
+// ─── Stage / Status colours — matte semantic tones (flat-line design system) ─────────────────────
+// One tint-based style per tone works in both light and dark mode (opacity tints over the surface).
+// slate = in-flight/informational, green = success, amber = attention, rose = problem, stone = neutral.
+const TONE_PILL = {
+  stone: { pill: "bg-stone-500/[.08] text-stone-500 border-stone-500/20 dark:text-stone-400", dot: "bg-stone-500" },
+  slate: { pill: "bg-[#717784]/10 text-[#5d6470] border-[#717784]/25 dark:text-[#8d94a1]",    dot: "bg-[#717784]" },
+  green: { pill: "bg-[#5f8169]/10 text-[#4d6a56] border-[#5f8169]/25 dark:text-[#7fa189]",    dot: "bg-[#5f8169]" },
+  amber: { pill: "bg-[#97824f]/10 text-[#7d6b3e] border-[#97824f]/25 dark:text-[#b3a06f]",    dot: "bg-[#97824f]" },
+  rose:  { pill: "bg-[#9c6b72]/10 text-[#84555c] border-[#9c6b72]/25 dark:text-[#b98d94]",    dot: "bg-[#9c6b72]" },
+} as const;
 const STAGE_STYLES: Record<string, { pill: string; dot: string }> = {
-  "Lead":         { pill: "bg-stone-100 text-stone-600 border-stone-200 dark:bg-stone-900/60 dark:text-stone-400 dark:border-stone-700/50",       dot: "bg-stone-500" },
-  "New":          { pill: "bg-stone-100 text-stone-600 border-stone-200 dark:bg-stone-900/60 dark:text-stone-400 dark:border-stone-700/50",       dot: "bg-stone-500" },
-  "Qualified":    { pill: "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/40 dark:text-sky-400 dark:border-sky-900/40",          dot: "bg-sky-400" },
-  "In Progress":  { pill: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/40",    dot: "bg-amber-400" },
-  "Not Started":  { pill: "bg-stone-100 text-stone-500 border-stone-200 dark:bg-stone-900/60 dark:text-stone-500 dark:border-stone-700/50",       dot: "bg-stone-600" },
-  "Completed":    { pill: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50", dot: "bg-emerald-400" },
-  "Complete":     { pill: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50", dot: "bg-emerald-400" },
-  "Proposal":     { pill: "bg-stone-50 text-stone-700 border-stone-200 dark:bg-stone-950/40 dark:text-stone-400 dark:border-stone-900/40", dot: "bg-stone-400" },
-  "Negotiation":  { pill: "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/40", dot: "bg-orange-400" },
-  "Closed Won":   { pill: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50", dot: "bg-emerald-400" },
-  "Closed Lost":  { pill: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/50",       dot: "bg-rose-400" },
-  "On Hold":      { pill: "bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-400 dark:border-yellow-900/40", dot: "bg-yellow-400" },
-  "Cancelled":    { pill: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40",       dot: "bg-rose-400" },
-  "Active":       { pill: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50", dot: "bg-emerald-400" },
-  "Churned":      { pill: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/40",       dot: "bg-rose-400" },
+  "Lead":         TONE_PILL.stone,
+  "New":          TONE_PILL.stone,
+  "Qualified":    TONE_PILL.slate,
+  "In Progress":  TONE_PILL.amber,
+  "Not Started":  TONE_PILL.stone,
+  "Completed":    TONE_PILL.green,
+  "Complete":     TONE_PILL.green,
+  "Proposal":     TONE_PILL.slate,
+  "Negotiation":  TONE_PILL.amber,
+  "Closed Won":   TONE_PILL.green,
+  "Closed Lost":  TONE_PILL.rose,
+  "On Hold":      TONE_PILL.amber,
+  "Cancelled":    TONE_PILL.rose,
+  "Active":       TONE_PILL.green,
+  "Churned":      TONE_PILL.rose,
 };
 
 export const DEFAULT_STAGE_OPTIONS = [
@@ -609,7 +618,7 @@ function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
               </div>
               <button
                 onClick={() => updateRule(i, { dir: rule.dir === "asc" ? "desc" : "asc" })}
-                className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold transition-colors whitespace-nowrap ${rule.dir === "asc" ? "bg-sky-500/10 text-sky-400 border border-sky-500/20" : "bg-amber-500/10 text-amber-400 border border-amber-500/20"}`}
+                className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold transition-colors whitespace-nowrap ${rule.dir === "asc" ? "bg-[#717784]/10 text-[#717784] border border-[#717784]/25" : "bg-[#97824f]/10 text-[#97824f] border border-[#97824f]/25"}`}
               >
                 {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
               </button>
@@ -692,7 +701,7 @@ interface Member { id: string; name: string; email: string; avatar_url?: string;
 
 // Deterministic avatar colour from name string
 function avatarColor(name: string) {
-  const colors = ["bg-stone-500","bg-orange-500","bg-amber-500","bg-emerald-500","bg-sky-500","bg-stone-500","bg-pink-500","bg-teal-500"];
+  const colors = ["bg-stone-500","bg-[#97824f]","bg-[#717784]","bg-[#5f8169]","bg-stone-600","bg-[#9c6b72]","bg-stone-400","bg-[#5f8169]"];
   let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
   return colors[Math.abs(h) % colors.length];
 }
@@ -772,18 +781,18 @@ const WORLD_COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","A
 // ─── Add column dropdown ───────────────────────────────────────────────────────
 // Column type presets — each maps to a clear semantic meaning
 const COLUMN_TYPE_PRESETS = [
-  { type: "status",    label: "Status",     hint: "Current state (New, In Progress, Done…)",   icon: ToggleLeft,   color: "text-sky-400"     },
+  { type: "status",    label: "Status",     hint: "Current state (New, In Progress, Done…)",   icon: ToggleLeft,   color: "text-[#717784]"     },
   { type: "stage",     label: "Stage",      hint: "Pipeline stage (Lead, Proposal, Closed…)",  icon: ChevronRight, color: "text-stone-400"  },
-  { type: "assignee",  label: "Assignee",   hint: "Team member responsible for this record",   icon: UserCircle2,  color: "text-emerald-400" },
-  { type: "owner",     label: "Owner",      hint: "Deal owner or account owner",               icon: User,         color: "text-amber-400"   },
-  { type: "tag",       label: "Tag",        hint: "Label or category tag (multi-select)",      icon: Tag,          color: "text-pink-400"    },
-  { type: "category",  label: "Category",   hint: "Pick a category with icon",                 icon: LayoutGrid,   color: "text-orange-400"  },
-  { type: "country",   label: "Country",    hint: "Country picker from world countries list",  icon: Globe,        color: "text-teal-400"    },
+  { type: "assignee",  label: "Assignee",   hint: "Team member responsible for this record",   icon: UserCircle2,  color: "text-[#5f8169]" },
+  { type: "owner",     label: "Owner",      hint: "Deal owner or account owner",               icon: User,         color: "text-[#97824f]"   },
+  { type: "tag",       label: "Tag",        hint: "Label or category tag (multi-select)",      icon: Tag,          color: "text-[#9c6b72]"    },
+  { type: "category",  label: "Category",   hint: "Pick a category with icon",                 icon: LayoutGrid,   color: "text-[#97824f]"  },
+  { type: "country",   label: "Country",    hint: "Country picker from world countries list",  icon: Globe,        color: "text-[#5f8169]"    },
   { type: "record_id", label: "Record ID",  hint: "Auto-generated unique ID for this record",  icon: Hash,         color: "text-[var(--text-secondary)]"    },
   { type: "text",      label: "Text",       hint: "Free text field",                           icon: Type,         color: "text-stone-400"   },
-  { type: "number",    label: "Number",     hint: "Numeric value, amount, count",              icon: Hash,         color: "text-blue-400"    },
-  { type: "date",      label: "Date",       hint: "Date or deadline",                          icon: Calendar,     color: "text-rose-400"    },
-  { type: "relation",  label: "Relation",   hint: "Link to a record in another object",        icon: Link2,        color: "text-blue-400"    },
+  { type: "number",    label: "Number",     hint: "Numeric value, amount, count",              icon: Hash,         color: "text-[#717784]"    },
+  { type: "date",      label: "Date",       hint: "Date or deadline",                          icon: Calendar,     color: "text-[#9c6b72]"    },
+  { type: "relation",  label: "Relation",   hint: "Link to a record in another object",        icon: Link2,        color: "text-[#717784]"    },
 ] as const;
 
 type ColPresetType = typeof COLUMN_TYPE_PRESETS[number]["type"];
@@ -899,10 +908,10 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
           <div className="flex flex-col gap-1">
             {objectDefs.map(obj => (
               <button key={obj.slug} onClick={() => setRelatedTarget(obj.slug)}
-                className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${relatedTarget === obj.slug ? "bg-blue-500/15 text-blue-300 border border-blue-500/30" : "text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] border border-transparent"}`}>
-                <Link2 size={11} className={relatedTarget === obj.slug ? "text-blue-400" : "text-stone-600"}/>
+                className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${relatedTarget === obj.slug ? "bg-[#717784]/12 text-[#717784] border border-[#717784]/30" : "text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] border border-transparent"}`}>
+                <Link2 size={11} className={relatedTarget === obj.slug ? "text-[#717784]" : "text-stone-600"}/>
                 {obj.label || obj.slug}
-                {relatedTarget === obj.slug && <Check size={10} className="ml-auto text-blue-400"/>}
+                {relatedTarget === obj.slug && <Check size={10} className="ml-auto text-[#717784]"/>}
               </button>
             ))}
             {objectDefs.length === 0 && <p className="text-[10px] text-[var(--text-secondary)]">No other objects</p>}
@@ -1025,7 +1034,7 @@ function CountryCell({ value, onSelect }: { value: string; onSelect: (v: string)
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-        {value ? <><Globe size={11} className="text-teal-400/60 shrink-0"/>{value}</> : <span className="text-stone-700 hover:text-stone-500">— select country</span>}
+        {value ? <><Globe size={11} className="text-[#5f8169]/70 shrink-0"/>{value}</> : <span className="text-stone-700 hover:text-stone-500">— select country</span>}
       </button>
       {open && (
         <PortalDropdown triggerRef={ref} onClose={() => { setOpen(false); setSearch(""); }} align="left" className="w-52">
@@ -1061,12 +1070,12 @@ const PRESET_TAG_COLORS = [
 // tagColor kept for backwards compat with filter badges
 function tagColor(val: string) {
   const TAG_COLORS = [
-    { bg: "bg-sky-500/15 border-sky-500/30 text-sky-300", dot: "bg-sky-400" },
+    { bg: "bg-[#717784]/12 border-[#717784]/30 text-[#717784]", dot: "bg-[#717784]" },
     { bg: "bg-stone-500/15 border-stone-500/30 text-stone-300", dot: "bg-stone-400" },
-    { bg: "bg-emerald-500/15 border-emerald-500/30 text-emerald-300", dot: "bg-emerald-400" },
-    { bg: "bg-amber-500/15 border-amber-500/30 text-amber-300", dot: "bg-amber-400" },
-    { bg: "bg-rose-500/15 border-rose-500/30 text-rose-300", dot: "bg-rose-400" },
-    { bg: "bg-pink-500/15 border-pink-500/30 text-pink-300", dot: "bg-pink-400" },
+    { bg: "bg-[#5f8169]/12 border-[#5f8169]/30 text-[#5f8169]", dot: "bg-[#5f8169]" },
+    { bg: "bg-[#97824f]/12 border-[#97824f]/30 text-[#97824f]", dot: "bg-[#97824f]" },
+    { bg: "bg-[#9c6b72]/12 border-[#9c6b72]/30 text-[#9c6b72]", dot: "bg-[#9c6b72]" },
+    { bg: "bg-[#9c6b72]/12 border-[#9c6b72]/30 text-[#9c6b72]", dot: "bg-[#9c6b72]" },
   ];
   let h = 0; for (let i = 0; i < val.length; i++) h = (h * 31 + val.charCodeAt(i)) & 0xffffffff;
   return TAG_COLORS[Math.abs(h) % TAG_COLORS.length]!;
@@ -1292,7 +1301,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
       <button ref={btnRef} onClick={openDropdown}
         className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors max-w-[140px] truncate">
         {current
-          ? <><Link2 size={10} className="text-blue-400 shrink-0"/><span className="truncate">{current.label}</span></>
+          ? <><Link2 size={10} className="text-[#717784] shrink-0"/><span className="truncate">{current.label}</span></>
           : <span className="text-stone-700">— link record</span>
         }
       </button>
@@ -1302,7 +1311,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
           <div className="px-2 pb-1 pt-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               placeholder={`Search ${targetSlug || "records"}…`}
-              className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-blue-500/40 placeholder:text-[var(--text-secondary)]"/>
+              className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[#717784]/50 placeholder:text-[var(--text-secondary)]"/>
           </div>
           <div className="max-h-48 overflow-y-auto">
             {current && (
@@ -1316,10 +1325,10 @@ function RelationCell({ value, relatedObjectType, onSave }: {
               const isActive = current?.id === r.id;
               return (
                 <button key={r.id} onClick={() => { onSave({ id: r.id, label: lbl }); setOpen(false); }}
-                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-[var(--surface-hover)] ${isActive ? "text-blue-400" : "text-[var(--text-secondary)]"}`}>
-                  <Link2 size={10} className={isActive ? "text-blue-400" : "text-stone-600"}/>
+                  className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-[var(--surface-hover)] ${isActive ? "text-[#717784]" : "text-[var(--text-secondary)]"}`}>
+                  <Link2 size={10} className={isActive ? "text-[#717784]" : "text-stone-600"}/>
                   <span className="truncate flex-1 text-left">{lbl}</span>
-                  {isActive && <Check size={10} className="text-blue-400 shrink-0"/>}
+                  {isActive && <Check size={10} className="text-[#717784] shrink-0"/>}
                 </button>
               );
             })}
@@ -1625,9 +1634,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     const stageCol = columns.find(c => c.toLowerCase().includes("stage") || c === "status" || c === "deal_status");
     if (!stageCol) return "";
     const val = String(record.data[stageCol] ?? "");
-    if (val === "Closed Won" || val === "Complete" || val === "Completed" || val === "Active") return "border-l-2 border-l-emerald-500/40";
+    if (val === "Closed Won" || val === "Complete" || val === "Completed" || val === "Active") return "border-l-2 border-l-[#5f8169]/50";
     if (val === "Closed Lost" || val === "Cancelled" || val === "Churned") return "border-l-2 border-l-rose-500/30";
-    if (val === "In Progress" || val === "Negotiation") return "border-l-2 border-l-amber-500/30";
+    if (val === "In Progress" || val === "Negotiation") return "border-l-2 border-l-[#97824f]/40";
     return "";
   }
 
@@ -1928,7 +1937,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     // URLs — show as clickable link, not raw
     if (typeof val === "string" && (col === "linkedin" || col === "twitter" || col === "website" || col === "domain") && val.startsWith("http")) {
       return (
-        <a href={val} target="_blank" rel="noreferrer" className="text-blue-400/70 hover:text-blue-400 text-[11px] underline underline-offset-2 truncate block max-w-[140px]" onClick={e => e.stopPropagation()}>
+        <a href={val} target="_blank" rel="noreferrer" className="text-[#717784] hover:text-[var(--text-primary)] text-[11px] underline underline-offset-2 truncate block max-w-[140px]" onClick={e => e.stopPropagation()}>
           {val.replace(/^https?:\/\/(www\.)?/, "").slice(0, 30)}
         </a>
       );
@@ -2142,7 +2151,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 {[...allColumnsWithCustom, "__updated_at"].map(c => <option key={c} value={c} className="bg-[var(--surface-card)] text-[var(--text-primary)]">{colLabel(c)}</option>)}
               </select>
               <button onClick={() => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, dir: x.dir === "asc" ? "desc" : "asc" } : x))}
-                className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${rule.dir === "asc" ? "bg-sky-500/10 text-sky-400" : "bg-amber-500/10 text-amber-400"}`}>
+                className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${rule.dir === "asc" ? "bg-[#717784]/10 text-[#717784]" : "bg-[#97824f]/10 text-[#97824f]"}`}>
                 {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
               </button>
               <button onClick={() => setSortRules(r => r.filter((_, idx) => idx !== i))} className="text-[var(--text-secondary)] hover:text-stone-400"><X size={10}/></button>
@@ -2219,7 +2228,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 onKeyDown={e => { if (e.key === "Enter") saveCurrentView(); if (e.key === "Escape") setSaveViewOpen(false); }}
                 placeholder="Name this view…"
                 className="bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-1 text-[11px] text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)] placeholder:text-[var(--text-secondary)] w-36"/>
-              <button onClick={saveCurrentView} className="text-emerald-400 hover:text-emerald-300 transition-colors p-0.5"><Check size={12}/></button>
+              <button onClick={saveCurrentView} className="text-[#5f8169] hover:opacity-80 transition-colors p-0.5"><Check size={12}/></button>
               <button onClick={() => setSaveViewOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] p-0.5"><X size={11}/></button>
             </div>
           ) : (

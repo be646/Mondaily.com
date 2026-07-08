@@ -58243,7 +58243,7 @@ ${webContext}` : "No web context found \u2014 return only fields you are certain
         );
       }
       if (Object.keys(fields).length === 0) {
-        await completeJob(jobId, { enriched: false, skipped: true, reason: "no source data found (search appliance may be offline)" }, []);
+        await completeJob(jobId, { enriched: false, skipped: true, reason: "no source data found (search appliance may be offline)" }, [step2("Searched sources \u2014 no usable data found", { status: "info" }), step2("Skipped cleanly (0 fields written)", { status: "info" })]);
         return { enriched: false, reason: "no_data" };
       }
       const flat = flattenEnrichment(fields);
@@ -58261,13 +58261,13 @@ ${webContext}` : "No web context found \u2014 return only fields you are certain
         metadata: { fields_added: flatKeys.length },
         source: { source_agent: "graph-enrichment", agent_job_id: jobId, node_id: nodeId, object_type: objectType2 }
       });
-      await completeJob(jobId, { fields_added: flatKeys.length, fields: flat, usage }, []);
+      await completeJob(jobId, { fields_added: flatKeys.length, fields: flat, usage }, [step2(`Extracted ${flatKeys.length} field(s) from sources`), step2(`Wrote ${flatKeys.length} field(s) to the record`, { status: "ok" })]);
       return { enriched: true, fields_count: Object.keys(fields).length };
     } catch (err2) {
       const msg = err2 instanceof Error ? err2.message : String(err2);
       if (/\b429\b|rate limit/i.test(msg)) {
         console.warn(`[enrich-record] rate-limited for node ${nodeId} \u2014 skipping this run`);
-        if (jobId) await completeJob(jobId, { enriched: false, skipped: true, reason: "rate limited \u2014 will retry next run" }, []).catch(() => {
+        if (jobId) await completeJob(jobId, { enriched: false, skipped: true, reason: "rate limited \u2014 will retry next run" }, [step2("AI provider rate-limited \u2014 skipped, will retry next run", { status: "warn" })]).catch(() => {
         });
         return { enriched: false, reason: "rate_limited" };
       }
@@ -58380,7 +58380,7 @@ async function runRelationshipHealth(workspaceId) {
       const nodes = allNodes ?? [];
       const contacts = nodes.filter((n2) => isRelationshipType(String(n2.object_type)));
       if (!contacts.length) {
-        await completeJob(jobId, { scored: 0 }, []);
+        await completeJob(jobId, { scored: 0, summary: "No relationship contacts to score" }, [step2("Scanned 0 relationship contact(s)"), step2("Nothing to score", { status: "info" })]);
         continue;
       }
       const openTasksByRecord = /* @__PURE__ */ new Map();
@@ -58552,7 +58552,7 @@ async function runInvoiceChaser(workspaceId) {
       const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
       const { data: invoices } = await supabase.from("nodes").select("id, workspace_id, data").eq("workspace_id", wsId).eq("object_type", "invoice").lt("data->>due_date", today).in("data->>status", ["sent", "overdue", "unpaid"]);
       if (!invoices?.length) {
-        await completeJob(jobId, { chased: 0, message: "no overdue invoices" }, []);
+        await completeJob(jobId, { chased: 0, message: "no overdue invoices" }, [step2("Scanned invoices \u2014 0 overdue"), step2("No chases needed", { status: "info" })]);
         continue;
       }
       const steps = [];
@@ -58633,7 +58633,7 @@ async function runRecurringInvoices(workspaceId) {
       const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0] ?? "";
       const { data: invoices } = await supabase.from("nodes").select("id, workspace_id, data").eq("workspace_id", wsId).eq("object_type", "invoice").eq("data->>is_recurring", "true").neq("data->>status", "cancelled");
       if (!invoices?.length) {
-        await completeJob(jobId, { generated: 0, message: "no recurring invoices" }, []);
+        await completeJob(jobId, { generated: 0, message: "no recurring invoices" }, [step2("Scanned invoices \u2014 0 recurring templates due"), step2("Nothing to generate", { status: "info" })]);
         continue;
       }
       let generated = 0;
@@ -58741,7 +58741,10 @@ async function runEnrichWorkspace(workspaceId, limit2 = 10) {
         });
       }
     }
-    await completeJob(jobId, { enriched_count: enrichedCount, summary: `Enriched ${enrichedCount} record(s)` }, []);
+    await completeJob(jobId, { enriched_count: enrichedCount, candidates: enrichable.length, summary: `Enriched ${enrichedCount} record(s)` }, [
+      step2(`Selected ${enrichable.length} enrichable record(s) (limit ${limit2})`),
+      step2(`Enriched ${enrichedCount} record(s) with new fields`, { status: enrichedCount ? "ok" : "info" })
+    ]);
     return { enriched_count: enrichedCount, records: enrichable.length };
   } catch (err2) {
     await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
@@ -58788,7 +58791,7 @@ async function runLeadScoring(workspaceId) {
       const nodes = allNodes ?? [];
       const deals = nodes.filter((n2) => isDealType(String(n2.object_type)));
       if (!deals.length) {
-        await completeJob(jobId, { scored: 0 }, []);
+        await completeJob(jobId, { scored: 0, summary: "No deals to score" }, [step2("Scanned 0 deal(s)"), step2("Nothing to score", { status: "info" })]);
         continue;
       }
       const since = new Date(Date.now() - 30 * 864e5).toISOString();
@@ -59377,7 +59380,12 @@ async function runWorkflowsForWorkspace(workspaceId, opts = {}) {
         });
       }
     }
-    await completeJob(jobId, { ...summary, summary: `${summary.records_matched} record(s) matched, ${summary.actions_executed} action(s) run, ${summary.actions_queued} queued` }, []);
+    await completeJob(jobId, { ...summary, summary: `${summary.records_matched} record(s) matched, ${summary.actions_executed} action(s) run, ${summary.actions_queued} queued` }, [
+      step2(`Evaluated ${summary.workflows_evaluated} active workflow(s)`),
+      step2(`${summary.records_matched} record(s) matched trigger conditions`),
+      step2(`Executed ${summary.actions_executed} safe action(s)`, { status: "ok" }),
+      step2(`Queued ${summary.actions_queued} risky action(s) for approval`, { status: summary.actions_queued ? "warn" : "ok" })
+    ]);
     return summary;
   } catch (err2) {
     await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
@@ -61716,7 +61724,12 @@ async function runProspecting(workspaceId, userId, input) {
       existing: result.existing,
       queued_for_review: result.queued_for_review,
       added_to_list: result.added_to_list
-    }, []);
+    }, [
+      step2(`Searched the web \u2014 ${searchResults.length} source(s)`, { sources: searchResults.slice(0, 5).map((r2) => ({ title: r2.title, url: r2.url })) }),
+      step2(`Extracted ${candidates.length} candidate(s)`),
+      step2(`${result.existing} already in the graph`, { status: "info" }),
+      step2(`Created ${result.created}, queued ${result.queued_for_review} for review`, { status: result.queued_for_review ? "warn" : "ok" })
+    ]);
     return result;
   } catch (err2) {
     const msg = err2 instanceof Error ? err2.message : String(err2);
