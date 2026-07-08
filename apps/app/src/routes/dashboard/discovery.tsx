@@ -318,21 +318,21 @@ export function DiscoveryPage() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSubmit(input); } }}
                 rows={1}
-                placeholder={suggestions?.discovery_placeholder ?? "Find leads or reviews — e.g. “companies matching your ideal customer” or “reviews about a competitor”"}
+                placeholder={suggestions?.discovery_placeholder ?? "Find leads or reviews…"}
                 className="max-h-32 w-full resize-none bg-transparent text-[14px] outline-none"
                 style={{ color: "var(--text-primary)" }}
               />
               <div className="mt-2 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <button onClick={() => setDeep((d) => !d)} title="Deep mode visits each business's own site to harvest emails & phones"
-                    className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
-                    style={{ borderColor: deep ? "var(--section-accent)" : "var(--border-soft)", color: deep ? "var(--section-accent)" : "var(--text-muted)" }}>
-                    <Sparkles size={12} /> Deep {deep ? "on" : "off"}
+                    className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
+                    style={deep ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                    <Sparkles size={12} /> Deep
                   </button>
                   <button onClick={() => setExhaustive((e) => !e)} title="Exhaustive sweep loops the city's districts for full coverage (uses more Google Places credits)"
-                    className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
-                    style={{ borderColor: exhaustive ? "var(--section-accent)" : "var(--border-soft)", color: exhaustive ? "var(--section-accent)" : "var(--text-muted)" }}>
-                    <Globe2 size={12} /> Exhaustive {exhaustive ? "on" : "off"}
+                    className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
+                    style={exhaustive ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                    <Globe2 size={12} /> Exhaustive
                   </button>
                 </div>
                 <button onClick={() => onSubmit(input)} disabled={!input.trim() || busy}
@@ -341,9 +341,6 @@ export function DiscoveryPage() {
                 </button>
               </div>
             </div>
-            <p className="mt-1.5 text-center text-[10.5px]" style={{ color: "var(--text-faint)" }}>
-              Every result is bound to a real source page — Discovery never invents leads or reviews.
-            </p>
           </div>
         </>
       )}
@@ -682,8 +679,8 @@ function ModuleStrip() {
       <span className="text-[10px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Pipeline</span>
       {DISCOVERY_MODULES.map((m, i) => (
         <span key={m.key} className="inline-flex items-center gap-1">
-          <span title={m.hint} className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-            <m.Icon size={10} style={{ color: "var(--section-accent)" }} /> {m.label}
+          <span title={m.hint} className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[10.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+            <m.Icon size={10} style={{ color: "var(--text-faint)" }} /> {m.label}
           </span>
           {i < DISCOVERY_MODULES.length - 1 && <ArrowRight size={9} style={{ color: "var(--text-faint)" }} />}
         </span>

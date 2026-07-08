@@ -59,7 +59,7 @@ export function MessagesPage() {
           <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-muted)" }}>{t("inbox.subtitle")}</p>
         </div>
         <button onClick={() => setPickerOpen(true)}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium text-white" style={{ background: "var(--section-accent)" }}>
+          className="flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
           <Plus size={13} /> {t("inbox.new_message")}
         </button>
       </div>
@@ -77,7 +77,7 @@ export function MessagesPage() {
             <div className="px-4 py-12 text-center">
               <InboxIcon size={20} className="mx-auto mb-2.5" style={{ color: "var(--text-faint)" }} />
               <p className="mb-3 text-[12.5px]" style={{ color: "var(--text-muted)" }}>{t("inbox.empty_title")}</p>
-              <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
+              <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]"
                 style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
                 <Plus size={13} /> {t("inbox.message_teammate")}
               </button>
@@ -106,7 +106,7 @@ export function MessagesPage() {
         {active ? <Thread otherId={active} live={live.current} onSent={() => { qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onArchived={() => { setActive(""); qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onBack={() => setActive("")} />
           : <div className="hidden flex-col items-center justify-center gap-3 rounded-sm border lg:flex" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", minHeight: 320 }}>
               <p className="text-[13px]" style={{ color: "var(--text-faint)" }}>{t("inbox.select_conversation")}</p>
-              <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
+              <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]"
                 style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
                 <Plus size={13} /> {t("inbox.new_message")}
               </button>
@@ -224,11 +224,11 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
             <input autoFocus value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); aiDraft(); } }}
               placeholder={draft.trim() ? "How should I rewrite it?" : "What do you want to say?"}
-              className="flex-1 rounded-lg border bg-transparent px-2.5 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
-            <button onClick={aiDraft} disabled={!aiPrompt.trim() || aiBusy} className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>{aiBusy ? <Loader2 size={13} className="animate-spin" /> : "Draft"}</button>
+              className="flex-1 rounded-sm border bg-transparent px-2.5 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+            <button onClick={aiDraft} disabled={!aiPrompt.trim() || aiBusy} className="rounded-sm border px-3 py-1.5 text-[12px] font-semibold disabled:opacity-50" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>{aiBusy ? <Loader2 size={13} className="animate-spin" /> : "Draft"}</button>
             <button onClick={() => { setAiOpen(false); setAiError(""); }} className="btn-icon h-8 w-8"><X size={14} /></button>
           </div>
-          {aiError && <p className="mt-1 text-[11px]" style={{ color: "#e11d48" }}>{aiError}</p>}
+          {aiError && <p className="mt-1 text-[11px]" style={{ color: "#9c6b72" }}>{aiError}</p>}
         </div>
       )}
 
@@ -242,7 +242,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
           {send.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} {t("inbox.send")}
         </button>
       </div>
-      {send.isError && <p className="px-4 pb-2 text-[11.5px]" style={{ color: "#e11d48" }}>Couldn't send — {(send.error as Error)?.message ?? "try again"}.</p>}
+      {send.isError && <p className="px-4 pb-2 text-[11.5px]" style={{ color: "#9c6b72" }}>Couldn't send — {(send.error as Error)?.message ?? "try again"}.</p>}
     </div>
   );
 }
@@ -265,7 +265,7 @@ function NewMessageModal({ onClose, onPick }: { onClose: () => void; onPick: (us
   return (
     <>
       <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border shadow-2xl" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
+      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-sm border shadow-lg" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
         <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
           <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("inbox.new_message")}</span>
           <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>

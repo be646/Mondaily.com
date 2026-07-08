@@ -154,15 +154,24 @@ export function DecisionsPage() {
         <div className="surface-card rounded-sm p-5 text-[13px]" style={{ color: "var(--text-faint)" }}>Couldn't load the Decision Queue right now. Refresh, or check back shortly.</div>
       ) : (
         <>
-          {/* Filters */}
+          {/* Filter bar — compact dropdown groups; active selections echo as small removable chips.
+              (Replaces the old wall of agent/type/risk chip buttons; every option is still reachable.) */}
           {laneItems.length > 0 && (
-            <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px]">
-              <FilterChips label="Agent" value={agentFilter} options={agents.map(a => ({ v: a, l: agentByRaw(a).name.replace(" Agent", "") }))} onChange={setAgentFilter} />
-              <FilterChips label="Type" value={typeFilter} options={types.map(t => ({ v: t, l: t.replace(/_/g, " ") }))} onChange={setTypeFilter} />
-              <FilterChips label="Risk" value={riskFilter} options={[{ v: "high", l: "High" }, { v: "medium", l: "Med" }, { v: "low", l: "Low" }]} onChange={(v) => setRiskFilter(v as Decision["risk_level"] | null)} dot={(v) => RISK_DOT[v as Decision["risk_level"]]} />
+            <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
+              <FilterSelect label="Agent" value={agentFilter} options={agents.map(a => ({ v: a, l: agentByRaw(a).name.replace(" Agent", "") }))} onChange={setAgentFilter} />
+              <FilterSelect label="Type" value={typeFilter} options={types.map(t => ({ v: t, l: t.replace(/_/g, " ") }))} onChange={setTypeFilter} />
+              <FilterSelect label="Risk" value={riskFilter} options={[{ v: "high", l: "High" }, { v: "medium", l: "Medium" }, { v: "low", l: "Low" }]} onChange={(v) => setRiskFilter(v as Decision["risk_level"] | null)} />
               {(assignees.length > 0) && (
-                <FilterChips label="Reviewer" value={assigneeFilter} onChange={setAssigneeFilter}
+                <FilterSelect label="Reviewer" value={assigneeFilter} onChange={setAssigneeFilter}
                   options={[{ v: "__none", l: "Unassigned" }, ...assignees.map(a => ({ v: a, l: memberLabel(memberList, a) ?? "Assigned" }))]} />
+              )}
+              {(agentFilter || typeFilter || riskFilter || assigneeFilter) && (
+                <span className="flex flex-wrap items-center gap-1.5">
+                  {agentFilter && <ActiveFilterChip label={agentByRaw(agentFilter).name.replace(" Agent", "")} onClear={() => setAgentFilter(null)} />}
+                  {typeFilter && <ActiveFilterChip label={typeFilter.replace(/_/g, " ")} onClear={() => setTypeFilter(null)} />}
+                  {riskFilter && <ActiveFilterChip label={riskFilter} dot={RISK_DOT[riskFilter]} onClear={() => setRiskFilter(null)} />}
+                  {assigneeFilter && <ActiveFilterChip label={assigneeFilter === "__none" ? "Unassigned" : (memberLabel(memberList, assigneeFilter) ?? "Assigned")} onClear={() => setAssigneeFilter(null)} />}
+                </span>
               )}
             </div>
           )}
@@ -243,19 +252,35 @@ export function DecisionsPage() {
   );
 }
 
-function FilterChips<T extends string>({ label, value, options, onChange, dot }: { label: string; value: T | null; options: { v: T; l: string }[]; onChange: (v: T | null) => void; dot?: (v: T) => string }) {
+/**
+ * Compact filter group — a small labelled dropdown instead of a wall of chips. Every option stays
+ * reachable (native select), but only ~28px of horizontal space is used per group. Active selections
+ * are echoed as removable chips by ActiveFilterChip next to the bar.
+ */
+function FilterSelect<T extends string>({ label, value, options, onChange }: { label: string; value: T | null; options: { v: T; l: string }[]; onChange: (v: T | null) => void }) {
   if (options.length <= 1) return null;
   return (
-    <div className="inline-flex items-center gap-1 rounded-sm border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-      <span className="px-1.5 text-[10px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</span>
-      <button onClick={() => onChange(null)} className="rounded-md px-2 py-0.5" style={!value ? { background: "color-mix(in srgb, var(--section-accent) 12%, transparent)", color: "var(--section-accent)" } : { color: "var(--text-muted)" }}>All</button>
-      {options.map(o => (
-        <button key={o.v} onClick={() => onChange(value === o.v ? null : o.v)} className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 capitalize"
-          style={value === o.v ? { background: "color-mix(in srgb, var(--section-accent) 12%, transparent)", color: "var(--section-accent)" } : { color: "var(--text-muted)" }}>
-          {dot && <span className="h-1.5 w-1.5 rounded-full" style={{ background: dot(o.v) }} />}{o.l}
-        </button>
-      ))}
-    </div>
+    <label className="inline-flex items-center gap-1.5">
+      <span className="text-[10px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</span>
+      <select value={value ?? ""} onChange={(e) => onChange((e.target.value || null) as T | null)}
+        className="ui-select h-7 rounded-sm pr-7 pl-2 text-[11.5px] capitalize" style={{ maxWidth: 150 }}>
+        <option value="">All</option>
+        {options.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
+      </select>
+    </label>
+  );
+}
+
+/** A small removable chip echoing one active filter. */
+function ActiveFilterChip({ label, dot, onClear }: { label: string; dot?: string; onClear: () => void }) {
+  return (
+    <button onClick={onClear} title="Clear filter"
+      className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[11px] transition-colors hover:bg-[var(--surface-hover)]"
+      style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
+      {dot && <span className="h-1.5 w-1.5 rounded-full" style={{ background: dot }} />}
+      <span className="capitalize">{label}</span>
+      <XCircle size={10} style={{ color: "var(--text-faint)" }} />
+    </button>
   );
 }
 

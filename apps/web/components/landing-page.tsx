@@ -1198,6 +1198,7 @@ function HeroPipelinePreview() {
           style={{ background: "#9fb08f" }}
         />
         <span className="text-[11px]" style={{ color: "#9fb08f" }}>agent-monitored</span>
+        <span className="ml-2 rounded-sm border border-black/[.08] px-1.5 py-px text-[10px] text-zinc-400">Simulated preview</span>
       </div>
 
       {/* Stats bar */}
@@ -1207,7 +1208,7 @@ function HeroPipelinePreview() {
         <span className="text-zinc-500">Won this month <span className="text-zinc-700">£40k</span></span>
       </div>
 
-      {/* Live activity ticker */}
+      {/* Demo activity ticker (simulated preview, labeled above) */}
       <div className="border-b border-black/[.05] px-4 py-2 font-mono text-[11px]" style={{ background: "rgba(159,176,143,0.04)", color: "#9fb08f" }}>
         <AnimatePresence mode="wait">
           <motion.span
