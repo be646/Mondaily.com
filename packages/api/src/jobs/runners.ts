@@ -4,6 +4,7 @@ import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignWebContext } from "../lib/sovereign-search";
 import { createNotification } from "../lib/notify";
 import { runDiscoveryMonitors } from "./social-discovery";
+import { runMeetingAgent } from "./meeting-agent";
 
 // ── Security primitives (exported so the AI-security test suite can assert these
 //    defenses never regress across model upgrades) ────────────────────────────
@@ -732,5 +733,7 @@ export async function runAllDaily(): Promise<Record<string, unknown>> {
   // Saved Discovery searches ("watch this search") — re-run each monitor; the fingerprint-keyed
   // upsert means only genuinely NEW results are added, and the owner is notified about the delta.
   results.discovery_monitors = await runDiscoveryMonitors().catch((e) => ({ error: String(e) }));
+  // Meeting Agent daily sweep — real per-workspace scheduled runs (conflicts → Decision Queue, deduped).
+  results.meeting_agent = await runMeetingAgent().catch((e) => ({ error: String(e) }));
   return results;
 }

@@ -59337,6 +59337,120 @@ init_ai_gateway();
 init_sovereign_search();
 init_notify();
 init_social_discovery();
+
+// src/jobs/meeting-agent.ts
+init_client();
+var startMs = (m2) => new Date(m2.start_at).getTime();
+var endMs = (m2) => new Date(m2.end_at || m2.start_at).getTime();
+function titleTokens(text) {
+  const stop = /* @__PURE__ */ new Set(["the", "and", "for", "with", "meeting", "call", "sync", "weekly", "review", "team", "about", "from", "into", "this", "that", "our"]);
+  return new Set((text || "").toLowerCase().match(/[a-z0-9][a-z0-9-]{3,}/g)?.filter((w2) => !stop.has(w2)) ?? []);
+}
+function relatedFollowUps(events, tasks2) {
+  const meetingTokens = events.flatMap((e2) => [...titleTokens(e2.title ?? "")]);
+  if (meetingTokens.length === 0) return [];
+  const wanted = new Set(meetingTokens);
+  return tasks2.filter((t3) => {
+    const tt2 = titleTokens(t3.title);
+    for (const w2 of tt2) if (wanted.has(w2)) return true;
+    return false;
+  });
+}
+function analyzeMeetings(events) {
+  const active = events.filter((e2) => (e2.status ?? "scheduled") !== "cancelled" && !Number.isNaN(startMs(e2)));
+  const sorted = [...active].sort((a2, b2) => startMs(a2) - startMs(b2));
+  const conflicts = [];
+  for (let i2 = 0; i2 < sorted.length; i2++) {
+    for (let j2 = i2 + 1; j2 < sorted.length; j2++) {
+      const a2 = sorted[i2], b2 = sorted[j2];
+      if (startMs(b2) >= endMs(a2)) break;
+      if (startMs(a2) < endMs(b2) && startMs(b2) < endMs(a2)) conflicts.push([a2, b2]);
+    }
+  }
+  const missingAgenda = active.filter((e2) => !(e2.description ?? "").trim());
+  const missingCall = active.filter((e2) => !e2.call_url);
+  return { active, conflicts, missingAgenda, missingCall };
+}
+async function runMeetingAgentForWorkspace(workspaceId, trigger) {
+  const jobId = await startJob({ workspace_id: workspaceId, agent_name: "meeting", trigger_type: trigger, input: {} });
+  try {
+    const start = /* @__PURE__ */ new Date();
+    start.setHours(0, 0, 0, 0);
+    const horizon = new Date(start);
+    horizon.setDate(horizon.getDate() + 7);
+    const { data } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).eq("object_type", "calendar_event").gte("data->>start_at", start.toISOString()).lt("data->>start_at", horizon.toISOString()).order("data->>start_at", { ascending: true }).limit(500);
+    const events = (data ?? []).map((n2) => {
+      const d2 = n2.data ?? {};
+      return { id: n2.id, title: String(d2.title ?? ""), start_at: String(d2.start_at ?? ""), end_at: String(d2.end_at ?? ""), description: String(d2.description ?? ""), call_url: d2.call_url ?? null, status: String(d2.status ?? "scheduled") };
+    });
+    const a2 = analyzeMeetings(events);
+    let followUps = [];
+    if (a2.active.length > 0) {
+      const { data: taskRows } = await supabase.from("tasks").select("id, title").eq("workspace_id", workspaceId).eq("completed", false).limit(500);
+      followUps = relatedFollowUps(a2.active, (taskRows ?? []).map((r2) => ({ id: String(r2.id), title: String(r2.title ?? "") })));
+    }
+    const steps = [
+      step2(`Loaded ${a2.active.length} meeting(s)`, { detail: "today + next 7 days" }),
+      step2(`Found ${a2.conflicts.length} conflict(s)`, { status: a2.conflicts.length ? "warn" : "ok" }),
+      step2(`Found ${a2.missingAgenda.length} missing agenda(s)`, { status: a2.missingAgenda.length ? "warn" : "ok" }),
+      step2(`Found ${a2.missingCall.length} missing call link(s)`, { status: a2.missingCall.length ? "warn" : "ok" }),
+      step2(`Found ${followUps.length} related follow-up(s)`, { status: followUps.length ? "info" : "ok" })
+    ];
+    let queued = 0;
+    for (const [x2, y2] of a2.conflicts) {
+      const sourceId = [x2.id, y2.id].sort().join("__");
+      const { data: existing } = await supabase.from("decision_queue").select("id").eq("workspace_id", workspaceId).eq("source_type", "calendar_conflict").eq("source_id", sourceId).eq("agent_name", "meeting").eq("status", "pending").maybeSingle();
+      if (existing) continue;
+      const { error } = await supabase.from("decision_queue").insert({
+        workspace_id: workspaceId,
+        source_type: "calendar_conflict",
+        source_id: sourceId,
+        agent_name: "meeting",
+        title: `Overlapping meetings: ${x2.title || "Untitled"} & ${y2.title || "Untitled"}`,
+        summary: `These two meetings overlap in time.`,
+        recommended_action: "Reschedule one of the meetings",
+        risk_level: "medium",
+        evidence: [
+          { type: "calendar_event", title: x2.title || "Untitled", node_id: x2.id, match_reason: "overlaps", timestamp: x2.start_at },
+          { type: "calendar_event", title: y2.title || "Untitled", node_id: y2.id, match_reason: "overlaps", timestamp: y2.start_at }
+        ]
+      });
+      if (!error) queued++;
+    }
+    steps.push(step2(`Queued ${queued} attention item(s)`, { status: queued ? "warn" : "ok" }));
+    const output = {
+      meetings: a2.active.length,
+      conflicts: a2.conflicts.length,
+      missing_agenda: a2.missingAgenda.length,
+      missing_call_link: a2.missingCall.length,
+      related_followups: followUps.length,
+      queued,
+      summary: `Checked ${a2.active.length} meeting(s): ${a2.conflicts.length} conflict(s), ${a2.missingAgenda.length} without agenda, ${a2.missingCall.length} without call link`
+    };
+    await completeJob(jobId, output, steps);
+    return output;
+  } catch (err2) {
+    await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
+    throw err2;
+  }
+}
+async function runMeetingAgent(workspaceId) {
+  if (workspaceId) return runMeetingAgentForWorkspace(workspaceId, "manual");
+  const { data } = await supabase.from("workspaces").select("id");
+  let conflicts = 0, queued = 0, ran = 0;
+  for (const w2 of data ?? []) {
+    try {
+      const r2 = await runMeetingAgentForWorkspace(String(w2.id), "scheduled");
+      conflicts += r2.conflicts;
+      queued += r2.queued;
+      ran++;
+    } catch {
+    }
+  }
+  return { workspaces: ran, conflicts, queued };
+}
+
+// src/jobs/runners.ts
 function clampScore(n2) {
   return Math.max(0, Math.min(100, Math.round(Number.isFinite(n2) ? n2 : 0)));
 }
@@ -59979,6 +60093,7 @@ async function runAllDaily() {
   results.deal_alerts = await runDealAlerts().catch((e2) => ({ error: String(e2) }));
   results.invoice_chaser = await runInvoiceChaser().catch((e2) => ({ error: String(e2) }));
   results.discovery_monitors = await runDiscoveryMonitors().catch((e2) => ({ error: String(e2) }));
+  results.meeting_agent = await runMeetingAgent().catch((e2) => ({ error: String(e2) }));
   return results;
 }
 
@@ -64714,105 +64829,6 @@ User: ${lastMsg.content}` : lastMsg.content;
 
 // src/routes/agents.ts
 init_client();
-
-// src/jobs/meeting-agent.ts
-init_client();
-var startMs = (m2) => new Date(m2.start_at).getTime();
-var endMs = (m2) => new Date(m2.end_at || m2.start_at).getTime();
-function titleTokens(text) {
-  const stop = /* @__PURE__ */ new Set(["the", "and", "for", "with", "meeting", "call", "sync", "weekly", "review", "team", "about", "from", "into", "this", "that", "our"]);
-  return new Set((text || "").toLowerCase().match(/[a-z0-9][a-z0-9-]{3,}/g)?.filter((w2) => !stop.has(w2)) ?? []);
-}
-function relatedFollowUps(events, tasks2) {
-  const meetingTokens = events.flatMap((e2) => [...titleTokens(e2.title ?? "")]);
-  if (meetingTokens.length === 0) return [];
-  const wanted = new Set(meetingTokens);
-  return tasks2.filter((t3) => {
-    const tt2 = titleTokens(t3.title);
-    for (const w2 of tt2) if (wanted.has(w2)) return true;
-    return false;
-  });
-}
-function analyzeMeetings(events) {
-  const active = events.filter((e2) => (e2.status ?? "scheduled") !== "cancelled" && !Number.isNaN(startMs(e2)));
-  const sorted = [...active].sort((a2, b2) => startMs(a2) - startMs(b2));
-  const conflicts = [];
-  for (let i2 = 0; i2 < sorted.length; i2++) {
-    for (let j2 = i2 + 1; j2 < sorted.length; j2++) {
-      const a2 = sorted[i2], b2 = sorted[j2];
-      if (startMs(b2) >= endMs(a2)) break;
-      if (startMs(a2) < endMs(b2) && startMs(b2) < endMs(a2)) conflicts.push([a2, b2]);
-    }
-  }
-  const missingAgenda = active.filter((e2) => !(e2.description ?? "").trim());
-  const missingCall = active.filter((e2) => !e2.call_url);
-  return { active, conflicts, missingAgenda, missingCall };
-}
-async function runMeetingAgent(workspaceId) {
-  const jobId = await startJob({ workspace_id: workspaceId, agent_name: "meeting", trigger_type: "manual", input: {} });
-  try {
-    const start = /* @__PURE__ */ new Date();
-    start.setHours(0, 0, 0, 0);
-    const horizon = new Date(start);
-    horizon.setDate(horizon.getDate() + 7);
-    const { data } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).eq("object_type", "calendar_event").gte("data->>start_at", start.toISOString()).lt("data->>start_at", horizon.toISOString()).order("data->>start_at", { ascending: true }).limit(500);
-    const events = (data ?? []).map((n2) => {
-      const d2 = n2.data ?? {};
-      return { id: n2.id, title: String(d2.title ?? ""), start_at: String(d2.start_at ?? ""), end_at: String(d2.end_at ?? ""), description: String(d2.description ?? ""), call_url: d2.call_url ?? null, status: String(d2.status ?? "scheduled") };
-    });
-    const a2 = analyzeMeetings(events);
-    let followUps = [];
-    if (a2.active.length > 0) {
-      const { data: taskRows } = await supabase.from("tasks").select("id, title").eq("workspace_id", workspaceId).eq("completed", false).limit(500);
-      followUps = relatedFollowUps(a2.active, (taskRows ?? []).map((r2) => ({ id: String(r2.id), title: String(r2.title ?? "") })));
-    }
-    const steps = [
-      step2(`Loaded ${a2.active.length} meeting(s)`, { detail: "today + next 7 days" }),
-      step2(`Found ${a2.conflicts.length} conflict(s)`, { status: a2.conflicts.length ? "warn" : "ok" }),
-      step2(`Found ${a2.missingAgenda.length} missing agenda(s)`, { status: a2.missingAgenda.length ? "warn" : "ok" }),
-      step2(`Found ${a2.missingCall.length} missing call link(s)`, { status: a2.missingCall.length ? "warn" : "ok" }),
-      step2(`Found ${followUps.length} related follow-up(s)`, { status: followUps.length ? "info" : "ok" })
-    ];
-    let queued = 0;
-    for (const [x2, y2] of a2.conflicts) {
-      const sourceId = [x2.id, y2.id].sort().join("__");
-      const { data: existing } = await supabase.from("decision_queue").select("id").eq("workspace_id", workspaceId).eq("source_type", "calendar_conflict").eq("source_id", sourceId).eq("agent_name", "meeting").eq("status", "pending").maybeSingle();
-      if (existing) continue;
-      const { error } = await supabase.from("decision_queue").insert({
-        workspace_id: workspaceId,
-        source_type: "calendar_conflict",
-        source_id: sourceId,
-        agent_name: "meeting",
-        title: `Overlapping meetings: ${x2.title || "Untitled"} & ${y2.title || "Untitled"}`,
-        summary: `These two meetings overlap in time.`,
-        recommended_action: "Reschedule one of the meetings",
-        risk_level: "medium",
-        evidence: [
-          { type: "calendar_event", title: x2.title || "Untitled", node_id: x2.id, match_reason: "overlaps", timestamp: x2.start_at },
-          { type: "calendar_event", title: y2.title || "Untitled", node_id: y2.id, match_reason: "overlaps", timestamp: y2.start_at }
-        ]
-      });
-      if (!error) queued++;
-    }
-    steps.push(step2(`Queued ${queued} attention item(s)`, { status: queued ? "warn" : "ok" }));
-    const output = {
-      meetings: a2.active.length,
-      conflicts: a2.conflicts.length,
-      missing_agenda: a2.missingAgenda.length,
-      missing_call_link: a2.missingCall.length,
-      related_followups: followUps.length,
-      queued,
-      summary: `Checked ${a2.active.length} meeting(s): ${a2.conflicts.length} conflict(s), ${a2.missingAgenda.length} without agenda, ${a2.missingCall.length} without call link`
-    };
-    await completeJob(jobId, output, steps);
-    return output;
-  } catch (err2) {
-    await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
-    throw err2;
-  }
-}
-
-// src/routes/agents.ts
 init_inngest2();
 var router8 = new Hono2();
 router8.use("*", requireAuth);
@@ -64827,7 +64843,7 @@ var AGENT_RUNNERS = {
   people: async (ws) => runPeopleScan(ws),
   portfolio: async (ws) => runPortfolioScan(ws),
   asset: async (ws) => runAssetScan(ws),
-  meeting: async (ws) => runMeetingAgent(ws)
+  meeting: async (ws) => ({ ...await runMeetingAgent(ws) })
   // real calendar inspection (conflicts / missing agenda / missing call link)
 };
 router8.post("/:id/run", async (c2) => {

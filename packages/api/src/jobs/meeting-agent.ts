@@ -58,15 +58,18 @@ export function analyzeMeetings(events: MeetingLite[]): MeetingAnalysis {
   return { active, conflicts, missingAgenda, missingCall };
 }
 
-/**
- * Run the Meeting Agent for a workspace: load today + the next 7 days of meetings, analyze them, log
- * the five canonical steps, queue conflict attention items (deduped), and complete the job. Real work,
- * real proof-of-work. Returns the structured counts (also the on-demand /agents/meeting/run payload).
- */
-export async function runMeetingAgent(workspaceId: string): Promise<{
+export interface MeetingAgentResult {
   meetings: number; conflicts: number; missing_agenda: number; missing_call_link: number; related_followups: number; queued: number; summary: string;
-}> {
-  const jobId = await startJob({ workspace_id: workspaceId, agent_name: "meeting", trigger_type: "manual", input: {} });
+}
+
+/**
+ * Run the Meeting Agent for ONE workspace: load today + the next 7 days of meetings, analyze them, log
+ * the canonical steps, queue conflict attention items (deduped), and complete the job. Real work,
+ * real proof-of-work. `trigger` distinguishes the on-demand Run-now ("manual") from the daily cron
+ * ("scheduled") in the Activity timeline.
+ */
+async function runMeetingAgentForWorkspace(workspaceId: string, trigger: "manual" | "scheduled"): Promise<MeetingAgentResult> {
+  const jobId = await startJob({ workspace_id: workspaceId, agent_name: "meeting", trigger_type: trigger, input: {} });
   try {
     const start = new Date(); start.setHours(0, 0, 0, 0);
     const horizon = new Date(start); horizon.setDate(horizon.getDate() + 7);
@@ -135,4 +138,23 @@ export async function runMeetingAgent(workspaceId: string): Promise<{
     await failJob(jobId, err instanceof Error ? err.message : String(err));
     throw err;
   }
+}
+
+/**
+ * Public entry point. With a workspaceId → one on-demand run (POST /agents/meeting/run). Without →
+ * the DAILY SCHEDULED sweep across every workspace (wired into runAllDaily / /api/cron/daily):
+ * per-workspace agent_jobs rows with trigger_type "scheduled", so the Meeting Agent has a real
+ * scheduled heartbeat — never a fabricated one. Errors in one workspace never block the rest.
+ */
+export async function runMeetingAgent(workspaceId?: string): Promise<MeetingAgentResult | { workspaces: number; conflicts: number; queued: number }> {
+  if (workspaceId) return runMeetingAgentForWorkspace(workspaceId, "manual");
+  const { data } = await supabase.from("workspaces").select("id");
+  let conflicts = 0, queued = 0, ran = 0;
+  for (const w of data ?? []) {
+    try {
+      const r = await runMeetingAgentForWorkspace(String(w.id), "scheduled");
+      conflicts += r.conflicts; queued += r.queued; ran++;
+    } catch { /* per-workspace failure already logged via failJob; keep sweeping */ }
+  }
+  return { workspaces: ran, conflicts, queued };
 }

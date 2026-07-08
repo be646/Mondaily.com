@@ -31,7 +31,7 @@ const AGENT_RUNNERS: Record<string, (workspaceId: string) => Promise<Record<stri
   people: async (ws) => runPeopleScan(ws),
   portfolio: async (ws) => runPortfolioScan(ws),
   asset: async (ws) => runAssetScan(ws),
-  meeting: async (ws) => runMeetingAgent(ws),   // real calendar inspection (conflicts / missing agenda / missing call link)
+  meeting: async (ws) => ({ ...(await runMeetingAgent(ws)) }),   // real calendar inspection (conflicts / missing agenda / missing call link)
 };
 
 router.post("/:id/run", async (c) => {
@@ -233,9 +233,9 @@ router.get("/", async (c) => {
   }
 
   // Meeting Agent — inspects the workspace's own calendar_event nodes for conflicts / missing agendas /
-  // missing call links. On-demand (POST /agents/meeting/run) with real proof-of-work in agent_jobs; no
-  // scheduled job yet, so its resting state is honestly "monitoring" and it never claims to be running
-  // unless a real job row is running right now.
+  // missing call links. Runs on-demand (POST /agents/meeting/run) AND daily via /api/cron/daily
+  // (runAllDaily → runMeetingAgent, trigger_type "scheduled"), with real proof-of-work in agent_jobs.
+  // Resting state stays "monitoring"; "active" only while a real job row is running.
   {
     const meetingJobRow = latestJob(jobs, "meeting");
     const meetingJob = jobSummary(meetingJobRow, "No runs yet");

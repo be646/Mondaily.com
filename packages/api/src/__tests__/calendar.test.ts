@@ -161,8 +161,19 @@ describe("Meeting Agent — real backend agent (registry + runner + honest statu
     expect(agentsSrc).toMatch(/id: "meeting", name: "Meeting Agent", category: "operations"/);
   });
   it("has a real on-demand runner wired to POST /agents/meeting/run", () => {
-    expect(agentsSrc).toMatch(/meeting: async \(ws\) => runMeetingAgent\(ws\)/);
+    expect(agentsSrc).toMatch(/meeting: async \(ws\) => \(\{ \.\.\.\(await runMeetingAgent\(ws\)\) \}\)/);
     expect(agentsSrc).toMatch(/import \{ runMeetingAgent \} from "\.\.\/jobs\/meeting-agent"/);
+  });
+  it("ALSO runs daily on a real schedule — all-workspace sweep wired into runAllDaily (cron)", () => {
+    // no-arg mode sweeps every workspace with trigger_type "scheduled" (real per-workspace job rows)
+    expect(runnerSrc).toMatch(/export async function runMeetingAgent\(workspaceId\?: string\)/);
+    expect(runnerSrc).toMatch(/runMeetingAgentForWorkspace\(String\(w\.id\), "scheduled"\)/);
+    expect(runnerSrc).toMatch(/runMeetingAgentForWorkspace\(workspaceId, "manual"\)/);
+    const daily = readFileSync(fileURLToPath(new URL("../jobs/runners.ts", import.meta.url)), "utf8");
+    expect(daily).toMatch(/results\.meeting_agent = await runMeetingAgent\(\)\.catch/);
+    // vercel cron actually invokes the daily runner
+    const vercel = readFileSync(fileURLToPath(new URL("../../vercel.json", import.meta.url)), "utf8");
+    expect(vercel).toMatch(/\/api\/cron\/daily/);
   });
   it("never claims a fake 'running'/'active' state without a real running job", () => {
     // state is derived from the real job row; default rest state is "monitoring", not active/running
