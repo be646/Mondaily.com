@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { requireAuth } from "../middleware/auth";
 import { verifyTrackingToken } from "../lib/tracking";
-import { threadIdFor, mergeMessage, inboundAddressFor, workspaceIdFromRecipients, mailDomainConfigured, type InboundMessage, type ThreadData } from "../lib/email-sovereign";
+import { threadIdFor, mergeMessage, inboundAddressFor, workspaceIdFromRecipients, mailDomainConfigured, buildOutboundMessage, type InboundMessage, type ThreadData } from "../lib/email-sovereign";
 import { freshAccessToken, gmailThreads, gmailThread, gmailSend } from "../lib/google";
 import { sendWorkspaceEmail } from "../lib/mail";
 
@@ -311,8 +311,34 @@ router.post("/threads/:id/reply", zValidator("json", z.object({ body: z.string()
     return c.json({ ok: true, tracking_id: trackNode?.id }, 201);
   }
 
-  // No direct-Google inbox connected → can't send (Nylas removed for sovereignty).
-  return c.json({ error: "Connect a Gmail inbox in Settings → Email before replying." }, 400);
+  // SOVEREIGN reply — no Gmail: reply through the workspace's own mail system and fold the sent
+  // message back into the local email_thread node so it shows in the conversation.
+  const threadId = c.req.param("id");
+  const { data: node } = await supabase.from("nodes").select("id,data")
+    .eq("workspace_id", c.get("workspaceId")).eq("object_type", "email_thread")
+    .or(`id.eq.${threadId},data->>thread_id.eq.${threadId}`).maybeSingle();
+  if (!node) return c.json({ error: "Connect a Gmail inbox in Settings → Email, or configure native mail, before replying." }, 400);
+  const tdata = node.data as ThreadData;
+  const last = (tdata.messages ?? [])[tdata.messages.length - 1];
+  const replyTo = last ? parseAddr(last.from).email : "";
+  if (!replyTo) return c.json({ error: "This thread has no address to reply to." }, 400);
+  const subject = /^re:/i.test(tdata.subject ?? "") ? tdata.subject : `Re: ${tdata.subject ?? ""}`;
+  const from = inboundAddressFor(c.get("workspaceId")) ?? undefined;
+
+  const { data: trackNode } = await supabase.from("nodes").insert({
+    workspace_id: c.get("workspaceId"), vertical: "sales", object_type: "email_outbox",
+    data: { thread_id: tdata.thread_id, subject, status: "sent", sent_at: new Date().toISOString(), opens: [], clicks: [] },
+    created_by: c.get("userId"),
+  }).select("id").single();
+  const trackedBody = trackNode ? injectTracking(c.req.valid("json").body, trackNode.id) : c.req.valid("json").body;
+  const ok = await sendWorkspaceEmail(c.get("workspaceId"), { subject, body: trackedBody, to: [{ email: replyTo }] });
+  if (!ok) return c.json({ error: "Couldn't send the reply. Connect a Gmail inbox or configure native mail." }, 502);
+
+  // Fold the sent message into the thread (outbound).
+  const sent = buildOutboundMessage({ from: from ?? "me", to: replyTo, subject, html: c.req.valid("json").body, inReplyTo: last?.message_id ? `<${last.message_id}>` : undefined, references: last?.message_id ? [`<${last.message_id}>`] : undefined });
+  const merged = mergeMessage(tdata, sent, tdata.thread_id, "outbound");
+  await supabase.from("nodes").update({ data: merged }).eq("id", node.id).eq("workspace_id", c.get("workspaceId")).eq("object_type", "email_thread");
+  return c.json({ ok: true, tracking_id: trackNode?.id }, 201);
 });
 
 // ── Compose + send a fresh email (from Discovery, a record, anywhere) ─────────
@@ -333,6 +359,19 @@ router.post("/compose", zValidator("json", z.object({
   const html = trackNode ? injectTracking(body, trackNode.id) : body;
   const ok = await sendWorkspaceEmail(c.get("workspaceId"), { subject, body: html, to: [{ email: to, name }] });
   if (!ok) return c.json({ error: "Couldn't send — connect a Gmail inbox in Settings → Email, or set RESEND_API_KEY on the API." }, 502);
+
+  // When native mail is configured, fold this sent message into a thread so it shows in the inbox
+  // (and a later reply from the recipient groups with it). No-op for the Gmail/Resend-only path.
+  if (mailDomainConfigured()) {
+    const from = inboundAddressFor(c.get("workspaceId")) ?? "me";
+    const sent = buildOutboundMessage({ from, to, subject, html: body });
+    const threadId = threadIdFor(sent);
+    const { data: existing } = await supabase.from("nodes").select("id,data")
+      .eq("workspace_id", c.get("workspaceId")).eq("object_type", "email_thread").eq("data->>thread_id", threadId).maybeSingle();
+    const merged = mergeMessage((existing?.data ?? null) as ThreadData | null, sent, threadId, "outbound");
+    if (existing) await supabase.from("nodes").update({ data: merged }).eq("id", existing.id).eq("workspace_id", c.get("workspaceId")).eq("object_type", "email_thread");
+    else await supabase.from("nodes").insert({ workspace_id: c.get("workspaceId"), vertical: "shared", object_type: "email_thread", created_by: c.get("userId"), data: merged });
+  }
   return c.json({ ok: true, tracking_id: trackNode?.id }, 201);
 });
 

@@ -41171,6 +41171,21 @@ function mergeMessage(existing, msg, threadId, direction) {
     source: "sovereign"
   };
 }
+function newMessageId() {
+  return `<${(0, import_node_crypto2.randomUUID)()}@${mailDomain() || "mondaily"}>`;
+}
+function buildOutboundMessage(args) {
+  return {
+    message_id: newMessageId(),
+    in_reply_to: args.inReplyTo,
+    references: args.references,
+    from: args.from,
+    to: args.to,
+    subject: args.subject,
+    html: args.html,
+    date: (/* @__PURE__ */ new Date()).toISOString()
+  };
+}
 function inboundAddressFor(workspaceId) {
   const d2 = mailDomain();
   return d2 ? `ws-${workspaceId}@${d2}` : null;
@@ -69083,23 +69098,45 @@ router24.post("/threads/:id/reply", zValidator("json", external_exports.object({
     const token = await freshAccessToken(gc);
     if (!token) return c2.json({ error: "Gmail session expired \u2014 reconnect Gmail." }, 400);
     const msgs = await gmailThread(token, c2.req.param("id"));
-    const last = msgs[msgs.length - 1];
-    if (!last) return c2.json({ error: "Thread has no message to reply to" }, 400);
-    const replyTo = parseAddr2(last.from).email;
-    const subject = /^re:/i.test(last.subject) ? last.subject : `Re: ${last.subject}`;
-    const { data: trackNode } = await supabase.from("nodes").insert({
+    const last2 = msgs[msgs.length - 1];
+    if (!last2) return c2.json({ error: "Thread has no message to reply to" }, 400);
+    const replyTo2 = parseAddr2(last2.from).email;
+    const subject2 = /^re:/i.test(last2.subject) ? last2.subject : `Re: ${last2.subject}`;
+    const { data: trackNode2 } = await supabase.from("nodes").insert({
       workspace_id: c2.get("workspaceId"),
       vertical: "sales",
       object_type: "email_outbox",
-      data: { thread_id: c2.req.param("id"), subject, status: "sent", sent_at: (/* @__PURE__ */ new Date()).toISOString(), opens: [], clicks: [] },
+      data: { thread_id: c2.req.param("id"), subject: subject2, status: "sent", sent_at: (/* @__PURE__ */ new Date()).toISOString(), opens: [], clicks: [] },
       created_by: c2.get("userId")
     }).select("id").single();
-    const trackedBody = trackNode ? injectTracking(c2.req.valid("json").body, trackNode.id) : c2.req.valid("json").body;
-    const ok2 = await gmailSend(token, { to: [replyTo], subject, html: trackedBody, from: gc.email, threadId: c2.req.param("id"), inReplyTo: last.messageId });
-    if (!ok2) return c2.json({ error: "Failed to send the reply via Gmail." }, 502);
-    return c2.json({ ok: true, tracking_id: trackNode?.id }, 201);
+    const trackedBody2 = trackNode2 ? injectTracking(c2.req.valid("json").body, trackNode2.id) : c2.req.valid("json").body;
+    const ok3 = await gmailSend(token, { to: [replyTo2], subject: subject2, html: trackedBody2, from: gc.email, threadId: c2.req.param("id"), inReplyTo: last2.messageId });
+    if (!ok3) return c2.json({ error: "Failed to send the reply via Gmail." }, 502);
+    return c2.json({ ok: true, tracking_id: trackNode2?.id }, 201);
   }
-  return c2.json({ error: "Connect a Gmail inbox in Settings \u2192 Email before replying." }, 400);
+  const threadId = c2.req.param("id");
+  const { data: node } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_thread").or(`id.eq.${threadId},data->>thread_id.eq.${threadId}`).maybeSingle();
+  if (!node) return c2.json({ error: "Connect a Gmail inbox in Settings \u2192 Email, or configure native mail, before replying." }, 400);
+  const tdata = node.data;
+  const last = (tdata.messages ?? [])[tdata.messages.length - 1];
+  const replyTo = last ? parseAddr2(last.from).email : "";
+  if (!replyTo) return c2.json({ error: "This thread has no address to reply to." }, 400);
+  const subject = /^re:/i.test(tdata.subject ?? "") ? tdata.subject : `Re: ${tdata.subject ?? ""}`;
+  const from = inboundAddressFor(c2.get("workspaceId")) ?? void 0;
+  const { data: trackNode } = await supabase.from("nodes").insert({
+    workspace_id: c2.get("workspaceId"),
+    vertical: "sales",
+    object_type: "email_outbox",
+    data: { thread_id: tdata.thread_id, subject, status: "sent", sent_at: (/* @__PURE__ */ new Date()).toISOString(), opens: [], clicks: [] },
+    created_by: c2.get("userId")
+  }).select("id").single();
+  const trackedBody = trackNode ? injectTracking(c2.req.valid("json").body, trackNode.id) : c2.req.valid("json").body;
+  const ok2 = await sendWorkspaceEmail(c2.get("workspaceId"), { subject, body: trackedBody, to: [{ email: replyTo }] });
+  if (!ok2) return c2.json({ error: "Couldn't send the reply. Connect a Gmail inbox or configure native mail." }, 502);
+  const sent = buildOutboundMessage({ from: from ?? "me", to: replyTo, subject, html: c2.req.valid("json").body, inReplyTo: last?.message_id ? `<${last.message_id}>` : void 0, references: last?.message_id ? [`<${last.message_id}>`] : void 0 });
+  const merged = mergeMessage(tdata, sent, tdata.thread_id, "outbound");
+  await supabase.from("nodes").update({ data: merged }).eq("id", node.id).eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_thread");
+  return c2.json({ ok: true, tracking_id: trackNode?.id }, 201);
 });
 router24.post("/compose", zValidator("json", external_exports.object({
   to: external_exports.string().email(),
@@ -69118,6 +69155,15 @@ router24.post("/compose", zValidator("json", external_exports.object({
   const html = trackNode ? injectTracking(body, trackNode.id) : body;
   const ok2 = await sendWorkspaceEmail(c2.get("workspaceId"), { subject, body: html, to: [{ email: to, name }] });
   if (!ok2) return c2.json({ error: "Couldn't send \u2014 connect a Gmail inbox in Settings \u2192 Email, or set RESEND_API_KEY on the API." }, 502);
+  if (mailDomainConfigured()) {
+    const from = inboundAddressFor(c2.get("workspaceId")) ?? "me";
+    const sent = buildOutboundMessage({ from, to, subject, html: body });
+    const threadId = threadIdFor(sent);
+    const { data: existing } = await supabase.from("nodes").select("id,data").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_thread").eq("data->>thread_id", threadId).maybeSingle();
+    const merged = mergeMessage(existing?.data ?? null, sent, threadId, "outbound");
+    if (existing) await supabase.from("nodes").update({ data: merged }).eq("id", existing.id).eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_thread");
+    else await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "shared", object_type: "email_thread", created_by: c2.get("userId"), data: merged });
+  }
   return c2.json({ ok: true, tracking_id: trackNode?.id }, 201);
 });
 router24.get("/outbox", async (c2) => {

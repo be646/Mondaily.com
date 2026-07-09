@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 /**
  * Sovereign email — the pure thread engine.
@@ -108,6 +108,25 @@ export function mergeMessage(existing: ThreadData | null, msg: InboundMessage, t
     folders,
     messages,
     source: "sovereign",
+  };
+}
+
+/** A fresh RFC-822 Message-ID for a message WE send, on our own domain (falls back to "mondaily"). */
+export function newMessageId(): string {
+  return `<${randomUUID()}@${mailDomain() || "mondaily"}>`;
+}
+
+/** Build the InboundMessage shape for a message the workspace SENDS (so it folds into the thread
+ *  exactly like a received one, marked outbound). References/in-reply-to keep real threading. */
+export function buildOutboundMessage(args: {
+  from: string; to: string; subject: string; html: string; inReplyTo?: string; references?: string[];
+}): InboundMessage {
+  return {
+    message_id: newMessageId(),
+    in_reply_to: args.inReplyTo,
+    references: args.references,
+    from: args.from, to: args.to, subject: args.subject, html: args.html,
+    date: new Date().toISOString(),
   };
 }
 

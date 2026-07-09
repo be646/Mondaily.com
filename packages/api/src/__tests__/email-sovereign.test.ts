@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
-  normalizeSubject, parseAddr, threadIdFor, mergeMessage,
+  normalizeSubject, parseAddr, threadIdFor, mergeMessage, newMessageId, buildOutboundMessage,
   inboundAddressFor, mailDomainConfigured, workspaceIdFromRecipients, type InboundMessage, type ThreadData,
 } from "../lib/email-sovereign";
 
@@ -97,6 +97,24 @@ describe("address routing — sovereign, spoof-safe", () => {
   });
 });
 
+describe("outbound message construction + folding", () => {
+  it("newMessageId is a well-formed Message-ID on our domain", () => {
+    expect(newMessageId()).toMatch(/^<[0-9a-f-]{36}@inbound\.mondaily\.com>$/);
+  });
+  it("buildOutboundMessage carries threading headers so a reply groups with what it answers", () => {
+    const m = buildOutboundMessage({ from: "ws-w1@inbound.mondaily.com", to: "ann@acme.com", subject: "Re: Q3", html: "<p>ok</p>", inReplyTo: "<orig@x>", references: ["<orig@x>"] });
+    expect(m.in_reply_to).toBe("<orig@x>");
+    expect(threadIdFor(m)).toBe("orig@x");    // folds into the same thread as the original
+  });
+  it("an outbound message merges into the thread as a sent (read) message", () => {
+    const inbound = mergeMessage(null, msg({ message_id: "<in@x>" }), "t1", "inbound");
+    const out = buildOutboundMessage({ from: "ws-w1@inbound.mondaily.com", to: "ann@acme.com", subject: "Re: Hi", html: "reply", inReplyTo: "<in@x>" });
+    const merged = mergeMessage(inbound, out, "t1", "outbound");
+    expect(merged.messages).toHaveLength(2);
+    expect(merged.folders).toContain("sent");
+  });
+});
+
 describe("route + tier wiring", () => {
   it("inbound webhook is public, HMAC-verified, fail-closed (401 without secret), and idempotent-safe", () => {
     // defined BEFORE requireAuth
@@ -110,6 +128,17 @@ describe("route + tier wiring", () => {
   it("inbound-address is authed and reports the address + enabled flag", () => {
     expect(emails.indexOf('router.get("/inbound-address"')).toBeGreaterThan(emails.indexOf('router.use("*", requireAuth)'));
     expect(emails).toMatch(/address: inboundAddressFor\(c\.get\("workspaceId"\)\)/);
+  });
+  it("reply works WITHOUT Gmail (sovereign path) and folds the sent copy into the thread", () => {
+    const reply = emails.slice(emails.indexOf('router.post("/threads/:id/reply"'), emails.indexOf('// ── Compose'));
+    expect(reply).toMatch(/SOVEREIGN reply/);
+    expect(reply).toMatch(/sendWorkspaceEmail\(c\.get\("workspaceId"\)/);
+    expect(reply).toMatch(/mergeMessage\(tdata, sent, tdata\.thread_id, "outbound"\)/);
+  });
+  it("compose folds the sent message into a thread when native mail is configured", () => {
+    const compose = emails.slice(emails.indexOf("// ── Compose"));
+    expect(compose).toMatch(/if \(mailDomainConfigured\(\)\)/);
+    expect(compose).toMatch(/mergeMessage\(\(existing\?\.data \?\? null\).*"outbound"\)/);
   });
   it("outbound send tries the SOVEREIGN relay FIRST, before Gmail and Resend", () => {
     expect(mail).toMatch(/sendViaSovereignRelay/);
