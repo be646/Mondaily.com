@@ -348,7 +348,7 @@ export async function runInvoiceChaser(workspaceId?: string): Promise<{ total_ch
           risk_level: days > 14 ? "high" : days > 7 ? "medium" : "low",
           evidence: [{ type: "invoice", title: subject, node_id: invoice.id, match_reason: `${days} days overdue`, timestamp: due }],
         });
-        steps.push({ decision_queued: true, invoice_id: invoice.id, days_overdue: days });
+        steps.push(step(`Drafted chase for invoice ${invoice.data.invoice_number ?? invoice.id} — ${days} days overdue`, { status: "warn", sources: [{ title: `Invoice ${invoice.data.invoice_number ?? invoice.id}`, node_id: invoice.id }] }));
         await createNotification({
           workspace_id: wsId, type: "agent",
           title: `Invoice ${invoice.data.invoice_number ?? ""} chase ready for approval`,
@@ -417,7 +417,7 @@ export async function runRecurringInvoices(workspaceId?: string): Promise<{ gene
         const { data: newInvoice, error: insertErr } = await supabase.from("nodes")
           .insert({ workspace_id: wsId, vertical: "finance", object_type: "invoice", data: newInvoiceData, created_by: "agent:recurring_invoices" })
           .select("id").single();
-        if (insertErr) { steps.push({ error: insertErr.message, original_id: invoice.id }); continue; }
+        if (insertErr) { steps.push(step(`Couldn't generate from invoice ${invoice.data.number ?? invoice.id}`, { status: "error", detail: insertErr.message })); continue; }
 
         const updatedNextDue = nextDueDateAfter(nextDue, invoice.data.recurring_frequency ?? "monthly");
         await supabase.from("nodes").update({ data: { ...invoice.data, next_due_date: updatedNextDue } }).eq("id", invoice.id);
@@ -427,7 +427,7 @@ export async function runRecurringInvoices(workspaceId?: string): Promise<{ gene
           metadata: { original_invoice_id: invoice.id, new_invoice_id: newInvoice.id },
           source: { source_agent: "finance", agent_job_id: jobId, node_id: newInvoice.id, object_type: "invoice" },
         });
-        steps.push({ generated: newNumber, original_id: invoice.id, new_id: newInvoice.id });
+        steps.push(step(`Generated recurring invoice ${newNumber} from ${invoice.data.number ?? invoice.id}`, { sources: [{ title: `Invoice ${newNumber}`, node_id: newInvoice.id }] }));
         generated++; totalGenerated++;
       }
       await completeJob(jobId, { generated, summary: `Generated ${generated} recurring invoice(s)` }, steps);

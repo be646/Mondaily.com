@@ -63,6 +63,11 @@ The API already renders whatever `speaker` label you send — no app change need
 HuggingFace token for the pyannote weights (a model download, still self-hosted — no inference
 leaves the box).
 
-## Firewall
-If you expose the port publicly, keep `STT_API_KEY` set and ideally terminate TLS at a reverse
-proxy (Caddy/nginx). Behind a private network you can leave it open on `:8090`.
+## Security
+- **SSRF protection is built in.** `/transcribe` fetches `audio_url` server-side, so the appliance
+  validates it: http(s) only, redirects disabled, and any URL resolving to a private / loopback /
+  link-local / reserved address (localhost, RFC-1918, cloud metadata `169.254.169.254`, …) is
+  rejected. Set `STT_ALLOWED_HOSTS` (comma-separated) to your egress storage host(s) for a strict
+  allowlist — the strongest defense.
+- **Firewall / auth.** If you expose the port publicly, keep `STT_API_KEY` set and terminate TLS at
+  a reverse proxy (Caddy/nginx). Behind a private network you can leave it open on `:8090`.

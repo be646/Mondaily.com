@@ -62,6 +62,18 @@ export async function ingestRecording(sessionId: string): Promise<{ ok: boolean;
   if (session.transcript_status === "ready" && session.memory_node_id) return { ok: true, node_id: session.memory_node_id };
 
   const ws = session.workspace_id;
+
+  // ATOMIC CLAIM — LiveKit redelivers egress_ended, so two ingests can run concurrently (Inngest
+  // concurrency > 1). This conditional update is a compare-and-set: only ONE runner flips
+  // transcript_status to "processing" (the guard `.neq("processing")` stops the loser), and only
+  // while nothing has been ingested yet (`memory_node_id IS NULL`). A failed prior run left "failed",
+  // so a retry still claims. Without this, both runners read node_id=null and insert duplicate nodes.
+  const { data: claimed } = await supabase.from("call_sessions")
+    .update({ transcript_status: "processing" })
+    .eq("id", session.id).is("memory_node_id", null).neq("transcript_status", "processing")
+    .select("id");
+  if (!claimed || claimed.length === 0) return { ok: false, reason: "already_processing" };
+
   const jobId = await startJob({
     workspace_id: ws, agent_name: "Meeting Memory", trigger_type: "webhook",
     input: { session_id: session.id, room: session.room },
@@ -69,7 +81,6 @@ export async function ingestRecording(sessionId: string): Promise<{ ok: boolean;
   const steps: AgentStep[] = [];
 
   try {
-    await supabase.from("call_sessions").update({ transcript_status: "processing" }).eq("id", session.id);
 
     // 1. Transcribe against the sovereign STT appliance.
     if (!transcriptionEnabled()) {

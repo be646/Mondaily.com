@@ -111,6 +111,11 @@ describe("ingestion is honest + idempotent", () => {
     expect(ingest).toMatch(/if \(!session\.recording_url\) return \{ ok: false, reason: "no_recording" \}/);
     expect(ingest).toMatch(/transcript_status === "ready" && session\.memory_node_id/);
   });
+  it("atomically CLAIMS the session before ingesting, so concurrent webhook redelivery can't create duplicate nodes", () => {
+    // compare-and-set: only one runner flips to "processing" while memory_node_id is still null.
+    expect(ingest).toMatch(/\.update\(\{ transcript_status: "processing" \}\)\s*\.eq\("id", session\.id\)\.is\("memory_node_id", null\)\.neq\("transcript_status", "processing"\)/);
+    expect(ingest).toMatch(/if \(!claimed \|\| claimed\.length === 0\) return \{ ok: false, reason: "already_processing" \}/);
+  });
   it("never fabricates: STT off/empty → failed status, and summary stays empty on gateway failure", () => {
     expect(ingest).toMatch(/transcriptionEnabled\(\)/);
     expect(ingest).toMatch(/transcript_status: "failed"/);

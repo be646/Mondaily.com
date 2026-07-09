@@ -59749,7 +59749,7 @@ async function runInvoiceChaser(workspaceId) {
           risk_level: days > 14 ? "high" : days > 7 ? "medium" : "low",
           evidence: [{ type: "invoice", title: subject, node_id: invoice.id, match_reason: `${days} days overdue`, timestamp: due }]
         });
-        steps.push({ decision_queued: true, invoice_id: invoice.id, days_overdue: days });
+        steps.push(step2(`Drafted chase for invoice ${invoice.data.invoice_number ?? invoice.id} \u2014 ${days} days overdue`, { status: "warn", sources: [{ title: `Invoice ${invoice.data.invoice_number ?? invoice.id}`, node_id: invoice.id }] }));
         await createNotification({
           workspace_id: wsId,
           type: "agent",
@@ -59825,7 +59825,7 @@ async function runRecurringInvoices(workspaceId) {
         };
         const { data: newInvoice, error: insertErr } = await supabase.from("nodes").insert({ workspace_id: wsId, vertical: "finance", object_type: "invoice", data: newInvoiceData, created_by: "agent:recurring_invoices" }).select("id").single();
         if (insertErr) {
-          steps.push({ error: insertErr.message, original_id: invoice.id });
+          steps.push(step2(`Couldn't generate from invoice ${invoice.data.number ?? invoice.id}`, { status: "error", detail: insertErr.message }));
           continue;
         }
         const updatedNextDue = nextDueDateAfter(nextDue, invoice.data.recurring_frequency ?? "monthly");
@@ -59838,7 +59838,7 @@ async function runRecurringInvoices(workspaceId) {
           metadata: { original_invoice_id: invoice.id, new_invoice_id: newInvoice.id },
           source: { source_agent: "finance", agent_job_id: jobId, node_id: newInvoice.id, object_type: "invoice" }
         });
-        steps.push({ generated: newNumber, original_id: invoice.id, new_id: newInvoice.id });
+        steps.push(step2(`Generated recurring invoice ${newNumber} from ${invoice.data.number ?? invoice.id}`, { sources: [{ title: `Invoice ${newNumber}`, node_id: newInvoice.id }] }));
         generated++;
         totalGenerated++;
       }
@@ -60943,6 +60943,8 @@ async function ingestRecording(sessionId) {
   if (!session.recording_url) return { ok: false, reason: "no_recording" };
   if (session.transcript_status === "ready" && session.memory_node_id) return { ok: true, node_id: session.memory_node_id };
   const ws = session.workspace_id;
+  const { data: claimed } = await supabase.from("call_sessions").update({ transcript_status: "processing" }).eq("id", session.id).is("memory_node_id", null).neq("transcript_status", "processing").select("id");
+  if (!claimed || claimed.length === 0) return { ok: false, reason: "already_processing" };
   const jobId = await startJob({
     workspace_id: ws,
     agent_name: "Meeting Memory",
@@ -60951,7 +60953,6 @@ async function ingestRecording(sessionId) {
   });
   const steps = [];
   try {
-    await supabase.from("call_sessions").update({ transcript_status: "processing" }).eq("id", session.id);
     if (!transcriptionEnabled()) {
       await supabase.from("call_sessions").update({ transcript_status: "failed" }).eq("id", session.id);
       steps.push(step2("Transcription unavailable", { status: "warn", detail: "SOVEREIGN_STT_URL is not configured \u2014 recording stored, no transcript produced." }));

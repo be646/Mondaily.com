@@ -8,6 +8,9 @@ services:
       # Optional shared secret — must match SOVEREIGN_STT_KEY in Vercel. Leave empty for open
       # access (only acceptable behind a firewall / private network).
       - STT_API_KEY=${STT_API_KEY:-}
+      # Optional SSRF host allowlist (comma-separated) — e.g. your egress storage host. When set,
+      # only these hosts may be fetched. Unset still blocks private/internal/metadata addresses.
+      - STT_ALLOWED_HOSTS=${STT_ALLOWED_HOSTS:-}
       # faster-whisper model. "base"/"small" run fine on CPU; "medium"/"large-v3" want a GPU.
       - WHISPER_MODEL=${WHISPER_MODEL:-small}
       # "cpu" (int8) or "cuda" (float16) — see README for the GPU variant.
