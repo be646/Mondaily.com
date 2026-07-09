@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
+import { useCurrency, currencyOptions } from "../../../hooks/useCurrency";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { FinanceAgentStrip } from "../../../components/ai/finance-agent-strip";
 import { AIInspector } from "../../../components/ai/ai-inspector";
@@ -298,6 +299,7 @@ export function InvoiceDetailPage() {
   const [clientAddress, setClientAddress] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
+  const { currencies } = useCurrency();
   const [currency, setCurrency] = useState("GBP");
   const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, unit_price: 0, tax_rate: 20 }]);
   const [dirty, setDirty] = useState(false);
@@ -529,12 +531,7 @@ export function InvoiceDetailPage() {
                   disabled={!isEditable}
                   ariaLabel="Currency"
                   className="mt-1"
-                  options={[
-                    { value: "GBP", label: "GBP — £" },
-                    { value: "USD", label: "USD — $" },
-                    { value: "EUR", label: "EUR — €" },
-                    { value: "AED", label: "AED — د.إ" },
-                  ]}
+                  options={currencyOptions(currencies)}
                 />
               </div>
             </div>

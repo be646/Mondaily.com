@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogoMark } from "@/components/logo";
 import { FieldSelect } from "../../../components/ui/controls";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
-import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
+import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import {
   Plus, Search, ReceiptText, Clock, CheckCircle2, AlertCircle,
   XCircle, DollarSign, ChevronRight, RefreshCcw,
@@ -57,14 +57,17 @@ function fmt(cents: number, currency: string) {
 
 // ─── New credit note modal ────────────────────────────────────────────────────
 function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (id: string) => void }) {
+  const { base, currencies } = useCurrency();
   const [form, setForm] = useState({
     client_name: "",
     amount: "",
-    currency: "GBP",
+    currency: "",
     credit_reason: "refund" as CreditReason,
     status: "draft" as CreditStatus,
     notes: "",
   });
+  // default the new note to the workspace base currency once it's known (user can still change it)
+  useEffect(() => { setForm(f => (f.currency ? f : { ...f, currency: base })); }, [base]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -113,7 +116,7 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Currency</label>
               <FieldSelect value={form.currency} onChange={v => setForm(f => ({ ...f, currency: v }))} ariaLabel="Currency"
-                options={["GBP","USD","EUR","CAD","AUD"].map(c => ({ value: c, label: c }))} />
+                options={currencyOptions(currencies)} />
             </div>
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Reason</label>
@@ -153,7 +156,7 @@ export function CreditNotesPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
-  const { display, sumInDisplay } = useCurrency();
+  const { display, currencies, sumInDisplay } = useCurrency();
 
   const { data: creditNotes = [], isLoading, isError, refetch } = useQuery<CreditNote[]>({
     queryKey: ["credit-notes", statusFilter, search],

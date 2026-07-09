@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { FieldSelect } from "../../../components/ui/controls";
+import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import {
   Plus, Search, Car, Monitor, Coffee, Zap, Briefcase, Building2, MoreHorizontal, Receipt,
   CheckCircle2, XCircle, Clock,
@@ -44,14 +45,16 @@ function fmt(cents: number, currency: string) {
 }
 
 function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate: () => void }) {
+  const { base, currencies } = useCurrency();
   const [form, setForm] = useState({
     description: "",
     amount: "",
-    currency: "GBP",
+    currency: "",
     category: "other",
     date: new Date().toISOString().slice(0, 10),
     vendor: "",
   });
+  useEffect(() => { setForm(f => (f.currency ? f : { ...f, currency: base })); }, [base]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -104,7 +107,7 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Currency</label>
               <FieldSelect value={form.currency} onChange={v => setForm(f => ({ ...f, currency: v }))} ariaLabel="Currency"
-                options={["GBP", "USD", "EUR", "CAD", "AUD"].map(c => ({ value: c, label: c }))} />
+                options={currencyOptions(currencies)} />
             </div>
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Category</label>
@@ -141,6 +144,7 @@ export function ExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
+  const { display, sumInDisplay } = useCurrency();
 
   const { data: expenses = [], isLoading, isError, refetch } = useQuery<Expense[]>({
     queryKey: ["expenses", categoryFilter, search],
@@ -156,13 +160,14 @@ export function ExpensesPage() {
     },
   });
 
-  const currency = expenses[0]?.currency ?? "GBP";
+  const currency = display;
+  const e$ = (e: Expense) => ({ amount: e.amount_cents / 100, currency: e.currency });
 
   const now = new Date();
   const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const totalSubmitted = expenses.filter(e => e.status === "submitted").reduce((s, e) => s + e.amount_cents, 0);
-  const totalApproved  = expenses.filter(e => e.status === "approved").reduce((s, e) => s + e.amount_cents, 0);
-  const totalThisMonth = expenses.filter(e => e.date?.slice(0, 7) === thisMonthKey).reduce((s, e) => s + e.amount_cents, 0);
+  const totalSubmitted = sumInDisplay(expenses.filter(e => e.status === "submitted").map(e$)).value;
+  const totalApproved  = sumInDisplay(expenses.filter(e => e.status === "approved").map(e$)).value;
+  const totalThisMonth = sumInDisplay(expenses.filter(e => e.date?.slice(0, 7) === thisMonthKey).map(e$)).value;
 
   return (
     <div className="flex h-full flex-col">
@@ -181,17 +186,17 @@ export function ExpensesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-blue-400"/><span className="text-[11px] text-[var(--text-muted)]">Submitted</span></div>
-            <div className="text-[17px] font-semibold text-blue-400">{fmt(totalSubmitted, currency)}</div>
+            <div className="text-[17px] font-semibold text-blue-400">{formatMoney(totalSubmitted, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{expenses.filter(e => e.status === "submitted").length} pending approval</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-[var(--text-muted)]">Approved</span></div>
-            <div className="text-[17px] font-semibold text-emerald-400">{fmt(totalApproved, currency)}</div>
+            <div className="text-[17px] font-semibold text-emerald-400">{formatMoney(totalApproved, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{expenses.filter(e => e.status === "approved").length} approved</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Receipt size={11} className="text-[var(--text-muted)]"/><span className="text-[11px] text-[var(--text-muted)]">This Month</span></div>
-            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{fmt(totalThisMonth, currency)}</div>
+            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{formatMoney(totalThisMonth, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">all statuses</div>
           </div>
         </div>

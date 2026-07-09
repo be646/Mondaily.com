@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
+import { useCurrency } from "../../../hooks/useCurrency";
 import { FinanceAgentStrip } from "../../../components/ai/finance-agent-strip";
 import { Plus, Search, FileText, Clock, CheckCircle, AlertTriangle, XCircle, Send, DollarSign } from "lucide-react";
 
@@ -53,6 +54,7 @@ export function InvoicesPage() {
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
+  const { display, sumInDisplay } = useCurrency();
 
   // Page-level finance context for the right-side Ask AI drawer — no
   // specific invoice selected here, just "the invoices page".
@@ -79,7 +81,7 @@ export function InvoicesPage() {
       apiClient.post<Invoice>("/invoices", {
         client_name: "New Client",
         line_items: [{ description: "Service", quantity: 1, unit_price: 0, tax_rate: 20 }],
-        currency: "GBP",
+        currency: display,
         status: "draft",
       }),
     onSuccess: (inv) => {
@@ -88,13 +90,10 @@ export function InvoicesPage() {
     },
   });
 
-  const totalOwed = invoices
-    .filter(i => ["sent", "viewed", "overdue"].includes(i.status))
-    .reduce((s, i) => s + i.total, 0);
-
-  const totalPaid = invoices
-    .filter(i => i.status === "paid")
-    .reduce((s, i) => s + i.total, 0);
+  // Totals normalized to the caller's display currency (mixed-currency invoices sum honestly).
+  const inv$ = (i: Invoice) => ({ amount: i.total, currency: i.currency });
+  const totalOwed = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$)).value;
+  const totalPaid = sumInDisplay(invoices.filter(i => i.status === "paid").map(inv$)).value;
 
   return (
     <div className="flex h-full flex-col">
@@ -123,14 +122,14 @@ export function InvoicesPage() {
               <DollarSign size={12} className="text-[var(--text-muted)]"/>
               <span className="text-[11px] text-[var(--text-muted)]">Outstanding</span>
             </div>
-            <div className="font-mono text-[18px] font-semibold tabular-nums text-[var(--text-primary)]">{formatCurrency(totalOwed, "GBP")}</div>
+            <div className="font-mono text-[18px] font-semibold tabular-nums text-[var(--text-primary)]">{formatCurrency(totalOwed, display)}</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-2 mb-1">
               <CheckCircle size={12} className="text-emerald-400"/>
               <span className="text-[11px] text-[var(--text-muted)]">Collected</span>
             </div>
-            <div className="font-mono text-[18px] font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{formatCurrency(totalPaid, "GBP")}</div>
+            <div className="font-mono text-[18px] font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{formatCurrency(totalPaid, display)}</div>
           </div>
         </div>
 

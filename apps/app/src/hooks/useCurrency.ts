@@ -17,6 +17,23 @@ export interface CurrencyState {
   rates_as_of: string | null;
 }
 
+// The full supported set (mirrors server SUPPORTED_CURRENCIES) — used as a fallback so forms
+// show every currency even before the /currency query resolves.
+export const FALLBACK_CURRENCIES = [
+  "EUR", "USD", "GBP", "PLN", "CAD", "AUD", "CHF", "JPY", "SEK", "NOK", "DKK", "CZK",
+  "HUF", "RON", "BGN", "TRY", "ZAR", "INR", "BRL", "MXN", "SGD", "HKD", "NZD", "AED", "SAR",
+];
+
+export const CURRENCY_SYMBOL: Record<string, string> = {
+  EUR: "€", USD: "$", GBP: "£", PLN: "zł", CAD: "C$", AUD: "A$", CHF: "Fr", JPY: "¥",
+  SEK: "kr", NOK: "kr", DKK: "kr", CZK: "Kč", HUF: "Ft", RON: "lei", BGN: "лв", TRY: "₺",
+  ZAR: "R", INR: "₹", BRL: "R$", MXN: "Mex$", SGD: "S$", HKD: "HK$", NZD: "NZ$", AED: "د.إ", SAR: "﷼",
+};
+
+export function currencyOptions(list: string[]): { value: string; label: string }[] {
+  return list.map(c => ({ value: c, label: CURRENCY_SYMBOL[c] ? `${c} — ${CURRENCY_SYMBOL[c]}` : c }));
+}
+
 // EUR-crossed conversion; null when a needed rate is missing.
 export function convertAmount(amount: number, from: string, to: string, rates: Record<string, number>): number | null {
   if (from === to) return amount;
@@ -45,7 +62,7 @@ export function useCurrency() {
   const base = q.data?.base ?? "USD";
   const display = q.data?.display ?? base;
   const rates = q.data?.rates ?? {};
-  const currencies = q.data?.currencies ?? [];
+  const currencies = q.data?.currencies?.length ? q.data.currencies : FALLBACK_CURRENCIES;
   const ratesAsOf = q.data?.rates_as_of ?? null;
   const hasRates = Object.keys(rates).length > 0;
 

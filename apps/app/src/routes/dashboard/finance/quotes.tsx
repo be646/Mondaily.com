@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FieldSelect } from "../../../components/ui/controls";
 import { apiClient } from "../../../lib/api-client";
+import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import {
   Plus, Search, ReceiptText, Clock, CheckCircle2, XCircle, Send, ChevronRight,
 } from "lucide-react";
@@ -43,13 +44,15 @@ function fmt(cents: number, currency: string) {
 }
 
 function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: () => void }) {
+  const { base, currencies } = useCurrency();
   const [form, setForm] = useState({
     client_name: "",
     amount: "",
-    currency: "GBP",
+    currency: "",
     expires_at: "",
     notes: "",
   });
+  useEffect(() => { setForm(f => (f.currency ? f : { ...f, currency: base })); }, [base]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,7 +106,7 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Currency</label>
               <FieldSelect value={form.currency} onChange={v => setForm(f => ({ ...f, currency: v }))} ariaLabel="Currency"
-                options={["GBP", "USD", "EUR", "CAD", "AUD"].map(c => ({ value: c, label: c }))} />
+                options={currencyOptions(currencies)} />
             </div>
             <div className="col-span-2">
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Expires</label>
@@ -146,9 +149,11 @@ export function QuotesPage() {
     },
   });
 
-  const currency = quotes[0]?.currency ?? "GBP";
-  const totalAccepted = quotes.filter(q => q.status === "accepted").reduce((s, q) => s + q.amount_cents, 0);
-  const totalPending  = quotes.filter(q => q.status === "sent").reduce((s, q) => s + q.amount_cents, 0);
+  const { display, sumInDisplay } = useCurrency();
+  const currency = display;
+  const q$ = (q: Quote) => ({ amount: q.amount_cents / 100, currency: q.currency });
+  const totalAccepted = sumInDisplay(quotes.filter(q => q.status === "accepted").map(q$)).value;
+  const totalPending  = sumInDisplay(quotes.filter(q => q.status === "sent").map(q$)).value;
 
   return (
     <div className="flex h-full flex-col">
@@ -167,12 +172,12 @@ export function QuotesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Send size={11} className="text-blue-400"/><span className="text-[11px] text-[var(--text-muted)]">Sent</span></div>
-            <div className="text-[17px] font-semibold text-blue-400">{fmt(totalPending, currency)}</div>
+            <div className="text-[17px] font-semibold text-blue-400">{formatMoney(totalPending, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{quotes.filter(q => q.status === "sent").length} quotes awaiting response</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-[var(--text-muted)]">Accepted</span></div>
-            <div className="text-[17px] font-semibold text-emerald-400">{fmt(totalAccepted, currency)}</div>
+            <div className="text-[17px] font-semibold text-emerald-400">{formatMoney(totalAccepted, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{quotes.filter(q => q.status === "accepted").length} accepted</div>
           </div>
           <div className="telemetry-strip">
