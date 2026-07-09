@@ -2,8 +2,10 @@ import { zValidator } from "@hono/zod-validator";
 import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { requireAuth } from "../middleware/auth";
 import { verifyTrackingToken } from "../lib/tracking";
+import { threadIdFor, mergeMessage, inboundAddressFor, workspaceIdFromRecipients, mailDomainConfigured, type InboundMessage, type ThreadData } from "../lib/email-sovereign";
 import { freshAccessToken, gmailThreads, gmailThread, gmailSend } from "../lib/google";
 import { sendWorkspaceEmail } from "../lib/mail";
 
@@ -75,8 +77,51 @@ router.get("/track/:token/click", async (c) => {
   return c.redirect(url, 302);
 });
 
+// ── Sovereign inbound mail — NO auth (called by the self-hosted mail receiver) ────
+// A self-hosted receiver parses incoming SMTP into JSON and POSTs it here, HMAC-signed. We fold it
+// into the workspace's email_thread nodes (the same model the inbox UI renders) — no Gmail, no
+// third-party provider. FAIL-CLOSED: without SOVEREIGN_MAIL_SECRET every call is 401.
+router.post("/inbound", async (c) => {
+  const raw = await c.req.text();
+  const secret = process.env.SOVEREIGN_MAIL_SECRET;
+  const sig = c.req.header("x-mondaily-mail-signature") ?? "";
+  if (!secret) return c.json({ error: "Sovereign mail isn't configured." }, 401);
+  const expected = createHmac("sha256", secret).update(raw).digest("hex");
+  const a = Buffer.from(sig); const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) return c.json({ error: "invalid signature" }, 401);
+
+  let msg: InboundMessage & { recipients?: string[] };
+  try { msg = JSON.parse(raw); } catch { return c.json({ error: "bad payload" }, 400); }
+  if (!msg?.message_id || !msg?.from) return c.json({ error: "missing message_id/from" }, 400);
+
+  // Route to the owning workspace from the ENVELOPE recipients (falls back to the To/Cc headers).
+  const recipients = msg.recipients?.length ? msg.recipients : [msg.to, msg.cc].filter(Boolean) as string[];
+  const workspaceId = workspaceIdFromRecipients(recipients);
+  if (!workspaceId) return c.json({ ok: true, ignored: "no matching workspace address" });   // not for us — 200 so the receiver doesn't retry forever
+  const { data: ws } = await supabase.from("workspaces").select("id").eq("id", workspaceId).maybeSingle();
+  if (!ws) return c.json({ ok: true, ignored: "unknown workspace" });
+
+  const threadId = threadIdFor(msg);
+  const { data: existing } = await supabase.from("nodes").select("id,data")
+    .eq("workspace_id", workspaceId).eq("object_type", "email_thread").eq("data->>thread_id", threadId).maybeSingle();
+  const merged = mergeMessage((existing?.data ?? null) as ThreadData | null, msg, threadId, "inbound");
+  if (existing) {
+    await supabase.from("nodes").update({ data: merged }).eq("id", existing.id).eq("workspace_id", workspaceId).eq("object_type", "email_thread");
+  } else {
+    await supabase.from("nodes").insert({ workspace_id: workspaceId, vertical: "shared", object_type: "email_thread", created_by: "agent:mail", data: merged });
+  }
+  return c.json({ ok: true, thread_id: threadId });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 router.use("*", requireAuth);
+
+// GET /emails/inbound-address — the workspace's own sovereign inbound address (+ whether receiving
+// is configured on this deployment). The UI shows it as "forward or point your MX here".
+router.get("/inbound-address", (c) => c.json({
+  address: inboundAddressFor(c.get("workspaceId")),
+  enabled: mailDomainConfigured(),
+}));
 
 async function getSettings(workspaceId: string) {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();

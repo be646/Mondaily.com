@@ -84,6 +84,8 @@ export function EmailSettings() {
         </article>)}</div> : <EmptyState icon={Mail} title="No email connected" description="Connect Gmail or Outlook to sync conversations and calendars." aiHint="Connect email to let AI build context automatically." action={<button onClick={() => connect("gmail")} className="rounded-md bg-stone-600 px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-stone-700">Connect Gmail</button>} />}
       </section>
 
+      <SovereignInbox />
+
       <section className="premium-panel mb-5 p-5">
         <h2 className="mb-4 text-sm font-medium">Email preferences</h2>
         <label className="mb-5 block text-sm">Default send from<select value={data.default_from ?? connected[0]?.id ?? ""} onChange={(event) => setData({ ...data, default_from: event.target.value })} className="mt-2 h-10 w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-3"><option value="">No account selected</option>{connected.map((provider) => <option key={provider.id} value={provider.id}>{provider.email ?? provider.name}</option>)}</select></label>
@@ -98,6 +100,30 @@ export function EmailSettings() {
       </section>
       <div className="mt-5 flex justify-end"><button onClick={() => save.mutate()} className="flex items-center gap-2 rounded-md bg-stone-600 px-4 py-2 text-sm"><Save size={14} /> Save email settings</button></div>
     </div>
+  );
+}
+
+/** Sovereign inbox — the workspace's own self-hosted email address. Rendered only when the
+ *  deployment has native mail configured (SOVEREIGN_MAIL_DOMAIN); otherwise it stays hidden rather
+ *  than showing a dead address. No third-party provider — this is Mondaily's own MX. */
+function SovereignInbox() {
+  const q = useQuery({ queryKey: ["email-inbound-address"], queryFn: () => apiClient.get<{ address: string | null; enabled: boolean }>("/emails/inbound-address"), staleTime: 300_000, retry: false });
+  const [copied, setCopied] = useState(false);
+  if (!q.data?.enabled || !q.data.address) return null;
+  const address = q.data.address;
+  return (
+    <section className="premium-panel mb-5 p-5">
+      <h2 className="mb-1 flex items-center gap-2 text-sm font-medium"><Mail size={15} /> Sovereign inbox</h2>
+      <p className="mb-3 text-[12px] leading-relaxed text-[var(--text-muted)]">
+        Your workspace has its own self-hosted address — no third-party provider. Forward mail to it,
+        or point your domain's MX here, and messages land in the inbox above.
+      </p>
+      <div className="flex items-center gap-2">
+        <code className="flex-1 truncate rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-2 text-[13px] text-[var(--text-primary)]">{address}</code>
+        <button onClick={() => { void navigator.clipboard?.writeText(address); setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+          className="rounded-md border border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-secondary)]">{copied ? "Copied" : "Copy"}</button>
+      </div>
+    </section>
   );
 }
 

@@ -1,0 +1,29 @@
+services:
+  # Inbound: SMTP server (your MX) → parses mail → POSTs to the API's /emails/inbound.
+  receiver:
+    build: ./mail
+    container_name: mondaily-mail-receiver
+    command: python receiver.py
+    ports:
+      - "25:25"
+    environment:
+      - SOVEREIGN_MAIL_SECRET=${SOVEREIGN_MAIL_SECRET:?set a shared secret}
+      - MONDAILY_INBOUND_URL=${MONDAILY_INBOUND_URL:-https://api.mondaily.com/api/v1/emails/inbound}
+      - MAIL_DOMAIN=${MAIL_DOMAIN:?e.g. inbound.mondaily.com}
+      - SMTP_LISTEN_PORT=25
+    restart: unless-stopped
+
+  # Outbound: HMAC-verified /send that the API calls, relaying through your SMTP.
+  sender:
+    build: ./mail
+    container_name: mondaily-mail-sender
+    command: uvicorn sender:app --host 0.0.0.0 --port 8095
+    ports:
+      - "8095:8095"
+    environment:
+      - SOVEREIGN_MAIL_SECRET=${SOVEREIGN_MAIL_SECRET:?set a shared secret}
+      - SMTP_RELAY_HOST=${SMTP_RELAY_HOST:-localhost}
+      - SMTP_RELAY_PORT=${SMTP_RELAY_PORT:-587}
+      - SMTP_RELAY_USER=${SMTP_RELAY_USER:-}
+      - SMTP_RELAY_PASS=${SMTP_RELAY_PASS:-}
+    restart: unless-stopped

@@ -10,8 +10,10 @@
  * Best-effort: every path returns a boolean and never throws, so callers can
  * surface the invite link as a manual fallback when neither route is configured.
  */
+import { createHmac } from "node:crypto";
 import { supabase } from "@mondaily/db/client";
 import { freshAccessToken, gmailSend } from "./google";
+import { inboundAddressFor } from "./email-sovereign";
 
 export type OutboundMessage = {
   subject: string;
@@ -81,10 +83,35 @@ export async function sendTransactionalEmail(msg: OutboundMessage): Promise<bool
 }
 
 /**
- * Send a workspace email: try the connected inbox first, then the transactional
- * fallback. Returns true if either route accepted the message.
+ * SOVEREIGN: relay through Mondaily's own self-hosted mail sender (the deploy/ appliance's /send
+ * endpoint), from the workspace's own address so replies route back to /emails/inbound. Fully
+ * self-hosted — no third-party. Fail-closed: without SOVEREIGN_MAIL_SEND_URL + _SECRET this returns
+ * false and we fall through to the next tier.
+ */
+async function sendViaSovereignRelay(workspaceId: string, msg: OutboundMessage): Promise<boolean> {
+  const url = process.env.SOVEREIGN_MAIL_SEND_URL;
+  const secret = process.env.SOVEREIGN_MAIL_SECRET;
+  if (!url || !secret) return false;
+  try {
+    const from = inboundAddressFor(workspaceId) ?? CORPORATE_FROM;
+    const body = JSON.stringify({ from, to: msg.to.map((t) => t.email), subject: msg.subject, html: msg.body });
+    const res = await fetch(url.replace(/\/$/, "") + "/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-mondaily-mail-signature": createHmac("sha256", secret).update(body).digest("hex") },
+      body,
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Send a workspace email: the sovereign self-hosted relay first (when configured), then a connected
+ * Gmail inbox, then the transactional fallback. Returns true if any route accepted the message.
  */
 export async function sendWorkspaceEmail(workspaceId: string, msg: OutboundMessage): Promise<boolean> {
+  if (await sendViaSovereignRelay(workspaceId, msg)) return true;
   if (await sendViaGoogle(workspaceId, msg)) return true;
   return sendViaTransactional(msg);
 }

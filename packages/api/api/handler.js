@@ -41127,6 +41127,81 @@ var init_google = __esm({
   }
 });
 
+// src/lib/email-sovereign.ts
+function normalizeSubject(subject) {
+  let s2 = (subject ?? "").trim();
+  while (true) {
+    const next = s2.replace(/^(re|fwd?|aw|wg|sv|vs|res|antw)\s*(\[\d+\])?\s*:\s*/i, "");
+    if (next === s2) break;
+    s2 = next;
+  }
+  return s2.replace(/\s+/g, " ").trim();
+}
+function parseAddr(s2) {
+  const m2 = (s2 ?? "").match(/^\s*"?([^"<]*)"?\s*<([^>]+)>/);
+  if (m2) return { name: (m2[1] ?? "").trim() || void 0, email: (m2[2] ?? "").trim().toLowerCase() };
+  return { email: (s2 ?? "").trim().toLowerCase() };
+}
+function threadIdFor(msg) {
+  const root = (msg.references && msg.references.length > 0 ? msg.references[0] : msg.in_reply_to) || "";
+  if (strip(root)) return strip(root);
+  const people = [parseAddr(msg.from).email, ...(msg.to ?? "").split(",").map((a2) => parseAddr(a2).email)].filter(Boolean).sort();
+  const seed = `${normalizeSubject(msg.subject).toLowerCase()}|${[...new Set(people)].join(",")}`;
+  return `mtd-${(0, import_node_crypto2.createHash)("sha1").update(seed).digest("hex").slice(0, 24)}`;
+}
+function mergeMessage(existing, msg, threadId, direction) {
+  const body = (msg.html || msg.text || "").toString();
+  const stored = { id: strip(msg.message_id) || `${threadId}-${(existing?.messages.length ?? 0) + 1}`, message_id: strip(msg.message_id), from: msg.from, to: msg.to, cc: msg.cc, date: msg.date ?? (/* @__PURE__ */ new Date()).toISOString(), body };
+  const priorMsgs = existing?.messages ?? [];
+  const messages = priorMsgs.some((m2) => m2.message_id && m2.message_id === stored.message_id) ? priorMsgs : [...priorMsgs, stored].sort((a2, b2) => toUnixSeconds(a2.date) - toUnixSeconds(b2.date));
+  const participants = [...new Map(
+    messages.flatMap((m2) => [m2.from, ...(m2.to ?? "").split(","), ...(m2.cc ?? "").split(",")]).map((a2) => parseAddr(a2)).filter((p2) => p2.email).map((p2) => [p2.email, p2])
+  ).values()];
+  const folders = [.../* @__PURE__ */ new Set([...existing?.folders ?? [], direction === "inbound" ? "inbox" : "sent"])];
+  const snippet = (msg.text || msg.html || "").toString().replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 140);
+  return {
+    thread_id: threadId,
+    subject: existing?.subject || normalizeSubject(msg.subject) || "(no subject)",
+    snippet,
+    participants,
+    latest_message_received_date: toUnixSeconds(stored.date),
+    unread: direction === "inbound" ? true : existing?.unread ?? false,
+    folders,
+    messages,
+    source: "sovereign"
+  };
+}
+function inboundAddressFor(workspaceId) {
+  const d2 = mailDomain();
+  return d2 ? `ws-${workspaceId}@${d2}` : null;
+}
+function workspaceIdFromRecipients(recipients) {
+  const d2 = mailDomain();
+  if (!d2) return null;
+  for (const raw2 of recipients) {
+    const email = parseAddr(raw2).email;
+    const at2 = email.lastIndexOf("@");
+    if (at2 < 0 || email.slice(at2 + 1) !== d2) continue;
+    const local = email.slice(0, at2);
+    if (local.startsWith("ws-")) return local.slice(3);
+  }
+  return null;
+}
+var import_node_crypto2, strip, toUnixSeconds, mailDomain, mailDomainConfigured;
+var init_email_sovereign = __esm({
+  "src/lib/email-sovereign.ts"() {
+    "use strict";
+    import_node_crypto2 = require("crypto");
+    strip = (s2) => (s2 ?? "").replace(/^<|>$/g, "").trim();
+    toUnixSeconds = (dateStr) => {
+      const t3 = Date.parse(dateStr ?? "");
+      return Number.isNaN(t3) ? Math.floor(Date.now() / 1e3) : Math.floor(t3 / 1e3);
+    };
+    mailDomain = () => (process.env.SOVEREIGN_MAIL_DOMAIN || "").trim().toLowerCase();
+    mailDomainConfigured = () => mailDomain().length > 0;
+  }
+});
+
 // src/lib/mail.ts
 async function sendViaGoogle(workspaceId, msg) {
   try {
@@ -41166,16 +41241,36 @@ async function sendViaTransactional(msg) {
 async function sendTransactionalEmail(msg) {
   return sendViaTransactional(msg);
 }
+async function sendViaSovereignRelay(workspaceId, msg) {
+  const url = process.env.SOVEREIGN_MAIL_SEND_URL;
+  const secret4 = process.env.SOVEREIGN_MAIL_SECRET;
+  if (!url || !secret4) return false;
+  try {
+    const from = inboundAddressFor(workspaceId) ?? CORPORATE_FROM;
+    const body = JSON.stringify({ from, to: msg.to.map((t3) => t3.email), subject: msg.subject, html: msg.body });
+    const res = await fetch(url.replace(/\/$/, "") + "/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-mondaily-mail-signature": (0, import_node_crypto3.createHmac)("sha256", secret4).update(body).digest("hex") },
+      body
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
 async function sendWorkspaceEmail(workspaceId, msg) {
+  if (await sendViaSovereignRelay(workspaceId, msg)) return true;
   if (await sendViaGoogle(workspaceId, msg)) return true;
   return sendViaTransactional(msg);
 }
-var CORPORATE_FROM;
+var import_node_crypto3, CORPORATE_FROM;
 var init_mail = __esm({
   "src/lib/mail.ts"() {
     "use strict";
+    import_node_crypto3 = require("crypto");
     init_client();
     init_google();
+    init_email_sovereign();
     CORPORATE_FROM = process.env.RESEND_FROM ?? process.env.TRANSACTIONAL_MAIL_FROM ?? "Mondaily Networks <no-reply@mondaily.com>";
   }
 });
@@ -55417,10 +55512,10 @@ async function gatewayHealthCheck(opts) {
       note: "env configured; no live probe run (add ?probe=1 to test models \u2014 costs 4 requests). lastChatError shows the most recent real chat failure."
     };
   }
-  const strip = (m2) => m2.replace(/^openai-compat\//, "");
-  const providerModel = strip(env3.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC);
-  const agentModel = strip(env3.AI_AGENT_MODEL ?? env3.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC);
-  const fastModel = strip(FAST_MODEL_SPEC);
+  const strip2 = (m2) => m2.replace(/^openai-compat\//, "");
+  const providerModel = strip2(env3.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC);
+  const agentModel = strip2(env3.AI_AGENT_MODEL ?? env3.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC);
+  const fastModel = strip2(FAST_MODEL_SPEC);
   const client = new openai_default({ baseURL, apiKey, timeout: 12e3, maxRetries: 0 });
   async function probe3(model, withTools) {
     try {
@@ -56583,7 +56678,7 @@ async function runDiscoveryMonitors() {
   }
   return { monitors: (monitors ?? []).length, new_results: totalNew };
 }
-var import_node_crypto2, leadFingerprint, SEARCH_TIMEOUT_REASON, SEARCH_NOT_CONFIGURED_REASON, SOVEREIGN_SEARCH_URL2, SOVEREIGN_SEARCH_ENGINES, socialDiscoveryWorker;
+var import_node_crypto4, leadFingerprint, SEARCH_TIMEOUT_REASON, SEARCH_NOT_CONFIGURED_REASON, SOVEREIGN_SEARCH_URL2, SOVEREIGN_SEARCH_ENGINES, socialDiscoveryWorker;
 var init_social_discovery = __esm({
   "src/jobs/social-discovery.ts"() {
     "use strict";
@@ -56595,8 +56690,8 @@ var init_social_discovery = __esm({
     init_places();
     init_reddit();
     init_notify();
-    import_node_crypto2 = require("crypto");
-    leadFingerprint = (url, author, content) => (0, import_node_crypto2.createHash)("md5").update(`${url}|${author}|${(content || "").slice(0, 200)}`).digest("hex");
+    import_node_crypto4 = require("crypto");
+    leadFingerprint = (url, author, content) => (0, import_node_crypto4.createHash)("md5").update(`${url}|${author}|${(content || "").slice(0, 200)}`).digest("hex");
     SEARCH_TIMEOUT_REASON = "Self-hosted search engine instance was temporarily unreachable.";
     SEARCH_NOT_CONFIGURED_REASON = "Search appliance not configured \u2014 SOVEREIGN_SEARCH_URL is not set on the API.";
     SOVEREIGN_SEARCH_URL2 = process.env.SOVEREIGN_SEARCH_URL || (process.env.NODE_ENV !== "production" ? "http://localhost:8080/search" : "");
@@ -57567,21 +57662,21 @@ async function verifyResetToken(token) {
   }
 }
 function sha2565(s2) {
-  return (0, import_node_crypto4.createHash)("sha256").update(s2).digest("hex");
+  return (0, import_node_crypto6.createHash)("sha256").update(s2).digest("hex");
 }
 function newRefreshToken() {
-  const raw2 = (0, import_node_crypto4.randomBytes)(32).toString("hex");
+  const raw2 = (0, import_node_crypto6.randomBytes)(32).toString("hex");
   return { raw: raw2, hash: sha2565(raw2) };
 }
 function refreshExpiry() {
   return new Date(Date.now() + REFRESH_TTL_DAYS * 24 * 60 * 60 * 1e3);
 }
-var import_node_crypto4, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS, VERIFY_TTL_SECONDS, RESET_TTL_SECONDS;
+var import_node_crypto6, ACCESS_TTL_SECONDS, REFRESH_TTL_DAYS, ACCESS_COOKIE, REFRESH_COOKIE, ACTIVATION_TTL_SECONDS, VERIFY_TTL_SECONDS, RESET_TTL_SECONDS;
 var init_auth_tokens = __esm({
   "src/lib/auth-tokens.ts"() {
     "use strict";
     init_jwt4();
-    import_node_crypto4 = require("crypto");
+    import_node_crypto6 = require("crypto");
     ACCESS_TTL_SECONDS = 15 * 60;
     REFRESH_TTL_DAYS = 30;
     ACCESS_COOKIE = "md_at";
@@ -57602,7 +57697,7 @@ function secret3() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 function sign4(payload) {
-  return b64url2((0, import_node_crypto11.createHmac)("sha256", secret3()).update(payload).digest());
+  return b64url2((0, import_node_crypto13.createHmac)("sha256", secret3()).update(payload).digest());
 }
 function mintMcpToken(workspaceId) {
   const p2 = b64url2(`mcp:${workspaceId}`);
@@ -57618,7 +57713,7 @@ function verifyMcpToken(token) {
   const expected = sign4(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto11.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto13.timingSafeEqual)(a2, b2)) return null;
   try {
     const decoded = Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
     return decoded.startsWith("mcp:") ? decoded.slice(4) || null : null;
@@ -57626,11 +57721,11 @@ function verifyMcpToken(token) {
     return null;
   }
 }
-var import_node_crypto11, b64url2;
+var import_node_crypto13, b64url2;
 var init_mcp_token = __esm({
   "src/lib/mcp-token.ts"() {
     "use strict";
-    import_node_crypto11 = require("crypto");
+    import_node_crypto13 = require("crypto");
     b64url2 = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 });
@@ -59749,7 +59844,7 @@ init_ai_gateway();
 
 // src/lib/livekit.ts
 init_jwt4();
-var import_node_crypto3 = require("crypto");
+var import_node_crypto5 = require("crypto");
 var env2 = () => ({
   url: process.env.LIVEKIT_URL,
   key: process.env.LIVEKIT_API_KEY,
@@ -59827,10 +59922,10 @@ async function verifyLiveKitWebhook(rawBody, authHeader) {
   try {
     const claims = await verify2(token, secret4, "HS256");
     if (!claims?.sha256) return false;
-    const expected = (0, import_node_crypto3.createHash)("sha256").update(rawBody).digest("base64");
+    const expected = (0, import_node_crypto5.createHash)("sha256").update(rawBody).digest("base64");
     const a2 = Buffer.from(claims.sha256);
     const b2 = Buffer.from(expected);
-    return a2.length === b2.length && (0, import_node_crypto3.timingSafeEqual)(a2, b2);
+    return a2.length === b2.length && (0, import_node_crypto5.timingSafeEqual)(a2, b2);
   } catch {
     return false;
   }
@@ -64530,11 +64625,11 @@ router8.get("/activity", async (c2) => {
 init_client();
 
 // src/lib/pow-claims.ts
-var import_node_crypto5 = require("crypto");
+var import_node_crypto7 = require("crypto");
 init_client();
 function logPowClaim(userId, challenge, nonce, context2) {
   if (!userId || !challenge || !nonce) return;
-  const challenge_hash = (0, import_node_crypto5.createHash)("sha256").update(challenge).digest("hex");
+  const challenge_hash = (0, import_node_crypto7.createHash)("sha256").update(challenge).digest("hex");
   void supabase.from("pow_claims").insert({ user_id: userId, challenge_hash, nonce, context: context2 }).then(() => {
   }, () => {
   });
@@ -65896,14 +65991,14 @@ router14.get("/token", async (c2) => {
 
 // src/routes/auth.ts
 init_cookie2();
-var import_node_crypto8 = require("crypto");
+var import_node_crypto10 = require("crypto");
 init_client();
 
 // src/lib/password.ts
-var import_node_crypto6 = require("crypto");
+var import_node_crypto8 = require("crypto");
 function scryptAsync(password, salt, keylen, options) {
   return new Promise((resolve2, reject) => {
-    (0, import_node_crypto6.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
+    (0, import_node_crypto8.scrypt)(password, salt, keylen, options, (err2, derivedKey) => err2 ? reject(err2) : resolve2(derivedKey));
   });
 }
 var N2 = 32768;
@@ -65912,7 +66007,7 @@ var P2 = 1;
 var KEYLEN = 64;
 var MAXMEM = 64 * 1024 * 1024;
 async function hashPassword(plain) {
-  const salt = (0, import_node_crypto6.randomBytes)(16);
+  const salt = (0, import_node_crypto8.randomBytes)(16);
   const dk = await scryptAsync(plain, salt, KEYLEN, { N: N2, r: R2, p: P2, maxmem: MAXMEM });
   return `scrypt$${N2}$${R2}$${P2}$${salt.toString("base64")}$${dk.toString("base64")}`;
 }
@@ -65924,7 +66019,7 @@ async function verifyPassword(stored, plain) {
     const salt = Buffer.from(saltB64, "base64");
     const expected = Buffer.from(hashB64, "base64");
     const dk = await scryptAsync(plain, salt, expected.length, { N: Number(n2), r: Number(r2), p: Number(p2), maxmem: MAXMEM });
-    return dk.length === expected.length && (0, import_node_crypto6.timingSafeEqual)(dk, expected);
+    return dk.length === expected.length && (0, import_node_crypto8.timingSafeEqual)(dk, expected);
   } catch {
     return false;
   }
@@ -66019,7 +66114,7 @@ init_pricing();
 
 // src/lib/pow.ts
 init_jwt4();
-var import_node_crypto7 = require("crypto");
+var import_node_crypto9 = require("crypto");
 init_factory();
 init_http_exception();
 var DIFFICULTY = "0000";
@@ -66031,7 +66126,7 @@ function secret() {
 }
 async function issuePowChallenge() {
   const now = Math.floor(Date.now() / 1e3);
-  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto7.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
+  const challenge = await sign2({ type: "pow", salt: (0, import_node_crypto9.randomBytes)(16).toString("hex"), iat: now, exp: now + TTL_SECONDS }, secret());
   return { challenge, difficulty: DIFFICULTY.length };
 }
 async function verifyPow(challenge, nonce) {
@@ -66042,7 +66137,7 @@ async function verifyPow(challenge, nonce) {
   } catch {
     return false;
   }
-  return (0, import_node_crypto7.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
+  return (0, import_node_crypto9.createHash)("sha256").update(`${challenge}:${nonce}`).digest("hex").startsWith(DIFFICULTY);
 }
 var requirePow = createMiddleware(async (c2, next) => {
   let body = {};
@@ -66113,7 +66208,7 @@ router15.get("/challenge", async (c2) => c2.json(await issuePowChallenge()));
 router15.post("/register", rateLimit(), requirePow, zValidator("json", credSchema.extend({ name: external_exports.string().max(120).optional() })), async (c2) => {
   const { email, password, name } = c2.req.valid("json");
   if (await credByEmail(email)) return c2.json({ error: "An account with this email already exists." }, 409);
-  const userId = `usr_${(0, import_node_crypto8.randomBytes)(12).toString("hex")}`;
+  const userId = `usr_${(0, import_node_crypto10.randomBytes)(12).toString("hex")}`;
   const password_hash = await hashPassword(password);
   const { error } = await supabase.from("auth_credentials").insert({ user_id: userId, email, password_hash });
   if (error) return c2.json({ error: error.message }, 400);
@@ -67214,7 +67309,7 @@ router18.post("/tickets/:id/comments", zValidator("json", external_exports.objec
 });
 
 // src/routes/webhooks.ts
-var import_node_crypto9 = require("crypto");
+var import_node_crypto11 = require("crypto");
 init_client();
 init_inngest2();
 init_notify();
@@ -67267,7 +67362,7 @@ router19.post("/nylas", async (c2) => {
   const sig = c2.req.header("x-nylas-signature") ?? "";
   const secret4 = process.env.NYLAS_WEBHOOK_SECRET ?? "";
   if (secret4 && sig) {
-    const expected = (0, import_node_crypto9.createHmac)("sha256", secret4).update(rawBody).digest("hex");
+    const expected = (0, import_node_crypto11.createHmac)("sha256", secret4).update(rawBody).digest("hex");
     if (sig !== expected) return c2.json({ error: "invalid signature" }, 401);
   }
   const payload = JSON.parse(rawBody);
@@ -67301,9 +67396,9 @@ router19.post("/stripe", async (c2) => {
     const age = Math.abs(Date.now() / 1e3 - parseInt(timestamp));
     if (age > 300) return c2.json({ error: "timestamp too old" }, 400);
     const payload = `${timestamp}.${rawBody}`;
-    const expected = (0, import_node_crypto9.createHmac)("sha256", secret4).update(payload).digest("hex");
+    const expected = (0, import_node_crypto11.createHmac)("sha256", secret4).update(payload).digest("hex");
     const provided = parts["v1"] ?? "";
-    if (!(0, import_node_crypto9.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
+    if (!(0, import_node_crypto11.timingSafeEqual)(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
       return c2.json({ error: "invalid signature" }, 401);
     }
   }
@@ -67608,13 +67703,13 @@ init_cookie2();
 init_client();
 
 // src/lib/tracking.ts
-var import_node_crypto10 = require("crypto");
+var import_node_crypto12 = require("crypto");
 function secret2() {
   return process.env.EMAIL_TRACKING_SECRET || process.env.CRON_SECRET || "mondaily-dev-tracking-secret";
 }
 var b64url = (b2) => Buffer.from(b2).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 function sign3(payload) {
-  return b64url((0, import_node_crypto10.createHmac)("sha256", secret2()).update(payload).digest());
+  return b64url((0, import_node_crypto12.createHmac)("sha256", secret2()).update(payload).digest());
 }
 function makeTrackingToken(nodeId) {
   const p2 = b64url(nodeId);
@@ -67628,7 +67723,7 @@ function verifyTrackingToken(token) {
   const expected = sign3(p2);
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto10.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto12.timingSafeEqual)(a2, b2)) return null;
   try {
     return Buffer.from(p2.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8") || null;
   } catch {
@@ -68561,7 +68656,7 @@ router21.patch("/settings/general", requireAuth, async (c2) => {
 });
 
 // src/routes/invites.ts
-var import_node_crypto12 = require("crypto");
+var import_node_crypto14 = require("crypto");
 init_client();
 init_mail();
 var inviteUrl = (token) => `${process.env.APP_URL ?? process.env.APP_BASE_URL ?? "https://app.mondaily.com"}/invite/${token}`;
@@ -68617,7 +68712,7 @@ router22.post("/link", requireAuth, async (c2) => {
   if (!["admin", "owner"].includes(callerRole)) return c2.json({ error: "Forbidden" }, 403);
   const { data, error } = await supabase.from("workspace_invites").insert({
     workspace_id: c2.get("workspaceId"),
-    email: `link-${(0, import_node_crypto12.randomUUID)().slice(0, 8)}@invite.local`,
+    email: `link-${(0, import_node_crypto14.randomUUID)().slice(0, 8)}@invite.local`,
     // placeholder; the unique key is (workspace,email)
     role: "member",
     finance_role: "none",
@@ -68784,6 +68879,8 @@ router23.delete("/:id", async (c2) => {
 
 // src/routes/emails.ts
 init_client();
+var import_node_crypto15 = require("crypto");
+init_email_sovereign();
 init_google();
 init_mail();
 var PIXEL_GIF = Buffer.from(
@@ -68823,7 +68920,42 @@ router24.get("/track/:token/click", async (c2) => {
   }
   return c2.redirect(url, 302);
 });
+router24.post("/inbound", async (c2) => {
+  const raw2 = await c2.req.text();
+  const secret4 = process.env.SOVEREIGN_MAIL_SECRET;
+  const sig = c2.req.header("x-mondaily-mail-signature") ?? "";
+  if (!secret4) return c2.json({ error: "Sovereign mail isn't configured." }, 401);
+  const expected = (0, import_node_crypto15.createHmac)("sha256", secret4).update(raw2).digest("hex");
+  const a2 = Buffer.from(sig);
+  const b2 = Buffer.from(expected);
+  if (a2.length !== b2.length || !(0, import_node_crypto15.timingSafeEqual)(a2, b2)) return c2.json({ error: "invalid signature" }, 401);
+  let msg;
+  try {
+    msg = JSON.parse(raw2);
+  } catch {
+    return c2.json({ error: "bad payload" }, 400);
+  }
+  if (!msg?.message_id || !msg?.from) return c2.json({ error: "missing message_id/from" }, 400);
+  const recipients = msg.recipients?.length ? msg.recipients : [msg.to, msg.cc].filter(Boolean);
+  const workspaceId = workspaceIdFromRecipients(recipients);
+  if (!workspaceId) return c2.json({ ok: true, ignored: "no matching workspace address" });
+  const { data: ws } = await supabase.from("workspaces").select("id").eq("id", workspaceId).maybeSingle();
+  if (!ws) return c2.json({ ok: true, ignored: "unknown workspace" });
+  const threadId = threadIdFor(msg);
+  const { data: existing } = await supabase.from("nodes").select("id,data").eq("workspace_id", workspaceId).eq("object_type", "email_thread").eq("data->>thread_id", threadId).maybeSingle();
+  const merged = mergeMessage(existing?.data ?? null, msg, threadId, "inbound");
+  if (existing) {
+    await supabase.from("nodes").update({ data: merged }).eq("id", existing.id).eq("workspace_id", workspaceId).eq("object_type", "email_thread");
+  } else {
+    await supabase.from("nodes").insert({ workspace_id: workspaceId, vertical: "shared", object_type: "email_thread", created_by: "agent:mail", data: merged });
+  }
+  return c2.json({ ok: true, thread_id: threadId });
+});
 router24.use("*", requireAuth);
+router24.get("/inbound-address", (c2) => c2.json({
+  address: inboundAddressFor(c2.get("workspaceId")),
+  enabled: mailDomainConfigured()
+}));
 async function getSettings(workspaceId) {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
   return data?.settings ?? {};
@@ -68856,12 +68988,12 @@ function matchesFilter(thread, filter) {
   if (filter === "inbox") return folders.some((folder) => folder.includes("inbox"));
   return true;
 }
-function parseAddr(s2) {
+function parseAddr2(s2) {
   const m2 = (s2 ?? "").match(/^\s*"?([^"<]*)"?\s*<([^>]+)>/);
   if (m2) return { name: (m2[1] ?? "").trim() || void 0, email: (m2[2] ?? "").trim() };
   return { email: (s2 ?? "").trim() };
 }
-function toUnixSeconds(dateStr) {
+function toUnixSeconds2(dateStr) {
   const t3 = Date.parse(dateStr ?? "");
   return Number.isNaN(t3) ? Math.floor(Date.now() / 1e3) : Math.floor(t3 / 1e3);
 }
@@ -68885,8 +69017,8 @@ router24.get("/threads", zValidator("query", external_exports.object({
         id: t3.id,
         subject: t3.subject,
         snippet: t3.snippet,
-        participants: [parseAddr(t3.from)],
-        latest_message_received_date: toUnixSeconds(t3.date),
+        participants: [parseAddr2(t3.from)],
+        latest_message_received_date: toUnixSeconds2(t3.date),
         unread: t3.unread,
         folders: []
       }));
@@ -68919,11 +69051,11 @@ router24.get("/threads/:id", async (c2) => {
         id: c2.req.param("id"),
         subject: last?.subject ?? "",
         snippet: last?.snippet ?? "",
-        participants: last ? [parseAddr(last.from)] : [],
-        latest_message_received_date: last ? toUnixSeconds(last.date) : 0,
+        participants: last ? [parseAddr2(last.from)] : [],
+        latest_message_received_date: last ? toUnixSeconds2(last.date) : 0,
         unread: false,
         folders: [],
-        messages: msgs.map((m2) => ({ id: m2.id, from: [parseAddr(m2.from)], to: m2.to ? [parseAddr(m2.to)] : [], cc: [], date: toUnixSeconds(m2.date), body: m2.body, attachments: [] }))
+        messages: msgs.map((m2) => ({ id: m2.id, from: [parseAddr2(m2.from)], to: m2.to ? [parseAddr2(m2.to)] : [], cc: [], date: toUnixSeconds2(m2.date), body: m2.body, attachments: [] }))
       });
     }
   }
@@ -68953,7 +69085,7 @@ router24.post("/threads/:id/reply", zValidator("json", external_exports.object({
     const msgs = await gmailThread(token, c2.req.param("id"));
     const last = msgs[msgs.length - 1];
     if (!last) return c2.json({ error: "Thread has no message to reply to" }, 400);
-    const replyTo = parseAddr(last.from).email;
+    const replyTo = parseAddr2(last.from).email;
     const subject = /^re:/i.test(last.subject) ? last.subject : `Re: ${last.subject}`;
     const { data: trackNode } = await supabase.from("nodes").insert({
       workspace_id: c2.get("workspaceId"),
@@ -73156,7 +73288,7 @@ router49.post("/", requireJwt, async (c2) => {
 });
 
 // src/routes/integrations.ts
-var import_node_crypto13 = require("crypto");
+var import_node_crypto16 = require("crypto");
 init_client();
 init_google();
 init_microsoft();
@@ -73165,7 +73297,7 @@ var stateSecret = () => process.env.NYLAS_STATE_SECRET || process.env.CRON_SECRE
 var b64url3 = (b2) => Buffer.from(b2).toString("base64url");
 function signState(payload) {
   const body = b64url3(JSON.stringify(payload));
-  const sig = b64url3((0, import_node_crypto13.createHmac)("sha256", stateSecret()).update(body).digest());
+  const sig = b64url3((0, import_node_crypto16.createHmac)("sha256", stateSecret()).update(body).digest());
   return `${body}.${sig}`;
 }
 function verifyState(token) {
@@ -73173,10 +73305,10 @@ function verifyState(token) {
   if (i2 <= 0) return null;
   const body = token.slice(0, i2);
   const sig = token.slice(i2 + 1);
-  const expected = b64url3((0, import_node_crypto13.createHmac)("sha256", stateSecret()).update(body).digest());
+  const expected = b64url3((0, import_node_crypto16.createHmac)("sha256", stateSecret()).update(body).digest());
   const a2 = Buffer.from(sig);
   const b2 = Buffer.from(expected);
-  if (a2.length !== b2.length || !(0, import_node_crypto13.timingSafeEqual)(a2, b2)) return null;
+  if (a2.length !== b2.length || !(0, import_node_crypto16.timingSafeEqual)(a2, b2)) return null;
   try {
     const obj = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
     if (typeof obj.exp === "number" && obj.exp < Math.floor(Date.now() / 1e3)) return null;
