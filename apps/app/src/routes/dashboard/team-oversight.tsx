@@ -275,23 +275,39 @@ export function TeamOversightPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      {/* ── Header ── */}
-      <div className="mb-6">
-        <h1 className="text-[20px] font-semibold" style={{ color: "var(--text-primary)" }}>Team Intelligence</h1>
-        <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-muted)" }}>How each member contributes, behaves, and uses AI — real activity only.</p>
+      {/* ── AI-engine header — the section's "intelligence" signature ── */}
+      <div className="mb-6 overflow-hidden rounded-sm border" style={{ borderColor: "var(--section-accent-line)" }}>
+        <div className="flex items-center justify-between gap-3 px-4 py-3.5" style={{ background: "color-mix(in srgb, var(--section-accent) 5%, transparent)" }}>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-sm border" style={{ borderColor: "var(--section-accent-line)", color: "var(--section-accent)", background: "var(--surface-card)" }}>
+              <ShieldCheck size={16} />
+            </div>
+            <div className="min-w-0">
+              <div className="soul-kicker">// SIGNAL · TEAM INTELLIGENCE</div>
+              <h1 className="mt-0.5 text-[17px] font-semibold" style={{ color: "var(--text-primary)" }}>Team Intelligence</h1>
+            </div>
+          </div>
+          <div className="hidden shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-wider sm:flex" style={{ color: "var(--text-muted)" }}>
+            <span className="soul-dot" /> real activity only
+          </div>
+        </div>
+        <div className="soul-rule" />
       </div>
 
-      {/* ── Team overview — real aggregates ── */}
+      {/* ── Team overview — real aggregates, as an intelligence stat band ── */}
       <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-sm border sm:grid-cols-4" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
         {[
-          { label: "Members", value: totals?.operators ?? operators.length },
-          { label: "Active today", value: activeTodayCount },
-          { label: "Tasks (30d)", value: totalTasks },
-          { label: "AI credits (30d)", value: totals ? fmt(totals.tokens) : "—" },
+          { label: "Members", value: totals?.operators ?? operators.length, Icon: Users },
+          { label: "Active today", value: activeTodayCount, Icon: Sparkles },
+          { label: "Tasks · 30d", value: totalTasks, Icon: History },
+          { label: "AI credits · 30d", value: totals ? fmt(totals.tokens) : "—", Icon: MessageSquare },
         ].map((s) => (
-          <div key={s.label} className="px-4 py-3" style={{ background: "var(--surface-card)" }}>
-            <div className="text-[22px] font-semibold leading-none tabular-nums" style={{ color: "var(--text-primary)" }}>{s.value}</div>
-            <div className="mt-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>{s.label}</div>
+          <div key={s.label} className="px-4 py-3.5" style={{ background: "var(--surface-card)" }}>
+            <div className="flex items-center justify-between">
+              <div className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{s.label}</div>
+              <s.Icon size={13} style={{ color: "var(--section-accent)", opacity: 0.75 }} />
+            </div>
+            <div className="mt-2 text-[24px] font-semibold leading-none tabular-nums" style={{ color: "var(--text-primary)" }}>{s.value}</div>
           </div>
         ))}
       </div>
@@ -342,7 +358,8 @@ export function TeamOversightPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="hidden items-center gap-1.5 text-[11.5px] sm:inline-flex" style={{ color: "var(--text-secondary)" }}>
+                        <span className="hidden items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10.5px] font-medium sm:inline-flex"
+                          style={{ borderColor: `${v.tone}33`, background: `${v.tone}14`, color: v.tone }}>
                           <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: v.tone }} /> {v.label}
                         </span>
                         <ChevronRight size={14} className="shrink-0" style={{ color: isSel ? "var(--section-accent)" : "var(--text-faint)" }} />
