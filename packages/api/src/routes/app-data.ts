@@ -434,6 +434,8 @@ router.get("/settings/workspace", async (c) => {
     onboarded: (data as Record<string, unknown> | null)?.onboarded ?? false,
     member_count: memberCount ?? 1,
     modules: (settings.modules as string[] | undefined) ?? ["crm"],
+    // Base/reporting currency — the FX layer normalizes every total to this.
+    currency: (settings.base_currency as string | undefined) ?? "USD",
     // Industry-aware profile — resolved (falls back to legacy onboarding fields for old workspaces).
     profile: resolveProfile(settings),
   });
@@ -500,7 +502,7 @@ async function persistLogo(workspaceId: string, dataUrl: string): Promise<string
 
 router.patch("/settings/workspace", async (c) => {
   const wid = c.get("workspaceId");
-  const body = await c.req.json<{ name?: string; slug?: string; timezone?: string; modules?: string[]; logo_url?: string; profile?: Partial<WorkspaceProfile> }>();
+  const body = await c.req.json<{ name?: string; slug?: string; timezone?: string; modules?: string[]; logo_url?: string; profile?: Partial<WorkspaceProfile>; currency?: string }>();
   const settings = await workspaceSettings(wid);
   // Merge any profile patch onto the resolved profile so partial edits don't wipe other fields.
   const nextProfile = body.profile !== undefined ? mergeProfile(resolveProfile(settings), body.profile) : undefined;
@@ -510,6 +512,8 @@ router.patch("/settings/workspace", async (c) => {
       ...(body.timezone !== undefined ? { timezone: body.timezone } : {}),
       ...(body.modules !== undefined ? { modules: body.modules } : {}),
       ...(nextProfile !== undefined ? { profile: nextProfile } : {}),
+      // The workspace "Default currency" IS the base/reporting currency the FX layer normalizes to.
+      ...(body.currency !== undefined ? { base_currency: String(body.currency).toUpperCase() } : {}),
     },
   };
   if (body.name !== undefined) update.name = body.name;
