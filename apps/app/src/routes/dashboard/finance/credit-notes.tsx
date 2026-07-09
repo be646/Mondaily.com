@@ -4,6 +4,7 @@ import { LogoMark } from "@/components/logo";
 import { FieldSelect } from "../../../components/ui/controls";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
+import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
 import {
   Plus, Search, ReceiptText, Clock, CheckCircle2, AlertCircle,
   XCircle, DollarSign, ChevronRight, RefreshCcw,
@@ -152,6 +153,7 @@ export function CreditNotesPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
+  const { display, sumInDisplay } = useCurrency();
 
   const { data: creditNotes = [], isLoading, isError, refetch } = useQuery<CreditNote[]>({
     queryKey: ["credit-notes", statusFilter, search],
@@ -163,9 +165,13 @@ export function CreditNotesPage() {
     },
   });
 
-  const totalPending  = creditNotes.filter(n => n.status === "pending_review").reduce((s, n) => s + n.amount_cents, 0);
-  const totalExecuted = creditNotes.filter(n => n.status === "executed").reduce((s, n) => s + n.amount_cents, 0);
-  const currency      = creditNotes[0]?.currency ?? "GBP";
+  // Totals normalized to the caller's display currency (major units), so mixed-currency
+  // credit notes sum honestly instead of being mislabeled with the first note's currency.
+  const cn$ = (n: CreditNote) => ({ amount: n.amount_cents / 100, currency: n.currency });
+  const totalPending  = sumInDisplay(creditNotes.filter(n => n.status === "pending_review").map(cn$)).value;
+  const totalExecuted = sumInDisplay(creditNotes.filter(n => n.status === "executed").map(cn$)).value;
+  const currency      = display;
+  const mixedCurrency = new Set(creditNotes.map(n => n.currency)).size > 1;
 
   return (
     <div className="flex h-full flex-col">
@@ -185,18 +191,18 @@ export function CreditNotesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-amber-400"/><span className="text-[11px] text-[var(--text-muted)]">Pending</span></div>
-            <div className="text-[17px] font-semibold text-amber-400">{fmt(totalPending, currency)}</div>
+            <div className="text-[17px] font-semibold text-amber-400">{formatMoney(totalPending, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{creditNotes.filter(n => n.status === "pending_review").length} note{creditNotes.filter(n => n.status === "pending_review").length !== 1 ? "s" : ""}</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-[var(--text-muted)]">Executed</span></div>
-            <div className="text-[17px] font-semibold text-emerald-400">{fmt(totalExecuted, currency)}</div>
+            <div className="text-[17px] font-semibold text-emerald-400">{formatMoney(totalExecuted, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{creditNotes.filter(n => n.status === "executed").length} note{creditNotes.filter(n => n.status === "executed").length !== 1 ? "s" : ""}</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><DollarSign size={11} className="text-[var(--text-muted)]"/><span className="text-[11px] text-[var(--text-muted)]">Total credit issued</span></div>
-            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{fmt(totalExecuted, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">this workspace</div>
+            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{formatMoney(totalExecuted, currency)}</div>
+            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{mixedCurrency ? `in ${display} · mixed currencies` : "this workspace"}</div>
           </div>
         </div>
 

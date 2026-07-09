@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
+import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
+import { FieldSelect } from "../../../components/ui/controls";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
@@ -42,8 +44,8 @@ function getLastNMonths(n: number) {
   return months;
 }
 
-function fmt(amount: number, currency = "GBP") {
-  return amount.toLocaleString("en-GB", { style: "currency", currency, minimumFractionDigits: 2 });
+function fmt(amount: number, currency: string) {
+  return formatMoney(amount, currency);
 }
 
 const TOOLTIP_STYLE = {
@@ -105,20 +107,29 @@ export function FinanceReportsPage() {
     return () => useAskContextStore.getState().setContext(null);
   }, []);
 
-  const currency = invoices[0]?.currency ?? "GBP";
+  // All money is normalized to the caller's DISPLAY currency via sovereign ECB rates, so
+  // mixed-currency invoices (EUR/USD/GBP…) sum honestly instead of being mislabeled as one.
+  const { display, currencies, ratesAsOf, hasRates, setDisplay, sumInDisplay } = useCurrency();
+  const currency = display;
+  const inv$ = (i: Invoice) => ({ amount: i.total, currency: i.currency });
+  const cn$ = (cn: CreditNote) => ({ amount: cn.amount_cents / 100, currency: cn.currency });
 
   // Summary
-  const totalRevenue = invoices.filter(i => i.status === "paid").reduce((s, i) => s + i.total, 0);
-  const outstanding = invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).reduce((s, i) => s + i.total, 0);
-  const creditsIssued = creditNotes.filter(cn => cn.status === "executed").reduce((s, cn) => s + cn.amount_cents / 100, 0);
+  const totalRevenue = sumInDisplay(invoices.filter(i => i.status === "paid").map(inv$)).value;
+  const outstanding = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$)).value;
+  const creditsIssued = sumInDisplay(creditNotes.filter(cn => cn.status === "executed").map(cn$)).value;
   const netRevenue = totalRevenue - creditsIssued;
+
+  // How many amounts couldn't be converted (missing rate) — surfaced honestly to the user.
+  const unconverted = sumInDisplay([...invoices.map(inv$), ...creditNotes.map(cn$)]).missing;
+  const mixedCurrency = new Set([...invoices.map(i => i.currency), ...creditNotes.map(c => c.currency)]).size > 1;
 
   // Monthly chart data
   const months = getLastNMonths(6);
   const monthlyData = months.map(m => {
     const monthInvoices = invoices.filter(i => i.created_at.slice(0, 7) === m.key);
-    const billed = monthInvoices.reduce((s, i) => s + i.total, 0);
-    const collected = monthInvoices.filter(i => i.status === "paid").reduce((s, i) => s + i.total, 0);
+    const billed = sumInDisplay(monthInvoices.map(inv$)).value;
+    const collected = sumInDisplay(monthInvoices.filter(i => i.status === "paid").map(inv$)).value;
     return { name: m.label, Billed: Math.round(billed * 100) / 100, Collected: Math.round(collected * 100) / 100 };
   });
 
@@ -126,8 +137,8 @@ export function FinanceReportsPage() {
   const clientMap: Record<string, { billed: number; paid: number; count: number }> = {};
   for (const inv of invoices) {
     if (!clientMap[inv.client_name]) clientMap[inv.client_name] = { billed: 0, paid: 0, count: 0 };
-    clientMap[inv.client_name]!.billed += inv.total;
-    if (inv.status === "paid") clientMap[inv.client_name]!.paid += inv.total;
+    clientMap[inv.client_name]!.billed += sumInDisplay([inv$(inv)]).value;
+    if (inv.status === "paid") clientMap[inv.client_name]!.paid += sumInDisplay([inv$(inv)]).value;
     clientMap[inv.client_name]!.count++;
   }
   const topClients = Object.entries(clientMap)
@@ -139,21 +150,46 @@ export function FinanceReportsPage() {
   const statusBreakdown = STATUS_ORDER.map(s => ({
     status: s,
     count: invoices.filter(i => i.status === s).length,
-    total: invoices.filter(i => i.status === s).reduce((acc, i) => acc + i.total, 0),
+    total: sumInDisplay(invoices.filter(i => i.status === s).map(inv$)).value,
   })).filter(s => s.count > 0);
 
   // Credit note impact by reason
   const reasonMap: Record<string, number> = {};
   for (const cn of creditNotes.filter(cn => cn.status === "executed")) {
-    reasonMap[cn.credit_reason] = (reasonMap[cn.credit_reason] ?? 0) + cn.amount_cents / 100;
+    reasonMap[cn.credit_reason] = (reasonMap[cn.credit_reason] ?? 0) + sumInDisplay([cn$(cn)]).value;
   }
 
   return (
     <div className="flex h-full flex-col bg-[var(--surface-card)] text-[var(--text-primary)]">
-      <div className="border-b border-[var(--border-soft)] px-6 py-4">
-        <h1 className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">Finance Reports</h1>
-        <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">Revenue overview, client breakdown and credit analysis</p>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border-soft)] px-6 py-4">
+        <div>
+          <h1 className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">Finance Reports</h1>
+          <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
+            Revenue overview, client breakdown and credit analysis
+            {mixedCurrency && (
+              <> · shown in <span className="font-medium text-[var(--text-secondary)]">{display}</span>
+                {hasRates && ratesAsOf ? <> at ECB rate, {new Date(ratesAsOf).toLocaleDateString()}</> : ""}</>
+            )}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-[var(--text-muted)]">Show in</span>
+          <div className="w-28">
+            <FieldSelect value={display} onChange={v => setDisplay.mutate(v)} ariaLabel="Display currency"
+              options={currencies.map(c => ({ value: c, label: c }))} />
+          </div>
+        </div>
       </div>
+      {mixedCurrency && !hasRates && (
+        <div className="border-b border-[var(--border-soft)] px-6 py-2 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+          Invoices span multiple currencies, but no FX rates are loaded yet — amounts are shown at face value and are not comparable. Once daily rates sync, totals convert to {display} automatically.
+        </div>
+      )}
+      {mixedCurrency && hasRates && unconverted > 0 && (
+        <div className="border-b border-[var(--border-soft)] px-6 py-2 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+          {unconverted} amount{unconverted === 1 ? "" : "s"} couldn't be converted to {display} (no rate for that currency) and are included at face value.
+        </div>
+      )}
 
       <div className="flex-1 overflow-auto">
         <div className="mx-auto max-w-5xl px-6 py-6 space-y-6">
