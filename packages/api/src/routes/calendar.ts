@@ -42,7 +42,11 @@ interface EventData {
   call_room_id: string | null; call_url: string | null; status: EventStatus;
   recurrence?: RecurrenceRule | null;   // set only on the SERIES MASTER
   exdates?: string[];                   // occurrence dates (YYYY-MM-DD) cancelled individually
+  responses?: Record<string, RsvpResponse>;   // per-attendee RSVP; absent = not yet responded
 }
+
+export const RSVP_RESPONSES = ["accepted", "declined", "tentative"] as const;
+export type RsvpResponse = (typeof RSVP_RESPONSES)[number];
 
 // ── Recurrence (pure, unit-tested) ────────────────────────────────────────────────────────────────
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -159,8 +163,21 @@ async function getEvent(ws: string, id: string) {
 const canView = (d: EventData, me: string) => d.organizer_id === me || (d.attendee_ids ?? []).includes(me);
 const canManage = (d: EventData, me: string, role: string) => d.organizer_id === me || isWorkspaceAdmin(role);
 
+/** Tally attendee RSVP responses (organizer excluded — they own the meeting, they don't RSVP). */
+export function responseCounts(d: Pick<EventData, "attendee_ids" | "responses">): { accepted: number; declined: number; tentative: number; no_response: number } {
+  const r = d.responses ?? {};
+  const counts = { accepted: 0, declined: 0, tentative: 0, no_response: 0 };
+  for (const uid of d.attendee_ids ?? []) {
+    const v = r[uid];
+    if (v === "accepted" || v === "declined" || v === "tentative") counts[v]++;
+    else counts.no_response++;
+  }
+  return counts;
+}
+
 function shape(id: string, d: EventData, dir: Map<string, { name?: string; email?: string }>, createdAt?: string) {
-  const person = (uid: string) => { const m = dir.get(uid); return { user_id: uid, name: m?.name || m?.email || "Member", email: m?.email ?? null }; };
+  const responses = d.responses ?? {};
+  const person = (uid: string) => { const m = dir.get(uid); return { user_id: uid, name: m?.name || m?.email || "Member", email: m?.email ?? null, response: responses[uid] ?? null }; };
   return {
     id, title: d.title, description: d.description ?? "", start_at: d.start_at, end_at: d.end_at,
     timezone: d.timezone ?? "UTC", location: d.location ?? "", status: d.status ?? "scheduled",
@@ -168,6 +185,7 @@ function shape(id: string, d: EventData, dir: Map<string, { name?: string; email
     organizer: person(d.organizer_id), attendees: (d.attendee_ids ?? []).map(person),
     recurrence: d.recurrence ?? null,
     recurrence_summary: d.recurrence ? recurrenceSummary(d.recurrence) : null,
+    responses, response_counts: responseCounts(d),
     created_at: createdAt,
   };
 }
@@ -327,6 +345,34 @@ router.delete("/events/:id", async (c) => {
   if (error) return c.json({ error: "Could not cancel the meeting." }, 500);
   await notifyAttendees(ws, ev.id, next, me, "cancelled");
   return c.json({ ok: true, status: "cancelled" });
+});
+
+// POST /calendar/events/:id/respond — an attendee (or the organizer) RSVPs. Participant-only. The
+// organizer is notified of a real response. For a recurring series the response applies to the
+// series (per-occurrence RSVP is a future refinement).
+router.post("/events/:id/respond", zValidator("json", z.object({ response: z.enum(RSVP_RESPONSES) })), async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const ev = await getEvent(ws, c.req.param("id"));
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canView(ev.data, me)) return c.json({ error: "Not allowed." }, 403);
+  if (ev.data.status === "cancelled") return c.json({ error: "This meeting was cancelled." }, 409);
+  const response = c.req.valid("json").response;
+  const next: EventData = { ...ev.data, responses: { ...(ev.data.responses ?? {}), [me]: response } };
+  const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
+  if (error) return c.json({ error: "Could not save your response." }, 500);
+
+  // Notify the organizer (not when the organizer RSVPs to their own meeting).
+  if (me !== ev.data.organizer_id) {
+    const dir = await members(ws); const meRow = dir.get(me);
+    await createNotification({
+      workspace_id: ws, user_id: ev.data.organizer_id, type: "calendar",
+      title: `${meRow?.name || meRow?.email || "A teammate"} ${response} “${ev.data.title}”`,
+      source: { source_agent: "meeting", node_id: ev.id, object_type: "calendar_event", route: `/calendar?event=${ev.id}` },
+      metadata: { event_id: ev.id, response },
+    }).catch(() => false);
+  }
+  const dir = await members(ws);
+  return c.json(shape(ev.id, next, dir, ev.created_at));
 });
 
 // POST /calendar/events/:id/call-link — mint a Mondaily call link. 503 if LiveKit isn't configured.

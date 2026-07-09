@@ -62370,6 +62370,11 @@ var TRANSLATIONS = {
   "cal.repeat_until": { en: "until", pl: "do", ru: "\u0434\u043E", uk: "\u0434\u043E", ar: "\u062D\u062A\u0649", fr: "jusqu\u2019au", de: "bis", es: "hasta", pt: "at\xE9", it: "fino al", tr: "biti\u015F", nl: "tot" },
   "cal.cancel_occurrence": { en: "Cancel this occurrence", pl: "Odwo\u0142aj to wyst\u0105pienie", ru: "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u044D\u0442\u043E \u0441\u043E\u0431\u044B\u0442\u0438\u0435", uk: "\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0446\u044E \u043F\u043E\u0434\u0456\u044E", ar: "\u0625\u0644\u063A\u0627\u0621 \u0647\u0630\u0627 \u0627\u0644\u062D\u062F\u062B", fr: "Annuler cette occurrence", de: "Diesen Termin absagen", es: "Cancelar esta repetici\xF3n", pt: "Cancelar esta ocorr\xEAncia", it: "Annulla questa ricorrenza", tr: "Bu tekrar\u0131 iptal et", nl: "Deze keer annuleren" },
   "cal.cancel_series": { en: "Cancel series", pl: "Odwo\u0142aj seri\u0119", ru: "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u0441\u0435\u0440\u0438\u044E", uk: "\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0441\u0435\u0440\u0456\u044E", ar: "\u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u0633\u0644\u0633\u0644\u0629", fr: "Annuler la s\xE9rie", de: "Serie absagen", es: "Cancelar serie", pt: "Cancelar s\xE9rie", it: "Annulla serie", tr: "Diziyi iptal et", nl: "Reeks annuleren" },
+  "cal.your_response": { en: "Your response", pl: "Twoja odpowied\u017A", ru: "\u0412\u0430\u0448 \u043E\u0442\u0432\u0435\u0442", uk: "\u0412\u0430\u0448\u0430 \u0432\u0456\u0434\u043F\u043E\u0432\u0456\u0434\u044C", ar: "\u0631\u062F\u0651\u0643", fr: "Votre r\xE9ponse", de: "Deine Antwort", es: "Tu respuesta", pt: "A sua resposta", it: "La tua risposta", tr: "Yan\u0131t\u0131n", nl: "Jouw reactie" },
+  "cal.rsvp_yes": { en: "Accept", pl: "Akceptuj", ru: "\u041F\u0440\u0438\u043D\u044F\u0442\u044C", uk: "\u041F\u0440\u0438\u0439\u043D\u044F\u0442\u0438", ar: "\u0642\u0628\u0648\u0644", fr: "Accepter", de: "Zusagen", es: "Aceptar", pt: "Aceitar", it: "Accetta", tr: "Kabul et", nl: "Accepteren" },
+  "cal.rsvp_maybe": { en: "Maybe", pl: "Mo\u017Ce", ru: "\u0412\u043E\u0437\u043C\u043E\u0436\u043D\u043E", uk: "\u041C\u043E\u0436\u043B\u0438\u0432\u043E", ar: "\u0631\u0628\u0645\u0627", fr: "Peut-\xEAtre", de: "Vielleicht", es: "Quiz\xE1s", pt: "Talvez", it: "Forse", tr: "Belki", nl: "Misschien" },
+  "cal.rsvp_no": { en: "Decline", pl: "Odrzu\u0107", ru: "\u041E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C", uk: "\u0412\u0456\u0434\u0445\u0438\u043B\u0438\u0442\u0438", ar: "\u0631\u0641\u0636", fr: "Refuser", de: "Absagen", es: "Rechazar", pt: "Recusar", it: "Rifiuta", tr: "Reddet", nl: "Afwijzen" },
+  "cal.rsvp_awaiting": { en: "awaiting", pl: "oczekuje", ru: "\u043E\u0436\u0438\u0434\u0430\u044E\u0442", uk: "\u043E\u0447\u0456\u043A\u0443\u044E\u0442\u044C", ar: "\u0628\u0627\u0646\u062A\u0638\u0627\u0631", fr: "en attente", de: "ausstehend", es: "pendiente", pt: "a aguardar", it: "in attesa", tr: "bekliyor", nl: "wachtend" },
   "cal.cancelled": { en: "Cancelled", pl: "Odwo\u0142ane", ru: "\u041E\u0442\u043C\u0435\u043D\u0435\u043D\u043E", uk: "\u0421\u043A\u0430\u0441\u043E\u0432\u0430\u043D\u043E", ar: "\u0645\u0644\u063A\u0649", fr: "Annul\xE9e", de: "Abgesagt", es: "Cancelada", pt: "Cancelada", it: "Annullata", tr: "\u0130ptal edildi", nl: "Geannuleerd" },
   "cal.draft_agenda": { en: "Draft agenda with AI", pl: "Napisz agend\u0119 z AI", ru: "\u0421\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u043F\u043E\u0432\u0435\u0441\u0442\u043A\u0443 \u0441 \u0418\u0418", uk: "\u0421\u043A\u043B\u0430\u0441\u0442\u0438 \u043F\u043E\u0440\u044F\u0434\u043E\u043A \u0437 \u0428\u0406", ar: "\u0635\u064A\u0627\u063A\u0629 \u0627\u0644\u0623\u062C\u0646\u062F\u0629 \u0628\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A", fr: "R\xE9diger l\u2019ordre du jour avec l\u2019IA", de: "Agenda mit KI entwerfen", es: "Redactar agenda con IA", pt: "Rascunhar pauta com IA", it: "Bozza agenda con IA", tr: "Yapay zek\xE2 ile g\xFCndem tasla\u011F\u0131", nl: "Agenda opstellen met AI" },
   "cal.view_today": { en: "Today", pl: "Dzisiaj", ru: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F", uk: "\u0421\u044C\u043E\u0433\u043E\u0434\u043D\u0456", ar: "\u0627\u0644\u064A\u0648\u0645", fr: "Aujourd\u2019hui", de: "Heute", es: "Hoy", pt: "Hoje", it: "Oggi", tr: "Bug\xFCn", nl: "Vandaag" },
@@ -66228,6 +66233,7 @@ init_ai_gateway();
 var router11 = new Hono2();
 router11.use("*", requireAuth);
 var EVENT_STATUSES = ["scheduled", "cancelled", "completed"];
+var RSVP_RESPONSES = ["accepted", "declined", "tentative"];
 var pad = (n2) => String(n2).padStart(2, "0");
 var fmtLocal = (d2) => `${d2.getFullYear()}-${pad(d2.getMonth() + 1)}-${pad(d2.getDate())}T${pad(d2.getHours())}:${pad(d2.getMinutes())}`;
 var dateKey = (d2) => `${d2.getFullYear()}-${pad(d2.getMonth() + 1)}-${pad(d2.getDate())}`;
@@ -66239,6 +66245,14 @@ function recurrenceSummary(r2) {
   if (r2.count) return `${base}, ${r2.count}\xD7`;
   if (r2.until) return `${base}, until ${r2.until}`;
   return base;
+}
+function normalizeRule(r2) {
+  return {
+    freq: r2.freq,
+    interval: r2.interval ?? 1,
+    ...r2.count != null ? { count: r2.count } : {},
+    ...r2.until ? { until: r2.until } : {}
+  };
 }
 function expandRecurrence(master, fromISO, toISO, cap = 366) {
   const r2 = master.recurrence;
@@ -66309,10 +66323,21 @@ async function getEvent(ws, id) {
 }
 var canView = (d2, me2) => d2.organizer_id === me2 || (d2.attendee_ids ?? []).includes(me2);
 var canManage = (d2, me2, role) => d2.organizer_id === me2 || isWorkspaceAdmin(role);
+function responseCounts(d2) {
+  const r2 = d2.responses ?? {};
+  const counts = { accepted: 0, declined: 0, tentative: 0, no_response: 0 };
+  for (const uid of d2.attendee_ids ?? []) {
+    const v2 = r2[uid];
+    if (v2 === "accepted" || v2 === "declined" || v2 === "tentative") counts[v2]++;
+    else counts.no_response++;
+  }
+  return counts;
+}
 function shape(id, d2, dir, createdAt) {
+  const responses = d2.responses ?? {};
   const person = (uid) => {
     const m2 = dir.get(uid);
-    return { user_id: uid, name: m2?.name || m2?.email || "Member", email: m2?.email ?? null };
+    return { user_id: uid, name: m2?.name || m2?.email || "Member", email: m2?.email ?? null, response: responses[uid] ?? null };
   };
   return {
     id,
@@ -66329,6 +66354,8 @@ function shape(id, d2, dir, createdAt) {
     attendees: (d2.attendee_ids ?? []).map(person),
     recurrence: d2.recurrence ?? null,
     recurrence_summary: d2.recurrence ? recurrenceSummary(d2.recurrence) : null,
+    responses,
+    response_counts: responseCounts(d2),
     created_at: createdAt
   };
 }
@@ -66410,7 +66437,7 @@ router11.post("/events", zValidator("json", EventInput), async (c2) => {
     call_room_id: null,
     call_url: null,
     status: "scheduled",
-    ...b2.recurrence ? { recurrence: b2.recurrence, exdates: [] } : {}
+    ...b2.recurrence ? { recurrence: normalizeRule(b2.recurrence), exdates: [] } : {}
   };
   const { data: node, error } = await supabase.from("nodes").insert({ workspace_id: ws, vertical: "shared", object_type: "calendar_event", created_by: me2, data }).select("id, created_at").single();
   if (error || !node) return c2.json({ error: "Could not create the meeting." }, 500);
@@ -66444,7 +66471,7 @@ router11.patch("/events/:id", zValidator("json", EventInput.partial().extend({ s
     ...b2.attendee_ids !== void 0 ? { attendee_ids: [...new Set(b2.attendee_ids.filter((a2) => a2 && a2 !== ev.data.organizer_id))] } : {},
     ...b2.status !== void 0 ? { status: b2.status } : {},
     // Editing the series' recurrence (null clears it). Edits always apply to the whole series.
-    ...b2.recurrence !== void 0 ? { recurrence: b2.recurrence ?? null } : {}
+    ...b2.recurrence !== void 0 ? { recurrence: b2.recurrence ? normalizeRule(b2.recurrence) : null } : {}
   };
   const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
   if (error) return c2.json({ error: "Could not update the meeting." }, 500);
@@ -66472,6 +66499,32 @@ router11.delete("/events/:id", async (c2) => {
   if (error) return c2.json({ error: "Could not cancel the meeting." }, 500);
   await notifyAttendees(ws, ev.id, next, me2, "cancelled");
   return c2.json({ ok: true, status: "cancelled" });
+});
+router11.post("/events/:id/respond", zValidator("json", external_exports.object({ response: external_exports.enum(RSVP_RESPONSES) })), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const ev = await getEvent(ws, c2.req.param("id"));
+  if (!ev) return c2.json({ error: "Event not found." }, 404);
+  if (!canView(ev.data, me2)) return c2.json({ error: "Not allowed." }, 403);
+  if (ev.data.status === "cancelled") return c2.json({ error: "This meeting was cancelled." }, 409);
+  const response3 = c2.req.valid("json").response;
+  const next = { ...ev.data, responses: { ...ev.data.responses ?? {}, [me2]: response3 } };
+  const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
+  if (error) return c2.json({ error: "Could not save your response." }, 500);
+  if (me2 !== ev.data.organizer_id) {
+    const dir2 = await members2(ws);
+    const meRow = dir2.get(me2);
+    await createNotification({
+      workspace_id: ws,
+      user_id: ev.data.organizer_id,
+      type: "calendar",
+      title: `${meRow?.name || meRow?.email || "A teammate"} ${response3} \u201C${ev.data.title}\u201D`,
+      source: { source_agent: "meeting", node_id: ev.id, object_type: "calendar_event", route: `/calendar?event=${ev.id}` },
+      metadata: { event_id: ev.id, response: response3 }
+    }).catch(() => false);
+  }
+  const dir = await members2(ws);
+  return c2.json(shape(ev.id, next, dir, ev.created_at));
 });
 router11.post("/events/:id/call-link", async (c2) => {
   const ws = c2.get("workspaceId");

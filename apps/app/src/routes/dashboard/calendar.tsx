@@ -13,7 +13,8 @@ import { useCurrentUser } from "../../hooks/useCurrentUser";
  * workspace records — never fabricated). Titles/descriptions are never translated. All data from
  * /calendar; participant-scoped by the backend.
  */
-interface Person { user_id: string; name: string; email: string | null }
+type Rsvp = "accepted" | "declined" | "tentative";
+interface Person { user_id: string; name: string; email: string | null; response?: Rsvp | null }
 interface CalEvent {
   id: string; title: string; description: string; start_at: string; end_at: string; timezone: string;
   location: string; status: "scheduled" | "cancelled" | "completed"; call_url: string | null;
@@ -22,6 +23,8 @@ interface CalEvent {
   recurrence?: { freq: "daily" | "weekly" | "monthly"; interval: number; count?: number; until?: string } | null;
   recurrence_summary?: string | null;
   recurring?: boolean; master_id?: string; occurrence_date?: string;
+  responses?: Record<string, Rsvp>;
+  response_counts?: { accepted: number; declined: number; tentative: number; no_response: number };
 }
 interface MemberRow { id: string; name?: string; email: string }
 type ViewMode = "today" | "week" | "month" | "upcoming";
@@ -672,6 +675,7 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
   const cancel = useMutation({ mutationFn: () => apiClient.delete(`/calendar/events/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ["calendar-events"] }); onClose?.(); } });
   const cancelOccurrence = useMutation({ mutationFn: () => apiClient.delete(`/calendar/events/${id}?occurrence=${occurrenceDate}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ["calendar-events"] }); onClose?.(); } });
   const addCall = useMutation({ mutationFn: () => apiClient.post(`/calendar/events/${id}/call-link`, {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar-event", id] }) });
+  const respond = useMutation({ mutationFn: (response: Rsvp) => apiClient.post(`/calendar/events/${id}/respond`, { response }), onSuccess: () => { qc.invalidateQueries({ queryKey: ["calendar-event", id] }); qc.invalidateQueries({ queryKey: ["calendar-events"] }); } });
   const prepare = useMutation<PrepResult>({ mutationFn: () => apiClient.post(`/calendar/events/${id}/prepare`, {}) });
   // Reuse the (cached) Today brief only to know if THIS meeting overlaps another — real data, no fabrication.
   const briefQ = useQuery<TodayBrief>({ queryKey: ["calendar-brief-today"], queryFn: () => apiClient.get("/calendar/brief/today"), staleTime: 30_000 });
@@ -706,6 +710,42 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
             </div>
             {e.recurrence_summary && <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--text-muted)" }}><Repeat size={12} style={{ color: "var(--text-faint)" }} /> {e.recurrence_summary}</div>}
             {e.status === "cancelled" && <span className="inline-block rounded-sm px-2 py-0.5 text-[11px] font-medium" style={{ background: "rgba(168,106,114,0.14)", color: "#a86a72" }}>{t("cal.cancelled")}</span>}
+
+            {/* RSVP — attendees respond; the organizer sees the tally. Only real responses shown. */}
+            {e.status !== "cancelled" && (() => {
+              const mine = (me.userId ? e.responses?.[me.userId] : null) ?? null;
+              const RSVP: { key: Rsvp; label: string; on: string }[] = [
+                { key: "accepted", label: t("cal.rsvp_yes"), on: "#5f8a6a" },
+                { key: "tentative", label: t("cal.rsvp_maybe"), on: "#a2854f" },
+                { key: "declined", label: t("cal.rsvp_no"), on: "#a86a72" },
+              ];
+              if (!isOrganizer) return (
+                <div>
+                  <p className="mb-1 text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.your_response")}</p>
+                  <div className="flex gap-1.5">
+                    {RSVP.map(r => {
+                      const active = mine === r.key;
+                      return (
+                        <button key={r.key} onClick={() => respond.mutate(r.key)} disabled={respond.isPending}
+                          className="rounded-sm border px-2.5 py-1 text-[12px] font-medium transition-colors disabled:opacity-50"
+                          style={active ? { borderColor: r.on, background: `${r.on}1f`, color: r.on } : { borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                          {r.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+              const c = e.response_counts ?? { accepted: 0, declined: 0, tentative: 0, no_response: 0 };
+              return (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+                  <span style={{ color: "#5f8a6a" }}>{c.accepted} {t("cal.rsvp_yes").toLowerCase()}</span>
+                  <span style={{ color: "#a2854f" }}>{c.tentative} {t("cal.rsvp_maybe").toLowerCase()}</span>
+                  <span style={{ color: "#a86a72" }}>{c.declined} {t("cal.rsvp_no").toLowerCase()}</span>
+                  {c.no_response > 0 && <span style={{ color: "var(--text-faint)" }}>{c.no_response} {t("cal.rsvp_awaiting")}</span>}
+                </div>
+              );
+            })()}
             {e.call_url && <button onClick={() => navigate(`/calls/${e.id}`)} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}><Video size={13} /> {t("cal.join_call")}</button>}
             {e.location && <div className="flex items-center gap-2" style={{ color: "var(--text-secondary)" }}><MapPin size={13} style={{ color: "var(--text-faint)" }} /> {e.location}</div>}
 
