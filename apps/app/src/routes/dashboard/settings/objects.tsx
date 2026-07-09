@@ -459,7 +459,7 @@ export function ObjectsSettings() {
             )}
             {attribute.type === "relation" && (
               <label className="mt-5 block text-sm">Related object
-                <select value={relationObject} onChange={e => setRelationObject(e.target.value)} className="mt-2 h-10 w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-3">
+                <select value={relationObject} onChange={e => setRelationObject(e.target.value)} className="mt-2 h-9 w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-3">
                   <option value="">Select object</option>
                   {objects.map(o => <option key={o.id} value={o.slug}>{o.name_plural}</option>)}
                 </select>
@@ -488,7 +488,7 @@ export function ObjectsSettings() {
               <Field label="Plural name" value={customObject.plural} onChange={v => setCustomObject({ ...customObject, plural: v })} placeholder="Investors"/>
               <Field label="Icon" value={customObject.icon} onChange={v => setCustomObject({ ...customObject, icon: v })} placeholder="circle"/>
               <label className="text-sm">Vertical
-                <select value={customObject.vertical} onChange={e => setCustomObject({ ...customObject, vertical: e.target.value })} className="mt-2 h-10 w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-3">
+                <select value={customObject.vertical} onChange={e => setCustomObject({ ...customObject, vertical: e.target.value })} className="mt-2 h-9 w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-3">
                   {["sales", "realestate", "hr", "finance", "investments", "shared"].map(v => <option key={v}>{v}</option>)}
                 </select>
               </label>

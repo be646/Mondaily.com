@@ -57,8 +57,8 @@ function fmtDateTime(iso: string) {
 }
 
 // ── Shared modal shell ────────────────────────────────────────────────────────
-const INPUT = "key-input h-10 w-full px-3 text-sm";
-const SELECT = "key-input h-10 w-full px-3 text-sm";
+const INPUT = "key-input h-9 w-full px-3 text-sm";
+const SELECT = "key-input h-9 w-full px-3 text-sm";
 const BTN_CANCEL = "btn-secondary flex-1 h-10 text-sm";
 const BTN_PRIMARY = "btn-primary flex-1 h-10 text-sm";
 
