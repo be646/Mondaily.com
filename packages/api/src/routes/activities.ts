@@ -135,7 +135,9 @@ router.get("/oversight", requireAuth, requireAdminRole, async (c) => {
  */
 router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
   const ws = c.get("workspaceId");
-  const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(); // 30-day window
+  // Period filter (default 30d) — every windowed metric + trend recomputes for the chosen range.
+  const days = Math.min(365, Math.max(1, Math.round(Number(c.req.query("days") ?? 30))));
+  const sinceIso = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
   const nowIso = new Date().toISOString();
   const [{ data: members }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks }, { data: msgs }, { data: decisions }, { data: deals }] = await Promise.all([
@@ -171,15 +173,15 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
     dealsUpdatedBy.get(uid)!.add(nid);
   }
 
-  // Team-wide daily trends (30d, zero-filled) — all from real timestamps.
+  // Team-wide daily trends (over the selected window, zero-filled) — all from real timestamps.
   const nowMs = Date.now();
   const completedTasks = (tasks ?? []).filter((t) => t.completed && t.completed_at);
   const trends = {
-    activity: dailyTrend(acts ?? [], (a) => a.created_at as string, 30, nowMs),
-    ai_usage: dailyTrend(usage ?? [], (u) => u.created_at as string, 30, nowMs, (u) => Number(u.total_tokens ?? 0)),
-    decisions: dailyTrend(decisions ?? [], (d) => d.resolved_at as string, 30, nowMs),
+    activity: dailyTrend(acts ?? [], (a) => a.created_at as string, days, nowMs),
+    ai_usage: dailyTrend(usage ?? [], (u) => u.created_at as string, days, nowMs, (u) => Number(u.total_tokens ?? 0)),
+    decisions: dailyTrend(decisions ?? [], (d) => d.resolved_at as string, days, nowMs),
     // Real completed-work trend, now that tasks carry completed_at (migration 0019).
-    tasks_completed: dailyTrend(completedTasks, (t) => t.completed_at as string, 30, nowMs),
+    tasks_completed: dailyTrend(completedTasks, (t) => t.completed_at as string, days, nowMs),
   };
 
   // Per-member task aggregates (all real, current-state).

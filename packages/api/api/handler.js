@@ -64978,7 +64978,8 @@ router9.get("/oversight", requireAuth, requireAdminRole, async (c2) => {
 });
 router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
   const ws = c2.get("workspaceId");
-  const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString();
+  const days = Math.min(365, Math.max(1, Math.round(Number(c2.req.query("days") ?? 30))));
+  const sinceIso = new Date(Date.now() - days * 24 * 60 * 60 * 1e3).toISOString();
   const nowIso = (/* @__PURE__ */ new Date()).toISOString();
   const [{ data: members4 }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks2 }, { data: msgs }, { data: decisions }, { data: deals }] = await Promise.all([
     supabase.from("workspace_members").select("user_id, name, email, avatar_url, role").eq("workspace_id", ws),
@@ -65017,11 +65018,11 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
   const nowMs = Date.now();
   const completedTasks = (tasks2 ?? []).filter((t3) => t3.completed && t3.completed_at);
   const trends = {
-    activity: dailyTrend(acts ?? [], (a2) => a2.created_at, 30, nowMs),
-    ai_usage: dailyTrend(usage ?? [], (u2) => u2.created_at, 30, nowMs, (u2) => Number(u2.total_tokens ?? 0)),
-    decisions: dailyTrend(decisions ?? [], (d2) => d2.resolved_at, 30, nowMs),
+    activity: dailyTrend(acts ?? [], (a2) => a2.created_at, days, nowMs),
+    ai_usage: dailyTrend(usage ?? [], (u2) => u2.created_at, days, nowMs, (u2) => Number(u2.total_tokens ?? 0)),
+    decisions: dailyTrend(decisions ?? [], (d2) => d2.resolved_at, days, nowMs),
     // Real completed-work trend, now that tasks carry completed_at (migration 0019).
-    tasks_completed: dailyTrend(completedTasks, (t3) => t3.completed_at, 30, nowMs)
+    tasks_completed: dailyTrend(completedTasks, (t3) => t3.completed_at, days, nowMs)
   };
   const taskAgg = /* @__PURE__ */ new Map();
   for (const t3 of tasks2 ?? []) {
@@ -65066,7 +65067,8 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
     const last = lastAct.get(uid) ?? null;
     const hasSession2 = sessionUsers.has(uid);
     const verifiedPow = powUsers.has(uid);
-    const taskCount = last ? (acts ?? []).filter((a2) => String(a2.actor_id) === uid).length : 0;
+    const taskAggU = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
+    const taskCount = taskAggU.open + taskAggU.completed;
     const complexityDelta = Math.round(u2.tokens / Math.max(1, taskCount));
     let verdict = "idle";
     if (u2.tokens === 0 && taskCount === 0) verdict = "inactive";
@@ -68236,6 +68238,8 @@ router22.get("/settings/workspace", async (c2) => {
     onboarded: data?.onboarded ?? false,
     member_count: memberCount ?? 1,
     modules: settings.modules ?? ["crm"],
+    // Base/reporting currency — the FX layer normalizes every total to this.
+    currency: settings.base_currency ?? "USD",
     // Industry-aware profile — resolved (falls back to legacy onboarding fields for old workspaces).
     profile: resolveProfile(settings)
   });
@@ -68297,7 +68301,9 @@ router22.patch("/settings/workspace", async (c2) => {
       ...settings,
       ...body.timezone !== void 0 ? { timezone: body.timezone } : {},
       ...body.modules !== void 0 ? { modules: body.modules } : {},
-      ...nextProfile !== void 0 ? { profile: nextProfile } : {}
+      ...nextProfile !== void 0 ? { profile: nextProfile } : {},
+      // The workspace "Default currency" IS the base/reporting currency the FX layer normalizes to.
+      ...body.currency !== void 0 ? { base_currency: String(body.currency).toUpperCase() } : {}
     }
   };
   if (body.name !== void 0) update.name = body.name;

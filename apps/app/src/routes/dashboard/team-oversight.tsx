@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
+import { FieldSelect } from "../../components/ui/controls";
 
 /**
  * Team Intelligence — an AI-powered team behaviour & value dashboard for owners/admins.
@@ -136,7 +137,7 @@ function MetricBars({ title, hint, operators, value, tone, onSelect }: {
 function TeamCharts({ operators, onSelect }: { operators: Operator[]; onSelect: (id: string) => void }) {
   return (
     <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      <MetricBars title="Workload" hint="Open tasks assigned" operators={operators} tone="#3b82f6" onSelect={onSelect} value={(o) => (o.open_tasks ?? 0) + (o.overdue_tasks ?? 0)} />
+      <MetricBars title="Workload" hint="Open tasks assigned" operators={operators} tone="var(--section-accent)" onSelect={onSelect} value={(o) => (o.open_tasks ?? 0) + (o.overdue_tasks ?? 0)} />
       <MetricBars title="Overdue work" hint="Overdue tasks by member" operators={operators} tone="#9c6b72" onSelect={onSelect} value={(o) => o.overdue_tasks ?? 0} />
       <MetricBars title="Decisions resolved" hint="Approvals/rejections (30d)" operators={operators} tone="#5f8169" onSelect={onSelect} value={(o) => o.decisions_resolved ?? 0} />
       <MetricBars title="AI usage" hint="Credits spent (30d)" operators={operators} tone="var(--section-accent)" onSelect={onSelect} value={(o) => o.tokens} />
@@ -159,26 +160,27 @@ function Sparkline({ points, tone }: { points: TrendPoint[]; tone: string }) {
   );
 }
 
-/** Team-wide 30-day trends — all from real timestamps (activity, AI usage, decisions). */
-function TeamTrends({ trends }: { trends: NonNullable<MatrixResp["trends"]> }) {
-  const cards: { title: string; hint: string; tone: string; pts: TrendPoint[] }[] = [
-    { title: "Activity", hint: "Recorded actions / day", tone: "var(--section-accent)", pts: trends.activity ?? [] },
-    { title: "Tasks completed", hint: "Finished tasks / day", tone: "#5f8169", pts: trends.tasks_completed ?? [] },
-    { title: "AI usage", hint: "Credits / day", tone: "#3b82f6", pts: trends.ai_usage ?? [] },
-    { title: "Decisions resolved", hint: "Approvals & rejections / day", tone: "#8b5cf6", pts: trends.decisions ?? [] },
+/** Unified overview tiles — each metric shows its number + an inline sparkline in one seamless
+ *  grid (the Home tile+chart pattern), replacing the old separate stat-band + chart-card rows. */
+function OverviewTiles({ trends, periodLabel }: { trends: NonNullable<MatrixResp["trends"]>; periodLabel: string }) {
+  const tiles: { label: string; tone: string; pts: TrendPoint[] }[] = [
+    { label: "Activity", tone: "var(--section-accent)", pts: trends.activity ?? [] },
+    { label: "Tasks completed", tone: "#5f8169", pts: trends.tasks_completed ?? [] },
+    { label: "AI credits", tone: "#97824f", pts: trends.ai_usage ?? [] },
+    { label: "Decisions", tone: "#7b6fb0", pts: trends.decisions ?? [] },
   ];
   return (
-    <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-      {cards.map((c) => {
-        const total = c.pts.reduce((s, p) => s + p.value, 0);
+    <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-sm border xl:grid-cols-4" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+      {tiles.map((t) => {
+        const total = t.pts.reduce((s, p) => s + p.value, 0);
         return (
-          <div key={c.title} className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            <div className="flex items-baseline justify-between">
-              <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{c.title}</span>
-              <span className="text-[13px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{fmt(total)}</span>
+          <div key={t.label} className="flex flex-col px-4 py-3.5" style={{ background: "var(--surface-card)" }}>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t.label}</span>
+              <span className="text-[9.5px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{periodLabel}</span>
             </div>
-            <div className="mb-2 text-[11px]" style={{ color: "var(--text-muted)" }}>{c.hint} · 30d</div>
-            {total === 0 ? <div className="py-2 text-[11px]" style={{ color: "var(--text-faint)" }}>No data yet.</div> : <Sparkline points={c.pts} tone={c.tone} />}
+            <div className="mt-2 text-[23px] font-semibold leading-none tabular-nums" style={{ color: "var(--text-primary)" }}>{fmt(total)}</div>
+            <div className="mt-2.5 h-8">{total === 0 ? <div className="pt-2 text-[10.5px]" style={{ color: "var(--text-faint)" }}>—</div> : <Sparkline points={t.pts} tone={t.tone} />}</div>
           </div>
         );
       })}
@@ -239,10 +241,11 @@ export function TeamOversightPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const selectedId = params.get("member");
+  const [days, setDays] = useState(30);   // period filter — every metric recomputes for this window
 
   const { data, isLoading, isError, error } = useQuery<MatrixResp>({
-    queryKey: ["oversight-matrix"],
-    queryFn: () => apiClient.get<MatrixResp>("/activities/oversight-matrix"),
+    queryKey: ["oversight-matrix", days],
+    queryFn: () => apiClient.get<MatrixResp>(`/activities/oversight-matrix?days=${days}`),
     refetchInterval: 30_000,
     retry: false,
   });
@@ -294,32 +297,28 @@ export function TeamOversightPage() {
         <div className="soul-rule" />
       </div>
 
-      {/* ── Team overview — real aggregates, as an intelligence stat band ── */}
-      <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-sm border sm:grid-cols-4" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
-        {[
-          { label: "Members", value: totals?.operators ?? operators.length, Icon: Users },
-          { label: "Active today", value: activeTodayCount, Icon: Sparkles },
-          { label: "Tasks · 30d", value: totalTasks, Icon: History },
-          { label: "AI credits · 30d", value: totals ? fmt(totals.tokens) : "—", Icon: MessageSquare },
-        ].map((s) => (
-          <div key={s.label} className="px-4 py-3.5" style={{ background: "var(--surface-card)" }}>
-            <div className="flex items-center justify-between">
-              <div className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{s.label}</div>
-              <s.Icon size={13} style={{ color: "var(--section-accent)", opacity: 0.75 }} />
-            </div>
-            <div className="mt-2 text-[24px] font-semibold leading-none tabular-nums" style={{ color: "var(--text-primary)" }}>{s.value}</div>
-          </div>
-        ))}
+      {/* ── One compact summary line + period filter (replaces the separate stat-tile row) ── */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
+          <span className="inline-flex items-center gap-1.5"><Users size={13} style={{ color: "var(--text-faint)" }} /><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{totals?.operators ?? operators.length}</strong> member{(totals?.operators ?? operators.length) === 1 ? "" : "s"}</span>
+          <span><strong className="tabular-nums" style={{ color: "#5f8169" }}>{activeTodayCount}</strong> active today</span>
+          <span><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{fmt(totalTasks)}</strong> tasks</span>
+          <span><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{totals ? fmt(totals.tokens) : "—"}</strong> AI credits</span>
+        </div>
+        <div className="w-40 shrink-0">
+          <FieldSelect value={String(days)} onChange={v => setDays(Number(v) || 30)} ariaLabel="Period"
+            options={[{ value: "7", label: "Last 7 days" }, { value: "30", label: "Last 30 days" }, { value: "90", label: "Last 90 days" }]} />
+        </div>
       </div>
 
-      {/* ── Team-wide 30-day trends (real timestamps) ── */}
-      {data?.trends && <TeamTrends trends={data.trends} />}
+      {/* ── Unified overview tiles — number + inline sparkline, Home-style ── */}
+      {data?.trends && <OverviewTiles trends={data.trends} periodLabel={`${days}d`} />}
+
+      {/* ── Team distributions — only meaningful with 2+ members (hidden for a solo workspace) ── */}
+      {operators.length > 1 && <TeamCharts operators={operators} onSelect={select} />}
 
       {/* ── Grounded Ask-AI over real team data ── */}
       {operators.length > 0 && <OversightAsk />}
-
-      {/* ── Team charts — real per-member distributions (ledger-style horizontal bars) ── */}
-      {operators.length > 0 && <TeamCharts operators={operators} onSelect={select} />}
 
       {/* ── Master–detail: ledger (left) + dossier (right) ── */}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
@@ -450,32 +449,22 @@ function MemberDetail({ op }: { op: Operator }) {
         </div>
       )}
 
-      {/* tracked metrics */}
+      {/* One unified metrics block — all the key per-member numbers in a single clean 3×3 grid
+          (was two separate stacked grids that read as "too many boxes"). */}
       <div className="grid grid-cols-3 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
         {[
-          { k: "Tasks (30d)", val: String(op.task_count) },
+          { k: "Tasks", val: fmt(op.task_count) },
           { k: "AI credits", val: fmt(op.tokens) },
           { k: "Credits / task", val: fmt(op.complexity_delta) },
-        ].map((m) => (
-          <div key={m.k} className="px-3 py-3" style={{ background: "var(--surface-card)" }}>
-            <div className="text-[17px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{m.val}</div>
-            <div className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>{m.k}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* real work rollups — computed server-side from tasks + activity + messages + decisions */}
-      <div className="grid grid-cols-3 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
-        {[
-          { k: "Records touched", val: op.records_touched ?? 0 },
-          { k: "Open tasks", val: op.open_tasks ?? 0 },
-          { k: "Overdue", val: op.overdue_tasks ?? 0, warn: (op.overdue_tasks ?? 0) > 0 },
-          { k: "Completed", val: op.completed_tasks ?? 0 },
-          { k: "Messages (30d)", val: op.messages_sent ?? 0 },
-          { k: "Decisions (30d)", val: op.decisions_resolved ?? 0 },
+          { k: "Records touched", val: fmt(op.records_touched ?? 0) },
+          { k: "Open tasks", val: fmt(op.open_tasks ?? 0) },
+          { k: "Overdue", val: fmt(op.overdue_tasks ?? 0), warn: (op.overdue_tasks ?? 0) > 0 },
+          { k: "Completed", val: fmt(op.completed_tasks ?? 0) },
+          { k: "Messages", val: fmt(op.messages_sent ?? 0) },
+          { k: "Decisions", val: fmt(op.decisions_resolved ?? 0) },
         ].map((m) => (
           <div key={m.k} className="px-3 py-2.5" style={{ background: "var(--surface-card)" }}>
-            <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.warn ? "#97824f" : "var(--text-primary)" }}>{fmt(m.val)}</div>
+            <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.warn ? "#97824f" : "var(--text-primary)" }}>{m.val}</div>
             <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{m.k}</div>
           </div>
         ))}
