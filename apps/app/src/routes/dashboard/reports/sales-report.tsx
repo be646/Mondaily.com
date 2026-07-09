@@ -8,6 +8,7 @@ import {
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
+import { FieldSelect } from "../../../components/ui/controls";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; created_at?: string; updated_at?: string }
 
@@ -752,27 +753,19 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
               {freq === "weekly" && (
                 <div>
                   <label className="block text-[10px] font-medium text-[var(--text-secondary)] mb-1">Day</label>
-                  <select value={dayOfWeek} onChange={e => setDayOfWeek(Number(e.target.value))}
-                    className="w-full h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] focus:outline-none">
-                    {DAY_NAMES.map((d, i) => <option key={i} value={i}>{d}</option>)}
-                  </select>
+                  <FieldSelect value={String(dayOfWeek)} onChange={v => setDayOfWeek(Number(v))} ariaLabel="Day"
+                    options={DAY_NAMES.map((d, i) => ({ value: String(i), label: d }))} />
                 </div>
               )}
               <div>
                 <label className="block text-[10px] font-medium text-[var(--text-secondary)] mb-1">Hour (24h)</label>
-                <select value={hour} onChange={e => setHour(Number(e.target.value))}
-                  className="w-full h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] focus:outline-none">
-                  {Array.from({length:24},(_,i) => <option key={i} value={i}>{String(i).padStart(2,"0")}:00</option>)}
-                </select>
+                <FieldSelect value={String(hour)} onChange={v => setHour(Number(v))} ariaLabel="Hour (24h)"
+                  options={Array.from({length:24},(_,i) => ({ value: String(i), label: `${String(i).padStart(2,"0")}:00` }))} />
               </div>
               <div>
                 <label className="block text-[10px] font-medium text-[var(--text-secondary)] mb-1">Period view</label>
-                <select value={period} onChange={e => setPeriodD(e.target.value as typeof period)}
-                  className="w-full h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] focus:outline-none">
-                  {(["today","week","month","quarter","year"] as const).map(p => (
-                    <option key={p} value={p}>{p.charAt(0).toUpperCase()+p.slice(1)}</option>
-                  ))}
-                </select>
+                <FieldSelect value={period} onChange={v => setPeriodD(v as typeof period)} ariaLabel="Period view"
+                  options={(["today","week","month","quarter","year"] as const).map(p => ({ value: p, label: p.charAt(0).toUpperCase()+p.slice(1) }))} />
               </div>
             </div>
 
@@ -1301,14 +1294,13 @@ export function SalesReportPage() {
                 return (
                   <div key={col} className="flex flex-col gap-1 min-w-0">
                     <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-secondary)] truncate">{col.replace(/_/g," ")}</label>
-                    <select
+                    <FieldSelect
                       value={activeFilters[col] ?? ""}
-                      onChange={e => setActiveFilters(f => ({ ...f, [col]: e.target.value }))}
-                      className={`h-7 w-full rounded-md border px-2 text-[11px] focus:outline-none transition-colors truncate ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : "border-[var(--border-soft)] bg-[var(--surface-card)] text-[var(--text-faint)] focus:border-blue-500/40"}`}
-                    >
-                      <option value="">All</option>
-                      {uniqueVals.map(v => <option key={v} value={v}>{v}</option>)}
-                    </select>
+                      onChange={v => setActiveFilters(f => ({ ...f, [col]: v }))}
+                      ariaLabel={col.replace(/_/g," ")}
+                      className={active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : ""}
+                      options={[{ value: "", label: "All" }, ...uniqueVals.map(v => ({ value: v, label: v }))]}
+                    />
                   </div>
                 );
               })}

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Loader2, MoreHorizontal, Plus, UserCheck, Users, X } from "lucide-react";
 import { AIMark } from "@/components/ui/ai-button";
+import { FieldSelect } from "@/components/ui/controls";
 import { LogoMark } from "@/components/logo";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -272,15 +273,14 @@ export function SidebarLists() {
                 {/* Object type */}
                 <div>
                   <label className="mb-1.5 block text-[11px] uppercase tracking-wide text-stone-600">Object type</label>
-                  <select value={objectType || defaultObjectType} onChange={e => setObjectType(e.target.value)} className="key-input w-full">
-                    {objectTypes.length > 0
-                      ? objectTypes.map(o => <option key={o.slug} value={o.slug}>{o.name_plural}</option>)
-                      : <>
-                          <option value="contacts">Contacts</option>
-                          <option value="companies">Companies</option>
-                          <option value="deals">Deals</option>
-                        </>}
-                  </select>
+                  <FieldSelect value={objectType || defaultObjectType} onChange={v => setObjectType(v)} ariaLabel="Object type" className="w-full"
+                    options={objectTypes.length > 0
+                      ? objectTypes.map(o => ({ value: o.slug, label: o.name_plural }))
+                      : [
+                          { value: "contacts", label: "Contacts" },
+                          { value: "companies", label: "Companies" },
+                          { value: "deals", label: "Deals" },
+                        ]} />
                 </div>
 
                 {/* Assign to member */}

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Send, StickyNote, Circle, CalendarClock, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
+import { FieldSelect } from "../../components/ui/controls";
 import { apiClient } from "../../lib/api-client";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -1069,13 +1070,17 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
           {/* Recurrence — optional. Repeats from the start time; an end date is optional (open-ended otherwise). */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="flex items-center gap-1.5 text-[12.5px]" style={{ color: "var(--text-primary)" }}><Repeat size={13} /> {t("cal.repeat")}</span>
-            <select value={repeat} onChange={e => setRepeat(e.target.value as typeof repeat)}
-              className="rounded-sm border bg-transparent px-2 py-1 text-[12.5px] outline-none dark:[color-scheme:dark]" style={style}>
-              <option value="none">{t("cal.repeat_none")}</option>
-              <option value="daily">{t("cal.repeat_daily")}</option>
-              <option value="weekly">{t("cal.repeat_weekly")}</option>
-              <option value="monthly">{t("cal.repeat_monthly")}</option>
-            </select>
+            <FieldSelect
+              value={repeat}
+              onChange={v => setRepeat(v as typeof repeat)}
+              ariaLabel={t("cal.repeat")}
+              options={[
+                { value: "none", label: t("cal.repeat_none") },
+                { value: "daily", label: t("cal.repeat_daily") },
+                { value: "weekly", label: t("cal.repeat_weekly") },
+                { value: "monthly", label: t("cal.repeat_monthly") },
+              ]}
+            />
             {repeat !== "none" && (
               <label className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
                 {t("cal.repeat_until")}

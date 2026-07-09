@@ -14,6 +14,7 @@ import {
 import { apiClient } from "../../lib/api-client";
 import { detectStageFromActivity } from "../../lib/ai-enrichment";
 import { PageSkeleton, ErrorState } from "../ui/page-state";
+import { FieldSelect } from "../ui/controls";
 import { TagPicker, TagBadges } from "./tag-picker";
 import { StagePill, DEFAULT_STAGE_OPTIONS, DEFAULT_STATUS_OPTIONS } from "./record-table";
 import { ActivityTimeline } from "./activity-timeline";
@@ -1245,10 +1246,8 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
             </div>
             <div>
               <p className="text-[10px] text-stone-600 mb-1">Outcome</p>
-              <select value={outcome} onChange={e => setOutcome(e.target.value)}
-                className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)]">
-                {CONTACT_OUTCOMES.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
+              <FieldSelect value={outcome} onChange={v => setOutcome(v)} ariaLabel="Outcome" className="w-full"
+                options={CONTACT_OUTCOMES.map(o => ({ value: o, label: o }))} />
             </div>
           </div>
           {/* Notes */}
@@ -1418,12 +1417,13 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
               </div>
               <div>
                 <label className="text-[10px] text-stone-600 mb-1 block">Currency</label>
-                <select value={newInvCurrency} onChange={e => setNewInvCurrency(e.target.value)} className="key-input w-full text-[12px]">
-                  <option value="GBP">GBP</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="AED">AED</option>
-                </select>
+                <FieldSelect value={newInvCurrency} onChange={v => setNewInvCurrency(v)} ariaLabel="Currency" className="w-full text-[12px]"
+                  options={[
+                    { value: "GBP", label: "GBP" },
+                    { value: "USD", label: "USD" },
+                    { value: "EUR", label: "EUR" },
+                    { value: "AED", label: "AED" },
+                  ]} />
               </div>
               <div>
                 <label className="text-[10px] text-stone-600 mb-1 block">Due date</label>

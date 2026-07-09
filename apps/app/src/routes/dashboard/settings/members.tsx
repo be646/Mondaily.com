@@ -3,6 +3,7 @@ import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { Check, Copy, Trash2, UserPlus, Cpu, Clock, SlidersHorizontal } from "lucide-react";
 import { Fragment, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
+import { FieldSelect } from "../../../components/ui/controls";
 
 /**
  * Team Operators — the single home for everyone in the workspace: role, finance access, AI compute
@@ -214,11 +215,9 @@ export function MembersSettings() {
                   </td>
                   <td className="py-3">
                     {isAdmin && !isOwner && m?.id ? (
-                      <select value={m?.role ?? "member"} onChange={e => changeRole.mutate({ id: m.id!, role: e.target.value })}
-                        className="cursor-pointer rounded-md border px-2.5 py-1.5 text-xs font-medium outline-none transition-colors hover:border-[color:var(--section-accent)] focus:border-[color:var(--section-accent)]"
-                        style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-primary)" }}>
-                        {ROLE_OPTIONS.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
-                      </select>
+                      <FieldSelect value={m?.role ?? "member"} onChange={v => changeRole.mutate({ id: m.id!, role: v })}
+                        ariaLabel="Role"
+                        options={ROLE_OPTIONS.map(r => ({ value: r, label: roleLabel(r) }))} />
                     ) : (
                       <span className="rounded-full border px-2.5 py-1 text-xs" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{roleLabel(m?.role)}</span>
                     )}
@@ -297,14 +296,13 @@ export function MembersSettings() {
                                 {md.hint && <div className="truncate text-[10px] text-[var(--text-muted)]">{md.hint}</div>}
                               </div>
                               {isAdmin && !isOwner && m?.id ? (
-                                <select
+                                <FieldSelect
                                   value={level}
-                                  onChange={e => changeModule.mutate({ id: m.id!, module: md.key, level: e.target.value })}
-                                  className="shrink-0 cursor-pointer rounded-md border px-2.5 py-1.5 text-xs font-medium outline-none transition-colors hover:border-[color:var(--section-accent)] focus:border-[color:var(--section-accent)]"
-                                  style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: LEVEL_COLOR[level] ?? "var(--text-primary)" }}
-                                >
-                                  {LEVELS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                                </select>
+                                  onChange={v => changeModule.mutate({ id: m.id!, module: md.key, level: v })}
+                                  ariaLabel={`${md.label} access`}
+                                  className="shrink-0"
+                                  options={LEVELS.map(([v, l]) => ({ value: v, label: l }))}
+                                />
                               ) : (
                                 <span className="shrink-0 text-xs" style={{ color: LEVEL_COLOR[level] ?? "#52525b" }}>
                                   {LEVELS.find(([v]) => v === level)?.[1] ?? "Edit"}

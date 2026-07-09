@@ -4,6 +4,7 @@ import { LogoMark } from "@/components/logo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
+import { FieldSelect } from "../../components/ui/controls";
 import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
 
 interface TranscriptLine { speaker: string; text: string; start_time: number }
@@ -113,6 +114,7 @@ export function CallDetailPage() {
   const query = useQuery({ queryKey: ["call", id], queryFn: () => apiClient.get<CallDetail>(`/calls/${id}`) });
   const call = query.data;
   const { containerRef, waveRef, playing, ready } = useWaveSurfer(call?.audio_url);
+  const [playbackRate, setPlaybackRate] = useState("1");
   const [transcriptSearch, setTranscriptSearch] = useState("");
   const [completedActions, setCompletedActions] = useState<number[]>([]);
   const [analysisOpen, setAnalysisOpen] = useState(false);
@@ -192,7 +194,7 @@ export function CallDetailPage() {
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button disabled={!ready} onClick={() => waveRef.current?.playPause()} className="grid h-9 w-9 place-items-center rounded-full bg-stone-600 text-[var(--text-primary)] disabled:opacity-40">{playing ? <Pause size={15} /> : <Play size={15} />}</button>
                 <Clock3 size={14} className="text-[var(--text-secondary)]" />
-                <select onChange={(event) => waveRef.current?.setPlaybackRate(Number(event.target.value))} className="h-8 rounded-md border border-[var(--border-soft)] bg-[var(--surface-page)] px-2 text-xs"><option value="0.75">0.75x</option><option value="1" selected>1x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option><option value="2">2x</option></select>
+                <FieldSelect value={playbackRate} onChange={v => { setPlaybackRate(v); waveRef.current?.setPlaybackRate(Number(v)); }} ariaLabel="Playback speed" options={[{ value: "0.75", label: "0.75x" }, { value: "1", label: "1x" }, { value: "1.25", label: "1.25x" }, { value: "1.5", label: "1.5x" }, { value: "2", label: "2x" }]} />
                 <Volume2 size={14} className="ml-auto text-[var(--text-secondary)]" /><input aria-label="Volume" type="range" min="0" max="1" step="0.05" defaultValue="1" onChange={(event) => waveRef.current?.setVolume(Number(event.target.value))} className="w-28 accent-red-500" />
               </div>
             </> : <div className="flex h-24 items-center justify-center text-sm text-[var(--text-muted)]">Audio recording unavailable.</div>}

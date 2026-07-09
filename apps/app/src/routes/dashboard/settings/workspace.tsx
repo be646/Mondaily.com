@@ -5,6 +5,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 import { PageSkeleton } from "../../../components/ui/page-state";
+import { FieldSelect } from "../../../components/ui/controls";
 import { EMPTY_PROFILE, discoverySuggestions, askStarterPrompts, profileRecommendations, type WorkspaceProfile } from "@mondaily/shared/profile";
 
 interface WorkspaceData {
@@ -116,17 +117,13 @@ function GeneralSection({
         </label>
         <label className="block">
           <span className="mb-1.5 block text-[11px] text-[var(--text-faint)]">Default currency</span>
-          <select value={form.currency ?? "USD"} onChange={e => setForm({ ...form, currency: e.target.value })}
-            className="key-input h-9 w-full px-3 text-[12px]">
-            {currencies.map(c => <option key={c}>{c}</option>)}
-          </select>
+          <FieldSelect value={form.currency ?? "USD"} onChange={v => setForm({ ...form, currency: v })}
+            ariaLabel="Default currency" options={currencies.map(c => ({ value: c, label: c }))} />
         </label>
         <label className="block">
           <span className="mb-1.5 block text-[11px] text-[var(--text-faint)]">Default timezone</span>
-          <select value={form.timezone} onChange={e => setForm({ ...form, timezone: e.target.value })}
-            className="key-input h-9 w-full px-3 text-[12px]">
-            {timezones.map(tz => <option key={tz}>{tz}</option>)}
-          </select>
+          <FieldSelect value={form.timezone} onChange={v => setForm({ ...form, timezone: v })}
+            ariaLabel="Default timezone" options={timezones.map(tz => ({ value: tz, label: tz }))} />
         </label>
       </div>
 

@@ -7,6 +7,7 @@ import {
   Zap, CheckSquare, ChevronDown, X, Clock, Filter, Loader2, Save,
 } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
+import { FieldSelect } from "../../../components/ui/controls";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type NodeKind = "trigger" | "condition" | "action";
@@ -97,12 +98,13 @@ function NodeConfigFields({ node, onChange }: { node: WFNode; onChange: (config:
   if (node.type === "time_elapsed") return (
     <div className="flex gap-2">
       {inp("amount", "Amount", "number")}
-      <select value={node.config.unit ?? "days"} onChange={e => set("unit", e.target.value)}
-        className="flex-1 rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 py-1.5 text-xs text-[var(--text-primary)] outline-none">
-        <option value="minutes">Minutes</option>
-        <option value="hours">Hours</option>
-        <option value="days">Days</option>
-      </select>
+      <FieldSelect value={node.config.unit ?? "days"} onChange={v => set("unit", v)} ariaLabel="Time unit"
+        className="flex-1"
+        options={[
+          { value: "minutes", label: "Minutes" },
+          { value: "hours", label: "Hours" },
+          { value: "days", label: "Days" },
+        ]} />
     </div>
   );
   if (node.type === "send_email") return (
@@ -544,17 +546,16 @@ export function WorkflowBuilderPage() {
                       )}
                     </div>
                     <div className="border-t border-[var(--border-soft)] px-4 py-2.5">
-                      <select
-                        className="w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
+                      <FieldSelect
+                        ariaLabel="Trigger type"
                         value={tn.type}
-                        onChange={e => {
-                          const type = e.target.value;
+                        onChange={v => {
+                          const type = v;
                           const def = TRIGGERS.find(t => t.type === type) ?? TRIGGERS[0]!;
                           setNodes(prev => prev.map(n => n.id === tn.id ? { ...n, type, label: def.label } : n));
                         }}
-                      >
-                        {TRIGGERS.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
-                      </select>
+                        options={TRIGGERS.map(t => ({ value: t.type, label: t.label }))}
+                      />
                     </div>
                   </div>
                 </div>

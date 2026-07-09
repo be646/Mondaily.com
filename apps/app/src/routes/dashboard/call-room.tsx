@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Room, Participant, Track as TrackNS } from "livekit-client";
 import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Wifi, Brain, Sparkles, FileText, ListChecks } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
+import { FieldSelect } from "../../components/ui/controls";
 import { useLanguage } from "../../hooks/useLanguage";
 import { CallDetailPage } from "./call-detail";
 
@@ -274,11 +275,10 @@ function CallRoom({ event }: { event: CalEvent }) {
               return (
                 <label key={kind} className="flex items-center gap-2 text-[11px] text-white/60">
                   <span className="w-20 shrink-0">{kind === "audio" ? t("cal.microphone") : t("cal.camera")}</span>
-                  <select onChange={e => switchDevice(kind === "audio" ? "audioinput" : "videoinput", e.target.value)}
-                    className="min-w-0 flex-1 rounded-md border border-white/15 bg-white/5 px-2 py-1 text-white/80">
-                    {list.length === 0 && <option>—</option>}
-                    {list.map(d => <option key={d.deviceId} value={d.deviceId}>{d.label || `${kind} device`}</option>)}
-                  </select>
+                  <FieldSelect value="" onChange={v => switchDevice(kind === "audio" ? "audioinput" : "videoinput", v)}
+                    ariaLabel={kind === "audio" ? t("cal.microphone") : t("cal.camera")} placeholder="—"
+                    className="min-w-0 flex-1"
+                    options={list.map(d => ({ value: d.deviceId, label: d.label || `${kind} device` }))} />
                 </label>
               );
             })}

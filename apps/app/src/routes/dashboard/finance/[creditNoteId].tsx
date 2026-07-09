@@ -7,6 +7,7 @@ import {
   ChevronLeft, ReceiptText, Clock, CheckCircle2, XCircle,
   Link2, User, FileText, AlertTriangle, RefreshCcw,
 } from "lucide-react";
+import { FieldSelect } from "../../../components/ui/controls";
 
 type CreditReason = "refund" | "billing_error" | "goodwill" | "contract_discount";
 type CreditStatus = "draft" | "pending_review" | "manager_approved" | "executed" | "void";
@@ -181,11 +182,13 @@ export function CreditNoteDetailPage() {
                 </Link>
               ) : (
                 <div className="space-y-1.5">
-                  <select value={linkInvoiceId} onChange={e => setLinkInvoiceId(e.target.value)}
-                    className="key-input w-full text-[11px]">
-                    <option value="">Select invoice…</option>
-                    {invoices.map(i => <option key={i.id} value={i.id}>{i.number} · {i.client_name}</option>)}
-                  </select>
+                  <FieldSelect
+                    value={linkInvoiceId}
+                    onChange={v => setLinkInvoiceId(v)}
+                    ariaLabel="Link invoice"
+                    placeholder="Select invoice…"
+                    options={invoices.map(i => ({ value: i.id, label: `${i.number} · ${i.client_name}` }))}
+                  />
                   <button onClick={applyToInvoice} disabled={!linkInvoiceId || linkingInvoice}
                     className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5 text-[11px] text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40">
                     <Link2 size={10}/>{linkingInvoice ? "Linking…" : "Apply to invoice"}
@@ -278,10 +281,10 @@ function DraftEditor({ creditNote: cn, onSave }: { creditNote: CreditNote; onSav
   const [reason, setReason] = useState<CreditReason>(cn.credit_reason);
   const [clientName, setClientName] = useState(cn.client_name ?? "");
 
-  function save() {
+  function save(reasonOverride?: CreditReason) {
     const cents = Math.round(parseFloat(amount) * 100);
     if (isNaN(cents) || cents <= 0) return;
-    onSave({ amount_cents: cents, credit_reason: reason, client_name: clientName || undefined });
+    onSave({ amount_cents: cents, credit_reason: reasonOverride ?? reason, client_name: clientName || undefined });
   }
 
   return (
@@ -289,20 +292,25 @@ function DraftEditor({ creditNote: cn, onSave }: { creditNote: CreditNote; onSav
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Client name</label>
-          <input value={clientName} onChange={e => setClientName(e.target.value)} onBlur={save} className="key-input w-full text-sm"/>
+          <input value={clientName} onChange={e => setClientName(e.target.value)} onBlur={() => save()} className="key-input w-full text-sm"/>
         </div>
         <div>
           <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Amount ({cn.currency})</label>
-          <input value={amount} onChange={e => setAmount(e.target.value)} onBlur={save} type="number" min="0" step="0.01" className="key-input w-full text-sm"/>
+          <input value={amount} onChange={e => setAmount(e.target.value)} onBlur={() => save()} type="number" min="0" step="0.01" className="key-input w-full text-sm"/>
         </div>
         <div className="col-span-2">
           <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Credit reason</label>
-          <select value={reason} onChange={e => { setReason(e.target.value as CreditReason); }} onBlur={save} className="key-input w-full text-sm">
-            <option value="refund">Refund</option>
-            <option value="billing_error">Billing Error</option>
-            <option value="goodwill">Goodwill</option>
-            <option value="contract_discount">Contract Discount</option>
-          </select>
+          <FieldSelect
+            value={reason}
+            onChange={v => { setReason(v as CreditReason); save(v as CreditReason); }}
+            ariaLabel="Reason"
+            options={[
+              { value: "refund", label: "Refund" },
+              { value: "billing_error", label: "Billing Error" },
+              { value: "goodwill", label: "Goodwill" },
+              { value: "contract_discount", label: "Contract Discount" },
+            ]}
+          />
         </div>
       </div>
     </div>

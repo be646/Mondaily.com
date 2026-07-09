@@ -3,6 +3,7 @@ import { Trash2, MessageCircle } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import { getThreads, saveThreads } from "../../../lib/chat-store";
 import { apiFetch, getAuthHeaders } from "../../../lib/api-client";
+import { FieldSelect } from "../../../components/ui/controls";
 
 const SETTINGS_KEY = "mondaily_ask_settings";
 
@@ -37,13 +38,12 @@ function saveSettings(s: AskSettings) {
 
 function Dropdown({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
   return (
-    <select
+    <FieldSelect
       value={value}
-      onChange={e => onChange(e.target.value)}
-      className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-1.5 text-sm text-[var(--text-primary)] outline-none focus:border-stone-500"
-    >
-      {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
+      onChange={v => onChange(v)}
+      ariaLabel="Setting"
+      options={options.map(o => ({ value: o.value, label: o.label }))}
+    />
   );
 }
 

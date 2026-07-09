@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { CheckCircle2, ArrowRight } from "lucide-react";
 import { apiClient } from "../lib/api-client";
 import { Logo } from "../components/logo";
+import { FieldSelect } from "../components/ui/controls";
 
 const TIMEZONES = [
   "UTC","Europe/London","Europe/Paris","Europe/Berlin","Europe/Amsterdam",
@@ -27,18 +28,6 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
       {...props}
       className={
         "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors " +
-        (props.className ?? "")
-      }
-    />
-  );
-}
-
-function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select
-      {...props}
-      className={
-        "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 outline-none focus:border-indigo-500/40 transition-colors " +
         (props.className ?? "")
       }
     />
@@ -144,9 +133,12 @@ export function OnboardingPage() {
               </div>
               <div>
                 <Label>Timezone</Label>
-                <Select value={timezone} onChange={e => setTimezone(e.target.value)}>
-                  {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
-                </Select>
+                <FieldSelect
+                  value={timezone}
+                  onChange={v => setTimezone(v)}
+                  ariaLabel="Timezone"
+                  options={TIMEZONES.map(tz => ({ value: tz, label: tz }))}
+                />
               </div>
             </div>
           )}
@@ -165,15 +157,17 @@ export function OnboardingPage() {
                   placeholder="colleague@company.com"
                   className="flex-1 rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors"
                 />
-                <select
+                <FieldSelect
                   value={inviteRole}
-                  onChange={e => setInviteRole(e.target.value)}
-                  className="w-28 rounded-xl border border-black/[.08] bg-white px-3 py-2.5 font-mono text-[13px] text-zinc-900 outline-none focus:border-indigo-500/40 transition-colors"
-                >
-                  <option value="member">Member</option>
-                  <option value="admin">Admin</option>
-                  <option value="viewer">Viewer</option>
-                </select>
+                  onChange={v => setInviteRole(v)}
+                  ariaLabel="Invite role"
+                  className="w-28"
+                  options={[
+                    { value: "member", label: "Member" },
+                    { value: "admin", label: "Admin" },
+                    { value: "viewer", label: "Viewer" },
+                  ]}
+                />
                 <button
                   onClick={handleInvite}
                   className="rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[12px] text-zinc-600 hover:bg-zinc-50 transition-colors"

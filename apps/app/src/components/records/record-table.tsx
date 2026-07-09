@@ -15,6 +15,7 @@ import { createPortal } from "react-dom";
 import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { parseNLPCommand } from "../../lib/ai-enrichment";
 import { ErrorState, PageSkeleton } from "../ui/page-state";
+import { FieldSelect } from "../ui/controls";
 import { INDUSTRY_TAXONOMY } from "./record-detail";
 import { LeadScoreBadge } from "./lead-score-badge";
 import { AIHealthScoreCompact } from "../ai/ai-intelligence";
@@ -608,13 +609,13 @@ function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
           {rules.map((rule, i) => (
             <div key={i} className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5">
               <div className="flex-1 min-w-0">
-                <select
+                <FieldSelect
                   value={rule.col}
-                  onChange={e => updateRule(i, { col: e.target.value })}
-                  className="w-full bg-transparent text-xs text-[var(--text-secondary)] outline-none capitalize"
-                >
-                  {columns.map(c => <option key={c} value={c} className="bg-[var(--surface-card)] text-[var(--text-primary)]">{colLabel(c)}</option>)}
-                </select>
+                  onChange={v => updateRule(i, { col: v })}
+                  ariaLabel="Sort column"
+                  className="w-full capitalize"
+                  options={columns.map(c => ({ value: c, label: colLabel(c) }))}
+                />
               </div>
               <button
                 onClick={() => updateRule(i, { dir: rule.dir === "asc" ? "desc" : "asc" })}
@@ -2146,10 +2147,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           )}
           {sortRules.map((rule, i) => (
             <div key={i} className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 shrink-0">
-              <select value={rule.col} onChange={e => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, col: e.target.value } : x))}
-                className="bg-transparent text-[11px] text-[var(--text-secondary)] outline-none capitalize max-w-[120px]">
-                {[...allColumnsWithCustom, "__updated_at"].map(c => <option key={c} value={c} className="bg-[var(--surface-card)] text-[var(--text-primary)]">{colLabel(c)}</option>)}
-              </select>
+              <FieldSelect value={rule.col} onChange={v => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, col: v } : x))}
+                ariaLabel="Sort column" className="capitalize max-w-[120px]"
+                options={[...allColumnsWithCustom, "__updated_at"].map(c => ({ value: c, label: colLabel(c) }))} />
               <button onClick={() => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, dir: x.dir === "asc" ? "desc" : "asc" } : x))}
                 className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${rule.dir === "asc" ? "bg-[#717784]/10 text-[#717784]" : "bg-[#97824f]/10 text-[#97824f]"}`}>
                 {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Users, CheckSquare, FileText, Building2, TrendingUp, ArrowLeft } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { FieldSelect } from "./controls";
 
 type ActionType = "create_task" | "create_note" | "create_contact" | "create_company" | "create_deal";
 
@@ -52,12 +53,13 @@ function QuickCreateTask({ onBack, onClose }: { onBack: () => void; onClose: () 
           onKeyDown={e => e.key === "Enter" && title.trim() && create.mutate()}
           placeholder="Task title…" className={inputCls}/>
         <div className="flex gap-2">
-          <select value={priority} onChange={e => setPriority(e.target.value)} className={selectCls}>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-            <option value="urgent">Urgent</option>
-          </select>
+          <FieldSelect value={priority} onChange={v => setPriority(v)} ariaLabel="Priority" className="flex-1"
+            options={[
+              { value: "low", label: "Low" },
+              { value: "medium", label: "Medium" },
+              { value: "high", label: "High" },
+              { value: "urgent", label: "Urgent" },
+            ]} />
           <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
             className={`${selectCls} flex-1 dark:[color-scheme:dark]`}/>
         </div>

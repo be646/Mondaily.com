@@ -9,6 +9,7 @@ import {
 import { useEffect, useState, useCallback } from "react";
 import { apiClient, apiFetch, getAuthHeaders } from "../../../lib/api-client";
 import { EmptyState, PageHeader, ConsoleSkeleton } from "../../../components/ui/page-state";
+import { FieldSelect } from "../../../components/ui/controls";
 import { useWorkspaceSuggestions } from "../../../hooks/useWorkspaceSuggestions";
 
 type AttributeType = "text" | "long_text" | "number" | "currency" | "percentage" | "date" | "datetime" | "checkbox" | "select" | "multi_select" | "url" | "email" | "phone" | "relation" | "formula" | "file";
@@ -459,10 +460,7 @@ export function ObjectsSettings() {
             )}
             {attribute.type === "relation" && (
               <label className="mt-5 block text-sm">Related object
-                <select value={relationObject} onChange={e => setRelationObject(e.target.value)} className="mt-2 h-9 w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-3">
-                  <option value="">Select object</option>
-                  {objects.map(o => <option key={o.id} value={o.slug}>{o.name_plural}</option>)}
-                </select>
+                <FieldSelect value={relationObject} onChange={v => setRelationObject(v)} ariaLabel="Related object" className="mt-2" options={[{ value: "", label: "Select object" }, ...objects.map(o => ({ value: o.slug, label: o.name_plural }))]} />
               </label>
             )}
             <div className="mt-5 grid grid-cols-2 gap-3">
@@ -488,9 +486,7 @@ export function ObjectsSettings() {
               <Field label="Plural name" value={customObject.plural} onChange={v => setCustomObject({ ...customObject, plural: v })} placeholder="Investors"/>
               <Field label="Icon" value={customObject.icon} onChange={v => setCustomObject({ ...customObject, icon: v })} placeholder="circle"/>
               <label className="text-sm">Vertical
-                <select value={customObject.vertical} onChange={e => setCustomObject({ ...customObject, vertical: e.target.value })} className="mt-2 h-9 w-full rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-3">
-                  {["sales", "realestate", "hr", "finance", "investments", "shared"].map(v => <option key={v}>{v}</option>)}
-                </select>
+                <FieldSelect value={customObject.vertical} onChange={v => setCustomObject({ ...customObject, vertical: v })} ariaLabel="Vertical" className="mt-2" options={["sales", "realestate", "hr", "finance", "investments", "shared"].map(v => ({ value: v, label: v }))} />
               </label>
             </div>
             <p className="mb-2 mt-4 text-sm">Color</p>

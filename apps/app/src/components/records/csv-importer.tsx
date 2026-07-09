@@ -3,6 +3,7 @@ import { Upload, FileText, X, CheckCircle2, AlertCircle, ChevronDown, ChevronUp 
 import { LogoMark } from "@/components/logo";
 import { apiClient } from "../../lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
+import { FieldSelect } from "../ui/controls";
 
 type ColType = "Text" | "Number" | "Email" | "URL" | "Date" | "Status" | "Currency" | "Phone" | "Boolean";
 
@@ -207,14 +208,13 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
         <div className="flex flex-wrap gap-1.5">
           {headers.map(h => (
             <div key={h} className="relative group/pill">
-              <select
+              <FieldSelect
                 value={colTypes[h] ?? "Text"}
-                onChange={e => setColTypes(prev => ({ ...prev, [h]: e.target.value as ColType }))}
-                className={`appearance-none cursor-pointer rounded-full border px-2 py-0.5 text-[9px] font-semibold transition-opacity pr-4 ${TYPE_COLORS[colTypes[h] ?? "Text"] ?? TYPE_COLORS.Text}`}
-              >
-                {ALL_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[8px] opacity-60">▾</span>
+                onChange={v => setColTypes(prev => ({ ...prev, [h]: v as ColType }))}
+                ariaLabel="Column type"
+                className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold transition-opacity ${TYPE_COLORS[colTypes[h] ?? "Text"] ?? TYPE_COLORS.Text}`}
+                options={ALL_TYPES.map(t => ({ value: t, label: t }))}
+              />
               <div className="absolute -top-5 left-0 whitespace-nowrap rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-[var(--text-primary)] opacity-0 group-hover/pill:opacity-100 transition-opacity z-10">
                 {h}
               </div>

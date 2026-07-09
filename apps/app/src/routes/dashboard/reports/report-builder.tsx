@@ -8,6 +8,7 @@ import { useAskContextStore } from "../../../lib/ask-context-store";
 import { AutoChart, type Point } from "../../../components/charts/charts";
 import { AIInspector } from "../../../components/ai/ai-inspector";
 import { GraphContextButton } from "../../../components/graph/graph-context-drawer";
+import { FieldSelect } from "../../../components/ui/controls";
 
 type ReportType = "insight" | "funnel" | "time_in_stage" | "historical" | "forecast";
 type ChartType = "line" | "bar" | "donut" | "number";
@@ -97,17 +98,18 @@ export function ReportBuilderPage() {
           onChange={e => setReport({ ...report, name: e.target.value })}
           className="min-w-0 flex-1 bg-transparent text-lg font-semibold outline-none"
         />
-        <select
+        <FieldSelect
           value={report.type}
-          onChange={e => setReport({ ...report, type: e.target.value as ReportType })}
-          className="h-9 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 text-sm text-[var(--text-primary)] outline-none focus:border-stone-500/40"
-        >
-          <option value="insight">Insight</option>
-          <option value="forecast">Forecast</option>
-          <option value="funnel">Funnel</option>
-          <option value="time_in_stage">Time in stage</option>
-          <option value="historical">Historical values</option>
-        </select>
+          onChange={v => setReport({ ...report, type: v as ReportType })}
+          ariaLabel="Report type"
+          options={[
+            { value: "insight", label: "Insight" },
+            { value: "forecast", label: "Forecast" },
+            { value: "funnel", label: "Funnel" },
+            { value: "time_in_stage", label: "Time in stage" },
+            { value: "historical", label: "Historical values" },
+          ]}
+        />
         <button
           onClick={() => save.mutate(report)}
           className="flex h-9 items-center gap-2 rounded-md bg-stone-600 px-3 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500"
@@ -163,24 +165,23 @@ function ConfigPanel({ report, update, objects }: {
   return (
     <div className="space-y-4">
       <Field label="Object">
-        <select
+        <FieldSelect
           value={config.object_type}
-          onChange={e => update({ object_type: e.target.value })}
-          className="key-input w-full"
-        >
-          {objects.length > 0
-            ? objects.map(o => <option key={o.slug} value={o.slug}>{o.name_plural}</option>)
-            : <option value="">Loading…</option>}
-        </select>
+          onChange={v => update({ object_type: v })}
+          ariaLabel="Object"
+          placeholder={objects.length > 0 ? undefined : "Loading…"}
+          options={objects.map(o => ({ value: o.slug, label: o.name_plural }))}
+        />
       </Field>
 
       {(report.type === "insight" || report.type === "forecast") && <>
         <Field label="Metric">
-          <select value={config.metric} onChange={e => update({ metric: e.target.value })} className="key-input w-full">
-            <option value="count">Count of records</option>
-            <option value="sum">Sum of field</option>
-            <option value="average">Average of field</option>
-          </select>
+          <FieldSelect value={config.metric} onChange={v => update({ metric: v })} ariaLabel="Metric"
+            options={[
+              { value: "count", label: "Count of records" },
+              { value: "sum", label: "Sum of field" },
+              { value: "average", label: "Average of field" },
+            ]} />
         </Field>
         {config.metric !== "count" && (
           <Field label="Numeric field">
@@ -188,12 +189,13 @@ function ConfigPanel({ report, update, objects }: {
           </Field>
         )}
         <Field label="Group by">
-          <select value={config.group_by} onChange={e => update({ group_by: e.target.value })} className="key-input w-full">
-            <option value="day">Day</option>
-            <option value="week">Week</option>
-            <option value="month">Month</option>
-            <option value="quarter">Quarter</option>
-          </select>
+          <FieldSelect value={config.group_by} onChange={v => update({ group_by: v })} ariaLabel="Group by"
+            options={[
+              { value: "day", label: "Day" },
+              { value: "week", label: "Week" },
+              { value: "month", label: "Month" },
+              { value: "quarter", label: "Quarter" },
+            ]} />
         </Field>
         {report.type !== "forecast" && (
           <Field label="Chart type">
@@ -209,9 +211,8 @@ function ConfigPanel({ report, update, objects }: {
         )}
         {report.type === "forecast" && (
           <Field label="Forecast periods ahead">
-            <select value={config.horizon ?? 3} onChange={e => update({ horizon: Number(e.target.value) })} className="key-input w-full">
-              {[1,2,3,4,6].map(h => <option key={h} value={h}>{h} period{h === 1 ? "" : "s"}</option>)}
-            </select>
+            <FieldSelect value={String(config.horizon ?? 3)} onChange={v => update({ horizon: Number(v) })} ariaLabel="Forecast periods ahead"
+              options={[1,2,3,4,6].map(h => ({ value: String(h), label: `${h} period${h === 1 ? "" : "s"}` }))} />
           </Field>
         )}
         <label className="flex items-center justify-between text-sm text-[var(--text-faint)]">
@@ -259,11 +260,12 @@ function ConfigPanel({ report, update, objects }: {
           <input value={config.stage_field} onChange={e => update({ stage_field: e.target.value })} className="key-input w-full" />
         </Field>
         <Field label="Date range">
-          <select value={config.range} onChange={e => update({ range: e.target.value })} className="key-input w-full">
-            <option value="30d">Last 30 days</option>
-            <option value="90d">Last 90 days</option>
-            <option value="1y">Last year</option>
-          </select>
+          <FieldSelect value={config.range} onChange={v => update({ range: v })} ariaLabel="Date range"
+            options={[
+              { value: "30d", label: "Last 30 days" },
+              { value: "90d", label: "Last 90 days" },
+              { value: "1y", label: "Last year" },
+            ]} />
         </Field>
       </>}
 

@@ -9,6 +9,7 @@ import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useIsViewer } from "../../hooks/useModules";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { apiClient } from "../../lib/api-client";
+import { FieldSelect } from "../../components/ui/controls";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
 import { useLanguage } from "../../hooks/useLanguage";
 
@@ -104,17 +105,13 @@ function CreateTaskModal({ onClose, members, currentUserId, userName }: { onClos
           placeholder="Task title…" className={INPUT}/>
         <input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)}
           className={`${INPUT} dark:[color-scheme:dark]`}/>
-        <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} className={SELECT}>
-          <option value="">Unassigned</option>
-          {sorted.map(m => <option key={m.user_id} value={m.user_id}>{m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email)}</option>)}
-        </select>
+        <FieldSelect value={assigneeId} onChange={v => setAssigneeId(v)} ariaLabel="Assignee" className={SELECT}
+          options={[{ value: "", label: "Unassigned" }, ...sorted.map(m => ({ value: m.user_id, label: m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email) }))]} />
         <div className="grid grid-cols-2 gap-3">
-          <select value={priority} onChange={e => setPriority(e.target.value)} className={SELECT}>
-            <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
-          </select>
-          <select value={status} onChange={e => setStatus(e.target.value)} className={SELECT}>
-            <option value="todo">To Do</option><option value="in_progress">In Progress</option><option value="review">Review</option><option value="done">Done</option>
-          </select>
+          <FieldSelect value={priority} onChange={v => setPriority(v)} ariaLabel="Priority" className={SELECT}
+            options={[{ value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" }, { value: "urgent", label: "Urgent" }]} />
+          <FieldSelect value={status} onChange={v => setStatus(v)} ariaLabel="Status" className={SELECT}
+            options={[{ value: "todo", label: "To Do" }, { value: "in_progress", label: "In Progress" }, { value: "review", label: "Review" }, { value: "done", label: "Done" }]} />
         </div>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Notes (optional)…"
           className="key-input w-full px-3 py-2 text-sm resize-none"/>
@@ -154,17 +151,13 @@ function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; 
       <div className="space-y-3">
         <input autoFocus value={title} onChange={e => setTitle(e.target.value)} className={INPUT}/>
         <input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)} className={`${INPUT} dark:[color-scheme:dark]`}/>
-        <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} className={SELECT}>
-          <option value="">Unassigned</option>
-          {sorted.map(m => <option key={m.user_id} value={m.user_id}>{m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email)}</option>)}
-        </select>
+        <FieldSelect value={assigneeId} onChange={v => setAssigneeId(v)} ariaLabel="Assignee" className={SELECT}
+          options={[{ value: "", label: "Unassigned" }, ...sorted.map(m => ({ value: m.user_id, label: m.user_id === currentUserId ? `${m.name || m.email} (me)` : (m.name || m.email) }))]} />
         <div className="grid grid-cols-2 gap-3">
-          <select value={priority} onChange={e => setPriority(e.target.value as any)} className={SELECT}>
-            <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
-          </select>
-          <select value={status} onChange={e => setStatus(e.target.value as any)} className={SELECT}>
-            <option value="todo">To Do</option><option value="in_progress">In Progress</option><option value="review">Review</option><option value="done">Done</option>
-          </select>
+          <FieldSelect value={priority} onChange={v => setPriority(v as any)} ariaLabel="Priority" className={SELECT}
+            options={[{ value: "low", label: "Low" }, { value: "medium", label: "Medium" }, { value: "high", label: "High" }, { value: "urgent", label: "Urgent" }]} />
+          <FieldSelect value={status} onChange={v => setStatus(v as any)} ariaLabel="Status" className={SELECT}
+            options={[{ value: "todo", label: "To Do" }, { value: "in_progress", label: "In Progress" }, { value: "review", label: "Review" }, { value: "done", label: "Done" }]} />
         </div>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
           className="w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 py-2 text-sm text-[#111827] resize-none outline-none focus:border-[var(--border-strong)] focus:ring-2 focus:ring-stone-500/20 dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)] dark:focus:ring-0 transition-colors"/>

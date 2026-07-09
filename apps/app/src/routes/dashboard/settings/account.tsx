@@ -9,6 +9,7 @@ import { useSovereignAuthOptional } from "../../../components/auth/sovereign-aut
 import { THEMES, type ThemeId, applyTheme as applyAppTheme, normalizeTheme } from "../../../lib/theme";
 import { useLanguage } from "../../../hooks/useLanguage";
 import { LanguageSelect } from "../../../components/ui/language-select";
+import { FieldSelect } from "../../../components/ui/controls";
 
 type Appearance = string;
 type NotificationChannel = { in_app: boolean; email: boolean };
@@ -325,19 +326,19 @@ export function AccountSettings() {
             </label>
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Expertise level</span>
-              <select value={aiExpertise} onChange={e => setAiExpertise(e.target.value as Expertise)} className="key-input h-9 w-full px-3 font-mono text-sm">
-                <option value="novice">Novice — explain thoroughly</option>
-                <option value="intermediate">Intermediate — balanced</option>
-                <option value="expert">Expert — terse, assume fluency</option>
-              </select>
+              <FieldSelect value={aiExpertise} onChange={v => setAiExpertise(v as Expertise)} ariaLabel="Expertise level" options={[
+                { value: "novice", label: "Novice — explain thoroughly" },
+                { value: "intermediate", label: "Intermediate — balanced" },
+                { value: "expert", label: "Expert — terse, assume fluency" },
+              ]} />
             </label>
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Preferred response length</span>
-              <select value={aiLength} onChange={e => setAiLength(e.target.value as ResponseLength)} className="key-input h-9 w-full px-3 text-sm">
-                <option value="concise">Concise</option>
-                <option value="balanced">Balanced</option>
-                <option value="detailed">Detailed</option>
-              </select>
+              <FieldSelect value={aiLength} onChange={v => setAiLength(v as ResponseLength)} ariaLabel="Preferred response length" options={[
+                { value: "concise", label: "Concise" },
+                { value: "balanced", label: "Balanced" },
+                { value: "detailed", label: "Detailed" },
+              ]} />
             </label>
           </div>
           <div className="block">

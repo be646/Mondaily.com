@@ -3,6 +3,7 @@ import { Check, Copy, Download, LockKeyhole, Plus, Shield, Smartphone, X } from 
 import { useEffect, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 import { EmptyState, PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { FieldSelect } from "../../../components/ui/controls";
 
 interface Session { id: string; device: string; browser?: string; location: string; ip?: string; last_active?: string; current: boolean }
 interface AuditEntry { id: string; actor: string; action: string; target: string; timestamp: string; ip?: string }
@@ -119,13 +120,13 @@ export function SecuritySettings() {
           <p className="text-sm text-[var(--text-muted)]">Configure your identity provider to enable SSO login for all workspace members.</p>
           <label className="block">
             <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Identity provider</span>
-            <select value={data.saml_provider ?? "okta"} onChange={e => setData({ ...data, saml_provider: e.target.value })}
-              className="key-input h-9 w-full px-3 text-sm">
-              <option value="okta">Okta</option>
-              <option value="azure">Azure AD / Entra ID</option>
-              <option value="google">Google Workspace</option>
-              <option value="other">Other SAML 2.0</option>
-            </select>
+            <FieldSelect value={data.saml_provider ?? "okta"} onChange={v => setData({ ...data, saml_provider: v })}
+              ariaLabel="Identity provider" options={[
+                { value: "okta", label: "Okta" },
+                { value: "azure", label: "Azure AD / Entra ID" },
+                { value: "google", label: "Google Workspace" },
+                { value: "other", label: "Other SAML 2.0" },
+              ]} />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <CopyField label="SP Entity ID" value={entityId} copied={copied === "entity"} onCopy={() => copy("entity", entityId)} />

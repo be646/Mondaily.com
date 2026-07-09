@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, X, Sparkles, List, Loader2, Check, Filter } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useQueryClient } from "@tanstack/react-query";
+import { FieldSelect } from "../ui/controls";
 
 interface NodeRecord { id: string; data: Record<string, unknown> }
 
@@ -174,25 +175,20 @@ export function SegmentBuilder({
                         {i === 0 ? "IF" : logic}
                       </span>
                       {/* Field */}
-                      <select
+                      <FieldSelect
                         value={rule.field}
-                        onChange={e => updateRule(rule.id, { field: e.target.value })}
-                        className="flex-1 h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-secondary)] outline-none focus:border-stone-500/40"
-                      >
-                        {columns.map(c => (
-                          <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
-                        ))}
-                      </select>
+                        onChange={v => updateRule(rule.id, { field: v })}
+                        ariaLabel="Field"
+                        className="flex-1"
+                        options={columns.map(c => ({ value: c, label: c.replace(/_/g, " ") }))}
+                      />
                       {/* Operator */}
-                      <select
+                      <FieldSelect
                         value={rule.operator}
-                        onChange={e => updateRule(rule.id, { operator: e.target.value as Operator })}
-                        className="h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-secondary)] outline-none focus:border-stone-500/40"
-                      >
-                        {OPERATORS.map(o => (
-                          <option key={o.value} value={o.value}>{o.label}</option>
-                        ))}
-                      </select>
+                        onChange={v => updateRule(rule.id, { operator: v as Operator })}
+                        ariaLabel="Operator"
+                        options={OPERATORS.map(o => ({ value: o.value, label: o.label }))}
+                      />
                       {/* Value */}
                       {!op?.noValue && (
                         <input

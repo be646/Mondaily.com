@@ -10,6 +10,7 @@ import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { AutoChart } from "../../../components/charts/charts";
+import { FieldSelect } from "../../../components/ui/controls";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface LiveWidget   { id: string; type: "live";   slug: string;      title?: string; size?: "small"|"large" }
@@ -291,25 +292,28 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
       </label>
       <label className="block">
         <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Object</span>
-        <select value={slug} onChange={e => setSlug(e.target.value)} className="w-full rounded-lg border border-[var(--border-soft)] bg-[var(--surface-page)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none">
-          {objects.map(o => <option key={o.slug} value={o.slug}>{o.name_plural}</option>)}
-        </select>
+        <FieldSelect value={slug} onChange={v => setSlug(v)} ariaLabel="Object"
+          options={objects.map(o => ({ value: o.slug, label: o.name_plural }))} />
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
           <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Metric</span>
-          <select value={metric} onChange={e => setMetric(e.target.value as "count"|"sum"|"average")} className="w-full rounded-lg border border-[var(--border-soft)] bg-[var(--surface-page)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none">
-            <option value="count">Count of records</option>
-            <option value="sum">Sum of field</option>
-            <option value="average">Average of field</option>
-          </select>
+          <FieldSelect value={metric} onChange={v => setMetric(v as "count"|"sum"|"average")} ariaLabel="Metric"
+            options={[
+              { value: "count", label: "Count of records" },
+              { value: "sum", label: "Sum of field" },
+              { value: "average", label: "Average of field" },
+            ]} />
         </label>
         <label className="block">
           <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Group by</span>
-          <select value={groupBy} onChange={e => setGroupBy(e.target.value as "day"|"week"|"month"|"quarter")} className="w-full rounded-lg border border-[var(--border-soft)] bg-[var(--surface-page)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none">
-            <option value="day">Day</option><option value="week">Week</option>
-            <option value="month">Month</option><option value="quarter">Quarter</option>
-          </select>
+          <FieldSelect value={groupBy} onChange={v => setGroupBy(v as "day"|"week"|"month"|"quarter")} ariaLabel="Group by"
+            options={[
+              { value: "day", label: "Day" },
+              { value: "week", label: "Week" },
+              { value: "month", label: "Month" },
+              { value: "quarter", label: "Quarter" },
+            ]} />
         </label>
       </div>
       {metric !== "count" && (

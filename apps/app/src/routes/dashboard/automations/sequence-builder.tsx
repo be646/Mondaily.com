@@ -6,6 +6,7 @@ import {
   Play, Pause, Settings, Users, ChevronDown, ChevronUp, Save, Sparkles
 } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
+import { FieldSelect } from "../../../components/ui/controls";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Step {
@@ -140,15 +141,17 @@ function StepCard({
                   onChange={e => onUpdate(step.id, { delay_value: Number(e.target.value) })}
                   className="w-16 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                 />
-                <select
+                <FieldSelect
                   value={step.delay_unit}
-                  onChange={e => onUpdate(step.id, { delay_unit: e.target.value as Step["delay_unit"] })}
-                  className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
-                >
-                  <option value="minutes">minutes</option>
-                  <option value="hours">hours</option>
-                  <option value="days">days</option>
-                </select>
+                  onChange={v => onUpdate(step.id, { delay_unit: v as Step["delay_unit"] })}
+                  ariaLabel="Delay unit"
+                  className="w-auto"
+                  options={[
+                    { value: "minutes", label: "minutes" },
+                    { value: "hours", label: "hours" },
+                    { value: "days", label: "days" },
+                  ]}
+                />
               </div>
             )}
 
@@ -166,26 +169,26 @@ function StepCard({
                 {seq.accounts.length > 0 && (
                   <div className="grid grid-cols-[80px_1fr] items-center gap-2">
                     <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">From</label>
-                    <select
+                    <FieldSelect
                       value={step.from_account ?? ""}
-                      onChange={e => onUpdate(step.id, { from_account: e.target.value })}
-                      className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
-                    >
-                      <option value="">Select account…</option>
-                      {seq.accounts.map(a => <option key={a.id} value={a.id}>{a.email}</option>)}
-                    </select>
+                      onChange={v => onUpdate(step.id, { from_account: v })}
+                      ariaLabel="From account"
+                      placeholder="Select account…"
+                      options={seq.accounts.map(a => ({ value: a.id, label: a.email }))}
+                    />
                   </div>
                 )}
                 <div className="grid grid-cols-[80px_1fr] items-center gap-2">
                   <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Send as</label>
-                  <select
+                  <FieldSelect
                     value={step.send_as ?? "new"}
-                    onChange={e => onUpdate(step.id, { send_as: e.target.value as "new" | "reply" })}
-                    className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
-                  >
-                    <option value="new">New email</option>
-                    <option value="reply">Reply to previous</option>
-                  </select>
+                    onChange={v => onUpdate(step.id, { send_as: v as "new" | "reply" })}
+                    ariaLabel="Send as"
+                    options={[
+                      { value: "new", label: "New email" },
+                      { value: "reply", label: "Reply to previous" },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Body</label>
@@ -212,14 +215,13 @@ function StepCard({
                 {seq.members.length > 0 && (
                   <div className="grid grid-cols-[80px_1fr] items-center gap-2">
                     <label className="text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Assign to</label>
-                    <select
+                    <FieldSelect
                       value={step.assignee_id ?? ""}
-                      onChange={e => onUpdate(step.id, { assignee_id: e.target.value })}
-                      className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/30"
-                    >
-                      <option value="">Unassigned</option>
-                      {seq.members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    </select>
+                      onChange={v => onUpdate(step.id, { assignee_id: v })}
+                      ariaLabel="Assign to"
+                      placeholder="Unassigned"
+                      options={seq.members.map(m => ({ value: m.id, label: m.name }))}
+                    />
                   </div>
                 )}
               </>

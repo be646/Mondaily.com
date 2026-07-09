@@ -7,6 +7,7 @@ import { FinanceAgentStrip } from "../../../components/ai/finance-agent-strip";
 import { AIInspector } from "../../../components/ai/ai-inspector";
 import { GraphContextButton } from "../../../components/graph/graph-context-drawer";
 import { ArrowLeft, Plus, Trash2, Send, CheckCircle, Download, Save, AlertTriangle, ChevronDown } from "lucide-react";
+import { FieldSelect } from "../../../components/ui/controls";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
 
@@ -150,13 +151,19 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
             </div>
             <div>
               <label className="text-[11px] text-[var(--text-secondary)]">Method</label>
-              <select value={method} onChange={e => setMethod(e.target.value)} className="key-input mt-1 w-full text-[13px]">
-                <option value="bank_transfer">Bank Transfer</option>
-                <option value="card">Card</option>
-                <option value="cash">Cash</option>
-                <option value="cheque">Cheque</option>
-                <option value="other">Other</option>
-              </select>
+              <FieldSelect
+                value={method}
+                onChange={v => setMethod(v)}
+                ariaLabel="Method"
+                className="mt-1"
+                options={[
+                  { value: "bank_transfer", label: "Bank Transfer" },
+                  { value: "card", label: "Card" },
+                  { value: "cash", label: "Cash" },
+                  { value: "cheque", label: "Cheque" },
+                  { value: "other", label: "Other" },
+                ]}
+              />
             </div>
             <div>
               <label className="text-[11px] text-[var(--text-secondary)]">Reference</label>
@@ -516,17 +523,19 @@ export function InvoiceDetailPage() {
               </div>
               <div>
                 <label className="text-[11px] text-[var(--text-secondary)]">Currency</label>
-                <select
+                <FieldSelect
                   value={currency}
-                  onChange={e => { setCurrency(e.target.value); setDirty(true); }}
+                  onChange={v => { setCurrency(v); setDirty(true); }}
                   disabled={!isEditable}
-                  className="key-input mt-1 w-full text-[13px]"
-                >
-                  <option value="GBP">GBP — £</option>
-                  <option value="USD">USD — $</option>
-                  <option value="EUR">EUR — €</option>
-                  <option value="AED">AED — د.إ</option>
-                </select>
+                  ariaLabel="Currency"
+                  className="mt-1"
+                  options={[
+                    { value: "GBP", label: "GBP — £" },
+                    { value: "USD", label: "USD — $" },
+                    { value: "EUR", label: "EUR — €" },
+                    { value: "AED", label: "AED — د.إ" },
+                  ]}
+                />
               </div>
             </div>
           </div>
