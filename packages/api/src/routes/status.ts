@@ -182,6 +182,19 @@ router.get("/", async (c) => {
     action: livekitReady ? undefined : `Stand up a (preferably self-hosted) LiveKit server and set LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET. ${ENV_STEP}`,
   });
 
+  // Native sovereign email — self-hosted receive (own MX → /emails/inbound) + send (own SMTP relay).
+  // Fully optional + fail-closed: unset ⇒ the existing inbox keeps working and this simply isn't used.
+  const mailInbound = Boolean(process.env.SOVEREIGN_MAIL_SECRET && process.env.SOVEREIGN_MAIL_DOMAIN);
+  const mailOutbound = Boolean(process.env.SOVEREIGN_MAIL_SEND_URL && process.env.SOVEREIGN_MAIL_SECRET);
+  checks.push({
+    id: "sovereign_mail", label: "Native email (self-hosted receive + send)",
+    state: mailInbound || mailOutbound ? "operational" : "disabled",
+    explanation: mailInbound || mailOutbound
+      ? `Sovereign mail is live — ${[mailInbound && "inbound (own MX → ws-<id>@" + process.env.SOVEREIGN_MAIL_DOMAIN + ")", mailOutbound && "outbound (own SMTP relay)"].filter(Boolean).join(" + ")}. No third-party email provider.`
+      : "Native email is OFF by design — the existing inbox (Gmail/local) keeps working and nothing breaks. This is not an error.",
+    action: mailInbound || mailOutbound ? undefined : `Deploy deploy/mail-appliance behind your MX, then set SOVEREIGN_MAIL_SECRET + SOVEREIGN_MAIL_DOMAIN (and SOVEREIGN_MAIL_SEND_URL for outbound). ${ENV_STEP}`,
+  });
+
   // Training-data controls — capture is opt-in (default OFF) and per-workspace. Report whether the
   // ledger table exists and whether THIS workspace has opted in.
   try {

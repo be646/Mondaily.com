@@ -73445,6 +73445,15 @@ router46.get("/", async (c2) => {
     explanation: livekitReady ? "LIVEKIT_URL/API_KEY/API_SECRET are set \u2014 in-workspace calls can issue tokens. Sovereign only when LiveKit is self-hosted/private; a hosted LiveKit cloud is an optional external connector." : "Calls are OFF by design until configured \u2014 the UI shows 'calls not configured' and nothing breaks. This is not an error.",
     action: livekitReady ? void 0 : `Stand up a (preferably self-hosted) LiveKit server and set LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET. ${ENV_STEP}`
   });
+  const mailInbound = Boolean(process.env.SOVEREIGN_MAIL_SECRET && process.env.SOVEREIGN_MAIL_DOMAIN);
+  const mailOutbound = Boolean(process.env.SOVEREIGN_MAIL_SEND_URL && process.env.SOVEREIGN_MAIL_SECRET);
+  checks.push({
+    id: "sovereign_mail",
+    label: "Native email (self-hosted receive + send)",
+    state: mailInbound || mailOutbound ? "operational" : "disabled",
+    explanation: mailInbound || mailOutbound ? `Sovereign mail is live \u2014 ${[mailInbound && "inbound (own MX \u2192 ws-<id>@" + process.env.SOVEREIGN_MAIL_DOMAIN + ")", mailOutbound && "outbound (own SMTP relay)"].filter(Boolean).join(" + ")}. No third-party email provider.` : "Native email is OFF by design \u2014 the existing inbox (Gmail/local) keeps working and nothing breaks. This is not an error.",
+    action: mailInbound || mailOutbound ? void 0 : `Deploy deploy/mail-appliance behind your MX, then set SOVEREIGN_MAIL_SECRET + SOVEREIGN_MAIL_DOMAIN (and SOVEREIGN_MAIL_SEND_URL for outbound). ${ENV_STEP}`
+  });
   try {
     const ok2 = await probeTable("ai_training_logs");
     let enabled2 = false;

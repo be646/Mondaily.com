@@ -289,10 +289,15 @@ export function DiscoveryPage() {
         </div>
       )}
 
-      {degraded && (
+      {(degraded || statusQ.isError) && (
         <div className="mb-3 flex items-start gap-2 rounded-md border px-3 py-2.5 text-[12px]" style={{ borderColor: "#97824f33", background: "#97824f0f", color: "#97824f" }}>
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-          <span>{statusQ.data?.diagnostic ?? "The search appliance isn't reachable, so Discovery can't return live results yet."}</span>
+          <span>
+            {statusQ.isError
+              ? "Couldn't reach Discovery status. "
+              : (statusQ.data?.diagnostic ?? "The search appliance isn't reachable, so Discovery can't return live results yet.")}
+            {statusQ.isError && <button onClick={() => statusQ.refetch()} className="underline">Retry</button>}
+          </span>
         </div>
       )}
 
