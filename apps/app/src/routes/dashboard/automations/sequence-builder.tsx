@@ -74,8 +74,8 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const STATUS_STYLES: Record<string, string> = {
-  active:       "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  paused:       "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  active:       "bg-[#5f8169]/10 text-[#5f8169] border-[#5f8169]/25",
+  paused:       "bg-[#97824f]/10 text-[#97824f] border-[#97824f]/25",
   unsubscribed: "bg-stone-500/10 text-stone-400 border-stone-500/20",
 };
 
@@ -104,7 +104,7 @@ function StepCard({
           onClick={() => setOpen(o => !o)}
         >
           <GripVertical size={14} className="shrink-0 text-[var(--text-faint)]"/>
-          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${step.type === "email" ? "border-stone-500/30 bg-stone-600/[.08] text-stone-400" : "border-blue-500/20 bg-blue-500/[.08] text-blue-400"}`}>
+          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${step.type === "email" ? "border-stone-500/30 bg-stone-600/[.08] text-stone-400" : "border-[#717784]/25 bg-[#717784]/10 text-[#717784]"}`}>
             {step.type === "email" ? <Mail size={12}/> : <CheckSquare size={12}/>}
           </div>
           <div className="flex-1 min-w-0">
@@ -319,7 +319,7 @@ export function SequenceBuilderPage() {
 
   if (query.isLoading || id === "new") return (
     <div className="flex h-full items-center justify-center">
-      <div className="h-5 w-5 animate-spin rounded-full border-2 border-stone-500/30 border-t-red-500"/>
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-stone-500/30 border-t-[#9c6b72]"/>
     </div>
   );
 
@@ -368,7 +368,7 @@ export function SequenceBuilderPage() {
           </h1>
         )}
 
-        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${seq.status === "active" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-stone-600/30 bg-stone-700/50 text-stone-400"}`}>
+        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${seq.status === "active" ? "border-[#5f8169]/25 bg-[#5f8169]/10 text-[#5f8169]" : "border-stone-600/30 bg-stone-700/50 text-stone-400"}`}>
           {seq.status}
         </span>
 
@@ -385,7 +385,7 @@ export function SequenceBuilderPage() {
         <button
           onClick={toggleStatus}
           disabled={patchSeq.isPending}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${seq.status === "active" ? "border-yellow-400/40 bg-yellow-500/80 text-[var(--text-primary)] hover:bg-yellow-400" : "border-stone-500/30 bg-stone-600 text-[var(--text-primary)] hover:bg-stone-500"}`}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${seq.status === "active" ? "border-[#97824f]/40 bg-[#97824f]/80 text-[var(--text-primary)] hover:bg-[#97824f]" : "border-stone-500/30 bg-stone-600 text-[var(--text-primary)] hover:bg-stone-500"}`}
         >
           {seq.status === "active" ? <><Pause size={11}/> Pause</> : <><Play size={11}/> Activate</>}
         </button>
@@ -445,7 +445,7 @@ export function SequenceBuilderPage() {
                 disabled={addStep.isPending}
                 className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
               >
-                <CheckSquare size={12} className="text-blue-400"/> Add task step
+                <CheckSquare size={12} className="text-[#717784]"/> Add task step
               </button>
             </div>
           </div>
@@ -502,9 +502,9 @@ export function SequenceBuilderPage() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
                 { label: "Enrolled", value: totalEnrolled, color: "text-[var(--text-primary)]" },
-                { label: "Open rate", value: `${openRate}%`, color: openRate >= 30 ? "text-emerald-400" : openRate >= 15 ? "text-amber-400" : "text-[var(--text-faint)]" },
-                { label: "Click rate", value: `${clickRate}%`, color: clickRate >= 10 ? "text-emerald-400" : "text-[var(--text-faint)]" },
-                { label: "Reply rate", value: `${replyRate}%`, color: replyRate >= 5 ? "text-emerald-400" : "text-[var(--text-faint)]" },
+                { label: "Open rate", value: `${openRate}%`, color: openRate >= 30 ? "text-[#5f8169]" : openRate >= 15 ? "text-[#97824f]" : "text-[var(--text-faint)]" },
+                { label: "Click rate", value: `${clickRate}%`, color: clickRate >= 10 ? "text-[#5f8169]" : "text-[var(--text-faint)]" },
+                { label: "Reply rate", value: `${replyRate}%`, color: replyRate >= 5 ? "text-[#5f8169]" : "text-[var(--text-faint)]" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="premium-panel px-4 py-4">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">{label}</p>

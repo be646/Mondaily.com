@@ -217,7 +217,7 @@ function ConfigPanel({ report, update, objects }: {
         )}
         <label className="flex items-center justify-between text-sm text-[var(--text-faint)]">
           Compare previous period
-          <input type="checkbox" checked={config.compare} onChange={e => update({ compare: e.target.checked })} className="accent-red-500" />
+          <input type="checkbox" checked={config.compare} onChange={e => update({ compare: e.target.checked })} className="accent-[#9c6b72]" />
         </label>
       </>}
 
@@ -307,7 +307,7 @@ function ReportChart({ type, result, config }: { type: ReportType; result?: RunD
       <div>
         <p className="text-6xl font-semibold text-[var(--text-primary)]">{result?.total ?? 0}</p>
         {config.compare && (
-          <p className={`mt-3 text-sm ${(result?.change ?? 0) >= 0 ? "text-emerald-400" : "text-[var(--text-faint)]"}`}>
+          <p className={`mt-3 text-sm ${(result?.change ?? 0) >= 0 ? "text-[#5f8169]" : "text-[var(--text-faint)]"}`}>
             {(result?.change ?? 0) >= 0 ? "+" : ""}{result?.change ?? 0}% vs previous period
           </p>
         )}

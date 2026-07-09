@@ -229,7 +229,7 @@ export function SidebarLists() {
 
       {query.isError && (
         <div className="px-3 py-2">
-          <p className="text-[11px] text-rose-400">Couldn't load lists.</p>
+          <p className="text-[11px] text-[#9c6b72]">Couldn't load lists.</p>
           <button onClick={() => query.refetch()} className="text-[11px] text-stone-400 hover:text-stone-300 transition-colors">Retry</button>
         </div>
       )}
@@ -324,7 +324,7 @@ export function SidebarLists() {
                       {members.filter(m => m.user_id !== assigneeId).map(m => (
                         <button key={m.user_id} type="button"
                           onClick={() => toggleShared(m.user_id)}
-                          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${sharedWith.includes(m.user_id) ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-400 hover:border-[var(--border-soft)] hover:text-[var(--text-primary)]"}`}>
+                          className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors ${sharedWith.includes(m.user_id) ? "border-[#717784]/40 bg-[#717784]/10 text-[#717784]" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-400 hover:border-[var(--border-soft)] hover:text-[var(--text-primary)]"}`}>
                           <span className="grid h-4 w-4 place-items-center rounded-full bg-[var(--surface-hover)] text-[8px] font-bold">
                             {memberInitials(m)}
                           </span>

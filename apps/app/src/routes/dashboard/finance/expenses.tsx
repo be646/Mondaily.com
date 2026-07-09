@@ -21,20 +21,20 @@ interface Expense {
 }
 
 const CATEGORY_CONFIG: Record<string, { color: string; icon: React.ElementType; label: string }> = {
-  travel:               { color: "text-blue-400",    icon: Car,           label: "Travel"               },
+  travel:               { color: "text-[#717784]",    icon: Car,           label: "Travel"               },
   software:             { color: "text-stone-400",  icon: Monitor,       label: "Software"             },
   hardware:             { color: "text-[var(--section-accent)]",    icon: Monitor,       label: "Hardware"             },
-  meals:                { color: "text-amber-400",   icon: Coffee,        label: "Meals"                },
-  marketing:            { color: "text-pink-400",    icon: Zap,           label: "Marketing"            },
-  professional_services:{ color: "text-emerald-400", icon: Briefcase,     label: "Professional Services"},
+  meals:                { color: "text-[#97824f]",   icon: Coffee,        label: "Meals"                },
+  marketing:            { color: "text-[#717784]",    icon: Zap,           label: "Marketing"            },
+  professional_services:{ color: "text-[#5f8169]", icon: Briefcase,     label: "Professional Services"},
   office:               { color: "text-stone-400",   icon: Building2,     label: "Office"              },
   other:                { color: "text-stone-500",    icon: MoreHorizontal,label: "Other"                },
 };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   draft:     { label: "Draft",     color: "text-stone-400 bg-stone-400/10",     icon: Receipt      },
-  submitted: { label: "Submitted", color: "text-blue-400 bg-blue-400/10",     icon: Clock        },
-  approved:  { label: "Approved",  color: "text-emerald-400 bg-emerald-400/10", icon: CheckCircle2 },
+  submitted: { label: "Submitted", color: "text-[#717784] bg-[#717784]/10",     icon: Clock        },
+  approved:  { label: "Approved",  color: "text-[#5f8169] bg-[#5f8169]/10", icon: CheckCircle2 },
   rejected:  { label: "Rejected",  color: "text-stone-400 bg-stone-400/10",       icon: XCircle      },
 };
 
@@ -87,7 +87,7 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
       <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-amber-500/20 flex items-center justify-center"><Receipt size={12} className="text-amber-400"/></div>
+            <div className="h-6 w-6 rounded-lg bg-[#97824f]/10 flex items-center justify-center"><Receipt size={12} className="text-[#97824f]"/></div>
             <span className="text-sm font-semibold text-[var(--text-primary)]">Log Expense</span>
           </div>
           <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors text-lg leading-none">×</button>
@@ -185,13 +185,13 @@ export function ExpensesPage() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-blue-400"/><span className="text-[11px] text-[var(--text-muted)]">Submitted</span></div>
-            <div className="text-[17px] font-semibold text-blue-400">{formatMoney(totalSubmitted, currency)}</div>
+            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-[#717784]"/><span className="text-[11px] text-[var(--text-muted)]">Submitted</span></div>
+            <div className="text-[17px] font-semibold text-[#717784]">{formatMoney(totalSubmitted, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{expenses.filter(e => e.status === "submitted").length} pending approval</div>
           </div>
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-[var(--text-muted)]">Approved</span></div>
-            <div className="text-[17px] font-semibold text-emerald-400">{formatMoney(totalApproved, currency)}</div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#5f8169]"/><span className="text-[11px] text-[var(--text-muted)]">Approved</span></div>
+            <div className="text-[17px] font-semibold text-[#5f8169]">{formatMoney(totalApproved, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{expenses.filter(e => e.status === "approved").length} approved</div>
           </div>
           <div className="telemetry-strip">

@@ -32,7 +32,7 @@ export function VerifyEmailPage() {
       <div className="w-full max-w-sm">
         {status === "loading" && <Loader2 className="mx-auto mb-5 animate-spin text-stone-500" size={32} />}
         {status === "success" && <CheckCircle className="mx-auto mb-5" size={34} style={{ color: "var(--section-accent)" }} />}
-        {status === "error" && <MailX className="mx-auto mb-5 text-rose-500" size={34} />}
+        {status === "error" && <MailX className="mx-auto mb-5 text-[#9c6b72]" size={34} />}
         <h1 className="text-xl font-semibold">
           {status === "loading" ? "Verifying your email…" : status === "success" ? "Email verified" : "Link invalid or expired"}
         </h1>

@@ -8,8 +8,8 @@ interface Props {
 }
 
 function scoreColor(score: number) {
-  if (score >= 70) return { text: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20", bar: "bg-emerald-500" };
-  if (score >= 40) return { text: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20", bar: "bg-amber-500" };
+  if (score >= 70) return { text: "text-[#5f8169]", bg: "bg-[#5f8169]/10 border-[#5f8169]/20", bar: "bg-[#5f8169]" };
+  if (score >= 40) return { text: "text-[#97824f]", bg: "bg-[#97824f]/10 border-[#97824f]/20", bar: "bg-[#97824f]" };
   return { text: "text-stone-500", bg: "bg-[var(--surface-hover)] border-[var(--border-soft)]", bar: "bg-stone-600" };
 }
 
@@ -85,8 +85,8 @@ export function LeadScoreBadge({ score, size = "sm", signals }: Props) {
               <span style={{ color: "var(--text-muted)" }}>{f.label}</span>
               <span className="inline-flex items-center gap-1 font-medium" style={{ color: "var(--text-secondary)" }}>
                 {f.value}
-                {f.tone === "up" && <span className="text-emerald-400">↑</span>}
-                {f.tone === "down" && <span className="text-rose-400">↓</span>}
+                {f.tone === "up" && <span className="text-[#5f8169]">↑</span>}
+                {f.tone === "down" && <span className="text-[#9c6b72]">↓</span>}
               </span>
             </div>
           ))}

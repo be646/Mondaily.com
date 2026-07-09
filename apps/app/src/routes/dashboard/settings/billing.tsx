@@ -85,10 +85,10 @@ interface Usage {
 
 const PLAN_COLORS: Record<string, string> = {
   free: "bg-[var(--surface-hover)] text-[var(--text-faint)]",
-  trial: "bg-emerald-500/10 text-emerald-300",
-  pro: "bg-blue-500/10 text-blue-300",
+  trial: "bg-[#5f8169]/10 text-[#5f8169]",
+  pro: "bg-[#717784]/10 text-[#717784]",
   business: "bg-stone-500/10 text-[var(--text-faint)]",
-  enterprise: "bg-amber-500/10 text-amber-300",
+  enterprise: "bg-[#97824f]/10 text-[#97824f]",
 };
 
 export function BillingSettings() {
@@ -305,7 +305,7 @@ export function BillingSettings() {
               <>
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
                   <div
-                    className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-stone-500" : seatPct >= 70 ? "bg-amber-500" : "bg-emerald-500"}`}
+                    className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-stone-500" : seatPct >= 70 ? "bg-[#97824f]" : "bg-[#5f8169]"}`}
                     style={{ width: `${Math.max(seatPct, 3)}%` }}
                   />
                 </div>
@@ -594,12 +594,12 @@ export function BillingSettings() {
                       <tr key={row.id}>
                         <td className="whitespace-nowrap text-[var(--text-faint)]">{new Date(row.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
                         <td>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${row.transaction_type === "grant" ? "bg-emerald-500/10 text-emerald-400" : row.transaction_type === "purchase" ? "bg-blue-500/10 text-blue-300" : "bg-[var(--surface-hover)] text-[var(--text-muted)]"}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${row.transaction_type === "grant" ? "bg-[#5f8169]/10 text-[#5f8169]" : row.transaction_type === "purchase" ? "bg-[#717784]/10 text-[#717784]" : "bg-[var(--surface-hover)] text-[var(--text-muted)]"}`}>
                             {row.transaction_type}
                           </span>
                         </td>
                         <td className="max-w-[260px] truncate text-[var(--text-faint)]">{row.description ?? "—"}</td>
-                        <td className={`whitespace-nowrap text-right tabular-nums ${positive ? "text-emerald-400" : "text-[var(--text-muted)]"}`}>
+                        <td className={`whitespace-nowrap text-right tabular-nums ${positive ? "text-[#5f8169]" : "text-[var(--text-muted)]"}`}>
                           {positive ? "+" : "−"}{fmtCredits(Math.abs(row.amount))}
                         </td>
                       </tr>

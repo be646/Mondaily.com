@@ -235,7 +235,7 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
                     </div>
                   )}
                   <div className="flex items-start gap-3 px-1 py-3 sm:px-2" style={{ borderLeft: `2px solid ${accent}` }}>
-                    {d.risk_level === "high" ? <ShieldAlert size={14} className="mt-0.5 shrink-0 text-rose-500"/> : <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }}/>}
+                    {d.risk_level === "high" ? <ShieldAlert size={14} className="mt-0.5 shrink-0 text-[#9c6b72]"/> : <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }}/>}
                     <div className="min-w-0 flex-1">
                       <p className="text-[12.5px] leading-tight" style={{ color: "var(--text-secondary)" }}>
                         <span className="font-medium" style={{ color: "var(--text-primary)" }}>{d.agent_name.replace(/_/g, " ")}</span> · {d.title}
@@ -266,7 +266,7 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
                         {act === "approve" ? <Loader2 size={11} className="animate-spin"/> : <Check size={11}/>}<span className="hidden sm:inline">Approve</span>
                       </button>
                       <button onClick={() => resolveDecision(d.id, "reject")} disabled={!!act} title="Dismiss"
-                        className="flex h-[26px] w-[26px] items-center justify-center rounded-md transition-colors hover:bg-rose-500/10 hover:text-rose-500 disabled:opacity-50" style={{ border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}>
+                        className="flex h-[26px] w-[26px] items-center justify-center rounded-md transition-colors hover:bg-[#9c6b72]/10 hover:text-[#9c6b72] disabled:opacity-50" style={{ border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}>
                         {act === "reject" ? <Loader2 size={11} className="animate-spin"/> : <X size={12}/>}
                       </button>
                       <button onClick={() => resolveDecision(d.id, "snooze")} disabled={!!act} title="Snooze"

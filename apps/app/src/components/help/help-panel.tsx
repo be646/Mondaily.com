@@ -305,7 +305,7 @@ function HelpPanel({ prefill }: { prefill: string }) {
           )}
 
           {session.state === "closed" && session.rating != null && (
-            <p className="flex items-center gap-1.5 text-[12px] text-emerald-500"><Check size={13} /> Inquiry closed · rated {session.rating}/5. Start a new inquiry any time.</p>
+            <p className="flex items-center gap-1.5 text-[12px] text-[#5f8169]"><Check size={13} /> Inquiry closed · rated {session.rating}/5. Start a new inquiry any time.</p>
           )}
         </div>
 

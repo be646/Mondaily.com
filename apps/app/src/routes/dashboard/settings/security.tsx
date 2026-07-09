@@ -34,7 +34,7 @@ function CopyField({ label, value, copied, onCopy }: { label: string; value: str
       <div className="flex h-10 items-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)]">
         <code className="min-w-0 flex-1 truncate px-3 text-xs text-[var(--text-faint)]">{value}</code>
         <button onClick={onCopy} className="px-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
-          {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+          {copied ? <Check size={13} className="text-[#5f8169]" /> : <Copy size={13} />}
         </button>
       </div>
     </label>
@@ -112,7 +112,7 @@ export function SecuritySettings() {
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Single Sign-On (SAML 2.0)</h2>
             <span className="rounded-full bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-[var(--text-faint)]">Enterprise</span>
           </div>
-          <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${data.saml_enabled ? "bg-emerald-500/10 text-emerald-400" : "bg-[var(--surface-hover)] text-[var(--text-muted)]"}`}>
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${data.saml_enabled ? "bg-[#5f8169]/10 text-[#5f8169]" : "bg-[var(--surface-hover)] text-[var(--text-muted)]"}`}>
             {data.saml_enabled ? "Configured" : "Not configured"}
           </span>
         </div>

@@ -19,14 +19,14 @@ interface ActivityItem {
 function actorIcon(type: string) {
   switch (type) {
     case "ai_agent": return <LogoMark size={10} className="text-stone-400" />;
-    case "integration": return <Zap size={10} className="text-amber-400" />;
+    case "integration": return <Zap size={10} className="text-[#97824f]" />;
     case "system": return <Settings size={10} className="text-stone-500" />;
-    default: return <User size={10} className="text-blue-400" />;
+    default: return <User size={10} className="text-[#717784]" />;
   }
 }
 
 function actionColor(action: string) {
-  if (action === "created") return "text-emerald-400";
+  if (action === "created") return "text-[#5f8169]";
   if (action === "deleted") return "text-stone-400";
   if (action === "enriched") return "text-stone-400";
   return "text-stone-400";

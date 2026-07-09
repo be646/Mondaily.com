@@ -48,20 +48,20 @@ export function InviteAcceptPage() {
   return (
     <div className="grid min-h-screen place-items-center bg-[var(--surface-page)] px-6 text-center text-[var(--text-primary)]">
       <div className="w-full max-w-sm">
-        {status === "success" ? <CheckCircle className="mx-auto mb-5 text-emerald-500" size={34} /> : <Users className="mx-auto mb-5 text-red-500" size={34} />}
+        {status === "success" ? <CheckCircle className="mx-auto mb-5 text-[#5f8169]" size={34} /> : <Users className="mx-auto mb-5 text-[#9c6b72]" size={34} />}
         <h1 className="text-xl font-semibold">{status === "success" ? "Joined!" : "You've been invited"}</h1>
         <p className="mb-7 mt-2 text-sm text-stone-500">{status === "success" ? "Taking you to the workspace..." : "Accept to join the Mondaily workspace."}</p>
         {status !== "success" ? (
           <div className="flex justify-center gap-3">
-            <button onClick={acceptInvite} disabled={status === "loading"} className="rounded-md bg-red-600 px-5 py-2 text-sm font-medium disabled:opacity-50">{status === "loading" ? "Joining..." : "Accept invitation"}</button>
+            <button onClick={acceptInvite} disabled={status === "loading"} className="rounded-md bg-[#9c6b72] px-5 py-2 text-sm font-medium disabled:opacity-50">{status === "loading" ? "Joining..." : "Accept invitation"}</button>
             <button onClick={() => navigate("/auth/shadow-login")} className="rounded-md border border-[var(--border-soft)] px-5 py-2 text-sm">Decline</button>
           </div>
         ) : null}
         {status === "error" ? (
           <div className="mt-4">
-            <p className="text-sm text-red-400">{errorMsg}</p>
+            <p className="text-sm text-[#9c6b72]">{errorMsg}</p>
             {mismatch && (
-              <button onClick={switchAccount} className="mt-3 rounded-md bg-red-600 px-5 py-2 text-sm font-medium">
+              <button onClick={switchAccount} className="mt-3 rounded-md bg-[#9c6b72] px-5 py-2 text-sm font-medium">
                 Sign in as the invited address
               </button>
             )}

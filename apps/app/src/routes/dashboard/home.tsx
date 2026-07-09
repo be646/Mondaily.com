@@ -146,7 +146,7 @@ interface WorkspaceSummary {
 
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_STYLE: Record<string, string> = {
-  urgent: "border border-[#97824f]/30 bg-[#97824f]/10 text-[#97824f] dark:text-amber-300",
+  urgent: "border border-[#97824f]/30 bg-[#97824f]/10 text-[#97824f] dark:text-[#97824f]",
   high:   "border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300",
   medium: "border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300",
   low:    "border border-stone-200 bg-stone-50 text-stone-500 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-500",

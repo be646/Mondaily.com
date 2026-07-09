@@ -440,7 +440,7 @@ export function AccountSettings() {
                 </div>
               </div>
             )}
-            {pwMsg && <p className={`mt-3 text-xs ${pwMsg.ok ? "text-emerald-400" : "text-rose-400"}`}>{pwMsg.text}</p>}
+            {pwMsg && <p className={`mt-3 text-xs ${pwMsg.ok ? "text-[#5f8169]" : "text-[#9c6b72]"}`}>{pwMsg.text}</p>}
           </div>
         </section>
       )}
@@ -460,7 +460,7 @@ export function AccountSettings() {
                   <p className="mt-0.5 text-xs text-[var(--text-muted)]">{account?.email ?? "Not connected"}</p>
                 </div>
                 {account ? (
-                  <button onClick={() => disconnect.mutate(account.id)} className="font-mono text-[10.5px] uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-rose-400">[ TERMINATE LINK ]</button>
+                  <button onClick={() => disconnect.mutate(account.id)} className="font-mono text-[10.5px] uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[#9c6b72]">[ TERMINATE LINK ]</button>
                 ) : (
                   <button onClick={() => connect(provider)} className="rounded-sm border px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-wider text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }} onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--section-accent)")} onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-soft)")}>[ ESTABLISH SECURE HANDSHAKE ]</button>
                 )}

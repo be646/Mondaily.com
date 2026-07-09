@@ -207,7 +207,7 @@ export function AskMondailySettings() {
         <div className="border-b border-[var(--border-soft)] px-5 py-3 flex items-center justify-between">
           <h2 className="text-sm font-medium text-[var(--text-primary)]">Chat history</h2>
           {threads.length > 0 && (
-            <button onClick={deleteAllThreads} className="text-xs text-red-400 hover:text-red-300 transition-colors">Delete all</button>
+            <button onClick={deleteAllThreads} className="text-xs text-[#9c6b72] hover:text-[#9c6b72] transition-colors">Delete all</button>
           )}
         </div>
         {threads.length === 0 ? (
@@ -223,7 +223,7 @@ export function AskMondailySettings() {
                     <div className="text-xs text-[var(--text-muted)]">{t.messages.length} messages · {new Date(t.updatedAt).toLocaleDateString()}</div>
                   </div>
                 </div>
-                <button onClick={() => deleteThread(t.id)} className="ml-4 shrink-0 rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-red-500/10 hover:text-red-400 transition-colors">
+                <button onClick={() => deleteThread(t.id)} className="ml-4 shrink-0 rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[#9c6b72]/10 hover:text-[#9c6b72] transition-colors">
                   <Trash2 size={13}/>
                 </button>
               </div>

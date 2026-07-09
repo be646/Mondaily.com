@@ -52,7 +52,7 @@ export function ShadowActivatePage() {
         subtitle="Open the activation link we emailed you. From the sign-in page, entering your email re-sends it."
         footer={<button onClick={() => navigate("/auth/shadow-login")} className="inline-flex items-center gap-1.5 transition-colors hover:text-zinc-300"><ArrowLeft size={12} /> Back to sign in</button>}>
         <div className="flex items-center gap-2.5 rounded-sm border border-zinc-800 bg-zinc-950 px-3.5 py-3 text-[12.5px] text-zinc-400">
-          <AlertTriangle size={16} className="text-amber-400" /> Missing activation token.
+          <AlertTriangle size={16} className="text-[#97824f]" /> Missing activation token.
         </div>
       </AuthShell>
     );
@@ -76,7 +76,7 @@ export function ShadowActivatePage() {
       <form onSubmit={onSubmit} className="space-y-3.5">
         <CapsuleInput label="New password" type="password" autoComplete="new-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} error={pwError ?? undefined} hint="8+ chars, with a letter and a number." />
         <CapsuleInput label="Confirm password" type="password" autoComplete="new-password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)} disabled={loading} error={matchError ?? undefined} />
-        {error && <p className="text-[11px] text-rose-400">{error}</p>}
+        {error && <p className="text-[11px] text-[#9c6b72]">{error}</p>}
         <GlowButton type="submit" disabled={!valid} loading={loading}>
           {loading ? <><Loader2 size={14} className="animate-spin" /> Activating…</> : <><ShieldCheck size={14} /> Activate sovereign key</>}
         </GlowButton>

@@ -66,7 +66,7 @@ export function ShadowRegisterPage() {
         <CapsuleInput label="Password" type="password" autoComplete="new-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} error={pwError ?? undefined} hint="8+ chars, with a letter and a number." />
         <CapsuleInput label="Confirm password" type="password" autoComplete="new-password" placeholder="••••••••" value={confirm} onChange={e => setConfirm(e.target.value)} disabled={loading} error={matchError ?? undefined} />
         <PowShieldLine status={shield.status} />
-        {error && <p className="text-[11px] text-rose-400">{error}</p>}
+        {error && <p className="text-[11px] text-[#9c6b72]">{error}</p>}
         <GlowButton type="submit" disabled={!valid} loading={loading}>
           {loading ? <><Loader2 size={14} className="animate-spin" /> Creating…</> : <><ShieldCheck size={14} /> Create account</>}
         </GlowButton>

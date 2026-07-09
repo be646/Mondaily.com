@@ -412,7 +412,7 @@ export function ListPage() {
             <Globe size={11} />
             {(list.data.visibility ?? "workspace") === "private" ? "Private" : (list.data.visibility ?? "workspace") === "shared" ? "Shared" : "Workspace"}
             {(list.data.shared_with ?? []).length > 0 && (
-              <span className="ml-0.5 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[9px] text-blue-400">
+              <span className="ml-0.5 rounded-full bg-[#717784]/20 px-1.5 py-0.5 text-[9px] text-[#717784]">
                 +{(list.data.shared_with ?? []).length}
               </span>
             )}
@@ -518,7 +518,7 @@ export function ListPage() {
         <button
           onClick={() => setDeleteConfirm(true)}
           title="Delete list"
-          className="btn-secondary !px-2.5 !py-1.5 !text-[11px] hover:!border-rose-400 hover:!text-rose-500"
+          className="btn-secondary !px-2.5 !py-1.5 !text-[11px] hover:!border-[#9c6b72] hover:!text-[#9c6b72]"
         >
           <Trash2 size={11}/>
         </button>
@@ -585,7 +585,7 @@ export function ListPage() {
             {selected.size > 0 && (
               <div className="mb-2 flex items-center gap-3 rounded-lg border px-3 py-2 text-[12px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
                 <span style={{ color: "var(--text-secondary)" }}>{selected.size} selected</span>
-                <button onClick={removeSelected} className="flex items-center gap-1.5 rounded-md border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-rose-500 transition-colors hover:bg-rose-500/[.06] dark:border-[var(--border-soft)]">
+                <button onClick={removeSelected} className="flex items-center gap-1.5 rounded-md border border-stone-200 px-2.5 py-1 text-[11px] font-medium text-[#9c6b72] transition-colors hover:bg-[#9c6b72]/[.06] dark:border-[var(--border-soft)]">
                   <X size={11}/> Remove from list
                 </button>
                 <button onClick={() => setSelected(new Set())} className="text-[11px]" style={{ color: "var(--text-faint)" }}>Clear</button>
@@ -860,8 +860,8 @@ export function ListPage() {
           <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)]">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                  <Mail size={13} className="text-emerald-400" />
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#5f8169]/10 border border-[#5f8169]/25">
+                  <Mail size={13} className="text-[#5f8169]" />
                 </div>
                 <span className="text-sm font-semibold text-[var(--text-primary)]">Enroll in Sequence</span>
               </div>
@@ -871,8 +871,8 @@ export function ListPage() {
             <div className="flex-1 overflow-y-auto px-6 py-5">
               {enrollStep === "done" ? (
                 <div className="flex flex-col items-center gap-4 py-8 text-center">
-                  <div className="h-12 w-12 rounded-sm bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                    <Mail size={22} className="text-emerald-400" />
+                  <div className="h-12 w-12 rounded-sm bg-[#5f8169]/10 border border-[#5f8169]/25 flex items-center justify-center">
+                    <Mail size={22} className="text-[#5f8169]" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">Enrollment complete</p>
@@ -887,7 +887,7 @@ export function ListPage() {
                   </div>
                   <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 flex items-center justify-between">
                     <span className="text-xs text-[var(--text-secondary)]">Records to enroll</span>
-                    <span className="text-sm font-semibold text-emerald-400">{records.length}</span>
+                    <span className="text-sm font-semibold text-[#5f8169]">{records.length}</span>
                   </div>
                   <p className="text-[11px] text-[var(--text-secondary)]">Records already enrolled in this sequence will be skipped automatically.</p>
                 </div>
@@ -903,10 +903,10 @@ export function ListPage() {
                       <button
                         key={seq.id}
                         onClick={() => { setEnrollSeqId(seq.id); setEnrollSeqName(seq.name); setEnrollStep("confirm"); }}
-                        className="w-full flex items-center justify-between rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-colors text-left"
+                        className="w-full flex items-center justify-between rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 hover:border-[#5f8169]/30 hover:bg-[#5f8169]/5 transition-colors text-left"
                       >
                         <span className="text-sm text-[var(--text-primary)]">{seq.name}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${seq.status === "active" ? "bg-emerald-500/15 text-emerald-400" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"}`}>{seq.status}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${seq.status === "active" ? "bg-[#5f8169]/15 text-[#5f8169]" : "bg-[var(--surface-hover)] text-[var(--text-secondary)]"}`}>{seq.status}</span>
                       </button>
                     ))
                   )}

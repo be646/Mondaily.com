@@ -29,9 +29,9 @@ interface CreditNote {
 
 const STATUS_CONFIG: Record<CreditStatus, { label: string; color: string; icon: React.ElementType }> = {
   draft:            { label: "Draft",            color: "text-stone-400 bg-stone-400/10",     icon: ReceiptText   },
-  pending_review:   { label: "Pending Review",   color: "text-amber-400 bg-amber-400/10",   icon: Clock         },
-  manager_approved: { label: "Approved",         color: "text-blue-400 bg-blue-400/10",     icon: CheckCircle2  },
-  executed:         { label: "Executed",         color: "text-emerald-400 bg-emerald-400/10", icon: CheckCircle2 },
+  pending_review:   { label: "Pending Review",   color: "text-[#97824f] bg-[#97824f]/10",   icon: Clock         },
+  manager_approved: { label: "Approved",         color: "text-[#717784] bg-[#717784]/10",     icon: CheckCircle2  },
+  executed:         { label: "Executed",         color: "text-[#5f8169] bg-[#5f8169]/10", icon: CheckCircle2 },
   void:             { label: "Void",             color: "text-stone-600 bg-stone-600/10",     icon: XCircle       },
 };
 
@@ -193,13 +193,13 @@ export function CreditNotesPage() {
         {/* Summary cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-amber-400"/><span className="text-[11px] text-[var(--text-muted)]">Pending</span></div>
-            <div className="text-[17px] font-semibold text-amber-400">{formatMoney(totalPending, currency)}</div>
+            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-[#97824f]"/><span className="text-[11px] text-[var(--text-muted)]">Pending</span></div>
+            <div className="text-[17px] font-semibold text-[#97824f]">{formatMoney(totalPending, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{creditNotes.filter(n => n.status === "pending_review").length} note{creditNotes.filter(n => n.status === "pending_review").length !== 1 ? "s" : ""}</div>
           </div>
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-[var(--text-muted)]">Executed</span></div>
-            <div className="text-[17px] font-semibold text-emerald-400">{formatMoney(totalExecuted, currency)}</div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#5f8169]"/><span className="text-[11px] text-[var(--text-muted)]">Executed</span></div>
+            <div className="text-[17px] font-semibold text-[#5f8169]">{formatMoney(totalExecuted, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{creditNotes.filter(n => n.status === "executed").length} note{creditNotes.filter(n => n.status === "executed").length !== 1 ? "s" : ""}</div>
           </div>
           <div className="telemetry-strip">

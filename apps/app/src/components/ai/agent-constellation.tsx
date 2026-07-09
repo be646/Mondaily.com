@@ -69,7 +69,7 @@ function RunAgentButton({ agentId }: { agentId: string }) {
         {running ? "Running…" : "Run now"}
       </button>
       {result && <span className="text-[10.5px]" style={{ color: "var(--text-secondary)" }}>{result}</span>}
-      {error && <span className="text-[10.5px] text-rose-500">{error}</span>}
+      {error && <span className="text-[10.5px] text-[#9c6b72]">{error}</span>}
     </div>
   );
 }
@@ -87,8 +87,8 @@ function RunAgentButton({ agentId }: { agentId: string }) {
 const STATE_RING: Record<ConstellationState, string> = {
   active: "border-stone-500",
   monitoring: "border-[var(--accent)]",
-  needs_approval: "border-amber-500",
-  issue: "border-rose-500",
+  needs_approval: "border-[#97824f]",
+  issue: "border-[#9c6b72]",
   disabled: "border-dashed border-stone-300/40",
   not_configured: "border-dashed border-stone-300/40",
 };

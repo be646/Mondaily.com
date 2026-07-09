@@ -198,7 +198,7 @@ export function IntegrationsSettings() {
                   <p className="mt-1 text-xs text-[var(--text-muted)]">{hook.events.slice(0, 3).join(", ")}{hook.events.length > 3 ? ` +${hook.events.length - 3}` : ""}</p>
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
-                  <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] font-medium text-emerald-400">{hook.status ?? "Active"}</span>
+                  <span className="rounded-full bg-[#5f8169]/10 px-2 py-1 text-[10px] font-medium text-[#5f8169]">{hook.status ?? "Active"}</span>
                   <button onClick={() => deleteWebhook.mutate(hook.id)} className="text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors"><Trash2 size={13} /></button>
                 </div>
               </div>
@@ -259,7 +259,7 @@ export function IntegrationsSettings() {
         <ModalShell title="Create API key" close={() => setKeyOpen(false)}>
           {createdKey ? (
             <div className="space-y-4">
-              <div className="rounded-sm border border-amber-500/20 bg-amber-500/[.05] p-3 text-xs text-amber-300">
+              <div className="rounded-sm border border-[#97824f]/20 bg-[#97824f]/[.05] p-3 text-xs text-[#97824f]">
                 This key is shown once. Store it securely — you won't be able to see it again.
               </div>
               <div>
@@ -305,7 +305,7 @@ export function IntegrationsSettings() {
                   <label key={ev} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-[var(--surface-hover)] transition-colors">
                     <input type="checkbox" checked={webhook.events.includes(ev)}
                       onChange={e => setWebhook({ ...webhook, events: e.target.checked ? [...webhook.events, ev] : webhook.events.filter(x => x !== ev) })}
-                      className="accent-red-500" />
+                      className="accent-[#9c6b72]" />
                     <span className="text-[var(--text-faint)]">{ev}</span>
                   </label>
                 ))}

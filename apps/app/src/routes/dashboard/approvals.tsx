@@ -62,8 +62,8 @@ function ApprovalTrail({ approvals }: { approvals?: ApprovalEntry[] }) {
             <span className="text-[var(--text-faint)]">{entry.user_id.slice(0, 8)}</span>
             {" "}
             <span className={
-              entry.action === "verified" ? "text-blue-400" :
-              entry.action === "executed" ? "text-emerald-400" :
+              entry.action === "verified" ? "text-[#717784]" :
+              entry.action === "executed" ? "text-[#5f8169]" :
               entry.action === "rejected" ? "text-stone-400" :
               "text-stone-500"
             }>{entry.action}</span>
@@ -107,12 +107,12 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {cn.status === "pending_review" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 text-[10px] font-medium text-amber-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#97824f]/10 border border-[#97824f]/25 px-2.5 py-0.5 text-[10px] font-medium text-[#97824f]">
               <Clock size={9}/> Needs Review
             </span>
           )}
           {cn.status === "verified" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-400/10 border border-blue-400/20 px-2.5 py-0.5 text-[10px] font-medium text-blue-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-[#717784]/10 border border-[#717784]/25 px-2.5 py-0.5 text-[10px] font-medium text-[#717784]">
               <CheckCircle2 size={9}/> Verified
             </span>
           )}
@@ -277,18 +277,18 @@ export function ApprovalsPage() {
         {/* Summary row */}
         <div className="telemetry-strip mb-4">
           <div>
-            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-amber-400"/><span className="text-[11px] text-[var(--text-muted)]">Needs review</span></div>
-            <div className="text-[17px] font-semibold text-amber-400">{fmt(totalPending, currency)}</div>
+            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-[#97824f]"/><span className="text-[11px] text-[var(--text-muted)]">Needs review</span></div>
+            <div className="text-[17px] font-semibold text-[#97824f]">{fmt(totalPending, currency)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{pending.length} note{pending.length !== 1 ? "s" : ""}</div>
           </div>
           <div>
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-blue-400"/><span className="text-[11px] text-[var(--text-muted)]">Verified, not executed</span></div>
-            <div className="text-[17px] font-semibold text-blue-400">{fmt(totalVerified, currency)}</div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#717784]"/><span className="text-[11px] text-[var(--text-muted)]">Verified, not executed</span></div>
+            <div className="text-[17px] font-semibold text-[#717784]">{fmt(totalVerified, currency)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{verified.length} note{verified.length !== 1 ? "s" : ""}</div>
           </div>
           <div>
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-emerald-400"/><span className="text-[11px] text-[var(--text-muted)]">Executed this period</span></div>
-            <div className="text-[17px] font-semibold text-emerald-400">{fmt(totalExecuted, currency)}</div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#5f8169]"/><span className="text-[11px] text-[var(--text-muted)]">Executed this period</span></div>
+            <div className="text-[17px] font-semibold text-[#5f8169]">{fmt(totalExecuted, currency)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{executed.length} note{executed.length !== 1 ? "s" : ""}</div>
           </div>
         </div>

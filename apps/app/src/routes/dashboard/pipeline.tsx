@@ -17,20 +17,20 @@ const DEFAULT_STAGES = ["Lead", "Qualified", "In Progress", "Proposal", "Negotia
 
 const STAGE_DOT: Record<string, string> = {
   "Lead":        "bg-stone-400",
-  "Qualified":   "bg-blue-400",
+  "Qualified":   "bg-[#717784]",
   "In Progress": "bg-stone-400",
-  "Proposal":    "bg-amber-400",
-  "Negotiation": "bg-orange-400",
-  "Closed Won":  "bg-emerald-400",
+  "Proposal":    "bg-[#97824f]",
+  "Negotiation": "bg-[#a68762]",
+  "Closed Won":  "bg-[#5f8169]",
   "Closed Lost": "bg-stone-400",
 };
 const STAGE_TEXT: Record<string, string> = {
   "Lead":        "text-stone-300",
-  "Qualified":   "text-blue-300",
+  "Qualified":   "text-[#717784]",
   "In Progress": "text-stone-300",
-  "Proposal":    "text-amber-300",
-  "Negotiation": "text-orange-300",
-  "Closed Won":  "text-emerald-300",
+  "Proposal":    "text-[#97824f]",
+  "Negotiation": "text-[#a68762]",
+  "Closed Won":  "text-[#5f8169]",
   "Closed Lost": "text-stone-300",
 };
 
@@ -241,13 +241,13 @@ function DealCard({ deal, members, stages, onMove, onPatch }: {
 
       {/* Value row */}
       <div className="flex items-center gap-1 mb-2">
-        <DollarSign size={10} className="text-emerald-500 shrink-0"/>
+        <DollarSign size={10} className="text-[#5f8169] shrink-0"/>
         <CardField
           value={value !== null ? String(deal.data.deal_value) : ""}
           onSave={v => onPatch({ deal_value: v === "" ? null : v })}
           placeholder="Value…"
           numeric
-          className="flex-1 text-emerald-400 font-semibold"
+          className="flex-1 text-[#5f8169] font-semibold"
         />
       </div>
 
@@ -364,7 +364,7 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
             className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50"
           >
             {saving ? "Creating…" : "Create deal"}
-            <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-red-200/70">⌘↵</kbd>
+            <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-[#9c6b72]/70">⌘↵</kbd>
           </button>
         </div>
       </div>
@@ -455,7 +455,7 @@ export function PipelinePage() {
           <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)] select-none">Pipeline</span>
           <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
             {deals.length} deal{deals.length !== 1 ? "s" : ""}
-            {wonValue > 0 && <> · <span className="text-emerald-500">{fmtDisplay(wonValue)} won</span></>}
+            {wonValue > 0 && <> · <span className="text-[#5f8169]">{fmtDisplay(wonValue)} won</span></>}
             {totalValue > 0 && <> · <span className="text-[var(--text-muted)]">{fmtDisplay(totalValue)} pipeline</span></>}
           </p>
         </div>
@@ -540,7 +540,7 @@ export function PipelinePage() {
                 placeholder="Stage name…"
                 className="flex-1 bg-transparent text-[11px] text-[var(--text-primary)] placeholder-stone-600 outline-none"
               />
-              <button onClick={commitNewStage} className="text-[var(--text-muted)] hover:text-emerald-400 transition-colors"><Check size={12}/></button>
+              <button onClick={commitNewStage} className="text-[var(--text-muted)] hover:text-[#5f8169] transition-colors"><Check size={12}/></button>
               <button onClick={() => { setAddingStage(false); setNewStageName(""); }} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors"><X size={12}/></button>
             </div>
             <div className="flex-1 flex items-center justify-center min-h-[80px]">

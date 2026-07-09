@@ -29,7 +29,7 @@ const LABEL_COLORS: Record<string, string> = {
   "Help Needed": "text-[#717784] bg-[#717784]/10 border-[#717784]/25",
   "Blocked":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Waiting":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
-  "Bug":         "text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-400/10 border-rose-200 dark:border-rose-400/30",
+  "Bug":         "text-[#9c6b72] dark:text-[#9c6b72] bg-[#9c6b72]/10 dark:bg-[#9c6b72]/10 border-[#9c6b72]/25 dark:border-[#9c6b72]/30",
   "Feature":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Research":    "text-[var(--accent)] dark:text-[var(--accent)] bg-[var(--accent)] dark:bg-[var(--accent)]/10 border-[var(--accent)] dark:border-[var(--accent)]/30",
 };

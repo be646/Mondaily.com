@@ -539,7 +539,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                     <div className="truncate text-[12px] font-medium text-[#18181b] dark:text-[var(--text-primary)]">{workspaceName}</div>
                     <div className="text-[10px] text-stone-500 dark:text-stone-600">{tierLabel}</div>
                   </div>
-                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0"/>
+                  <div className="h-1.5 w-1.5 rounded-full bg-[#5f8169] shrink-0"/>
                 </div>
                 {/* Switch between the workspaces this user belongs to */}
                 {myWorkspaces.filter(w => w.workspace_id !== activeWorkspaceId).length > 0 && (
@@ -564,7 +564,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                   <Settings size={12}/> Workspace settings
                 </Link>
                 <div className="mx-2 my-1 border-t border-stone-100 dark:border-[var(--border-soft)]"/>
-                <button onClick={handleSignOut} className="dropdown-item text-rose-600 hover:text-rose-700 dark:text-red-400 dark:hover:text-red-300">
+                <button onClick={handleSignOut} className="dropdown-item text-[#9c6b72] hover:text-[#9c6b72] dark:text-[#9c6b72] dark:hover:text-[#9c6b72]">
                   <LogOut size={12}/> Sign out
                 </button>
               </div>
@@ -704,7 +704,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               placeholder="e.g. Acme Corp, Personal…"
               className="key-input w-full mb-2"
             />
-            {wsError && <p className="mb-3 text-[11px] text-rose-400">{wsError}</p>}
+            {wsError && <p className="mb-3 text-[11px] text-[#9c6b72]">{wsError}</p>}
             <div className="flex gap-2">
               <button onClick={() => { setNewWorkspaceOpen(false); setNewWsName(""); }}
                 className="flex-1 rounded-sm border border-stone-200 px-4 py-2 text-xs text-stone-500 hover:bg-stone-100 dark:border-[var(--border-soft)] dark:text-stone-400 dark:hover:bg-[var(--surface-hover)] transition-colors">

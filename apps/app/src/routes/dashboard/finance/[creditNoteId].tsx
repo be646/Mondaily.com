@@ -29,9 +29,9 @@ interface CreditNote {
 
 const STATUS_CONFIG: Record<CreditStatus, { label: string; color: string; dot: string; icon: React.ElementType }> = {
   draft:            { label: "Draft",            color: "text-stone-400",   dot: "bg-stone-400",   icon: ReceiptText   },
-  pending_review:   { label: "Pending Review",   color: "text-amber-400",  dot: "bg-amber-400",  icon: Clock         },
-  manager_approved: { label: "Approved",         color: "text-blue-400",   dot: "bg-blue-400",   icon: CheckCircle2  },
-  executed:         { label: "Executed",         color: "text-emerald-400",dot: "bg-emerald-400",icon: CheckCircle2  },
+  pending_review:   { label: "Pending Review",   color: "text-[#97824f]",  dot: "bg-[#97824f]",  icon: Clock         },
+  manager_approved: { label: "Approved",         color: "text-[#717784]",   dot: "bg-[#717784]",   icon: CheckCircle2  },
+  executed:         { label: "Executed",         color: "text-[#5f8169]",dot: "bg-[#5f8169]",icon: CheckCircle2  },
   void:             { label: "Void",             color: "text-stone-600",   dot: "bg-stone-600",   icon: XCircle       },
 };
 
@@ -44,9 +44,9 @@ const REASON_LABELS: Record<CreditReason, string> = {
 
 // State machine — which transitions are available from a given status
 const TRANSITIONS: Record<CreditStatus, { to: CreditStatus; label: string; style: string }[]> = {
-  draft:            [{ to: "pending_review", label: "Submit for review",  style: "text-amber-300 bg-amber-400/10 border-amber-400/20 hover:bg-amber-400/20" }, { to: "void", label: "Void", style: "text-[var(--text-muted)] bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" }],
-  pending_review:   [{ to: "manager_approved", label: "Approve",         style: "text-blue-300 bg-blue-400/10 border-blue-400/20 hover:bg-blue-400/20" },   { to: "void", label: "Void", style: "text-[var(--text-muted)] bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" }],
-  manager_approved: [{ to: "executed", label: "Execute credit",          style: "text-emerald-300 bg-emerald-400/10 border-emerald-400/20 hover:bg-emerald-400/20" }, { to: "void", label: "Void", style: "text-[var(--text-muted)] bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" }],
+  draft:            [{ to: "pending_review", label: "Submit for review",  style: "text-[#97824f] bg-[#97824f]/10 border-[#97824f]/25 hover:bg-[#97824f]/20" }, { to: "void", label: "Void", style: "text-[var(--text-muted)] bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" }],
+  pending_review:   [{ to: "manager_approved", label: "Approve",         style: "text-[#717784] bg-[#717784]/10 border-[#717784]/25 hover:bg-[#717784]/20" },   { to: "void", label: "Void", style: "text-[var(--text-muted)] bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" }],
+  manager_approved: [{ to: "executed", label: "Execute credit",          style: "text-[#5f8169] bg-[#5f8169]/10 border-[#5f8169]/25 hover:bg-[#5f8169]/20" }, { to: "void", label: "Void", style: "text-[var(--text-muted)] bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" }],
   executed:         [],
   void:             [],
 };
@@ -220,7 +220,7 @@ export function CreditNoteDetailPage() {
           )}
           {cn.status === "executed" && (
             <div className="p-4">
-              <div className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/[.06] px-3 py-2.5 text-[11px] text-emerald-400">
+              <div className="flex items-center gap-2 rounded-lg border border-[#5f8169]/25 bg-[#5f8169]/[.06] px-3 py-2.5 text-[11px] text-[#5f8169]">
                 <CheckCircle2 size={13} className="shrink-0"/><span>This credit note has been executed and is final.</span>
               </div>
             </div>

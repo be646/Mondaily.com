@@ -9,14 +9,14 @@ type ColType = "Text" | "Number" | "Email" | "URL" | "Date" | "Status" | "Curren
 
 const TYPE_COLORS: Record<ColType, string> = {
   Text:     "bg-stone-700/50 text-stone-300 border-stone-600/40",
-  Number:   "bg-blue-900/40 text-blue-300 border-blue-500/30",
+  Number:   "bg-[#717784]/10 text-[#717784] border-[#717784]/25",
   Email:    "bg-stone-900/40 text-stone-300 border-stone-500/30",
   URL:      "bg-[var(--accent)]/40 text-[var(--accent)] border-[var(--accent)]/30",
-  Date:     "bg-orange-900/40 text-orange-300 border-orange-500/30",
-  Status:   "bg-yellow-900/40 text-yellow-300 border-yellow-500/30",
-  Currency: "bg-emerald-900/40 text-emerald-300 border-emerald-500/30",
-  Phone:    "bg-teal-900/40 text-teal-300 border-teal-500/30",
-  Boolean:  "bg-pink-900/40 text-pink-300 border-pink-500/30",
+  Date:     "bg-[#97824f]/40 text-[#97824f] border-[#97824f]/30",
+  Status:   "bg-[#97824f]/10 text-[#97824f] border-[#97824f]/25",
+  Currency: "bg-[#5f8169]/10 text-[#5f8169] border-[#5f8169]/25",
+  Phone:    "bg-[#717784]/40 text-[#717784] border-[#717784]/30",
+  Boolean:  "bg-[#717784]/10 text-[#717784] border-[#717784]/25",
 };
 const ALL_TYPES: ColType[] = ["Text","Number","Email","URL","Date","Status","Currency","Phone","Boolean"];
 
@@ -276,7 +276,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
   // ── Importing ────────────────────────────────────────────────────────────────
   if (phase === "importing") return (
     <div className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-4">
-      <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-stone-500/30 border-t-red-500"/>
+      <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-stone-500/30 border-t-[#9c6b72]"/>
       <div>
         <p className="text-xs font-medium text-[var(--text-primary)]">Importing {rows.length} rows…</p>
         <p className="text-[10px] text-stone-600">Creating records in {objectType}</p>
@@ -286,14 +286,14 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
 
   // ── Done ─────────────────────────────────────────────────────────────────────
   if (phase === "done" && result) return (
-    <div className={`flex items-start gap-3 rounded-sm border px-4 py-3 ${result.errors.length > 0 ? "border-yellow-500/20 bg-yellow-500/[.04]" : "border-emerald-500/20 bg-emerald-500/[.04]"}`}>
-      <CheckCircle2 size={16} className={`mt-0.5 shrink-0 ${result.errors.length > 0 ? "text-yellow-400" : "text-emerald-400"}`}/>
+    <div className={`flex items-start gap-3 rounded-sm border px-4 py-3 ${result.errors.length > 0 ? "border-[#97824f]/25 bg-[#97824f]/[.04]" : "border-[#5f8169]/25 bg-[#5f8169]/[.04]"}`}>
+      <CheckCircle2 size={16} className={`mt-0.5 shrink-0 ${result.errors.length > 0 ? "text-[#97824f]" : "text-[#5f8169]"}`}/>
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold text-[var(--text-primary)]">
           {result.created} record{result.created !== 1 ? "s" : ""} imported successfully
         </p>
         {result.errors.length > 0 && (
-          <p className="text-[10px] text-yellow-400 mt-0.5">
+          <p className="text-[10px] text-[#97824f] mt-0.5">
             {result.errors.length} row{result.errors.length !== 1 ? "s" : ""} failed · {result.errors[0]?.error}
           </p>
         )}

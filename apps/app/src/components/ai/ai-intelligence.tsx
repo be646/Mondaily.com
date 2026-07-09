@@ -63,10 +63,10 @@ export function AIHealthScore({ score, label = "AI health score", updatedAt }: {
 export function AIHealthScoreCompact({ score, label = "Health" }: { score?: number | null; label?: string }) {
   if (score == null) return null;
   const colors = score >= 70
-    ? { text: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" }
+    ? { text: "text-[#5f8169]", bg: "bg-[#5f8169]/10 border-[#5f8169]/20" }
     : score >= 40
-    ? { text: "text-amber-400", bg: "bg-amber-500/10 border-amber-500/20" }
-    : { text: "text-rose-400", bg: "bg-rose-500/10 border-rose-500/20" };
+    ? { text: "text-[#97824f]", bg: "bg-[#97824f]/10 border-[#97824f]/20" }
+    : { text: "text-[#9c6b72]", bg: "bg-[#9c6b72]/10 border-[#9c6b72]/20" };
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${colors.bg} ${colors.text}`} title={`${label}: ${score}/100`}>
       <Activity size={9}/>{score}

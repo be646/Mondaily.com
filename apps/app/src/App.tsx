@@ -60,7 +60,8 @@ import { ApprovalsPage } from "./routes/dashboard/approvals";
 import { DecisionsPage } from "./routes/dashboard/decisions";
 const DiscoveryPage = lazy(() => import("./routes/dashboard/discovery").then(m => ({ default: m.DiscoveryPage })));
 const PlatformSupportPage = lazy(() => import("./routes/dashboard/platform-support").then(m => ({ default: m.PlatformSupportPage })));
-import { FinanceReportsPage } from "./routes/dashboard/finance/reports";
+// Lazy: the ONLY recharts consumer — keeps the ~400KB charting lib out of the main chunk.
+const FinanceReportsPage = lazy(() => import("./routes/dashboard/finance/reports").then(m => ({ default: m.FinanceReportsPage })));
 import { QuotesPage } from "./routes/dashboard/finance/quotes";
 import { ExpensesPage } from "./routes/dashboard/finance/expenses";
 

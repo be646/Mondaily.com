@@ -111,8 +111,8 @@ function BrokenWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
       size={widget.size} className={widget.size === "large" ? "lg:col-span-2" : ""}
       onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
     >
-      <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-lg border border-amber-500/10 bg-[#97824f]/[.05]">
-        <AlertTriangle size={22} className="text-amber-500/60" />
+      <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-lg border border-[#97824f]/10 bg-[#97824f]/[.05]">
+        <AlertTriangle size={22} className="text-[#97824f]/60" />
         <p className="text-xs text-[var(--text-faint)] text-center px-4">This widget is broken or from an older format.</p>
         <button
           onClick={onRemove}
@@ -240,7 +240,7 @@ function ReportWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
         <div className="flex h-48 items-center justify-center"><Loader2 size={16} className="animate-spin text-[var(--text-muted)]"/></div>
       ) : runQ.isError ? (
         <div className="flex h-48 flex-col items-center justify-center gap-2 text-center px-4">
-          <AlertTriangle size={22} className="text-amber-500/60"/>
+          <AlertTriangle size={22} className="text-[#97824f]/60"/>
           <p className="text-xs text-[var(--text-faint)]">Report couldn't be loaded.</p>
           <button onClick={onRemove} className="mt-1 flex items-center gap-1.5 rounded-md bg-stone-600/90 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
             <Trash2 size={11}/> Remove widget
@@ -348,9 +348,9 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
 }) {
   const [tab, setTab] = useState<"live"|"report"|"custom">("live");
   const TABS = [
-    { id: "live"   as const, label: "Live Object",  icon: <Zap size={11}/>,         accent: "border-emerald-500" },
+    { id: "live"   as const, label: "Live Object",  icon: <Zap size={11}/>,         accent: "border-[#5f8169]" },
     { id: "report" as const, label: "Saved Report", icon: <FileBarChart size={11}/>, accent: "border-stone-500"     },
-    { id: "custom" as const, label: "Custom Chart", icon: <Settings2 size={11}/>,    accent: "border-blue-500"    },
+    { id: "custom" as const, label: "Custom Chart", icon: <Settings2 size={11}/>,    accent: "border-[#717784]"    },
   ];
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">

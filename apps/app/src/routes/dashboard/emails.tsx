@@ -139,7 +139,7 @@ function ReplyComposer({ threadId }: { threadId: string }) {
           <button type="button" onClick={() => reply.mutate()} disabled={reply.isPending || editor.isEmpty} className="btn-primary ml-auto h-8 px-3 text-xs"><Send size={13} /> {reply.isPending ? "Sending..." : "Send reply"}</button>
         </div>
       </div>
-      {reply.isError ? <p className="mt-2 text-xs text-rose-500 dark:text-rose-400">{reply.error.message}</p> : null}
+      {reply.isError ? <p className="mt-2 text-xs text-[#9c6b72] dark:text-[#9c6b72]">{reply.error.message}</p> : null}
     </div>
   );
 }
@@ -210,12 +210,12 @@ function SentTracker() {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   {/* Open indicator */}
-                  <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium border ${opened ? "bg-[#5f8169]/10 text-[#5f8169] border-emerald-500/20" : "border-transparent"}`} style={!opened ? { background: "var(--surface-hover)", color: "var(--text-faint)" } : undefined}>
+                  <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium border ${opened ? "bg-[#5f8169]/10 text-[#5f8169] border-[#5f8169]/20" : "border-transparent"}`} style={!opened ? { background: "var(--surface-hover)", color: "var(--text-faint)" } : undefined}>
                     <Eye size={11}/>
                     <span>{email.open_count > 0 ? `Opened ${email.open_count}×` : "Not opened"}</span>
                   </div>
                   {/* Click indicator */}
-                  <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium border ${clicked ? "bg-[#717784]/10 text-[#717784] border-blue-500/20" : "border-transparent"}`} style={!clicked ? { background: "var(--surface-hover)", color: "var(--text-faint)" } : undefined}>
+                  <div className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium border ${clicked ? "bg-[#717784]/10 text-[#717784] border-[#717784]/20" : "border-transparent"}`} style={!clicked ? { background: "var(--surface-hover)", color: "var(--text-faint)" } : undefined}>
                     <MousePointerClick size={11}/>
                     <span>{email.click_count > 0 ? `${email.click_count} click${email.click_count !== 1 ? "s" : ""}` : "No clicks"}</span>
                   </div>

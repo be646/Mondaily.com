@@ -93,7 +93,7 @@ function GeneralSection({
             <ImagePlus size={13} /> {logoBusy ? "Saving…" : (logoPreview || organization?.imageUrl) ? "Change logo" : "Upload logo"}
           </button>
           <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">Square PNG or JPG, at least 256×256px, under 2 MB. Saves instantly.</p>
-          {logoError && <p className="mt-1 text-[11px] text-rose-400">{logoError}</p>}
+          {logoError && <p className="mt-1 text-[11px] text-[#9c6b72]">{logoError}</p>}
         </div>
         <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={e => onUploadLogo(e.target.files?.[0])} />
       </div>
@@ -325,7 +325,7 @@ function ProfileSection({ initial }: { initial: WorkspaceProfile }) {
           className="rounded-lg bg-stone-950 px-4 py-2 text-[13px] font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-black">
           {save.isPending ? "Saving…" : "Save profile"}
         </button>
-        {saved && <span className="flex items-center gap-1.5 text-[12px] text-emerald-500"><Check size={13} /> Saved</span>}
+        {saved && <span className="flex items-center gap-1.5 text-[12px] text-[#5f8169]"><Check size={13} /> Saved</span>}
       </div>
 
       {/* Live preview — generated from the CURRENT edits (before save), so admins see the effect. */}
@@ -434,7 +434,7 @@ export function WorkspaceSettings() {
             onClick={() => setSection(item.key)}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] mb-0.5 transition-colors ${
               section === item.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:bg-[var(--surface-hover)]"
-            } ${item.danger ? (section === item.key ? "text-[var(--text-faint)]" : "text-red-500 hover:text-[var(--text-faint)]") : ""}`}
+            } ${item.danger ? (section === item.key ? "text-[var(--text-faint)]" : "text-[#9c6b72] hover:text-[var(--text-faint)]") : ""}`}
           >
             <item.icon size={13} />
             {item.label}

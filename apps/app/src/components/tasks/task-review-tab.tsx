@@ -15,7 +15,7 @@ interface TaskReview {
 type Screen = "idle" | "send" | "action" | "reassign";
 
 function Avatar({ name, size = 7 }: { name: string; size?: number }) {
-  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-blue-500/20 text-blue-600 dark:text-blue-400","bg-green-500/20 text-green-600 dark:text-green-400","bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-orange-500/20 text-orange-600 dark:text-orange-400"];
+  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#717784]/20 text-[#717784]","bg-[#5f8169]/20 text-[#5f8169]","bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#97824f]/20 text-[#97824f]"];
   const color = colors[name.charCodeAt(0) % colors.length];
   return <div className={`h-${size} w-${size} rounded-full ${color} flex items-center justify-center text-xs font-semibold shrink-0`}>{name.charAt(0).toUpperCase()}</div>;
 }
@@ -25,14 +25,14 @@ function RoundBadge({ round }: { round: number }) {
 }
 
 function ReviewHistoryItem({ review }: { review: TaskReview }) {
-  const actionColor = review.action === "approved" ? "#10b981" : review.action === "changes_requested" ? "#d97706" : "var(--text-muted)";
+  const actionColor = review.action === "approved" ? "#5f8169" : review.action === "changes_requested" ? "#97824f" : "var(--text-muted)";
   const actionLabel = review.action === "approved" ? "Approved" : review.action === "changes_requested" ? "Changes Requested" : review.action === "reassigned" ? "Reassigned" : "Pending";
 
   return (
     <div className="surface-card space-y-3 rounded-sm p-4">
       <div className="flex items-center justify-between">
         <RoundBadge round={review.round}/>
-        <span className="text-xs font-medium" style={{ color: review.status === "pending" ? "#3b82f6" : actionColor }}>
+        <span className="text-xs font-medium" style={{ color: review.status === "pending" ? "#717784" : actionColor }}>
           {review.status === "pending" ? "Pending" : actionLabel}
         </span>
       </div>
@@ -61,8 +61,8 @@ function ReviewHistoryItem({ review }: { review: TaskReview }) {
       </div>
 
       {review.action_note && (
-        <div className="rounded-lg px-3 py-2 border" style={review.action === "approved" ? { background: "rgba(16,185,129,0.06)", borderColor: "rgba(16,185,129,0.2)" } : { background: "rgba(217,119,6,0.06)", borderColor: "rgba(217,119,6,0.2)" }}>
-          <p className="text-xs" style={{ color: review.action === "approved" ? "#10b981" : "#d97706" }}>{review.action_note}</p>
+        <div className="rounded-lg px-3 py-2 border" style={review.action === "approved" ? { background: "rgba(95,129,105,0.06)", borderColor: "rgba(95,129,105,0.2)" } : { background: "rgba(151,130,79,0.06)", borderColor: "rgba(151,130,79,0.2)" }}>
+          <p className="text-xs" style={{ color: review.action === "approved" ? "#5f8169" : "#97824f" }}>{review.action_note}</p>
         </div>
       )}
     </div>
@@ -148,7 +148,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
                 style={selectedReviewer?.user_id === m.user_id ? { borderColor: "var(--border-strong)", background: "var(--surface-selected)" } : { borderColor: "var(--border-soft)" }}>
                 <Avatar name={m.name || m.email}/>
                 <span className="flex-1 text-sm text-left" style={{ color: "var(--text-secondary)" }}>{m.name || m.email}</span>
-                {selectedReviewer?.user_id === m.user_id && <CheckCircle size={14} className="text-emerald-500 dark:text-emerald-400 shrink-0"/>}
+                {selectedReviewer?.user_id === m.user_id && <CheckCircle size={14} className="text-[#5f8169] shrink-0"/>}
               </button>
             ))}
           </div>
@@ -188,7 +188,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
         <div className="grid grid-cols-2 gap-2">
           <button onClick={() => takeAction.mutate("approved")} disabled={takeAction.isPending}
             className="flex items-center justify-center gap-2 h-10 rounded-sm text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 transition-colors"
-            style={{ background: "#10b981" }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#059669"; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#10b981"; }}>
+            style={{ background: "#5f8169" }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#54735d"; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "#5f8169"; }}>
             <CheckCircle size={15}/> Approve
           </button>
           <button onClick={() => actionNote.trim() && takeAction.mutate("changes_requested")} disabled={!actionNote.trim() || takeAction.isPending}
@@ -222,7 +222,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
                 style={newReviewer?.user_id === m.user_id ? { borderColor: "var(--border-strong)", background: "var(--surface-selected)" } : { borderColor: "var(--border-soft)" }}>
                 <Avatar name={m.name || m.email}/>
                 <span className="flex-1 text-sm text-left" style={{ color: "var(--text-secondary)" }}>{m.name || m.email}</span>
-                {newReviewer?.user_id === m.user_id && <CheckCircle size={14} className="text-emerald-500 dark:text-emerald-400"/>}
+                {newReviewer?.user_id === m.user_id && <CheckCircle size={14} className="text-[#5f8169]"/>}
               </button>
             ))}
           </div>
@@ -252,7 +252,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
         <div className="surface-card space-y-3 rounded-sm p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse"/>
+              <div className="h-2 w-2 rounded-full bg-[#717784] animate-pulse"/>
               <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Pending Review</span>
             </div>
             <RoundBadge round={pendingReview.round}/>
@@ -292,12 +292,12 @@ export function TaskReviewTab({ task, members, onUpdate }: {
 
       {/* Review result */}
       {task.review_result && !pendingReview && (
-        <div className="rounded-sm border p-4" style={task.review_result === "approved" ? { borderColor: "rgba(16,185,129,0.2)", background: "rgba(16,185,129,0.05)" } : { borderColor: "rgba(217,119,6,0.2)", background: "rgba(217,119,6,0.05)" }}>
+        <div className="rounded-sm border p-4" style={task.review_result === "approved" ? { borderColor: "rgba(95,129,105,0.2)", background: "rgba(95,129,105,0.05)" } : { borderColor: "rgba(151,130,79,0.2)", background: "rgba(151,130,79,0.05)" }}>
           <div className="flex items-center gap-2 mb-1">
             {task.review_result === "approved"
-              ? <CheckCircle size={15} className="text-emerald-500 dark:text-emerald-400"/>
-              : <AlertCircle size={15} className="text-amber-500 dark:text-amber-400"/>}
-            <span className="text-sm font-medium" style={{ color: task.review_result === "approved" ? "#10b981" : "#d97706" }}>
+              ? <CheckCircle size={15} className="text-[#5f8169]"/>
+              : <AlertCircle size={15} className="text-[#97824f]"/>}
+            <span className="text-sm font-medium" style={{ color: task.review_result === "approved" ? "#5f8169" : "#97824f" }}>
               {task.review_result === "approved" ? "Approved" : "Changes Requested"}
             </span>
           </div>

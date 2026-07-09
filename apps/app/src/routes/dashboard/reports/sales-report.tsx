@@ -161,7 +161,7 @@ function DeltaBadge({ delta }: { delta: number | null | undefined }) {
   if (delta == null) return null;
   const up = delta >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border ${up ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-stone-500/10 text-stone-400 border-stone-500/20"}`}>
+    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border ${up ? "bg-[#5f8169]/10 text-[#5f8169] border-[#5f8169]/25" : "bg-stone-500/10 text-stone-400 border-stone-500/20"}`}>
       {up ? <TrendingUp size={9}/> : <TrendingDown size={9}/>}
       {up ? "+" : ""}{delta}%
     </span>
@@ -203,7 +203,7 @@ function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSe
         {delta != null && <DeltaBadge delta={delta}/>}
         {sub && (
           <div className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] print:text-[var(--text-muted)]">
-            {trend === "up"      && <TrendingUp  size={11} className="text-emerald-400"/>}
+            {trend === "up"      && <TrendingUp  size={11} className="text-[#5f8169]"/>}
             {trend === "down"    && <TrendingDown size={11} className="text-stone-400"/>}
             {trend === "neutral" && <Minus size={11}/>}
             {sub}
@@ -331,8 +331,8 @@ interface ForecastAction { action: string; impact: "high"|"medium"|"low"; why: s
 interface ForecastResult { projectedValue: number; confidence: "high"|"medium"|"low"; headline: string; narrative: string; risks: string; actions?: ForecastAction[] }
 
 const CONFIDENCE_STYLE: Record<string, string> = {
-  high:   "border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-  medium: "border-amber-500/30 bg-amber-500/10 text-amber-400",
+  high:   "border-[#5f8169]/25 bg-[#5f8169]/10 text-[#5f8169]",
+  medium: "border-[#97824f]/25 bg-[#97824f]/10 text-[#97824f]",
   low:    "border-stone-500/30 bg-stone-600/10 text-stone-400",
 };
 
@@ -399,7 +399,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
   return (
     <>
       {/* Compact trigger card — never stretches */}
-      <div className="rounded-sm border border-stone-500/20 bg-[var(--surface-card)] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.07) 0%,rgba(59,130,246,0.04) 100%)"}}>
+      <div className="rounded-sm border border-stone-500/20 bg-[var(--surface-card)] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(113,119,132,0.07) 0%,rgba(113,119,132,0.04) 100%)"}}>
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-stone-500/15 ring-1 ring-stone-500/25">
           <LogoMark size={16} className="text-stone-400"/>
         </div>
@@ -437,7 +437,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
       {modalOpen && result && (
         <AIModal title="AI Forecast" onClose={() => setModalOpen(false)} onPrint={printForecast}>
           {/* Projected value hero */}
-          <div className="px-6 py-6 border-b border-[var(--border-soft)]" style={{background:"linear-gradient(135deg,rgba(139,92,246,0.08) 0%,rgba(59,130,246,0.04) 100%)"}}>
+          <div className="px-6 py-6 border-b border-[var(--border-soft)]" style={{background:"linear-gradient(135deg,rgba(113,119,132,0.08) 0%,rgba(113,119,132,0.04) 100%)"}}>
             <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1">Projected {hasValue ? "Revenue" : "Completions"}</p>
             <p className="text-4xl font-bold text-[var(--text-primary)] mb-2">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
             <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence] ?? CONFIDENCE_STYLE.medium}`}>
@@ -456,11 +456,11 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           </div>
           {/* Risk */}
           {result.risks && result.risks !== "None identified" && (
-            <div className="mx-6 my-4 flex items-start gap-3 rounded-sm border border-amber-500/20 bg-amber-500/[.06] px-4 py-3">
-              <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5"/>
+            <div className="mx-6 my-4 flex items-start gap-3 rounded-sm border border-[#97824f]/25 bg-[#97824f]/[.06] px-4 py-3">
+              <AlertCircle size={14} className="text-[#97824f] shrink-0 mt-0.5"/>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-amber-500 mb-0.5">Risk</p>
-                <p className="text-sm text-amber-300/80 leading-relaxed">{result.risks}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#97824f] mb-0.5">Risk</p>
+                <p className="text-sm text-[#97824f]/80 leading-relaxed">{result.risks}</p>
               </div>
             </div>
           )}
@@ -472,8 +472,8 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
                 {result.actions.map((a, i) => (
                   <div key={i} className="flex items-start gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3">
                     <span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
-                      a.impact === "high"   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400" :
-                      a.impact === "medium" ? "border-amber-500/30 bg-amber-500/10 text-amber-400" :
+                      a.impact === "high"   ? "border-[#5f8169]/25 bg-[#5f8169]/10 text-[#5f8169]" :
+                      a.impact === "medium" ? "border-[#97824f]/25 bg-[#97824f]/10 text-[#97824f]" :
                                               "border-stone-500/30 bg-stone-600/10 text-stone-400"
                     }`}>{a.impact}</span>
                     <div className="flex-1 min-w-0">
@@ -504,8 +504,8 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
   const [modalOpen, setModalOpen] = useState(false);
 
   const CATEGORY_META = {
-    performance: { label: "Performance", dot: "bg-emerald-400", border: "border-emerald-500/25", bg: "bg-emerald-500/[.06]", text: "text-emerald-400" },
-    opportunity: { label: "Opportunity", dot: "bg-blue-400",    border: "border-blue-500/25",    bg: "bg-blue-500/[.06]",    text: "text-blue-400"    },
+    performance: { label: "Performance", dot: "bg-[#5f8169]", border: "border-[#5f8169]/25", bg: "bg-[#5f8169]/[.06]", text: "text-[#5f8169]" },
+    opportunity: { label: "Opportunity", dot: "bg-[#717784]",    border: "border-[#717784]/25",    bg: "bg-[#717784]/[.06]",    text: "text-[#717784]"    },
     risk:        { label: "Risk",        dot: "bg-stone-400",     border: "border-stone-500/25",     bg: "bg-stone-500/[.06]",     text: "text-stone-400"     },
     summary:     { label: "Summary",     dot: "bg-stone-400",  border: "border-stone-500/25",  bg: "bg-stone-500/[.06]",  text: "text-stone-400"  },
   } as const;
@@ -537,7 +537,7 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
     if (!insights) return;
     const cards = insights.map(ins => {
       const cat = ins.category as Cat;
-      const colors: Record<Cat, string> = { performance:"#059669", opportunity:"#2563eb", risk:"#dc2626", summary:"var(--section-accent)" };
+      const colors: Record<Cat, string> = { performance:"#5f8169", opportunity:"#717784", risk:"#9c6b72", summary:"var(--section-accent)" };
       const c = colors[cat] ?? colors.summary;
       return `<div style="border:1px solid #e5e7eb;border-radius:10px;padding:16px 18px;break-inside:avoid">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${c};margin-bottom:4px">${ins.category}</div>
@@ -607,7 +607,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
                       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${m.dot}`}/>
                       <span className={`text-[10px] font-semibold uppercase tracking-widest ${m.text}`}>{m.label}</span>
                     </div>
-                    {ins.trend === "up"   && <TrendingUp  size={12} className="text-emerald-400 shrink-0"/>}
+                    {ins.trend === "up"   && <TrendingUp  size={12} className="text-[#5f8169] shrink-0"/>}
                     {ins.trend === "down" && <TrendingDown size={12} className="text-stone-400 shrink-0"/>}
                   </div>
                   <div>
@@ -719,7 +719,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                     <p className="text-[10px] text-[var(--text-muted)] truncate">{d.recipients.join(", ")}</p>
                   </div>
                   {sentMsg && sending === null && d.id === digests[0]?.id && (
-                    <span className="text-[10px] text-emerald-400">{sentMsg}</span>
+                    <span className="text-[10px] text-[#5f8169]">{sentMsg}</span>
                   )}
                   <button
                     onClick={() => sendNow(d.id)}
@@ -1207,10 +1207,10 @@ export function SalesReportPage() {
             <span className="text-[11px] font-medium text-[var(--text-muted)] shrink-0">Date range</span>
             <div className="flex items-center gap-2 ml-2">
               <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                className="h-7 rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] [color-scheme:dark] outline-none focus:border-blue-500/40"/>
+                className="h-7 rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] [color-scheme:dark] outline-none focus:border-[#717784]/40"/>
               <span className="text-xs text-[var(--text-secondary)]">→</span>
               <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                className="h-7 rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] [color-scheme:dark] outline-none focus:border-blue-500/40"/>
+                className="h-7 rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] [color-scheme:dark] outline-none focus:border-[#717784]/40"/>
             </div>
             {customStart && customEnd && (
               <span className="ml-auto text-[11px] text-[var(--text-secondary)]">
@@ -1231,7 +1231,7 @@ export function SalesReportPage() {
             {presets.map(p => {
               const active = JSON.stringify(activeFilters) === JSON.stringify(p.filters);
               return (
-                <span key={p.id} className={`group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] cursor-pointer transition-colors ${active ? "border-blue-500/40 bg-blue-500/10 text-blue-300" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:border-[var(--border-soft)]"}`}
+                <span key={p.id} className={`group flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] cursor-pointer transition-colors ${active ? "border-[#717784]/40 bg-[#717784]/10 text-[#717784]" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:border-[var(--border-soft)]"}`}
                   onClick={() => applyPreset(p)}>
                   {p.name}
                   <button onClick={e => { e.stopPropagation(); deletePreset(p.id); }}
@@ -1255,7 +1255,7 @@ export function SalesReportPage() {
                   onChange={e => setPresetName(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" && presetName.trim()) savePreset(presetName.trim()); if (e.key === "Escape") { setSavingPreset(false); setPresetName(""); } }}
                   placeholder="Preset name…"
-                  className="h-6 rounded-md border border-blue-500/30 bg-[var(--surface-card)] px-2 text-[11px] text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none focus:border-blue-500/50 w-36"
+                  className="h-6 rounded-md border border-[#717784]/25 bg-[var(--surface-card)] px-2 text-[11px] text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none focus:border-[#717784]/50 w-36"
                 />
                 <button onClick={() => { if (presetName.trim()) savePreset(presetName.trim()); }}
                   disabled={!presetName.trim()}
@@ -1270,13 +1270,13 @@ export function SalesReportPage() {
 
         {/* Filter bar */}
         {hasFilters && (
-          <div className={`mb-4 print:hidden rounded-sm border transition-colors ${filtersActive ? "border-blue-500/20 bg-blue-500/[.03]" : "border-[var(--border-soft)] bg-[var(--surface-hover)]"}`}>
+          <div className={`mb-4 print:hidden rounded-sm border transition-colors ${filtersActive ? "border-[#717784]/25 bg-[#717784]/[.03]" : "border-[var(--border-soft)] bg-[var(--surface-hover)]"}`}>
             <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border-soft)]">
               <Filter size={11} className="text-[var(--text-muted)] shrink-0"/>
               <span className="text-[11px] font-medium text-[var(--text-muted)]">Filters</span>
               {filtersActive ? (
                 <>
-                  <span className="rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold px-1.5 py-0.5 ml-0.5">
+                  <span className="rounded-full bg-[#717784]/20 text-[#717784] text-[10px] font-bold px-1.5 py-0.5 ml-0.5">
                     {Object.values(activeFilters).filter(Boolean).length}
                   </span>
                   <button onClick={() => setActiveFilters({})} className="ml-auto text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors">
@@ -1298,7 +1298,7 @@ export function SalesReportPage() {
                       value={activeFilters[col] ?? ""}
                       onChange={v => setActiveFilters(f => ({ ...f, [col]: v }))}
                       ariaLabel={col.replace(/_/g," ")}
-                      className={active ? "border-blue-500/40 bg-blue-500/10 text-blue-200" : ""}
+                      className={active ? "border-[#717784]/40 bg-[#717784]/10 text-[#717784]" : ""}
                       options={[{ value: "", label: "All" }, ...uniqueVals.map(v => ({ value: v, label: v }))]}
                     />
                   </div>
@@ -1315,7 +1315,7 @@ export function SalesReportPage() {
 
         {recordsQ.isLoading ? (
           <div className="flex h-64 items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-stone-500/30 border-t-red-500"/>
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-stone-500/30 border-t-[#9c6b72]"/>
           </div>
         ) : records.length === 0 ? (
           <div className="flex h-64 flex-col items-center justify-center gap-3 text-center">
@@ -1357,7 +1357,7 @@ export function SalesReportPage() {
                 label={hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records"}
                 value={hasValue ? fmtMoney(stats.wonValue || stats.totalValue) : fmtNum(stats.totalCount)}
                 sub={hasStage ? `${stats.wonCount} completed` : `${stats.totalCount} total`}
-                color="border-emerald-500/20 bg-emerald-500/[.06] text-emerald-400"
+                color="border-[#5f8169]/25 bg-[#5f8169]/[.06] text-[#5f8169]"
                 trend="up"
                 delta={pctDelta(hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount, hasValue ? (prevStats.wonValue || prevStats.totalValue) : prevStats.totalCount)}
                 goal={goal}
@@ -1368,7 +1368,7 @@ export function SalesReportPage() {
                 label={hasStage ? "In Progress" : "This Period"}
                 value={hasValue ? fmtMoney(stats.openValue) : fmtNum(stats.openCount || stats.totalCount)}
                 sub={hasStage ? `${stats.openCount} open` : "active records"}
-                color="border-blue-500/20 bg-blue-500/[.06] text-blue-400"
+                color="border-[#717784]/25 bg-[#717784]/[.06] text-[#717784]"
                 trend="neutral"
                 delta={pctDelta(hasValue ? stats.openValue : stats.openCount, hasValue ? prevStats.openValue : prevStats.openCount)}
               />
@@ -1384,14 +1384,14 @@ export function SalesReportPage() {
                 label={hasValue ? `Avg ${valueCol}` : "Avg per bucket"}
                 value={hasValue ? fmtMoney(stats.avgVal) : fmtNum(stats.totalCount ? Math.round(stats.totalCount / Math.max(trendData.length, 1)) : 0)}
                 sub="per record"
-                color="border-amber-500/20 bg-amber-500/[.06] text-amber-400"
+                color="border-[#97824f]/25 bg-[#97824f]/[.06] text-[#97824f]"
                 delta={pctDelta(stats.avgVal, prevStats.avgVal)}
               />
               <KpiCard
                 label="Total Records"
                 value={fmtNum(stats.totalCount)}
                 sub="in this period"
-                color="border-rose-500/20 bg-rose-500/[.06] text-rose-400"
+                color="border-[#9c6b72]/25 bg-[#9c6b72]/[.06] text-[#9c6b72]"
                 delta={pctDelta(stats.totalCount, prevStats.totalCount)}
               />
               <KpiCard
@@ -1494,15 +1494,15 @@ export function SalesReportPage() {
                 : 0;
               const ROW_COLORS = [
                 { bar: "from-stone-500 to-stone-400", badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
-                { bar: "from-blue-500 to-cyan-400",     badge: "bg-blue-500/15 text-blue-300 border-blue-500/20" },
-                { bar: "from-emerald-500 to-teal-400",  badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/20" },
-                { bar: "from-amber-500 to-yellow-400",  badge: "bg-amber-500/15 text-amber-300 border-amber-500/20" },
-                { bar: "from-rose-500 to-pink-400",     badge: "bg-rose-500/15 text-rose-300 border-rose-500/20" },
-                { bar: "from-stone-500 to-blue-400",   badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
-                { bar: "from-teal-500 to-emerald-400",  badge: "bg-teal-500/15 text-teal-300 border-teal-500/20" },
-                { bar: "from-orange-500 to-amber-400",  badge: "bg-orange-500/15 text-orange-300 border-orange-500/20" },
-                { bar: "from-cyan-500 to-sky-400",      badge: "bg-[var(--section-accent)]/15 text-[var(--section-accent)] border-[var(--section-accent)]/20" },
-                { bar: "from-fuchsia-500 to-stone-400",badge: "bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/20" },
+                { bar: "from-[#717784] to-[#7d8a96]",     badge: "bg-[#717784]/15 text-[#717784] border-[#717784]/25" },
+                { bar: "from-[#5f8169] to-[#5f8169]",  badge: "bg-[#5f8169]/15 text-[#5f8169] border-[#5f8169]/25" },
+                { bar: "from-[#97824f] to-[#97824f]",  badge: "bg-[#97824f]/15 text-[#97824f] border-[#97824f]/25" },
+                { bar: "from-[#9c6b72] to-[#9c6b72]",     badge: "bg-[#9c6b72]/15 text-[#9c6b72] border-[#9c6b72]/25" },
+                { bar: "from-stone-500 to-[#717784]",   badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
+                { bar: "from-[#7d8a96] to-[#5f8169]",  badge: "bg-[#7d8a96]/15 text-[#7d8a96] border-[#7d8a96]/25" },
+                { bar: "from-[#8a8071] to-[#97824f]",  badge: "bg-[#8a8071]/15 text-[#8a8071] border-[#8a8071]/25" },
+                { bar: "from-[#7d8a96] to-[#717784]",      badge: "bg-[var(--section-accent)]/15 text-[var(--section-accent)] border-[var(--section-accent)]/20" },
+                { bar: "from-[#717784] to-stone-400",badge: "bg-[#717784]/15 text-[#717784] border-[#717784]/25" },
               ];
               return (
                 <div className="mb-6 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden print:border-[var(--border-soft)] print:bg-white">
@@ -1531,7 +1531,7 @@ export function SalesReportPage() {
                       const won     = hasStage && isWon(stage);
                       const lost    = hasStage && isLost(stage);
                       const color   = ROW_COLORS[i % ROW_COLORS.length]!;
-                      const rankColors = ["text-amber-400","text-stone-400","text-orange-600"];
+                      const rankColors = ["text-[#97824f]","text-stone-400","text-[#8a8071]"];
                       return (
                         <div
                           key={r.id}
@@ -1566,7 +1566,7 @@ export function SalesReportPage() {
                             </div>
                             {/* Stage badge */}
                             {hasStage && (
-                              <span className={`ml-3 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${won ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : lost ? "bg-stone-500/10 text-stone-400 border-stone-500/20" : color.badge} print:bg-transparent print:text-[var(--text-secondary)] print:border-[var(--border-soft)]`}>
+                              <span className={`ml-3 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${won ? "bg-[#5f8169]/10 text-[#5f8169] border-[#5f8169]/25" : lost ? "bg-stone-500/10 text-stone-400 border-stone-500/20" : color.badge} print:bg-transparent print:text-[var(--text-secondary)] print:border-[var(--border-soft)]`}>
                                 {stage}
                               </span>
                             )}

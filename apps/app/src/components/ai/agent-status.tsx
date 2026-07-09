@@ -218,7 +218,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                   <div className="flex items-center gap-1 ml-1">
                     <button
                       onClick={() => sendFeedback(messages[i - 1]?.content ?? "", m.content, 1, i)}
-                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === 1 ? "text-emerald-400" : "text-stone-700 hover:text-emerald-400"}`}
+                      className={`rounded p-0.5 transition-colors ${feedbackGiven[i] === 1 ? "text-[#5f8169]" : "text-stone-700 hover:text-[#5f8169]"}`}
                     >
                       <ThumbsUp size={10}/>
                     </button>
@@ -346,10 +346,10 @@ function ShareModal({ onClose }: { onClose: () => void }) {
         <div className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
           <span className="flex-1 truncate text-[11px] text-stone-500">{url}</span>
           <button onClick={copy} className="shrink-0 text-stone-500 hover:text-[var(--text-primary)] transition-colors">
-            {copied ? <Check size={13} className="text-emerald-400"/> : <Copy size={13}/>}
+            {copied ? <Check size={13} className="text-[#5f8169]"/> : <Copy size={13}/>}
           </button>
         </div>
-        {copied && <p className="mt-2 text-center text-[11px] text-emerald-400">Link copied!</p>}
+        {copied && <p className="mt-2 text-center text-[11px] text-[#5f8169]">Link copied!</p>}
       </div>
     </>
   );

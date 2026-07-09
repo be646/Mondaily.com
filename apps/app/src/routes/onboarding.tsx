@@ -27,7 +27,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
     <input
       {...props}
       className={
-        "w-full rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors " +
+        "w-full rounded-md border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-zinc-400 transition-colors " +
         (props.className ?? "")
       }
     />
@@ -99,7 +99,7 @@ export function OnboardingPage() {
             {[1, 2, 3, 4].map(s => (
               <div
                 key={s}
-                className={`h-1 flex-1 rounded-full transition-all duration-300 ${s <= step ? "bg-indigo-600" : "bg-black/[.06]"}`}
+                className={`h-1 flex-1 rounded-full transition-all duration-300 ${s <= step ? "bg-zinc-900" : "bg-black/[.06]"}`}
               />
             ))}
           </div>
@@ -107,7 +107,7 @@ export function OnboardingPage() {
             {stepLabels.map((label, i) => (
               <span
                 key={label}
-                className={`font-mono text-[10px] transition-colors ${i + 1 === step ? "text-indigo-600" : i + 1 < step ? "text-zinc-400" : "text-zinc-300"}`}
+                className={`font-mono text-[10px] transition-colors ${i + 1 === step ? "text-zinc-900" : i + 1 < step ? "text-zinc-400" : "text-zinc-300"}`}
               >
                 {label}
               </span>
@@ -116,7 +116,7 @@ export function OnboardingPage() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-black/[.08] bg-white p-8">
+        <div className="rounded-md border border-black/[.08] bg-white p-8">
 
           {step === 1 && (
             <div>
@@ -155,7 +155,7 @@ export function OnboardingPage() {
                   onChange={e => setInviteEmail(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleInvite()}
                   placeholder="colleague@company.com"
-                  className="flex-1 rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-indigo-500/40 transition-colors"
+                  className="flex-1 rounded-md border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[13px] text-zinc-900 placeholder-zinc-400 outline-none focus:border-zinc-400 transition-colors"
                 />
                 <FieldSelect
                   value={inviteRole}
@@ -170,7 +170,7 @@ export function OnboardingPage() {
                 />
                 <button
                   onClick={handleInvite}
-                  className="rounded-xl border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[12px] text-zinc-600 hover:bg-zinc-50 transition-colors"
+                  className="rounded-md border border-black/[.08] bg-white px-4 py-2.5 font-mono text-[12px] text-zinc-600 hover:bg-zinc-50 transition-colors"
                 >
                   Add
                 </button>
@@ -179,7 +179,7 @@ export function OnboardingPage() {
               {sentInvites.length > 0 && (
                 <div className="space-y-1.5">
                   {sentInvites.map(inv => (
-                    <div key={inv.email} className="flex items-center justify-between rounded-xl border border-black/[.05] bg-zinc-50 px-4 py-2.5">
+                    <div key={inv.email} className="flex items-center justify-between rounded-md border border-black/[.05] bg-zinc-50 px-4 py-2.5">
                       <span className="font-mono text-[12px] text-zinc-700">{inv.email}</span>
                       <span className="font-mono text-[11px] capitalize text-zinc-400">{inv.role}</span>
                     </div>
@@ -198,9 +198,9 @@ export function OnboardingPage() {
                 {AVAILABLE_MODULES.map(mod => (
                   <label
                     key={mod.id}
-                    className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                    className={`flex cursor-pointer items-start gap-3 rounded-md border p-4 transition-colors ${
                       activeModules.includes(mod.id)
-                        ? "border-indigo-500/30 bg-indigo-500/[.04]"
+                        ? "border-zinc-900/25 bg-zinc-50"
                         : "border-black/[.06] hover:bg-zinc-50"
                     }`}
                   >
@@ -212,7 +212,7 @@ export function OnboardingPage() {
                         if (e.target.checked) setActiveModules(m => [...m, mod.id]);
                         else setActiveModules(m => m.filter(x => x !== mod.id));
                       }}
-                      className="mt-0.5 accent-indigo-600"
+                      className="mt-0.5 accent-zinc-900"
                     />
                     <div>
                       <p className="font-mono text-[12px] font-medium text-zinc-800">{mod.name}</p>
@@ -226,8 +226,8 @@ export function OnboardingPage() {
 
           {step === 4 && (
             <div className="py-4 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/10">
-                <CheckCircle2 size={24} className="text-indigo-500" />
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#5f8169]/10">
+                <CheckCircle2 size={24} className="text-[#5f8169]" />
               </div>
               <h1 className="mb-2 font-sans text-xl font-semibold tracking-tight text-zinc-900">You're all set!</h1>
               <p className="font-mono text-[12px] text-zinc-500">Your workspace is ready. Let's get started.</p>
@@ -258,7 +258,7 @@ export function OnboardingPage() {
             <button
               onClick={handleNext}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-indigo-500 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 rounded-md bg-zinc-900 px-5 py-2.5 font-mono text-[13px] font-medium text-white hover:bg-zinc-700 transition-all disabled:opacity-50"
             >
               {step === 4 ? "Go to dashboard" : "Continue"} <ArrowRight size={13} />
             </button>

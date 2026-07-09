@@ -51,10 +51,10 @@ const OBJECT_COLORS: Record<string, string> = {
 
 const NOTE_COLORS: Record<string, { ring: string; bg: string; dot: string }> = {
   default: { ring: "ring-white/[.07]",     bg: "bg-[var(--surface-hover)]",        dot: "bg-stone-600"   },
-  amber:   { ring: "ring-amber-500/25",    bg: "bg-amber-500/[.04]",    dot: "bg-amber-400"   },
-  red:     { ring: "ring-red-500/25",      bg: "bg-stone-500/[.04]",      dot: "bg-stone-400"     },
-  emerald: { ring: "ring-emerald-500/25",  bg: "bg-emerald-500/[.04]",  dot: "bg-emerald-400" },
-  blue:    { ring: "ring-blue-500/25",     bg: "bg-blue-500/[.04]",     dot: "bg-blue-400"    },
+  amber:   { ring: "ring-[#97824f]/25",    bg: "bg-[#97824f]/[.04]",    dot: "bg-[#97824f]"   },
+  red:     { ring: "ring-[#9c6b72]/25",      bg: "bg-stone-500/[.04]",      dot: "bg-stone-400"     },
+  emerald: { ring: "ring-[#5f8169]/25",  bg: "bg-[#5f8169]/[.04]",  dot: "bg-[#5f8169]" },
+  blue:    { ring: "ring-[#717784]/25",     bg: "bg-[#717784]/[.04]",     dot: "bg-[#717784]"    },
   violet:  { ring: "ring-stone-500/25",   bg: "bg-stone-500/[.04]",   dot: "bg-stone-400"  },
 };
 const COLOR_KEYS = Object.keys(NOTE_COLORS) as (keyof typeof NOTE_COLORS)[];
@@ -171,7 +171,7 @@ function NoteCard({
     >
       {/* AI accent */}
       {isAI && (
-        <div className="absolute inset-y-0 left-0 w-[3px] rounded-l-2xl bg-gradient-to-b from-red-500/60 to-transparent" />
+        <div className="absolute inset-y-0 left-0 w-[3px] rounded-l-2xl bg-gradient-to-b from-[#9c6b72]/60 to-transparent" />
       )}
 
       {/* Top row */}
@@ -706,8 +706,8 @@ export function NotesPage() {
           />
 
           {!linkedRecord && !editing && (
-            <p className="mt-3 flex items-center gap-1.5 text-xs text-amber-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            <p className="mt-3 flex items-center gap-1.5 text-xs text-[#97824f]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#97824f]" />
               Choose a record before saving.
             </p>
           )}

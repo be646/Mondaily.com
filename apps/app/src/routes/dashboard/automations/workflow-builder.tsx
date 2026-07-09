@@ -61,8 +61,8 @@ const ACTIONS = [
 
 const KIND_STYLES: Record<NodeKind, { border: string; bg: string; text: string; icon: string }> = {
   trigger:   { border: "border-stone-500/30",    bg: "bg-stone-500/[.06]",    text: "text-stone-400",    icon: "border-stone-500/30 bg-stone-600/[.08] text-stone-400" },
-  condition: { border: "border-yellow-500/30", bg: "bg-yellow-500/[.05]", text: "text-yellow-400", icon: "border-yellow-500/20 bg-yellow-500/[.08] text-yellow-400" },
-  action:    { border: "border-blue-500/30",   bg: "bg-blue-500/[.05]",   text: "text-blue-400",   icon: "border-blue-500/20 bg-blue-500/[.08] text-blue-400" },
+  condition: { border: "border-[#97824f]/25", bg: "bg-[#97824f]/10", text: "text-[#97824f]", icon: "border-[#97824f]/25 bg-[#97824f]/10 text-[#97824f]" },
+  action:    { border: "border-[#717784]/25",   bg: "bg-[#717784]/10",   text: "text-[#717784]",   icon: "border-[#717784]/25 bg-[#717784]/10 text-[#717784]" },
 };
 
 function kindLabel(k: NodeKind) {
@@ -506,14 +506,14 @@ export function WorkflowBuilderPage() {
           {saved ? "Saved!" : saving ? "Saving…" : "Save"}
         </button>
         {saveError && (
-          <span className="max-w-xs text-[11px] text-amber-400">
+          <span className="max-w-xs text-[11px] text-[#97824f]">
             {saveError} {/upgrade|plan includes/i.test(saveError) && <a href="/settings/billing" className="underline">Upgrade</a>}
           </span>
         )}
 
         <button
           onClick={() => { setStatus(s => s === "active" ? "draft" : "active"); }}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${status === "active" ? "border-yellow-400/40 bg-yellow-500/80 text-[var(--text-primary)]" : "border-stone-500/30 bg-stone-600 text-[var(--text-primary)] hover:bg-stone-500"}`}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${status === "active" ? "border-[#97824f]/40 bg-[#97824f]/80 text-[var(--text-primary)]" : "border-stone-500/30 bg-stone-600 text-[var(--text-primary)] hover:bg-stone-500"}`}
         >
           {status === "active" ? "Pause" : <><Play size={11}/> Activate</>}
         </button>
@@ -540,7 +540,7 @@ export function WorkflowBuilderPage() {
                         <p className="text-xs font-medium text-[var(--text-primary)]">When this happens…</p>
                       </div>
                       {arr.length > 1 && (
-                        <button onClick={() => deleteNode(tn.id)} className="text-[var(--text-secondary)] hover:text-red-400 transition-colors" title="Remove trigger">
+                        <button onClick={() => deleteNode(tn.id)} className="text-[var(--text-secondary)] hover:text-[#9c6b72] transition-colors" title="Remove trigger">
                           <X size={12}/>
                         </button>
                       )}
@@ -625,8 +625,8 @@ export function WorkflowBuilderPage() {
             ) : (
               <div className="flex flex-col gap-2">
                 {runs.map(run => {
-                  const tone = run.status === "executed" ? "text-emerald-400 border-emerald-500/20 bg-emerald-500/[.06]"
-                    : run.status === "queued" ? "text-amber-400 border-amber-500/20 bg-amber-500/[.06]"
+                  const tone = run.status === "executed" ? "text-[#5f8169] border-[#5f8169]/25 bg-[#5f8169]/10"
+                    : run.status === "queued" ? "text-[#97824f] border-[#97824f]/25 bg-[#97824f]/10"
                     : "text-[var(--text-muted)] border-[var(--border-soft)] bg-[var(--surface-hover)]";
                   return (
                     <div key={run.id} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
