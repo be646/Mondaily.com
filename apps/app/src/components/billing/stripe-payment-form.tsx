@@ -39,9 +39,9 @@ function loadStripeJs(): Promise<void> {
 }
 
 export function StripePaymentModal({
-  plan, planLabel, priceLabel, interval, onClose, onSuccess,
+  plan, planLabel, priceLabel, interval, currency = "USD", onClose, onSuccess,
 }: {
-  plan: string; planLabel: string; priceLabel: string; interval: "month" | "year";
+  plan: string; planLabel: string; priceLabel: string; interval: "month" | "year"; currency?: string;
   onClose: () => void; onSuccess: () => void;
 }) {
   const [status, setStatus] = useState<"loading" | "ready" | "submitting" | "error">("loading");
@@ -103,7 +103,7 @@ export function StripePaymentModal({
 
       const sub = await apiClient.post<{ ok?: boolean; requires_action?: boolean; client_secret?: string; subscription_id?: string; error?: string }>(
         "/billing/subscribe",
-        { plan, interval, payment_method_id: paymentMethodId },
+        { plan, interval, currency, payment_method_id: paymentMethodId },
       );
       if (sub.error) { setError(sub.error); setStatus("ready"); return; }
 

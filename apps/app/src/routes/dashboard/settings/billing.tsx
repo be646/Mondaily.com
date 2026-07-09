@@ -5,6 +5,7 @@ import { useHelp } from "../../../components/help/help-panel";
 import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 import { PLANS, PLAN_BY_ID, normalizePlan } from "../../../lib/plans";
+import { BILLING_CURRENCIES, PRICING_SYMBOL, priceInCurrency, billingCurrencyForLocale, showsCurrencySwitcher, type BillingCurrency } from "@mondaily/shared/pricing";
 import { Check } from "lucide-react";
 import { StripePaymentModal } from "../../../components/billing/stripe-payment-form";
 
@@ -122,7 +123,21 @@ export function BillingSettings() {
   const [billingMsg, setBillingMsg] = useState<string | null>(null);
   const [billingBusy, setBillingBusy] = useState<string | null>(null);
   const [interval, setInterval] = useState<"month" | "year">("month");
-  const [payModal, setPayModal] = useState<{ plan: string; label: string; price: string } | null>(null);
+  const [payModal, setPayModal] = useState<{ plan: string; label: string; price: string; currency: BillingCurrency } | null>(null);
+  // Localized billing currency (charged in USD/EUR/GBP). Detected from the browser locale only.
+  const [locale, setLocale] = useState<string | undefined>(undefined);
+  const [billingCur, setBillingCur] = useState<BillingCurrency>("USD");
+  useEffect(() => {
+    const lc = typeof navigator !== "undefined" ? navigator.language : undefined;
+    setLocale(lc);
+    setBillingCur(billingCurrencyForLocale(lc));
+  }, []);
+  const curSym = PRICING_SYMBOL[billingCur] ?? "$";
+  const showCurSwitch = showsCurrencySwitcher(locale);
+  const money = (usd: number | null | undefined) => {
+    const v = priceInCurrency(usd ?? null, billingCur);
+    return v === null ? "Custom" : `${curSym}${v}`;
+  };
   // Refetch EVERY surface that shows tier/credits so the UI settles to one truth immediately after
   // activation: billing (Current plan + trial banner), the wallet, packs (bonus %), the credit
   // ledger, and the sidebar/workspace-access queries that also read the resolved tier.
@@ -191,7 +206,8 @@ export function BillingSettings() {
     setPayModal({
       plan: planId,
       label: target.name,
-      price: interval === "year" && target.priceAnnual != null ? `$${target.priceAnnual}/mo billed yearly` : `$${target.priceMonthly}/mo`,
+      price: interval === "year" && target.priceAnnual != null ? `${money(target.priceAnnual)}/mo billed yearly` : `${money(target.priceMonthly)}/mo`,
+      currency: billingCur,
     });
   }
   const seatPct = Math.min(Math.round((billing.seats_used / billing.seats_limit) * 100), 100);
@@ -256,7 +272,7 @@ export function BillingSettings() {
                 {currentPlan?.name ?? "Scout"}
                 {currentPlan && currentPlan.priceMonthly !== null && (
                   <span className="ml-2 font-mono text-xs font-normal text-[var(--text-muted)]">
-                    {currentPlan.priceMonthly === 0 ? "free" : `$${currentPlan.priceMonthly}/mo`}
+                    {currentPlan.priceMonthly === 0 ? "free" : `${money(currentPlan.priceMonthly)}/mo`}
                   </span>
                 )}
               </p>
@@ -308,17 +324,33 @@ export function BillingSettings() {
       <section className="settings-section">
         <div className="settings-section-header">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">Plans</h2>
-          {/* Monthly / Annual billing toggle */}
-          <div className="inline-flex rounded-full border p-0.5 text-[11px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            {(["month", "year"] as const).map(iv => (
-              <button key={iv} onClick={() => setInterval(iv)}
-                className="rounded-full px-2.5 py-1 font-medium transition-colors"
-                style={interval === iv
-                  ? { background: "var(--surface-selected)", color: "var(--section-accent)" }
-                  : { color: "var(--text-muted)" }}>
-                {iv === "month" ? "Monthly" : <>Annual <span style={{ color: "var(--section-accent)" }}>−20%</span></>}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            {/* Billing-currency switcher — only when the local currency isn't already USD/EUR/GBP */}
+            {showCurSwitch && (
+              <div className="inline-flex rounded-full border p-0.5 text-[11px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+                {BILLING_CURRENCIES.map(cc => (
+                  <button key={cc} onClick={() => setBillingCur(cc)}
+                    className="rounded-full px-2.5 py-1 font-medium transition-colors"
+                    style={billingCur === cc
+                      ? { background: "var(--surface-selected)", color: "var(--section-accent)" }
+                      : { color: "var(--text-muted)" }}>
+                    {PRICING_SYMBOL[cc]} {cc}
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Monthly / Annual billing toggle */}
+            <div className="inline-flex rounded-full border p-0.5 text-[11px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              {(["month", "year"] as const).map(iv => (
+                <button key={iv} onClick={() => setInterval(iv)}
+                  className="rounded-full px-2.5 py-1 font-medium transition-colors"
+                  style={interval === iv
+                    ? { background: "var(--surface-selected)", color: "var(--section-accent)" }
+                    : { color: "var(--text-muted)" }}>
+                  {iv === "month" ? "Monthly" : <>Annual <span style={{ color: "var(--section-accent)" }}>−20%</span></>}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         {billingMsg && (
@@ -341,11 +373,11 @@ export function BillingSettings() {
                 </div>
                 <div className="mt-1.5 text-2xl font-semibold tabular-nums text-[var(--text-primary)]">
                   {plan.priceMonthly === null ? "Custom"
-                    : plan.priceMonthly === 0 ? "$0"
-                    : <>${interval === "year" ? plan.priceAnnual : plan.priceMonthly}<span className="text-sm text-[var(--text-muted)]"> /mo</span></>}
+                    : plan.priceMonthly === 0 ? `${curSym}0`
+                    : <>{money(interval === "year" ? plan.priceAnnual : plan.priceMonthly)}<span className="text-sm text-[var(--text-muted)]"> /mo</span></>}
                 </div>
                 {interval === "year" && plan.priceAnnual !== null && plan.priceAnnual > 0 && (
-                  <p className="mt-0.5 font-mono text-[10px] text-[var(--text-muted)]">${plan.priceAnnual * 12} billed yearly</p>
+                  <p className="mt-0.5 font-mono text-[10px] text-[var(--text-muted)]">{money((plan.priceAnnual ?? 0) * 12)} billed yearly</p>
                 )}
                 <p className="mt-1 text-[11px] text-[var(--text-muted)]">{plan.tagline}</p>
                 <div className="mt-3 space-y-1 text-[11px] text-[var(--text-faint)]">
@@ -594,7 +626,7 @@ export function BillingSettings() {
             </div>
             <div>
               <p className="text-sm text-[var(--text-primary)]">Card ending in {billing.card_last4}</p>
-              <p className="text-xs text-[var(--text-muted)]">Billing currency: USD</p>
+              <p className="text-xs text-[var(--text-muted)]">Billing currency: {billingCur}</p>
             </div>
             <button
               onClick={() => { void openPortal().then(err => err && setBillingMsg(err)); }}
@@ -639,6 +671,7 @@ export function BillingSettings() {
           planLabel={payModal.label}
           priceLabel={payModal.price}
           interval={interval}
+          currency={payModal.currency}
           onClose={() => setPayModal(null)}
           onSuccess={() => {
             setPayModal(null);

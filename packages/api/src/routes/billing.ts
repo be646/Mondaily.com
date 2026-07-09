@@ -4,6 +4,7 @@ import { isWorkspaceAdmin } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { createCreditPackCheckout } from "../lib/credit-pack";
 import { activateTier, normalizeTier } from "../lib/billing-tiers";
+import { BILLING_CURRENCIES } from "@mondaily/shared/pricing";
 
 /**
  * Billing — embedded Stripe Payment Element (primary) + Customer Portal + one-time credit packs.
@@ -60,9 +61,13 @@ function priceFor(plan: string, interval: string): string | undefined {
 
 // POST /checkout { plan, interval } → { url }
 router.post("/checkout", async (c) => {
-  const body = await c.req.json<{ plan?: string; interval?: string }>().catch(() => ({} as { plan?: string; interval?: string }));
+  const body = await c.req.json<{ plan?: string; interval?: string; currency?: string }>().catch(() => ({} as { plan?: string; interval?: string; currency?: string }));
   const plan = (body.plan ?? "").toLowerCase();
   const interval = (body.interval ?? "month").toLowerCase();
+  // Charge currency — one of the supported billing currencies. Requires the Stripe Price to carry
+  // matching currency_options (see scripts/stripe-setup-prices). Defaults to USD.
+  const reqCur = (body.currency ?? "USD").toUpperCase();
+  const currency = (BILLING_CURRENCIES as readonly string[]).includes(reqCur) ? reqCur : "USD";
 
   if (!process.env.STRIPE_SECRET_KEY) {
     return c.json({ error: "Billing isn't connected yet. Add STRIPE_SECRET_KEY to enable upgrades.", configured: false }, 503);
@@ -80,6 +85,7 @@ router.post("/checkout", async (c) => {
   try {
     const session = await stripePost("checkout/sessions", {
       mode: "subscription",
+      currency: currency.toLowerCase(),
       "line_items[0][price]": price,
       "line_items[0][quantity]": "1",
       success_url: `${appUrl()}/settings/billing?billing=success`,
@@ -187,10 +193,12 @@ router.post("/setup-intent", async (c) => {
 // against the payment method the user just entered in our embedded Payment Element, and activates
 // the tier immediately (no waiting on a webhook round-trip for the UI to update).
 router.post("/subscribe", async (c) => {
-  const body = await c.req.json<{ plan?: string; interval?: string; payment_method_id?: string }>().catch(() => ({} as Record<string, never>));
+  const body = await c.req.json<{ plan?: string; interval?: string; payment_method_id?: string; currency?: string }>().catch(() => ({} as Record<string, never>));
   const plan = normalizeTier(body.plan);
   const interval = (body.interval ?? "month").toLowerCase();
   const paymentMethodId = body.payment_method_id;
+  const reqCur = (body.currency ?? "USD").toUpperCase();
+  const currency = (BILLING_CURRENCIES as readonly string[]).includes(reqCur) ? reqCur : "USD";
 
   if (!process.env.STRIPE_SECRET_KEY) {
     return c.json({ error: "Billing isn't connected yet. Add STRIPE_SECRET_KEY to enable upgrades.", configured: false }, 503);
@@ -213,6 +221,7 @@ router.post("/subscribe", async (c) => {
 
     const sub = await stripePost("subscriptions", {
       customer,
+      currency: currency.toLowerCase(),
       "items[0][price]": price,
       default_payment_method: paymentMethodId,
       "metadata[workspace_id]": workspaceId,

@@ -63,6 +63,75 @@ export const PLAN_TIERS: Record<TierId, PlanTier> = {
 
 export const PLAN_ORDER: TierId[] = ["scout", "operator", "command", "sovereign"];
 
+// ─── Multi-currency pricing ───────────────────────────────────────────────────
+// We CHARGE in one of three billing currencies only (real Stripe currency_options).
+// Everything else gets an approximate LOCAL reference so the user understands the cost,
+// but must pick one of the three to actually pay in.
+export const BILLING_CURRENCIES = ["USD", "EUR", "GBP"] as const;
+export type BillingCurrency = (typeof BILLING_CURRENCIES)[number];
+
+// Units per 1 USD. The three billing currencies are FIXED here and MUST match the Stripe
+// currency_options we create (see scripts/stripe-setup-prices) so the displayed price always
+// equals the charged price. The rest are approximate references for local display only.
+export const PRICING_FX: Record<string, number> = {
+  USD: 1, EUR: 0.88, GBP: 0.75, // ← billing currencies (fixed, == Stripe amounts)
+  PLN: 3.8, CAD: 1.37, AUD: 1.52, CHF: 0.80, JPY: 162, SEK: 10.6, NOK: 10.9, DKK: 6.55,
+  CZK: 21.3, HUF: 355, RON: 4.55, BGN: 1.72, TRY: 39, ZAR: 18, INR: 84, BRL: 5.5,
+  MXN: 18.5, SGD: 1.35, HKD: 7.8, NZD: 1.65, AED: 3.67, SAR: 3.75,
+};
+
+export const PRICING_SYMBOL: Record<string, string> = {
+  USD: "$", EUR: "€", GBP: "£", PLN: "zł", CAD: "C$", AUD: "A$", CHF: "Fr", JPY: "¥",
+  SEK: "kr", NOK: "kr", DKK: "kr", CZK: "Kč", HUF: "Ft", RON: "lei", BGN: "лв", TRY: "₺",
+  ZAR: "R", INR: "₹", BRL: "R$", MXN: "Mex$", SGD: "S$", HKD: "HK$", NZD: "NZ$", AED: "د.إ", SAR: "﷼",
+};
+
+/** Round a converted price to a clean, currency-appropriate whole number. */
+export function roundPrice(amount: number, currency: string): number {
+  if (currency === "JPY" || currency === "HUF") return Math.round(amount / 10) * 10; // no minor unit
+  return Math.round(amount);
+}
+
+/** Convert a USD plan price into any currency using the fixed pricing snapshot. null/0 pass through. */
+export function priceInCurrency(usd: number | null, currency: string): number | null {
+  if (usd === null) return null;
+  if (usd === 0) return 0;
+  const fx = PRICING_FX[currency] ?? 1;
+  return roundPrice(usd * fx, currency);
+}
+
+// region (from a BCP-47 locale like "pl-PL", "de-DE") → currency. Sovereign: derived from the
+// browser locale only, never a geo-IP lookup.
+const REGION_CURRENCY: Record<string, string> = {
+  US: "USD", GB: "GBP", IE: "EUR", DE: "EUR", FR: "EUR", ES: "EUR", IT: "EUR", NL: "EUR",
+  BE: "EUR", AT: "EUR", PT: "EUR", FI: "EUR", GR: "EUR", SK: "EUR", SI: "EUR", LU: "EUR",
+  PL: "PLN", CA: "CAD", AU: "AUD", CH: "CHF", JP: "JPY", SE: "SEK", NO: "NOK", DK: "DKK",
+  CZ: "CZK", HU: "HUF", RO: "RON", BG: "BGN", TR: "TRY", ZA: "ZAR", IN: "INR", BR: "BRL",
+  MX: "MXN", SG: "SGD", HK: "HKD", NZ: "NZD", AE: "AED", SA: "SAR",
+};
+
+/** Best-guess local currency from a BCP-47 locale (e.g. "en-GB" → GBP). Defaults to USD. */
+export function localeToCurrency(locale: string | undefined): string {
+  if (!locale) return "USD";
+  const region = locale.split("-")[1]?.toUpperCase();
+  return (region && REGION_CURRENCY[region]) || "USD";
+}
+
+/** Which of the 3 billing currencies to default to for a given local currency / locale. */
+export function billingCurrencyForLocale(locale: string | undefined): BillingCurrency {
+  const local = localeToCurrency(locale);
+  if ((BILLING_CURRENCIES as readonly string[]).includes(local)) return local as BillingCurrency;
+  // Euro-zone-ish and GB already covered above; everyone else defaults to USD.
+  const region = locale?.split("-")[1]?.toUpperCase();
+  if (region && REGION_CURRENCY[region] === "EUR") return "EUR";
+  return "USD";
+}
+
+/** The switcher is only offered when the user's LOCAL currency isn't already a billing currency. */
+export function showsCurrencySwitcher(locale: string | undefined): boolean {
+  return !(BILLING_CURRENCIES as readonly string[]).includes(localeToCurrency(locale));
+}
+
 export interface CreditPack { id: string; name: string; price_usd: number; base_credits: number }
 
 export const CREDIT_PACKS: Record<string, CreditPack> = {

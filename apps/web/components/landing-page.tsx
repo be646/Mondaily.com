@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Nav } from "./nav";
 import { HeroChat } from "./hero-chat";
 import { Logo } from "./logo";
-import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER } from "@mondaily/shared/pricing";
+import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER, BILLING_CURRENCIES, PRICING_SYMBOL, priceInCurrency, localeToCurrency, billingCurrencyForLocale, showsCurrencySwitcher, type BillingCurrency } from "@mondaily/shared/pricing";
 import { SUPPORTED_LANGUAGES, normalizeLang, languageMeta, t, dir as i18nDir } from "@mondaily/shared/i18n";
 
 // Credit display helper — shared catalog is the source of truth for the numbers.
@@ -2882,6 +2882,27 @@ const CREDIT_PACK_CARDS = CREDIT_PACK_ORDER.map((id) => CREDIT_PACKS[id]!);
 export function PricingSection() {
   const [annual, setAnnual] = useState(false);
   const planAccents = ["#9fb08f", "#a68762", "#8fb3b0", "#8a8071"];
+
+  // Localize prices to the visitor's currency. Detection is from the browser locale only
+  // (sovereign — no geo-IP). We CHARGE in USD/EUR/GBP; other locales see an approximate local
+  // reference and default to their region's nearest billing currency.
+  const [locale, setLocale] = useState<string | undefined>(undefined);
+  const [billing, setBilling] = useState<BillingCurrency>("USD");
+  useEffect(() => {
+    const lc = typeof navigator !== "undefined" ? navigator.language : undefined;
+    setLocale(lc);
+    setBilling(billingCurrencyForLocale(lc));
+  }, []);
+  const localCur = localeToCurrency(locale);
+  const showSwitcher = showsCurrencySwitcher(locale);
+  const sym = (c: string) => PRICING_SYMBOL[c] ?? "";
+  // For a non-billing local currency, an approximate reference in that currency.
+  const localRef = (usd: number | null): string | null => {
+    if (!showSwitcher || usd === null || usd === 0) return null;
+    const v = priceInCurrency(usd, localCur);
+    return v === null ? null : `${sym(localCur)}${v}`;
+  };
+
   return (
     <section id="pricing" className="mx-auto max-w-6xl px-6 py-20">
       <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.18em] text-zinc-500">Pricing</p>
@@ -2907,9 +2928,30 @@ export function PricingSection() {
         </button>
       </div>
 
+      {/* Currency switcher — only when the visitor's local currency isn't already a billing currency.
+          If it is (USD/EUR/GBP), we lock to it and show no switch. */}
+      {showSwitcher && (
+        <div className="mb-10 ml-0 inline-flex items-center gap-2 sm:ml-4">
+          <span className="text-[11px] text-zinc-400">Billed in</span>
+          <div className="inline-flex items-center gap-1 rounded-full border border-black/[.08] bg-zinc-50 p-1 text-[12px]">
+            {BILLING_CURRENCIES.map((c) => (
+              <button
+                key={c}
+                onClick={() => setBilling(c)}
+                className={`rounded-full px-3 py-1 transition-all ${billing === c ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}
+              >
+                {sym(c)} {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {PLANS.map((plan, i) => {
-          const price = annual ? plan.priceAnnual : plan.priceMonthly;
+          const usdPrice = annual ? plan.priceAnnual : plan.priceMonthly;
+          const price = priceInCurrency(usdPrice, billing);
+          const ref = localRef(usdPrice);
           const accent = planAccents[i]!;
           return (
             <motion.div
@@ -2943,11 +2985,14 @@ export function PricingSection() {
                   <span className="text-[34px] font-semibold leading-none tracking-tight text-zinc-900">Free</span>
                 ) : (
                   <>
-                    <span className="text-[34px] font-semibold leading-none tracking-tight text-zinc-900">${price}</span>
+                    <span className="text-[34px] font-semibold leading-none tracking-tight text-zinc-900">{sym(billing)}{price}</span>
                     <span className="mb-0.5 text-[12px] text-zinc-400">/{plan.period}</span>
                   </>
                 )}
               </div>
+              {ref && price !== null && price !== 0 && (
+                <div className="mt-1 text-[11px] text-zinc-400">≈ {ref}/{plan.period} in your local currency</div>
+              )}
               <div className="mb-5 mt-2 text-[12px] leading-relaxed text-zinc-500">{plan.desc}</div>
 
               <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.1em] text-zinc-400">What&apos;s included</div>
