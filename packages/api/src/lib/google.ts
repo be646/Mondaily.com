@@ -126,7 +126,10 @@ export async function gmailSend(
   accessToken: string,
   msg: { to: string[]; subject: string; html: string; from?: string; threadId?: string; inReplyTo?: string },
 ): Promise<boolean> {
-  const headers = [
+  // Build headers WITHOUT filtering the header/body separator. (A prior `.filter(Boolean)` on the
+  // whole array stripped the mandatory blank line between headers and body, so every reply arrived
+  // EMPTY.) The body is base64 + declared Content-Transfer-Encoding so UTF-8 HTML is never garbled.
+  const headerLines = [
     `To: ${msg.to.join(", ")}`,
     msg.from ? `From: ${msg.from}` : "",
     `Subject: ${msg.subject}`,
@@ -134,10 +137,11 @@ export async function gmailSend(
     msg.inReplyTo ? `References: ${msg.inReplyTo}` : "",
     "MIME-Version: 1.0",
     'Content-Type: text/html; charset="UTF-8"',
-    "",
-    msg.html,
-  ].filter(Boolean).join("\r\n");
-  const raw = Buffer.from(headers).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    "Content-Transfer-Encoding: base64",
+  ].filter(Boolean);
+  const bodyB64 = Buffer.from(msg.html ?? "", "utf-8").toString("base64");
+  const mime = `${headerLines.join("\r\n")}\r\n\r\n${bodyB64}`;
+  const raw = Buffer.from(mime).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   try {
     const res = await fetch(GMAIL_SEND_URL, {
       method: "POST",
@@ -234,6 +238,9 @@ export async function googleCalendarEvents(accessToken: string, timeMin: string,
   });
   if (!res.ok) {
     console.error("[google] calendar fetch failed", res.status, await res.text().catch(() => ""));
+    // 401/403 = the stored token lacks the calendar scope (connected before calendar.readonly was
+    // added). Signal a reconnect instead of silently pretending there are no meetings.
+    if (res.status === 401 || res.status === 403) throw new Error("calendar_scope");
     return [];
   }
   const data = (await res.json()) as { items?: any[] };

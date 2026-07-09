@@ -40995,7 +40995,7 @@ async function freshAccessToken(conn) {
   return t3.access_token;
 }
 async function gmailSend(accessToken, msg) {
-  const headers = [
+  const headerLines = [
     `To: ${msg.to.join(", ")}`,
     msg.from ? `From: ${msg.from}` : "",
     `Subject: ${msg.subject}`,
@@ -41003,10 +41003,13 @@ async function gmailSend(accessToken, msg) {
     msg.inReplyTo ? `References: ${msg.inReplyTo}` : "",
     "MIME-Version: 1.0",
     'Content-Type: text/html; charset="UTF-8"',
-    "",
-    msg.html
-  ].filter(Boolean).join("\r\n");
-  const raw2 = Buffer.from(headers).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    "Content-Transfer-Encoding: base64"
+  ].filter(Boolean);
+  const bodyB64 = Buffer.from(msg.html ?? "", "utf-8").toString("base64");
+  const mime = `${headerLines.join("\r\n")}\r
+\r
+${bodyB64}`;
+  const raw2 = Buffer.from(mime).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   try {
     const res = await fetch(GMAIL_SEND_URL, {
       method: "POST",
@@ -41076,6 +41079,7 @@ async function googleCalendarEvents(accessToken, timeMin, timeMax) {
   });
   if (!res.ok) {
     console.error("[google] calendar fetch failed", res.status, await res.text().catch(() => ""));
+    if (res.status === 401 || res.status === 403) throw new Error("calendar_scope");
     return [];
   }
   const data = await res.json();
@@ -61354,7 +61358,7 @@ async function runAssetScan(workspaceId) {
     if (assets.length > 0) {
       await notify(workspaceId, "asset", "\u2726 Asset Agent", `${flagged.length} of ${assets.length} asset(s) need attention.`, { flagged: flagged.length, total: assets.length });
     }
-    await completeJob(jobId, { assets: assets.length, flagged, queued, summary: assets.length === 0 ? "No asset records in this workspace" : `${flagged.length}/${assets.length} assets flagged` }, steps);
+    await completeJob(jobId, { assets: assets.length, flagged: flagged.length, queued, summary: assets.length === 0 ? "No asset records in this workspace" : `${flagged.length}/${assets.length} assets flagged` }, steps);
     return { assets: assets.length, flagged: flagged.length, queued };
   } catch (err2) {
     await failJob(jobId, err2 instanceof Error ? err2.message : String(err2));
@@ -69952,6 +69956,7 @@ var import_node_crypto15 = require("crypto");
 init_email_sovereign();
 init_google();
 init_mail();
+init_ai_gateway();
 var PIXEL_GIF = Buffer.from(
   "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7",
   "base64"
@@ -70244,6 +70249,28 @@ router24.post("/compose", zValidator("json", external_exports.object({
     else await supabase.from("nodes").insert({ workspace_id: c2.get("workspaceId"), vertical: "shared", object_type: "email_thread", created_by: c2.get("userId"), data: merged });
   }
   return c2.json({ ok: true, tracking_id: trackNode?.id }, 201);
+});
+router24.post("/improve-draft", zValidator("json", external_exports.object({ body: external_exports.string().min(1).max(2e4), instruction: external_exports.string().max(400).optional() })), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const env3 = gatewayEnv();
+  if (!env3.baseURL || !env3.apiKey) return c2.json({ error: "AI isn't available right now." }, 503);
+  const { instruction } = c2.req.valid("json");
+  const plain = c2.req.valid("json").body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  if (!plain) return c2.json({ error: "Nothing to improve." }, 400);
+  const system = "You improve a business email draft: clearer, warmer, professional, concise. Keep the sender's intent and facts EXACTLY \u2014 never invent details, recipients, or commitments. Return ONLY the rewritten email body as clean HTML paragraphs, no preamble, no subject line.";
+  const prompt = `${instruction ? `Instruction: ${instruction}
+
+` : ""}Draft to improve:
+${plain}`;
+  try {
+    const res = await aiGateway({ system, prompt, maxTokens: 700, workspaceId: ws, userId: me2, feature: "email_improve" });
+    const improved = (res.text ?? "").trim();
+    if (!improved || res.provider === "none") return c2.json({ error: "Couldn't improve that (check your AI credits)." }, 200);
+    return c2.json({ html: improved });
+  } catch {
+    return c2.json({ error: "Couldn't improve that \u2014 please try again." }, 200);
+  }
 });
 router24.get("/outbox", async (c2) => {
   const { data } = await supabase.from("nodes").select("id,data,created_at").eq("workspace_id", c2.get("workspaceId")).eq("object_type", "email_outbox").order("created_at", { ascending: false }).limit(100);
@@ -74516,7 +74543,10 @@ router50.get("/callback", async (c2) => {
   }
 });
 router50.get("/calendar/events", requireAuth, async (c2) => {
-  const { data: conn } = await supabase.from("email_connections").select("id, provider, refresh_token, access_token, token_expiry, email").eq("workspace_id", c2.get("workspaceId")).eq("user_id", c2.get("userId")).maybeSingle();
+  const ws = c2.get("workspaceId");
+  const cols = "id, provider, refresh_token, access_token, token_expiry, email";
+  let { data: conn } = await supabase.from("email_connections").select(cols).eq("workspace_id", ws).eq("user_id", c2.get("userId")).maybeSingle();
+  if (!conn) ({ data: conn } = await supabase.from("email_connections").select(cols).eq("workspace_id", ws).limit(1).maybeSingle());
   if (!conn) return c2.json({ connected: false, events: [] });
   const now = /* @__PURE__ */ new Date();
   const days = Math.min(14, Math.max(1, Number(c2.req.query("days") ?? "1")));
@@ -74534,7 +74564,9 @@ router50.get("/calendar/events", requireAuth, async (c2) => {
     if (!token) return c2.json({ connected: true, provider: "google", email: conn.email, needs_reauth: true, events: [] });
     return c2.json({ connected: true, provider: "google", email: conn.email, events: await googleCalendarEvents2(token, timeMin, timeMax) });
   } catch (e2) {
-    console.error("[integrations/calendar] fetch failed", e2 instanceof Error ? e2.message : e2);
+    const msg = e2 instanceof Error ? e2.message : String(e2);
+    console.error("[integrations/calendar] fetch failed", msg);
+    if (msg === "calendar_scope") return c2.json({ connected: true, provider: conn.provider, email: conn.email, needs_reauth: true, events: [] });
     return c2.json({ connected: true, provider: conn.provider, error: "Could not read your calendar.", events: [] });
   }
 });

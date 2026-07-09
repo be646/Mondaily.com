@@ -123,7 +123,7 @@ export function AIControlRoomSettings() {
         {agentsLoading ? <Loading /> : (
           <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
             {constellation.map((a) => {
-              const runnable = ["relationship", "operations", "finance", "graph-enrichment", "workflow", "opportunity", "people", "portfolio", "asset"].includes(a.id);
+              const runnable = ["relationship", "operations", "finance", "graph-enrichment", "workflow", "opportunity", "people", "portfolio", "asset", "meeting"].includes(a.id);
               return (
                 <div key={a.id} className="flex items-center gap-3 py-2.5">
                   <a.icon size={14} className="shrink-0" style={{ color: a.state === "active" ? stateTone(a.state) : "var(--text-muted)" }} />

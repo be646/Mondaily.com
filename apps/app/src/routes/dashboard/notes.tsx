@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { MenuSelect } from "../../components/ui/controls";
 import { NoteEditor } from "../../components/notes/note-editor";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
@@ -580,16 +581,14 @@ export function NotesPage() {
             className="h-8 w-48 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none focus:border-[var(--border-soft)] transition-colors" />
         </label>
 
-        <select value={sort} onChange={e => setSort(e.target.value as typeof sort)}
-          className="h-8 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-3 text-xs text-[var(--text-faint)] outline-none">
-          <option value="newest">Newest</option>
-          <option value="oldest">Oldest</option>
-          <option value="updated">Updated</option>
-        </select>
+        <MenuSelect value={sort} onChange={v => setSort((v || "newest") as typeof sort)} maxWidth={130}
+          options={[{ value: "newest", label: "Newest" }, { value: "oldest", label: "Oldest" }, { value: "updated", label: "Updated" }]} />
 
-        {pinned.size > 0 && (
+        {/* Count only notes actually present in THIS workspace (pins are stored globally as note ids,
+            so filter to the loaded set — otherwise another workspace's pins leak into the badge). */}
+        {pinnedNotes.length > 0 && (
           <span className="flex items-center gap-1 rounded-sm border border-[#97824f]/20 bg-[#97824f]/[.06] px-2.5 py-1 text-[11px] text-[#97824f]">
-            <Pin size={10} className="fill-[#97824f]" /> {pinned.size} pinned
+            <Pin size={10} className="fill-[#97824f]" /> {pinnedNotes.length} pinned
           </span>
         )}
       </div>

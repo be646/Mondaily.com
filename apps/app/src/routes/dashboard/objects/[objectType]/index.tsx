@@ -775,7 +775,7 @@ export function ObjectIndexPage() {
           </button>
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-1.5 rounded-md border border-transparent bg-stone-600 px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-700 dark:border-stone-400/40 dark:bg-stone-500 dark:hover:bg-stone-500"
+            className="btn-primary text-[11px]"
           >
             <Plus size={11}/> New record
           </button>

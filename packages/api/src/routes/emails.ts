@@ -8,6 +8,7 @@ import { verifyTrackingToken } from "../lib/tracking";
 import { threadIdFor, mergeMessage, inboundAddressFor, workspaceIdFromRecipients, mailDomainConfigured, buildOutboundMessage, attachmentPath, type InboundMessage, type ThreadData } from "../lib/email-sovereign";
 import { freshAccessToken, gmailThreads, gmailThread, gmailSend } from "../lib/google";
 import { sendWorkspaceEmail } from "../lib/mail";
+import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 type WorkspaceSettings = {
@@ -404,6 +405,24 @@ router.post("/compose", zValidator("json", z.object({
     else await supabase.from("nodes").insert({ workspace_id: c.get("workspaceId"), vertical: "shared", object_type: "email_thread", created_by: c.get("userId"), data: merged });
   }
   return c.json({ ok: true, tracking_id: trackNode?.id }, 201);
+});
+
+// ── AI: improve an email draft (real gateway call — replaces the old client-side regex stub) ──
+router.post("/improve-draft", zValidator("json", z.object({ body: z.string().min(1).max(20000), instruction: z.string().max(400).optional() })), async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const env = gatewayEnv();
+  if (!env.baseURL || !env.apiKey) return c.json({ error: "AI isn't available right now." }, 503);
+  const { instruction } = c.req.valid("json");
+  const plain = c.req.valid("json").body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  if (!plain) return c.json({ error: "Nothing to improve." }, 400);
+  const system = "You improve a business email draft: clearer, warmer, professional, concise. Keep the sender's intent and facts EXACTLY — never invent details, recipients, or commitments. Return ONLY the rewritten email body as clean HTML paragraphs, no preamble, no subject line.";
+  const prompt = `${instruction ? `Instruction: ${instruction}\n\n` : ""}Draft to improve:\n${plain}`;
+  try {
+    const res = await aiGateway({ system, prompt, maxTokens: 700, workspaceId: ws, userId: me, feature: "email_improve" });
+    const improved = (res.text ?? "").trim();
+    if (!improved || res.provider === "none") return c.json({ error: "Couldn't improve that (check your AI credits)." }, 200);
+    return c.json({ html: improved });
+  } catch { return c.json({ error: "Couldn't improve that — please try again." }, 200); }
 });
 
 // ── List outbox (sent + tracked emails) ──────────────────────────────────────

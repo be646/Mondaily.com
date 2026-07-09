@@ -138,12 +138,13 @@ router.get("/callback", async (c) => {
 // for a window (default: today). Returns { connected, provider, events } so the UI can show a
 // connect prompt vs. real meetings without guessing.
 router.get("/calendar/events", requireAuth, async (c) => {
-  const { data: conn } = await supabase
-    .from("email_connections")
-    .select("id, provider, refresh_token, access_token, token_expiry, email")
-    .eq("workspace_id", c.get("workspaceId"))
-    .eq("user_id", c.get("userId"))
-    .maybeSingle();
+  const ws = c.get("workspaceId");
+  // Prefer the caller's own connection, but fall back to the workspace's connection so a teammate
+  // who didn't personally connect still sees the shared calendar (matches the shared-inbox path,
+  // which is workspace-scoped — previously this was user-scoped and showed "not connected").
+  const cols = "id, provider, refresh_token, access_token, token_expiry, email";
+  let { data: conn } = await supabase.from("email_connections").select(cols).eq("workspace_id", ws).eq("user_id", c.get("userId")).maybeSingle();
+  if (!conn) ({ data: conn } = await supabase.from("email_connections").select(cols).eq("workspace_id", ws).limit(1).maybeSingle());
   if (!conn) return c.json({ connected: false, events: [] });
 
   const now = new Date();
@@ -163,7 +164,10 @@ router.get("/calendar/events", requireAuth, async (c) => {
     if (!token) return c.json({ connected: true, provider: "google", email: conn.email, needs_reauth: true, events: [] });
     return c.json({ connected: true, provider: "google", email: conn.email, events: await googleCalendarEvents(token, timeMin, timeMax) });
   } catch (e) {
-    console.error("[integrations/calendar] fetch failed", e instanceof Error ? e.message : e);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[integrations/calendar] fetch failed", msg);
+    // Stale-scope token (connected before calendar access existed) → prompt reconnect, not "no meetings".
+    if (msg === "calendar_scope") return c.json({ connected: true, provider: conn.provider, email: conn.email, needs_reauth: true, events: [] });
     return c.json({ connected: true, provider: conn.provider, error: "Could not read your calendar.", events: [] });
   }
 });

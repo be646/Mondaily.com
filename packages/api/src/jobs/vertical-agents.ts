@@ -191,7 +191,7 @@ export async function runAssetScan(workspaceId: string) {
     if (assets.length > 0) {
       await notify(workspaceId, "asset", "✦ Asset Agent", `${flagged.length} of ${assets.length} asset(s) need attention.`, { flagged: flagged.length, total: assets.length });
     }
-    await completeJob(jobId, { assets: assets.length, flagged, queued, summary: assets.length === 0 ? "No asset records in this workspace" : `${flagged.length}/${assets.length} assets flagged` }, steps);
+    await completeJob(jobId, { assets: assets.length, flagged: flagged.length, queued, summary: assets.length === 0 ? "No asset records in this workspace" : `${flagged.length}/${assets.length} assets flagged` }, steps);
     return { assets: assets.length, flagged: flagged.length, queued };
   } catch (err: unknown) { await failJob(jobId, err instanceof Error ? err.message : String(err)); throw err; }
 }

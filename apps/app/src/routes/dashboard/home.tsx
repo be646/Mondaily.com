@@ -305,6 +305,17 @@ export function HomePage() {
     queryFn: () => apiClient.get<{ connected: boolean; provider?: string; email?: string; needs_reauth?: boolean; events: CalEvent[] }>("/integrations/calendar/events?days=1"),
     staleTime: 60_000,
   });
+  // Native Mondaily meetings (calendar_event nodes) — shown ALONGSIDE the Google/Outlook connectors,
+  // so meetings created in-app appear here even without a connected external calendar.
+  const nativeMeetingsQ = useQuery({
+    queryKey: ["calendar", "native", "today"],
+    queryFn: () => {
+      const s = new Date(); s.setHours(0, 0, 0, 0);
+      const e = new Date(s.getTime() + 86_400_000);
+      return apiClient.get<{ events: { id: string; title: string; start_at: string; end_at?: string; location?: string; attendees?: unknown[] }[] }>(`/calendar/events?from=${s.toISOString()}&to=${e.toISOString()}`);
+    },
+    staleTime: 60_000, retry: false,
+  });
   const [connectingCal, setConnectingCal] = useState<string | null>(null);
   async function connectCalendar(provider: "google" | "microsoft") {
     setConnectingCal(provider);
@@ -1111,8 +1122,10 @@ export function HomePage() {
           // Merge connected-calendar events with any workspace-created meetings, sorted by start.
           const calEvents = (cal?.events ?? []).map(e => ({ id: e.id, title: e.title, when: e.allDay ? "All day" : new Date(e.start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), sub: e.location || (e.attendees ? `${e.attendees} attendee${e.attendees === 1 ? "" : "s"}` : ""), url: e.meetingUrl, start: e.start }));
           const wsEvents = (meetings.data ?? []).map(m => ({ id: `ws-${m.id}`, title: m.title, when: m.start_time, sub: "", url: undefined as string | undefined, start: m.start_time }));
-          const allEvents = [...calEvents, ...wsEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
-          const loading = calendarQ.isLoading || meetings.isLoading;
+          // Native Mondaily meetings — link to the in-app meeting room.
+          const nativeEvents = (nativeMeetingsQ.data?.events ?? []).map(e => ({ id: `native-${e.id}`, title: e.title, when: new Date(e.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), sub: e.location || (e.attendees?.length ? `${e.attendees.length} attendee${e.attendees.length === 1 ? "" : "s"}` : "Mondaily"), url: `/calls/${e.id}`, start: e.start_at }));
+          const allEvents = [...calEvents, ...wsEvents, ...nativeEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+          const loading = calendarQ.isLoading || meetings.isLoading || nativeMeetingsQ.isLoading;
           return (
             <section className="flow-panel-clean flex flex-col overflow-hidden">
               <div className="flow-panel-heading flex items-center justify-between">

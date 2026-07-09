@@ -118,17 +118,14 @@ function ReplyComposer({ threadId }: { threadId: string }) {
     }
   });
 
-  function improveDraft() {
-    if (!editor || editor.isEmpty) return;
+  async function improveDraft() {
+    if (!editor || editor.isEmpty || improving) return;
     setImproving(true);
-    const text = editor.getText().trim();
-    const polished = text
-      .replace(/\bi want\b/gi, "I'd like")
-      .replace(/\bcan you\b/gi, "could you")
-      .replace(/\bthanks\b[.!]?$/i, "Thanks,")
-      .replace(/\s+/g, " ");
-    editor.commands.setContent(`<p>${polished}</p>`);
-    window.setTimeout(() => setImproving(false), 350);
+    try {
+      const res = await apiClient.post<{ html?: string; error?: string }>("/emails/improve-draft", { body: editor.getHTML() });
+      if (res.html) editor.commands.setContent(res.html);
+    } catch { /* leave the draft as-is on failure */ }
+    finally { setImproving(false); }
   }
 
   if (!editor) return <div className="skeleton-shimmer h-40 rounded-lg" />;
