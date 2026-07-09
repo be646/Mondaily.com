@@ -175,3 +175,80 @@ export function MenuSelect({ label, value, options, onChange, allLabel = "All", 
     </div>
   );
 }
+
+// ─── FieldSelect ──────────────────────────────────────────────────────────────
+// A themed, full-width FORM select (the drop-in replacement for a native <select>
+// inside forms/builders/modals). Unlike MenuSelect it does NOT inject an "All" row,
+// is full-width and form-height, and shows a placeholder when nothing is chosen — so
+// the browser-native dropdown never appears anywhere. Keyboard-accessible, matches the
+// key-input field chrome across all four themes.
+interface FieldSelectOption { value: string; label: string; dot?: string }
+interface FieldSelectProps {
+  value: string;
+  options: FieldSelectOption[];
+  onChange: (v: string) => void;
+  placeholder?: string;
+  className?: string;
+  disabled?: boolean;
+  ariaLabel?: string;
+}
+export function FieldSelect({ value, options, onChange, placeholder = "Select…", className, disabled, ariaLabel }: FieldSelectProps) {
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const current = options.find(o => o.value === value);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (!rootRef.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  const openMenu = () => { setHi(Math.max(0, options.findIndex(o => o.value === value))); setOpen(true); };
+  const pick = (v: string) => { onChange(v); setOpen(false); };
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (!open) {
+      if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") { e.preventDefault(); openMenu(); }
+      return;
+    }
+    if (e.key === "Escape") { e.preventDefault(); setOpen(false); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); setHi(h => Math.min(h + 1, options.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setHi(h => Math.max(h - 1, 0)); }
+    else if (e.key === "Enter") { e.preventDefault(); if (options[hi]) pick(options[hi]!.value); }
+    else if (e.key === "Tab") setOpen(false);
+  }
+
+  return (
+    <div ref={rootRef} className={cx("relative w-full", className)} onKeyDown={onKeyDown}>
+      <button type="button" onClick={() => (open ? setOpen(false) : openMenu())} disabled={disabled}
+        aria-haspopup="listbox" aria-expanded={open} aria-label={ariaLabel}
+        className="flex h-9 w-full items-center justify-between gap-2 rounded-md border px-3 text-sm outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        style={{ borderColor: open ? "var(--border-strong)" : "var(--border-soft)", background: "var(--surface-card)", color: current ? "var(--text-primary)" : "var(--text-muted)" }}>
+        <span className="flex min-w-0 items-center gap-1.5 truncate">
+          {current?.dot && <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: current.dot }} />}
+          {current ? current.label : placeholder}
+        </span>
+        <ChevronDown size={13} className="shrink-0" style={{ color: "var(--text-faint)", transform: open ? "rotate(180deg)" : undefined, transition: "transform .12s" }} />
+      </button>
+      {open && (
+        <div role="listbox" className="ui-menu absolute left-0 top-full z-40 mt-1 max-h-64 w-full overflow-y-auto py-1" style={{ borderRadius: 6 }}>
+          {options.map((o, i) => {
+            const selected = o.value === value;
+            return (
+              <div key={o.value} role="option" aria-selected={selected}
+                onMouseEnter={() => setHi(i)} onMouseDown={(e) => { e.preventDefault(); pick(o.value); }}
+                className="ui-menu-item" data-active={selected}
+                style={{ background: i === hi ? "var(--surface-hover)" : undefined, color: selected ? "var(--text-primary)" : undefined }}>
+                {o.dot && <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: o.dot }} />}
+                <span className="min-w-0 flex-1 truncate">{o.label}</span>
+                {selected && <Check size={12} style={{ color: "var(--section-accent)" }} />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

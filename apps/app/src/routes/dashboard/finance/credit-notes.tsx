@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogoMark } from "@/components/logo";
+import { FieldSelect } from "../../../components/ui/controls";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import {
@@ -110,25 +111,18 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
             </div>
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Currency</label>
-              <select value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
-                className="key-input w-full text-sm">
-                {["GBP","USD","EUR","CAD","AUD"].map(c => <option key={c}>{c}</option>)}
-              </select>
+              <FieldSelect value={form.currency} onChange={v => setForm(f => ({ ...f, currency: v }))} ariaLabel="Currency"
+                options={["GBP","USD","EUR","CAD","AUD"].map(c => ({ value: c, label: c }))} />
             </div>
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Reason</label>
-              <select value={form.credit_reason} onChange={e => setForm(f => ({ ...f, credit_reason: e.target.value as CreditReason }))}
-                className="key-input w-full text-sm">
-                {Object.entries(REASON_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </select>
+              <FieldSelect value={form.credit_reason} onChange={v => setForm(f => ({ ...f, credit_reason: v as CreditReason }))} ariaLabel="Reason"
+                options={Object.entries(REASON_LABELS).map(([k, v]) => ({ value: k, label: v as string }))} />
             </div>
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Initial status</label>
-              <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as CreditStatus }))}
-                className="key-input w-full text-sm">
-                <option value="draft">Draft</option>
-                <option value="pending_review">Submit for review</option>
-              </select>
+              <FieldSelect value={form.status} onChange={v => setForm(f => ({ ...f, status: v as CreditStatus }))} ariaLabel="Initial status"
+                options={[{ value: "draft", label: "Draft" }, { value: "pending_review", label: "Submit for review" }]} />
             </div>
             <div className="col-span-2">
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Notes</label>

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
+import { FieldSelect } from "../../../components/ui/controls";
 import {
   Plus, Search, Car, Monitor, Coffee, Zap, Briefcase, Building2, MoreHorizontal, Receipt,
   CheckCircle2, XCircle, Clock,
@@ -102,17 +103,13 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
             </div>
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Currency</label>
-              <select value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
-                className="key-input w-full text-sm">
-                {["GBP", "USD", "EUR", "CAD", "AUD"].map(c => <option key={c}>{c}</option>)}
-              </select>
+              <FieldSelect value={form.currency} onChange={v => setForm(f => ({ ...f, currency: v }))} ariaLabel="Currency"
+                options={["GBP", "USD", "EUR", "CAD", "AUD"].map(c => ({ value: c, label: c }))} />
             </div>
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Category</label>
-              <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="key-input w-full text-sm">
-                {CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-              </select>
+              <FieldSelect value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} ariaLabel="Category"
+                options={CATEGORIES.map(c => ({ value: c.key, label: c.label }))} />
             </div>
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Date</label>

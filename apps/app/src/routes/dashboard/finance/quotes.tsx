@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { FieldSelect } from "../../../components/ui/controls";
 import { apiClient } from "../../../lib/api-client";
 import {
   Plus, Search, ReceiptText, Clock, CheckCircle2, XCircle, Send, ChevronRight,
@@ -101,10 +102,8 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
             </div>
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Currency</label>
-              <select value={form.currency} onChange={e => setForm(f => ({ ...f, currency: e.target.value }))}
-                className="key-input w-full text-sm">
-                {["GBP", "USD", "EUR", "CAD", "AUD"].map(c => <option key={c}>{c}</option>)}
-              </select>
+              <FieldSelect value={form.currency} onChange={v => setForm(f => ({ ...f, currency: v }))} ariaLabel="Currency"
+                options={["GBP", "USD", "EUR", "CAD", "AUD"].map(c => ({ value: c, label: c }))} />
             </div>
             <div className="col-span-2">
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Expires</label>
