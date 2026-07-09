@@ -1,4 +1,5 @@
 import React from "react";
+import { sanitizeStreamingMarkdown } from "@mondaily/shared/markdown-stream";
 import { Network, ShieldAlert, Workflow, Receipt, Users } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import {
@@ -74,8 +75,10 @@ const isTableSep = (l: string) => l.includes("-") && /^\s*\|?[\s:|-]+\|?\s*$/.te
 // Split on unescaped pipes — a literal "\|" inside a cell is preserved, not split.
 const tableCells = (l: string) => l.trim().replace(/^\|/, "").replace(/\|$/, "").replace(/\\\|/g, "\x01").split("|").map(c => c.trim().replace(/\x01/g, "|"));
 
-export function Markdown({ text, links }: { text: string; links?: EntityLink[] }) {
-  const lines = (text ?? "").split("\n");
+export function Markdown({ text, links, streaming }: { text: string; links?: EntityLink[]; streaming?: boolean }) {
+  // While streaming, hide a half-arrived trailing token so raw **/`/[ don't flash mid-stream.
+  const source = streaming ? sanitizeStreamingMarkdown(text ?? "") : text;
+  const lines = (source ?? "").split("\n");
   const blocks: React.ReactNode[] = [];
   let list: { ordered: boolean; items: string[] } | null = null;
   const flush = () => {

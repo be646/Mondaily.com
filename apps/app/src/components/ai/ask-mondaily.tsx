@@ -333,11 +333,9 @@ export function AskMondaily() {
                 ) : (
                   <div className="flex-1 min-w-0">
                     <div className="ask-assistant-line min-w-0 break-words whitespace-pre-wrap pl-4 text-sm space-y-0.5">
-                      {/* While streaming: STABLE plain text (no per-token markdown
-                          re-parse → no jitter). Format to markdown once complete. */}
-                      {isStreaming
-                        ? <span style={{ color: "var(--text-secondary)" }}>{displayText}</span>
-                        : <Markdown text={displayText} links={sourcesToLinks(meta?.sources)}/>}
+                      {/* Formatted live even while streaming — the sanitizer hides a half-arrived
+                          trailing markdown token so raw symbols never flash before their closer. */}
+                      <Markdown text={displayText} streaming={isStreaming} links={sourcesToLinks(meta?.sources)}/>
                       {isStreaming && <span className="inline-block w-0.5 h-4 bg-current animate-pulse ml-0.5 align-middle opacity-60"/>}
                     </div>
 
