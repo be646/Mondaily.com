@@ -32,10 +32,10 @@ interface Operator {
 }
 
 const SIGNAL_TONE: Record<SignalLevel, string> = {
-  good: "#10b981", watch: "#d97706", risk: "#e11d48", insufficient: "var(--text-faint)",
+  good: "#5f8169", watch: "#97824f", risk: "#9c6b72", insufficient: "var(--text-faint)",
 };
 const EVAL_TONE: Record<EvalLabel["tone"], string> = {
-  good: "#10b981", watch: "#d97706", risk: "#e11d48", neutral: "var(--text-faint)",
+  good: "#5f8169", watch: "#97824f", risk: "#9c6b72", neutral: "var(--text-faint)",
 };
 interface MatrixResp { operators: Operator[]; trends?: { activity: TrendPoint[]; ai_usage: TrendPoint[]; decisions: TrendPoint[]; tasks_completed?: TrendPoint[] }; totals: { operators: number; tokens: number; active_sessions: number } }
 interface ActivityRow { id: string; action: string; ai_summary: string | null; object: { type: string; name: string | null; node_id?: string | null } | null; changes?: { field: string; value: string }[]; created_at: string }
@@ -56,11 +56,11 @@ const TIMELINE_ORDER: TimelineGroup[] = ["Tasks", "Records & deals", "Decisions"
 interface InsightResp { insight: string; sources: { type: string; title: string; timestamp: string }[]; sufficient: boolean }
 
 const VERDICT: Record<Verdict, { label: string; tone: string }> = {
-  engaged:         { label: "Engaged",        tone: "#10b981" },
-  high_complexity: { label: "Deep work",      tone: "#10b981" },
-  bot:             { label: "Power user",     tone: "#10b981" },
-  low_engagement:  { label: "Low engagement", tone: "#d97706" },
-  inactive:        { label: "Inactive",       tone: "#d97706" },
+  engaged:         { label: "Engaged",        tone: "#5f8169" },
+  high_complexity: { label: "Deep work",      tone: "#5f8169" },
+  bot:             { label: "Power user",     tone: "#5f8169" },
+  low_engagement:  { label: "Low engagement", tone: "#97824f" },
+  inactive:        { label: "Inactive",       tone: "#97824f" },
   idle:            { label: "Standby",        tone: "var(--text-faint)" },
 };
 
@@ -137,8 +137,8 @@ function TeamCharts({ operators, onSelect }: { operators: Operator[]; onSelect: 
   return (
     <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       <MetricBars title="Workload" hint="Open tasks assigned" operators={operators} tone="#3b82f6" onSelect={onSelect} value={(o) => (o.open_tasks ?? 0) + (o.overdue_tasks ?? 0)} />
-      <MetricBars title="Overdue work" hint="Overdue tasks by member" operators={operators} tone="#e11d48" onSelect={onSelect} value={(o) => o.overdue_tasks ?? 0} />
-      <MetricBars title="Decisions resolved" hint="Approvals/rejections (30d)" operators={operators} tone="#10b981" onSelect={onSelect} value={(o) => o.decisions_resolved ?? 0} />
+      <MetricBars title="Overdue work" hint="Overdue tasks by member" operators={operators} tone="#9c6b72" onSelect={onSelect} value={(o) => o.overdue_tasks ?? 0} />
+      <MetricBars title="Decisions resolved" hint="Approvals/rejections (30d)" operators={operators} tone="#5f8169" onSelect={onSelect} value={(o) => o.decisions_resolved ?? 0} />
       <MetricBars title="AI usage" hint="Credits spent (30d)" operators={operators} tone="var(--section-accent)" onSelect={onSelect} value={(o) => o.tokens} />
     </div>
   );
@@ -163,7 +163,7 @@ function Sparkline({ points, tone }: { points: TrendPoint[]; tone: string }) {
 function TeamTrends({ trends }: { trends: NonNullable<MatrixResp["trends"]> }) {
   const cards: { title: string; hint: string; tone: string; pts: TrendPoint[] }[] = [
     { title: "Activity", hint: "Recorded actions / day", tone: "var(--section-accent)", pts: trends.activity ?? [] },
-    { title: "Tasks completed", hint: "Finished tasks / day", tone: "#10b981", pts: trends.tasks_completed ?? [] },
+    { title: "Tasks completed", hint: "Finished tasks / day", tone: "#5f8169", pts: trends.tasks_completed ?? [] },
     { title: "AI usage", hint: "Credits / day", tone: "#3b82f6", pts: trends.ai_usage ?? [] },
     { title: "Decisions resolved", hint: "Approvals & rejections / day", tone: "#8b5cf6", pts: trends.decisions ?? [] },
   ];
@@ -336,7 +336,7 @@ export function TeamOversightPage() {
                         <div className="min-w-0">
                           <div className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{op.name}</div>
                           <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>
-                            {activeToday(op.last_active_at) && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: "#10b981" }} />}
+                            {activeToday(op.last_active_at) && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: "#5f8169" }} />}
                             {ago(op.last_active_at)} · {op.task_count} tasks · {fmt(op.tokens)} cr
                           </div>
                         </div>
@@ -415,7 +415,7 @@ function MemberDetail({ op }: { op: Operator }) {
           <div className="truncate text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{op.name}</div>
           <div className="truncate text-[11.5px]" style={{ color: "var(--text-faint)" }}>
             {op.email ?? op.role} · {op.role}
-            {op.has_session ? <span style={{ color: "#10b981" }}> · online</span> : <span> · {ago(op.last_active_at)}</span>}
+            {op.has_session ? <span style={{ color: "#5f8169" }}> · online</span> : <span> · {ago(op.last_active_at)}</span>}
           </div>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: v.tone, background: `color-mix(in srgb, ${v.tone} 12%, transparent)` }}>
@@ -458,7 +458,7 @@ function MemberDetail({ op }: { op: Operator }) {
           { k: "Decisions (30d)", val: op.decisions_resolved ?? 0 },
         ].map((m) => (
           <div key={m.k} className="px-3 py-2.5" style={{ background: "var(--surface-card)" }}>
-            <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.warn ? "#d97706" : "var(--text-primary)" }}>{fmt(m.val)}</div>
+            <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.warn ? "#97824f" : "var(--text-primary)" }}>{fmt(m.val)}</div>
             <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{m.k}</div>
           </div>
         ))}
@@ -470,8 +470,8 @@ function MemberDetail({ op }: { op: Operator }) {
           {[
             { k: "Deals owned", val: op.deals_owned ?? 0 },
             { k: "Open", val: op.deals_open ?? 0 },
-            { k: "Won", val: op.deals_won ?? 0, tone: "#10b981" },
-            { k: "Lost", val: op.deals_lost ?? 0, tone: "#e11d48" },
+            { k: "Won", val: op.deals_won ?? 0, tone: "#5f8169" },
+            { k: "Lost", val: op.deals_lost ?? 0, tone: "#9c6b72" },
             { k: "Updated", val: op.deals_updated ?? 0 },
           ].map((m) => (
             <div key={m.k} className="px-2.5 py-2.5" style={{ background: "var(--surface-card)" }}>
@@ -656,7 +656,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 function Signal({ label, ok, okText, offText, neutral }: { label: string; ok: boolean; okText: string; offText: string; neutral?: boolean }) {
-  const tone = ok ? "#10b981" : neutral ? "var(--text-faint)" : "#d97706";
+  const tone = ok ? "#5f8169" : neutral ? "var(--text-faint)" : "#97824f";
   return (
     <div className="flex items-center justify-between">
       <span style={{ color: "var(--text-secondary)" }}>{label}</span>
