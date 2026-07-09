@@ -64983,8 +64983,11 @@ router9.get("/oversight-matrix", requireAuth, requireAdminRole, async (c2) => {
   const nowIso = (/* @__PURE__ */ new Date()).toISOString();
   const [{ data: members4 }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks2 }, { data: msgs }, { data: decisions }, { data: deals }] = await Promise.all([
     supabase.from("workspace_members").select("user_id, name, email, avatar_url, role").eq("workspace_id", ws),
-    supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", sinceIso),
-    supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").order("created_at", { ascending: false }).limit(2e3),
+    // NOTE: without an explicit limit Supabase caps at 1000 rows, which UNDERCOUNTS AI usage for
+    // any busy workspace. Raise it so the token totals reflect ALL usage in the window.
+    supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", sinceIso).limit(1e5),
+    // Raised from 2000 so Activity trend + records-touched reflect ALL real activity in the window.
+    supabase.from("activities").select("actor_id, action, node_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").gte("created_at", sinceIso).order("created_at", { ascending: false }).limit(5e4),
     supabase.from("auth_refresh_tokens").select("user_id").is("revoked_at", null).gt("expires_at", nowIso),
     // Real per-member task rollups (assignee-scoped): open / overdue / completed (+ completed_at for the trend).
     supabase.from("tasks").select("assignee_id, completed, due_date, completed_at").eq("workspace_id", ws).limit(5e3),
@@ -65134,7 +65137,7 @@ router9.post("/member-insight", requireAuth, requireAdminRole, async (c2) => {
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString();
   const [{ data: member }, { data: usage }, { data: acts }, { data: sessions }, { data: tasks2 }] = await Promise.all([
     supabase.from("workspace_members").select("name, email, role").eq("workspace_id", ws).eq("user_id", actorId).maybeSingle(),
-    supabase.from("ai_usage").select("total_tokens, created_at").eq("workspace_id", ws).eq("user_id", actorId).gte("created_at", sinceIso),
+    supabase.from("ai_usage").select("total_tokens, created_at").eq("workspace_id", ws).eq("user_id", actorId).gte("created_at", sinceIso).limit(1e5),
     supabase.from("activities").select("action, created_at, nodes(object_type, data)").eq("workspace_id", ws).eq("actor_id", actorId).order("created_at", { ascending: false }).limit(30),
     supabase.from("auth_refresh_tokens").select("user_id").eq("user_id", actorId).is("revoked_at", null).gt("expires_at", nowIso),
     supabase.from("tasks").select("completed, due_date").eq("workspace_id", ws).eq("assignee_id", actorId).limit(2e3)

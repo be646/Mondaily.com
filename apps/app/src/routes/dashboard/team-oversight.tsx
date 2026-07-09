@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video } from "lucide-react";
+import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, X } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
 import { FieldSelect } from "../../components/ui/controls";
@@ -188,49 +188,107 @@ function OverviewTiles({ trends, periodLabel }: { trends: NonNullable<MatrixResp
   );
 }
 
+/** Full-width team roster — a real leaderboard table (Member · Tasks · Records · Decisions · AI
+ *  credits bar · verdict), sorted, dense, scannable. Click a row to open that member's profile. */
+const ROSTER_COLS = "grid-cols-[1fr_auto] sm:grid-cols-[minmax(0,1.6fr)_4rem_4.5rem_5rem_minmax(96px,1fr)_1.25rem]";
+function RosterTable({ operators, selectedId, onSelect }: { operators: Operator[]; selectedId: string | null; onSelect: (id: string) => void }) {
+  const maxTokens = Math.max(1, ...operators.map(o => o.tokens));
+  return (
+    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className={`hidden items-center gap-3 border-b px-4 py-2 text-[10px] font-semibold uppercase tracking-wide sm:grid ${ROSTER_COLS}`} style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
+        <span>Member</span>
+        <span className="text-right">Tasks</span>
+        <span className="text-right">Records</span>
+        <span className="text-right">Decisions</span>
+        <span>AI credits</span>
+        <span />
+      </div>
+      <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+        {operators.map((op) => {
+          const v = VERDICT[op.verdict];
+          const isSel = op.operator_id === selectedId;
+          return (
+            <button key={op.operator_id} onClick={() => onSelect(op.operator_id)}
+              className={`grid w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)] ${ROSTER_COLS}`}
+              style={{ background: isSel ? "var(--surface-selected)" : undefined }}>
+              <div className="flex min-w-0 items-center gap-2.5">
+                <Avatar op={op} />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{op.name}</span>
+                    {activeToday(op.last_active_at) && <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#5f8169" }} title="active today" />}
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-1.5 truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+                    <span className="capitalize">{op.role}</span>
+                    <span className="inline-flex items-center gap-1 rounded-full border px-1.5 py-px text-[9.5px] font-medium" style={{ borderColor: `${v.tone}33`, background: `${v.tone}14`, color: v.tone }}>{v.label}</span>
+                  </div>
+                </div>
+              </div>
+              <span className="hidden text-right text-[12.5px] tabular-nums sm:block" style={{ color: "var(--text-secondary)" }}>{fmt(op.task_count)}</span>
+              <span className="hidden text-right text-[12.5px] tabular-nums sm:block" style={{ color: "var(--text-secondary)" }}>{fmt(op.records_touched ?? 0)}</span>
+              <span className="hidden text-right text-[12.5px] tabular-nums sm:block" style={{ color: "var(--text-secondary)" }}>{fmt(op.decisions_resolved ?? 0)}</span>
+              <div className="hidden items-center gap-2 sm:flex">
+                <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
+                  <span className="block h-full rounded-full" style={{ width: `${Math.max(4, (op.tokens / maxTokens) * 100)}%`, background: "var(--section-accent)" }} />
+                </span>
+                <span className="w-12 shrink-0 text-right text-[11px] tabular-nums" style={{ color: "var(--text-faint)" }}>{fmt(op.tokens)}</span>
+              </div>
+              <ChevronRight size={14} className="shrink-0 justify-self-end" style={{ color: isSel ? "var(--section-accent)" : "var(--text-faint)" }} />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 interface AskResp { answer: string; sources: { type: string; title: string }[]; sufficient: boolean }
-/** Grounded Ask-AI over real team data. Renders the answer + the exact source lines it used. */
+/** Grounded Ask-AI over real team data — a SLIM single-line ask bar (pinned under the header). The
+ *  answer + its exact source lines expand below only after you ask. */
 function OversightAsk() {
   const [q, setQ] = useState("");
   const ask = useMutation({ mutationFn: (question: string) => apiClient.post<AskResp>("/activities/oversight-ask", { question }) });
   const suggestions = ["Who has the most overdue work?", "Who is contributing to decisions?", "How is deal ownership spread across the team?"];
   return (
-    <div className="mb-6 rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-      <div className="mb-2 flex items-center gap-2">
-        <Sparkles size={14} style={{ color: "var(--section-accent)" }} />
-        <span className="text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}>Ask about your team</span>
-        <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>grounded in real data — no guesses</span>
-      </div>
-      <form onSubmit={(e) => { e.preventDefault(); if (q.trim()) ask.mutate(q.trim()); }} className="flex gap-2">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. Who is at risk of overdue work?"
-          className="key-input h-9 flex-1 px-3 text-[13px]" />
+    <div className="mb-5">
+      <form onSubmit={(e) => { e.preventDefault(); if (q.trim()) ask.mutate(q.trim()); }}
+        className="flex items-center gap-2 rounded-sm border px-3 py-1.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        <Sparkles size={14} className="shrink-0" style={{ color: "var(--section-accent)" }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about your team — grounded in real data, no guesses…"
+          className="min-w-0 flex-1 bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)" }} />
         <button type="submit" disabled={ask.isPending || !q.trim()}
-          className="flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50"
-          style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-sm border px-3 py-1 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50"
+          style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}>
           {ask.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} Ask
         </button>
       </form>
       {!ask.data && !ask.isPending && (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
           {suggestions.map((s) => (
             <button key={s} onClick={() => { setQ(s); ask.mutate(s); }}
-              className="rounded-full border px-2.5 py-1 text-[10.5px] transition-colors hover:text-[var(--text-primary)]"
+              className="rounded-full border px-2.5 py-0.5 text-[10.5px] transition-colors hover:text-[var(--text-primary)]"
               style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{s}</button>
           ))}
         </div>
       )}
-      {ask.data && (
-        <div className="mt-3">
-          <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{ask.data.answer}</p>
-          {ask.data.sufficient && ask.data.sources.length > 0 && (
-            <details className="mt-2">
-              <summary className="cursor-pointer text-[10.5px]" style={{ color: "var(--text-faint)" }}>Based on {ask.data.sources.length} member metric line(s)</summary>
-              <div className="mt-1.5 space-y-1">
-                {ask.data.sources.map((s, i) => <p key={i} className="text-[10.5px]" style={{ color: "var(--text-muted)" }}>• {s.title}</p>)}
-              </div>
-            </details>
-          )}
-          {!ask.data.sufficient && <p className="mt-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Not enough tracked data to answer — nothing was invented.</p>}
+      {(ask.data || ask.isPending) && (
+        <div className="mt-2 rounded-sm border px-3.5 py-3" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
+          {ask.isPending ? (
+            <div className="flex items-center gap-2 text-[12.5px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Reading real team data…</div>
+          ) : ask.data ? (
+            <>
+              <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{ask.data.answer}</p>
+              {ask.data.sufficient && ask.data.sources.length > 0 && (
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-[10.5px]" style={{ color: "var(--text-faint)" }}>Based on {ask.data.sources.length} member metric line(s)</summary>
+                  <div className="mt-1.5 space-y-1">
+                    {ask.data.sources.map((s, i) => <p key={i} className="text-[10.5px]" style={{ color: "var(--text-muted)" }}>• {s.title}</p>)}
+                  </div>
+                </details>
+              )}
+              {!ask.data.sufficient && <p className="mt-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Not enough tracked data to answer — nothing was invented.</p>}
+            </>
+          ) : null}
         </div>
       )}
     </div>
@@ -297,7 +355,10 @@ export function TeamOversightPage() {
         <div className="soul-rule" />
       </div>
 
-      {/* ── One compact summary line + period filter (replaces the separate stat-tile row) ── */}
+      {/* ── Slim AI ask bar, pinned right under the header ── */}
+      {operators.length > 0 && <OversightAsk />}
+
+      {/* ── One compact summary line + period filter ── */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
           <span className="inline-flex items-center gap-1.5"><Users size={13} style={{ color: "var(--text-faint)" }} /><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{totals?.operators ?? operators.length}</strong> member{(totals?.operators ?? operators.length) === 1 ? "" : "s"}</span>
@@ -317,75 +378,36 @@ export function TeamOversightPage() {
       {/* ── Team distributions — only meaningful with 2+ members (hidden for a solo workspace) ── */}
       {operators.length > 1 && <TeamCharts operators={operators} onSelect={select} />}
 
-      {/* ── Grounded Ask-AI over real team data ── */}
-      {operators.length > 0 && <OversightAsk />}
-
-      {/* ── Master–detail: ledger (left) + dossier (right) ── */}
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-        {/* ledger */}
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Members</h2>
-            <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{totals?.active_sessions ?? 0} live now</span>
-          </div>
-          {isLoading ? (
-            <div className="flex items-center gap-2 py-16 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={15} className="animate-spin" /> Loading team activity…</div>
-          ) : operators.length === 0 ? (
-            <div className="rounded-sm border px-5 py-14 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-              <Users size={20} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
-              <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>No members yet</p>
-              <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Activity and AI usage appear here as members work. <Link to="/settings/members" className="font-medium hover:underline" style={{ color: "var(--section-accent)" }}>Invite members</Link>.</p>
-            </div>
-          ) : (
-            <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-              <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
-                {operators.map((op) => {
-                  const v = VERDICT[op.verdict];
-                  const isSel = op.operator_id === selectedId;
-                  return (
-                    <button key={op.operator_id} onClick={() => select(op.operator_id)}
-                      className="grid w-full grid-cols-[1fr_auto] items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
-                      style={{ background: isSel ? "var(--surface-selected)" : undefined }}>
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <Avatar op={op} />
-                        <div className="min-w-0">
-                          <div className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{op.name}</div>
-                          <div className="truncate text-[11px]" style={{ color: "var(--text-faint)" }}>
-                            {activeToday(op.last_active_at) && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: "#5f8169" }} />}
-                            {ago(op.last_active_at)} · {op.task_count} tasks · {fmt(op.tokens)} cr
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="hidden items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10.5px] font-medium sm:inline-flex"
-                          style={{ borderColor: `${v.tone}33`, background: `${v.tone}14`, color: v.tone }}>
-                          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: v.tone }} /> {v.label}
-                        </span>
-                        <ChevronRight size={14} className="shrink-0" style={{ color: isSel ? "var(--section-accent)" : "var(--text-faint)" }} />
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* dossier */}
-        <div className="lg:sticky lg:top-6 lg:self-start">
-          {selected ? <MemberDetail op={selected} />
-            : <div className="flex items-center justify-center rounded-sm border px-6 py-20 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", minHeight: 280 }}>
-                <p className="text-[13px]" style={{ color: "var(--text-faint)" }}>Select a member to see their activity, AI usage, and behaviour.</p>
-              </div>}
-        </div>
+      {/* ── Full-width roster table ── */}
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Members</h2>
+        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{totals?.active_sessions ?? 0} live now</span>
       </div>
+      {isLoading ? (
+        <div className="flex items-center gap-2 py-16 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={15} className="animate-spin" /> Loading team activity…</div>
+      ) : operators.length === 0 ? (
+        <div className="rounded-sm border px-5 py-14 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          <Users size={20} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
+          <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>No members yet</p>
+          <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Activity and AI usage appear here as members work. <Link to="/settings/members" className="font-medium hover:underline" style={{ color: "var(--section-accent)" }}>Invite members</Link>.</p>
+        </div>
+      ) : (
+        <RosterTable operators={operators} selectedId={selectedId} onSelect={select} />
+      )}
+
+      {/* ── Selected member's full-width profile, opens below the roster ── */}
+      {selected && (
+        <div className="mt-5">
+          <MemberDetail op={selected} onClose={() => select(null)} />
+        </div>
+      )}
     </div>
   );
 }
 
 
 /** In-page member dossier — identity, metrics, AI behaviour, activity chart + timeline, actions. */
-function MemberDetail({ op }: { op: Operator }) {
+function MemberDetail({ op, onClose }: { op: Operator; onClose: () => void }) {
   const navigate = useNavigate();
   const v = VERDICT[op.verdict];
   const scope = `${op.name}${op.email ? ` (${op.email})` : ""}`;
@@ -424,19 +446,34 @@ function MemberDetail({ op }: { op: Operator }) {
 
   return (
     <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-      {/* identity */}
-      <div className="flex items-center gap-3 border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
-        <Avatar op={op} size={38} />
+      {/* identity + primary actions, all on top */}
+      <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+        <Avatar op={op} size={40} />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{op.name}</div>
-          <div className="truncate text-[11.5px]" style={{ color: "var(--text-faint)" }}>
-            {op.email ?? op.role} · {op.role}
+          <div className="flex items-center gap-2">
+            <span className="truncate text-[15px] font-semibold" style={{ color: "var(--text-primary)" }}>{op.name}</span>
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ color: v.tone, background: `color-mix(in srgb, ${v.tone} 12%, transparent)` }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: v.tone }} /> {v.label}
+            </span>
+          </div>
+          <div className="mt-0.5 truncate text-[11.5px]" style={{ color: "var(--text-faint)" }}>
+            {op.email ?? op.role} · <span className="capitalize">{op.role}</span>
             {op.has_session ? <span style={{ color: "#5f8169" }}> · online</span> : <span> · {ago(op.last_active_at)}</span>}
           </div>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: v.tone, background: `color-mix(in srgb, ${v.tone} 12%, transparent)` }}>
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: v.tone }} /> {v.label}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => navigate(`/messages?to=${encodeURIComponent(op.operator_id)}`)} title="Message"
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <Send size={11} style={{ color: "var(--section-accent)" }} /> Message
+          </button>
+          {callCap.data?.enabled && (
+            <>
+              <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "audio", name: op.name })} title="Call" className="btn-icon h-7 w-7"><Phone size={13} /></button>
+              <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "video", name: op.name })} title="Video" className="btn-icon h-7 w-7"><Video size={13} /></button>
+            </>
+          )}
+          <button onClick={onClose} title="Close" className="btn-icon h-7 w-7"><X size={15} /></button>
+        </div>
       </div>
 
       {/* admin evaluation headline — a source-backed label, not a score */}
@@ -488,6 +525,9 @@ function MemberDetail({ op }: { op: Operator }) {
         </div>
       )}
 
+      {/* Two-column body — Work signals (left) · AI & behaviour (right) — uses the full width. */}
+      <div className="grid sm:grid-cols-2">
+        <div className="sm:border-r" style={{ borderColor: "var(--border-soft)" }}>
       {/* work quality — source-backed signals computed server-side; every one cites its real basis */}
       {op.quality && op.quality.length > 0 && (
         <Section title="Work quality">
@@ -522,7 +562,8 @@ function MemberDetail({ op }: { op: Operator }) {
         </div>
         <p className="mt-1.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Recorded activity events per day. Hours are not tracked yet.</p>
       </Section>
-
+        </div>
+        <div>
       {/* AI coaching summary — grounded, source-backed */}
       <Section title="AI coaching summary">
         {insightQ.isLoading ? (
@@ -563,6 +604,8 @@ function MemberDetail({ op }: { op: Operator }) {
           <Signal label="Verified device claim (PoW)" ok={op.verified_pow} okText="Verified" offText="None on record" neutral={!op.verified_pow} />
         </div>
       </Section>
+        </div>
+      </div>
 
       {/* activity timeline — real, grouped by lens with source links where a node is known */}
       <Section title="Activity timeline">
@@ -616,29 +659,14 @@ function MemberDetail({ op }: { op: Operator }) {
       </Section>
 
       {/* actions — real destinations only */}
-      <div className="flex flex-wrap gap-1.5 px-4 py-3">
-        <button onClick={() => navigate(`/messages?to=${encodeURIComponent(op.operator_id)}`)}
-          className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-          <Send size={11} style={{ color: "var(--section-accent)" }} /> Message
-        </button>
-        {callCap.data?.enabled && (
-          <>
-            <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "audio", name: op.name })}
-              className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-              <Phone size={11} style={{ color: "var(--section-accent)" }} /> Call
-            </button>
-            <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "video", name: op.name })}
-              className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-              <Video size={11} style={{ color: "var(--section-accent)" }} /> Video
-            </button>
-            {callCap.data?.recording && (
-              <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "audio", name: op.name, record: true })}
-                title="Records the call and saves a transcript to Meeting Memory (both participants are notified on screen)."
-                className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                <Phone size={11} style={{ color: "var(--section-accent)" }} /> Call + record
-              </button>
-            )}
-          </>
+      {/* secondary actions (Message/Call live in the header now) */}
+      <div className="flex flex-wrap gap-1.5 border-t px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+        {callCap.data?.enabled && callCap.data?.recording && (
+          <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "audio", name: op.name, record: true })}
+            title="Records the call and saves a transcript to Meeting Memory (both participants are notified on screen)."
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <Phone size={11} style={{ color: "var(--section-accent)" }} /> Call + record
+          </button>
         )}
         <Link to="/settings/members" className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
           <Users size={11} style={{ color: "var(--section-accent)" }} /> Manage role &amp; access
