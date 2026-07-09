@@ -162,9 +162,15 @@ export function ReportsPage() {
               const liveCount   = allWidgets.filter(w => w.type === "live").length;
               const reportCount = allWidgets.filter(w => w.type === "report").length;
               const totalCount  = allWidgets.length;
-              // Mini bar heights — vary based on dashboard id for visual variety
-              const seed = dashboard.id.charCodeAt(0) ?? 0;
-              const bars = [4,7,5,9,6,8,3].map((h, i) => Math.max(2, (h + ((seed + i) % 4)) * 7));
+              const otherCount  = Math.max(0, totalCount - liveCount - reportCount);
+              // Real widget composition (live / chart / other) — heights proportional to actual counts,
+              // not decorative noise.
+              const comp = [
+                { n: liveCount, color: "#5f8169" },
+                { n: reportCount, color: "var(--text-secondary)" },
+                { n: otherCount, color: "var(--border-strong)" },
+              ].filter(x => x.n > 0);
+              const compMax = Math.max(1, ...comp.map(x => x.n));
               return (
                 <Link
                   key={dashboard.id}
@@ -200,14 +206,11 @@ export function ReportsPage() {
                             </span>
                           )}
                         </div>
-                        {/* Decorative mini chart */}
-                        <div className="flex items-end gap-1 h-12">
-                          {bars.map((h, i) => (
-                            <div
-                              key={i}
-                              className="flex-1 rounded-t-sm bg-[var(--border-strong)] transition-all"
-                              style={{ height: h, opacity: 0.18 + i * 0.045 }}
-                            />
+                        {/* Real widget composition — bar per widget type, height ∝ actual count. */}
+                        <div className="flex items-end gap-1.5 h-12">
+                          {comp.map((seg, i) => (
+                            <div key={i} className="flex-1 rounded-t-sm transition-all"
+                              style={{ height: `${Math.max(14, (seg.n / compMax) * 100)}%`, background: seg.color, opacity: 0.55 }} />
                           ))}
                         </div>
                       </>
