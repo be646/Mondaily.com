@@ -3,6 +3,7 @@ import { startJob, completeJob, failJob, logStep, step } from "../lib/agent-logg
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignWebContext } from "../lib/sovereign-search";
 import { createNotification } from "../lib/notify";
+import { refreshFxRates } from "../lib/currency-store";
 import { runDiscoveryMonitors } from "./social-discovery";
 import { runMeetingAgent } from "./meeting-agent";
 
@@ -735,5 +736,7 @@ export async function runAllDaily(): Promise<Record<string, unknown>> {
   results.discovery_monitors = await runDiscoveryMonitors().catch((e) => ({ error: String(e) }));
   // Meeting Agent daily sweep — real per-workspace scheduled runs (conflicts → Decision Queue, deduped).
   results.meeting_agent = await runMeetingAgent().catch((e) => ({ error: String(e) }));
+  // Refresh FX reference rates (global) so multi-currency totals normalize with fresh data.
+  results.fx_rates = await refreshFxRates().catch((e) => ({ error: String(e) }));
   return results;
 }

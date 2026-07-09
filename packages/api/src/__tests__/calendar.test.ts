@@ -340,7 +340,8 @@ describe("Calls — in-call UI polish (named tiles, controls, screen share, no b
   it("supports screen share and device selection via the client SDK (non-breaking extras)", () => {
     expect(room).toMatch(/setScreenShareEnabled/);
     expect(room).toMatch(/switchActiveDevice\(kind, deviceId\)/);
-    expect(room).toMatch(/switchDevice\(kind === "audio" \? "audioinput" : "videoinput", e\.target\.value\)/);
+    // Device picker migrated from a native <select> to the themed FieldSelect (value passed directly).
+    expect(room).toMatch(/switchDevice\(kind === "audio" \? "audioinput" : "videoinput", v\)/);
   });
   it("still shows no engine/provider branding anywhere the user can see", () => {
     const visible = room.split("\n").filter((l) => !/["']livekit-client["']/.test(l)).join("\n");
