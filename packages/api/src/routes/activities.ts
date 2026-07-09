@@ -3,7 +3,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { verifiedPowUserIds } from "../lib/pow-claims";
-import { aiGateway } from "../lib/ai-gateway";
+import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { workQuality, aggregateDeals, dailyTrend, evaluationLabel, type DealNode } from "../lib/oversight-metrics";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
@@ -384,6 +384,95 @@ router.post("/member-insight", requireAuth, requireAdminRole, async (c) => {
     return c.json({ insight: insight || "I don't have enough tracked activity for this member yet.", sources, sufficient: true });
   } catch {
     return c.json({ insight: "The AI service is unavailable right now — please try again in a moment.", sources, sufficient: true });
+  }
+});
+
+/**
+ * AI work-EFFICIENCY review — admin-only, on-demand. Produces a STRUCTURED, grounded assessment of
+ * one member's real work: an efficiency rating, a factual assessment, concrete strengths + concrete
+ * improvement areas, and a warm coaching message a manager could actually send. Uses ONLY the real
+ * metrics below — never invents workload, hours, or achievements. Honest "insufficient" when thin.
+ */
+router.post("/member-efficiency", requireAuth, requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const body = await c.req.json<{ actor_id?: string }>().catch(() => ({} as { actor_id?: string }));
+  const actorId = String(body.actor_id ?? "");
+  if (!actorId) return c.json({ error: "actor_id required" }, 400);
+
+  const nowIso = new Date().toISOString();
+  const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  const [{ data: member }, { data: usage }, { data: acts }, { data: tasks }, { data: decisions }, { data: msgs }] = await Promise.all([
+    supabase.from("workspace_members").select("name, email, role").eq("workspace_id", ws).eq("user_id", actorId).maybeSingle(),
+    supabase.from("ai_usage").select("total_tokens").eq("workspace_id", ws).eq("user_id", actorId).gte("created_at", sinceIso).limit(100000),
+    supabase.from("activities").select("action, created_at").eq("workspace_id", ws).eq("actor_id", actorId).gte("created_at", sinceIso).limit(50000),
+    supabase.from("tasks").select("completed, due_date, completed_at").eq("workspace_id", ws).eq("assignee_id", actorId).limit(5000),
+    supabase.from("decision_queue").select("resolved_by").eq("workspace_id", ws).eq("resolved_by", actorId).gte("resolved_at", sinceIso).limit(10000),
+    supabase.from("internal_messages").select("sender_id").eq("workspace_id", ws).eq("sender_id", actorId).gte("created_at", sinceIso).limit(10000),
+  ]);
+  if (!member) return c.json({ error: "Member not found in this workspace." }, 404);
+
+  const taskRoll = { open: 0, overdue: 0, completed: 0 };
+  for (const t of tasks ?? []) {
+    if (t.completed) taskRoll.completed += 1;
+    else { taskRoll.open += 1; if (t.due_date && String(t.due_date) < nowIso) taskRoll.overdue += 1; }
+  }
+  const totalTasks = taskRoll.open + taskRoll.completed;
+  const completionRate = totalTasks > 0 ? Math.round((taskRoll.completed / totalTasks) * 100) : 0;
+  const tokens = (usage ?? []).reduce((s, u) => s + Number(u.total_tokens ?? 0), 0);
+  const activityCount = (acts ?? []).length;
+  const decisionsResolved = (decisions ?? []).length;
+  const messagesSent = (msgs ?? []).length;
+  const activeDays = new Set((acts ?? []).map(a => String(a.created_at).slice(0, 10))).size;
+
+  // Not enough real signal → honest response, no model call.
+  if (tokens === 0 && activityCount === 0 && totalTasks === 0 && decisionsResolved === 0) {
+    return c.json({ sufficient: false, rating: "insufficient", assessment: "There isn't enough tracked work for this member yet to assess efficiency.", strengths: [], improvements: [], coaching_message: "" });
+  }
+
+  const digest = [
+    `Member: ${member.name ?? "Unknown"}${member.email ? ` (${member.email})` : ""}, role ${member.role ?? "member"}. Window: last 30 days.`,
+    `Tasks — completed ${taskRoll.completed}, open ${taskRoll.open}, overdue ${taskRoll.overdue}; completion rate ${completionRate}%.`,
+    `Decisions resolved: ${decisionsResolved}. Internal messages sent: ${messagesSent}.`,
+    `Recorded activity events: ${activityCount} across ${activeDays} active day(s).`,
+    `AI credits (tokens) used: ${tokens}.`,
+  ].join("\n");
+
+  const system =
+    "You are a supportive team-performance coach for a workspace manager. Using ONLY the real metrics provided, assess ONE member's work EFFICIENCY. " +
+    "Be honest, specific, and constructive — cite the actual numbers. NEVER invent tasks, hours, achievements, or problems the data doesn't show. " +
+    "Give: a rating (strong = high throughput + high completion + low overdue; steady = solid/consistent; needs_support = low completion, high overdue, or very low activity); " +
+    "a 2-4 sentence assessment grounded in the numbers; 1-3 concrete strengths; 1-3 concrete, actionable improvements; and a short, warm, respectful coaching message the manager could send directly to the member (first person, encouraging, references the real data). " +
+    "If the data is genuinely too thin, set rating to 'insufficient' and keep arrays empty.";
+  const schema = {
+    type: "object" as const,
+    properties: {
+      rating: { type: "string", enum: ["strong", "steady", "needs_support", "insufficient"] },
+      assessment: { type: "string" },
+      strengths: { type: "array", items: { type: "string" } },
+      improvements: { type: "array", items: { type: "string" } },
+      coaching_message: { type: "string" },
+    },
+    required: ["rating", "assessment", "strengths", "improvements", "coaching_message"],
+  };
+
+  try {
+    const result = await aiGatewayToolUse({
+      system, prompt: digest, toolName: "work_efficiency_review",
+      toolDescription: "Return a grounded work-efficiency review of the member.",
+      toolSchema: schema, maxTokens: 700, workspaceId: ws, userId: c.get("userId"), feature: "member_efficiency",
+    });
+    const r = (result ?? {}) as { rating?: string; assessment?: string; strengths?: string[]; improvements?: string[]; coaching_message?: string };
+    return c.json({
+      sufficient: true,
+      rating: ["strong", "steady", "needs_support"].includes(String(r.rating)) ? r.rating : "steady",
+      assessment: (r.assessment ?? "").trim(),
+      strengths: Array.isArray(r.strengths) ? r.strengths.slice(0, 3) : [],
+      improvements: Array.isArray(r.improvements) ? r.improvements.slice(0, 3) : [],
+      coaching_message: (r.coaching_message ?? "").trim(),
+      metrics: { completion_rate: completionRate, completed: taskRoll.completed, overdue: taskRoll.overdue, active_days: activeDays, decisions: decisionsResolved },
+    });
+  } catch {
+    return c.json({ sufficient: false, rating: "insufficient", assessment: "The AI service is unavailable right now — please try again in a moment.", strengths: [], improvements: [], coaching_message: "" });
   }
 });
 

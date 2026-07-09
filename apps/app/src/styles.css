@@ -1615,3 +1615,7 @@ html[data-theme="light"] .record-scroll { scrollbar-color: rgba(0,0,0,0.15) tran
 
 /* Opt-in helper for any element that must remain LTR regardless of language. */
 .force-ltr { direction: ltr !important; text-align: left; }
+
+/* Team Oversight — "live AI" scanning bar in the section header */
+@keyframes oversight-live-scan { 0% { transform: translateX(-110%); } 100% { transform: translateX(320%); } }
+.oversight-live-scan { animation: oversight-live-scan 1.9s cubic-bezier(0.45,0,0.55,1) infinite; }

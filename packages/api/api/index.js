@@ -66233,6 +66233,85 @@ router9.post("/member-insight", requireAuth, requireAdminRole, async (c2) => {
     return c2.json({ insight: "The AI service is unavailable right now \u2014 please try again in a moment.", sources, sufficient: true });
   }
 });
+router9.post("/member-efficiency", requireAuth, requireAdminRole, async (c2) => {
+  const ws = c2.get("workspaceId");
+  const body = await c2.req.json().catch(() => ({}));
+  const actorId = String(body.actor_id ?? "");
+  if (!actorId) return c2.json({ error: "actor_id required" }, 400);
+  const nowIso = (/* @__PURE__ */ new Date()).toISOString();
+  const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1e3).toISOString();
+  const [{ data: member }, { data: usage }, { data: acts }, { data: tasks2 }, { data: decisions }, { data: msgs }] = await Promise.all([
+    supabase.from("workspace_members").select("name, email, role").eq("workspace_id", ws).eq("user_id", actorId).maybeSingle(),
+    supabase.from("ai_usage").select("total_tokens").eq("workspace_id", ws).eq("user_id", actorId).gte("created_at", sinceIso).limit(1e5),
+    supabase.from("activities").select("action, created_at").eq("workspace_id", ws).eq("actor_id", actorId).gte("created_at", sinceIso).limit(5e4),
+    supabase.from("tasks").select("completed, due_date, completed_at").eq("workspace_id", ws).eq("assignee_id", actorId).limit(5e3),
+    supabase.from("decision_queue").select("resolved_by").eq("workspace_id", ws).eq("resolved_by", actorId).gte("resolved_at", sinceIso).limit(1e4),
+    supabase.from("internal_messages").select("sender_id").eq("workspace_id", ws).eq("sender_id", actorId).gte("created_at", sinceIso).limit(1e4)
+  ]);
+  if (!member) return c2.json({ error: "Member not found in this workspace." }, 404);
+  const taskRoll = { open: 0, overdue: 0, completed: 0 };
+  for (const t3 of tasks2 ?? []) {
+    if (t3.completed) taskRoll.completed += 1;
+    else {
+      taskRoll.open += 1;
+      if (t3.due_date && String(t3.due_date) < nowIso) taskRoll.overdue += 1;
+    }
+  }
+  const totalTasks = taskRoll.open + taskRoll.completed;
+  const completionRate = totalTasks > 0 ? Math.round(taskRoll.completed / totalTasks * 100) : 0;
+  const tokens = (usage ?? []).reduce((s2, u2) => s2 + Number(u2.total_tokens ?? 0), 0);
+  const activityCount = (acts ?? []).length;
+  const decisionsResolved = (decisions ?? []).length;
+  const messagesSent = (msgs ?? []).length;
+  const activeDays = new Set((acts ?? []).map((a2) => String(a2.created_at).slice(0, 10))).size;
+  if (tokens === 0 && activityCount === 0 && totalTasks === 0 && decisionsResolved === 0) {
+    return c2.json({ sufficient: false, rating: "insufficient", assessment: "There isn't enough tracked work for this member yet to assess efficiency.", strengths: [], improvements: [], coaching_message: "" });
+  }
+  const digest = [
+    `Member: ${member.name ?? "Unknown"}${member.email ? ` (${member.email})` : ""}, role ${member.role ?? "member"}. Window: last 30 days.`,
+    `Tasks \u2014 completed ${taskRoll.completed}, open ${taskRoll.open}, overdue ${taskRoll.overdue}; completion rate ${completionRate}%.`,
+    `Decisions resolved: ${decisionsResolved}. Internal messages sent: ${messagesSent}.`,
+    `Recorded activity events: ${activityCount} across ${activeDays} active day(s).`,
+    `AI credits (tokens) used: ${tokens}.`
+  ].join("\n");
+  const system = "You are a supportive team-performance coach for a workspace manager. Using ONLY the real metrics provided, assess ONE member's work EFFICIENCY. Be honest, specific, and constructive \u2014 cite the actual numbers. NEVER invent tasks, hours, achievements, or problems the data doesn't show. Give: a rating (strong = high throughput + high completion + low overdue; steady = solid/consistent; needs_support = low completion, high overdue, or very low activity); a 2-4 sentence assessment grounded in the numbers; 1-3 concrete strengths; 1-3 concrete, actionable improvements; and a short, warm, respectful coaching message the manager could send directly to the member (first person, encouraging, references the real data). If the data is genuinely too thin, set rating to 'insufficient' and keep arrays empty.";
+  const schema = {
+    type: "object",
+    properties: {
+      rating: { type: "string", enum: ["strong", "steady", "needs_support", "insufficient"] },
+      assessment: { type: "string" },
+      strengths: { type: "array", items: { type: "string" } },
+      improvements: { type: "array", items: { type: "string" } },
+      coaching_message: { type: "string" }
+    },
+    required: ["rating", "assessment", "strengths", "improvements", "coaching_message"]
+  };
+  try {
+    const result = await aiGatewayToolUse({
+      system,
+      prompt: digest,
+      toolName: "work_efficiency_review",
+      toolDescription: "Return a grounded work-efficiency review of the member.",
+      toolSchema: schema,
+      maxTokens: 700,
+      workspaceId: ws,
+      userId: c2.get("userId"),
+      feature: "member_efficiency"
+    });
+    const r2 = result ?? {};
+    return c2.json({
+      sufficient: true,
+      rating: ["strong", "steady", "needs_support"].includes(String(r2.rating)) ? r2.rating : "steady",
+      assessment: (r2.assessment ?? "").trim(),
+      strengths: Array.isArray(r2.strengths) ? r2.strengths.slice(0, 3) : [],
+      improvements: Array.isArray(r2.improvements) ? r2.improvements.slice(0, 3) : [],
+      coaching_message: (r2.coaching_message ?? "").trim(),
+      metrics: { completion_rate: completionRate, completed: taskRoll.completed, overdue: taskRoll.overdue, active_days: activeDays, decisions: decisionsResolved }
+    });
+  } catch {
+    return c2.json({ sufficient: false, rating: "insufficient", assessment: "The AI service is unavailable right now \u2014 please try again in a moment.", strengths: [], improvements: [], coaching_message: "" });
+  }
+});
 router9.post("/oversight-ask", requireAuth, requireAdminRole, async (c2) => {
   const ws = c2.get("workspaceId");
   const body = await c2.req.json().catch(() => ({}));

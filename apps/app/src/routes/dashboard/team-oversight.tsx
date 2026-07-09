@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, X } from "lucide-react";
@@ -55,6 +55,14 @@ function timelineGroupOf(a: ActivityRow): TimelineGroup {
 }
 const TIMELINE_ORDER: TimelineGroup[] = ["Tasks", "Records & deals", "Decisions", "Messages", "AI actions", "Other"];
 interface InsightResp { insight: string; sources: { type: string; title: string; timestamp: string }[]; sufficient: boolean }
+type EffRating = "strong" | "steady" | "needs_support" | "insufficient";
+interface EfficiencyResp { sufficient: boolean; rating: EffRating; assessment: string; strengths: string[]; improvements: string[]; coaching_message: string; metrics?: { completion_rate: number; completed: number; overdue: number; active_days: number; decisions: number } }
+const EFF_LABEL: Record<EffRating, { label: string; tone: string }> = {
+  strong:        { label: "Strong",        tone: "#5f8169" },
+  steady:        { label: "Steady",        tone: "var(--section-accent)" },
+  needs_support: { label: "Needs support", tone: "#97824f" },
+  insufficient:  { label: "Not enough data", tone: "var(--text-faint)" },
+};
 
 const VERDICT: Record<Verdict, { label: string; tone: string }> = {
   engaged:         { label: "Engaged",        tone: "#5f8169" },
@@ -191,7 +199,7 @@ function OverviewTiles({ trends, periodLabel }: { trends: NonNullable<MatrixResp
 /** Full-width team roster — a real leaderboard table (Member · Tasks · Records · Decisions · AI
  *  credits bar · verdict), sorted, dense, scannable. Click a row to open that member's profile. */
 const ROSTER_COLS = "grid-cols-[1fr_auto] sm:grid-cols-[minmax(0,1.6fr)_4rem_4.5rem_5rem_minmax(96px,1fr)_1.25rem]";
-function RosterTable({ operators, selectedId, onSelect }: { operators: Operator[]; selectedId: string | null; onSelect: (id: string) => void }) {
+function RosterTable({ operators, selectedId, onSelect, detailFor }: { operators: Operator[]; selectedId: string | null; onSelect: (id: string | null) => void; detailFor: (op: Operator) => React.ReactNode }) {
   const maxTokens = Math.max(1, ...operators.map(o => o.tokens));
   return (
     <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
@@ -208,7 +216,8 @@ function RosterTable({ operators, selectedId, onSelect }: { operators: Operator[
           const v = VERDICT[op.verdict];
           const isSel = op.operator_id === selectedId;
           return (
-            <button key={op.operator_id} onClick={() => onSelect(op.operator_id)}
+            <Fragment key={op.operator_id}>
+            <button onClick={() => onSelect(isSel ? null : op.operator_id)}
               className={`grid w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)] ${ROSTER_COLS}`}
               style={{ background: isSel ? "var(--surface-selected)" : undefined }}>
               <div className="flex min-w-0 items-center gap-2.5">
@@ -233,8 +242,14 @@ function RosterTable({ operators, selectedId, onSelect }: { operators: Operator[
                 </span>
                 <span className="w-12 shrink-0 text-right text-[11px] tabular-nums" style={{ color: "var(--text-faint)" }}>{fmt(op.tokens)}</span>
               </div>
-              <ChevronRight size={14} className="shrink-0 justify-self-end" style={{ color: isSel ? "var(--section-accent)" : "var(--text-faint)" }} />
+              <ChevronRight size={14} className="shrink-0 justify-self-end transition-transform" style={{ color: isSel ? "var(--section-accent)" : "var(--text-faint)", transform: isSel ? "rotate(90deg)" : undefined }} />
             </button>
+            {isSel && (
+              <div className="border-t px-2.5 py-2.5" style={{ borderColor: "var(--section-accent-line)", background: "var(--surface-hover)" }}>
+                {detailFor(op)}
+              </div>
+            )}
+            </Fragment>
           );
         })}
       </div>
@@ -336,23 +351,26 @@ export function TeamOversightPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      {/* ── AI-engine header — the section's "intelligence" signature ── */}
-      <div className="mb-6 overflow-hidden rounded-sm border" style={{ borderColor: "var(--section-accent-line)" }}>
-        <div className="flex items-center justify-between gap-3 px-4 py-3.5" style={{ background: "color-mix(in srgb, var(--section-accent) 5%, transparent)" }}>
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-sm border" style={{ borderColor: "var(--section-accent-line)", color: "var(--section-accent)", background: "var(--surface-card)" }}>
-              <ShieldCheck size={16} />
-            </div>
-            <div className="min-w-0">
-              <div className="soul-kicker">// SIGNAL · TEAM INTELLIGENCE</div>
-              <h1 className="mt-0.5 text-[17px] font-semibold" style={{ color: "var(--text-primary)" }}>Team Intelligence</h1>
-            </div>
-          </div>
-          <div className="hidden shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-wider sm:flex" style={{ color: "var(--text-muted)" }}>
-            <span className="soul-dot" /> real activity only
-          </div>
+      {/* ── Thin, LIVE section header — a compact bar with an animated "AI live" pulse ── */}
+      <div className="mb-5 flex items-center justify-between gap-3 rounded-sm border px-3 py-2" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className="relative grid h-6 w-6 shrink-0 place-items-center rounded-sm" style={{ color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}>
+            <ShieldCheck size={13} />
+          </span>
+          <h1 className="truncate text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>Team Intelligence</h1>
+          <span className="hidden font-mono text-[9.5px] uppercase tracking-wider sm:inline" style={{ color: "var(--text-faint)" }}>· signal engine</span>
         </div>
-        <div className="soul-rule" />
+        {/* Live indicator — a pulsing ring + a subtle animated activity bar = "working AI", not static text. */}
+        <div className="flex shrink-0 items-center gap-2">
+          <span className="hidden h-3 w-16 overflow-hidden rounded-full sm:block" style={{ background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}>
+            <span className="oversight-live-scan block h-full w-1/3 rounded-full" style={{ background: "var(--section-accent)" }} />
+          </span>
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ background: "#5f8169" }} />
+            <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#5f8169" }} />
+          </span>
+          <span className="font-mono text-[9.5px] uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Live · real activity</span>
+        </div>
       </div>
 
       {/* ── Slim AI ask bar, pinned right under the header ── */}
@@ -392,14 +410,8 @@ export function TeamOversightPage() {
           <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Activity and AI usage appear here as members work. <Link to="/settings/members" className="font-medium hover:underline" style={{ color: "var(--section-accent)" }}>Invite members</Link>.</p>
         </div>
       ) : (
-        <RosterTable operators={operators} selectedId={selectedId} onSelect={select} />
-      )}
-
-      {/* ── Selected member's full-width profile, opens below the roster ── */}
-      {selected && (
-        <div className="mt-5">
-          <MemberDetail op={selected} onClose={() => select(null)} />
-        </div>
+        <RosterTable operators={operators} selectedId={selectedId} onSelect={select}
+          detailFor={(op) => <MemberDetail op={op} onClose={() => select(null)} />} />
       )}
     </div>
   );
@@ -433,6 +445,11 @@ function MemberDetail({ op, onClose }: { op: Operator; onClose: () => void }) {
     retry: false,
     staleTime: 5 * 60_000,
   });
+
+  // On-demand AI work-efficiency review — generated when the manager asks for it (structured,
+  // grounded, with strengths / improvements / a coaching message they can send).
+  const efficiency = useMutation<EfficiencyResp>({ mutationFn: () => apiClient.post<EfficiencyResp>("/activities/member-efficiency", { actor_id: op.operator_id }) });
+  const [copied, setCopied] = useState(false);
 
   // Activity-over-time — last 14 days bucketed from the REAL timeline (no fabricated hours).
   const chart = useMemo(() => {
@@ -524,6 +541,67 @@ function MemberDetail({ op, onClose }: { op: Operator; onClose: () => void }) {
           ))}
         </div>
       )}
+
+      {/* ── AI Work-Efficiency Review — on-demand, grounded, actionable ── */}
+      <div className="border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
+            <Sparkles size={12} style={{ color: "var(--section-accent)" }} /> AI work-efficiency review
+          </p>
+          {!efficiency.data && (
+            <button onClick={() => efficiency.mutate()} disabled={efficiency.isPending}
+              className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}>
+              {efficiency.isPending ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} style={{ color: "var(--section-accent)" }} />} Generate review
+            </button>
+          )}
+        </div>
+        {efficiency.isPending && <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>Analyzing real work data…</p>}
+        {efficiency.isError && <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>Couldn't generate the review — please try again.</p>}
+        {!efficiency.data && !efficiency.isPending && !efficiency.isError && (
+          <p className="text-[11.5px] leading-relaxed" style={{ color: "var(--text-faint)" }}>Generate an AI assessment of this member's work efficiency — strengths, where to improve, and a coaching message you can send them. Grounded strictly in real metrics — nothing invented.</p>
+        )}
+        {efficiency.data?.sufficient && (() => {
+          const e = efficiency.data; const t = EFF_LABEL[e.rating];
+          return (
+            <div className="space-y-3">
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10.5px] font-medium" style={{ borderColor: `${t.tone}33`, background: `${t.tone}14`, color: t.tone }}>
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: t.tone }} /> {t.label}
+                </span>
+                <p className="mt-1.5 text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{e.assessment}</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {e.strengths.length > 0 && (
+                  <div>
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#5f8169" }}>Strengths</p>
+                    <ul className="space-y-1">{e.strengths.map((s, i) => <li key={i} className="flex gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "#5f8169" }} />{s}</li>)}</ul>
+                  </div>
+                )}
+                {e.improvements.length > 0 && (
+                  <div>
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#97824f" }}>Where to improve</p>
+                    <ul className="space-y-1">{e.improvements.map((s, i) => <li key={i} className="flex gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "#97824f" }} />{s}</li>)}</ul>
+                  </div>
+                )}
+              </div>
+              {e.coaching_message && (
+                <div className="rounded-sm border p-3" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Coaching message for {op.name.split(" ")[0]}</p>
+                    <div className="flex gap-2.5">
+                      <button onClick={() => { void navigator.clipboard?.writeText(e.coaching_message); setCopied(true); setTimeout(() => setCopied(false), 1500); }} className="text-[10.5px] font-medium" style={{ color: "var(--section-accent)" }}>{copied ? "Copied" : "Copy"}</button>
+                      <button onClick={() => navigate(`/messages?to=${encodeURIComponent(op.operator_id)}`)} className="text-[10.5px] font-medium" style={{ color: "var(--section-accent)" }}>Message</button>
+                    </div>
+                  </div>
+                  <p className="text-[12.5px] italic leading-relaxed" style={{ color: "var(--text-secondary)" }}>“{e.coaching_message}”</p>
+                </div>
+              )}
+              <button onClick={() => efficiency.mutate()} disabled={efficiency.isPending} className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>↻ Regenerate</button>
+            </div>
+          );
+        })()}
+        {efficiency.data && !efficiency.data.sufficient && <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>{efficiency.data.assessment}</p>}
+      </div>
 
       {/* Two-column body — Work signals (left) · AI & behaviour (right) — uses the full width. */}
       <div className="grid sm:grid-cols-2">
