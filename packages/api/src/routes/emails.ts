@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { requireAuth } from "../middleware/auth";
 import { verifyTrackingToken } from "../lib/tracking";
-import { threadIdFor, mergeMessage, inboundAddressFor, workspaceIdFromRecipients, mailDomainConfigured, buildOutboundMessage, type InboundMessage, type ThreadData } from "../lib/email-sovereign";
+import { threadIdFor, mergeMessage, inboundAddressFor, workspaceIdFromRecipients, mailDomainConfigured, buildOutboundMessage, attachmentPath, type InboundMessage, type ThreadData } from "../lib/email-sovereign";
 import { freshAccessToken, gmailThreads, gmailThread, gmailSend } from "../lib/google";
 import { sendWorkspaceEmail } from "../lib/mail";
 
@@ -77,6 +77,25 @@ router.get("/track/:token/click", async (c) => {
   return c.redirect(url, 302);
 });
 
+// Upload a message's attachments to private Supabase Storage, returning stored metadata (never the
+// bytes). Capped so a huge mail can't exhaust storage; a failed upload is skipped, not fatal.
+const ATTACH_BUCKET = "email-attachments";
+const MAX_ATTACH_BYTES = 10 * 1024 * 1024;   // 10 MB per file
+async function storeAttachments(workspaceId: string, msg: InboundMessage) {
+  const out: { filename: string; content_type: string; size: number; path: string }[] = [];
+  for (const [i, a] of (msg.attachments ?? []).slice(0, 15).entries()) {
+    try {
+      const bytes = new Uint8Array(Buffer.from(a.content_base64 ?? "", "base64"));
+      if (bytes.length === 0 || bytes.length > MAX_ATTACH_BYTES) continue;
+      const path = attachmentPath(workspaceId, msg.message_id, i, a.filename);
+      const { error } = await supabase.storage.from(ATTACH_BUCKET).upload(path, bytes, { contentType: a.content_type || "application/octet-stream", upsert: true });
+      if (error) continue;
+      out.push({ filename: a.filename || `file-${i}`, content_type: a.content_type || "application/octet-stream", size: bytes.length, path });
+    } catch { /* skip this attachment */ }
+  }
+  return out;
+}
+
 // ── Sovereign inbound mail — NO auth (called by the self-hosted mail receiver) ────
 // A self-hosted receiver parses incoming SMTP into JSON and POSTs it here, HMAC-signed. We fold it
 // into the workspace's email_thread nodes (the same model the inbox UI renders) — no Gmail, no
@@ -104,7 +123,8 @@ router.post("/inbound", async (c) => {
   const threadId = threadIdFor(msg);
   const { data: existing } = await supabase.from("nodes").select("id,data")
     .eq("workspace_id", workspaceId).eq("object_type", "email_thread").eq("data->>thread_id", threadId).maybeSingle();
-  const merged = mergeMessage((existing?.data ?? null) as ThreadData | null, msg, threadId, "inbound");
+  const stored = await storeAttachments(workspaceId, msg);
+  const merged = mergeMessage((existing?.data ?? null) as ThreadData | null, msg, threadId, "inbound", stored);
   if (existing) {
     await supabase.from("nodes").update({ data: merged }).eq("id", existing.id).eq("workspace_id", workspaceId).eq("object_type", "email_thread");
   } else {
@@ -122,6 +142,17 @@ router.get("/inbound-address", (c) => c.json({
   address: inboundAddressFor(c.get("workspaceId")),
   enabled: mailDomainConfigured(),
 }));
+
+// GET /emails/attachment?path=<storage path> — a short-lived signed URL for an email attachment.
+// Workspace-scoped: the path MUST live under this workspace's prefix, so one tenant can never fetch
+// another's files even with a guessed path.
+router.get("/attachment", zValidator("query", z.object({ path: z.string().min(1) })), async (c) => {
+  const path = c.req.valid("query").path;
+  if (!path.startsWith(`${c.get("workspaceId")}/`)) return c.json({ error: "Not allowed." }, 403);
+  const { data, error } = await supabase.storage.from(ATTACH_BUCKET).createSignedUrl(path, 120);
+  if (error || !data?.signedUrl) return c.json({ error: "Attachment not found." }, 404);
+  return c.json({ url: data.signedUrl });
+});
 
 async function getSettings(workspaceId: string) {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();

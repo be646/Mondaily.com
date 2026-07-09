@@ -34,6 +34,13 @@ the existing sender, so nothing breaks until you deploy this.
 Until these are set the app's existing inbox keeps working (Gmail / local cache) and this appliance
 simply isn't used — sovereign email activates the moment the envs + MX are in place.
 
+## Attachments
+Inbound attachments (PDFs, images, docs) are parsed by the receiver, forwarded in the webhook
+(base64, 10 MB/file cap — tune `MAX_ATTACH_BYTES`), and uploaded by the API to a PRIVATE Supabase
+Storage bucket `email-attachments`. Run the `20260709_email_attachments_bucket.sql` migration once to
+create the bucket. The inbox serves each file via a short-lived signed URL scoped to the workspace
+prefix, so one tenant can never read another's files.
+
 ## Security
 - The inbound webhook is HMAC-verified on the API side (401 on mismatch / missing secret). The
   receiver only ever *sends* to your own API.

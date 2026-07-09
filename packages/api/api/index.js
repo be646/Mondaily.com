@@ -41142,6 +41142,11 @@ function parseAddr(s2) {
   if (m2) return { name: (m2[1] ?? "").trim() || void 0, email: (m2[2] ?? "").trim().toLowerCase() };
   return { email: (s2 ?? "").trim().toLowerCase() };
 }
+function attachmentPath(workspaceId, messageId, index, filename) {
+  const safeMsg = strip(messageId).replace(/[^a-zA-Z0-9_.-]/g, "_") || "msg";
+  const safeName = (filename || `file-${index}`).replace(/[^a-zA-Z0-9_.-]/g, "_").slice(0, 120);
+  return `${workspaceId}/${safeMsg}/${index}-${safeName}`;
+}
 function threadIdFor(msg) {
   const root = (msg.references && msg.references.length > 0 ? msg.references[0] : msg.in_reply_to) || "";
   if (strip(root)) return strip(root);
@@ -41149,9 +41154,9 @@ function threadIdFor(msg) {
   const seed = `${normalizeSubject(msg.subject).toLowerCase()}|${[...new Set(people)].join(",")}`;
   return `mtd-${(0, import_node_crypto2.createHash)("sha1").update(seed).digest("hex").slice(0, 24)}`;
 }
-function mergeMessage(existing, msg, threadId, direction) {
+function mergeMessage(existing, msg, threadId, direction, storedAttachments) {
   const body = (msg.html || msg.text || "").toString();
-  const stored = { id: strip(msg.message_id) || `${threadId}-${(existing?.messages.length ?? 0) + 1}`, message_id: strip(msg.message_id), from: msg.from, to: msg.to, cc: msg.cc, date: msg.date ?? (/* @__PURE__ */ new Date()).toISOString(), body };
+  const stored = { id: strip(msg.message_id) || `${threadId}-${(existing?.messages.length ?? 0) + 1}`, message_id: strip(msg.message_id), from: msg.from, to: msg.to, cc: msg.cc, date: msg.date ?? (/* @__PURE__ */ new Date()).toISOString(), body, ...storedAttachments && storedAttachments.length ? { attachments: storedAttachments } : {} };
   const priorMsgs = existing?.messages ?? [];
   const messages = priorMsgs.some((m2) => m2.message_id && m2.message_id === stored.message_id) ? priorMsgs : [...priorMsgs, stored].sort((a2, b2) => toUnixSeconds(a2.date) - toUnixSeconds(b2.date));
   const participants = [...new Map(
@@ -69984,6 +69989,23 @@ router24.get("/track/:token/click", async (c2) => {
   }
   return c2.redirect(url, 302);
 });
+var ATTACH_BUCKET = "email-attachments";
+var MAX_ATTACH_BYTES = 10 * 1024 * 1024;
+async function storeAttachments(workspaceId, msg) {
+  const out = [];
+  for (const [i2, a2] of (msg.attachments ?? []).slice(0, 15).entries()) {
+    try {
+      const bytes = new Uint8Array(Buffer.from(a2.content_base64 ?? "", "base64"));
+      if (bytes.length === 0 || bytes.length > MAX_ATTACH_BYTES) continue;
+      const path = attachmentPath(workspaceId, msg.message_id, i2, a2.filename);
+      const { error } = await supabase.storage.from(ATTACH_BUCKET).upload(path, bytes, { contentType: a2.content_type || "application/octet-stream", upsert: true });
+      if (error) continue;
+      out.push({ filename: a2.filename || `file-${i2}`, content_type: a2.content_type || "application/octet-stream", size: bytes.length, path });
+    } catch {
+    }
+  }
+  return out;
+}
 router24.post("/inbound", async (c2) => {
   const raw2 = await c2.req.text();
   const secret4 = process.env.SOVEREIGN_MAIL_SECRET;
@@ -70007,7 +70029,8 @@ router24.post("/inbound", async (c2) => {
   if (!ws) return c2.json({ ok: true, ignored: "unknown workspace" });
   const threadId = threadIdFor(msg);
   const { data: existing } = await supabase.from("nodes").select("id,data").eq("workspace_id", workspaceId).eq("object_type", "email_thread").eq("data->>thread_id", threadId).maybeSingle();
-  const merged = mergeMessage(existing?.data ?? null, msg, threadId, "inbound");
+  const stored = await storeAttachments(workspaceId, msg);
+  const merged = mergeMessage(existing?.data ?? null, msg, threadId, "inbound", stored);
   if (existing) {
     await supabase.from("nodes").update({ data: merged }).eq("id", existing.id).eq("workspace_id", workspaceId).eq("object_type", "email_thread");
   } else {
@@ -70020,6 +70043,13 @@ router24.get("/inbound-address", (c2) => c2.json({
   address: inboundAddressFor(c2.get("workspaceId")),
   enabled: mailDomainConfigured()
 }));
+router24.get("/attachment", zValidator("query", external_exports.object({ path: external_exports.string().min(1) })), async (c2) => {
+  const path = c2.req.valid("query").path;
+  if (!path.startsWith(`${c2.get("workspaceId")}/`)) return c2.json({ error: "Not allowed." }, 403);
+  const { data, error } = await supabase.storage.from(ATTACH_BUCKET).createSignedUrl(path, 120);
+  if (error || !data?.signedUrl) return c2.json({ error: "Attachment not found." }, 404);
+  return c2.json({ url: data.signedUrl });
+});
 async function getSettings(workspaceId) {
   const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
   return data?.settings ?? {};

@@ -34,6 +34,10 @@ export function parseAddr(s: string): { name?: string; email: string } {
   return { email: (s ?? "").trim().toLowerCase() };
 }
 
+/** A raw attachment as delivered by the receiver (base64), and the stored form after upload. */
+export interface InboundAttachment { filename: string; content_type: string; content_base64: string }
+export interface StoredAttachment { filename: string; content_type: string; size: number; path: string }
+
 export interface InboundMessage {
   message_id: string;
   in_reply_to?: string;
@@ -45,6 +49,15 @@ export interface InboundMessage {
   text?: string;
   html?: string;
   date?: string;                // RFC-822 / ISO date
+  attachments?: InboundAttachment[];
+}
+
+/** A safe, collision-free storage object path for one attachment. Filenames are sanitized so a
+ *  crafted name can't traverse out of the workspace's prefix. */
+export function attachmentPath(workspaceId: string, messageId: string, index: number, filename: string): string {
+  const safeMsg = strip(messageId).replace(/[^a-zA-Z0-9_.-]/g, "_") || "msg";
+  const safeName = (filename || `file-${index}`).replace(/[^a-zA-Z0-9_.-]/g, "_").slice(0, 120);
+  return `${workspaceId}/${safeMsg}/${index}-${safeName}`;
 }
 
 /**
@@ -66,7 +79,7 @@ const toUnixSeconds = (dateStr?: string): number => {
   return Number.isNaN(t) ? Math.floor(Date.now() / 1000) : Math.floor(t / 1000);
 };
 
-interface StoredMsg { id: string; from: string; to: string; cc?: string; date: string; body: string; message_id: string }
+interface StoredMsg { id: string; from: string; to: string; cc?: string; date: string; body: string; message_id: string; attachments?: StoredAttachment[] }
 export interface ThreadData {
   thread_id: string; subject: string; snippet: string;
   participants: { name?: string; email: string }[];
@@ -79,9 +92,9 @@ export interface ThreadData {
  * re-delivering the same message won't duplicate it. `direction` marks whether WE received it
  * (inbox, unread) or sent it (sent folder, read).
  */
-export function mergeMessage(existing: ThreadData | null, msg: InboundMessage, threadId: string, direction: "inbound" | "outbound"): ThreadData {
+export function mergeMessage(existing: ThreadData | null, msg: InboundMessage, threadId: string, direction: "inbound" | "outbound", storedAttachments?: StoredAttachment[]): ThreadData {
   const body = (msg.html || msg.text || "").toString();
-  const stored: StoredMsg = { id: strip(msg.message_id) || `${threadId}-${(existing?.messages.length ?? 0) + 1}`, message_id: strip(msg.message_id), from: msg.from, to: msg.to, cc: msg.cc, date: msg.date ?? new Date().toISOString(), body };
+  const stored: StoredMsg = { id: strip(msg.message_id) || `${threadId}-${(existing?.messages.length ?? 0) + 1}`, message_id: strip(msg.message_id), from: msg.from, to: msg.to, cc: msg.cc, date: msg.date ?? new Date().toISOString(), body, ...(storedAttachments && storedAttachments.length ? { attachments: storedAttachments } : {}) };
 
   const priorMsgs = existing?.messages ?? [];
   // De-dupe by Message-ID (webhook redelivery safety).

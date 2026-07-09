@@ -13,11 +13,11 @@ Env:
   SMTP_LISTEN_PORT        default 25
 """
 import asyncio
+import base64
 import email
 import hmac
 import json
 import os
-from email.utils import getaddresses
 from hashlib import sha256
 
 import httpx
@@ -56,6 +56,35 @@ def _body(parsed) -> tuple[str, str]:
     return text, html
 
 
+MAX_ATTACH_BYTES = int(os.environ.get("MAX_ATTACH_BYTES", str(10 * 1024 * 1024)))  # 10 MB/file
+
+
+def _attachments(parsed) -> list:
+    """Collect attachment parts as {filename, content_type, content_base64}, size-capped."""
+    out = []
+    if not parsed.is_multipart():
+        return out
+    for part in parsed.walk():
+        disp = str(part.get("Content-Disposition") or "")
+        filename = part.get_filename()
+        if "attachment" not in disp and not filename:
+            continue
+        try:
+            payload = part.get_payload(decode=True)
+            if not payload or len(payload) > MAX_ATTACH_BYTES:
+                continue
+            out.append({
+                "filename": filename or "attachment",
+                "content_type": part.get_content_type(),
+                "content_base64": base64.b64encode(payload).decode("ascii"),
+            })
+        except Exception:
+            continue
+        if len(out) >= 15:
+            break
+    return out
+
+
 class Handler:
     async def handle_DATA(self, server, session, envelope):
         try:
@@ -75,6 +104,7 @@ class Handler:
                 "date": parsed.get("Date", ""),
                 # Envelope recipients are the authoritative routing target (RCPT TO), not the To header.
                 "recipients": list(envelope.rcpt_tos),
+                "attachments": _attachments(parsed),
             }
             await self._forward(payload)
         except Exception as e:  # never 5xx the sender for our own parsing bug

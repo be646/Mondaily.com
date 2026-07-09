@@ -11,6 +11,7 @@ services:
       - MONDAILY_INBOUND_URL=${MONDAILY_INBOUND_URL:-https://api.mondaily.com/api/v1/emails/inbound}
       - MAIL_DOMAIN=${MAIL_DOMAIN:?e.g. inbound.mondaily.com}
       - SMTP_LISTEN_PORT=25
+      - MAX_ATTACH_BYTES=${MAX_ATTACH_BYTES:-10485760}   # 10 MB/attachment cap
     restart: unless-stopped
 
   # Outbound: HMAC-verified /send that the API calls, relaying through your SMTP.

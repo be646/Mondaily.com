@@ -21,7 +21,7 @@ interface EmailMessage {
   cc: Participant[];
   date: number;
   body: string;
-  attachments: { id: string; filename: string; size: number; url?: string }[];
+  attachments: { id?: string; filename: string; size: number; url?: string; path?: string; content_type?: string }[];
 }
 
 interface EmailThread {
@@ -61,6 +61,27 @@ function safeHtml(value: string) {
     });
   });
   return documentNode.body.innerHTML;
+}
+
+/** One email attachment. Native mail attachments carry a storage `path`; clicking fetches a short-
+ *  lived signed URL and opens it (the browser renders PDFs/images inline, downloads the rest). Gmail
+ *  attachments that already have a `url` open directly. */
+function AttachmentChip({ attachment }: { attachment: { filename: string; size: number; url?: string; path?: string } }) {
+  const [busy, setBusy] = useState(false);
+  const open = async () => {
+    if (attachment.url) { window.open(attachment.url, "_blank", "noopener"); return; }
+    if (!attachment.path || busy) return;
+    setBusy(true);
+    try {
+      const { url } = await apiClient.get<{ url: string }>(`/emails/attachment?path=${encodeURIComponent(attachment.path)}`);
+      if (url) window.open(url, "_blank", "noopener");
+    } catch { /* ignore */ } finally { setBusy(false); }
+  };
+  return (
+    <button type="button" onClick={open} disabled={busy} className="btn-secondary text-xs disabled:opacity-50">
+      <Paperclip size={12} /> {attachment.filename} · {Math.ceil(attachment.size / 1024)} KB
+    </button>
+  );
 }
 
 function ThreadSkeletons() {
@@ -142,7 +163,7 @@ function MessageCard({ message, expanded, onToggle }: { message: EmailMessage; e
       {expanded ? <div className="border-t px-4 pb-5 pt-4" style={{ borderColor: "var(--border-soft)" }}>
         {message.cc.length ? <p className="mb-4 text-xs" style={{ color: "var(--text-faint)" }}>CC: {message.cc.map((person) => person.email).join(", ")}</p> : null}
         <div className="email-body text-sm leading-6" style={{ color: "var(--text-secondary)" }} dangerouslySetInnerHTML={{ __html: safeHtml(message.body) }} />
-        {message.attachments.length ? <div className="mt-5 flex flex-wrap gap-2">{message.attachments.map((attachment) => <a key={attachment.id} href={attachment.url || "#"} className="btn-secondary text-xs"><Paperclip size={12} /> {attachment.filename} · {Math.ceil(attachment.size / 1024)} KB</a>)}</div> : null}
+        {message.attachments.length ? <div className="mt-5 flex flex-wrap gap-2">{message.attachments.map((attachment, ai) => <AttachmentChip key={attachment.id ?? attachment.path ?? ai} attachment={attachment} />)}</div> : null}
       </div> : null}
     </article>
   );

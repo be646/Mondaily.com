@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
-  normalizeSubject, parseAddr, threadIdFor, mergeMessage, newMessageId, buildOutboundMessage,
-  inboundAddressFor, mailDomainConfigured, workspaceIdFromRecipients, type InboundMessage, type ThreadData,
+  normalizeSubject, parseAddr, threadIdFor, mergeMessage, newMessageId, buildOutboundMessage, attachmentPath,
+  inboundAddressFor, mailDomainConfigured, workspaceIdFromRecipients, type InboundMessage, type ThreadData, type StoredAttachment,
 } from "../lib/email-sovereign";
 
 const read = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
@@ -115,6 +115,23 @@ describe("outbound message construction + folding", () => {
   });
 });
 
+describe("attachments — safe paths + metadata on the message", () => {
+  it("builds a workspace-prefixed, sanitized storage path (no traversal)", () => {
+    expect(attachmentPath("w1", "<m1@x>", 0, "report.pdf")).toBe("w1/m1_x/0-report.pdf");
+    expect(attachmentPath("w1", "<m@x>", 1, "../../etc/passwd")).toBe("w1/m_x/1-.._.._etc_passwd");
+  });
+  it("stores ONLY attachment metadata (never bytes) on the merged message", () => {
+    const stored: StoredAttachment[] = [{ filename: "report.pdf", content_type: "application/pdf", size: 2048, path: "w1/m1/0-report.pdf" }];
+    const t = mergeMessage(null, msg({ message_id: "<m1@x>" }), "t1", "inbound", stored);
+    expect(t.messages[0].attachments).toEqual(stored);
+    expect(JSON.stringify(t)).not.toContain("content_base64");
+  });
+  it("a message with no attachments has none", () => {
+    const t = mergeMessage(null, msg({}), "t1", "inbound");
+    expect(t.messages[0].attachments).toBeUndefined();
+  });
+});
+
 describe("route + tier wiring", () => {
   it("inbound webhook is public, HMAC-verified, fail-closed (401 without secret), and idempotent-safe", () => {
     // defined BEFORE requireAuth
@@ -124,6 +141,14 @@ describe("route + tier wiring", () => {
     expect(emails).toMatch(/timingSafeEqual/);
     expect(emails).toMatch(/workspaceIdFromRecipients\(recipients\)/);
     expect(emails).toMatch(/eq\("data->>thread_id", threadId\)/);   // upsert by thread
+  });
+  it("inbound uploads attachments to a private bucket and the download route is workspace-scoped", () => {
+    expect(emails).toMatch(/storeAttachments\(workspaceId, msg\)/);
+    expect(emails).toMatch(/const ATTACH_BUCKET = "email-attachments"/);
+    expect(emails).toMatch(/bytes\.length > MAX_ATTACH_BYTES/);   // size cap
+    const dl = emails.slice(emails.indexOf('router.get("/attachment"'));
+    expect(dl).toMatch(/if \(!path\.startsWith\(`\$\{c\.get\("workspaceId"\)\}\/`\)\) return c\.json\(\{ error: "Not allowed\." \}, 403\)/);
+    expect(dl).toMatch(/createSignedUrl\(path, 120\)/);
   });
   it("inbound-address is authed and reports the address + enabled flag", () => {
     expect(emails.indexOf('router.get("/inbound-address"')).toBeGreaterThan(emails.indexOf('router.use("*", requireAuth)'));
