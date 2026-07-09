@@ -65,6 +65,17 @@ export function recurrenceSummary(r: RecurrenceRule): string {
 
 export interface Occurrence { occurrence_start: string; occurrence_end: string; occurrence_date: string }
 
+/** Normalize a validated recurrence input into a concrete stored rule. Written so it doesn't depend
+ *  on how zod happens to infer optionality across dependency versions (`freq` is always present at
+ *  runtime — the schema requires it — and interval defaults to 1). */
+function normalizeRule(r: { freq?: RecurrenceRule["freq"]; interval?: number; count?: number; until?: string }): RecurrenceRule {
+  return {
+    freq: r.freq!, interval: r.interval ?? 1,
+    ...(r.count != null ? { count: r.count } : {}),
+    ...(r.until ? { until: r.until } : {}),
+  };
+}
+
 /**
  * Expand a recurring master into concrete occurrences that fall within [fromISO, toISO]. Pure and
  * deterministic: preserves each occurrence's wall-clock time + duration, honors count/until,
@@ -247,7 +258,7 @@ router.post("/events", zValidator("json", EventInput), async (c) => {
     title: b.title, description: b.description ?? "", start_at: b.start_at, end_at: b.end_at,
     timezone: b.timezone ?? "UTC", organizer_id: me, attendee_ids: attendees, location: b.location ?? "",
     call_room_id: null, call_url: null, status: "scheduled",
-    ...(b.recurrence ? { recurrence: b.recurrence, exdates: [] } : {}),
+    ...(b.recurrence ? { recurrence: normalizeRule(b.recurrence), exdates: [] } : {}),
   };
   const { data: node, error } = await supabase.from("nodes")
     .insert({ workspace_id: ws, vertical: "shared", object_type: "calendar_event", created_by: me, data })
@@ -283,7 +294,7 @@ router.patch("/events/:id", zValidator("json", EventInput.partial().extend({ sta
     ...(b.attendee_ids !== undefined ? { attendee_ids: [...new Set(b.attendee_ids.filter((a) => a && a !== ev.data.organizer_id))] } : {}),
     ...(b.status !== undefined ? { status: b.status } : {}),
     // Editing the series' recurrence (null clears it). Edits always apply to the whole series.
-    ...(b.recurrence !== undefined ? { recurrence: b.recurrence ?? null } : {}),
+    ...(b.recurrence !== undefined ? { recurrence: b.recurrence ? normalizeRule(b.recurrence) : null } : {}),
   };
   const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
   if (error) return c.json({ error: "Could not update the meeting." }, 500);
