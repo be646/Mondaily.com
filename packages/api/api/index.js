@@ -55107,7 +55107,7 @@ function grantAmountFor(tier) {
 function burstCapFor(tier) {
   return PLAN_TIERS[tier]?.burstCap ?? PLAN_TIERS.scout.burstCap;
 }
-var ANNUAL_BONUS_PCT, BURST_WINDOW_HOURS, PLAN_TIERS, PLAN_ORDER, CREDIT_PACKS, CREDIT_PACK_ORDER, SOVEREIGN_DEFAULT_GRANT;
+var ANNUAL_BONUS_PCT, BURST_WINDOW_HOURS, PLAN_TIERS, PLAN_ORDER, BILLING_CURRENCIES, CREDIT_PACKS, CREDIT_PACK_ORDER, SOVEREIGN_DEFAULT_GRANT;
 var init_pricing = __esm({
   "../shared/src/pricing.ts"() {
     "use strict";
@@ -55164,6 +55164,7 @@ var init_pricing = __esm({
       }
     };
     PLAN_ORDER = ["scout", "operator", "command", "sovereign"];
+    BILLING_CURRENCIES = ["USD", "EUR", "GBP"];
     CREDIT_PACKS = {
       starter: { id: "starter", name: "Starter", price_usd: 5, base_credits: 5e4 },
       standard: { id: "standard", name: "Standard", price_usd: 10, base_credits: 125e3 },
@@ -68818,6 +68819,7 @@ router20.post("/livekit", async (c2) => {
 
 // src/routes/billing.ts
 init_client();
+init_pricing();
 var router21 = new Hono2();
 router21.use("*", requireAuth);
 var STRIPE_API3 = "https://api.stripe.com/v1";
@@ -68844,6 +68846,8 @@ router21.post("/checkout", async (c2) => {
   const body = await c2.req.json().catch(() => ({}));
   const plan = (body.plan ?? "").toLowerCase();
   const interval = (body.interval ?? "month").toLowerCase();
+  const reqCur = (body.currency ?? "USD").toUpperCase();
+  const currency = BILLING_CURRENCIES.includes(reqCur) ? reqCur : "USD";
   if (!process.env.STRIPE_SECRET_KEY) {
     return c2.json({ error: "Billing isn't connected yet. Add STRIPE_SECRET_KEY to enable upgrades.", configured: false }, 503);
   }
@@ -68856,6 +68860,7 @@ router21.post("/checkout", async (c2) => {
   try {
     const session = await stripePost2("checkout/sessions", {
       mode: "subscription",
+      currency: currency.toLowerCase(),
       "line_items[0][price]": price,
       "line_items[0][quantity]": "1",
       success_url: `${appUrl4()}/settings/billing?billing=success`,
@@ -68945,6 +68950,8 @@ router21.post("/subscribe", async (c2) => {
   const plan = normalizeTier(body.plan);
   const interval = (body.interval ?? "month").toLowerCase();
   const paymentMethodId = body.payment_method_id;
+  const reqCur = (body.currency ?? "USD").toUpperCase();
+  const currency = BILLING_CURRENCIES.includes(reqCur) ? reqCur : "USD";
   if (!process.env.STRIPE_SECRET_KEY) {
     return c2.json({ error: "Billing isn't connected yet. Add STRIPE_SECRET_KEY to enable upgrades.", configured: false }, 503);
   }
@@ -68963,6 +68970,7 @@ router21.post("/subscribe", async (c2) => {
     await stripePost2(`customers/${customer}`, { "invoice_settings[default_payment_method]": paymentMethodId });
     const sub = await stripePost2("subscriptions", {
       customer,
+      currency: currency.toLowerCase(),
       "items[0][price]": price,
       default_payment_method: paymentMethodId,
       "metadata[workspace_id]": workspaceId,

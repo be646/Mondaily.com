@@ -173,15 +173,28 @@ router.delete("/:id/comments/:commentId", async (c) => {
   const { error } = await supabase
     .from("task_comments").delete()
     .eq("id", c.req.param("commentId"))
+    .eq("task_id", taskId)                 // isolation: comment must belong to the verified task
     .eq("user_id", c.get("userId"));
   if (error) return c.json({ error: error.message }, 500);
   return c.body(null, 204);
 });
 
 // ── Comment Reactions ─────────────────────────────────────
+/**
+ * ISOLATION GUARD: verifying the TASK isn't enough — the commentId is also caller-supplied and
+ * must belong to THAT task, or a caller could pass their own task id + a foreign workspace's
+ * comment id to read/toggle reactions cross-workspace. 404s when the pair doesn't match.
+ */
+async function assertCommentOnTask(commentId: string, taskId: string): Promise<void> {
+  const { data } = await supabase
+    .from("task_comments").select("id").eq("id", commentId).eq("task_id", taskId).maybeSingle();
+  if (!data) throw new HTTPException(404, { message: "Comment not found" });
+}
+
 router.get("/:id/comments/:commentId/reactions", async (c) => {
   const taskId = c.req.param("id");
   await assertTaskOwnership(taskId, c.get("workspaceId"));
+  await assertCommentOnTask(c.req.param("commentId"), taskId);
   const { data } = await supabase
     .from("task_comment_reactions").select("*").eq("comment_id", c.req.param("commentId"));
   return c.json(data ?? []);
@@ -193,6 +206,7 @@ router.post("/:id/comments/:commentId/reactions", async (c) => {
   const { emoji } = await c.req.json() as { emoji: string };
   const userId = c.get("userId");
   const commentId = c.req.param("commentId");
+  await assertCommentOnTask(commentId, taskId);
   const { data: existing } = await supabase
     .from("task_comment_reactions").select("id")
     .eq("comment_id", commentId).eq("user_id", userId).eq("emoji", emoji).maybeSingle();

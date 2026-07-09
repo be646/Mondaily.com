@@ -208,6 +208,18 @@ async function addNodeToList(listId: string, nodeId: string): Promise<boolean> {
   return !error;
 }
 
+/**
+ * ISOLATION GUARD: destination_list_id is user-supplied — verify the list actually belongs to
+ * the caller's workspace before any entry is written. Without this, a caller could pass a list
+ * id from ANOTHER workspace and inject rows into it. Returns the verified id or null.
+ */
+async function verifyListInWorkspace(workspaceId: string, listId: string | undefined): Promise<string | null> {
+  if (!listId) return null;
+  const { data } = await supabase
+    .from("lists").select("id").eq("id", listId).eq("workspace_id", workspaceId).maybeSingle();
+  return data?.id ?? null;
+}
+
 export function objectTypeToVertical(objectType: string): "sales" | "realestate" | "hr" | "finance" | "investments" | "tasks" | "shared" {
   const t = objectType.toLowerCase();
   if (t.includes("invest") || t.includes("fund") || t.includes("portfolio")) return "investments";
@@ -235,6 +247,11 @@ export async function runProspecting(
   });
 
   try {
+    // Isolation: destination_list_id is caller-supplied — resolve it to a verified same-workspace
+    // list (or drop it) BEFORE any writes, so a foreign list id can never receive entries.
+    const verifiedListId = await verifyListInWorkspace(workspaceId, input.destination_list_id);
+    input = { ...input, destination_list_id: verifiedListId ?? undefined };
+
     const searchResults = await sovereignProspectSearch(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
     const { candidates, gen } = await extractCandidates(input.query, input.object_type, input.count, searchResults);
 

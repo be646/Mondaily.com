@@ -113,7 +113,8 @@ router.patch("/:id/reviews/:reviewId", async (c) => {
     context?: string;
   };
 
-  // Complete this review round
+  // Complete this review round. ISOLATION: reviewId is caller-supplied — scope the update to the
+  // ownership-verified task too, or a foreign workspace's review row could be completed by id.
   const { data: review } = await supabase.from("task_reviews")
     .update({
       action: body.action,
@@ -122,7 +123,9 @@ router.patch("/:id/reviews/:reviewId", async (c) => {
       status: "completed"
     })
     .eq("id", c.req.param("reviewId"))
-    .select().single();
+    .eq("task_id", c.req.param("id"))
+    .select().maybeSingle();
+  if (!review) return c.json({ error: "Review not found on this task." }, 404);
 
   // Post auto-comment
   let commentText = "";

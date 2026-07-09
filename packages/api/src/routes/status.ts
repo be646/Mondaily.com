@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
+import { isPlatformAdmin } from "../middleware/platform-admin";
 import { supabase } from "@mondaily/db/client";
 
 type Variables = { userId: string; workspaceId: string; role: string };
@@ -309,7 +310,12 @@ router.get("/log", async (c) => {
   });
 });
 
+// project_log is the GLOBAL public Status/roadmap content. Writes are Mondaily platform admins
+// ONLY (PLATFORM_ADMIN_EMAILS allowlist, fail-closed) — any workspace user could previously
+// deface the public status page. The deploy auto-logger (packages/api/scripts/log-deploy.mjs)
+// writes via the service key directly and never hits these routes.
 router.post("/log", async (c) => {
+  if (!(await isPlatformAdmin(c.get("userId")))) return c.json({ error: "Platform admin access required." }, 403);
   const body = await c.req.json().catch(() => ({})) as Partial<ProjectLogRow>;
   if (!body.kind || !body.title || !body.status) {
     return c.json({ error: "kind, title and status are required" }, 400);
@@ -325,6 +331,7 @@ router.post("/log", async (c) => {
 });
 
 router.patch("/log/:id", async (c) => {
+  if (!(await isPlatformAdmin(c.get("userId")))) return c.json({ error: "Platform admin access required." }, 403);
   const id = c.req.param("id");
   const body = await c.req.json().catch(() => ({})) as Partial<ProjectLogRow>;
   const patch: Record<string, unknown> = {};

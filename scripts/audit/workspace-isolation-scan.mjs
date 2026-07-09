@@ -8,6 +8,28 @@
  *
  * Heuristic (static) — a flag is "review this", not "definitely broken". Tables that are legitimately
  * global/auth/config are allow-listed. Exit code = number of flagged sites (0 = none).
+ *
+ * KNOWN FALSE-POSITIVE PATTERNS (every flagged site manually audited 2026-07-09):
+ *  - Ownership chain: handler first fetches the parent row WITH .eq("workspace_id", …) (e.g.
+ *    getCreditNote, assertTaskOwnership, invoice/quote PATCH pre-fetch), then follow-up queries key
+ *    on that verified id only. Applies to: credit-notes.ts, invoices.ts, quotes.ts, task-details.ts
+ *    (attachments/views/activity), task-reviews.ts (task_id-scoped counts/inserts/updates).
+ *  - Verified-token access: emails.ts open/click tracking — the cryptographically verified tracking
+ *    token IS the authorization; the decoded node id can only be the one the token was minted for.
+ *  - Signed-webhook access: webhooks.ts call_sessions — LiveKit JWT signature is verified before any
+ *    DB access; egress_id correlation is the scope.
+ *  - Per-workspace job loops: jobs/runners.ts + jobs/workflow-engine.ts iterate per-workspace and
+ *    every inner id set was fetched with workspace_id; follow-ups on those ids are scoped.
+ *  - Global-by-design: jobs/training-export.ts training_exports is a platform-level corpus artifact
+ *    (per-row workspace redaction happens upstream in ai_training_logs).
+ *  - Inserts that carry workspace_id inside a builder payload (discovery.ts buildLeadTask/
+ *    buildLeadDecision) — the scanner sees only the .insert() call, not the row contents.
+ *
+ * REAL LEAKS FOUND + FIXED in that review (keep the fixes, don't allow-list the tables):
+ *  - prospecting.ts destination_list_id — now verified via verifyListInWorkspace() before writes.
+ *  - status.ts POST/PATCH /log — global project_log writes now platform-admin-gated (fail-closed).
+ *  - task-details.ts comment reactions — commentId now bound to the ownership-verified task.
+ *  - task-reviews.ts PATCH reviewId — update now scoped to the verified task_id.
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
