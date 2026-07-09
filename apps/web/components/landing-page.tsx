@@ -1292,6 +1292,7 @@ const WORKSPACE_GRAPH_NODES = [
   { label: "People Agent", x: 15, y: 79, color: "#c08a3e", detail: "Keeps contacts and roles current" },
   { label: "Portfolio Agent", x: 50, y: 81, color: "#4f9bc4", detail: "Tracks companies and holdings" },
   { label: "Asset Agent", x: 85, y: 79, color: "#a8896c", detail: "Monitors assets and renewals" },
+  { label: "Meeting Agent", x: 33, y: 30, color: "#5f8a8f", detail: "Scans meetings for conflicts, agenda, and prep" },
 ];
 
 // Per-agent execution traces — one log per node (same order as WORKSPACE_GRAPH_NODES).
@@ -1367,6 +1368,12 @@ const WORKSPACE_AGENT_LOGS: WgLogLine[][] = [
     { t: "ok", s: "2 renewals due < 30d" },
     { t: "call", s: "draft.reminder → decision_queue" },
   ],
+  [ // Meeting
+    { t: "cmd", s: "meeting.scan --today+7d" },
+    { t: "call", s: "GET /api/v1/calendar/events" },
+    { t: "ok", s: "1 conflict · 2 missing agenda" },
+    { t: "out", s: "conflict → decision_queue" },
+  ],
 ];
 
 const WG_LOG_STYLE: Record<WgLogLine["t"], { prefix: string; color: string }> = {
@@ -1391,6 +1398,7 @@ const AGENT_ASK_PROMPTS = [
   "Which contacts changed roles or need updating?",
   "How are my portfolio companies trending?",
   "Which assets or renewals are coming due soon?",
+  "Do any of my meetings this week conflict or need an agenda?",
 ];
 
 
@@ -1986,6 +1994,13 @@ const AGENTS = [
     watches: "Asset and real-estate records, dates and status",
     prepares: "Decision-Queue items for assets needing attention",
     approval: "Recommends only — approval required for any action",
+  },
+  {
+    icon: "◷", name: "Meeting Agent", accent: "#5f8a8f", brush: "-30deg",
+    desc: "Scans your calendar for the week ahead — surfacing scheduling conflicts, meetings missing an agenda or call link, and the related records to prep before each one.",
+    watches: "Your meetings today and over the next 7 days",
+    prepares: "Conflict and prep flags, plus the related records for each meeting",
+    approval: "Recommends only — real conflicts route to the Decision Queue",
   },
 ];
 
