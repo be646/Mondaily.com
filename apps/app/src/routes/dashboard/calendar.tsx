@@ -20,7 +20,7 @@ interface CalEvent {
   organizer: Person; attendees: Person[];
 }
 interface MemberRow { id: string; name?: string; email: string }
-type ViewMode = "today" | "week" | "upcoming";
+type ViewMode = "today" | "week" | "month" | "upcoming";
 
 const fmtTime = (iso: string, loc: string) => { try { return new Date(iso).toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit" }); } catch { return ""; } };
 /** A Date → "YYYY-MM-DDTHH:mm" string for <input type="datetime-local"> (local time, no seconds). */
@@ -211,13 +211,28 @@ export function CalendarPage() {
     const monday = new Date(anchor); monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
     return Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(monday.getDate() + i); return d; });
   }, [anchor]);
+  // Month = a full 6×7 calendar grid (Mon-first) covering the month that contains the anchor, with
+  // leading/trailing days from the neighbouring months so the grid is always rectangular.
+  const monthGrid = useMemo(() => {
+    const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+    const gridStart = new Date(first); gridStart.setDate(1 - ((first.getDay() + 6) % 7));
+    return Array.from({ length: 42 }, (_, i) => { const d = new Date(gridStart); d.setDate(gridStart.getDate() + i); return d; });
+  }, [anchor]);
   const dayCount = events.filter(e => isSameDay(new Date(e.start_at), anchor)).length;
   const weekCount = events.filter(e => anchorWeek.some(d => isSameDay(new Date(e.start_at), d))).length;
+  const monthCount = events.filter(e => { const d = new Date(e.start_at); return d.getMonth() === anchor.getMonth() && d.getFullYear() === anchor.getFullYear(); }).length;
   const isAnchorToday = isSameDay(anchor, now);
-  const shift = (dir: number) => setAnchor(a => { const d = new Date(a); d.setDate(d.getDate() + dir * (view === "week" ? 7 : 1)); return d; });
+  const shift = (dir: number) => setAnchor(a => {
+    const d = new Date(a);
+    if (view === "month") d.setMonth(d.getMonth() + dir);
+    else d.setDate(d.getDate() + dir * (view === "week" ? 7 : 1));
+    return d;
+  });
   const goToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); setAnchor(d); };
   const rangeLabel = view === "week"
     ? `${anchorWeek[0]!.toLocaleDateString(lang, { month: "short", day: "numeric" })} – ${anchorWeek[6]!.toLocaleDateString(lang, { month: "short", day: "numeric" })}`
+    : view === "month"
+    ? anchor.toLocaleDateString(lang, { month: "long", year: "numeric" })
     : anchor.toLocaleDateString(lang, { weekday: "long", month: "long", day: "numeric" });
 
   const groups = useMemo(() => {
@@ -251,7 +266,7 @@ export function CalendarPage() {
   );
 
   const tabs: { k: ViewMode; label: string }[] = [
-    { k: "today", label: t("cal.view_today") }, { k: "week", label: t("cal.view_week") }, { k: "upcoming", label: t("cal.view_upcoming") },
+    { k: "today", label: t("cal.view_today") }, { k: "week", label: t("cal.view_week") }, { k: "month", label: t("cal.view_month") }, { k: "upcoming", label: t("cal.view_upcoming") },
   ];
 
   // The brief panel shows the SELECTED meeting; when nothing is selected it shows a Today briefing.
@@ -322,6 +337,11 @@ export function CalendarPage() {
               <TimeGrid days={anchorWeek} events={events} selected={selected} onOpen={openEvent} onSlot={openSlot} lang={lang} />
               {weekCount === 0 && <GridEmpty hint={t("cal.clear_day")} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} t={t} />}
             </div>
+          ) : view === "month" ? (
+            <MonthGrid days={monthGrid} monthOf={anchor} events={events} selected={selected} today={now}
+              onOpen={openEvent} onPickDay={(d) => { setAnchor(d); setView("today"); }}
+              onCreateDay={(d) => { const s = new Date(d); s.setHours(9, 0, 0, 0); openSlot(s); }}
+              lang={lang} moreLabel={(n) => t("cal.more_count").replace("{n}", String(n))} empty={monthCount === 0} emptyHint={t("cal.clear_day")} />
           ) : groups.length === 0 ? (
             <EmptyState label={t("cal.empty")} onNew={openCreate} newLabel={t("cal.new_meeting")} />
           ) : (
@@ -359,6 +379,82 @@ function EmptyState({ label, onNew, newLabel }: { label: string; onNew: () => vo
       <button onClick={onNew} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
         <Plus size={13} /> {newLabel}
       </button>
+    </div>
+  );
+}
+
+/**
+ * MonthGrid — the classic 6×7 month calendar. Each cell shows up to three time-ordered event chips
+ * (colored by the same semantic meetingTone as the rest of the app) with a "+N more" overflow;
+ * clicking a chip opens the meeting, clicking empty space in a day starts a 9am meeting there, and
+ * clicking the day number jumps to that day's timeline. Days outside the anchored month are dimmed.
+ */
+function MonthGrid({ days, monthOf, events, selected, today, onOpen, onPickDay, onCreateDay, lang, moreLabel, empty, emptyHint }: {
+  days: Date[]; monthOf: Date; events: CalEvent[]; selected: string | null; today: Date;
+  onOpen: (id: string) => void; onPickDay: (d: Date) => void; onCreateDay: (d: Date) => void;
+  lang: string; moreLabel: (n: number) => string; empty: boolean; emptyHint: string;
+}) {
+  // Bucket events by day once, each bucket sorted by start time.
+  const byDay = useMemo(() => {
+    const map = new Map<string, CalEvent[]>();
+    for (const e of events) { const k = new Date(e.start_at).toDateString(); (map.get(k) ?? map.set(k, []).get(k)!).push(e); }
+    for (const list of map.values()) list.sort((a, b) => +new Date(a.start_at) - +new Date(b.start_at));
+    return map;
+  }, [events]);
+  const weekdays = days.slice(0, 7);
+
+  return (
+    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+      {/* weekday header */}
+      <div className="grid grid-cols-7 border-b" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+        {weekdays.map((d, i) => (
+          <div key={i} className="px-2 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
+            {d.toLocaleDateString(lang, { weekday: "short" })}
+          </div>
+        ))}
+      </div>
+      {/* 6 weeks × 7 days */}
+      <div className="grid grid-cols-7">
+        {days.map((d, i) => {
+          const inMonth = d.getMonth() === monthOf.getMonth();
+          const isToday = isSameDay(d, today);
+          const dayEvents = byDay.get(d.toDateString()) ?? [];
+          const shown = dayEvents.slice(0, 3);
+          const overflow = dayEvents.length - shown.length;
+          return (
+            <div key={i} onClick={() => onCreateDay(d)}
+              className="group relative flex min-h-[92px] cursor-pointer flex-col gap-1 p-1.5 transition-colors hover:bg-[var(--surface-hover)]"
+              style={{ borderTop: i >= 7 ? "1px solid var(--border-soft)" : undefined, borderLeft: i % 7 !== 0 ? "1px solid var(--border-soft)" : undefined, background: inMonth ? undefined : "var(--surface-hover)" }}>
+              <button onClick={(ev) => { ev.stopPropagation(); onPickDay(d); }}
+                className="flex h-5 w-5 items-center justify-center self-start rounded-full text-[11.5px] tabular-nums transition-colors"
+                style={isToday ? { background: "var(--text-primary)", color: "var(--surface-page)", fontWeight: 600 } : { color: inMonth ? "var(--text-secondary)" : "var(--text-faint)" }}
+                title={d.toLocaleDateString(lang, { weekday: "long", month: "long", day: "numeric" })}>
+                {d.getDate()}
+              </button>
+              {shown.map(e => {
+                const tone = meetingTone(e);
+                return (
+                  <button key={e.id} onClick={(ev) => { ev.stopPropagation(); onOpen(e.id); }}
+                    className="flex items-center gap-1 truncate rounded-[3px] px-1.5 py-0.5 text-left text-[11px] transition-colors hover:brightness-[0.97]"
+                    style={{ borderLeft: `2px solid ${tone.edge}`, background: e.id === selected ? "var(--surface-selected)" : tone.tint, color: "var(--text-secondary)" }}
+                    title={`${fmtTime(e.start_at, lang)} · ${e.title}`}>
+                    <span className="shrink-0 tabular-nums" style={{ color: "var(--text-faint)" }}>{fmtTime(e.start_at, lang)}</span>
+                    <span className="truncate" style={{ color: "var(--text-primary)" }}>{e.title}</span>
+                  </button>
+                );
+              })}
+              {overflow > 0 && (
+                <button onClick={(ev) => { ev.stopPropagation(); onPickDay(d); }} className="px-1.5 text-left text-[10.5px] font-medium" style={{ color: "var(--text-muted)" }}>
+                  {moreLabel(overflow)}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {empty && (
+        <div className="border-t px-4 py-2.5 text-center text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{emptyHint}</div>
+      )}
     </div>
   );
 }
