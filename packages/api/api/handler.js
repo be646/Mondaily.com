@@ -61326,6 +61326,7 @@ var TRANSLATIONS = {
   "cal.rsvp_maybe": { en: "Maybe", pl: "Mo\u017Ce", ru: "\u0412\u043E\u0437\u043C\u043E\u0436\u043D\u043E", uk: "\u041C\u043E\u0436\u043B\u0438\u0432\u043E", ar: "\u0631\u0628\u0645\u0627", fr: "Peut-\xEAtre", de: "Vielleicht", es: "Quiz\xE1s", pt: "Talvez", it: "Forse", tr: "Belki", nl: "Misschien" },
   "cal.rsvp_no": { en: "Decline", pl: "Odrzu\u0107", ru: "\u041E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C", uk: "\u0412\u0456\u0434\u0445\u0438\u043B\u0438\u0442\u0438", ar: "\u0631\u0641\u0636", fr: "Refuser", de: "Absagen", es: "Rechazar", pt: "Recusar", it: "Rifiuta", tr: "Reddet", nl: "Afwijzen" },
   "cal.rsvp_awaiting": { en: "awaiting", pl: "oczekuje", ru: "\u043E\u0436\u0438\u0434\u0430\u044E\u0442", uk: "\u043E\u0447\u0456\u043A\u0443\u044E\u0442\u044C", ar: "\u0628\u0627\u0646\u062A\u0638\u0627\u0631", fr: "en attente", de: "ausstehend", es: "pendiente", pt: "a aguardar", it: "in attesa", tr: "bekliyor", nl: "wachtend" },
+  "cal.drag_hint": { en: "drag to another day to reschedule", pl: "przeci\u0105gnij na inny dzie\u0144, aby zmieni\u0107 termin", ru: "\u043F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u0435 \u043D\u0430 \u0434\u0440\u0443\u0433\u043E\u0439 \u0434\u0435\u043D\u044C, \u0447\u0442\u043E\u0431\u044B \u043F\u0435\u0440\u0435\u043D\u0435\u0441\u0442\u0438", uk: "\u043F\u0435\u0440\u0435\u0442\u044F\u0433\u043D\u0456\u0442\u044C \u043D\u0430 \u0456\u043D\u0448\u0438\u0439 \u0434\u0435\u043D\u044C, \u0449\u043E\u0431 \u043F\u0435\u0440\u0435\u043D\u0435\u0441\u0442\u0438", ar: "\u0627\u0633\u062D\u0628 \u0625\u0644\u0649 \u064A\u0648\u0645 \u0622\u062E\u0631 \u0644\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062C\u062F\u0648\u0644\u0629", fr: "glisser vers un autre jour pour reprogrammer", de: "zum Verschieben auf einen anderen Tag ziehen", es: "arrastra a otro d\xEDa para reprogramar", pt: "arraste para outro dia para reagendar", it: "trascina su un altro giorno per riprogrammare", tr: "yeniden planlamak i\xE7in ba\u015Fka bir g\xFCne s\xFCr\xFCkleyin", nl: "sleep naar een andere dag om te verzetten" },
   "cal.cancelled": { en: "Cancelled", pl: "Odwo\u0142ane", ru: "\u041E\u0442\u043C\u0435\u043D\u0435\u043D\u043E", uk: "\u0421\u043A\u0430\u0441\u043E\u0432\u0430\u043D\u043E", ar: "\u0645\u0644\u063A\u0649", fr: "Annul\xE9e", de: "Abgesagt", es: "Cancelada", pt: "Cancelada", it: "Annullata", tr: "\u0130ptal edildi", nl: "Geannuleerd" },
   "cal.draft_agenda": { en: "Draft agenda with AI", pl: "Napisz agend\u0119 z AI", ru: "\u0421\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u043F\u043E\u0432\u0435\u0441\u0442\u043A\u0443 \u0441 \u0418\u0418", uk: "\u0421\u043A\u043B\u0430\u0441\u0442\u0438 \u043F\u043E\u0440\u044F\u0434\u043E\u043A \u0437 \u0428\u0406", ar: "\u0635\u064A\u0627\u063A\u0629 \u0627\u0644\u0623\u062C\u0646\u062F\u0629 \u0628\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A", fr: "R\xE9diger l\u2019ordre du jour avec l\u2019IA", de: "Agenda mit KI entwerfen", es: "Redactar agenda con IA", pt: "Rascunhar pauta com IA", it: "Bozza agenda con IA", tr: "Yapay zek\xE2 ile g\xFCndem tasla\u011F\u0131", nl: "Agenda opstellen met AI" },
   "cal.view_today": { en: "Today", pl: "Dzisiaj", ru: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F", uk: "\u0421\u044C\u043E\u0433\u043E\u0434\u043D\u0456", ar: "\u0627\u0644\u064A\u0648\u0645", fr: "Aujourd\u2019hui", de: "Heute", es: "Hoy", pt: "Hoje", it: "Oggi", tr: "Bug\xFCn", nl: "Vandaag" },
@@ -65241,6 +65242,12 @@ function expandRecurrence(master, fromISO, toISO, cap = 366) {
 function daysInMonth(d2) {
   return new Date(d2.getFullYear(), d2.getMonth() + 1, 0).getDate();
 }
+function rescheduledDates(oldStart, oldEnd, newStart) {
+  const s2 = new Date(newStart);
+  if (Number.isNaN(s2.getTime())) return { start_at: oldStart, end_at: oldEnd };
+  const dur = Math.max(0, new Date(oldEnd).getTime() - new Date(oldStart).getTime());
+  return { start_at: fmtLocal(s2), end_at: fmtLocal(new Date(s2.getTime() + dur)) };
+}
 var callsEnabled = () => !!(process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET);
 var appUrl2 = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
 var internalRoom = (ws, eventId) => `ws_${ws}__meeting__${eventId}`;
@@ -65450,6 +65457,21 @@ router11.delete("/events/:id", async (c2) => {
   if (error) return c2.json({ error: "Could not cancel the meeting." }, 500);
   await notifyAttendees(ws, ev.id, next, me2, "cancelled");
   return c2.json({ ok: true, status: "cancelled" });
+});
+router11.post("/events/:id/reschedule", zValidator("json", external_exports.object({ start_at: external_exports.string().min(1) })), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  if (c2.req.param("id").includes("::")) return c2.json({ error: "Reschedule a recurring meeting from its series, not a single occurrence." }, 400);
+  const ev = await getEvent(ws, c2.req.param("id"));
+  if (!ev) return c2.json({ error: "Event not found." }, 404);
+  if (!canManage(ev.data, me2, c2.get("role"))) return c2.json({ error: "Only the organizer or an admin can reschedule this." }, 403);
+  if (ev.data.status === "cancelled") return c2.json({ error: "This meeting was cancelled." }, 409);
+  const next = { ...ev.data, ...rescheduledDates(ev.data.start_at, ev.data.end_at, c2.req.valid("json").start_at) };
+  const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
+  if (error) return c2.json({ error: "Could not reschedule the meeting." }, 500);
+  await notifyAttendees(ws, ev.id, next, me2, "updated");
+  const dir = await members2(ws);
+  return c2.json(shape(ev.id, next, dir, ev.created_at));
 });
 router11.post("/events/:id/respond", zValidator("json", external_exports.object({ response: external_exports.enum(RSVP_RESPONSES) })), async (c2) => {
   const ws = c2.get("workspaceId");

@@ -213,6 +213,19 @@ export function CalendarPage() {
   const events = (eventsQ.data?.events ?? []).filter(e => e.status !== "cancelled");
   const now = new Date();
 
+  // Drag-to-reschedule (month grid): drop a non-recurring meeting on another day → keep its
+  // time-of-day, move the date. Duration is preserved server-side.
+  const calQc = useQueryClient();
+  const reschedule = useMutation({
+    mutationFn: ({ id, start_at }: { id: string; start_at: string }) => apiClient.post(`/calendar/events/${id}/reschedule`, { start_at }),
+    onSuccess: () => calQc.invalidateQueries({ queryKey: ["calendar-events"] }),
+  });
+  const moveEventToDay = (eventId: string, currentStart: string, targetDay: Date) => {
+    const src = new Date(currentStart);
+    const next = new Date(targetDay); next.setHours(src.getHours(), src.getMinutes(), 0, 0);
+    reschedule.mutate({ id: eventId, start_at: toLocalInput(next) });
+  };
+
   // Week = the Mon–Sun calendar week containing the anchor (a real weekly grid).
   const anchorWeek = useMemo(() => {
     const monday = new Date(anchor); monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
@@ -348,8 +361,8 @@ export function CalendarPage() {
           ) : view === "month" ? (
             <MonthGrid days={monthGrid} monthOf={anchor} events={events} selected={selected} today={now}
               onOpen={openEvent} onPickDay={(d) => { setAnchor(d); setView("today"); }}
-              onCreateDay={(d) => { const s = new Date(d); s.setHours(9, 0, 0, 0); openSlot(s); }}
-              lang={lang} moreLabel={(n) => t("cal.more_count").replace("{n}", String(n))} empty={monthCount === 0} emptyHint={t("cal.clear_day")} />
+              onCreateDay={(d) => { const s = new Date(d); s.setHours(9, 0, 0, 0); openSlot(s); }} onMove={moveEventToDay}
+              lang={lang} moreLabel={(n) => t("cal.more_count").replace("{n}", String(n))} empty={monthCount === 0} emptyHint={t("cal.clear_day")} dragHint={t("cal.drag_hint")} />
           ) : groups.length === 0 ? (
             <EmptyState label={t("cal.empty")} onNew={openCreate} newLabel={t("cal.new_meeting")} />
           ) : (
@@ -397,11 +410,14 @@ function EmptyState({ label, onNew, newLabel }: { label: string; onNew: () => vo
  * clicking a chip opens the meeting, clicking empty space in a day starts a 9am meeting there, and
  * clicking the day number jumps to that day's timeline. Days outside the anchored month are dimmed.
  */
-function MonthGrid({ days, monthOf, events, selected, today, onOpen, onPickDay, onCreateDay, lang, moreLabel, empty, emptyHint }: {
+function MonthGrid({ days, monthOf, events, selected, today, onOpen, onPickDay, onCreateDay, onMove, lang, moreLabel, empty, emptyHint, dragHint }: {
   days: Date[]; monthOf: Date; events: CalEvent[]; selected: string | null; today: Date;
   onOpen: (id: string) => void; onPickDay: (d: Date) => void; onCreateDay: (d: Date) => void;
-  lang: string; moreLabel: (n: number) => string; empty: boolean; emptyHint: string;
+  onMove?: (eventId: string, currentStart: string, targetDay: Date) => void;
+  lang: string; moreLabel: (n: number) => string; empty: boolean; emptyHint: string; dragHint?: string;
 }) {
+  // Which day cell is currently being dragged over (for a subtle drop highlight).
+  const [dropIdx, setDropIdx] = useState<number | null>(null);
   // Bucket events by day once, each bucket sorted by start time.
   const byDay = useMemo(() => {
     const map = new Map<string, CalEvent[]>();
@@ -431,8 +447,14 @@ function MonthGrid({ days, monthOf, events, selected, today, onOpen, onPickDay, 
           const overflow = dayEvents.length - shown.length;
           return (
             <div key={i} onClick={() => onCreateDay(d)}
+              onDragOver={onMove ? (ev) => { ev.preventDefault(); if (dropIdx !== i) setDropIdx(i); } : undefined}
+              onDragLeave={onMove ? () => setDropIdx(p => (p === i ? null : p)) : undefined}
+              onDrop={onMove ? (ev) => {
+                ev.preventDefault(); setDropIdx(null);
+                try { const p = JSON.parse(ev.dataTransfer.getData("text/mondaily-event")); if (p?.id && p?.start && p.start.slice(0, 10) !== toLocalInput(d).slice(0, 10)) onMove(p.id, p.start, d); } catch { /* ignore */ }
+              } : undefined}
               className="group relative flex min-h-[92px] cursor-pointer flex-col gap-1 p-1.5 transition-colors hover:bg-[var(--surface-hover)]"
-              style={{ borderTop: i >= 7 ? "1px solid var(--border-soft)" : undefined, borderLeft: i % 7 !== 0 ? "1px solid var(--border-soft)" : undefined, background: inMonth ? undefined : "var(--surface-hover)" }}>
+              style={{ borderTop: i >= 7 ? "1px solid var(--border-soft)" : undefined, borderLeft: i % 7 !== 0 ? "1px solid var(--border-soft)" : undefined, background: dropIdx === i ? "var(--surface-selected)" : inMonth ? undefined : "var(--surface-hover)" }}>
               <button onClick={(ev) => { ev.stopPropagation(); onPickDay(d); }}
                 className="flex h-5 w-5 items-center justify-center self-start rounded-full text-[11.5px] tabular-nums transition-colors"
                 style={isToday ? { background: "var(--text-primary)", color: "var(--surface-page)", fontWeight: 600 } : { color: inMonth ? "var(--text-secondary)" : "var(--text-faint)" }}
@@ -441,11 +463,16 @@ function MonthGrid({ days, monthOf, events, selected, today, onOpen, onPickDay, 
               </button>
               {shown.map(e => {
                 const tone = meetingTone(e);
+                // Only non-recurring meetings are draggable — moving one occurrence of a series is
+                // ambiguous, so those stay put (reschedule the series from its detail instead).
+                const draggable = !!onMove && !e.recurring;
                 return (
-                  <button key={e.id} onClick={(ev) => { ev.stopPropagation(); onOpen(e.id); }}
-                    className="flex items-center gap-1 truncate rounded-[3px] px-1.5 py-0.5 text-left text-[11px] transition-colors hover:brightness-[0.97]"
+                  <button key={e.id} draggable={draggable}
+                    onDragStart={draggable ? (ev) => { ev.stopPropagation(); ev.dataTransfer.effectAllowed = "move"; ev.dataTransfer.setData("text/mondaily-event", JSON.stringify({ id: e.id, start: e.start_at })); } : undefined}
+                    onClick={(ev) => { ev.stopPropagation(); onOpen(e.id); }}
+                    className={`flex items-center gap-1 truncate rounded-[3px] px-1.5 py-0.5 text-left text-[11px] transition-colors hover:brightness-[0.97] ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`}
                     style={{ borderLeft: `2px solid ${tone.edge}`, background: e.id === selected ? "var(--surface-selected)" : tone.tint, color: "var(--text-secondary)" }}
-                    title={`${fmtTime(e.start_at, lang)} · ${e.title}`}>
+                    title={`${fmtTime(e.start_at, lang)} · ${e.title}${draggable && dragHint ? ` — ${dragHint}` : ""}`}>
                     <span className="shrink-0 tabular-nums" style={{ color: "var(--text-faint)" }}>{fmtTime(e.start_at, lang)}</span>
                     <span className="truncate" style={{ color: "var(--text-primary)" }}>{e.title}</span>
                   </button>

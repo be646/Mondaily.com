@@ -125,6 +125,14 @@ export function expandRecurrence(
 }
 function daysInMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); }
 
+/** Reschedule to a new start while PRESERVING the meeting's duration (drag-to-move). Pure + tested. */
+export function rescheduledDates(oldStart: string, oldEnd: string, newStart: string): { start_at: string; end_at: string } {
+  const s = new Date(newStart);
+  if (Number.isNaN(s.getTime())) return { start_at: oldStart, end_at: oldEnd };   // reject a bad target, keep as-is
+  const dur = Math.max(0, new Date(oldEnd).getTime() - new Date(oldStart).getTime());
+  return { start_at: fmtLocal(s), end_at: fmtLocal(new Date(s.getTime() + dur)) };
+}
+
 const callsEnabled = () => !!(process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET);
 const appUrl = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
 
@@ -345,6 +353,23 @@ router.delete("/events/:id", async (c) => {
   if (error) return c.json({ error: "Could not cancel the meeting." }, 500);
   await notifyAttendees(ws, ev.id, next, me, "cancelled");
   return c.json({ ok: true, status: "cancelled" });
+});
+
+// POST /calendar/events/:id/reschedule — drag-to-move. Organizer/admin only; preserves duration and
+// notifies attendees. Not for a single occurrence of a series (the id must be a real event node).
+router.post("/events/:id/reschedule", zValidator("json", z.object({ start_at: z.string().min(1) })), async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  if (c.req.param("id").includes("::")) return c.json({ error: "Reschedule a recurring meeting from its series, not a single occurrence." }, 400);
+  const ev = await getEvent(ws, c.req.param("id"));
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canManage(ev.data, me, c.get("role"))) return c.json({ error: "Only the organizer or an admin can reschedule this." }, 403);
+  if (ev.data.status === "cancelled") return c.json({ error: "This meeting was cancelled." }, 409);
+  const next: EventData = { ...ev.data, ...rescheduledDates(ev.data.start_at, ev.data.end_at, c.req.valid("json").start_at) };
+  const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
+  if (error) return c.json({ error: "Could not reschedule the meeting." }, 500);
+  await notifyAttendees(ws, ev.id, next, me, "updated");
+  const dir = await members(ws);
+  return c.json(shape(ev.id, next, dir, ev.created_at));
 });
 
 // POST /calendar/events/:id/respond — an attendee (or the organizer) RSVPs. Participant-only. The
