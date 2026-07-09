@@ -26,11 +26,89 @@ router.use("*", requireAuth);
 export const EVENT_STATUSES = ["scheduled", "cancelled", "completed"] as const;
 type EventStatus = (typeof EVENT_STATUSES)[number];
 
+/** A simple, explicit recurrence rule (a deliberately small subset of iCal RRULE — no third-party
+ *  lib). Weekly recurs on the master's weekday; monthly on the master's day-of-month (months without
+ *  that day, e.g. Feb 30, are skipped, never silently shifted). Ends by `count` OR `until`, else open. */
+export interface RecurrenceRule {
+  freq: "daily" | "weekly" | "monthly";
+  interval: number;          // every N days/weeks/months (>=1)
+  count?: number;            // stop after N occurrences (inclusive of the first)
+  until?: string;            // stop on/after this date (YYYY-MM-DD)
+}
+
 interface EventData {
   title: string; description: string; start_at: string; end_at: string; timezone: string;
   organizer_id: string; attendee_ids: string[]; location: string;
   call_room_id: string | null; call_url: string | null; status: EventStatus;
+  recurrence?: RecurrenceRule | null;   // set only on the SERIES MASTER
+  exdates?: string[];                   // occurrence dates (YYYY-MM-DD) cancelled individually
 }
+
+// ── Recurrence (pure, unit-tested) ────────────────────────────────────────────────────────────────
+const pad = (n: number) => String(n).padStart(2, "0");
+/** A Date → naive "YYYY-MM-DDTHH:mm" (matches how the app stores start_at from <input datetime-local>). */
+const fmtLocal = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const dateKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+/** The synthetic id for one occurrence of a recurring series, and its inverse (base node id). */
+export const occurrenceId = (masterId: string, occDate: string) => `${masterId}::${occDate}`;
+export const baseId = (id: string) => id.split("::")[0]!;
+
+/** A short human summary of a rule ("Every 2 weeks", "Monthly"), for the UI. */
+export function recurrenceSummary(r: RecurrenceRule): string {
+  const unit = r.freq === "daily" ? "day" : r.freq === "weekly" ? "week" : "month";
+  const base = r.interval === 1 ? { daily: "Daily", weekly: "Weekly", monthly: "Monthly" }[r.freq] : `Every ${r.interval} ${unit}s`;
+  if (r.count) return `${base}, ${r.count}×`;
+  if (r.until) return `${base}, until ${r.until}`;
+  return base;
+}
+
+export interface Occurrence { occurrence_start: string; occurrence_end: string; occurrence_date: string }
+
+/**
+ * Expand a recurring master into concrete occurrences that fall within [fromISO, toISO]. Pure and
+ * deterministic: preserves each occurrence's wall-clock time + duration, honors count/until,
+ * skips explicitly-cancelled exdates, skips invalid monthly days, and is hard-capped so a malformed
+ * open-ended rule can never loop unbounded.
+ */
+export function expandRecurrence(
+  master: Pick<EventData, "start_at" | "end_at" | "recurrence" | "exdates">,
+  fromISO: string | undefined, toISO: string | undefined, cap = 366,
+): Occurrence[] {
+  const r = master.recurrence;
+  if (!r || r.interval < 1) return [];
+  const first = new Date(master.start_at);
+  if (Number.isNaN(first.getTime())) return [];
+  const durationMs = Math.max(0, new Date(master.end_at).getTime() - first.getTime());
+  // A date-only bound ("2026-07-04") covers the WHOLE day — start-of-day for `from`, end-of-day for
+  // `to` — so a same-day occurrence with a time-of-day isn't clipped off the edge of the window.
+  const windowStart = fromISO ? new Date(fromISO.includes("T") ? fromISO : `${fromISO}T00:00:00`) : null;
+  // Default a 90-day forward window when the caller gives no upper bound (keeps the list finite).
+  const windowEnd = toISO
+    ? new Date(toISO.includes("T") ? toISO : `${toISO}T23:59:59`)
+    : new Date(first.getTime() + 90 * 86_400_000 + (windowStart ? Math.max(0, windowStart.getTime() - first.getTime()) : 0));
+  const untilEnd = r.until ? new Date(`${r.until}T23:59`) : null;
+  const exdates = new Set(master.exdates ?? []);
+
+  const out: Occurrence[] = [];
+  const day = first.getDate();
+  for (let i = 0, emitted = 0; i < cap; i++) {
+    if (r.count && emitted >= r.count) break;
+    const d = new Date(first);
+    if (r.freq === "daily") d.setDate(first.getDate() + i * r.interval);
+    else if (r.freq === "weekly") d.setDate(first.getDate() + i * r.interval * 7);
+    else { d.setDate(1); d.setMonth(first.getMonth() + i * r.interval); if (daysInMonth(d) < day) continue; d.setDate(day); }
+    emitted++;                                   // counts toward `count` even if outside the window
+    if (untilEnd && d > untilEnd) break;
+    if (d > windowEnd) break;
+    if (windowStart && d.getTime() + durationMs < windowStart.getTime()) continue;  // ended before window
+    const key = dateKey(d);
+    if (exdates.has(key)) continue;
+    out.push({ occurrence_start: fmtLocal(d), occurrence_end: fmtLocal(new Date(d.getTime() + durationMs)), occurrence_date: key });
+  }
+  return out;
+}
+function daysInMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); }
 
 const callsEnabled = () => !!(process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET);
 const appUrl = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
@@ -62,8 +140,9 @@ async function members(ws: string) {
   return new Map((data ?? []).map((m) => [String(m.user_id), m as { name?: string; email?: string }]));
 }
 async function getEvent(ws: string, id: string) {
+  // Accept an occurrence id (master::date) — series routes operate on the master node.
   const { data } = await supabase.from("nodes").select("id, data, created_by, created_at, updated_at")
-    .eq("workspace_id", ws).eq("object_type", "calendar_event").eq("id", id).maybeSingle();
+    .eq("workspace_id", ws).eq("object_type", "calendar_event").eq("id", baseId(id)).maybeSingle();
   return data ? { ...data, data: (data.data ?? {}) as EventData } : null;
 }
 const canView = (d: EventData, me: string) => d.organizer_id === me || (d.attendee_ids ?? []).includes(me);
@@ -76,6 +155,8 @@ function shape(id: string, d: EventData, dir: Map<string, { name?: string; email
     timezone: d.timezone ?? "UTC", location: d.location ?? "", status: d.status ?? "scheduled",
     call_url: d.call_url ?? null, call_room_id: d.call_room_id ?? null,
     organizer: person(d.organizer_id), attendees: (d.attendee_ids ?? []).map(person),
+    recurrence: d.recurrence ?? null,
+    recurrence_summary: d.recurrence ? recurrenceSummary(d.recurrence) : null,
     created_at: createdAt,
   };
 }
@@ -104,21 +185,45 @@ const EventInput = z.object({
   attendee_ids: z.array(z.string()).max(50).optional(),
   location: z.string().max(300).optional(),
   generate_call_link: z.boolean().optional(),
+  recurrence: z.object({
+    freq: z.enum(["daily", "weekly", "monthly"]),
+    interval: z.number().int().min(1).max(30).default(1),
+    count: z.number().int().min(1).max(365).optional(),
+    until: z.string().max(10).optional(),
+  }).nullable().optional(),
 });
 
 // GET /calendar/events?from=&to= — the caller's events (organizer OR attendee), workspace-scoped.
 router.get("/events", async (c) => {
   const ws = c.get("workspaceId"); const me = c.get("userId");
   const from = c.req.query("from"); const to = c.req.query("to");
-  let q = supabase.from("nodes").select("id, data, created_at").eq("workspace_id", ws).eq("object_type", "calendar_event");
+  // Windowed non-recurring events, PLUS every recurring master (its start may predate the window,
+  // yet its occurrences fall inside it — so masters are fetched unfiltered and expanded in code).
+  let q = supabase.from("nodes").select("id, data, created_at").eq("workspace_id", ws).eq("object_type", "calendar_event").is("data->recurrence", null);
   if (from) q = q.gte("data->>start_at", from);
   if (to) q = q.lte("data->>start_at", to);
-  const { data } = await q.order("data->>start_at", { ascending: true }).limit(500);
+  const [winRes, recRes] = await Promise.all([
+    q.order("data->>start_at", { ascending: true }).limit(500),
+    supabase.from("nodes").select("id, data, created_at").eq("workspace_id", ws).eq("object_type", "calendar_event").not("data->recurrence", "is", null).limit(200),
+  ]);
   const dir = await members(ws);
-  const events = (data ?? [])
+
+  const single = (winRes.data ?? [])
     .map((n) => ({ id: n.id, d: (n.data ?? {}) as EventData, created_at: n.created_at }))
-    .filter((e) => canView(e.d, me))                       // participant-only (never other people's meetings)
+    .filter((e) => canView(e.d, me))
     .map((e) => shape(e.id, e.d, dir, e.created_at));
+
+  // Expand each recurring series into concrete, in-window occurrences (skipping cancelled series
+  // and individually-cancelled dates). Each occurrence carries its master id so the UI can act on it.
+  const recurring = (recRes.data ?? [])
+    .map((n) => ({ id: n.id, d: (n.data ?? {}) as EventData, created_at: n.created_at }))
+    .filter((e) => canView(e.d, me) && e.d.status !== "cancelled" && e.d.recurrence)
+    .flatMap((e) => expandRecurrence(e.d, from, to).map((occ) => ({
+      ...shape(occurrenceId(e.id, occ.occurrence_date), { ...e.d, start_at: occ.occurrence_start, end_at: occ.occurrence_end }, dir, e.created_at),
+      recurring: true, master_id: e.id, occurrence_date: occ.occurrence_date,
+    })));
+
+  const events = [...single, ...recurring].sort((a, b) => a.start_at.localeCompare(b.start_at));
   return c.json({ events, calls_enabled: callsEnabled() });
 });
 
@@ -142,6 +247,7 @@ router.post("/events", zValidator("json", EventInput), async (c) => {
     title: b.title, description: b.description ?? "", start_at: b.start_at, end_at: b.end_at,
     timezone: b.timezone ?? "UTC", organizer_id: me, attendee_ids: attendees, location: b.location ?? "",
     call_room_id: null, call_url: null, status: "scheduled",
+    ...(b.recurrence ? { recurrence: b.recurrence, exdates: [] } : {}),
   };
   const { data: node, error } = await supabase.from("nodes")
     .insert({ workspace_id: ws, vertical: "shared", object_type: "calendar_event", created_by: me, data })
@@ -176,6 +282,8 @@ router.patch("/events/:id", zValidator("json", EventInput.partial().extend({ sta
     ...(b.location !== undefined ? { location: b.location } : {}),
     ...(b.attendee_ids !== undefined ? { attendee_ids: [...new Set(b.attendee_ids.filter((a) => a && a !== ev.data.organizer_id))] } : {}),
     ...(b.status !== undefined ? { status: b.status } : {}),
+    // Editing the series' recurrence (null clears it). Edits always apply to the whole series.
+    ...(b.recurrence !== undefined ? { recurrence: b.recurrence ?? null } : {}),
   };
   const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
   if (error) return c.json({ error: "Could not update the meeting." }, 500);
@@ -184,12 +292,25 @@ router.patch("/events/:id", zValidator("json", EventInput.partial().extend({ sta
   return c.json(shape(ev.id, next, dir, ev.created_at));
 });
 
-// DELETE /calendar/events/:id — CANCEL (soft): sets status=cancelled + notifies. Organizer/admin only.
+// DELETE /calendar/events/:id — CANCEL (soft). Organizer/admin only. For a recurring series,
+// `?occurrence=YYYY-MM-DD` cancels JUST that one date (adds an exdate); without it the whole series
+// (or a single meeting) is cancelled.
 router.delete("/events/:id", async (c) => {
   const ws = c.get("workspaceId"); const me = c.get("userId");
   const ev = await getEvent(ws, c.req.param("id"));
   if (!ev) return c.json({ error: "Event not found." }, 404);
   if (!canManage(ev.data, me, c.get("role"))) return c.json({ error: "Only the organizer or an admin can cancel this." }, 403);
+
+  const occurrence = c.req.query("occurrence");
+  if (occurrence && ev.data.recurrence) {
+    const exdates = [...new Set([...(ev.data.exdates ?? []), occurrence])];
+    const next: EventData = { ...ev.data, exdates };
+    const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
+    if (error) return c.json({ error: "Could not cancel this occurrence." }, 500);
+    await notifyAttendees(ws, ev.id, ev.data, me, "cancelled");
+    return c.json({ ok: true, occurrence_cancelled: occurrence });
+  }
+
   const next: EventData = { ...ev.data, status: "cancelled" };
   const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
   if (error) return c.json({ error: "Could not cancel the meeting." }, 500);

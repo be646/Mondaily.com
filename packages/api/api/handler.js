@@ -4343,7 +4343,7 @@ var require_common = __commonJS({
       assert(this.pending === null);
       return this._digest(enc);
     };
-    BlockHash.prototype._pad = function pad() {
+    BlockHash.prototype._pad = function pad2() {
       var len = this.pendingTotal;
       var bytes = this._delta8;
       var k2 = bytes - (len + this.padLength) % bytes;
@@ -61313,6 +61313,14 @@ var TRANSLATIONS = {
   "cal.calls_off": { en: "Calls aren't configured on this workspace.", pl: "Po\u0142\u0105czenia nie s\u0105 skonfigurowane.", ru: "\u0417\u0432\u043E\u043D\u043A\u0438 \u043D\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u044B.", uk: "\u0414\u0437\u0432\u0456\u043D\u043A\u0438 \u043D\u0435 \u043D\u0430\u043B\u0430\u0448\u0442\u043E\u0432\u0430\u043D\u0456.", ar: "\u0627\u0644\u0645\u0643\u0627\u0644\u0645\u0627\u062A \u063A\u064A\u0631 \u0645\u064F\u0647\u064A\u0623\u0629.", fr: "Les appels ne sont pas configur\xE9s.", de: "Anrufe sind nicht konfiguriert.", es: "Las llamadas no est\xE1n configuradas.", pt: "As chamadas n\xE3o est\xE3o configuradas.", it: "Le chiamate non sono configurate.", tr: "Aramalar yap\u0131land\u0131r\u0131lmam\u0131\u015F.", nl: "Gesprekken zijn niet geconfigureerd." },
   "cal.join_call": { en: "Join call", pl: "Do\u0142\u0105cz do rozmowy", ru: "\u041F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u044C\u0441\u044F", uk: "\u041F\u0440\u0438\u0454\u0434\u043D\u0430\u0442\u0438\u0441\u044F", ar: "\u0627\u0646\u0636\u0645 \u0644\u0644\u0645\u0643\u0627\u0644\u0645\u0629", fr: "Rejoindre l\u2019appel", de: "Anruf beitreten", es: "Unirse a la llamada", pt: "Entrar na chamada", it: "Unisciti alla chiamata", tr: "Aramaya kat\u0131l", nl: "Deelnemen aan gesprek" },
   "cal.cancel_meeting": { en: "Cancel meeting", pl: "Odwo\u0142aj spotkanie", ru: "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u0432\u0441\u0442\u0440\u0435\u0447\u0443", uk: "\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0437\u0443\u0441\u0442\u0440\u0456\u0447", ar: "\u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u0627\u062C\u062A\u0645\u0627\u0639", fr: "Annuler la r\xE9union", de: "Meeting absagen", es: "Cancelar reuni\xF3n", pt: "Cancelar reuni\xE3o", it: "Annulla riunione", tr: "Toplant\u0131y\u0131 iptal et", nl: "Vergadering annuleren" },
+  "cal.repeat": { en: "Repeat", pl: "Powtarzaj", ru: "\u041F\u043E\u0432\u0442\u043E\u0440", uk: "\u041F\u043E\u0432\u0442\u043E\u0440", ar: "\u062A\u0643\u0631\u0627\u0631", fr: "R\xE9p\xE9ter", de: "Wiederholen", es: "Repetir", pt: "Repetir", it: "Ripeti", tr: "Tekrarla", nl: "Herhalen" },
+  "cal.repeat_none": { en: "Doesn't repeat", pl: "Bez powt\xF3rze\u0144", ru: "\u041D\u0435 \u043F\u043E\u0432\u0442\u043E\u0440\u044F\u0442\u044C", uk: "\u041D\u0435 \u043F\u043E\u0432\u0442\u043E\u0440\u044E\u0432\u0430\u0442\u0438", ar: "\u0644\u0627 \u064A\u062A\u0643\u0631\u0631", fr: "Ne se r\xE9p\xE8te pas", de: "Keine Wiederholung", es: "No se repite", pt: "N\xE3o se repete", it: "Non si ripete", tr: "Tekrarlanmaz", nl: "Herhaalt niet" },
+  "cal.repeat_daily": { en: "Daily", pl: "Codziennie", ru: "\u0415\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u043E", uk: "\u0429\u043E\u0434\u043D\u044F", ar: "\u064A\u0648\u0645\u064A\u064B\u0627", fr: "Tous les jours", de: "T\xE4glich", es: "Diariamente", pt: "Diariamente", it: "Ogni giorno", tr: "G\xFCnl\xFCk", nl: "Dagelijks" },
+  "cal.repeat_weekly": { en: "Weekly", pl: "Co tydzie\u0144", ru: "\u0415\u0436\u0435\u043D\u0435\u0434\u0435\u043B\u044C\u043D\u043E", uk: "\u0429\u043E\u0442\u0438\u0436\u043D\u044F", ar: "\u0623\u0633\u0628\u0648\u0639\u064A\u064B\u0627", fr: "Toutes les semaines", de: "W\xF6chentlich", es: "Semanalmente", pt: "Semanalmente", it: "Ogni settimana", tr: "Haftal\u0131k", nl: "Wekelijks" },
+  "cal.repeat_monthly": { en: "Monthly", pl: "Co miesi\u0105c", ru: "\u0415\u0436\u0435\u043C\u0435\u0441\u044F\u0447\u043D\u043E", uk: "\u0429\u043E\u043C\u0456\u0441\u044F\u0446\u044F", ar: "\u0634\u0647\u0631\u064A\u064B\u0627", fr: "Tous les mois", de: "Monatlich", es: "Mensualmente", pt: "Mensalmente", it: "Ogni mese", tr: "Ayl\u0131k", nl: "Maandelijks" },
+  "cal.repeat_until": { en: "until", pl: "do", ru: "\u0434\u043E", uk: "\u0434\u043E", ar: "\u062D\u062A\u0649", fr: "jusqu\u2019au", de: "bis", es: "hasta", pt: "at\xE9", it: "fino al", tr: "biti\u015F", nl: "tot" },
+  "cal.cancel_occurrence": { en: "Cancel this occurrence", pl: "Odwo\u0142aj to wyst\u0105pienie", ru: "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u044D\u0442\u043E \u0441\u043E\u0431\u044B\u0442\u0438\u0435", uk: "\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0446\u044E \u043F\u043E\u0434\u0456\u044E", ar: "\u0625\u0644\u063A\u0627\u0621 \u0647\u0630\u0627 \u0627\u0644\u062D\u062F\u062B", fr: "Annuler cette occurrence", de: "Diesen Termin absagen", es: "Cancelar esta repetici\xF3n", pt: "Cancelar esta ocorr\xEAncia", it: "Annulla questa ricorrenza", tr: "Bu tekrar\u0131 iptal et", nl: "Deze keer annuleren" },
+  "cal.cancel_series": { en: "Cancel series", pl: "Odwo\u0142aj seri\u0119", ru: "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C \u0441\u0435\u0440\u0438\u044E", uk: "\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438 \u0441\u0435\u0440\u0456\u044E", ar: "\u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u0633\u0644\u0633\u0644\u0629", fr: "Annuler la s\xE9rie", de: "Serie absagen", es: "Cancelar serie", pt: "Cancelar s\xE9rie", it: "Annulla serie", tr: "Diziyi iptal et", nl: "Reeks annuleren" },
   "cal.cancelled": { en: "Cancelled", pl: "Odwo\u0142ane", ru: "\u041E\u0442\u043C\u0435\u043D\u0435\u043D\u043E", uk: "\u0421\u043A\u0430\u0441\u043E\u0432\u0430\u043D\u043E", ar: "\u0645\u0644\u063A\u0649", fr: "Annul\xE9e", de: "Abgesagt", es: "Cancelada", pt: "Cancelada", it: "Annullata", tr: "\u0130ptal edildi", nl: "Geannuleerd" },
   "cal.draft_agenda": { en: "Draft agenda with AI", pl: "Napisz agend\u0119 z AI", ru: "\u0421\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u043F\u043E\u0432\u0435\u0441\u0442\u043A\u0443 \u0441 \u0418\u0418", uk: "\u0421\u043A\u043B\u0430\u0441\u0442\u0438 \u043F\u043E\u0440\u044F\u0434\u043E\u043A \u0437 \u0428\u0406", ar: "\u0635\u064A\u0627\u063A\u0629 \u0627\u0644\u0623\u062C\u0646\u062F\u0629 \u0628\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A", fr: "R\xE9diger l\u2019ordre du jour avec l\u2019IA", de: "Agenda mit KI entwerfen", es: "Redactar agenda con IA", pt: "Rascunhar pauta com IA", it: "Bozza agenda con IA", tr: "Yapay zek\xE2 ile g\xFCndem tasla\u011F\u0131", nl: "Agenda opstellen met AI" },
   "cal.view_today": { en: "Today", pl: "Dzisiaj", ru: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F", uk: "\u0421\u044C\u043E\u0433\u043E\u0434\u043D\u0456", ar: "\u0627\u0644\u064A\u0648\u0645", fr: "Aujourd\u2019hui", de: "Heute", es: "Hoy", pt: "Hoje", it: "Oggi", tr: "Bug\xFCn", nl: "Vandaag" },
@@ -65171,6 +65179,54 @@ init_ai_gateway();
 var router11 = new Hono2();
 router11.use("*", requireAuth);
 var EVENT_STATUSES = ["scheduled", "cancelled", "completed"];
+var pad = (n2) => String(n2).padStart(2, "0");
+var fmtLocal = (d2) => `${d2.getFullYear()}-${pad(d2.getMonth() + 1)}-${pad(d2.getDate())}T${pad(d2.getHours())}:${pad(d2.getMinutes())}`;
+var dateKey = (d2) => `${d2.getFullYear()}-${pad(d2.getMonth() + 1)}-${pad(d2.getDate())}`;
+var occurrenceId = (masterId, occDate) => `${masterId}::${occDate}`;
+var baseId = (id) => id.split("::")[0];
+function recurrenceSummary(r2) {
+  const unit = r2.freq === "daily" ? "day" : r2.freq === "weekly" ? "week" : "month";
+  const base = r2.interval === 1 ? { daily: "Daily", weekly: "Weekly", monthly: "Monthly" }[r2.freq] : `Every ${r2.interval} ${unit}s`;
+  if (r2.count) return `${base}, ${r2.count}\xD7`;
+  if (r2.until) return `${base}, until ${r2.until}`;
+  return base;
+}
+function expandRecurrence(master, fromISO, toISO, cap = 366) {
+  const r2 = master.recurrence;
+  if (!r2 || r2.interval < 1) return [];
+  const first = new Date(master.start_at);
+  if (Number.isNaN(first.getTime())) return [];
+  const durationMs = Math.max(0, new Date(master.end_at).getTime() - first.getTime());
+  const windowStart = fromISO ? new Date(fromISO.includes("T") ? fromISO : `${fromISO}T00:00:00`) : null;
+  const windowEnd = toISO ? new Date(toISO.includes("T") ? toISO : `${toISO}T23:59:59`) : new Date(first.getTime() + 90 * 864e5 + (windowStart ? Math.max(0, windowStart.getTime() - first.getTime()) : 0));
+  const untilEnd = r2.until ? /* @__PURE__ */ new Date(`${r2.until}T23:59`) : null;
+  const exdates = new Set(master.exdates ?? []);
+  const out = [];
+  const day2 = first.getDate();
+  for (let i2 = 0, emitted = 0; i2 < cap; i2++) {
+    if (r2.count && emitted >= r2.count) break;
+    const d2 = new Date(first);
+    if (r2.freq === "daily") d2.setDate(first.getDate() + i2 * r2.interval);
+    else if (r2.freq === "weekly") d2.setDate(first.getDate() + i2 * r2.interval * 7);
+    else {
+      d2.setDate(1);
+      d2.setMonth(first.getMonth() + i2 * r2.interval);
+      if (daysInMonth(d2) < day2) continue;
+      d2.setDate(day2);
+    }
+    emitted++;
+    if (untilEnd && d2 > untilEnd) break;
+    if (d2 > windowEnd) break;
+    if (windowStart && d2.getTime() + durationMs < windowStart.getTime()) continue;
+    const key = dateKey(d2);
+    if (exdates.has(key)) continue;
+    out.push({ occurrence_start: fmtLocal(d2), occurrence_end: fmtLocal(new Date(d2.getTime() + durationMs)), occurrence_date: key });
+  }
+  return out;
+}
+function daysInMonth(d2) {
+  return new Date(d2.getFullYear(), d2.getMonth() + 1, 0).getDate();
+}
 var callsEnabled = () => !!(process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET);
 var appUrl2 = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace(/\/$/, "");
 var internalRoom = (ws, eventId) => `ws_${ws}__meeting__${eventId}`;
@@ -65199,7 +65255,7 @@ async function members2(ws) {
   return new Map((data ?? []).map((m2) => [String(m2.user_id), m2]));
 }
 async function getEvent(ws, id) {
-  const { data } = await supabase.from("nodes").select("id, data, created_by, created_at, updated_at").eq("workspace_id", ws).eq("object_type", "calendar_event").eq("id", id).maybeSingle();
+  const { data } = await supabase.from("nodes").select("id, data, created_by, created_at, updated_at").eq("workspace_id", ws).eq("object_type", "calendar_event").eq("id", baseId(id)).maybeSingle();
   return data ? { ...data, data: data.data ?? {} } : null;
 }
 var canView = (d2, me2) => d2.organizer_id === me2 || (d2.attendee_ids ?? []).includes(me2);
@@ -65222,6 +65278,8 @@ function shape(id, d2, dir, createdAt) {
     call_room_id: d2.call_room_id ?? null,
     organizer: person(d2.organizer_id),
     attendees: (d2.attendee_ids ?? []).map(person),
+    recurrence: d2.recurrence ?? null,
+    recurrence_summary: d2.recurrence ? recurrenceSummary(d2.recurrence) : null,
     created_at: createdAt
   };
 }
@@ -65245,19 +65303,35 @@ var EventInput = external_exports.object({
   timezone: external_exports.string().max(60).optional(),
   attendee_ids: external_exports.array(external_exports.string()).max(50).optional(),
   location: external_exports.string().max(300).optional(),
-  generate_call_link: external_exports.boolean().optional()
+  generate_call_link: external_exports.boolean().optional(),
+  recurrence: external_exports.object({
+    freq: external_exports.enum(["daily", "weekly", "monthly"]),
+    interval: external_exports.number().int().min(1).max(30).default(1),
+    count: external_exports.number().int().min(1).max(365).optional(),
+    until: external_exports.string().max(10).optional()
+  }).nullable().optional()
 });
 router11.get("/events", async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
   const from = c2.req.query("from");
   const to = c2.req.query("to");
-  let q2 = supabase.from("nodes").select("id, data, created_at").eq("workspace_id", ws).eq("object_type", "calendar_event");
+  let q2 = supabase.from("nodes").select("id, data, created_at").eq("workspace_id", ws).eq("object_type", "calendar_event").is("data->recurrence", null);
   if (from) q2 = q2.gte("data->>start_at", from);
   if (to) q2 = q2.lte("data->>start_at", to);
-  const { data } = await q2.order("data->>start_at", { ascending: true }).limit(500);
+  const [winRes, recRes] = await Promise.all([
+    q2.order("data->>start_at", { ascending: true }).limit(500),
+    supabase.from("nodes").select("id, data, created_at").eq("workspace_id", ws).eq("object_type", "calendar_event").not("data->recurrence", "is", null).limit(200)
+  ]);
   const dir = await members2(ws);
-  const events = (data ?? []).map((n2) => ({ id: n2.id, d: n2.data ?? {}, created_at: n2.created_at })).filter((e2) => canView(e2.d, me2)).map((e2) => shape(e2.id, e2.d, dir, e2.created_at));
+  const single = (winRes.data ?? []).map((n2) => ({ id: n2.id, d: n2.data ?? {}, created_at: n2.created_at })).filter((e2) => canView(e2.d, me2)).map((e2) => shape(e2.id, e2.d, dir, e2.created_at));
+  const recurring = (recRes.data ?? []).map((n2) => ({ id: n2.id, d: n2.data ?? {}, created_at: n2.created_at })).filter((e2) => canView(e2.d, me2) && e2.d.status !== "cancelled" && e2.d.recurrence).flatMap((e2) => expandRecurrence(e2.d, from, to).map((occ) => ({
+    ...shape(occurrenceId(e2.id, occ.occurrence_date), { ...e2.d, start_at: occ.occurrence_start, end_at: occ.occurrence_end }, dir, e2.created_at),
+    recurring: true,
+    master_id: e2.id,
+    occurrence_date: occ.occurrence_date
+  })));
+  const events = [...single, ...recurring].sort((a2, b2) => a2.start_at.localeCompare(b2.start_at));
   return c2.json({ events, calls_enabled: callsEnabled() });
 });
 router11.get("/events/:id", async (c2) => {
@@ -65286,7 +65360,8 @@ router11.post("/events", zValidator("json", EventInput), async (c2) => {
     location: b2.location ?? "",
     call_room_id: null,
     call_url: null,
-    status: "scheduled"
+    status: "scheduled",
+    ...b2.recurrence ? { recurrence: b2.recurrence, exdates: [] } : {}
   };
   const { data: node, error } = await supabase.from("nodes").insert({ workspace_id: ws, vertical: "shared", object_type: "calendar_event", created_by: me2, data }).select("id, created_at").single();
   if (error || !node) return c2.json({ error: "Could not create the meeting." }, 500);
@@ -65318,7 +65393,9 @@ router11.patch("/events/:id", zValidator("json", EventInput.partial().extend({ s
     ...b2.timezone !== void 0 ? { timezone: b2.timezone } : {},
     ...b2.location !== void 0 ? { location: b2.location } : {},
     ...b2.attendee_ids !== void 0 ? { attendee_ids: [...new Set(b2.attendee_ids.filter((a2) => a2 && a2 !== ev.data.organizer_id))] } : {},
-    ...b2.status !== void 0 ? { status: b2.status } : {}
+    ...b2.status !== void 0 ? { status: b2.status } : {},
+    // Editing the series' recurrence (null clears it). Edits always apply to the whole series.
+    ...b2.recurrence !== void 0 ? { recurrence: b2.recurrence ?? null } : {}
   };
   const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
   if (error) return c2.json({ error: "Could not update the meeting." }, 500);
@@ -65332,6 +65409,15 @@ router11.delete("/events/:id", async (c2) => {
   const ev = await getEvent(ws, c2.req.param("id"));
   if (!ev) return c2.json({ error: "Event not found." }, 404);
   if (!canManage(ev.data, me2, c2.get("role"))) return c2.json({ error: "Only the organizer or an admin can cancel this." }, 403);
+  const occurrence = c2.req.query("occurrence");
+  if (occurrence && ev.data.recurrence) {
+    const exdates = [.../* @__PURE__ */ new Set([...ev.data.exdates ?? [], occurrence])];
+    const next2 = { ...ev.data, exdates };
+    const { error: error2 } = await supabase.from("nodes").update({ data: next2 }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
+    if (error2) return c2.json({ error: "Could not cancel this occurrence." }, 500);
+    await notifyAttendees(ws, ev.id, ev.data, me2, "cancelled");
+    return c2.json({ ok: true, occurrence_cancelled: occurrence });
+  }
   const next = { ...ev.data, status: "cancelled" };
   const { error } = await supabase.from("nodes").update({ data: next }).eq("workspace_id", ws).eq("id", ev.id).eq("object_type", "calendar_event");
   if (error) return c2.json({ error: "Could not cancel the meeting." }, 500);

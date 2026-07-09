@@ -405,10 +405,11 @@ describe("Smart Calendar — AI meeting prep (source-backed, never fabricates)",
 });
 
 describe("Smart Calendar UI — command-center layout", () => {
-  it("has Today / Week / Upcoming view modes", () => {
-    expect(page).toMatch(/type ViewMode = "today" \| "week" \| "upcoming"/);
+  it("has Today / Week / Month / Upcoming view modes", () => {
+    expect(page).toMatch(/type ViewMode = "today" \| "week" \| "month" \| "upcoming"/);
     expect(page).toMatch(/t\("cal\.view_today"\)/);
     expect(page).toMatch(/t\("cal\.view_week"\)/);
+    expect(page).toMatch(/t\("cal\.view_month"\)/);
     expect(page).toMatch(/t\("cal\.view_upcoming"\)/);
   });
   it("renders a Today intelligence strip fed by the real brief endpoint", () => {

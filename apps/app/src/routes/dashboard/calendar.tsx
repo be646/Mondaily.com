@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Send, StickyNote, Circle, CalendarClock, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Send, StickyNote, Circle, CalendarClock, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -18,6 +18,10 @@ interface CalEvent {
   id: string; title: string; description: string; start_at: string; end_at: string; timezone: string;
   location: string; status: "scheduled" | "cancelled" | "completed"; call_url: string | null;
   organizer: Person; attendees: Person[];
+  // Recurrence — series master carries the rule + summary; a list occurrence also carries these.
+  recurrence?: { freq: "daily" | "weekly" | "monthly"; interval: number; count?: number; until?: string } | null;
+  recurrence_summary?: string | null;
+  recurring?: boolean; master_id?: string; occurrence_date?: string;
 }
 interface MemberRow { id: string; name?: string; email: string }
 type ViewMode = "today" | "week" | "month" | "upcoming";
@@ -260,6 +264,7 @@ export function CalendarPage() {
           <Users size={11} /> {e.attendees.length + 1}
           {e.call_url && <><Video size={11} /> {t("cal.join_call")}</>}
           {e.location && <><MapPin size={11} /> {e.location}</>}
+          {(e.recurring || e.recurrence) && <><Repeat size={11} /> {e.recurrence_summary || t("cal.repeat")}</>}
         </div>
       </div>
     </button>
@@ -662,7 +667,10 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
   const me = useCurrentUser();
   const qc = useQueryClient();
   const detail = useQuery<CalEvent & { calls_enabled: boolean }>({ queryKey: ["calendar-event", id], queryFn: () => apiClient.get(`/calendar/events/${id}`) });
+  // An occurrence id is "master::YYYY-MM-DD" — that suffix tells us which single date to cancel.
+  const occurrenceDate = id.includes("::") ? id.split("::")[1]! : null;
   const cancel = useMutation({ mutationFn: () => apiClient.delete(`/calendar/events/${id}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ["calendar-events"] }); onClose?.(); } });
+  const cancelOccurrence = useMutation({ mutationFn: () => apiClient.delete(`/calendar/events/${id}?occurrence=${occurrenceDate}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ["calendar-events"] }); onClose?.(); } });
   const addCall = useMutation({ mutationFn: () => apiClient.post(`/calendar/events/${id}/call-link`, {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar-event", id] }) });
   const prepare = useMutation<PrepResult>({ mutationFn: () => apiClient.post(`/calendar/events/${id}/prepare`, {}) });
   // Reuse the (cached) Today brief only to know if THIS meeting overlaps another — real data, no fabrication.
@@ -696,6 +704,7 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               {(() => { try { return new Date(e.start_at).toLocaleString(lang, { weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return e.start_at; } })()} – {fmtTime(e.end_at, lang)}
               {e.timezone && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}> · {e.timezone}</span>}
             </div>
+            {e.recurrence_summary && <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--text-muted)" }}><Repeat size={12} style={{ color: "var(--text-faint)" }} /> {e.recurrence_summary}</div>}
             {e.status === "cancelled" && <span className="inline-block rounded-sm px-2 py-0.5 text-[11px] font-medium" style={{ background: "rgba(168,106,114,0.14)", color: "#a86a72" }}>{t("cal.cancelled")}</span>}
             {e.call_url && <button onClick={() => navigate(`/calls/${e.id}`)} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}><Video size={13} /> {t("cal.join_call")}</button>}
             {e.location && <div className="flex items-center gap-2" style={{ color: "var(--text-secondary)" }}><MapPin size={13} style={{ color: "var(--text-faint)" }} /> {e.location}</div>}
@@ -794,7 +803,13 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               <div className="flex flex-wrap gap-2 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>
                 {!e.call_url && e.calls_enabled && <button onClick={() => addCall.mutate()} disabled={addCall.isPending} className="rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><Video size={12} className="mr-1 inline" /> {t("cal.add_call")}</button>}
                 {!e.calls_enabled && !e.call_url && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{t("cal.calls_off")}</span>}
-                <button onClick={() => cancel.mutate()} disabled={cancel.isPending} className="rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors" style={{ borderColor: "rgba(168,106,114,0.4)", color: "#a86a72" }}>{t("cal.cancel_meeting")}</button>
+                {/* Recurring series: cancel just this date, or the whole series. Non-recurring: one cancel. */}
+                {occurrenceDate && e.recurrence
+                  ? <>
+                      <button onClick={() => cancelOccurrence.mutate()} disabled={cancelOccurrence.isPending} className="rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors" style={{ borderColor: "rgba(168,106,114,0.4)", color: "#a86a72" }}>{t("cal.cancel_occurrence")}</button>
+                      <button onClick={() => cancel.mutate()} disabled={cancel.isPending} className="rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{t("cal.cancel_series")}</button>
+                    </>
+                  : <button onClick={() => cancel.mutate()} disabled={cancel.isPending} className="rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors" style={{ borderColor: "rgba(168,106,114,0.4)", color: "#a86a72" }}>{t("cal.cancel_meeting")}</button>}
               </div>
             )}
           </div>
@@ -913,6 +928,8 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
   const [location, setLocation] = useState("");
   const [attendees, setAttendees] = useState<string[]>([]);
   const [withCall, setWithCall] = useState(false);
+  const [repeat, setRepeat] = useState<"none" | "daily" | "weekly" | "monthly">("none");
+  const [repeatUntil, setRepeatUntil] = useState("");   // optional YYYY-MM-DD end date
   const [aiBusy, setAiBusy] = useState(false);
 
   const membersQ = useQuery<{ members: MemberRow[] }>({ queryKey: ["workspace-members-full"], queryFn: () => apiClient.get("/workspace/members-full"), staleTime: 60_000 });
@@ -923,6 +940,7 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
     mutationFn: () => apiClient.post<{ id: string }>("/calendar/events", {
       title, description: desc || undefined, start_at: new Date(start).toISOString(), end_at: new Date(end || start).toISOString(),
       timezone: tz, attendee_ids: attendees, location: location || undefined, generate_call_link: withCall && callsEnabled,
+      recurrence: repeat === "none" ? undefined : { freq: repeat, interval: 1, ...(repeatUntil ? { until: repeatUntil } : {}) },
     }),
     onSuccess: (r) => onCreated(r.id),
   });
@@ -980,6 +998,25 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
             <input type="checkbox" checked={withCall && callsEnabled} disabled={!callsEnabled} onChange={e => setWithCall(e.target.checked)} />
             <Video size={13} /> {t("cal.add_call")} {!callsEnabled && <span className="text-[11px]">— {t("cal.calls_off")}</span>}
           </label>
+
+          {/* Recurrence — optional. Repeats from the start time; an end date is optional (open-ended otherwise). */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-1.5 text-[12.5px]" style={{ color: "var(--text-primary)" }}><Repeat size={13} /> {t("cal.repeat")}</span>
+            <select value={repeat} onChange={e => setRepeat(e.target.value as typeof repeat)}
+              className="rounded-sm border bg-transparent px-2 py-1 text-[12.5px] outline-none dark:[color-scheme:dark]" style={style}>
+              <option value="none">{t("cal.repeat_none")}</option>
+              <option value="daily">{t("cal.repeat_daily")}</option>
+              <option value="weekly">{t("cal.repeat_weekly")}</option>
+              <option value="monthly">{t("cal.repeat_monthly")}</option>
+            </select>
+            {repeat !== "none" && (
+              <label className="flex items-center gap-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                {t("cal.repeat_until")}
+                <input type="date" value={repeatUntil} onChange={e => setRepeatUntil(e.target.value)}
+                  className="rounded-sm border bg-transparent px-2 py-1 text-[12px] outline-none dark:[color-scheme:dark]" style={style} />
+              </label>
+            )}
+          </div>
         </div>
         <div className="flex justify-end gap-2 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
           <button onClick={onClose} className="rounded-sm border px-3 py-1.5 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{t("common.cancel")}</button>
