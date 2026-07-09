@@ -228,7 +228,11 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
     const last = lastAct.get(uid) ?? null;
     const hasSession = sessionUsers.has(uid);
     const verifiedPow = powUsers.has(uid);
-    const taskCount = last ? (acts ?? []).filter(a => String(a.actor_id) === uid).length : 0;
+    // REAL task count for this member (open + completed from the tasks table) — NOT activity-event
+    // count. The old activity-based count was capped by the activities limit and never moved when
+    // tasks were added; this reflects their actual assigned tasks and updates as work changes.
+    const taskAggU = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
+    const taskCount = taskAggU.open + taskAggU.completed;
 
     // ── Behavioral verdict (single source of truth), derived from REAL activity ──
     //   inactive       — no compute + no tasks in the window.
