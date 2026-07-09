@@ -1,0 +1,24 @@
+services:
+  stt:
+    build: ./stt
+    container_name: mondaily-stt
+    ports:
+      - "8090:8090"
+    environment:
+      # Optional shared secret — must match SOVEREIGN_STT_KEY in Vercel. Leave empty for open
+      # access (only acceptable behind a firewall / private network).
+      - STT_API_KEY=${STT_API_KEY:-}
+      # faster-whisper model. "base"/"small" run fine on CPU; "medium"/"large-v3" want a GPU.
+      - WHISPER_MODEL=${WHISPER_MODEL:-small}
+      # "cpu" (int8) or "cuda" (float16) — see README for the GPU variant.
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-cpu}
+      - WHISPER_COMPUTE=${WHISPER_COMPUTE:-int8}
+      # Cap download size so a bad/huge URL can't exhaust the box (bytes; default 500MB).
+      - MAX_AUDIO_BYTES=${MAX_AUDIO_BYTES:-524288000}
+    volumes:
+      # Persist the downloaded model between restarts so it isn't re-fetched each boot.
+      - whisper-cache:/root/.cache/huggingface
+    restart: unless-stopped
+
+volumes:
+  whisper-cache:
