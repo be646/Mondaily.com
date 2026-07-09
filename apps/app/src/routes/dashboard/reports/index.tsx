@@ -3,6 +3,7 @@ import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight, X } from "lucide-rea
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, PageSkeletonCards } from "../../../components/ui/page-state";
+import { LiveSectionHeader } from "../../../components/ui/controls";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 
@@ -75,26 +76,7 @@ export function ReportsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       {/* AI-engine signature header — the section's unique "well-tech" treatment */}
-      <div className="mb-7 overflow-hidden rounded-sm border" style={{ borderColor: "var(--section-accent-line)" }}>
-        <div className="flex items-center justify-between gap-3 px-4 py-3.5"
-          style={{ background: "color-mix(in srgb, var(--section-accent) 5%, transparent)" }}>
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-sm border"
-              style={{ borderColor: "var(--section-accent-line)", color: "var(--section-accent)", background: "var(--surface-card)" }}>
-              <BarChart2 size={16}/>
-            </div>
-            <div className="min-w-0">
-              <div className="soul-kicker">// SIGNAL · AI ANALYTICS ENGINE</div>
-              <h1 className="mt-0.5 text-[17px] font-semibold" style={{ color: "var(--text-primary)" }}>Reports</h1>
-            </div>
-          </div>
-          <div className="hidden shrink-0 items-center gap-2 font-mono text-[10px] uppercase tracking-wider sm:flex"
-            style={{ color: "var(--text-muted)" }}>
-            <span className="soul-dot"/> computed from records
-          </div>
-        </div>
-        <div className="soul-rule"/>
-      </div>
+      <LiveSectionHeader icon={BarChart2} title="Reports" kicker="analytics engine" liveLabel="Live · from records" />
 
       {/* ── Live Reports ── */}
       <section className="mb-10">

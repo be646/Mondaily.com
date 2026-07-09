@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton } from "../../components/ui/page-state";
-import { MenuSelect } from "../../components/ui/controls";
+import { MenuSelect, LiveSectionHeader } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -131,11 +131,8 @@ export function DecisionsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-      <div className="mb-4">
-        <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// APPROVAL COCKPIT · live</p>
-        <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Decisions</h1>
-        <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>Your agents propose; you approve. Review the full impact — evidence, exact action, and audit trail — before it runs.</p>
-      </div>
+      <LiveSectionHeader icon={ShieldAlert} title="Decisions" kicker="approval cockpit" liveLabel="Live queue" />
+      <p className="mb-4 mt-[-0.5rem] text-[12px]" style={{ color: "var(--text-muted)" }}>Your agents propose; you approve. Review the full impact — evidence, exact action, and audit trail — before it runs.</p>
 
       {/* Lane tabs */}
       <div className="mb-3 flex flex-wrap gap-1 border-b" style={{ borderColor: "var(--border-soft)" }}>

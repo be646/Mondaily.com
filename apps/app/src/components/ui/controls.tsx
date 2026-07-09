@@ -252,3 +252,29 @@ export function FieldSelect({ value, options, onChange, placeholder = "Select…
     </div>
   );
 }
+
+// ─── LiveSectionHeader ────────────────────────────────────────────────────────
+// The thin, LIVE page header used across "live activity" sections (Team Intelligence,
+// Reports, Decisions, Agent Control Room). A compact bar with an animated pulse + a
+// scanning activity strip that reads as a working AI engine — not a tall static title.
+export function LiveSectionHeader({ icon: Icon, title, kicker, liveLabel = "Live" }: { icon: LucideIcon; title: string; kicker?: string; liveLabel?: string }) {
+  return (
+    <div className="mb-5 flex items-center justify-between gap-3 rounded-sm border px-3 py-2" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-sm" style={{ color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}><Icon size={13} /></span>
+        <h1 className="truncate text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{title}</h1>
+        {kicker && <span className="hidden font-mono text-[9.5px] uppercase tracking-wider sm:inline" style={{ color: "var(--text-faint)" }}>· {kicker}</span>}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="hidden h-3 w-16 overflow-hidden rounded-full sm:block" style={{ background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}>
+          <span className="oversight-live-scan block h-full w-1/3 rounded-full" style={{ background: "var(--section-accent)" }} />
+        </span>
+        <span className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ background: "#5f8169" }} />
+          <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#5f8169" }} />
+        </span>
+        <span className="font-mono text-[9.5px] uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>{liveLabel}</span>
+      </div>
+    </div>
+  );
+}

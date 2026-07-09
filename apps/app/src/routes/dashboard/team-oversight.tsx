@@ -1,10 +1,10 @@
 import { Fragment, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, X } from "lucide-react";
+import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, Printer } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
-import { FieldSelect } from "../../components/ui/controls";
+import { FieldSelect, LiveSectionHeader } from "../../components/ui/controls";
 
 /**
  * Team Intelligence — an AI-powered team behaviour & value dashboard for owners/admins.
@@ -351,27 +351,8 @@ export function TeamOversightPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      {/* ── Thin, LIVE section header — a compact bar with an animated "AI live" pulse ── */}
-      <div className="mb-5 flex items-center justify-between gap-3 rounded-sm border px-3 py-2" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
-        <div className="flex min-w-0 items-center gap-2.5">
-          <span className="relative grid h-6 w-6 shrink-0 place-items-center rounded-sm" style={{ color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}>
-            <ShieldCheck size={13} />
-          </span>
-          <h1 className="truncate text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>Team Intelligence</h1>
-          <span className="hidden font-mono text-[9.5px] uppercase tracking-wider sm:inline" style={{ color: "var(--text-faint)" }}>· signal engine</span>
-        </div>
-        {/* Live indicator — a pulsing ring + a subtle animated activity bar = "working AI", not static text. */}
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="hidden h-3 w-16 overflow-hidden rounded-full sm:block" style={{ background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}>
-            <span className="oversight-live-scan block h-full w-1/3 rounded-full" style={{ background: "var(--section-accent)" }} />
-          </span>
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ background: "#5f8169" }} />
-            <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#5f8169" }} />
-          </span>
-          <span className="font-mono text-[9.5px] uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Live · real activity</span>
-        </div>
-      </div>
+      {/* ── Thin, LIVE section header (shared primitive) ── */}
+      <LiveSectionHeader icon={ShieldCheck} title="Team Intelligence" kicker="signal engine" liveLabel="Live · real activity" />
 
       {/* ── Slim AI ask bar, pinned right under the header ── */}
       {operators.length > 0 && <OversightAsk />}
@@ -411,7 +392,7 @@ export function TeamOversightPage() {
         </div>
       ) : (
         <RosterTable operators={operators} selectedId={selectedId} onSelect={select}
-          detailFor={(op) => <MemberDetail op={op} onClose={() => select(null)} />} />
+          detailFor={(op) => <MemberDetail op={op} />} />
       )}
     </div>
   );
@@ -419,7 +400,7 @@ export function TeamOversightPage() {
 
 
 /** In-page member dossier — identity, metrics, AI behaviour, activity chart + timeline, actions. */
-function MemberDetail({ op, onClose }: { op: Operator; onClose: () => void }) {
+function MemberDetail({ op }: { op: Operator }) {
   const navigate = useNavigate();
   const v = VERDICT[op.verdict];
   const scope = `${op.name}${op.email ? ` (${op.email})` : ""}`;
@@ -489,7 +470,10 @@ function MemberDetail({ op, onClose }: { op: Operator; onClose: () => void }) {
               <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "video", name: op.name })} title="Video" className="btn-icon h-7 w-7"><Video size={13} /></button>
             </>
           )}
-          <button onClick={onClose} title="Close" className="btn-icon h-7 w-7"><X size={15} /></button>
+          <button onClick={() => window.print()} title="Print / save this member's report as PDF"
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <Printer size={11} style={{ color: "var(--section-accent)" }} /> Print report
+          </button>
         </div>
       </div>
 
@@ -503,9 +487,8 @@ function MemberDetail({ op, onClose }: { op: Operator; onClose: () => void }) {
         </div>
       )}
 
-      {/* One unified metrics block — all the key per-member numbers in a single clean 3×3 grid
-          (was two separate stacked grids that read as "too many boxes"). */}
-      <div className="grid grid-cols-3 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+      {/* One unified metrics block — soft borderless tiles (no hairline grid) reads calmer + more premium. */}
+      <div className="grid grid-cols-3 gap-1.5 border-b px-4 py-3.5 sm:grid-cols-3" style={{ borderColor: "var(--border-soft)" }}>
         {[
           { k: "Tasks", val: fmt(op.task_count) },
           { k: "AI credits", val: fmt(op.tokens) },
@@ -517,7 +500,7 @@ function MemberDetail({ op, onClose }: { op: Operator; onClose: () => void }) {
           { k: "Messages", val: fmt(op.messages_sent ?? 0) },
           { k: "Decisions", val: fmt(op.decisions_resolved ?? 0) },
         ].map((m) => (
-          <div key={m.k} className="px-3 py-2.5" style={{ background: "var(--surface-card)" }}>
+          <div key={m.k} className="rounded-sm px-3 py-2" style={{ background: "var(--surface-hover)" }}>
             <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.warn ? "#97824f" : "var(--text-primary)" }}>{m.val}</div>
             <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{m.k}</div>
           </div>
@@ -526,7 +509,7 @@ function MemberDetail({ op, onClose }: { op: Operator; onClose: () => void }) {
 
       {/* deals / opportunities — real tallies (ownership resolved from node data + created_by) */}
       {((op.deals_owned ?? 0) > 0 || (op.deals_updated ?? 0) > 0) && (
-        <div className="grid grid-cols-5 gap-px border-b" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+        <div className="grid grid-cols-5 gap-1.5 border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
           {[
             { k: "Deals owned", val: op.deals_owned ?? 0 },
             { k: "Open", val: op.deals_open ?? 0 },
@@ -534,7 +517,7 @@ function MemberDetail({ op, onClose }: { op: Operator; onClose: () => void }) {
             { k: "Lost", val: op.deals_lost ?? 0, tone: "#9c6b72" },
             { k: "Updated", val: op.deals_updated ?? 0 },
           ].map((m) => (
-            <div key={m.k} className="px-2.5 py-2.5" style={{ background: "var(--surface-card)" }}>
+            <div key={m.k} className="rounded-sm px-2.5 py-2" style={{ background: "var(--surface-hover)" }}>
               <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.tone ?? "var(--text-primary)" }}>{fmt(m.val)}</div>
               <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{m.k}</div>
             </div>
@@ -629,15 +612,26 @@ function MemberDetail({ op, onClose }: { op: Operator; onClose: () => void }) {
         </Section>
       )}
 
-      {/* activity over time — real */}
+      {/* activity over time — real, premium area+line chart */}
       <Section title="Activity over time · last 14 days">
-        <div className="flex items-end gap-[3px]" style={{ height: 48 }}>
-          {chart.days.map((d) => (
-            <div key={d.key} className="group relative flex-1" title={`${d.key}: ${d.count}`}>
-              <div className="w-full rounded-sm" style={{ height: `${Math.max(2, (d.count / chart.max) * 46)}px`, background: d.count ? "var(--section-accent)" : "var(--border-soft)", opacity: d.count ? 1 : 0.6 }} />
-            </div>
-          ))}
-        </div>
+        {(() => {
+          const W = 300, H = 54, n = chart.days.length;
+          const step = n > 1 ? W / (n - 1) : W;
+          const line = chart.days.map((d, i) => `${(i * step).toFixed(1)},${(H - 3 - (d.count / chart.max) * (H - 9)).toFixed(1)}`).join(" ");
+          const total = chart.days.reduce((s, d) => s + d.count, 0);
+          return (
+            <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-14 w-full" role="img" aria-label={`activity trend, ${total} events`}>
+              <defs>
+                <linearGradient id={`ovArea-${op.operator_id}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="var(--section-accent)" stopOpacity="0.22" />
+                  <stop offset="100%" stopColor="var(--section-accent)" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <polygon points={`0,${H} ${line} ${W},${H}`} fill={`url(#ovArea-${op.operator_id})`} />
+              <polyline points={line} fill="none" stroke="var(--section-accent)" strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
+          );
+        })()}
         <p className="mt-1.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Recorded activity events per day. Hours are not tracked yet.</p>
       </Section>
         </div>

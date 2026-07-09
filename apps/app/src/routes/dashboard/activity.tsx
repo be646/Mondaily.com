@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Loader2, RefreshCw, ChevronDown, Play, RotateCcw, ArrowUpRight, ArrowRight, ShieldCheck } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
+import { LiveSectionHeader } from "../../components/ui/controls";
 import { agentByRaw, AGENTS } from "../../lib/agents";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useAgentJobsRealtime } from "../../hooks/useAgentJobsRealtime";
@@ -183,11 +184,9 @@ export function AgentActivityPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       {/* ── 1. Header + status strip ── */}
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[20px] font-semibold" style={{ color: "var(--text-primary)" }}>Agent Control Room</h1>
-          <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-muted)" }}>Live proof-of-work for every workspace agent.</p>
-        </div>
+      <LiveSectionHeader icon={ShieldCheck} title="Agent Control Room" kicker="proof of work" liveLabel="Live" />
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>Live proof-of-work for every workspace agent.</p>
         <button onClick={() => refetch()} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
           <RefreshCw size={11} className={isFetching ? "animate-spin" : ""} /> Sync
         </button>
