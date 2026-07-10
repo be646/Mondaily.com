@@ -11,3 +11,6 @@ coverage
 .DS_Store
 
 *.icloud
+e2e/.auth/
+test-results/
+playwright-report/

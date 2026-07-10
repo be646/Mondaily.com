@@ -10,6 +10,14 @@ Automated gates that must ALREADY be green before this list (CI/local):
 `scripts/audit/sovereignty-audit.sh` · `scripts/audit/workspace-isolation-scan.mjs`
 (43 documented false positives, see script header — any NEW flag needs review).
 
+Automated e2e (Playwright, runs against production):
+- `pnpm e2e` — public smoke, no credentials: landing render/plans/CTA, all same-site links
+  resolve, SEO meta, login page render + unauthenticated redirect, API health commit.
+- `MONDAILY_TEST_EMAIL=… MONDAILY_TEST_PASSWORD=… pnpm e2e:auth` — additionally signs in via
+  the real login UI and verifies every core route loads authenticated with no uncaught errors
+  (sections 2–14 route-load layer). Use a dedicated low-privilege test account. Without creds
+  the authenticated suite reports SKIPPED, never a fake pass.
+
 ## 1 · Landing (mondaily.com)
 - [ ] Every nav link + footer link resolves (no 404); language selector switches copy.
 - [ ] Pricing shows localized currency; switcher appears ONLY when local currency ∉ {USD, EUR, GBP}.
