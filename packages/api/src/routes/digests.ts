@@ -3,6 +3,7 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { makeBaseConverter } from "../lib/currency-store";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -97,12 +98,18 @@ router.post("/:id/send", async (c) => {
   const LOST = ["lost","closed lost","rejected","declined","dead","cancelled"];
   const wonRecs  = stageCol ? recs.filter(r => WON.some(k => String(r.data[stageCol] ?? "").toLowerCase().includes(k))) : recs;
   const lostRecs = stageCol ? recs.filter(r => LOST.some(k => String(r.data[stageCol] ?? "").toLowerCase().includes(k))) : [];
-  const wonValue = valueCol ? wonRecs.reduce((s, r) => s + Number(r.data[valueCol] ?? 0), 0) : 0;
-  const totalValue = valueCol ? recs.reduce((s, r) => s + Number(r.data[valueCol] ?? 0), 0) : 0;
+  // Multi-currency: convert each record's value to the workspace base currency before summing
+  // (fail-closed to face value when a rate is missing) — and label with the base symbol, not "$".
+  const { base, toBase } = await makeBaseConverter(c.get("workspaceId"));
+  const val$ = (r: { data: Record<string, unknown> }) => toBase(Number(r.data[valueCol!] ?? 0), r.data.currency as string | undefined);
+  const wonValue = valueCol ? wonRecs.reduce((s, r) => s + val$(r), 0) : 0;
+  const totalValue = valueCol ? recs.reduce((s, r) => s + val$(r), 0) : 0;
   const winRate  = (wonRecs.length + lostRecs.length) > 0
     ? Math.round(wonRecs.length / (wonRecs.length + lostRecs.length) * 100) : null;
 
-  const fmt = (n: number) => n >= 1_000_000 ? `$${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `$${(n/1_000).toFixed(0)}K` : `$${n.toLocaleString()}`;
+  const SYM: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", PLN: "zł", JPY: "¥" };
+  const sym = SYM[base] ?? `${base} `;
+  const fmt = (n: number) => n >= 1_000_000 ? `${sym}${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `${sym}${(n/1_000).toFixed(0)}K` : `${sym}${n.toLocaleString()}`;
 
   const label = cfg.label || `${cfg.object_type} · ${cfg.period}`;
   const now   = new Date().toLocaleDateString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric" });

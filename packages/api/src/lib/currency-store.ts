@@ -1,5 +1,5 @@
 import { supabase } from "@mondaily/db/client";
-import { fetchFxRates, DEFAULT_BASE_CURRENCY, type FxRates } from "./currency";
+import { fetchFxRates, convert, DEFAULT_BASE_CURRENCY, type FxRates } from "./currency";
 
 /** Load the stored reference rates (per 1 EUR) + the date they're as-of. Empty ⇒ {} (fail-closed). */
 export async function loadRates(): Promise<{ rates: Record<string, number>; as_of: string | null }> {
@@ -45,4 +45,21 @@ export async function userDisplayCurrency(workspaceId: string, userId: string): 
   const disp = prefs?.display_currency;
   if (disp && String(disp).toUpperCase()) return String(disp).toUpperCase();
   return ((settings as { base_currency?: string }).base_currency && String((settings as { base_currency?: string }).base_currency).toUpperCase()) || DEFAULT_BASE_CURRENCY;
+}
+
+/**
+ * Build a per-workspace money converter for server-side aggregations (reports, digests).
+ * Returns { base, toBase } where toBase(amount, from) converts into the workspace base currency
+ * via the stored ECB rates — FAIL-CLOSED: an unknown/missing rate returns the face value untouched
+ * (never a guessed rate), matching the frontend sumInDisplay behaviour.
+ */
+export async function makeBaseConverter(workspaceId: string): Promise<{ base: string; toBase: (amount: number, from?: string | null) => number }> {
+  const [base, { rates }] = await Promise.all([workspaceBaseCurrency(workspaceId), loadRates()]);
+  const toBase = (amount: number, from?: string | null): number => {
+    const cur = (from ?? "").toUpperCase();
+    if (!cur || cur === base) return amount;
+    const converted = convert(amount, cur, base, rates);
+    return converted ?? amount; // fail-closed: face value when a rate is missing
+  };
+  return { base, toBase };
 }

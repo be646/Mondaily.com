@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Plus, DollarSign, User, ChevronRight, ChevronDown, X, Check } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
+import { useCurrency, convertAmount, CURRENCY_SYMBOL } from "../../hooks/useCurrency";
 
 interface DealRecord {
   id: string;
@@ -43,10 +44,10 @@ function fmtVal(v: unknown): number | null {
   return isNaN(n) ? null : n;
 }
 
-function fmtDisplay(n: number) {
-  return n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M`
-    : n >= 1_000 ? `$${(n / 1_000).toFixed(0)}K`
-    : `$${n.toLocaleString()}`;
+function fmtDisplay(n: number, sym = "$") {
+  return n >= 1_000_000 ? `${sym}${(n / 1_000_000).toFixed(1)}M`
+    : n >= 1_000 ? `${sym}${(n / 1_000).toFixed(0)}K`
+    : `${sym}${n.toLocaleString()}`;
 }
 
 function memberInitials(name: string) {
@@ -61,25 +62,25 @@ const CALC_LABELS: Record<CalcType, string> = {
   sum: "Sum", avg: "Average", max: "Max", min: "Min",
 };
 
-function calcResult(cards: DealRecord[], type: CalcType): string {
+function calcResult(cards: DealRecord[], type: CalcType, dealValue: (d: DealRecord) => number | null = (d) => fmtVal(d.data.deal_value), sym = "$"): string {
   const total = cards.length;
   if (total === 0) return "—";
-  const vals = cards.map(d => fmtVal(d.data.deal_value)).filter((n): n is number => n !== null);
+  const vals = cards.map(dealValue).filter((n): n is number => n !== null);
   switch (type) {
     case "count":        return String(total);
     case "count_empty":  return String(total - vals.length);
     case "count_filled": return String(vals.length);
     case "pct_empty":    return `${Math.round(((total - vals.length) / total) * 100)}%`;
     case "pct_filled":   return `${Math.round((vals.length / total) * 100)}%`;
-    case "sum":          return vals.length ? fmtDisplay(vals.reduce((a, b) => a + b, 0)) : "—";
-    case "avg":          return vals.length ? fmtDisplay(vals.reduce((a, b) => a + b, 0) / vals.length) : "—";
-    case "max":          return vals.length ? fmtDisplay(Math.max(...vals)) : "—";
-    case "min":          return vals.length ? fmtDisplay(Math.min(...vals)) : "—";
+    case "sum":          return vals.length ? fmtDisplay(vals.reduce((a, b) => a + b, 0), sym) : "—";
+    case "avg":          return vals.length ? fmtDisplay(vals.reduce((a, b) => a + b, 0) / vals.length, sym) : "—";
+    case "max":          return vals.length ? fmtDisplay(Math.max(...vals), sym) : "—";
+    case "min":          return vals.length ? fmtDisplay(Math.min(...vals), sym) : "—";
   }
 }
 
 // ─── Calc footer dropdown ─────────────────────────────────────────────────────
-function CalcFooter({ cards }: { cards: DealRecord[] }) {
+function CalcFooter({ cards, dealValue, sym }: { cards: DealRecord[]; dealValue?: (d: DealRecord) => number | null; sym?: string }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<CalcType>("sum");
   const ref = useRef<HTMLDivElement>(null);
@@ -91,7 +92,7 @@ function CalcFooter({ cards }: { cards: DealRecord[] }) {
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
 
-  const result = calcResult(cards, type);
+  const result = calcResult(cards, type, dealValue, sym);
 
   return (
     <div ref={ref} className="relative">
@@ -375,6 +376,7 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
 // ─── Pipeline page ────────────────────────────────────────────────────────────
 export function PipelinePage() {
   const qc = useQueryClient();
+  const { display, rates } = useCurrency();
   const [stages, setStages] = useState<string[]>(DEFAULT_STAGES);
   const [addingStage, setAddingStage] = useState(false);
   const [newStageName, setNewStageName] = useState("");
@@ -433,12 +435,18 @@ export function PipelinePage() {
     return acc;
   }, {} as Record<string, DealRecord[]>);
 
-  const totalValue = deals.reduce((sum, d) => {
-    const v = fmtVal(d.data.deal_value); return sum + (v ?? 0);
-  }, 0);
-  const wonValue = (byStage["Closed Won"] ?? []).reduce((sum, d) => {
-    const v = fmtVal(d.data.deal_value); return sum + (v ?? 0);
-  }, 0);
+  // Deal values convert to the viewer's display currency (ECB rates; fail-closed to face value
+  // when a rate is missing) so mixed-currency pipelines sum honestly.
+  const dealValue = useCallback((d: DealRecord): number | null => {
+    const v = fmtVal(d.data.deal_value);
+    if (v === null) return null;
+    const cur = String(d.data.currency ?? "").toUpperCase();
+    if (!cur || cur === display) return v;
+    return convertAmount(v, cur, display, rates) ?? v;
+  }, [display, rates]);
+  const curSym = CURRENCY_SYMBOL[display] ?? "$";
+  const totalValue = deals.reduce((sum, d) => sum + (dealValue(d) ?? 0), 0);
+  const wonValue = (byStage["Closed Won"] ?? []).reduce((sum, d) => sum + (dealValue(d) ?? 0), 0);
 
   function commitNewStage() {
     const name = newStageName.trim();
@@ -455,8 +463,8 @@ export function PipelinePage() {
           <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)] select-none">Pipeline</span>
           <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
             {deals.length} deal{deals.length !== 1 ? "s" : ""}
-            {wonValue > 0 && <> · <span className="text-[#5f8169]">{fmtDisplay(wonValue)} won</span></>}
-            {totalValue > 0 && <> · <span className="text-[var(--text-muted)]">{fmtDisplay(totalValue)} pipeline</span></>}
+            {wonValue > 0 && <> · <span className="text-[#5f8169]">{fmtDisplay(wonValue, curSym)} won</span></>}
+            {totalValue > 0 && <> · <span className="text-[var(--text-muted)]">{fmtDisplay(totalValue, curSym)} pipeline</span></>}
           </p>
         </div>
         <button
@@ -520,7 +528,7 @@ export function PipelinePage() {
               </div>
 
               {/* Calc footer */}
-              <CalcFooter cards={cards}/>
+              <CalcFooter cards={cards} dealValue={dealValue} sym={curSym}/>
             </div>
           );
         })}

@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { aiGateway } from "../lib/ai-gateway";
+import { makeBaseConverter } from "../lib/currency-store";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -114,11 +115,18 @@ export async function runReportData(
   const metric = String(config.metric ?? "count");
   const field = String(config.field ?? "value");
   const groupBy = String(config.group_by ?? "month");
+  // Multi-currency: when records carry a `currency` field, sum/average must not mix currencies
+  // raw — convert each value to the workspace base via the stored ECB rates (fail-closed: face
+  // value when a rate is missing). Count metrics never need this.
+  const moneyAware = metric !== "count" && (nodes ?? []).some((n) => n.data?.currency);
+  const conv = moneyAware ? await makeBaseConverter(workspaceId) : null;
   const groups = new Map<string, number[]>();
   for (const node of nodes ?? []) {
     const date = new Date(node.created_at);
     const label = groupBy === "day" ? date.toISOString().slice(0, 10) : groupBy === "week" ? `${date.getFullYear()} W${Math.ceil(date.getDate() / 7)}` : groupBy === "quarter" ? `${date.getFullYear()} Q${Math.floor(date.getMonth() / 3) + 1}` : date.toLocaleDateString("en", { month: "short", year: "numeric" });
-    groups.set(label, [...(groups.get(label) ?? []), Number(node.data?.[field] ?? 0)]);
+    const raw = Number(node.data?.[field] ?? 0);
+    const value = conv ? conv.toBase(raw, node.data?.currency as string | undefined) : raw;
+    groups.set(label, [...(groups.get(label) ?? []), value]);
   }
   const data = [...groups].map(([label, values]) => ({ label, value: metric === "count" ? values.length : metric === "average" ? Number((values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)).toFixed(2)) : values.reduce((sum, value) => sum + value, 0) }));
   const total = metric === "average" ? Number((data.reduce((sum, item) => sum + item.value, 0) / Math.max(data.length, 1)).toFixed(2)) : data.reduce((sum, item) => sum + item.value, 0);

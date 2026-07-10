@@ -87,3 +87,26 @@ describe("currency model wiring", () => {
     for (const c of ["EUR", "USD", "PLN", "GBP"]) expect(SUPPORTED_CURRENCIES).toContain(c);
   });
 });
+
+// ─── Stage 3: server-side aggregations are currency-aware ────────────────────
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+const src = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
+
+describe("server aggregations convert money to the workspace base currency", () => {
+  it("currency-store exposes makeBaseConverter (fail-closed to face value)", () => {
+    const store = src("../lib/currency-store.ts");
+    expect(store).toMatch(/export async function makeBaseConverter\(workspaceId: string\)/);
+    expect(store).toMatch(/converted \?\? amount; \/\/ fail-closed/);
+  });
+  it("runReportData converts sum/average values when records carry a currency field", () => {
+    const reports = src("../routes/reports.ts");
+    expect(reports).toMatch(/makeBaseConverter\(workspaceId\)/);
+    expect(reports).toMatch(/metric !== "count" && \(nodes \?\? \[\]\)\.some\(\(n\) => n\.data\?\.currency\)/);
+  });
+  it("digests convert record values and label totals with the base symbol, not a hardcoded $", () => {
+    const digests = src("../routes/digests.ts");
+    expect(digests).toMatch(/makeBaseConverter\(c\.get\("workspaceId"\)\)/);
+    expect(digests).not.toMatch(/`\$\$\{\(n\/1_000_000\)/); // old hardcoded-$ formatter is gone
+  });
+});
