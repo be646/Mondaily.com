@@ -14,7 +14,7 @@ describe("Inbox — workspace isolation", () => {
       const window = src.slice(idx, idx + 400);
       // `.insert(row)` builds its payload just above — that builder must carry workspace_id.
       if (/\.insert\(row\)/.test(window)) {
-        expect(src).toMatch(/const row: Record<string, unknown> = \{ workspace_id: ws, thread_key: threadKey\(me, recipient_id\), sender_id: me, recipient_id, body \}/);
+        expect(src).toMatch(/const row: Record<string, unknown> = \{ workspace_id: ws, thread_key: (threadKey\(me, rid\)|groupThreadKey\(group_id\)), sender_id: me/);
       } else {
         expect(window, window.slice(0, 90)).toMatch(/\.eq\("workspace_id", ws\)|workspace_id: ws/);
       }
@@ -50,7 +50,7 @@ describe("Inbox — participant access + privacy", () => {
 describe("Inbox — unread state + mark read", () => {
   it("a sent message starts UNREAD (inserted without read_at)", () => {
     const send = src.slice(src.indexOf('router.post("/"'));
-    expect(send).toMatch(/const row: Record<string, unknown> = \{ workspace_id: ws, thread_key: threadKey\(me, recipient_id\), sender_id: me, recipient_id, body \}/);
+    expect(send).toMatch(/const row: Record<string, unknown> = \{ workspace_id: ws, thread_key: threadKey\(me, rid\), sender_id: me, recipient_id: rid, body \}/);
     expect(send).not.toMatch(/read_at:/);   // no read_at on insert → unread
   });
   it("opening a thread marks the caller's incoming messages read", () => {
@@ -61,7 +61,7 @@ describe("Inbox — unread state + mark read", () => {
 describe("Inbox — notification for the recipient (in-app; email only if configured)", () => {
   it("a new message inserts an in-app notification addressed to the RECIPIENT", () => {
     const send = src.slice(src.indexOf('router.post("/"'));
-    expect(send).toMatch(/from\("notifications"\)\.insert\(\{[\s\S]*?user_id: recipient_id[\s\S]*?type: "message"/);
+    expect(send).toMatch(/from\("notifications"\)\.insert\(\{[\s\S]*?user_id: rid[\s\S]*?type: "message"/);
   });
   it("email is best-effort and only sent when a recipient email exists + provider is configured", () => {
     const send = src.slice(src.indexOf('router.post("/"'));
@@ -175,5 +175,30 @@ describe("Inbox — attachments", () => {
   it("the bucket is private and size/count caps exist", () => {
     expect(src).toMatch(/MSG_ATTACH_MAX_BYTES = 10 \* 1024 \* 1024/);
     expect(src).toMatch(/MSG_ATTACH_MAX_FILES = 5/);
+  });
+});
+
+describe("Inbox — group chats", () => {
+  it("every group read/send goes through assertGroupMember (membership, not role)", () => {
+    expect(src).toMatch(/async function assertGroupMember\(ws: string, groupId: string, me: string\)/);
+    const fn = src.slice(src.indexOf("async function assertGroupMember"));
+    expect(fn.slice(0, 600)).toMatch(/\.eq\("workspace_id", ws\)\.eq\("group_id", groupId\)\.eq\("user_id", me\)/);
+    for (const route of ['router.get("/group/:id"', 'router.post("/group/:id/members"']) {
+      const seg = src.slice(src.indexOf(route), src.indexOf(route) + 700);
+      expect(seg, route).toMatch(/assertGroupMember\(ws, groupId, me\)/);
+    }
+  });
+  it("group sends are membership-guarded and exactly one of recipient_id/group_id is required", () => {
+    expect(src).toMatch(/Boolean\(v\.recipient_id\) !== Boolean\(v\.group_id\)/);
+    const seg = src.slice(src.indexOf("// ── Group branch"));
+    expect(seg.slice(0, 400)).toMatch(/assertGroupMember\(ws, group_id, me\)/);
+  });
+  it("group creation validates every member against THIS workspace's directory", () => {
+    const seg = src.slice(src.indexOf('router.post("/groups"'), src.indexOf('router.get("/group/:id"'));
+    expect(seg).toMatch(/member_ids\.filter\(\(id\) => !dir\.has\(id\)\)/);
+    expect(seg).toMatch(/not members of this workspace/);
+  });
+  it("inbox group unread is computed from the caller's own last_read_at, never faked", () => {
+    expect(src).toMatch(/m\.sender_id !== me && \(!myRead \|\| m\.created_at > myRead\)/);
   });
 });

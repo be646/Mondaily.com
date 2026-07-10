@@ -76,8 +76,143 @@ router.get("/inbox", async (c) => {
       const m = dir.get(t.other_id);
       return { ...t, name: m?.name || m?.email || "Member", email: m?.email ?? null, avatar_url: m?.avatar_url ?? null };
     });
-  const unreadTotal = inbox.reduce((s, t) => s + t.unread, 0);
-  return c.json({ inbox, unread_total: unreadTotal });
+  // ── Groups the caller belongs to — last message + real unread (created after my last_read_at,
+  //    not sent by me). Tables may predate the 20260709_group_chat.sql migration → empty arrays.
+  const groups: { group_id: string; name: string; last: string; last_at: string; unread: number; members: number }[] = [];
+  try {
+    const { data: myGroups } = await supabase
+      .from("chat_group_members").select("group_id").eq("workspace_id", ws).eq("user_id", me);
+    const ids = (myGroups ?? []).map((g) => String(g.group_id));
+    if (ids.length) {
+      const [{ data: groupRows }, { data: msgs }, { data: counts }] = await Promise.all([
+        supabase.from("chat_groups").select("id, name, created_at").eq("workspace_id", ws).in("id", ids),
+        supabase.from("internal_messages")
+          .select("group_id, sender_id, body, created_at")
+          .eq("workspace_id", ws).in("group_id", ids)
+          .order("created_at", { ascending: false }).limit(400),
+        supabase.from("chat_group_members").select("group_id").eq("workspace_id", ws).in("group_id", ids),
+      ]);
+      const lastRead = new Map((states ?? []).map((s) => [String(s.thread_key), s]));
+      const { data: groupStates } = await supabase
+        .from("internal_message_thread_state").select("thread_key, last_read_at")
+        .eq("workspace_id", ws).eq("user_id", me).in("thread_key", ids.map((id) => `group:${id}`));
+      const readAt = new Map((groupStates ?? []).map((s) => [String(s.thread_key), String(s.last_read_at ?? "")]));
+      const memberCount = new Map<string, number>();
+      for (const r of counts ?? []) memberCount.set(String(r.group_id), (memberCount.get(String(r.group_id)) ?? 0) + 1);
+      void lastRead;
+      for (const g of groupRows ?? []) {
+        const gm = (msgs ?? []).filter((m) => String(m.group_id) === String(g.id));
+        const latest = gm[0];
+        const myRead = readAt.get(`group:${g.id}`) ?? "";
+        const unread = gm.filter((m) => m.sender_id !== me && (!myRead || m.created_at > myRead)).length;
+        groups.push({
+          group_id: String(g.id), name: g.name,
+          last: latest ? String(latest.body).slice(0, 140) : "No messages yet",
+          last_at: latest?.created_at ?? g.created_at, unread, members: memberCount.get(String(g.id)) ?? 1,
+        });
+      }
+      groups.sort((a, b) => (a.last_at < b.last_at ? 1 : -1));
+    }
+  } catch { /* group tables not migrated yet — DMs still work */ }
+
+  const unreadTotal = inbox.reduce((s, t) => s + t.unread, 0) + groups.reduce((s, g) => s + g.unread, 0);
+  return c.json({ inbox, groups, unread_total: unreadTotal });
+});
+
+// ── Group chats — membership-guarded, workspace-scoped ────────────────────────────────────────
+const groupThreadKey = (groupId: string) => `group:${groupId}`;
+
+/** Membership guard: the group must exist in THIS workspace and the caller must be a member. */
+async function assertGroupMember(ws: string, groupId: string, me: string): Promise<{ id: string; name: string; created_by: string } | null> {
+  const { data: member } = await supabase
+    .from("chat_group_members").select("group_id")
+    .eq("workspace_id", ws).eq("group_id", groupId).eq("user_id", me).maybeSingle();
+  if (!member) return null;
+  const { data: group } = await supabase
+    .from("chat_groups").select("id, name, created_by")
+    .eq("workspace_id", ws).eq("id", groupId).maybeSingle();
+  return group ?? null;
+}
+
+/** POST /messages/groups — create a group chat. Creator is always a member; every member must
+ *  be a real member of THIS workspace. */
+router.post("/groups", zValidator("json", z.object({
+  name: z.string().min(1).max(80),
+  member_ids: z.array(z.string().min(1)).min(1).max(50),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const { name, member_ids } = c.req.valid("json");
+  const dir = await members(ws);
+  const invalid = member_ids.filter((id) => !dir.has(id));
+  if (invalid.length) return c.json({ error: "Some selected people are not members of this workspace." }, 400);
+
+  const { data: group, error } = await supabase
+    .from("chat_groups").insert({ workspace_id: ws, name, created_by: me }).select("id, name").single();
+  if (error) return c.json({ error: error.message }, 400);
+  const memberRows = [...new Set([me, ...member_ids])].map((uid) => ({ group_id: group.id, workspace_id: ws, user_id: uid, added_by: me }));
+  const { error: mErr } = await supabase.from("chat_group_members").insert(memberRows);
+  if (mErr) return c.json({ error: mErr.message }, 400);
+  return c.json({ id: group.id, name: group.name }, 201);
+});
+
+/** GET /messages/group/:id — the group conversation: members, messages, and mark read for me. */
+router.get("/group/:id", async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const groupId = c.req.param("id");
+  const group = await assertGroupMember(ws, groupId, me);
+  if (!group) return c.json({ error: "Group not found." }, 404);
+
+  const [{ data: rows }, { data: memberRows }] = await Promise.all([
+    supabase.from("internal_messages")
+      .select("id, sender_id, body, attachments, created_at")
+      .eq("workspace_id", ws).eq("group_id", groupId)
+      .order("created_at", { ascending: true }).limit(500),
+    supabase.from("chat_group_members").select("user_id").eq("workspace_id", ws).eq("group_id", groupId),
+  ]);
+  const dir = await members(ws);
+  const now = new Date().toISOString();
+  // Read state for groups is per-user last_read_at on the group thread key.
+  await supabase.from("internal_message_thread_state")
+    .upsert({ workspace_id: ws, thread_key: groupThreadKey(groupId), user_id: me, last_read_at: now, updated_at: now }, { onConflict: "workspace_id,thread_key,user_id" })
+    .then(() => {}, () => {});
+
+  return c.json({
+    group: { id: group.id, name: group.name, created_by: group.created_by },
+    members: (memberRows ?? []).map((m) => {
+      const info = dir.get(String(m.user_id));
+      return { user_id: m.user_id, name: info?.name || info?.email || "Member", avatar_url: info?.avatar_url ?? null };
+    }),
+    messages: (rows ?? []).map((r) => {
+      const info = dir.get(String(r.sender_id));
+      return { ...r, mine: r.sender_id === me, sender_name: info?.name || info?.email || "Member" };
+    }),
+  });
+});
+
+/** POST /messages/group/:id/members — any member can add workspace members to the group. */
+router.post("/group/:id/members", zValidator("json", z.object({ user_ids: z.array(z.string().min(1)).min(1).max(50) })), async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const groupId = c.req.param("id");
+  if (!(await assertGroupMember(ws, groupId, me))) return c.json({ error: "Group not found." }, 404);
+  const dir = await members(ws);
+  const valid = c.req.valid("json").user_ids.filter((id) => dir.has(id));
+  if (!valid.length) return c.json({ error: "No valid workspace members selected." }, 400);
+  const rows = valid.map((uid) => ({ group_id: groupId, workspace_id: ws, user_id: uid, added_by: me }));
+  await supabase.from("chat_group_members").upsert(rows, { onConflict: "group_id,user_id" });
+  return c.json({ added: valid.length });
+});
+
+/** DELETE /messages/group/:id/members/me — leave the group. */
+router.delete("/group/:id/members/me", async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const groupId = c.req.param("id");
+  await supabase.from("chat_group_members").delete()
+    .eq("workspace_id", ws).eq("group_id", groupId).eq("user_id", me);
+  return c.body(null, 204);
 });
 
 /**
@@ -237,30 +372,59 @@ router.get("/attachment", zValidator("query", z.object({ path: z.string().min(1)
   return c.json({ url: data.signedUrl });
 });
 
-/** POST /messages — send a message to a workspace member. */
+/** POST /messages — send a message to a workspace member (recipient_id) OR a group (group_id). */
 router.post("/", zValidator("json", z.object({
-  recipient_id: z.string().min(1),
+  recipient_id: z.string().min(1).optional(),
+  group_id: z.string().uuid().optional(),
   body: z.string().min(1).max(5000),
   attachments: z.array(attachmentMeta).max(MSG_ATTACH_MAX_FILES).optional(),
-})), async (c) => {
+}).refine((v) => Boolean(v.recipient_id) !== Boolean(v.group_id), { message: "Provide exactly one of recipient_id or group_id." })), async (c) => {
   const ws = c.get("workspaceId");
   const me = c.get("userId");
-  const { recipient_id, body, attachments } = c.req.valid("json");
-  if (recipient_id === me) return c.json({ error: "You can't message yourself." }, 400);
+  const { recipient_id, group_id, body, attachments } = c.req.valid("json");
 
-  // Recipient must be a real member of THIS workspace (isolation guard).
-  const dir = await members(ws);
-  const recipient = dir.get(recipient_id);
-  if (!recipient) return c.json({ error: "Recipient is not a member of this workspace." }, 404);
-
-  // Attachment paths must come from the CALLER'S OWN upload prefix — no referencing other
-  // people's files (or other workspaces') by path.
+  // Attachment paths must come from the CALLER'S OWN upload prefix (shared by both branches).
   const atts = (attachments ?? []).filter((a) => a.path.startsWith(`${ws}/${me}/`));
   if ((attachments ?? []).length !== atts.length) return c.json({ error: "Invalid attachment reference." }, 400);
 
+  // ── Group branch — membership-guarded; notifies the other members ──
+  if (group_id) {
+    const group = await assertGroupMember(ws, group_id, me);
+    if (!group) return c.json({ error: "Group not found." }, 404);
+    const row: Record<string, unknown> = { workspace_id: ws, thread_key: groupThreadKey(group_id), sender_id: me, group_id, body };
+    if (atts.length > 0) row.attachments = atts;
+    const { data, error } = await supabase.from("internal_messages").insert(row).select("id, created_at").single();
+    if (error) return c.json({ error: error.message }, 400);
+
+    const dir = await members(ws);
+    const senderName = dir.get(me)?.name || dir.get(me)?.email || "A teammate";
+    const { data: gMembers } = await supabase
+      .from("chat_group_members").select("user_id").eq("workspace_id", ws).eq("group_id", group_id);
+    const others = (gMembers ?? []).map((m) => String(m.user_id)).filter((id) => id !== me).slice(0, 20);
+    if (others.length) {
+      await supabase.from("notifications").insert(others.map((uid) => ({
+        workspace_id: ws, user_id: uid,
+        title: `${senderName} in ${group.name}`,
+        message: `${senderName} in ${group.name}`,
+        body: body.slice(0, 120), type: "message", is_read: false,
+        metadata: { route: `/messages?g=${group_id}` },
+      }))).then(() => {}, () => {});
+    }
+    return c.json({ id: data.id, created_at: data.created_at }, 201);
+  }
+
+  // ── DM branch (refine guarantees recipient_id is set here) ──
+  const rid = recipient_id!;
+  if (rid === me) return c.json({ error: "You can't message yourself." }, 400);
+
+  // Recipient must be a real member of THIS workspace (isolation guard).
+  const dir = await members(ws);
+  const recipient = dir.get(rid);
+  if (!recipient) return c.json({ error: "Recipient is not a member of this workspace." }, 404);
+
   // Only include the attachments column when there are any — so plain text sends keep working
   // even before the 20260709_message_attachments.sql migration has been applied.
-  const row: Record<string, unknown> = { workspace_id: ws, thread_key: threadKey(me, recipient_id), sender_id: me, recipient_id, body };
+  const row: Record<string, unknown> = { workspace_id: ws, thread_key: threadKey(me, rid), sender_id: me, recipient_id: rid, body };
   if (atts.length > 0) row.attachments = atts;
   const { data, error } = await supabase
     .from("internal_messages")
@@ -276,13 +440,13 @@ router.post("/", zValidator("json", z.object({
   // thread (opened against the sender) — resolveNotificationLink honors metadata.route.
   await supabase.from("notifications").insert({
     workspace_id: ws,
-    user_id: recipient_id,
+    user_id: rid,
     title: `New message from ${senderName}`,
     message: `New message from ${senderName}`,
     body: body.slice(0, 120),
     type: "message",
     is_read: false,
-    metadata: { route: `/messages?to=${me}`, thread_key: threadKey(me, recipient_id) },
+    metadata: { route: `/messages?to=${me}`, thread_key: threadKey(me, rid) },
   }).then(() => {}, () => {});
 
   // Email notification (best-effort; only if a mail provider is configured).
