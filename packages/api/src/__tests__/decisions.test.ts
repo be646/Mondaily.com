@@ -108,3 +108,38 @@ describe("comments + assignment (Increment 2) — source-read guards", () => {
     expect(src).toMatch(/resolve\(c, "rejected", \{\}, "REJECTED"\)/);
   });
 });
+
+describe("Decisions 2.0 — AI verdict + triage honesty", () => {
+  const src = readFileSync(fileURLToPath(new URL("../routes/decisions.ts", import.meta.url)), "utf8");
+  const page = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/decisions.tsx", import.meta.url)), "utf8");
+
+  it("verdict refuses (sufficient:false) when nothing is recorded to ground on", () => {
+    const fn = src.slice(src.indexOf('router.post("/:id/verdict"'), src.indexOf('router.post("/triage"'));
+    expect(fn).toMatch(/if \(!hasSubstance\) return c\.json\(\{ sufficient: false/);
+    expect(fn).toMatch(/\.eq\("workspace_id", workspaceId\)/);   // workspace-scoped read
+  });
+  it("verdict is structured tool-use, defaults to 'investigate' on invalid output, and reports its grounding", () => {
+    const fn = src.slice(src.indexOf('router.post("/:id/verdict"'), src.indexOf('router.post("/triage"'));
+    expect(fn).toMatch(/enum: \["approve", "reject", "investigate"\]/);
+    expect(fn).toMatch(/: "investigate";/);          // fallback when the model returns junk
+    expect(fn).toMatch(/grounded_on: \{/);            // proof of what it judged from
+    expect(fn).toMatch(/NEVER a confident approve/);  // thin-evidence instruction
+  });
+  it("triage validates returned ids against the real queue and never drops a decision silently", () => {
+    const fn = src.slice(src.indexOf('router.post("/triage"'));
+    expect(fn).toMatch(/validIds\.has\(String\(r\.id\)\)/);
+    expect(fn).toMatch(/Not ranked by AI — review manually/);   // dropped ids come back honestly
+    expect(fn).toMatch(/\.eq\("status", "pending"\)/);
+  });
+  it("the UI keeps AI advisory: verdict/triage never call approve/reject endpoints", () => {
+    const verdictUi = page.slice(page.indexOf("function DecisionVerdict"));
+    expect(verdictUi).toMatch(/Advisory only — nothing runs until you act below/);
+    expect(verdictUi).not.toMatch(/\/approve|\/reject|\/bulk/);
+    expect(page).toMatch(/never acts/i);
+  });
+  it("provenance shows the REAL captured prompt and output, labeled as capture not reconstruction", () => {
+    expect(page).toMatch(/What the agent saw \(real captured prompt\)/);
+    expect(page).toMatch(/What the agent produced \(real captured output\)/);
+    expect(page).toMatch(/provenance, not a reconstruction/);
+  });
+});

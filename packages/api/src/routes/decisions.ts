@@ -10,7 +10,7 @@ import { objectTypeToVertical, type ProspectCandidate } from "./prospecting";
 import { logDecisionTrainingExample, type TrainingAction } from "../lib/training-ledger";
 import { sendWorkspaceEmail } from "../lib/mail";
 import { describeExecution } from "../lib/decision-actions";
-import { aiGateway } from "../lib/ai-gateway";
+import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { createNotification } from "../lib/notify";
 
 type Variables = { userId: string; workspaceId: string; role: string };
@@ -383,6 +383,153 @@ router.post("/:id/ask", async (c) => {
     return c.json({ answer: answer || "I couldn't produce an explanation for this decision.", sources, sufficient: true });
   } catch {
     return c.json({ answer: "The AI service is unavailable right now — please try again in a moment.", sources, sufficient: true });
+  }
+});
+
+/**
+ * POST /:id/verdict — structured AI adjudication of ONE decision, grounded strictly on the
+ * recorded data (summary, evidence, execution preview, original generation context). Returns a
+ * recommendation + rationale + risks + what the admin should verify. HONEST: with nothing
+ * recorded to ground on it returns sufficient:false instead of inventing a verdict; when the
+ * evidence is thin the model is instructed to say "investigate", never a confident approve.
+ */
+router.post("/:id/verdict", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const { data: d } = await supabase
+    .from("decision_queue").select("*").eq("workspace_id", workspaceId).eq("id", c.req.param("id")).maybeSingle();
+  if (!d) return c.json({ error: "Decision not found" }, 404);
+
+  const evidence = Array.isArray(d.evidence) ? d.evidence : [];
+  const exec = describeExecution(d);
+  const gen = (d.generation_context ?? null) as { user_prompt?: string; model_output?: unknown } | null;
+  const hasSubstance = Boolean(d.summary || d.recommended_action || evidence.length || gen?.user_prompt);
+  if (!hasSubstance) return c.json({ sufficient: false, reason: "This decision has no recorded summary, evidence, or context to adjudicate on." });
+
+  const evidenceLines = evidence.slice(0, 12).map((e: Record<string, unknown>, i: number) =>
+    `  ${i + 1}. ${e.title ?? "evidence"}${e.match_reason ? ` — ${e.match_reason}` : e.relationship ? ` — ${e.relationship}` : ""}`);
+  const digest = [
+    `Decision: ${d.title}`,
+    `Raised by agent: ${d.agent_name}. Source type: ${d.source_type}. Risk level: ${d.risk_level}.`,
+    d.confidence != null ? `Computed confidence: ${d.confidence}%.` : "Confidence: not computed.",
+    d.summary ? `Why it was raised: ${d.summary}` : "",
+    d.recommended_action ? `Recommended action: ${d.recommended_action}` : "",
+    `Exactly what approving does: ${exec.text}`,
+    evidenceLines.length ? `Evidence (${evidence.length} item(s)):\n${evidenceLines.join("\n")}` : "Evidence: none recorded.",
+    gen?.user_prompt ? `Original AI context (what the agent saw): ${String(gen.user_prompt).slice(0, 1500)}` : "",
+  ].filter(Boolean).join("\n");
+
+  try {
+    const result = await aiGatewayToolUse({
+      system:
+        "You are an adjudication assistant for a human approval queue. Judge ONE agent-raised decision using ONLY the data provided. " +
+        "Rules: never invent evidence, numbers, or consequences. If the evidence is thin, contradictory, or the action is irreversible with weak support, recommend 'investigate' — NEVER a confident approve. " +
+        "'risks' = concrete downsides of approving that are visible in the data. 'checks' = specific things the human should verify before acting. Keep every field short and factual.",
+      prompt: `Adjudicate this decision:\n\n${digest}`,
+      toolName: "record_verdict",
+      toolDescription: "Record the structured adjudication of the decision.",
+      toolSchema: {
+        type: "object",
+        properties: {
+          recommendation: { type: "string", enum: ["approve", "reject", "investigate"] },
+          rationale: { type: "string", description: "2-3 factual sentences grounded in the provided data." },
+          risks: { type: "array", items: { type: "string" }, description: "Concrete downsides of approving, from the data only." },
+          checks: { type: "array", items: { type: "string" }, description: "What the human should verify before acting." },
+        },
+        required: ["recommendation", "rationale"],
+      },
+      maxTokens: 500,
+      workspaceId,
+      userId: c.get("userId"),
+      feature: "decision_verdict",
+    });
+    const r = (result ?? {}) as { recommendation?: string; rationale?: string; risks?: string[]; checks?: string[] };
+    const rec = ["approve", "reject", "investigate"].includes(String(r.recommendation)) ? String(r.recommendation) : "investigate";
+    return c.json({
+      sufficient: true,
+      recommendation: rec,
+      rationale: String(r.rationale ?? "").slice(0, 1000),
+      risks: (Array.isArray(r.risks) ? r.risks : []).slice(0, 5).map(String),
+      checks: (Array.isArray(r.checks) ? r.checks : []).slice(0, 5).map(String),
+      grounded_on: {
+        evidence_count: evidence.length,
+        has_summary: Boolean(d.summary),
+        has_agent_context: Boolean(gen?.user_prompt),
+        execution_preview: exec.text,
+      },
+    });
+  } catch {
+    return c.json({ error: "The AI service is unavailable right now — please try again." }, 503);
+  }
+});
+
+/**
+ * POST /triage — AI ranking of the PENDING queue: which decisions deserve attention first and
+ * why, grounded only on each row's recorded fields. Pure read (ranks, never acts); returned ids
+ * are validated against the real queue so the model can't inject phantom decisions.
+ */
+router.post("/triage", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const { data: rows } = await supabase
+    .from("decision_queue")
+    .select("id, title, summary, agent_name, source_type, risk_level, confidence, evidence, created_at")
+    .eq("workspace_id", workspaceId).eq("status", "pending")
+    .order("created_at", { ascending: true }).limit(30);
+  const pending = rows ?? [];
+  if (pending.length === 0) return c.json({ sufficient: false, reason: "No pending decisions to triage." });
+  if (pending.length === 1) return c.json({ sufficient: true, ranked: [{ id: pending[0]!.id, priority: "high", reason: "Only pending decision." }] });
+
+  const lines = pending.map((d, i) => {
+    const ev = Array.isArray(d.evidence) ? d.evidence.length : 0;
+    const age = Math.round((Date.now() - new Date(d.created_at).getTime()) / 86_400_000);
+    return `${i + 1}. id=${d.id} · "${d.title}" · agent=${d.agent_name} · risk=${d.risk_level} · evidence=${ev} · age=${age}d${d.summary ? ` · ${String(d.summary).slice(0, 140)}` : ""}`;
+  });
+
+  try {
+    const result = await aiGatewayToolUse({
+      system:
+        "You triage a human approval queue. Rank the given decisions by where the human's attention creates the most value NOW. " +
+        "Consider real risk level, evidence strength, age, and stated impact — from the provided lines ONLY. Give each a one-line factual reason. " +
+        "Use ONLY the ids provided; include every id exactly once.",
+      prompt: `Rank these ${pending.length} pending decisions:\n\n${lines.join("\n")}`,
+      toolName: "record_triage",
+      toolDescription: "Record the triage ranking of the pending decisions.",
+      toolSchema: {
+        type: "object",
+        properties: {
+          ranked: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                priority: { type: "string", enum: ["high", "medium", "low"] },
+                reason: { type: "string" },
+              },
+              required: ["id", "priority", "reason"],
+            },
+          },
+        },
+        required: ["ranked"],
+      },
+      maxTokens: 900,
+      workspaceId,
+      userId: c.get("userId"),
+      feature: "decision_triage",
+    });
+    const validIds = new Set(pending.map((d) => String(d.id)));
+    const seen = new Set<string>();
+    const ranked = (Array.isArray((result as { ranked?: unknown[] }).ranked) ? (result as { ranked: Record<string, unknown>[] }).ranked : [])
+      .filter((r) => validIds.has(String(r.id)) && !seen.has(String(r.id)) && seen.add(String(r.id)))
+      .map((r) => ({
+        id: String(r.id),
+        priority: ["high", "medium", "low"].includes(String(r.priority)) ? String(r.priority) : "medium",
+        reason: String(r.reason ?? "").slice(0, 200),
+      }));
+    // Anything the model dropped keeps its place at the end, honestly unranked.
+    for (const d of pending) if (!seen.has(String(d.id))) ranked.push({ id: String(d.id), priority: "medium", reason: "Not ranked by AI — review manually." });
+    return c.json({ sufficient: true, ranked });
+  } catch {
+    return c.json({ error: "The AI service is unavailable right now — please try again." }, 503);
   }
 });
 

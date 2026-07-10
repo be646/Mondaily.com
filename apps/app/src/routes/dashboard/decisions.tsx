@@ -9,6 +9,7 @@ import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
 import { useLanguage } from "../../hooks/useLanguage";
+import { useTableRealtime } from "../../hooks/useTableRealtime";
 
 const RISK_DOT: Record<Decision["risk_level"], string> = { high: "#9c6b72", medium: "#97824f", low: "#5f8169" };
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
@@ -64,6 +65,13 @@ export function DecisionsPage() {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [searchParams] = useSearchParams();
   const focusId = searchParams.get("id");
+  // AI triage ranking of the pending lane — {id → priority/reason}. Pure view-state; never acts.
+  const [triage, setTriage] = useState<Map<string, { priority: string; reason: string }> | null>(null);
+  const [triageBusy, setTriageBusy] = useState(false);
+  const [triageNote, setTriageNote] = useState("");
+
+  // Realtime: the queue updates live when any agent raises or resolves a decision.
+  useTableRealtime("decision_queue", () => { qc.invalidateQueries({ queryKey: ["decisions"] }); });
 
   const items = useMemo(() => decisions ?? [], [decisions]);
   const laneDef = LANES.find(l => l.key === lane)!;
@@ -71,11 +79,17 @@ export function DecisionsPage() {
   const agents = useMemo(() => Array.from(new Set(laneItems.map(d => d.agent_name))), [laneItems]);
   const types = useMemo(() => Array.from(new Set(laneItems.map(d => d.source_type))), [laneItems]);
   const assignees = useMemo(() => Array.from(new Set(laneItems.map(d => d.assignee_id).filter((x): x is string => !!x))), [laneItems]);
-  const visible = laneItems.filter(d =>
+  const visibleUnordered = laneItems.filter(d =>
     (!agentFilter || d.agent_name === agentFilter) &&
     (!typeFilter || d.source_type === typeFilter) &&
     (!riskFilter || d.risk_level === riskFilter) &&
     (!assigneeFilter || (assigneeFilter === "__none" ? !d.assignee_id : d.assignee_id === assigneeFilter)));
+  // With an AI triage ranking active, the approval lane orders by priority (high→low) — the
+  // ranking is advisory view-state only; every decision stays visible and individually actionable.
+  const PRIO = { high: 0, medium: 1, low: 2 } as Record<string, number>;
+  const visible = (lane === "approval" && triage)
+    ? [...visibleUnordered].sort((a, b) => (PRIO[triage.get(a.id)?.priority ?? "medium"] ?? 1) - (PRIO[triage.get(b.id)?.priority ?? "medium"] ?? 1))
+    : visibleUnordered;
 
   const laneCount = (k: LaneKey) => items.filter(d => LANES.find(l => l.key === k)!.statuses.includes(d.status)).length;
 
@@ -127,12 +141,46 @@ export function DecisionsPage() {
     finally { setBulkBusy(false); setChecked(new Set()); invalidate(); }
   }
 
+  // AI triage — asks the backend to rank the pending queue (grounded on recorded fields only).
+  async function runTriage() {
+    if (triageBusy) return;
+    setTriageBusy(true); setTriageNote("");
+    try {
+      const r = await apiClient.post<{ sufficient: boolean; reason?: string; ranked?: { id: string; priority: string; reason: string }[] }>("/decisions/triage", {});
+      if (!r.sufficient || !r.ranked) { setTriageNote(r.reason ?? "Nothing to triage."); setTriage(null); }
+      else setTriage(new Map(r.ranked.map(x => [x.id, { priority: x.priority, reason: x.reason }])));
+    } catch { setTriageNote("AI triage is unavailable right now."); }
+    finally { setTriageBusy(false); }
+  }
+
+  // Keyboard triage — j/k navigate, a approve, r reject, s snooze (open lanes, not while typing).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const idx = visible.findIndex(d => d.id === selectedId);
+      if (e.key === "j" || e.key === "ArrowDown") { e.preventDefault(); setSelectedId(visible[Math.min(idx + 1, visible.length - 1)]?.id ?? null); }
+      else if (e.key === "k" || e.key === "ArrowUp") { e.preventDefault(); setSelectedId(visible[Math.max(idx - 1, 0)]?.id ?? null); }
+      else if (laneDef.open && selected && !acting) {
+        if (e.key === "a") { e.preventDefault(); void resolve(selected, "approve"); }
+        else if (e.key === "r") { e.preventDefault(); void resolve(selected, "reject"); }
+        else if (e.key === "s" && selected.status === "pending") { e.preventDefault(); void resolve(selected, "snooze"); }
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }); // re-binds each render so it always sees current visible/selected
+
   if (isLoading) return <PageSkeleton />;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
       <LiveSectionHeader icon={ShieldAlert} title="Decisions" kicker="approval cockpit" liveLabel="Live queue" />
-      <p className="mb-4 mt-[-0.5rem] text-[12px]" style={{ color: "var(--text-muted)" }}>Your agents propose; you approve. Review the full impact — evidence, exact action, and audit trail — before it runs.</p>
+      <p className="mb-4 mt-[-0.5rem] text-[12px]" style={{ color: "var(--text-muted)" }}>
+        Your agents propose; you approve. Review the full impact — evidence, exact action, and audit trail — before it runs.
+        <span className="ml-2 hidden text-[10.5px] lg:inline" style={{ color: "var(--text-faint)" }}>Keys: <kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>j</kbd>/<kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>k</kbd> navigate · <kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>a</kbd> approve · <kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>r</kbd> reject · <kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>s</kbd> snooze</span>
+      </p>
 
       {/* Lane tabs */}
       <div className="mb-3 flex flex-wrap gap-1 border-b" style={{ borderColor: "var(--border-soft)" }}>
@@ -156,6 +204,18 @@ export function DecisionsPage() {
               (Replaces the old wall of agent/type/risk chip buttons; every option is still reachable.) */}
           {laneItems.length > 0 && (
             <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
+              {lane === "approval" && laneItems.length > 1 && (
+                <button onClick={runTriage} disabled={triageBusy}
+                  className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 font-medium transition-colors disabled:opacity-50"
+                  style={{ borderColor: triage ? "var(--section-accent)" : "var(--border-strong)", color: triage ? "var(--section-accent)" : "var(--text-secondary)" }}
+                  title="AI ranks the pending queue by where your attention matters most — advisory only, never acts">
+                  {triageBusy ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {triage ? "Re-triage" : "AI triage"}
+                </button>
+              )}
+              {triage && lane === "approval" && (
+                <button onClick={() => setTriage(null)} className="text-[10.5px] underline" style={{ color: "var(--text-faint)" }}>clear ranking</button>
+              )}
+              {triageNote && <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>{triageNote}</span>}
               <FilterSelect label="Agent" value={agentFilter} options={agents.map(a => ({ v: a, l: agentByRaw(a).name.replace(" Agent", "") }))} onChange={setAgentFilter} />
               <FilterSelect label="Type" value={typeFilter} options={types.map(t => ({ v: t, l: t.replace(/_/g, " ") }))} onChange={setTypeFilter} />
               <FilterSelect label="Risk" value={riskFilter} options={[{ v: "high", l: "High" }, { v: "medium", l: "Medium" }, { v: "low", l: "Low" }]} onChange={(v) => setRiskFilter(v as Decision["risk_level"] | null)} dot={(v) => RISK_DOT[v as Decision["risk_level"]]} />
@@ -211,11 +271,20 @@ export function DecisionsPage() {
                       <button onClick={() => setSelectedId(d.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: RISK_DOT[d.risk_level] }} title={`${d.risk_level} risk`} />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }} title={d.title}>{d.title}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="min-w-0 flex-1 truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }} title={d.title}>{d.title}</p>
+                            {lane === "approval" && triage?.get(d.id) && (
+                              <span className="shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide"
+                                style={triage.get(d.id)!.priority === "high" ? { background: "#9c6b721a", color: "#9c6b72" } : triage.get(d.id)!.priority === "low" ? { background: "var(--surface-hover)", color: "var(--text-faint)" } : { background: "#97824f1a", color: "#97824f" }}
+                                title={triage.get(d.id)!.reason}>
+                                {triage.get(d.id)!.priority}
+                              </span>
+                            )}
+                          </div>
                           <div className="mt-0.5 flex items-center gap-1.5">
                             <a.Icon size={11} style={{ color: "var(--text-faint)" }} />
                             <span className="truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>
-                              {a.name.replace(" Agent", "")} · {laneDef.open ? `${relTime(d.created_at)} ago` : `resolved ${relTime(d.resolved_at)} ago`}
+                              {lane === "approval" && triage?.get(d.id)?.reason ? triage.get(d.id)!.reason : `${a.name.replace(" Agent", "")} · ${laneDef.open ? `${relTime(d.created_at)} ago` : `resolved ${relTime(d.resolved_at)} ago`}`}
                             </span>
                           </div>
                         </div>
@@ -343,6 +412,9 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           </div>
         )}
 
+        {/* AI verdict — structured, grounded adjudication (open lanes only) */}
+        {lane.open && <DecisionVerdict decision={d} />}
+
         {/* Why */}
         {d.summary && (
           <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)" }}>
@@ -367,8 +439,18 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
               <ChevronDown size={13} style={{ color: "var(--text-faint)", transform: showReasoning ? "rotate(180deg)" : "none" }} />
             </button>
             {showReasoning && (
-              <div className="border-t px-4 py-3 text-[11.5px] leading-relaxed" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-                <pre className="whitespace-pre-wrap break-words font-sans">{d.generation_context.user_prompt.slice(0, 1200)}</pre>
+              <div className="space-y-3 border-t px-4 py-3 text-[11.5px] leading-relaxed" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                <div>
+                  <div className="mb-1 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>What the agent saw (real captured prompt)</div>
+                  <pre className="whitespace-pre-wrap break-words font-sans">{d.generation_context.user_prompt.slice(0, 1200)}</pre>
+                </div>
+                {d.generation_context.model_output != null && (
+                  <div>
+                    <div className="mb-1 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>What the agent produced (real captured output)</div>
+                    <pre className="whitespace-pre-wrap break-words rounded-sm p-2 font-mono text-[10.5px]" style={{ background: "var(--surface-hover)" }}>{(typeof d.generation_context.model_output === "string" ? d.generation_context.model_output : JSON.stringify(d.generation_context.model_output, null, 2)).slice(0, 1500)}</pre>
+                  </div>
+                )}
+                <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>Captured verbatim when the agent raised this decision — provenance, not a reconstruction.</p>
               </div>
             )}
           </div>
@@ -533,6 +615,73 @@ function LaneEmpty({ lane }: { lane: LaneKey }) {
       <Inbox size={22} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
       <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{c.title}</p>
       <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{c.sub}</p>
+    </div>
+  );
+}
+
+
+/**
+ * AI verdict — on-demand structured adjudication of one decision. Grounded server-side on the
+ * recorded data only; shows its grounding (evidence count, agent context) as proof. Advisory:
+ * the buttons below remain the ONLY way anything executes.
+ */
+function DecisionVerdict({ decision }: { decision: Decision }) {
+  const verdict = useMutation({
+    mutationFn: () => apiClient.post<{
+      sufficient: boolean; reason?: string; recommendation?: "approve" | "reject" | "investigate";
+      rationale?: string; risks?: string[]; checks?: string[];
+      grounded_on?: { evidence_count: number; has_summary: boolean; has_agent_context: boolean };
+    }>(`/decisions/${decision.id}/verdict`, {}),
+  });
+  const v = verdict.data;
+  const TONE: Record<string, string> = { approve: "#5f8169", reject: "#9c6b72", investigate: "#97824f" };
+  return (
+    <div className="rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="flex items-center justify-between px-4 py-2.5">
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>
+          <Sparkles size={12} style={{ color: "var(--section-accent)" }} /> AI verdict
+        </span>
+        <button onClick={() => verdict.mutate()} disabled={verdict.isPending}
+          className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50"
+          style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
+          {verdict.isPending ? <Loader2 size={11} className="animate-spin" /> : v ? "Re-adjudicate" : "Adjudicate"}
+        </button>
+      </div>
+      {verdict.isError && <p className="border-t px-4 py-2.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>The AI service is unavailable right now — the decision is still fully reviewable above.</p>}
+      {v && !v.sufficient && <p className="border-t px-4 py-2.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{v.reason ?? "Not enough recorded data to adjudicate."}</p>}
+      {v?.sufficient && v.recommendation && (
+        <div className="space-y-2.5 border-t px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize" style={{ background: `${TONE[v.recommendation]}1a`, color: TONE[v.recommendation] }}>
+              {v.recommendation === "approve" ? <CheckCircle2 size={11} /> : v.recommendation === "reject" ? <XCircle size={11} /> : <ShieldAlert size={11} />} {v.recommendation}
+            </span>
+            {v.grounded_on && (
+              <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>
+                grounded on {v.grounded_on.evidence_count} evidence item{v.grounded_on.evidence_count !== 1 ? "s" : ""}{v.grounded_on.has_agent_context ? " + the agent's captured context" : ""}{v.grounded_on.has_summary ? " + summary" : ""}
+              </span>
+            )}
+          </div>
+          {v.rationale && <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{v.rationale}</p>}
+          {(v.risks ?? []).length > 0 && (
+            <div>
+              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#9c6b72" }}>Risks of approving</div>
+              <ul className="space-y-1">{v.risks!.map((r, i) => <li key={i} className="flex gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "#9c6b72" }} />{r}</li>)}</ul>
+            </div>
+          )}
+          {(v.checks ?? []).length > 0 && (
+            <div>
+              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#97824f" }}>Verify before acting</div>
+              <ul className="space-y-1">{v.checks!.map((r, i) => <li key={i} className="flex gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "#97824f" }} />{r}</li>)}</ul>
+            </div>
+          )}
+          <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>Advisory only — nothing runs until you act below.</p>
+        </div>
+      )}
+      {!v && !verdict.isPending && !verdict.isError && (
+        <p className="border-t px-4 py-2.5 text-[11px] leading-relaxed" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
+          Ask the AI to adjudicate this decision — recommendation, risks, and what to verify, grounded strictly in the recorded evidence. It never acts on its own.
+        </p>
+      )}
     </div>
   );
 }
