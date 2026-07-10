@@ -12,7 +12,12 @@ describe("Inbox — workspace isolation", () => {
     let count = 0;
     while (idx !== -1) {
       const window = src.slice(idx, idx + 400);
-      expect(window, window.slice(0, 90)).toMatch(/\.eq\("workspace_id", ws\)|workspace_id: ws/);
+      // `.insert(row)` builds its payload just above — that builder must carry workspace_id.
+      if (/\.insert\(row\)/.test(window)) {
+        expect(src).toMatch(/const row: Record<string, unknown> = \{ workspace_id: ws, thread_key: threadKey\(me, recipient_id\), sender_id: me, recipient_id, body \}/);
+      } else {
+        expect(window, window.slice(0, 90)).toMatch(/\.eq\("workspace_id", ws\)|workspace_id: ws/);
+      }
       count++;
       idx = src.indexOf('.from("internal_messages")', idx + 1);
     }
@@ -45,7 +50,7 @@ describe("Inbox — participant access + privacy", () => {
 describe("Inbox — unread state + mark read", () => {
   it("a sent message starts UNREAD (inserted without read_at)", () => {
     const send = src.slice(src.indexOf('router.post("/"'));
-    expect(send).toMatch(/\.insert\(\{ workspace_id: ws, thread_key: threadKey\(me, recipient_id\), sender_id: me, recipient_id, body \}\)/);
+    expect(send).toMatch(/const row: Record<string, unknown> = \{ workspace_id: ws, thread_key: threadKey\(me, recipient_id\), sender_id: me, recipient_id, body \}/);
     expect(send).not.toMatch(/read_at:/);   // no read_at on insert → unread
   });
   it("opening a thread marks the caller's incoming messages read", () => {
@@ -127,7 +132,7 @@ describe("Inbox UI — functional page (picker, empty CTA, i18n)", () => {
     expect(page).toMatch(/setPickerOpen\(true\)/);
   });
   it("sends via POST /messages and localizes core labels", () => {
-    expect(page).toMatch(/apiClient\.post\("\/messages", \{ recipient_id: otherId, body \}\)/);
+    expect(page).toMatch(/apiClient\.post\("\/messages", \{ recipient_id: otherId, body, \.\.\.\(pending\.length \? \{ attachments: pending \} : \{\}\) \}\)/);
     expect(page).toMatch(/t\("inbox\.title"\)/);
     expect(page).toMatch(/t\("inbox\.send"\)/);
   });
@@ -150,5 +155,25 @@ describe("Inbox — message search", () => {
   it("the frontend exposes the search box and jumps into the matched thread", () => {
     expect(page).toMatch(/\/messages\/search\?q=/);
     expect(page).toMatch(/setActive\(hit\.other_id\)/);
+  });
+});
+
+describe("Inbox — attachments", () => {
+  it("uploads are keyed under the caller's own workspace/user prefix", () => {
+    expect(src).toMatch(/const path = `\$\{ws\}\/\$\{me\}\/\$\{Date\.now\(\)\}/);
+  });
+  it("send rejects attachment paths outside the caller's own upload prefix", () => {
+    expect(src).toMatch(/a\.path\.startsWith\(`\$\{ws\}\/\$\{me\}\/`\)/);
+    expect(src).toMatch(/Invalid attachment reference/);
+  });
+  it("downloads require workspace prefix AND a message the caller participates in", () => {
+    const fn = src.slice(src.indexOf('router.get("/attachment"'), src.indexOf('/** POST /messages —'));
+    expect(fn).toMatch(/path\.startsWith\(`\$\{ws\}\/`\)/);
+    expect(fn).toMatch(/\.or\(`sender_id\.eq\.\$\{me\},recipient_id\.eq\.\$\{me\}`\)/);
+    expect(fn).toMatch(/createSignedUrl\(path, 120\)/);
+  });
+  it("the bucket is private and size/count caps exist", () => {
+    expect(src).toMatch(/MSG_ATTACH_MAX_BYTES = 10 \* 1024 \* 1024/);
+    expect(src).toMatch(/MSG_ATTACH_MAX_FILES = 5/);
   });
 });

@@ -128,13 +128,25 @@ router.get("/thread/:otherId", async (c) => {
   const dir = await members(ws);
   if (!dir.has(other)) return c.json({ error: "Member not found in this workspace." }, 404);
 
-  const { data: rows } = await supabase
+  // Includes attachments; falls back to the legacy column set if the
+  // 20260709_message_attachments.sql migration hasn't been applied yet.
+  let { data: rows, error: readErr } = await supabase
     .from("internal_messages")
-    .select("id, sender_id, recipient_id, body, read_at, created_at")
+    .select("id, sender_id, recipient_id, body, attachments, read_at, created_at")
     .eq("workspace_id", ws)
     .eq("thread_key", key)
     .order("created_at", { ascending: true })
     .limit(500);
+  if (readErr) {
+    const legacy = await supabase
+      .from("internal_messages")
+      .select("id, sender_id, recipient_id, body, read_at, created_at")
+      .eq("workspace_id", ws)
+      .eq("thread_key", key)
+      .order("created_at", { ascending: true })
+      .limit(500);
+    rows = (legacy.data ?? []).map((r) => ({ ...r, attachments: [] }));
+  }
 
   const now = new Date().toISOString();
   // Mark the caller's incoming, unread messages as read (per-message read state → unread counts).
@@ -159,11 +171,81 @@ router.get("/thread/:otherId", async (c) => {
   });
 });
 
-/** POST /messages — send a message to a workspace member. */
-router.post("/", zValidator("json", z.object({ recipient_id: z.string().min(1), body: z.string().min(1).max(5000) })), async (c) => {
+// ── Attachments — private bucket, participant-scoped signed downloads ─────────────────────────
+const MSG_ATTACH_BUCKET = "message-attachments";
+const MSG_ATTACH_MAX_BYTES = 10 * 1024 * 1024;   // 10 MB per file
+const MSG_ATTACH_MAX_FILES = 5;                   // per message
+const attachmentMeta = z.object({
+  path: z.string().min(1),
+  name: z.string().min(1).max(200),
+  content_type: z.string().max(120),
+  size: z.number().int().positive(),
+});
+export type MessageAttachment = z.infer<typeof attachmentMeta>;
+
+/**
+ * POST /messages/attachments — upload files (base64) to the private bucket BEFORE sending.
+ * Objects are keyed under `<workspaceId>/<userId>/…`, so a caller can only ever create paths in
+ * their own prefix; the send endpoint then only accepts paths from that same prefix. Uploading
+ * without sending leaves an orphan object, never a visible message.
+ */
+router.post("/attachments", zValidator("json", z.object({
+  files: z.array(z.object({
+    name: z.string().min(1).max(200),
+    content_type: z.string().max(120).default("application/octet-stream"),
+    content_base64: z.string().min(1),
+  })).min(1).max(MSG_ATTACH_MAX_FILES),
+})), async (c) => {
   const ws = c.get("workspaceId");
   const me = c.get("userId");
-  const { recipient_id, body } = c.req.valid("json");
+  const out: MessageAttachment[] = [];
+  for (const [i, f] of c.req.valid("json").files.entries()) {
+    const bytes = new Uint8Array(Buffer.from(f.content_base64, "base64"));
+    if (bytes.length === 0) continue;
+    if (bytes.length > MSG_ATTACH_MAX_BYTES) return c.json({ error: `"${f.name}" is over the 10 MB limit.` }, 413);
+    const safeName = f.name.replace(/[^\w.\- ]+/g, "_").slice(0, 120);
+    const path = `${ws}/${me}/${Date.now()}-${i}-${safeName}`;
+    const { error } = await supabase.storage.from(MSG_ATTACH_BUCKET).upload(path, bytes, { contentType: f.content_type || "application/octet-stream", upsert: false });
+    if (error) return c.json({ error: `Couldn't store "${f.name}" — ${error.message}` }, 500);
+    out.push({ path, name: f.name, content_type: f.content_type || "application/octet-stream", size: bytes.length });
+  }
+  if (!out.length) return c.json({ error: "No valid files." }, 400);
+  return c.json({ attachments: out }, 201);
+});
+
+/**
+ * GET /messages/attachment?path= — short-lived signed URL. Guards: the path must live under this
+ * workspace's prefix AND a message the CALLER participates in must reference it — so neither a
+ * guessed path nor another member of the same workspace outside the conversation can fetch it.
+ */
+router.get("/attachment", zValidator("query", z.object({ path: z.string().min(1) })), async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const path = c.req.valid("query").path;
+  if (!path.startsWith(`${ws}/`)) return c.json({ error: "Not allowed." }, 403);
+  const { data: msg } = await supabase
+    .from("internal_messages")
+    .select("id")
+    .eq("workspace_id", ws)
+    .or(`sender_id.eq.${me},recipient_id.eq.${me}`)
+    .contains("attachments", JSON.stringify([{ path }]))
+    .limit(1)
+    .maybeSingle();
+  if (!msg) return c.json({ error: "Attachment not found." }, 404);
+  const { data, error } = await supabase.storage.from(MSG_ATTACH_BUCKET).createSignedUrl(path, 120);
+  if (error || !data?.signedUrl) return c.json({ error: "Attachment not found." }, 404);
+  return c.json({ url: data.signedUrl });
+});
+
+/** POST /messages — send a message to a workspace member. */
+router.post("/", zValidator("json", z.object({
+  recipient_id: z.string().min(1),
+  body: z.string().min(1).max(5000),
+  attachments: z.array(attachmentMeta).max(MSG_ATTACH_MAX_FILES).optional(),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const { recipient_id, body, attachments } = c.req.valid("json");
   if (recipient_id === me) return c.json({ error: "You can't message yourself." }, 400);
 
   // Recipient must be a real member of THIS workspace (isolation guard).
@@ -171,9 +253,18 @@ router.post("/", zValidator("json", z.object({ recipient_id: z.string().min(1), 
   const recipient = dir.get(recipient_id);
   if (!recipient) return c.json({ error: "Recipient is not a member of this workspace." }, 404);
 
+  // Attachment paths must come from the CALLER'S OWN upload prefix — no referencing other
+  // people's files (or other workspaces') by path.
+  const atts = (attachments ?? []).filter((a) => a.path.startsWith(`${ws}/${me}/`));
+  if ((attachments ?? []).length !== atts.length) return c.json({ error: "Invalid attachment reference." }, 400);
+
+  // Only include the attachments column when there are any — so plain text sends keep working
+  // even before the 20260709_message_attachments.sql migration has been applied.
+  const row: Record<string, unknown> = { workspace_id: ws, thread_key: threadKey(me, recipient_id), sender_id: me, recipient_id, body };
+  if (atts.length > 0) row.attachments = atts;
   const { data, error } = await supabase
     .from("internal_messages")
-    .insert({ workspace_id: ws, thread_key: threadKey(me, recipient_id), sender_id: me, recipient_id, body })
+    .insert(row)
     .select("id, created_at")
     .single();
   if (error) return c.json({ error: error.message }, 400);

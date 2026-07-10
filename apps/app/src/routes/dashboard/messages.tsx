@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Send, User as UserIcon, Inbox as InboxIcon, Archive, Plus, X, Search, Copy, Trash2, Sparkles, ArrowLeft, Check, CheckCheck } from "lucide-react";
+import { Loader2, Send, User as UserIcon, Inbox as InboxIcon, Archive, Plus, X, Search, Copy, Trash2, Sparkles, ArrowLeft, Check, CheckCheck, Paperclip, FileText, Download } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useTableRealtime } from "../../hooks/useTableRealtime";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -14,7 +14,8 @@ import { useCurrentUser } from "../../hooks/useCurrentUser";
  * opens (or starts) that conversation directly — used by Team Intelligence "Message".
  */
 interface InboxThread { thread_key: string; other_id: string; name: string; email: string | null; avatar_url: string | null; last: string; last_at: string; unread: number; outgoing: boolean }
-interface ThreadMsg { id: string; sender_id: string; recipient_id: string; body: string; created_at: string; read_at: string | null; mine: boolean }
+interface MsgAttachment { path: string; name: string; content_type: string; size: number }
+interface ThreadMsg { id: string; sender_id: string; recipient_id: string; body: string; attachments?: MsgAttachment[]; created_at: string; read_at: string | null; mine: boolean }
 interface ThreadResp { other: { user_id: string; name: string; email: string | null; avatar_url: string | null }; messages: ThreadMsg[] }
 interface SearchHit { id: string; other_id: string; name: string; avatar_url: string | null; body: string; created_at: string; mine: boolean }
 
@@ -174,6 +175,10 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
   const qc = useQueryClient();
   const { t } = useLanguage();
   const [draft, setDraft] = useState("");
+  const [pending, setPending] = useState<MsgAttachment[]>([]);   // uploaded, not yet sent
+  const [uploading, setUploading] = useState(false);
+  const [attachError, setAttachError] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
@@ -192,9 +197,44 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
   useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }); }, [messages.length]);
 
   const send = useMutation({
-    mutationFn: (body: string) => apiClient.post("/messages", { recipient_id: otherId, body }),
-    onSuccess: () => { setDraft(""); qc.invalidateQueries({ queryKey: ["messages-thread", otherId] }); onSent(); },
+    mutationFn: (body: string) => apiClient.post("/messages", { recipient_id: otherId, body, ...(pending.length ? { attachments: pending } : {}) }),
+    onSuccess: () => { setDraft(""); setPending([]); qc.invalidateQueries({ queryKey: ["messages-thread", otherId] }); onSent(); },
   });
+
+  // Upload files to the private bucket first; the metadata rides on the message when sent.
+  async function pickFiles(list: FileList | null) {
+    if (!list?.length || uploading) return;
+    setAttachError("");
+    const files = [...list].slice(0, 5 - pending.length);
+    const tooBig = files.find((f) => f.size > 10 * 1024 * 1024);
+    if (tooBig) { setAttachError(`"${tooBig.name}" is over the 10 MB limit.`); return; }
+    setUploading(true);
+    try {
+      const payload = await Promise.all(files.map(async (f) => ({
+        name: f.name,
+        content_type: f.type || "application/octet-stream",
+        content_base64: btoa(String.fromCharCode(...new Uint8Array(await f.arrayBuffer()))),
+      })));
+      const r = await apiClient.post<{ attachments: MsgAttachment[] }>("/messages/attachments", { files: payload });
+      setPending((p) => [...p, ...r.attachments]);
+    } catch (e) {
+      try { setAttachError(JSON.parse((e as Error).message)?.error ?? "Upload failed — try again."); }
+      catch { setAttachError("Upload failed — try again."); }
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  // Open an attachment via a short-lived signed URL (participant-verified server-side).
+  async function openAttachment(a: MsgAttachment) {
+    try {
+      const r = await apiClient.get<{ url: string }>(`/messages/attachment?path=${encodeURIComponent(a.path)}`);
+      if (r.url) window.open(r.url, "_blank", "noopener");
+    } catch { /* signed-url fetch failed — nothing to open */ }
+  }
+
+  const fmtSize = (n: number) => n >= 1_048_576 ? `${(n / 1_048_576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`;
   const archive = useMutation({
     mutationFn: () => apiClient.patch(`/messages/thread/${encodeURIComponent(otherId)}/archive`),
     onSuccess: onArchived,
@@ -204,7 +244,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
     onSuccess: () => qc.invalidateQueries({ queryKey: ["messages-thread", otherId] }),
   });
 
-  const submit = () => { const b = draft.trim(); if (b) send.mutate(b); };
+  const submit = () => { const b = draft.trim(); if ((b || pending.length) && !uploading) send.mutate(b || "(attachment)"); };
   function copyMsg(m: ThreadMsg) { navigator.clipboard?.writeText(m.body).then(() => { setCopied(m.id); setTimeout(() => setCopied(null), 1200); }, () => {}); }
 
   // AI draft — fills the compose box; the user reviews and sends. NEVER auto-sends.
@@ -263,7 +303,21 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
               </div>
             )}
             <div className="max-w-[78%] rounded-lg px-3 py-2" style={{ background: m.mine ? "var(--section-accent)" : "var(--surface-hover)", color: m.mine ? "#fff" : "var(--text-primary)" }}>
-              <p className="whitespace-pre-wrap break-words text-[12.5px] leading-snug">{m.body}</p>
+              {m.body !== "(attachment)" && <p className="whitespace-pre-wrap break-words text-[12.5px] leading-snug">{m.body}</p>}
+              {(m.attachments ?? []).length > 0 && (
+                <div className={`${m.body !== "(attachment)" ? "mt-1.5" : ""} space-y-1`}>
+                  {(m.attachments ?? []).map((a) => (
+                    <button key={a.path} onClick={() => openAttachment(a)} title={`Download ${a.name}`}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-opacity hover:opacity-85"
+                      style={{ background: m.mine ? "rgba(255,255,255,0.14)" : "var(--surface-card-2)", border: m.mine ? "none" : "1px solid var(--border-soft)" }}>
+                      <FileText size={13} className="shrink-0" style={{ color: m.mine ? "rgba(255,255,255,0.85)" : "var(--section-accent)" }} />
+                      <span className="min-w-0 flex-1 truncate text-[11.5px] font-medium">{a.name}</span>
+                      <span className="shrink-0 text-[10px]" style={{ color: m.mine ? "rgba(255,255,255,0.7)" : "var(--text-faint)" }}>{fmtSize(a.size)}</span>
+                      <Download size={11} className="shrink-0" style={{ color: m.mine ? "rgba(255,255,255,0.7)" : "var(--text-faint)" }} />
+                    </button>
+                  ))}
+                </div>
+              )}
               <p className="mt-1 flex items-center gap-1 text-[10px]" style={{ color: m.mine ? "rgba(255,255,255,0.72)" : "var(--text-faint)" }}>
                 {timeOnly(m.created_at)}
                 {/* Read/Sent state from the real read_at — never faked. */}
@@ -296,12 +350,34 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
         </div>
       )}
 
+      {/* pending attachments — uploaded, riding on the next send */}
+      {(pending.length > 0 || attachError) && (
+        <div className="border-t px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
+          {pending.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {pending.map((a) => (
+                <span key={a.path} className="inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 text-[11px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                  <FileText size={11} style={{ color: "var(--section-accent)" }} /> {a.name} <span style={{ color: "var(--text-faint)" }}>{fmtSize(a.size)}</span>
+                  <button onClick={() => setPending((p) => p.filter((x) => x.path !== a.path))} aria-label={`Remove ${a.name}`} style={{ color: "var(--text-faint)" }}><X size={11} /></button>
+                </span>
+              ))}
+            </div>
+          )}
+          {attachError && <p className="mt-1 text-[11px]" style={{ color: "#9c6b72" }}>{attachError}</p>}
+        </div>
+      )}
+
       <div className="flex items-end gap-2 border-t px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
         <button onClick={() => setAiOpen(o => !o)} title="Draft with AI" className="btn-icon h-8 w-8 shrink-0" style={{ color: aiOpen ? "var(--section-accent)" : "var(--text-faint)" }}><Sparkles size={15} /></button>
+        <input ref={fileRef} type="file" multiple className="hidden" onChange={(e) => pickFiles(e.target.files)} />
+        <button onClick={() => fileRef.current?.click()} disabled={uploading || pending.length >= 5} title="Attach files (max 5 × 10 MB)"
+          className="btn-icon h-8 w-8 shrink-0 disabled:opacity-40" style={{ color: pending.length ? "var(--section-accent)" : "var(--text-faint)" }}>
+          {uploading ? <Loader2 size={15} className="animate-spin" /> : <Paperclip size={15} />}
+        </button>
         <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={1} placeholder={t("inbox.write_message")}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
           className="flex-1 resize-none bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)", maxHeight: 120 }} />
-        <button onClick={submit} disabled={!draft.trim() || send.isPending}
+        <button onClick={submit} disabled={(!draft.trim() && pending.length === 0) || send.isPending || uploading}
           className="inline-flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
           {send.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} {t("inbox.send")}
         </button>
