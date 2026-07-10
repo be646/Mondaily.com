@@ -136,3 +136,19 @@ describe("Inbox UI — functional page (picker, empty CTA, i18n)", () => {
     expect(page).toMatch(/whitespace-pre-wrap break-words[^>]*>\{m\.body\}/);
   });
 });
+
+describe("Inbox — message search", () => {
+  it("search is workspace + participant scoped (only the caller's own conversations)", () => {
+    const fn = src.slice(src.indexOf('router.get("/search"'), src.indexOf('router.get("/thread/:otherId"'));
+    expect(fn).toMatch(/\.eq\("workspace_id", ws\)/);
+    expect(fn).toMatch(/\.or\(`sender_id\.eq\.\$\{me\},recipient_id\.eq\.\$\{me\}`\)/);
+  });
+  it("ilike wildcards in the user query are escaped (no pattern widening)", () => {
+    const fn = src.slice(src.indexOf('router.get("/search"'), src.indexOf('router.get("/thread/:otherId"'));
+    expect(fn).toMatch(/replace\(\/\[%_\]\/g/);
+  });
+  it("the frontend exposes the search box and jumps into the matched thread", () => {
+    expect(page).toMatch(/\/messages\/search\?q=/);
+    expect(page).toMatch(/setActive\(hit\.other_id\)/);
+  });
+});

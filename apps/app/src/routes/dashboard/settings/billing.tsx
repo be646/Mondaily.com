@@ -568,7 +568,11 @@ export function BillingSettings() {
                   <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all" style={{ left: autoRefill ? "1.5rem" : "0.125rem" }} />
                 </button>
               </div>
-              {autoRefill && <p className="mt-2 text-[11px] text-[var(--text-muted)]">Auto-Refill armed — connect a card via “Buy credits” to activate billing.</p>}
+              {/* Honest activation state: the toggle only ARMS the policy — a real charge needs a
+                  saved card. Say exactly which state we're in rather than implying it's live. */}
+              {autoRefill && (billing.card_last4
+                ? <p className="mt-2 text-[11px] text-[#5f8169]">Auto-Refill active — will charge the card ending in {billing.card_last4} when credits run low.</p>
+                : <p className="mt-2 text-[11px] text-[#97824f]">Auto-Refill is armed but <span className="font-semibold">not active yet</span> — no saved card. Buy any credit pack once to save your card, and refills start working.</p>)}
             </div>
           </div>
         </section>

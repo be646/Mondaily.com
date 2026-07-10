@@ -16,8 +16,20 @@ import { useCurrentUser } from "../../hooks/useCurrentUser";
 interface InboxThread { thread_key: string; other_id: string; name: string; email: string | null; avatar_url: string | null; last: string; last_at: string; unread: number; outgoing: boolean }
 interface ThreadMsg { id: string; sender_id: string; recipient_id: string; body: string; created_at: string; read_at: string | null; mine: boolean }
 interface ThreadResp { other: { user_id: string; name: string; email: string | null; avatar_url: string | null }; messages: ThreadMsg[] }
+interface SearchHit { id: string; other_id: string; name: string; avatar_url: string | null; body: string; created_at: string; mine: boolean }
 
 const when = (iso: string) => { const d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
+const timeOnly = (iso: string) => { const d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }); };
+// Human day label for thread separators — Today / Yesterday / date.
+function dayLabel(iso: string): string {
+  const d = new Date(iso); if (isNaN(d.getTime())) return "";
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const that = new Date(d); that.setHours(0, 0, 0, 0);
+  const diff = Math.round((today.getTime() - that.getTime()) / 86_400_000);
+  if (diff === 0) return "Today";
+  if (diff === 1) return "Yesterday";
+  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
 
 function Avatar({ name, url, size = 32 }: { name: string; url: string | null; size?: number }) {
   if (url) return <img src={url} alt={name} style={{ width: size, height: size }} className="shrink-0 rounded-full object-cover" />;
@@ -34,6 +46,15 @@ export function MessagesPage() {
   const [params, setParams] = useSearchParams();
   const active = params.get("to");
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Real message search across the caller's own conversations (server-side, participant-scoped).
+  const [search, setSearch] = useState("");
+  const searchQ = useQuery<{ results: SearchHit[] }>({
+    queryKey: ["messages-search", search],
+    queryFn: () => apiClient.get(`/messages/search?q=${encodeURIComponent(search.trim())}`),
+    enabled: search.trim().length >= 2,
+    staleTime: 10_000,
+  });
+  const searching = search.trim().length >= 2;
 
   // Live updates on any message change in this workspace; invalidate inbox + the open thread.
   const live = useTableRealtime("internal_messages", () => {
@@ -66,10 +87,43 @@ export function MessagesPage() {
 
       {pickerOpen && <NewMessageModal onClose={() => setPickerOpen(false)} onPick={(id) => { setPickerOpen(false); setActive(id); }} />}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)]" style={{ height: "calc(100vh - 12.5rem)", minHeight: 380 }}>
         {/* conversation list — on mobile it hides once a thread is open (single-pane) */}
-        <div className={`overflow-hidden rounded-sm border ${active ? "hidden lg:block" : "block"}`} style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-          {inboxQ.isLoading ? (
+        <div className={`flex flex-col overflow-hidden rounded-sm border ${active ? "hidden lg:flex" : "flex"}`} style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          {/* search — real server-side lookup across your own conversations */}
+          <div className="border-b px-2.5 py-2" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="flex items-center gap-2 rounded-sm border px-2.5 py-1.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+              <Search size={13} style={{ color: "var(--text-faint)" }} />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search messages…"
+                className="min-w-0 flex-1 bg-transparent text-[12.5px] outline-none" style={{ color: "var(--text-primary)" }} />
+              {search && <button onClick={() => setSearch("")} className="shrink-0" style={{ color: "var(--text-faint)" }}><X size={13} /></button>}
+            </div>
+          </div>
+          {searching ? (
+            <div className="flex-1 overflow-y-auto">
+              {searchQ.isLoading ? (
+                <div className="flex items-center gap-2 px-4 py-8 text-[12.5px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Searching…</div>
+              ) : (searchQ.data?.results ?? []).length === 0 ? (
+                <p className="px-4 py-8 text-center text-[12.5px]" style={{ color: "var(--text-faint)" }}>No messages match "{search.trim()}".</p>
+              ) : (
+                <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+                  {(searchQ.data?.results ?? []).map((hit) => (
+                    <button key={hit.id} onClick={() => { setSearch(""); setActive(hit.other_id); }}
+                      className="flex w-full items-start gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
+                      <Avatar name={hit.name} url={hit.avatar_url} size={26} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{hit.mine ? `You → ${hit.name}` : hit.name}</span>
+                          <span className="shrink-0 text-[10px]" style={{ color: "var(--text-faint)" }}>{when(hit.created_at)}</span>
+                        </div>
+                        <span className="line-clamp-2 text-[11.5px]" style={{ color: "var(--text-muted)" }}>{hit.body}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : inboxQ.isLoading ? (
             <div className="flex items-center gap-2 px-4 py-10 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> {t("state.loading")}</div>
           ) : inboxQ.isError ? (
             <div className="px-4 py-10 text-center text-[12.5px]" style={{ color: "var(--text-muted)" }}>Couldn't load your inbox. <button onClick={() => inboxQ.refetch()} className="underline">Retry</button></div>
@@ -83,7 +137,7 @@ export function MessagesPage() {
               </button>
             </div>
           ) : (
-            <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="flex-1 divide-y overflow-y-auto" style={{ borderColor: "var(--border-soft)" }}>
               {inbox.map((th) => (
                 <button key={th.thread_key} onClick={() => setActive(th.other_id)}
                   className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
@@ -104,7 +158,7 @@ export function MessagesPage() {
 
         {/* thread */}
         {active ? <Thread otherId={active} live={live.current} onSent={() => { qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onArchived={() => { setActive(""); qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onBack={() => setActive("")} />
-          : <div className="hidden flex-col items-center justify-center gap-3 rounded-sm border lg:flex" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", minHeight: 320 }}>
+          : <div className="hidden flex-col items-center justify-center gap-3 rounded-sm border lg:flex" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               <p className="text-[13px]" style={{ color: "var(--text-faint)" }}>{t("inbox.select_conversation")}</p>
               <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]"
                 style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
@@ -166,7 +220,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
   }
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", minHeight: 320, maxHeight: 560 }}>
+    <div className="flex h-full flex-col overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <div className="flex items-center justify-between gap-2 border-b px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
         <div className="flex min-w-0 items-center gap-2.5">
           <button onClick={onBack} className="btn-icon h-7 w-7 lg:hidden" aria-label="Back"><ArrowLeft size={15} /></button>
@@ -190,8 +244,17 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
           <div className="py-8 text-center text-[12.5px]" style={{ color: "var(--text-muted)" }}>Couldn't load this conversation. <button onClick={() => threadQ.refetch()} className="underline">Retry</button></div>
         ) : messages.length === 0 ? (
           <p className="py-8 text-center text-[12.5px]" style={{ color: "var(--text-faint)" }}>{t("inbox.no_messages")}</p>
-        ) : messages.map((m) => (
-          <div key={m.id} className={`group flex ${m.mine ? "justify-end" : "justify-start"}`}>
+        ) : messages.map((m, i) => (
+          <div key={m.id}>
+            {/* Day separator — a thin centered label whenever the calendar day changes. */}
+            {(i === 0 || dayLabel(messages[i - 1]!.created_at) !== dayLabel(m.created_at)) && (
+              <div className="my-3 flex items-center gap-3">
+                <span className="h-px flex-1" style={{ background: "var(--border-soft)" }} />
+                <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{dayLabel(m.created_at)}</span>
+                <span className="h-px flex-1" style={{ background: "var(--border-soft)" }} />
+              </div>
+            )}
+          <div className={`group flex ${m.mine ? "justify-end" : "justify-start"}`}>
             {/* hover actions on the left of my bubbles / right of theirs */}
             {m.mine && (
               <div className="mr-1 flex items-center gap-0.5 self-center opacity-0 transition-opacity group-hover:opacity-100">
@@ -202,7 +265,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
             <div className="max-w-[78%] rounded-lg px-3 py-2" style={{ background: m.mine ? "var(--section-accent)" : "var(--surface-hover)", color: m.mine ? "#fff" : "var(--text-primary)" }}>
               <p className="whitespace-pre-wrap break-words text-[12.5px] leading-snug">{m.body}</p>
               <p className="mt-1 flex items-center gap-1 text-[10px]" style={{ color: m.mine ? "rgba(255,255,255,0.72)" : "var(--text-faint)" }}>
-                {when(m.created_at)}
+                {timeOnly(m.created_at)}
                 {/* Read/Sent state from the real read_at — never faked. */}
                 {m.mine && (m.read_at ? <><CheckCheck size={11} /> Read</> : <><Check size={11} /> Sent</>)}
               </p>
@@ -212,6 +275,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
                 <button onClick={() => copyMsg(m)} title="Copy" className="rounded p-1" style={{ color: "var(--text-faint)" }}>{copied === m.id ? <Check size={12} /> : <Copy size={12} />}</button>
               </div>
             )}
+          </div>
           </div>
         ))}
       </div>

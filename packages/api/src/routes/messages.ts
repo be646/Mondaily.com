@@ -80,6 +80,43 @@ router.get("/inbox", async (c) => {
   return c.json({ inbox, unread_total: unreadTotal });
 });
 
+/**
+ * GET /messages/search?q= — search message bodies across the CALLER'S OWN conversations only
+ * (workspace + participant scoped, same guards as /inbox). Returns matches newest-first with
+ * the other party resolved, so the UI can jump straight into the thread.
+ */
+router.get("/search", async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const q = (c.req.query("q") ?? "").trim();
+  if (q.length < 2) return c.json({ results: [] });
+  // Escape PostgREST ilike wildcards so a literal "%"/"_" in the query can't widen the match.
+  const safe = q.replace(/[%_]/g, (ch) => `\\${ch}`);
+  const { data: rows } = await supabase
+    .from("internal_messages")
+    .select("id, thread_key, sender_id, recipient_id, body, created_at")
+    .eq("workspace_id", ws)
+    .or(`sender_id.eq.${me},recipient_id.eq.${me}`)
+    .ilike("body", `%${safe}%`)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  const dir = await members(ws);
+  const results = (rows ?? []).map((r) => {
+    const otherId = r.sender_id === me ? r.recipient_id : r.sender_id;
+    const m = dir.get(otherId);
+    return {
+      id: r.id,
+      other_id: otherId,
+      name: m?.name || m?.email || "Member",
+      avatar_url: m?.avatar_url ?? null,
+      body: r.body.slice(0, 200),
+      created_at: r.created_at,
+      mine: r.sender_id === me,
+    };
+  });
+  return c.json({ results });
+});
+
 /** GET /messages/thread/:otherId — full 1:1 conversation, and mark incoming as read. */
 router.get("/thread/:otherId", async (c) => {
   const ws = c.get("workspaceId");
