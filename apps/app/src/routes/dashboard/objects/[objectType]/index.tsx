@@ -264,10 +264,10 @@ function CreateRecordModal({
                 Create more
               </label>
               <div className="flex items-center gap-2">
-                <button onClick={onClose} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 transition-all hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+                <button onClick={onClose} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 transition-all hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
                   Cancel
                 </button>
-                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50">
+                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50">
                   {saving ? "Creating…" : "Create record"}
                   <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-[#9c6b72]/70">⌘↵</kbd>
                 </button>
@@ -297,7 +297,7 @@ function CreateRecordModal({
                 {/* Example chips */}
                 <div className="flex flex-wrap gap-1.5">
                   {examples.map(ex => (
-                    <button key={ex} onClick={() => setAiPrompt(ex)} className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-[10px] text-stone-500 hover:border-[var(--border-soft)] hover:text-stone-300 transition-colors text-left">
+                    <button key={ex} onClick={() => setAiPrompt(ex)} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-[10px] text-stone-500 hover:border-[var(--border-soft)] hover:text-stone-300 transition-colors text-left">
                       {ex}
                     </button>
                   ))}
@@ -319,13 +319,13 @@ function CreateRecordModal({
                 {aiError && <p className="text-xs text-stone-400">{aiError}</p>}
               </div>
               <div className="flex items-center justify-between border-t border-[var(--border-soft)] px-5 py-3.5">
-                <button onClick={onClose} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 transition-all hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+                <button onClick={onClose} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 transition-all hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
                   Cancel
                 </button>
                 <button
                   onClick={generateWithAI}
                   disabled={aiLoading || !aiPrompt.trim()}
-                  className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50"
                 >
                   {aiLoading ? <><Loader2 size={11} className="animate-spin"/> Searching the web…</> : <><LogoMark size={11}/> Find {aiCount} real records</>}
                 </button>
@@ -536,7 +536,7 @@ function AIFillModal({
                 Cancel
               </button>
               <button onClick={generate} disabled={loading || !prompt.trim()}
-                className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-all">
+                className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-all">
                 {loading
                   ? <><Loader2 size={12} className="animate-spin"/> Searching the web…</>
                   : <><LogoMark size={12}/> Find {count} real records</>}
@@ -635,7 +635,7 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
               <p className="text-[11px] text-stone-500 mt-0.5">This will permanently delete the sheet and all its records.</p>
             </div>
           </div>
-          <div className="rounded-lg border border-stone-500/30 bg-stone-600/5 px-4 py-3 mb-4">
+          <div className="rounded-sm border border-stone-500/30 bg-stone-600/5 px-4 py-3 mb-4">
             <p className="text-[11px] text-stone-300 leading-relaxed">
               ⚠️ This action cannot be undone. All records in <strong className="capitalize">{cleanName}</strong> will be permanently deleted along with the object definition.
             </p>
@@ -646,7 +646,7 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
               Cancel
             </button>
             <button onClick={confirm} disabled={deleting}
-              className="flex items-center gap-2 rounded-lg border border-[#9c6b72]/60 bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-all">
+              className="flex items-center gap-2 rounded-sm border border-[#9c6b72]/60 bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-all">
               {deleting ? "Deleting…" : "Yes, delete sheet"}
             </button>
           </div>
@@ -843,13 +843,13 @@ export function ObjectIndexPage() {
               </button>
               <button
                 onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 rounded-lg border border-[#e5e7eb] bg-white px-5 py-2.5 text-[12px] text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:text-stone-400 dark:hover:text-[var(--text-primary)] dark:hover:bg-[var(--surface-hover)] transition-all"
+                className="flex items-center gap-2 rounded-sm border border-[#e5e7eb] bg-white px-5 py-2.5 text-[12px] text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:text-stone-400 dark:hover:text-[var(--text-primary)] dark:hover:bg-[var(--surface-hover)] transition-all"
               >
                 <Plus size={13}/> Add manually
               </button>
               <button
                 onClick={() => setImportOpen(true)}
-                className="flex items-center gap-2 rounded-lg border border-dashed border-[#d1d5db] bg-[#f9fafb] px-5 py-2.5 text-[12px] text-[#6b7280] hover:bg-[#f3f4f6] hover:border-[#9ca3af] dark:border-stone-700/60 dark:bg-transparent dark:text-stone-500 dark:hover:text-stone-300 dark:hover:border-stone-600/60 transition-all"
+                className="flex items-center gap-2 rounded-sm border border-dashed border-[#d1d5db] bg-[#f9fafb] px-5 py-2.5 text-[12px] text-[#6b7280] hover:bg-[#f3f4f6] hover:border-[#9ca3af] dark:border-stone-700/60 dark:bg-transparent dark:text-stone-500 dark:hover:text-stone-300 dark:hover:border-stone-600/60 transition-all"
               >
                 <Plus size={13}/> Import CSV
               </button>

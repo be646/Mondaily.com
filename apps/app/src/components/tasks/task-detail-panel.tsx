@@ -357,7 +357,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
               {task.record_id && (
                 linkedNode ? (
                   <a href={`/objects/${linkedNode.object_type}/${linkedNode.id}`}
-                    className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors surface-hover"
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors surface-hover"
                     style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
                     <Link2 size={10} className="text-stone-500 dark:text-stone-400"/>
                     {String(linkedNode.data?.name ?? linkedNode.data?.title ?? "Linked object")}
@@ -432,7 +432,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 <div className="relative">
                   {statusOpen && <div className="fixed inset-0 z-40" onClick={() => setStatusOpen(false)}/>}
                   <button onClick={() => { setStatusOpen(o => !o); setPriorityOpen(false); }}
-                    className="flex items-center gap-1.5 h-6 rounded-full border px-2.5 text-[11px] font-medium transition-colors"
+                    className="flex items-center gap-1.5 h-6 rounded-sm border px-2.5 text-[11px] font-medium transition-colors"
                     style={{ borderColor: "var(--border-strong)", background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
                     <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${smeta.dot}`}/>{smeta.label}
                     <ChevronDown size={10} style={{ color: "var(--text-faint)" }}/>
@@ -454,7 +454,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 <div className="relative">
                   {priorityOpen && <div className="fixed inset-0 z-40" onClick={() => setPriorityOpen(false)}/>}
                   <button onClick={() => { setPriorityOpen(o => !o); setStatusOpen(false); }}
-                    className="flex items-center gap-1.5 h-6 rounded-full border px-2.5 text-[11px] font-medium transition-colors"
+                    className="flex items-center gap-1.5 h-6 rounded-sm border px-2.5 text-[11px] font-medium transition-colors"
                     style={{ borderColor: "var(--border-strong)", background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
                     <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${pmeta.dot}`}/>{pmeta.label}
                     <ChevronDown size={10} style={{ color: "var(--text-faint)" }}/>
@@ -474,7 +474,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
 
                 {/* Review shortcut */}
                 <button onClick={() => setActiveTab("review")}
-                  className="h-6 rounded-full border px-2.5 text-[11px] font-medium transition-colors"
+                  className="h-6 rounded-sm border px-2.5 text-[11px] font-medium transition-colors"
                   style={
                     task.review_result === "approved"          ? { borderColor: "rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.1)", color: "#10b981" } :
                     task.review_result === "changes_requested" ? { borderColor: "rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.1)", color: "#d97706" } :

@@ -13,6 +13,11 @@ const salesReport = read("routes/dashboard/reports/sales-report.tsx");
 const recordTable = read("components/records/record-table.tsx");
 const recordDetail = read("components/records/record-detail.tsx");
 const tasks = read("routes/dashboard/tasks.tsx");
+const taskPanel = read("components/tasks/task-detail-panel.tsx");
+const notes = read("routes/dashboard/notes.tsx");
+const objectsIndex = read("routes/dashboard/objects/[objectType]/index.tsx");
+const invoiceDetail = read("routes/dashboard/finance/[invoiceId].tsx");
+const creditNoteDetail = read("routes/dashboard/finance/[creditNoteId].tsx");
 const SETTINGS = ["account", "integrations", "workspace", "security", "training"].map((n) => read(`routes/dashboard/settings/${n}.tsx`));
 
 const hasButtonBubbly = (src: string) =>
@@ -27,6 +32,14 @@ describe("interactive controls squared (no bubbly buttons)", () => {
   });
   it("help suggestion chips + FAB squared (no interactive rounded-full border)", () => {
     expect(help).not.toMatch(/rounded-full border/);
+  });
+  it("notes + objects index + finance detail button radii squared", () => {
+    for (const s of [notes, objectsIndex, invoiceDetail, creditNoteDetail]) expect(hasButtonBubbly(s)).toBe(false);
+  });
+  it("task-detail-panel picker chips squared (avatars + label pills stay circular)", () => {
+    // Interactive assignee/due/priority picker chips were `rounded-full border px-2.5`.
+    expect(taskPanel).not.toMatch(/rounded-full border px-2\.5/);
+    expect(taskPanel).toMatch(/rounded-full border flex items-center justify-center/); // avatar stack circles
   });
 });
 

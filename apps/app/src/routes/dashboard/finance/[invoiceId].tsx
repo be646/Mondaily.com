@@ -398,7 +398,7 @@ export function InvoiceDetailPage() {
             <button
               onClick={() => save()}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] px-3 py-1.5 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50"
             >
               <Save size={12}/> Save
             </button>
@@ -423,7 +423,7 @@ export function InvoiceDetailPage() {
           )}
           <button
             onClick={() => printInvoice(invoice)}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:bg-[var(--surface-hover)] transition-colors"
+            className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] px-3 py-1.5 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:bg-[var(--surface-hover)] transition-colors"
           >
             <Download size={12}/> PDF
           </button>

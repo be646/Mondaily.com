@@ -201,7 +201,7 @@ function NoteCard({
             <div className="relative">
               <button
                 onClick={() => setColorOpen(v => !v)}
-                className="grid h-6 w-6 place-items-center rounded-lg hover:bg-[var(--surface-hover)] transition-colors"
+                className="grid h-6 w-6 place-items-center rounded-sm hover:bg-[var(--surface-hover)] transition-colors"
               >
                 <span className={`h-2.5 w-2.5 rounded-full ${scheme.dot}`} />
               </button>
@@ -220,19 +220,19 @@ function NoteCard({
           )}
           {onPin && (
             <button onClick={onPin} title={isPinned ? "Unpin" : "Pin"}
-              className="grid h-6 w-6 place-items-center rounded-lg hover:bg-[var(--surface-hover)] transition-colors">
+              className="grid h-6 w-6 place-items-center rounded-sm hover:bg-[var(--surface-hover)] transition-colors">
               <Pin size={11} className={isPinned ? "fill-[#97824f] text-[#97824f]" : "text-[var(--text-muted)]"} />
             </button>
           )}
           {isOwner && onEdit && (
             <button onClick={onEdit} title="Edit"
-              className="grid h-6 w-6 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+              className="grid h-6 w-6 place-items-center rounded-sm text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
               <Pencil size={11} />
             </button>
           )}
           {isOwner && onDelete && (
             <button onClick={onDelete} title="Delete"
-              className="grid h-6 w-6 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-stone-500/10 hover:text-stone-400 transition-colors">
+              className="grid h-6 w-6 place-items-center rounded-sm text-[var(--text-muted)] hover:bg-stone-500/10 hover:text-stone-400 transition-colors">
               <Trash2 size={11} />
             </button>
           )}
@@ -249,7 +249,7 @@ function NoteCard({
         <Link
           to={`/objects/${note.record.object_type}/${note.record.id}`}
           onClick={e => e.stopPropagation()}
-          className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium hover:opacity-80 transition-opacity ${objColor}`}
+          className={`flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[10px] font-medium hover:opacity-80 transition-opacity ${objColor}`}
         >
           <Link2 size={8} />
           <span className="max-w-[100px] truncate">{note.record.name}</span>
@@ -442,7 +442,7 @@ function ModalShell({ title, subtitle, onClose, children }: { title: string; sub
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
             {subtitle && <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">{subtitle}</p>}
           </div>
-          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-sm text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
             <X size={14} />
           </button>
         </div>
@@ -681,7 +681,7 @@ export function NotesPage() {
                   ) : recordOptions.map(r => (
                     <button key={r.id}
                       onClick={() => { setLinkedRecord(r); setRecordSearch(String(r.data.name ?? r.data.title ?? r.id)); }}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+                      className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                       <span>{String(r.data.name ?? r.data.title ?? "Untitled")}</span>
                       <span className="text-xs text-[var(--text-secondary)]">{r.object_type}</span>
                     </button>

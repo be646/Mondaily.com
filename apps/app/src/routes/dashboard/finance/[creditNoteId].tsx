@@ -190,7 +190,7 @@ export function CreditNoteDetailPage() {
                     options={invoices.map(i => ({ value: i.id, label: `${i.number} · ${i.client_name}` }))}
                   />
                   <button onClick={applyToInvoice} disabled={!linkInvoiceId || linkingInvoice}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5 text-[11px] text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40">
+                    className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5 text-[11px] text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40">
                     <Link2 size={10}/>{linkingInvoice ? "Linking…" : "Apply to invoice"}
                   </button>
                 </div>
