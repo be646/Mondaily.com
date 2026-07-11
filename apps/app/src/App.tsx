@@ -44,6 +44,7 @@ import { MembersSettings } from "./routes/dashboard/settings/members";
 import { BillingSettings } from "./routes/dashboard/settings/billing";
 import { ObjectsSettings } from "./routes/dashboard/settings/objects";
 import { SupportSettings } from "./routes/dashboard/settings/support";
+import { CallsSettings } from "./routes/dashboard/settings/calls";
 import { IntegrationsSettings } from "./routes/dashboard/settings/integrations";
 import { EmailSettings } from "./routes/dashboard/settings/email";
 import { SecuritySettings } from "./routes/dashboard/settings/security";
@@ -174,6 +175,7 @@ export function App() {
           <Route path="objects" element={<ObjectsSettings />} />
           <Route path="integrations" element={<IntegrationsSettings />} />
           <Route path="email" element={<EmailSettings />} />
+          <Route path="calls" element={<CallsSettings />} />
           <Route path="security" element={<SecuritySettings />} />
           <Route path="ask-mondaily" element={<AskMondailySettings />} />
           <Route path="ai-control-room" element={<AIControlRoomSettings />} />

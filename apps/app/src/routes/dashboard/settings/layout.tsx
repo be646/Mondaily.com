@@ -1,4 +1,4 @@
-import { Brain, Building2, CreditCard, Database, Mail, Plug, Shield, ShieldCheck, Sparkles, User, Users, ChevronRight, ArrowLeft, LifeBuoy } from "lucide-react";
+import { Brain, Building2, CreditCard, Database, Mail, Plug, Shield, ShieldCheck, Sparkles, User, Users, ChevronRight, ArrowLeft, LifeBuoy, Video } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useLanguage } from "../../../hooks/useLanguage";
@@ -21,6 +21,7 @@ const GROUPS: { title: string; items: NavTuple[] }[] = [
     ["objects", Database, "Objects & attributes"],
     ["integrations", Plug, "Integrations & API"],
     ["email", Mail, "Email & calendar"],
+    ["calls", Video, "Calls & Recording"],
   ] },
   { title: "Plan", items: [
     ["billing", CreditCard, "Billing & Usage"],
