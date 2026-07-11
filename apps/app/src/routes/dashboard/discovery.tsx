@@ -424,9 +424,9 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {turn.coach.suggestions.map((s) => (
-              <button key={s} onClick={() => onRun(s)} className="rounded-full border px-2.5 py-1 text-[12px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{s}</button>
+              <button key={s} onClick={() => onRun(s)} className="rounded-sm border px-2.5 py-1 text-[12px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{s}</button>
             ))}
-            <button onClick={() => onRun(turn.query, true)} className="rounded-full px-2.5 py-1 text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Search “{turn.query}” anyway →</button>
+            <button onClick={() => onRun(turn.query, true)} className="rounded-sm px-2.5 py-1 text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Search “{turn.query}” anyway →</button>
           </div>
         </div>
       )}
@@ -519,7 +519,7 @@ function NextMoves({ turn, onRun }: { turn: Turn; onRun: (q: string, force?: boo
     <div className="mt-2 flex flex-wrap items-center gap-1.5">
       <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Next:</span>
       {chips.map((c) => (
-        <button key={c} onClick={() => onRun(c)} className="rounded-full border px-2.5 py-0.5 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{c}</button>
+        <button key={c} onClick={() => onRun(c)} className="rounded-sm border px-2.5 py-0.5 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{c}</button>
       ))}
     </div>
   );
@@ -537,7 +537,7 @@ function WatchButton({ query }: { query: string }) {
   if (state === "done") return <p className="mt-2 inline-flex items-center gap-1.5 text-[11.5px]" style={{ color: "#5f8169" }}><Check size={12} /> Watching — you'll be notified of new results</p>;
   return (
     <button onClick={save} disabled={state === "saving"}
-      className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
+      className="mt-2 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
       style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
       {state === "saving" ? <Loader2 size={12} className="animate-spin" /> : <Bell size={12} style={{ color: "var(--section-accent)" }} />}
       {state === "error" ? "Couldn't watch — retry" : "Watch this search — alert me to new results"}
@@ -609,7 +609,7 @@ function SaveAllLeads({ results, query }: { results: ResultRow[]; query: string 
     return <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: failed ? "#9c6b72" : "#5f8169" }}><Check size={12} /> {parts.join(" · ")}</span>;
   }
   return (
-    <button onClick={save} disabled={state === "saving"} className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
+    <button onClick={save} disabled={state === "saving"} className="inline-flex items-center gap-1 rounded-sm px-2.5 py-0.5 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
       {state === "saving" ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} {state === "error" ? "Retry save all" : `Save all ${results.length}`}
     </button>
   );
@@ -748,9 +748,9 @@ function NoResults({ reviews, scanned, query, onRun }: { reviews: boolean; scann
       <p style={{ color: "var(--text-secondary)" }}>{t("discovery.no_results")}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {refinements.map((s) => (
-          <button key={s} onClick={() => onRun(s)} className="rounded-full border px-2.5 py-1 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{s}</button>
+          <button key={s} onClick={() => onRun(s)} className="rounded-sm border px-2.5 py-1 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{s}</button>
         ))}
-        <button onClick={() => onRun(query, true)} className="rounded-full px-2.5 py-1 text-[11.5px] font-medium" style={{ color: "var(--section-accent)" }}>{t("discovery.search_deeper")} →</button>
+        <button onClick={() => onRun(query, true)} className="rounded-sm px-2.5 py-1 text-[11.5px] font-medium" style={{ color: "var(--section-accent)" }}>{t("discovery.search_deeper")} →</button>
       </div>
     </div>
   );
@@ -870,7 +870,7 @@ function BulkBar({ entries, query, lists, members, onApplied, onClear }: {
     finally { setBusy(null); }
   }
   const B = ({ id, onClick, children }: { id: string; onClick: () => void; children: React.ReactNode }) => (
-    <button onClick={onClick} disabled={!!busy} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+    <button onClick={onClick} disabled={!!busy} className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
       {busy === id ? <Loader2 size={11} className="animate-spin" /> : children}
     </button>
   );
@@ -956,16 +956,16 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
         </div>
         <div className="flex flex-wrap gap-1.5 border-t px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
           {(status?.saved || status?.existed) ? <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: status.existed ? "var(--text-muted)" : "#5f8169", background: status.existed ? "var(--surface-hover)" : "#5f816914" }}><Check size={11} /> {status.existed ? "In graph" : "Saved"}</span>
-            : <button onClick={() => save.mutate()} disabled={save.isPending} className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>{save.isPending ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Save</button>}
+            : <button onClick={() => save.mutate()} disabled={save.isPending} className="inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>{save.isPending ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Save</button>}
           {lists.length > 0 && (
             <MenuSelect value="" onChange={(v) => v && addList.mutate(v)} disabled={!status?.node_id} title={status?.node_id ? undefined : "Save the lead first"} allLabel="Add to list…" maxWidth={130} options={lists.map((l) => ({ value: l.id, label: l.name }))} />
           )}
           {members.length > 0 && (
             <MenuSelect value={status?.owner ?? ""} onChange={(v) => v && assign.mutate(v)} allLabel="Assign owner…" maxWidth={140} options={members.map((m) => ({ value: m.user_id, label: m.name || m.email || m.user_id }))} />
           )}
-          <button onClick={() => task.mutate()} disabled={task.isPending} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{task.isPending ? <Loader2 size={11} className="animate-spin" /> : <CheckSquare size={11} />} Task</button>
-          <button onClick={() => decision.mutate()} disabled={decision.isPending} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{decision.isPending ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />} Decision</button>
-          <button onClick={() => { requestAsk(askPrompt); onClose(); }} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><MessageSquare size={11} /> Ask AI</button>
+          <button onClick={() => task.mutate()} disabled={task.isPending} className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{task.isPending ? <Loader2 size={11} className="animate-spin" /> : <CheckSquare size={11} />} Task</button>
+          <button onClick={() => decision.mutate()} disabled={decision.isPending} className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{decision.isPending ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />} Decision</button>
+          <button onClick={() => { requestAsk(askPrompt); onClose(); }} className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><MessageSquare size={11} /> Ask AI</button>
         </div>
       </div>
     </>
@@ -1048,7 +1048,7 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
           <div className="mt-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Why matched: {matchReasons(r).join(" · ")}</div>
         </div>
         {onDetails && (
-          <button onClick={onDetails} className="shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Details</button>
+          <button onClick={onDetails} className="shrink-0 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Details</button>
         )}
       </div>
 
@@ -1059,13 +1059,13 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
           <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: st.existed ? "var(--text-muted)" : "#5f8169", background: st.existed ? "var(--surface-hover)" : "#5f816914" }}><Check size={11} /> {st.existed ? "In graph" : "Saved"}</span>
         ) : (
           <button onClick={() => save.mutate()} disabled={save.isPending}
-            className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
+            className="inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
             {save.isPending ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Save as lead
           </button>
         )}
         {savedId && (
           <div className="relative">
-            <button onClick={() => setListOpen((o) => !o)} className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <button onClick={() => setListOpen((o) => !o)} className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
               Add to list <ChevronDown size={11} />
             </button>
             {listOpen && (
@@ -1163,8 +1163,8 @@ function SavedLeads({ lists }: { lists: ListRow[] }) {
                 <p className="mt-0.5 line-clamp-2 text-[12px]" style={{ color: "var(--text-muted)" }}>{String(d.description ?? d.email ?? d.phone ?? "")}</p>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                <Link to={`/objects/${r.object_type}/${r.id}`} className="rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Open</Link>
-                <button onClick={() => remove.mutate(r.id)} disabled={remove.isPending && remove.variables === r.id} className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: "#9c6b72", background: "#9c6b720d" }}>
+                <Link to={`/objects/${r.object_type}/${r.id}`} className="rounded-sm border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Open</Link>
+                <button onClick={() => remove.mutate(r.id)} disabled={remove.isPending && remove.variables === r.id} className="inline-flex items-center gap-1 rounded-sm px-2.5 py-1 text-[11px] font-medium" style={{ color: "#9c6b72", background: "#9c6b720d" }}>
                   {remove.isPending && remove.variables === r.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
                 </button>
               </div>

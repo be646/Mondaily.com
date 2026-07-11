@@ -54,6 +54,22 @@ describe("Discovery LeadCard — 5 secondary actions preserved in the menu, prim
   });
 });
 
+describe("Discovery — action buttons squared, metadata pills left as-is", () => {
+  it("no bordered pill-shaped action buttons remain (all squared to rounded-sm)", () => {
+    expect(discovery).not.toMatch(/rounded-full border/);
+    expect(discovery).toMatch(/rounded-sm border px-2\.5/);
+  });
+  it("primary Save buttons are squared (white-fill = action, not a status pill)", () => {
+    expect(discovery).toMatch(/gap-1\.5 rounded-sm px-2\.5 py-1 text-\[11px\] font-medium text-white/);
+    expect(discovery).not.toMatch(/gap-1\.5 rounded-full px-2\.5 py-1 text-\[11px\] font-medium text-white/);
+  });
+  it("intentional metadata pills stay pill-shaped (Saved/In-graph status, priority/confidence, dots)", () => {
+    expect(discovery).toMatch(/gap-1 rounded-full px-2\.5 py-1 text-\[11px\] font-medium" style=\{\{ color: st\.existed/); // Saved / In graph
+    expect(discovery).toMatch(/rounded-full px-1\.5 py-0\.5 text-\[9\.5px\] font-semibold/); // priority / confidence badge
+    expect(discovery).toMatch(/h-1\.5 w-1\.5 rounded-full/); // status dots
+  });
+});
+
 describe("Decisions — AI tools consolidated, per-decision actions stay visible", () => {
   it("AI triage / clear ranking / adjudicate preserved (same handlers) in ActionMenu", () => {
     expect(decisions).toMatch(/<ActionMenu[^]*?onClick: runTriage/);
