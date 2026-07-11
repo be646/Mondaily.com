@@ -86,7 +86,7 @@ describe("workspace isolation + wiring (source-read guards)", () => {
     // Classification moved into the pure, unit-tested partitionSaveBatch helper.
     expect(src).toMatch(/partitionSaveBatch\(leads, existingByKey\)/);
     const lib = readFileSync(fileURLToPath(new URL("../lib/discovery-pipeline.ts", import.meta.url)), "utf8");
-    expect(lib).toMatch(/already_existed\.push\(\{ name: b\.name, node_id: existingByKey\.get\(k\)! \}\)/);
+    expect(lib).toMatch(/already_existed\.push\(\{ name: b\.name \?\? "", node_id: existingByKey\.get\(k\)! \}\)/);
   });
   it("save-batch adds BOTH created and already-existing matches to the list", () => {
     expect(src).toMatch(/for \(const id of \[\.\.\.ids, \.\.\.already_existed\.map\(\(a\) => a\.node_id\)\]\) await addToList/);

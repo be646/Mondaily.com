@@ -16,7 +16,7 @@ export function graphDedupeKey(name?: string | null, website?: string | null, so
   return domainOf(website, source_url) || (name ?? "").trim().toLowerCase();
 }
 
-export interface BatchLead { name: string; website?: string; source_url?: string }
+export interface BatchLead { name?: string; website?: string; source_url?: string }
 
 /** Classify a bulk-save set into disjoint buckets — the honest partition behind /save-batch:
  *  - toInsert       : new, dedupe-able leads to create
@@ -32,9 +32,9 @@ export function partitionSaveBatch<T extends BatchLead>(
   const seen = new Set<string>();
   const toInsert = leads.filter((b) => {
     const k = graphDedupeKey(b.name, b.website, b.source_url);
-    if (!k) { skipped_details.push({ name: b.name, reason: "missing a name/website to identify the lead" }); return false; }
-    if (existingByKey.has(k)) { already_existed.push({ name: b.name, node_id: existingByKey.get(k)! }); return false; }
-    if (seen.has(k)) { skipped_details.push({ name: b.name, reason: "duplicate of another selected lead" }); return false; }
+    if (!k) { skipped_details.push({ name: b.name ?? "", reason: "missing a name/website to identify the lead" }); return false; }
+    if (existingByKey.has(k)) { already_existed.push({ name: b.name ?? "", node_id: existingByKey.get(k)! }); return false; }
+    if (seen.has(k)) { skipped_details.push({ name: b.name ?? "", reason: "duplicate of another selected lead" }); return false; }
     seen.add(k); return true;
   });
   return { toInsert, already_existed, skipped_details };
