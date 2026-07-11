@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, Printer } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
-import { FieldSelect, LiveSectionHeader } from "../../components/ui/controls";
+import { FieldSelect, CommandPageHeader } from "../../components/ui/controls";
 
 /**
  * Team Intelligence — an AI-powered team behaviour & value dashboard for owners/admins.
@@ -351,24 +351,30 @@ export function TeamOversightPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      {/* ── Thin, LIVE section header (shared primitive) ── */}
-      <LiveSectionHeader icon={ShieldCheck} title="Team Intelligence" kicker="signal engine" liveLabel="Live · real activity" />
+      {/* Shared command header — same pattern as Decisions / Discovery / Home cockpit. */}
+      <CommandPageHeader
+        icon={ShieldCheck}
+        callsign="ORG"
+        title="Team Intelligence"
+        subtitle="Signal engine — real activity only, never invented."
+        status={[{ label: "live · real activity", kind: "complete" }]}
+        primaryAction={
+          <div className="w-40">
+            <FieldSelect value={String(days)} onChange={v => setDays(Number(v) || 30)} ariaLabel="Period"
+              options={[{ value: "7", label: "Last 7 days" }, { value: "30", label: "Last 30 days" }, { value: "90", label: "Last 90 days" }]} />
+          </div>
+        }
+      />
 
       {/* ── Slim AI ask bar, pinned right under the header ── */}
       {operators.length > 0 && <OversightAsk />}
 
-      {/* ── One compact summary line + period filter ── */}
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
-          <span className="inline-flex items-center gap-1.5"><Users size={13} style={{ color: "var(--text-faint)" }} /><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{totals?.operators ?? operators.length}</strong> member{(totals?.operators ?? operators.length) === 1 ? "" : "s"}</span>
-          <span><strong className="tabular-nums" style={{ color: "#5f8169" }}>{activeTodayCount}</strong> active today</span>
-          <span><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{fmt(totalTasks)}</strong> tasks</span>
-          <span><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{totals ? fmt(totals.tokens) : "—"}</strong> AI credits</span>
-        </div>
-        <div className="w-40 shrink-0">
-          <FieldSelect value={String(days)} onChange={v => setDays(Number(v) || 30)} ariaLabel="Period"
-            options={[{ value: "7", label: "Last 7 days" }, { value: "30", label: "Last 30 days" }, { value: "90", label: "Last 90 days" }]} />
-        </div>
+      {/* ── One compact summary line (real counts) ── */}
+      <div className="mb-4 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
+        <span className="inline-flex items-center gap-1.5"><Users size={13} style={{ color: "var(--text-faint)" }} /><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{totals?.operators ?? operators.length}</strong> member{(totals?.operators ?? operators.length) === 1 ? "" : "s"}</span>
+        <span><strong className="tabular-nums" style={{ color: "#5f8169" }}>{activeTodayCount}</strong> active today</span>
+        <span><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{fmt(totalTasks)}</strong> tasks</span>
+        <span><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{totals ? fmt(totals.tokens) : "—"}</strong> AI credits</span>
       </div>
 
       {/* ── Unified overview tiles — number + inline sparkline, Home-style ── */}

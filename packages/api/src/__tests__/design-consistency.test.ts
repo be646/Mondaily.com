@@ -28,6 +28,8 @@ const aiControlRoom = read("routes/dashboard/settings/ai-control-room.tsx");
 const home = read("routes/dashboard/home.tsx");
 const boardView = read("components/records/board-view.tsx");
 const themeLib = read("lib/theme.ts");
+const controls = read("components/ui/controls.tsx");
+const callsSettings = read("routes/dashboard/settings/calls.tsx");
 // The bright, candy hexes that must NOT appear in product UI — only matte semantic tones allowed.
 const BRIGHT_HEXES = ["#d97706", "#10b981", "#e11d48", "#dc2626", "#ef4444", "#f59e0b", "#eab308", "#7b6fb0", "#22c55e", "#3b82f6", "#8b5cf6", "#06b6d4", "#0891b2", "#b45309"];
 const hasNoBrightHex = (src: string) => BRIGHT_HEXES.every((h) => !src.toLowerCase().includes(h));
@@ -203,6 +205,55 @@ describe("one Mondaily design language (consolidation pass)", () => {
   });
   it("board-view Kanban squared (no rounded-lg)", () => {
     expect(boardView).not.toMatch(/rounded-lg/);
+  });
+});
+
+describe("shared page-architecture primitives (structural consolidation)", () => {
+  it("the five shared structural primitives exist in controls.tsx", () => {
+    for (const p of ["CommandPageHeader", "FilterToolbar", "ProofOfWorkStrip", "DossierSection", "SettingsSection"]) {
+      expect(controls).toMatch(new RegExp(`export function ${p}\\b`));
+    }
+  });
+  it("Decisions / Discovery / Team Oversight all use the shared CommandPageHeader", () => {
+    for (const src of [decisions, discovery, teamOversight]) {
+      expect(src).toMatch(/import \{[^}]*CommandPageHeader/);
+      expect(src).toMatch(/<CommandPageHeader/);
+    }
+  });
+  it("Discovery renders the shared ProofOfWorkStrip fed by REAL counters (no fabricated numbers)", () => {
+    expect(discovery).toMatch(/<ProofOfWorkStrip/);
+    expect(discovery).toContain("value: turn.scanned ?? 0");
+    expect(discovery).toContain("value: turn.results.length");
+  });
+  it("Decisions dossier uses the shared DossierSection; calls readiness uses SettingsSection", () => {
+    expect(decisions).toMatch(/<DossierSection/);
+    expect(callsSettings).toMatch(/<SettingsSection/);
+  });
+  it("Home cockpit orders agents deterministically (no random Meeting-Agent placement)", () => {
+    expect(constellation).toContain("function orderConstellation");
+    expect(constellation).toContain("orderConstellation(constellation)");
+  });
+  it("ProofOfWorkStrip status vocabulary is honest (idle/monitoring/running/waiting/failed/complete)", () => {
+    expect(controls).toMatch(/CommandStatusKind = "idle" \| "monitoring" \| "running" \| "waiting" \| "failed" \| "complete"/);
+    expect(controls).toContain('"no runs yet"'); // honest empty state
+  });
+});
+
+describe("priority pages preserve every existing action/handler", () => {
+  it("Decisions keeps approve/reject/snooze/bulk/triage/adjudicate/assign/comment/ask", () => {
+    for (const h of ["runTriage", "adjudicateVisible", "bulkApproveSafe", "bulkDismiss", "AssigneePicker", "onResolve"]) {
+      expect(decisions).toContain(h);
+    }
+  });
+  it("Discovery keeps search/save/bulk/watch/deep/exhaustive/ICP", () => {
+    for (const h of ["setDeep", "setExhaustive", "setIcpOpen", "clearHistory", "SaveAllLeads", "BulkBar"]) {
+      expect(discovery).toContain(h);
+    }
+  });
+  it("Team Oversight keeps call/print/AI-review/timeline/ask", () => {
+    for (const h of ["requestCall", "Printer", "OversightAsk", "MemberDetail"]) {
+      expect(teamOversight).toContain(h);
+    }
   });
 });
 

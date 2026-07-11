@@ -7,7 +7,7 @@ import {
   CheckSquare, ShieldCheck, ArrowRight,
 } from "lucide-react";
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
-import { MenuSelect, ActionMenu } from "../../components/ui/controls";
+import { MenuSelect, ActionMenu, CommandPageHeader, ProofOfWorkStrip } from "../../components/ui/controls";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { useLanguage } from "../../hooks/useLanguage";
 import { requestAsk } from "../../lib/ask-bus";
@@ -227,48 +227,43 @@ export function DiscoveryPage() {
 
   return (
     <div className="mx-auto flex h-[calc(100vh-3.5rem)] max-w-4xl flex-col px-4 sm:px-6">
-      {/* header */}
-      <div className="flex items-center justify-between gap-3 py-4">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-sm" style={{ background: "var(--surface-hover)" }}>
-            <Radar size={16} style={{ color: "var(--section-accent)" }} />
-          </span>
-          <div>
-            <h1 className="text-[16px] font-semibold leading-none" style={{ color: "var(--text-primary)" }}>{t("discovery.heading")}</h1>
-            <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px]" style={{ color: "var(--text-faint)" }}>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: degraded ? "#97824f" : "#5f8169" }} />
-                {degraded ? "Search engine offline" : "Web search online"}
-              </span>
-              {connectorsQ.data && (
-                <>
-                  <Source label={connectorsQ.data.places.provider === "google" ? "Google Maps" : "OpenStreetMap"} ok={connectorsQ.data.places.ok} detail={connectorsQ.data.places.detail} />
-                  <Source label="Reddit" ok={connectorsQ.data.reddit.ok} detail={connectorsQ.data.reddit.detail} muted={!connectorsQ.data.reddit.enabled} />
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {view === "chat" && (
-            <button onClick={() => setIcpOpen((o) => !o)} title="Set your ideal customer — biases lead scoring + coach suggestions" className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: icpQ.data?.description ? "var(--section-accent)" : "var(--border-soft)", color: icpQ.data?.description ? "var(--section-accent)" : "var(--text-muted)" }}>
-              <Star size={12} /> Ideal customer{icpQ.data?.description ? " ✓" : ""}
-            </button>
-          )}
-          {view === "chat" && turns.length > 0 && (
-            <button onClick={clearHistory} title="Clear search history" className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-              <Trash2 size={12} /> Clear
-            </button>
-          )}
-          <div className="flex overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
-            {(["chat", "saved"] as const).map((v) => (
-              <button key={v} onClick={() => setView(v)} className="px-3 py-1.5 text-[12px] font-medium capitalize transition-colors"
-                style={{ background: view === v ? "var(--surface-selected)" : "transparent", color: view === v ? "var(--text-primary)" : "var(--text-muted)" }}>
-                {v === "chat" ? "Discover" : t("discovery.saved")}
+      {/* Shared command header — same pattern as Decisions / Team Oversight / Home cockpit.
+          All controls + handlers preserved (ICP, clear, Discover/Saved view). */}
+      <div className="py-4">
+        <CommandPageHeader
+          icon={Radar}
+          callsign="SWEEP"
+          title={t("discovery.heading")}
+          status={[
+            { label: degraded ? "Search engine offline" : "Web search online", tone: degraded ? "#97824f" : "#5f8169" },
+            ...(connectorsQ.data ? [
+              { node: <Source label={connectorsQ.data.places.provider === "google" ? "Google Maps" : "OpenStreetMap"} ok={connectorsQ.data.places.ok} detail={connectorsQ.data.places.detail} /> },
+              { node: <Source label="Reddit" ok={connectorsQ.data.reddit.ok} detail={connectorsQ.data.reddit.detail} muted={!connectorsQ.data.reddit.enabled} /> },
+            ] : []),
+          ]}
+          secondaryActions={<>
+            {view === "chat" && (
+              <button onClick={() => setIcpOpen((o) => !o)} title="Set your ideal customer — biases lead scoring + coach suggestions" className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: icpQ.data?.description ? "var(--section-accent)" : "var(--border-soft)", color: icpQ.data?.description ? "var(--section-accent)" : "var(--text-muted)" }}>
+                <Star size={12} /> Ideal customer{icpQ.data?.description ? " ✓" : ""}
               </button>
-            ))}
-          </div>
-        </div>
+            )}
+            {view === "chat" && turns.length > 0 && (
+              <button onClick={clearHistory} title="Clear search history" className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                <Trash2 size={12} /> Clear
+              </button>
+            )}
+          </>}
+          primaryAction={
+            <div className="flex overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+              {(["chat", "saved"] as const).map((v) => (
+                <button key={v} onClick={() => setView(v)} className="px-3 py-1.5 text-[12px] font-medium capitalize transition-colors"
+                  style={{ background: view === v ? "var(--surface-selected)" : "transparent", color: view === v ? "var(--text-primary)" : "var(--text-muted)" }}>
+                  {v === "chat" ? "Discover" : t("discovery.saved")}
+                </button>
+              ))}
+            </div>
+          }
+        />
       </div>
 
       {view === "chat" && <ModuleStrip />}
@@ -453,18 +448,20 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
         {/* Results render as soon as they stream in — independent of the final done event. */}
         {turn.results.length > 0 ? (
           <>
-            {/* Discovery Agent proof-of-work — real streamed counts only (sources scanned, leads found,
-                AI calls, tokens, pre-filter skips). Nothing here is estimated or invented. */}
-            <div className="mt-3 mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-sm border border-l-2 px-3 py-1.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", borderLeftColor: "var(--section-accent)", color: "var(--text-muted)" }}>
-              <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}><Radar size={10} /> Discovery Agent</span>
-              <span><strong style={{ color: "var(--text-primary)" }}>{turn.scanned ?? 0}</strong> sources checked</span>
-              <span aria-hidden>·</span>
-              <span><strong style={{ color: "var(--text-primary)" }}>{turn.results.length}</strong> {reviews ? "reviews / mentions" : "leads found"}</span>
-              {turn.usage && turn.usage.ai_calls > 0 && <><span aria-hidden>·</span><span>{turn.usage.ai_calls} AI calls</span></>}
-              {turn.usage && turn.usage.pages_skipped > 0 && <><span aria-hidden>·</span><span>{turn.usage.pages_skipped} skipped by pre-filter</span></>}
-              {reviews && <SentimentSummary results={turn.results} />}
-              {!reviews && <SaveAllLeads results={turn.results} query={turn.query} />}
-            </div>
+            {/* Discovery Agent proof-of-work via the SHARED ProofOfWorkStrip — real streamed counts
+                only (sources scanned, leads found, AI calls, pre-filter skips). Nothing invented. */}
+            <ProofOfWorkStrip
+              className="mt-3 mb-2"
+              agent="Discovery Agent"
+              status="complete"
+              counters={[
+                { value: turn.scanned ?? 0, label: "sources checked" },
+                { value: turn.results.length, label: reviews ? "reviews / mentions" : "leads found" },
+                ...(turn.usage && turn.usage.ai_calls > 0 ? [{ value: turn.usage.ai_calls, label: "AI calls" }] : []),
+                ...(turn.usage && turn.usage.pages_skipped > 0 ? [{ value: turn.usage.pages_skipped, label: "skipped by pre-filter" }] : []),
+              ]}
+              action={reviews ? <SentimentSummary results={turn.results} /> : <SaveAllLeads results={turn.results} query={turn.query} />}
+            />
             {!reviews && sel.size > 0 && (
               <BulkBar entries={turn.results.map((r, i) => ({ key: keyOf(r, i), r })).filter((e) => sel.has(e.key))} query={turn.query} lists={lists} members={members ?? []}
                 onApplied={applyStatus} onClear={() => setSel(new Set())} />

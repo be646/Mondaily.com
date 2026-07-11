@@ -84,6 +84,16 @@ function RunAgentButton({ agentId }: { agentId: string }) {
  * code scaffold with no live job at all.
  */
 
+// Deterministic ordering so the cockpit is a STABLE grouped board, not a shifting grid: agents that
+// need you first, then working, then quiet/unconfigured — ties broken by name. This is why an
+// on-demand agent (e.g. Meeting) always lands in the same quiet group, never "hanging" mid-grid.
+const STATE_ORDER: Record<ConstellationState, number> = {
+  issue: 0, needs_approval: 1, active: 2, monitoring: 3, not_configured: 4, disabled: 5,
+};
+function orderConstellation(list: ConstellationAgent[]): ConstellationAgent[] {
+  return [...list].sort((a, b) => (STATE_ORDER[a.state] - STATE_ORDER[b.state]) || a.name.localeCompare(b.name));
+}
+
 // Matte, meaning-based tone per agent state — the single source for every agent dot/icon colour
 // across the constellation, hero strip and sidebar, so an agent never changes colour by position.
 const STATE_TONE: Record<ConstellationState, string> = {
@@ -222,7 +232,7 @@ export function AgentConstellationPanel() {
       {/* Premium info-grid: each agent shows its real state, last real run, and evidence count at
           a glance — the telemetry was always in the payload, the old pill rail just hid it. */}
       <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
-        {constellation.map((agent) => {
+        {orderConstellation(constellation).map((agent) => {
           const live = isLiveState(agent.state);
           const isSelected = active?.id === agent.id;
           const tone = stateTone(agent.state);

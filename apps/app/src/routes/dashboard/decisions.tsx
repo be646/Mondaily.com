@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton } from "../../components/ui/page-state";
-import { MenuSelect, ActionMenu, type ActionMenuItem } from "../../components/ui/controls";
+import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, type ActionMenuItem } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -196,22 +196,15 @@ export function DecisionsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-      {/* Quiet AI-console header — serious, monochrome, no animation. Live state is one static dot. */}
-      <div className="mb-4 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-sm border" style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
-              <ShieldAlert size={13} />
-            </span>
-            <h1 className="text-[15px] font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>Decisions</h1>
-            <span className="hidden font-mono text-[9.5px] uppercase tracking-[0.18em] sm:inline" style={{ color: "var(--text-faint)" }}>// decision engine · agents propose — you approve</span>
-          </div>
-          <div className="flex shrink-0 items-center gap-4 font-mono text-[9.5px] uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
-            <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full" style={{ background: "#5f8169" }} /> live sync</span>
-            <span className="hidden lg:inline" title="j/k navigate · a approve · r reject · s snooze">keys j·k·a·r·s</span>
-          </div>
-        </div>
-      </div>
+      {/* Shared command header — same pattern as Discovery / Team Oversight / Home cockpit. */}
+      <CommandPageHeader
+        icon={ShieldAlert}
+        callsign="GATE"
+        title="Decisions"
+        subtitle="Agents propose — you approve."
+        status={[{ label: "live sync", kind: "complete" }]}
+        rightSummary={<span title="j/k navigate · a approve · r reject · s snooze">keys j·k·a·r·s</span>}
+      />
 
       {/* Queue intelligence — real numbers from the live queue, no invention */}
       {items.length > 0 && (() => {
@@ -502,12 +495,11 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           </div>
         )}
 
-        {/* Evidence */}
+        {/* Evidence — shared DossierSection block */}
         {sources.length > 0 && (
-          <div>
-            <div className="mb-2 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>Evidence</div>
+          <DossierSection title="Evidence">
             <div className="flex flex-wrap gap-1.5">{sources.map((s, i) => <SourceCard key={i} source={s} />)}</div>
-          </div>
+          </DossierSection>
         )}
 
         {/* AI reasoning — only when the decision was LLM-generated (generation_context present) */}
@@ -535,9 +527,8 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           </div>
         )}
 
-        {/* Audit trail */}
-        <div>
-          <div className="mb-1.5 flex items-center gap-1.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}><History size={11} /> Audit trail</div>
+        {/* Audit trail — shared DossierSection block */}
+        <DossierSection icon={History} title="Audit trail">
           <div className="space-y-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
             <div>Created {exactTime(d.created_at)} by {a.name}.</div>
             {d.status === "snoozed" && d.snoozed_until && <div>Snoozed until {exactTime(d.snoozed_until)}.</div>}
@@ -545,7 +536,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
               <div className="capitalize">{d.status} {exactTime(d.resolved_at)}{d.resolved_by ? ` · by ${memberLabel(members, d.resolved_by) ?? "a workspace member"}` : ""}.</div>
             )}
           </div>
-        </div>
+        </DossierSection>
 
         {/* Assigned reviewer */}
         <AssigneePicker d={d} members={members} onChanged={onChanged} />

@@ -4,6 +4,7 @@ import { Phone, Video, UploadCloud, Mic, Sparkles, Lock, Webhook, Check, AlertTr
 import type { LucideIcon } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { SettingsSection } from "../../../components/ui/controls";
 
 type RowStatus = "ready" | "available" | "partially_configured" | "missing_config" | "unavailable" | "not_enabled" | "not_configured";
 interface Readiness {
@@ -48,10 +49,13 @@ export function CallsSettings() {
   const s = q.data!.status;
   return (
     <div className="space-y-5">
-      <PageHeader title="Calls & Recording" description="Configuration status for calls, recording, transcription, and summaries. Read-only — nothing here exposes or edits secrets." />
-
-      <section className="settings-section overflow-hidden rounded-sm border p-0" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+      {/* Shared SettingsSection — same section rhythm as other settings pages. */}
+      <SettingsSection
+        title="Calls & Recording"
+        description="Configuration status for calls, recording, transcription, and summaries. Read-only — nothing here exposes or edits secrets."
+        notice={{ kind: "monitoring", text: "Recording controls appear in live calls only when LiveKit recording is configured. Until then, recording is disabled and everything fails closed — no call is ever recorded silently." }}
+      >
+        <div className="-mx-4 -my-3 divide-y" style={{ borderColor: "var(--border-soft)" }}>
           {ROWS.map(({ key, label, Icon, means }) => {
             const b = BADGE[s[key]];
             return (
@@ -70,11 +74,7 @@ export function CallsSettings() {
             );
           })}
         </div>
-      </section>
-
-      <p className="rounded-sm border px-4 py-2.5 text-[12px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)", color: "var(--text-muted)" }}>
-        Recording controls appear in live calls only when LiveKit recording is configured. Until then, recording is disabled and everything fails closed — no call is ever recorded silently.
-      </p>
+      </SettingsSection>
 
       <div className="flex flex-wrap items-center gap-2">
         <Link to="/calls" className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}><Video size={13} /> Open Meeting Memory <ArrowRight size={12} /></Link>

@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ButtonHTMLAttributes, SelectHTMLAttributes, ReactNode } from "react";
-import { Check, ChevronDown, MoreHorizontal } from "lucide-react";
+import { Check, ChevronDown, MoreHorizontal, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 function cx(...parts: (string | false | null | undefined)[]): string {
@@ -350,5 +350,225 @@ export function LiveSectionHeader({ icon: Icon, title, kicker, liveLabel = "Live
         <span className="font-mono text-[9.5px] uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>{liveLabel}</span>
       </div>
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHARED PAGE ARCHITECTURE — one header / toolbar / proof-strip / dossier / settings
+// pattern so every AI/control-room page reads as the same product. All honest-status,
+// matte, no random per-section colour (accent is uniform via --theme-spread:0), no
+// decorative animation. Reuse these instead of hand-rolling page chrome.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Honest, matte status vocabulary shared by CommandPageHeader status items and
+ * ProofOfWorkStrip. Colour encodes MEANING only — never a per-agent rainbow. */
+export type CommandStatusKind = "idle" | "monitoring" | "running" | "waiting" | "failed" | "complete";
+const STATUS_TONE: Record<CommandStatusKind, string> = {
+  idle: "var(--text-faint)",
+  monitoring: "var(--text-muted)",
+  running: "var(--accent)",
+  waiting: "#97824f",
+  failed: "#9c6b72",
+  complete: "#5f8169",
+};
+const STATUS_LABEL: Record<CommandStatusKind, string> = {
+  idle: "Idle", monitoring: "Monitoring", running: "Running", waiting: "Waiting", failed: "Failed", complete: "Ready",
+};
+
+export interface CommandStatusItem { label?: string; kind?: CommandStatusKind; tone?: string; dot?: boolean; node?: ReactNode }
+
+// ── CommandPageHeader — the ONE page header for AI/control-room pages ────────────
+// Compact, calm, no animation. Left: icon + mono call-sign + title + subtitle.
+// Right: optional summary, secondary actions, primary action. Status row below the
+// title holds honest status chips (dot + label). Same spacing everywhere.
+interface CommandPageHeaderProps {
+  icon?: LucideIcon;
+  callsign?: string;                 // rendered as `// CALLSIGN`
+  title: string;
+  subtitle?: string;
+  status?: CommandStatusItem[];      // honest status chips (state, counts) — no fake "live"
+  primaryAction?: ReactNode;
+  secondaryActions?: ReactNode;      // usually an ActionMenu ("Assist"/"More")
+  rightSummary?: ReactNode;          // small muted text/metrics on the right
+  className?: string;
+}
+export function CommandPageHeader({ icon: Icon, callsign, title, subtitle, status, primaryAction, secondaryActions, rightSummary, className }: CommandPageHeaderProps) {
+  return (
+    <div className={cx("mb-4", className)}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            {Icon && <span className="grid h-6 w-6 shrink-0 place-items-center rounded-sm" style={{ color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}><Icon size={13} /></span>}
+            {callsign && <span className="soul-kicker">// {callsign}</span>}
+          </div>
+          <h1 className="mt-1.5 text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">{title}</h1>
+          {subtitle && <p className="mt-0.5 text-xs text-[var(--text-muted)]">{subtitle}</p>}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {rightSummary && <span className="hidden text-[11px] text-[var(--text-faint)] sm:inline">{rightSummary}</span>}
+          {secondaryActions}
+          {primaryAction}
+        </div>
+      </div>
+      {status && status.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
+          {status.map((s, i) => s.node ? <span key={i} className="inline-flex items-center">{s.node}</span> : (
+            <span key={i} className="inline-flex items-center gap-1.5">
+              {s.dot !== false && <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.tone ?? STATUS_TONE[s.kind ?? "monitoring"] }} />}
+              {s.label}
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="soul-rule mt-3" />
+    </div>
+  );
+}
+
+// ── FilterToolbar — the ONE filter toolbar pattern ──────────────────────────────
+// One row: [search] [dropdown filters] [assist/more menu] … right: [summary] [actions].
+// Active filters render as small removable chips BELOW the row. No walls of buttons —
+// dropdowns are MenuSelect/FieldSelect; secondary/advanced actions collapse into a menu.
+export interface FilterChip { key: string; label: string; onRemove: () => void }
+interface FilterToolbarProps {
+  search?: ReactNode;                // a search input slot
+  filters?: ReactNode;               // MenuSelect dropdowns
+  actionMenu?: ReactNode;            // ActionMenu for assist/advanced
+  chips?: FilterChip[];              // active filters as removable chips
+  summary?: ReactNode;               // count/summary text
+  rightActions?: ReactNode;
+  className?: string;
+}
+export function FilterToolbar({ search, filters, actionMenu, chips, summary, rightActions, className }: FilterToolbarProps) {
+  return (
+    <div className={cx("mb-3", className)}>
+      <div className="flex flex-wrap items-center gap-2">
+        {search && <div className="min-w-[160px] flex-1 sm:max-w-xs">{search}</div>}
+        {filters}
+        {actionMenu}
+        <div className="ml-auto flex items-center gap-2">
+          {summary && <span className="text-[11px] text-[var(--text-faint)]">{summary}</span>}
+          {rightActions}
+        </div>
+      </div>
+      {chips && chips.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {chips.map((c) => (
+            <button key={c.key} onClick={c.onRemove}
+              className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[11px] transition-colors hover:bg-[var(--surface-hover)]"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              {c.label}
+              <X size={11} className="shrink-0" style={{ color: "var(--text-faint)" }} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── ProofOfWorkStrip — the ONE AI proof/status strip ────────────────────────────
+// A compact, honest evidence bar: agent label + real state + real counters + source/
+// step counts + timestamp (or "no runs yet"). Never fabricates activity or numbers —
+// every field is passed in from real data. Left accent border ties it to the section.
+interface ProofCounter { label: string; value: number | string }
+interface ProofOfWorkStripProps {
+  agent: string;
+  status: CommandStatusKind;
+  counters?: ProofCounter[];         // real counts (sources checked, leads found, AI calls…)
+  timestamp?: string | null;         // formatted "ran" string; null/undefined → "no runs yet"
+  sourceRefs?: ReactNode;            // optional <SourceList/> or evidence refs
+  action?: ReactNode;                // optional run-now / inspect
+  className?: string;
+}
+export function ProofOfWorkStrip({ agent, status, counters, timestamp, sourceRefs, action, className }: ProofOfWorkStripProps) {
+  const tone = STATUS_TONE[status];
+  return (
+    <div className={cx("rounded-sm border border-l-2", className)}
+      style={{ borderColor: "var(--border-soft)", borderLeftColor: "var(--section-accent)", background: "var(--surface-card)" }}>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-1.5 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-secondary)" }}>
+          {agent}
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: tone }} />
+          <span style={{ color: tone }}>{STATUS_LABEL[status]}</span>
+        </span>
+        {counters?.map((c, i) => (
+          <span key={i}><strong className="font-semibold text-[var(--text-secondary)]">{c.value}</strong> {c.label}</span>
+        ))}
+        {/* Omitted timestamp → render nothing; explicit null → honest "no runs yet". */}
+        {timestamp !== undefined && (
+          <span className="ml-auto tabular-nums text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+            {timestamp ?? "no runs yet"}
+          </span>
+        )}
+        {action && <span className={timestamp === undefined ? "ml-auto" : ""}>{action}</span>}
+      </div>
+      {sourceRefs && <div className="border-t px-3 py-1.5" style={{ borderColor: "var(--border-soft)" }}>{sourceRefs}</div>}
+    </div>
+  );
+}
+
+// ── DossierSection — the ONE detail/review sub-section block ─────────────────────
+// A consistently-titled, optionally-collapsible section for review dossiers (evidence,
+// proposed action, impact, audit trail, comments…). Mono uppercase title + calm body.
+interface DossierSectionProps {
+  icon?: LucideIcon;
+  title: string;
+  action?: ReactNode;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+  children: ReactNode;
+  className?: string;
+}
+export function DossierSection({ icon: Icon, title, action, collapsible, defaultOpen = true, children, className }: DossierSectionProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className={cx("py-2.5", className)}>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <button type="button" disabled={!collapsible} onClick={() => collapsible && setOpen(o => !o)}
+          className="inline-flex items-center gap-1.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.16em] disabled:cursor-default"
+          style={{ color: "var(--text-faint)" }}>
+          {Icon && <Icon size={11} />}
+          {title}
+          {collapsible && <ChevronDown size={11} style={{ transform: open ? undefined : "rotate(-90deg)", transition: "transform .12s" }} />}
+        </button>
+        {action}
+      </div>
+      {open && <div>{children}</div>}
+    </div>
+  );
+}
+
+// ── SettingsSection — the ONE settings block ────────────────────────────────────
+// Title + description + right action, then rows, with an optional notice banner. Gives
+// every settings page the same section rhythm instead of a bespoke layout each.
+interface SettingsSectionProps {
+  title: string;
+  description?: string;
+  action?: ReactNode;
+  notice?: { kind?: CommandStatusKind; text: ReactNode };
+  children?: ReactNode;
+  className?: string;
+}
+export function SettingsSection({ title, description, action, notice, children, className }: SettingsSectionProps) {
+  return (
+    <section className={cx("mb-6 rounded-sm border", className)} style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="flex items-start justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="min-w-0">
+          <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{title}</h2>
+          {description && <p className="mt-0.5 text-[11.5px] leading-relaxed text-[var(--text-muted)]">{description}</p>}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
+      {notice && (
+        <div className="flex items-start gap-2 border-b px-4 py-2.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: STATUS_TONE[notice.kind ?? "monitoring"] }}>
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: STATUS_TONE[notice.kind ?? "monitoring"] }} />
+          <span>{notice.text}</span>
+        </div>
+      )}
+      {children && <div className="px-4 py-3">{children}</div>}
+    </section>
   );
 }
