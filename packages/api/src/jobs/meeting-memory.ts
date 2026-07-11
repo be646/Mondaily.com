@@ -23,6 +23,17 @@ interface SessionRow {
   kind: string; started_at: string | null; ended_at: string | null; created_at: string;
   record: boolean; recording_url: string | null; recording_status: string | null;
   transcript_status: string | null; memory_node_id: string | null;
+  source?: string | null; origin_filename?: string | null; language?: string | null; duration_sec?: number | null;
+}
+
+// Private bucket for uploaded meeting audio. Recordings are NEVER public — the STT appliance and the
+// player both fetch through short-lived signed URLs minted from the stored path.
+export const RECORDINGS_BUCKET = "meeting-recordings";
+
+/** Mint a short-lived signed URL for an uploaded recording's storage PATH (never returns the path). */
+async function signedRecordingUrl(path: string, ttlSec = 300): Promise<string | null> {
+  const { data } = await supabase.storage.from(RECORDINGS_BUCKET).createSignedUrl(path, ttlSec);
+  return data?.signedUrl ?? null;
 }
 
 async function memberNames(ws: string): Promise<Map<string, string>> {
@@ -51,7 +62,7 @@ async function summarizeTranscript(ws: string, userId: string, lines: Transcript
 export async function ingestRecording(sessionId: string): Promise<{ ok: boolean; node_id?: string; reason?: string }> {
   const { data: s } = await supabase
     .from("call_sessions")
-    .select("id, workspace_id, room, initiator_id, invitee_id, kind, started_at, ended_at, created_at, record, recording_url, recording_status, transcript_status, memory_node_id")
+    .select("id, workspace_id, room, initiator_id, invitee_id, kind, started_at, ended_at, created_at, record, recording_url, recording_status, transcript_status, memory_node_id, source, origin_filename, language, duration_sec")
     .eq("id", sessionId)
     .maybeSingle();
   const session = s as SessionRow | null;
@@ -89,7 +100,17 @@ export async function ingestRecording(sessionId: string): Promise<{ ok: boolean;
       await completeJob(jobId, { ok: false, reason: "stt_disabled" }, steps);
       return { ok: false, reason: "stt_disabled" };
     }
-    const lines = await transcribeAudio(session.recording_url);
+    // Uploaded recordings store a private-bucket PATH; mint a short-lived signed URL the STT
+    // appliance can fetch. Native egress recordings already carry a fetchable URL.
+    const isUpload = session.source === "upload";
+    const audioUrl = isUpload ? await signedRecordingUrl(session.recording_url) : session.recording_url;
+    if (isUpload && !audioUrl) {
+      await supabase.from("call_sessions").update({ transcript_status: "failed" }).eq("id", session.id);
+      steps.push(step("Transcription failed", { status: "error", detail: "Could not read the uploaded recording from storage." }));
+      await failJob(jobId, "signed URL mint failed");
+      return { ok: false, reason: "recording_unreadable" };
+    }
+    const lines = await transcribeAudio(audioUrl!);
     if (!lines || lines.length === 0) {
       await supabase.from("call_sessions").update({ transcript_status: "failed" }).eq("id", session.id);
       steps.push(step("Transcription failed", { status: "error", detail: "The STT appliance returned no usable transcript.", sources: [{ title: "Recording", url: session.recording_url }] }));
@@ -109,10 +130,18 @@ export async function ingestRecording(sessionId: string): Promise<{ ok: boolean;
 
     // 3. Materialize (or reuse) the call_record node with the real transcript.
     let nodeId = session.memory_node_id;
+    // Uploaded recordings: name the record after the file (never the raw path), and NEVER put the
+    // storage path in client-visible `audio_url` — playback goes through the signed-URL endpoint.
+    const uploadName = (session.origin_filename ?? "").replace(/\.[^.]+$/, "").trim();
     const baseData = {
-      contact_name: other, occurred_at: startedAt, duration_seconds: durationSeconds,
-      direction: "outbound", status: "processing", audio_url: session.recording_url,
-      participants, transcript: lines, source: "meeting_recording", call_session_id: session.id,
+      contact_name: isUpload ? (uploadName || "Uploaded recording") : other,
+      occurred_at: startedAt, duration_seconds: session.duration_sec ?? durationSeconds,
+      direction: "outbound", status: "processing",
+      ...(isUpload ? { has_recording: true } : { audio_url: session.recording_url }),
+      participants, transcript: lines,
+      source: isUpload ? "upload_recording" : "meeting_recording",
+      call_session_id: session.id,
+      ...(isUpload ? { origin_filename: session.origin_filename ?? undefined } : {}),
     };
     if (nodeId) {
       await supabase.from("nodes").update({ data: baseData }).eq("id", nodeId).eq("workspace_id", ws);

@@ -5,6 +5,8 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { denyViewerWrites } from "../middleware/rbac";
 import { aiGateway } from "../lib/ai-gateway";
+import { inngest } from "../lib/inngest";
+import { ingestRecording, RECORDINGS_BUCKET } from "../jobs/meeting-memory";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 type CallNode = {
@@ -39,7 +41,12 @@ function normalizeCall(node: CallNode) {
     next_steps: Array.isArray(data.next_steps) ? data.next_steps : [],
     participants: Array.isArray(data.participants) ? data.participants : [],
     linked_records: Array.isArray(data.linked_records) ? data.linked_records : [],
-    transcript: Array.isArray(data.transcript) ? data.transcript : []
+    transcript: Array.isArray(data.transcript) ? data.transcript : [],
+    // Provenance (never the raw storage path): where this record came from + whether a recording
+    // exists (playback is via the signed-URL endpoint, never a raw path/public URL).
+    source: String(data.source ?? ""),
+    origin_filename: data.origin_filename ? String(data.origin_filename) : undefined,
+    has_recording: Boolean(data.has_recording || data.audio_url),
   };
 }
 
@@ -217,6 +224,104 @@ router.post("/:id/analyze", zValidator("json", z.object({ template_id: z.enum(["
     }
   });
   return new Response(stream, { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache" } });
+});
+
+// ── Phase 1 Meeting Memory: manual audio upload → transcript → summary ────────────────────────────
+// Sovereign + fail-closed + honest: audio lives in a PRIVATE bucket (never public), transcription
+// runs only against SOVEREIGN_STT_URL, summary only through the AI gateway; both fail closed.
+const AUDIO_MIMES = new Set(["audio/mpeg", "audio/mp4", "audio/x-m4a", "audio/wav", "audio/x-wav", "audio/webm", "audio/ogg"]);
+const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // 500 MB (API-enforced; storage stays private)
+const sanitizeFilename = (name: string) => (name || "recording").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-120) || "recording";
+
+/** Same idempotent handoff the egress webhook uses: Inngest when configured, else inline. */
+function enqueueIngest(sessionId: string) {
+  if (process.env.INNGEST_EVENT_KEY) inngest.send({ name: "meeting/recording.ready", data: { sessionId } }).catch(() => {});
+  else void ingestRecording(sessionId);
+}
+
+// POST /calls/upload/init — validate + create the upload session, return a signed direct-to-storage
+// upload URL (bypasses serverless body limits). Consent attestation is REQUIRED.
+router.post("/upload/init", zValidator("json", z.object({
+  filename: z.string().min(1).max(200),
+  content_type: z.string().min(1).max(120),
+  size: z.number().int().positive(),
+  consent_attestation: z.literal(true),   // must be exactly true → false/missing is a 400 here
+  title: z.string().max(200).optional(),
+  language: z.string().max(20).optional(),
+})), async (c) => {
+  const ws = c.get("workspaceId"); const userId = c.get("userId");
+  const b = c.req.valid("json");
+  if (!AUDIO_MIMES.has(b.content_type)) return c.json({ error: "unsupported_type", message: "Audio files only (mp3, m4a, wav, webm, ogg)." }, 415);
+  if (b.size > MAX_UPLOAD_BYTES) return c.json({ error: "too_large", message: "Recording exceeds the 500 MB limit." }, 413);
+
+  const room = `upload:${crypto.randomUUID()}`;
+  const consent = { attested_by: userId, method: "upload_attestation", text_version: "v1", at: new Date().toISOString() };
+  const { data: session, error } = await supabase.from("call_sessions").insert({
+    workspace_id: ws, room, initiator_id: userId, invitee_id: userId, kind: "audio", status: "ended",
+    source: "upload", record: true, recording_status: "uploading", transcript_status: "queued",
+    origin_filename: b.title?.trim() ? `${sanitizeFilename(b.title)}` : sanitizeFilename(b.filename),
+    language: b.language ?? null, consent,
+  }).select("id").single();
+  if (error || !session) return c.json({ error: "could_not_create_session" }, 500);
+
+  const path = `${ws}/${session.id}/${sanitizeFilename(b.filename)}`;
+  await supabase.from("call_sessions").update({ recording_url: path }).eq("id", session.id).eq("workspace_id", ws);
+  const { data: signed, error: upErr } = await supabase.storage.from(RECORDINGS_BUCKET).createSignedUploadUrl(path);
+  if (upErr || !signed) return c.json({ error: "storage_unavailable", message: "Recording storage isn't configured. Create the private 'meeting-recordings' bucket." }, 503);
+  return c.json({ id: session.id, upload_url: signed.signedUrl, token: signed.token, path, content_type: b.content_type }, 201);
+});
+
+// POST /calls/upload/complete — the client finished PUT-ing to the signed URL; verify the object and
+// kick off the honest pipeline (STT → summary).
+router.post("/upload/complete", zValidator("json", z.object({ id: z.string().uuid() })), async (c) => {
+  const ws = c.get("workspaceId");
+  const { data: s } = await supabase.from("call_sessions")
+    .select("id, workspace_id, recording_url, source").eq("id", c.req.valid("json").id).eq("workspace_id", ws).eq("source", "upload").maybeSingle();
+  if (!s?.recording_url) return c.json({ error: "session_not_found" }, 404);
+  if (!s.recording_url.startsWith(`${ws}/`)) return c.json({ error: "forbidden" }, 403);
+  // Confirm the object actually landed in the private bucket.
+  const folder = s.recording_url.split("/").slice(0, -1).join("/");
+  const fname = s.recording_url.split("/").pop();
+  const { data: list } = await supabase.storage.from(RECORDINGS_BUCKET).list(folder);
+  if (!list?.some((f) => f.name === fname)) return c.json({ error: "upload_not_found", message: "No uploaded file found for this session." }, 400);
+  await supabase.from("call_sessions").update({ recording_status: "ready", transcript_status: "queued" }).eq("id", s.id).eq("workspace_id", ws);
+  enqueueIngest(s.id);
+  return c.json({ id: s.id, status: "queued" }, 202);
+});
+
+// GET /calls/:id/recording-url — short-lived signed playback URL. Participant or admin/owner only;
+// workspace-scoped; verifies the stored path prefix. NEVER returns a public URL or the raw path.
+router.get("/:id/recording-url", async (c) => {
+  const ws = c.get("workspaceId"); const userId = c.get("userId"); const role = c.get("role");
+  const call = await getCall(ws, c.req.param("id"));
+  const sessId = call?.data?.call_session_id as string | undefined;
+  if (!sessId) return c.json({ error: "no_recording" }, 404);
+  const { data: sess } = await supabase.from("call_sessions")
+    .select("recording_url, workspace_id, initiator_id, invitee_id").eq("id", sessId).eq("workspace_id", ws).maybeSingle();
+  if (!sess?.recording_url) return c.json({ error: "no_recording" }, 404);
+  const isParticipant = userId === sess.initiator_id || userId === sess.invitee_id;
+  const isAdmin = role === "owner" || role === "admin";
+  if (!isParticipant && !isAdmin) return c.json({ error: "forbidden" }, 403);
+  if (!String(sess.recording_url).startsWith(`${ws}/`)) return c.json({ error: "forbidden" }, 403);
+  const { data: signed } = await supabase.storage.from(RECORDINGS_BUCKET).createSignedUrl(sess.recording_url, 120);
+  if (!signed?.signedUrl) return c.json({ error: "no_recording" }, 404);
+  return c.json({ url: signed.signedUrl, expires_in: 120 });
+});
+
+// POST /calls/:id/reprocess — re-run STT/summary for a failed/partial upload (idempotent).
+router.post("/:id/reprocess", async (c) => {
+  const ws = c.get("workspaceId"); const userId = c.get("userId"); const role = c.get("role");
+  const call = await getCall(ws, c.req.param("id"));
+  const sessId = call?.data?.call_session_id as string | undefined;
+  if (!sessId) return c.json({ error: "no_recording" }, 404);
+  const { data: sess } = await supabase.from("call_sessions")
+    .select("id, initiator_id, invitee_id, memory_node_id").eq("id", sessId).eq("workspace_id", ws).maybeSingle();
+  if (!sess) return c.json({ error: "no_recording" }, 404);
+  if (!(role === "owner" || role === "admin" || userId === sess.initiator_id)) return c.json({ error: "forbidden" }, 403);
+  // Clear a failed transcript flag so the atomic-claim in ingestRecording can re-run; node reuse keeps it idempotent.
+  await supabase.from("call_sessions").update({ transcript_status: "queued" }).eq("id", sess.id).eq("workspace_id", ws).eq("transcript_status", "failed");
+  enqueueIngest(sess.id);
+  return c.json({ ok: true, status: "queued" }, 202);
 });
 
 export { router as callsRouter };

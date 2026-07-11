@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Bot, Check, ChevronLeft, Clipboard, Clock3, Pause, Play, Search, Volume2, X } from "lucide-react";
+import { Bot, Check, ChevronLeft, Clipboard, Clock3, Pause, Play, Search, Volume2, X, UploadCloud, Printer, RefreshCw, Loader2 } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -27,6 +27,9 @@ interface CallDetail {
   participants: Participant[];
   linked_records: LinkedRecord[];
   transcript: TranscriptLine[];
+  source?: string;
+  origin_filename?: string;
+  has_recording?: boolean;
 }
 
 interface WaveSurferInstance {
@@ -113,7 +116,19 @@ export function CallDetailPage() {
   const { id = "" } = useParams();
   const query = useQuery({ queryKey: ["call", id], queryFn: () => apiClient.get<CallDetail>(`/calls/${id}`) });
   const call = query.data;
-  const { containerRef, waveRef, playing, ready } = useWaveSurfer(call?.audio_url);
+  // Uploaded recordings play through a short-lived signed URL (never a raw path / public URL).
+  const recUrlQ = useQuery({
+    queryKey: ["recording-url", id],
+    queryFn: () => apiClient.get<{ url: string }>(`/calls/${id}/recording-url`).then(r => r.url).catch(() => null),
+    enabled: !!call?.has_recording && !call?.audio_url,
+    retry: false, staleTime: 90_000,
+  });
+  const audioSrc = call?.audio_url || recUrlQ.data || undefined;
+  const { containerRef, waveRef, playing, ready } = useWaveSurfer(audioSrc);
+  const reprocess = useMutation({
+    mutationFn: () => apiClient.post(`/calls/${id}/reprocess`, {}),
+    onSuccess: () => query.refetch(),
+  });
   const [playbackRate, setPlaybackRate] = useState("1");
   const [transcriptSearch, setTranscriptSearch] = useState("");
   const [completedActions, setCompletedActions] = useState<number[]>([]);
@@ -167,7 +182,19 @@ export function CallDetailPage() {
     <div className="relative min-h-full">
       <header className="flex flex-wrap items-center gap-3 border-b border-[var(--border-soft)] px-4 py-4 sm:px-6">
         <Link to="/calls" title="Back to calls" className="grid h-8 w-8 place-items-center rounded hover:bg-[var(--surface-hover)]"><ChevronLeft size={17} /></Link>
-        <div className="min-w-0 flex-1"><h1 className="truncate text-lg font-semibold">{call.contact_name}</h1><p className="mt-0.5 text-xs text-[var(--text-muted)]">{new Date(call.occurred_at).toLocaleString()} · {Math.max(1, Math.round(call.duration_seconds / 60))} min</p></div>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-lg font-semibold">{call.contact_name}</h1>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{new Date(call.occurred_at).toLocaleString()} · {Math.max(1, Math.round(call.duration_seconds / 60))} min</p>
+          {call.source === "upload_recording" && (
+            <p className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--text-faint)]">
+              <UploadCloud size={11} /> Uploaded recording{call.origin_filename ? ` · ${call.origin_filename}` : ""} · consent attested
+            </p>
+          )}
+        </div>
+        <button onClick={() => window.print()} title="Print / export" className="hidden h-9 items-center gap-1.5 rounded-sm border px-3 text-[13px] font-medium sm:flex" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><Printer size={13} /> Print</button>
+        {call.status === "failed" && (
+          <button onClick={() => reprocess.mutate()} disabled={reprocess.isPending} title="Retry transcription/summary" className="flex h-9 items-center gap-1.5 rounded-sm border px-3 text-[13px] font-medium disabled:opacity-60" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{reprocess.isPending ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Reprocess</button>
+        )}
         <button onClick={() => setAnalysisOpen(true)} className="flex h-9 items-center gap-2 rounded-md bg-stone-600 px-3 text-sm font-medium"><LogoMark size={14} /> Run analysis</button>
       </header>
       <div className="grid min-h-[calc(100vh-74px)] lg:grid-cols-[minmax(320px,0.8fr)_minmax(480px,1.2fr)]">

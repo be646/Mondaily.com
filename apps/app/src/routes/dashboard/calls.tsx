@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { CalendarClock, Phone, Search, FileText, Sparkles, ListChecks, Users, Loader2, Brain } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { CalendarClock, Phone, Search, FileText, Sparkles, ListChecks, Users, Loader2, Brain, UploadCloud } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
+import { UploadRecordingModal } from "../../components/calls/upload-recording-modal";
 
 /**
  * Meeting Memory — Mondaily's after-the-fact call/meeting intelligence. Calendar owns planning + live
@@ -29,6 +30,9 @@ function Dot({ color }: { color: string }) { return <span className="h-1.5 w-1.5
 export function CallsPage() {
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const qc = useQueryClient();
+  const navigate = useNavigate();
   const query = useQuery({
     queryKey: ["meeting-memory", search],
     queryFn: () => apiClient.get<{ memories: MemoryRow[] }>(`/calls/memory?search=${encodeURIComponent(search)}`),
@@ -58,12 +62,22 @@ export function CallsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <div className="mb-4">
-        <h1 className="text-[19px] font-semibold" style={{ color: "var(--text-primary)" }}>Meeting Memory</h1>
-        <p className="mt-1 flex items-center gap-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}>
-          <Brain size={12} style={{ color: "var(--text-muted)" }} /> After-call intelligence — past meetings, recorded calls, summaries & action items.
-        </p>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[19px] font-semibold" style={{ color: "var(--text-primary)" }}>Meeting Memory</h1>
+          <p className="mt-1 flex items-center gap-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}>
+            <Brain size={12} style={{ color: "var(--text-muted)" }} /> After-call intelligence — past meetings, recorded calls, summaries & action items.
+          </p>
+        </div>
+        <button onClick={() => setUploadOpen(true)}
+          className="flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:bg-[var(--surface-hover)]"
+          style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
+          <UploadCloud size={13} /> Import recording
+        </button>
       </div>
+
+      {uploadOpen && <UploadRecordingModal onClose={() => setUploadOpen(false)}
+        onDone={(id) => { setUploadOpen(false); qc.invalidateQueries({ queryKey: ["meeting-memory"] }); navigate(`/calls/${id}`); }} />}
 
       {/* Control bar: tabs + search (flat, monochrome). */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
