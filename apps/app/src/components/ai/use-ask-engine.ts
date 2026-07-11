@@ -37,6 +37,7 @@ function metaFromMessages(msgs: ChatMessage[]): MessageMeta {
         agent: inferAgentHandoff(msgs[i - 1]?.content ?? ""),
         sources: mapBackendSources(m.sources as BackendSourceMeta[] | undefined),
         tokens: estimateTokens(m.content ?? ""),
+        memory: (m as { memory?: { used: number; refs: string[] } }).memory,
       };
     }
   });
@@ -189,7 +190,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       const reply = finalReply || streamed || "I couldn't generate a response just now — please try again.";
       const savedSources = finalSources ?? liveSources;
       applyText(reply);
-      addMessageToThread(tid, { role: "assistant", content: reply, sources: savedSources });
+      addMessageToThread(tid, { role: "assistant", content: reply, sources: savedSources, memory: finalMemory });
       setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(savedSources), tokens: finalUsage?.total_tokens ?? estimateTokens(reply), usage: finalUsage, tokensExact: finalUsage != null, memory: finalMemory } }));
       if (finalSuggestions.length) setSuggestions(finalSuggestions);
       setStreamStatus(null);
@@ -221,7 +222,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
         // Persist sources too, so reopening the thread keeps source attribution
         // (the streaming success path does this; the fallback must match).
         setMessages([...withUser, { role: "assistant", content: reply, sources: data.sources }]);
-        addMessageToThread(tid, { role: "assistant", content: reply, sources: data.sources });
+        addMessageToThread(tid, { role: "assistant", content: reply, sources: data.sources, memory: data.memory });
         setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources), tokens: data.usage?.total_tokens ?? estimateTokens(reply), usage: data.usage, tokensExact: data.usage != null, memory: data.memory } }));
         if (data.suggestions?.length) setSuggestions(data.suggestions);
         opts.onAssistantMessage?.(aiIdx, reply);

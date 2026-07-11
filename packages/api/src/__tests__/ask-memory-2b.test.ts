@@ -13,6 +13,7 @@ const support = readFileSync(fileURLToPath(new URL("../routes/support.ts", impor
 const decisions = readFileSync(fileURLToPath(new URL("../routes/decisions.ts", import.meta.url)), "utf8");
 const uiEngine = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/components/ai/use-ask-engine.ts", import.meta.url)), "utf8");
 const uiAsk = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/components/ai/ask-mondaily.tsx", import.meta.url)), "utf8");
+const chatStore = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/lib/chat-store.ts", import.meta.url)), "utf8");
 
 describe("Phase 2B — Ask memory injection", () => {
   it("recall runs through the SAME flag-gated recallContext (OFF ⇒ empty ⇒ Ask identical to today)", () => {
@@ -52,6 +53,13 @@ describe("Phase 2B — Ask memory injection", () => {
     expect(uiAsk).toMatch(/Used \{meta\.memory\.used\} remembered fact/);
     // Only shown when memory was actually used (honest empty).
     expect(uiAsk).toMatch(/meta\?\.memory && meta\.memory\.used > 0/);
+  });
+
+  it("memory disclosure PERSISTS across remount/thread-reload (saved on the message + read back)", () => {
+    // ChatMessage stores memory; metaFromMessages reads it; both save paths persist it.
+    expect(chatStore).toMatch(/memory\?: \{ used: number; refs: string\[\] \}/);
+    expect(uiEngine).toMatch(/memory: \(m as \{ memory\?: \{ used: number; refs: string\[\] \} \}\)\.memory/);
+    expect((uiEngine.match(/addMessageToThread\(tid, \{ role: "assistant"[^)]*memory:/g) ?? []).length).toBe(2);
   });
 
   it("no relevant facts ⇒ no disclosure (used:0 hides the line; empty refs)", () => {

@@ -6,6 +6,9 @@ export interface ChatMessage {
   /** Raw backend source metadata, persisted so reopening a thread still shows
    *  the records/cards the AI found (not just the text answer). */
   sources?: unknown[];
+  /** Phase-2B memory disclosure, persisted so "Used N remembered facts" survives
+   *  thread reload / component remount (not just the live turn). */
+  memory?: { used: number; refs: string[] };
 }
 export interface ChatThread { id: string; title: string; messages: ChatMessage[]; updatedAt: number; }
 
