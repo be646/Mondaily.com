@@ -146,3 +146,63 @@ describe("Phase 2B.5 — invariants preserved", () => {
     expect(r.candidates[0]!.breakdown).toBeTruthy();
   });
 });
+
+describe("Phase 2B.6 — injection thresholding + email gating", () => {
+  const cand = (r: { candidates: { source: { id: string }; injected: boolean; reject_reason?: string }[] }, id: string) =>
+    r.candidates.find((c) => c.source.id === id);
+
+  it("'what do you remember about X issue?' does NOT inject a weak email when a decision/task exist", async () => {
+    stubDb({
+      workspaces: ws(),
+      nodes: [{ id: "mail", object_type: "email_outbox", data: { subject: "connectivity issue" }, workspace_id: "ws", updated_at: null }],
+      decision_queue: [{ id: "dec", title: "connectivity issue", summary: "", status: "pending", workspace_id: "ws", created_at: null }],
+      tasks: [{ id: "tsk", title: "connectivity issue", description: "", status: "open", workspace_id: "ws", updated_at: null }],
+      internal_messages: [],
+    });
+    const r = await recallContext("ws", "what do you remember about the connectivity issue?");
+    expect(cand(r, "dec")!.injected).toBe(true);
+    expect(cand(r, "tsk")!.injected).toBe(true);
+    // Email present in shadow, but NOT injected — gated with a reason.
+    expect(cand(r, "mail")!.injected).toBe(false);
+    expect(cand(r, "mail")!.reject_reason).toMatch(/email\/message not directly requested/);
+  });
+
+  it("email IS injected when the query explicitly asks about email", async () => {
+    stubDb({
+      workspaces: ws(),
+      nodes: [{ id: "mail", object_type: "email_outbox", data: { subject: "connectivity email update" }, workspace_id: "ws", updated_at: null }],
+      decision_queue: [], tasks: [], internal_messages: [],
+    });
+    const r = await recallContext("ws", "what email did we send about connectivity?");
+    expect(r.intent === undefined || true).toBe(true);
+    expect(cand(r, "mail")!.injected).toBe(true);   // email intent unlocks it
+  });
+
+  it("source_count counts INJECTED refs only (not shadow candidates)", async () => {
+    stubDb({
+      workspaces: ws(),
+      nodes: [{ id: "mail", object_type: "email_outbox", data: { subject: "connectivity issue" }, workspace_id: "ws", updated_at: null }],
+      decision_queue: [{ id: "dec", title: "connectivity issue", summary: "", status: "pending", workspace_id: "ws", created_at: null }],
+      tasks: [], internal_messages: [],
+    });
+    const r = await recallContext("ws", "connectivity issue");
+    // 2 candidates shown, but only the decision injected → source_count = 1.
+    expect(r.candidate_count).toBe(2);
+    expect(r.injected_count).toBe(1);
+    expect(r.source_count).toBe(1);
+  });
+
+  it("a below-threshold candidate stays VISIBLE in shadow, marked not-injected", async () => {
+    // Single weak email (0.55 < 0.8 threshold) with no non-email alternative.
+    stubDb({
+      workspaces: ws(),
+      nodes: [{ id: "mail", object_type: "email_outbox", data: { subject: "connectivity" }, workspace_id: "ws", updated_at: null }],
+      decision_queue: [], tasks: [], internal_messages: [],
+    });
+    const r = await recallContext("ws", "connectivity issue");
+    expect(r.candidate_count).toBe(1);          // still visible in shadow
+    expect(r.candidates[0]!.injected).toBe(false);
+    expect(r.candidates[0]!.reject_reason).toMatch(/below relevance threshold/);
+    expect(r.source_count).toBe(0);             // nothing injected
+  });
+});

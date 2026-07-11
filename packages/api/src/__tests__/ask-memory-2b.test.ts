@@ -24,8 +24,8 @@ describe("Phase 2B — Ask memory injection", () => {
     expect(ask).toMatch(/const empty = \{ block: "", used: 0, refs: \[\] as string\[\] \}/);
   });
 
-  it("injects AT MOST the top 3 candidates, each with a source ref", () => {
-    expect(ask).toMatch(/r\.candidates\.filter\(\(c\) => c\.source && c\.source\.id\)\.slice\(0, 3\)/);
+  it("injects ONLY recall-selected candidates (threshold + email-gated, ≤3 cap in recall), each with a source ref", () => {
+    expect(ask).toMatch(/r\.candidates\.filter\(\(c\) => c\.injected && c\.source && c\.source\.id\)/);
     expect(ask).toMatch(/if \(top\.length === 0\) return empty/);
   });
 

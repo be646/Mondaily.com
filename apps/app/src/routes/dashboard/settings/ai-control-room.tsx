@@ -292,7 +292,7 @@ export function AIControlRoomSettings() {
 
 // ── Phase 2A: source-backed memory recall in SHADOW mode ──────────────────────
 interface ScoreBreakdown { keyword: number; type_weight: number; recency: number; final: number }
-interface RecallCandidate { kind: string; category?: string; title: string; snippet: string; source: { type: string; id: string }; as_of: string | null; score: number; breakdown?: ScoreBreakdown }
+interface RecallCandidate { kind: string; category?: string; title: string; snippet: string; source: { type: string; id: string }; as_of: string | null; score: number; breakdown?: ScoreBreakdown; injected?: boolean; reject_reason?: string }
 interface RecallResp { enabled: boolean; candidates: RecallCandidate[]; candidate_count: number; injected_count?: number; source_count: number; by_kind?: Record<string, number>; intent?: string[]; latency_ms: number; scanned: number }
 function MemoryShadowSection() {
   const qc = useQueryClient();
@@ -355,21 +355,26 @@ function MemoryShadowSection() {
                 <p className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>No source-backed matches — recall returns empty rather than inventing context.</p>
               ) : (
                 <div className="divide-y rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
-                  {r.candidates.map((c, idx) => {
-                    const injected = idx < (r.injected_count ?? Math.min(3, r.candidate_count));
+                  {r.candidates.map((c) => {
+                    const injected = c.injected ?? false;
                     const b = c.breakdown;
                     return (
-                      <div key={`${c.source.type}:${c.source.id}`} className="flex items-start gap-2.5 px-3 py-2" style={{ background: injected ? "var(--surface-hover)" : undefined }}>
+                      <div key={`${c.source.type}:${c.source.id}`} className="flex items-start gap-2.5 px-3 py-2" style={{ background: injected ? "var(--surface-hover)" : undefined, opacity: injected ? 1 : 0.72 }}>
                         <span className="mt-0.5 shrink-0 rounded-sm border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-wide" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{c.category ?? c.kind}</span>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <div className="min-w-0 flex-1 truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{c.title}</div>
-                            {injected && <span className="shrink-0 rounded-sm px-1 py-px font-mono text-[8px] uppercase tracking-wider" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>injected</span>}
+                            {injected
+                              ? <span className="shrink-0 rounded-sm px-1 py-px font-mono text-[8px] uppercase tracking-wider" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>injected</span>
+                              : <span className="shrink-0 rounded-sm border px-1 py-px font-mono text-[8px] uppercase tracking-wider" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>not injected</span>}
                           </div>
                           <div className="truncate text-[11px]" style={{ color: "var(--text-muted)" }}>{c.snippet}</div>
                           <div className="mt-0.5 font-mono text-[9.5px]" style={{ color: "var(--text-faint)" }}>
                             {c.source.type}:{c.source.id.slice(0, 8)} · score {b ? b.final : c.score}{b ? ` (kw ${b.keyword} × type ${b.type_weight} × rec ${b.recency})` : ""}{c.as_of ? ` · ${new Date(c.as_of).toLocaleDateString()}` : ""}
                           </div>
+                          {!injected && c.reject_reason && (
+                            <div className="mt-0.5 text-[10px]" style={{ color: "#97824f" }}>↳ {c.reject_reason}</div>
+                          )}
                         </div>
                       </div>
                     );

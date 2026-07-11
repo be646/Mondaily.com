@@ -26,6 +26,8 @@ export interface MemoryCandidate {
   as_of: string | null;                   // created/updated timestamp (staleness visible)
   score: number;                          // final composite score
   breakdown: ScoreBreakdown;              // transparent scoring (admin shadow preview only)
+  injected: boolean;                      // whether this candidate is actually injected into Ask
+  reject_reason?: string;                 // why NOT injected (shown in shadow preview; still listed)
 }
 
 export interface RecallResult {
@@ -45,8 +47,12 @@ export interface RecallScope {
   include?: Array<"record" | "task" | "decision" | "ticket" | "message">;
 }
 
-/** The hard injection cap Ask uses (buildAskMemory takes candidates.slice(0, INJECT_CAP)). */
+/** The hard injection cap Ask uses (top eligible candidates, ≤ INJECT_CAP). */
 export const INJECT_CAP = 3;
+/** Min composite score to be eligible for INJECTION (candidates below still show in shadow). */
+export const MIN_INJECT_SCORE = 0.8;
+/** Query explicitly about email/messages/conversation — the only case low-signal emails may inject. */
+const EMAIL_INTENT_RE = /\b(e-?mails?|messages?|conversations?|sent|reply|replied|replies|wrote|writing|inbox|outbox|correspond(?:ence)?|dms?|threads?)\b/i;
 
 /** Per-workspace flag + env kill-switch. Default OFF — recall does nothing until enabled. */
 export async function memoryEnabled(workspaceId: string): Promise<boolean> {
@@ -203,7 +209,7 @@ export async function recallContext(workspaceId: string, query: string, scope: R
     const tw = typeWeight(category, intent);
     const rf = recencyFactor(r.as_of);
     const final = r.keyword * tw * rf;
-    return { kind: r.kind, category, title: r.title, snippet: r.snippet, source: r.source, as_of: r.as_of, score: final, breakdown: { keyword: r.keyword, type_weight: round2(tw), recency: round2(rf), final: round2(final) } };
+    return { kind: r.kind, category, title: r.title, snippet: r.snippet, source: r.source, as_of: r.as_of, score: final, breakdown: { keyword: r.keyword, type_weight: round2(tw), recency: round2(rf), final: round2(final) }, injected: false };
   });
 
   // ── Dedup near-duplicates WITHIN a category by normalized title (keep the highest-scoring). Keyed
@@ -236,12 +242,32 @@ export async function recallContext(workspaceId: string, query: string, scope: R
   }
 
   const candidates = ordered.slice(0, TOTAL_CAP);
-  const source_count = new Set(candidates.map((c) => `${c.source.type}:${c.source.id}`)).size;
+
+  // ── Injection selection (separate from ranking): min-relevance threshold + email/message gating.
+  //     Emails/messages only inject when the query explicitly asks about email/messages, OR the
+  //     email's raw keyword overlap is STRICTLY stronger than the best record/decision/task/ticket.
+  //     Everything else stays VISIBLE in the shadow preview marked not-injected + a reason. ──
+  const emailIntent = EMAIL_INTENT_RE.test(query);
+  const nonEmailKw = candidates.filter((c) => c.category !== "email" && c.category !== "message").map((c) => c.breakdown.keyword);
+  const bestNonEmailKw = nonEmailKw.length ? Math.max(...nonEmailKw) : 0;
+  let injectedCount = 0;
+  for (const c of candidates) {
+    const isEmailish = c.category === "email" || c.category === "message";
+    let reason = "";
+    if (c.score < MIN_INJECT_SCORE) reason = "below relevance threshold";
+    else if (isEmailish && !emailIntent && c.breakdown.keyword <= bestNonEmailKw)
+      reason = "email/message not directly requested — weaker overlap than a record/decision/task/ticket";
+    if (!reason && injectedCount < INJECT_CAP) { c.injected = true; injectedCount++; }
+    else { c.injected = false; c.reject_reason = reason || "beyond top-3 injection cap"; }
+  }
+
+  const injectedRefs = new Set(candidates.filter((c) => c.injected).map((c) => `${c.source.type}:${c.source.id}`));
   const by_kind: Record<string, number> = {};
   for (const c of candidates) by_kind[c.category] = (by_kind[c.category] ?? 0) + 1;
   return {
     enabled: true, candidates, candidate_count: candidates.length,
-    injected_count: Math.min(INJECT_CAP, candidates.length),
-    source_count, by_kind, intent, latency_ms: Date.now() - t0, scanned,
+    injected_count: injectedCount,
+    source_count: injectedRefs.size,   // ACTUAL injected refs only (matches what Ask discloses)
+    by_kind, intent, latency_ms: Date.now() - t0, scanned,
   };
 }

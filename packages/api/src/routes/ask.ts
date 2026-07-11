@@ -1360,8 +1360,9 @@ async function buildAskMemory(workspaceId: string, userId: string, message: stri
   const empty = { block: "", used: 0, refs: [] as string[] };
   const r = await recallContext(workspaceId, message, { userId });
   if (!r.enabled || r.candidates.length === 0) return empty;
-  // Top 3, each MUST carry a source ref (recall guarantees it; double-check — no ref ⇒ dropped).
-  const top = r.candidates.filter((c) => c.source && c.source.id).slice(0, 3);
+  // Inject ONLY what recall selected (threshold + email-gated), each with a source ref. The ≤3 cap
+  // is already applied in recall; low-signal candidates are excluded here (still shown in shadow).
+  const top = r.candidates.filter((c) => c.injected && c.source && c.source.id);
   if (top.length === 0) return empty;
   // Single-line, already-redacted snippets numbered as reference items, never directives.
   const lines = top.map((c, i) => `${i + 1}. [${c.kind}] "${c.title}": ${c.snippet} (source ${c.source.type}:${c.source.id})`);
