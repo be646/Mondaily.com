@@ -136,8 +136,8 @@ describe("opt-in + consent surface", () => {
     expect(liveCalls).toMatch(/recording: recordingEnabled\(\)/);
     expect(liveCalls).toMatch(/transcription: transcriptionEnabled\(\)/);
   });
-  it("the call overlay shows an on-screen recording notice to participants", () => {
-    expect(overlay).toMatch(/call\.recording && \(/);
+  it("the call overlay shows an on-screen recording notice to participants (live state)", () => {
+    expect(overlay).toMatch(/recActive \|\| recProcessing/);   // notice driven by the live session state
     expect(overlay).toMatch(/Recording/);
   });
   it("migration adds the recording lifecycle columns additively", () => {

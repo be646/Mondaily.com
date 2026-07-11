@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Room } from "livekit-client";
-import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, User as UserIcon } from "lucide-react";
+import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, User as UserIcon, Circle, Square } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 
 /**
@@ -16,6 +16,10 @@ export function CallOverlay({ call, onClose }: { call: ActiveCall; onClose: () =
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(call.kind === "video");
   const [remoteJoined, setRemoteJoined] = useState(false);
+  // Live recording state (native). Polled from the session; fail-closed — `configured:false` means
+  // recording isn't available on this deployment, and we NEVER show a fake recording state.
+  const [rec, setRec] = useState<{ recording_status: string | null; configured: boolean; can_control: boolean } | null>(null);
+  const [recBusy, setRecBusy] = useState(false);
   const roomRef = useRef<Room | null>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -60,6 +64,28 @@ export function CallOverlay({ call, onClose }: { call: ActiveCall; onClose: () =
     apiClient.post(`/live-calls/rooms/${call.sessionId}/end`, { status: "ended" }).catch(() => {});
     onClose();
   };
+  // Poll recording status while connected (all participants see it; only the organizer can control).
+  useEffect(() => {
+    let stop = false;
+    const tick = async () => {
+      try { const r = await apiClient.get<{ recording_status: string | null; configured: boolean; can_control: boolean }>(`/live-calls/rooms/${call.sessionId}/recording/status`); if (!stop) setRec(r); } catch { /* keep last */ }
+    };
+    tick();
+    const iv = setInterval(tick, 4000);
+    return () => { stop = true; clearInterval(iv); };
+  }, [call.sessionId]);
+
+  const toggleRecording = async (action: "start" | "stop") => {
+    if (recBusy || !rec?.can_control) return;
+    setRecBusy(true);
+    try { const r = await apiClient.post<{ recording_status?: string }>(`/live-calls/rooms/${call.sessionId}/recording/${action}`, {}); setRec((p) => p ? { ...p, recording_status: r.recording_status ?? p.recording_status } : p); }
+    catch { /* status poll will reconcile; never fake a state */ }
+    finally { setRecBusy(false); }
+  };
+
+  const recActive = rec?.recording_status === "recording";
+  const recProcessing = rec?.recording_status === "processing";
+
   const toggleMic = async () => { const r = roomRef.current; if (!r) return; const on = !micOn; await r.localParticipant.setMicrophoneEnabled(on); setMicOn(on); };
   const toggleCam = async () => {
     const r = roomRef.current; if (!r) return;
@@ -72,11 +98,12 @@ export function CallOverlay({ call, onClose }: { call: ActiveCall; onClose: () =
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center" style={{ background: "rgba(0,0,0,0.88)" }} role="dialog" aria-label={`Call with ${call.otherName}`}>
-      {/* Honest recording notice — shown only when this call is actually being captured, so
-          participants always know. Consent is the initiator's opt-in; this is the disclosure. */}
-      {call.recording && (
-        <div className="absolute left-1/2 top-6 flex -translate-x-1/2 items-center gap-1.5 rounded-full px-3 py-1 text-[11.5px] font-medium text-white" style={{ background: "rgba(225,29,72,0.9)" }}>
-          <span className="h-1.5 w-1.5 rounded-full bg-white" /> Recording — this call is being transcribed to Meeting Memory
+      {/* Honest recording notice — driven by the LIVE session state (never a fake state). Shown to
+          ALL participants whenever recording is active or finalizing, so consent is always visible. */}
+      {(recActive || recProcessing) && (
+        <div className="absolute left-1/2 top-6 flex -translate-x-1/2 items-center gap-1.5 rounded-full px-3 py-1 text-[11.5px] font-medium text-white" style={{ background: recActive ? "rgba(225,29,72,0.9)" : "rgba(120,120,120,0.9)" }}>
+          <span className={`h-1.5 w-1.5 rounded-full bg-white ${recActive ? "animate-pulse" : ""}`} />
+          {recActive ? "Recording — this call is being transcribed to Meeting Memory" : "Finalizing recording…"}
         </div>
       )}
       <div className="relative flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-6">
@@ -111,6 +138,17 @@ export function CallOverlay({ call, onClose }: { call: ActiveCall; onClose: () =
         {call.kind === "video" && (
           <button onClick={toggleCam} className="flex h-12 w-12 items-center justify-center rounded-full text-white" style={{ background: camOn ? "rgba(255,255,255,0.15)" : "#e11d48" }} aria-label={camOn ? "Stop video" : "Start video"}>
             {camOn ? <Video size={18} /> : <VideoOff size={18} />}
+          </button>
+        )}
+        {/* Recording control — organizer only, when egress is configured. Others just see the notice
+            above (passive indicator). Fail-closed: unconfigured deployments show no control at all. */}
+        {rec?.can_control && rec.configured && (
+          <button onClick={() => toggleRecording(recActive ? "stop" : "start")} disabled={recBusy || recProcessing}
+            title={recActive ? "Stop recording" : "Start recording"}
+            className="flex h-12 w-12 items-center justify-center rounded-full text-white disabled:opacity-60"
+            style={{ background: recActive ? "#e11d48" : "rgba(255,255,255,0.15)" }}
+            aria-label={recActive ? "Stop recording" : "Start recording"}>
+            {recBusy || recProcessing ? <Loader2 size={18} className="animate-spin" /> : recActive ? <Square size={16} /> : <Circle size={18} />}
           </button>
         )}
         <button onClick={hangup} className="flex h-12 w-12 items-center justify-center rounded-full text-white" style={{ background: "#e11d48" }} aria-label="Hang up">

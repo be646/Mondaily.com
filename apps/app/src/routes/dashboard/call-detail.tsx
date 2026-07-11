@@ -200,6 +200,11 @@ export function CallDetailPage() {
               <UploadCloud size={11} /> Uploaded recording{call.origin_filename ? ` · ${call.origin_filename}` : ""} · consent attested
             </p>
           )}
+          {call.source === "meeting_recording" && (
+            <p className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--text-faint)]">
+              <Volume2 size={11} /> Native Mondaily call recording · participants were notified in-call
+            </p>
+          )}
         </div>
         <button onClick={() => window.print()} title="Print / export" className="hidden h-9 items-center gap-1.5 rounded-sm border px-3 text-[13px] font-medium sm:flex" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><Printer size={13} /> Print</button>
         {call.status === "failed" && (

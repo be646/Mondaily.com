@@ -137,7 +137,10 @@ export async function ingestRecording(sessionId: string): Promise<{ ok: boolean;
       contact_name: isUpload ? (uploadName || "Uploaded recording") : other,
       occurred_at: startedAt, duration_seconds: session.duration_sec ?? durationSeconds,
       direction: "outbound", status: "processing",
-      ...(isUpload ? { has_recording: true } : { audio_url: session.recording_url }),
+      // Never expose the raw storage/egress location to the client — playback (upload OR native)
+      // always goes through the short-lived signed-URL endpoint. The server keeps the real location
+      // on the session (recording_url) for STT only.
+      has_recording: true,
       participants, transcript: lines,
       source: isUpload ? "upload_recording" : "meeting_recording",
       call_session_id: session.id,

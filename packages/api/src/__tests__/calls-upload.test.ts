@@ -58,8 +58,9 @@ describe("pipeline — sovereign + fail-closed + honest", () => {
   it("AI gateway missing/failing → transcript kept, summary stays empty (no fake summary)", () => {
     expect(pipeline).toMatch(/try \{\s*summary = await summarizeTranscript[^]*?\} catch \{\s*summary = "";/);
   });
-  it("upload node data does NOT carry the raw path in audio_url", () => {
-    expect(pipeline).toMatch(/isUpload \? \{ has_recording: true \} : \{ audio_url: session\.recording_url \}/);
+  it("node data (upload AND native) never carries the raw path/egress url in audio_url", () => {
+    expect(pipeline).toMatch(/has_recording: true,/);
+    expect(pipeline).not.toMatch(/audio_url: session\.recording_url/);
   });
   it("reprocess is scoped + idempotent (re-emits the same idempotent ingest)", () => {
     expect(calls).toMatch(/router\.post\("\/:id\/reprocess"/);

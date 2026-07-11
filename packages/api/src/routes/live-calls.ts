@@ -141,6 +141,59 @@ router.post("/rooms/:id/end", zValidator("json", z.object({ status: z.enum(["end
   return c.json({ ok: true });
 });
 
+// ── Native recording controls (start/stop/status) ────────────────────────────────────────────────
+// Mid-call recording toggle for a live session. FAIL-CLOSED: no egress env → 503 recording_not_configured
+// (never a fake "recording"). Only the ORGANIZER (session initiator) can start/stop; any participant
+// can read status. Reuses the same egress + webhook + meeting-memory pipeline as everything else.
+async function loadSession(ws: string, id: string) {
+  const { data } = await supabase.from("call_sessions")
+    .select("id, initiator_id, invitee_id, room, egress_id, recording_status, status")
+    .eq("workspace_id", ws).eq("id", id).maybeSingle();
+  return data as { id: string; initiator_id: string; invitee_id: string; room: string; egress_id: string | null; recording_status: string | null; status: string } | null;
+}
+
+router.post("/rooms/:id/recording/start", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const session = await loadSession(ws, c.req.param("id"));
+  if (!session) return c.json({ error: "Call not found." }, 404);
+  if (me !== session.initiator_id && me !== session.invitee_id) return c.json({ error: "You are not part of this call." }, 403);
+  if (me !== session.initiator_id) return c.json({ error: "Only the call organizer can start recording." }, 403);
+  if (!recordingEnabled()) return c.json({ error: "recording_not_configured" }, 503);
+  // Idempotent — already recording ⇒ return current state, no second egress.
+  if (session.recording_status === "recording" && session.egress_id) return c.json({ recording_status: "recording", egress_id: session.egress_id });
+  const eg = await startRoomEgress(session.room);
+  if (!eg) { await supabase.from("call_sessions").update({ recording_status: "failed_start" }).eq("id", session.id); return c.json({ error: "egress_start_failed", recording_status: "failed_start" }, 502); }
+  await supabase.from("call_sessions").update({ egress_id: eg.egressId, record: true, recording_status: "recording" }).eq("id", session.id);
+  return c.json({ recording_status: "recording", egress_id: eg.egressId });
+});
+
+router.post("/rooms/:id/recording/stop", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const session = await loadSession(ws, c.req.param("id"));
+  if (!session) return c.json({ error: "Call not found." }, 404);
+  if (me !== session.initiator_id && me !== session.invitee_id) return c.json({ error: "You are not part of this call." }, 403);
+  if (me !== session.initiator_id) return c.json({ error: "Only the call organizer can stop recording." }, 403);
+  if (!recordingEnabled()) return c.json({ error: "recording_not_configured" }, 503);
+  // Idempotent — not recording ⇒ return current state, no-op.
+  if (session.recording_status !== "recording" || !session.egress_id) return c.json({ recording_status: session.recording_status ?? null });
+  await stopRoomEgress(session.egress_id);
+  // Egress finalizes the file then fires egress_ended → the webhook flips ready/failed + triggers STT.
+  await supabase.from("call_sessions").update({ recording_status: "processing" }).eq("id", session.id);
+  return c.json({ recording_status: "processing" });
+});
+
+router.get("/rooms/:id/recording/status", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const session = await loadSession(ws, c.req.param("id"));
+  if (!session) return c.json({ error: "Call not found." }, 404);
+  if (me !== session.initiator_id && me !== session.invitee_id) return c.json({ error: "You are not part of this call." }, 403);
+  return c.json({
+    recording_status: session.recording_status ?? null,   // null | recording | processing | ready | failed | failed_start
+    configured: recordingEnabled(),
+    can_control: me === session.initiator_id,              // organizer-only start/stop
+  });
+});
+
 /** GET /live-calls/incoming — ringing calls addressed to the caller in the last 60s. */
 router.get("/incoming", async (c) => {
   if (!isEnabled()) return c.json({ incoming: [] });
