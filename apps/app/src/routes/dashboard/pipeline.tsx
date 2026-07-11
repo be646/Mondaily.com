@@ -475,14 +475,16 @@ export function PipelinePage() {
         </button>
       </div>
 
-      {/* Kanban board */}
-      <div className="flex flex-1 min-h-0 overflow-x-auto px-4 py-4 gap-2">
+      {/* Kanban board — on phones each column is ~85vw with scroll-snap (swipe one at a time);
+          from sm+ it's the normal 220px multi-column board. Deal moves use the card menu, so the
+          board stays usable on touch without drag-and-drop. */}
+      <div className="flex flex-1 min-h-0 overflow-x-auto px-4 py-4 gap-2 snap-x snap-mandatory scroll-px-4 sm:snap-none">
         {stages.map(stage => {
           const cards = byStage[stage] ?? [];
           return (
             <div
               key={stage}
-              className="flex flex-col shrink-0 w-[220px] border border-stone-800/50 rounded-lg overflow-hidden bg-transparent"
+              className="flex flex-col shrink-0 w-[85vw] max-w-[240px] snap-start sm:w-[220px] sm:max-w-none border border-stone-800/50 rounded-lg overflow-hidden bg-transparent"
             >
               {/* Column header */}
               <div className="flex items-center justify-between px-3 py-2.5 border-b border-stone-800/50 shrink-0">
@@ -535,7 +537,7 @@ export function PipelinePage() {
 
         {/* Add new stage column */}
         {addingStage ? (
-          <div className="flex flex-col shrink-0 w-[220px] border border-stone-700/60 rounded-lg overflow-hidden bg-transparent">
+          <div className="flex flex-col shrink-0 w-[85vw] max-w-[240px] snap-start sm:w-[220px] sm:max-w-none border border-stone-700/60 rounded-lg overflow-hidden bg-transparent">
             <div className="flex items-center gap-2 px-3 py-2.5 border-b border-stone-800/50">
               <input
                 ref={newStageRef}
@@ -558,7 +560,7 @@ export function PipelinePage() {
         ) : (
           <button
             onClick={() => setAddingStage(true)}
-            className="flex shrink-0 w-[220px] flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-stone-800/60 hover:border-stone-700/60 hover:bg-stone-900/20 transition-all text-[var(--text-secondary)] hover:text-[var(--text-faint)] self-start min-h-[80px]"
+            className="flex shrink-0 w-[85vw] max-w-[240px] snap-start sm:w-[220px] sm:max-w-none flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-stone-800/60 hover:border-stone-700/60 hover:bg-stone-900/20 transition-all text-[var(--text-secondary)] hover:text-[var(--text-faint)] self-start min-h-[80px]"
           >
             <Plus size={13}/>
             <span className="text-[10px]">Add stage</span>

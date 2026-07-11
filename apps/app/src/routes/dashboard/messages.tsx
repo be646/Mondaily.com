@@ -325,7 +325,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
           <div className={`group flex ${m.mine ? "justify-end" : "justify-start"}`}>
             {/* hover actions on the left of my bubbles / right of theirs */}
             {m.mine && (
-              <div className="mr-1 flex items-center gap-0.5 self-center opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="mr-1 flex items-center gap-0.5 self-center opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                 <button onClick={() => copyMsg(m)} title="Copy" className="rounded p-1" style={{ color: "var(--text-faint)" }}>{copied === m.id ? <Check size={12} /> : <Copy size={12} />}</button>
                 <button onClick={() => del.mutate(m.id)} title="Delete" className="rounded p-1" style={{ color: "var(--text-faint)" }}><Trash2 size={12} /></button>
               </div>
@@ -353,7 +353,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
               </p>
             </div>
             {!m.mine && (
-              <div className="ml-1 flex items-center self-center opacity-0 transition-opacity group-hover:opacity-100">
+              <div className="ml-1 flex items-center self-center opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                 <button onClick={() => copyMsg(m)} title="Copy" className="rounded p-1" style={{ color: "var(--text-faint)" }}>{copied === m.id ? <Check size={12} /> : <Copy size={12} />}</button>
               </div>
             )}
@@ -516,7 +516,7 @@ function GroupThread({ groupId, live, onSent, onLeft, onBack }: { groupId: strin
             )}
             <div className={`group flex ${m.mine ? "justify-end" : "justify-start"}`}>
               {m.mine && (
-                <div className="mr-1 flex items-center gap-0.5 self-center opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="mr-1 flex items-center gap-0.5 self-center opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                   <button onClick={() => del.mutate(m.id)} title="Delete" className="rounded p-1" style={{ color: "var(--text-faint)" }}><Trash2 size={12} /></button>
                 </div>
               )}

@@ -120,8 +120,8 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
   return (
     <div className="overflow-auto" style={{ maxHeight: "calc(100vh - 15rem)" }}>
       <div className="flex min-w-full">
-        {/* Time rail */}
-        <div className="sticky left-0 z-20 w-12 shrink-0" style={{ background: "var(--surface-page)" }}>
+        {/* Time rail — slimmer on phones to give day columns more room */}
+        <div className="sticky left-0 z-20 w-9 shrink-0 sm:w-12" style={{ background: "var(--surface-page)" }}>
           <div style={{ height: 28 }} />
           <div className="relative" style={{ height: bodyH }}>
             {hours.map((h, i) => (
@@ -135,7 +135,7 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
             const placed = layoutDay(perDay[di]!, startH, endH);
             const isToday = isSameDay(d, now);
             return (
-              <div key={d.toISOString()} className="relative min-w-0 flex-1 border-l" style={{ borderColor: "var(--border-soft)" }}>
+              <div key={d.toISOString()} className={`relative flex-1 border-l ${single ? "min-w-0" : "min-w-[6.5rem] sm:min-w-0"}`} style={{ borderColor: "var(--border-soft)" }}>
                 {single ? <div style={{ height: 28 }} /> : (
                   <div className="sticky top-0 z-10 flex h-7 items-center justify-center gap-1 border-b text-[11px] font-medium" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)", color: isToday ? "var(--text-primary)" : "var(--text-muted)" }}>
                     {d.toLocaleDateString(lang, { weekday: "short" })} <span className="tabular-nums">{d.getDate()}</span>

@@ -789,7 +789,7 @@ export function TasksPage() {
                 <thead>
                   <tr className="border-b border-[var(--border-soft)] bg-[#f9fafb] dark:bg-[var(--surface-hover)]">
                     {["", "Task", "Status", "Priority", "Assignee", "Due Date", "Created", "Labels"].map(h => (
-                      <th key={h} className="whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold tracking-widest uppercase text-[#6b7280] dark:text-stone-400">{h}</th>
+                      <th key={h} className={`whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold tracking-widest uppercase text-[#6b7280] dark:text-stone-400 ${h === "Created" || h === "Labels" ? "hidden md:table-cell" : ""}`}>{h}</th>
                     ))}
                     <th className="px-4 py-2.5"/>
                   </tr>
@@ -825,10 +825,10 @@ export function TasksPage() {
                         <td className="px-4 py-3 whitespace-nowrap text-xs tabular-nums">
                           {task.due_date ? <span className={isOverdue ? "text-stone-600 dark:text-stone-400" : "text-[var(--text-muted)]"}>{fmtDate(task.due_date)}</span> : <span className="text-[var(--text-faint)]">—</span>}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-xs text-[#6b7280] dark:text-stone-500 tabular-nums">
+                        <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-xs text-[#6b7280] dark:text-stone-500 tabular-nums">
                           {task.created_at ? fmtDate(task.created_at) : "—"}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="hidden md:table-cell px-4 py-3">
                           <div className="flex flex-wrap gap-1">
                             {(task.labels ?? []).filter(l => LABEL_COLORS[l]).map(l => (
                               <span key={l} className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>
@@ -836,7 +836,7 @@ export function TasksPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             <button onClick={() => setEditTask(task)} className="rounded-md p-1 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={12}/></button>
                             {(task.assignee_id === currentUserId || !task.assignee_id) && (
                               <button onClick={() => setConfirmDeleteId(task.id)} className="rounded-md p-1 text-[var(--text-faint)] hover:text-stone-600 hover:bg-stone-50 dark:hover:text-stone-400 dark:hover:bg-stone-400/10 transition-colors"><Trash2 size={12}/></button>
