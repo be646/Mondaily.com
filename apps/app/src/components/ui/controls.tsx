@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ButtonHTMLAttributes, SelectHTMLAttributes, ReactNode } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, MoreHorizontal } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 function cx(...parts: (string | false | null | undefined)[]): string {
@@ -170,6 +170,80 @@ export function MenuSelect({ label, value, options, onChange, allLabel = "All", 
               </div>
             );
           })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ActionMenu ───────────────────────────────────────────────────────────────
+// Squared overflow menu for SECONDARY actions (keeps primary buttons visible while collapsing the
+// rest behind a "…"/label trigger). Reuses the .ui-menu chrome, is keyboard-accessible (Enter/Space/
+// ArrowDown to open, Up/Down to move, Enter to run, Esc to close), closes on outside click, and works
+// on touch (click-driven, no hover dependency). No action is ever removed — just relocated.
+export interface ActionMenuItem {
+  key: string;
+  label: string;
+  icon?: LucideIcon;
+  onClick: () => void;
+  disabled?: boolean;
+}
+interface ActionMenuProps {
+  items: ActionMenuItem[];
+  /** Optional text next to the ⋯ glyph (e.g. "More"). */
+  triggerLabel?: string;
+  ariaLabel?: string;
+  align?: "left" | "right";
+  className?: string;
+  disabled?: boolean;
+}
+export function ActionMenu({ items, triggerLabel, ariaLabel = "More actions", align = "right", className, disabled }: ActionMenuProps) {
+  const [open, setOpen] = useState(false);
+  const [hi, setHi] = useState(0);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (!rootRef.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  const run = (it: ActionMenuItem) => { if (it.disabled) return; setOpen(false); it.onClick(); };
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (!open) {
+      if (e.key === "Enter" || e.key === " " || e.key === "ArrowDown") { e.preventDefault(); setHi(0); setOpen(true); }
+      return;
+    }
+    if (e.key === "Escape") { e.preventDefault(); setOpen(false); }
+    else if (e.key === "ArrowDown") { e.preventDefault(); setHi(h => Math.min(h + 1, items.length - 1)); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setHi(h => Math.max(h - 1, 0)); }
+    else if (e.key === "Enter") { e.preventDefault(); const it = items[hi]; if (it) run(it); }
+    else if (e.key === "Tab") setOpen(false);
+  }
+
+  return (
+    <div ref={rootRef} className={cx("relative inline-block", className)} onKeyDown={onKeyDown}>
+      <button type="button" onClick={() => (open ? setOpen(false) : (setHi(0), setOpen(true)))} disabled={disabled}
+        aria-haspopup="menu" aria-expanded={open} aria-label={ariaLabel}
+        className="inline-flex h-7 items-center gap-1 rounded-sm border px-2 text-[11.5px] font-medium transition-colors hover:bg-[var(--surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+        style={{ borderColor: open ? "var(--border-strong)" : "var(--border-soft)", background: "var(--surface-input)", color: "var(--text-secondary)" }}>
+        <MoreHorizontal size={13} className="shrink-0" />
+        {triggerLabel && <span>{triggerLabel}</span>}
+      </button>
+      {open && (
+        <div role="menu" className="ui-menu absolute top-full z-40 mt-1 py-1"
+          style={{ borderRadius: 4, width: "max-content", maxWidth: 260, minWidth: "10rem", ...(align === "right" ? { right: 0 } : { left: 0 }) }}>
+          {items.map((it, i) => (
+            <button key={it.key} type="button" role="menuitem" disabled={it.disabled}
+              onMouseEnter={() => setHi(i)} onClick={() => run(it)}
+              className="ui-menu-item w-full text-left disabled:cursor-not-allowed disabled:opacity-40"
+              data-active={i === hi} style={{ background: i === hi ? "var(--surface-hover)" : undefined }}>
+              {it.icon && <it.icon size={12} className="shrink-0" style={{ color: "var(--section-accent)" }} />}
+              <span className="min-w-0 flex-1 truncate">{it.label}</span>
+            </button>
+          ))}
         </div>
       )}
     </div>

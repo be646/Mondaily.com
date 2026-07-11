@@ -7,7 +7,7 @@ import {
   CheckSquare, ShieldCheck, ArrowRight,
 } from "lucide-react";
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
-import { MenuSelect } from "../../components/ui/controls";
+import { MenuSelect, ActionMenu } from "../../components/ui/controls";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { useLanguage } from "../../hooks/useLanguage";
 import { requestAsk } from "../../lib/ask-bus";
@@ -1084,26 +1084,15 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
             )}
           </div>
         )}
-        <button onClick={() => enrich.mutate()} disabled={enrich.isPending}
-          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-          {enrich.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} style={{ color: "var(--section-accent)" }} />} Enrich
-        </button>
-        <button onClick={() => outreach.mutate()} disabled={outreach.isPending}
-          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-          {outreach.isPending ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} style={{ color: "var(--section-accent)" }} />} Draft message
-        </button>
-        <button onClick={() => leadTask.mutate()} disabled={leadTask.isPending}
-          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-          {leadTask.isPending ? <Loader2 size={11} className="animate-spin" /> : <CheckSquare size={11} style={{ color: "var(--section-accent)" }} />} Create task
-        </button>
-        <button onClick={() => leadDecision.mutate()} disabled={leadDecision.isPending}
-          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-          {leadDecision.isPending ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} style={{ color: "var(--section-accent)" }} />} To Decision Queue
-        </button>
-        <button onClick={() => requestAsk(`Research this Discovery lead using only source-backed info: ${name}. Source: ${r.source_url}. Why do they match "${query}", what evidence exists, red flags, and best next action. If no reviews are found, say "No review source found".`)}
-          className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-          <MessageSquare size={11} /> Ask AI
-        </button>
+        {/* Secondary lead actions collapsed into a squared overflow menu — every action preserved,
+            same handlers, just fewer visible buttons. Save + Add-to-list stay primary above. */}
+        <ActionMenu align="left" triggerLabel="More" ariaLabel="More lead actions" items={[
+          { key: "enrich", label: enrich.isPending ? "Enriching…" : "Enrich", icon: Sparkles, disabled: enrich.isPending, onClick: () => enrich.mutate() },
+          { key: "draft", label: outreach.isPending ? "Drafting…" : "Draft message", icon: Send, disabled: outreach.isPending, onClick: () => outreach.mutate() },
+          { key: "task", label: leadTask.isPending ? "Creating…" : "Create task", icon: CheckSquare, disabled: leadTask.isPending, onClick: () => leadTask.mutate() },
+          { key: "decision", label: leadDecision.isPending ? "Queuing…" : "To Decision Queue", icon: ShieldCheck, disabled: leadDecision.isPending, onClick: () => leadDecision.mutate() },
+          { key: "ask", label: "Ask AI", icon: MessageSquare, onClick: () => requestAsk(`Research this Discovery lead using only source-backed info: ${name}. Source: ${r.source_url}. Why do they match "${query}", what evidence exists, red flags, and best next action. If no reviews are found, say "No review source found".`) },
+        ]} />
         {msg && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{msg}</span>}
       </div>
 

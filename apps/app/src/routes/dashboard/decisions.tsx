@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton } from "../../components/ui/page-state";
-import { MenuSelect } from "../../components/ui/controls";
+import { MenuSelect, ActionMenu, type ActionMenuItem } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -263,24 +263,16 @@ export function DecisionsPage() {
               (Replaces the old wall of agent/type/risk chip buttons; every option is still reachable.) */}
           {laneItems.length > 0 && (
             <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
+              {/* Secondary AI tools (advisory only — nothing executes) collapsed into one squared
+                  menu. Every action preserved with the same handlers; per-decision Approve/Reject/
+                  Snooze stay visible on each row below. */}
               {lane === "approval" && laneItems.length > 1 && (
-                <button onClick={runTriage} disabled={triageBusy}
-                  className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 font-medium transition-colors disabled:opacity-50"
-                  style={{ borderColor: triage ? "var(--section-accent)" : "var(--border-strong)", color: triage ? "var(--section-accent)" : "var(--text-secondary)" }}
-                  title="AI ranks the pending queue by where your attention matters most — advisory only, never acts">
-                  {triageBusy ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {triage ? "Re-triage" : "AI triage"}
-                </button>
-              )}
-              {triage && lane === "approval" && (
-                <button onClick={() => setTriage(null)} className="text-[10.5px] underline" style={{ color: "var(--text-faint)" }}>clear ranking</button>
-              )}
-              {lane === "approval" && laneItems.length > 1 && (
-                <button onClick={adjudicateVisible} disabled={!!verdictBusy}
-                  className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 font-medium transition-colors disabled:opacity-50"
-                  style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}
-                  title="AI adjudicates up to 8 visible decisions one by one — advisory chips only, nothing executes">
-                  {verdictBusy ? <Loader2 size={11} className="animate-spin" /> : <ShieldAlert size={11} />} Adjudicate visible
-                </button>
+                <ActionMenu triggerLabel={(triageBusy || !!verdictBusy) ? "AI tools…" : "AI tools"} align="left" ariaLabel="AI decision tools"
+                  items={([
+                    { key: "triage", label: triageBusy ? "Triaging…" : (triage ? "Re-triage queue" : "AI triage"), icon: Sparkles, disabled: triageBusy, onClick: runTriage },
+                    ...(triage ? [{ key: "clear", label: "Clear ranking", onClick: () => setTriage(null) }] : []),
+                    { key: "adjudicate", label: verdictBusy ? "Adjudicating…" : "Adjudicate visible", icon: ShieldAlert, disabled: !!verdictBusy, onClick: adjudicateVisible },
+                  ] as ActionMenuItem[])} />
               )}
               {verdicts.size > 0 && lane === "approval" && (
                 <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>
