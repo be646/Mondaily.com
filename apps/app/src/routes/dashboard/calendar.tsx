@@ -168,10 +168,14 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
                     const tone = meetingTone(pl.e);
                     return (
                       <button key={pl.e.id} onClick={(ev) => { ev.stopPropagation(); onOpen(pl.e.id); }} title={pl.e.title}
-                        className="absolute z-10 overflow-hidden rounded-[3px] px-1.5 py-0.5 text-left transition-colors"
+                        className="absolute overflow-hidden rounded-[3px] px-1.5 py-0.5 text-left transition-all"
                         style={{ top: pl.top, height: pl.height, left: `calc(${pl.leftPct}% + 1px)`, width: `calc(${pl.widthPct}% - 2px)`,
                           background: on ? tone.edge : tone.tint,
-                          borderLeft: `3px solid ${tone.edge}`, color: on ? "#fff" : "var(--text-primary)" }}>
+                          borderLeft: `3px solid ${tone.edge}`, color: on ? "#fff" : "var(--text-primary)",
+                          // Selected: a haloed ring (gap in the page colour, then the tone) + a soft lift, so the
+                          // active meeting is unmistakable against neighbouring blocks.
+                          boxShadow: on ? `0 0 0 1.5px var(--surface-page), 0 0 0 3px ${tone.edge}, 0 2px 8px rgba(0,0,0,0.18)` : undefined,
+                          zIndex: on ? 20 : 10 }}>
                         <div className="flex items-center gap-1 truncate text-[11px] font-medium leading-tight">
                           {/* small semantic icons: missing agenda, call link */}
                           {!(pl.e.description ?? "").trim() && <FileText size={9} className="shrink-0" style={{ opacity: 0.55 }} />}
@@ -501,6 +505,7 @@ function GridEmpty({ hint, onCreate, onDraft, onFollowups, t }: { hint: string; 
   return (
     <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center pt-14">
       <div className="pointer-events-auto flex flex-col items-center gap-1.5 text-center">
+        <CalendarDays size={24} className="mb-0.5" style={{ color: "var(--text-faint)" }} />
         <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{hint}</p>
         <div className="flex flex-wrap items-center justify-center gap-1.5" style={{ color: "var(--text-faint)" }}>
           <button onClick={onCreate} className={link} style={{ color: "var(--text-secondary)" }}>{t("cal.new_meeting")}</button>
@@ -895,7 +900,8 @@ interface Signal { key: string; label: string; value: string; dot: string; tone:
 function CoPilot({ signals, action, label, nextLabel }: { signals: Signal[]; action: { label: string; run: () => void } | null; label: string; nextLabel: string }) {
   return (
     <div className="rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
-      <div className="border-b px-3 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="flex items-center gap-1.5 border-b px-3 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
+        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-sm" style={{ background: "var(--surface-hover)" }}><Wand2 size={9} style={{ color: "var(--text-secondary)" }} /></span>
         <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</span>
       </div>
       {signals.map((s, i) => (
