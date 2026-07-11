@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { CheckCircle2, AlertTriangle, CircleSlash, ShieldCheck, Loader2, ArrowUpRight, Lock, MessageSquare, Network, Radar, Receipt, Workflow, Users2, Activity, BarChart2, GitBranch } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
@@ -152,6 +152,10 @@ export function AIControlRoomSettings() {
         );
       })()}
 
+      {/* Workspace memory (shadow) — Phase 2A. Default OFF. Turning it on ONLY unlocks this debug
+          view; recall is NOT wired into Ask/agents, so no answer changes. Admin-only surface. */}
+      <MemoryShadowSection />
+
       {/* 1. AI System Status */}
       <Section title="AI system status">
         <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
@@ -283,6 +287,83 @@ export function AIControlRoomSettings() {
         <p>Everything on this page is read straight from the live status probe and agent job log — real configuration, real runs, no fabricated scores or activity.</p>
       </div>
     </div>
+  );
+}
+
+// ── Phase 2A: source-backed memory recall in SHADOW mode ──────────────────────
+interface RecallCandidate { kind: string; title: string; snippet: string; source: { type: string; id: string }; as_of: string | null; score: number }
+interface RecallResp { enabled: boolean; candidates: RecallCandidate[]; candidate_count: number; source_count: number; latency_ms: number; scanned: number }
+function MemoryShadowSection() {
+  const qc = useQueryClient();
+  const [q, setQ] = useState("");
+  const settingQ = useQuery({ queryKey: ["memory-settings"], queryFn: () => apiClient.get<{ enabled: boolean }>("/memory/settings"), retry: false });
+  const enabled = settingQ.data?.enabled ?? false;
+  const toggle = useMutation({
+    mutationFn: (next: boolean) => apiClient.post("/memory/settings", { enabled: next }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["memory-settings"] }),
+  });
+  const recall = useMutation({
+    mutationFn: (query: string) => apiClient.get<RecallResp>(`/memory/recall?q=${encodeURIComponent(query)}`),
+  });
+  const r = recall.data;
+  return (
+    <Section title="Workspace memory · shadow" hint="Phase 2A — source-backed recall preview. Reads only existing records; injects nothing into answers. Default off.">
+      <div className="flex items-center justify-between gap-4 py-1">
+        <div>
+          <p className="text-[12.5px]" style={{ color: "var(--text-primary)" }}>Enable shadow recall</p>
+          <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-muted)" }}>Unlocks this preview only — recall is NOT wired into Ask or agents, so no AI answer changes.</p>
+        </div>
+        <button role="switch" aria-checked={enabled} onClick={() => toggle.mutate(!enabled)} disabled={toggle.isPending}
+          className="relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50"
+          style={{ background: enabled ? "var(--section-accent)" : "var(--surface-hover)" }}>
+          <span className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all" style={{ left: enabled ? "1.5rem" : "0.125rem" }} />
+        </button>
+      </div>
+
+      {enabled && (
+        <div className="mt-3 space-y-3">
+          <div className="flex items-center gap-2">
+            <input value={q} onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && q.trim()) recall.mutate(q.trim()); }}
+              placeholder="Try a query — e.g. overdue invoices, acme deal, onboarding task…"
+              className="flex-1 rounded-sm border bg-transparent px-2.5 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+            <button onClick={() => q.trim() && recall.mutate(q.trim())} disabled={!q.trim() || recall.isPending}
+              className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
+              {recall.isPending ? <Loader2 size={12} className="animate-spin" /> : "Preview recall"}
+            </button>
+          </div>
+          {r && (
+            <>
+              <div className="grid grid-cols-4 divide-x overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+                {[["candidates", String(r.candidate_count)], ["sources", String(r.source_count)], ["scanned", String(r.scanned)], ["latency", `${r.latency_ms} ms`]].map(([l, v]) => (
+                  <div key={l} className="px-3 py-2">
+                    <div className="font-mono text-[13px] font-medium tabular-nums" style={{ color: "var(--text-primary)" }}>{v}</div>
+                    <div className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>{l}</div>
+                  </div>
+                ))}
+              </div>
+              {r.candidates.length === 0 ? (
+                <p className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>No source-backed matches — recall returns empty rather than inventing context.</p>
+              ) : (
+                <div className="divide-y rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+                  {r.candidates.map((c) => (
+                    <div key={`${c.source.type}:${c.source.id}`} className="flex items-start gap-2.5 px-3 py-2">
+                      <span className="mt-0.5 shrink-0 rounded-sm border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-wide" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{c.kind}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{c.title}</div>
+                        <div className="truncate text-[11px]" style={{ color: "var(--text-muted)" }}>{c.snippet}</div>
+                        <div className="mt-0.5 font-mono text-[9.5px]" style={{ color: "var(--text-faint)" }}>source {c.source.type}:{c.source.id.slice(0, 8)} · score {c.score}{c.as_of ? ` · ${new Date(c.as_of).toLocaleDateString()}` : ""}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>Shadow only — this is what recall WOULD surface. Nothing here is sent to the model or affects any answer. Every item is workspace-scoped and cites its source record.</p>
+            </>
+          )}
+        </div>
+      )}
+    </Section>
   );
 }
 
