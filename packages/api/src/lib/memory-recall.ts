@@ -104,12 +104,27 @@ function recencyFactor(asOf: string | null): number {
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+// Query stopwords — question/aux/pronoun/preposition noise + generic ask-verbs. Removed BEFORE the
+// keyword cap so meaningful terms (e.g. "connectivity", "issue") aren't pushed out by "what/did/the".
+// Domain words like email/send/invoice/deal are intentionally NOT stopwords.
+const STOPWORDS = new Set([
+  "what", "when", "where", "which", "who", "whom", "why", "how", "whose",
+  "the", "this", "that", "these", "those", "and", "but", "for", "nor", "yet",
+  "about", "from", "with", "into", "onto", "over", "under",
+  "you", "your", "yours", "our", "ours", "their", "theirs", "they", "them", "its", "our", "we", "us",
+  "are", "was", "were", "been", "being", "does", "did", "done", "has", "have", "had",
+  "will", "would", "can", "could", "should", "may", "might", "must", "shall",
+  "not", "yes", "here", "there", "then", "than", "too", "very", "just", "also", "any", "all", "some",
+  "remember", "know", "tell", "show", "give", "get", "got", "need", "want", "see", "look", "help", "please",
+]);
 const keywordsOf = (q: string): string[] =>
-  [...new Set(q.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2))].slice(0, 8);
+  [...new Set(q.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !STOPWORDS.has(w)))].slice(0, 10);
 const textBlob = (...parts: (string | null | undefined)[]) => parts.filter(Boolean).join(" ");
+// WHOLE-WORD overlap (token-set), not substring — so "you" no longer matches "your", "the" ≠ "their".
 const scoreOf = (blob: string, kws: string[]): number => {
-  const b = blob.toLowerCase();
-  return kws.reduce((s, k) => (b.includes(k) ? s + 1 : s), 0);
+  const toks = new Set(blob.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+  return kws.reduce((s, k) => (toks.has(k) ? s + 1 : s), 0);
 };
 const snippet = (s: string) => redactSecrets(s.replace(/\s+/g, " ").trim()).slice(0, 160);
 const PER_SOURCE = 12;   // raw candidates kept per source before global re-ranking
