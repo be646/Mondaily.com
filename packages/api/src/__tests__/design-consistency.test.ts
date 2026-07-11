@@ -36,6 +36,7 @@ const settingsMembers = read("routes/dashboard/settings/members.tsx");
 const settingsAiControlRoom = read("routes/dashboard/settings/ai-control-room.tsx");
 const calendar = read("routes/dashboard/calendar.tsx");
 const messages = read("routes/dashboard/messages.tsx");
+const askMondailyPage = read("components/ai/ask-mondaily.tsx");
 // The bright, candy hexes that must NOT appear in product UI — only matte semantic tones allowed.
 const BRIGHT_HEXES = ["#d97706", "#10b981", "#e11d48", "#dc2626", "#ef4444", "#f59e0b", "#eab308", "#7b6fb0", "#22c55e", "#3b82f6", "#8b5cf6", "#06b6d4", "#0891b2", "#b45309"];
 const hasNoBrightHex = (src: string) => BRIGHT_HEXES.every((h) => !src.toLowerCase().includes(h));
@@ -355,6 +356,28 @@ describe("priority pages preserve every existing action/handler", () => {
     // Tabs gate visibility (queries still auto-run above) — no handler removed.
     expect(teamOversight).toMatch(/tab === "overview"/);
     expect(teamOversight).toMatch(/tab === "timeline"/);
+  });
+});
+
+describe("Ask AI polish (honest + consistent)", () => {
+  it("Ask page shares the app accent (no inert --section-hue override) and honest status dot", () => {
+    // The old inline cyan override is gone (theme-spread is 0 app-wide anyway).
+    expect(askMondailyPage).not.toMatch(/style=\{\{ "--section-hue": 40 \}/);
+    // Header dot pings ONLY while a real answer is streaming — no always-on fake-live.
+    expect(askMondailyPage).toMatch(/\{loading && <span className="absolute inline-flex h-full w-full rounded-full opacity-40 animate-ping/);
+  });
+  it("Ask preserves all actions + honest memory disclosure + real source/token proof", () => {
+    // Every AI action chip (real tool behind each).
+    for (const k of ["task", "draft", "related", "explain", "decision", "workflow", "report"]) {
+      expect(askMondailyPage).toContain(`key: "${k}"`);
+    }
+    // Memory disclosure renders once, only when facts were actually used.
+    expect(askMondailyPage).toContain("meta.memory.used > 0");
+    expect(askMondailyPage).toContain("remembered fact");
+    // Real evidence/source/token components — no fake sources.
+    for (const c of ["EvidenceStrip", "SourceList", "TokenLedger", "doSend", "sendSuggestion", "buildChipText"]) {
+      expect(askMondailyPage).toContain(c);
+    }
   });
 });
 

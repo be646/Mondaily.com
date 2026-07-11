@@ -241,27 +241,28 @@ export function AskMondaily() {
   const isChatting = messages.length > 0;
 
   return (
-    // DEEP-CONTEXT soul — override to cyan so the full Ask page reads distinct from the
-    // emerald Home console and the section-tinted floating ask.
-    <div className="section-soul ask-frame flex h-full flex-col" style={{ "--section-hue": 40 } as React.CSSProperties}>
+    // One accent family — the old inline --section-hue:40 (cyan) override is gone; Ask now shares the
+    // app accent (theme-spread is 0). Colours use tokens, not hardcoded light hexes.
+    <div className="section-soul ask-frame flex h-full flex-col">
 
       {/* ── Header ── */}
       <div className="ask-header shrink-0">
         <div className="flex items-center justify-between px-6 py-3.5">
-          <div className="flex items-center gap-3 text-[#111827] dark:text-[var(--text-primary)]">
+          <div className="flex items-center gap-3 text-[var(--text-primary)]">
             <LogoSymbol size={24} thinking={loading} />
             <div className="leading-none">
             <div className="soul-kicker mb-1">// MONDAILY · DEEP CONTEXT</div>
-            <h1 className="flex items-center gap-2 text-[13px] font-semibold tracking-wide text-[#111827] dark:text-[var(--text-primary)]">
+            <h1 className="flex items-center gap-2 text-[13px] font-semibold tracking-wide text-[var(--text-primary)]">
               Ask
               {/* Page-aware mode label — names the scope Ask is grounded in (no logic change). */}
               <span title={askMode.hint} className="rounded-full border px-1.5 py-0.5 text-[9.5px] font-medium tracking-normal" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{askMode.label}</span>
+              {/* Honest status dot: static when idle, pings only while a real answer is streaming. */}
               <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-stone-400 opacity-40 animate-ping"/>
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-stone-500"/>
+                {loading && <span className="absolute inline-flex h-full w-full rounded-full opacity-40 animate-ping" style={{ background: "var(--section-accent)" }}/>}
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: loading ? "var(--section-accent)" : "var(--text-faint)" }}/>
               </span>
               {loading && (
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-normal tracking-normal text-[#9ca3af] dark:text-stone-500">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-normal tracking-normal text-[var(--text-muted)]">
                   <span>{streamStatus ? streamStatus : tokenCount > 0 ? `${tokenCount} tokens` : `${GRAPH_REASONING_STEPS[thinkingStep]}…`}</span>
                   <span className="opacity-50">·</span>
                   <span className="tabular-nums">{fmtElapsed(thinkingSeconds)}</span>
@@ -272,11 +273,11 @@ export function AskMondaily() {
           </div>
           {isChatting && (
             <div className="flex items-center gap-3">
-              <button onClick={downloadChat} className="flex items-center gap-1.5 text-xs text-[#6b7280] hover:text-[#111827] dark:text-stone-500 dark:hover:text-[var(--text-primary)] transition-colors">
+              <button onClick={downloadChat} className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
                 <Download size={12}/> Export
               </button>
               <button onClick={clear}
-                className="text-xs text-[#6b7280] hover:text-[#111827] dark:text-stone-500 dark:hover:text-[var(--text-primary)] transition-colors">
+                className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
                 New chat
               </button>
             </div>
@@ -294,8 +295,8 @@ export function AskMondaily() {
               <div className="mx-auto mb-5 flex items-center justify-center text-stone-500 dark:text-[var(--text-secondary)]">
                 <LogoSymbol size={52} />
               </div>
-              <p className="text-sm font-medium text-[#111827] dark:text-[var(--text-primary)] mb-1">{lang.t("ask.heading")}</p>
-              <p className="text-xs text-[#9ca3af] dark:text-stone-500 mb-6">Tasks, finance, relationships, notes, workflows — one connected graph, this workspace only.</p>
+              <p className="text-sm font-medium text-[var(--text-primary)] mb-1">{lang.t("ask.heading")}</p>
+              <p className="text-xs text-[var(--text-muted)] mb-6">Tasks, finance, relationships, notes, workflows — one connected graph, this workspace only.</p>
               <div className="chat-suggestion-stack mx-auto max-w-md">
                 {emptySuggestions.map(s => (
                   <button key={s} onClick={() => sendSuggestion(s)} className="chat-suggestion-row group">
@@ -379,7 +380,7 @@ export function AskMondaily() {
                         <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1, i)}
                           className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === -1 ? "text-stone-400" : "text-stone-300 hover:text-stone-400 dark:text-stone-700 dark:hover:text-stone-400"}`}
                           title="Bad response"><ThumbsDown size={12}/></button>
-                        {feedbackGiven[i] && <span className="text-[11px] text-[#9ca3af] dark:text-stone-600 ml-1">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>}
+                        {feedbackGiven[i] && <span className="text-[11px] text-[var(--text-faint)] ml-1">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>}
                         <button onClick={() => copyMessage(m.content, i)}
                           className={`rounded-md p-1.5 ml-1 transition-colors ${copiedIdx === i ? "text-[#5f8169]" : "text-stone-300 hover:text-stone-500 dark:text-stone-700 dark:hover:text-stone-400"}`}
                           title="Copy">
@@ -423,7 +424,7 @@ export function AskMondaily() {
 
         {/* Thinking */}
         {loading && (
-          <div className="flex items-center gap-3 pl-1 text-[#6b7280] dark:text-stone-400">
+          <div className="flex items-center gap-3 pl-1 text-[var(--text-muted)]">
             <LogoSymbol size={36} thinking />
             <span className="text-sm italic tracking-wide">{GRAPH_REASONING_STEPS[thinkingStep]}…</span>
           </div>
@@ -452,20 +453,20 @@ export function AskMondaily() {
 
           {/* Quick prompts picker */}
           {promptPickerOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-full rounded-sm border border-[#e5e7eb] bg-white shadow-[0_8px_24px_rgba(15,23,42,0.10)] overflow-hidden z-50 dark:border-[var(--border-soft)] dark:bg-[#13151a] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+            <div className="absolute bottom-full left-0 mb-2 w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-modal)] shadow-[0_8px_24px_rgba(0,0,0,0.28)] overflow-hidden z-50">
               <div className="px-4 py-2.5 border-b border-[#eef2f7] dark:border-[var(--border-soft)]">
-                <p className="text-[10px] font-semibold text-[#9ca3af] dark:text-stone-600 uppercase tracking-widest">Quick prompts</p>
+                <p className="text-[10px] font-semibold text-[var(--text-faint)] uppercase tracking-widest">Quick prompts</p>
               </div>
               <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
                   <button key={label} onClick={() => sendSuggestion(prompt)}
-                    className="flex items-center gap-3 rounded-sm px-3 py-2.5 text-left hover:bg-[#f8fafc] dark:hover:bg-[var(--surface-hover)] transition-colors group">
+                    className="flex items-center gap-3 rounded-sm px-3 py-2.5 text-left hover:bg-[var(--surface-hover)] transition-colors group">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-stone-50 group-hover:bg-stone-100 dark:bg-stone-500/10 dark:group-hover:bg-stone-500/20 transition-colors">
                       <Icon size={13} className="text-stone-600 dark:text-stone-400"/>
                     </span>
                     <span>
                       <span className="block text-sm text-[#111827] group-hover:text-stone-700 dark:text-stone-200 dark:group-hover:text-[var(--text-primary)] transition-colors">{label}</span>
-                      <span className="block text-[11px] text-[#9ca3af] dark:text-stone-600">{description}</span>
+                      <span className="block text-[11px] text-[var(--text-faint)]">{description}</span>
                     </span>
                   </button>
                 ))}
