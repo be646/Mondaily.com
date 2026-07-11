@@ -225,7 +225,7 @@ function ObjectPicker({ objects, value, onChange }: {
     <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
+        className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
       >
         {selected?.name_plural ?? value}
         <ChevronDown size={13} className="text-[var(--text-muted)]"/>
@@ -308,11 +308,11 @@ function AIModal({ title, onClose, onPrint, children }: { title: string; onClose
           <span className="flex-1 text-sm font-semibold text-[var(--text-primary)]">{title}</span>
           {onPrint && (
             <button onClick={onPrint}
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-[11px] text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">
+              className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-[11px] text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">
               <Printer size={11}/> Export
             </button>
           )}
-          <button onClick={onClose} className="rounded-lg p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+          <button onClick={onClose} className="rounded-sm p-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
             <X size={14}/>
           </button>
         </div>
@@ -422,11 +422,11 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
               <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Projected</p>
               <p className="text-base font-bold text-[var(--text-primary)]">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
             </div>
-            <button onClick={() => setModalOpen(true)} className="rounded-lg border border-stone-500/30 bg-stone-600/10 px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-stone-500/20 transition-colors">View</button>
-            <button onClick={() => { setResult(null); runForecast(); }} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
+            <button onClick={() => setModalOpen(true)} className="rounded-sm border border-stone-500/30 bg-stone-600/10 px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-stone-500/20 transition-colors">View</button>
+            <button onClick={() => { setResult(null); runForecast(); }} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
           </div>
         ) : (
-          <button onClick={runForecast} className="shrink-0 rounded-lg bg-stone-600 px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
+          <button onClick={runForecast} className="shrink-0 rounded-sm bg-stone-600 px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
             Generate
           </button>
         )}
@@ -582,11 +582,11 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
           </div>
         ) : insights ? (
           <div className="flex items-center gap-2 shrink-0">
-            <button onClick={() => setModalOpen(true)} className="rounded-lg border border-stone-500/30 bg-stone-600/10 px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-stone-500/20 transition-colors">View</button>
-            <button onClick={() => { setInsights(null); run(); }} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
+            <button onClick={() => setModalOpen(true)} className="rounded-sm border border-stone-500/30 bg-stone-600/10 px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-stone-500/20 transition-colors">View</button>
+            <button onClick={() => { setInsights(null); run(); }} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
           </div>
         ) : (
-          <button onClick={run} className="shrink-0 rounded-lg bg-stone-600 px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
+          <button onClick={run} className="shrink-0 rounded-sm bg-stone-600 px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
             Analyse
           </button>
         )}
@@ -695,7 +695,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
     <div className="mb-6 print:hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors"
+        className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors"
       >
         <Mail size={12}/> Schedule digest {digests.length > 0 && <span className="rounded-full bg-stone-500/20 text-stone-400 border border-stone-500/20 px-1.5 py-0.5 text-[10px]">{digests.length}</span>}
       </button>
@@ -742,7 +742,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {(["daily","weekly","monthly"] as const).map(f => (
                 <button key={f} onClick={() => setFreq(f)}
-                  className={`rounded-lg border py-2 text-xs font-medium transition-colors ${freq===f ? "border-stone-500/30 bg-stone-600/10 text-stone-400" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+                  className={`rounded-sm border py-2 text-xs font-medium transition-colors ${freq===f ? "border-stone-500/30 bg-stone-600/10 text-stone-400" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
                   {FREQ_LABELS[f]}
                 </button>
               ))}
@@ -776,9 +776,9 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   onChange={e => setEmail(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addEmail(); } }}
                   placeholder="email@example.com"
-                  className="flex-1 h-8 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-stone-500/40"
+                  className="flex-1 h-8 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-stone-500/40"
                 />
-                <button onClick={addEmail} className="h-8 w-8 flex items-center justify-center rounded-lg border border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+                <button onClick={addEmail} className="h-8 w-8 flex items-center justify-center rounded-sm border border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
                   <Plus size={12}/>
                 </button>
               </div>
@@ -797,7 +797,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <button
               onClick={() => create.mutate({ object_type: objectType, period, frequency: freq, day_of_week: freq === "weekly" ? dayOfWeek : undefined, hour, recipients: emails })}
               disabled={emails.length === 0 || create.isPending}
-              className="w-full rounded-lg bg-stone-600 py-2.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-colors"
+              className="w-full rounded-sm bg-stone-600 py-2.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-colors"
             >
               {create.isPending ? "Creating…" : "Create digest"}
             </button>
@@ -1190,11 +1190,11 @@ export function SalesReportPage() {
               ))}
             </div>
             <button onClick={exportCSV}
-              className="flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">
+              className="flex items-center gap-1 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">
               <Download size={12}/> CSV
             </button>
             <button onClick={generateReport}
-              className="flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">
+              className="flex items-center gap-1 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">
               <Printer size={12}/> Export
             </button>
           </div>

@@ -23,6 +23,18 @@ const SETTINGS = ["account", "integrations", "workspace", "security", "training"
 const hasButtonBubbly = (src: string) =>
   src.split("\n").some((l) => /rounded-(lg|xl)/.test(l) && /hover:bg-\[var\(--surface/.test(l));
 
+// Broader interactive-control signature: a rounded-lg/xl element that also hovers/focuses and
+// animates — i.e. a real button/input/picker, not a static container. Segmented-toggle segments
+// (bg-[var(--surface-hover)] active state, no border) are excluded — those stay per the toggle rule.
+const hasInteractiveBubbly = (src: string) =>
+  src.split("\n").some(
+    (l) =>
+      /rounded-(lg|xl)/.test(l) &&
+      /transition-colors|focus:outline/.test(l) &&
+      /hover:(bg|text|border|opacity)|focus:outline/.test(l) &&
+      /\bborder\b/.test(l), // buttons/inputs carry a border; toggle segments do not
+  );
+
 describe("interactive controls squared (no bubbly buttons)", () => {
   it("settings buttons are squared (no rounded-lg/xl + surface-hover on one line)", () => {
     for (const s of SETTINGS) expect(hasButtonBubbly(s)).toBe(false);
@@ -35,6 +47,11 @@ describe("interactive controls squared (no bubbly buttons)", () => {
   });
   it("notes + objects index + finance detail button radii squared", () => {
     for (const s of [notes, objectsIndex, invoiceDetail, creditNoteDetail]) expect(hasButtonBubbly(s)).toBe(false);
+  });
+  it("sales-report interactive controls squared (ObjectPicker + forecast/insight buttons + inputs)", () => {
+    expect(hasInteractiveBubbly(salesReport)).toBe(false);
+    // Confidence badge in the forecast modal is metadata → stays pill-shaped.
+    expect(salesReport).toMatch(/inline-flex rounded-full border px-2\.5[^"]*capitalize/);
   });
   it("task-detail-panel picker chips squared (avatars + label pills stay circular)", () => {
     // Interactive assignee/due/priority picker chips were `rounded-full border px-2.5`.
