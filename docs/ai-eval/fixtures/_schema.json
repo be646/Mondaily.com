@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mondaily-ai-eval-fixture/v1",
+  "title": "Mondaily AI eval fixture (one JSON object per line in *.jsonl)",
+  "type": "object",
+  "required": ["id", "class", "prompt", "metrics", "source"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "description": "Stable unique id, e.g. extraction-004" },
+    "class": {
+      "type": "string",
+      "enum": ["fast", "support", "reasoning", "meeting", "extraction", "discovery", "summarization"]
+    },
+    "prompt": { "type": "string", "description": "User/task input" },
+    "context": {
+      "type": "string",
+      "description": "Optional grounding context supplied to the model (sources, transcript, records)."
+    },
+    "params": {
+      "type": "object",
+      "description": "Optional generation params (temperature, max_tokens, guided-json flag).",
+      "additionalProperties": true
+    },
+    "must_refuse": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when the correct behavior is to decline (out-of-scope/unknown/unsafe)."
+    },
+    "expected": {
+      "type": "object",
+      "description": "Ground truth. For structured classes: schema + fields. For prose: rubric_notes.",
+      "additionalProperties": true,
+      "properties": {
+        "schema": { "type": "object", "description": "JSON Schema the output must satisfy (extraction/discovery)." },
+        "fields": { "type": "object", "description": "Expected extracted field values." },
+        "rubric_notes": { "type": "string", "description": "What a correct answer must contain (prose classes)." }
+      }
+    },
+    "metrics": {
+      "type": "array",
+      "description": "Which rubric metrics apply to this item.",
+      "items": { "enum": ["grounding", "json_validity", "refusal", "latency", "tokens", "cache"] },
+      "minItems": 1
+    },
+    "source": {
+      "type": "string",
+      "enum": ["synthetic", "sanitized-real"],
+      "description": "Provenance. sanitized-real requires the HARNESS_DESIGN.md §4 gate."
+    }
+  }
+}
