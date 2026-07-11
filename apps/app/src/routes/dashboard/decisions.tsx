@@ -487,12 +487,11 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
         {/* AI verdict — structured, grounded adjudication (open lanes only) */}
         {lane.open && <DecisionVerdict decision={d} />}
 
-        {/* Why */}
+        {/* Why — shared DossierSection block */}
         {d.summary && (
-          <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)" }}>
-            <div className="mb-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>Why your agent raised this</div>
+          <DossierSection title="Why your agent raised this">
             <p className="break-words text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{d.summary}</p>
-          </div>
+          </DossierSection>
         )}
 
         {/* Evidence — shared DossierSection block */}

@@ -251,9 +251,18 @@ describe("priority pages preserve every existing action/handler", () => {
     }
   });
   it("Team Oversight keeps call/print/AI-review/timeline/ask", () => {
-    for (const h of ["requestCall", "Printer", "OversightAsk", "MemberDetail"]) {
+    for (const h of ["requestCall", "Printer", "OversightAsk", "MemberDetail", "window.print()", "member-efficiency", "member-insight", "oversight-actor"]) {
       expect(teamOversight).toContain(h);
     }
+  });
+  it("Team Oversight member detail is a clean tabbed profile (Overview/Work quality/AI review/Activity/Timeline)", () => {
+    expect(teamOversight).toContain("type MemberTab");
+    for (const label of ["Overview", "Work quality", "AI review", "Activity", "Timeline"]) {
+      expect(teamOversight).toContain(`label: "${label}"`);
+    }
+    // Tabs gate visibility (queries still auto-run above) — no handler removed.
+    expect(teamOversight).toMatch(/tab === "overview"/);
+    expect(teamOversight).toMatch(/tab === "timeline"/);
   });
 });
 

@@ -437,6 +437,17 @@ function MemberDetail({ op }: { op: Operator }) {
   // grounded, with strengths / improvements / a coaching message they can send).
   const efficiency = useMutation<EfficiencyResp>({ mutationFn: () => apiClient.post<EfficiencyResp>("/activities/member-efficiency", { actor_id: op.operator_id }) });
   const [copied, setCopied] = useState(false);
+  // Clean tabbed profile (was one long inline document). Tabs only gate visibility — every
+  // query still auto-runs and every handler is preserved.
+  type MemberTab = "overview" | "quality" | "ai" | "activity" | "timeline";
+  const [tab, setTab] = useState<MemberTab>("overview");
+  const TABS: { id: MemberTab; label: string }[] = [
+    { id: "overview", label: "Overview" },
+    { id: "quality", label: "Work quality" },
+    { id: "ai", label: "AI review" },
+    { id: "activity", label: "Activity" },
+    { id: "timeline", label: "Timeline" },
+  ];
 
   // Activity-over-time — last 14 days bucketed from the REAL timeline (no fabricated hours).
   const chart = useMemo(() => {
@@ -493,7 +504,19 @@ function MemberDetail({ op }: { op: Operator }) {
         </div>
       )}
 
+      {/* Tab bar — one clean profile surface. Tabs only gate visibility; every query still runs. */}
+      <div className="flex items-center gap-1 border-b px-3 pt-2" style={{ borderColor: "var(--border-soft)" }}>
+        {TABS.map((tb) => (
+          <button key={tb.id} onClick={() => setTab(tb.id)}
+            className="rounded-t-sm px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
+            style={{ color: tab === tb.id ? "var(--text-primary)" : "var(--text-muted)", borderBottom: `2px solid ${tab === tb.id ? "var(--section-accent)" : "transparent"}` }}>
+            {tb.label}
+          </button>
+        ))}
+      </div>
+
       {/* One unified metrics block — soft borderless tiles (no hairline grid) reads calmer + more premium. */}
+      {tab === "overview" && (<>
       <div className="grid grid-cols-3 gap-1.5 border-b px-4 py-3.5 sm:grid-cols-3" style={{ borderColor: "var(--border-soft)" }}>
         {[
           { k: "Tasks", val: fmt(op.task_count) },
@@ -530,8 +553,10 @@ function MemberDetail({ op }: { op: Operator }) {
           ))}
         </div>
       )}
+      </>)}
 
-      {/* ── AI Work-Efficiency Review — on-demand, grounded, actionable ── */}
+      {/* ── AI Work-Efficiency Review — on-demand, grounded, actionable (AI review tab) ── */}
+      {tab === "ai" && (
       <div className="border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
         <div className="mb-2 flex items-center justify-between gap-2">
           <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
@@ -591,12 +616,10 @@ function MemberDetail({ op }: { op: Operator }) {
         })()}
         {efficiency.data && !efficiency.data.sufficient && <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>{efficiency.data.assessment}</p>}
       </div>
+      )}
 
-      {/* Two-column body — Work signals (left) · AI & behaviour (right) — uses the full width. */}
-      <div className="grid sm:grid-cols-2">
-        <div className="sm:border-r" style={{ borderColor: "var(--border-soft)" }}>
-      {/* work quality — source-backed signals computed server-side; every one cites its real basis */}
-      {op.quality && op.quality.length > 0 && (
+      {/* Work quality tab — source-backed signals computed server-side; every one cites its real basis */}
+      {tab === "quality" && op.quality && op.quality.length > 0 && (
         <Section title="Work quality">
           <div className="space-y-2">
             {op.quality.map((s) => (
@@ -618,7 +641,8 @@ function MemberDetail({ op }: { op: Operator }) {
         </Section>
       )}
 
-      {/* activity over time — real, premium area+line chart */}
+      {/* Activity tab — real, premium area+line chart */}
+      {tab === "activity" && (
       <Section title="Activity over time · last 14 days">
         {(() => {
           const W = 300, H = 54, n = chart.days.length;
@@ -640,9 +664,10 @@ function MemberDetail({ op }: { op: Operator }) {
         })()}
         <p className="mt-1.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Recorded activity events per day. Hours are not tracked yet.</p>
       </Section>
-        </div>
-        <div>
-      {/* AI coaching summary — grounded, source-backed */}
+      )}
+
+      {/* AI coaching summary — grounded, source-backed (AI review tab) */}
+      {tab === "ai" && (
       <Section title="AI coaching summary">
         {insightQ.isLoading ? (
           <div className="flex items-center gap-2 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Reading real activity…</div>
@@ -667,8 +692,10 @@ function MemberDetail({ op }: { op: Operator }) {
           </>
         )}
       </Section>
+      )}
 
-      {/* derived behaviour signals — real, from matrix metrics */}
+      {/* derived behaviour signals — real, from matrix metrics (Work quality tab) */}
+      {tab === "quality" && (
       <Section title="Behaviour signals">
         <ul className="space-y-1.5">
           {insights(op).map((s, i) => (
@@ -682,10 +709,10 @@ function MemberDetail({ op }: { op: Operator }) {
           <Signal label="Verified device claim (PoW)" ok={op.verified_pow} okText="Verified" offText="None on record" neutral={!op.verified_pow} />
         </div>
       </Section>
-        </div>
-      </div>
+      )}
 
-      {/* activity timeline — real, grouped by lens with source links where a node is known */}
+      {/* activity timeline — real, grouped by lens with source links where a node is known (Timeline tab) */}
+      {tab === "timeline" && (
       <Section title="Activity timeline">
         {timelineQ.isLoading ? (
           <div className="flex items-center gap-2 py-2 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Loading…</div>
@@ -735,6 +762,7 @@ function MemberDetail({ op }: { op: Operator }) {
           </div>
         )}
       </Section>
+      )}
 
       {/* actions — real destinations only */}
       {/* secondary actions (Message/Call live in the header now) */}
