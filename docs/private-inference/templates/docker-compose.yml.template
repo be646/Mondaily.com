@@ -1,0 +1,68 @@
+# TEMPLATE — copy to the GPU host as docker-compose.yml and fill in <PLACEHOLDERS>.
+# Inert in this repo: nothing here runs from Mondaily. Operator use only.
+# vLLM (small + large) behind a reverse proxy. No prompt logging. Private network only.
+
+version: "3.9"
+
+services:
+  vllm-small:
+    image: vllm/vllm-openai:latest
+    command: >
+      --model <SMALL_MODEL e.g. Qwen/Qwen2.5-14B-Instruct>
+      --served-model-name <SMALL_SERVED_NAME e.g. qwen2.5-14b>
+      --host 0.0.0.0 --port 8001
+      --api-key ${VLLM_API_KEY}
+      --enable-prefix-caching
+      --disable-log-requests
+      --max-model-len 8192
+      --gpu-memory-utilization 0.90
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]     # <-- small model GPU
+              capabilities: [gpu]
+    restart: unless-stopped
+    # NOTE: bind only to the private network; do NOT publish ports to 0.0.0.0 publicly.
+
+  vllm-large:
+    image: vllm/vllm-openai:latest
+    command: >
+      --model <LARGE_MODEL e.g. meta-llama/Llama-3.3-70B-Instruct>
+      --served-model-name <LARGE_SERVED_NAME e.g. llama-70b>
+      --quantization fp8
+      --host 0.0.0.0 --port 8002
+      --api-key ${VLLM_API_KEY}
+      --enable-prefix-caching
+      --disable-log-requests
+      --max-model-len 8192
+      --gpu-memory-utilization 0.92
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]     # <-- H100/A100-80: co-resident or a second GPU id
+              capabilities: [gpu]
+    restart: unless-stopped
+    profiles: ["with-large"]         # omit on small-only (L40S) nodes
+
+  proxy:
+    image: caddy:2
+    depends_on: [vllm-small]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    ports:
+      - "443:443"                    # ONLY the proxy is exposed, and only over the private tunnel
+    environment:
+      - PROXY_API_KEY=${PROXY_API_KEY}
+    restart: unless-stopped
+
+volumes:
+  caddy_data:

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# TEMPLATE — copy to the host as healthcheck.sh. Inert in this repo (do not run from here).
+# Metadata-only liveness/readiness probe: checks the proxy can reach vLLM. Logs NO bodies.
+# Usage: PROXY_URL=https://host PROXY_API_KEY=... bash healthcheck.sh   (exit 0 = healthy)
+
+set -euo pipefail
+: "${PROXY_URL:?set PROXY_URL e.g. https://proxy-host}"
+: "${PROXY_API_KEY:?set PROXY_API_KEY}"
+
+start=$(date +%s%3N)
+# /v1/models returns served model ids only — no prompt content involved.
+code=$(curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: Bearer ${PROXY_API_KEY}" \
+  "${PROXY_URL%/}/v1/models" || echo "000")
+end=$(date +%s%3N)
+latency=$((end - start))
+
+if [ "$code" = "200" ]; then
+  echo "healthy status=200 latency_ms=${latency}"
+  exit 0
+else
+  echo "UNHEALTHY status=${code} latency_ms=${latency}"
+  exit 1
+fi

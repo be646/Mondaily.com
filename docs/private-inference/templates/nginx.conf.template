@@ -1,0 +1,40 @@
+# TEMPLATE — copy to the host as nginx.conf and fill in <PLACEHOLDERS>. Inert in this repo.
+# Reverse-proxy alternative to Caddy: TLS + API-key auth + rate limit + metadata-only logs.
+# Exposes ONLY this proxy; vLLM (8001/8002) stays on the private network.
+
+# Metadata-only log format — method/status/latency/bytes, NO request/response bodies.
+log_format meta '$remote_addr $status $request_method $uri '
+                'rt=$request_time uct=$upstream_connect_time '
+                'ut=$upstream_response_time bytes=$body_bytes_sent';
+
+# Per-key-ish rate limit (keyed by auth header hash).
+limit_req_zone $http_authorization zone=perkey:10m rate=2r/s;
+
+upstream vllm_small { server 127.0.0.1:8001; }
+upstream vllm_large { server 127.0.0.1:8002; }
+
+server {
+	listen 443 ssl;
+	server_name <PROXY_DOMAIN_OR_TUNNEL_HOST>;
+
+	ssl_certificate     <PATH_TO_CERT>;
+	ssl_certificate_key <PATH_TO_KEY>;
+
+	access_log /var/log/nginx/access.log meta;   # metadata only
+	error_log  /var/log/nginx/error.log warn;
+
+	# API-key auth: reject anything without the exact bearer token.
+	set $ok 0;
+	if ($http_authorization = "Bearer <PROXY_API_KEY>") { set $ok 1; }
+
+	location = /healthz {
+		proxy_pass http://vllm_small/v1/models;
+	}
+
+	location /v1/ {
+		if ($ok = 0) { return 401; }
+		limit_req zone=perkey burst=20 nodelay;
+		proxy_pass http://vllm_small;      # route large-model paths to vllm_large as needed
+		proxy_read_timeout 120s;
+	}
+}

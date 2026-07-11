@@ -1,0 +1,43 @@
+# TEMPLATE — copy to the host as Caddyfile and fill in <PLACEHOLDERS>. Inert in this repo.
+# Reverse proxy: TLS + API-key auth + rate limit + metadata-only logs + health.
+# Exposes ONLY this proxy; vLLM ports (8001/8002) stay on the private network.
+
+<PROXY_DOMAIN_OR_TUNNEL_HOST> {
+
+	# --- Metadata-only access log (NEVER logs request/response bodies) ---
+	log {
+		output file /var/log/caddy/access.log
+		format json
+		# Caddy does not log bodies by default; do NOT add any body-capture directive.
+	}
+
+	# --- API-key auth: require a matching bearer token on every request ---
+	@noauth not header Authorization "Bearer {$PROXY_API_KEY}"
+	respond @noauth 401
+
+	# --- Health endpoint (no auth needed; returns liveness only) ---
+	handle /healthz {
+		reverse_proxy 127.0.0.1:8001 {
+			rewrite /v1/models
+		}
+	}
+
+	# --- Rate limit (requires the caddy-ratelimit plugin build) ---
+	# rate_limit {
+	#     zone per_key {
+	#         key    {http.request.header.Authorization}
+	#         events 120
+	#         window 1m
+	#     }
+	# }
+
+	# --- Small-model classes (fast/support/extraction/discovery) ---
+	handle /v1/* {
+		reverse_proxy 127.0.0.1:8001
+	}
+
+	# --- To split large-model traffic, front it on a separate path or hostname
+	#     and reverse_proxy 127.0.0.1:8002. Keep both private. ---
+
+	tls <ADMIN_EMAIL_FOR_ACME_OR_internal>
+}
