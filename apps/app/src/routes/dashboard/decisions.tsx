@@ -698,7 +698,7 @@ function DecisionAsk({ decision }: { decision: Decision }) {
         </button>
       </form>
       {!ask.data && !ask.isPending && (
-        <div className="mt-1.5 flex flex-wrap gap-1">{QUICK_ASKS.map(s => <button key={s} onClick={() => ask.mutate(s)} className="rounded-full border px-2 py-0.5 text-[10px] transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{s}</button>)}</div>
+        <div className="mt-1.5 flex flex-wrap gap-1">{QUICK_ASKS.map(s => <button key={s} onClick={() => ask.mutate(s)} className="rounded-sm border px-2 py-0.5 text-[10px] transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{s}</button>)}</div>
       )}
       {ask.data && (
         <div className="mt-2">

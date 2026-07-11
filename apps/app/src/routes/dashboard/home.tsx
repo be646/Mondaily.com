@@ -736,7 +736,7 @@ export function HomePage() {
                               { key: "draft", label: "Draft message" },
                             ] as { key: "task" | "draft"; label: string }[]).map(a => (
                               <button key={a.key} onClick={() => sendSuggestion(buildChipText(a.key, i))}
-                                className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
+                                className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
                                 style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
                                 <LogoMark size={11}/>{a.label}
                               </button>
@@ -744,7 +744,7 @@ export function HomePage() {
                             {/* Secondary actions collapsed into a tidy menu */}
                             <div className="relative">
                               <button onClick={() => setActionsOpen(o => !o)}
-                                className="inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
+                                className="inline-flex items-center gap-1 rounded-sm border px-3 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
                                 style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
                                 Actions <span style={{ fontSize: 9, opacity: 0.7 }}>▾</span>
                               </button>
@@ -786,7 +786,7 @@ export function HomePage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.28, delay: i * 0.06 }}
                     onClick={() => sendSuggestion(s)}
-                    className="group inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
+                    className="group inline-flex items-center gap-1.5 rounded-sm border px-3.5 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
                     style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}
                   >
                     <span>{s}</span>
