@@ -15,6 +15,7 @@ by the app, the AI gateway, the router, memory, Ask, agents, or prompts. It is d
 | File | Purpose |
 |---|---|
 | `PHASE_3A_EVAL_PLAN.md` | Versioned eval plan: scope, method, go/no-go gates |
+| `PHASE_3A2_RUNBOOK.md` | Step-by-step: temporary RTX 4090 + vLLM, env, commands, teardown |
 | `RUBRICS.md` | Scoring rubrics for all six metrics |
 | `HARNESS_DESIGN.md` | Replay-harness design (NOT wired; sanitized inputs only) |
 | `fixtures/_schema.json` | JSON Schema every fixture line must satisfy |
