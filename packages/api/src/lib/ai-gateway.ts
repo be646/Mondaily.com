@@ -471,6 +471,8 @@ export type AgentRequest = {
   taskClass?: TaskClass;
   /** Product surface tag for the usage ledger (e.g. "chat"). */
   feature?: string;
+  /** Grounding source count recorded to ai_usage.source_count (e.g. injected memory facts). */
+  sourceCount?: number;
   onToolCall: (name: string, input: Record<string, unknown>) => Promise<string>;
 };
 
@@ -620,7 +622,7 @@ async function runOpenAICompatAgent(
   }
 
   const finalUsage = usage.total_tokens > 0 ? usage : undefined;
-  recordAiUsage(req.workspaceId, activeModel, finalUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel(), latencyMs: Date.now() - t0 });
+  recordAiUsage(req.workspaceId, activeModel, finalUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel(), latencyMs: Date.now() - t0, sourceCount: req.sourceCount });
   return { reply, provider: "openai-compat", model: activeModel, rounds, usage: finalUsage };
 }
 
@@ -844,7 +846,7 @@ async function runOpenAICompatAgentStream(
         // A partial answer already reached the user — flag it, don't hang.
         await onEvent({ type: "token", text: "\n\n_(Connection interrupted — this reply may be incomplete. Please ask again.)_" });
         const partialUsage = usage.total_tokens > 0 ? usage : undefined;
-        recordAiUsage(req.workspaceId, modelId, partialUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel(), latencyMs: Date.now() - t0, refusalReason: "stream_interrupted" });
+        recordAiUsage(req.workspaceId, modelId, partialUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel(), latencyMs: Date.now() - t0, sourceCount: req.sourceCount, refusalReason: "stream_interrupted" });
         return { reply, provider: "openai-compat", model: modelId, rounds, usage: partialUsage };
       }
       // Nothing delivered yet — let aiGatewayAgentStream fall back to non-streaming.
@@ -906,6 +908,6 @@ async function runOpenAICompatAgentStream(
   }
 
   const streamUsage = usage.total_tokens > 0 ? usage : undefined;
-  recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel(), latencyMs: Date.now() - t0 });
+  recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel(), latencyMs: Date.now() - t0, sourceCount: req.sourceCount });
   return { reply, provider: "openai-compat", model: modelId, rounds, usage: streamUsage };
 }

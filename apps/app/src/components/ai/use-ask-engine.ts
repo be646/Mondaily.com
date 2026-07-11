@@ -21,7 +21,7 @@ import type { AskPageContext } from "../../lib/ask-context-store";
  */
 
 export type TokenUsage = { prompt_tokens: number; completion_tokens: number; total_tokens: number; reasoning_tokens?: number };
-export type MessageMeta = Record<number, { agent: AgentHandoff; sources: SourceCardData[]; tokens?: number; usage?: TokenUsage; tokensExact?: boolean }>;
+export type MessageMeta = Record<number, { agent: AgentHandoff; sources: SourceCardData[]; tokens?: number; usage?: TokenUsage; tokensExact?: boolean; memory?: { used: number; refs: string[] } }>;
 
 /** Fallback token estimate (~4 chars/token) when the provider returns no usage
  *  (e.g. the Anthropic fallback path). Shown with a "~" prefix in the UI. */
@@ -143,7 +143,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       let finalReply = "";
       let finalSources: BackendSourceMeta[] | undefined;
       let finalSuggestions: string[] = [];
-      let finalUsage: TokenUsage | undefined;
+      let finalMemory: { used: number; refs: string[] } | undefined; let finalUsage: TokenUsage | undefined;
 
       const applyText = (t: string) =>
         setMessages(prev => { const c = [...prev]; c[aiIdx] = { role: "assistant", content: t }; return c; });
@@ -180,6 +180,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
             finalSources = ev.sources;
             finalSuggestions = ev.suggestions ?? [];
             finalUsage = ev.usage;
+            finalMemory = ev.memory;
           }
         }
       }
@@ -189,7 +190,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       const savedSources = finalSources ?? liveSources;
       applyText(reply);
       addMessageToThread(tid, { role: "assistant", content: reply, sources: savedSources });
-      setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(savedSources), tokens: finalUsage?.total_tokens ?? estimateTokens(reply), usage: finalUsage, tokensExact: finalUsage != null } }));
+      setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(savedSources), tokens: finalUsage?.total_tokens ?? estimateTokens(reply), usage: finalUsage, tokensExact: finalUsage != null, memory: finalMemory } }));
       if (finalSuggestions.length) setSuggestions(finalSuggestions);
       setStreamStatus(null);
       opts.onAssistantMessage?.(aiIdx, reply);
@@ -215,13 +216,13 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
         const res = await apiFetch(`${apiUrl}/api/v1/ask`, { method: "POST", headers, body, signal: ctrl2.signal });
         clearTimeout(t2);
         if (!res.ok) throw new Error((await res.text().catch(() => "")) || `AI error: ${res.status}`);
-        const data = await res.json() as { reply?: string; suggestions?: string[]; sources?: BackendSourceMeta[]; usage?: TokenUsage };
+        const data = await res.json() as { reply?: string; suggestions?: string[]; sources?: BackendSourceMeta[]; usage?: TokenUsage; memory?: { used: number; refs: string[] } };
         const reply = data.reply || "I couldn't generate a response just now — please try again.";
         // Persist sources too, so reopening the thread keeps source attribution
         // (the streaming success path does this; the fallback must match).
         setMessages([...withUser, { role: "assistant", content: reply, sources: data.sources }]);
         addMessageToThread(tid, { role: "assistant", content: reply, sources: data.sources });
-        setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources), tokens: data.usage?.total_tokens ?? estimateTokens(reply), usage: data.usage, tokensExact: data.usage != null } }));
+        setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources), tokens: data.usage?.total_tokens ?? estimateTokens(reply), usage: data.usage, tokensExact: data.usage != null, memory: data.memory } }));
         if (data.suggestions?.length) setSuggestions(data.suggestions);
         opts.onAssistantMessage?.(aiIdx, reply);
       } catch (err2: any) {

@@ -110,9 +110,12 @@ describe("Phase 2A — memory recall (shadow)", () => {
   });
 });
 
-describe("Phase 2A — no answer behavior change + admin gating", () => {
-  it("Ask does NOT import or call recallContext (answers are byte-identical — recall is not wired in)", () => {
-    expect(askSrc).not.toMatch(/recallContext|memory-recall/);
+describe("Phase 2A — admin gating + pure-read (recall library itself unchanged in 2B)", () => {
+  // NOTE: as of Phase 2B, Ask DOES use recallContext — but ONLY behind the OFF-by-default flag via
+  // buildAskMemory (empty ⇒ Ask identical to today). The Phase-2B wiring/gating is covered by
+  // ask-memory-2b.test.ts. The recall LIBRARY remains a pure, flag-gated read (asserted below).
+  it("Ask uses recall only through the flag-gated buildAskMemory (not a raw always-on call)", () => {
+    expect(askSrc).toMatch(/const memory = await buildAskMemory\(workspaceId, userId, message\)/);
   });
 
   it("the recall + toggle endpoints are admin-gated", () => {
