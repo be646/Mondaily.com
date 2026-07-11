@@ -143,3 +143,26 @@ describe("Decisions 2.0 — AI verdict + triage honesty", () => {
     expect(page).toMatch(/provenance, not a reconstruction/);
   });
 });
+
+describe("Decisions 2.0 round 2 — cockpit functions stay honest", () => {
+  const page = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/decisions.tsx", import.meta.url)), "utf8");
+
+  it("snooze presets send REAL until timestamps to the existing endpoint", () => {
+    expect(page).toMatch(/onResolve\(d, "snooze", \{ until: new Date\(Date\.now\(\) \+ pr\.hours \* 3_600_000\)\.toISOString\(\) \}\)/);
+  });
+  it("a rejection note lands in the decision's real comments audit before resolving", () => {
+    expect(page).toMatch(/apiClient\.post\(`\/decisions\/\$\{d\.id\}\/comments`, \{ body: `Rejected: \$\{opts\.note\}` \}\)/);
+  });
+  it("batch adjudication is capped, sequential, and advisory (chips only, no execution)", () => {
+    const fn = page.slice(page.indexOf("async function adjudicateVisible"), page.indexOf("// Keyboard triage"));
+    expect(fn).toMatch(/\.slice\(0, 8\)/);
+    expect(fn).not.toMatch(/\/approve|\/reject|\/bulk/);
+  });
+  it("queue stats are computed from the real loaded rows (no invented metrics)", () => {
+    expect(page).toMatch(/const pending = items\.filter\(d => d\.status === "pending"\)/);
+    expect(page).toMatch(/resolved7\.length \? `\$\{Math\.round\(\(approved7 \/ resolved7\.length\) \* 100\)\}%` : "—"/);
+  });
+  it("audit trail names the real resolver from the member directory", () => {
+    expect(page).toMatch(/memberLabel\(members, d\.resolved_by\)/);
+  });
+});

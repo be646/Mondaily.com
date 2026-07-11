@@ -105,18 +105,21 @@ export function DecisionsPage() {
   useEffect(() => { setChecked(new Set()); }, [lane, agentFilter, typeFilter, riskFilter, assigneeFilter]);
 
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["decisions"] }); qc.invalidateQueries({ queryKey: ["agent-registry"] }); };
-  const act = useMutation({ mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" | "snooze" }) => apiClient.post(`/decisions/${id}/${action}`, {}) });
+  const act = useMutation({ mutationFn: ({ id, action, body }: { id: string; action: "approve" | "reject" | "snooze"; body?: Record<string, unknown> }) => apiClient.post(`/decisions/${id}/${action}`, body ?? {}) });
   const bulk = useMutation({ mutationFn: ({ ids, action }: { ids: string[]; action: "approve" | "reject" }) => apiClient.post(`/decisions/bulk`, { ids, action }) });
 
   const selected = items.find(d => d.id === selectedId) ?? null;
 
-  async function resolve(d: Decision, action: "approve" | "reject" | "snooze") {
+  async function resolve(d: Decision, action: "approve" | "reject" | "snooze", opts?: { until?: string; note?: string }) {
     if (acting) return;
     const idx = visible.findIndex(x => x.id === d.id);
     const next = visible[idx + 1]?.id ?? visible[idx - 1]?.id ?? null;
     setActing({ id: d.id, action });
     try {
-      await act.mutateAsync({ id: d.id, action });
+      // A rejection note lands in the decision's REAL comments thread before resolving —
+      // permanent audit of why a human said no.
+      if (opts?.note) await apiClient.post(`/decisions/${d.id}/comments`, { body: `Rejected: ${opts.note}` }).catch(() => {});
+      await act.mutateAsync({ id: d.id, action, body: opts?.until ? { until: opts.until } : {} });
       setBanner({ kind: action === "approve" ? "approved" : action === "reject" ? "rejected" : "snoozed" });
       await sleep(600);
     } finally { setBanner(null); setActing(null); setSelectedId(next); invalidate(); }
@@ -153,6 +156,23 @@ export function DecisionsPage() {
     finally { setTriageBusy(false); }
   }
 
+  // Batch adjudication — sequential AI verdicts over the visible pending list (capped), shown as
+  // advisory chips per row. Sequential on purpose: bounded cost, no thundering herd.
+  const [verdicts, setVerdicts] = useState<Map<string, string>>(new Map());
+  const [verdictBusy, setVerdictBusy] = useState<string | null>(null);
+  async function adjudicateVisible() {
+    if (verdictBusy) return;
+    const targets = visible.filter(d => d.status === "pending" && !verdicts.has(d.id)).slice(0, 8);
+    for (const d of targets) {
+      setVerdictBusy(d.id);
+      try {
+        const r = await apiClient.post<{ sufficient: boolean; recommendation?: string }>(`/decisions/${d.id}/verdict`, {});
+        setVerdicts(prev => new Map(prev).set(d.id, r.sufficient && r.recommendation ? r.recommendation : "insufficient"));
+      } catch { setVerdicts(prev => new Map(prev).set(d.id, "error")); }
+    }
+    setVerdictBusy(null);
+  }
+
   // Keyboard triage — j/k navigate, a approve, r reject, s snooze (open lanes, not while typing).
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -181,6 +201,34 @@ export function DecisionsPage() {
         Your agents propose; you approve. Review the full impact — evidence, exact action, and audit trail — before it runs.
         <span className="ml-2 hidden text-[10.5px] lg:inline" style={{ color: "var(--text-faint)" }}>Keys: <kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>j</kbd>/<kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>k</kbd> navigate · <kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>a</kbd> approve · <kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>r</kbd> reject · <kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>s</kbd> snooze</span>
       </p>
+
+      {/* Queue intelligence — real numbers from the live queue, no invention */}
+      {items.length > 0 && (() => {
+        const pending = items.filter(d => d.status === "pending");
+        const highRisk = pending.filter(d => d.risk_level === "high").length;
+        const oldest = pending.length ? Math.max(...pending.map(d => Date.now() - new Date(d.created_at).getTime())) : 0;
+        const oldestDays = Math.floor(oldest / 86_400_000);
+        const week = Date.now() - 7 * 86_400_000;
+        const resolved7 = items.filter(d => d.resolved_at && new Date(d.resolved_at).getTime() > week);
+        const approved7 = resolved7.filter(d => d.status === "approved" || d.status === "completed").length;
+        const stats: { label: string; value: string; tone?: string }[] = [
+          { label: "awaiting approval", value: String(pending.length) },
+          { label: "high risk", value: String(highRisk), tone: highRisk > 0 ? "#9c6b72" : undefined },
+          { label: "oldest pending", value: pending.length ? (oldestDays > 0 ? `${oldestDays}d` : "<1d") : "—", tone: oldestDays >= 7 ? "#97824f" : undefined },
+          { label: "resolved · 7d", value: String(resolved7.length) },
+          { label: "approval rate · 7d", value: resolved7.length ? `${Math.round((approved7 / resolved7.length) * 100)}%` : "—" },
+        ];
+        return (
+          <div className="mb-4 grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+            {stats.map(st => (
+              <div key={st.label} className="rounded-sm px-3 py-2" style={{ background: "var(--surface-hover)" }}>
+                <div className="text-[16px] font-semibold tabular-nums" style={{ color: st.tone ?? "var(--text-primary)" }}>{st.value}</div>
+                <div className="mt-0.5 text-[9.5px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{st.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Lane tabs */}
       <div className="mb-3 flex flex-wrap gap-1 border-b" style={{ borderColor: "var(--border-soft)" }}>
@@ -214,6 +262,19 @@ export function DecisionsPage() {
               )}
               {triage && lane === "approval" && (
                 <button onClick={() => setTriage(null)} className="text-[10.5px] underline" style={{ color: "var(--text-faint)" }}>clear ranking</button>
+              )}
+              {lane === "approval" && laneItems.length > 1 && (
+                <button onClick={adjudicateVisible} disabled={!!verdictBusy}
+                  className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 font-medium transition-colors disabled:opacity-50"
+                  style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}
+                  title="AI adjudicates up to 8 visible decisions one by one — advisory chips only, nothing executes">
+                  {verdictBusy ? <Loader2 size={11} className="animate-spin" /> : <ShieldAlert size={11} />} Adjudicate visible
+                </button>
+              )}
+              {verdicts.size > 0 && lane === "approval" && (
+                <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+                  AI suggests: {[...verdicts.values()].filter(v => v === "approve").length} approve · {[...verdicts.values()].filter(v => v === "investigate").length} investigate · {[...verdicts.values()].filter(v => v === "reject").length} reject
+                </span>
               )}
               {triageNote && <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>{triageNote}</span>}
               <FilterSelect label="Agent" value={agentFilter} options={agents.map(a => ({ v: a, l: agentByRaw(a).name.replace(" Agent", "") }))} onChange={setAgentFilter} />
@@ -273,6 +334,16 @@ export function DecisionsPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <p className="min-w-0 flex-1 truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }} title={d.title}>{d.title}</p>
+                            {lane === "approval" && (verdicts.get(d.id) || verdictBusy === d.id) && (
+                              <span className="shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide"
+                                title="AI suggestion — advisory only"
+                                style={verdictBusy === d.id ? { background: "var(--surface-hover)", color: "var(--text-faint)" }
+                                  : verdicts.get(d.id) === "approve" ? { background: "#5f81691a", color: "#5f8169" }
+                                  : verdicts.get(d.id) === "reject" ? { background: "#9c6b721a", color: "#9c6b72" }
+                                  : { background: "#97824f1a", color: "#97824f" }}>
+                                {verdictBusy === d.id ? "…" : verdicts.get(d.id) === "insufficient" || verdicts.get(d.id) === "error" ? "no data" : `AI: ${verdicts.get(d.id)}`}
+                              </span>
+                            )}
                             {lane === "approval" && triage?.get(d.id) && (
                               <span className="shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide"
                                 style={triage.get(d.id)!.priority === "high" ? { background: "#9c6b721a", color: "#9c6b72" } : triage.get(d.id)!.priority === "low" ? { background: "var(--surface-hover)", color: "var(--text-faint)" } : { background: "#97824f1a", color: "#97824f" }}
@@ -351,7 +422,7 @@ function ActiveFilterChip({ label, dot, onClear }: { label: string; dot?: string
   );
 }
 
-function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decision; lane: { key: LaneKey; open: boolean }; acting: { id: string; action: string } | null; onResolve: (d: Decision, a: "approve" | "reject" | "snooze") => void; members: Member[]; onChanged: () => void }) {
+function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decision; lane: { key: LaneKey; open: boolean }; acting: { id: string; action: string } | null; onResolve: (d: Decision, a: "approve" | "reject" | "snooze", opts?: { until?: string; note?: string }) => void; members: Member[]; onChanged: () => void }) {
   const a = agentByRaw(d.agent_name);
   const sources = mapEvidence(d.evidence ?? []);
   const target = (d.evidence ?? [])[0];
@@ -359,6 +430,12 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
   const currentState = target?.match_reason || (d.summary ? d.summary.split(",")[0] : "current state");
   const proposed = d.recommended_action || "Apply the agent's recommendation";
   const [showReasoning, setShowReasoning] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectNote, setRejectNote] = useState("");
+  const [snoozeOpen, setSnoozeOpen] = useState(false);
+  const SNOOZE_PRESETS: { label: string; hours: number }[] = [
+    { label: "1 hour", hours: 1 }, { label: "24 hours", hours: 24 }, { label: "3 days", hours: 72 }, { label: "1 week", hours: 168 },
+  ];
 
   return (
     <div className="flex h-full flex-col">
@@ -463,7 +540,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
             <div>Created {exactTime(d.created_at)} by {a.name}.</div>
             {d.status === "snoozed" && d.snoozed_until && <div>Snoozed until {exactTime(d.snoozed_until)}.</div>}
             {(d.status === "approved" || d.status === "rejected" || d.status === "completed") && d.resolved_at && (
-              <div className="capitalize">{d.status} {exactTime(d.resolved_at)}{d.resolved_by ? ` · by a workspace member` : ""}.</div>
+              <div className="capitalize">{d.status} {exactTime(d.resolved_at)}{d.resolved_by ? ` · by ${memberLabel(members, d.resolved_by) ?? "a workspace member"}` : ""}.</div>
             )}
           </div>
         </div>
@@ -480,23 +557,52 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
 
       {/* Action bar — preserved handlers. Open lanes act; resolved lanes show read-only status. */}
       {lane.open ? (
-        <div className="flex items-center gap-2 border-t p-3" style={{ borderColor: "var(--border-soft)" }}>
-          <button onClick={() => onResolve(d, "approve")} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-60"
-            style={{ borderColor: "color-mix(in srgb, #5f8169 55%, transparent)", background: "color-mix(in srgb, #5f8169 14%, transparent)", color: "#5f8169" }}>
-            {busy && acting?.action === "approve" ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Approve &amp; run
-          </button>
-          <button onClick={() => onResolve(d, "reject")} disabled={busy} className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
-            style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-secondary)" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#9c6b72"; e.currentTarget.style.color = "#9c6b72"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>
-            {busy && acting?.action === "reject" ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Reject
-          </button>
-          {d.status === "pending" && (
-            <button onClick={() => onResolve(d, "snooze")} disabled={busy} title="Snooze 24h — needs more context" className="flex items-center gap-1.5 rounded-lg border px-3.5 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
-              style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-muted)" }}>
-              {busy && acting?.action === "snooze" ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />} Snooze
-            </button>
+        <div className="border-t" style={{ borderColor: "var(--border-soft)" }}>
+          {/* Reject-with-reason — the note lands in the decision's real comments audit before resolving */}
+          {rejectOpen && (
+            <div className="flex items-end gap-2 border-b px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, #9c6b72 4%, transparent)" }}>
+              <div className="min-w-0 flex-1">
+                <div className="mb-1 text-[10.5px] font-semibold" style={{ color: "#9c6b72" }}>Why reject? (recorded in the audit trail)</div>
+                <input autoFocus value={rejectNote} onChange={e => setRejectNote(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") { setRejectOpen(false); onResolve(d, "reject", rejectNote.trim() ? { note: rejectNote.trim() } : undefined); } if (e.key === "Escape") setRejectOpen(false); }}
+                  placeholder="Optional — e.g. wrong recipient, stale data…"
+                  className="w-full rounded-sm border bg-transparent px-2.5 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+              </div>
+              <button onClick={() => { setRejectOpen(false); onResolve(d, "reject", rejectNote.trim() ? { note: rejectNote.trim() } : undefined); }}
+                className="shrink-0 rounded-sm border px-3 py-1.5 text-[12px] font-semibold" style={{ borderColor: "#9c6b72", color: "#9c6b72" }}>Reject</button>
+              <button onClick={() => setRejectOpen(false)} className="btn-icon h-8 w-8 shrink-0"><XCircle size={14} /></button>
+            </div>
           )}
+          {/* Snooze presets — real `until` timestamps via the existing endpoint */}
+          {snoozeOpen && (
+            <div className="flex flex-wrap items-center gap-1.5 border-b px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+              <span className="text-[10.5px] font-semibold" style={{ color: "var(--text-muted)" }}>Snooze for</span>
+              {SNOOZE_PRESETS.map(pr => (
+                <button key={pr.hours} onClick={() => { setSnoozeOpen(false); onResolve(d, "snooze", { until: new Date(Date.now() + pr.hours * 3_600_000).toISOString() }); }}
+                  className="rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[var(--section-accent)]"
+                  style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{pr.label}</button>
+              ))}
+              <button onClick={() => setSnoozeOpen(false)} className="ml-auto btn-icon h-7 w-7"><XCircle size={13} /></button>
+            </div>
+          )}
+          <div className="flex items-center gap-2 p-3">
+            <button onClick={() => onResolve(d, "approve")} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-60"
+              style={{ borderColor: "color-mix(in srgb, #5f8169 55%, transparent)", background: "color-mix(in srgb, #5f8169 14%, transparent)", color: "#5f8169" }}>
+              {busy && acting?.action === "approve" ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Approve &amp; run
+            </button>
+            <button onClick={() => setRejectOpen(o => !o)} disabled={busy} className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
+              style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-secondary)" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#9c6b72"; e.currentTarget.style.color = "#9c6b72"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>
+              {busy && acting?.action === "reject" ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Reject
+            </button>
+            {d.status === "pending" && (
+              <button onClick={() => setSnoozeOpen(o => !o)} disabled={busy} title="Snooze — needs more context" className="flex items-center gap-1.5 rounded-lg border px-3.5 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
+                style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-muted)" }}>
+                {busy && acting?.action === "snooze" ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />} Snooze <ChevronDown size={12} />
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="border-t p-3 text-center text-[12px] capitalize" style={{ borderColor: "var(--border-soft)", color: d.status === "approved" || d.status === "completed" ? "#5f8169" : "#9c6b72" }}>
