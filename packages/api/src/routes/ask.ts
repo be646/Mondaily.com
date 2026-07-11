@@ -1471,6 +1471,7 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
       model: agentModelSpec,
       workspaceId,
       userId,
+      feature: "chat",
       onToolCall: async (name, input) => {
         // Deterministic local guardrail before any handler runs.
         const guardError = validateToolCall(name, input as Record<string, any>);
@@ -1610,6 +1611,7 @@ router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object
         model: agentModelSpec,
         workspaceId,
         userId,
+        feature: "chat",
         onToolCall: async (name, input) => {
           const guardError = validateToolCall(name, input as Record<string, any>);
           if (guardError) return guardError;

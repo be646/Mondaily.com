@@ -55805,7 +55805,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
     }
   }
   const finalUsage = usage.total_tokens > 0 ? usage : void 0;
-  recordAiUsage(req.workspaceId, activeModel, finalUsage, { userId: req.userId, taskClass: req.taskClass, provider: backendLabel() });
+  recordAiUsage(req.workspaceId, activeModel, finalUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel() });
   return { reply, provider: "openai-compat", model: activeModel, rounds, usage: finalUsage };
 }
 async function aiGatewayAgent(req) {
@@ -55955,7 +55955,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
       if (reply.trim()) {
         await onEvent({ type: "token", text: "\n\n_(Connection interrupted \u2014 this reply may be incomplete. Please ask again.)_" });
         const partialUsage = usage.total_tokens > 0 ? usage : void 0;
-        recordAiUsage(req.workspaceId, modelId, partialUsage, { userId: req.userId, taskClass: req.taskClass, provider: backendLabel(), refusalReason: "stream_interrupted" });
+        recordAiUsage(req.workspaceId, modelId, partialUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel(), refusalReason: "stream_interrupted" });
         return { reply, provider: "openai-compat", model: modelId, rounds, usage: partialUsage };
       }
       throw streamErr;
@@ -56002,7 +56002,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
     }
   }
   const streamUsage = usage.total_tokens > 0 ? usage : void 0;
-  recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId, taskClass: req.taskClass, provider: backendLabel() });
+  recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel() });
   return { reply, provider: "openai-compat", model: modelId, rounds, usage: streamUsage };
 }
 var DEFAULT_MODEL_SPEC, FAST_MODEL_SPEC, lastGatewayError, CONVERSATIONAL_RE, DATA_INTENT_RE, PROVIDER_FALLBACK_MODELS;
@@ -65328,6 +65328,7 @@ ${webContext}` : "") + contextNote;
       model: agentModelSpec,
       workspaceId,
       userId,
+      feature: "chat",
       onToolCall: async (name, input) => {
         const guardError = validateToolCall(name, input);
         if (guardError) {
@@ -65427,6 +65428,7 @@ ${webContext}` : "") + buildContextNote(context2);
         model: agentModelSpec,
         workspaceId,
         userId,
+        feature: "chat",
         onToolCall: async (name, input) => {
           const guardError = validateToolCall(name, input);
           if (guardError) return guardError;
