@@ -8,6 +8,7 @@ import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { recordCreditUsage } from "../lib/credits";
 import { resolveProfile, mergeProfile, type WorkspaceProfile } from "@mondaily/shared/profile";
 import { normalizeLang, languageMeta } from "@mondaily/shared/i18n";
+import { sendPendingPlanEmail } from "../lib/pending-plan-email";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string; financeRole: string } }>();
 
@@ -240,6 +241,14 @@ router.post("/complete", requireAuth, async (c) => {
     },
   }).eq("id", ws);
   await supabase.from("workspaces").update({ plan: effectiveTier }).eq("id", ws).then(() => {}, () => {});
+
+  // Activation nudge — one best-effort email ONLY when a paid plan's pending_plan is NEWLY set
+  // (`_p !== chosen` guards against a re-run of onboarding re-sending). Fire-and-forget: it never
+  // blocks completion, never throws, and mutates no tier/credit/Stripe state. No email for
+  // Scout/Operator (requiresPayment is false for them).
+  if (requiresPayment && _p !== chosen) {
+    void sendPendingPlanEmail(ws, userId, chosen as "command" | "sovereign").catch(() => {});
+  }
 
   // Bring credits up to EXACTLY the entitled tier's allotment — grant only the shortfall, so we
   // never stack on the register-time baseline and re-running onboarding is idempotent.
