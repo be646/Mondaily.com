@@ -20,7 +20,9 @@
     "audit": "pnpm run audit:sovereignty && pnpm run audit:isolation",
     "readiness:live": "node scripts/audit/live-readiness.mjs",
     "e2e": "playwright test --project=public --project=setup",
-    "e2e:auth": "playwright test"
+    "e2e:auth": "playwright test",
+    "eval:ai:dry-run": "node scripts/ai-eval/harness.mjs --dry-run",
+    "eval:ai:offline": "node scripts/ai-eval/harness.mjs --offline"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
