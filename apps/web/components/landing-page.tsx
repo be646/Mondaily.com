@@ -49,7 +49,9 @@ function Preloader({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     const interval = setInterval(() => {
       setProgress(p => {
-        const next = Math.min(p + 14 + Math.random() * 10, 100);
+        // Fixed, even step (~6 ticks to full) — deterministic, so the bar advances smoothly
+        // instead of the old random jitter.
+        const next = Math.min(p + 18, 100);
         setStatusIdx(Math.min(Math.floor((next / 100) * PRELOADER_STATUS.length), PRELOADER_STATUS.length - 1));
         if (next >= 100) {
           clearInterval(interval);
@@ -172,15 +174,17 @@ function RotatingWord({ words }: { words: string[] }) {
     return () => clearInterval(t);
   }, [words.length]);
 
+  // Fixed-width, opacity-only crossfade — no blur and no vertical travel, so the word can never
+  // look like it's flickering or jumping the line. Explicit colour so it never renders washed-out.
   return (
-    <span className="relative inline-flex min-w-[7.2ch] justify-start text-neutral-950 dark:text-neutral-50">
+    <span className="relative inline-flex min-w-[7.2ch] justify-start" style={{ color: "var(--landing-text)" }}>
       <AnimatePresence mode="wait">
         <motion.span
           key={words[idx]}
-          initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          exit={{ opacity: 0, y: -12, filter: "blur(4px)" }}
-          transition={{ duration: 0.28 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.22 }}
           className="inline-block"
         >
           {words[idx]}
@@ -1028,7 +1032,7 @@ function AutomationFlow() {
             initial={{ opacity: 0 }}
             animate={{ opacity: shownCount >= FLOW_NODES.length ? 1 : 0 }}
             transition={{ duration: 0.5 }}
-            className="mt-2 rounded-full border border-black/[.1] bg-transparent px-5 py-3 text-center text-[13px] text-zinc-600 hover:border-black/[.2] hover:text-zinc-900 transition-all"
+            className="mt-2 rounded-sm border border-black/[.1] bg-transparent px-5 py-3 text-center text-[13px] text-zinc-600 hover:border-black/[.2] hover:text-zinc-900 transition-all"
           >
             Build your first flow →
           </motion.a>
@@ -2749,7 +2753,7 @@ function EmailSignup() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="mx-auto flex w-full flex-col overflow-hidden rounded-full border border-black/[.1] bg-white sm:flex-row dark:border-white/10 dark:bg-black"
+      className="mx-auto flex w-full flex-col overflow-hidden rounded-sm border border-black/[.1] bg-white sm:flex-row dark:border-white/10 dark:bg-black"
     >
       <input
         type="email"
@@ -2761,7 +2765,7 @@ function EmailSignup() {
       />
       <button
         type="submit"
-        className="shrink-0 rounded-full bg-zinc-900 px-6 py-3 text-[13px] font-medium text-white transition-opacity hover:opacity-85 dark:bg-white dark:text-zinc-900"
+        className="shrink-0 rounded-sm bg-zinc-900 px-6 py-3 text-[13px] font-medium text-white transition-opacity hover:opacity-85 dark:bg-white dark:text-zinc-900"
       >
         Start free →
       </button>
@@ -3013,7 +3017,7 @@ function CookieBanner() {
               hardcoded zinc text that went unreadable on the dark surface). Now uses landing
               tokens so it reads in light + dark, with a real elevation shadow. */}
           <div
-            className="overflow-hidden rounded-lg"
+            className="overflow-hidden rounded-sm"
             style={{
               background: "var(--landing-surface-raised)",
               border: "1px solid var(--landing-line-strong)",
@@ -3021,7 +3025,7 @@ function CookieBanner() {
             }}
           >
             <div className="flex items-start gap-4 px-5 py-4 sm:px-6 sm:py-5">
-              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ background: "var(--landing-hover)" }}>
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-sm" style={{ background: "var(--landing-hover)" }}>
                 <span className="font-mono text-[11px] font-semibold" style={{ color: "var(--landing-muted)" }}>EU</span>
               </div>
               <div className="min-w-0 flex-1">
@@ -3038,10 +3042,10 @@ function CookieBanner() {
               <a href="/privacy" className="font-mono text-[11px] transition-colors hover:opacity-80" style={{ color: "var(--landing-faint)" }}>Privacy policy</a>
               <a href="/terms" className="font-mono text-[11px] transition-colors hover:opacity-80" style={{ color: "var(--landing-faint)" }}>Terms</a>
               <div className="ml-auto flex items-center gap-2">
-                <button onClick={decline} className="rounded-md px-4 py-1.5 font-mono text-[12px] transition-colors hover:opacity-80" style={{ border: "1px solid var(--landing-line-strong)", color: "var(--landing-muted)" }}>
+                <button onClick={decline} className="rounded-sm px-4 py-1.5 font-mono text-[12px] transition-colors hover:opacity-80" style={{ border: "1px solid var(--landing-line-strong)", color: "var(--landing-muted)" }}>
                   Decline
                 </button>
-                <button onClick={accept} className="rounded-md px-4 py-1.5 font-mono text-[12px] font-medium transition-opacity hover:opacity-90" style={{ background: "var(--landing-text)", color: "var(--landing-canvas)" }}>
+                <button onClick={accept} className="rounded-sm px-4 py-1.5 font-mono text-[12px] font-medium transition-opacity hover:opacity-90" style={{ background: "var(--landing-text)", color: "var(--landing-canvas)" }}>
                   Accept all
                 </button>
               </div>
@@ -3075,7 +3079,7 @@ function StickyStartBar() {
           animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 16, opacity: 0, scale: 0.96 }}
           transition={{ duration: 0.3 }}
-          className="landing-sticky-bar fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full border border-black/[.12] bg-zinc-900 px-5 py-3 text-[13px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.22)] hover:bg-zinc-800 transition-colors"
+          className="landing-sticky-bar fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-sm border border-black/[.12] bg-zinc-900 px-5 py-3 text-[13px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.22)] hover:bg-zinc-800 transition-colors"
         >
           <motion.span
             animate={{ opacity: [0.5, 1, 0.5] }}

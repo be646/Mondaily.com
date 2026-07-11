@@ -27,6 +27,8 @@ const constellation = read("components/ai/agent-constellation.tsx");
 // Landing (apps/web) — marketing surface polish guards.
 const readWeb = (p: string) => readFileSync(fileURLToPath(new URL(`../../../../apps/web/${p}`, import.meta.url)), "utf8");
 const landing = readWeb("components/landing-page.tsx");
+const landingLogo = readWeb("components/logo.tsx");
+const askMondaily = read("components/ai/ask-mondaily.tsx");
 
 const hasButtonBubbly = (src: string) =>
   src.split("\n").some((l) => /rounded-(lg|xl)/.test(l) && /hover:bg-\[var\(--surface/.test(l));
@@ -142,5 +144,35 @@ describe("landing polish (apps/web)", () => {
     // Real OAuth providers still present in the integrations grid.
     expect(landing).toContain(`id: "gmail"`);
     expect(landing).toContain(`id: "google-calendar"`);
+  });
+  it("integration icons are matte (no bright brand-colour tiles)", () => {
+    for (const brand of ["#EA4335", "#0078D4", "#1A73E8", "#4A154B", "#FF4A00", "#FFE01B"]) {
+      expect(landing).not.toContain(brand);
+    }
+  });
+  it("cookie banner is squared (rounded-sm buttons, not pill/2xl)", () => {
+    expect(landing).toMatch(/rounded-sm px-4 py-1\.5 font-mono text-\[12px\] font-medium/); // squared Accept btn
+  });
+  it("hero rotating word has no blur/vertical-jump animation", () => {
+    expect(landing).not.toMatch(/filter: "blur\(4px\)"/);
+    expect(landing).not.toMatch(/y: 12, filter/);
+  });
+  it("preloader progress is deterministic (no random jitter in the bar)", () => {
+    expect(landing).not.toContain("p + 14 + Math.random()"); // old jittery preloader step
+    expect(landing).toContain("Math.min(p + 18, 100)");       // fixed even step
+  });
+  it("logo colour is explicit (never washes out to white)", () => {
+    expect(landingLogo).toMatch(/color: "var\(--landing-text\)"/);
+  });
+  it("simulated demos stay labelled", () => {
+    expect(landing).toContain("Simulated preview");
+  });
+});
+
+describe("Ask side panel squared (ask-mondaily)", () => {
+  it("action + suggestion chips squared; mode-label metadata pill stays circular", () => {
+    expect(askMondaily).not.toMatch(/rounded-full border px-3(\.5)? py-1\.5/); // chips squared
+    expect(askMondaily).not.toMatch(/rounded-lg/);                            // icon buttons/rows squared
+    expect(askMondaily).toMatch(/rounded-full border px-1\.5 py-0\.5/);       // mode-label pill kept
   });
 });

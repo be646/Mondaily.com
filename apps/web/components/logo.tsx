@@ -5,7 +5,9 @@ export function Logo({ size = 52 }: { size?: number }) {
   const mark = Math.round(size * 0.62);
 
   return (
-    <div className="flex items-center" style={{ gap: Math.round(size * 0.14), lineHeight: 1 }}>
+    // Explicit colour (theme token, dark in light mode / light in dark mode) so the mark + wordmark
+    // are always the right colour on load — never washed-out or white until something sets a colour.
+    <div className="flex items-center" style={{ gap: Math.round(size * 0.14), lineHeight: 1, color: "var(--landing-text)" }}>
       <svg width={mark} height={mark} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0, display: "block", color: "currentColor" }}>
         <circle cx="16" cy="16" r="6.5" fill="currentColor"/>
         <circle cx="16" cy="16" r="13" stroke="currentColor" strokeWidth="1.4" opacity="0.35"/>

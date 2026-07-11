@@ -407,7 +407,7 @@ export function AskMondaily() {
                           { key: "report" as const, label: "Create report", Icon: BarChart2 },
                         ]).map(({ key, label, Icon }) => (
                           <button key={key} onClick={() => sendSuggestion(buildChipText(key, i))}
-                            className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
+                            className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
                             style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
                             <Icon size={11}/> {label}
                           </button>
@@ -434,7 +434,7 @@ export function AskMondaily() {
           <div className="chat-pills-in flex flex-wrap gap-2 pl-5">
             {suggestions.map((s, i) => (
               <button key={`${i}-${s}`} onClick={() => sendSuggestion(s)}
-                className="group inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
+                className="group inline-flex items-center gap-1.5 rounded-sm border px-3.5 py-1.5 text-[12.5px] font-medium transition-all hover:-translate-y-px"
                 style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
                 <span>{s}</span>
                 <CornerDownLeft size={11} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--accent)" }}/>
@@ -459,8 +459,8 @@ export function AskMondaily() {
               <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
                   <button key={label} onClick={() => sendSuggestion(prompt)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-[#f8fafc] dark:hover:bg-[var(--surface-hover)] transition-colors group">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-stone-50 group-hover:bg-stone-100 dark:bg-stone-500/10 dark:group-hover:bg-stone-500/20 transition-colors">
+                    className="flex items-center gap-3 rounded-sm px-3 py-2.5 text-left hover:bg-[#f8fafc] dark:hover:bg-[var(--surface-hover)] transition-colors group">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-stone-50 group-hover:bg-stone-100 dark:bg-stone-500/10 dark:group-hover:bg-stone-500/20 transition-colors">
                       <Icon size={13} className="text-stone-600 dark:text-stone-400"/>
                     </span>
                     <span>
@@ -479,13 +479,13 @@ export function AskMondaily() {
           {/* Input */}
           <div className="ask-input flex items-end gap-2 rounded-sm px-4 py-3.5 transition-all">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
-              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-600 dark:bg-stone-500/20 dark:text-stone-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-stone-600 dark:hover:text-stone-300 dark:hover:bg-[var(--surface-hover)]"}`}>
+              className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-sm transition-colors ${promptPickerOpen ? "bg-stone-100 text-stone-600 dark:bg-stone-500/20 dark:text-stone-400" : "text-[#9ca3af] hover:text-[#52525b] hover:bg-[#f4f4f5] dark:text-stone-600 dark:hover:text-stone-300 dark:hover:bg-[var(--surface-hover)]"}`}>
               <Zap size={14}/>
             </button>
             <AttachButton attach={attach}/>
             {voice.supported && (
               <button onClick={voice.toggle} title={voice.listening ? "Stop dictation" : "Dictate"}
-                className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-lg transition-colors ${voice.listening ? "animate-pulse" : "hover:bg-[#f4f4f5] dark:hover:bg-[var(--surface-hover)]"}`}
+                className={`shrink-0 flex h-7 w-7 items-center justify-center rounded-sm transition-colors ${voice.listening ? "animate-pulse" : "hover:bg-[#f4f4f5] dark:hover:bg-[var(--surface-hover)]"}`}
                 style={{ color: voice.listening ? "var(--accent)" : "var(--text-muted)" }}>
                 <Mic size={14}/>
               </button>
