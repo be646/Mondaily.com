@@ -125,6 +125,10 @@ export function TerminalOnboardingPage() {
   const mounted = useRef(true);
   // Inferred industry profile captured at /analyze, persisted at /complete (adapts examples + AI context).
   const aiProfileRef = useRef<Record<string, unknown>>({});
+  // A paid plan (Command/Sovereign) provisions the free Scout baseline + pending_plan until payment.
+  // When that's the case, land the user on Billing after setup so activation is the obvious next step
+  // (rather than dropping them on the dashboard in a silent Scout state).
+  const needsActivationRef = useRef(false);
 
   const push = (text: string, tone: Tone = "dim") =>
     setLines(prev => [...prev, { id: ++idRef.current, text, tone }]);
@@ -226,6 +230,8 @@ export function TerminalOnboardingPage() {
     if (phase === "committing") return;
     setPhase("committing");
     const LABEL: Record<PlanId, string> = { scout: "SCOUT", operator: "OPERATOR", command: "COMMAND", sovereign: "SOVEREIGN" };
+    // Command/Sovereign are paid + provisioned as pending — remember to route to Billing on entry.
+    needsActivationRef.current = plan === "command" || plan === "sovereign";
     push(`> Provisioning ${LABEL[plan]} workspace...`, "amber");
     try {
       await apiClient.post("/onboarding/complete", {
@@ -258,7 +264,9 @@ export function TerminalOnboardingPage() {
     localStorage.removeItem("mondaily_needs_onboarding");
     localStorage.removeItem("mondaily_prev_workspace_id");
     localStorage.setItem("mondaily_first_run", "1");
-    window.location.assign("/");
+    // Paid-but-unpaid (Command/Sovereign) → land on Billing to complete checkout. Scout/Operator
+    // (free / trial) enter the workspace directly. No fake paid state either way.
+    window.location.assign(needsActivationRef.current ? "/settings/billing" : "/");
   }
 
   // Abandon onboarding — if we came here from "create workspace", restore the workspace the user

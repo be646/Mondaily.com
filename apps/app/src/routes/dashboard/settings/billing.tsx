@@ -237,10 +237,14 @@ export function BillingSettings() {
       {/* Pending paid plan — user picked Command/Sovereign at onboarding but hasn't paid. They're on
           the free Scout baseline until they activate it below. */}
       {billing.pending_plan && (
-        <div className="rounded-sm border px-5 py-3.5 text-sm" style={{ borderColor: "#a3946b55", background: "#a3946b18" }}>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border px-5 py-3.5 text-sm" style={{ borderColor: "#a3946b55", background: "#a3946b18" }}>
           <span style={{ color: "var(--text-primary)" }}>
-            You selected <strong className="capitalize">{billing.pending_plan}</strong> — it needs payment to activate. You're on the free Scout tier until then. Choose it below to complete checkout.
+            You selected <strong className="capitalize">{billing.pending_plan}</strong> during onboarding — it needs payment to activate. You're on the free Scout tier until then.
           </span>
+          <button onClick={() => pickPlan(normalizePlan(billing.pending_plan!))} disabled={!!billingBusy}
+            className="shrink-0 rounded-sm px-4 py-2 text-[12px] font-semibold text-black disabled:opacity-60" style={{ background: "#a3946b" }}>
+            {billingBusy === normalizePlan(billing.pending_plan!) ? "Opening…" : `Complete checkout`}
+          </button>
         </div>
       )}
 
