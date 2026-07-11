@@ -1044,7 +1044,7 @@ export function HomePage() {
                 </div>
               </div>
             ) : activeTasks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+              <div className="flex flex-col items-center justify-center gap-1.5 py-14 text-center px-4">
                 <LogoMark size={16} className="mb-2" style={{ color: "var(--text-faint)" }}/>
                 <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No open tasks.</p>
                 <p className="mt-0.5 text-xs" style={{ color: "var(--text-faint)" }}>Ask AI to create tasks from your work.</p>
@@ -1163,7 +1163,7 @@ export function HomePage() {
                     })}
                   </ul>
                 ) : calConnected ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-center px-5">
+                  <div className="flex flex-col items-center justify-center gap-1.5 py-14 text-center px-5">
                     <div className="flex h-10 w-10 items-center justify-center rounded-sm mb-3" style={{ background: "var(--surface-hover)", border: "1px solid var(--border-soft)" }}>
                       <Calendar size={16} style={{ color: "var(--text-faint)" }}/>
                     </div>

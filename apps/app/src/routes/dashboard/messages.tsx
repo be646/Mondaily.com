@@ -165,6 +165,11 @@ export function MessagesPage() {
                 </div>
               )}
             <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+              {/* Only label the direct list when groups are also present, so a groups-less inbox
+                  stays clean — clear separation between team groups and 1:1s. */}
+              {(inboxQ.data?.groups ?? []).length > 0 && inbox.length > 0 && (
+                <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Direct messages</div>
+              )}
               {inbox.map((th) => (
                 <button key={th.thread_key} onClick={() => setActive(th.other_id)}
                   className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]"

@@ -171,7 +171,7 @@ function TimeGrid({ days, events, selected, onOpen, onSlot, lang, single }: {
                         className="absolute z-10 overflow-hidden rounded-[3px] px-1.5 py-0.5 text-left transition-colors"
                         style={{ top: pl.top, height: pl.height, left: `calc(${pl.leftPct}% + 1px)`, width: `calc(${pl.widthPct}% - 2px)`,
                           background: on ? tone.edge : tone.tint,
-                          borderLeft: `2px solid ${tone.edge}`, color: on ? "#fff" : "var(--text-primary)" }}>
+                          borderLeft: `3px solid ${tone.edge}`, color: on ? "#fff" : "var(--text-primary)" }}>
                         <div className="flex items-center gap-1 truncate text-[11px] font-medium leading-tight">
                           {/* small semantic icons: missing agenda, call link */}
                           {!(pl.e.description ?? "").trim() && <FileText size={9} className="shrink-0" style={{ opacity: 0.55 }} />}

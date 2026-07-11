@@ -230,10 +230,10 @@ export function DecisionsPage() {
           { label: "approval rate · 7d", value: resolved7.length ? `${Math.round((approved7 / resolved7.length) * 100)}%` : "—" },
         ];
         return (
-          <div className="mb-4 grid grid-cols-2 divide-y overflow-hidden rounded-sm border sm:grid-cols-5 sm:divide-x sm:divide-y-0" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          <div className="mb-4 grid grid-cols-2 overflow-hidden rounded-sm border sm:grid-cols-5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
             {stats.map(st => (
-              <div key={st.label} className="px-3.5 py-2" style={{ borderColor: "var(--border-soft)" }}>
-                <div className="font-mono text-[15px] font-medium tabular-nums" style={{ color: st.tone ?? "var(--text-primary)" }}>{st.value}</div>
+              <div key={st.label} className="px-3.5 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
+                <div className="font-mono text-[13px] font-medium tabular-nums" style={{ color: st.tone ?? "var(--text-primary)" }}>{st.value}</div>
                 <div className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>{st.label}</div>
               </div>
             ))}

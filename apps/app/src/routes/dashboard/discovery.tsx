@@ -455,7 +455,7 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
           <>
             {/* Discovery Agent proof-of-work — real streamed counts only (sources scanned, leads found,
                 AI calls, tokens, pre-filter skips). Nothing here is estimated or invented. */}
-            <div className="mt-3 mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-sm border px-3 py-1.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+            <div className="mt-3 mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-sm border border-l-2 px-3 py-1.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", borderLeftColor: "var(--section-accent)", color: "var(--text-muted)" }}>
               <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}><Radar size={10} /> Discovery Agent</span>
               <span><strong style={{ color: "var(--text-primary)" }}>{turn.scanned ?? 0}</strong> sources checked</span>
               <span aria-hidden>·</span>

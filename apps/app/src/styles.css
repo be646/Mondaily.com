@@ -821,7 +821,7 @@ html[data-theme="dark"] .minimal-sparkline {
 }
 .flow-list-row {
   padding-block: 0.85rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 32%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 48%, transparent);
 }
 .flow-list-row:last-child {
   border-bottom: 0;
@@ -916,14 +916,15 @@ html[data-theme="dark"] .minimal-sparkline {
 }
 
 .attention-chip {
-  @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors;
+  @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-all;
   border: 1px solid var(--border-soft);
-  background: transparent;
+  background: color-mix(in srgb, var(--section-accent) 6%, transparent);
   color: var(--text-muted);
 }
 .attention-chip:hover {
-  background: var(--surface-hover);
+  background: color-mix(in srgb, var(--section-accent) 12%, var(--surface-hover));
   color: var(--text-primary);
+  transform: translateY(-1px);
 }
 
 /* Live status chip — "Graph synced", "Agents active" etc. in the command
@@ -1017,7 +1018,9 @@ html[data-theme="dark"] .minimal-sparkline {
 /* KPI tiles — quiet, refined clickable metrics. Inline number + label,
    subtle surface, no heavy border or oversized type. */
 .home-telemetry-strip {
-  gap: 0.35rem;
+  gap: 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--border-soft);
 }
 .home-telemetry-strip > * {
   display: flex;
