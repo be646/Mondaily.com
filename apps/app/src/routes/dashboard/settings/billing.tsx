@@ -115,6 +115,13 @@ export function BillingSettings() {
     saveAutoRefill.mutate(next);    // persist to workspace.settings.auto_refill
   }
 
+  // "Stay on Scout for now" — clears ONLY the pending_plan flag server-side; tier/credits/trial
+  // are untouched (they already reflect the entitled Scout baseline).
+  const dismissPending = useMutation({
+    mutationFn: () => apiClient.post("/billing/dismiss-pending", {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["billing"] }),
+  });
+
   // Buy a one-time credit pack — launches the admin-gated Stripe Checkout (saves the card
   // off_session for auto-refill), shows a mono loading state, then hard-redirects to the sheet.
   const [charging, setCharging] = useState(false);
@@ -236,17 +243,38 @@ export function BillingSettings() {
 
       {/* Pending paid plan — user picked Command/Sovereign at onboarding but hasn't paid. They're on
           the free Scout baseline until they activate it below. */}
-      {billing.pending_plan && (
+      {billing.pending_plan && (() => {
+        // Sovereign is Custom/"Talk to us" (no self-serve price) — it must route to contact/support,
+        // never a faked checkout. Command has a real price → the existing checkout flow.
+        const isCustom = PLAN_BY_ID[normalizePlan(billing.pending_plan)]?.priceMonthly == null;
+        return (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border px-5 py-3.5 text-sm" style={{ borderColor: "#a3946b55", background: "#a3946b18" }}>
           <span style={{ color: "var(--text-primary)" }}>
-            You selected <strong className="capitalize">{billing.pending_plan}</strong> during onboarding — it needs payment to activate. You're on the free Scout tier until then.
+            You selected <strong className="capitalize">{billing.pending_plan}</strong> during onboarding — {isCustom
+              ? "it's a custom plan, so our team sets it up with you. You're on the free Scout tier until then."
+              : "it needs payment to activate. You're on the free Scout tier until then."}
           </span>
-          <button onClick={() => pickPlan(normalizePlan(billing.pending_plan!))} disabled={!!billingBusy}
-            className="shrink-0 rounded-sm px-4 py-2 text-[12px] font-semibold text-black disabled:opacity-60" style={{ background: "#a3946b" }}>
-            {billingBusy === normalizePlan(billing.pending_plan!) ? "Opening…" : `Complete checkout`}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {isCustom ? (
+              <button onClick={() => help.open(`I'd like to activate the ${billing.pending_plan} plan — please contact me about setup and pricing.`)}
+                className="rounded-sm px-4 py-2 text-[12px] font-semibold text-black" style={{ background: "#a3946b" }}>
+                Talk to us
+              </button>
+            ) : (
+              <button onClick={() => pickPlan(normalizePlan(billing.pending_plan!))} disabled={!!billingBusy}
+                className="rounded-sm px-4 py-2 text-[12px] font-semibold text-black disabled:opacity-60" style={{ background: "#a3946b" }}>
+                {billingBusy === normalizePlan(billing.pending_plan!) ? "Opening…" : "Complete checkout"}
+              </button>
+            )}
+            <button onClick={() => dismissPending.mutate()} disabled={dismissPending.isPending}
+              className="rounded-sm border px-3 py-2 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-60"
+              style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
+              {dismissPending.isPending ? "…" : "Stay on Scout for now"}
+            </button>
+          </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* One-time 14-day Operator trial — offered anytime until used (the "decide later" path).
           Hidden while a trial is already running so the two trial banners never show together. */}

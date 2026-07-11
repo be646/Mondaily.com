@@ -13,6 +13,7 @@ const terminal = read("apps/app/src/routes/onboarding/terminal-console.tsx");
 const layout = read("apps/app/src/routes/dashboard/layout.tsx");
 const banner = read("apps/app/src/components/ui/pending-plan-banner.tsx");
 const billing = read("apps/app/src/routes/dashboard/settings/billing.tsx");
+const billingApi = read("packages/api/src/routes/billing.ts");
 
 describe("backend: paid plans are pending, never free-granted", () => {
   it("Command/Sovereign require payment → entitled tier stays scout, pending_plan recorded", () => {
@@ -50,5 +51,38 @@ describe("client: billing banner explains onboarding selection + one-click check
   it("references onboarding and opens checkout for the pending plan", () => {
     expect(billing).toMatch(/selected <strong className="capitalize">\{billing\.pending_plan\}<\/strong> during onboarding/);
     expect(billing).toMatch(/pickPlan\(normalizePlan\(billing\.pending_plan!\)\)/);
+  });
+});
+
+describe("pending_plan cleanup + Sovereign custom path", () => {
+  it("Command (real price) → checkout; Sovereign (custom/null price) → contact/support, not checkout", () => {
+    // branch keyed on custom (null price)
+    expect(billing).toMatch(/const isCustom = PLAN_BY_ID\[normalizePlan\(billing\.pending_plan\)\]\?\.priceMonthly == null/);
+    // custom → help/support flow with a contact message; NOT pickPlan
+    expect(billing).toMatch(/isCustom \? \(\s*<button onClick=\{\(\) => help\.open\(/);
+    expect(billing).toMatch(/Talk to us/);
+    // non-custom keeps the existing checkout
+    expect(billing).toMatch(/pickPlan\(normalizePlan\(billing\.pending_plan!\)\)/);
+  });
+
+  it("global banner labels Sovereign as Contact sales (no faked checkout), Command as Complete checkout", () => {
+    expect(banner).toMatch(/const isCustom = pending === "sovereign"/);
+    expect(banner).toMatch(/isCustom \? "Contact sales" : "Complete checkout"/);
+  });
+
+  it("dismiss-pending endpoint clears ONLY pending_plan — never tier/credits/trial/stripe", () => {
+    expect(billingApi).toMatch(/router\.post\("\/dismiss-pending"/);
+    expect(billingApi).toMatch(/delete settings\.pending_plan;/);
+    // the handler body writes back settings only — no tier/credit/trial/stripe field mutated here.
+    // Bound the slice to this handler (up to the NEXT router.post) so it can't bleed into /portal.
+    const start = billingApi.indexOf('"/dismiss-pending"');
+    const end = billingApi.indexOf("cleared: true", start);   // last line of THIS handler body
+    const block = billingApi.slice(start, end);
+    expect(block).not.toMatch(/account_tier|remaining_credits|grantCredits|trial_ends_at|stripe|subscription/);
+  });
+
+  it("client 'Stay on Scout' calls dismiss-pending and only invalidates billing (no tier change)", () => {
+    expect(billing).toMatch(/apiClient\.post\("\/billing\/dismiss-pending", \{\}\)/);
+    expect(billing).toMatch(/Stay on Scout for now/);
   });
 });

@@ -113,6 +113,20 @@ router.post("/credits-checkout", async (c) => {
   return r.url ? c.json({ url: r.url }) : c.json({ error: r.error, configured: r.status !== 503 }, r.status as 400 | 503 | 500);
 });
 
+// POST /dismiss-pending → { ok } — clear ONLY the onboarding-selected pending_plan flag ("Stay on
+// Scout for now"). Deliberately narrow: it never touches account_tier, plan, credits, trial, seats,
+// or any Stripe/subscription bookkeeping — it just removes the "you chose X, pay to activate" nudge.
+// The user stays on exactly the tier they're already entitled to (Scout for an unpaid pending plan).
+router.post("/dismiss-pending", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
+  const settings = { ...((wsRow?.settings ?? {}) as Record<string, unknown>) };
+  if (!("pending_plan" in settings)) return c.json({ ok: true, cleared: false });
+  delete settings.pending_plan;                       // the ONLY field removed
+  await supabase.from("workspaces").update({ settings }).eq("id", workspaceId);
+  return c.json({ ok: true, cleared: true });
+});
+
 // POST /portal → { url } — manage an existing subscription.
 router.post("/portal", async (c) => {
   if (!process.env.STRIPE_SECRET_KEY) {
