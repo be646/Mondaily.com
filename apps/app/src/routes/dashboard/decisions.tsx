@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton } from "../../components/ui/page-state";
-import { MenuSelect, LiveSectionHeader } from "../../components/ui/controls";
+import { MenuSelect } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -196,11 +196,22 @@ export function DecisionsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-      <LiveSectionHeader icon={ShieldAlert} title="Decisions" kicker="approval cockpit" liveLabel="Live queue" />
-      <p className="mb-4 mt-[-0.5rem] text-[12px]" style={{ color: "var(--text-muted)" }}>
-        Your agents propose; you approve. Review the full impact — evidence, exact action, and audit trail — before it runs.
-        <span className="ml-2 hidden text-[10.5px] lg:inline" style={{ color: "var(--text-faint)" }}>Keys: <kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>j</kbd>/<kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>k</kbd> navigate · <kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>a</kbd> approve · <kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>r</kbd> reject · <kbd className="rounded border px-1" style={{ borderColor: "var(--border-soft)" }}>s</kbd> snooze</span>
-      </p>
+      {/* Quiet AI-console header — serious, monochrome, no animation. Live state is one static dot. */}
+      <div className="mb-4 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-sm border" style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
+              <ShieldAlert size={13} />
+            </span>
+            <h1 className="text-[15px] font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>Decisions</h1>
+            <span className="hidden font-mono text-[9.5px] uppercase tracking-[0.18em] sm:inline" style={{ color: "var(--text-faint)" }}>// decision engine · agents propose — you approve</span>
+          </div>
+          <div className="flex shrink-0 items-center gap-4 font-mono text-[9.5px] uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
+            <span className="flex items-center gap-1.5"><span className="h-1 w-1 rounded-full" style={{ background: "#5f8169" }} /> live sync</span>
+            <span className="hidden lg:inline" title="j/k navigate · a approve · r reject · s snooze">keys j·k·a·r·s</span>
+          </div>
+        </div>
+      </div>
 
       {/* Queue intelligence — real numbers from the live queue, no invention */}
       {items.length > 0 && (() => {
@@ -219,11 +230,11 @@ export function DecisionsPage() {
           { label: "approval rate · 7d", value: resolved7.length ? `${Math.round((approved7 / resolved7.length) * 100)}%` : "—" },
         ];
         return (
-          <div className="mb-4 grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+          <div className="mb-4 grid grid-cols-2 divide-y overflow-hidden rounded-sm border sm:grid-cols-5 sm:divide-x sm:divide-y-0" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
             {stats.map(st => (
-              <div key={st.label} className="rounded-sm px-3 py-2" style={{ background: "var(--surface-hover)" }}>
-                <div className="text-[16px] font-semibold tabular-nums" style={{ color: st.tone ?? "var(--text-primary)" }}>{st.value}</div>
-                <div className="mt-0.5 text-[9.5px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{st.label}</div>
+              <div key={st.label} className="px-3.5 py-2" style={{ borderColor: "var(--border-soft)" }}>
+                <div className="font-mono text-[15px] font-medium tabular-nums" style={{ color: st.tone ?? "var(--text-primary)" }}>{st.value}</div>
+                <div className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>{st.label}</div>
               </div>
             ))}
           </div>
@@ -236,9 +247,9 @@ export function DecisionsPage() {
           const on = lane === l.key; const n = laneCount(l.key);
           return (
             <button key={l.key} onClick={() => setLane(l.key)}
-              className="relative px-3 py-2 text-[12.5px] font-medium transition-colors"
-              style={{ color: on ? "var(--text-primary)" : "var(--text-muted)", borderBottom: on ? "2px solid var(--section-accent)" : "2px solid transparent", marginBottom: -1 }}>
-              {l.label} <span className="tabular-nums opacity-60">{n}</span>
+              className="relative px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-[0.12em] transition-colors"
+              style={{ color: on ? "var(--text-primary)" : "var(--text-faint)", borderBottom: on ? "1.5px solid var(--text-primary)" : "1.5px solid transparent", marginBottom: -1 }}>
+              {l.label} <span className="tabular-nums" style={{ color: on ? "var(--text-muted)" : "var(--text-faint)" }}>{n}</span>
             </button>
           );
         })}
@@ -317,14 +328,14 @@ export function DecisionsPage() {
           {laneItems.length === 0 ? (
             <LaneEmpty lane={laneDef.key} />
           ) : (
-            <div className="flex h-[calc(100vh-260px)] min-h-[440px] flex-col gap-4 md:flex-row">
-              {/* LEFT — lane list */}
-              <div className="h-2/5 w-full shrink-0 overflow-y-auto rounded-sm border md:h-auto md:w-[40%]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", scrollbarGutter: "stable" }}>
+            <div className="flex h-[calc(100vh-260px)] min-h-[440px] flex-col overflow-hidden rounded-sm border md:flex-row" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              {/* LEFT — lane list (same surface, hairline divider — not a second box) */}
+              <div className="h-2/5 w-full shrink-0 overflow-y-auto border-b md:h-auto md:w-[38%] md:border-b-0 md:border-r" style={{ borderColor: "var(--border-soft)", scrollbarGutter: "stable" }}>
                 {visible.map((d, i) => {
                   const a = agentByRaw(d.agent_name); const on = selectedId === d.id;
                   return (
                     <div key={d.id} className="flex items-center gap-2 px-2 py-2.5"
-                      style={{ borderTop: i > 0 ? "1px solid var(--border-soft)" : undefined, borderLeft: `2px solid ${on ? RISK_DOT[d.risk_level] : "transparent"}`, background: on ? "color-mix(in srgb, var(--section-accent) 7%, transparent)" : "transparent" }}>
+                      style={{ borderTop: i > 0 ? "1px solid var(--border-soft)" : undefined, borderLeft: `2px solid ${on ? RISK_DOT[d.risk_level] : "transparent"}`, background: on ? "var(--surface-selected)" : "transparent" }}>
                       {laneDef.key === "approval" && (
                         <input type="checkbox" checked={checked.has(d.id)} onChange={(e) => { const s = new Set(checked); e.target.checked ? s.add(d.id) : s.delete(d.id); setChecked(s); }}
                           className="ml-1 h-3.5 w-3.5 shrink-0 accent-[var(--section-accent)]" onClick={(e) => e.stopPropagation()} />
@@ -335,19 +346,18 @@ export function DecisionsPage() {
                           <div className="flex items-center gap-1.5">
                             <p className="min-w-0 flex-1 truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }} title={d.title}>{d.title}</p>
                             {lane === "approval" && (verdicts.get(d.id) || verdictBusy === d.id) && (
-                              <span className="shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide"
+                              <span className="inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-wide"
                                 title="AI suggestion — advisory only"
-                                style={verdictBusy === d.id ? { background: "var(--surface-hover)", color: "var(--text-faint)" }
-                                  : verdicts.get(d.id) === "approve" ? { background: "#5f81691a", color: "#5f8169" }
-                                  : verdicts.get(d.id) === "reject" ? { background: "#9c6b721a", color: "#9c6b72" }
-                                  : { background: "#97824f1a", color: "#97824f" }}>
-                                {verdictBusy === d.id ? "…" : verdicts.get(d.id) === "insufficient" || verdicts.get(d.id) === "error" ? "no data" : `AI: ${verdicts.get(d.id)}`}
+                                style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                                <span className="h-1 w-1 rounded-full" style={{ background: verdictBusy === d.id ? "var(--text-faint)" : verdicts.get(d.id) === "approve" ? "#5f8169" : verdicts.get(d.id) === "reject" ? "#9c6b72" : "#97824f" }} />
+                                {verdictBusy === d.id ? "…" : verdicts.get(d.id) === "insufficient" || verdicts.get(d.id) === "error" ? "no data" : `ai ${verdicts.get(d.id)}`}
                               </span>
                             )}
                             {lane === "approval" && triage?.get(d.id) && (
-                              <span className="shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide"
-                                style={triage.get(d.id)!.priority === "high" ? { background: "#9c6b721a", color: "#9c6b72" } : triage.get(d.id)!.priority === "low" ? { background: "var(--surface-hover)", color: "var(--text-faint)" } : { background: "#97824f1a", color: "#97824f" }}
+                              <span className="inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-wide"
+                                style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
                                 title={triage.get(d.id)!.reason}>
+                                <span className="h-1 w-1 rounded-full" style={{ background: triage.get(d.id)!.priority === "high" ? "#9c6b72" : triage.get(d.id)!.priority === "low" ? "var(--text-faint)" : "#97824f" }} />
                                 {triage.get(d.id)!.priority}
                               </span>
                             )}
@@ -366,8 +376,8 @@ export function DecisionsPage() {
                 {visible.length === 0 && <div className="px-4 py-10 text-center text-[12px]" style={{ color: "var(--text-muted)" }}>No decisions match these filters.</div>}
               </div>
 
-              {/* RIGHT — dossier */}
-              <div className="relative min-w-0 flex-1 overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              {/* RIGHT — dossier (same surface) */}
+              <div className="relative min-w-0 flex-1 overflow-hidden">
                 {selected ? <Dossier key={selected.id} d={selected} lane={laneDef} acting={acting} onResolve={resolve} members={memberList} onChanged={invalidate} /> : (
                   <div className="flex h-full items-center justify-center text-[13px]" style={{ color: "var(--text-muted)" }}>Select a decision to review it.</div>
                 )}
@@ -446,8 +456,8 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-medium" style={{ color: "var(--section-accent)" }}>{a.name}</span>
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: `${RISK_DOT[d.risk_level]}1a`, color: RISK_DOT[d.risk_level] }}>
-                {d.risk_level === "high" && <ShieldAlert size={10} />} {d.risk_level} risk
+              <span className="inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: RISK_DOT[d.risk_level] }} /> {d.risk_level} risk
               </span>
               {/* Confidence only when the backend actually computed one — else honest "source-backed". */}
               {d.confidence != null ? <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{d.confidence}% confidence</span> : <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>source-backed</span>}
@@ -458,8 +468,8 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
         </div>
 
         {/* Proposed transformation */}
-        <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--section-accent) 3%, transparent)" }}>
-          <div className="mb-3 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}><Zap size={12} style={{ color: "var(--section-accent)" }} /> Proposed transformation</div>
+        <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="mb-3 flex items-center gap-1.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}><Zap size={11} /> Proposed transformation</div>
           {target?.node_id && (
             <Link to={`/objects/${encodeURIComponent(target.object_type ?? "deals")}/${target.node_id}`} className="mb-3 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11.5px] transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
               Target: <span className="font-medium" style={{ color: "var(--text-primary)" }}>{target.title || "record"}</span><ExternalLink size={11} style={{ color: "var(--text-faint)" }} />
@@ -467,12 +477,12 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           )}
           <div className="flex items-stretch gap-2">
             <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", borderLeft: "2px solid #97824f" }}>
-              <div className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "#97824f" }}>Current</div>
+              <div className="font-mono text-[8.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>Current</div>
               <div className="mt-1 break-words text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{currentState}</div>
             </div>
             <div className="flex shrink-0 items-center"><ArrowRight size={18} style={{ color: "var(--text-faint)" }} /></div>
             <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", borderLeft: "2px solid #5f8169" }}>
-              <div className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "#5f8169" }}>Proposed</div>
+              <div className="font-mono text-[8.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>Proposed</div>
               <div className="mt-1 break-words text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{proposed}</div>
             </div>
           </div>
@@ -480,10 +490,10 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
 
         {/* Exactly what approving does (real, mirrors backend execution) */}
         {d.execution_preview && (
-          <div className="flex items-start gap-2 rounded-sm border p-3" style={{ borderColor: d.execution_preview.side_effect ? "#97824f55" : "var(--border-soft)", background: d.execution_preview.side_effect ? "#97824f0d" : "transparent" }}>
+          <div className="flex items-start gap-2 rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", borderLeft: `2px solid ${d.execution_preview.side_effect ? "#97824f" : "var(--border-strong)"}` }}>
             <PlayCircle size={14} className="mt-0.5 shrink-0" style={{ color: d.execution_preview.side_effect ? "#97824f" : "var(--text-faint)" }} />
             <div>
-              <div className="text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>If approved{d.execution_preview.side_effect ? " · runs an action" : " · advisory"}</div>
+              <div className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>If approved{d.execution_preview.side_effect ? " · runs an action" : " · advisory"}</div>
               <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-secondary)" }}>{d.execution_preview.text}</p>
             </div>
           </div>
@@ -495,7 +505,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
         {/* Why */}
         {d.summary && (
           <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)" }}>
-            <div className="mb-1 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>Why your agent raised this</div>
+            <div className="mb-1 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>Why your agent raised this</div>
             <p className="break-words text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{d.summary}</p>
           </div>
         )}
@@ -503,7 +513,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
         {/* Evidence */}
         {sources.length > 0 && (
           <div>
-            <div className="mb-2 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>Evidence</div>
+            <div className="mb-2 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>Evidence</div>
             <div className="flex flex-wrap gap-1.5">{sources.map((s, i) => <SourceCard key={i} source={s} />)}</div>
           </div>
         )}
@@ -512,7 +522,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
         {d.generation_context?.user_prompt && (
           <div className="rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
             <button onClick={() => setShowReasoning(s => !s)} className="flex w-full items-center justify-between px-4 py-2.5 text-left">
-              <span className="text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>Why the AI chose this</span>
+              <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>Why the AI chose this</span>
               <ChevronDown size={13} style={{ color: "var(--text-faint)", transform: showReasoning ? "rotate(180deg)" : "none" }} />
             </button>
             {showReasoning && (
@@ -535,7 +545,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
 
         {/* Audit trail */}
         <div>
-          <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}><History size={12} /> Audit trail</div>
+          <div className="mb-1.5 flex items-center gap-1.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}><History size={11} /> Audit trail</div>
           <div className="space-y-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
             <div>Created {exactTime(d.created_at)} by {a.name}.</div>
             {d.status === "snoozed" && d.snoozed_until && <div>Snoozed until {exactTime(d.snoozed_until)}.</div>}
@@ -744,8 +754,8 @@ function DecisionVerdict({ decision }: { decision: Decision }) {
   return (
     <div className="rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
       <div className="flex items-center justify-between px-4 py-2.5">
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}>
-          <Sparkles size={12} style={{ color: "var(--section-accent)" }} /> AI verdict
+        <span className="flex items-center gap-1.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>
+          <Sparkles size={11} /> AI verdict
         </span>
         <button onClick={() => verdict.mutate()} disabled={verdict.isPending}
           className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50"
@@ -758,7 +768,7 @@ function DecisionVerdict({ decision }: { decision: Decision }) {
       {v?.sufficient && v.recommendation && (
         <div className="space-y-2.5 border-t px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold capitalize" style={{ background: `${TONE[v.recommendation]}1a`, color: TONE[v.recommendation] }}>
+            <span className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider" style={{ borderColor: "var(--border-strong)", color: TONE[v.recommendation] }}>
               {v.recommendation === "approve" ? <CheckCircle2 size={11} /> : v.recommendation === "reject" ? <XCircle size={11} /> : <ShieldAlert size={11} />} {v.recommendation}
             </span>
             {v.grounded_on && (
