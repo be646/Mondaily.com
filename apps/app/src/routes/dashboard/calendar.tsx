@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Send, StickyNote, Circle, CalendarClock, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
-import { FieldSelect } from "../../components/ui/controls";
+import { FieldSelect, CommandPageHeader } from "../../components/ui/controls";
 import { apiClient } from "../../lib/api-client";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -300,18 +300,14 @@ export function CalendarPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <div className="mb-4 flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[19px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("cal.title")}</h1>
-          {/* Meeting Agent identity — one calm line, a single status dot. Honest: on-demand / available only. */}
-          <p className="mt-1 flex items-center gap-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}>
-            <CalendarClock size={12} style={{ color: "var(--text-muted)" }} />
-            <span style={{ color: "var(--text-secondary)" }}>{t("cal.meeting_agent")}</span>
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#5f8a6a" }} title={t("cal.agent_available")} />
-            <span style={{ color: "var(--text-faint)" }}>{t("cal.agent_available")} · {t("cal.agent_monitoring")}</span>
-          </p>
-        </div>
-      </div>
+      {/* Shared command header — same pattern as the rest of the app. Meeting Agent status stays
+          honest: on-demand / available / monitoring only (never a fake "running"). */}
+      <CommandPageHeader
+        icon={CalendarClock}
+        callsign="MEETINGS"
+        title={t("cal.title")}
+        status={[{ label: `${t("cal.meeting_agent")} · ${t("cal.agent_available")} · ${t("cal.agent_monitoring")}`, kind: "monitoring" }]}
+      />
 
       {/* Today intelligence strip — real data only, no fabricated scores/conflicts. */}
       <TodayStrip onOpen={openEvent} selectedId={selected} events={events.filter(e => isSameDay(new Date(e.start_at), now))} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} />

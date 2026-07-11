@@ -5,6 +5,7 @@ import { Loader2, Send, User as UserIcon, Inbox as InboxIcon, Archive, Plus, X, 
 import { apiClient } from "../../lib/api-client";
 import { useTableRealtime } from "../../hooks/useTableRealtime";
 import { useLanguage } from "../../hooks/useLanguage";
+import { CommandPageHeader } from "../../components/ui/controls";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 
 /**
@@ -81,16 +82,19 @@ export function MessagesPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[20px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("inbox.title")}</h1>
-          <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-muted)" }}>{t("inbox.subtitle")}</p>
-        </div>
-        <button onClick={() => setPickerOpen(true)}
-          className="flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
-          <Plus size={13} /> {t("inbox.new_message")}
-        </button>
-      </div>
+      {/* Shared command header — same pattern as the rest of the app. New-message stays primary. */}
+      <CommandPageHeader
+        icon={InboxIcon}
+        callsign="INBOX"
+        title={t("inbox.title")}
+        subtitle={t("inbox.subtitle")}
+        primaryAction={
+          <button onClick={() => setPickerOpen(true)}
+            className="flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
+            <Plus size={13} /> {t("inbox.new_message")}
+          </button>
+        }
+      />
 
       {pickerOpen && <NewMessageModal onClose={() => setPickerOpen(false)} onPick={(id) => { setPickerOpen(false); setActive(id); }} onGroupCreated={(id) => { setPickerOpen(false); setActiveGroup(id); }} />}
 
@@ -402,7 +406,10 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
       )}
 
       <div className="flex items-end gap-2 border-t px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
-        <button onClick={() => setAiOpen(o => !o)} title="Draft with AI" className="btn-icon h-8 w-8 shrink-0" style={{ color: aiOpen ? "var(--section-accent)" : "var(--text-faint)" }}><Sparkles size={15} /></button>
+        {/* AI draft — the one clearly-marked assist control (always accent-tinted so it reads as AI,
+            highlighted when its panel is open). Drafts into the box; never auto-sends. */}
+        <button onClick={() => setAiOpen(o => !o)} title="Draft with AI" aria-pressed={aiOpen}
+          className="btn-icon h-8 w-8 shrink-0" style={{ color: "var(--section-accent)", background: aiOpen ? "color-mix(in srgb, var(--section-accent) 12%, transparent)" : undefined }}><Sparkles size={15} /></button>
         <input ref={fileRef} type="file" multiple className="hidden" onChange={(e) => pickFiles(e.target.files)} />
         <button onClick={() => fileRef.current?.click()} disabled={uploading || pending.length >= 5} title="Attach files (max 5 × 10 MB)"
           className="btn-icon h-8 w-8 shrink-0 disabled:opacity-40" style={{ color: pending.length ? "var(--section-accent)" : "var(--text-faint)" }}>

@@ -34,6 +34,8 @@ const activity = read("routes/dashboard/activity.tsx");
 const reportsIndex = read("routes/dashboard/reports/index.tsx");
 const settingsMembers = read("routes/dashboard/settings/members.tsx");
 const settingsAiControlRoom = read("routes/dashboard/settings/ai-control-room.tsx");
+const calendar = read("routes/dashboard/calendar.tsx");
+const messages = read("routes/dashboard/messages.tsx");
 // The bright, candy hexes that must NOT appear in product UI — only matte semantic tones allowed.
 const BRIGHT_HEXES = ["#d97706", "#10b981", "#e11d48", "#dc2626", "#ef4444", "#f59e0b", "#eab308", "#7b6fb0", "#22c55e", "#3b82f6", "#8b5cf6", "#06b6d4", "#0891b2", "#b45309"];
 const hasNoBrightHex = (src: string) => BRIGHT_HEXES.every((h) => !src.toLowerCase().includes(h));
@@ -353,6 +355,29 @@ describe("priority pages preserve every existing action/handler", () => {
     // Tabs gate visibility (queries still auto-run above) — no handler removed.
     expect(teamOversight).toMatch(/tab === "overview"/);
     expect(teamOversight).toMatch(/tab === "timeline"/);
+  });
+});
+
+describe("Calendar + Inbox AI-native polish", () => {
+  it("Calendar uses the shared CommandPageHeader with HONEST Meeting Agent status; keeps prepare/agenda/RSVP/call/followups", () => {
+    expect(calendar).toMatch(/<CommandPageHeader/);
+    expect(calendar).not.toMatch(/<h1\b/);
+    // Meeting Agent status is on-demand/available/monitoring — never a fake "running".
+    expect(calendar).toContain('kind: "monitoring"');
+    for (const h of ["prepare.mutate", "saveAgenda", "respond.mutate", "addCall.mutate", "createTask.mutate", "openCreate", "/prepare"]) {
+      expect(calendar).toContain(h);
+    }
+  });
+  it("Inbox uses the shared CommandPageHeader; AI draft is an integrated assist that never auto-sends; read state is real", () => {
+    expect(messages).toMatch(/<CommandPageHeader/);
+    expect(messages).not.toMatch(/<h1\b/);
+    // AI draft affordance (accent-tinted control) + honest 'you review & send' + never auto-sends.
+    expect(messages).toContain("Draft with AI");
+    expect(messages).toContain("you review");
+    expect(messages).toContain("/messages/draft");
+    // Read/Sent state derives only from the real read_at (no faked presence/receipts).
+    expect(messages).toMatch(/m\.read_at \?/);
+    for (const h of ["send.mutate", "aiDraft", "read_at"]) expect(messages).toContain(h);
   });
 });
 
