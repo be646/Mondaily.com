@@ -302,19 +302,25 @@ export function DiscoveryPage() {
         // One composer, two positions: WORKBENCH (no searches yet → input sits right under the
         // header, suggestions tight beneath it) vs CONVERSATION (results above, input pinned below).
         const composer = (
-          <div className="rounded-sm border px-3 py-2.5 transition-colors focus-within:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSubmit(input); } }}
-              rows={1}
-              autoFocus={turns.length === 0}
-              placeholder={suggestions?.discovery_placeholder ?? "Find leads or reviews…"}
-              className="max-h-32 w-full resize-none bg-transparent text-[14px] outline-none"
-              style={{ color: "var(--text-primary)" }}
-            />
-            <div className="mt-2 flex items-center justify-between">
+          // AI command surface — a leading command glyph + the query line, with a quiet divider to a
+          // "Mode" options row (Deep / Exhaustive). Reads as a prospecting command bar, not a textarea.
+          <div className="rounded-sm border transition-colors focus-within:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="flex items-start gap-2 px-3 pt-2.5">
+              <Radar size={15} className="mt-[3px] shrink-0" style={{ color: "var(--section-accent)" }} />
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSubmit(input); } }}
+                rows={1}
+                autoFocus={turns.length === 0}
+                placeholder={suggestions?.discovery_placeholder ?? "Find leads or reviews…"}
+                className="max-h-32 w-full resize-none bg-transparent text-[14px] outline-none"
+                style={{ color: "var(--text-primary)" }}
+              />
+            </div>
+            <div className="mt-2 flex items-center justify-between border-t px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
               <div className="flex items-center gap-1.5">
+                <span className="mr-0.5 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Mode</span>
                 <button onClick={() => setDeep((d) => !d)} title="Deep mode visits each business's own site to harvest emails & phones"
                   className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
                   style={deep ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
@@ -1046,9 +1052,6 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
           </div>
           <div className="mt-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Why matched: {matchReasons(r).join(" · ")}</div>
         </div>
-        {onDetails && (
-          <button onClick={onDetails} className="shrink-0 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Details</button>
-        )}
       </div>
 
       <PipelineChips st={st} />
@@ -1086,6 +1089,7 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
         {/* Secondary lead actions collapsed into a squared overflow menu — every action preserved,
             same handlers, just fewer visible buttons. Save + Add-to-list stay primary above. */}
         <ActionMenu align="left" triggerLabel="More" ariaLabel="More lead actions" items={[
+          ...(onDetails ? [{ key: "details", label: "Details", icon: ExternalLink, onClick: onDetails }] : []),
           { key: "enrich", label: enrich.isPending ? "Enriching…" : "Enrich", icon: Sparkles, disabled: enrich.isPending, onClick: () => enrich.mutate() },
           { key: "draft", label: outreach.isPending ? "Drafting…" : "Draft message", icon: Send, disabled: outreach.isPending, onClick: () => outreach.mutate() },
           { key: "task", label: leadTask.isPending ? "Creating…" : "Create task", icon: CheckSquare, disabled: leadTask.isPending, onClick: () => leadTask.mutate() },

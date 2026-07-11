@@ -299,6 +299,20 @@ describe("priority pages preserve every existing action/handler", () => {
       expect(discovery).toContain(h);
     }
   });
+  it("Discovery redesign: composer is an AI command surface; LeadCard has one primary + ActionMenu (Details folded in)", () => {
+    // Composer command surface (leading Radar glyph + Mode options row).
+    expect(discovery).toContain("AI command surface");
+    expect(discovery).toMatch(/uppercase tracking-wider" style=\{\{ color: "var\(--text-faint\)" \}\}>Mode</);
+    // Details is no longer a standalone card button — it's the first ActionMenu item.
+    expect(discovery).toContain('key: "details", label: "Details"');
+    expect(discovery).not.toMatch(/onClick=\{onDetails\} className="shrink-0 rounded-sm border/);
+    // Every lead action + Monitor still present.
+    for (const h of ["save.mutate", "addToList.mutate", "enrich.mutate", "outreach.mutate", "leadTask.mutate", "leadDecision.mutate", "onDetails", "WatchButton", "requestAsk"]) {
+      expect(discovery).toContain(h);
+    }
+    // Proof-of-work strip still fed by real counters only.
+    expect(discovery).toContain("value: turn.scanned ?? 0");
+  });
   it("Team Oversight keeps call/print/AI-review/timeline/ask", () => {
     for (const h of ["requestCall", "Printer", "OversightAsk", "MemberDetail", "window.print()", "member-efficiency", "member-insight", "oversight-actor"]) {
       expect(teamOversight).toContain(h);
