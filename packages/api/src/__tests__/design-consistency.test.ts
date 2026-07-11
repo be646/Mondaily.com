@@ -277,6 +277,23 @@ describe("priority pages preserve every existing action/handler", () => {
       expect(decisions).toContain(h);
     }
   });
+  it("Decisions is a redesigned approval cockpit: shared FilterToolbar + coherent DossierSection dossier + header-folded queue stats", () => {
+    // Filters now use the shared FilterToolbar (Records/List logic), not a bespoke bar / ActiveFilterChip.
+    expect(decisions).toMatch(/<FilterToolbar/);
+    expect(decisions).not.toContain("function ActiveFilterChip");
+    // Queue intelligence folded into the CommandPageHeader honest status row (no separate stats box).
+    expect(decisions).toContain("const queueStatus: CommandStatusItem[]");
+    expect(decisions).toMatch(/status=\{queueStatus\}/);
+    // Dossier is one coherent surface — every section is a DossierSection.
+    for (const title of ['title="Proposed change"', 'title="Evidence"', 'title="Why your agent raised this"']) {
+      expect(decisions).toContain(title);
+    }
+    expect(decisions).toMatch(/title=\{`Impact\$\{/);
+    // Approve/Reject/Snooze still resolve through the same handler (visible in the dossier footer).
+    expect(decisions).toContain('onResolve(d, "approve")');
+    expect(decisions).toContain('onResolve(d, "reject"');
+    expect(decisions).toContain('onResolve(d, "snooze"');
+  });
   it("Discovery keeps search/save/bulk/watch/deep/exhaustive/ICP", () => {
     for (const h of ["setDeep", "setExhaustive", "setIcpOpen", "clearHistory", "SaveAllLeads", "BulkBar"]) {
       expect(discovery).toContain(h);

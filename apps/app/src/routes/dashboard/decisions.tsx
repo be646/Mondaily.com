@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton } from "../../components/ui/page-state";
-import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, type ActionMenuItem } from "../../components/ui/controls";
+import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, FilterToolbar, type ActionMenuItem, type CommandStatusItem, type FilterChip } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -194,45 +194,36 @@ export function DecisionsPage() {
 
   if (isLoading) return <PageSkeleton />;
 
+  // Queue intelligence — REAL numbers from the live queue (no invention), folded into the header's
+  // honest status row instead of a separate stats box (one command header, not stacked blocks).
+  const pendingItems = items.filter(d => d.status === "pending");
+  const highRisk = pendingItems.filter(d => d.risk_level === "high").length;
+  const oldestMs = pendingItems.length ? Math.max(...pendingItems.map(d => Date.now() - new Date(d.created_at).getTime())) : 0;
+  const oldestDays = Math.floor(oldestMs / 86_400_000);
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const resolved7 = items.filter(d => d.resolved_at && new Date(d.resolved_at).getTime() > weekAgo);
+  const approved7 = resolved7.filter(d => d.status === "approved" || d.status === "completed").length;
+  const queueStatus: CommandStatusItem[] = items.length === 0
+    ? [{ label: "live sync", kind: "complete" }]
+    : [
+        { label: `${pendingItems.length} awaiting`, dot: false },
+        ...(highRisk > 0 ? [{ label: `${highRisk} high risk`, tone: "#9c6b72" } as CommandStatusItem] : []),
+        ...(pendingItems.length ? [{ label: `oldest ${oldestDays > 0 ? `${oldestDays}d` : "<1d"}`, tone: oldestDays >= 7 ? "#97824f" : undefined, dot: oldestDays >= 7 } as CommandStatusItem] : []),
+        { label: `${resolved7.length} resolved · 7d`, dot: false },
+        ...(resolved7.length ? [{ label: `${Math.round((approved7 / resolved7.length) * 100)}% approved · 7d`, dot: false } as CommandStatusItem] : []),
+      ];
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-      {/* Shared command header — same pattern as Discovery / Team Oversight / Home cockpit. */}
+      {/* One command header — icon, call-sign, title, honest queue status, keyboard hints. */}
       <CommandPageHeader
         icon={ShieldAlert}
         callsign="GATE"
         title="Decisions"
         subtitle="Agents propose — you approve."
-        status={[{ label: "live sync", kind: "complete" }]}
+        status={queueStatus}
         rightSummary={<span title="j/k navigate · a approve · r reject · s snooze">keys j·k·a·r·s</span>}
       />
-
-      {/* Queue intelligence — real numbers from the live queue, no invention */}
-      {items.length > 0 && (() => {
-        const pending = items.filter(d => d.status === "pending");
-        const highRisk = pending.filter(d => d.risk_level === "high").length;
-        const oldest = pending.length ? Math.max(...pending.map(d => Date.now() - new Date(d.created_at).getTime())) : 0;
-        const oldestDays = Math.floor(oldest / 86_400_000);
-        const week = Date.now() - 7 * 86_400_000;
-        const resolved7 = items.filter(d => d.resolved_at && new Date(d.resolved_at).getTime() > week);
-        const approved7 = resolved7.filter(d => d.status === "approved" || d.status === "completed").length;
-        const stats: { label: string; value: string; tone?: string }[] = [
-          { label: "awaiting approval", value: String(pending.length) },
-          { label: "high risk", value: String(highRisk), tone: highRisk > 0 ? "#9c6b72" : undefined },
-          { label: "oldest pending", value: pending.length ? (oldestDays > 0 ? `${oldestDays}d` : "<1d") : "—", tone: oldestDays >= 7 ? "#97824f" : undefined },
-          { label: "resolved · 7d", value: String(resolved7.length) },
-          { label: "approval rate · 7d", value: resolved7.length ? `${Math.round((approved7 / resolved7.length) * 100)}%` : "—" },
-        ];
-        return (
-          <div className="mb-4 grid grid-cols-2 overflow-hidden rounded-sm border sm:grid-cols-5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            {stats.map(st => (
-              <div key={st.label} className="px-3.5 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
-                <div className="font-mono text-[13px] font-medium tabular-nums" style={{ color: st.tone ?? "var(--text-primary)" }}>{st.value}</div>
-                <div className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>{st.label}</div>
-              </div>
-            ))}
-          </div>
-        );
-      })()}
 
       {/* Lane tabs */}
       <div className="mb-3 flex flex-wrap gap-1 border-b" style={{ borderColor: "var(--border-soft)" }}>
@@ -252,44 +243,43 @@ export function DecisionsPage() {
         <div className="surface-card rounded-sm p-5 text-[13px]" style={{ color: "var(--text-faint)" }}>Couldn't load the Decision Queue right now. Refresh, or check back shortly.</div>
       ) : (
         <>
-          {/* Filter bar — compact dropdown groups; active selections echo as small removable chips.
-              (Replaces the old wall of agent/type/risk chip buttons; every option is still reachable.) */}
-          {laneItems.length > 0 && (
-            <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">
-              {/* Secondary AI tools (advisory only — nothing executes) collapsed into one squared
-                  menu. Every action preserved with the same handlers; per-decision Approve/Reject/
-                  Snooze stay visible on each row below. */}
-              {lane === "approval" && laneItems.length > 1 && (
-                <ActionMenu triggerLabel={(triageBusy || !!verdictBusy) ? "AI tools…" : "AI tools"} align="left" ariaLabel="AI decision tools"
-                  items={([
-                    { key: "triage", label: triageBusy ? "Triaging…" : (triage ? "Re-triage queue" : "AI triage"), icon: Sparkles, disabled: triageBusy, onClick: runTriage },
-                    ...(triage ? [{ key: "clear", label: "Clear ranking", onClick: () => setTriage(null) }] : []),
-                    { key: "adjudicate", label: verdictBusy ? "Adjudicating…" : "Adjudicate visible", icon: ShieldAlert, disabled: !!verdictBusy, onClick: adjudicateVisible },
-                  ] as ActionMenuItem[])} />
-              )}
-              {verdicts.size > 0 && lane === "approval" && (
-                <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>
-                  AI suggests: {[...verdicts.values()].filter(v => v === "approve").length} approve · {[...verdicts.values()].filter(v => v === "investigate").length} investigate · {[...verdicts.values()].filter(v => v === "reject").length} reject
-                </span>
-              )}
-              {triageNote && <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>{triageNote}</span>}
-              <FilterSelect label="Agent" value={agentFilter} options={agents.map(a => ({ v: a, l: agentByRaw(a).name.replace(" Agent", "") }))} onChange={setAgentFilter} />
-              <FilterSelect label="Type" value={typeFilter} options={types.map(t => ({ v: t, l: t.replace(/_/g, " ") }))} onChange={setTypeFilter} />
-              <FilterSelect label="Risk" value={riskFilter} options={[{ v: "high", l: "High" }, { v: "medium", l: "Medium" }, { v: "low", l: "Low" }]} onChange={(v) => setRiskFilter(v as Decision["risk_level"] | null)} dot={(v) => RISK_DOT[v as Decision["risk_level"]]} />
-              {(assignees.length > 0) && (
-                <FilterSelect label="Reviewer" value={assigneeFilter} onChange={setAssigneeFilter}
-                  options={[{ v: "__none", l: "Unassigned" }, ...assignees.map(a => ({ v: a, l: memberLabel(memberList, a) ?? "Assigned" }))]} />
-              )}
-              {(agentFilter || typeFilter || riskFilter || assigneeFilter) && (
-                <span className="flex flex-wrap items-center gap-1.5">
-                  {agentFilter && <ActiveFilterChip label={agentByRaw(agentFilter).name.replace(" Agent", "")} onClear={() => setAgentFilter(null)} />}
-                  {typeFilter && <ActiveFilterChip label={typeFilter.replace(/_/g, " ")} onClear={() => setTypeFilter(null)} />}
-                  {riskFilter && <ActiveFilterChip label={riskFilter} dot={RISK_DOT[riskFilter]} onClear={() => setRiskFilter(null)} />}
-                  {assigneeFilter && <ActiveFilterChip label={assigneeFilter === "__none" ? "Unassigned" : (memberLabel(memberList, assigneeFilter) ?? "Assigned")} onClear={() => setAssigneeFilter(null)} />}
-                </span>
-              )}
-            </div>
-          )}
+          {/* Shared FilterToolbar — same filter logic as Records/Lists: dropdown filters, an
+              advisory AI-tools menu, active selections as removable chips, summary on the right.
+              Every option stays reachable; per-row Approve/Reject/Snooze stay visible below. */}
+          {laneItems.length > 0 && (() => {
+            const filterChips: FilterChip[] = [
+              ...(agentFilter ? [{ key: "agent", label: agentByRaw(agentFilter).name.replace(" Agent", ""), onRemove: () => setAgentFilter(null) }] : []),
+              ...(typeFilter ? [{ key: "type", label: typeFilter.replace(/_/g, " "), onRemove: () => setTypeFilter(null) }] : []),
+              ...(riskFilter ? [{ key: "risk", label: riskFilter, onRemove: () => setRiskFilter(null) }] : []),
+              ...(assigneeFilter ? [{ key: "assignee", label: assigneeFilter === "__none" ? "Unassigned" : (memberLabel(memberList, assigneeFilter) ?? "Assigned"), onRemove: () => setAssigneeFilter(null) }] : []),
+            ];
+            const aiSummary = verdicts.size > 0 && lane === "approval"
+              ? `AI: ${[...verdicts.values()].filter(v => v === "approve").length} approve · ${[...verdicts.values()].filter(v => v === "investigate").length} investigate · ${[...verdicts.values()].filter(v => v === "reject").length} reject`
+              : (triageNote || undefined);
+            return (
+              <FilterToolbar
+                filters={<>
+                  <FilterSelect label="Agent" value={agentFilter} options={agents.map(a => ({ v: a, l: agentByRaw(a).name.replace(" Agent", "") }))} onChange={setAgentFilter} />
+                  <FilterSelect label="Type" value={typeFilter} options={types.map(t => ({ v: t, l: t.replace(/_/g, " ") }))} onChange={setTypeFilter} />
+                  <FilterSelect label="Risk" value={riskFilter} options={[{ v: "high", l: "High" }, { v: "medium", l: "Medium" }, { v: "low", l: "Low" }]} onChange={(v) => setRiskFilter(v as Decision["risk_level"] | null)} dot={(v) => RISK_DOT[v as Decision["risk_level"]]} />
+                  {assignees.length > 0 && (
+                    <FilterSelect label="Reviewer" value={assigneeFilter} onChange={setAssigneeFilter}
+                      options={[{ v: "__none", l: "Unassigned" }, ...assignees.map(a => ({ v: a, l: memberLabel(memberList, a) ?? "Assigned" }))]} />
+                  )}
+                </>}
+                actionMenu={lane === "approval" && laneItems.length > 1 ? (
+                  <ActionMenu triggerLabel={(triageBusy || !!verdictBusy) ? "AI tools…" : "AI tools"} align="left" ariaLabel="AI decision tools"
+                    items={([
+                      { key: "triage", label: triageBusy ? "Triaging…" : (triage ? "Re-triage queue" : "AI triage"), icon: Sparkles, disabled: triageBusy, onClick: runTriage },
+                      ...(triage ? [{ key: "clear", label: "Clear ranking", onClick: () => setTriage(null) }] : []),
+                      { key: "adjudicate", label: verdictBusy ? "Adjudicating…" : "Adjudicate visible", icon: ShieldAlert, disabled: !!verdictBusy, onClick: adjudicateVisible },
+                    ] as ActionMenuItem[])} />
+                ) : undefined}
+                chips={filterChips}
+                summary={aiSummary}
+              />
+            );
+          })()}
 
           {/* Bulk bar — only in the open "Needs approval" lane */}
           {laneDef.key === "approval" && checkedList.length > 0 && (
@@ -404,19 +394,6 @@ function FilterSelect<T extends string>({ label, value, options, onChange, dot }
   );
 }
 
-/** A small removable chip echoing one active filter. */
-function ActiveFilterChip({ label, dot, onClear }: { label: string; dot?: string; onClear: () => void }) {
-  return (
-    <button onClick={onClear} title="Clear filter"
-      className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[11px] transition-colors hover:bg-[var(--surface-hover)]"
-      style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
-      {dot && <span className="h-1.5 w-1.5 rounded-full" style={{ background: dot }} />}
-      <span className="capitalize">{label}</span>
-      <XCircle size={10} style={{ color: "var(--text-faint)" }} />
-    </button>
-  );
-}
-
 function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decision; lane: { key: LaneKey; open: boolean }; acting: { id: string; action: string } | null; onResolve: (d: Decision, a: "approve" | "reject" | "snooze", opts?: { until?: string; note?: string }) => void; members: Member[]; onChanged: () => void }) {
   const a = agentByRaw(d.agent_name);
   const sources = mapEvidence(d.evidence ?? []);
@@ -452,11 +429,10 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           </div>
         </div>
 
-        {/* Proposed transformation */}
-        <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)" }}>
-          <div className="mb-3 flex items-center gap-1.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}><Zap size={11} /> Proposed transformation</div>
+        {/* Proposed change — shared DossierSection (flat, no extra card frame) */}
+        <DossierSection icon={Zap} title="Proposed change">
           {target?.node_id && (
-            <Link to={`/objects/${encodeURIComponent(target.object_type ?? "deals")}/${target.node_id}`} className="mb-3 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <Link to={`/objects/${encodeURIComponent(target.object_type ?? "deals")}/${target.node_id}`} className="mb-2.5 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
               Target: <span className="font-medium" style={{ color: "var(--text-primary)" }}>{target.title || "record"}</span><ExternalLink size={11} style={{ color: "var(--text-faint)" }} />
             </Link>
           )}
@@ -471,17 +447,13 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
               <div className="mt-1 break-words text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{proposed}</div>
             </div>
           </div>
-        </div>
+        </DossierSection>
 
-        {/* Exactly what approving does (real, mirrors backend execution) */}
+        {/* Impact — exactly what approving does (real, mirrors backend execution) */}
         {d.execution_preview && (
-          <div className="flex items-start gap-2 rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", borderLeft: `2px solid ${d.execution_preview.side_effect ? "#97824f" : "var(--border-strong)"}` }}>
-            <PlayCircle size={14} className="mt-0.5 shrink-0" style={{ color: d.execution_preview.side_effect ? "#97824f" : "var(--text-faint)" }} />
-            <div>
-              <div className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>If approved{d.execution_preview.side_effect ? " · runs an action" : " · advisory"}</div>
-              <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-secondary)" }}>{d.execution_preview.text}</p>
-            </div>
-          </div>
+          <DossierSection icon={PlayCircle} title={`Impact${d.execution_preview.side_effect ? " · runs an action" : " · advisory"}`}>
+            <p className="text-[12px]" style={{ color: "var(--text-secondary)", borderLeft: `2px solid ${d.execution_preview.side_effect ? "#97824f" : "var(--border-strong)"}`, paddingLeft: "0.625rem" }}>{d.execution_preview.text}</p>
+          </DossierSection>
         )}
 
         {/* AI verdict — structured, grounded adjudication (open lanes only) */}

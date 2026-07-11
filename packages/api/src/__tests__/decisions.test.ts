@@ -159,8 +159,10 @@ describe("Decisions 2.0 round 2 — cockpit functions stay honest", () => {
     expect(fn).not.toMatch(/\/approve|\/reject|\/bulk/);
   });
   it("queue stats are computed from the real loaded rows (no invented metrics)", () => {
-    expect(page).toMatch(/const pending = items\.filter\(d => d\.status === "pending"\)/);
-    expect(page).toMatch(/resolved7\.length \? `\$\{Math\.round\(\(approved7 \/ resolved7\.length\) \* 100\)\}%` : "—"/);
+    // Stats now fold into the CommandPageHeader status row, still derived from the real rows.
+    expect(page).toMatch(/const pendingItems = items\.filter\(d => d\.status === "pending"\)/);
+    expect(page).toMatch(/const approved7 = resolved7\.filter\(d => d\.status === "approved" \|\| d\.status === "completed"\)\.length/);
+    expect(page).toMatch(/\$\{Math\.round\(\(approved7 \/ resolved7\.length\) \* 100\)\}% approved/);
   });
   it("audit trail names the real resolver from the member directory", () => {
     expect(page).toMatch(/memberLabel\(members, d\.resolved_by\)/);
