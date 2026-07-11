@@ -63041,11 +63041,54 @@ init_ai_gateway();
 // src/lib/memory-recall.ts
 init_client();
 init_ai_gateway();
+var INJECT_CAP = 3;
 async function memoryEnabled(workspaceId) {
   if (process.env.MEMORY_RECALL_DISABLED === "1") return false;
   const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
   return data?.settings?.memory_enabled === true;
 }
+var ISSUE_RE = /\b(issue|issues|error|errors|not\s+working|doesn'?t\s+work|connectivity|connection|bug|bugs|problem|problems|fail(?:ed|ing|ure)?|slow|down|broken|outage|crash(?:ed)?|timeout|timing\s+out|can'?t|cannot|unable|502|500|503)\b/i;
+var FOLLOWUP_RE = /\b(follow.?up|task|tasks|due|overdue|deadline|remind(?:er)?|assign(?:ed)?|to.?do|pending|next\s+step)\b/i;
+var ENTITY_RE = /\b(client|clients|company|companies|contact|contacts|deal|deals|account|accounts|customer|customers|person|people|organi[sz]ation|vendor|supplier)\b/i;
+function detectIntent(q2) {
+  const i2 = [];
+  if (ISSUE_RE.test(q2)) i2.push("issue");
+  if (FOLLOWUP_RE.test(q2)) i2.push("followup");
+  if (ENTITY_RE.test(q2)) i2.push("entity");
+  return i2;
+}
+var EMAILISH = /* @__PURE__ */ new Set(["email_outbox", "email_thread", "email", "outbound_email", "notification"]);
+function categoryOf(kind2, sourceType) {
+  if (kind2 === "decision") return "decision";
+  if (kind2 === "ticket") return "ticket";
+  if (kind2 === "task") return "task";
+  if (kind2 === "message") return "message";
+  return EMAILISH.has(sourceType) ? "email" : "record";
+}
+var BASE_WEIGHT = { decision: 1, ticket: 1, record: 1, task: 0.9, email: 0.55, message: 0.55 };
+function typeWeight(category, intent) {
+  let w2 = BASE_WEIGHT[category] ?? 0.8;
+  if (intent.includes("issue")) {
+    if (category === "ticket") w2 *= 1.7;
+    if (category === "decision") w2 *= 1.4;
+  }
+  if (intent.includes("followup")) {
+    if (category === "task") w2 *= 1.6;
+    if (category === "decision") w2 *= 1.2;
+  }
+  if (intent.includes("entity")) {
+    if (category === "record") w2 *= 1.4;
+  }
+  return w2;
+}
+function recencyFactor(asOf) {
+  if (!asOf) return 1;
+  const t3 = new Date(asOf).getTime();
+  if (isNaN(t3)) return 1;
+  const ageDays = Math.max(0, (Date.now() - t3) / 864e5);
+  return 1 + 0.35 * Math.exp(-ageDays / 30);
+}
+var round2 = (n2) => Math.round(n2 * 100) / 100;
 var keywordsOf = (q2) => [...new Set(q2.toLowerCase().split(/[^a-z0-9]+/).filter((w2) => w2.length > 2))].slice(0, 8);
 var textBlob = (...parts) => parts.filter(Boolean).join(" ");
 var scoreOf = (blob, kws) => {
@@ -63053,19 +63096,20 @@ var scoreOf = (blob, kws) => {
   return kws.reduce((s2, k2) => b2.includes(k2) ? s2 + 1 : s2, 0);
 };
 var snippet = (s2) => redactSecrets(s2.replace(/\s+/g, " ").trim()).slice(0, 160);
-var PER_SOURCE = 5;
+var PER_SOURCE = 12;
 var TOTAL_CAP = 25;
 var FETCH = 60;
 async function recallContext(workspaceId, query, scope = {}) {
   const t0 = Date.now();
   const enabled2 = await memoryEnabled(workspaceId);
-  const empty = { enabled: enabled2, candidates: [], candidate_count: 0, source_count: 0, latency_ms: Date.now() - t0, scanned: 0 };
+  const intent = detectIntent(query);
+  const base = { enabled: enabled2, candidates: [], candidate_count: 0, injected_count: 0, source_count: 0, by_kind: {}, intent, latency_ms: 0, scanned: 0 };
   const kws = keywordsOf(query);
-  if (!enabled2 || kws.length === 0) return { ...empty, latency_ms: Date.now() - t0 };
+  if (!enabled2 || kws.length === 0) return { ...base, latency_ms: Date.now() - t0 };
   const want = (k2) => !scope.include || scope.include.includes(k2);
-  const out = [];
+  const raw2 = [];
   let scanned = 0;
-  const top = (rows2) => rows2.filter((c2) => c2.score > 0).sort((a2, b2) => b2.score - a2.score).slice(0, PER_SOURCE);
+  const keep = (rows2) => rows2.filter((c2) => c2.keyword > 0).sort((a2, b2) => b2.keyword - a2.keyword).slice(0, PER_SOURCE);
   if (want("record") || want("ticket")) {
     const { data: nodes } = await supabase.from("nodes").select("id, object_type, data, created_at, updated_at").eq("workspace_id", workspaceId).order("updated_at", { ascending: false }).limit(FETCH * 2);
     scanned += (nodes ?? []).length;
@@ -63075,48 +63119,91 @@ async function recallContext(workspaceId, query, scope = {}) {
       const d2 = n2.data ?? {};
       const isTicket = n2.object_type === "support_ticket";
       const blob = textBlob(String(d2.name ?? ""), String(d2.title ?? ""), String(d2.subject ?? ""), String(d2.summary ?? ""), String(d2.client_name ?? ""), String(d2.message ?? ""), String(d2.notes ?? ""));
-      const score = scoreOf(blob, kws);
-      if (score === 0) continue;
+      const keyword = scoreOf(blob, kws);
+      if (keyword === 0) continue;
       const cand = {
         kind: isTicket ? "ticket" : "record",
         title: String(d2.name ?? d2.title ?? d2.subject ?? n2.object_type ?? "record"),
         snippet: snippet(blob),
         source: { type: isTicket ? "support_ticket" : String(n2.object_type ?? "node"), id: String(n2.id) },
         as_of: n2.updated_at ?? n2.created_at,
-        score
+        keyword
       };
       (isTicket ? tickets : records).push(cand);
     }
-    if (want("record")) out.push(...top(records));
-    if (want("ticket")) out.push(...top(tickets));
+    if (want("record")) raw2.push(...keep(records));
+    if (want("ticket")) raw2.push(...keep(tickets));
   }
   if (want("task")) {
     const { data: tasks2 } = await supabase.from("tasks").select("id, title, description, status, created_at, updated_at").eq("workspace_id", workspaceId).order("updated_at", { ascending: false }).limit(FETCH);
     scanned += (tasks2 ?? []).length;
-    out.push(...top((tasks2 ?? []).map((t3) => {
+    raw2.push(...keep((tasks2 ?? []).map((t3) => {
       const blob = textBlob(t3.title, t3.description, t3.status);
-      return { kind: "task", title: String(t3.title ?? "task"), snippet: snippet(blob), source: { type: "task", id: String(t3.id) }, as_of: t3.updated_at ?? t3.created_at, score: scoreOf(blob, kws) };
+      return { kind: "task", title: String(t3.title ?? "task"), snippet: snippet(blob), source: { type: "task", id: String(t3.id) }, as_of: t3.updated_at ?? t3.created_at, keyword: scoreOf(blob, kws) };
     })));
   }
   if (want("decision")) {
     const { data: decisions } = await supabase.from("decision_queue").select("id, title, summary, status, created_at").eq("workspace_id", workspaceId).order("created_at", { ascending: false }).limit(FETCH);
     scanned += (decisions ?? []).length;
-    out.push(...top((decisions ?? []).map((dq) => {
+    raw2.push(...keep((decisions ?? []).map((dq) => {
       const blob = textBlob(dq.title, dq.summary);
-      return { kind: "decision", title: String(dq.title ?? "decision"), snippet: snippet(blob), source: { type: "decision", id: String(dq.id) }, as_of: dq.created_at, score: scoreOf(blob, kws) };
+      return { kind: "decision", title: String(dq.title ?? "decision"), snippet: snippet(blob), source: { type: "decision", id: String(dq.id) }, as_of: dq.created_at, keyword: scoreOf(blob, kws) };
     })));
   }
   if (want("message") && scope.userId) {
     const { data: msgs } = await supabase.from("internal_messages").select("id, body, sender_id, recipient_id, created_at").eq("workspace_id", workspaceId).or(`sender_id.eq.${scope.userId},recipient_id.eq.${scope.userId}`).order("created_at", { ascending: false }).limit(FETCH);
     scanned += (msgs ?? []).length;
-    out.push(...top((msgs ?? []).map((m2) => {
+    raw2.push(...keep((msgs ?? []).map((m2) => {
       const blob = textBlob(m2.body);
-      return { kind: "message", title: "message", snippet: snippet(blob), source: { type: "message", id: String(m2.id) }, as_of: m2.created_at, score: scoreOf(blob, kws) };
+      return { kind: "message", title: "message", snippet: snippet(blob), source: { type: "message", id: String(m2.id) }, as_of: m2.created_at, keyword: scoreOf(blob, kws) };
     })));
   }
-  const candidates = out.sort((a2, b2) => b2.score - a2.score).slice(0, TOTAL_CAP);
+  const scored = raw2.map((r2) => {
+    const category = categoryOf(r2.kind, r2.source.type);
+    const tw = typeWeight(category, intent);
+    const rf = recencyFactor(r2.as_of);
+    const final = r2.keyword * tw * rf;
+    return { kind: r2.kind, category, title: r2.title, snippet: r2.snippet, source: r2.source, as_of: r2.as_of, score: final, breakdown: { keyword: r2.keyword, type_weight: round2(tw), recency: round2(rf), final: round2(final) } };
+  });
+  const byKey = /* @__PURE__ */ new Map();
+  for (const c2 of [...scored].sort((a2, b2) => b2.score - a2.score)) {
+    const key = `${c2.category}::${c2.title.trim().toLowerCase() || c2.source.id}`;
+    const ex = byKey.get(key);
+    if (!ex || c2.score > ex.score) byKey.set(key, c2);
+  }
+  const deduped = [...byKey.values()];
+  const ordered = [];
+  const remaining = [...deduped];
+  const catCount = {};
+  while (remaining.length) {
+    let bestIdx = 0, bestEff = -Infinity;
+    for (let i2 = 0; i2 < remaining.length; i2++) {
+      const c2 = remaining[i2];
+      const eff = c2.score * Math.pow(0.55, catCount[c2.category] ?? 0);
+      if (eff > bestEff) {
+        bestEff = eff;
+        bestIdx = i2;
+      }
+    }
+    const [chosen] = remaining.splice(bestIdx, 1);
+    ordered.push(chosen);
+    catCount[chosen.category] = (catCount[chosen.category] ?? 0) + 1;
+  }
+  const candidates = ordered.slice(0, TOTAL_CAP);
   const source_count = new Set(candidates.map((c2) => `${c2.source.type}:${c2.source.id}`)).size;
-  return { enabled: true, candidates, candidate_count: candidates.length, source_count, latency_ms: Date.now() - t0, scanned };
+  const by_kind = {};
+  for (const c2 of candidates) by_kind[c2.category] = (by_kind[c2.category] ?? 0) + 1;
+  return {
+    enabled: true,
+    candidates,
+    candidate_count: candidates.length,
+    injected_count: Math.min(INJECT_CAP, candidates.length),
+    source_count,
+    by_kind,
+    intent,
+    latency_ms: Date.now() - t0,
+    scanned
+  };
 }
 
 // src/routes/ask.ts

@@ -291,8 +291,9 @@ export function AIControlRoomSettings() {
 }
 
 // ── Phase 2A: source-backed memory recall in SHADOW mode ──────────────────────
-interface RecallCandidate { kind: string; title: string; snippet: string; source: { type: string; id: string }; as_of: string | null; score: number }
-interface RecallResp { enabled: boolean; candidates: RecallCandidate[]; candidate_count: number; source_count: number; latency_ms: number; scanned: number }
+interface ScoreBreakdown { keyword: number; type_weight: number; recency: number; final: number }
+interface RecallCandidate { kind: string; category?: string; title: string; snippet: string; source: { type: string; id: string }; as_of: string | null; score: number; breakdown?: ScoreBreakdown }
+interface RecallResp { enabled: boolean; candidates: RecallCandidate[]; candidate_count: number; injected_count?: number; source_count: number; by_kind?: Record<string, number>; intent?: string[]; latency_ms: number; scanned: number }
 function MemoryShadowSection() {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
@@ -334,28 +335,45 @@ function MemoryShadowSection() {
           </div>
           {r && (
             <>
-              <div className="grid grid-cols-4 divide-x overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
-                {[["candidates", String(r.candidate_count)], ["sources", String(r.source_count)], ["scanned", String(r.scanned)], ["latency", `${r.latency_ms} ms`]].map(([l, v]) => (
+              <div className="grid grid-cols-3 divide-x overflow-hidden rounded-sm border sm:grid-cols-5" style={{ borderColor: "var(--border-soft)" }}>
+                {[["candidates", String(r.candidate_count)], ["injected", String(r.injected_count ?? Math.min(3, r.candidate_count))], ["sources", String(r.source_count)], ["scanned", String(r.scanned)], ["latency", `${r.latency_ms} ms`]].map(([l, v]) => (
                   <div key={l} className="px-3 py-2">
                     <div className="font-mono text-[13px] font-medium tabular-nums" style={{ color: "var(--text-primary)" }}>{v}</div>
                     <div className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>{l}</div>
                   </div>
                 ))}
               </div>
+              {(r.intent?.length || r.by_kind) && (
+                <div className="flex flex-wrap items-center gap-1.5 font-mono text-[9.5px] uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
+                  {(r.intent ?? []).length > 0 && <span>intent: {(r.intent ?? []).join(" + ")}</span>}
+                  {r.by_kind && Object.entries(r.by_kind).map(([k, n]) => (
+                    <span key={k} className="rounded-sm border px-1.5 py-px" style={{ borderColor: "var(--border-soft)" }}>{k} {n}</span>
+                  ))}
+                </div>
+              )}
               {r.candidates.length === 0 ? (
                 <p className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>No source-backed matches — recall returns empty rather than inventing context.</p>
               ) : (
                 <div className="divide-y rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
-                  {r.candidates.map((c) => (
-                    <div key={`${c.source.type}:${c.source.id}`} className="flex items-start gap-2.5 px-3 py-2">
-                      <span className="mt-0.5 shrink-0 rounded-sm border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-wide" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{c.kind}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{c.title}</div>
-                        <div className="truncate text-[11px]" style={{ color: "var(--text-muted)" }}>{c.snippet}</div>
-                        <div className="mt-0.5 font-mono text-[9.5px]" style={{ color: "var(--text-faint)" }}>source {c.source.type}:{c.source.id.slice(0, 8)} · score {c.score}{c.as_of ? ` · ${new Date(c.as_of).toLocaleDateString()}` : ""}</div>
+                  {r.candidates.map((c, idx) => {
+                    const injected = idx < (r.injected_count ?? Math.min(3, r.candidate_count));
+                    const b = c.breakdown;
+                    return (
+                      <div key={`${c.source.type}:${c.source.id}`} className="flex items-start gap-2.5 px-3 py-2" style={{ background: injected ? "var(--surface-hover)" : undefined }}>
+                        <span className="mt-0.5 shrink-0 rounded-sm border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-wide" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{c.category ?? c.kind}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <div className="min-w-0 flex-1 truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{c.title}</div>
+                            {injected && <span className="shrink-0 rounded-sm px-1 py-px font-mono text-[8px] uppercase tracking-wider" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>injected</span>}
+                          </div>
+                          <div className="truncate text-[11px]" style={{ color: "var(--text-muted)" }}>{c.snippet}</div>
+                          <div className="mt-0.5 font-mono text-[9.5px]" style={{ color: "var(--text-faint)" }}>
+                            {c.source.type}:{c.source.id.slice(0, 8)} · score {b ? b.final : c.score}{b ? ` (kw ${b.keyword} × type ${b.type_weight} × rec ${b.recency})` : ""}{c.as_of ? ` · ${new Date(c.as_of).toLocaleDateString()}` : ""}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
               <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>Shadow only — this is what recall WOULD surface. Nothing here is sent to the model or affects any answer. Every item is workspace-scoped and cites its source record.</p>
