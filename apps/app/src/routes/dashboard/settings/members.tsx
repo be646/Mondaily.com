@@ -4,6 +4,7 @@ import { Check, Copy, Trash2, UserPlus, Cpu, Clock, SlidersHorizontal } from "lu
 import { Fragment, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 import { FieldSelect } from "../../../components/ui/controls";
+import { PageHeader } from "../../../components/ui/page-state";
 
 /**
  * Team Operators — the single home for everyone in the workspace: role, finance access, AI compute
@@ -112,11 +113,8 @@ export function MembersSettings() {
           Couldn't load members right now — showing what's cached. Try reloading.
         </div>
       )}
-      <div className="mb-5">
-        <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// TEAM OPERATORS</p>
-        <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Members &amp; Roles</h1>
-        <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>{members.length} operator{members.length === 1 ? "" : "s"} · roles, per-module access, and AI compute.</p>
-      </div>
+      {/* Shared PageHeader — same page-header pattern as every other settings page. */}
+      <PageHeader title="Members & Roles" description={`${members.length} operator${members.length === 1 ? "" : "s"} · roles, per-module access, and AI compute.`} />
 
       {/* How access works — role sets the baseline, per-module access refines it. Clarifies the two
           distinct controls (revoke a single module vs remove the operator entirely). */}

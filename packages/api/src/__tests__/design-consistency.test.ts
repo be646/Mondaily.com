@@ -32,6 +32,8 @@ const controls = read("components/ui/controls.tsx");
 const callsSettings = read("routes/dashboard/settings/calls.tsx");
 const activity = read("routes/dashboard/activity.tsx");
 const reportsIndex = read("routes/dashboard/reports/index.tsx");
+const settingsMembers = read("routes/dashboard/settings/members.tsx");
+const settingsAiControlRoom = read("routes/dashboard/settings/ai-control-room.tsx");
 // The bright, candy hexes that must NOT appear in product UI — only matte semantic tones allowed.
 const BRIGHT_HEXES = ["#d97706", "#10b981", "#e11d48", "#dc2626", "#ef4444", "#f59e0b", "#eab308", "#7b6fb0", "#22c55e", "#3b82f6", "#8b5cf6", "#06b6d4", "#0891b2", "#b45309"];
 const hasNoBrightHex = (src: string) => BRIGHT_HEXES.every((h) => !src.toLowerCase().includes(h));
@@ -251,6 +253,19 @@ describe("structural adoption pass 2 (headers / settings frames / accent life)",
   it("settings frames are lightweight — no filled/tinted 'tan' card background", () => {
     expect(stylesCss).toMatch(/\.settings-section\s*\{[^}]*background:\s*transparent/);
     expect(controls).toMatch(/<section className=\{cx\("mb-6 rounded-sm border"[^)]*\)\} style=\{\{ borderColor: "var\(--border-soft\)", background: "transparent"/);
+  });
+  it("Settings pages share the PageHeader pattern (members + AI Control Room migrated off raw h1)", () => {
+    for (const src of [settingsMembers, settingsAiControlRoom]) {
+      expect(src).toMatch(/<PageHeader\b/);
+      expect(src).not.toMatch(/<h1\b/);
+    }
+    // Members keeps invite / role / module-access / remove behaviour.
+    for (const h of ["invite", "role", "module", "apiClient.delete"]) expect(settingsMembers).toContain(h);
+    // AI Control Room keeps its real config/run + honest state (no behaviour change).
+    for (const h of ["useMutation", "apiClient.post", "CONSTELLATION_STATE_LABEL"]) expect(settingsAiControlRoom).toContain(h);
+  });
+  it("settings sections stay lightweight — no filled/tinted 'tan' frame background", () => {
+    expect(stylesCss).toMatch(/\.settings-section\s*\{[^}]*background:\s*transparent/);
   });
   it("accent has restored life (not the over-flattened 32% saturation)", () => {
     // Console/default accent saturation was bumped 32% → 40% for a livelier (still matte) green.

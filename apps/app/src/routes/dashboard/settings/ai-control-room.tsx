@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { CheckCircle2, AlertTriangle, CircleSlash, ShieldCheck, Loader2, ArrowUpRight, Lock, MessageSquare, Network, Radar, Receipt, Workflow, Users2, Activity, BarChart2, GitBranch } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
+import { PageHeader } from "../../../components/ui/page-state";
 import { useAgentData, CONSTELLATION_STATE_LABEL, type ConstellationState } from "../../../components/ai/agent-dock";
 
 /**
@@ -88,9 +89,9 @@ export function AIControlRoomSettings() {
 
   return (
     <div className="mx-auto max-w-3xl px-1 py-2">
+      {/* Shared PageHeader — same page-header pattern as every other settings page. */}
       <div className="mb-6">
-        <h1 className="text-[18px] font-semibold" style={{ color: "var(--text-primary)" }}>AI Control Room</h1>
-        <p className="mt-0.5 text-[13px]" style={{ color: "var(--text-muted)" }}>Sovereign-first AI architecture — configuration, agents, safety, and the audit trail. Real data only.</p>
+        <PageHeader title="AI Control Room" description="Sovereign-first AI architecture — configuration, agents, safety, and the audit trail. Real data only." />
       </div>
 
       {/* Sovereignty matrix — the honest at-a-glance posture. Layers are self-hosted/native where
