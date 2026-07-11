@@ -231,9 +231,9 @@ export function DecisionsPage() {
           const on = lane === l.key; const n = laneCount(l.key);
           return (
             <button key={l.key} onClick={() => setLane(l.key)}
-              className="relative px-3 py-2 font-mono text-[10px] font-medium uppercase tracking-[0.12em] transition-colors"
-              style={{ color: on ? "var(--text-primary)" : "var(--text-faint)", borderBottom: on ? "1.5px solid var(--text-primary)" : "1.5px solid transparent", marginBottom: -1 }}>
-              {l.label} <span className="tabular-nums" style={{ color: on ? "var(--text-muted)" : "var(--text-faint)" }}>{n}</span>
+              className="relative rounded-t-sm px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
+              style={{ color: on ? "var(--text-primary)" : "var(--text-muted)", borderBottom: `2px solid ${on ? "var(--section-accent)" : "transparent"}`, marginBottom: -1 }}>
+              {l.label} <span className="tabular-nums" style={{ color: "var(--text-faint)" }}>{n}</span>
             </button>
           );
         })}
@@ -401,7 +401,6 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
   const busy = acting?.id === d.id;
   const currentState = target?.match_reason || (d.summary ? d.summary.split(",")[0] : "current state");
   const proposed = d.recommended_action || "Apply the agent's recommendation";
-  const [showReasoning, setShowReasoning] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
   const [snoozeOpen, setSnoozeOpen] = useState(false);
@@ -473,29 +472,23 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           </DossierSection>
         )}
 
-        {/* AI reasoning — only when the decision was LLM-generated (generation_context present) */}
+        {/* AI reasoning — shared collapsible DossierSection (only when LLM-generated). */}
         {d.generation_context?.user_prompt && (
-          <div className="rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
-            <button onClick={() => setShowReasoning(s => !s)} className="flex w-full items-center justify-between px-4 py-2.5 text-left">
-              <span className="font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>Why the AI chose this</span>
-              <ChevronDown size={13} style={{ color: "var(--text-faint)", transform: showReasoning ? "rotate(180deg)" : "none" }} />
-            </button>
-            {showReasoning && (
-              <div className="space-y-3 border-t px-4 py-3 text-[11.5px] leading-relaxed" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-                <div>
-                  <div className="mb-1 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>What the agent saw (real captured prompt)</div>
-                  <pre className="whitespace-pre-wrap break-words font-sans">{d.generation_context.user_prompt.slice(0, 1200)}</pre>
-                </div>
-                {d.generation_context.model_output != null && (
-                  <div>
-                    <div className="mb-1 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>What the agent produced (real captured output)</div>
-                    <pre className="whitespace-pre-wrap break-words rounded-sm p-2 font-mono text-[10.5px]" style={{ background: "var(--surface-hover)" }}>{(typeof d.generation_context.model_output === "string" ? d.generation_context.model_output : JSON.stringify(d.generation_context.model_output, null, 2)).slice(0, 1500)}</pre>
-                  </div>
-                )}
-                <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>Captured verbatim when the agent raised this decision — provenance, not a reconstruction.</p>
+          <DossierSection collapsible defaultOpen={false} title="Why the AI chose this">
+            <div className="space-y-3 text-[11.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              <div>
+                <div className="mb-1 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>What the agent saw (real captured prompt)</div>
+                <pre className="whitespace-pre-wrap break-words font-sans">{d.generation_context.user_prompt.slice(0, 1200)}</pre>
               </div>
-            )}
-          </div>
+              {d.generation_context.model_output != null && (
+                <div>
+                  <div className="mb-1 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>What the agent produced (real captured output)</div>
+                  <pre className="whitespace-pre-wrap break-words rounded-sm p-2 font-mono text-[10.5px]" style={{ background: "var(--surface-hover)" }}>{(typeof d.generation_context.model_output === "string" ? d.generation_context.model_output : JSON.stringify(d.generation_context.model_output, null, 2)).slice(0, 1500)}</pre>
+                </div>
+              )}
+              <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>Captured verbatim when the agent raised this decision — provenance, not a reconstruction.</p>
+            </div>
+          </DossierSection>
         )}
 
         {/* Audit trail — shared DossierSection block */}
@@ -706,21 +699,22 @@ function DecisionVerdict({ decision }: { decision: Decision }) {
   const v = verdict.data;
   const TONE: Record<string, string> = { approve: "#5f8169", reject: "#9c6b72", investigate: "#97824f" };
   return (
-    <div className="rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
-      <div className="flex items-center justify-between px-4 py-2.5">
-        <span className="flex items-center gap-1.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>
-          <Sparkles size={11} /> AI verdict
-        </span>
+    // Shared DossierSection — same flat surface as Proposed change / Impact / Evidence / Audit.
+    <DossierSection
+      icon={Sparkles}
+      title="AI verdict"
+      action={
         <button onClick={() => verdict.mutate()} disabled={verdict.isPending}
           className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors disabled:opacity-50"
           style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
           {verdict.isPending ? <Loader2 size={11} className="animate-spin" /> : v ? "Re-adjudicate" : "Adjudicate"}
         </button>
-      </div>
-      {verdict.isError && <p className="border-t px-4 py-2.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>The AI service is unavailable right now — the decision is still fully reviewable above.</p>}
-      {v && !v.sufficient && <p className="border-t px-4 py-2.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{v.reason ?? "Not enough recorded data to adjudicate."}</p>}
+      }
+    >
+      {verdict.isError && <p className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>The AI service is unavailable right now — the decision is still fully reviewable above.</p>}
+      {v && !v.sufficient && <p className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>{v.reason ?? "Not enough recorded data to adjudicate."}</p>}
       {v?.sufficient && v.recommendation && (
-        <div className="space-y-2.5 border-t px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="space-y-2.5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider" style={{ borderColor: "var(--border-strong)", color: TONE[v.recommendation] }}>
               {v.recommendation === "approve" ? <CheckCircle2 size={11} /> : v.recommendation === "reject" ? <XCircle size={11} /> : <ShieldAlert size={11} />} {v.recommendation}
@@ -748,10 +742,10 @@ function DecisionVerdict({ decision }: { decision: Decision }) {
         </div>
       )}
       {!v && !verdict.isPending && !verdict.isError && (
-        <p className="border-t px-4 py-2.5 text-[11px] leading-relaxed" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
+        <p className="text-[11px] leading-relaxed" style={{ color: "var(--text-faint)" }}>
           Ask the AI to adjudicate this decision — recommendation, risks, and what to verify, grounded strictly in the recorded evidence. It never acts on its own.
         </p>
       )}
-    </div>
+    </DossierSection>
   );
 }

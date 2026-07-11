@@ -271,8 +271,8 @@ describe("structural adoption pass 2 (headers / settings frames / accent life)",
     expect(stylesCss).toMatch(/\.settings-section\s*\{[^}]*background:\s*transparent/);
   });
   it("accent has restored life (not the over-flattened 32% saturation)", () => {
-    // Console/default accent saturation was bumped 32% → 40% for a livelier (still matte) green.
-    expect(stylesCss).toMatch(/--accent-h: 158; --accent-s: 40%; --accent-l: 50%/);
+    // Console/default accent saturation raised over successive passes → 47% for usable contrast.
+    expect(stylesCss).toMatch(/--accent-h: 158; --accent-s: 47%; --accent-l: 50%/);
     expect(stylesCss).not.toMatch(/--accent-s: 32%/);
   });
   it("Agents/Activity keeps run-now + sync + roster proof-of-work", () => {
@@ -356,6 +356,33 @@ describe("priority pages preserve every existing action/handler", () => {
     // Tabs gate visibility (queries still auto-run above) — no handler removed.
     expect(teamOversight).toMatch(/tab === "overview"/);
     expect(teamOversight).toMatch(/tab === "timeline"/);
+  });
+});
+
+describe("debt-closure pass — Decisions dossier unification + colour system", () => {
+  it("Decisions dossier is one coherent surface — AI verdict + AI reasoning are DossierSections too", () => {
+    // Proposed change / Impact / Why / Evidence / AI reasoning / Audit trail / AI verdict.
+    expect((decisions.match(/<DossierSection/g) ?? []).length).toBeGreaterThanOrEqual(6);
+    // The old boxed 'AI verdict' card wrapper is gone; verdict handler preserved.
+    expect(decisions).toContain('title="AI verdict"');
+    expect(decisions).toContain("verdict.mutate");
+    // AI reasoning is now a collapsible DossierSection (no stray showReasoning state).
+    expect(decisions).not.toContain("setShowReasoning");
+  });
+  it("Decisions lane tabs align with the shared tab pattern (section-accent underline)", () => {
+    expect(decisions).toMatch(/borderBottom: `2px solid \$\{on \? "var\(--section-accent\)"/);
+  });
+  it("Approve / Reject / Snooze still resolve through the same handler", () => {
+    for (const a of ["approve", "reject", "snooze"]) expect(decisions).toContain(`onResolve(d, "${a}"`);
+  });
+  it("colour system has life + a clear primary action (accent-tinted btn-primary ≠ transparent secondary)", () => {
+    // Accent saturation raised for usable contrast (was 40% → 47%).
+    expect(stylesCss).toMatch(/--accent-s: 47%/);
+    expect(stylesCss).not.toMatch(/--accent-s: 40%/);
+    // btn-primary is now clearly accent-tinted (visible primary), not the transparent secondary look.
+    expect(stylesCss).toMatch(/\.btn-primary \{[^}]*background: color-mix\(in srgb, var\(--section-accent\) 14%/s);
+    // No candy: still no rainbow section drift (theme-spread stays 0).
+    expect(stylesCss).toMatch(/--theme-spread: 0\b/);
   });
 });
 

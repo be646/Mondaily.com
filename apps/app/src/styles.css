@@ -34,7 +34,7 @@
   /* accent as HSL components — the base hue every section rotates from.
      Kept deliberately LOW-saturation for a natural, matte feel (no neon). */
   --accent-h: 158;
-  --accent-s: 40%;
+  --accent-s: 47%;
   --accent-l: 50%;
   --theme-spread: 0;   /* 0 = ONE accent family app-wide. Section identity comes from the mono
                           call-sign + icon (SectionHeader), never a different colour per page.
@@ -64,7 +64,7 @@
 }
 /* explicit alias so data-theme="console" and the legacy "dark" both map to root */
 html[data-theme="console"], html[data-theme="dark"] {
-  --accent-h: 158; --accent-s: 40%; --accent-l: 50%; --theme-spread: 0;
+  --accent-h: 158; --accent-s: 47%; --accent-l: 50%; --theme-spread: 0;
 }
 
 /* Section-soul scope — layout.tsx puts this class + an inline --section-hue on the
@@ -126,7 +126,7 @@ html[data-theme="paper"] {
   --text-secondary:   #5c503c;
   --text-muted:       #8a7b62;
   --text-faint:       #b3a384;
-  --accent-h: 150; --accent-s: 30%; --accent-l: 34%; --theme-spread: 0;
+  --accent-h: 150; --accent-s: 36%; --accent-l: 33%; --theme-spread: 0;
 }
 
 /* ── Theme: Daylight (pure white) — also the legacy "light" alias ─────────── */
@@ -145,7 +145,7 @@ html[data-theme="daylight"], html[data-theme="light"] {
   --text-secondary:   #404040;
   --text-muted:       #6b6b6b;
   --text-faint:       #9a9a9a;
-  --accent-h: 158; --accent-s: 42%; --accent-l: 38%; --theme-spread: 0;
+  --accent-h: 158; --accent-s: 48%; --accent-l: 37%; --theme-spread: 0;
 }
 
 /* ── Theme: Rosé (soft pink) ──────────────────────────────────────────────── */
@@ -164,7 +164,7 @@ html[data-theme="rose"] {
   --text-secondary:   #5f3c44;
   --text-muted:       #8a626a;
   --text-faint:       #b49199;
-  --accent-h: 345; --accent-s: 44%; --accent-l: 52%; --theme-spread: 0;
+  --accent-h: 345; --accent-s: 50%; --accent-l: 52%; --theme-spread: 0;
 }
 
 /* Solid primary-button colour — user-switchable (Settings → Appearance).
@@ -1097,25 +1097,28 @@ html[data-theme="dark"] .minimal-sparkline {
    One set of classes for the whole app — replaces ad-hoc per-page button
    strings so primary/secondary/ghost/tab buttons feel like one system. ── */
 @layer components {
+  /* PRIMARY = clearly accent-tinted so the main action stands out (alive, not candy). Distinct from
+     the quiet transparent secondary. Squared to match the app. */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100;
-    background: transparent;
-    border: 1px solid var(--border-soft);
-    color: var(--text-secondary);
+    @apply inline-flex items-center justify-center gap-1.5 rounded-sm px-3.5 py-2 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100;
+    background: color-mix(in srgb, var(--section-accent) 14%, transparent);
+    border: 1px solid var(--section-accent-line);
+    color: var(--section-accent-text);
   }
   .btn-primary:hover:not(:disabled) {
-    background: var(--surface-hover);
+    background: color-mix(in srgb, var(--section-accent) 22%, transparent);
     border-color: var(--section-accent);
-    color: var(--text-primary);
+    color: var(--section-accent-text);
     box-shadow: none;
   }
   .btn-primary:disabled {
     background: transparent;
+    border-color: var(--border-soft);
     color: var(--text-faint);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-sm px-3.5 py-2 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
     background: transparent;
     border: 1px solid var(--border-soft);
     color: var(--text-secondary);
