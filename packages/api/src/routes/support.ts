@@ -235,7 +235,7 @@ router.post("/ask", zValidator("json", z.object({
   // UNMETERED on purpose (no workspaceId) so users with 0 credits can still get help about credits.
   let raw = "";
   try {
-    const res = await aiGateway({ system, prompt, maxTokens: 700, feature: "support" });
+    const res = await aiGateway({ system, prompt, maxTokens: 700, feature: "support", taskClass: "support" });
     raw = res.text ?? "";
   } catch {
     return c.json({ answer: "I couldn't reach the help service just now. Please try again, or create a support request.", category: "bug_report" as SupportCategory, needs_ticket: true, suggested_subject: "Help service error", language: ctx.language, cited_docs: [], diagnostics, suggested_actions: buildSuggestedActions(ctx, topic, true, diagnostics), degraded: true });

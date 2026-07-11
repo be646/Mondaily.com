@@ -378,7 +378,7 @@ router.post("/:id/ask", async (c) => {
 
   const sources = evidence.slice(0, 12).map((e: Record<string, unknown>) => ({ type: "evidence" as const, title: String(e.title ?? "evidence"), relevance: (e.match_reason ?? e.relationship) as string | undefined }));
   try {
-    const { text } = await aiGateway({ system, prompt: `Question: ${question}\n\nData:\n${digest}`, maxTokens: 320, workspaceId, userId: c.get("userId"), feature: "decision_ask" });
+    const { text } = await aiGateway({ system, prompt: `Question: ${question}\n\nData:\n${digest}`, maxTokens: 320, workspaceId, userId: c.get("userId"), feature: "decision_ask", taskClass: "reasoning" });
     const answer = (text || "").trim();
     return c.json({ answer: answer || "I couldn't produce an explanation for this decision.", sources, sufficient: true });
   } catch {
@@ -440,7 +440,7 @@ router.post("/:id/verdict", async (c) => {
       maxTokens: 500,
       workspaceId,
       userId: c.get("userId"),
-      feature: "decision_verdict",
+      feature: "decision_verdict", taskClass: "reasoning",
     });
     const r = (result ?? {}) as { recommendation?: string; rationale?: string; risks?: string[]; checks?: string[] };
     const rec = ["approve", "reject", "investigate"].includes(String(r.recommendation)) ? String(r.recommendation) : "investigate";
@@ -514,7 +514,7 @@ router.post("/triage", async (c) => {
       maxTokens: 900,
       workspaceId,
       userId: c.get("userId"),
-      feature: "decision_triage",
+      feature: "decision_triage", taskClass: "reasoning",
     });
     const validIds = new Set(pending.map((d) => String(d.id)));
     const seen = new Set<string>();

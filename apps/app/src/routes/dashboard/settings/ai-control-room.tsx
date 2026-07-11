@@ -17,6 +17,17 @@ type CheckState = "operational" | "needs_setup" | "disabled" | "error" | "not_ch
 interface Check { id: string; label: string; state: CheckState; explanation: string; action?: string }
 interface StatusResp { checked_at: string; workspace_id: string; checks: Check[] }
 interface ActivityItem { id: string; agent: string; status: string; summary: string; error: string | null; started_at: string; completed_at: string | null }
+interface UsageSummary {
+  month?: { ai_calls?: number; by_model?: Record<string, number> };
+  observability?: {
+    by_class?: Record<string, number>;
+    avg_latency_ms?: number | null;
+    cache_hit_rate?: number | null;
+    cache_samples?: number;
+    refusals?: number;
+    providers?: string[];
+  };
+}
 
 const STATE_TONE: Record<CheckState, string> = {
   operational: "#10b981", needs_setup: "#d97706", disabled: "var(--text-faint)", error: "#e11d48", not_checked: "var(--text-faint)",
@@ -52,6 +63,8 @@ export function AIControlRoomSettings() {
     queryFn: () => apiClient.get<{ activity: ActivityItem[]; stats: { runs_today: number; errors_today: number } }>("/agents/activity?limit=40"),
     refetchInterval: 30_000,
   });
+  // Phase-1 AI-run observability (real ai_usage rollup; fields are null until populated).
+  const obsQ = useQuery<UsageSummary>({ queryKey: ["usage-summary"], queryFn: () => apiClient.get<UsageSummary>("/usage/summary"), retry: false });
 
   const checks = statusQ.data?.checks ?? [];
   const byId = (id: string) => checks.find((c) => c.id === id);
@@ -100,6 +113,44 @@ export function AIControlRoomSettings() {
           <MatrixRow label="Third-party AI/search fallbacks" value="Disabled — no silent fallback to Anthropic, OpenAI, or Tavily" tone="ok" />
         </div>
       </Section>
+
+      {/* AI runs — Phase-1 observability. Calm, monospaced, honest: any metric with no signal
+          yet reads "—" (never a fabricated number). Populates as the new ai_usage columns fill. */}
+      {(() => {
+        const o = obsQ.data?.observability;
+        const calls = obsQ.data?.month?.ai_calls ?? 0;
+        const classes = Object.entries(o?.by_class ?? {}).sort((a, b) => b[1] - a[1]);
+        const models = Object.keys(obsQ.data?.month?.by_model ?? {});
+        const cells: { label: string; value: string }[] = [
+          { label: "AI runs · month", value: calls ? calls.toLocaleString() : "—" },
+          { label: "avg latency", value: o?.avg_latency_ms != null ? `${o.avg_latency_ms} ms` : "—" },
+          { label: "cache hit rate", value: o?.cache_hit_rate != null ? `${o.cache_hit_rate}%` : "—" },
+          { label: "refusals", value: o?.refusals != null ? String(o.refusals) : "—" },
+          { label: "backend", value: (o?.providers ?? []).join(", ") || "—" },
+          { label: "models", value: models.length ? String(models.length) : "—" },
+        ];
+        return (
+          <Section title="AI runs" hint="Live from the AI usage ledger this month. Cache hit rate populates once your gateway reports prompt caching (e.g. vLLM prefix cache).">
+            <div className="grid grid-cols-2 divide-y overflow-hidden rounded-sm border sm:grid-cols-3 sm:divide-x sm:divide-y-0" style={{ borderColor: "var(--border-soft)" }}>
+              {cells.map((cl) => (
+                <div key={cl.label} className="px-3.5 py-2.5">
+                  <div className="truncate font-mono text-[14px] font-medium tabular-nums" style={{ color: "var(--text-primary)" }} title={cl.value}>{cl.value}</div>
+                  <div className="mt-0.5 font-mono text-[8.5px] uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>{cl.label}</div>
+                </div>
+              ))}
+            </div>
+            {classes.length > 0 && (
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {classes.map(([cls, n]) => (
+                  <span key={cls} className="inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                    {cls} <span className="tabular-nums" style={{ color: "var(--text-faint)" }}>{n}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </Section>
+        );
+      })()}
 
       {/* 1. AI System Status */}
       <Section title="AI system status">

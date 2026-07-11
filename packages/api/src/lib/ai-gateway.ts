@@ -29,6 +29,18 @@
 import OpenAI from "openai";
 import { recordAiUsage } from "./ai-usage";
 import { assertCreditsOk, CreditsExhaustedError } from "./credits";
+import { modelForClass, backendLabel, type TaskClass } from "./ai-router";
+
+/**
+ * Derive a cache status from the completion's usage, when the backend exposes prompt caching.
+ * OpenAI-compat + vLLM prefix caching report `prompt_tokens_details.cached_tokens`. Returns
+ * "hit"/"miss" when the field is present, else null (no signal → honest null, never guessed).
+ */
+function cacheStatusFrom(usage: unknown): "hit" | "miss" | null {
+  const cached = (usage as { prompt_tokens_details?: { cached_tokens?: number } } | null | undefined)?.prompt_tokens_details?.cached_tokens;
+  if (typeof cached !== "number") return null;
+  return cached > 0 ? "hit" : "miss";
+}
 
 // ── Shared types ────────────────────────────────────────────────────────────────
 
@@ -42,6 +54,11 @@ export type GatewayRequest = {
   workspaceId?: string;
   userId?: string;
   feature?: string;
+  /** Phase-1 routing/observability (all optional, additive). taskClass picks the model via the
+   *  AI router; sourceCount/refusalReason are recorded to ai_usage for the Control Room. */
+  taskClass?: TaskClass;
+  sourceCount?: number;
+  refusalReason?: string;
   onUsage?: (u: { prompt_tokens: number; completion_tokens: number; total_tokens: number; reasoning_tokens: number }) => void;
 };
 
@@ -65,6 +82,8 @@ export type GatewayToolRequest = {
   system?: string;
   /** Optional model spec override (e.g. the fast model for cheap batch scoring). */
   model?: string;
+  /** Optional task class — resolves the model via the AI router when `model` isn't given. */
+  taskClass?: TaskClass;
   /** Optional: receive the real provider token usage for this call (for per-job telemetry). */
   onUsage?: (u: { prompt_tokens: number; completion_tokens: number; total_tokens: number; reasoning_tokens: number }) => void;
   /** When set, token usage is metered to ai_usage + the credit wallet automatically (default
@@ -74,6 +93,8 @@ export type GatewayToolRequest = {
   /** Tags the metered usage row with the product surface (e.g. "discovery", "chat") for the
    *  per-feature usage dashboard. */
   feature?: string;
+  /** Phase-1 observability — grounding source count recorded to ai_usage (optional). */
+  sourceCount?: number;
 };
 
 // ── Internal routing ────────────────────────────────────────────────────────────
@@ -304,12 +325,15 @@ export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
   try { await assertCreditsOk(req.workspaceId); }
   catch (e) { if (e instanceof CreditsExhaustedError) return { text: e.message, provider: "none", model: "none" }; throw e; }
 
-  const resolved = resolveModel();
+  // Task-class routing (additive): when a taskClass is given, resolve its model via the router;
+  // otherwise resolveModel() keeps the exact prior default. Never selects a proprietary provider.
+  const resolved = resolveModel(modelForClass(req.taskClass));
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
   if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
   messages.push({ role: "user", content: redactSecrets(req.prompt) });
 
+  const t0 = Date.now();
   const completion = await openAIClient().chat.completions.create({
     model: resolved.modelId,
     // Reasoning models (e.g. gpt-oss) spend tokens "thinking" before emitting
@@ -318,12 +342,16 @@ export async function aiGateway(req: GatewayRequest): Promise<GatewayResponse> {
     max_tokens: Math.max(req.maxTokens ?? 512, 2048),
     messages,
   });
-  // Meter real token usage to the workspace wallet + ai_usage (only charges for work performed).
+  const latencyMs = Date.now() - t0;
+  // Meter real token usage + observability to the workspace wallet + ai_usage.
   if (completion.usage) {
     const u = completion.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
     const usage = { prompt_tokens: u.prompt_tokens ?? 0, completion_tokens: u.completion_tokens ?? 0, total_tokens: u.total_tokens ?? 0, reasoning_tokens: u.completion_tokens_details?.reasoning_tokens ?? 0 };
     if (req.onUsage) req.onUsage(usage);
-    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, { userId: req.userId, feature: req.feature });
+    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, {
+      userId: req.userId, feature: req.feature, taskClass: req.taskClass, provider: backendLabel(),
+      latencyMs, sourceCount: req.sourceCount, refusalReason: req.refusalReason, cacheStatus: cacheStatusFrom(completion.usage) ?? undefined,
+    });
   }
   const msg = completion.choices[0]?.message as { content?: string; reasoning?: string } | undefined;
   const text = (msg?.content && msg.content.trim()) ? msg.content : (msg?.reasoning ?? "");
@@ -337,12 +365,15 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
   // generation, decision reasoning all flow through here). Throws CreditsExhaustedError if the
   // workspace is out of credits or over its burst cap. Callers degrade gracefully.
   await assertCreditsOk(req.workspaceId);
-  const resolved = resolveModel(req.model);
+  // Explicit model wins; else task-class routing; else gateway default. Additive — unchanged when
+  // neither is provided.
+  const resolved = resolveModel(req.model ?? modelForClass(req.taskClass));
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
   if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
   messages.push({ role: "user", content: redactSecrets(req.prompt) });
 
+  const t0 = Date.now();
   const completion = await openAIClient().chat.completions.create({
     model: resolved.modelId,
     max_tokens: req.maxTokens ?? 1024,
@@ -353,6 +384,7 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
     }],
     tool_choice: { type: "function", function: { name: req.toolName } },
   });
+  const latencyMs = Date.now() - t0;
 
   if (completion.usage) {
     const u = completion.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
@@ -365,7 +397,10 @@ export async function aiGatewayToolUse(req: GatewayToolRequest): Promise<Record<
     if (req.onUsage) req.onUsage(usage);
     // Default metering: every tool call with a workspaceId records to ai_usage + the credit wallet,
     // so background/agent inference (scoring, enrichment, generation) is no longer free/untracked.
-    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, { userId: req.userId, feature: req.feature });
+    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, {
+      userId: req.userId, feature: req.feature, taskClass: req.taskClass ?? "extraction", provider: backendLabel(),
+      latencyMs, sourceCount: req.sourceCount, cacheStatus: cacheStatusFrom(completion.usage) ?? undefined,
+    });
   }
 
   const toolCall = completion.choices[0]?.message.tool_calls?.[0];
@@ -432,6 +467,8 @@ export type AgentRequest = {
   /** Cost telemetry: when set, token usage is logged to ai_usage for this tenant. */
   workspaceId?: string;
   userId?: string;
+  /** Internal: set by the router from the resolved tier (fast|reasoning) for observability. */
+  taskClass?: TaskClass;
   onToolCall: (name: string, input: Record<string, unknown>) => Promise<string>;
 };
 
@@ -580,7 +617,7 @@ async function runOpenAICompatAgent(
   }
 
   const finalUsage = usage.total_tokens > 0 ? usage : undefined;
-  recordAiUsage(req.workspaceId, activeModel, finalUsage, { userId: req.userId });
+  recordAiUsage(req.workspaceId, activeModel, finalUsage, { userId: req.userId, taskClass: req.taskClass, provider: backendLabel() });
   return { reply, provider: "openai-compat", model: activeModel, rounds, usage: finalUsage };
 }
 
@@ -601,7 +638,7 @@ export async function aiGatewayAgent(req: AgentRequest): Promise<AgentResponse> 
   catch (e) { if (e instanceof CreditsExhaustedError) return { reply: e.message, provider: "none", model: "none", rounds: 0 }; throw e; }
   // Fast-model routing applies here too (conversational → fast model, no tools).
   const route = routeAgentModel(req);
-  req = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
+  req = { ...req, model: route.spec, tools: route.useTools ? req.tools : [], taskClass: route.tier === "fast" ? "fast" : "reasoning" };
   const spec = route.spec;
 
   const resolved = resolveModel(spec);
@@ -651,7 +688,7 @@ export async function aiGatewayAgentStream(
   catch (e) { if (e instanceof CreditsExhaustedError) { await onEvent({ type: "token", text: e.message }); return { reply: e.message, provider: "none", model: "none", rounds: 0 }; } throw e; }
   // Fast-model routing: conversational turns → small model, no tools.
   const route = routeAgentModel(req);
-  const effectiveReq: AgentRequest = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
+  const effectiveReq: AgentRequest = { ...req, model: route.spec, tools: route.useTools ? req.tools : [], taskClass: route.tier === "fast" ? "fast" : "reasoning" };
   const resolved = resolveModel(route.spec);
   const MAX_ROUNDS = route.useTools ? (req.maxRounds ?? 5) : 1;
   console.log(`[gateway:agent-stream] tier=${route.tier} spec="${route.spec}" tools=${effectiveReq.tools.length}`);
@@ -803,7 +840,7 @@ async function runOpenAICompatAgentStream(
         // A partial answer already reached the user — flag it, don't hang.
         await onEvent({ type: "token", text: "\n\n_(Connection interrupted — this reply may be incomplete. Please ask again.)_" });
         const partialUsage = usage.total_tokens > 0 ? usage : undefined;
-        recordAiUsage(req.workspaceId, modelId, partialUsage, { userId: req.userId });
+        recordAiUsage(req.workspaceId, modelId, partialUsage, { userId: req.userId, taskClass: req.taskClass, provider: backendLabel(), refusalReason: "stream_interrupted" });
         return { reply, provider: "openai-compat", model: modelId, rounds, usage: partialUsage };
       }
       // Nothing delivered yet — let aiGatewayAgentStream fall back to non-streaming.
@@ -865,6 +902,6 @@ async function runOpenAICompatAgentStream(
   }
 
   const streamUsage = usage.total_tokens > 0 ? usage : undefined;
-  recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId });
+  recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId, taskClass: req.taskClass, provider: backendLabel() });
   return { reply, provider: "openai-compat", model: modelId, rounds, usage: streamUsage };
 }

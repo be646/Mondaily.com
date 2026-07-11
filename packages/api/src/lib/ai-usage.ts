@@ -18,14 +18,31 @@ export type UsageMetrics = {
 };
 
 /**
- * Log one inference's token usage. Detached: returns immediately; the insert
- * runs in the background and swallows its own errors.
+ * Phase-1 observability metadata for one AI run. ALL fields optional/null-safe — every column is
+ * nullable (migration 20260711_ai_usage_observability.sql) and the writer falls back to the older
+ * schema if a column doesn't exist yet, so metering never breaks during rollout.
+ */
+export type RunMeta = {
+  userId?: string;
+  messageCount?: number;
+  feature?: string;
+  taskClass?: string;      // fast | reasoning | extraction | summarization | support | meeting | discovery
+  provider?: string;       // non-secret backend label (never the URL/key)
+  latencyMs?: number;      // wall-clock of the inference call
+  sourceCount?: number;    // grounding sources the caller used, when provided
+  refusalReason?: string;  // set when the model refused / had insufficient data
+  cacheStatus?: string;    // "hit" | "miss" | null (from prompt_tokens_details.cached_tokens if the backend exposes it)
+};
+
+/**
+ * Log one inference's token usage + observability metadata. Detached: returns immediately; the
+ * insert runs in the background and swallows its own errors.
  */
 export function recordAiUsage(
   workspaceId: string | undefined,
   model: string,
   usage: UsageMetrics | undefined | null,
-  opts?: { userId?: string; messageCount?: number; feature?: string },
+  opts?: RunMeta,
 ): void {
   if (!workspaceId || !usage) return;
   const prompt = Math.max(0, Math.round(usage.prompt_tokens ?? 0));
@@ -41,9 +58,7 @@ export function recordAiUsage(
   const periodStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-  // Detached background write — not awaited, errors swallowed. `feature` (discovery/chat/…) lets
-  // the usage dashboard break spend down per surface; if the column isn't migrated yet the write
-  // retries without it so metering never breaks during rollout.
+  // GUARANTEED-legacy columns (present since the ai_usage table existed).
   const base = {
     workspace_id: workspaceId,
     user_id: opts?.userId ?? null,
@@ -55,17 +70,33 @@ export function recordAiUsage(
     period_start: periodStart,
     period_end: periodEnd,
   };
+  // feature (added 20260703) + the Phase-1 observability columns (added 20260711).
+  const extended = {
+    ...base,
+    feature: opts?.feature ?? null,
+    task_class: opts?.taskClass ?? null,
+    provider: opts?.provider ?? null,
+    latency_ms: opts?.latencyMs != null ? Math.max(0, Math.round(opts.latencyMs)) : null,
+    source_count: opts?.sourceCount != null ? Math.max(0, Math.round(opts.sourceCount)) : null,
+    refusal_reason: opts?.refusalReason ?? null,
+    cache_status: opts?.cacheStatus ?? null,
+  };
+
+  // Detached background write — not awaited, errors swallowed. Degrade the row shape column-by-column
+  // so metering keeps working on EVERY schema state (full → feature-only → pre-feature).
   void supabase
     .from("ai_usage")
-    .insert({ ...base, feature: opts?.feature ?? null })
+    .insert(extended)
     .then(
       () => {},
-      (err: unknown) => {
-        if (/feature/i.test(String((err as { message?: string })?.message ?? err))) {
-          void supabase.from("ai_usage").insert(base).then(() => {}, () => {});
-        } else {
-          console.error("[ai-usage] ledger write failed (non-fatal):", err);
-        }
+      () => {
+        void supabase
+          .from("ai_usage")
+          .insert({ ...base, feature: opts?.feature ?? null })
+          .then(
+            () => {},
+            () => { void supabase.from("ai_usage").insert(base).then(() => {}, () => {}); },
+          );
       },
     );
 }

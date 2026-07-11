@@ -2482,7 +2482,7 @@ var require_conversions = __commonJS({
     for (const key of Object.keys(cssKeywords)) {
       reverseKeywords[cssKeywords[key]] = key;
     }
-    var convert2 = {
+    var convert3 = {
       rgb: { channels: 3, labels: "rgb" },
       hsl: { channels: 3, labels: "hsl" },
       hsv: { channels: 3, labels: "hsv" },
@@ -2499,24 +2499,24 @@ var require_conversions = __commonJS({
       apple: { channels: 3, labels: ["r16", "g16", "b16"] },
       gray: { channels: 1, labels: ["gray"] }
     };
-    module2.exports = convert2;
-    for (const model of Object.keys(convert2)) {
-      if (!("channels" in convert2[model])) {
+    module2.exports = convert3;
+    for (const model of Object.keys(convert3)) {
+      if (!("channels" in convert3[model])) {
         throw new Error("missing channels property: " + model);
       }
-      if (!("labels" in convert2[model])) {
+      if (!("labels" in convert3[model])) {
         throw new Error("missing channel labels property: " + model);
       }
-      if (convert2[model].labels.length !== convert2[model].channels) {
+      if (convert3[model].labels.length !== convert3[model].channels) {
         throw new Error("channel and label counts mismatch: " + model);
       }
-      const { channels, labels } = convert2[model];
-      delete convert2[model].channels;
-      delete convert2[model].labels;
-      Object.defineProperty(convert2[model], "channels", { value: channels });
-      Object.defineProperty(convert2[model], "labels", { value: labels });
+      const { channels, labels } = convert3[model];
+      delete convert3[model].channels;
+      delete convert3[model].labels;
+      Object.defineProperty(convert3[model], "channels", { value: channels });
+      Object.defineProperty(convert3[model], "labels", { value: labels });
     }
-    convert2.rgb.hsl = function(rgb) {
+    convert3.rgb.hsl = function(rgb) {
       const r2 = rgb[0] / 255;
       const g2 = rgb[1] / 255;
       const b2 = rgb[2] / 255;
@@ -2548,7 +2548,7 @@ var require_conversions = __commonJS({
       }
       return [h2, s2 * 100, l2 * 100];
     };
-    convert2.rgb.hsv = function(rgb) {
+    convert3.rgb.hsv = function(rgb) {
       let rdif;
       let gdif;
       let bdif;
@@ -2589,16 +2589,16 @@ var require_conversions = __commonJS({
         v2 * 100
       ];
     };
-    convert2.rgb.hwb = function(rgb) {
+    convert3.rgb.hwb = function(rgb) {
       const r2 = rgb[0];
       const g2 = rgb[1];
       let b2 = rgb[2];
-      const h2 = convert2.rgb.hsl(rgb)[0];
+      const h2 = convert3.rgb.hsl(rgb)[0];
       const w2 = 1 / 255 * Math.min(r2, Math.min(g2, b2));
       b2 = 1 - 1 / 255 * Math.max(r2, Math.max(g2, b2));
       return [h2, w2 * 100, b2 * 100];
     };
-    convert2.rgb.cmyk = function(rgb) {
+    convert3.rgb.cmyk = function(rgb) {
       const r2 = rgb[0] / 255;
       const g2 = rgb[1] / 255;
       const b2 = rgb[2] / 255;
@@ -2611,7 +2611,7 @@ var require_conversions = __commonJS({
     function comparativeDistance(x2, y2) {
       return (x2[0] - y2[0]) ** 2 + (x2[1] - y2[1]) ** 2 + (x2[2] - y2[2]) ** 2;
     }
-    convert2.rgb.keyword = function(rgb) {
+    convert3.rgb.keyword = function(rgb) {
       const reversed = reverseKeywords[rgb];
       if (reversed) {
         return reversed;
@@ -2628,10 +2628,10 @@ var require_conversions = __commonJS({
       }
       return currentClosestKeyword;
     };
-    convert2.keyword.rgb = function(keyword) {
+    convert3.keyword.rgb = function(keyword) {
       return cssKeywords[keyword];
     };
-    convert2.rgb.xyz = function(rgb) {
+    convert3.rgb.xyz = function(rgb) {
       let r2 = rgb[0] / 255;
       let g2 = rgb[1] / 255;
       let b2 = rgb[2] / 255;
@@ -2643,8 +2643,8 @@ var require_conversions = __commonJS({
       const z2 = r2 * 0.0193 + g2 * 0.1192 + b2 * 0.9505;
       return [x2 * 100, y2 * 100, z2 * 100];
     };
-    convert2.rgb.lab = function(rgb) {
-      const xyz = convert2.rgb.xyz(rgb);
+    convert3.rgb.lab = function(rgb) {
+      const xyz = convert3.rgb.xyz(rgb);
       let x2 = xyz[0];
       let y2 = xyz[1];
       let z2 = xyz[2];
@@ -2659,7 +2659,7 @@ var require_conversions = __commonJS({
       const b2 = 200 * (y2 - z2);
       return [l2, a2, b2];
     };
-    convert2.hsl.rgb = function(hsl) {
+    convert3.hsl.rgb = function(hsl) {
       const h2 = hsl[0] / 360;
       const s2 = hsl[1] / 100;
       const l2 = hsl[2] / 100;
@@ -2698,7 +2698,7 @@ var require_conversions = __commonJS({
       }
       return rgb;
     };
-    convert2.hsl.hsv = function(hsl) {
+    convert3.hsl.hsv = function(hsl) {
       const h2 = hsl[0];
       let s2 = hsl[1] / 100;
       let l2 = hsl[2] / 100;
@@ -2711,7 +2711,7 @@ var require_conversions = __commonJS({
       const sv = l2 === 0 ? 2 * smin / (lmin + smin) : 2 * s2 / (l2 + s2);
       return [h2, sv * 100, v2 * 100];
     };
-    convert2.hsv.rgb = function(hsv) {
+    convert3.hsv.rgb = function(hsv) {
       const h2 = hsv[0] / 60;
       const s2 = hsv[1] / 100;
       let v2 = hsv[2] / 100;
@@ -2736,7 +2736,7 @@ var require_conversions = __commonJS({
           return [v2, p2, q2];
       }
     };
-    convert2.hsv.hsl = function(hsv) {
+    convert3.hsv.hsl = function(hsv) {
       const h2 = hsv[0];
       const s2 = hsv[1] / 100;
       const v2 = hsv[2] / 100;
@@ -2751,7 +2751,7 @@ var require_conversions = __commonJS({
       l2 /= 2;
       return [h2, sl * 100, l2 * 100];
     };
-    convert2.hwb.rgb = function(hwb) {
+    convert3.hwb.rgb = function(hwb) {
       const h2 = hwb[0] / 360;
       let wh = hwb[1] / 100;
       let bl = hwb[2] / 100;
@@ -2807,7 +2807,7 @@ var require_conversions = __commonJS({
       }
       return [r2 * 255, g2 * 255, b2 * 255];
     };
-    convert2.cmyk.rgb = function(cmyk) {
+    convert3.cmyk.rgb = function(cmyk) {
       const c2 = cmyk[0] / 100;
       const m2 = cmyk[1] / 100;
       const y2 = cmyk[2] / 100;
@@ -2817,7 +2817,7 @@ var require_conversions = __commonJS({
       const b2 = 1 - Math.min(1, y2 * (1 - k2) + k2);
       return [r2 * 255, g2 * 255, b2 * 255];
     };
-    convert2.xyz.rgb = function(xyz) {
+    convert3.xyz.rgb = function(xyz) {
       const x2 = xyz[0] / 100;
       const y2 = xyz[1] / 100;
       const z2 = xyz[2] / 100;
@@ -2835,7 +2835,7 @@ var require_conversions = __commonJS({
       b2 = Math.min(Math.max(0, b2), 1);
       return [r2 * 255, g2 * 255, b2 * 255];
     };
-    convert2.xyz.lab = function(xyz) {
+    convert3.xyz.lab = function(xyz) {
       let x2 = xyz[0];
       let y2 = xyz[1];
       let z2 = xyz[2];
@@ -2850,7 +2850,7 @@ var require_conversions = __commonJS({
       const b2 = 200 * (y2 - z2);
       return [l2, a2, b2];
     };
-    convert2.lab.xyz = function(lab) {
+    convert3.lab.xyz = function(lab) {
       const l2 = lab[0];
       const a2 = lab[1];
       const b2 = lab[2];
@@ -2871,7 +2871,7 @@ var require_conversions = __commonJS({
       z2 *= 108.883;
       return [x2, y2, z2];
     };
-    convert2.lab.lch = function(lab) {
+    convert3.lab.lch = function(lab) {
       const l2 = lab[0];
       const a2 = lab[1];
       const b2 = lab[2];
@@ -2884,7 +2884,7 @@ var require_conversions = __commonJS({
       const c2 = Math.sqrt(a2 * a2 + b2 * b2);
       return [l2, c2, h2];
     };
-    convert2.lch.lab = function(lch) {
+    convert3.lch.lab = function(lch) {
       const l2 = lch[0];
       const c2 = lch[1];
       const h2 = lch[2];
@@ -2893,9 +2893,9 @@ var require_conversions = __commonJS({
       const b2 = c2 * Math.sin(hr2);
       return [l2, a2, b2];
     };
-    convert2.rgb.ansi16 = function(args, saturation = null) {
+    convert3.rgb.ansi16 = function(args, saturation = null) {
       const [r2, g2, b2] = args;
-      let value = saturation === null ? convert2.rgb.hsv(args)[2] : saturation;
+      let value = saturation === null ? convert3.rgb.hsv(args)[2] : saturation;
       value = Math.round(value / 50);
       if (value === 0) {
         return 30;
@@ -2906,10 +2906,10 @@ var require_conversions = __commonJS({
       }
       return ansi;
     };
-    convert2.hsv.ansi16 = function(args) {
-      return convert2.rgb.ansi16(convert2.hsv.rgb(args), args[2]);
+    convert3.hsv.ansi16 = function(args) {
+      return convert3.rgb.ansi16(convert3.hsv.rgb(args), args[2]);
     };
-    convert2.rgb.ansi256 = function(args) {
+    convert3.rgb.ansi256 = function(args) {
       const r2 = args[0];
       const g2 = args[1];
       const b2 = args[2];
@@ -2925,7 +2925,7 @@ var require_conversions = __commonJS({
       const ansi = 16 + 36 * Math.round(r2 / 255 * 5) + 6 * Math.round(g2 / 255 * 5) + Math.round(b2 / 255 * 5);
       return ansi;
     };
-    convert2.ansi16.rgb = function(args) {
+    convert3.ansi16.rgb = function(args) {
       let color = args % 10;
       if (color === 0 || color === 7) {
         if (args > 50) {
@@ -2940,7 +2940,7 @@ var require_conversions = __commonJS({
       const b2 = (color >> 2 & 1) * mult * 255;
       return [r2, g2, b2];
     };
-    convert2.ansi256.rgb = function(args) {
+    convert3.ansi256.rgb = function(args) {
       if (args >= 232) {
         const c2 = (args - 232) * 10 + 8;
         return [c2, c2, c2];
@@ -2952,12 +2952,12 @@ var require_conversions = __commonJS({
       const b2 = rem % 6 / 5 * 255;
       return [r2, g2, b2];
     };
-    convert2.rgb.hex = function(args) {
+    convert3.rgb.hex = function(args) {
       const integer = ((Math.round(args[0]) & 255) << 16) + ((Math.round(args[1]) & 255) << 8) + (Math.round(args[2]) & 255);
       const string = integer.toString(16).toUpperCase();
       return "000000".substring(string.length) + string;
     };
-    convert2.hex.rgb = function(args) {
+    convert3.hex.rgb = function(args) {
       const match2 = args.toString(16).match(/[a-f0-9]{6}|[a-f0-9]{3}/i);
       if (!match2) {
         return [0, 0, 0];
@@ -2974,7 +2974,7 @@ var require_conversions = __commonJS({
       const b2 = integer & 255;
       return [r2, g2, b2];
     };
-    convert2.rgb.hcg = function(rgb) {
+    convert3.rgb.hcg = function(rgb) {
       const r2 = rgb[0] / 255;
       const g2 = rgb[1] / 255;
       const b2 = rgb[2] / 255;
@@ -3001,7 +3001,7 @@ var require_conversions = __commonJS({
       hue %= 1;
       return [hue * 360, chroma * 100, grayscale * 100];
     };
-    convert2.hsl.hcg = function(hsl) {
+    convert3.hsl.hcg = function(hsl) {
       const s2 = hsl[1] / 100;
       const l2 = hsl[2] / 100;
       const c2 = l2 < 0.5 ? 2 * s2 * l2 : 2 * s2 * (1 - l2);
@@ -3011,7 +3011,7 @@ var require_conversions = __commonJS({
       }
       return [hsl[0], c2 * 100, f2 * 100];
     };
-    convert2.hsv.hcg = function(hsv) {
+    convert3.hsv.hcg = function(hsv) {
       const s2 = hsv[1] / 100;
       const v2 = hsv[2] / 100;
       const c2 = s2 * v2;
@@ -3021,7 +3021,7 @@ var require_conversions = __commonJS({
       }
       return [hsv[0], c2 * 100, f2 * 100];
     };
-    convert2.hcg.rgb = function(hcg) {
+    convert3.hcg.rgb = function(hcg) {
       const h2 = hcg[0] / 360;
       const c2 = hcg[1] / 100;
       const g2 = hcg[2] / 100;
@@ -3071,7 +3071,7 @@ var require_conversions = __commonJS({
         (c2 * pure[2] + mg) * 255
       ];
     };
-    convert2.hcg.hsv = function(hcg) {
+    convert3.hcg.hsv = function(hcg) {
       const c2 = hcg[1] / 100;
       const g2 = hcg[2] / 100;
       const v2 = c2 + g2 * (1 - c2);
@@ -3081,7 +3081,7 @@ var require_conversions = __commonJS({
       }
       return [hcg[0], f2 * 100, v2 * 100];
     };
-    convert2.hcg.hsl = function(hcg) {
+    convert3.hcg.hsl = function(hcg) {
       const c2 = hcg[1] / 100;
       const g2 = hcg[2] / 100;
       const l2 = g2 * (1 - c2) + 0.5 * c2;
@@ -3093,13 +3093,13 @@ var require_conversions = __commonJS({
       }
       return [hcg[0], s2 * 100, l2 * 100];
     };
-    convert2.hcg.hwb = function(hcg) {
+    convert3.hcg.hwb = function(hcg) {
       const c2 = hcg[1] / 100;
       const g2 = hcg[2] / 100;
       const v2 = c2 + g2 * (1 - c2);
       return [hcg[0], (v2 - c2) * 100, (1 - v2) * 100];
     };
-    convert2.hwb.hcg = function(hwb) {
+    convert3.hwb.hcg = function(hwb) {
       const w2 = hwb[1] / 100;
       const b2 = hwb[2] / 100;
       const v2 = 1 - b2;
@@ -3110,35 +3110,35 @@ var require_conversions = __commonJS({
       }
       return [hwb[0], c2 * 100, g2 * 100];
     };
-    convert2.apple.rgb = function(apple) {
+    convert3.apple.rgb = function(apple) {
       return [apple[0] / 65535 * 255, apple[1] / 65535 * 255, apple[2] / 65535 * 255];
     };
-    convert2.rgb.apple = function(rgb) {
+    convert3.rgb.apple = function(rgb) {
       return [rgb[0] / 255 * 65535, rgb[1] / 255 * 65535, rgb[2] / 255 * 65535];
     };
-    convert2.gray.rgb = function(args) {
+    convert3.gray.rgb = function(args) {
       return [args[0] / 100 * 255, args[0] / 100 * 255, args[0] / 100 * 255];
     };
-    convert2.gray.hsl = function(args) {
+    convert3.gray.hsl = function(args) {
       return [0, 0, args[0]];
     };
-    convert2.gray.hsv = convert2.gray.hsl;
-    convert2.gray.hwb = function(gray) {
+    convert3.gray.hsv = convert3.gray.hsl;
+    convert3.gray.hwb = function(gray) {
       return [0, 100, gray[0]];
     };
-    convert2.gray.cmyk = function(gray) {
+    convert3.gray.cmyk = function(gray) {
       return [0, 0, 0, gray[0]];
     };
-    convert2.gray.lab = function(gray) {
+    convert3.gray.lab = function(gray) {
       return [gray[0], 0, 0];
     };
-    convert2.gray.hex = function(gray) {
+    convert3.gray.hex = function(gray) {
       const val = Math.round(gray[0] / 100 * 255) & 255;
       const integer = (val << 16) + (val << 8) + val;
       const string = integer.toString(16).toUpperCase();
       return "000000".substring(string.length) + string;
     };
-    convert2.rgb.gray = function(rgb) {
+    convert3.rgb.gray = function(rgb) {
       const val = (rgb[0] + rgb[1] + rgb[2]) / 3;
       return [val / 255 * 100];
     };
@@ -3222,7 +3222,7 @@ var require_color_convert = __commonJS({
     "use strict";
     var conversions = require_conversions();
     var route = require_route();
-    var convert2 = {};
+    var convert3 = {};
     var models2 = Object.keys(conversions);
     function wrapRaw(fn) {
       const wrappedFn = function(...args) {
@@ -3263,18 +3263,18 @@ var require_color_convert = __commonJS({
       return wrappedFn;
     }
     models2.forEach((fromModel) => {
-      convert2[fromModel] = {};
-      Object.defineProperty(convert2[fromModel], "channels", { value: conversions[fromModel].channels });
-      Object.defineProperty(convert2[fromModel], "labels", { value: conversions[fromModel].labels });
+      convert3[fromModel] = {};
+      Object.defineProperty(convert3[fromModel], "channels", { value: conversions[fromModel].channels });
+      Object.defineProperty(convert3[fromModel], "labels", { value: conversions[fromModel].labels });
       const routes = route(fromModel);
       const routeModels = Object.keys(routes);
       routeModels.forEach((toModel) => {
         const fn = routes[toModel];
-        convert2[fromModel][toModel] = wrapRounded(fn);
-        convert2[fromModel][toModel].raw = wrapRaw(fn);
+        convert3[fromModel][toModel] = wrapRounded(fn);
+        convert3[fromModel][toModel].raw = wrapRaw(fn);
       });
     });
-    module2.exports = convert2;
+    module2.exports = convert3;
   }
 });
 
@@ -3866,10 +3866,10 @@ var require_source = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/consts.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/consts.js
 var import_chalk, queryKeys, probe, envKeys, headerKeys, forwardedHeaders, defaultInngestApiBaseUrl, defaultInngestEventBaseUrl, defaultDevServerHost, internalEvents, logPrefix, debugPrefix, dummyEventKey, syncKind, ExecutionVersion, defaultMaxRetries;
 var init_consts = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/consts.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/consts.js"() {
     "use strict";
     import_chalk = __toESM(require_source(), 1);
     queryKeys = /* @__PURE__ */ (function(queryKeys$1) {
@@ -3983,10 +3983,10 @@ var init_consts = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/version.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/version.js
 var version;
 var init_version = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/version.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/version.js"() {
     "use strict";
     version = "3.54.2";
   }
@@ -5827,7 +5827,7 @@ var require_ms = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/strings.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/strings.js
 function timingSafeEqual(a2, b2) {
   if (a2.length !== b2.length) return false;
   let diff = 0;
@@ -5839,7 +5839,7 @@ function removeSigningKeyPrefix(signingKey) {
 }
 var import_hash, import_json_stringify_safe, import_ms, sha256, stringify$1, slugify, second, minute, hour, day, periods, timeStr, stringifyUnknown, hashEventKey, hashSigningKey;
 var init_strings = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/strings.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/strings.js"() {
     "use strict";
     import_hash = __toESM(require_hash(), 1);
     import_json_stringify_safe = __toESM(require_stringify(), 1);
@@ -5890,10 +5890,10 @@ var init_strings = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/_virtual/rolldown_runtime.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/_virtual/rolldown_runtime.js
 var __require;
 var init_rolldown_runtime = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/_virtual/rolldown_runtime.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/_virtual/rolldown_runtime.js"() {
     "use strict";
     __require = /* @__PURE__ */ ((x2) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x2, { get: (a2, b2) => (typeof require !== "undefined" ? require : a2)[b2] }) : x2)(function(x2) {
       if (typeof require !== "undefined") return require.apply(this, arguments);
@@ -5902,7 +5902,7 @@ var init_rolldown_runtime = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/env.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/env.js
 function getProcessEnv() {
   const env3 = {};
   const whitelist = Object.values(envKeys);
@@ -5922,7 +5922,7 @@ function protectEnv(env3) {
 }
 var devServerHost, checkFns, prodChecks, Mode, getMode, getEnvironmentName, processEnv, allProcessEnv, inngestHeaders, platformChecks, streamingChecks, getPlatformName, platformSupportsStreaming, CUSTOM_FETCH_MARKER, getFetch, parseAsBoolean;
 var init_env = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/env.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/env.js"() {
     "use strict";
     init_rolldown_runtime();
     init_consts();
@@ -6166,10 +6166,10 @@ var init_env = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/devserver.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/devserver.js
 var devServerAvailable, devServerUrl, devServerHost$1;
 var init_devserver = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/devserver.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/devserver.js"() {
     "use strict";
     init_consts();
     init_env();
@@ -6188,10 +6188,10 @@ var init_devserver = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/enum.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/enum.js
 var enumFromValue;
 var init_enum = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/enum.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/enum.js"() {
     "use strict";
     enumFromValue = (enumType2, value) => {
       if (Object.values(enumType2).includes(value)) return value;
@@ -6199,10 +6199,10 @@ var init_enum = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/NonRetriableError.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/NonRetriableError.js
 var NonRetriableError;
 var init_NonRetriableError = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/NonRetriableError.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/NonRetriableError.js"() {
     "use strict";
     NonRetriableError = class extends Error {
       /**
@@ -10493,10 +10493,10 @@ var require_strip_ansi = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/errors.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/errors.js
 var import_chalk2, import_json_stringify_safe2, import_serialize_error_cjs, import_strip_ansi, SERIALIZED_KEY, SERIALIZED_VALUE, serializeError$1, isSerializedError, deserializeError$1, ErrCode, prettyErrorSplitter, minifyPrettyError, isError, getErrorMessage, prettyError, fixEventKeyMissingSteps, rethrowError, functionStoppedRunningErr;
 var init_errors2 = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/errors.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/errors.js"() {
     "use strict";
     init_NonRetriableError();
     init_v3();
@@ -10689,10 +10689,10 @@ ${toFixNowStr}` : toFixNowStr;
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/types.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/types.js
 var baseJsonErrorSchema, maybeJsonErrorSchema, jsonErrorSchema, StepOpCode, StepMode, AsyncResponseType, incomingOpSchema, sendEventResponseSchema, defaultCheckpointingOptions, logLevels, concurrencyOptionSchema, functionConfigSchema, ok, err, inBandSyncRequestBodySchema;
 var init_types2 = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/types.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/types.js"() {
     "use strict";
     init_v3();
     baseJsonErrorSchema = external_exports.object({
@@ -11387,10 +11387,10 @@ var require_src = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/InngestExecution.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/execution/InngestExecution.js
 var import_debug, PREFERRED_ASYNC_EXECUTION_VERSION, PREFERRED_CHECKPOINTING_EXECUTION_VERSION, InngestExecution;
 var init_InngestExecution = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/InngestExecution.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/execution/InngestExecution.js"() {
     "use strict";
     init_consts();
     import_debug = __toESM(require_src(), 1);
@@ -11406,10 +11406,10 @@ var init_InngestExecution = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/api/schema.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/api/schema.js
 var errorSchema, v0StepSchema, v1StepSchema, v2StepSchema, stepsSchemas, batchSchema;
 var init_schema = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/api/schema.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/api/schema.js"() {
     "use strict";
     init_consts();
     init_types2();
@@ -11442,10 +11442,10 @@ var init_schema = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/functions.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/functions.js
 var cacheFn, waterfall, undefinedToNull, versionSchema, fnDataVersionSchema, parseFnData, fetchAllFnData, parseFailureErr;
 var init_functions = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/functions.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/functions.js"() {
     "use strict";
     init_consts();
     init_errors2();
@@ -11661,7 +11661,7 @@ var require_canonicalize = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/net.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/net.js
 async function fetchWithAuthFallback({ authToken, authTokenFallback, fetch: fetch5, options, url }) {
   let res = await fetch5(url, {
     ...options,
@@ -11713,7 +11713,7 @@ async function signDataWithKey(data, signingKey, ts) {
 }
 var import_hash2, import_canonicalize, hmac, sha2562, hasLoggedCryptoImplementation, cryptoKeyCache;
 var init_net = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/net.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/net.js"() {
     "use strict";
     init_strings();
     import_hash2 = __toESM(require_hash(), 1);
@@ -11724,10 +11724,10 @@ var init_net = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/promises.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/promises.js
 var shimQueueMicrotask, resolveAfterPending, createDeferredPromise, createDeferredPromiseWithStack, createTimeoutPromise, runAsPromise, resolveNextTick, retryWithBackoff, goIntervalTiming;
 var init_promises = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/promises.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/promises.js"() {
     "use strict";
     shimQueueMicrotask = (callback) => {
       Promise.resolve().then(callback);
@@ -11859,10 +11859,10 @@ var init_promises = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/ServerTiming.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/ServerTiming.js
 var ServerTiming;
 var init_ServerTiming = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/ServerTiming.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/ServerTiming.js"() {
     "use strict";
     init_promises();
     ServerTiming = class {
@@ -11936,10 +11936,10 @@ var init_ServerTiming = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/stream.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/stream.js
 var createStream;
 var init_stream = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/stream.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/stream.js"() {
     "use strict";
     init_strings();
     createStream = (opts) => {
@@ -11976,10 +11976,10 @@ var init_stream = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/als.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/execution/als.js
 var alsSymbol, getAsyncCtx, getAsyncLocalStorage;
 var init_als = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/als.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/execution/als.js"() {
     "use strict";
     alsSymbol = /* @__PURE__ */ Symbol.for("inngest:als");
     getAsyncCtx = async () => {
@@ -12003,10 +12003,10 @@ var init_als = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestMiddleware.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/InngestMiddleware.js
 var InngestMiddleware, getHookStack, hookDirections;
 var init_InngestMiddleware = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestMiddleware.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/InngestMiddleware.js"() {
     "use strict";
     init_functions();
     InngestMiddleware = class InngestMiddleware2 {
@@ -12090,10 +12090,10 @@ var init_InngestMiddleware = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/RetryAfterError.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/RetryAfterError.js
 var import_ms2, RetryAfterError;
 var init_RetryAfterError = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/RetryAfterError.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/RetryAfterError.js"() {
     "use strict";
     import_ms2 = __toESM(require_ms(), 1);
     RetryAfterError = class extends Error {
@@ -12123,10 +12123,10 @@ var init_RetryAfterError = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/temporal.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/temporal.js
 var isTemporalDuration, isTemporalInstant, isTemporalZonedDateTime, getISOString;
 var init_temporal = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/temporal.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/temporal.js"() {
     "use strict";
     isTemporalDuration = (input) => {
       try {
@@ -12159,7 +12159,7 @@ var init_temporal = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestMetadata.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/InngestMetadata.js
 function buildTarget(config, ctx) {
   const ctxExecution = ctx?.execution;
   const ctxRunId = ctxExecution?.ctx?.runId;
@@ -12238,7 +12238,7 @@ async function performOp(client, config, values, kind2, op) {
 }
 var UnscopedMetadataBuilder, metadataSymbol;
 var init_InngestMetadata = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestMetadata.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/InngestMetadata.js"() {
     "use strict";
     init_als();
     UnscopedMetadataBuilder = class UnscopedMetadataBuilder2 {
@@ -12282,10 +12282,10 @@ var init_InngestMetadata = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/Fetch.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/Fetch.js
 var import_debug2, globalFetch, debug$1, createFetchShim, fetch2;
 var init_Fetch = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/Fetch.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/Fetch.js"() {
     "use strict";
     init_als();
     init_InngestStepTools();
@@ -12330,10 +12330,10 @@ var init_Fetch = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestFunctionReference.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/InngestFunctionReference.js
 var InngestFunctionReference, referenceFunction;
 var init_InngestFunctionReference = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestFunctionReference.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/InngestFunctionReference.js"() {
     "use strict";
     InngestFunctionReference = class InngestFunctionReference2 {
       get [Symbol.toStringTag]() {
@@ -12824,10 +12824,10 @@ var require_dist2 = __commonJS({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestStepTools.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/InngestStepTools.js
 var import_ai, getStepOptions, STEP_INDEXING_SUFFIX, createStepTools, gatewaySymbol, step, getDeferredStepTooling, invokePayloadSchema;
 var init_InngestStepTools = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestStepTools.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/InngestStepTools.js"() {
     "use strict";
     init_consts();
     init_strings();
@@ -13139,10 +13139,10 @@ var init_InngestStepTools = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v0.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/execution/v0.js
 var import_hash3, import_canonicalize2, sha1, createV0InngestExecution, V0InngestExecution, tickOpToOutgoing, hashData, _internals;
 var init_v0 = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v0.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/execution/v0.js"() {
     "use strict";
     init_consts();
     init_NonRetriableError();
@@ -13483,19 +13483,19 @@ var init_v0 = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/otel/access.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/execution/otel/access.js
 var clientProcessorMap;
 var init_access = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/otel/access.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/execution/otel/access.js"() {
     "use strict";
     clientProcessorMap = /* @__PURE__ */ new WeakMap();
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/StepError.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/StepError.js
 var StepError;
 var init_StepError = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/StepError.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/StepError.js"() {
     "use strict";
     init_errors2();
     init_types2();
@@ -14394,10 +14394,10 @@ var init_esm = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v2.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/execution/v2.js
 var import_hash4, import_ms3, sha12, CHECKPOINT_RETRY_OPTIONS, STEP_NOT_FOUND_MAX_FOUND_STEPS, createV2InngestExecution, V2InngestExecution, hashId, hashOp, _internals2;
 var init_v2 = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v2.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/execution/v2.js"() {
     "use strict";
     init_consts();
     init_version();
@@ -15379,10 +15379,10 @@ var init_v2 = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v1.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/execution/v1.js
 var import_hash5, import_ms4, sha13, CHECKPOINT_RETRY_OPTIONS2, STEP_NOT_FOUND_MAX_FOUND_STEPS2, createV1InngestExecution, V1InngestExecution, hashId2, hashOp2, _internals3;
 var init_v1 = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/execution/v1.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/execution/v1.js"() {
     "use strict";
     init_consts();
     init_version();
@@ -16377,10 +16377,10 @@ var init_v1 = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestFunction.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/InngestFunction.js
 var InngestFunction;
 var init_InngestFunction = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestFunction.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/InngestFunction.js"() {
     "use strict";
     init_consts();
     init_strings();
@@ -16715,10 +16715,10 @@ var init_index_esm = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestCommHandler.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/InngestCommHandler.js
 var import_debug3, registerResSchema, InngestCommHandler, RequestSignature;
 var init_InngestCommHandler = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/InngestCommHandler.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/InngestCommHandler.js"() {
     "use strict";
     init_consts();
     init_version();
@@ -18234,10 +18234,10 @@ var init_adapter = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/EventSchemas.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/EventSchemas.js
 var EventSchemas;
 var init_EventSchemas = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/EventSchemas.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/EventSchemas.js"() {
     "use strict";
     EventSchemas = class {
       runtimeSchemas = {};
@@ -18368,10 +18368,10 @@ var init_EventSchemas = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/middleware/logger.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/middleware/logger.js
 var DefaultLogger, ProxyLogger;
 var init_logger = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/middleware/logger.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/middleware/logger.js"() {
     "use strict";
     init_promises();
     DefaultLogger = class {
@@ -18433,7 +18433,7 @@ var init_logger = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/url.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/url.js
 async function resolveApiBaseUrl(opts) {
   if (opts.apiBaseUrl !== void 0) return opts.apiBaseUrl;
   if (opts.mode.isDev && opts.mode.isInferred) {
@@ -18442,17 +18442,17 @@ async function resolveApiBaseUrl(opts) {
   return defaultInngestApiBaseUrl;
 }
 var init_url2 = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/url.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/url.js"() {
     "use strict";
     init_consts();
     init_devserver();
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/api/api.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/api/api.js
 var realtimeSubscriptionTokenSchema, sendSignalSuccessResponseSchema, checkpointNewRunResponseSchema, InngestApi;
 var init_api = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/api/api.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/api/api.js"() {
     "use strict";
     init_strings();
     init_errors2();
@@ -18767,7 +18767,7 @@ var init_api = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/crypto.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/crypto.js
 function createEntropy(byteLength) {
   const bytes = new Uint8Array(byteLength);
   const { crypto: crypto2 } = globalThis;
@@ -18777,15 +18777,15 @@ function createEntropy(byteLength) {
   return bytes;
 }
 var init_crypto = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/crypto.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/crypto.js"() {
     "use strict";
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/Inngest.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/Inngest.js
 var Inngest, builtInMiddleware;
 var init_Inngest = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/components/Inngest.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/components/Inngest.js"() {
     "use strict";
     init_consts();
     init_strings();
@@ -19427,10 +19427,10 @@ var init_Inngest = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/assertions.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/assertions.js
 var isInngest, isInngestFunction, isInngestMiddleware, isInngestRequest;
 var init_assertions = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/helpers/assertions.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/helpers/assertions.js"() {
     "use strict";
     init_consts();
     init_InngestMiddleware();
@@ -19457,10 +19457,10 @@ var init_assertions = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/middleware/dependencyInjection.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/middleware/dependencyInjection.js
 var dependencyInjectionMiddleware;
 var init_dependencyInjection = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/middleware/dependencyInjection.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/middleware/dependencyInjection.js"() {
     "use strict";
     init_InngestMiddleware();
     dependencyInjectionMiddleware = (ctx) => {
@@ -19478,7 +19478,7 @@ var init_dependencyInjection = __esm({
   }
 });
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/index.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/index.js
 var inngest_exports = {};
 __export(inngest_exports, {
   EventSchemas: () => EventSchemas,
@@ -19505,7 +19505,7 @@ __export(inngest_exports, {
   version: () => version
 });
 var init_inngest = __esm({
-  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/index.js"() {
+  "../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/index.js"() {
     "use strict";
     init_consts();
     init_version();
@@ -55440,17 +55440,29 @@ function recordAiUsage(workspaceId, model, usage, opts) {
     period_start: periodStart,
     period_end: periodEnd
   };
-  void supabase.from("ai_usage").insert({ ...base, feature: opts?.feature ?? null }).then(
+  const extended = {
+    ...base,
+    feature: opts?.feature ?? null,
+    task_class: opts?.taskClass ?? null,
+    provider: opts?.provider ?? null,
+    latency_ms: opts?.latencyMs != null ? Math.max(0, Math.round(opts.latencyMs)) : null,
+    source_count: opts?.sourceCount != null ? Math.max(0, Math.round(opts.sourceCount)) : null,
+    refusal_reason: opts?.refusalReason ?? null,
+    cache_status: opts?.cacheStatus ?? null
+  };
+  void supabase.from("ai_usage").insert(extended).then(
     () => {
     },
-    (err2) => {
-      if (/feature/i.test(String(err2?.message ?? err2))) {
-        void supabase.from("ai_usage").insert(base).then(() => {
-        }, () => {
-        });
-      } else {
-        console.error("[ai-usage] ledger write failed (non-fatal):", err2);
-      }
+    () => {
+      void supabase.from("ai_usage").insert({ ...base, feature: opts?.feature ?? null }).then(
+        () => {
+        },
+        () => {
+          void supabase.from("ai_usage").insert(base).then(() => {
+          }, () => {
+          });
+        }
+      );
     }
   );
 }
@@ -55462,7 +55474,44 @@ var init_ai_usage = __esm({
   }
 });
 
+// src/lib/ai-router.ts
+function baseModelSpec() {
+  return process.env.AI_AGENT_MODEL || process.env.AI_PROVIDER_MODEL || DEFAULT_MODEL_SPEC;
+}
+function modelForClass(taskClass) {
+  if (!taskClass) return void 0;
+  const specific = process.env[ENV_BY_CLASS[taskClass]];
+  if (specific && specific.trim()) return specific.trim();
+  if (taskClass === "fast" && process.env.AI_FAST_MODEL?.trim()) return process.env.AI_FAST_MODEL.trim();
+  return baseModelSpec();
+}
+function backendLabel() {
+  return process.env.AI_BACKEND_LABEL?.trim() || "openai-compat";
+}
+var ENV_BY_CLASS, TASK_CLASSES;
+var init_ai_router = __esm({
+  "src/lib/ai-router.ts"() {
+    "use strict";
+    init_ai_gateway();
+    ENV_BY_CLASS = {
+      fast: "AI_MODEL_FAST",
+      reasoning: "AI_MODEL_REASONING",
+      extraction: "AI_MODEL_EXTRACTION",
+      summarization: "AI_MODEL_SUMMARIZATION",
+      support: "AI_MODEL_SUPPORT",
+      meeting: "AI_MODEL_MEETING",
+      discovery: "AI_MODEL_DISCOVERY"
+    };
+    TASK_CLASSES = Object.keys(ENV_BY_CLASS);
+  }
+});
+
 // src/lib/ai-gateway.ts
+function cacheStatusFrom(usage) {
+  const cached = usage?.prompt_tokens_details?.cached_tokens;
+  if (typeof cached !== "number") return null;
+  return cached > 0 ? "hit" : "miss";
+}
 function resolveModel(spec) {
   const s2 = spec ?? process.env.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC;
   const modelId = s2.startsWith("openai-compat/") ? s2.slice("openai-compat/".length) : s2;
@@ -55578,10 +55627,11 @@ async function aiGateway(req) {
     if (e2 instanceof CreditsExhaustedError) return { text: e2.message, provider: "none", model: "none" };
     throw e2;
   }
-  const resolved = resolveModel();
+  const resolved = resolveModel(modelForClass(req.taskClass));
   const messages = [];
   if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
   messages.push({ role: "user", content: redactSecrets(req.prompt) });
+  const t0 = Date.now();
   const completion = await openAIClient().chat.completions.create({
     model: resolved.modelId,
     // Reasoning models (e.g. gpt-oss) spend tokens "thinking" before emitting
@@ -55590,11 +55640,21 @@ async function aiGateway(req) {
     max_tokens: Math.max(req.maxTokens ?? 512, 2048),
     messages
   });
+  const latencyMs = Date.now() - t0;
   if (completion.usage) {
     const u2 = completion.usage;
     const usage = { prompt_tokens: u2.prompt_tokens ?? 0, completion_tokens: u2.completion_tokens ?? 0, total_tokens: u2.total_tokens ?? 0, reasoning_tokens: u2.completion_tokens_details?.reasoning_tokens ?? 0 };
     if (req.onUsage) req.onUsage(usage);
-    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, { userId: req.userId, feature: req.feature });
+    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, {
+      userId: req.userId,
+      feature: req.feature,
+      taskClass: req.taskClass,
+      provider: backendLabel(),
+      latencyMs,
+      sourceCount: req.sourceCount,
+      refusalReason: req.refusalReason,
+      cacheStatus: cacheStatusFrom(completion.usage) ?? void 0
+    });
   }
   const msg = completion.choices[0]?.message;
   const text = msg?.content && msg.content.trim() ? msg.content : msg?.reasoning ?? "";
@@ -55602,10 +55662,11 @@ async function aiGateway(req) {
 }
 async function aiGatewayToolUse(req) {
   await assertCreditsOk(req.workspaceId);
-  const resolved = resolveModel(req.model);
+  const resolved = resolveModel(req.model ?? modelForClass(req.taskClass));
   const messages = [];
   if (req.system) messages.push({ role: "system", content: redactSecrets(req.system) });
   messages.push({ role: "user", content: redactSecrets(req.prompt) });
+  const t0 = Date.now();
   const completion = await openAIClient().chat.completions.create({
     model: resolved.modelId,
     max_tokens: req.maxTokens ?? 1024,
@@ -55616,6 +55677,7 @@ async function aiGatewayToolUse(req) {
     }],
     tool_choice: { type: "function", function: { name: req.toolName } }
   });
+  const latencyMs = Date.now() - t0;
   if (completion.usage) {
     const u2 = completion.usage;
     const usage = {
@@ -55625,7 +55687,15 @@ async function aiGatewayToolUse(req) {
       reasoning_tokens: u2.completion_tokens_details?.reasoning_tokens ?? 0
     };
     if (req.onUsage) req.onUsage(usage);
-    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, { userId: req.userId, feature: req.feature });
+    if (req.workspaceId && usage.total_tokens > 0) recordAiUsage(req.workspaceId, resolved.modelId, usage, {
+      userId: req.userId,
+      feature: req.feature,
+      taskClass: req.taskClass ?? "extraction",
+      provider: backendLabel(),
+      latencyMs,
+      sourceCount: req.sourceCount,
+      cacheStatus: cacheStatusFrom(completion.usage) ?? void 0
+    });
   }
   const toolCall = completion.choices[0]?.message.tool_calls?.[0];
   if (!toolCall?.function?.arguments) return {};
@@ -55735,7 +55805,7 @@ async function runOpenAICompatAgent(modelId, req, maxRounds) {
     }
   }
   const finalUsage = usage.total_tokens > 0 ? usage : void 0;
-  recordAiUsage(req.workspaceId, activeModel, finalUsage, { userId: req.userId });
+  recordAiUsage(req.workspaceId, activeModel, finalUsage, { userId: req.userId, taskClass: req.taskClass, provider: backendLabel() });
   return { reply, provider: "openai-compat", model: activeModel, rounds, usage: finalUsage };
 }
 async function aiGatewayAgent(req) {
@@ -55746,7 +55816,7 @@ async function aiGatewayAgent(req) {
     throw e2;
   }
   const route = routeAgentModel(req);
-  req = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
+  req = { ...req, model: route.spec, tools: route.useTools ? req.tools : [], taskClass: route.tier === "fast" ? "fast" : "reasoning" };
   const spec = route.spec;
   const resolved = resolveModel(spec);
   const MAX_ROUNDS = route.useTools ? req.maxRounds ?? 5 : 1;
@@ -55776,7 +55846,7 @@ async function aiGatewayAgentStream(req, onEvent) {
     throw e2;
   }
   const route = routeAgentModel(req);
-  const effectiveReq = { ...req, model: route.spec, tools: route.useTools ? req.tools : [] };
+  const effectiveReq = { ...req, model: route.spec, tools: route.useTools ? req.tools : [], taskClass: route.tier === "fast" ? "fast" : "reasoning" };
   const resolved = resolveModel(route.spec);
   const MAX_ROUNDS = route.useTools ? req.maxRounds ?? 5 : 1;
   console.log(`[gateway:agent-stream] tier=${route.tier} spec="${route.spec}" tools=${effectiveReq.tools.length}`);
@@ -55885,7 +55955,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
       if (reply.trim()) {
         await onEvent({ type: "token", text: "\n\n_(Connection interrupted \u2014 this reply may be incomplete. Please ask again.)_" });
         const partialUsage = usage.total_tokens > 0 ? usage : void 0;
-        recordAiUsage(req.workspaceId, modelId, partialUsage, { userId: req.userId });
+        recordAiUsage(req.workspaceId, modelId, partialUsage, { userId: req.userId, taskClass: req.taskClass, provider: backendLabel(), refusalReason: "stream_interrupted" });
         return { reply, provider: "openai-compat", model: modelId, rounds, usage: partialUsage };
       }
       throw streamErr;
@@ -55932,7 +56002,7 @@ async function runOpenAICompatAgentStream(modelId, req, maxRounds, onEvent) {
     }
   }
   const streamUsage = usage.total_tokens > 0 ? usage : void 0;
-  recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId });
+  recordAiUsage(req.workspaceId, modelId, streamUsage, { userId: req.userId, taskClass: req.taskClass, provider: backendLabel() });
   return { reply, provider: "openai-compat", model: modelId, rounds, usage: streamUsage };
 }
 var DEFAULT_MODEL_SPEC, FAST_MODEL_SPEC, lastGatewayError, CONVERSATIONAL_RE, DATA_INTENT_RE, PROVIDER_FALLBACK_MODELS;
@@ -55942,6 +56012,7 @@ var init_ai_gateway = __esm({
     init_openai();
     init_ai_usage();
     init_credits();
+    init_ai_router();
     DEFAULT_MODEL_SPEC = "openai-compat/gpt-oss-120b";
     FAST_MODEL_SPEC = process.env.AI_FAST_MODEL ?? DEFAULT_MODEL_SPEC;
     lastGatewayError = null;
@@ -58056,7 +58127,7 @@ var logger = (fn = console.log) => {
   };
 };
 
-// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_fd4c910944313c748115e1a0cce19847/node_modules/inngest/hono.js
+// ../../node_modules/.pnpm/inngest@3.54.2_@opentelemetry+core@2.7.1_@opentelemetry+api@1.9.1__express@4.22.2_hono@_392bf9f713ff8239ae0700e2eb354ea2/node_modules/inngest/hono.js
 init_InngestCommHandler();
 init_adapter();
 var frameworkName = "hono";
@@ -58441,6 +58512,21 @@ var SUPPORTED_CURRENCIES = [
 ];
 var DEFAULT_BASE_CURRENCY = "USD";
 var DEFAULT_FX_SOURCE = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml";
+function withEur(rates) {
+  return { EUR: 1, ...rates };
+}
+function convert2(amount, from, to, rates) {
+  if (!Number.isFinite(amount)) return null;
+  const f2 = (from || "").toUpperCase();
+  const t3 = (to || "").toUpperCase();
+  if (f2 === t3) return amount;
+  const r2 = withEur(rates);
+  const rf = r2[f2];
+  const rt2 = r2[t3];
+  if (!rf || !rt2) return null;
+  const inEur = amount / rf;
+  return inEur * rt2;
+}
 function parseEcbXml(xml) {
   if (!xml || typeof xml !== "string") return null;
   const dateMatch = xml.match(/time=["'](\d{4}-\d{2}-\d{2})["']/);
@@ -58502,6 +58588,16 @@ async function userDisplayCurrency(workspaceId, userId) {
   const disp = prefs?.display_currency;
   if (disp && String(disp).toUpperCase()) return String(disp).toUpperCase();
   return settings.base_currency && String(settings.base_currency).toUpperCase() || DEFAULT_BASE_CURRENCY;
+}
+async function makeBaseConverter(workspaceId) {
+  const [base, { rates }] = await Promise.all([workspaceBaseCurrency(workspaceId), loadRates()]);
+  const toBase = (amount, from) => {
+    const cur = (from ?? "").toUpperCase();
+    if (!cur || cur === base) return amount;
+    const converted = convert2(amount, cur, base, rates);
+    return converted ?? amount;
+  };
+  return { base, toBase };
 }
 
 // src/jobs/runners.ts
@@ -60101,7 +60197,8 @@ ${transcript}`,
     maxTokens: 400,
     workspaceId: ws,
     userId,
-    feature: "meeting_memory_summary"
+    feature: "meeting_memory_summary",
+    taskClass: "meeting"
   });
   return (res.text || "").trim();
 }
@@ -62028,11 +62125,15 @@ async function runReportData(workspaceId, reportId, input = {}) {
   const metric = String(config.metric ?? "count");
   const field = String(config.field ?? "value");
   const groupBy = String(config.group_by ?? "month");
+  const moneyAware = metric !== "count" && (nodes ?? []).some((n2) => n2.data?.currency);
+  const conv = moneyAware ? await makeBaseConverter(workspaceId) : null;
   const groups = /* @__PURE__ */ new Map();
   for (const node of nodes ?? []) {
     const date = new Date(node.created_at);
     const label = groupBy === "day" ? date.toISOString().slice(0, 10) : groupBy === "week" ? `${date.getFullYear()} W${Math.ceil(date.getDate() / 7)}` : groupBy === "quarter" ? `${date.getFullYear()} Q${Math.floor(date.getMonth() / 3) + 1}` : date.toLocaleDateString("en", { month: "short", year: "numeric" });
-    groups.set(label, [...groups.get(label) ?? [], Number(node.data?.[field] ?? 0)]);
+    const raw2 = Number(node.data?.[field] ?? 0);
+    const value = conv ? conv.toBase(raw2, node.data?.currency) : raw2;
+    groups.set(label, [...groups.get(label) ?? [], value]);
   }
   const data = [...groups].map(([label, values]) => ({ label, value: metric === "count" ? values.length : metric === "average" ? Number((values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)).toFixed(2)) : values.reduce((sum, value) => sum + value, 0) }));
   const total = metric === "average" ? Number((data.reduce((sum, item) => sum + item.value, 0) / Math.max(data.length, 1)).toFixed(2)) : data.reduce((sum, item) => sum + item.value, 0);
@@ -62226,6 +62327,11 @@ async function addNodeToList(listId, nodeId) {
   const { error } = await supabase.from("list_entries").insert({ list_id: listId, node_id: nodeId, position: (count ?? 0) + 1 });
   return !error;
 }
+async function verifyListInWorkspace(workspaceId, listId) {
+  if (!listId) return null;
+  const { data } = await supabase.from("lists").select("id").eq("id", listId).eq("workspace_id", workspaceId).maybeSingle();
+  return data?.id ?? null;
+}
 function objectTypeToVertical(objectType2) {
   const t3 = objectType2.toLowerCase();
   if (t3.includes("invest") || t3.includes("fund") || t3.includes("portfolio")) return "investments";
@@ -62242,6 +62348,8 @@ async function runProspecting(workspaceId, userId, input) {
     input: { query: input.query, object_type: input.object_type, count: input.count }
   });
   try {
+    const verifiedListId = await verifyListInWorkspace(workspaceId, input.destination_list_id);
+    input = { ...input, destination_list_id: verifiedListId ?? void 0 };
     const searchResults = await sovereignProspectSearch(`${input.query} ${input.object_type}`, Math.min(input.count * 2, 20));
     const { candidates, gen } = await extractCandidates(input.query, input.object_type, input.count, searchResults);
     const result = {
@@ -62730,11 +62838,131 @@ ${evidenceLines.join("\n")}` : "Evidence: none recorded.",
     const { text } = await aiGateway({ system, prompt: `Question: ${question}
 
 Data:
-${digest}`, maxTokens: 320, workspaceId, userId: c2.get("userId"), feature: "decision_ask" });
+${digest}`, maxTokens: 320, workspaceId, userId: c2.get("userId"), feature: "decision_ask", taskClass: "reasoning" });
     const answer = (text || "").trim();
     return c2.json({ answer: answer || "I couldn't produce an explanation for this decision.", sources, sufficient: true });
   } catch {
     return c2.json({ answer: "The AI service is unavailable right now \u2014 please try again in a moment.", sources, sufficient: true });
+  }
+});
+router5.post("/:id/verdict", async (c2) => {
+  const workspaceId = c2.get("workspaceId");
+  const { data: d2 } = await supabase.from("decision_queue").select("*").eq("workspace_id", workspaceId).eq("id", c2.req.param("id")).maybeSingle();
+  if (!d2) return c2.json({ error: "Decision not found" }, 404);
+  const evidence = Array.isArray(d2.evidence) ? d2.evidence : [];
+  const exec = describeExecution(d2);
+  const gen = d2.generation_context ?? null;
+  const hasSubstance = Boolean(d2.summary || d2.recommended_action || evidence.length || gen?.user_prompt);
+  if (!hasSubstance) return c2.json({ sufficient: false, reason: "This decision has no recorded summary, evidence, or context to adjudicate on." });
+  const evidenceLines = evidence.slice(0, 12).map((e2, i2) => `  ${i2 + 1}. ${e2.title ?? "evidence"}${e2.match_reason ? ` \u2014 ${e2.match_reason}` : e2.relationship ? ` \u2014 ${e2.relationship}` : ""}`);
+  const digest = [
+    `Decision: ${d2.title}`,
+    `Raised by agent: ${d2.agent_name}. Source type: ${d2.source_type}. Risk level: ${d2.risk_level}.`,
+    d2.confidence != null ? `Computed confidence: ${d2.confidence}%.` : "Confidence: not computed.",
+    d2.summary ? `Why it was raised: ${d2.summary}` : "",
+    d2.recommended_action ? `Recommended action: ${d2.recommended_action}` : "",
+    `Exactly what approving does: ${exec.text}`,
+    evidenceLines.length ? `Evidence (${evidence.length} item(s)):
+${evidenceLines.join("\n")}` : "Evidence: none recorded.",
+    gen?.user_prompt ? `Original AI context (what the agent saw): ${String(gen.user_prompt).slice(0, 1500)}` : ""
+  ].filter(Boolean).join("\n");
+  try {
+    const result = await aiGatewayToolUse({
+      system: "You are an adjudication assistant for a human approval queue. Judge ONE agent-raised decision using ONLY the data provided. Rules: never invent evidence, numbers, or consequences. If the evidence is thin, contradictory, or the action is irreversible with weak support, recommend 'investigate' \u2014 NEVER a confident approve. 'risks' = concrete downsides of approving that are visible in the data. 'checks' = specific things the human should verify before acting. Keep every field short and factual.",
+      prompt: `Adjudicate this decision:
+
+${digest}`,
+      toolName: "record_verdict",
+      toolDescription: "Record the structured adjudication of the decision.",
+      toolSchema: {
+        type: "object",
+        properties: {
+          recommendation: { type: "string", enum: ["approve", "reject", "investigate"] },
+          rationale: { type: "string", description: "2-3 factual sentences grounded in the provided data." },
+          risks: { type: "array", items: { type: "string" }, description: "Concrete downsides of approving, from the data only." },
+          checks: { type: "array", items: { type: "string" }, description: "What the human should verify before acting." }
+        },
+        required: ["recommendation", "rationale"]
+      },
+      maxTokens: 500,
+      workspaceId,
+      userId: c2.get("userId"),
+      feature: "decision_verdict",
+      taskClass: "reasoning"
+    });
+    const r2 = result ?? {};
+    const rec = ["approve", "reject", "investigate"].includes(String(r2.recommendation)) ? String(r2.recommendation) : "investigate";
+    return c2.json({
+      sufficient: true,
+      recommendation: rec,
+      rationale: String(r2.rationale ?? "").slice(0, 1e3),
+      risks: (Array.isArray(r2.risks) ? r2.risks : []).slice(0, 5).map(String),
+      checks: (Array.isArray(r2.checks) ? r2.checks : []).slice(0, 5).map(String),
+      grounded_on: {
+        evidence_count: evidence.length,
+        has_summary: Boolean(d2.summary),
+        has_agent_context: Boolean(gen?.user_prompt),
+        execution_preview: exec.text
+      }
+    });
+  } catch {
+    return c2.json({ error: "The AI service is unavailable right now \u2014 please try again." }, 503);
+  }
+});
+router5.post("/triage", async (c2) => {
+  const workspaceId = c2.get("workspaceId");
+  const { data: rows2 } = await supabase.from("decision_queue").select("id, title, summary, agent_name, source_type, risk_level, confidence, evidence, created_at").eq("workspace_id", workspaceId).eq("status", "pending").order("created_at", { ascending: true }).limit(30);
+  const pending = rows2 ?? [];
+  if (pending.length === 0) return c2.json({ sufficient: false, reason: "No pending decisions to triage." });
+  if (pending.length === 1) return c2.json({ sufficient: true, ranked: [{ id: pending[0].id, priority: "high", reason: "Only pending decision." }] });
+  const lines = pending.map((d2, i2) => {
+    const ev = Array.isArray(d2.evidence) ? d2.evidence.length : 0;
+    const age = Math.round((Date.now() - new Date(d2.created_at).getTime()) / 864e5);
+    return `${i2 + 1}. id=${d2.id} \xB7 "${d2.title}" \xB7 agent=${d2.agent_name} \xB7 risk=${d2.risk_level} \xB7 evidence=${ev} \xB7 age=${age}d${d2.summary ? ` \xB7 ${String(d2.summary).slice(0, 140)}` : ""}`;
+  });
+  try {
+    const result = await aiGatewayToolUse({
+      system: "You triage a human approval queue. Rank the given decisions by where the human's attention creates the most value NOW. Consider real risk level, evidence strength, age, and stated impact \u2014 from the provided lines ONLY. Give each a one-line factual reason. Use ONLY the ids provided; include every id exactly once.",
+      prompt: `Rank these ${pending.length} pending decisions:
+
+${lines.join("\n")}`,
+      toolName: "record_triage",
+      toolDescription: "Record the triage ranking of the pending decisions.",
+      toolSchema: {
+        type: "object",
+        properties: {
+          ranked: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                priority: { type: "string", enum: ["high", "medium", "low"] },
+                reason: { type: "string" }
+              },
+              required: ["id", "priority", "reason"]
+            }
+          }
+        },
+        required: ["ranked"]
+      },
+      maxTokens: 900,
+      workspaceId,
+      userId: c2.get("userId"),
+      feature: "decision_triage",
+      taskClass: "reasoning"
+    });
+    const validIds = new Set(pending.map((d2) => String(d2.id)));
+    const seen = /* @__PURE__ */ new Set();
+    const ranked = (Array.isArray(result.ranked) ? result.ranked : []).filter((r2) => validIds.has(String(r2.id)) && !seen.has(String(r2.id)) && seen.add(String(r2.id))).map((r2) => ({
+      id: String(r2.id),
+      priority: ["high", "medium", "low"].includes(String(r2.priority)) ? String(r2.priority) : "medium",
+      reason: String(r2.reason ?? "").slice(0, 200)
+    }));
+    for (const d2 of pending) if (!seen.has(String(d2.id))) ranked.push({ id: String(d2.id), priority: "medium", reason: "Not ranked by AI \u2014 review manually." });
+    return c2.json({ sufficient: true, ranked });
+  } catch {
+    return c2.json({ error: "The AI service is unavailable right now \u2014 please try again." }, 503);
   }
 });
 async function decisionInWorkspace(workspaceId, id) {
@@ -65380,8 +65608,135 @@ router10.get("/inbox", async (c2) => {
     const m2 = dir.get(t3.other_id);
     return { ...t3, name: m2?.name || m2?.email || "Member", email: m2?.email ?? null, avatar_url: m2?.avatar_url ?? null };
   });
-  const unreadTotal = inbox.reduce((s2, t3) => s2 + t3.unread, 0);
-  return c2.json({ inbox, unread_total: unreadTotal });
+  const groups = [];
+  try {
+    const { data: myGroups } = await supabase.from("chat_group_members").select("group_id").eq("workspace_id", ws).eq("user_id", me2);
+    const ids = (myGroups ?? []).map((g2) => String(g2.group_id));
+    if (ids.length) {
+      const [{ data: groupRows }, { data: msgs }, { data: counts }] = await Promise.all([
+        supabase.from("chat_groups").select("id, name, created_at").eq("workspace_id", ws).in("id", ids),
+        supabase.from("internal_messages").select("group_id, sender_id, body, created_at").eq("workspace_id", ws).in("group_id", ids).order("created_at", { ascending: false }).limit(400),
+        supabase.from("chat_group_members").select("group_id").eq("workspace_id", ws).in("group_id", ids)
+      ]);
+      const lastRead = new Map((states ?? []).map((s2) => [String(s2.thread_key), s2]));
+      const { data: groupStates } = await supabase.from("internal_message_thread_state").select("thread_key, last_read_at").eq("workspace_id", ws).eq("user_id", me2).in("thread_key", ids.map((id) => `group:${id}`));
+      const readAt = new Map((groupStates ?? []).map((s2) => [String(s2.thread_key), String(s2.last_read_at ?? "")]));
+      const memberCount = /* @__PURE__ */ new Map();
+      for (const r2 of counts ?? []) memberCount.set(String(r2.group_id), (memberCount.get(String(r2.group_id)) ?? 0) + 1);
+      void lastRead;
+      for (const g2 of groupRows ?? []) {
+        const gm = (msgs ?? []).filter((m2) => String(m2.group_id) === String(g2.id));
+        const latest = gm[0];
+        const myRead = readAt.get(`group:${g2.id}`) ?? "";
+        const unread = gm.filter((m2) => m2.sender_id !== me2 && (!myRead || m2.created_at > myRead)).length;
+        groups.push({
+          group_id: String(g2.id),
+          name: g2.name,
+          last: latest ? String(latest.body).slice(0, 140) : "No messages yet",
+          last_at: latest?.created_at ?? g2.created_at,
+          unread,
+          members: memberCount.get(String(g2.id)) ?? 1
+        });
+      }
+      groups.sort((a2, b2) => a2.last_at < b2.last_at ? 1 : -1);
+    }
+  } catch {
+  }
+  const unreadTotal = inbox.reduce((s2, t3) => s2 + t3.unread, 0) + groups.reduce((s2, g2) => s2 + g2.unread, 0);
+  return c2.json({ inbox, groups, unread_total: unreadTotal });
+});
+var groupThreadKey = (groupId) => `group:${groupId}`;
+async function assertGroupMember(ws, groupId, me2) {
+  const { data: member } = await supabase.from("chat_group_members").select("group_id").eq("workspace_id", ws).eq("group_id", groupId).eq("user_id", me2).maybeSingle();
+  if (!member) return null;
+  const { data: group } = await supabase.from("chat_groups").select("id, name, created_by").eq("workspace_id", ws).eq("id", groupId).maybeSingle();
+  return group ?? null;
+}
+router10.post("/groups", zValidator("json", external_exports.object({
+  name: external_exports.string().min(1).max(80),
+  member_ids: external_exports.array(external_exports.string().min(1)).min(1).max(50)
+})), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const { name, member_ids } = c2.req.valid("json");
+  const dir = await members(ws);
+  const invalid = member_ids.filter((id) => !dir.has(id));
+  if (invalid.length) return c2.json({ error: "Some selected people are not members of this workspace." }, 400);
+  const { data: group, error } = await supabase.from("chat_groups").insert({ workspace_id: ws, name, created_by: me2 }).select("id, name").single();
+  if (error) return c2.json({ error: error.message }, 400);
+  const memberRows = [.../* @__PURE__ */ new Set([me2, ...member_ids])].map((uid) => ({ group_id: group.id, workspace_id: ws, user_id: uid, added_by: me2 }));
+  const { error: mErr } = await supabase.from("chat_group_members").insert(memberRows);
+  if (mErr) return c2.json({ error: mErr.message }, 400);
+  return c2.json({ id: group.id, name: group.name }, 201);
+});
+router10.get("/group/:id", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const groupId = c2.req.param("id");
+  const group = await assertGroupMember(ws, groupId, me2);
+  if (!group) return c2.json({ error: "Group not found." }, 404);
+  const [{ data: rows2 }, { data: memberRows }] = await Promise.all([
+    supabase.from("internal_messages").select("id, sender_id, body, attachments, created_at").eq("workspace_id", ws).eq("group_id", groupId).order("created_at", { ascending: true }).limit(500),
+    supabase.from("chat_group_members").select("user_id").eq("workspace_id", ws).eq("group_id", groupId)
+  ]);
+  const dir = await members(ws);
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  await supabase.from("internal_message_thread_state").upsert({ workspace_id: ws, thread_key: groupThreadKey(groupId), user_id: me2, last_read_at: now, updated_at: now }, { onConflict: "workspace_id,thread_key,user_id" }).then(() => {
+  }, () => {
+  });
+  return c2.json({
+    group: { id: group.id, name: group.name, created_by: group.created_by },
+    members: (memberRows ?? []).map((m2) => {
+      const info = dir.get(String(m2.user_id));
+      return { user_id: m2.user_id, name: info?.name || info?.email || "Member", avatar_url: info?.avatar_url ?? null };
+    }),
+    messages: (rows2 ?? []).map((r2) => {
+      const info = dir.get(String(r2.sender_id));
+      return { ...r2, mine: r2.sender_id === me2, sender_name: info?.name || info?.email || "Member" };
+    })
+  });
+});
+router10.post("/group/:id/members", zValidator("json", external_exports.object({ user_ids: external_exports.array(external_exports.string().min(1)).min(1).max(50) })), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const groupId = c2.req.param("id");
+  if (!await assertGroupMember(ws, groupId, me2)) return c2.json({ error: "Group not found." }, 404);
+  const dir = await members(ws);
+  const valid = c2.req.valid("json").user_ids.filter((id) => dir.has(id));
+  if (!valid.length) return c2.json({ error: "No valid workspace members selected." }, 400);
+  const rows2 = valid.map((uid) => ({ group_id: groupId, workspace_id: ws, user_id: uid, added_by: me2 }));
+  await supabase.from("chat_group_members").upsert(rows2, { onConflict: "group_id,user_id" });
+  return c2.json({ added: valid.length });
+});
+router10.delete("/group/:id/members/me", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const groupId = c2.req.param("id");
+  await supabase.from("chat_group_members").delete().eq("workspace_id", ws).eq("group_id", groupId).eq("user_id", me2);
+  return c2.body(null, 204);
+});
+router10.get("/search", async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const q2 = (c2.req.query("q") ?? "").trim();
+  if (q2.length < 2) return c2.json({ results: [] });
+  const safe = q2.replace(/[%_]/g, (ch) => `\\${ch}`);
+  const { data: rows2 } = await supabase.from("internal_messages").select("id, thread_key, sender_id, recipient_id, body, created_at").eq("workspace_id", ws).or(`sender_id.eq.${me2},recipient_id.eq.${me2}`).ilike("body", `%${safe}%`).order("created_at", { ascending: false }).limit(30);
+  const dir = await members(ws);
+  const results = (rows2 ?? []).map((r2) => {
+    const otherId = r2.sender_id === me2 ? r2.recipient_id : r2.sender_id;
+    const m2 = dir.get(otherId);
+    return {
+      id: r2.id,
+      other_id: otherId,
+      name: m2?.name || m2?.email || "Member",
+      avatar_url: m2?.avatar_url ?? null,
+      body: r2.body.slice(0, 200),
+      created_at: r2.created_at,
+      mine: r2.sender_id === me2
+    };
+  });
+  return c2.json({ results });
 });
 router10.get("/thread/:otherId", async (c2) => {
   const ws = c2.get("workspaceId");
@@ -65390,7 +65745,11 @@ router10.get("/thread/:otherId", async (c2) => {
   const key = threadKey(me2, other);
   const dir = await members(ws);
   if (!dir.has(other)) return c2.json({ error: "Member not found in this workspace." }, 404);
-  const { data: rows2 } = await supabase.from("internal_messages").select("id, sender_id, recipient_id, body, read_at, created_at").eq("workspace_id", ws).eq("thread_key", key).order("created_at", { ascending: true }).limit(500);
+  let { data: rows2, error: readErr } = await supabase.from("internal_messages").select("id, sender_id, recipient_id, body, attachments, read_at, created_at").eq("workspace_id", ws).eq("thread_key", key).order("created_at", { ascending: true }).limit(500);
+  if (readErr) {
+    const legacy = await supabase.from("internal_messages").select("id, sender_id, recipient_id, body, read_at, created_at").eq("workspace_id", ws).eq("thread_key", key).order("created_at", { ascending: true }).limit(500);
+    rows2 = (legacy.data ?? []).map((r2) => ({ ...r2, attachments: [] }));
+  }
   const now = (/* @__PURE__ */ new Date()).toISOString();
   await supabase.from("internal_messages").update({ read_at: now }).eq("workspace_id", ws).eq("thread_key", key).eq("recipient_id", me2).is("read_at", null);
   await supabase.from("internal_message_thread_state").upsert({ workspace_id: ws, thread_key: key, user_id: me2, last_read_at: now, updated_at: now }, { onConflict: "workspace_id,thread_key,user_id" }).then(() => {
@@ -65402,27 +65761,107 @@ router10.get("/thread/:otherId", async (c2) => {
     messages: (rows2 ?? []).map((r2) => ({ ...r2, mine: r2.sender_id === me2 }))
   });
 });
-router10.post("/", zValidator("json", external_exports.object({ recipient_id: external_exports.string().min(1), body: external_exports.string().min(1).max(5e3) })), async (c2) => {
+var MSG_ATTACH_BUCKET = "message-attachments";
+var MSG_ATTACH_MAX_BYTES = 10 * 1024 * 1024;
+var MSG_ATTACH_MAX_FILES = 5;
+var attachmentMeta = external_exports.object({
+  path: external_exports.string().min(1),
+  name: external_exports.string().min(1).max(200),
+  content_type: external_exports.string().max(120),
+  size: external_exports.number().int().positive()
+});
+router10.post("/attachments", zValidator("json", external_exports.object({
+  files: external_exports.array(external_exports.object({
+    name: external_exports.string().min(1).max(200),
+    content_type: external_exports.string().max(120).default("application/octet-stream"),
+    content_base64: external_exports.string().min(1)
+  })).min(1).max(MSG_ATTACH_MAX_FILES)
+})), async (c2) => {
   const ws = c2.get("workspaceId");
   const me2 = c2.get("userId");
-  const { recipient_id, body } = c2.req.valid("json");
-  if (recipient_id === me2) return c2.json({ error: "You can't message yourself." }, 400);
+  const out = [];
+  for (const [i2, f2] of c2.req.valid("json").files.entries()) {
+    const bytes = new Uint8Array(Buffer.from(f2.content_base64, "base64"));
+    if (bytes.length === 0) continue;
+    if (bytes.length > MSG_ATTACH_MAX_BYTES) return c2.json({ error: `"${f2.name}" is over the 10 MB limit.` }, 413);
+    const safeName = f2.name.replace(/[^\w.\- ]+/g, "_").slice(0, 120);
+    const path = `${ws}/${me2}/${Date.now()}-${i2}-${safeName}`;
+    const { error } = await supabase.storage.from(MSG_ATTACH_BUCKET).upload(path, bytes, { contentType: f2.content_type || "application/octet-stream", upsert: false });
+    if (error) return c2.json({ error: `Couldn't store "${f2.name}" \u2014 ${error.message}` }, 500);
+    out.push({ path, name: f2.name, content_type: f2.content_type || "application/octet-stream", size: bytes.length });
+  }
+  if (!out.length) return c2.json({ error: "No valid files." }, 400);
+  return c2.json({ attachments: out }, 201);
+});
+router10.get("/attachment", zValidator("query", external_exports.object({ path: external_exports.string().min(1) })), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const path = c2.req.valid("query").path;
+  if (!path.startsWith(`${ws}/`)) return c2.json({ error: "Not allowed." }, 403);
+  const { data: msg } = await supabase.from("internal_messages").select("id").eq("workspace_id", ws).or(`sender_id.eq.${me2},recipient_id.eq.${me2}`).contains("attachments", JSON.stringify([{ path }])).limit(1).maybeSingle();
+  if (!msg) return c2.json({ error: "Attachment not found." }, 404);
+  const { data, error } = await supabase.storage.from(MSG_ATTACH_BUCKET).createSignedUrl(path, 120);
+  if (error || !data?.signedUrl) return c2.json({ error: "Attachment not found." }, 404);
+  return c2.json({ url: data.signedUrl });
+});
+router10.post("/", zValidator("json", external_exports.object({
+  recipient_id: external_exports.string().min(1).optional(),
+  group_id: external_exports.string().uuid().optional(),
+  body: external_exports.string().min(1).max(5e3),
+  attachments: external_exports.array(attachmentMeta).max(MSG_ATTACH_MAX_FILES).optional()
+}).refine((v2) => Boolean(v2.recipient_id) !== Boolean(v2.group_id), { message: "Provide exactly one of recipient_id or group_id." })), async (c2) => {
+  const ws = c2.get("workspaceId");
+  const me2 = c2.get("userId");
+  const { recipient_id, group_id, body, attachments } = c2.req.valid("json");
+  const atts = (attachments ?? []).filter((a2) => a2.path.startsWith(`${ws}/${me2}/`));
+  if ((attachments ?? []).length !== atts.length) return c2.json({ error: "Invalid attachment reference." }, 400);
+  if (group_id) {
+    const group = await assertGroupMember(ws, group_id, me2);
+    if (!group) return c2.json({ error: "Group not found." }, 404);
+    const row2 = { workspace_id: ws, thread_key: groupThreadKey(group_id), sender_id: me2, group_id, body };
+    if (atts.length > 0) row2.attachments = atts;
+    const { data: data2, error: error2 } = await supabase.from("internal_messages").insert(row2).select("id, created_at").single();
+    if (error2) return c2.json({ error: error2.message }, 400);
+    const dir2 = await members(ws);
+    const senderName2 = dir2.get(me2)?.name || dir2.get(me2)?.email || "A teammate";
+    const { data: gMembers } = await supabase.from("chat_group_members").select("user_id").eq("workspace_id", ws).eq("group_id", group_id);
+    const others = (gMembers ?? []).map((m2) => String(m2.user_id)).filter((id) => id !== me2).slice(0, 20);
+    if (others.length) {
+      await supabase.from("notifications").insert(others.map((uid) => ({
+        workspace_id: ws,
+        user_id: uid,
+        title: `${senderName2} in ${group.name}`,
+        message: `${senderName2} in ${group.name}`,
+        body: body.slice(0, 120),
+        type: "message",
+        is_read: false,
+        metadata: { route: `/messages?g=${group_id}` }
+      }))).then(() => {
+      }, () => {
+      });
+    }
+    return c2.json({ id: data2.id, created_at: data2.created_at }, 201);
+  }
+  const rid = recipient_id;
+  if (rid === me2) return c2.json({ error: "You can't message yourself." }, 400);
   const dir = await members(ws);
-  const recipient = dir.get(recipient_id);
+  const recipient = dir.get(rid);
   if (!recipient) return c2.json({ error: "Recipient is not a member of this workspace." }, 404);
-  const { data, error } = await supabase.from("internal_messages").insert({ workspace_id: ws, thread_key: threadKey(me2, recipient_id), sender_id: me2, recipient_id, body }).select("id, created_at").single();
+  const row = { workspace_id: ws, thread_key: threadKey(me2, rid), sender_id: me2, recipient_id: rid, body };
+  if (atts.length > 0) row.attachments = atts;
+  const { data, error } = await supabase.from("internal_messages").insert(row).select("id, created_at").single();
   if (error) return c2.json({ error: error.message }, 400);
   const sender = dir.get(me2);
   const senderName = sender?.name || sender?.email || "A teammate";
   await supabase.from("notifications").insert({
     workspace_id: ws,
-    user_id: recipient_id,
+    user_id: rid,
     title: `New message from ${senderName}`,
     message: `New message from ${senderName}`,
     body: body.slice(0, 120),
     type: "message",
     is_read: false,
-    metadata: { route: `/messages?to=${me2}`, thread_key: threadKey(me2, recipient_id) }
+    metadata: { route: `/messages?to=${me2}`, thread_key: threadKey(me2, rid) }
   }).then(() => {
   }, () => {
   });
@@ -67239,7 +67678,7 @@ Respond as JSON only: {"answer": string, "category": one of [${SUPPORT_CATEGORIE
   const prompt = `${priorTurns ? priorTurns + "\n" : ""}User: ${message}`;
   let raw2 = "";
   try {
-    const res = await aiGateway({ system, prompt, maxTokens: 700, feature: "support" });
+    const res = await aiGateway({ system, prompt, maxTokens: 700, feature: "support", taskClass: "support" });
     raw2 = res.text ?? "";
   } catch {
     return c2.json({ answer: "I couldn't reach the help service just now. Please try again, or create a support request.", category: "bug_report", needs_ticket: true, suggested_subject: "Help service error", language: ctx.language, cited_docs: [], diagnostics, suggested_actions: buildSuggestedActions(ctx, topic, true, diagnostics), degraded: true });
@@ -70358,7 +70797,8 @@ router34.patch("/:id/reviews/:reviewId", async (c2) => {
     action_note: body.action_note || null,
     action_at: (/* @__PURE__ */ new Date()).toISOString(),
     status: "completed"
-  }).eq("id", c2.req.param("reviewId")).select().single();
+  }).eq("id", c2.req.param("reviewId")).eq("task_id", c2.req.param("id")).select().maybeSingle();
+  if (!review) return c2.json({ error: "Review not found on this task." }, 404);
   let commentText = "";
   if (body.action === "approved") {
     commentText = `Task approved by ${body.reviewer_name}.${body.action_note ? `
@@ -70569,13 +71009,18 @@ router35.post("/:id/comments", async (c2) => {
 router35.delete("/:id/comments/:commentId", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
-  const { error } = await supabase.from("task_comments").delete().eq("id", c2.req.param("commentId")).eq("user_id", c2.get("userId"));
+  const { error } = await supabase.from("task_comments").delete().eq("id", c2.req.param("commentId")).eq("task_id", taskId).eq("user_id", c2.get("userId"));
   if (error) return c2.json({ error: error.message }, 500);
   return c2.body(null, 204);
 });
+async function assertCommentOnTask(commentId, taskId) {
+  const { data } = await supabase.from("task_comments").select("id").eq("id", commentId).eq("task_id", taskId).maybeSingle();
+  if (!data) throw new HTTPException(404, { message: "Comment not found" });
+}
 router35.get("/:id/comments/:commentId/reactions", async (c2) => {
   const taskId = c2.req.param("id");
   await assertTaskOwnership2(taskId, c2.get("workspaceId"));
+  await assertCommentOnTask(c2.req.param("commentId"), taskId);
   const { data } = await supabase.from("task_comment_reactions").select("*").eq("comment_id", c2.req.param("commentId"));
   return c2.json(data ?? []);
 });
@@ -70585,6 +71030,7 @@ router35.post("/:id/comments/:commentId/reactions", async (c2) => {
   const { emoji } = await c2.req.json();
   const userId = c2.get("userId");
   const commentId = c2.req.param("commentId");
+  await assertCommentOnTask(commentId, taskId);
   const { data: existing } = await supabase.from("task_comment_reactions").select("id").eq("comment_id", commentId).eq("user_id", userId).eq("emoji", emoji).maybeSingle();
   if (existing) {
     await supabase.from("task_comment_reactions").delete().eq("id", existing.id);
@@ -71532,10 +71978,14 @@ router38.post("/:id/send", async (c2) => {
   const LOST = ["lost", "closed lost", "rejected", "declined", "dead", "cancelled"];
   const wonRecs = stageCol ? recs.filter((r2) => WON.some((k2) => String(r2.data[stageCol] ?? "").toLowerCase().includes(k2))) : recs;
   const lostRecs = stageCol ? recs.filter((r2) => LOST.some((k2) => String(r2.data[stageCol] ?? "").toLowerCase().includes(k2))) : [];
-  const wonValue = valueCol ? wonRecs.reduce((s2, r2) => s2 + Number(r2.data[valueCol] ?? 0), 0) : 0;
-  const totalValue = valueCol ? recs.reduce((s2, r2) => s2 + Number(r2.data[valueCol] ?? 0), 0) : 0;
+  const { base, toBase } = await makeBaseConverter(c2.get("workspaceId"));
+  const val$ = (r2) => toBase(Number(r2.data[valueCol] ?? 0), r2.data.currency);
+  const wonValue = valueCol ? wonRecs.reduce((s2, r2) => s2 + val$(r2), 0) : 0;
+  const totalValue = valueCol ? recs.reduce((s2, r2) => s2 + val$(r2), 0) : 0;
   const winRate = wonRecs.length + lostRecs.length > 0 ? Math.round(wonRecs.length / (wonRecs.length + lostRecs.length) * 100) : null;
-  const fmt2 = (n2) => n2 >= 1e6 ? `$${(n2 / 1e6).toFixed(1)}M` : n2 >= 1e3 ? `$${(n2 / 1e3).toFixed(0)}K` : `$${n2.toLocaleString()}`;
+  const SYM = { USD: "$", EUR: "\u20AC", GBP: "\xA3", PLN: "z\u0142", JPY: "\xA5" };
+  const sym = SYM[base] ?? `${base} `;
+  const fmt2 = (n2) => n2 >= 1e6 ? `${sym}${(n2 / 1e6).toFixed(1)}M` : n2 >= 1e3 ? `${sym}${(n2 / 1e3).toFixed(0)}K` : `${sym}${n2.toLocaleString()}`;
   const label = cfg.label || `${cfg.object_type} \xB7 ${cfg.period}`;
   const now = (/* @__PURE__ */ new Date()).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const statsRows = [
@@ -72823,6 +73273,7 @@ router47.get("/log", async (c2) => {
   });
 });
 router47.post("/log", async (c2) => {
+  if (!await isPlatformAdmin(c2.get("userId"))) return c2.json({ error: "Platform admin access required." }, 403);
   const body = await c2.req.json().catch(() => ({}));
   if (!body.kind || !body.title || !body.status) {
     return c2.json({ error: "kind, title and status are required" }, 400);
@@ -72840,6 +73291,7 @@ router47.post("/log", async (c2) => {
   return c2.json({ id: data?.id, created: true });
 });
 router47.patch("/log/:id", async (c2) => {
+  if (!await isPlatformAdmin(c2.get("userId"))) return c2.json({ error: "Platform admin access required." }, 403);
   const id = c2.req.param("id");
   const body = await c2.req.json().catch(() => ({}));
   const patch = {};
@@ -72912,6 +73364,9 @@ router48.get("/summary", async (c2) => {
   let monthTokens = 0, monthCalls = 0;
   const byModel = {};
   const byFeature = {};
+  const byClass = {};
+  let latencySum = 0, latencyN = 0, cacheHits = 0, cacheSeen = 0, refusals = 0;
+  const providers = /* @__PURE__ */ new Set();
   for (const r2 of usage ?? []) {
     const t3 = Number(r2.total_tokens ?? 0);
     monthTokens += t3;
@@ -72920,6 +73375,17 @@ router48.get("/summary", async (c2) => {
     byModel[model] = (byModel[model] ?? 0) + t3;
     const feature = String(r2.feature ?? "other");
     byFeature[feature] = (byFeature[feature] ?? 0) + t3;
+    if (r2.task_class != null) byClass[String(r2.task_class)] = (byClass[String(r2.task_class)] ?? 0) + Number(r2.message_count ?? 1);
+    if (r2.latency_ms != null) {
+      latencySum += Number(r2.latency_ms);
+      latencyN += 1;
+    }
+    if (r2.cache_status != null) {
+      cacheSeen += 1;
+      if (r2.cache_status === "hit") cacheHits += 1;
+    }
+    if (r2.refusal_reason != null) refusals += 1;
+    if (r2.provider != null) providers.add(String(r2.provider));
   }
   const list = ledger ?? [];
   const enrolled = list.length > 0;
@@ -72929,6 +73395,15 @@ router48.get("/summary", async (c2) => {
   return c2.json({
     period: { start: monthStart, resets_at: nextMonth },
     month: { credits_used: monthTokens, ai_calls: monthCalls, by_model: byModel, by_feature: byFeature },
+    // Observability rollup — null when there's no signal yet (honest, never fabricated).
+    observability: {
+      by_class: byClass,
+      avg_latency_ms: latencyN > 0 ? Math.round(latencySum / latencyN) : null,
+      cache_hit_rate: cacheSeen > 0 ? Math.round(cacheHits / cacheSeen * 100) : null,
+      cache_samples: cacheSeen,
+      refusals,
+      providers: [...providers]
+    },
     wallet: {
       enrolled,
       tier: settings.account_tier ?? settings.track ?? "scout",

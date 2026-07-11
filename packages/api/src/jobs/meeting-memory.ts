@@ -39,7 +39,7 @@ async function summarizeTranscript(ws: string, userId: string, lines: Transcript
     maxTokens: 400,
     workspaceId: ws,
     userId,
-    feature: "meeting_memory_summary",
+    feature: "meeting_memory_summary", taskClass: "meeting",
   });
   return (res.text || "").trim();
 }

@@ -93,6 +93,11 @@ router.get("/summary", async (c) => {
   let monthTokens = 0, monthCalls = 0;
   const byModel: Record<string, number> = {};
   const byFeature: Record<string, number> = {};
+  // Phase-1 observability aggregates — all derived from real rows; fields stay null/absent when the
+  // 20260711 columns aren't populated yet, so this degrades cleanly during rollout.
+  const byClass: Record<string, number> = {};
+  let latencySum = 0, latencyN = 0, cacheHits = 0, cacheSeen = 0, refusals = 0;
+  const providers = new Set<string>();
   for (const r of (usage ?? []) as Record<string, unknown>[]) {
     const t = Number(r.total_tokens ?? 0);
     monthTokens += t; monthCalls += Number(r.message_count ?? 1);
@@ -100,6 +105,11 @@ router.get("/summary", async (c) => {
     byModel[model] = (byModel[model] ?? 0) + t;
     const feature = String(r.feature ?? "other");
     byFeature[feature] = (byFeature[feature] ?? 0) + t;
+    if (r.task_class != null) byClass[String(r.task_class)] = (byClass[String(r.task_class)] ?? 0) + Number(r.message_count ?? 1);
+    if (r.latency_ms != null) { latencySum += Number(r.latency_ms); latencyN += 1; }
+    if (r.cache_status != null) { cacheSeen += 1; if (r.cache_status === "hit") cacheHits += 1; }
+    if (r.refusal_reason != null) refusals += 1;
+    if (r.provider != null) providers.add(String(r.provider));
   }
 
   const list = ledger ?? [];
@@ -111,6 +121,15 @@ router.get("/summary", async (c) => {
   return c.json({
     period: { start: monthStart, resets_at: nextMonth },
     month: { credits_used: monthTokens, ai_calls: monthCalls, by_model: byModel, by_feature: byFeature },
+    // Observability rollup — null when there's no signal yet (honest, never fabricated).
+    observability: {
+      by_class: byClass,
+      avg_latency_ms: latencyN > 0 ? Math.round(latencySum / latencyN) : null,
+      cache_hit_rate: cacheSeen > 0 ? Math.round((cacheHits / cacheSeen) * 100) : null,
+      cache_samples: cacheSeen,
+      refusals,
+      providers: [...providers],
+    },
     wallet: {
       enrolled,
       tier: (settings.account_tier as string) ?? (settings.track as string) ?? "scout",
