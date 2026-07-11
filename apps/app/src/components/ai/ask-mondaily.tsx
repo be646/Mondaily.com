@@ -353,18 +353,20 @@ export function AskMondaily() {
                       <div className="pl-4"><TokenLedger usage={meta.usage}/></div>
                     )}
 
-                    {/* Memory disclosure — only when source-backed remembered facts were actually
-                        injected (backend tags them type:"memory"). Honest: absent when none used. */}
-                    {!isStreaming && meta?.memory && meta.memory.used > 0 && (
-                      <div className="mt-1.5 pl-4 text-[11px]" style={{ color: "var(--text-faint)" }}>
-                        Used {meta.memory.used} remembered fact{meta.memory.used !== 1 ? "s" : ""}: {meta.memory.refs.map((r) => r.split(":").map((p, i) => i === 1 ? p.slice(0, 8) : p).join(":")).join(", ")}
-                      </div>
-                    )}
-
                     {/* Source cards — honest empty state when backend returns none */}
                     {!isStreaming && meta && meta.sources.length > 0 && (
                       <div className="mt-2 pl-4">
                         <SourceList sources={meta.sources}/>
+                      </div>
+                    )}
+
+                    {/* Memory disclosure — part of the source/scope footer, so it renders ONCE per
+                        answer directly beneath the sources and before the action buttons. Only shown
+                        when source-backed remembered facts were actually injected (honest: absent
+                        when none used). */}
+                    {!isStreaming && meta?.memory && meta.memory.used > 0 && (
+                      <div className="mt-1.5 pl-4 text-[11px]" style={{ color: "var(--text-faint)" }}>
+                        Used {meta.memory.used} remembered fact{meta.memory.used !== 1 ? "s" : ""}: {meta.memory.refs.map((r) => r.split(":").map((p, i) => i === 1 ? p.slice(0, 8) : p).join(":")).join(", ")}
                       </div>
                     )}
 

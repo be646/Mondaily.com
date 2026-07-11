@@ -69,6 +69,35 @@ describe("Phase 2B — Ask memory injection", () => {
   });
 });
 
+describe("Phase 2B.6 — Ask footer render order (single disclosure, before action buttons)", () => {
+  it("memory disclosure renders exactly once per answer", () => {
+    expect((uiAsk.match(/Used \{meta\.memory\.used\} remembered fact/g) ?? []).length).toBe(1);
+  });
+
+  it("footer order: SourceList → memory disclosure → action bar (ThumbsUp) → action chips", () => {
+    const iSources = uiAsk.indexOf("<SourceList");
+    const iMemory = uiAsk.indexOf("Used {meta.memory.used} remembered fact");
+    const iActionBar = uiAsk.indexOf("<ThumbsUp");
+    const iChips = uiAsk.indexOf('label: "Create task"');
+    expect(iSources).toBeGreaterThan(-1);
+    expect(iMemory).toBeGreaterThan(-1);
+    expect(iActionBar).toBeGreaterThan(-1);
+    expect(iChips).toBeGreaterThan(-1);
+    // disclosure sits with the source/scope footer, before the buttons
+    expect(iSources).toBeLessThan(iMemory);
+    expect(iMemory).toBeLessThan(iActionBar);
+    expect(iActionBar).toBeLessThan(iChips);
+  });
+
+  it("action bar + chips each render once, gated to a settled (non-streaming) answer", () => {
+    expect((uiAsk.match(/<ThumbsUp/g) ?? []).length).toBe(1);
+    expect((uiAsk.match(/chat-pills-in flex flex-wrap items-center/g) ?? []).length).toBe(1);
+    // both button regions are behind the !isStreaming guard (no flicker/dupe mid-stream)
+    expect(uiAsk).toMatch(/\{!isStreaming && i > 0 &&/);
+    expect(uiAsk).toMatch(/\{!isStreaming && !loading && i === messages\.length - 1 &&/);
+  });
+});
+
 describe("Phase 2B — scope: ONLY Ask (Support / Decisions / agents untouched)", () => {
   it("Support does not import or call recallContext", () => {
     expect(support).not.toMatch(/recallContext|memory-recall|buildAskMemory/);
