@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Bot, Check, ChevronLeft, Clipboard, Clock3, Pause, Play, Search, Volume2, X, UploadCloud, Printer, RefreshCw, Loader2 } from "lucide-react";
+import { Bot, Check, ChevronLeft, Clipboard, Clock3, Pause, Play, Search, Volume2, X, UploadCloud, Printer, RefreshCw, Loader2, ListChecks, ShieldCheck } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -22,6 +22,7 @@ interface CallDetail {
   overview?: string;
   key_topics: string[];
   action_items: string[];
+  action_item_promotions?: Record<string, { type: string; id: string; at?: string }>;
   buyer_signals: { type: "positive" | "objection"; text: string }[];
   next_steps: string[];
   participants: Participant[];
@@ -131,12 +132,26 @@ export function CallDetailPage() {
   });
   const [playbackRate, setPlaybackRate] = useState("1");
   const [transcriptSearch, setTranscriptSearch] = useState("");
-  const [completedActions, setCompletedActions] = useState<number[]>([]);
+  const [promoting, setPromoting] = useState<{ index: number; target: "task" | "decision" } | null>(null);
+  const [promoteError, setPromoteError] = useState<{ index: number; reason: string } | null>(null);
   const [analysisOpen, setAnalysisOpen] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<string>();
   const [analysisResults, setAnalysisResults] = useState<Record<string, string>>({});
   const [analyzing, setAnalyzing] = useState(false);
-  const createTask = useMutation({ mutationFn: (title: string) => apiClient.post("/tasks", { title, node_id: id }) });
+  // Promote a REAL extracted action item into a Task or the Decision Queue. Idempotent server-side
+  // (a second click returns the same id, never a duplicate). Status persists on the record.
+  async function promoteItem(index: number, target: "task" | "decision") {
+    if (promoting || call?.action_item_promotions?.[String(index)]) return;
+    setPromoting({ index, target }); setPromoteError(null);
+    try {
+      await apiClient.post(`/calls/${id}/action-items/${index}/promote`, { target });
+      await query.refetch();
+    } catch (e) {
+      setPromoteError({ index, reason: (e as Error)?.message ?? "Couldn't create it — try again." });
+    } finally {
+      setPromoting(null);
+    }
+  }
 
   const visibleTranscript = useMemo(() => call?.transcript ?? [], [call?.transcript]);
 
@@ -169,11 +184,6 @@ export function CallDetailPage() {
     setAnalyzing(false);
   }
 
-  async function completeAction(item: string, index: number) {
-    if (completedActions.includes(index)) return;
-    await createTask.mutateAsync(item);
-    setCompletedActions((current) => [...current, index]);
-  }
 
   if (query.isLoading) return <div className="p-8"><PageSkeleton rows={7} /></div>;
   if (!call) return <div className="grid h-full place-items-center text-sm text-[var(--text-muted)]">Call not found.</div>;
@@ -210,7 +220,35 @@ export function CallDetailPage() {
           {(call.linked_records ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{(call.linked_records ?? []).map((record) => <Link key={record.id} to={`/objects/${record.object_type}/${record.id}`} className="rounded-full border border-[var(--border-soft)] px-2.5 py-1 text-xs text-[var(--text-faint)]">{record.name}</Link>)}</div> : null}
           <SummarySection title="Overview"><p className="text-sm leading-6 text-[var(--text-secondary)]">{call.overview || call.ai_summary || "No summary generated yet."}</p></SummarySection>
           <SummarySection title="Key topics">{(call.key_topics ?? []).length ? <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{(call.key_topics ?? []).map((topic) => <li key={topic}>• {topic}</li>)}</ul> : <p className="text-sm text-[var(--text-muted)]">No key topics extracted.</p>}</SummarySection>
-          <SummarySection title="Action items">{(call.action_items ?? []).length ? <div className="space-y-2">{(call.action_items ?? []).map((item, index) => <button key={item} onClick={() => completeAction(item, index)} className="flex w-full items-start gap-2 rounded-md p-2 text-left text-sm hover:bg-[var(--surface-hover)]"><span className={`mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border ${completedActions.includes(index) ? "border-[#5f8169] bg-[#5f8169] text-black" : "border-[var(--border-soft)]"}`}>{completedActions.includes(index) ? <Check size={10} /> : null}</span><span className={completedActions.includes(index) ? "text-[var(--text-secondary)] line-through" : "text-[var(--text-secondary)]"}>{item}</span></button>)}</div> : <p className="text-sm text-[var(--text-muted)]">No action items identified.</p>}</SummarySection>
+          <SummarySection title="Action items">{(call.action_items ?? []).length ? <div className="space-y-1.5">{(call.action_items ?? []).map((item, index) => {
+            const promo = call.action_item_promotions?.[String(index)];
+            const busy = promoting?.index === index;
+            const err = promoteError?.index === index ? promoteError.reason : null;
+            return (
+              <div key={`${index}-${item}`} className="rounded-md border p-2.5 text-sm" style={{ borderColor: "var(--border-soft)" }}>
+                <p className="text-[var(--text-secondary)]">{item}</p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  {promo ? (
+                    <span className="inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-[11px] font-medium" style={{ color: "#5f8169", background: "#5f816914" }}>
+                      <Check size={11} /> {promo.type === "task" ? "Task created" : "Decision queued"}
+                    </span>
+                  ) : <>
+                    <button onClick={() => promoteItem(index, "task")} disabled={busy}
+                      className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-50"
+                      style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                      {busy && promoting?.target === "task" ? <Loader2 size={11} className="animate-spin" /> : <ListChecks size={11} />} Create task
+                    </button>
+                    <button onClick={() => promoteItem(index, "decision")} disabled={busy}
+                      className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-50"
+                      style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                      {busy && promoting?.target === "decision" ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />} Send to Decision Queue
+                    </button>
+                  </>}
+                  {err && <span className="text-[11px]" style={{ color: "#9c6b72" }}>Failed — {err}</span>}
+                </div>
+              </div>
+            );
+          })}</div> : <p className="text-sm text-[var(--text-muted)]">No action items identified.</p>}</SummarySection>
           <SummarySection title="Buyer signals"><div className="space-y-2">{(call.buyer_signals ?? []).map((signal) => <div key={signal.text} className={`rounded-md border px-3 py-2 text-sm ${signal.type === "positive" ? "border-[#5f8169]/20 bg-[#5f8169]/5 text-[#5f8169]" : "border-stone-500/30 bg-stone-600/5 text-stone-300"}`}>{signal.text}</div>)}</div></SummarySection>
           <SummarySection title="Next steps">{(call.next_steps ?? []).length ? <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{(call.next_steps ?? []).map((step) => <li key={step}>• {step}</li>)}</ul> : <p className="text-sm text-[var(--text-muted)]">No next steps recommended.</p>}</SummarySection>
         </section>

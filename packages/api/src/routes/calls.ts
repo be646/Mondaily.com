@@ -42,6 +42,10 @@ function normalizeCall(node: CallNode) {
     participants: Array.isArray(data.participants) ? data.participants : [],
     linked_records: Array.isArray(data.linked_records) ? data.linked_records : [],
     transcript: Array.isArray(data.transcript) ? data.transcript : [],
+    // Per-action-item promotion status (index → { type:'task'|'decision', id }). Drives the detail
+    // UI so a promoted item stays "task created"/"decision queued" across reloads. Never fabricated.
+    action_item_promotions: (data.action_item_promotions && typeof data.action_item_promotions === "object")
+      ? data.action_item_promotions as Record<string, { type: string; id: string; at?: string }> : {},
     // Provenance (never the raw storage path): where this record came from + whether a recording
     // exists (playback is via the signed-URL endpoint, never a raw path/public URL).
     source: String(data.source ?? ""),
@@ -322,6 +326,57 @@ router.post("/:id/reprocess", async (c) => {
   await supabase.from("call_sessions").update({ transcript_status: "queued" }).eq("id", sess.id).eq("workspace_id", ws).eq("transcript_status", "failed");
   enqueueIngest(sess.id);
   return c.json({ ok: true, status: "queued" }, 202);
+});
+
+// POST /calls/:id/action-items/:index/promote { target } — promote a REAL extracted action item into
+// a Task or the Decision Queue. Workspace-scoped, idempotent (a second click returns the same id and
+// never creates a duplicate), and honest (only promotes an item that actually exists on the record).
+router.post("/:id/action-items/:index/promote", zValidator("json", z.object({ target: z.enum(["task", "decision"]) })), async (c) => {
+  const ws = c.get("workspaceId"); const userId = c.get("userId");
+  const node = await getCall(ws, c.req.param("id"));
+  if (!node) return c.json({ error: "Call not found" }, 404);
+  const items = Array.isArray(node.data?.action_items) ? (node.data.action_items as unknown[]) : [];
+  const idx = Number(c.req.param("index"));
+  if (!Number.isInteger(idx) || idx < 0 || idx >= items.length) return c.json({ error: "invalid_index" }, 400);
+  const item = String(items[idx] ?? "").trim();
+  if (!item) return c.json({ error: "empty_item" }, 400);
+  const target = c.req.valid("json").target;
+
+  const promoMap = (v: unknown) => (v && typeof v === "object" ? { ...(v as Record<string, { type: string; id: string; at?: string }>) } : {} as Record<string, { type: string; id: string; at?: string }>);
+  const statusFor = (t: string) => (t === "task" ? "task_created" : "decision_queued");
+
+  // Idempotent: already promoted → return the existing task/decision, never a duplicate row.
+  const existing = promoMap(node.data?.action_item_promotions)[String(idx)];
+  if (existing?.id) return c.json({ index: idx, type: existing.type, id: existing.id, status: statusFor(existing.type), idempotent: true });
+
+  // Create via the existing task / decision_queue shapes (mirrors discovery buildLeadTask/Decision).
+  let createdId: string | null = null;
+  if (target === "task") {
+    const { data, error } = await supabase.from("tasks").insert({
+      workspace_id: ws, title: item.slice(0, 300), assignee_id: userId, completed: false, due_date: null,
+      record_id: node.id, priority: "medium", status: "todo", created_by: userId, notes: "From Meeting Memory",
+    }).select("id").single();
+    if (error || !data) return c.json({ error: "create_failed", reason: error?.message ?? "insert failed", status: "failed" }, 500);
+    createdId = data.id as string;
+  } else {
+    const { data, error } = await supabase.from("decision_queue").insert({
+      workspace_id: ws, source_type: "call_record", source_id: node.id, agent_name: "meeting_memory",
+      title: item.slice(0, 200), summary: item, recommended_action: "Review this action item from the call.",
+      risk_level: "low", evidence: [{ type: "call_record", title: item, node_id: node.id }],
+    }).select("id").single();
+    if (error || !data) return c.json({ error: "create_failed", reason: error?.message ?? "insert failed", status: "failed" }, 500);
+    createdId = data.id as string;
+  }
+
+  // Persist the promotion. Re-read first so a fast double-click can't double-write (prefer whatever
+  // landed first; workspace-scoped throughout).
+  const { data: fresh } = await supabase.from("nodes").select("data").eq("workspace_id", ws).eq("id", node.id).maybeSingle();
+  const map = promoMap((fresh?.data as Record<string, unknown> | undefined)?.action_item_promotions);
+  const raced = map[String(idx)];
+  if (raced?.id) return c.json({ index: idx, type: raced.type, id: raced.id, status: statusFor(raced.type), idempotent: true });
+  map[String(idx)] = { type: target, id: createdId!, at: new Date().toISOString() };
+  await supabase.from("nodes").update({ data: { ...((fresh?.data as object) ?? node.data), action_item_promotions: map } }).eq("workspace_id", ws).eq("id", node.id);
+  return c.json({ index: idx, type: target, id: createdId, status: statusFor(target) });
 });
 
 export { router as callsRouter };
