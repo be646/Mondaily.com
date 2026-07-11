@@ -16,6 +16,35 @@ export function graphDedupeKey(name?: string | null, website?: string | null, so
   return domainOf(website, source_url) || (name ?? "").trim().toLowerCase();
 }
 
+export interface BatchLead { name: string; website?: string; source_url?: string }
+
+/** Classify a bulk-save set into disjoint buckets — the honest partition behind /save-batch:
+ *  - toInsert       : new, dedupe-able leads to create
+ *  - already_existed: leads whose key matches a node already in the Graph (reported, not re-created)
+ *  - skipped_details: leads we can't act on (no name/website key, or a duplicate of another selected lead)
+ *  Every input lead lands in EXACTLY one bucket, so counts always reconcile with the selection. */
+export function partitionSaveBatch<T extends BatchLead>(
+  leads: T[],
+  existingByKey: Map<string, string>,
+): { toInsert: T[]; already_existed: { name: string; node_id: string }[]; skipped_details: { name: string; reason: string }[] } {
+  const already_existed: { name: string; node_id: string }[] = [];
+  const skipped_details: { name: string; reason: string }[] = [];
+  const seen = new Set<string>();
+  const toInsert = leads.filter((b) => {
+    const k = graphDedupeKey(b.name, b.website, b.source_url);
+    if (!k) { skipped_details.push({ name: b.name, reason: "missing a name/website to identify the lead" }); return false; }
+    if (existingByKey.has(k)) { already_existed.push({ name: b.name, node_id: existingByKey.get(k)! }); return false; }
+    if (seen.has(k)) { skipped_details.push({ name: b.name, reason: "duplicate of another selected lead" }); return false; }
+    seen.add(k); return true;
+  });
+  return { toInsert, already_existed, skipped_details };
+}
+
+/** Honest created/failed tally for a per-lead bulk result set (bulk-task / bulk-decision). */
+export function bulkOutcome<T extends { ok: boolean }>(results: T[]): { created: number; failed: number } {
+  return { created: results.filter((r) => r.ok).length, failed: results.filter((r) => !r.ok).length };
+}
+
 export interface LeadTaskInput {
   workspaceId: string; userId: string; name: string;
   node_id?: string | null; title?: string; assignee_id?: string | null; due_date?: string | null;

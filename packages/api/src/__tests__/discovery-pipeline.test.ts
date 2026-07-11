@@ -82,8 +82,11 @@ describe("workspace isolation + wiring (source-read guards)", () => {
     expect(src).toMatch(/router\.post\("\/lead-decision"/);
     expect(src).toMatch(/buildLeadDecision\(\{ workspaceId: c\.get\("workspaceId"\)/);
   });
-  it("save-batch reports already_existed with node ids", () => {
-    expect(src).toMatch(/already_existed\.push\(\{ name: b\.name, node_id: existingByKey\.get\(k\)! \}\)/);
+  it("save-batch reports already_existed with node ids (via partitionSaveBatch)", () => {
+    // Classification moved into the pure, unit-tested partitionSaveBatch helper.
+    expect(src).toMatch(/partitionSaveBatch\(leads, existingByKey\)/);
+    const lib = readFileSync(fileURLToPath(new URL("../lib/discovery-pipeline.ts", import.meta.url)), "utf8");
+    expect(lib).toMatch(/already_existed\.push\(\{ name: b\.name, node_id: existingByKey\.get\(k\)! \}\)/);
   });
   it("save-batch adds BOTH created and already-existing matches to the list", () => {
     expect(src).toMatch(/for \(const id of \[\.\.\.ids, \.\.\.already_existed\.map\(\(a\) => a\.node_id\)\]\) await addToList/);
@@ -96,7 +99,8 @@ describe("bulk task/decision endpoints — per-lead status + isolation (source-r
     expect(src).toMatch(/router\.post\("\/bulk-task"/);
     expect(src).toMatch(/buildLeadTask\(\{ workspaceId, userId, name: b\.name/);
     expect(src).toMatch(/\{ name: b\.name, ok: false, error: error\.message \}/);
-    expect(src).toMatch(/created: results\.filter\(r => r\.ok\)\.length, failed: results\.filter\(r => !r\.ok\)\.length/);
+    // created/failed tally moved into the pure, unit-tested bulkOutcome helper.
+    expect(src).toMatch(/return c\.json\(\{ \.\.\.bulkOutcome\(results\), results \}\)/);
   });
   it("bulk-decision creates one decision per lead with per-lead status", () => {
     expect(src).toMatch(/router\.post\("\/bulk-decision"/);

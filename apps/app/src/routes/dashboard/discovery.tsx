@@ -577,7 +577,7 @@ function StepTrace({ steps, status }: { steps: string[]; status: Turn["status"] 
 function SaveAllLeads({ results, query }: { results: ResultRow[]; query: string }) {
   const qc = useQueryClient();
   const [state, setState] = useState<"idle" | "saving" | "done" | "error">("idle");
-  const [result, setResult] = useState<{ saved: number; skipped: number } | null>(null);
+  const [result, setResult] = useState<{ saved: number; skipped: number; already_existed?: unknown[]; failed?: unknown[] } | null>(null);
   const save = async () => {
     setState("saving");
     try {
@@ -592,13 +592,22 @@ function SaveAllLeads({ results, query }: { results: ResultRow[]; query: string 
         region: r.region ?? undefined,
         summary: r.snippet || undefined,
       }));
-      const res = await apiClient.post<{ saved: number; skipped: number }>("/discovery/save-batch", { leads });
+      const res = await apiClient.post<{ saved: number; skipped: number; already_existed?: unknown[]; failed?: unknown[] }>("/discovery/save-batch", { leads });
       setResult(res);
       setState("done");
       qc.invalidateQueries({ queryKey: ["nodes"] });
     } catch { setState("error"); }
   };
-  if (state === "done") return <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: "#5f8169" }}><Check size={12} /> {result?.saved ?? results.length} saved{result?.skipped ? ` · ${result.skipped} already in graph` : ""}</span>;
+  if (state === "done") {
+    // Honest, non-conflated counts: saved / already-in-graph / skipped / failed — never a fake "saved".
+    const existed = result?.already_existed?.length ?? 0;
+    const failed = result?.failed?.length ?? 0;
+    const parts = [`${result?.saved ?? 0} saved`];
+    if (existed) parts.push(`${existed} already in graph`);
+    if (result?.skipped) parts.push(`${result.skipped} skipped`);
+    if (failed) parts.push(`${failed} failed`);
+    return <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: failed ? "#9c6b72" : "#5f8169" }}><Check size={12} /> {parts.join(" · ")}</span>;
+  }
   return (
     <button onClick={save} disabled={state === "saving"} className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
       {state === "saving" ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} {state === "error" ? "Retry save all" : `Save all ${results.length}`}
@@ -665,7 +674,7 @@ interface Dossier {
 interface Enrichment { dossier?: Dossier; emails: string[]; phones: string[]; people: { name: string; role?: string; email?: string }[]; company: string | null }
 
 // Per-lead pipeline state — reflected as status chips (all real; set only after a real action).
-interface LeadStatus { saved?: boolean; existed?: boolean; listed?: boolean; tasked?: boolean; queued?: boolean; node_id?: string; owner?: string }
+interface LeadStatus { saved?: boolean; existed?: boolean; listed?: boolean; tasked?: boolean; queued?: boolean; failed?: boolean; failReason?: string; node_id?: string; owner?: string }
 interface Member { user_id: string; name?: string | null; email?: string | null }
 // Product-structure framing for Discovery — a light labeling layer over the EXISTING features
 // (no new logic). Each module names where its real capabilities live on this page.
@@ -790,17 +799,21 @@ function PipelineChips({ st }: { st: LeadStatus }) {
     st.listed ? { l: "In list", tone: "#0d9488" } : null,
     st.tasked ? { l: "Task created", tone: "#2563eb" } : null,
     st.queued ? { l: "In Decision Queue", tone: "#7c3aed" } : null,
-  ].filter(Boolean) as { l: string; tone: string }[];
+    // Failed action — surfaced honestly (never alongside a success chip; bulk handlers set only this).
+    st.failed ? { l: "Failed", tone: "#9c6b72", title: st.failReason || "no reason returned" } : null,
+  ].filter(Boolean) as { l: string; tone: string; title?: string }[];
   if (chips.length === 0) return null;
   return (
     <div className="mt-2 flex flex-wrap gap-1">
-      {chips.map((c) => <span key={c.l} className="rounded-full px-1.5 py-0.5 text-[9.5px] font-medium" style={{ color: c.tone, background: `color-mix(in srgb, ${c.tone} 14%, transparent)` }}>{c.l}</span>)}
+      {chips.map((c) => <span key={c.l} title={c.title} className="rounded-full px-1.5 py-0.5 text-[9.5px] font-medium" style={{ color: c.tone, background: `color-mix(in srgb, ${c.tone} 14%, transparent)` }}>{c.l}</span>)}
     </div>
   );
 }
 
-interface BatchResp { created: { name: string; node_id: string }[]; already_existed: { name: string; node_id: string }[]; saved: number; skipped: number }
+interface BatchResp { created: { name: string; node_id: string }[]; already_existed: { name: string; node_id: string }[]; failed?: { name: string; reason: string }[]; skipped_details?: { name: string; reason: string }[]; saved: number; skipped: number }
 interface BulkPerLead { created: number; failed: number; results: { name: string; ok: boolean; id?: string; error?: string }[] }
+// Honest per-run ledger — every selected lead lands in exactly one bucket; failures carry a reason.
+interface BulkLedger { verb: string; total: number; created: number; existed: number; skipped: number; failed: number; failures: { name: string; reason: string }[] }
 /** Operational bulk action bar — runs real bulk endpoints, maps per-lead results back to status
  *  chips, and reports partial failures honestly (no blanket success). */
 function BulkBar({ entries, query, lists, members, onApplied, onClear }: {
@@ -811,11 +824,16 @@ function BulkBar({ entries, query, lists, members, onApplied, onClear }: {
   const [listId, setListId] = useState<string>("");
   const [ownerId, setOwnerId] = useState<string>("");
   const [busy, setBusy] = useState<string | null>(null);
-  const [note, setNote] = useState<string | null>(null);
+  const [ledger, setLedger] = useState<BulkLedger | null>(null);
   const nameToKeys = () => { const m = new Map<string, string[]>(); for (const e of entries) { const n = toLeadPayload(e.r, query).name; (m.get(n) ?? m.set(n, []).get(n)!).push(e.key); } return m; };
+  // Build an "everything failed" ledger from a thrown request (network/500) — honest, never silent.
+  const allFailed = (verb: string, reason: string): BulkLedger => ({
+    verb, total: entries.length, created: 0, existed: 0, skipped: 0, failed: entries.length,
+    failures: entries.map((e) => ({ name: toLeadPayload(e.r, query).name, reason: reason || "no reason returned" })),
+  });
 
   async function save(withList: boolean, withOwner: boolean) {
-    setBusy("save"); setNote(null);
+    setBusy("save"); setLedger(null);
     try {
       const body: Record<string, unknown> = { leads: entries.map((e) => toLeadPayload(e.r, query)) };
       if (withList && listId) body.list_id = listId;
@@ -824,23 +842,31 @@ function BulkBar({ entries, query, lists, members, onApplied, onClear }: {
       const byName = nameToKeys(); const updates: Record<string, LeadStatus> = {};
       for (const cr of res.created) for (const k of byName.get(cr.name) ?? []) updates[k] = { saved: true, node_id: cr.node_id, listed: withList && !!listId, owner: withOwner && ownerId ? ownerId : undefined };
       for (const ex of res.already_existed) for (const k of byName.get(ex.name) ?? []) updates[k] = { existed: true, node_id: ex.node_id, listed: withList && !!listId };
+      // Failed leads get a FAILED chip + reason — never a success chip.
+      const failures = res.failed ?? [];
+      for (const f of failures) for (const k of byName.get(f.name) ?? []) updates[k] = { failed: true, failReason: f.reason };
       onApplied(updates);
-      setNote(`${res.created.length} saved · ${res.already_existed.length} already in graph${withList && listId ? " · added to list" : ""}`);
+      setLedger({ verb: "saved", total: entries.length, created: res.created.length, existed: res.already_existed.length, skipped: res.skipped ?? 0, failed: failures.length, failures });
       qc.invalidateQueries({ queryKey: ["nodes"] }); qc.invalidateQueries({ queryKey: ["lists"] });
-    } catch (e) { setNote((e as Error)?.message ?? "Bulk save failed"); }
+    } catch (e) { setLedger(allFailed("saved", (e as Error)?.message ?? "")); }
     finally { setBusy(null); }
   }
   async function bulk(kind: "task" | "decision") {
-    setBusy(kind); setNote(null);
+    setBusy(kind); setLedger(null);
     try {
       const leads = entries.map((e) => { const p = toLeadPayload(e.r, query); return { name: p.name, source_url: e.r.source_url, email: e.r.email ?? undefined, phone: e.r.phone ?? undefined, summary: e.r.snippet || undefined }; });
       const res = await apiClient.post<BulkPerLead>(`/discovery/bulk-${kind}`, kind === "task" ? { leads, assignee_id: ownerId || undefined } : { leads });
       const updates: Record<string, LeadStatus> = {};
-      res.results.forEach((r, i) => { if (r.ok && entries[i]) updates[entries[i].key] = kind === "task" ? { tasked: true } : { queued: true }; });
+      // Results are returned in the SAME order as leads sent, so index maps back to the selected entry.
+      res.results.forEach((r, i) => {
+        const key = entries[i]?.key; if (!key) return;
+        updates[key] = r.ok ? (kind === "task" ? { tasked: true } : { queued: true }) : { failed: true, failReason: r.error || "no reason returned" };
+      });
       onApplied(updates);
-      setNote(`${res.created} ${kind === "task" ? "task(s)" : "decision(s)"} created${res.failed ? ` · ${res.failed} failed` : ""}`);
+      const failures = res.results.filter((r) => !r.ok).map((r) => ({ name: r.name, reason: r.error || "no reason returned" }));
+      setLedger({ verb: kind === "task" ? "task(s)" : "decision(s)", total: entries.length, created: res.created, existed: 0, skipped: 0, failed: res.failed, failures });
       qc.invalidateQueries({ queryKey: [kind === "task" ? "tasks" : "decisions"] });
-    } catch (e) { setNote((e as Error)?.message ?? "Bulk action failed"); }
+    } catch (e) { setLedger(allFailed(kind === "task" ? "task(s)" : "decision(s)", (e as Error)?.message ?? "")); }
     finally { setBusy(null); }
   }
   const B = ({ id, onClick, children }: { id: string; onClick: () => void; children: React.ReactNode }) => (
@@ -859,7 +885,29 @@ function BulkBar({ entries, query, lists, members, onApplied, onClear }: {
       <B id="task" onClick={() => bulk("task")}><CheckSquare size={11} /> Tasks</B>
       <B id="decision" onClick={() => bulk("decision")}><ShieldCheck size={11} /> To Decisions</B>
       <button onClick={onClear} className="text-[11px]" style={{ color: "var(--text-faint)" }}>Clear</button>
-      {note && <span className="w-full text-[11px] sm:w-auto" style={{ color: "var(--text-muted)" }}>{note}</span>}
+      {ledger && (() => {
+        // Every selected lead is accounted for: created / already-in-graph / skipped / failed. No
+        // blanket "success" — failed leads are named with their reason (or "no reason returned").
+        const summary = [
+          `${ledger.created} ${ledger.verb}`,
+          ledger.existed ? `${ledger.existed} already in graph` : "",
+          ledger.skipped ? `${ledger.skipped} skipped` : "",
+          ledger.failed ? `${ledger.failed} failed` : "",
+        ].filter(Boolean).join(" · ");
+        return (
+          <div className="w-full text-[11px]" style={{ color: "var(--text-muted)" }}>
+            <span>{ledger.total} selected → {summary}</span>
+            {ledger.failures.length > 0 && (
+              <ul className="mt-1 space-y-0.5" style={{ color: "#9c6b72" }}>
+                {ledger.failures.slice(0, 8).map((f, i) => (
+                  <li key={`${f.name}-${i}`} className="truncate">✕ {f.name || "Unnamed lead"} — {f.reason || "no reason returned"}</li>
+                ))}
+                {ledger.failures.length > 8 && <li>…and {ledger.failures.length - 8} more</li>}
+              </ul>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

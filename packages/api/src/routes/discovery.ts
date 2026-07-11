@@ -13,7 +13,7 @@ import { buildDossier, type AiEnrichment } from "../lib/discovery-dossier";
 import { redditDiagnostic } from "../lib/reddit";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { streamSSE } from "hono/streaming";
-import { graphDedupeKey, buildLeadTask, buildLeadDecision } from "../lib/discovery-pipeline";
+import { graphDedupeKey, buildLeadTask, buildLeadDecision, partitionSaveBatch, bulkOutcome } from "../lib/discovery-pipeline";
 
 /**
  * Social listening & intent discovery.
@@ -440,15 +440,7 @@ router.post("/save-batch", denyViewerWrites, zValidator("json", z.object({
     if (k && !existingByKey.has(k)) existingByKey.set(k, n.id as string);
   }
 
-  const already_existed: { name: string; node_id: string }[] = [];
-  const seen = new Set<string>();
-  const toInsert = leads.filter((b) => {
-    const k = graphDedupeKey(b.name, b.website, b.source_url);
-    if (!k) return false;
-    if (existingByKey.has(k)) { already_existed.push({ name: b.name, node_id: existingByKey.get(k)! }); return false; }
-    if (seen.has(k)) return false;
-    seen.add(k); return true;
-  });
+  const { toInsert, already_existed, skipped_details } = partitionSaveBatch(leads, existingByKey);
   const rows = toInsert.map((b) => ({
     workspace_id: workspaceId,
     vertical: objectTypeToVertical(b.object_type),
@@ -457,16 +449,23 @@ router.post("/save-batch", denyViewerWrites, zValidator("json", z.object({
     data: { name: b.name, source: "discovery", owner_id: owner_id || userId, discovery_query: b.discovery_query, source_url: b.source_url, email: b.email, phone: b.phone, website: b.website || undefined, domain: domainOf(b.website, b.source_url) || undefined, handle: b.handle, description: b.summary, location: b.region },
   }));
 
-  const skipped = leads.length - rows.length;
-  if (rows.length === 0) return c.json({ saved: 0, skipped, ids: [], created: [], already_existed }, 200);
+  // `skipped` is now PRECISE (no-key + intra-batch dups only) and never conflated with
+  // already_existed — those are reported separately. Kept as a number for existing callers.
+  const skipped = skipped_details.length;
+  if (rows.length === 0) return c.json({ saved: 0, skipped, skipped_details, ids: [], created: [], already_existed, failed: [] }, 200);
   const { data, error } = await supabase.from("nodes").insert(rows).select("id");
-  if (error) return c.json({ error: error.message }, 400);
+  if (error) {
+    // Honest per-lead failure — the batch insert failed, so every attempted lead is reported failed
+    // with the real reason (never a blanket generic error, never a fake "saved").
+    const failed = toInsert.map((b) => ({ name: b.name, reason: error.message || "no reason returned" }));
+    return c.json({ saved: 0, skipped, skipped_details, ids: [], created: [], already_existed, failed }, 200);
+  }
   const ids = (data ?? []).map((r) => r.id as string);
   const created = ids.map((id, i) => ({ name: toInsert[i]?.name ?? "", node_id: id }));
   // Add BOTH newly-created and already-existing matches to the list, so "add selected to list"
   // covers leads that were already in the graph too.
   if (list_id) for (const id of [...ids, ...already_existed.map((a) => a.node_id)]) await addToList(workspaceId, list_id, id);
-  return c.json({ saved: ids.length, skipped, ids, created, already_existed }, 201);
+  return c.json({ saved: ids.length, skipped, skipped_details, ids, created, already_existed, failed: [] }, 201);
 });
 
 // ── Saved-search monitors ("watch this search") — stored as nodes, re-run by the daily cron. ──
@@ -652,7 +651,7 @@ router.post("/bulk-task", denyViewerWrites, zValidator("json", z.object({
     const { data, error } = await supabase.from("tasks").insert(row).select("id").single();
     return error ? { name: b.name, ok: false, error: error.message } : { name: b.name, ok: true, id: data.id as string };
   }));
-  return c.json({ created: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length, results });
+  return c.json({ ...bulkOutcome(results), results });
 });
 
 // ── Bulk lead → decisions : queue each selected lead into the Decision Queue, per-lead status. ──
@@ -666,7 +665,7 @@ router.post("/bulk-decision", denyViewerWrites, zValidator("json", z.object({
     const { data, error } = await supabase.from("decision_queue").insert(row).select("id").single();
     return error ? { name: b.name, ok: false, error: error.message } : { name: b.name, ok: true, id: data.id as string };
   }));
-  return c.json({ created: results.filter(r => r.ok).length, failed: results.filter(r => !r.ok).length, results });
+  return c.json({ ...bulkOutcome(results), results });
 });
 
 export { router as discoveryRouter };
