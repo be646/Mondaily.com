@@ -88,7 +88,7 @@ function GeneralSection({
           <button
             onClick={() => logoRef.current?.click()}
             disabled={logoBusy}
-            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] px-3 py-2 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] disabled:opacity-50 transition-colors"
           >
             <ImagePlus size={13} /> {logoBusy ? "Saving…" : (logoPreview || organization?.imageUrl) ? "Change logo" : "Upload logo"}
           </button>
@@ -237,7 +237,7 @@ function DangerZoneSection({ form }: { form: WorkspaceData }) {
         <p className="text-[12px] text-[var(--text-muted)]">Export a portable copy of all workspace data, or permanently delete this workspace.</p>
         <div className="flex flex-wrap gap-3">
           <button onClick={exportData}
-            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+            className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] px-3 py-2 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
             <Download size={13} /> Export all data
           </button>
           <button onClick={() => setDeleteOpen(true)}

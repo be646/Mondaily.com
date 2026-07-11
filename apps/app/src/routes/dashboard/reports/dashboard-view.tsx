@@ -377,7 +377,7 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
                     {objects.map(obj => (
                       <button key={obj.slug}
                         onClick={() => { onAdd({ id: crypto.randomUUID(), type: "live", slug: obj.slug, title: obj.name_plural }); onClose(); }}
-                        className="flex w-full items-center gap-3 rounded-lg border border-[var(--border-soft)] p-3 text-left hover:bg-[var(--surface-hover)] transition-colors">
+                        className="flex w-full items-center gap-3 rounded-sm border border-[var(--border-soft)] p-3 text-left hover:bg-[var(--surface-hover)] transition-colors">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#5f8169]/10 text-[#5f8169]"><BarChart2 size={14}/></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-[var(--text-primary)]">{obj.name_plural}</p>
@@ -401,7 +401,7 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
                     {reports.map(report => (
                       <button key={report.id}
                         onClick={() => { onAdd({ id: crypto.randomUUID(), type: "report", report_id: report.id, title: report.name }); onClose(); }}
-                        className="flex w-full items-center gap-3 rounded-lg border border-[var(--border-soft)] p-3 text-left hover:bg-[var(--surface-hover)] transition-colors">
+                        className="flex w-full items-center gap-3 rounded-sm border border-[var(--border-soft)] p-3 text-left hover:bg-[var(--surface-hover)] transition-colors">
                         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-stone-500/10 text-[var(--text-faint)]"><LineChartIcon size={14}/></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-[var(--text-primary)] truncate">{report.name}</p>

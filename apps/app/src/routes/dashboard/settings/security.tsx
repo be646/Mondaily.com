@@ -236,7 +236,7 @@ export function SecuritySettings() {
             <input value={domain} onChange={e => setDomain(e.target.value)} placeholder="competitor.com"
               className="key-input h-9 flex-1 px-3 text-sm" />
             <button type="submit"
-              className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+              className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
               <Plus size={13} /> Add
             </button>
           </form>

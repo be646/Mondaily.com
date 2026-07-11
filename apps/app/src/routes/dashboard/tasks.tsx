@@ -654,8 +654,8 @@ export function TasksPage() {
               ))}
               <div className="mx-2 my-1 border-t border-[var(--border-soft)]"/>
               <div className="flex gap-1 px-1 pb-1">
-                <button onClick={() => setSortDir("desc")} className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs transition-colors ${sortDir === "desc" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-faint)]"}`}><ArrowDown size={11}/> Newest</button>
-                <button onClick={() => setSortDir("asc")}  className={`flex flex-1 items-center justify-center gap-1 rounded-lg py-1.5 text-xs transition-colors ${sortDir === "asc"  ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-faint)]"}`}><ArrowUp size={11}/> Oldest</button>
+                <button onClick={() => setSortDir("desc")} className={`flex flex-1 items-center justify-center gap-1 rounded-sm py-1.5 text-xs transition-colors ${sortDir === "desc" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-faint)]"}`}><ArrowDown size={11}/> Newest</button>
+                <button onClick={() => setSortDir("asc")}  className={`flex flex-1 items-center justify-center gap-1 rounded-sm py-1.5 text-xs transition-colors ${sortDir === "asc"  ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-faint)]"}`}><ArrowUp size={11}/> Oldest</button>
               </div>
             </div>
           )}
@@ -713,14 +713,14 @@ export function TasksPage() {
                     <div className="flex items-center gap-0.5 shrink-0">
                       {task.completed && (
                         <button onClick={() => handleToggle(task)} title="Reactivate"
-                          className="rounded-lg p-1.5 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><RotateCcw size={12}/></button>
+                          className="rounded-sm p-1.5 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><RotateCcw size={12}/></button>
                       )}
                       <button onClick={() => setExpandedId(expanded ? null : task.id)}
-                        className="rounded-lg p-1.5 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
+                        className="rounded-sm p-1.5 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
                         <ChevronDown size={13} className={`transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}/>
                       </button>
                       <button onClick={() => setEditTask(task)} title="Edit"
-                        className="rounded-lg p-1.5 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={12}/></button>
+                        className="rounded-sm p-1.5 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={12}/></button>
                       {(task.assignee_id === currentUserId || !task.assignee_id) && (
                         <button onClick={() => setConfirmDeleteId(task.id)} title="Delete"
                           className="rounded-lg p-1.5 text-[var(--text-faint)] hover:text-stone-400 hover:bg-stone-400/10 transition-colors"><Trash2 size={12}/></button>

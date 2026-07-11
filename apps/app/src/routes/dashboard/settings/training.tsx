@@ -133,7 +133,7 @@ export function TrainingSettings() {
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={exportData} disabled={busy !== null || p.captured === 0}
-              className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-4 py-2 text-sm text-[var(--text-faint)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
+              className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] px-4 py-2 text-sm text-[var(--text-faint)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] disabled:opacity-50"
             >
               <Download size={13} /> {busy === "export" ? "Exporting…" : "Export training data (JSON)"}
             </button>

@@ -1096,7 +1096,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
             const isDone = Boolean(task.data.done);
             const isEditing = editingId === task.id;
             return (
-              <div key={task.id} className="group flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-[var(--surface-hover)] transition-colors">
+              <div key={task.id} className="group flex items-center gap-3 rounded-sm px-2 py-2.5 hover:bg-[var(--surface-hover)] transition-colors">
                 <button onClick={() => updateTask.mutate({ id: task.id, data: { ...task.data, done: !isDone } })} className="shrink-0">
                   {isDone ? <CheckSquare size={15} className="text-[#5f8169]"/> : <Square size={15} className="text-stone-600 hover:text-stone-400 transition-colors"/>}
                 </button>
@@ -1231,7 +1231,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
               const active = logType === t.value;
               return (
                 <button key={t.value} onClick={() => setLogType(t.value)}
-                  className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors border ${active ? `${t.bg} ${t.color} border-current/20` : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:bg-[var(--surface-hover)]"}`}>
+                  className={`flex items-center gap-1.5 rounded-sm px-3 py-2 text-xs font-medium transition-colors border ${active ? `${t.bg} ${t.color} border-current/20` : "border-[var(--border-soft)] text-stone-500 hover:text-stone-300 hover:bg-[var(--surface-hover)]"}`}>
                   <Icon size={12}/> {t.label}
                 </button>
               );
@@ -1598,7 +1598,7 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
             const n = rname(r);
             return (
               <Link key={r.id} to={`/objects/${r.object_type}/${r.id}`}
-                className="flex items-center gap-3 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3 hover:border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors group">
+                className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3 hover:border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors group">
                 <div className={`h-8 w-8 rounded-lg border bg-gradient-to-br flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor(n)}`}>{initials(n)}</div>
                 <div className="min-w-0 flex-1"><p className="text-sm font-medium text-[var(--text-primary)] truncate">{n}</p><p className="text-xs text-stone-600 capitalize">{r.object_type}</p></div>
                 <ChevronLeft size={13} className="text-stone-700 group-hover:text-stone-400 rotate-180 transition-colors shrink-0"/>
@@ -1838,14 +1838,14 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
               <a
                 href={email ? `mailto:${email}` : undefined}
                 onClick={e => { if (!email) e.preventDefault(); }}
-                className={`flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${email ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-300 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-700 cursor-not-allowed"}`}
+                className={`flex items-center justify-center gap-1.5 rounded-sm border px-3 py-2 text-xs font-medium transition-colors ${email ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-300 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] cursor-pointer" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-stone-700 cursor-not-allowed"}`}
               >
                 <Mail size={12}/> Email
               </a>
               <div ref={listRef} className="relative">
                 <button
                   onClick={() => setListOpen(o => !o)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-xs font-medium text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-xs font-medium text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
                 >
                   <List size={12}/> Lists
                   <ChevronDown size={10} className={`ml-auto transition-transform ${listOpen ? "rotate-180" : ""}`}/>

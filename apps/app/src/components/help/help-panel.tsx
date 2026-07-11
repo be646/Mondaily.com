@@ -87,7 +87,7 @@ const STATE_COLOR: Record<string, string> = {
 function ResumePill({ state, onOpen }: { state: string; onOpen: () => void }) {
   return (
     <button onClick={onOpen} aria-label="Resume Help"
-      className="fixed bottom-4 right-4 z-[190] flex items-center gap-2 rounded-full border px-3.5 py-2 shadow-lg transition-transform hover:-translate-y-0.5"
+      className="fixed bottom-4 right-4 z-[190] flex items-center gap-2 rounded-sm border px-3.5 py-2 shadow-lg transition-transform hover:-translate-y-0.5"
       style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
       <Terminal size={13} style={{ color: "var(--section-accent)" }} />
       <span className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>Help</span>
@@ -109,7 +109,7 @@ function StatusRow({ label, value, ok }: { label: string; value: string; ok?: bo
 }
 
 function DiagRow({ d }: { d: HelpDiagnostic }) {
-  const color = d.status === "ok" ? "#5fae8b" : d.status === "warn" ? "#a3946b" : d.status === "error" ? "#ef4444" : "var(--text-faint)";
+  const color = d.status === "ok" ? "#5fae8b" : d.status === "warn" ? "#a3946b" : d.status === "error" ? "#9c6b72" : "var(--text-faint)";
   return (
     <div className="flex items-start gap-2 font-mono text-[11px]">
       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
@@ -256,7 +256,7 @@ function HelpPanel({ prefill }: { prefill: string }) {
               <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--text-muted)" }}>{t("help.subtitle")}</p>
               <div className="flex flex-wrap gap-1.5">
                 {suggestions.map(s => (
-                  <button key={s} onClick={() => send(s)} className="rounded-full border px-2.5 py-1 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)]"
+                  <button key={s} onClick={() => send(s)} className="rounded-sm border px-2.5 py-1 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)]"
                     style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{s}</button>
                 ))}
               </div>
@@ -281,7 +281,7 @@ function HelpPanel({ prefill }: { prefill: string }) {
                     if (isTicket && session.ticketCreated) return null;
                     return (
                       <button key={k} onClick={() => runAction(a)}
-                        className="rounded-full border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
+                        className="rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
                         style={{ borderColor: isTicket ? "var(--border-strong)" : "var(--border-soft)", color: isTicket ? "var(--section-accent)" : "var(--text-secondary)" }}>
                         {a.label}
                       </button>

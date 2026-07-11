@@ -222,7 +222,7 @@ function CategoryCell({ value, onSave }: {
               const active = selected.has(t.name);
               return (
                 <button key={t.name} onClick={() => toggle(t)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-[var(--surface-hover)] transition-colors">
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-[var(--surface-hover)] transition-colors">
                   <span style={{ color: t.text }} className="shrink-0 opacity-70">
                     <IndustryIcon name={t.name} size={11}/>
                   </span>
@@ -909,7 +909,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
           <div className="flex flex-col gap-1">
             {objectDefs.map(obj => (
               <button key={obj.slug} onClick={() => setRelatedTarget(obj.slug)}
-                className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${relatedTarget === obj.slug ? "bg-[#717784]/12 text-[#717784] border border-[#717784]/30" : "text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] border border-transparent"}`}>
+                className={`flex items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs transition-colors ${relatedTarget === obj.slug ? "bg-[#717784]/12 text-[#717784] border border-[#717784]/30" : "text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] border border-transparent"}`}>
                 <Link2 size={11} className={relatedTarget === obj.slug ? "text-[#717784]" : "text-stone-600"}/>
                 {obj.label || obj.slug}
                 {relatedTarget === obj.slug && <Check size={10} className="ml-auto text-[#717784]"/>}
@@ -1156,7 +1156,7 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
               const active = nodeTagIds.has(tag.id);
               return (
                 <button key={tag.id} onClick={() => active ? removeTag.mutate(tag.id) : addTag.mutate(tag.id)}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-[var(--surface-hover)] transition-colors">
+                  className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-[var(--surface-hover)] transition-colors">
                   <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }}/>
                   <span className="flex-1 text-left text-xs text-[var(--text-secondary)]">{tag.name}</span>
                   {active && <Check size={10} className="text-stone-400 shrink-0"/>}
@@ -2404,7 +2404,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                     )}
                     {(listsQuery.data ?? []).map(l => (
                       <button key={l.id} onClick={() => { bulkAddToList(l.id); setListPickerOpen(false); }}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+                        className="flex w-full items-center gap-2.5 rounded-sm px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                         <List size={11} className="text-[var(--text-secondary)] shrink-0"/>
                         <span className="truncate">{l.name}</span>
                       </button>
@@ -2472,7 +2472,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                               setAssignPickerOpen(false);
                               setAssignSearch("");
                             }}
-                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+                            className="flex w-full items-center gap-2.5 rounded-sm px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                             <MemberAvatar name={label} size={5}/>
                             <div className="flex flex-col items-start min-w-0">
                               <span className="truncate text-[var(--text-secondary)]">{m.name || m.email}</span>
@@ -2536,7 +2536,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                           const opts = [...new Set([...DEFAULT_STAGE_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
                           return opts.map(v => (
                             <button key={v} onClick={() => applyBulkEdit(col, v)}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+                              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                               <span className={`h-2 w-2 rounded-full ${stageStyle(v).dot}`}/>{v}
                             </button>
                           ));
@@ -2545,7 +2545,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                           const opts = [...new Set([...DEFAULT_STATUS_OPTIONS, ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
                           return opts.map(v => (
                             <button key={v} onClick={() => applyBulkEdit(col, v)}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+                              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                               <span className={`h-2 w-2 rounded-full ${stageStyle(v).dot}`}/>{v}
                             </button>
                           ));
@@ -2555,7 +2555,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                             const label = m.name || m.email || "";
                             return (
                               <button key={m.id} onClick={() => applyBulkEdit(col, label)}
-                                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+                                className="flex w-full items-center gap-2.5 rounded-sm px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                                 <MemberAvatar name={label} size={5}/>
                                 <div className="flex flex-col items-start min-w-0">
                                   <span className="truncate text-[var(--text-secondary)]">{m.name || m.email}</span>
@@ -2569,7 +2569,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                           const existing = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].sort();
                           return existing.length > 0 ? existing.map(v => (
                             <button key={v} onClick={() => applyBulkEdit(col, v)}
-                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+                              className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                               {v}
                             </button>
                           )) : <p className="px-3 py-3 text-xs text-[var(--text-secondary)] text-center">No country values yet</p>;
@@ -2580,7 +2580,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                             const tc = tagColor(v);
                             return (
                               <button key={v} onClick={() => applyBulkEdit(col, v)}
-                                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+                                className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                                 <span className={`rounded-full border px-2 py-0.5 text-[10px] ${tc.bg}`}>{v}</span>
                               </button>
                             );
@@ -2590,7 +2590,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                         const existing = [...new Set(records.map(r => String(r.data[col] ?? "")).filter(Boolean))].slice(0, 15);
                         return existing.length > 0 ? existing.map(v => (
                           <button key={v} onClick={() => applyBulkEdit(col, v)}
-                            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors truncate">
+                            className="flex w-full items-center gap-2 rounded-sm px-3 py-2 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors truncate">
                             {v}
                           </button>
                         )) : <p className="px-3 py-3 text-xs text-[var(--text-secondary)] text-center">No values yet</p>;
@@ -2711,7 +2711,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               >
                 <button
                   onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}
-                  className="flex h-6 w-6 items-center justify-center rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:text-[var(--text-secondary)] dark:hover:text-[var(--text-secondary)] dark:hover:bg-[var(--surface-hover)] transition-all"
+                  className="flex h-6 w-6 items-center justify-center rounded-sm text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:text-[var(--text-secondary)] dark:hover:text-[var(--text-secondary)] dark:hover:bg-[var(--surface-hover)] transition-all"
                   title="Add column"
                 >
                   <Plus size={13}/>
@@ -2818,7 +2818,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         <span className="text-sm text-[var(--text-secondary)]">Record deleted</span>
         <button
           onClick={undoDelete}
-          className="flex items-center gap-1.5 rounded-lg bg-[var(--surface-hover)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
+          className="flex items-center gap-1.5 rounded-sm bg-[var(--surface-hover)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
         >
           <RotateCcw size={11} />
           Undo

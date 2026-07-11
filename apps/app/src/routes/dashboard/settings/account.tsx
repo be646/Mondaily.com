@@ -423,7 +423,7 @@ export function AccountSettings() {
             {!pwOpen ? (
               <button
                 onClick={() => { setPwOpen(true); setPwMsg(null); }}
-                className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+                className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
               >
                 <KeyRound size={14} /> Change password
               </button>
@@ -433,7 +433,7 @@ export function AccountSettings() {
                 <input type="password" autoComplete="new-password" placeholder="New password (8+ chars)" value={pwNext} onChange={e => setPwNext(e.target.value)} className="key-input h-9 w-full px-3 text-sm" />
                 <div className="flex items-center gap-2">
                   <button onClick={changePassword} disabled={pwBusy || !pwCurrent || pwNext.length < 8}
-                    className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50">
+                    className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50">
                     {pwBusy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />} Update password
                   </button>
                   <button onClick={() => { setPwOpen(false); setPwCurrent(""); setPwNext(""); setPwMsg(null); }} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)]">Cancel</button>
@@ -527,7 +527,7 @@ export function AccountSettings() {
         <div className="flex flex-wrap gap-3 p-5">
           <button
             onClick={() => { (async () => { await sov?.logout(); localStorage.removeItem("mondaily_workspace_id"); navigate("/auth/shadow-login"); })(); }}
-            className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+            className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
           >
             <LogOut size={14} /> Sign out
           </button>

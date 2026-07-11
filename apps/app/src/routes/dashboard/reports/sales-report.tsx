@@ -189,7 +189,6 @@ function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSe
 }) {
   return (
     <div className={`relative overflow-hidden rounded-sm border p-5 print:border-[var(--border-soft)] ${color}`}>
-      <div className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full opacity-20 blur-2xl print:hidden" style={{ background:"currentColor" }}/>
       <div className="flex items-start justify-between gap-2">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-current opacity-60">{label}</p>
         {onSetGoal && (
@@ -399,7 +398,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
   return (
     <>
       {/* Compact trigger card — never stretches */}
-      <div className="rounded-sm border border-stone-500/20 bg-[var(--surface-card)] p-5 flex items-center gap-4 print:hidden" style={{background:"linear-gradient(135deg,rgba(113,119,132,0.07) 0%,rgba(113,119,132,0.04) 100%)"}}>
+      <div className="rounded-sm border border-stone-500/20 bg-[var(--surface-card)] p-5 flex items-center gap-4 print:hidden">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-stone-500/15 ring-1 ring-stone-500/25">
           <LogoMark size={16} className="text-stone-400"/>
         </div>
@@ -437,7 +436,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
       {modalOpen && result && (
         <AIModal title="AI Forecast" onClose={() => setModalOpen(false)} onPrint={printForecast}>
           {/* Projected value hero */}
-          <div className="px-6 py-6 border-b border-[var(--border-soft)]" style={{background:"linear-gradient(135deg,rgba(113,119,132,0.08) 0%,rgba(113,119,132,0.04) 100%)"}}>
+          <div className="px-6 py-6 border-b border-[var(--border-soft)]">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1">Projected {hasValue ? "Revenue" : "Completions"}</p>
             <p className="text-4xl font-bold text-[var(--text-primary)] mb-2">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
             <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence] ?? CONFIDENCE_STYLE.medium}`}>

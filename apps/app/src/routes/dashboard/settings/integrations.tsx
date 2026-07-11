@@ -33,7 +33,7 @@ function CopyButton({ value, label }: { value: string; label?: string }) {
   return (
     <button
       onClick={() => { navigator.clipboard.writeText(value); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
-      className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-2.5 py-1.5 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+      className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] px-2.5 py-1.5 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
     >
       {copied ? <Check size={12} style={{ color: "var(--section-accent)" }} /> : <Copy size={12} />}
       <span className="font-mono">{label ?? (copied ? "COPIED ✓" : "COPY")}</span>
@@ -141,7 +141,7 @@ export function IntegrationsSettings() {
         <div className="settings-section-header">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><KeyRound size={14} /> API keys</h2>
           <button onClick={() => { setKeyOpen(true); setCreatedKey(""); }}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+            className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
             <Plus size={12} /> Create key
           </button>
         </div>
@@ -185,7 +185,7 @@ export function IntegrationsSettings() {
         <div className="settings-section-header">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]"><Radio size={14} /> Webhooks</h2>
           <button onClick={() => setWebhookOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+            className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
             <Plus size={12} /> Add webhook
           </button>
         </div>
@@ -236,7 +236,7 @@ export function IntegrationsSettings() {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => generateMcp.mutate()}
-                  className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
+                  className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors">
                   <RotateCw size={12} /> Rotate token
                 </button>
                 <button onClick={() => toggleIntegration.mutate({ id: "mcp", connected: false })}
@@ -302,7 +302,7 @@ export function IntegrationsSettings() {
               <span className="mb-2 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Events to send</span>
               <div className="grid grid-cols-2 gap-1.5">
                 {webhookEvents.map(ev => (
-                  <label key={ev} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs hover:bg-[var(--surface-hover)] transition-colors">
+                  <label key={ev} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-[var(--surface-hover)] transition-colors">
                     <input type="checkbox" checked={webhook.events.includes(ev)}
                       onChange={e => setWebhook({ ...webhook, events: e.target.checked ? [...webhook.events, ev] : webhook.events.filter(x => x !== ev) })}
                       className="accent-[#9c6b72]" />
