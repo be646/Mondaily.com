@@ -306,37 +306,36 @@ function FeatureSection() {
 
       {/* Integrations strip */}
       <div className="mt-10 border-t border-black/[.05] pt-8 space-y-5">
-        {/* App integrations */}
+        {/* App integrations — ONLY the providers with a real OAuth backend (Google + Microsoft,
+            via /api/v1/integrations/connect). Slack/Zapier/Typeform/Segment/Mailchimp were shown
+            before with no code behind them; removed rather than imply connections that don't exist.
+            Uniform muted glyph on a neutral tile — no random brand colours. */}
         <div className="flex flex-wrap items-center gap-3">
-          <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.16em] text-zinc-400 mr-1">Integrations ·</span>
+          <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.16em] mr-1" style={{ color: "var(--landing-faint)" }}>Connect ·</span>
           {([
-            { name: "Gmail", slug: "gmail", bg: "#EA4335" },
-            { name: "Outlook", slug: "microsoftoutlook", bg: "#0078D4" },
-            { name: "Google Calendar", slug: "googlecalendar", bg: "#1A73E8" },
-            { name: "Slack", slug: "slack", bg: "#4A154B" },
-            { name: "Zapier", slug: "zapier", bg: "#FF4A00" },
-            { name: "Typeform", slug: "typeform", bg: "#262627" },
-            { name: "Segment", slug: "segment", bg: "#52BD94" },
-            { name: "Mailchimp", slug: "mailchimp", bg: "#FFE01B", fg: "241C15" },
-          ] as { name: string; slug: string; bg: string; fg?: string }[]).map(item => (
+            { name: "Gmail", slug: "gmail" },
+            { name: "Outlook", slug: "microsoftoutlook" },
+            { name: "Google Calendar", slug: "googlecalendar" },
+          ] as { name: string; slug: string }[]).map(item => (
             <div
               key={item.name}
               aria-label={item.name}
               title={item.name}
-              className="flex items-center justify-center shrink-0"
-              style={{ width: 36, height: 36, borderRadius: 9, background: item.bg }}
+              className="flex items-center justify-center shrink-0 rounded-md"
+              style={{ width: 34, height: 34, background: "var(--landing-hover)", border: "1px solid var(--landing-line)" }}
             >
-              {/* Real brand glyphs from the official Simple Icons CDN */}
+              {/* Brand glyphs from the Simple Icons CDN, tinted to one muted tone for a calm strip */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`https://cdn.simpleicons.org/${item.slug}/${item.fg ?? "white"}`}
+                src={`https://cdn.simpleicons.org/${item.slug}/737373`}
                 alt={item.name}
-                width={18}
-                height={18}
+                width={16}
+                height={16}
                 loading="lazy"
               />
             </div>
           ))}
+          <span className="text-[11px]" style={{ color: "var(--landing-faint)" }}>via OAuth</span>
         </div>
 
         {/* Developer tools */}
@@ -2619,64 +2618,6 @@ const INTEGRATIONS = [
       </svg>
     ),
   },
-  {
-    id: "slack",
-    name: "Slack",
-    desc: "Receive agent alerts and graph signals in channels.",
-    accent: "#a68762",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
-        <path d="M9 3.5A2.5 2.5 0 0 0 6.5 6v1H9a2.5 2.5 0 0 0 0-5v1.5ZM6.5 9H4a2.5 2.5 0 0 0 0 5h2.5V9ZM9 14.5A2.5 2.5 0 1 0 9 20v-1.5H6.5M14.5 20a2.5 2.5 0 0 0 2.5-2.5V16h-2.5a2.5 2.5 0 0 0 0 5ZM17.5 15H20a2.5 2.5 0 0 0 0-5h-2.5v5ZM14.5 9.5A2.5 2.5 0 1 0 14.5 4V5.5H17" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-  },
-  {
-    id: "zapier",
-    name: "Zapier",
-    desc: "Connect Mondaily to thousands of apps via Zaps.",
-    accent: "#8fb3b0",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
-        <path d="M13 3L4 14h7l-1 7 9-11h-7l1-7Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-  },
-  {
-    id: "typeform",
-    name: "Typeform",
-    desc: "Turn form responses into workspace graph records.",
-    accent: "#6f8068",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
-        <path d="M4 7h16M12 7v13M8 7v2M16 7v2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-        <circle cx="12" cy="4" r="1.5" fill="currentColor"/>
-      </svg>
-    ),
-  },
-  {
-    id: "segment",
-    name: "Segment",
-    desc: "Stream customer events directly into the graph.",
-    accent: "#8a8071",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
-        <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.4"/>
-        <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      </svg>
-    ),
-  },
-  {
-    id: "mailchimp",
-    name: "Mailchimp",
-    desc: "Sync audiences and track campaign engagement.",
-    accent: "#a07164",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" width="22" height="22">
-        <path d="M4 6h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6Z" stroke="currentColor" strokeWidth="1.4"/>
-        <path d="M4 6l8 7 8-7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
-      </svg>
-    ),
-  },
 ];
 
 const DEV_TOOLS = [
@@ -3068,30 +3009,39 @@ function CookieBanner() {
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           className="fixed inset-x-0 bottom-6 z-50 mx-auto w-full max-w-xl px-4"
         >
-          <div className="rounded-2xl border border-black/[.07] overflow-hidden" style={{ background: "var(--landing-surface)" }}>
-            <div className="flex items-start gap-4 px-6 py-5">
-              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100">
-                <span className="font-mono text-[11px] font-semibold text-zinc-600">EU</span>
+          {/* Solid, theme-aware surface (was near-invisible: 7%-black border, no shadow, and
+              hardcoded zinc text that went unreadable on the dark surface). Now uses landing
+              tokens so it reads in light + dark, with a real elevation shadow. */}
+          <div
+            className="overflow-hidden rounded-lg"
+            style={{
+              background: "var(--landing-surface-raised)",
+              border: "1px solid var(--landing-line-strong)",
+              boxShadow: "0 16px 48px -12px rgba(0,0,0,0.28)",
+            }}
+          >
+            <div className="flex items-start gap-4 px-5 py-4 sm:px-6 sm:py-5">
+              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ background: "var(--landing-hover)" }}>
+                <span className="font-mono text-[11px] font-semibold" style={{ color: "var(--landing-muted)" }}>EU</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="mb-1 font-mono text-[12px] font-semibold text-zinc-800">We respect your privacy</p>
-                <p className="font-mono text-[12px] text-zinc-500 leading-relaxed">
+              <div className="min-w-0 flex-1">
+                <p className="mb-1 font-mono text-[12px] font-semibold" style={{ color: "var(--landing-text)" }}>We respect your privacy</p>
+                <p className="font-mono text-[12px] leading-relaxed" style={{ color: "var(--landing-muted)" }}>
                   We use essential cookies only — no tracking, no ads, no third-party analytics without your consent. Your data stays yours.
                 </p>
               </div>
-              <button onClick={decline} className="shrink-0 text-zinc-300 hover:text-zinc-500 transition-colors mt-0.5">
+              <button onClick={decline} aria-label="Dismiss" className="shrink-0 transition-colors mt-0.5" style={{ color: "var(--landing-faint)" }}>
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               </button>
             </div>
-            <div className="flex items-center gap-2 border-t border-black/[.05] px-6 py-3">
-              <a href="/privacy" className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700 transition-colors">Privacy policy</a>
-              <span className="text-zinc-200">·</span>
-              <a href="/terms" className="font-mono text-[11px] text-zinc-400 hover:text-zinc-700 transition-colors">Terms</a>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3 sm:px-6" style={{ borderTop: "1px solid var(--landing-line)" }}>
+              <a href="/privacy" className="font-mono text-[11px] transition-colors hover:opacity-80" style={{ color: "var(--landing-faint)" }}>Privacy policy</a>
+              <a href="/terms" className="font-mono text-[11px] transition-colors hover:opacity-80" style={{ color: "var(--landing-faint)" }}>Terms</a>
               <div className="ml-auto flex items-center gap-2">
-                <button onClick={decline} className="rounded-xl border border-black/[.08] px-4 py-1.5 font-mono text-[12px] text-zinc-500 hover:bg-zinc-50 transition-colors">
+                <button onClick={decline} className="rounded-md px-4 py-1.5 font-mono text-[12px] transition-colors hover:opacity-80" style={{ border: "1px solid var(--landing-line-strong)", color: "var(--landing-muted)" }}>
                   Decline
                 </button>
-                <button onClick={accept} className="rounded-xl bg-zinc-900 px-4 py-1.5 font-mono text-[12px] font-medium text-white hover:bg-zinc-800 transition-colors">
+                <button onClick={accept} className="rounded-md px-4 py-1.5 font-mono text-[12px] font-medium transition-opacity hover:opacity-90" style={{ background: "var(--landing-text)", color: "var(--landing-canvas)" }}>
                   Accept all
                 </button>
               </div>

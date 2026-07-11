@@ -62,7 +62,7 @@ function RunAgentButton({ agentId }: { agentId: string }) {
       <button
         onClick={run}
         disabled={running}
-        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-50"
+        className="inline-flex items-center gap-1 rounded-sm px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-50"
         style={{ background: "color-mix(in srgb, var(--accent) 12%, transparent)", color: "var(--accent)" }}
       >
         {running ? <Loader2 size={11} className="animate-spin"/> : result ? <Check size={11}/> : <Play size={11}/>}
@@ -83,6 +83,17 @@ function RunAgentButton({ agentId }: { agentId: string }) {
  * make it explicit when something is wired-but-quiet, gated, or a pure
  * code scaffold with no live job at all.
  */
+
+// Matte, meaning-based tone per agent state — the single source for every agent dot/icon colour
+// across the constellation, hero strip and sidebar, so an agent never changes colour by position.
+const STATE_TONE: Record<ConstellationState, string> = {
+  active: "#5f8169",          // working — matte green
+  needs_approval: "#97824f",  // waiting on you — matte amber
+  issue: "#9c6b72",           // problem — matte rose
+  monitoring: "var(--text-muted)",
+  disabled: "var(--text-faint)",
+  not_configured: "var(--text-faint)",
+};
 
 const STATE_RING: Record<ConstellationState, string> = {
   active: "border-stone-500",
@@ -186,14 +197,9 @@ export function AgentConstellationPanel() {
     if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
     return `${Math.floor(s / 86400)}d ago`;
   };
-  // Colour encodes MEANING (state), never an arbitrary per-agent rainbow:
+  // Colour encodes MEANING (state), never an arbitrary per-agent rainbow. Matte palette only:
   // working = green · waiting on you = amber · problem = rose · watching/quiet = muted.
-  const stateTone = (state: ConstellationState): string =>
-    state === "active" ? "#10b981"
-    : state === "needs_approval" ? "#d97706"
-    : state === "issue" ? "#e11d48"
-    : state === "monitoring" ? "var(--text-muted)"
-    : "var(--text-faint)";
+  const stateTone = (state: ConstellationState): string => STATE_TONE[state];
 
   return (
     <section className="mb-8">
@@ -265,8 +271,6 @@ export function AgentConstellationPanel() {
   );
 }
 
-const AGENT_DOT_PALETTE = ["var(--accent)", "#10b981", "var(--accent)", "#f59e0b", "var(--accent)", "#ec4899", "#3b82f6", "#84cc16"];
-
 /** Sidebar "Agents" section — a flat, always-visible list (colored dot +
  * name, click to inspect), not a popover hidden behind a hover trigger.
  * Live agents get a small breathing ring; everything else just sits there
@@ -292,15 +296,12 @@ export function AgentHeroStrip() {
       <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{live.length}/{constellation.length} active</span>
       {live.length > 0 && (
         <span className="flex flex-wrap items-center gap-1.5">
-          {live.map((a) => {
-            // Colour by the agent's index in the FULL constellation, so each agent's
-            // dot matches its colour in the Live-operations Agent Constellation.
-            const idx = constellation.findIndex(c => c.id === a.id);
-            return (
-              <span key={a.id} title={a.name} className="live-dot"
-                style={{ background: AGENT_DOT_PALETTE[(idx < 0 ? 0 : idx) % AGENT_DOT_PALETTE.length] }}/>
-            );
-          })}
+          {live.map((a) => (
+            // Colour encodes the agent's real STATE (matte, meaning-based) — same tone it shows in
+            // the constellation — never an arbitrary per-position rainbow.
+            <span key={a.id} title={`${a.name} · ${CONSTELLATION_STATE_LABEL[a.state]}`} className="live-dot"
+              style={{ background: STATE_TONE[a.state] }}/>
+          ))}
         </span>
       )}
     </a>
@@ -315,19 +316,17 @@ export function SidebarAgents() {
   if (isLoading || !constellation.length) return null;
   const live = constellation.filter(a => isLiveState(a.state));
   return (
-    <Link to="/activity" className="block rounded-lg px-1.5 py-1 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
+    <Link to="/activity" className="block rounded-sm px-1.5 py-1 transition-colors hover:bg-stone-100 dark:hover:bg-stone-900">
       <div className="mb-1 flex items-center justify-between">
         <span className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>AI agents</span>
         <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{live.length}/{constellation.length} active</span>
       </div>
       {live.length > 0 && (
         <div className="flex flex-wrap items-center gap-1">
-          {live.map((a) => {
-            const idx = constellation.findIndex(c => c.id === a.id);
-            const color = AGENT_DOT_PALETTE[(idx < 0 ? 0 : idx) % AGENT_DOT_PALETTE.length];
-            return <span key={a.id} title={a.name} className="h-1.5 w-1.5 rounded-full"
-              style={{ background: `color-mix(in srgb, ${color} 55%, var(--text-muted))` }}/>;
-          })}
+          {live.map((a) => (
+            <span key={a.id} title={`${a.name} · ${CONSTELLATION_STATE_LABEL[a.state]}`} className="h-1.5 w-1.5 rounded-full"
+              style={{ background: `color-mix(in srgb, ${STATE_TONE[a.state]} 60%, var(--text-muted))` }}/>
+          ))}
         </div>
       )}
     </Link>
@@ -344,7 +343,7 @@ export function AgentPulse({ collapsed }: { collapsed: boolean }) {
   if (collapsed) {
     const activeAgents = constellation.filter(a => isLiveState(a.state));
     return (
-      <Link to="/home" title={`${constellation.length} agents`} className="flex flex-col items-center gap-1.5 rounded-lg py-2 surface-hover">
+      <Link to="/home" title={`${constellation.length} agents`} className="flex flex-col items-center gap-1.5 rounded-sm py-2 surface-hover">
         <Network size={13} style={{ color: "var(--text-muted)" }}/>
         <div className="flex flex-col items-center gap-1">
           {constellation.slice(0, 4).map(a => (

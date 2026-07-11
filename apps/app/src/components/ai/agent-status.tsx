@@ -243,7 +243,7 @@ function AskPanel({ onClose }: { onClose: () => void }) {
                       { key: "explain" as const, label: "Explain reasoning", Icon: Brain },
                     ]).map(({ key, label, Icon }) => (
                       <button key={key} onClick={() => sendChip(buildChipText(key, i))}
-                        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-all hover:-translate-y-px"
+                        className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-all hover:-translate-y-px"
                         style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
                         <Icon size={9}/> {label}
                       </button>
@@ -392,10 +392,10 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
   return (
     <>
       {/* Top bar */}
-      <div className="md-topbar relative flex items-center justify-between border-b border-[#e5e7eb] bg-white dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)] px-4 py-1.5 shrink-0">
+      <div className="md-topbar relative flex items-center justify-between border-b border-[var(--border-soft)] bg-[var(--surface-card)] px-4 py-1.5 shrink-0">
         {/* Left slot — page icon, label, search trigger */}
         <div className="flex items-center gap-3 min-w-0">
-          {leftSlot ?? <span className="text-xs text-[#9ca3af] dark:text-stone-700">AI status: idle</span>}
+          {leftSlot ?? <span className="text-xs text-[var(--text-faint)]">AI status: idle</span>}
         </div>
 
         {/* Right actions */}
@@ -403,7 +403,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           {showShare && (
             <button
               onClick={() => setShareOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] px-2.5 py-1.5 text-[11px] text-[#6b7280] hover:bg-[#f9fafb] hover:text-[#111827] transition-colors dark:border-[var(--border-soft)] dark:text-stone-500 dark:hover:bg-[var(--surface-hover)] dark:hover:text-[var(--text-primary)]"
+              className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
             >
               <Share2 size={12}/> Share
             </button>
@@ -415,7 +415,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-50"
+            className="flex h-7 w-7 items-center justify-center rounded-sm text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-50"
             title={`Theme: ${THEMES[themeIdx]?.label ?? "Console"} · next: ${nextTheme.label}`}
             aria-label={`Switch theme (next: ${nextTheme.label})`}
           >
@@ -427,10 +427,10 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           {/* Ask Mondaily toggle — compact command trigger */}
           <button
             onClick={() => setAskOpen(o => !o)}
-            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-medium transition-all duration-200 ${
+            className={`flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[11px] font-medium transition-all duration-200 ${
               askOpen
                 ? "border-stone-200 bg-stone-50 text-stone-700 dark:border-stone-400/30 dark:bg-stone-500/10 dark:text-[var(--text-primary)]"
-                : "border-[#e5e7eb] bg-white text-[#52525b] hover:border-stone-200 hover:bg-stone-50 dark:border-[var(--border-soft)] dark:bg-transparent dark:text-stone-400 dark:hover:border-stone-400/30 dark:hover:bg-stone-500/10 dark:hover:text-[var(--text-primary)]"
+                : "border-[var(--border-soft)] bg-transparent text-[var(--text-muted)] hover:border-stone-200 hover:bg-stone-50 dark:text-stone-400 dark:hover:border-stone-400/30 dark:hover:bg-stone-500/10 dark:hover:text-[var(--text-primary)]"
             }`}
           >
             <LogoMark size={12} className={askOpen ? "text-stone-600 dark:text-stone-400" : "text-stone-500 dark:text-stone-400"}/>

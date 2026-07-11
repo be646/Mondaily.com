@@ -19,6 +19,14 @@ const objectsIndex = read("routes/dashboard/objects/[objectType]/index.tsx");
 const invoiceDetail = read("routes/dashboard/finance/[invoiceId].tsx");
 const creditNoteDetail = read("routes/dashboard/finance/[creditNoteId].tsx");
 const SETTINGS = ["account", "integrations", "workspace", "security", "training"].map((n) => read(`routes/dashboard/settings/${n}.tsx`));
+const decisions = read("routes/dashboard/decisions.tsx");
+const discovery = read("routes/dashboard/discovery.tsx");
+const teamOversight = read("routes/dashboard/team-oversight.tsx");
+const agentStatus = read("components/ai/agent-status.tsx");
+const constellation = read("components/ai/agent-constellation.tsx");
+// Landing (apps/web) — marketing surface polish guards.
+const readWeb = (p: string) => readFileSync(fileURLToPath(new URL(`../../../../apps/web/${p}`, import.meta.url)), "utf8");
+const landing = readWeb("components/landing-page.tsx");
 
 const hasButtonBubbly = (src: string) =>
   src.split("\n").some((l) => /rounded-(lg|xl)/.test(l) && /hover:bg-\[var\(--surface/.test(l));
@@ -74,5 +82,65 @@ describe("decorative blobs/gradients + bright one-off colors removed", () => {
   });
   it("help diagnostics use the matte palette (no bright #ef4444)", () => {
     expect(help).not.toMatch(/#ef4444/);
+  });
+});
+
+describe("control-room surfaces (Decisions / Discovery / Team Oversight) squared", () => {
+  it("decisions interactive buttons squared (no rounded-lg/xl bubbly)", () => {
+    expect(hasButtonBubbly(decisions)).toBe(false);
+    expect(hasInteractiveBubbly(decisions)).toBe(false);
+    // Risk/verdict/triage dots stay circular.
+    expect(decisions).toMatch(/h-1 w-1 rounded-full/);
+  });
+  it("discovery frames + controls unified to rounded-sm (only the chat bubble stays rounded)", () => {
+    expect(hasInteractiveBubbly(discovery)).toBe(false);
+    // No stray rounded-lg content frames remain (was 9); chat bubble keeps rounded-md.
+    expect(discovery).not.toMatch(/rounded-lg/);
+  });
+  it("team-oversight suggestion chip squared; status dots/pills stay circular", () => {
+    expect(teamOversight).not.toMatch(/rounded-full border px-2\.5 py-0\.5 text-\[10\.5px\] transition-colors/);
+  });
+});
+
+describe("agent cockpit is honest + matte (no per-agent rainbow, no bright hexes)", () => {
+  it("constellation dot colour encodes STATE via one matte map, not an index rainbow", () => {
+    expect(constellation).not.toMatch(/AGENT_DOT_PALETTE/);          // the arbitrary rainbow is gone
+    expect(constellation).toMatch(/const STATE_TONE: Record<ConstellationState/); // single matte source
+    // No bright one-off dot colours (emerald/pink/blue/lime/amber-500) anywhere.
+    for (const bright of ["#10b981", "#e11d48", "#f59e0b", "#ec4899", "#3b82f6", "#84cc16", "#d97706"]) {
+      expect(constellation).not.toContain(bright);
+    }
+  });
+  it("constellation uses the matte state palette", () => {
+    for (const matte of ["#5f8169", "#97824f", "#9c6b72"]) expect(constellation).toContain(matte);
+  });
+  it("top bar uses themed CSS vars (no hardcoded light hexes) + squared controls", () => {
+    expect(agentStatus).not.toMatch(/border-\[#e5e7eb\]/);
+    expect(agentStatus).not.toMatch(/bg-\[#f9fafb\]/);
+    expect(hasButtonBubbly(agentStatus)).toBe(false);
+  });
+});
+
+describe("landing polish (apps/web)", () => {
+  it("cookie banner is solid + theme-aware (no invisible 7%-black border, no hardcoded zinc text)", () => {
+    // The banner block was `rounded-2xl border border-black/[.07]` with zinc-* text.
+    expect(landing).not.toMatch(/rounded-2xl border border-black\/\[\.07\]/);
+    expect(landing).toMatch(/var\(--landing-surface-raised\)/); // solid raised surface
+  });
+  it("no fake integrations advertised (only real OAuth providers remain)", () => {
+    // Slack/Zapier/Typeform/Segment/Mailchimp integration cards had no backend — removed. Matched by
+    // their unique card descriptions (the ids recur in unrelated workflow demos, so match copy).
+    for (const fakeDesc of [
+      "Connect Mondaily to thousands of apps via Zaps.",   // Zapier
+      "Turn form responses into workspace graph records.", // Typeform
+      "Stream customer events directly into the graph.",   // Segment
+      "Sync audiences and track campaign engagement.",     // Mailchimp
+      "Receive agent alerts and graph signals in channels.", // Slack integration card
+    ]) {
+      expect(landing).not.toContain(fakeDesc);
+    }
+    // Real OAuth providers still present in the integrations grid.
+    expect(landing).toContain(`id: "gmail"`);
+    expect(landing).toContain(`id: "google-calendar"`);
   });
 });

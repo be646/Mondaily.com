@@ -304,12 +304,12 @@ export function DecisionsPage() {
               <span style={{ color: "var(--text-secondary)" }}>{checkedList.length} selected</span>
               <div className="flex-1" />
               <button onClick={bulkApproveSafe} disabled={bulkBusy || safeToApprove.length === 0}
-                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-medium transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 font-medium transition-colors disabled:opacity-50"
                 style={{ borderColor: "color-mix(in srgb, #5f8169 55%, transparent)", color: "#5f8169" }}>
                 {bulkBusy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />} {t("decisions.approve_safe")} ({safeToApprove.length})
               </button>
               <button onClick={bulkDismiss} disabled={bulkBusy}
-                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 font-medium transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 font-medium transition-colors disabled:opacity-50"
                 style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
                 <XCircle size={12} /> Dismiss {checkedList.length}
               </button>
@@ -463,7 +463,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
         <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)" }}>
           <div className="mb-3 flex items-center gap-1.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}><Zap size={11} /> Proposed transformation</div>
           {target?.node_id && (
-            <Link to={`/objects/${encodeURIComponent(target.object_type ?? "deals")}/${target.node_id}`} className="mb-3 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11.5px] transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <Link to={`/objects/${encodeURIComponent(target.object_type ?? "deals")}/${target.node_id}`} className="mb-3 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
               Target: <span className="font-medium" style={{ color: "var(--text-primary)" }}>{target.title || "record"}</span><ExternalLink size={11} style={{ color: "var(--text-faint)" }} />
             </Link>
           )}
@@ -588,18 +588,18 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
             </div>
           )}
           <div className="flex items-center gap-2 p-3">
-            <button onClick={() => onResolve(d, "approve")} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-60"
+            <button onClick={() => onResolve(d, "approve")} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-sm border px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-60"
               style={{ borderColor: "color-mix(in srgb, #5f8169 55%, transparent)", background: "color-mix(in srgb, #5f8169 14%, transparent)", color: "#5f8169" }}>
               {busy && acting?.action === "approve" ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Approve &amp; run
             </button>
-            <button onClick={() => setRejectOpen(o => !o)} disabled={busy} className="flex items-center gap-2 rounded-lg border px-4 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
+            <button onClick={() => setRejectOpen(o => !o)} disabled={busy} className="flex items-center gap-2 rounded-sm border px-4 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
               style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-secondary)" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "#9c6b72"; e.currentTarget.style.color = "#9c6b72"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>
               {busy && acting?.action === "reject" ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Reject
             </button>
             {d.status === "pending" && (
-              <button onClick={() => setSnoozeOpen(o => !o)} disabled={busy} title="Snooze — needs more context" className="flex items-center gap-1.5 rounded-lg border px-3.5 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
+              <button onClick={() => setSnoozeOpen(o => !o)} disabled={busy} title="Snooze — needs more context" className="flex items-center gap-1.5 rounded-sm border px-3.5 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
                 style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-muted)" }}>
                 {busy && acting?.action === "snooze" ? <Loader2 size={14} className="animate-spin" /> : <Clock size={14} />} Snooze <ChevronDown size={12} />
               </button>
@@ -675,7 +675,7 @@ function DecisionComments({ decision }: { decision: Decision }) {
       )}
       <form onSubmit={(e) => { e.preventDefault(); if (text.trim()) add.mutate(text.trim()); }} className="flex gap-2">
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a comment…" className="key-input h-8 flex-1 px-2.5 text-[12px]" />
-        <button type="submit" disabled={add.isPending || !text.trim()} className="flex items-center gap-1 rounded-lg border px-2.5 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+        <button type="submit" disabled={add.isPending || !text.trim()} className="flex items-center gap-1 rounded-sm border px-2.5 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
           {add.isPending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
         </button>
       </form>
@@ -693,7 +693,7 @@ function DecisionAsk({ decision }: { decision: Decision }) {
       <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}><Sparkles size={12} style={{ color: "var(--section-accent)" }} /> Ask about this decision</div>
       <form onSubmit={(e) => { e.preventDefault(); if (q.trim()) ask.mutate(q.trim()); }} className="flex gap-2">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask anything about this decision…" className="key-input h-8 flex-1 px-2.5 text-[12px]" />
-        <button type="submit" disabled={ask.isPending || !q.trim()} className="flex items-center gap-1 rounded-lg border px-2.5 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+        <button type="submit" disabled={ask.isPending || !q.trim()} className="flex items-center gap-1 rounded-sm border px-2.5 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
           {ask.isPending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
         </button>
       </form>

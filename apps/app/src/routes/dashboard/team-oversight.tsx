@@ -281,7 +281,7 @@ function OversightAsk() {
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           {suggestions.map((s) => (
             <button key={s} onClick={() => { setQ(s); ask.mutate(s); }}
-              className="rounded-full border px-2.5 py-0.5 text-[10.5px] transition-colors hover:text-[var(--text-primary)]"
+              className="rounded-sm border px-2.5 py-0.5 text-[10.5px] transition-colors hover:text-[var(--text-primary)]"
               style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{s}</button>
           ))}
         </div>

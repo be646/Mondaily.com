@@ -230,7 +230,7 @@ export function DiscoveryPage() {
       {/* header */}
       <div className="flex items-center justify-between gap-3 py-4">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--surface-hover)" }}>
+          <span className="flex h-8 w-8 items-center justify-center rounded-sm" style={{ background: "var(--surface-hover)" }}>
             <Radar size={16} style={{ color: "var(--section-accent)" }} />
           </span>
           <div>
@@ -251,16 +251,16 @@ export function DiscoveryPage() {
         </div>
         <div className="flex items-center gap-2">
           {view === "chat" && (
-            <button onClick={() => setIcpOpen((o) => !o)} title="Set your ideal customer — biases lead scoring + coach suggestions" className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: icpQ.data?.description ? "var(--section-accent)" : "var(--border-soft)", color: icpQ.data?.description ? "var(--section-accent)" : "var(--text-muted)" }}>
+            <button onClick={() => setIcpOpen((o) => !o)} title="Set your ideal customer — biases lead scoring + coach suggestions" className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: icpQ.data?.description ? "var(--section-accent)" : "var(--border-soft)", color: icpQ.data?.description ? "var(--section-accent)" : "var(--text-muted)" }}>
               <Star size={12} /> Ideal customer{icpQ.data?.description ? " ✓" : ""}
             </button>
           )}
           {view === "chat" && turns.length > 0 && (
-            <button onClick={clearHistory} title="Clear search history" className="inline-flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+            <button onClick={clearHistory} title="Clear search history" className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
               <Trash2 size={12} /> Clear
             </button>
           )}
-          <div className="flex overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="flex overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
             {(["chat", "saved"] as const).map((v) => (
               <button key={v} onClick={() => setView(v)} className="px-3 py-1.5 text-[12px] font-medium capitalize transition-colors"
                 style={{ background: view === v ? "var(--surface-selected)" : "transparent", color: view === v ? "var(--text-primary)" : "var(--text-muted)" }}>
@@ -274,14 +274,14 @@ export function DiscoveryPage() {
       {view === "chat" && <ModuleStrip />}
 
       {icpOpen && view === "chat" && (
-        <div className="mb-3 rounded-lg border px-3 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        <div className="mb-3 rounded-sm border px-3 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
           <p className="mb-1.5 text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>Your ideal customer</p>
           <p className="mb-2 text-[11px]" style={{ color: "var(--text-muted)" }}>One line describing who you sell to — leads matching it rank higher (Hot) and the coach tailors suggestions to it.</p>
           <textarea value={icpText} onChange={(e) => setIcpText(e.target.value)} rows={2}
             placeholder="e.g. Independent aesthetic clinics in Poland with 5-30 staff and an active social presence"
-            className="w-full resize-none rounded-md border bg-transparent px-2.5 py-2 text-[13px] outline-none focus:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+            className="w-full resize-none rounded-sm border bg-transparent px-2.5 py-2 text-[13px] outline-none focus:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
           <div className="mt-2 flex items-center gap-2">
-            <button onClick={() => saveIcp.mutate()} disabled={saveIcp.isPending} className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
+            <button onClick={() => saveIcp.mutate()} disabled={saveIcp.isPending} className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
               {saveIcp.isPending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Save
             </button>
             <button onClick={() => setIcpOpen(false)} className="text-[12px]" style={{ color: "var(--text-muted)" }}>Cancel</button>
@@ -290,7 +290,7 @@ export function DiscoveryPage() {
       )}
 
       {(degraded || statusQ.isError) && (
-        <div className="mb-3 flex items-start gap-2 rounded-md border px-3 py-2.5 text-[12px]" style={{ borderColor: "#97824f33", background: "#97824f0f", color: "#97824f" }}>
+        <div className="mb-3 flex items-start gap-2 rounded-sm border px-3 py-2.5 text-[12px]" style={{ borderColor: "#97824f33", background: "#97824f0f", color: "#97824f" }}>
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           <span>
             {statusQ.isError
@@ -307,7 +307,7 @@ export function DiscoveryPage() {
         // One composer, two positions: WORKBENCH (no searches yet → input sits right under the
         // header, suggestions tight beneath it) vs CONVERSATION (results above, input pinned below).
         const composer = (
-          <div className="rounded-md border px-3 py-2.5 transition-colors focus-within:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          <div className="rounded-sm border px-3 py-2.5 transition-colors focus-within:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -418,7 +418,7 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
       {/* Coach turn — vague query: guide instead of running a poor sweep. */}
       {turn.status === "coach" && turn.coach && (
         <div className="mt-3">
-          <div className="flex items-start gap-2 rounded-lg border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          <div className="flex items-start gap-2 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
             <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
             <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{turn.coach.message}</p>
           </div>
@@ -437,14 +437,14 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
         <StepTrace steps={turn.steps} status={turn.status} />
 
         {turn.status === "error" && (
-          <div className="mt-2 flex items-start gap-2 rounded-md border px-3 py-2 text-[12.5px]" style={{ borderColor: "#9c6b7233", background: "#9c6b720d", color: "#9c6b72" }}>
+          <div className="mt-2 flex items-start gap-2 rounded-sm border px-3 py-2 text-[12.5px]" style={{ borderColor: "#9c6b7233", background: "#9c6b720d", color: "#9c6b72" }}>
             <AlertTriangle size={14} className="mt-0.5 shrink-0" /> {turn.error}
           </div>
         )}
 
         {/* Overview (shows once available). */}
         {turn.overview && (
-          <div className="mt-2 flex items-start gap-2 rounded-lg border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          <div className="mt-2 flex items-start gap-2 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
             <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
             <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{turn.overview}</p>
           </div>
@@ -554,7 +554,7 @@ function StepTrace({ steps, status }: { steps: string[]; status: Turn["status"] 
   if (steps.length === 0) return null;
   const last = steps[steps.length - 1];
   return (
-    <div className="rounded-lg border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px]" style={{ color: "var(--text-muted)" }}>
         {status === "streaming" ? <Loader2 size={13} className="animate-spin shrink-0" style={{ color: "var(--section-accent)" }} /> : <Check size={13} className="shrink-0" style={{ color: "#5f8169" }} />}
         <span className="min-w-0 flex-1 truncate">{status === "streaming" ? last : `Searched the web · ${steps.length} steps`}</span>
@@ -633,7 +633,7 @@ function SentimentSummary({ results }: { results: ResultRow[] }) {
 function ReviewCard({ r }: { r: ResultRow }) {
   const s = r.sentiment ? SENTIMENT[r.sentiment] : null;
   return (
-    <div className="rounded-lg border px-3.5 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="rounded-sm border px-3.5 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2 text-[11.5px]" style={{ color: "var(--text-faint)" }}>
           <Globe2 size={11} className="shrink-0" /> <span className="truncate">{r.platform || hostOf(r.source_url)}</span>
@@ -744,7 +744,7 @@ function NoResults({ reviews, scanned, query, onRun }: { reviews: boolean; scann
     ? wsSug.discovery_next
     : reviews ? [`${query} reviews`, `${query} complaints`] : [`${query} email contact`, `${query} directory`]).slice(0, 3);
   return (
-    <div className="mt-2 rounded-md border px-3.5 py-3 text-[12.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+    <div className="mt-2 rounded-sm border px-3.5 py-3 text-[12.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
       <p style={{ color: "var(--text-secondary)" }}>{t("discovery.no_results")}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {refinements.map((s) => (
@@ -763,7 +763,7 @@ function DossierPanel({ d }: { d: Dossier }) {
     return <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>Read {d.scanned} page(s) — no contact details, category, or reviews found. Missing: {d.missing.join(", ")}.</p>;
   }
   return (
-    <div className="mt-2 space-y-2 rounded-md border px-3 py-2.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+    <div className="mt-2 space-y-2 rounded-sm border px-3 py-2.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
       {d.graph_match && (
         <div className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ background: "var(--surface-card)", color: "var(--text-muted)" }}>
           <Check size={10} /> Already in your graph as “{d.graph_match.name}”
@@ -875,7 +875,7 @@ function BulkBar({ entries, query, lists, members, onApplied, onClear }: {
     </button>
   );
   return (
-    <div className="sticky top-2 z-10 mb-2 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 shadow-sm" style={{ borderColor: "var(--section-accent)", background: "var(--surface-card)" }}>
+    <div className="sticky top-2 z-10 mb-2 flex flex-wrap items-center gap-2 rounded-sm border px-3 py-2 shadow-sm" style={{ borderColor: "var(--section-accent)", background: "var(--surface-card)" }}>
       <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{entries.length} selected</span>
       <B id="save" onClick={() => save(false, !!ownerId)}><Plus size={11} /> Save</B>
       <MenuSelect value={listId} onChange={setListId} allLabel="List…" maxWidth={130} options={lists.map((l) => ({ value: l.id, label: l.name }))} />
@@ -944,7 +944,7 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
             <div className="text-[11px]" style={{ color: "var(--text-faint)" }}>{hostOf(r.source_url) || r.platform}{r.region ? ` · ${r.region}` : ""}</div>
             <a href={r.source_url} target="_blank" rel="noreferrer" className="truncate text-[15px] font-semibold hover:underline" style={{ color: "var(--section-accent)" }}>{name}</a>
           </div>
-          <button onClick={onClose} className="shrink-0 rounded-md p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"><Minus size={16} /></button>
+          <button onClick={onClose} className="shrink-0 rounded-sm p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)]"><Minus size={16} /></button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
           <PipelineChips st={{ ...(status ?? {}) }} />
@@ -1024,7 +1024,7 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
   const name = r.author_name && r.author_name !== "Anonymous" ? r.author_name : hostOf(r.source_url);
   const st: LeadStatus = { ...(bulkStatus ?? {}), saved: (bulkStatus?.saved ?? Boolean(savedId)), existed: (bulkStatus?.existed ?? existed) };
   return (
-    <div className="rounded-lg border px-3.5 py-3" style={{ borderColor: selected ? "var(--section-accent)" : "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="rounded-sm border px-3.5 py-3" style={{ borderColor: selected ? "var(--section-accent)" : "var(--border-soft)", background: "var(--surface-card)" }}>
       <div className="flex items-start justify-between gap-3">
         {onToggle && (
           <input type="checkbox" checked={Boolean(selected)} onChange={onToggle} className="mt-1 h-3.5 w-3.5 shrink-0 accent-[var(--section-accent)]" aria-label="Select lead" />
@@ -1071,7 +1071,7 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
             {listOpen && (
               <>
                 <button className="fixed inset-0 z-20 cursor-default" onClick={() => setListOpen(false)} aria-label="Close" />
-                <div className="absolute left-0 z-30 mt-1 w-56 overflow-hidden rounded-md border shadow-lg" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+                <div className="absolute left-0 z-30 mt-1 w-56 overflow-hidden rounded-sm border shadow-lg" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
                   {lists.length === 0 ? <div className="px-3 py-2.5 text-[12px]" style={{ color: "var(--text-faint)" }}>No lists yet.</div>
                     : lists.map((l) => (
                       <button key={l.id} onClick={() => addToList.mutate(l.id)} className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12px] hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-secondary)" }}>
@@ -1107,7 +1107,7 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
         <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>Couldn't draft a message right now — try again.</p>
       )}
       {outreach.data?.message && (
-        <div className="mt-2 rounded-md border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+        <div className="mt-2 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
           {outreach.data.subject && <p className="mb-1 text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{outreach.data.subject}</p>}
           <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{outreach.data.message}</p>
           <button onClick={() => navigator.clipboard?.writeText(`${outreach.data?.subject ? outreach.data.subject + "\n\n" : ""}${outreach.data?.message ?? ""}`)}
@@ -1156,7 +1156,7 @@ function SavedLeads({ lists }: { lists: ListRow[] }) {
           const d = r.data ?? {};
           const name = String(d.name ?? d.company ?? d.title ?? "Untitled");
           return (
-            <div key={r.id} className="flex items-start justify-between gap-3 rounded-lg border px-3.5 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div key={r.id} className="flex items-start justify-between gap-3 rounded-sm border px-3.5 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               <div className="min-w-0">
                 <div className="text-[11px]" style={{ color: "var(--text-faint)" }}>{hostOf(String(d.source_url ?? d.website ?? "")) || "no source"}</div>
                 <Link to={`/objects/${r.object_type}/${r.id}`} className="mt-0.5 inline-block max-w-full truncate text-[14px] font-semibold hover:underline" style={{ color: "var(--section-accent)" }}>{name}</Link>
