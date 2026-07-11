@@ -185,12 +185,12 @@ export function ReportsPage() {
                             </span>
                           )}
                           {reportCount > 0 && (
-                            <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
+                            <span className="rounded-sm border border-stone-500/30 bg-stone-600/10 px-2 py-0.5 text-[10px] font-medium text-[var(--text-secondary)]">
                               {reportCount} chart{reportCount !== 1 ? "s" : ""}
                             </span>
                           )}
                           {totalCount > 0 && liveCount === 0 && reportCount === 0 && (
-                            <span className="rounded-full border px-2 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                            <span className="rounded-sm border px-2 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
                               {totalCount} widget{totalCount !== 1 ? "s" : ""}
                             </span>
                           )}

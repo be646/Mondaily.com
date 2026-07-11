@@ -219,33 +219,16 @@ function ObjectPicker({ objects, value, onChange }: {
   value: string;
   onChange: (slug: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const selected = objects.find(o => o.slug === value);
+  // Shared FieldSelect (required selection — no injected "All" row), same chrome as every other
+  // form select in the app. Compact width for the report header.
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
-      >
-        {selected?.name_plural ?? value}
-        <ChevronDown size={13} className="text-[var(--text-muted)]"/>
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)}/>
-          <div className="dropdown-panel absolute left-0 top-10 z-20 min-w-[160px]">
-            {objects.map(o => (
-              <button
-                key={o.slug}
-                onClick={() => { onChange(o.slug); setOpen(false); }}
-                className={`dropdown-item w-full text-sm ${o.slug === value ? "text-[var(--text-faint)] font-medium" : ""}`}
-              >
-                {o.name_plural}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+    <div className="w-44">
+      <FieldSelect
+        value={value}
+        onChange={onChange}
+        ariaLabel="Report object type"
+        options={objects.map(o => ({ value: o.slug, label: o.name_plural }))}
+      />
     </div>
   );
 }
@@ -1176,15 +1159,15 @@ export function SalesReportPage() {
           <span className="text-[var(--text-secondary)] text-xs shrink-0">/</span>
           <h1 className="text-sm font-semibold text-[var(--text-primary)] shrink-0">Live Report</h1>
           {objects.length > 0 && <ObjectPicker objects={objects} value={activeSlug} onChange={handleObjectChange}/>}
-          <span className="text-xs text-[var(--text-secondary)] hidden sm:inline">
-            {records.length} records{filteredRecords.length !== records.length && ` · ${filteredRecords.length} filtered`}
+          <span className="text-xs text-[var(--text-secondary)] hidden sm:inline" title="Data scope — computed live from your real records">
+            {records.length} records analysed{filteredRecords.length !== records.length && ` · ${filteredRecords.length} in filter`}
           </span>
           <div className="flex items-center gap-1.5 ml-auto shrink-0">
             {/* Period buttons */}
-            <div className="flex gap-0.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
+            <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
               {(["today","week","month","quarter","year","custom"] as Period[]).map(p => (
                 <button key={p} onClick={() => setPeriod(p)}
-                  className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${period===p ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
+                  className={`rounded-sm px-2.5 py-1 text-xs font-medium transition-colors ${period===p ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
                   {PERIOD_LABELS[p]}
                 </button>
               ))}
@@ -1206,10 +1189,10 @@ export function SalesReportPage() {
             <span className="text-[11px] font-medium text-[var(--text-muted)] shrink-0">Date range</span>
             <div className="flex items-center gap-2 ml-2">
               <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
-                className="h-7 rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] [color-scheme:dark] outline-none focus:border-[#717784]/40"/>
+                className="h-7 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] [color-scheme:dark] outline-none focus:border-[#717784]/40"/>
               <span className="text-xs text-[var(--text-secondary)]">→</span>
               <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
-                className="h-7 rounded-md border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] [color-scheme:dark] outline-none focus:border-[#717784]/40"/>
+                className="h-7 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] [color-scheme:dark] outline-none focus:border-[#717784]/40"/>
             </div>
             {customStart && customEnd && (
               <span className="ml-auto text-[11px] text-[var(--text-secondary)]">

@@ -266,6 +266,18 @@ describe("structural adoption pass 2 (headers / settings frames / accent life)",
     expect(reportsIndex).toMatch(/<CommandPageHeader/);
     expect(reportsIndex).not.toMatch(/LiveSectionHeader/);
   });
+  it("Reports: ObjectPicker uses the shared FieldSelect (no bespoke dropdown-panel); scope + AI + export preserved", () => {
+    // Custom dropdown → shared FieldSelect (required selection, no injected All).
+    expect(salesReport).not.toContain("dropdown-panel");
+    expect(salesReport).toMatch(/<FieldSelect\s+value=\{value\}/);
+    // Honest data scope (real record count), AI insights + forecast with honest not-run states, exports.
+    expect(salesReport).toContain("records analysed");
+    for (const h of ["exportCSV", "generateReport", "runForecast", "/generate/insights", "/generate/forecast", "handleObjectChange"]) {
+      expect(salesReport).toContain(h);
+    }
+    // No fabricated AI — insights show an honest prompt state when none have run.
+    expect(salesReport).toContain("Surface patterns in your data");
+  });
   it("Discovery pipeline strip is a quiet inline line, not a row of bordered chip-boxes", () => {
     expect(discovery).toContain("One quiet inline pipeline line");
   });
