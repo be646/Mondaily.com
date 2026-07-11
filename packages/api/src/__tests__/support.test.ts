@@ -388,16 +388,16 @@ describe("PHASE 3 — resolution, rating, and explicit escalation (source-read)"
     expect(provider).toMatch(/rating: stars, feedback:.*state: "closed"/);
   });
   it("a ticket is created ONLY on explicit click and never duplicated in a session", () => {
-    const fn = provider.slice(provider.indexOf("async function createTicket"), provider.indexOf("async function createTicket") + 900);
+    const fn = provider.slice(provider.indexOf("async function createTicket"), provider.indexOf("async function createTicket") + 1800);
     expect(fn).toMatch(/if \(session\.ticketCreated\) return;/);
     expect(fn).toMatch(/apiClient\.post<\{ id: string \}>\("\/support\/tickets"/);
     expect(provider).toMatch(/if \(isTicket && session\.ticketCreated\) return null/);   // hides dup action
   });
   it("ticket metadata carries diagnostics, route history, summarized history and rating", () => {
-    const fn = provider.slice(provider.indexOf("async function createTicket"), provider.indexOf("async function createTicket") + 900);
+    const fn = provider.slice(provider.indexOf("async function createTicket"), provider.indexOf("async function createTicket") + 1800);
     expect(fn).toMatch(/diagnostics: latestDiagnostics\(session\)/);
     expect(fn).toMatch(/route_history: session\.routeHistory/);
-    expect(fn).toMatch(/history_summary: summarizeHistory\(session\)/);
+    expect(fn).toMatch(/history_summary: message/);   // message = summarizeHistory(session), hoisted to a local
     expect(fn).toMatch(/rating: session\.rating/);
   });
   it("rating/feedback attaches to an existing ticket as a comment (no new table)", () => {

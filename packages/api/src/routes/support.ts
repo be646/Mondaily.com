@@ -291,6 +291,32 @@ async function getTicket(workspaceId: string, id: string) {
   return data ? { ...data, data: (data.data ?? {}) as TicketData } : null;
 }
 
+// Content guard — keep the support queue free of empty / whitespace / one-word junk tickets. Applies
+// to EVERY creation path (Help escalation, Settings → Support, any direct API call). Returns a
+// friendly reason + clarifying questions when there isn't enough to act on, so callers can ask for
+// detail instead of silently failing or creating a useless ticket. Exported for tests.
+const GENERIC_LOW_INFO = new Set([
+  "", "help", "problem", "issue", "test", "testing", "hi", "hello", "hey", "error", "errors",
+  "bug", "broken", "fix", "fixit", "na", "none", "asdf", "idk", "?", "??", "support", "question",
+]);
+export function ticketContentIssue(subject: string, message: string): { error: string; questions: string[] } | null {
+  const subj = (subject ?? "").trim();
+  const msg = (message ?? "").trim();
+  if (subj.length < 3) {
+    return { error: "Please add a short subject describing the issue.", questions: ["What's a one-line summary of the problem?"] };
+  }
+  if (msg.length === 0) {
+    return { error: "Please describe what's happening so we can help.", questions: ["What were you trying to do?", "What happened instead — any error message?"] };
+  }
+  const norm = msg.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const words = msg.split(/\s+/).filter(Boolean).length;
+  // Reject pure filler, or too-thin content (needs at least a short sentence's worth of context).
+  if (GENERIC_LOW_INFO.has(norm) || (msg.length < 15 && words < 3)) {
+    return { error: "Could you add a bit more detail so we can help?", questions: ["What were you trying to do?", "What happened instead — any error message or screenshot?"] };
+  }
+  return null;
+}
+
 // POST /support/tickets — create a ticket. Notifies workspace admins/owners.
 router.post("/tickets", zValidator("json", z.object({
   category: z.enum(SUPPORT_CATEGORIES),
@@ -301,11 +327,17 @@ router.post("/tickets", zValidator("json", z.object({
 })), async (c) => {
   const ws = c.get("workspaceId"); const userId = c.get("userId");
   const body = c.req.valid("json");
+  // Reject empty / whitespace / one-word junk with a helpful nudge (422) — never a silent fail or a
+  // hollow ticket. Valid tickets pass straight through unchanged.
+  const issue = ticketContentIssue(body.subject, body.message);
+  if (issue) return c.json({ error: issue.error, needs_more_info: true, questions: issue.questions }, 422);
+  const subject = body.subject.trim();
+  const message = body.message.trim();
   const now = new Date().toISOString();
   // Stamp requester identity + account context onto the ticket so a human has what they need.
   const ctx = await buildSupportContext(ws, userId);
   const ticketData: TicketData = {
-    category: body.category, subject: body.subject, message: body.message, status: "open",
+    category: body.category, subject, message, status: "open",
     metadata: {
       ...(body.metadata ?? {}),
       requester: { name: ctx.identity.name, email: ctx.identity.email, display_name: ctx.identity.display_name, role: ctx.identity.role },
@@ -327,7 +359,7 @@ router.post("/tickets", zValidator("json", z.object({
   const admins = await workspaceAdminIds(ws, userId);
   await Promise.all(admins.map(uid => createNotification({
     workspace_id: ws, user_id: uid, type: "support",
-    title: `New support request: ${body.subject}`,
+    title: `New support request: ${subject}`,
     body: `A ${body.category.replace(/_/g, " ")} request was opened.`,
     metadata: { support_ticket_id: data.id, category: body.category },
   }).catch(() => false)));

@@ -154,23 +154,40 @@ function HelpPanel({ prefill }: { prefill: string }) {
   async function createTicket() {
     if (session.ticketCreated) return;   // one request per inquiry — never duplicate silently
     const firstUser = session.messages.find(m => m.role === "user");
+    const subject = (session.subject || firstUser?.content || "Support request").slice(0, 200);
+    const message = summarizeHistory(session);
+    // Investigate-first: don't open a hollow ticket. If the user escalated before describing anything,
+    // ask one clarifying question and keep the chat open instead of sending an empty request.
+    if (!firstUser || message.trim().length < 15) {
+      update(s => ({ ...s, state: "waiting_for_user", messages: [...s.messages, { role: "assistant", content: "Before I open a request, tell me a bit more so our team can help: what were you trying to do, and what happened instead (any error message)?", needsTicket: true, category: s.category ?? "bug_report" }] }));
+      return;
+    }
     try {
       const res = await apiClient.post<{ id: string }>("/support/tickets", {
         category: session.category ?? "bug_report",
-        subject: (session.subject || firstUser?.content || "Support request").slice(0, 200),
-        message: summarizeHistory(session),
+        subject,
+        message,
         route: window.location.pathname,
         metadata: {
           source: "help_agent",
           diagnostics: latestDiagnostics(session),
           route_history: session.routeHistory,
-          history_summary: summarizeHistory(session),
+          history_summary: message,
           rating: session.rating,
           feedback: session.feedback,
         },
       });
       update(s => ({ ...s, ticketCreated: true, ticketId: res?.id ?? null, state: "escalated", messages: [...s.messages, { role: "assistant", system: true, content: "Support request created — our team will follow up. You can keep replying here." }] }));
-    } catch { /* keep the chat usable even if creation hiccups */ }
+    } catch (e) {
+      // Surface the server's "needs more info" nudge (422) instead of failing silently. The API
+      // returns { error, needs_more_info, questions } as the response body; apiClient throws it as text.
+      let ask = "I couldn't open the request just now. Add a little more detail about the issue and try again.";
+      try {
+        const parsed = JSON.parse((e as Error)?.message ?? "{}") as { error?: string; questions?: string[] };
+        if (parsed.error) ask = [parsed.error, ...(parsed.questions ?? [])].join(" ");
+      } catch { /* non-JSON error — keep the generic ask */ }
+      update(s => ({ ...s, state: "waiting_for_user", messages: [...s.messages, { role: "assistant", content: ask, needsTicket: true, category: s.category ?? "bug_report" }] }));
+    }
   }
 
   function runAction(a: HelpAction) {
