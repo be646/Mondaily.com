@@ -151,12 +151,12 @@ export function MessagesPage() {
                   {(inboxQ.data?.groups ?? []).map((g) => (
                     <button key={g.group_id} onClick={() => setActiveGroup(g.group_id)}
                       className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
-                      style={{ background: activeGroup === g.group_id ? "var(--surface-selected)" : undefined }}>
+                      style={{ background: activeGroup === g.group_id ? "var(--surface-selected)" : undefined, boxShadow: activeGroup === g.group_id ? "inset 3px 0 0 var(--section-accent)" : undefined }}>
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>{g.name.trim()[0]?.toUpperCase() ?? "G"}</span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
                           <span className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{g.name}</span>
-                          {g.unread > 0 && <span className="shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold text-white" style={{ background: "var(--section-accent)" }}>{g.unread}</span>}
+                          {g.unread > 0 && <span className="shrink-0 rounded-sm px-1.5 py-px text-[10px] font-semibold" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>{g.unread}</span>}
                         </div>
                         <span className="truncate text-[11.5px]" style={{ color: "var(--text-faint)" }}>{g.members} member{g.members !== 1 ? "s" : ""} · {g.last}</span>
                       </div>
@@ -173,12 +173,12 @@ export function MessagesPage() {
               {inbox.map((th) => (
                 <button key={th.thread_key} onClick={() => setActive(th.other_id)}
                   className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
-                  style={{ background: active === th.other_id ? "var(--surface-selected)" : undefined }}>
+                  style={{ background: active === th.other_id ? "var(--surface-selected)" : undefined, boxShadow: active === th.other_id ? "inset 3px 0 0 var(--section-accent)" : undefined }}>
                   <Avatar name={th.name} url={th.avatar_url} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{th.name}</span>
-                      {th.unread > 0 && <span className="shrink-0 rounded-full px-1.5 py-px text-[10px] font-semibold text-white" style={{ background: "var(--section-accent)" }}>{th.unread}</span>}
+                      {th.unread > 0 && <span className="shrink-0 rounded-sm px-1.5 py-px text-[10px] font-semibold" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>{th.unread}</span>}
                     </div>
                     <span className="truncate text-[11.5px]" style={{ color: "var(--text-faint)" }}>{th.outgoing ? "You: " : ""}{th.last}</span>
                   </div>
@@ -193,6 +193,7 @@ export function MessagesPage() {
         {activeGroup ? <GroupThread groupId={activeGroup} live={live.current} onSent={() => { qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onLeft={() => { setActiveGroup(""); qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onBack={() => setActiveGroup("")} />
           : active ? <Thread otherId={active} live={live.current} onSent={() => { qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onArchived={() => { setActive(""); qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onBack={() => setActive("")} />
           : <div className="hidden flex-col items-center justify-center gap-3 rounded-sm border lg:flex" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              <InboxIcon size={26} style={{ color: "var(--text-faint)" }} />
               <p className="text-[13px]" style={{ color: "var(--text-faint)" }}>{t("inbox.select_conversation")}</p>
               <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]"
                 style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
@@ -335,13 +336,13 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
                 <button onClick={() => del.mutate(m.id)} title="Delete" className="rounded p-1" style={{ color: "var(--text-faint)" }}><Trash2 size={12} /></button>
               </div>
             )}
-            <div className="max-w-[78%] rounded-lg px-3 py-2" style={{ background: m.mine ? "var(--section-accent)" : "var(--surface-hover)", color: m.mine ? "#fff" : "var(--text-primary)" }}>
+            <div className="max-w-[78%] rounded-sm px-3.5 py-2" style={{ background: m.mine ? "var(--section-accent)" : "var(--surface-hover)", color: m.mine ? "#fff" : "var(--text-primary)" }}>
               {m.body !== "(attachment)" && <p className="whitespace-pre-wrap break-words text-[12.5px] leading-snug">{m.body}</p>}
               {(m.attachments ?? []).length > 0 && (
                 <div className={`${m.body !== "(attachment)" ? "mt-1.5" : ""} space-y-1`}>
                   {(m.attachments ?? []).map((a) => (
                     <button key={a.path} onClick={() => openAttachment(a)} title={`Download ${a.name}`}
-                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-opacity hover:opacity-85"
+                      className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-left transition-opacity hover:opacity-85"
                       style={{ background: m.mine ? "rgba(255,255,255,0.14)" : "var(--surface-card-2)", border: m.mine ? "none" : "1px solid var(--border-soft)" }}>
                       <FileText size={13} className="shrink-0" style={{ color: m.mine ? "rgba(255,255,255,0.85)" : "var(--section-accent)" }} />
                       <span className="min-w-0 flex-1 truncate text-[11.5px] font-medium">{a.name}</span>
@@ -525,7 +526,7 @@ function GroupThread({ groupId, live, onSent, onLeft, onBack }: { groupId: strin
                   <button onClick={() => del.mutate(m.id)} title="Delete" className="rounded p-1" style={{ color: "var(--text-faint)" }}><Trash2 size={12} /></button>
                 </div>
               )}
-              <div className="max-w-[78%] rounded-lg px-3 py-2" style={{ background: m.mine ? "var(--section-accent)" : "var(--surface-hover)", color: m.mine ? "#fff" : "var(--text-primary)" }}>
+              <div className="max-w-[78%] rounded-sm px-3.5 py-2" style={{ background: m.mine ? "var(--section-accent)" : "var(--surface-hover)", color: m.mine ? "#fff" : "var(--text-primary)" }}>
                 {!m.mine && (i === 0 || messages[i - 1]!.sender_id !== m.sender_id) && (
                   <p className="mb-0.5 text-[10.5px] font-semibold" style={{ color: "var(--section-accent)" }}>{m.sender_name}</p>
                 )}
@@ -534,7 +535,7 @@ function GroupThread({ groupId, live, onSent, onLeft, onBack }: { groupId: strin
                   <div className={`${m.body !== "(attachment)" ? "mt-1.5" : ""} space-y-1`}>
                     {(m.attachments ?? []).map((a) => (
                       <button key={a.path} onClick={() => openAttachment(a)} title={`Download ${a.name}`}
-                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-opacity hover:opacity-85"
+                        className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-left transition-opacity hover:opacity-85"
                         style={{ background: m.mine ? "rgba(255,255,255,0.14)" : "var(--surface-card-2)", border: m.mine ? "none" : "1px solid var(--border-soft)" }}>
                         <FileText size={13} className="shrink-0" style={{ color: m.mine ? "rgba(255,255,255,0.85)" : "var(--section-accent)" }} />
                         <span className="min-w-0 flex-1 truncate text-[11.5px] font-medium">{a.name}</span>
@@ -630,7 +631,7 @@ function NewMessageModal({ onClose, onPick, onGroupCreated }: { onClose: () => v
         <div className="flex gap-1 border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
           {(["dm", "group"] as const).map((m) => (
             <button key={m} onClick={() => setMode(m)}
-              className="rounded-full px-3 py-1 text-[11.5px] font-medium transition-colors"
+              className="rounded-sm px-3 py-1 text-[11.5px] font-medium transition-colors"
               style={mode === m ? { background: "var(--surface-selected)", color: "var(--section-accent)" } : { color: "var(--text-muted)" }}>
               {m === "dm" ? "Direct message" : "New group"}
             </button>
@@ -643,7 +644,7 @@ function NewMessageModal({ onClose, onPick, onGroupCreated }: { onClose: () => v
           </div>
         )}
         <div className="border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
-          <div className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="flex items-center gap-2 rounded-sm border px-2.5 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
             <Search size={13} style={{ color: "var(--text-faint)" }} />
             <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("inbox.search_members")}
               className="flex-1 bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)" }} />
@@ -657,7 +658,7 @@ function NewMessageModal({ onClose, onPick, onGroupCreated }: { onClose: () => v
           ) : list.map((m) => (
             <button key={m.id}
               onClick={() => { if (mode === "dm") { onPick(m.id); } else { setSelected((prev) => { const next = new Set(prev); if (next.has(m.id)) next.delete(m.id); else next.add(m.id); return next; }); } }}
-              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]"
+              className="flex w-full items-center gap-2.5 rounded-sm px-2.5 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]"
               style={mode === "group" && selected.has(m.id) ? { background: "var(--surface-selected)" } : undefined}>
               {mode === "group" && (
                 <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border" style={{ borderColor: selected.has(m.id) ? "var(--section-accent)" : "var(--border-strong)", background: selected.has(m.id) ? "var(--section-accent)" : "transparent" }}>
