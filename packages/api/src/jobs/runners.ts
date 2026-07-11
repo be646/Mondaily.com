@@ -6,6 +6,7 @@ import { createNotification } from "../lib/notify";
 import { refreshFxRates } from "../lib/currency-store";
 import { runDiscoveryMonitors } from "./social-discovery";
 import { runMeetingAgent } from "./meeting-agent";
+import { runPendingPlanReminders } from "./pending-plan-reminders";
 
 // ── Security primitives (exported so the AI-security test suite can assert these
 //    defenses never regress across model upgrades) ────────────────────────────
@@ -738,5 +739,8 @@ export async function runAllDaily(): Promise<Record<string, unknown>> {
   results.meeting_agent = await runMeetingAgent().catch((e) => ({ error: String(e) }));
   // Refresh FX reference rates (global) so multi-currency totals normalize with fresh data.
   results.fx_rates = await refreshFxRates().catch((e) => ({ error: String(e) }));
+  // Polite day-2 / day-7 follow-up to workspaces that picked a paid plan at onboarding but never
+  // activated it. Idempotent + fail-safe (mail-missing is a no-op, never crashes the batch).
+  results.pending_plan_reminders = await runPendingPlanReminders().catch((e) => ({ error: String(e) }));
   return results;
 }

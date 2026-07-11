@@ -19,7 +19,7 @@ describe("backend: paid plans are pending, never free-granted", () => {
   it("Command/Sovereign require payment → entitled tier stays scout, pending_plan recorded", () => {
     expect(onboardingApi).toMatch(/const requiresPayment = chosen === "command" \|\| chosen === "sovereign"/);
     expect(onboardingApi).toMatch(/const effectiveTier = requiresPayment \? "scout" : chosen/);
-    expect(onboardingApi).toMatch(/requiresPayment \? \{ pending_plan: chosen \} : \{\}/);
+    expect(onboardingApi).toMatch(/requiresPayment \? \{ pending_plan: chosen, pending_plan_set_at: new Date\(\)\.toISOString\(\) \} : \{\}/);
   });
   it("trial (Operator) is separate from paid-pending; account_tier never 'command' until paid", () => {
     expect(onboardingApi).toMatch(/account_tier: effectiveTier/);

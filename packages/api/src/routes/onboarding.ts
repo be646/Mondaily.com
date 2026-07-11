@@ -230,7 +230,8 @@ router.post("/complete", requireAuth, async (c) => {
       plan: effectiveTier,
       account_tier: effectiveTier,              // billing reads this — never "command" until paid
       track: effectiveTier === "scout" ? "solo" : "business",
-      ...(requiresPayment ? { pending_plan: chosen } : {}),   // what they WANT, awaiting payment
+      // what they WANT, awaiting payment — plus the clock the day-2/day-7 reminders count from.
+      ...(requiresPayment ? { pending_plan: chosen, pending_plan_set_at: new Date().toISOString() } : {}),
       ...(body.industry ? { industry: body.industry } : {}),
       ...(body.team_size ? { team_size: body.team_size } : {}),
       ...(typeof body.concurrency === "number" ? { target_concurrency: body.concurrency } : {}),
