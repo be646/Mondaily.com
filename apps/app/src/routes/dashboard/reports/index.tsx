@@ -3,7 +3,7 @@ import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight, X } from "lucide-rea
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, PageSkeletonCards } from "../../../components/ui/page-state";
-import { LiveSectionHeader } from "../../../components/ui/controls";
+import { CommandPageHeader } from "../../../components/ui/controls";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 
@@ -75,8 +75,15 @@ export function ReportsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-      {/* AI-engine signature header — the section's unique "well-tech" treatment */}
-      <LiveSectionHeader icon={BarChart2} title="Reports" kicker="analytics engine" liveLabel="Live · from records" />
+      {/* Shared command header — same pattern as Decisions / Discovery / Agents. Honest state:
+          reports recompute from live records; no fabricated "AI ran" claim. */}
+      <CommandPageHeader
+        icon={BarChart2}
+        callsign="SIGNAL"
+        title="Reports"
+        subtitle="Live analytics computed from your records — AI insight where a run exists."
+        status={[{ label: "computed from records", kind: "monitoring" }]}
+      />
 
       {/* ── Live Reports ── */}
       <section className="mb-10">

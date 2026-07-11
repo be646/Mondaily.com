@@ -31,6 +31,7 @@ const themeLib = read("lib/theme.ts");
 const controls = read("components/ui/controls.tsx");
 const callsSettings = read("routes/dashboard/settings/calls.tsx");
 const activity = read("routes/dashboard/activity.tsx");
+const reportsIndex = read("routes/dashboard/reports/index.tsx");
 // The bright, candy hexes that must NOT appear in product UI — only matte semantic tones allowed.
 const BRIGHT_HEXES = ["#d97706", "#10b981", "#e11d48", "#dc2626", "#ef4444", "#f59e0b", "#eab308", "#7b6fb0", "#22c55e", "#3b82f6", "#8b5cf6", "#06b6d4", "#0891b2", "#b45309"];
 const hasNoBrightHex = (src: string) => BRIGHT_HEXES.every((h) => !src.toLowerCase().includes(h));
@@ -260,6 +261,13 @@ describe("structural adoption pass 2 (headers / settings frames / accent life)",
     for (const h of ["refetch", "constellation", "runsToday", "errorsToday", "pendingCount"]) {
       expect(activity).toContain(h);
     }
+  });
+  it("Reports index uses the shared CommandPageHeader (header migration complete)", () => {
+    expect(reportsIndex).toMatch(/<CommandPageHeader/);
+    expect(reportsIndex).not.toMatch(/LiveSectionHeader/);
+  });
+  it("Discovery pipeline strip is a quiet inline line, not a row of bordered chip-boxes", () => {
+    expect(discovery).toContain("One quiet inline pipeline line");
   });
 });
 

@@ -683,15 +683,17 @@ const DISCOVERY_MODULES: { key: string; label: string; Icon: typeof Globe2; hint
   { key: "research", label: "Research", Icon: MessageSquare, hint: "Ask AI over a lead or the whole result set (grounded, source-backed)." },
 ];
 function ModuleStrip() {
+  // One quiet inline pipeline line (was a row of bordered chip-boxes → too noisy). Same info,
+  // far less visual weight: muted labels + arrows, no per-stage border/box.
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-1.5">
-      <span className="text-[10px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Pipeline</span>
+    <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+      <span className="uppercase tracking-wide">Pipeline</span>
       {DISCOVERY_MODULES.map((m, i) => (
-        <span key={m.key} className="inline-flex items-center gap-1">
-          <span title={m.hint} className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[10.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+        <span key={m.key} className="inline-flex items-center gap-2">
+          <span title={m.hint} className="inline-flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
             <m.Icon size={10} style={{ color: "var(--text-faint)" }} /> {m.label}
           </span>
-          {i < DISCOVERY_MODULES.length - 1 && <ArrowRight size={9} style={{ color: "var(--text-faint)" }} />}
+          {i < DISCOVERY_MODULES.length - 1 && <ArrowRight size={9} />}
         </span>
       ))}
     </div>
