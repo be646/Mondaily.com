@@ -774,7 +774,7 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
                 </div>
               );
             })()}
-            {e.call_url && <button onClick={() => navigate(`/calls/${e.id}`)} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}><Video size={13} /> {t("cal.join_call")}</button>}
+            {e.call_url && e.calls_enabled && <button onClick={() => navigate(`/calls/${e.id}`)} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}><Video size={13} /> {t("cal.join_call")}</button>}
             {e.location && <div className="flex items-center gap-2" style={{ color: "var(--text-secondary)" }}><MapPin size={13} style={{ color: "var(--text-faint)" }} /> {e.location}</div>}
 
             {/* Co-pilot readiness — real signals derived from this meeting's own fields (never fabricated). */}

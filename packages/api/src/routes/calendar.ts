@@ -230,6 +230,16 @@ const EventInput = z.object({
   }).nullable().optional(),
 });
 
+// Reject inverted times (end before/at start) only when both parse to real dates — leaves
+// all-day/date-only inputs untouched. Prevents malformed events that render off-grid. Applied on
+// CREATE only; PATCH keeps EventInput.partial() (a plain object supports .partial()/.shape).
+const endAfterStart = (d: { start_at?: string; end_at?: string }) => {
+  if (!d.start_at || !d.end_at) return true;
+  const s = Date.parse(d.start_at), e = Date.parse(d.end_at);
+  return !(Number.isFinite(s) && Number.isFinite(e)) || e > s;
+};
+const EventCreate = EventInput.refine(endAfterStart, { message: "end_at must be after start_at", path: ["end_at"] });
+
 // GET /calendar/events?from=&to= — the caller's events (organizer OR attendee), workspace-scoped.
 router.get("/events", async (c) => {
   const ws = c.get("workspaceId"); const me = c.get("userId");
@@ -275,7 +285,7 @@ router.get("/events/:id", async (c) => {
 });
 
 // POST /calendar/events — create a meeting (organizer = caller). Notifies attendees.
-router.post("/events", zValidator("json", EventInput), async (c) => {
+router.post("/events", zValidator("json", EventCreate), async (c) => {
   const ws = c.get("workspaceId"); const me = c.get("userId");
   const b = c.req.valid("json");
   const attendees = [...new Set((b.attendee_ids ?? []).filter((a) => a && a !== me))];

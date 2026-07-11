@@ -247,7 +247,9 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
     // NOTE: the old "bot" verdict (heavy use + no PoW claim) was REMOVED — PoW claims are
     // best-effort/client-side and frequently absent, so it false-flagged legitimate power users
     // (incl. owners) as "ANOMALOUS AUTOMATION / BOT DETECTED". Verdicts now key on real work only.
-    const complexityDelta = Math.round(u.tokens / Math.max(1, taskCount)); // tokens per completed task
+    // tokens per task — only meaningful when tasks exist. With 0 tasks, dividing by 1 would surface
+    // the raw token count as a giant "per-task" number and mislabel the member as high_complexity.
+    const complexityDelta = taskCount > 0 ? Math.round(u.tokens / taskCount) : 0;
     let verdict: "inactive" | "bot" | "low_engagement" | "high_complexity" | "engaged" | "idle" = "idle";
     if (u.tokens === 0 && taskCount === 0) verdict = "inactive";
     else if (taskCount >= 5 && complexityDelta < 500) verdict = "low_engagement";

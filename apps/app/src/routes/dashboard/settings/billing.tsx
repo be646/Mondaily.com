@@ -176,7 +176,7 @@ export function BillingSettings() {
   const ledger = ledgerQuery.data?.ledger ?? [];
   // Meter denominator: included monthly + purchased (NOT the raw ledger grant-row sum). Matches the
   // sidebar exactly — same /credits/balance source, same math.
-  const walletCapacity = wallet ? (wallet.capacity || (wallet.included_monthly_credits ?? 0) + (wallet.purchased_credits ?? 0) || wallet.remaining_credits) : 0;
+  const walletCapacity = wallet ? (wallet.capacity || (wallet.included_monthly_credits ?? 0) + (wallet.purchased_credits ?? 0) || wallet.remaining_credits || 0) : 0;
   const walletRemaining = wallet ? (wallet.remaining_credits ?? wallet.remaining ?? wallet.balance) : 0;
   const walletPct = wallet && walletCapacity > 0 ? Math.max(0, Math.min(100, Math.round((walletRemaining / walletCapacity) * 100))) : 0;
   const fmtCredits = (n: number) => n.toLocaleString();
@@ -244,8 +244,9 @@ export function BillingSettings() {
         </div>
       )}
 
-      {/* One-time 14-day Operator trial — offered anytime until used (the "decide later" path). */}
-      {billing.trial_eligible && (
+      {/* One-time 14-day Operator trial — offered anytime until used (the "decide later" path).
+          Hidden while a trial is already running so the two trial banners never show together. */}
+      {billing.trial_eligible && !trialActive && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-sm border px-5 py-3.5 text-sm" style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)" }}>
           <span style={{ color: "var(--text-primary)" }}>
             Try <strong>Operator</strong> free for 14 days — full autonomous workspace, {fmtCredits(PLAN_BY_ID.operator?.monthlyCredits ?? 0)} AI credits. No card required.
