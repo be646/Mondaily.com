@@ -154,7 +154,7 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
   ].slice(0, 6);
 
   const TONE_COLOR: Record<StreamItem["tone"], string> = {
-    violet: "var(--accent)", amber: "#d97706", rose: "#dc2626", blue: "#3b82f6", default: "var(--text-muted)",
+    violet: "var(--accent)", amber: "#97824f", rose: "#9c6b72", blue: "#717784", default: "var(--text-muted)",
   };
 
   const isLoading = decisionsLoading;
@@ -221,15 +221,15 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
               const sources = mapEvidence(d.evidence ?? []);
               const act = acting?.id === d.id ? acting.action : null;
               const bnr = banner?.id === d.id ? banner.kind : null;
-              const accent = d.risk_level === "high" ? "#dc2626" : d.risk_level === "medium" ? "#d97706" : "var(--text-muted)";
+              const accent = d.risk_level === "high" ? "#9c6b72" : d.risk_level === "medium" ? "#97824f" : "var(--text-muted)";
               return (
                 <div key={d.id} className="relative border-b" style={{ borderColor: "var(--border-soft)" }}>
                   {bnr && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--surface-card) 72%, transparent)" }}>
                       <span className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
                         style={bnr === "approved"
-                          ? { borderColor: "#10b981", color: "#10b981", background: "color-mix(in srgb, #10b981 12%, var(--surface-card))" }
-                          : { borderColor: bnr === "rejected" ? "#ef4444" : "var(--text-faint)", color: bnr === "rejected" ? "#ef4444" : "var(--text-muted)", background: "var(--surface-card)" }}>
+                          ? { borderColor: "#5f8169", color: "#5f8169", background: "color-mix(in srgb, #5f8169 12%, var(--surface-card))" }
+                          : { borderColor: bnr === "rejected" ? "#9c6b72" : "var(--text-faint)", color: bnr === "rejected" ? "#9c6b72" : "var(--text-muted)", background: "var(--surface-card)" }}>
                         {bnr === "approved" ? <><CheckCircle2 size={12} /> Approved</> : bnr === "rejected" ? <><XCircle size={12} /> Dismissed</> : <><Clock size={12} /> Snoozed</>}
                       </span>
                     </div>
@@ -262,7 +262,7 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
                     {/* Actions — ALWAYS visible; act in one click */}
                     <div className="flex shrink-0 items-center gap-1">
                       <button onClick={() => resolveDecision(d.id, "approve")} disabled={!!act} title="Approve"
-                        className="flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: "#10b981" }}>
+                        className="flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: "#5f8169" }}>
                         {act === "approve" ? <Loader2 size={11} className="animate-spin"/> : <Check size={11}/>}<span className="hidden sm:inline">Approve</span>
                       </button>
                       <button onClick={() => resolveDecision(d.id, "reject")} disabled={!!act} title="Dismiss"
@@ -308,12 +308,12 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
 // workspace-wide, the hero pill's "open tasks" is assigned-to-you).
 const PULSE_CATEGORIES: { key: "tasksOpen" | "tasksOverdue" | "relationships" | "financeOverdue" | "records" | "workflows" | "risks"; label: string; icon: React.ElementType; color: string }[] = [
   { key: "tasksOpen",      label: "active tasks",        icon: CheckSquare, color: "var(--accent)" },
-  { key: "tasksOverdue",   label: "overdue tasks",        icon: Clock,       color: "#dc2626" },
-  { key: "relationships",  label: "relationship records", icon: Users,       color: "#d97706" },
-  { key: "financeOverdue", label: "overdue invoices",     icon: Receipt,     color: "#0891b2" },
+  { key: "tasksOverdue",   label: "overdue tasks",        icon: Clock,       color: "#9c6b72" },
+  { key: "relationships",  label: "relationship records", icon: Users,       color: "#97824f" },
+  { key: "financeOverdue", label: "overdue invoices",     icon: Receipt,     color: "#717784" },
   { key: "records",        label: "total records",        icon: Database,   color: "#059669" },
   { key: "workflows",      label: "workflow records",      icon: Workflow,   color: "var(--accent)" },
-  { key: "risks",          label: "open risk signals",     icon: ShieldAlert, color: "#e11d48" },
+  { key: "risks",          label: "open risk signals",     icon: ShieldAlert, color: "#9c6b72" },
 ];
 
 /**
@@ -370,7 +370,7 @@ export function WorkspaceGraphPulse() {
       ) : (
         <div className="workspace-pulse-grid grid grid-cols-2 sm:grid-cols-4">
           {[
-            { key: "", label: "graph health", icon: CheckSquare, color: "#10b981", value: healthPct, suffix: "%" },
+            { key: "", label: "graph health", icon: CheckSquare, color: "#5f8169", value: healthPct, suffix: "%" },
             ...PULSE_CATEGORIES.map(({ key, label, icon, color }) => ({ key: key as string, label, icon, color, value: pulse[key], suffix: "" })),
           ].map((t, i) => {
             const connected = t.value != null;

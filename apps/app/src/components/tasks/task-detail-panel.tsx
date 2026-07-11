@@ -476,8 +476,8 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 <button onClick={() => setActiveTab("review")}
                   className="h-6 rounded-sm border px-2.5 text-[11px] font-medium transition-colors"
                   style={
-                    task.review_result === "approved"          ? { borderColor: "rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.1)", color: "#10b981" } :
-                    task.review_result === "changes_requested" ? { borderColor: "rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.1)", color: "#d97706" } :
+                    task.review_result === "approved"          ? { borderColor: "rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.1)", color: "#5f8169" } :
+                    task.review_result === "changes_requested" ? { borderColor: "rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.1)", color: "#97824f" } :
                     localStatus === "review"                   ? { borderColor: "rgba(234,179,8,0.3)", background: "rgba(234,179,8,0.1)", color: "#ca8a04" } :
                     { borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-muted)" }
                   }>
@@ -622,7 +622,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <div key={item.id} className="flex items-start gap-3 group rounded-sm px-3 py-2.5 transition-colors border border-transparent surface-hover">
                     <button onClick={() => toggleCheckItem.mutate({ itemId: item.id, completed: !item.completed })}
                       className="mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors"
-                      style={item.completed ? { borderColor: "#10b981", background: "#10b981" } : { borderColor: "var(--border-strong)" }}>
+                      style={item.completed ? { borderColor: "#5f8169", background: "#5f8169" } : { borderColor: "var(--border-strong)" }}>
                       {item.completed && <Check size={9} className="text-[var(--text-primary)]"/>}
                     </button>
                     <div className="flex-1 min-w-0">

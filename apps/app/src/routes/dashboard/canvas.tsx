@@ -181,11 +181,11 @@ const TEMPLATES: Record<string, { nodes: Node[]; edges: Edge[]; label: string; d
     label: "Mind Map",
     description: "Radial idea exploration",
     nodes: [
-      { id: "c",  type: "mind", position: { x: 320, y: 200 }, data: { label: "Central Idea", color: "#ef4444" } },
+      { id: "c",  type: "mind", position: { x: 320, y: 200 }, data: { label: "Central Idea", color: "#9c6b72" } },
       { id: "1",  type: "mind", position: { x: 80,  y: 60  }, data: { label: "Branch 1",    color: "var(--section-accent)" } },
       { id: "2",  type: "mind", position: { x: 540, y: 60  }, data: { label: "Branch 2",    color: "var(--section-accent)" } },
-      { id: "3",  type: "mind", position: { x: 80,  y: 340 }, data: { label: "Branch 3",    color: "#10b981" } },
-      { id: "4",  type: "mind", position: { x: 540, y: 340 }, data: { label: "Branch 4",    color: "#f59e0b" } },
+      { id: "3",  type: "mind", position: { x: 80,  y: 340 }, data: { label: "Branch 3",    color: "#5f8169" } },
+      { id: "4",  type: "mind", position: { x: 540, y: 340 }, data: { label: "Branch 4",    color: "#97824f" } },
     ],
     edges: [
       { id: "e-c1", source: "c", target: "1" },

@@ -33,7 +33,7 @@ interface RelatedNode { id: string; object_type: string; data: Record<string, un
 
 type Confidence = "source-backed" | "ready" | "needs review" | "missing evidence" | "stale";
 const CONF_TONE: Record<Confidence, string> = {
-  "source-backed": "#10b981", ready: "#10b981", "needs review": "#d97706", "missing evidence": "#d97706", stale: "#d97706",
+  "source-backed": "#5f8169", ready: "#5f8169", "needs review": "#97824f", "missing evidence": "#97824f", stale: "#97824f",
 };
 
 const relAgo = (iso?: string | null): string => {
@@ -162,9 +162,9 @@ export function AIInspector({ ctx, activities: passedActivities, defaultOpen = t
           <Row label="Attention">
             <div className="flex flex-wrap gap-1.5">
               {missing.map((f) => (
-                <span key={f} className="rounded-full px-2 py-0.5 text-[10.5px]" style={{ color: "#d97706", background: "color-mix(in srgb, #d97706 12%, transparent)" }}>Missing: {humanField(f)}</span>
+                <span key={f} className="rounded-full px-2 py-0.5 text-[10.5px]" style={{ color: "#97824f", background: "color-mix(in srgb, #97824f 12%, transparent)" }}>Missing: {humanField(f)}</span>
               ))}
-              {isStale && <span className="rounded-full px-2 py-0.5 text-[10.5px]" style={{ color: "#d97706", background: "color-mix(in srgb, #d97706 12%, transparent)" }}>Stale · {ageDays}d</span>}
+              {isStale && <span className="rounded-full px-2 py-0.5 text-[10.5px]" style={{ color: "#97824f", background: "color-mix(in srgb, #97824f 12%, transparent)" }}>Stale · {ageDays}d</span>}
             </div>
           </Row>
         )}

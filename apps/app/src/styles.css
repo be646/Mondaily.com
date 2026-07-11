@@ -36,7 +36,10 @@
   --accent-h: 158;
   --accent-s: 32%;
   --accent-l: 52%;
-  --theme-spread: 0.85;   /* section hues rotate, but matte so they read as earthy tints */
+  --theme-spread: 0;   /* 0 = ONE accent family app-wide. Section identity comes from the mono
+                          call-sign + icon (SectionHeader), never a different colour per page.
+                          The section-soul machinery below is kept but inert; raise this to
+                          re-enable per-section hue drift if that direction is ever wanted again. */
 
   /* ── Derived — do NOT hardcode; these recompute per theme automatically ── */
   --accent:          hsl(var(--accent-h) var(--accent-s) var(--accent-l));
@@ -61,7 +64,7 @@
 }
 /* explicit alias so data-theme="console" and the legacy "dark" both map to root */
 html[data-theme="console"], html[data-theme="dark"] {
-  --accent-h: 158; --accent-s: 32%; --accent-l: 52%; --theme-spread: 0.85;
+  --accent-h: 158; --accent-s: 32%; --accent-l: 52%; --theme-spread: 0;
 }
 
 /* Section-soul scope — layout.tsx puts this class + an inline --section-hue on the
@@ -123,7 +126,7 @@ html[data-theme="paper"] {
   --text-secondary:   #5c503c;
   --text-muted:       #8a7b62;
   --text-faint:       #b3a384;
-  --accent-h: 150; --accent-s: 24%; --accent-l: 34%; --theme-spread: 0.3;
+  --accent-h: 150; --accent-s: 24%; --accent-l: 34%; --theme-spread: 0;
 }
 
 /* ── Theme: Daylight (pure white) — also the legacy "light" alias ─────────── */
@@ -142,7 +145,7 @@ html[data-theme="daylight"], html[data-theme="light"] {
   --text-secondary:   #404040;
   --text-muted:       #6b6b6b;
   --text-faint:       #9a9a9a;
-  --accent-h: 158; --accent-s: 34%; --accent-l: 36%; --theme-spread: 0.7;
+  --accent-h: 158; --accent-s: 34%; --accent-l: 36%; --theme-spread: 0;
 }
 
 /* ── Theme: Rosé (soft pink) ──────────────────────────────────────────────── */
@@ -161,7 +164,7 @@ html[data-theme="rose"] {
   --text-secondary:   #5f3c44;
   --text-muted:       #8a626a;
   --text-faint:       #b49199;
-  --accent-h: 345; --accent-s: 36%; --accent-l: 52%; --theme-spread: 0.22;
+  --accent-h: 345; --accent-s: 36%; --accent-l: 52%; --theme-spread: 0;
 }
 
 /* Solid primary-button colour — user-switchable (Settings → Appearance).
@@ -201,14 +204,15 @@ html[data-btnstyle="accent"] { --btn-solid-bg: var(--accent); --btn-solid-fg: #f
 /* ── Agent status system ──────────────────────────────────────────────────
    Five states used across the Agent Dock, Activity Stream, and anywhere
    else an agent's current state needs to be shown. Color carries meaning:
-   idle = neutral, working = violet (animated), needs-approval = amber,
-   issue = rose (warning, not decorative), draft-ready = cyan. ── */
+   idle = neutral, working = accent (animated), needs-approval = matte amber,
+   issue = matte rose (warning, not decorative), draft-ready = matte slate.
+   Matte semantic palette only — no bright #d97706/#dc2626/#06b6d4. ── */
 .agent-dot { position: relative; display: inline-flex; height: 0.5rem; width: 0.5rem; border-radius: 9999px; flex-shrink: 0; }
 .agent-dot[data-status="idle"]           { background: var(--text-faint); }
 .agent-dot[data-status="working"]        { background: var(--accent); }
-.agent-dot[data-status="needs_approval"] { background: #d97706; }
-.agent-dot[data-status="issue"]          { background: #dc2626; }
-.agent-dot[data-status="draft_ready"]    { background: #06b6d4; }
+.agent-dot[data-status="needs_approval"] { background: #97824f; }
+.agent-dot[data-status="issue"]          { background: #9c6b72; }
+.agent-dot[data-status="draft_ready"]    { background: #717784; }
 .agent-dot[data-status="working"]::before {
   content: "";
   position: absolute; inset: -3px;
@@ -235,12 +239,12 @@ html[data-btnstyle="accent"] { --btn-solid-bg: var(--accent); --btn-solid-fg: #f
 }
 .agent-badge[data-status="idle"]           { color: var(--text-muted); background: var(--surface-hover); }
 .agent-badge[data-status="working"]        { color: var(--accent); background: rgba(138,133,125,0.14); }
-.agent-badge[data-status="needs_approval"] { color: #b45309; background: rgba(217,119,6,0.10); }
-.agent-badge[data-status="issue"]          { color: #dc2626; background: rgba(220,38,38,0.10); }
-.agent-badge[data-status="draft_ready"]    { color: #0891b2; background: rgba(6,182,212,0.10); }
-html.dark .agent-badge[data-status="needs_approval"], html[data-theme="dark"] .agent-badge[data-status="needs_approval"] { color: #fbbf24; }
-html.dark .agent-badge[data-status="issue"], html[data-theme="dark"] .agent-badge[data-status="issue"] { color: #fb7185; }
-html.dark .agent-badge[data-status="draft_ready"], html[data-theme="dark"] .agent-badge[data-status="draft_ready"] { color: #67e8f9; }
+.agent-badge[data-status="needs_approval"] { color: #97824f; background: rgba(151,130,79,0.12); }
+.agent-badge[data-status="issue"]          { color: #9c6b72; background: rgba(156,107,114,0.12); }
+.agent-badge[data-status="draft_ready"]    { color: #717784; background: rgba(113,119,132,0.12); }
+html.dark .agent-badge[data-status="needs_approval"], html[data-theme="dark"] .agent-badge[data-status="needs_approval"] { color: #b3a06a; }
+html.dark .agent-badge[data-status="issue"], html[data-theme="dark"] .agent-badge[data-status="issue"] { color: #bd8f95; }
+html.dark .agent-badge[data-status="draft_ready"], html[data-theme="dark"] .agent-badge[data-status="draft_ready"] { color: #9aa0ac; }
 
 body {
   margin: 0;

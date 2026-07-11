@@ -90,10 +90,10 @@ export function CallHost() {
             </div>
           </div>
           <div className="mt-3 flex gap-2">
-            <button onClick={accept} className="flex flex-1 items-center justify-center gap-1.5 rounded-sm py-1.5 text-[12px] font-medium text-white" style={{ background: "#10b981" }}>
+            <button onClick={accept} className="flex flex-1 items-center justify-center gap-1.5 rounded-sm py-1.5 text-[12px] font-medium text-white" style={{ background: "#5f8169" }}>
               {incoming.kind === "video" ? <Video size={13} /> : <Phone size={13} />} Accept
             </button>
-            <button onClick={decline} className="flex flex-1 items-center justify-center gap-1.5 rounded-sm py-1.5 text-[12px] font-medium text-white" style={{ background: "#e11d48" }}>
+            <button onClick={decline} className="flex flex-1 items-center justify-center gap-1.5 rounded-sm py-1.5 text-[12px] font-medium text-white" style={{ background: "#9c6b72" }}>
               <PhoneOff size={13} /> Decline
             </button>
           </div>

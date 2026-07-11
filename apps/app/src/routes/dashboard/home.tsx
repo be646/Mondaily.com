@@ -612,7 +612,7 @@ export function HomePage() {
       </div>
 
       {showWorkspaceRecovery && populatedWorkspace && (
-        <div className="mb-4 rounded-sm px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4" style={{ background: "color-mix(in srgb, #d97706 8%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 25%, var(--border-soft))" }}>
+        <div className="mb-4 rounded-sm px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4" style={{ background: "color-mix(in srgb, #97824f 8%, var(--surface-card))", border: "1px solid color-mix(in srgb, #97824f 25%, var(--border-soft))" }}>
           <div>
             <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>You may be viewing an empty workspace.</p>
             <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
@@ -640,8 +640,8 @@ export function HomePage() {
             <h2 className="text-[26px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {firstName}</h2>
             <p className="mt-1.5 text-[15px]" style={{ color: "var(--text-muted)" }}>What do you want to get done today?</p>
             <div className="mt-3 flex items-center gap-4">
-              <span className="status-line"><span className="live-dot" style={{ background: graphSynced ? "var(--section-accent)" : "#d97706" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
-              <span className="status-line"><span className="live-dot" style={{ background: sourcesChecked ? "var(--section-accent)" : "#d97706" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+              <span className="status-line"><span className="live-dot" style={{ background: graphSynced ? "var(--section-accent)" : "#97824f" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
+              <span className="status-line"><span className="live-dot" style={{ background: sourcesChecked ? "var(--section-accent)" : "#97824f" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
             </div>
           </div>
         )}
@@ -1037,7 +1037,7 @@ export function HomePage() {
               <div className="py-4"><PageSkeleton rows={4} label="Loading tasks…"/></div>
             ) : tasksQuery.isError ? (
               <div className="py-4">
-                <div className="rounded-sm px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #d97706 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #d97706 24%, var(--border-soft))" }}>
+                <div className="rounded-sm px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #97824f 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #97824f 24%, var(--border-soft))" }}>
                   <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load tasks</p>
                   <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{(tasksQuery.error as Error)?.message || "The tasks API did not return data."}</p>
                   <button onClick={() => tasksQuery.refetch()} className="btn-suggested mt-3 !px-2.5 !py-1 !text-[11px]">Retry</button>
@@ -1070,7 +1070,7 @@ export function HomePage() {
                           <span className={`rounded-full px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[item.priority]}`}>{item.priority}</span>
                         )}
                         {item.due_date && (
-                          <span className="flex items-center gap-0.5 text-[11px]" style={{ color: isOverdue ? "#d97706" : "var(--text-faint)" }}>
+                          <span className="flex items-center gap-0.5 text-[11px]" style={{ color: isOverdue ? "#97824f" : "var(--text-faint)" }}>
                             <Clock size={9}/>
                             {new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
@@ -1134,7 +1134,7 @@ export function HomePage() {
                   <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Meetings</span>
                   {calConnected && cal?.provider && (
                     <span className="flow-micro-badge" title={cal.email}>
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#10b981" }}/> {cal.provider === "microsoft" ? "Outlook" : "Google"}
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#5f8169" }}/> {cal.provider === "microsoft" ? "Outlook" : "Google"}
                     </span>
                   )}
                 </div>
@@ -1185,7 +1185,7 @@ export function HomePage() {
                         {connectingCal === "microsoft" ? <Loader2 size={11} className="inline animate-spin"/> : "Connect Outlook"}
                       </button>
                     </div>
-                    {cal?.needs_reauth && <p className="mt-2 text-[10.5px]" style={{ color: "#d97706" }}>Reconnect needed — your calendar token expired.</p>}
+                    {cal?.needs_reauth && <p className="mt-2 text-[10.5px]" style={{ color: "#97824f" }}>Reconnect needed — your calendar token expired.</p>}
                   </div>
                 )}
               </div>

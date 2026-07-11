@@ -21,6 +21,16 @@ const creditNoteDetail = read("routes/dashboard/finance/[creditNoteId].tsx");
 const SETTINGS = ["account", "integrations", "workspace", "security", "training"].map((n) => read(`routes/dashboard/settings/${n}.tsx`));
 const decisions = read("routes/dashboard/decisions.tsx");
 const discovery = read("routes/dashboard/discovery.tsx");
+const stylesCss = read("styles.css");
+const aiIntelligence = read("components/ai/ai-intelligence.tsx");
+const commandCenter = read("components/ai/command-center.tsx");
+const aiControlRoom = read("routes/dashboard/settings/ai-control-room.tsx");
+const home = read("routes/dashboard/home.tsx");
+const boardView = read("components/records/board-view.tsx");
+const themeLib = read("lib/theme.ts");
+// The bright, candy hexes that must NOT appear in product UI — only matte semantic tones allowed.
+const BRIGHT_HEXES = ["#d97706", "#10b981", "#e11d48", "#dc2626", "#ef4444", "#f59e0b", "#eab308", "#7b6fb0", "#22c55e", "#3b82f6", "#8b5cf6", "#06b6d4", "#0891b2", "#b45309"];
+const hasNoBrightHex = (src: string) => BRIGHT_HEXES.every((h) => !src.toLowerCase().includes(h));
 const teamOversight = read("routes/dashboard/team-oversight.tsx");
 const agentStatus = read("components/ai/agent-status.tsx");
 const constellation = read("components/ai/agent-constellation.tsx");
@@ -166,6 +176,48 @@ describe("landing polish (apps/web)", () => {
   });
   it("simulated demos stay labelled", () => {
     expect(landing).toContain("Simulated preview");
+  });
+});
+
+describe("one Mondaily design language (consolidation pass)", () => {
+  it("section-soul hue drift is neutralized — ONE accent family app-wide", () => {
+    // --theme-spread scales per-section hue rotation; 0 = every section uses the base accent.
+    expect(stylesCss).not.toMatch(/--theme-spread:\s*0*\.[1-9]/); // no non-zero spread survives
+    expect(stylesCss).toMatch(/--theme-spread:\s*0\b/);
+  });
+  it("shared agent status dots/badges use the matte palette (no bright #d97706/#dc2626/#06b6d4)", () => {
+    expect(stylesCss).not.toMatch(/agent-dot\[data-status="needs_approval"\]\s*\{\s*background:\s*#d97706/);
+    expect(stylesCss).toContain('.agent-dot[data-status="issue"]          { background: #9c6b72; }');
+    expect(stylesCss).toContain('.agent-dot[data-status="needs_approval"] { background: #97824f; }');
+  });
+  it("AIHealthScore uses matte semantic tones", () => {
+    expect(aiIntelligence).toContain('score >= 70 ? "#5f8169" : score >= 40 ? "#97824f" : "#9c6b72"');
+  });
+  it("no candy/bright hexes in key product surfaces (matte semantic only)", () => {
+    for (const src of [aiIntelligence, commandCenter, aiControlRoom, home, decisions, discovery, teamOversight, boardView]) {
+      expect(hasNoBrightHex(src)).toBe(true);
+    }
+  });
+  it("console theme swatch reflects the real matte accent (not bright #10b981)", () => {
+    expect(themeLib).not.toContain("#10b981");
+  });
+  it("board-view Kanban squared (no rounded-lg)", () => {
+    expect(boardView).not.toMatch(/rounded-lg/);
+  });
+});
+
+describe("landing consolidation", () => {
+  it("email / start-free form is token-driven (no black-on-black dark:bg-black)", () => {
+    expect(landing).not.toMatch(/dark:bg-black/);
+    expect(landing).toMatch(/background: "var\(--landing-surface\)"/);
+  });
+  it("hero chips describe the product, not fake live status", () => {
+    expect(landing).not.toContain("Agents active");
+    expect(landing).toContain("Agent-driven");
+  });
+  it("simulated agent terminal is labelled, not implied-live", () => {
+    expect(landing).not.toMatch(/text: "active · streaming"/);
+    expect(landing).toMatch(/>Simulated preview</);
   });
 });
 

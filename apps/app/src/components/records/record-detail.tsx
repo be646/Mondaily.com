@@ -220,7 +220,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
   const overflow = categories.length - MAX;
   const selected = new Set(categories.map(c => c.name));
 
-  const CUSTOM_COLORS = ["var(--accent)","#ec4899","#f59e0b","#10b981","#3b82f6","#ef4444","var(--accent)","var(--accent)"];
+  const CUSTOM_COLORS = ["var(--accent)","#ec4899","#97824f","#5f8169","#717784","#9c6b72","var(--accent)","var(--accent)"];
   const filtered = INDUSTRY_TAXONOMY.filter(t =>
     !query || t.name.toLowerCase().includes(query.toLowerCase())
   );

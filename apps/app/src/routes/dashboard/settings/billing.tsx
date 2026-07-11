@@ -527,7 +527,7 @@ export function BillingSettings() {
             {/* Exhausted / low warnings — premium, not a harsh red box. Never shows a negative balance. */}
             {wallet.exhausted ? (
               <div className="mb-4 flex items-start gap-3 rounded-md border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#ef44441a" }}><Zap size={12} style={{ color: "#ef4444" }} /></span>
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#9c6b721a" }}><Zap size={12} style={{ color: "#9c6b72" }} /></span>
                 <div>
                   <p className="text-[13px] font-semibold text-[var(--text-primary)]">You're out of AI credits</p>
                   <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">Chat, agents, enrichment and Discovery pause until you add a pack below or upgrade your plan. Nothing else is affected.</p>
@@ -535,7 +535,7 @@ export function BillingSettings() {
               </div>
             ) : wallet.low ? (
               <div className="mb-4 flex items-start gap-3 rounded-md border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#d977061a" }}><Zap size={12} style={{ color: "#d97706" }} /></span>
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#97824f1a" }}><Zap size={12} style={{ color: "#97824f" }} /></span>
                 <div>
                   <p className="text-[13px] font-semibold text-[var(--text-primary)]">Credits running low</p>
                   <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">Top up below or enable Auto-Refill so AI never stops mid-task.</p>
@@ -544,13 +544,13 @@ export function BillingSettings() {
             ) : null}
             <div className="flex items-end justify-between">
               <div>
-                <div className="text-3xl font-semibold tabular-nums" style={{ color: wallet.exhausted ? "#ef4444" : "var(--text-primary)" }}>{fmtCredits(walletRemaining)}</div>
+                <div className="text-3xl font-semibold tabular-nums" style={{ color: wallet.exhausted ? "#9c6b72" : "var(--text-primary)" }}>{fmtCredits(walletRemaining)}</div>
                 <div className="mt-0.5 text-xs text-[var(--text-muted)]">AI credits remaining</div>
               </div>
               <span className="tabular-nums text-sm text-[var(--text-faint)]">{walletPct}%</span>
             </div>
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
-              <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#ef4444" : "var(--section-accent)" }} />
+              <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#9c6b72" : "var(--section-accent)" }} />
             </div>
 
             {/* One clear wallet summary — the exact figures, so nothing looks contradictory. */}

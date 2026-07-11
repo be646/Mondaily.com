@@ -132,11 +132,11 @@ export function CallOverlay({ call, onClose }: { call: ActiveCall; onClose: () =
 
       {/* controls */}
       <div className="flex items-center gap-4 pb-10 pt-6">
-        <button onClick={toggleMic} className="flex h-12 w-12 items-center justify-center rounded-full text-white" style={{ background: micOn ? "rgba(255,255,255,0.15)" : "#e11d48" }} aria-label={micOn ? "Mute" : "Unmute"}>
+        <button onClick={toggleMic} className="flex h-12 w-12 items-center justify-center rounded-full text-white" style={{ background: micOn ? "rgba(255,255,255,0.15)" : "#9c6b72" }} aria-label={micOn ? "Mute" : "Unmute"}>
           {micOn ? <Mic size={18} /> : <MicOff size={18} />}
         </button>
         {call.kind === "video" && (
-          <button onClick={toggleCam} className="flex h-12 w-12 items-center justify-center rounded-full text-white" style={{ background: camOn ? "rgba(255,255,255,0.15)" : "#e11d48" }} aria-label={camOn ? "Stop video" : "Start video"}>
+          <button onClick={toggleCam} className="flex h-12 w-12 items-center justify-center rounded-full text-white" style={{ background: camOn ? "rgba(255,255,255,0.15)" : "#9c6b72" }} aria-label={camOn ? "Stop video" : "Start video"}>
             {camOn ? <Video size={18} /> : <VideoOff size={18} />}
           </button>
         )}
@@ -146,12 +146,12 @@ export function CallOverlay({ call, onClose }: { call: ActiveCall; onClose: () =
           <button onClick={() => toggleRecording(recActive ? "stop" : "start")} disabled={recBusy || recProcessing}
             title={recActive ? "Stop recording" : "Start recording"}
             className="flex h-12 w-12 items-center justify-center rounded-full text-white disabled:opacity-60"
-            style={{ background: recActive ? "#e11d48" : "rgba(255,255,255,0.15)" }}
+            style={{ background: recActive ? "#9c6b72" : "rgba(255,255,255,0.15)" }}
             aria-label={recActive ? "Stop recording" : "Start recording"}>
             {recBusy || recProcessing ? <Loader2 size={18} className="animate-spin" /> : recActive ? <Square size={16} /> : <Circle size={18} />}
           </button>
         )}
-        <button onClick={hangup} className="flex h-12 w-12 items-center justify-center rounded-full text-white" style={{ background: "#e11d48" }} aria-label="Hang up">
+        <button onClick={hangup} className="flex h-12 w-12 items-center justify-center rounded-full text-white" style={{ background: "#9c6b72" }} aria-label="Hang up">
           <PhoneOff size={18} />
         </button>
       </div>

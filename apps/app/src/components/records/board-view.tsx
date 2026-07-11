@@ -341,9 +341,9 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
           {error && <p className="pt-2 text-xs text-stone-400">{error}</p>}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-[var(--border-soft)] px-5 py-3.5">
-          <button onClick={onClose} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] transition-all">Cancel</button>
+          <button onClick={onClose} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] transition-all">Cancel</button>
           <button onClick={save} disabled={saving}
-            className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-all">
+            className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-all">
             {saving ? "Creating…" : "Create"}
             <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-stone-400">⌘↵</kbd>
           </button>
@@ -443,7 +443,7 @@ export function BoardView({ objectType }: { objectType: string }) {
         const cards = byStage[stage] ?? [];
         const { dot, text } = stageStyle(stage);
         return (
-          <div key={stage} className="flex flex-col shrink-0 w-[220px] border border-stone-800/50 rounded-lg overflow-hidden bg-transparent">
+          <div key={stage} className="flex flex-col shrink-0 w-[220px] border border-stone-800/50 rounded-sm overflow-hidden bg-transparent">
             {/* Column header */}
             <div className="flex items-center justify-between px-3 py-2.5 border-b border-stone-800/50 shrink-0">
               <div className="flex items-center gap-2 min-w-0">
@@ -493,7 +493,7 @@ export function BoardView({ objectType }: { objectType: string }) {
 
       {/* Add new stage */}
       {addingStage ? (
-        <div className="flex flex-col shrink-0 w-[220px] border border-stone-700/60 rounded-lg overflow-hidden">
+        <div className="flex flex-col shrink-0 w-[220px] border border-stone-700/60 rounded-sm overflow-hidden">
           <div className="flex items-center gap-2 px-3 py-2.5 border-b border-stone-800/50">
             <input ref={newStageRef} value={newStageName} onChange={e => setNewStageName(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") commitNewStage(); if (e.key === "Escape") { setAddingStage(false); setNewStageName(""); } }}
@@ -508,7 +508,7 @@ export function BoardView({ objectType }: { objectType: string }) {
         </div>
       ) : (
         <button onClick={() => setAddingStage(true)}
-          className="flex shrink-0 w-[220px] flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-stone-800/60 hover:border-stone-700/60 hover:bg-stone-900/20 transition-all text-stone-600 hover:text-stone-400 self-start min-h-[80px]">
+          className="flex shrink-0 w-[220px] flex-col items-center justify-center gap-1.5 rounded-sm border border-dashed border-stone-800/60 hover:border-stone-700/60 hover:bg-stone-900/20 transition-all text-stone-600 hover:text-stone-400 self-start min-h-[80px]">
           <Plus size={13}/>
           <span className="text-[10px]">Add stage</span>
         </button>

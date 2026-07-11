@@ -83,7 +83,7 @@ function useWaveSurfer(audioUrl?: string) {
         container: containerRef.current,
         url: audioUrl,
         waveColor: "#334155",
-        progressColor: "#ef4444",
+        progressColor: "#9c6b72",
         cursorColor: "#f8fafc",
         height: 72,
         barWidth: 2,

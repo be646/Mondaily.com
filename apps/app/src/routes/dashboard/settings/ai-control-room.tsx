@@ -30,10 +30,10 @@ interface UsageSummary {
 }
 
 const STATE_TONE: Record<CheckState, string> = {
-  operational: "#10b981", needs_setup: "#d97706", disabled: "var(--text-faint)", error: "#e11d48", not_checked: "var(--text-faint)",
+  operational: "#5f8169", needs_setup: "#97824f", disabled: "var(--text-faint)", error: "#9c6b72", not_checked: "var(--text-faint)",
 };
 const stateTone = (s: ConstellationState) =>
-  s === "active" ? "#10b981" : s === "needs_approval" ? "#d97706" : s === "issue" ? "#e11d48" : s === "monitoring" ? "var(--text-muted)" : "var(--text-faint)";
+  s === "active" ? "#5f8169" : s === "needs_approval" ? "#97824f" : s === "issue" ? "#9c6b72" : s === "monitoring" ? "var(--text-muted)" : "var(--text-faint)";
 
 const relAgo = (iso?: string | null) => {
   if (!iso) return "never";
@@ -168,7 +168,7 @@ export function AIControlRoomSettings() {
           </Row>
           <Row>
             <span style={{ color: "var(--text-secondary)" }}>AI errors today</span>
-            <span className="tabular-nums" style={{ color: errorsToday > 0 ? "#e11d48" : "var(--text-muted)" }}>{errorsToday}</span>
+            <span className="tabular-nums" style={{ color: errorsToday > 0 ? "#9c6b72" : "var(--text-muted)" }}>{errorsToday}</span>
           </Row>
         </div>
       </Section>
@@ -214,7 +214,7 @@ export function AIControlRoomSettings() {
           ].map((label) => (
             <Row key={label}>
               <span style={{ color: "var(--text-secondary)" }}>{label}</span>
-              <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: "#10b981" }}>
+              <span className="inline-flex items-center gap-1.5 text-[11px]" style={{ color: "#5f8169" }}>
                 <CheckCircle2 size={12} /> On (default)
               </span>
             </Row>
@@ -260,7 +260,7 @@ export function AIControlRoomSettings() {
         ) : (
           <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
             {activity.slice(0, 12).map((a) => {
-              const tone = a.status === "completed" ? "#10b981" : a.status === "failed" ? "#e11d48" : "#d97706";
+              const tone = a.status === "completed" ? "#5f8169" : a.status === "failed" ? "#9c6b72" : "#97824f";
               return (
                 <div key={a.id} className="flex items-start gap-2.5 py-2">
                   <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: tone }} />
@@ -268,7 +268,7 @@ export function AIControlRoomSettings() {
                     <p className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
                       <span className="font-medium capitalize" style={{ color: "var(--text-primary)" }}>{a.agent.replace(/_/g, " ")}</span>
                       <span className="mx-1.5" style={{ color: "var(--text-faint)" }}>·</span>
-                      <span style={{ color: a.status === "failed" ? "#e11d48" : "var(--text-secondary)" }}>{a.error || a.summary}</span>
+                      <span style={{ color: a.status === "failed" ? "#9c6b72" : "var(--text-secondary)" }}>{a.error || a.summary}</span>
                     </p>
                   </div>
                   <span className="shrink-0 text-[10.5px] tabular-nums" style={{ color: "var(--text-faint)" }}>{clock(a.started_at)}</span>
@@ -405,7 +405,7 @@ function Row({ children }: { children: React.ReactNode }) {
   return <div className="flex items-center justify-between gap-3 py-2.5 text-[12.5px]">{children}</div>;
 }
 function MatrixRow({ label, value, tone }: { label: string; value: string; tone: "ok" | "warn" | "muted" }) {
-  const color = tone === "ok" ? "#10b981" : tone === "warn" ? "#d97706" : "var(--text-faint)";
+  const color = tone === "ok" ? "#5f8169" : tone === "warn" ? "#97824f" : "var(--text-faint)";
   return (
     <div className="flex items-start gap-3 py-2.5">
       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
@@ -431,7 +431,7 @@ function StatusRow({ label, check }: { label: string; check?: Check }) {
 function Boundary({ ok, label, detail }: { ok?: boolean; label: string; detail: string }) {
   return (
     <div className="flex items-start gap-2.5 py-2.5">
-      <CheckCircle2 size={13} className="mt-0.5 shrink-0" style={{ color: ok ? "#10b981" : "var(--text-faint)" }} />
+      <CheckCircle2 size={13} className="mt-0.5 shrink-0" style={{ color: ok ? "#5f8169" : "var(--text-faint)" }} />
       <div>
         <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{label}</p>
         <p className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>{detail}</p>
@@ -444,8 +444,8 @@ function Tool({ icon: Icon, label, on, note }: { icon: React.ElementType; label:
     <div className="flex items-center gap-2 py-1 text-[12.5px]">
       <Icon size={13} className="shrink-0" style={{ color: on ? "var(--section-accent)" : "var(--text-faint)" }} />
       <span style={{ color: "var(--text-secondary)" }}>{label}</span>
-      <span className="ml-auto inline-flex items-center gap-1 text-[10.5px]" style={{ color: on ? "#10b981" : "#d97706" }}>
-        <span className="h-1.5 w-1.5 rounded-full" style={{ background: on ? "#10b981" : "#d97706" }} />
+      <span className="ml-auto inline-flex items-center gap-1 text-[10.5px]" style={{ color: on ? "#5f8169" : "#97824f" }}>
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: on ? "#5f8169" : "#97824f" }} />
         {on ? "Available" : (note ?? "Needs setup")}
       </span>
     </div>

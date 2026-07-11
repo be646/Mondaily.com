@@ -175,7 +175,7 @@ function OverviewTiles({ trends, periodLabel }: { trends: NonNullable<MatrixResp
     { label: "Activity", tone: "var(--section-accent)", pts: trends.activity ?? [] },
     { label: "Tasks completed", tone: "#5f8169", pts: trends.tasks_completed ?? [] },
     { label: "AI credits", tone: "#97824f", pts: trends.ai_usage ?? [] },
-    { label: "Decisions", tone: "#7b6fb0", pts: trends.decisions ?? [] },
+    { label: "Decisions", tone: "#717784", pts: trends.decisions ?? [] },
   ];
   return (
     <div className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-sm border xl:grid-cols-4" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>

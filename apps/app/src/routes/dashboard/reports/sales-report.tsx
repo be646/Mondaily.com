@@ -373,12 +373,12 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}
 .label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af}
 .badge{display:inline-block;border-radius:99px;border:1px solid;padding:2px 10px;font-size:11px;font-weight:600;margin-bottom:20px}
 .high{border-color:#6ee7b7;color:#059669;background:#ecfdf5}
-.medium{border-color:#fcd34d;color:#d97706;background:#fffbeb}
-.low{border-color:#fca5a5;color:#dc2626;background:#fef2f2}
+.medium{border-color:#fcd34d;color:#97824f;background:#fffbeb}
+.low{border-color:#fca5a5;color:#9c6b72;background:#fef2f2}
 .section{margin-bottom:20px}
 .section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:6px}
 p{font-size:13px;color:#374151;line-height:1.6}
-.risk{background:#fffbeb;border-left:3px solid #f59e0b;padding:10px 14px;border-radius:4px;font-size:12px;color:#92400e}
+.risk{background:#fffbeb;border-left:3px solid #97824f;padding:10px 14px;border-radius:4px;font-size:12px;color:#92400e}
 .footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;display:flex;justify-content:space-between}
 </style></head><body>
 <h1>AI Forecast</h1>
@@ -389,7 +389,7 @@ p{font-size:13px;color:#374151;line-height:1.6}
 <div class="section"><div class="section-title">Headline</div><p><em>${result.headline}</em></p></div>
 <div class="section"><div class="section-title">Analysis</div><p>${result.narrative}</p></div>
 ${result.risks && result.risks !== "None identified" ? `<div class="risk"><strong>Risk:</strong> ${result.risks}</div>` : ""}
-${result.actions && result.actions.length > 0 ? `<div class="section" style="margin-top:24px"><div class="section-title">What to do now</div><div style="display:flex;flex-direction:column;gap:8px">${result.actions.map(a=>`<div style="display:flex;align-items:flex-start;gap:10px;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px"><span style="font-size:9px;font-weight:700;border-radius:99px;border:1px solid;padding:2px 8px;white-space:nowrap;${a.impact==="high"?"border-color:#6ee7b7;color:#059669;background:#ecfdf5":a.impact==="medium"?"border-color:#fcd34d;color:#d97706;background:#fffbeb":"border-color:#d1d5db;color:#6b7280;background:#f9fafb"}">${a.impact}</span><div><div style="font-size:13px;font-weight:600;color:#111;margin-bottom:2px">${a.action}</div><div style="font-size:11px;color:#6b7280">${a.why}</div></div></div>`).join("")}</div></div>` : ""}
+${result.actions && result.actions.length > 0 ? `<div class="section" style="margin-top:24px"><div class="section-title">What to do now</div><div style="display:flex;flex-direction:column;gap:8px">${result.actions.map(a=>`<div style="display:flex;align-items:flex-start;gap:10px;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px"><span style="font-size:9px;font-weight:700;border-radius:99px;border:1px solid;padding:2px 8px;white-space:nowrap;${a.impact==="high"?"border-color:#6ee7b7;color:#059669;background:#ecfdf5":a.impact==="medium"?"border-color:#fcd34d;color:#97824f;background:#fffbeb":"border-color:#d1d5db;color:#6b7280;background:#f9fafb"}">${a.impact}</span><div><div style="font-size:13px;font-weight:600;color:#111;margin-bottom:2px">${a.action}</div><div style="font-size:11px;color:#6b7280">${a.why}</div></div></div>`).join("")}</div></div>` : ""}
 <div class="footer"><span>Mondaily AI · AI Forecast</span><span>${new Date().toLocaleDateString()}</span></div>
 <script>window.onload=()=>window.print()<\/script></body></html>`;
     const w = window.open("","_blank"); if(w){w.document.write(html);w.document.close();}
@@ -1051,7 +1051,7 @@ export function SalesReportPage() {
     td { padding: 9px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
     .rank { font-size: 11px; font-weight: 700; color: #d1d5db; width: 28px; }
-    tr:nth-child(1) .rank { color: #f59e0b; }
+    tr:nth-child(1) .rank { color: #97824f; }
     tr:nth-child(2) .rank { color: #9ca3af; }
     tr:nth-child(3) .rank { color: #cd7c43; }
     .name { font-weight: 600; color: #111; }

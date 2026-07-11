@@ -41,7 +41,7 @@ export function AIHealthScore({ score, label = "AI health score", updatedAt }: {
       </div>
     );
   }
-  const color = score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#dc2626";
+  const color = score >= 70 ? "#5f8169" : score >= 40 ? "#97824f" : "#9c6b72";
   return (
     <div className="rounded-sm p-3" style={{ background: "var(--surface-hover)" }}>
       <div className="flex items-center justify-between">

@@ -2040,7 +2040,7 @@ function buildAgentLog(agent: (typeof AGENTS)[number], slug: string): LogLine[] 
     { prefix: "$", prefixColor: "#7c8379", text: "decision.queue --status pending", color: "#9fb08f" },
     { indent: true, prefix: "⮑", prefixColor: "#7c8379", text: "routed for human review", color: "#9aa39a" },
     { prefix: "$", prefixColor: "#7c8379", text: `${slug}.status`, color: "#9fb08f" },
-    { indent: true, prefix: "●", prefixColor: agent.accent, text: "active · streaming", color: "#cfd6cb" },
+    { indent: true, prefix: "●", prefixColor: agent.accent, text: "simulated · example run", color: "#cfd6cb" },
   ];
 }
 
@@ -2150,7 +2150,7 @@ function AgentsSection() {
             <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.6, repeat: Infinity }} className="h-1.5 w-1.5 rounded-full" style={{ background: agent.accent }} />
             {slug}@mondaily — inspect
           </span>
-          <span className="font-mono text-[11px] font-medium" style={{ color: agent.accent }}>active</span>
+          <span className="font-mono text-[11px] font-medium" style={{ color: agent.accent }}>Simulated preview</span>
         </div>
         {/* Body — live scrolling log */}
         <div className="relative px-5 py-4">
@@ -2750,22 +2750,27 @@ function EmailSignup() {
     window.location.href = `https://app.mondaily.com/sign-up?email=${encodeURIComponent(email)}`;
   }
 
+  // Token-driven so it's readable in BOTH themes. It previously hardcoded a white/black
+  // background + zinc/white text, which went black-on-black in the landing dark shell.
   return (
     <form
       onSubmit={handleSubmit}
-      className="mx-auto flex w-full flex-col overflow-hidden rounded-sm border border-black/[.1] bg-white sm:flex-row dark:border-white/10 dark:bg-black"
+      className="mx-auto flex w-full flex-col overflow-hidden rounded-sm sm:flex-row"
+      style={{ background: "var(--landing-surface)", border: "1px solid var(--landing-line-strong)" }}
     >
       <input
         type="email"
         value={email}
         onChange={e => setEmail(e.target.value)}
         placeholder="Work email"
-        className="min-w-0 flex-1 bg-transparent px-5 py-3 text-[13px] text-zinc-900 outline-none placeholder:text-zinc-400 dark:text-white"
+        className="min-w-0 flex-1 bg-transparent px-5 py-3 text-[13px] outline-none placeholder:text-[color:var(--landing-faint)]"
+        style={{ color: "var(--landing-text)" }}
         required
       />
       <button
         type="submit"
-        className="shrink-0 rounded-sm bg-zinc-900 px-6 py-3 text-[13px] font-medium text-white transition-opacity hover:opacity-85 dark:bg-white dark:text-zinc-900"
+        className="shrink-0 rounded-sm px-6 py-3 text-[13px] font-medium transition-opacity hover:opacity-90"
+        style={{ background: "var(--landing-text)", color: "var(--landing-canvas)" }}
       >
         Start free →
       </button>
@@ -3223,15 +3228,14 @@ export function LandingPage() {
                   An autonomous AI workspace
                 </div>
 
-                {/* Live status row — small, real-feeling status chips that
-                    breathe, echoing the same vocabulary used inside the app
-                    (Home's command room) so the landing page feels alive
-                    rather than static marketing copy. */}
+                {/* Capability row — describes what the PRODUCT is (graph-native, agent-driven,
+                    source-backed), not a live-status claim about a running instance. Marketing
+                    surface has no real telemetry, so it must not imply live production activity. */}
                 <div className="mb-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-[11.5px] text-zinc-400">
                   {[
-                    { label: "Graph synced", tone: "#6f8068" },
-                    { label: "Agents active", tone: "#607078" },
-                    { label: "Sources checked", tone: "#8b7355" },
+                    { label: "Graph-native", tone: "#6f8068" },
+                    { label: "Agent-driven", tone: "#607078" },
+                    { label: "Source-backed", tone: "#8b7355" },
                   ].map((s, i) => (
                     <span key={s.label} className="inline-flex items-center gap-1.5">
                       <span className="relative flex h-1.5 w-1.5">

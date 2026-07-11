@@ -795,7 +795,7 @@ function DossierPanel({ d }: { d: Dossier }) {
 /** Secondary pipeline chips (owner / list / task / decision) — saved/in-graph lives on the action row. */
 function PipelineChips({ st }: { st: LeadStatus }) {
   const chips = [
-    st.owner ? { l: `Owner set`, tone: "#0891b2" } : null,
+    st.owner ? { l: `Owner set`, tone: "#717784" } : null,
     st.listed ? { l: "In list", tone: "#0d9488" } : null,
     st.tasked ? { l: "Task created", tone: "#2563eb" } : null,
     st.queued ? { l: "In Decision Queue", tone: "#7c3aed" } : null,

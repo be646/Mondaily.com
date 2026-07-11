@@ -1064,8 +1064,8 @@ function CountryCell({ value, onSelect }: { value: string; onSelect: (v: string)
 interface WorkspaceTag { id: string; name: string; color: string }
 
 const PRESET_TAG_COLORS = [
-  "var(--accent)","#ec4899","#f59e0b","#10b981","#3b82f6",
-  "#ef4444","var(--accent)","var(--accent)","#f97316","#84cc16",
+  "var(--accent)","#ec4899","#97824f","#5f8169","#717784",
+  "#9c6b72","var(--accent)","var(--accent)","#f97316","#84cc16",
 ];
 
 // tagColor kept for backwards compat with filter badges

@@ -659,9 +659,9 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
                 {wallet?.enrolled && (
                   <Link to="/settings/billing" className="flex items-center justify-between px-1.5 pt-1.5 text-[10.5px] tabular-nums" title="Credits & billing">
                     <span style={{ color: "var(--text-faint)" }}>
-                      <span style={{ color: wallet.exhausted ? "#ef4444" : "var(--text-secondary)" }}>{wallet.remaining.toLocaleString()}</span> / {walletCapacity.toLocaleString()} AI credits
+                      <span style={{ color: wallet.exhausted ? "#9c6b72" : "var(--text-secondary)" }}>{wallet.remaining.toLocaleString()}</span> / {walletCapacity.toLocaleString()} AI credits
                     </span>
-                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: walletPct <= 10 ? "#ef4444" : "var(--text-faint)" }}>
+                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: walletPct <= 10 ? "#9c6b72" : "var(--text-faint)" }}>
                       {tierLabel}
                     </span>
                   </Link>
