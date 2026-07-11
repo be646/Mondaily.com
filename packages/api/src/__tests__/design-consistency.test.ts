@@ -30,6 +30,7 @@ const boardView = read("components/records/board-view.tsx");
 const themeLib = read("lib/theme.ts");
 const controls = read("components/ui/controls.tsx");
 const callsSettings = read("routes/dashboard/settings/calls.tsx");
+const activity = read("routes/dashboard/activity.tsx");
 // The bright, candy hexes that must NOT appear in product UI — only matte semantic tones allowed.
 const BRIGHT_HEXES = ["#d97706", "#10b981", "#e11d48", "#dc2626", "#ef4444", "#f59e0b", "#eab308", "#7b6fb0", "#22c55e", "#3b82f6", "#8b5cf6", "#06b6d4", "#0891b2", "#b45309"];
 const hasNoBrightHex = (src: string) => BRIGHT_HEXES.every((h) => !src.toLowerCase().includes(h));
@@ -236,6 +237,29 @@ describe("shared page-architecture primitives (structural consolidation)", () =>
   it("ProofOfWorkStrip status vocabulary is honest (idle/monitoring/running/waiting/failed/complete)", () => {
     expect(controls).toMatch(/CommandStatusKind = "idle" \| "monitoring" \| "running" \| "waiting" \| "failed" \| "complete"/);
     expect(controls).toContain('"no runs yet"'); // honest empty state
+  });
+});
+
+describe("structural adoption pass 2 (headers / settings frames / accent life)", () => {
+  it("Agents/Activity uses the shared CommandPageHeader with HONEST state (no fake 'Live' ping)", () => {
+    expect(activity).toMatch(/<CommandPageHeader/);
+    expect(activity).not.toMatch(/<LiveSectionHeader/);
+    // 'working now' only derives from the real activeAgents count.
+    expect(activity).toContain('activeAgents > 0 ? `${activeAgents} working now` : "all agents monitoring"');
+  });
+  it("settings frames are lightweight — no filled/tinted 'tan' card background", () => {
+    expect(stylesCss).toMatch(/\.settings-section\s*\{[^}]*background:\s*transparent/);
+    expect(controls).toMatch(/<section className=\{cx\("mb-6 rounded-sm border"[^)]*\)\} style=\{\{ borderColor: "var\(--border-soft\)", background: "transparent"/);
+  });
+  it("accent has restored life (not the over-flattened 32% saturation)", () => {
+    // Console/default accent saturation was bumped 32% → 40% for a livelier (still matte) green.
+    expect(stylesCss).toMatch(/--accent-h: 158; --accent-s: 40%; --accent-l: 50%/);
+    expect(stylesCss).not.toMatch(/--accent-s: 32%/);
+  });
+  it("Agents/Activity keeps run-now + sync + roster proof-of-work", () => {
+    for (const h of ["refetch", "constellation", "runsToday", "errorsToday", "pendingCount"]) {
+      expect(activity).toContain(h);
+    }
   });
 });
 

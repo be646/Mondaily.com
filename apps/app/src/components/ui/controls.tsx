@@ -554,7 +554,7 @@ interface SettingsSectionProps {
 }
 export function SettingsSection({ title, description, action, notice, children, className }: SettingsSectionProps) {
   return (
-    <section className={cx("mb-6 rounded-sm border", className)} style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <section className={cx("mb-6 rounded-sm border", className)} style={{ borderColor: "var(--border-soft)", background: "transparent" }}>
       <div className="flex items-start justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
         <div className="min-w-0">
           <h2 className="text-[13px] font-semibold text-[var(--text-primary)]">{title}</h2>

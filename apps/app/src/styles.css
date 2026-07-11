@@ -34,8 +34,8 @@
   /* accent as HSL components — the base hue every section rotates from.
      Kept deliberately LOW-saturation for a natural, matte feel (no neon). */
   --accent-h: 158;
-  --accent-s: 32%;
-  --accent-l: 52%;
+  --accent-s: 40%;
+  --accent-l: 50%;
   --theme-spread: 0;   /* 0 = ONE accent family app-wide. Section identity comes from the mono
                           call-sign + icon (SectionHeader), never a different colour per page.
                           The section-soul machinery below is kept but inert; raise this to
@@ -64,7 +64,7 @@
 }
 /* explicit alias so data-theme="console" and the legacy "dark" both map to root */
 html[data-theme="console"], html[data-theme="dark"] {
-  --accent-h: 158; --accent-s: 32%; --accent-l: 52%; --theme-spread: 0;
+  --accent-h: 158; --accent-s: 40%; --accent-l: 50%; --theme-spread: 0;
 }
 
 /* Section-soul scope — layout.tsx puts this class + an inline --section-hue on the
@@ -126,7 +126,7 @@ html[data-theme="paper"] {
   --text-secondary:   #5c503c;
   --text-muted:       #8a7b62;
   --text-faint:       #b3a384;
-  --accent-h: 150; --accent-s: 24%; --accent-l: 34%; --theme-spread: 0;
+  --accent-h: 150; --accent-s: 30%; --accent-l: 34%; --theme-spread: 0;
 }
 
 /* ── Theme: Daylight (pure white) — also the legacy "light" alias ─────────── */
@@ -145,7 +145,7 @@ html[data-theme="daylight"], html[data-theme="light"] {
   --text-secondary:   #404040;
   --text-muted:       #6b6b6b;
   --text-faint:       #9a9a9a;
-  --accent-h: 158; --accent-s: 34%; --accent-l: 36%; --theme-spread: 0;
+  --accent-h: 158; --accent-s: 42%; --accent-l: 38%; --theme-spread: 0;
 }
 
 /* ── Theme: Rosé (soft pink) ──────────────────────────────────────────────── */
@@ -164,7 +164,7 @@ html[data-theme="rose"] {
   --text-secondary:   #5f3c44;
   --text-muted:       #8a626a;
   --text-faint:       #b49199;
-  --accent-h: 345; --accent-s: 36%; --accent-l: 52%; --theme-spread: 0;
+  --accent-h: 345; --accent-s: 44%; --accent-l: 52%; --theme-spread: 0;
 }
 
 /* Solid primary-button colour — user-switchable (Settings → Appearance).
@@ -1372,7 +1372,8 @@ html[data-theme="dark"] .minimal-sparkline {
 .settings-section {
   border-radius: 4px; /* sharp architectural corners — console grid, not floating rounded cards */
   border: 1px solid var(--border-soft);
-  background: var(--surface-card);
+  background: transparent; /* lightweight — no filled/tinted "tan frame"; the hairline border + header
+                              divider carry the structure. Reads clean on every theme. */
   overflow: hidden;
 }
 .settings-section-header {
