@@ -349,7 +349,7 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
     if (draft !== fmt(value)) { onSave(draft); setSaved(true); setTimeout(() => setSaved(false), 1800); }
   }
   return (
-    <div className="group grid grid-cols-[100px_1fr] items-start gap-2 py-2 border-b border-stone-800/40 last:border-0">
+    <div className="group grid grid-cols-[100px_1fr] items-start gap-2 py-2 border-b border-[var(--border-soft)] last:border-0">
       <span className="text-[10px] font-medium uppercase tracking-wide text-stone-600 pt-0.5 select-none truncate">{label}</span>
       <div className="min-w-0 flex items-center gap-1">
         {editing ? (
@@ -396,7 +396,7 @@ function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, num
     if (onSave && draft !== fmt(value)) { onSave(draft); setSaved(true); setTimeout(() => setSaved(false), 1800); }
   }
   return (
-    <div className={`rounded-lg border border-stone-800/70 bg-stone-900/40 p-3.5 transition-colors ${onSave ? "hover:border-stone-700/70 cursor-pointer" : ""}`}>
+    <div className={`rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3.5 transition-colors ${onSave ? "hover:border-stone-700/70 cursor-pointer" : ""}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <Icon size={12} className={ACCENT_MAP[accent]}/>
@@ -431,7 +431,7 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
   const isLost = stage === "Closed Lost";
   const activeIdx = PIPE_STAGES.indexOf(stage as typeof PIPE_STAGES[number]);
   return (
-    <div className="rounded-lg border border-stone-800/60 bg-stone-900/30 p-4 col-span-2">
+    <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 col-span-2">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1.5">
           <Tag size={12} className="text-stone-400"/>
@@ -491,12 +491,12 @@ function AssigneesSection({ assignedTo, onAssign }: { assignedTo: string | null;
   const current = assignedTo ? members.find(m => m.id === assignedTo || m.name === assignedTo) : null;
 
   return (
-    <div className="px-4 py-3 border-b border-stone-800/50">
+    <div className="px-4 py-3 border-b border-[var(--border-soft)]">
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-stone-600">Assigned to</p>
       <div ref={ref} className="relative">
         <button
           onClick={() => setOpen(o => !o)}
-          className="flex items-center gap-2 w-full rounded-lg border border-stone-800/60 bg-stone-900/30 px-2.5 py-2 hover:bg-stone-800/40 transition-colors"
+          className="flex items-center gap-2 w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-2 hover:bg-[var(--surface-hover)] transition-colors"
         >
           {current ? (
             <>
@@ -570,7 +570,7 @@ function MemberPickerField({ label, currentName, members, onSelect }: {
     <div ref={ref} className="mb-3 relative">
       <p className="mb-1 text-[10px] text-stone-600 capitalize">{label}</p>
       <button onClick={() => setOpen(o => !o)}
-        className="flex w-full items-center gap-2 rounded-lg border border-stone-800/50 bg-stone-900/20 px-2.5 py-1.5 text-xs hover:bg-stone-800/30 transition-colors">
+        className="flex w-full items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs hover:bg-[var(--surface-hover)] transition-colors">
         {currentName
           ? <><div className="h-5 w-5 rounded-full bg-stone-500/20 border border-stone-500/20 flex items-center justify-center text-[9px] font-bold text-stone-300 shrink-0">{initials(currentName)}</div><span className="text-stone-300 truncate">{currentName}</span></>
           : <><UserCheck size={12} className="text-stone-600 shrink-0"/><span className="text-stone-600">Unassigned</span></>
@@ -771,11 +771,11 @@ function InlineNotesPanel({ recordId, vertical }: { recordId: string; vertical: 
         </button>
       </div>
       {isLoading ? (
-        <div className="h-12 rounded-lg bg-[var(--surface-hover)] animate-pulse"/>
+        <div className="h-12 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>
       ) : notes.length === 0 && !createNote.isPending ? (
         <button
           onClick={() => createNote.mutate()}
-          className="flex w-full items-center gap-2 rounded-lg border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-3 text-xs text-stone-600 hover:text-stone-400 hover:border-[var(--border-soft)] transition-colors"
+          className="flex w-full items-center gap-2 rounded-sm border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-3 text-xs text-stone-600 hover:text-stone-400 hover:border-[var(--border-soft)] transition-colors"
         >
           <FileText size={13}/>
           Click to add a note…
@@ -783,13 +783,13 @@ function InlineNotesPanel({ recordId, vertical }: { recordId: string; vertical: 
       ) : (
         <div className="space-y-1.5">
           {createNote.isPending && (
-            <div className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 animate-pulse">
+            <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 animate-pulse">
               <div className="h-2.5 w-28 rounded bg-[var(--surface-hover)] mb-1.5"/>
               <div className="h-2 w-40 rounded bg-[var(--surface-hover)]"/>
             </div>
           )}
           {notes.slice(0, 3).map(note => (
-            <div key={note.id} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 hover:border-[var(--border-soft)] cursor-pointer transition-colors">
+            <div key={note.id} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 hover:border-[var(--border-soft)] cursor-pointer transition-colors">
               <p className="text-xs font-medium text-[var(--text-primary)]">{String(note.data.title || "Untitled note")}</p>
               <p className="text-[10px] text-stone-600 mt-0.5">
                 {String(note.data.content || "This note has no content")} • {relativeTime(String(note.data.created_at || note.updated_at))}
@@ -852,7 +852,7 @@ function InlineTasksPanel({ recordId, vertical }: { recordId: string; vertical: 
       </div>
 
       {adding && (
-        <div className="flex items-center gap-2 rounded-lg border border-stone-500/20 bg-[var(--surface-hover)] px-2.5 py-2 mb-1.5">
+        <div className="flex items-center gap-2 rounded-sm border border-stone-500/20 bg-[var(--surface-hover)] px-2.5 py-2 mb-1.5">
           <Square size={13} className="text-stone-600 shrink-0"/>
           <input
             ref={inputRef} value={newTitle}
@@ -869,11 +869,11 @@ function InlineTasksPanel({ recordId, vertical }: { recordId: string; vertical: 
       )}
 
       {isLoading ? (
-        <div className="h-10 rounded-lg bg-[var(--surface-hover)] animate-pulse"/>
+        <div className="h-10 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>
       ) : tasks.length === 0 && !adding ? (
         <button
           onClick={() => setAdding(true)}
-          className="flex w-full items-center gap-2 rounded-lg border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-3 text-xs text-stone-600 hover:text-stone-400 hover:border-[var(--border-soft)] transition-colors"
+          className="flex w-full items-center gap-2 rounded-sm border border-dashed border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-3 text-xs text-stone-600 hover:text-stone-400 hover:border-[var(--border-soft)] transition-colors"
         >
           <CheckSquare size={13}/>
           Click to add a task…
@@ -1077,7 +1077,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
         </button>
       </div>
       {adding && (
-        <div className="flex items-center gap-2.5 rounded-lg border border-stone-500/20 bg-[var(--surface-hover)] px-3 py-2.5">
+        <div className="flex items-center gap-2.5 rounded-sm border border-stone-500/20 bg-[var(--surface-hover)] px-3 py-2.5">
           <Square size={14} className="text-stone-600 shrink-0"/>
           <input ref={inputRef} value={newTitle} onChange={e => setNewTitle(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter" && newTitle.trim()) createTask.mutate(newTitle.trim()); if (e.key === "Escape") { setAdding(false); setNewTitle(""); } }}
@@ -1147,7 +1147,7 @@ function DescriptionField({ value, onSave }: { value: string; onSave: (v: string
   }
   useEffect(() => { autoGrow(); }, [draft]);
   return (
-    <div className="rounded-sm border border-stone-800/60 bg-stone-900/20 p-4">
+    <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
       <div className="flex items-center gap-1.5 mb-2">
         <AlignLeft size={11} className="text-stone-600"/>
         <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Description</p>
@@ -1242,7 +1242,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
             <div>
               <p className="text-[10px] text-stone-600 mb-1">Date & time</p>
               <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)}
-                className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)]"/>
+                className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm px-2.5 py-2 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)]"/>
             </div>
             <div>
               <p className="text-[10px] text-stone-600 mb-1">Outcome</p>
@@ -1255,12 +1255,12 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
             <p className="text-[10px] text-stone-600 mb-1">Notes</p>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
               placeholder="What was discussed?"
-              className="w-full resize-none bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-3 py-2.5 text-xs text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-[var(--border-soft)] leading-relaxed"/>
+              className="w-full resize-none bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm px-3 py-2.5 text-xs text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-[var(--border-soft)] leading-relaxed"/>
           </div>
           <div className="flex justify-end gap-2">
-            <button onClick={() => setAdding(false)} className="rounded-lg px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
+            <button onClick={() => setAdding(false)} className="rounded-sm px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
             <button onClick={() => createLog.mutate()} disabled={createLog.isPending}
-              className="rounded-lg bg-stone-500/20 border border-stone-500/30 px-4 py-1.5 text-xs text-stone-300 hover:bg-stone-500/30 transition-colors disabled:opacity-50">
+              className="rounded-sm bg-stone-500/20 border border-stone-500/30 px-4 py-1.5 text-xs text-stone-300 hover:bg-stone-500/30 transition-colors disabled:opacity-50">
               {createLog.isPending ? "Saving…" : "Save log"}
             </button>
           </div>
@@ -1282,7 +1282,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
           const loggedAt = log.data.logged_at ? relativeTime(String(log.data.logged_at)) : relativeTime(log.updated_at);
           return (
             <div key={log.id} className="group flex items-start gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3.5 hover:border-[var(--border-soft)] transition-colors">
-              <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${typeDef.bg}`}>
+              <div className={`h-8 w-8 rounded-sm flex items-center justify-center shrink-0 ${typeDef.bg}`}>
                 <Icon size={14} className={typeDef.color}/>
               </div>
               <div className="flex-1 min-w-0">
@@ -1436,11 +1436,11 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setShowNewInvoice(false)} className="rounded-lg px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
+              <button onClick={() => setShowNewInvoice(false)} className="rounded-sm px-3 py-1.5 text-xs text-stone-500 hover:text-stone-300 transition-colors">Cancel</button>
               <button
                 onClick={() => createInvoice.mutate()}
                 disabled={createInvoice.isPending || !newInvAmount}
-                className="rounded-lg bg-stone-500/20 border border-stone-500/30 px-4 py-1.5 text-xs text-stone-300 hover:bg-stone-500/30 transition-colors disabled:opacity-50"
+                className="rounded-sm bg-stone-500/20 border border-stone-500/30 px-4 py-1.5 text-xs text-stone-300 hover:bg-stone-500/30 transition-colors disabled:opacity-50"
               >
                 {createInvoice.isPending ? "Creating…" : "Create Invoice"}
               </button>
@@ -1449,9 +1449,9 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
         )}
 
         {invLoading ? (
-          <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-lg bg-[var(--surface-hover)] animate-pulse"/>)}</div>
+          <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>)}</div>
         ) : invoices.length === 0 ? (
-          <div className="flex min-h-24 flex-col items-center justify-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
+          <div className="flex min-h-24 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
             <Receipt size={16} className="mb-1.5 text-stone-700"/>
             <p className="text-xs text-stone-600">No invoices yet for this record.</p>
           </div>
@@ -1493,9 +1493,9 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600 mb-3">Credit Notes</p>
         {cnLoading ? (
-          <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-lg bg-[var(--surface-hover)] animate-pulse"/>)}</div>
+          <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>)}</div>
         ) : creditNotes.length === 0 ? (
-          <div className="flex min-h-20 flex-col items-center justify-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
+          <div className="flex min-h-20 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
             <CreditCard size={16} className="mb-1.5 text-stone-700"/>
             <p className="text-xs text-stone-600">No credit notes for this record.</p>
           </div>
@@ -1503,7 +1503,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
           <div className="space-y-2">
             {creditNotes.map(cn => (
               <Link key={cn.id} to={`/finance/credit-notes/${cn.id}`}
-                className="flex items-center gap-3 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5 hover:border-[var(--border-soft)] transition-colors">
+                className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5 hover:border-[var(--border-soft)] transition-colors">
                 <CreditCard size={13} className="text-stone-400 shrink-0"/>
                 <span className="flex-1 text-[12px] text-[var(--text-primary)]">{fmtCcy(cn.amount_cents / 100, cn.currency)}</span>
                 <span className="text-[11px] text-stone-500 capitalize">{cn.credit_reason.replace(/_/g, " ")}</span>
@@ -1576,7 +1576,7 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
               ) : searchResults.map(r => (
                 <button key={r.id} onClick={() => linkRecord.mutate(r.id)} disabled={linkRecord.isPending}
                   className="flex items-center gap-2.5 w-full rounded-md px-2 py-2 hover:bg-[var(--surface-hover)] transition-colors group">
-                  <div className={`h-6 w-6 rounded-lg border bg-gradient-to-br flex items-center justify-center text-[9px] font-bold shrink-0 ${avatarColor(rname(r))}`}>{initials(rname(r))}</div>
+                  <div className={`h-6 w-6 rounded-sm border bg-gradient-to-br flex items-center justify-center text-[9px] font-bold shrink-0 ${avatarColor(rname(r))}`}>{initials(rname(r))}</div>
                   <div className="min-w-0 text-left"><p className="text-xs text-stone-300 truncate">{rname(r)}</p><p className="text-[10px] text-stone-600 capitalize">{r.object_type}</p></div>
                   <Link2 size={11} className="text-stone-700 group-hover:text-stone-400 ml-auto shrink-0 transition-colors"/>
                 </button>
@@ -1585,9 +1585,9 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
           )}
         </div>
       </div>
-      {relLoading ? <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 rounded-lg bg-[var(--surface-hover)] animate-pulse"/>)}</div>
+      {relLoading ? <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>)}</div>
        : related.length === 0 ? (
-        <div className="flex min-h-36 flex-col items-center justify-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
+        <div className="flex min-h-36 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
           <Link2 size={18} className="mb-2 text-stone-700"/>
           <p className="text-xs text-stone-600">No linked records yet.</p>
           <p className="mt-1 text-xs text-stone-700">Click "Link record" to associate companies, people, or deals.</p>
@@ -1599,7 +1599,7 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
             return (
               <Link key={r.id} to={`/objects/${r.object_type}/${r.id}`}
                 className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3 hover:border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors group">
-                <div className={`h-8 w-8 rounded-lg border bg-gradient-to-br flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor(n)}`}>{initials(n)}</div>
+                <div className={`h-8 w-8 rounded-sm border bg-gradient-to-br flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor(n)}`}>{initials(n)}</div>
                 <div className="min-w-0 flex-1"><p className="text-sm font-medium text-[var(--text-primary)] truncate">{n}</p><p className="text-xs text-stone-600 capitalize">{r.object_type}</p></div>
                 <ChevronLeft size={13} className="text-stone-700 group-hover:text-stone-400 rotate-180 transition-colors shrink-0"/>
               </Link>
@@ -1772,7 +1772,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 border-b border-stone-800/50 px-6 py-3 shrink-0">
+      <div className="flex items-center gap-2 border-b border-[var(--border-soft)] px-6 py-3 shrink-0">
         <Link to={`/objects/${objectType}`} className="flex items-center gap-1 text-xs text-stone-500 hover:text-[var(--text-primary)] transition-colors">
           <ChevronLeft size={13}/>{objectType}
         </Link>
@@ -1790,10 +1790,10 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* ── Left panel ── */}
-        <aside className="flex w-[260px] shrink-0 flex-col border-r border-stone-800/50 overflow-y-auto">
+        <aside className="flex w-[260px] shrink-0 flex-col border-r border-[var(--border-soft)] overflow-y-auto">
 
           {/* ── Header block ── */}
-          <div className="px-4 pt-5 pb-4 border-b border-stone-800/50 space-y-3">
+          <div className="px-4 pt-5 pb-4 border-b border-[var(--border-soft)] space-y-3">
 
             {/* Avatar + name */}
             <div className="flex items-center gap-3">
@@ -1969,7 +1969,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
         {/* ── Right panel ── */}
         <main className="flex flex-1 min-w-0 flex-col overflow-hidden">
-          <div className="flex border-b border-stone-800/50 shrink-0 overflow-x-auto">
+          <div className="flex border-b border-[var(--border-soft)] shrink-0 overflow-x-auto">
             {tabs.map(t => {
               const label = t === "Company" ? companyTabLabel : t;
               return (
@@ -2033,10 +2033,10 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
                 {/* Notes + Tasks side-by-side */}
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="rounded-sm border border-stone-800/60 bg-stone-900/20 p-4">
+                  <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
                     <InlineNotesPanel recordId={recordId} vertical={record.vertical}/>
                   </div>
-                  <div className="rounded-sm border border-stone-800/60 bg-stone-900/20 p-4">
+                  <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
                     <InlineTasksPanel recordId={recordId} vertical={record.vertical}/>
                   </div>
                 </div>
@@ -2054,14 +2054,14 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
             {tab === "Contact Log" && <ContactLogTab  recordId={recordId} vertical={record.vertical}/>}
             {tab === "Finance"     && <FinanceTab     recordId={recordId} recordName={name} vertical={record.vertical}/>}
             {tab === "Files"   && (
-              <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
+              <div className="flex min-h-48 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
                 <FileText size={20} className="mb-2 text-stone-700"/>
                 <p className="text-sm font-medium text-stone-400">Files</p>
                 <p className="mt-1 text-xs text-stone-600">No files attached to this record yet.</p>
               </div>
             )}
             {tab === "Emails"  && (
-              <div className="flex min-h-48 flex-col items-center justify-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
+              <div className="flex min-h-48 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
                 <Mail size={20} className="mb-2 text-stone-700"/>
                 <p className="text-sm font-medium text-stone-400">Emails</p>
                 <p className="mt-1 text-xs text-stone-600">No emails linked yet.</p>

@@ -303,7 +303,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
             <LogoMark size={14} className="text-[var(--text-secondary)]"/>
-            <span className="text-sm font-semibold text-[#111827] dark:text-[var(--text-primary)]">Suggest tasks with AI</span>
+            <span className="text-sm font-semibold text-[var(--text-primary)]">Suggest tasks with AI</span>
           </div>
           <button onClick={onClose} className="text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors"><X size={15}/></button>
         </div>
@@ -316,7 +316,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
             <div className="flex gap-1">
               {[3,5,10].map(n => (
                 <button key={n} onClick={() => setCount(n)}
-                  className={`w-9 rounded-lg border py-1 text-xs font-medium transition-colors ${count === n ? "border-stone-300 bg-stone-50 text-stone-700 dark:border-stone-500/50 dark:bg-stone-500/10 dark:text-stone-300" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>{n}</button>
+                  className={`w-9 rounded-sm border py-1 text-xs font-medium transition-colors ${count === n ? "border-stone-300 bg-stone-50 text-stone-700 dark:border-stone-500/50 dark:bg-stone-500/10 dark:text-stone-300" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>{n}</button>
               ))}
             </div>
             <span className="text-xs text-[var(--text-muted)]">tasks</span>
@@ -341,7 +341,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
                     {selected.has(i) && <Check size={10} className="text-[var(--text-primary)]"/>}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[#111827] dark:text-[var(--text-primary)]">{t.title}</p>
+                    <p className="text-sm text-[var(--text-primary)]">{t.title}</p>
                     {t.notes && <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">{t.notes}</p>}
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`text-[10px] font-medium capitalize ${PCOL[t.priority] ?? "text-[var(--text-faint)]"}`}>{t.priority}</span>
@@ -535,7 +535,7 @@ export function TasksPage() {
           <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
             {([["list","List",<List size={12}/>],["board","Board",<Columns3 size={12}/>],["sheet","Sheet",<Sheet size={12}/>]] as const).map(([mode, label, icon]) => (
               <button key={mode} onClick={() => setViewMode(mode as any)} title={label}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+                className={`flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
                 {icon}{label}
               </button>
             ))}
@@ -567,7 +567,7 @@ export function TasksPage() {
             { key: "review",  label: t("tasks.filter.review") },
           ]).map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+              className={`flex items-center gap-1 rounded-sm px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
               {f.label}
               {f.badge && filter !== f.key && <span className="rounded-full bg-stone-100 px-1 py-px text-[10px] text-stone-700 dark:bg-stone-500/20 dark:text-stone-400">{f.badge}</span>}
             </button>
@@ -723,7 +723,7 @@ export function TasksPage() {
                         className="rounded-sm p-1.5 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={12}/></button>
                       {(task.assignee_id === currentUserId || !task.assignee_id) && (
                         <button onClick={() => setConfirmDeleteId(task.id)} title="Delete"
-                          className="rounded-lg p-1.5 text-[var(--text-faint)] hover:text-stone-400 hover:bg-stone-400/10 transition-colors"><Trash2 size={12}/></button>
+                          className="rounded-sm p-1.5 text-[var(--text-faint)] hover:text-stone-400 hover:bg-stone-400/10 transition-colors"><Trash2 size={12}/></button>
                       )}
                     </div>
                   </div>
@@ -789,7 +789,7 @@ export function TasksPage() {
                 <thead>
                   <tr className="border-b border-[var(--border-soft)] bg-[#f9fafb] dark:bg-[var(--surface-hover)]">
                     {["", "Task", "Status", "Priority", "Assignee", "Due Date", "Created", "Labels"].map(h => (
-                      <th key={h} className={`whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold tracking-widest uppercase text-[#6b7280] dark:text-stone-400 ${h === "Created" || h === "Labels" ? "hidden md:table-cell" : ""}`}>{h}</th>
+                      <th key={h} className={`whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold tracking-widest uppercase text-[var(--text-muted)] ${h === "Created" || h === "Labels" ? "hidden md:table-cell" : ""}`}>{h}</th>
                     ))}
                     <th className="px-4 py-2.5"/>
                   </tr>
@@ -809,7 +809,7 @@ export function TasksPage() {
                         </td>
                         <td className="px-4 py-3 max-w-[240px]">
                           <button onClick={() => setDetailTask(task)} className={`text-left hover:underline font-medium truncate block w-full ${task.completed ? "text-[var(--text-faint)] line-through" : "text-[#111827] dark:text-stone-100"}`}>{task.title}</button>
-                          {task.notes && <p className="text-xs text-[#6b7280] dark:text-stone-600 truncate mt-0.5">{task.notes}</p>}
+                          {task.notes && <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">{task.notes}</p>}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className="flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
@@ -825,7 +825,7 @@ export function TasksPage() {
                         <td className="px-4 py-3 whitespace-nowrap text-xs tabular-nums">
                           {task.due_date ? <span className={isOverdue ? "text-stone-600 dark:text-stone-400" : "text-[var(--text-muted)]"}>{fmtDate(task.due_date)}</span> : <span className="text-[var(--text-faint)]">—</span>}
                         </td>
-                        <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-xs text-[#6b7280] dark:text-stone-500 tabular-nums">
+                        <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-xs text-[var(--text-muted)] tabular-nums">
                           {task.created_at ? fmtDate(task.created_at) : "—"}
                         </td>
                         <td className="hidden md:table-cell px-4 py-3">
@@ -886,7 +886,7 @@ export function TasksPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-stone-50 dark:bg-stone-500/10 mb-4">
               <Trash2 size={16} className="text-stone-600 dark:text-stone-400"/>
             </div>
-            <h2 className="text-base font-semibold text-[#111827] dark:text-[var(--text-primary)] mb-1">Delete task?</h2>
+            <h2 className="text-base font-semibold text-[var(--text-primary)] mb-1">Delete task?</h2>
             <p className="text-sm text-[var(--text-muted)] mb-5">This cannot be undone.</p>
             <div className="flex gap-2">
               <button onClick={() => setConfirmDeleteId(null)} className={BTN_CANCEL}>Cancel</button>

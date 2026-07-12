@@ -49,7 +49,7 @@ function CellTipPortal({ text, x, y }: { text: string; x: number; y: number }) {
       style={{ left: x + 14, top: y + 14 }}
     >
       <div
-        className="max-w-sm rounded-lg px-3 py-2 text-[12px] text-[var(--text-secondary)] leading-relaxed shadow-[0_8px_32px_rgba(0,0,0,0.7)]"
+        className="max-w-sm rounded-sm px-3 py-2 text-[12px] text-[var(--text-secondary)] leading-relaxed shadow-[0_8px_32px_rgba(0,0,0,0.7)]"
         style={{ background: "rgba(13,15,19,0.96)", border: "1px solid rgba(255,255,255,0.09)", backdropFilter: "blur(10px)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}
       >
         {text}
@@ -215,7 +215,7 @@ function CategoryCell({ value, onSave }: {
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               onKeyDown={e => { if (e.key === "Escape") setOpen(false); }}
               placeholder="Search categories…"
-              className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)] placeholder:text-[var(--text-secondary)]"/>
+              className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)] placeholder:text-[var(--text-secondary)]"/>
           </div>
           <div className="p-1 max-h-56 overflow-y-auto">
             {filtered.map(t => {
@@ -607,7 +607,7 @@ function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
         )}
         <div className="space-y-1.5">
           {rules.map((rule, i) => (
-            <div key={i} className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5">
+            <div key={i} className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5">
               <div className="flex-1 min-w-0">
                 <FieldSelect
                   value={rule.col}
@@ -921,7 +921,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
       )}
       <div className="px-3 pb-3 pt-2 border-t border-[var(--border-soft)]">
         <button onClick={submit}
-          className="w-full rounded-lg bg-stone-500 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-400 transition-colors">
+          className="w-full rounded-sm bg-stone-500 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-400 transition-colors">
           Add {name.trim() || PRESET_DEFAULTS[type] || type}
         </button>
       </div>
@@ -997,7 +997,7 @@ function NLPCommandBar({ columns, onApply, onClear, hasActive }: {
   const statusColors = { idle: "border-stone-800/50 bg-stone-900/20", thinking: "border-stone-700/50 bg-stone-800/30", applied: "border-stone-600/50 bg-stone-800/40", error: "border-stone-700/40 bg-stone-900/30" };
 
   return (
-    <div className={`rounded-lg border px-3 py-2 transition-all duration-300 ${statusColors[status]}`}>
+    <div className={`rounded-sm border px-3 py-2 transition-all duration-300 ${statusColors[status]}`}>
       <div className="flex items-center gap-2">
         <LogoMark size={13} className={`shrink-0 transition-colors ${status === "thinking" ? "text-stone-400 animate-pulse" : status === "applied" ? "text-stone-300" : "text-stone-600"}`}/>
         <input ref={inputRef} value={value}
@@ -1149,7 +1149,7 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && canCreate) createAndAdd(); if (e.key === "Escape") setOpen(false); }}
               placeholder="Search or create tag…"
-              className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/40 placeholder:text-[var(--text-secondary)]"/>
+              className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-stone-500/40 placeholder:text-[var(--text-secondary)]"/>
           </div>
           <div className="max-h-40 overflow-y-auto p-1">
             {filtered.map(tag => {
@@ -1175,7 +1175,7 @@ function TagCell({ nodeId, col, colKey }: { nodeId: string; col: string; colKey:
                 ))}
               </div>
               <button onClick={createAndAdd} disabled={creating}
-                className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-stone-500/10 hover:text-stone-300 transition-colors disabled:opacity-40">
+                className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-stone-500/10 hover:text-stone-300 transition-colors disabled:opacity-40">
                 <Plus size={11}/> Create "{search.trim()}"
               </button>
             </div>
@@ -1312,7 +1312,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
           <div className="px-2 pb-1 pt-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               placeholder={`Search ${targetSlug || "records"}…`}
-              className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[#717784]/50 placeholder:text-[var(--text-secondary)]"/>
+              className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[#717784]/50 placeholder:text-[var(--text-secondary)]"/>
           </div>
           <div className="max-h-48 overflow-y-auto">
             {current && (
@@ -1360,7 +1360,7 @@ function FilterColDropdown({ col, vals, activeValue, isStage, onSelect }: {
     <div ref={ref} className="relative shrink-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-colors whitespace-nowrap ${activeValue ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-secondary)] hover:border-[var(--border-soft)]"}`}
+        className={`flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs transition-colors whitespace-nowrap ${activeValue ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-secondary)] hover:border-[var(--border-soft)]"}`}
       >
         {s && <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`}/>}
         <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-500 mr-0.5">{col.replaceAll("_", " ")}</span>
@@ -1981,7 +1981,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   if (query.isLoading) return <div className="mt-4"><PageSkeleton /></div>;
   if (query.isError)   return <div className="mt-4"><ErrorState error={query.error as Error} onRetry={() => query.refetch()} /></div>;
   if (!records.length) return (
-    <div className="mt-4 mx-6 flex min-h-64 flex-col items-center justify-center rounded-lg border border-stone-800/40 bg-[var(--surface-hover)] px-6 text-center">
+    <div className="mt-4 mx-6 flex min-h-64 flex-col items-center justify-center rounded-sm border border-stone-800/40 bg-[var(--surface-hover)] px-6 text-center">
       <Database className="mb-3 text-stone-700" size={26}/>
       <h2 className="text-sm font-medium text-stone-300">No {objectType} yet</h2>
       <p className="mt-1 max-w-sm text-sm text-stone-600">Create a record to get started.</p>
@@ -2030,7 +2030,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         <td className="border-b border-b-[#edf0f5] dark:border-b-white/[.04] w-10 px-2">
           <button
             onClick={() => deleteRow(record)}
-            className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-6 w-6 rounded-lg text-stone-400 dark:text-stone-400 hover:text-stone-600 dark:hover:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-500/10 transition-all"
+            className="opacity-0 group-hover:opacity-100 flex items-center justify-center h-6 w-6 rounded-sm text-stone-400 dark:text-stone-400 hover:text-stone-600 dark:hover:text-stone-400 hover:bg-stone-50 dark:hover:bg-stone-500/10 transition-all"
             title="Delete row"
           >
             <Trash2 size={12}/>
@@ -2041,7 +2041,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   }
 
   // Toolbar button styles — clean clickable pills with real borders in light mode
-  const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors duration-150 select-none border";
+  const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[11px] font-medium transition-colors duration-150 select-none border";
   const TB_IDLE = `${TB} border-[#dfe3ea] bg-white text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-transparent dark:bg-transparent dark:text-stone-300 dark:hover:text-[var(--text-primary)] dark:hover:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]`;
   const TB_ON   = `${TB} border-stone-300 bg-stone-200 text-stone-900 dark:border-[var(--border-soft)] dark:text-[var(--text-primary)] dark:bg-[var(--surface-hover)]`;
   const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-stone-200 px-1 text-[9px] font-semibold text-[var(--accent)] dark:bg-[var(--surface-hover)] dark:text-stone-300";
@@ -2123,7 +2123,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             const visible = !hiddenCols.has(col);
             return (
               <button key={col} onClick={() => toggleCol(col)}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${visible ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)]" : "border-[var(--border-soft)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-secondary)] hover:border-[var(--border-soft)]"}`}>
+                className={`flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${visible ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)]" : "border-[var(--border-soft)] bg-transparent text-[var(--text-secondary)] hover:text-[var(--text-secondary)] hover:border-[var(--border-soft)]"}`}>
                 {visible && <Check size={9} className="text-stone-400 shrink-0"/>}
                 <span className="capitalize">{colLabel(col)}</span>
               </button>
@@ -2146,7 +2146,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             <span className="text-[11px] text-[var(--text-secondary)]">No sorts — add one below</span>
           )}
           {sortRules.map((rule, i) => (
-            <div key={i} className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 shrink-0">
+            <div key={i} className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 shrink-0">
               <FieldSelect value={rule.col} onChange={v => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, col: v } : x))}
                 ariaLabel="Sort column" className="capitalize max-w-[120px]"
                 options={[...allColumnsWithCustom, "__updated_at"].map(c => ({ value: c, label: colLabel(c) }))} />
@@ -2176,12 +2176,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] shrink-0 mr-1">Group by</span>
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           <button onClick={() => { setGroupBy(null); }}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${!groupByCol ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400 hover:text-stone-100 hover:border-[var(--border-soft)]"}`}>
+            className={`flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${!groupByCol ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400 hover:text-stone-100 hover:border-[var(--border-soft)]"}`}>
             {!groupByCol && <Check size={9} className="text-stone-400"/>}None
           </button>
           {orderedColumns.map(col => (
             <button key={col} onClick={() => setGroupBy(col)}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] transition-colors shrink-0 border capitalize ${groupByCol === col ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400 hover:text-stone-100 hover:border-[var(--border-soft)]"}`}>
+              className={`flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-[11px] transition-colors shrink-0 border capitalize ${groupByCol === col ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400 hover:text-stone-100 hover:border-[var(--border-soft)]"}`}>
               {groupByCol === col && <Check size={9} className="text-stone-400"/>}
               {colLabel(col)}
             </button>
@@ -2214,7 +2214,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           {savedViews.length === 0 && <span className="text-[11px] text-[var(--text-secondary)]">No saved views yet</span>}
           {savedViews.map(v => (
-            <div key={v.id} className="flex items-center gap-0.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-2.5 pr-1 py-1 shrink-0">
+            <div key={v.id} className="flex items-center gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-2.5 pr-1 py-1 shrink-0">
               <button onClick={() => { applyView(v); setOpenPanel(null); }} className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors whitespace-nowrap">
                 {v.name}
               </button>
@@ -2227,7 +2227,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               <input autoFocus value={newViewName} onChange={e => setNewViewName(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") saveCurrentView(); if (e.key === "Escape") setSaveViewOpen(false); }}
                 placeholder="Name this view…"
-                className="bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg px-2.5 py-1 text-[11px] text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)] placeholder:text-[var(--text-secondary)] w-36"/>
+                className="bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm px-2.5 py-1 text-[11px] text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)] placeholder:text-[var(--text-secondary)] w-36"/>
               <button onClick={saveCurrentView} className="text-[#5f8169] hover:opacity-80 transition-colors p-0.5"><Check size={12}/></button>
               <button onClick={() => setSaveViewOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] p-0.5"><X size={11}/></button>
             </div>
@@ -2314,12 +2314,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                     <span className={`text-[10px] font-semibold uppercase tracking-widest shrink-0 ${hasDate ? "text-stone-300" : "text-stone-600"}`}>{col.replaceAll("_"," ")}</span>
                     <input type="date" value={dateFrom}
                       onChange={e => setQuickFilters(prev => { const o = prev.filter(f => f.col !== col+"__from"); return e.target.value ? [...o,{col:col+"__from",value:e.target.value}] : o; })}
-                      className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"
+                      className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                     />
                     <span className="text-stone-700 text-[10px]">→</span>
                     <input type="date" value={dateTo}
                       onChange={e => setQuickFilters(prev => { const o = prev.filter(f => f.col !== col+"__to"); return e.target.value ? [...o,{col:col+"__to",value:e.target.value}] : o; })}
-                      className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"
+                      className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"
                     />
                     <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
                   </div>
@@ -2446,7 +2446,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                         value={assignSearch}
                         onChange={e => setAssignSearch(e.target.value)}
                         placeholder="Search members…"
-                        className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-lg pl-6 pr-3 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)] placeholder:text-[var(--text-secondary)]"
+                        className="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm pl-6 pr-3 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)] placeholder:text-[var(--text-secondary)]"
                       />
                     </div>
                   </div>

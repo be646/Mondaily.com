@@ -224,7 +224,7 @@ export function BillingSettings() {
       <div className="flex items-start justify-between gap-3">
         <PageHeader title="Billing" description="Manage your plan, payment details, and invoice history." />
         <button onClick={() => help.open("I have a question about my plan and AI credits.")}
-          className="mt-1 flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] transition-colors hover:border-[color:var(--section-accent)]"
+          className="mt-1 flex shrink-0 items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[12px] transition-colors hover:border-[color:var(--section-accent)]"
           style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
           <HelpCircle size={13} /> Get help
         </button>

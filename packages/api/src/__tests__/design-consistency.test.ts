@@ -35,6 +35,9 @@ const reportsIndex = read("routes/dashboard/reports/index.tsx");
 const settingsAccount = read("routes/dashboard/settings/account.tsx");
 const settingsMembers = read("routes/dashboard/settings/members.tsx");
 const settingsAiControlRoom = read("routes/dashboard/settings/ai-control-room.tsx");
+const homeSrc = read("routes/dashboard/home.tsx");
+const tasksSrc = read("routes/dashboard/tasks.tsx");
+const billingSrc = read("routes/dashboard/settings/billing.tsx");
 const apiClientSrc = read("lib/api-client.ts");
 const sovereignAuthSrc = read("components/auth/sovereign-auth-context.tsx");
 const decisionQueueSrc = read("components/ai/decision-queue.tsx");
@@ -403,6 +406,24 @@ describe("debt-closure pass — Decisions dossier unification + colour system", 
     expect(stylesCss).toMatch(/\.btn-primary \{[^}]*background: color-mix\(in srgb, var\(--section-accent\) 14%/s);
     // No candy: still no rainbow section drift (theme-spread stays 0).
     expect(stylesCss).toMatch(/--theme-spread: 0\b/);
+  });
+});
+
+describe("Codex source-audit — leftover local styling migrated to the shared token/radius system", () => {
+  it("high-value surfaces no longer use bubbly rounded-lg/xl", () => {
+    for (const src of [recordTable, recordDetail, homeSrc, tasksSrc, billingSrc]) {
+      expect(src).not.toMatch(/rounded-(lg|xl)\b/);
+    }
+  });
+  it("record-detail cards use theme tokens (no dark-hardcoded stone-900/800 surfaces that break light themes)", () => {
+    expect(recordDetail).not.toMatch(/bg-stone-900\/\d+/);
+    expect(recordDetail).not.toMatch(/border-stone-800\/\d+/);
+    expect(recordDetail).toMatch(/bg-\[var\(--surface-hover\)\]/);
+  });
+  it("sales-report export template hexes are intentionally left (self-contained print doc, not app UI)", () => {
+    // Guardrail note: those #6b7280/#e5e7eb live inside the exported HTML <style>, which has no app
+    // CSS vars — converting them would break the printed report. Confirm the export block still exists.
+    expect(salesReport).toMatch(/\.meta\{font-size:12px;color:#6b7280/);
   });
 });
 

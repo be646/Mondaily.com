@@ -809,8 +809,8 @@ export function HomePage() {
               <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
                   <button key={label} onClick={() => firePrompt(prompt)}
-                    className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-stone-100 transition-colors group-hover:bg-stone-200 dark:bg-stone-900 dark:group-hover:bg-stone-800">
+                    className="group flex items-center gap-3 rounded-sm px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-[var(--surface-hover)] transition-colors group-hover:bg-[var(--surface-selected)]">
                       <Icon size={13} className="text-stone-500 dark:text-stone-400"/>
                     </span>
                     <span>
@@ -839,7 +839,7 @@ export function HomePage() {
                 {attachResults.length === 0 ? (
                   <p className="px-2 py-2 text-[12px]" style={{ color: "var(--text-faint)" }}>{attachQuery.trim().length < 2 ? "Type to search records, or attach a text file." : "No matches."}</p>
                 ) : attachResults.map(r => (
-                  <button key={r.id} onClick={() => addRecord(r)} className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]">
+                  <button key={r.id} onClick={() => addRecord(r)} className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]">
                     <span className="rounded px-1.5 py-px text-[9px] font-medium uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>{r.object_type}</span>
                     <span className="truncate text-sm" style={{ color: "var(--text-primary)" }}>{recordTitle(r)}</span>
                   </button>
@@ -1227,7 +1227,7 @@ export function HomePage() {
               </div>
               <div className="flex items-center gap-2">
                 {!scanLoading && scanReport && (
-                  <button onClick={printReport} className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                  <button onClick={printReport} className="flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-xs transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
                     <Printer size={11}/> Print
                   </button>
                 )}
@@ -1246,7 +1246,7 @@ export function HomePage() {
             </div>
             {!scanLoading && scanReport && (
               <div className="shrink-0 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
-                <button onClick={() => setScanReport(null)} className="w-full rounded-lg border py-2 text-xs transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                <button onClick={() => setScanReport(null)} className="w-full rounded-sm border py-2 text-xs transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
                   Close
                 </button>
               </div>
