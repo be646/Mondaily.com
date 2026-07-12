@@ -32,6 +32,7 @@ const controls = read("components/ui/controls.tsx");
 const callsSettings = read("routes/dashboard/settings/calls.tsx");
 const activity = read("routes/dashboard/activity.tsx");
 const reportsIndex = read("routes/dashboard/reports/index.tsx");
+const settingsAccount = read("routes/dashboard/settings/account.tsx");
 const settingsMembers = read("routes/dashboard/settings/members.tsx");
 const settingsAiControlRoom = read("routes/dashboard/settings/ai-control-room.tsx");
 const calendar = read("routes/dashboard/calendar.tsx");
@@ -269,6 +270,21 @@ describe("structural adoption pass 2 (headers / settings frames / accent life)",
   });
   it("settings sections stay lightweight — no filled/tinted 'tan' frame background", () => {
     expect(stylesCss).toMatch(/\.settings-section\s*\{[^}]*background:\s*transparent/);
+  });
+  it("Account page is fully on the shared Settings system (PageHeader + SettingsSection, no raw h1 / .settings-section / decorative gradient)", () => {
+    expect(settingsAccount).toMatch(/<PageHeader\b/);
+    expect(settingsAccount).not.toMatch(/<h1\b/);
+    expect((settingsAccount.match(/<SettingsSection\b/g) ?? []).length).toBeGreaterThanOrEqual(8);
+    expect(settingsAccount).not.toContain("settings-section");        // old CSS-class blocks gone
+    expect(settingsAccount).not.toMatch(/linear-gradient|radial-gradient/); // hero gradient/orb removed
+    // Danger zone signals danger via a rose delete action (not a weird tinted frame).
+    expect(settingsAccount).toContain('color: "#9c6b72"');
+    expect(settingsAccount).toContain("Delete account");
+  });
+  it("Account preserves every handler/action", () => {
+    for (const h of ["uploadAvatar", "save.mutate", "changePassword", "chooseBtnStyle", "setAppearance", "disconnect.mutate", "connect(", "toggleNotif", "autosaveNotif", "deleteAccount", "sov?.logout"]) {
+      expect(settingsAccount).toContain(h);
+    }
   });
   it("accent has restored life (not the over-flattened 32% saturation)", () => {
     // Console/default accent saturation raised over successive passes → 47% for usable contrast.

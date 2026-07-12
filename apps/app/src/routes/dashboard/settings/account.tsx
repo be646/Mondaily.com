@@ -9,7 +9,7 @@ import { useSovereignAuthOptional } from "../../../components/auth/sovereign-aut
 import { THEMES, type ThemeId, applyTheme as applyAppTheme, normalizeTheme } from "../../../lib/theme";
 import { useLanguage } from "../../../hooks/useLanguage";
 import { LanguageSelect } from "../../../components/ui/language-select";
-import { FieldSelect } from "../../../components/ui/controls";
+import { FieldSelect, SettingsSection } from "../../../components/ui/controls";
 
 type Appearance = string;
 type NotificationChannel = { in_app: boolean; email: boolean };
@@ -226,18 +226,13 @@ export function AccountSettings() {
 
   return (
     <div className="space-y-5">
-      <div className="mb-1">
-        <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// OPERATOR PROFILE</p>
-        <h1 className="mt-1 text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Account</h1>
-        <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>Your profile, AI personalization, preferences, and personal security.</p>
-      </div>
+      {/* Shared PageHeader — same page-header pattern as every other settings page. */}
+      <PageHeader title="Account" description="Your profile, AI personalization, preferences, and personal security." />
 
-      {/* ── Hero identity card ── */}
-      <div className="relative overflow-hidden rounded-sm border p-6"
-        style={{ borderColor: "color-mix(in srgb, var(--section-accent) 25%, var(--border-soft))", background: "linear-gradient(135deg, color-mix(in srgb, var(--section-accent) 10%, var(--surface-card)) 0%, var(--surface-card) 55%)" }}>
-        {/* glow */}
-        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full" style={{ background: "radial-gradient(circle, color-mix(in srgb, var(--section-accent) 22%, transparent), transparent 70%)" }} />
-        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center">
+      {/* ── Identity card — flat, premium; no decorative gradient/orb (per one-accent, no-candy rule). ── */}
+      <div className="rounded-sm border p-6"
+        style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           <div className="relative shrink-0">
             <img src={me.imageUrl ?? undefined} alt="" className="h-20 w-20 rounded-sm object-cover ring-2" style={{ boxShadow: "0 0 0 2px color-mix(in srgb, var(--section-accent) 35%, transparent)" }} />
             <button onClick={() => fileRef.current?.click()} className="absolute -bottom-1.5 -right-1.5 grid h-7 w-7 place-items-center rounded-full border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
@@ -269,11 +264,7 @@ export function AccountSettings() {
       </div>
 
       {/* ── Profile ── */}
-      <section className="settings-section">
-        <div className="settings-section-header">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Profile</h2>
-        </div>
-        <div className="p-5">
+      <SettingsSection title="Profile">
           <div className="mb-5 flex items-center gap-4">
             <div className="relative">
               <img src={me.imageUrl ?? undefined} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-white/[.07]" />
@@ -297,7 +288,7 @@ export function AccountSettings() {
             </label>
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Email</span>
-              <div className="flex h-9 items-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3">
+              <div className="flex h-9 items-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3">
                 <span className="min-w-0 flex-1 truncate text-sm text-[var(--text-faint)]">{me.email ?? ""}</span>
               </div>
             </label>
@@ -306,16 +297,11 @@ export function AccountSettings() {
               <input value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="Founder, Head of Sales…" className="key-input h-9 w-full px-3 text-sm" />
             </label>
           </div>
-        </div>
-      </section>
+      </SettingsSection>
 
       {/* ── AI Personalization ── */}
-      <section className="settings-section">
-        <div className="settings-section-header">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">AI personalization</h2>
-          <span className="text-xs text-[var(--text-muted)]">How Mondaily tailors itself to you</span>
-        </div>
-        <div className="space-y-4 p-5">
+      <SettingsSection title="AI personalization" description="How Mondaily tailors itself to you">
+        <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Address me as</span>
@@ -352,15 +338,10 @@ export function AccountSettings() {
             <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">Mondaily uses this to personalize how it reasons, addresses you, and frames answers across the workspace.</p>
           </label>
         </div>
-      </section>
+      </SettingsSection>
 
       {/* ── Appearance ── */}
-      <section className="settings-section">
-        <div className="settings-section-header">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Appearance</h2>
-          <span className="text-xs text-[var(--text-muted)]">Changes apply instantly</span>
-        </div>
-        <div className="p-5">
+      <SettingsSection title="Appearance" description="Changes apply instantly">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {THEMES.map((t) => {
               const active = appearance === t.id;
@@ -405,21 +386,16 @@ export function AccountSettings() {
                   }}
                 >
                   <span className="text-xs font-medium text-[var(--text-faint)]">{label}</span>
-                  <span className="inline-flex h-6 items-center rounded-lg px-3 text-[11px] font-medium text-white" style={{ background: s === "accent" ? "var(--section-accent)" : "#18181b" }}>Save</span>
+                  <span className="inline-flex h-6 items-center rounded-sm px-3 text-[11px] font-medium text-white" style={{ background: s === "accent" ? "var(--section-accent)" : "#18181b" }}>Save</span>
                 </button>
               ))}
             </div>
           </div>
-        </div>
-      </section>
+      </SettingsSection>
 
       {/* ── Password ── */}
       {hasPassword && (
-        <section className="settings-section">
-          <div className="settings-section-header">
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Password</h2>
-          </div>
-          <div className="p-5">
+        <SettingsSection title="Password">
             {!pwOpen ? (
               <button
                 onClick={() => { setPwOpen(true); setPwMsg(null); }}
@@ -441,16 +417,12 @@ export function AccountSettings() {
               </div>
             )}
             {pwMsg && <p className={`mt-3 text-xs ${pwMsg.ok ? "text-[#5f8169]" : "text-[#9c6b72]"}`}>{pwMsg.text}</p>}
-          </div>
-        </section>
+        </SettingsSection>
       )}
 
       {/* ── Connected accounts ── */}
-      <section className="settings-section">
-        <div className="settings-section-header">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Connected accounts</h2>
-        </div>
-        <div className="divide-y divide-white/[.05] px-5">
+      <SettingsSection title="Connected accounts">
+        <div className="-mx-4 -my-3 divide-y divide-white/[.05] px-4">
           {(["gmail", "outlook"] as const).map(provider => {
             const account = accounts.find(a => a.provider.toLowerCase().includes(provider));
             return (
@@ -468,15 +440,11 @@ export function AccountSettings() {
             );
           })}
         </div>
-      </section>
+      </SettingsSection>
 
       {/* ── Notifications ── */}
-      <section className="settings-section">
-        <div className="settings-section-header">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Notification preferences</h2>
-          <span className="text-xs text-[var(--text-muted)]">{autosaveNotif.isPending ? "Saving…" : "Saves automatically"}</span>
-        </div>
-        <div className="px-5">
+      <SettingsSection title="Notification preferences" description={autosaveNotif.isPending ? "Saving…" : "Saves automatically"}>
+        <div className="-mx-4 -my-3 px-4">
           {/* Header row */}
           <div className="grid grid-cols-[1fr_76px_76px] items-center border-b border-[var(--border-soft)] py-2.5">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Notification</span>
@@ -502,29 +470,24 @@ export function AccountSettings() {
             </div>
           ))}
         </div>
-      </section>
+      </SettingsSection>
 
       {/* ── Keyboard shortcuts ── */}
-      <section className="settings-section">
-        <div className="settings-section-header">
-          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Keyboard shortcuts</h2>
-        </div>
-        <div className="divide-y divide-white/[.04] px-5">
+      <SettingsSection title="Keyboard shortcuts">
+        <div className="-mx-4 -my-3 divide-y divide-white/[.04] px-4">
           {shortcuts.map(([label, keys]) => (
             <div key={label} className="flex items-center justify-between py-3">
               <span className="text-sm text-[var(--text-faint)]">{label}</span>
-              <kbd className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-faint)]">{keys}</kbd>
+              <kbd className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-faint)]">{keys}</kbd>
             </div>
           ))}
         </div>
-      </section>
+      </SettingsSection>
 
-      {/* ── Danger zone ── */}
-      <section className="settings-section border-stone-500/[.15]">
-        <div className="settings-section-header border-stone-500/[.08]">
-          <h2 className="text-sm font-semibold text-[var(--text-faint)]">Danger zone</h2>
-        </div>
-        <div className="flex flex-wrap gap-3 p-5">
+      {/* ── Danger zone — shared SettingsSection frame; danger is signalled by the rose Delete
+             action (clearly dangerous), not a weird tinted frame. ── */}
+      <SettingsSection title="Danger zone">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() => { (async () => { await sov?.logout(); localStorage.removeItem("mondaily_workspace_id"); navigate("/auth/shadow-login"); })(); }}
             className="flex items-center gap-2 rounded-sm border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
@@ -533,12 +496,15 @@ export function AccountSettings() {
           </button>
           <button
             onClick={() => setDeleteOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-stone-500/30 px-3 py-2 text-sm text-[var(--text-faint)] hover:bg-stone-500/[.08] transition-colors"
+            className="flex items-center gap-2 rounded-sm border px-3 py-2 text-sm font-medium transition-colors"
+            style={{ borderColor: "color-mix(in srgb, #9c6b72 45%, var(--border-soft))", color: "#9c6b72" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "color-mix(in srgb, #9c6b72 10%, transparent)"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
           >
             <Trash2 size={14} /> Delete account
           </button>
         </div>
-      </section>
+      </SettingsSection>
 
       {/* ── Save ── */}
       <div className="flex justify-end pt-1 pb-4">
@@ -564,8 +530,8 @@ export function AccountSettings() {
             <p className="mt-2 text-sm text-[var(--text-muted)]">This permanently deletes your account and all data. Type <strong className="text-[var(--text-primary)]">DELETE</strong> to confirm.</p>
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder="DELETE" className="key-input mt-4 h-10 w-full px-3 text-sm" />
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setDeleteOpen(false)} className="rounded-lg border border-[var(--border-soft)] px-4 py-2 text-sm text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
-              <button onClick={deleteAccount} disabled={deleteText !== "DELETE"} className="rounded-lg bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-colors">Delete account</button>
+              <button onClick={() => setDeleteOpen(false)} className="rounded-sm border border-[var(--border-soft)] px-4 py-2 text-sm text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
+              <button onClick={deleteAccount} disabled={deleteText !== "DELETE"} className="rounded-sm bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-colors">Delete account</button>
             </div>
           </div>
         </>
