@@ -358,6 +358,23 @@ describe("priority pages preserve every existing action/handler", () => {
     expect(decisions).toContain('onResolve(d, "reject"');
     expect(decisions).toContain('onResolve(d, "snooze"');
   });
+  it("Decisions cockpit polish: shared MetricGrid over REAL queue numbers + shared Empty/Error states", () => {
+    // Queue intelligence is a shared MetricGrid (same primitive as Team Oversight), fed only when
+    // the queue has content — no fabricated zeros-as-stats on an empty workspace.
+    expect(decisions).toContain("const queueMetrics: MetricItem[]");
+    expect(decisions).toMatch(/items\.length > 0 && <MetricGrid items=\{queueMetrics\}/);
+    // Header stays calm — the long status text row was slimmed to live-sync + awaiting.
+    expect(decisions).toContain('{ label: "live sync", kind: "monitoring" }');
+    // Empty + error use the shared page-state primitives (retry on error), not bespoke cards.
+    expect(decisions).toMatch(/<EmptyState icon=\{lane === "approval"/);
+    expect(decisions).toMatch(/<ErrorState error=\{new Error\("Couldn't load the Decision Queue/);
+    expect(decisions).toContain("onRetry={() => refetch()}");
+    // No hand-rolled empty/error markup left behind.
+    expect(decisions).not.toMatch(/surface-card rounded-sm px-5 py-16 text-center/);
+    // Honesty preserved: confidence only when the backend computed one, else "source-backed".
+    expect(decisions).toContain('d.confidence != null ?');
+    expect(decisions).toContain("source-backed");
+  });
   it("Discovery keeps search/save/bulk/watch/deep/exhaustive/ICP", () => {
     for (const h of ["setDeep", "setExhaustive", "setIcpOpen", "clearHistory", "SaveAllLeads", "BulkBar"]) {
       expect(discovery).toContain(h);

@@ -3,8 +3,8 @@ import { useSearchParams, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
-import { PageSkeleton, DelayedLoading } from "../../components/ui/page-state";
-import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, FilterToolbar, type ActionMenuItem, type CommandStatusItem, type FilterChip } from "../../components/ui/controls";
+import { PageSkeleton, DelayedLoading, EmptyState, ErrorState } from "../../components/ui/page-state";
+import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, FilterToolbar, MetricGrid, type ActionMenuItem, type CommandStatusItem, type FilterChip, type MetricItem } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -196,8 +196,9 @@ export function DecisionsPage() {
   // 45s timeout guarantees a hung request errors into the isError state below rather than hanging).
   if (isLoading) return <DelayedLoading onRetry={() => refetch()}><PageSkeleton /></DelayedLoading>;
 
-  // Queue intelligence — REAL numbers from the live queue (no invention), folded into the header's
-  // honest status row instead of a separate stats box (one command header, not stacked blocks).
+  // Queue intelligence — REAL numbers from the live queue (no invention). The header keeps only a
+  // calm live-sync + awaiting signal; the richer at-a-glance numbers move into a shared MetricGrid
+  // strip below (same primitive as Team Oversight) so the header stays uncrowded.
   const pendingItems = items.filter(d => d.status === "pending");
   const highRisk = pendingItems.filter(d => d.risk_level === "high").length;
   const oldestMs = pendingItems.length ? Math.max(...pendingItems.map(d => Date.now() - new Date(d.created_at).getTime())) : 0;
@@ -208,12 +209,18 @@ export function DecisionsPage() {
   const queueStatus: CommandStatusItem[] = items.length === 0
     ? [{ label: "live sync", kind: "complete" }]
     : [
+        { label: "live sync", kind: "monitoring" },
         { label: `${pendingItems.length} awaiting`, dot: false },
-        ...(highRisk > 0 ? [{ label: `${highRisk} high risk`, tone: "#9c6b72" } as CommandStatusItem] : []),
-        ...(pendingItems.length ? [{ label: `oldest ${oldestDays > 0 ? `${oldestDays}d` : "<1d"}`, tone: oldestDays >= 7 ? "#97824f" : undefined, dot: oldestDays >= 7 } as CommandStatusItem] : []),
-        { label: `${resolved7.length} resolved · 7d`, dot: false },
-        ...(resolved7.length ? [{ label: `${Math.round((approved7 / resolved7.length) * 100)}% approved · 7d`, dot: false } as CommandStatusItem] : []),
       ];
+  // Real cockpit metrics — every value is counted from the live queue; nothing is estimated. Shown
+  // only when there's something in the queue, so an empty workspace never sees fabricated zeros-as-stats.
+  const queueMetrics: MetricItem[] = [
+    { label: "Awaiting approval", value: pendingItems.length, title: "Pending decisions across all agents" },
+    { label: "High risk", value: highRisk, tone: highRisk > 0 ? "#9c6b72" : undefined, title: "Pending decisions flagged high risk" },
+    { label: "Oldest pending", value: pendingItems.length ? (oldestDays > 0 ? `${oldestDays}d` : "<1d") : "—", tone: oldestDays >= 7 ? "#97824f" : undefined, title: "Age of the oldest unresolved decision" },
+    { label: "Resolved · 7d", value: resolved7.length, title: "Decisions resolved in the last 7 days" },
+    { label: "Approved · 7d", value: resolved7.length ? `${Math.round((approved7 / resolved7.length) * 100)}%` : "—", title: "Share of the last 7 days' resolutions that were approved" },
+  ];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
@@ -226,6 +233,10 @@ export function DecisionsPage() {
         status={queueStatus}
         rightSummary={<span title="j/k navigate · a approve · r reject · s snooze">keys j·k·a·r·s</span>}
       />
+
+      {/* Cockpit metrics — shared MetricGrid over REAL queue numbers (same primitive as Team
+          Oversight). Only when the queue has content, so an empty workspace isn't shown stat noise. */}
+      {items.length > 0 && <MetricGrid items={queueMetrics} cols={5} className="mb-4" />}
 
       {/* Lane tabs */}
       <div className="mb-3 flex flex-wrap gap-1 border-b" style={{ borderColor: "var(--border-soft)" }}>
@@ -242,7 +253,8 @@ export function DecisionsPage() {
       </div>
 
       {isError ? (
-        <div className="surface-card rounded-sm p-5 text-[13px]" style={{ color: "var(--text-faint)" }}>Couldn't load the Decision Queue right now. Refresh, or check back shortly.</div>
+        // Shared ErrorState with retry — same failure surface as Reports/Discovery/Team Oversight.
+        <ErrorState error={new Error("Couldn't load the Decision Queue right now.")} onRetry={() => refetch()} />
       ) : (
         <>
           {/* Shared FilterToolbar — same filter logic as Records/Lists: dropdown filters, an
@@ -675,13 +687,8 @@ function LaneEmpty({ lane }: { lane: LaneKey }) {
     rejected: { title: "Nothing rejected", sub: "Decisions you dismiss appear here." },
   };
   const c = copy[lane];
-  return (
-    <div className="surface-card rounded-sm px-5 py-16 text-center">
-      <Inbox size={22} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
-      <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{c.title}</p>
-      <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{c.sub}</p>
-    </div>
-  );
+  // Shared EmptyState — same empty language as the rest of the app (icon differs by lane intent).
+  return <EmptyState icon={lane === "approval" ? CheckCircle2 : Inbox} title={c.title} description={c.sub} />;
 }
 
 
