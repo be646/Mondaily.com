@@ -659,6 +659,23 @@ describe("landing consolidation", () => {
     expect(landing).not.toMatch(/text: "active · streaming"/);
     expect(landing).toMatch(/>Simulated preview</);
   });
+  it("the workspace-graph MacBook terminal (agent.run '· running') carries its own Simulated preview tag", () => {
+    // The streaming '· running' agent log must be honestly framed as a simulated preview, not a live run.
+    expect(landing).toContain("· running");
+    expect(landing).toMatch(/agent\.run\(&quot;\{activeSlug\}&quot;\) — mondaily/);
+    // A Simulated-preview tag sits in that same terminal title bar.
+    expect(landing).toMatch(/text-\[9\.5px\][\s\S]*?>Simulated preview</);
+  });
+  it("integrations strip shows named provider pills (scannable, degrade gracefully) — no bare icon-only tiles", () => {
+    // Provider NAME is always rendered, and the brand glyph hides on load error instead of showing a broken box.
+    for (const name of ["Gmail", "Outlook", "Google Calendar"]) expect(landing).toContain(name);
+    expect(landing).toMatch(/onError=\{e => \{ e\.currentTarget\.style\.display = "none"; \}\}/);
+    // Honest: only the three real OAuth providers, still labelled "via OAuth".
+    expect(landing).toContain("via OAuth");
+  });
+  it("the Meeting Agent node no longer overlaps the graph root spine (repositioned off 33,30)", () => {
+    expect(landing).toMatch(/label: "Meeting Agent", x: 66, y: 30/);
+  });
 });
 
 describe("Ask side panel squared (ask-mondaily)", () => {

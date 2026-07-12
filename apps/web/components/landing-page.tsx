@@ -314,30 +314,33 @@ function FeatureSection() {
             via /api/v1/integrations/connect). Slack/Zapier/Typeform/Segment/Mailchimp were shown
             before with no code behind them; removed rather than imply connections that don't exist.
             Uniform muted glyph on a neutral tile — no random brand colours. */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2">
           <span className="shrink-0 text-[11px] font-medium uppercase tracking-[0.16em] mr-1" style={{ color: "var(--landing-faint)" }}>Connect ·</span>
           {([
             { name: "Gmail", slug: "gmail" },
             { name: "Outlook", slug: "microsoftoutlook" },
             { name: "Google Calendar", slug: "googlecalendar" },
           ] as { name: string; slug: string }[]).map(item => (
-            <div
+            // Labeled pill (matches the "For developers" row below) — the provider NAME always shows,
+            // so the strip stays scannable and premium even if the external brand glyph fails to load.
+            <span
               key={item.name}
-              aria-label={item.name}
               title={item.name}
-              className="flex items-center justify-center shrink-0 rounded-md"
-              style={{ width: 34, height: 34, background: "var(--landing-hover)", border: "1px solid var(--landing-line)" }}
+              className="inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1"
+              style={{ background: "var(--landing-hover)", border: "1px solid var(--landing-line)" }}
             >
-              {/* Brand glyphs from the Simple Icons CDN, tinted to one muted tone for a calm strip */}
+              {/* Brand glyph from the Simple Icons CDN, tinted to one muted tone; hides gracefully on error. */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`https://cdn.simpleicons.org/${item.slug}/737373`}
-                alt={item.name}
-                width={16}
-                height={16}
+                alt=""
+                width={13}
+                height={13}
                 loading="lazy"
+                onError={e => { e.currentTarget.style.display = "none"; }}
               />
-            </div>
+              <span className="text-[11.5px] font-medium" style={{ color: "var(--landing-muted)" }}>{item.name}</span>
+            </span>
           ))}
           <span className="text-[11px]" style={{ color: "var(--landing-faint)" }}>via OAuth</span>
         </div>
@@ -1295,7 +1298,7 @@ const WORKSPACE_GRAPH_NODES = [
   { label: "People Agent", x: 15, y: 79, color: "#c08a3e", detail: "Keeps contacts and roles current" },
   { label: "Portfolio Agent", x: 50, y: 81, color: "#4f9bc4", detail: "Tracks companies and holdings" },
   { label: "Asset Agent", x: 85, y: 79, color: "#a8896c", detail: "Monitors assets and renewals" },
-  { label: "Meeting Agent", x: 33, y: 30, color: "#5f8a8f", detail: "Scans meetings for conflicts, agenda, and prep" },
+  { label: "Meeting Agent", x: 66, y: 30, color: "#5f8a8f", detail: "Scans meetings for conflicts, agenda, and prep" },
 ];
 
 // Per-agent execution traces — one log per node (same order as WORKSPACE_GRAPH_NODES).
@@ -1553,8 +1556,9 @@ function WorkspaceGraphPreview() {
 
         {/* RIGHT PANEL — MacBook-inspired terminal */}
         <div className="landing-terminal relative flex min-h-[460px] flex-col overflow-hidden rounded-2xl border border-white/10">
-          {/* Title bar — traffic lights + window title */}
-          <div className="flex items-center px-4 py-2.5" style={{ background: "rgba(255,255,255,0.025)" }}>
+          {/* Title bar — traffic lights + window title. Carries an honest "Simulated preview" tag so
+              the streaming log below is never mistaken for a live agent run on this marketing page. */}
+          <div className="relative flex items-center px-4 py-2.5" style={{ background: "rgba(255,255,255,0.025)" }}>
             <span className="flex gap-2">
               <span className="h-3 w-3 rounded-full" style={{ background: "#ff5f56" }} />
               <span className="h-3 w-3 rounded-full" style={{ background: "#ffbd2e" }} />
@@ -1569,6 +1573,7 @@ function WorkspaceGraphPreview() {
               />
               agent.run(&quot;{activeSlug}&quot;) — mondaily
             </span>
+            <span className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-sm px-1.5 py-px font-mono text-[9.5px] sm:block" style={{ border: "1px solid rgba(255,255,255,0.14)", color: "#7c8379" }}>Simulated preview</span>
           </div>
 
           <div className="relative flex flex-1 flex-col p-5 sm:p-6">
