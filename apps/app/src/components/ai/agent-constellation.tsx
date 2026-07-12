@@ -204,7 +204,9 @@ export function AgentCard({ agent, selected, onSelect, footer, className }: {
           </span>
         </span>
         <span className="mt-1 flex w-full items-center gap-1.5 text-[10px]" style={{ color: "var(--text-faint)" }}>
-          <span className="truncate" style={{ color: live ? "var(--text-muted)" : "var(--text-faint)" }}>
+          {/* State label carries its honest tone (working green / approval amber / issue rose) so
+              states are readable at a glance, not only via the 6px dot. Quiet states stay muted. */}
+          <span className="truncate font-medium" style={{ color: live ? tone : "var(--text-faint)" }}>
             {CONSTELLATION_STATE_LABEL[agent.state]}
           </span>
           {ran && <span className="ml-auto shrink-0 tabular-nums">{ran}</span>}

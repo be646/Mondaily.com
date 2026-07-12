@@ -797,6 +797,31 @@ describe("Credit Notes — polished finance operations page", () => {
   });
 });
 
+describe("Agent Control Room — clear hierarchy, honest states", () => {
+  it("summary stats use the shared MetricGrid (no third hand-rolled stat grid)", () => {
+    expect(activity).toMatch(/<MetricGrid className="mb-8" cols=\{4\}/);
+    expect(activity).not.toMatch(/grid grid-cols-2 gap-px overflow-hidden rounded-sm border sm:grid-cols-4/);
+  });
+  it("roster is ordered by REAL state priority (attention first, ghosts last) — pure view-sort", () => {
+    expect(activity).toContain("const STATE_ORDER: Record<string, number> = { issue: 0, needs_approval: 1, active: 2, monitoring: 3, disabled: 4, not_configured: 5 }");
+    expect(activity).toMatch(/\[\.\.\.constellation\]\.sort\(\(x, y\) => \(STATE_ORDER\[x\.state\] \?\? 9\) - \(STATE_ORDER\[y\.state\] \?\? 9\)\)/);
+  });
+  it("card footer: proof glyph + quiet ghost Run trigger (no bordered CTA per card)", () => {
+    expect(activity).toMatch(/<ShieldCheck size=\{10\}[^>]*\/> <span className="truncate">\{agent\.backedBy\.join\(" · "\)\}/);
+    expect(activity).not.toContain("backed by {agent.backedBy.join");
+    // Run trigger is a ghost (no border class), still the same runAgent.mutate handler.
+    expect(activity).toMatch(/hover:bg-\[var\(--surface-hover\)\] hover:text-\[var\(--section-accent\)\][^}]*disabled:opacity-50" style=\{\{ color: "var\(--text-muted\)" \}\}/);
+    expect(activity).toContain("runAgent.mutate(agent.id)");
+  });
+  it("AgentCard state label carries its honest tone only for the three live states", () => {
+    expect(agentConstellationSrc).toMatch(/style=\{\{ color: live \? tone : "var\(--text-faint\)" \}\}/);
+    expect(agentConstellationSrc).toMatch(/state === "active" \|\| state === "needs_approval" \|\| state === "issue"/);
+  });
+  it("header status stays honest — 'working now' only from real active count, no fake live ping", () => {
+    expect(activity).toMatch(/activeAgents > 0 \? `\$\{activeAgents\} working now` : "all agents monitoring"/);
+  });
+});
+
 describe("landing consolidation", () => {
   it("email / start-free form is token-driven (no black-on-black dark:bg-black)", () => {
     expect(landing).not.toMatch(/dark:bg-black/);

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Loader2, RefreshCw, ChevronDown, Play, RotateCcw, ArrowUpRight, ArrowRight, ShieldCheck } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
-import { CommandPageHeader } from "../../components/ui/controls";
+import { CommandPageHeader, MetricGrid } from "../../components/ui/controls";
 import { agentByRaw, AGENTS } from "../../lib/agents";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useAgentJobsRealtime } from "../../hooks/useAgentJobsRealtime";
@@ -22,6 +22,10 @@ import { useDecisionQueue } from "../../components/ai/decision-queue";
 
 // Agent ids with an on-demand runner (POST /agents/:id/run) — mirrors the backend AGENT_RUNNERS.
 const RUNNABLE = new Set(["relationship", "operations", "finance", "graph-enrichment", "workflow", "opportunity", "people", "portfolio", "asset", "meeting"]);
+
+// Roster ordering by REAL registry state — attention first, ghosts last. Pure view-sort; the
+// state itself comes untouched from GET /agents (never upgraded for effect).
+const STATE_ORDER: Record<string, number> = { issue: 0, needs_approval: 1, active: 2, monitoring: 3, disabled: 4, not_configured: 5 };
 
 // Canonical proof-of-work step (matches the API's normalizeStep output).
 type Step = {
@@ -181,14 +185,14 @@ export function AgentActivityPage() {
           </button>
         }
       />
-      <div className="mb-8 grid grid-cols-2 gap-px overflow-hidden rounded-sm border sm:grid-cols-4" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
-        {STATS.map(s => (
-          <div key={s.label} className="px-4 py-3" style={{ background: "var(--surface-card)" }}>
-            <div className="text-[22px] font-semibold leading-none tabular-nums" style={{ color: s.alert ? "#9c6b72" : s.accent ? "var(--section-accent)" : "var(--text-primary)" }}>{s.value}</div>
-            <div className="mt-1.5 text-[11px]" style={{ color: "var(--text-muted)" }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
+      {/* Shared MetricGrid — same primitive as Team Oversight/Credit Notes (was a third hand-rolled
+          stat pattern). All four values are real: registry states, today's run/error aggregates,
+          and the live decision-queue count. */}
+      <MetricGrid className="mb-8" cols={4} items={STATS.map(s => ({
+        label: s.label,
+        value: s.value,
+        tone: s.alert ? "#9c6b72" : s.accent ? "var(--section-accent)" : undefined,
+      }))} />
 
       {/* ── 2. Agent roster (GET /agents) ── */}
       <section className="mb-8">
@@ -201,8 +205,10 @@ export function AgentActivityPage() {
         ) : (
           // Shared AgentCard grid — the SAME card Home's constellation uses, now with the control-room
           // footer (backed-by proof + Run now + open). One agent system across Home and Agents.
+          // Ordered by REAL state priority (problems → approvals → working → monitoring → ghosts) so
+          // agents needing attention lead and unconfigured ones sink together — nothing "random".
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {constellation.map(agent => {
+            {[...constellation].sort((x, y) => (STATE_ORDER[x.state] ?? 9) - (STATE_ORDER[y.state] ?? 9)).map(agent => {
               const filtered = agentFilter === agent.name;
               const runnable = RUNNABLE.has(agent.id);
               return (
@@ -213,14 +219,19 @@ export function AgentActivityPage() {
                   onSelect={() => setAgentFilter(filtered ? null : agent.name)}
                   footer={(runnable || agent.to || (agent.backedBy && agent.backedBy.length > 0)) ? (
                     <div className="mt-1 flex items-center gap-2 border-t pt-2" style={{ borderColor: "var(--border-soft)" }}>
+                      {/* Proof line — the REAL data sources this agent reads, as a quiet glyph + names
+                          instead of a wordy 'backed by' sentence. */}
                       {agent.backedBy && agent.backedBy.length > 0 && (
-                        <span className="min-w-0 truncate text-[10px]" style={{ color: "var(--text-faint)" }} title={`Backed by ${agent.backedBy.join(", ")}`}>backed by {agent.backedBy.join(", ")}</span>
+                        <span className="inline-flex min-w-0 items-center gap-1 truncate text-[10px]" style={{ color: "var(--text-faint)" }} title={`Reads from ${agent.backedBy.join(", ")}`}>
+                          <ShieldCheck size={10} className="shrink-0" /> <span className="truncate">{agent.backedBy.join(" · ")}</span>
+                        </span>
                       )}
                       <div className="ml-auto flex shrink-0 items-center gap-1.5">
                         {runnable && (
+                          // Quiet ghost trigger — one per card would be CTA noise as a bordered button.
                           <button onClick={() => runAgent.mutate(agent.id)} disabled={busy === agent.id} title="Run this agent now"
-                            className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                            {busy === agent.id ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />} Run now
+                            className="inline-flex items-center gap-1 rounded-sm px-1.5 py-1 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--section-accent)] disabled:opacity-50" style={{ color: "var(--text-muted)" }}>
+                            {busy === agent.id ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />} Run
                           </button>
                         )}
                         {agent.to && (
