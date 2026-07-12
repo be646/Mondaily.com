@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton, DelayedLoading, EmptyState, ErrorState } from "../../components/ui/page-state";
-import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, FilterToolbar, MetricGrid, type ActionMenuItem, type CommandStatusItem, type FilterChip, type MetricItem } from "../../components/ui/controls";
+import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, FilterToolbar, type ActionMenuItem, type CommandStatusItem, type FilterChip } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -196,31 +196,22 @@ export function DecisionsPage() {
   // 45s timeout guarantees a hung request errors into the isError state below rather than hanging).
   if (isLoading) return <DelayedLoading onRetry={() => refetch()}><PageSkeleton /></DelayedLoading>;
 
-  // Queue intelligence — REAL numbers from the live queue (no invention). The header keeps only a
-  // calm live-sync + awaiting signal; the richer at-a-glance numbers move into a shared MetricGrid
-  // strip below (same primitive as Team Oversight) so the header stays uncrowded.
+  // Queue intelligence — REAL numbers from the live queue (no invention). One quiet status text
+  // row in the header carries ONLY the operational signals: how many await, high-risk count when
+  // present, and an age warning when something has sat ≥7 days. No metric-card strip competing
+  // with the header; historical resolve rates were secondary and are gone, not relocated.
   const pendingItems = items.filter(d => d.status === "pending");
   const highRisk = pendingItems.filter(d => d.risk_level === "high").length;
   const oldestMs = pendingItems.length ? Math.max(...pendingItems.map(d => Date.now() - new Date(d.created_at).getTime())) : 0;
   const oldestDays = Math.floor(oldestMs / 86_400_000);
-  const weekAgo = Date.now() - 7 * 86_400_000;
-  const resolved7 = items.filter(d => d.resolved_at && new Date(d.resolved_at).getTime() > weekAgo);
-  const approved7 = resolved7.filter(d => d.status === "approved" || d.status === "completed").length;
   const queueStatus: CommandStatusItem[] = items.length === 0
     ? [{ label: "live sync", kind: "complete" }]
     : [
         { label: "live sync", kind: "monitoring" },
         { label: `${pendingItems.length} awaiting`, dot: false },
+        ...(highRisk > 0 ? [{ label: `${highRisk} high risk`, tone: "#9c6b72" } as CommandStatusItem] : []),
+        ...(oldestDays >= 7 ? [{ label: `oldest ${oldestDays}d`, tone: "#97824f" } as CommandStatusItem] : []),
       ];
-  // Real cockpit metrics — every value is counted from the live queue; nothing is estimated. Shown
-  // only when there's something in the queue, so an empty workspace never sees fabricated zeros-as-stats.
-  const queueMetrics: MetricItem[] = [
-    { label: "Awaiting approval", value: pendingItems.length, title: "Pending decisions across all agents" },
-    { label: "High risk", value: highRisk, tone: highRisk > 0 ? "#9c6b72" : undefined, title: "Pending decisions flagged high risk" },
-    { label: "Oldest pending", value: pendingItems.length ? (oldestDays > 0 ? `${oldestDays}d` : "<1d") : "—", tone: oldestDays >= 7 ? "#97824f" : undefined, title: "Age of the oldest unresolved decision" },
-    { label: "Resolved · 7d", value: resolved7.length, title: "Decisions resolved in the last 7 days" },
-    { label: "Approved · 7d", value: resolved7.length ? `${Math.round((approved7 / resolved7.length) * 100)}%` : "—", title: "Share of the last 7 days' resolutions that were approved" },
-  ];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
@@ -233,10 +224,6 @@ export function DecisionsPage() {
         status={queueStatus}
         rightSummary={<span title="j/k navigate · a approve · r reject · s snooze">keys j·k·a·r·s</span>}
       />
-
-      {/* Cockpit metrics — shared MetricGrid over REAL queue numbers (same primitive as Team
-          Oversight). Only when the queue has content, so an empty workspace isn't shown stat noise. */}
-      {items.length > 0 && <MetricGrid items={queueMetrics} cols={5} className="mb-4" />}
 
       {/* Lane tabs */}
       <div className="mb-3 flex flex-wrap gap-1 border-b" style={{ borderColor: "var(--border-soft)" }}>
@@ -317,9 +304,10 @@ export function DecisionsPage() {
           {laneItems.length === 0 ? (
             <LaneEmpty lane={laneDef.key} />
           ) : (
-            <div className="flex h-[calc(100vh-260px)] min-h-[440px] flex-col overflow-hidden rounded-sm border md:flex-row" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-              {/* LEFT — lane list (same surface, hairline divider — not a second box) */}
-              <div className="h-2/5 w-full shrink-0 overflow-y-auto border-b md:h-auto md:w-[38%] md:border-b-0 md:border-r" style={{ borderColor: "var(--border-soft)", scrollbarGutter: "stable" }}>
+            <div className="flex h-[calc(100vh-225px)] min-h-[480px] flex-col overflow-hidden rounded-sm border md:flex-row" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              {/* LEFT — a fixed index RAIL, not a competing pane: the dossier is the hero. Rows are
+                  slim (title + one meta line); the rail stops growing with the viewport. */}
+              <div className="h-2/5 w-full shrink-0 overflow-y-auto border-b md:h-auto md:w-72 md:border-b-0 md:border-r xl:w-80" style={{ borderColor: "var(--border-soft)", scrollbarGutter: "stable", background: "color-mix(in srgb, var(--surface-hover) 40%, transparent)" }}>
                 {visible.map((d, i) => {
                   const a = agentByRaw(d.agent_name); const on = selectedId === d.id;
                   return (
@@ -424,7 +412,9 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
 
   return (
     <div className="flex h-full flex-col">
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5" style={{ scrollbarGutter: "stable" }}>
+      {/* Dossier body — the primary reading pane: wider padding, more section air, and a readable
+          max line length so a large viewport doesn't stretch evidence text edge-to-edge. */}
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5 [&>*]:mx-auto [&>*]:w-full [&>*]:max-w-3xl" style={{ scrollbarGutter: "stable" }}>
         {/* header */}
         <div className="flex items-start gap-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm" style={{ background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}><a.Icon size={17} style={{ color: "var(--section-accent)" }} /></span>
@@ -437,8 +427,8 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
               {/* Confidence only when the backend actually computed one — else honest "source-backed". */}
               {d.confidence != null ? <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{d.confidence}% confidence</span> : <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>source-backed</span>}
             </div>
-            <h2 className="mt-1 break-words text-[16px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{d.title}</h2>
-            <p className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Raised {exactTime(d.created_at)}{!lane.open && d.resolved_at ? ` · ${d.status} ${exactTime(d.resolved_at)}` : ""}</p>
+            <h2 className="mt-1.5 break-words text-[17px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{d.title}</h2>
+            <p className="mt-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Raised {exactTime(d.created_at)}{!lane.open && d.resolved_at ? ` · ${d.status} ${exactTime(d.resolved_at)}` : ""}</p>
           </div>
         </div>
 

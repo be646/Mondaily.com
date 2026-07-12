@@ -159,10 +159,12 @@ describe("Decisions 2.0 round 2 — cockpit functions stay honest", () => {
     expect(fn).not.toMatch(/\/approve|\/reject|\/bulk/);
   });
   it("queue stats are computed from the real loaded rows (no invented metrics)", () => {
-    // Stats now live in the shared MetricGrid strip (queueMetrics), still derived from the real rows.
+    // Stats are one quiet header status row — awaiting / high-risk / age warning — all counted
+    // from the live rows. The historical 7-day resolve metrics were removed, not fabricated.
     expect(page).toMatch(/const pendingItems = items\.filter\(d => d\.status === "pending"\)/);
-    expect(page).toMatch(/const approved7 = resolved7\.filter\(d => d\.status === "approved" \|\| d\.status === "completed"\)\.length/);
-    expect(page).toMatch(/resolved7\.length \? `\$\{Math\.round\(\(approved7 \/ resolved7\.length\) \* 100\)\}%` : "—"/);
+    expect(page).toMatch(/const highRisk = pendingItems\.filter\(d => d\.risk_level === "high"\)\.length/);
+    expect(page).toMatch(/const oldestDays = Math\.floor\(oldestMs \/ 86_400_000\)/);
+    expect(page).toMatch(/\$\{pendingItems\.length\} awaiting/);
   });
   it("audit trail names the real resolver from the member directory", () => {
     expect(page).toMatch(/memberLabel\(members, d\.resolved_by\)/);

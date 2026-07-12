@@ -361,13 +361,14 @@ describe("priority pages preserve every existing action/handler", () => {
     expect(decisions).toContain('onResolve(d, "reject"');
     expect(decisions).toContain('onResolve(d, "snooze"');
   });
-  it("Decisions cockpit polish: shared MetricGrid over REAL queue numbers + shared Empty/Error states", () => {
-    // Queue intelligence is a shared MetricGrid (same primitive as Team Oversight), fed only when
-    // the queue has content — no fabricated zeros-as-stats on an empty workspace.
-    expect(decisions).toContain("const queueMetrics: MetricItem[]");
-    expect(decisions).toMatch(/items\.length > 0 && <MetricGrid items=\{queueMetrics\}/);
-    // Header stays calm — the long status text row was slimmed to live-sync + awaiting.
+  it("Decisions cockpit polish: ONE quiet header status row (no metric-card strip) + shared Empty/Error states", () => {
+    // The MetricGrid strip is gone — queue intelligence is a single honest status text row with
+    // only operational signals (awaiting / high-risk when present / age warning at ≥7d).
+    expect(decisions).not.toContain("<MetricGrid");
+    expect(decisions).not.toContain("queueMetrics");
     expect(decisions).toContain('{ label: "live sync", kind: "monitoring" }');
+    expect(decisions).toMatch(/highRisk > 0 \? \[\{ label: `\$\{highRisk\} high risk`/);
+    expect(decisions).toMatch(/oldestDays >= 7 \? \[\{ label: `oldest \$\{oldestDays\}d`/);
     // Empty + error use the shared page-state primitives (retry on error), not bespoke cards.
     expect(decisions).toMatch(/<EmptyState icon=\{lane === "approval"/);
     expect(decisions).toMatch(/<ErrorState error=\{new Error\("Couldn't load the Decision Queue/);
@@ -377,6 +378,14 @@ describe("priority pages preserve every existing action/handler", () => {
     // Honesty preserved: confidence only when the backend computed one, else "source-backed".
     expect(decisions).toContain('d.confidence != null ?');
     expect(decisions).toContain("source-backed");
+  });
+  it("Decisions list is a fixed index rail and the dossier is the primary reading pane", () => {
+    // Rail: fixed width (not a 38% competing pane), subtly recessed surface.
+    expect(decisions).toMatch(/md:w-72 md:border-b-0 md:border-r xl:w-80/);
+    expect(decisions).not.toContain("md:w-[38%]");
+    // Dossier: readable max line length + more section air.
+    expect(decisions).toMatch(/max-w-3xl/);
+    expect(decisions).toMatch(/space-y-5 overflow-y-auto px-6 py-5/);
   });
   it("Discovery keeps search/save/bulk/watch/deep/exhaustive/ICP", () => {
     for (const h of ["setDeep", "setExhaustive", "setIcpOpen", "clearHistory", "SaveAllLeads", "BulkBar"]) {
