@@ -80,8 +80,8 @@ describe("Meeting Memory — page + dispatcher (design, honesty, non-breaking)",
     expect(list).toMatch(/Meeting Memory/);
     expect(list).toMatch(/apiClient\.get<\{ memories: MemoryRow\[\] \}>\(`\/calls\/memory\?search=/);
     for (const label of ["All", "Meetings", "Calls", "Needs summary", "Action items"]) expect(list).toContain(label);
-    // honest empty state — no Chrome-extension pitch
-    expect(list).toMatch(/Completed calendar meetings and recorded calls will appear here/);
+    // honest GUIDED empty state — same facts, now with real next actions; no Chrome-extension pitch
+    expect(list).toMatch(/Completed calendar meetings and recorded calls land here/);
     expect(list).not.toMatch(/Chrome extension/i);
   });
   it("live /calls/:eventId still opens the live room for upcoming meetings; past → memory detail", () => {

@@ -209,6 +209,8 @@ export function AgentCard({ agent, selected, onSelect, footer, className }: {
           </span>
           {ran && <span className="ml-auto shrink-0 tabular-nums">{ran}</span>}
           {!ran && agent.evidenceCount > 0 && <span className="ml-auto shrink-0 tabular-nums">{agent.evidenceCount} ev.</span>}
+          {/* Honest first-run state — an explicit "no runs yet" beats an unexplained blank. */}
+          {!ran && agent.evidenceCount === 0 && !ghost && <span className="ml-auto shrink-0 italic">no runs yet</span>}
         </span>
       </button>
       {footer}

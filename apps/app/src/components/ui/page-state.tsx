@@ -118,12 +118,25 @@ export function ErrorState({ error, onRetry }: { error?: Error | null; onRetry?:
   );
 }
 
+/** One guided next action inside an EmptyState — a REAL thing the user can do right now
+ *  (create, connect, import, configure). Never a placeholder for data that doesn't exist. */
+export interface EmptyStateStep {
+  icon: LucideIcon;
+  label: string;
+  /** One line on what this unlocks — honest, concrete. */
+  hint?: string;
+  onClick?: () => void;
+  /** Router path — rendered as a plain anchor-styled button by the caller when needed. */
+  disabled?: boolean;
+}
+
 export function EmptyState({
   icon: Icon,
   title,
   description,
   aiHint,
-  action
+  action,
+  steps,
 }: {
   icon: LucideIcon;
   title: string;
@@ -131,9 +144,11 @@ export function EmptyState({
   /** Optional AI-flavoured hint shown as a subtle secondary line — only pass when genuinely relevant, never fabricated. */
   aiHint?: string;
   action?: ReactNode;
+  /** Guided next actions — turns "nothing here" into "here's what to do next". Real actions only. */
+  steps?: EmptyStateStep[];
 }) {
   return (
-    <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-dashed px-6 text-center" style={{ borderColor: "var(--border-strong)" }}>
+    <div className="flex min-h-64 flex-col items-center justify-center rounded-lg border border-dashed px-6 py-10 text-center" style={{ borderColor: "var(--border-strong)" }}>
       <Icon className="mb-3" size={28} style={{ color: "var(--text-faint)" }}/>
       <h2 className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{title}</h2>
       <p className="mt-1 max-w-sm text-sm" style={{ color: "var(--text-muted)" }}>{description}</p>
@@ -142,6 +157,25 @@ export function EmptyState({
           <LogoMark size={11} className="shrink-0"/>
           {aiHint}
         </p>
+      )}
+      {steps && steps.length > 0 && (
+        <div className="mt-5 w-full max-w-md space-y-1.5 text-left">
+          {steps.map((s, i) => (
+            <button
+              key={i}
+              onClick={s.onClick}
+              disabled={s.disabled || !s.onClick}
+              className="flex w-full items-start gap-3 rounded-sm border px-3.5 py-2.5 text-left transition-colors enabled:hover:border-[var(--section-accent)] enabled:hover:bg-[var(--surface-hover)] disabled:cursor-default"
+              style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
+            >
+              <s.icon size={15} className="mt-0.5 shrink-0" style={{ color: s.disabled ? "var(--text-faint)" : "var(--section-accent)" }} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12.5px] font-medium" style={{ color: s.disabled ? "var(--text-muted)" : "var(--text-primary)" }}>{s.label}</span>
+                {s.hint && <span className="mt-0.5 block text-[11.5px] leading-snug" style={{ color: "var(--text-muted)" }}>{s.hint}</span>}
+              </span>
+            </button>
+          ))}
+        </div>
       )}
       {action ? <div className="mt-4">{action}</div> : null}
     </div>

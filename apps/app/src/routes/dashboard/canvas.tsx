@@ -387,23 +387,35 @@ export default function Canvas() {
           </div>
         </Panel>
 
-        {/* ── Empty state ── */}
+        {/* ── First-run state: an INTERACTIVE quick-start (real template gallery + node shortcuts),
+            not a passive caption. Templates are clearly labeled starting layouts — no fake content. */}
         {nodes.length === 0 && (
-          <Panel position="top-center" className="pointer-events-none" style={{ marginTop: "160px" }}>
-            <div className="flex flex-col items-center gap-3 text-center">
-              <div
-                className="flex h-14 w-14 items-center justify-center rounded-sm"
-                style={{
-                  background: "rgba(99,102,241,0.08)",
-                  border: "1px solid rgba(99,102,241,0.15)",
-                }}
-              >
-                <LogoMark size={22} className="text-stone-400/60" />
+          <Panel position="top-center" style={{ marginTop: "120px" }}>
+            <div className="w-[min(560px,92vw)] rounded-sm border px-6 py-6 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", boxShadow: "0 16px 48px -16px rgba(0,0,0,0.4)" }}>
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)" }}>
+                <LogoMark size={20} style={{ color: "var(--section-accent)" }} />
               </div>
-              <div>
-                <p className="text-sm font-semibold text-[var(--text-secondary)] mb-1">Start with a template or add a node</p>
-                <p className="text-xs text-[var(--text-secondary)]">Double-click to edit · Drag between nodes to connect</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>A blank canvas for thinking</p>
+              <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                Map ideas, plan a strategy, or sketch a system. Pick a starting layout, or add your first node from the toolbar above.
+              </p>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {Object.entries(TEMPLATES).map(([key, t]) => (
+                  <button key={key} onClick={() => loadTemplate(key)}
+                    className="flex items-start gap-2.5 rounded-sm border px-3 py-2.5 text-left transition-colors hover:border-[var(--section-accent)] hover:bg-[var(--surface-hover)]"
+                    style={{ borderColor: "var(--border-soft)" }}>
+                    <GitBranch size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
+                    <span className="min-w-0">
+                      <span className="flex items-center gap-1.5 text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>
+                        {t.label}
+                        <span className="rounded-sm px-1 py-px text-[9px] font-medium uppercase" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>Template</span>
+                      </span>
+                      <span className="mt-0.5 block text-[11px] leading-snug" style={{ color: "var(--text-muted)" }}>{t.description}</span>
+                    </span>
+                  </button>
+                ))}
               </div>
+              <p className="mt-4 text-[11px]" style={{ color: "var(--text-faint)" }}>Double-click a node to edit · drag between nodes to connect · scroll to zoom</p>
             </div>
           </Panel>
         )}

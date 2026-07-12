@@ -693,6 +693,65 @@ describe("Primary-button unification (stone → shared accent model)", () => {
   });
 });
 
+describe("Premium low-data UX — guided empty states (real actions, no fake data)", () => {
+  const callsPage = read("routes/dashboard/calls.tsx");
+  const canvasPage = read("routes/dashboard/canvas.tsx");
+  const financeReports = read("routes/dashboard/finance/reports.tsx");
+
+  it("shared EmptyState supports guided next-action steps", () => {
+    expect(pageStateSrc).toContain("export interface EmptyStateStep");
+    expect(pageStateSrc).toMatch(/steps\?: EmptyStateStep\[\]/);
+    // Steps are documented as REAL actions only.
+    expect(pageStateSrc).toContain("Never a placeholder for data that doesn't exist");
+  });
+  it("Calendar empty grid is a guided card with three real actions (no fake meetings)", () => {
+    expect(calendar).toContain("Guided empty-range card");
+    for (const k of ["cal.new_meeting", "cal.draft_agenda", "cal.suggest_followups"]) expect(calendar).toContain(k);
+  });
+  it("Inbox empty panes guide (DM + group) and stay honest about AI draft review", () => {
+    expect(messages).toContain("Create a group");
+    expect(messages).toContain("you always review before it sends");
+    expect(messages).not.toMatch(/online now|active now/i); // no fake presence language
+  });
+  it("Meeting Memory uses the shared command header + guided empty with readiness pointer", () => {
+    expect(callsPage).toMatch(/<CommandPageHeader/);
+    expect(callsPage).toContain('callsign="RECALL"');
+    expect(callsPage).toContain("Check recording readiness");
+    expect(callsPage).toContain("<DelayedLoading");
+    // Header status counts come from the real loaded list only.
+    expect(callsPage).toMatch(/all\.length > 0 \? \[/);
+  });
+  it("Canvas first-run is an interactive labeled template gallery, not a passive caption", () => {
+    expect(canvasPage).toContain("A blank canvas for thinking");
+    expect(canvasPage).toMatch(/>Template</);
+    expect(canvasPage).toMatch(/loadTemplate\(key\)/);
+  });
+  it("Sales report empty guides to real data paths; chart voids explain instead of 'No data'", () => {
+    expect(salesReport).toContain("Find leads with Discovery");
+    expect(salesReport).toContain("No records in this period");
+    expect(salesReport).not.toContain("No data for this period");
+  });
+  it("Finance report shows a guided empty instead of an all-zeros dashboard", () => {
+    expect(financeReports).toContain("No finance data yet");
+    expect(financeReports).toMatch(/invoices\.length === 0 && creditNotes\.length === 0/);
+    expect(financeReports).toContain("lg:grid-cols-2"); // top-clients grid stacks on narrow widths
+  });
+  it("Discovery first-run strip describes the REAL pipeline, no invented counts", () => {
+    expect(discovery).toContain("Source-backed results");
+    expect(discovery).toContain("Proof of work");
+    // The strip contains no numerals pretending to be results.
+    const strip = discovery.slice(discovery.indexOf("What a run actually produces"), discovery.indexOf("Straight into your graph") + 200);
+    expect(strip).not.toMatch(/\d{2,}/);
+  });
+  it("AgentCard shows an explicit honest 'no runs yet' instead of a blank", () => {
+    expect(agentConstellationSrc).toContain("no runs yet");
+    expect(agentConstellationSrc).toMatch(/!ran && agent\.evidenceCount === 0 && !ghost/);
+  });
+  it("Ask welcome carries an honest grounding line (no fake source-backed claim)", () => {
+    expect(askMondaily).toContain("Nothing is invented to fill a gap");
+  });
+});
+
 describe("landing consolidation", () => {
   it("email / start-free form is token-driven (no black-on-black dark:bg-black)", () => {
     expect(landing).not.toMatch(/dark:bg-black/);

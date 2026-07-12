@@ -305,6 +305,11 @@ export function AskMondaily() {
                   </button>
                 ))}
               </div>
+              {/* Honest capability line — describes the REAL proof model (sources render under replies
+                  only when records were actually read; memory disclosure only when memory was used). */}
+              <p className="mx-auto mt-5 max-w-sm text-[11px] leading-relaxed" style={{ color: "var(--text-faint)" }}>
+                Answers are grounded in your workspace — when records are read, they appear as sources under the reply. Nothing is invented to fill a gap.
+              </p>
             </div>
           </div>
         )}

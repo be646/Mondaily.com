@@ -1,9 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, Phone, Search, FileText, Sparkles, ListChecks, Users, Loader2, Brain, UploadCloud } from "lucide-react";
+import { CalendarClock, Phone, Search, FileText, Sparkles, ListChecks, Users, Brain, UploadCloud } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
 import { UploadRecordingModal } from "../../components/calls/upload-recording-modal";
+import { CommandPageHeader } from "../../components/ui/controls";
+import { EmptyState, DelayedLoading, PageSkeleton } from "../../components/ui/page-state";
 
 /**
  * Meeting Memory — Mondaily's after-the-fact call/meeting intelligence. Calendar owns planning + live
@@ -62,19 +64,23 @@ export function CallsPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[19px] font-semibold" style={{ color: "var(--text-primary)" }}>Meeting Memory</h1>
-          <p className="mt-1 flex items-center gap-1.5 text-[12px]" style={{ color: "var(--text-muted)" }}>
-            <Brain size={12} style={{ color: "var(--text-muted)" }} /> After-call intelligence — past meetings, recorded calls, summaries & action items.
-          </p>
-        </div>
-        <button onClick={() => setUploadOpen(true)}
-          className="flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:bg-[var(--surface-hover)]"
-          style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
-          <UploadCloud size={13} /> Import recording
-        </button>
-      </div>
+      {/* Shared command header — same rhythm as Calendar/Decisions/Discovery. Honest status:
+          real counts from the loaded memory list only; nothing implied to be running. */}
+      <CommandPageHeader
+        icon={Brain}
+        callsign="RECALL"
+        title="Meeting Memory"
+        subtitle="After-call intelligence — past meetings, recorded calls, summaries & action items."
+        status={all.length > 0 ? [
+          { label: `${counts.all} in memory`, dot: false },
+          ...(counts.needs_summary > 0 ? [{ label: `${counts.needs_summary} can be summarized`, kind: "monitoring" as const }] : []),
+        ] : []}
+        primaryAction={
+          <button onClick={() => setUploadOpen(true)} className="btn-primary text-[12px] font-semibold">
+            <UploadCloud size={13} /> Import recording
+          </button>
+        }
+      />
 
       {uploadOpen && <UploadRecordingModal onClose={() => setUploadOpen(false)}
         onDone={(id) => { setUploadOpen(false); qc.invalidateQueries({ queryKey: ["meeting-memory"] }); navigate(`/calls/${id}`); }} />}
@@ -97,13 +103,22 @@ export function CallsPage() {
       </div>
 
       {query.isLoading ? (
-        <div className="flex items-center gap-2 rounded-md border py-12 px-4 text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> Loading…</div>
+        <DelayedLoading onRetry={() => query.refetch()}><PageSkeleton rows={5} label="Loading meeting memory…" /></DelayedLoading>
       ) : rows.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-md border py-16 text-center" style={{ borderColor: "var(--border-soft)" }}>
-          <Brain size={22} style={{ color: "var(--text-faint)" }} />
-          <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>No meeting memories yet.</p>
-          <p className="max-w-xs text-[12px]" style={{ color: "var(--text-faint)" }}>Completed calendar meetings and recorded calls will appear here.</p>
-        </div>
+        // Guided empty state — every step is a real action; readiness lives in Settings → Calls
+        // (booleans only). Nothing here pretends a transcript or meeting exists.
+        <EmptyState
+          icon={Brain}
+          title={all.length === 0 ? "No meeting memories yet" : "Nothing matches this filter"}
+          description={all.length === 0
+            ? "Completed calendar meetings and recorded calls land here with their transcript, AI summary, and action items."
+            : "Switch tabs or clear the search to see the rest of your meeting history."}
+          steps={all.length === 0 ? [
+            { icon: UploadCloud, label: "Import a recording", hint: "Upload an audio file from any past call — transcription runs when speech-to-text is configured.", onClick: () => setUploadOpen(true) },
+            { icon: CalendarClock, label: "Schedule a meeting", hint: "Completed calendar meetings appear here automatically.", onClick: () => navigate("/calendar") },
+            { icon: ListChecks, label: "Check recording readiness", hint: "See exactly what's configured (recording, transcription, playback) — status only, fail-closed.", onClick: () => navigate("/settings/calls") },
+          ] : undefined}
+        />
       ) : (
         <div className="overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
           {rows.map((m, i) => (

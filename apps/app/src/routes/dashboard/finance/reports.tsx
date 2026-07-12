@@ -7,7 +7,9 @@ import { FieldSelect } from "../../../components/ui/controls";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { TrendingUp, DollarSign, Clock, MinusCircle } from "lucide-react";
+import { TrendingUp, DollarSign, Clock, MinusCircle, FileText, ReceiptText, BarChart2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { EmptyState } from "../../../components/ui/page-state";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
 
@@ -80,6 +82,7 @@ const REASON_LABELS: Record<string, string> = {
 };
 
 export function FinanceReportsPage() {
+  const navigate = useNavigate();
   const { data: invoices = [], isError: invoicesError, refetch: refetchInvoices } = useQuery<Invoice[]>({
     queryKey: ["invoices-all"],
     queryFn: () => apiClient.get<Invoice[]>("/invoices"),
@@ -202,6 +205,20 @@ export function FinanceReportsPage() {
             </div>
           )}
 
+          {/* A dashboard of zeros reads as broken — when there's genuinely no finance data yet,
+              guide instead. The full dashboard renders the moment a single invoice/credit exists. */}
+          {!invoicesError && invoices.length === 0 && creditNotes.length === 0 && (
+            <EmptyState
+              icon={BarChart2}
+              title="No finance data yet"
+              description="Revenue, client breakdown, and credit analysis compute live from your invoices and credit notes — the full dashboard appears with your first document."
+              steps={[
+                { icon: FileText, label: "Create your first invoice", hint: "Draft, send, and track payment — this report updates instantly.", onClick: () => navigate("/finance") },
+                { icon: ReceiptText, label: "Draft a quote", hint: "Quotes convert to invoices when accepted, feeding revenue here.", onClick: () => navigate("/finance/quotes") },
+              ]}
+            />
+          )}
+
           {/* Summary cards */}
           <div className="telemetry-strip">
             <div>
@@ -258,7 +275,7 @@ export function FinanceReportsPage() {
           </div>
 
           {/* Top clients + Status breakdown */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 lg:grid-cols-2">
             {/* Top clients */}
             <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]">
               <div className="border-b border-[var(--border-soft)] px-4 py-3">

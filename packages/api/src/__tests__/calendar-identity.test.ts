@@ -17,9 +17,11 @@ describe("premium identity improvements present", () => {
     const coPilot = cal.slice(cal.indexOf("function CoPilot"));
     expect(coPilot).toMatch(/<Wand2 size=\{9\}/);
   });
-  it("empty grid state shows a calm calendar icon (still honest actions below)", () => {
+  it("empty grid state shows a calm calendar icon (now inside the guided card's accent tile)", () => {
     const empty = cal.slice(cal.indexOf("function GridEmpty"), cal.indexOf("function TodayBriefingPanel"));
-    expect(empty).toMatch(/<CalendarDays size=\{24\}/);
+    expect(empty).toMatch(/<CalendarDays size=\{15\}/);
+    // Still honest real actions — the guided card carries the same three handlers.
+    for (const h of ["onCreate", "onDraft", "onFollowups"]) expect(empty).toContain(h);
   });
 });
 

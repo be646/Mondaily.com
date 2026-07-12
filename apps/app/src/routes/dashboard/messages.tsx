@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Send, User as UserIcon, Inbox as InboxIcon, Archive, Plus, X, Search, Copy, Trash2, Sparkles, ArrowLeft, Check, CheckCheck, Paperclip, FileText, Download } from "lucide-react";
+import { Loader2, Send, User as UserIcon, Inbox as InboxIcon, Archive, Plus, X, Search, Copy, Trash2, Sparkles, ArrowLeft, Check, CheckCheck, Paperclip, FileText, Download, UsersRound } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useTableRealtime } from "../../hooks/useTableRealtime";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -140,13 +140,27 @@ export function MessagesPage() {
           ) : inboxQ.isError ? (
             <ErrorState error={new Error("Couldn't load your inbox right now.")} onRetry={() => inboxQ.refetch()} />
           ) : inbox.length === 0 && !active ? (
-            <div className="px-4 py-12 text-center">
-              <InboxIcon size={20} className="mx-auto mb-2.5" style={{ color: "var(--text-faint)" }} />
-              <p className="mb-3 text-[12.5px]" style={{ color: "var(--text-muted)" }}>{t("inbox.empty_title")}</p>
-              <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]"
-                style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
-                <Plus size={13} /> {t("inbox.message_teammate")}
-              </button>
+            // Guided empty list — real starting points, honest about what each does. No fake threads.
+            <div className="px-3 py-10">
+              <InboxIcon size={20} className="mx-auto mb-2.5 block" style={{ color: "var(--text-faint)" }} />
+              <p className="mb-1 text-center text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{t("inbox.empty_title")}</p>
+              <p className="mb-4 text-center text-[11.5px] leading-snug" style={{ color: "var(--text-muted)" }}>Conversations with your workspace members live here — private, inside Mondaily.</p>
+              <div className="space-y-1.5">
+                {[
+                  { icon: Plus, label: t("inbox.message_teammate"), hint: "Start a direct message with anyone in this workspace." },
+                  { icon: UsersRound, label: "Create a group", hint: "A shared thread for a team or project — members only." },
+                ].map((s, i) => (
+                  <button key={i} onClick={() => setPickerOpen(true)}
+                    className="flex w-full items-start gap-2.5 rounded-sm border px-3 py-2 text-left transition-colors hover:border-[var(--section-accent)] hover:bg-[var(--surface-hover)]"
+                    style={{ borderColor: "var(--border-soft)" }}>
+                    <s.icon size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
+                    <span className="min-w-0">
+                      <span className="block text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</span>
+                      <span className="mt-0.5 block text-[11px] leading-snug" style={{ color: "var(--text-muted)" }}>{s.hint}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto">
@@ -199,7 +213,11 @@ export function MessagesPage() {
           : active ? <Thread otherId={active} live={live.current} onSent={() => { qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onArchived={() => { setActive(""); qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onBack={() => setActive("")} />
           : <div className="hidden items-center justify-center rounded-sm border lg:flex" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               <EmptyState icon={InboxIcon} title={t("inbox.select_conversation")} description={t("inbox.subtitle")}
-                action={<button onClick={() => setPickerOpen(true)} className="btn-secondary text-[12px]"><Plus size={13} /> {t("inbox.new_message")}</button>} />
+                aiHint="Once you're chatting, the ✦ button drafts a message with AI — you always review before it sends."
+                steps={[
+                  { icon: Plus, label: t("inbox.new_message"), hint: "Direct message any workspace member.", onClick: () => setPickerOpen(true) },
+                  { icon: UsersRound, label: "Create a group", hint: "A membership-guarded thread for a team or project.", onClick: () => setPickerOpen(true) },
+                ]} />
             </div>}
       </div>
     </div>

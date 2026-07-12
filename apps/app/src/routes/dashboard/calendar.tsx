@@ -486,20 +486,33 @@ function MonthGrid({ days, monthOf, events, selected, today, onOpen, onPickDay, 
   );
 }
 
-/** A small native-calendar placeholder inside the grid when the range is empty — not a big floating box. */
+/** Guided empty-range card floated over the grid — real next actions with honest hints on what each
+ *  unlocks (no fake meetings, no invented counts). Compact so the day grid stays the hero. */
 function GridEmpty({ hint, onCreate, onDraft, onFollowups, t }: { hint: string; onCreate: () => void; onDraft: () => void; onFollowups: () => void; t: (k: string) => string }) {
-  const link = "text-[12px] font-medium transition-colors hover:text-[color:var(--text-primary)]";
+  const steps: { icon: typeof Plus; label: string; hint: string; run: () => void }[] = [
+    { icon: Plus, label: t("cal.new_meeting"), hint: "Click any empty slot in the grid, or start here — attendees get real invites.", run: onCreate },
+    { icon: Sparkles, label: t("cal.draft_agenda"), hint: "The Meeting Agent drafts an agenda into the form — you review before saving.", run: onDraft },
+    { icon: ListChecks, label: t("cal.suggest_followups"), hint: "Open your real task list — meetings link their follow-ups here.", run: onFollowups },
+  ];
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center pt-14">
-      <div className="pointer-events-auto flex flex-col items-center gap-1.5 text-center">
-        <CalendarDays size={24} className="mb-0.5" style={{ color: "var(--text-faint)" }} />
-        <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{hint}</p>
-        <div className="flex flex-wrap items-center justify-center gap-1.5" style={{ color: "var(--text-faint)" }}>
-          <button onClick={onCreate} className={link} style={{ color: "var(--text-secondary)" }}>{t("cal.new_meeting")}</button>
-          <span>·</span>
-          <button onClick={onDraft} className={link} style={{ color: "var(--text-secondary)" }}>{t("cal.draft_agenda")}</button>
-          <span>·</span>
-          <button onClick={onFollowups} className={link} style={{ color: "var(--text-secondary)" }}>{t("cal.suggest_followups")}</button>
+    <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center pt-12">
+      <div className="pointer-events-auto w-full max-w-sm rounded-sm border px-4 py-4 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        <div className="mb-3 flex items-center gap-2.5">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)" }}><CalendarDays size={15} style={{ color: "var(--section-accent)" }} /></span>
+          <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{hint}</p>
+        </div>
+        <div className="space-y-1.5">
+          {steps.map((s, i) => (
+            <button key={i} onClick={s.run}
+              className="flex w-full items-start gap-2.5 rounded-sm border px-3 py-2 text-left transition-colors hover:border-[var(--section-accent)] hover:bg-[var(--surface-hover)]"
+              style={{ borderColor: "var(--border-soft)" }}>
+              <s.icon size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
+              <span className="min-w-0">
+                <span className="block text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</span>
+                <span className="mt-0.5 block text-[11px] leading-snug" style={{ color: "var(--text-muted)" }}>{s.hint}</span>
+              </span>
+            </button>
+          ))}
         </div>
       </div>
     </div>

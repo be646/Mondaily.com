@@ -4,7 +4,10 @@ import { LogoMark } from "@/components/logo";
 import {
   Printer, TrendingUp, TrendingDown, Minus, ArrowLeft, ChevronDown,
   Download, Target, X, ChevronRight, Filter, Loader2, AlertCircle, Mail, Plus, Trash2, Bookmark,
+  Database, UploadCloud, Radar, BarChart2,
 } from "lucide-react";
+import { EmptyState } from "../../../components/ui/page-state";
+import { useNavigate } from "react-router-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
@@ -844,6 +847,10 @@ export function SalesReportPage() {
 
   const [selectedSlug, setSelectedSlug] = useState<string>("");
   const activeSlug = selectedSlug || defaultSlug;
+  // Guided-empty-state destinations — real routes that put data behind this report.
+  const navigate = useNavigate();
+  const navigateToObjects = useCallback(() => navigate(`/objects/${activeSlug}`), [navigate, activeSlug]);
+  const navigateToDiscovery = useCallback(() => navigate("/discovery"), [navigate]);
 
   const handleObjectChange = useCallback((slug: string) => {
     setSelectedSlug(slug);
@@ -1300,15 +1307,18 @@ export function SalesReportPage() {
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-stone-500/30 border-t-[#9c6b72]"/>
           </div>
         ) : records.length === 0 ? (
-          <div className="flex h-64 flex-col items-center justify-center gap-3 text-center">
-            <p className="text-[var(--text-faint)] text-sm">No {objLabel} records found.</p>
-            <Link to={`/objects/${activeSlug}`} className="text-sm text-[var(--text-faint)] hover:text-[var(--text-faint)]">
-              Go to {objLabel} →
-            </Link>
-            {objects.length > 1 && (
-              <p className="text-xs text-[var(--text-secondary)]">Or pick a different object type above</p>
-            )}
-          </div>
+          // Guided empty report — real ways to get data in. The report recomputes live the moment
+          // records exist; nothing here shows placeholder numbers.
+          <EmptyState
+            icon={BarChart2}
+            title={`No ${objLabel} records yet`}
+            description={`This report computes live from your ${objLabel.toLowerCase()} — KPIs, trends, and AI insights appear the moment records exist.${objects.length > 1 ? " You can also pick a different object type above." : ""}`}
+            steps={[
+              { icon: Database, label: `Add your first ${objLabel.toLowerCase()}`, hint: "Create records directly in the sheet — the report updates instantly.", onClick: () => navigateToObjects() },
+              { icon: UploadCloud, label: "Import a CSV", hint: "Bring existing data across — the importer maps your columns.", onClick: () => navigateToObjects() },
+              { icon: Radar, label: "Find leads with Discovery", hint: "Search the web for source-backed leads and save them into your graph.", onClick: () => navigateToDiscovery() },
+            ]}
+          />
         ) : (
           <>
             {/* Goal dialog */}
@@ -1406,7 +1416,7 @@ export function SalesReportPage() {
                   <span className="text-[10px] text-[var(--text-secondary)] print:hidden">Clean trend</span>
                 </div>
                 {trendData.length === 0 ? (
-                  <div className="flex h-48 items-center justify-center text-xs text-[var(--text-secondary)]">No data for this period</div>
+                  <div className="flex h-48 flex-col items-center justify-center gap-1 text-center"><span className="text-xs" style={{ color: "var(--text-muted)" }}>No records in this period</span><span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Widen the date range above, or add records — the trend draws itself from real data.</span></div>
                 ) : (
                   <div className="relative">
                     <Sparkline values={trendData.map(item => hasValue ? item.revenue : item.count)} />
@@ -1445,7 +1455,7 @@ export function SalesReportPage() {
               <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-[var(--border-soft)] print:bg-white">
                 <h3 className="mb-4 text-sm font-semibold print:text-black">Activity Over Time</h3>
                 {trendData.length === 0 ? (
-                  <div className="flex h-48 items-center justify-center text-xs text-[var(--text-secondary)]">No data for this period</div>
+                  <div className="flex h-48 flex-col items-center justify-center gap-1 text-center"><span className="text-xs" style={{ color: "var(--text-muted)" }}>No records in this period</span><span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Widen the date range above, or add records — the trend draws itself from real data.</span></div>
                 ) : (
                   <Sparkline values={trendData.map(item => item.count)} />
                 )}
