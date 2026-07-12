@@ -99,3 +99,51 @@ Plain HTTP means the token crosses the internet unencrypted. Point a subdomain a
 (e.g. `search.mondaily.com`), then in `Caddyfile` change `:8080 {` → `search.mondaily.com {`
 and `:3002 {` → `scrape.mondaily.com {`, drop `auto_https off`, and Caddy auto-provisions TLS.
 Then use `https://…` URLs (no port) in the Vercel vars.
+
+## API contract (what the Mondaily API expects from this appliance)
+
+Everything in `packages/api` reaches the appliance through `lib/sovereign-search.ts` — this is
+the single client. Any replacement appliance must honor this contract.
+
+### Auth
+Every request carries `Authorization: Bearer <SOVEREIGN_SEARCH_KEY>` when the key is set.
+The appliance MUST reject unauthenticated requests (Caddy enforces this) so it is never an
+open proxy. The token is only ever read from env — it is never logged, stored, or shown in
+any UI (readiness surfaces report booleans/status only).
+
+### Search — `GET {SOVEREIGN_SEARCH_URL}?q=<query>&format=json&language=en-US&engines=<list>`
+SearXNG JSON shape. Required response:
+
+```json
+{ "results": [ { "url": "https://…", "title": "…", "content": "snippet…" } ] }
+```
+
+- `url` is required per result; `title`/`content` feed candidate ranking and lead snippets.
+- Engine list comes from `SOVEREIGN_SEARCH_ENGINES` (default `qwant,yahoo` — datacenter-reliable).
+- Non-200 / malformed JSON / connection error ⇒ the client returns `[]` (fail-closed, never throws).
+- The discovery worker staggers queries (batches of 2, 1.2s apart) — the appliance should expect
+  low, bursty QPS, not sustained load. No server-side rate limiting is required beyond that.
+
+### Scrape — `POST {SOVEREIGN_SCRAPE_URL}` with `{"url": "...", "formats": ["markdown"], "deep": bool}`
+Required response (either nesting accepted):
+
+```json
+{ "markdown": "# page as markdown…" }        // or { "data": { "markdown": "…" } }
+```
+
+- `deep: true` ⇒ scroll the page to load lazy content (review/listing pages) before extracting.
+- Non-200 / error ⇒ client returns `""`; the lead is NOT fabricated and the page counts as skipped.
+- Successful scrapes are cached 24h client-side (`discovery-cache`), so re-runs don't re-fetch.
+
+### Health
+- Search: `GET {origin}/healthz` (SearXNG) — 200 when up.
+- Scraper: `GET {origin}/health` — 200 when up.
+- `GET /api/v1/discovery/status` on the Mondaily API probes both (8s timeout each) and returns
+  `HEALTHY | DEGRADED` + a precise `diagnostic` string; env presence is reported as booleans only.
+
+### Privacy / sovereignty invariants
+- Queries and scraped pages go ONLY to this appliance — no third-party search/scrape SaaS
+  (no Tavily/SerpAPI/Firecrawl/etc.); enforced by `sovereignty.test.ts`.
+- The appliance must not log request bodies/queries beyond transient operational logs.
+- Missing env ⇒ every caller fails closed (empty results + an honest "not configured" reason
+  surfaced to the user); nothing silently falls back to an external provider.

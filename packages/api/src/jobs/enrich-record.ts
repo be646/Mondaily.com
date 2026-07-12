@@ -1,5 +1,5 @@
 import { inngest, type Events } from "../lib/inngest";
-import { sovereignHeaders } from "../lib/sovereign-search";
+import { sovereignSearchUrls, sovereignScrape } from "../lib/sovereign-search";
 import { startJob, completeJob, failJob, logStep, step } from "../lib/agent-logger";
 import { supabase } from "@mondaily/db/client";
 import { createNotification } from "../lib/notify";
@@ -36,50 +36,17 @@ function flattenEnrichment(fields: Record<string, unknown>): Record<string, unkn
 }
 
 // ── Sovereign search + deep extraction ──────────────────────────────────────
-// Self-hosted SearXNG (private metasearch → JSON results) + crw (JS-render
-// scraper → ad-free Markdown). No third-party search meter.
-const SOVEREIGN_SEARCH_URL = process.env.SOVEREIGN_SEARCH_URL || "http://localhost:8080/search";
-const SOVEREIGN_SCRAPE_URL = process.env.SOVEREIGN_SCRAPE_URL || "http://localhost:3000/v2/scrape";
+// Routes through the SHARED appliance client (lib/sovereign-search): same fail-loud behavior in
+// production (no unconditional localhost default that can't exist on Vercel), same bearer auth,
+// same reliable engine pinning, and the 24h scrape cache. This file previously carried its own
+// duplicate fetch client with a prod localhost fallback and a stale scrape port.
 
-/** Query the private SearXNG index → top result URLs. */
-async function searxngUrls(query: string, limit = 4): Promise<string[]> {
-  try {
-    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json`;
-    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() } });
-    if (!res.ok) {
-      console.error(`[search] searxng HTTP ${res.status}`);
-      return [];
-    }
-    const data = await res.json() as { results?: { url?: string }[] };
-    return (data.results ?? []).map(r => r.url).filter((u): u is string => typeof u === "string" && u.length > 0).slice(0, limit);
-  } catch (e) {
-    console.error("[search] searxng error:", e instanceof Error ? e.message : String(e));
-    return [];
-  }
-}
-
-/** Render + convert one page to clean Markdown via the self-hosted scraper. */
-async function scrapeMarkdown(targetUrl: string): Promise<string> {
-  try {
-    const res = await fetch(SOVEREIGN_SCRAPE_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...sovereignHeaders() },
-      body: JSON.stringify({ url: targetUrl, formats: ["markdown"] }),
-    });
-    if (!res.ok) return "";
-    const data = await res.json() as { markdown?: string; content?: string; data?: { markdown?: string; content?: string } };
-    return data.markdown ?? data.data?.markdown ?? data.content ?? data.data?.content ?? "";
-  } catch {
-    return "";
-  }
-}
-
-/** Full sweep: private search → scrape the top pages → joined Markdown context. */
+/** Full sweep: private search → scrape the top pages → joined, URL-attributed Markdown context. */
 async function sovereignSearch(query: string): Promise<string> {
-  const urls = await searxngUrls(query);
+  const urls = await sovereignSearchUrls(query, 4);
   if (urls.length === 0) return "";
   const pages = await Promise.all(
-    urls.slice(0, 3).map(u => scrapeMarkdown(u).then(md => (md ? `Source: ${u}\n${md.slice(0, 1500)}` : ""))),
+    urls.slice(0, 3).map(u => sovereignScrape(u).then(md => (md ? `Source: ${u}\n${md.slice(0, 1500)}` : ""))),
   );
   return pages.filter(Boolean).join("\n\n");
 }

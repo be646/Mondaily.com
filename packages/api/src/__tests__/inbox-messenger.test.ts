@@ -37,7 +37,8 @@ describe("hierarchy improvements", () => {
   });
   it("DM vs Groups separation kept + no-thread placeholder has an icon", () => {
     expect(inbox).toMatch(/Direct messages/);
-    expect(inbox).toMatch(/<InboxIcon size=\{26\}[^]*?inbox\.select_conversation/);
+    // Placeholder is now the shared EmptyState primitive, still icon + select-conversation copy.
+    expect(inbox).toMatch(/<EmptyState icon=\{InboxIcon\}[^]*?inbox\.select_conversation/);
   });
 });
 
