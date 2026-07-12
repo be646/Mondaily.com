@@ -267,8 +267,8 @@ export function DiscoveryPage() {
         />
       </div>
 
-      {view === "chat" && <ModuleStrip />}
-
+      {/* "How Discovery works" now renders only inside the first-run empty view (below the Try
+          examples) — during and after real runs the per-turn proof strip carries the story. */}
       {icpOpen && view === "chat" && (
         <div className="mb-3 rounded-sm border px-3 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
           <p className="mb-1.5 text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>Your ideal customer</p>
@@ -395,23 +395,13 @@ function Empty({ onPick }: { onPick: (q: string) => void }) {
           </button>
         ))}
       </div>
-      {/* What a run actually produces — describes the REAL pipeline output (source-backed results +
-          per-run proof strip + save-to-graph). Teaches without faking a single lead or count. */}
-      <div className="mt-5 grid gap-2 sm:grid-cols-3">
-        {[
-          { icon: Globe2, label: "Source-backed results", hint: "Every lead links to the real page it came from — nothing invented." },
-          { icon: ShieldCheck, label: "Proof of work", hint: "Each run shows pages checked, leads found, and AI calls used." },
-          { icon: Plus, label: "Straight into your graph", hint: "Save leads as records, add to lists, or queue for approval." },
-        ].map((f, i) => (
-          <div key={i} className="flex items-start gap-2.5 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            <f.icon size={14} className="mt-0.5 shrink-0" style={{ color: "var(--text-muted)" }} />
-            <span className="min-w-0">
-              <span className="block text-[12px] font-medium" style={{ color: "var(--text-secondary)" }}>{f.label}</span>
-              <span className="mt-0.5 block text-[11px] leading-snug" style={{ color: "var(--text-faint)" }}>{f.hint}</span>
-            </span>
-          </div>
-        ))}
-      </div>
+      {/* One quiet honesty line instead of pre-run cards — proof of work belongs AFTER a real run
+          (the per-turn ProofOfWorkStrip), not as marketing before it. */}
+      <p className="mt-4 text-[11px]" style={{ color: "var(--text-faint)" }}>
+        Every result links to the real page it came from — each run shows the pages checked and leads found.
+      </p>
+      {/* Reference disclosure lives quietly below the examples, not above the composer. */}
+      <div className="mt-4"><ModuleStrip /></div>
     </div>
   );
 }

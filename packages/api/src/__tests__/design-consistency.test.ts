@@ -736,12 +736,18 @@ describe("Premium low-data UX — guided empty states (real actions, no fake dat
     expect(financeReports).toMatch(/invoices\.length === 0 && creditNotes\.length === 0/);
     expect(financeReports).toContain("lg:grid-cols-2"); // top-clients grid stacks on narrow widths
   });
-  it("Discovery first-run strip describes the REAL pipeline, no invented counts", () => {
-    expect(discovery).toContain("Source-backed results");
-    expect(discovery).toContain("Proof of work");
-    // The strip contains no numerals pretending to be results.
-    const strip = discovery.slice(discovery.indexOf("What a run actually produces"), discovery.indexOf("Straight into your graph") + 200);
-    expect(strip).not.toMatch(/\d{2,}/);
+  it("Discovery pre-run surface is CALM: no marketing cards, one honesty line, disclosure below examples", () => {
+    // The three pre-run value cards are gone — proof of work appears only after a real run.
+    expect(discovery).not.toContain("Source-backed results");
+    expect(discovery).not.toContain("What a run actually produces");
+    // One quiet honesty line replaces them.
+    expect(discovery).toContain("Every result links to the real page it came from");
+    // "How Discovery works" renders ONLY inside the empty view (below Try), not above the composer.
+    expect(discovery).not.toMatch(/\{view === "chat" && <ModuleStrip \/>\}/);
+    const emptyFn = discovery.slice(discovery.indexOf("function Empty"), discovery.indexOf("function TurnView"));
+    expect(emptyFn).toContain("<ModuleStrip />");
+    // Per-run proof strip still present for real runs.
+    expect(discovery).toMatch(/<ProofOfWorkStrip/);
   });
   it("AgentCard shows an explicit honest 'no runs yet' instead of a blank", () => {
     expect(agentConstellationSrc).toContain("no runs yet");
