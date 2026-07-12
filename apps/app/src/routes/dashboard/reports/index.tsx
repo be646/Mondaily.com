@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { EmptyState, PageSkeletonCards } from "../../../components/ui/page-state";
+import { EmptyState, PageSkeletonCards, DelayedLoading, ErrorState } from "../../../components/ui/page-state";
 import { CommandPageHeader } from "../../../components/ui/controls";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
@@ -91,32 +91,44 @@ export function ReportsPage() {
           <Zap size={14} style={{ color: "var(--text-muted)" }} />
           <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Live Reports</h2>
           <span className="rounded-full border px-2 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)", color: "var(--text-muted)" }}>
-            Auto-detects value, status &amp; trends · AI insights included
+            Computed live from your records · AI insights on demand
           </span>
         </div>
 
         {objectsQ.isLoading ? (
-          <PageSkeletonCards count={3} label="Loading reports…"/>
+          <DelayedLoading onRetry={() => objectsQ.refetch()}><PageSkeletonCards count={3} label="Loading reports…"/></DelayedLoading>
+        ) : objectsQ.isError ? (
+          <ErrorState error={objectsQ.error as Error} onRetry={() => objectsQ.refetch()} />
         ) : objects.length === 0 ? (
-          <p className="text-sm" style={{ color: "var(--text-faint)" }}>No object types found in this workspace.</p>
+          <EmptyState icon={BarChart2} title="No object types yet" description="Reports appear here once your workspace has record types to analyse." />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {objects.map(obj => (
               <Link
                 key={obj.slug}
                 to={`/reports/sales?object=${obj.slug}`}
-                className="group flex items-center gap-4 overflow-hidden rounded-sm border p-4 transition-colors hover:border-[var(--section-accent)]"
+                className="group flex flex-col gap-2.5 overflow-hidden rounded-sm border p-4 transition-colors hover:border-[var(--section-accent)]"
                 style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border"
-                  style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>
-                  <BarChart2 size={18} />
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border"
+                    style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>
+                    <BarChart2 size={18} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{obj.name_plural}</p>
+                    {/* Honest scope — live reports recompute from real records on open (no stored run). */}
+                    <p className="mt-0.5 truncate text-[11px]" style={{ color: "var(--text-muted)" }}>Computed from your {obj.name_plural.toLowerCase()} on open</p>
+                  </div>
+                  <ArrowRight size={14} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{obj.name_plural}</p>
-                  <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted)" }}>KPIs · charts · AI insights · filters</p>
+                {/* Real capabilities every live report provides — AI is "on demand" (generated on the
+                    report page), never claimed as pre-computed. */}
+                <div className="flex flex-wrap gap-1">
+                  {["KPIs", "Charts", "Filters", "AI insights on demand"].map(cap => (
+                    <span key={cap} className="rounded-sm border px-1.5 py-0.5 text-[9.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{cap}</span>
+                  ))}
                 </div>
-                <ArrowRight size={14} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
               </Link>
             ))}
           </div>
@@ -143,7 +155,7 @@ export function ReportsPage() {
         </div>
 
         {dashboardsQ.isLoading ? (
-          <PageSkeletonCards count={3} label="Loading dashboards…"/>
+          <DelayedLoading onRetry={() => dashboardsQ.refetch()}><PageSkeletonCards count={3} label="Loading dashboards…"/></DelayedLoading>
         ) : dashboardsQ.data?.length ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {dashboardsQ.data.map(dashboard => {

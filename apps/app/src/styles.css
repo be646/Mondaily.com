@@ -277,8 +277,9 @@ body {
 }
 .telemetry-strip {
   display: flex;
+  flex-wrap: wrap; /* wrap stat cards onto multiple rows on narrow widths instead of clipping /
+                      horizontally scrolling the totals (Finance Reports responsive fix). */
   align-items: stretch;
-  overflow-x: auto;
   border-top: 1px solid var(--border-soft);
   border-bottom: 1px solid var(--border-soft);
   background: transparent;

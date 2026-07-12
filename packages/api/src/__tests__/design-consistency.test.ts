@@ -410,6 +410,26 @@ describe("debt-closure pass — Decisions dossier unification + colour system", 
   });
 });
 
+describe("Reports control room — honest cards + responsive finance stats + real loading states", () => {
+  it("Reports index uses shared header + honest loading/empty/error (no skeleton-only)", () => {
+    expect(reportsIndex).toMatch(/<CommandPageHeader/);
+    expect(reportsIndex).toMatch(/<DelayedLoading onRetry=/);
+    expect(reportsIndex).toMatch(/<ErrorState /);
+    expect(reportsIndex).toMatch(/<EmptyState /);
+  });
+  it("Report cards make NO fake AI claim — AI insights are 'on demand', scope is honest 'computed on open'", () => {
+    expect(reportsIndex).not.toContain("AI insights included");   // implied pre-computed → removed
+    expect(reportsIndex).toContain("AI insights on demand");
+    expect(reportsIndex).toContain("Computed from your");
+    // Report links + dashboard creation preserved.
+    expect(reportsIndex).toContain("reports/sales?object=");
+    expect(reportsIndex).toContain("createDashboard");
+  });
+  it("Finance report stat cards wrap responsively (no horizontal clipping of totals)", () => {
+    expect(stylesCss).toMatch(/\.telemetry-strip\s*\{[^}]*flex-wrap:\s*wrap/);
+  });
+});
+
 describe("Team Oversight — shared MetricGrid + AI-action query bar (one metric look)", () => {
   it("a shared MetricGrid primitive exists and Team Oversight uses it (no bespoke metric tile grids)", () => {
     expect(controls).toMatch(/export function MetricGrid/);
