@@ -137,16 +137,16 @@ export function MembersSettings() {
         <div className="mb-5 flex flex-wrap items-center gap-2">
           <input
             value={emails} onChange={e => setEmails(e.target.value)} placeholder="teammate@company.com"
-            className="h-9 min-w-[220px] flex-1 rounded-md border bg-transparent px-3 text-sm outline-none focus:border-[color:var(--section-accent)]"
+            className="h-9 min-w-[220px] flex-1 rounded-sm border bg-transparent px-3 text-sm outline-none focus:border-[color:var(--section-accent)]"
             style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}
           />
           <button onClick={() => sendInvite.mutate()} disabled={!emails.includes("@") || sendInvite.isPending}
-            className="flex h-9 items-center gap-2 rounded-md px-4 text-sm font-semibold text-black transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex h-9 items-center gap-2 rounded-sm px-4 text-sm font-semibold text-black transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             style={{ background: "var(--accent)" }}>
             <UserPlus size={14} /> {sendInvite.isPending ? "Inviting…" : "Invite"}
           </button>
           <button onClick={copyInviteLink}
-            className="flex h-9 items-center gap-2 rounded-md border px-4 text-sm font-medium transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]"
+            className="flex h-9 items-center gap-2 rounded-sm border px-4 text-sm font-medium transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]"
             style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
             {copied ? <><Check size={14} className="text-[#5f8169]" /> Copied</> : <><Copy size={14} /> Copy link</>}
           </button>
@@ -201,8 +201,8 @@ export function MembersSettings() {
                   <td className="py-3">
                     <div className="flex items-center gap-2.5">
                       {m?.image_url
-                        ? <img src={m.image_url} alt="" className="h-7 w-7 shrink-0 rounded-md object-cover" />
-                        : <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[11px] font-semibold text-[var(--text-faint)]">
+                        ? <img src={m.image_url} alt="" className="h-7 w-7 shrink-0 rounded-sm object-cover" />
+                        : <span className="grid h-7 w-7 shrink-0 place-items-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[11px] font-semibold text-[var(--text-faint)]">
                             {(m?.name || m?.email || "?").trim().charAt(0).toUpperCase() || "?"}
                           </span>}
                       <div className="min-w-0 max-w-[240px]">
@@ -229,7 +229,7 @@ export function MembersSettings() {
                         <button
                           onClick={() => setExpanded(expanded === m?.id ? null : (m?.id ?? null))}
                           disabled={!m?.id}
-                          className="inline-flex w-max shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]"
+                          className="inline-flex w-max shrink-0 items-center gap-1.5 whitespace-nowrap rounded-sm border px-2.5 py-1.5 text-xs font-medium transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]"
                           style={{ borderColor: expanded === m?.id ? "var(--section-accent)" : "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}
                         >
                           <SlidersHorizontal size={12} className="shrink-0" />
@@ -252,12 +252,12 @@ export function MembersSettings() {
                         <span className="inline-flex items-center gap-1.5 text-[11px]">
                           <span className="text-[var(--text-faint)]">Remove?</span>
                           <button onClick={() => { remove.mutate(m.id!); setConfirmRemove(null); }}
-                            className="rounded-md border border-[#9c6b72]/40 px-2 py-1 font-medium text-[#9c6b72] hover:bg-[#9c6b72]/10">Yes, remove</button>
+                            className="rounded-sm border border-[#9c6b72]/40 px-2 py-1 font-medium text-[#9c6b72] hover:bg-[#9c6b72]/10">Yes, remove</button>
                           <button onClick={() => setConfirmRemove(null)}
-                            className="rounded-md border px-2 py-1 text-[var(--text-faint)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>Cancel</button>
+                            className="rounded-sm border px-2 py-1 text-[var(--text-faint)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>Cancel</button>
                         </span>
                       ) : (
-                        <button onClick={() => setConfirmRemove(m.id!)} className="rounded-md p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[#9c6b72]/10 hover:text-[#9c6b72]" title="Remove operator">
+                        <button onClick={() => setConfirmRemove(m.id!)} className="rounded-sm p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[#9c6b72]/10 hover:text-[#9c6b72]" title="Remove operator">
                           <Trash2 size={14} />
                         </button>
                       )
@@ -274,11 +274,11 @@ export function MembersSettings() {
                         {isAdmin && !isOwner && m?.id && (
                           <div className="flex items-center gap-2">
                             <button onClick={() => setAllModules.mutate({ id: m.id!, map: Object.fromEntries(modules.map(md => [md.key, "none"])) })}
-                              className="rounded-md border px-2 py-1 text-[11px] text-[var(--text-faint)] transition-colors hover:border-[#9c6b72]/40 hover:text-[#9c6b72]" style={{ borderColor: "var(--border-soft)" }}>
+                              className="rounded-sm border px-2 py-1 text-[11px] text-[var(--text-faint)] transition-colors hover:border-[#9c6b72]/40 hover:text-[#9c6b72]" style={{ borderColor: "var(--border-soft)" }}>
                               Revoke all access
                             </button>
                             <button onClick={() => setAllModules.mutate({ id: m.id!, map: {} })}
-                              className="rounded-md border px-2 py-1 text-[11px] text-[var(--text-faint)] transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>
+                              className="rounded-sm border px-2 py-1 text-[11px] text-[var(--text-faint)] transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>
                               Reset to role defaults
                             </button>
                           </div>
@@ -338,11 +338,11 @@ export function MembersSettings() {
                     confirmRevoke === inv.id ? (
                       <span className="inline-flex items-center gap-1.5 text-[11px]">
                         <button onClick={() => { revokeInvite.mutate(inv.id!); setConfirmRevoke(null); }}
-                          className="rounded-md border border-[#9c6b72]/40 px-2 py-1 font-medium text-[#9c6b72] hover:bg-[#9c6b72]/10">Revoke</button>
-                        <button onClick={() => setConfirmRevoke(null)} className="rounded-md border px-2 py-1 text-[var(--text-faint)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>Cancel</button>
+                          className="rounded-sm border border-[#9c6b72]/40 px-2 py-1 font-medium text-[#9c6b72] hover:bg-[#9c6b72]/10">Revoke</button>
+                        <button onClick={() => setConfirmRevoke(null)} className="rounded-sm border px-2 py-1 text-[var(--text-faint)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>Cancel</button>
                       </span>
                     ) : (
-                      <button onClick={() => setConfirmRevoke(inv.id!)} className="rounded-md p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[#9c6b72]/10 hover:text-[#9c6b72]" title="Revoke invite"><Trash2 size={13} /></button>
+                      <button onClick={() => setConfirmRevoke(inv.id!)} className="rounded-sm p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[#9c6b72]/10 hover:text-[#9c6b72]" title="Revoke invite"><Trash2 size={13} /></button>
                     )
                   )}
                 </div>

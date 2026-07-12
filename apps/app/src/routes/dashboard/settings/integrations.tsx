@@ -48,7 +48,7 @@ function ModalShell({ title, close, children }: { title: string; close: () => vo
       <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="font-semibold text-[var(--text-primary)]">{title}</h2>
-          <button onClick={close} className="rounded-md p-1 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"><X size={15} /></button>
+          <button onClick={close} className="rounded-sm p-1 text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"><X size={15} /></button>
         </div>
         {children}
       </div>
@@ -113,7 +113,7 @@ export function IntegrationsSettings() {
           {integrations.map(item => (
             <article key={item.id} className="flex flex-col bg-[var(--surface-card)] p-4">
               <div className="mb-3 flex items-start gap-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[var(--surface-hover)] text-sm font-bold text-[var(--text-faint)]">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-sm bg-[var(--surface-hover)] text-sm font-bold text-[var(--text-faint)]">
                   {item.icon}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -190,7 +190,7 @@ export function IntegrationsSettings() {
           </button>
         </div>
         {data.webhooks.length ? (
-          <div className="divide-y divide-white/[.04] px-5">
+          <div className="divide-y divide-[var(--border-soft)] px-5">
             {data.webhooks.map(hook => (
               <div key={hook.id} className="flex items-start justify-between gap-4 py-4">
                 <div className="min-w-0">
@@ -221,7 +221,7 @@ export function IntegrationsSettings() {
           <div>
             <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Server URL</span>
             <div className="flex items-center gap-2">
-              <code className="min-w-0 flex-1 truncate rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-xs text-[var(--text-faint)]">wss://mcp.mondaily.com/workspace</code>
+              <code className="min-w-0 flex-1 truncate rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-xs text-[var(--text-faint)]">wss://mcp.mondaily.com/workspace</code>
               <CopyButton value="wss://mcp.mondaily.com/workspace" />
             </div>
           </div>
@@ -230,7 +230,7 @@ export function IntegrationsSettings() {
               <div>
                 <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Token</span>
                 <div className="flex items-center gap-2">
-                  <code className="min-w-0 flex-1 truncate rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-xs text-[var(--text-faint)]">{data.mcp_token}</code>
+                  <code className="min-w-0 flex-1 truncate rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-xs text-[var(--text-faint)]">{data.mcp_token}</code>
                   <CopyButton value={data.mcp_token} />
                 </div>
               </div>
@@ -240,14 +240,14 @@ export function IntegrationsSettings() {
                   <RotateCw size={12} /> Rotate token
                 </button>
                 <button onClick={() => toggleIntegration.mutate({ id: "mcp", connected: false })}
-                  className="rounded-lg border border-stone-500/20 px-3 py-2 text-xs text-[var(--text-faint)] hover:bg-stone-500/[.08] transition-colors">
+                  className="rounded-sm border border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] transition-colors">
                   Revoke
                 </button>
               </div>
             </>
           ) : (
             <button onClick={() => generateMcp.mutate()}
-              className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all">
+              className="flex items-center gap-2 rounded-sm border border-[var(--border-strong)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-all">
               <ExternalLink size={13} /> Generate token
             </button>
           )}
@@ -265,7 +265,7 @@ export function IntegrationsSettings() {
               <div>
                 <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Your new key</span>
                 <div className="flex items-start gap-2">
-                  <code className="min-w-0 flex-1 break-all rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3 text-xs text-[var(--text-faint)]">{createdKey}</code>
+                  <code className="min-w-0 flex-1 break-all rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3 text-xs text-[var(--text-faint)]">{createdKey}</code>
                   <CopyButton value={createdKey} />
                 </div>
               </div>
@@ -281,7 +281,7 @@ export function IntegrationsSettings() {
                 <input autoFocus value={keyName} onChange={e => setKeyName(e.target.value)} placeholder="e.g. Production, CI/CD" className="key-input h-10 w-full px-3 text-sm" />
               </label>
               <button type="submit" disabled={!keyName.trim() || createKey.isPending}
-                className="flex w-full items-center justify-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-all">
+                className="flex w-full items-center justify-center gap-2 rounded-sm border border-[var(--border-strong)] bg-[var(--section-accent-soft)] py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-40 transition-all">
                 {createKey.isPending ? "Generating…" : "Generate key"}
               </button>
             </form>
@@ -314,12 +314,12 @@ export function IntegrationsSettings() {
             <div>
               <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Signing secret</span>
               <div className="flex items-center gap-2">
-                <code className="min-w-0 flex-1 truncate rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-xs text-[var(--text-faint)]">{webhook.secret}</code>
+                <code className="min-w-0 flex-1 truncate rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-xs text-[var(--text-faint)]">{webhook.secret}</code>
                 <CopyButton value={webhook.secret} />
               </div>
             </div>
             <button type="submit" disabled={!webhook.url.startsWith("https://") || createWebhook.isPending}
-              className="flex w-full items-center justify-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-all">
+              className="flex w-full items-center justify-center gap-2 rounded-sm border border-[var(--border-strong)] bg-[var(--section-accent-soft)] py-2.5 text-sm font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-40 transition-all">
               {createWebhook.isPending ? "Creating…" : "Create webhook"}
             </button>
           </form>

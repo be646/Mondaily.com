@@ -31,7 +31,7 @@ function CopyField({ label, value, copied, onCopy }: { label: string; value: str
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">{label}</span>
-      <div className="flex h-10 items-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+      <div className="flex h-10 items-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
         <code className="min-w-0 flex-1 truncate px-3 text-xs text-[var(--text-faint)]">{value}</code>
         <button onClick={onCopy} className="px-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
           {copied ? <Check size={13} className="text-[#5f8169]" /> : <Copy size={13} />}
@@ -110,7 +110,7 @@ export function SecuritySettings() {
           <div className="flex items-center gap-2">
             <Shield size={14} className="text-[var(--text-muted)]" />
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Single Sign-On (SAML 2.0)</h2>
-            <span className="rounded-full bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-[var(--text-faint)]">Enterprise</span>
+            <span className="rounded-full bg-[var(--surface-hover)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-faint)]">Enterprise</span>
           </div>
           <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${data.saml_enabled ? "bg-[#5f8169]/10 text-[#5f8169]" : "bg-[var(--surface-hover)] text-[var(--text-muted)]"}`}>
             {data.saml_enabled ? "Configured" : "Not configured"}
@@ -141,7 +141,7 @@ export function SecuritySettings() {
           <div className="flex flex-wrap items-center gap-3">
             <button onClick={() => save({ saml_enabled: true, saml_provider: data.saml_provider, saml_metadata: data.saml_metadata })}
               disabled={update.isPending}
-              className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-stone-600 disabled:opacity-70">
+              className="flex items-center gap-2 rounded-sm border border-[var(--border-strong)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-70">
               {update.isPending ? <span className="font-mono text-xs tracking-wider">[ RUNNING CRYPTO EXCHANGER... ]</span> : (data.saml_enabled ? "Update SSO" : "Configure SSO")}
             </button>
             <button className="rounded-sm border px-4 py-2 text-sm text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]"
@@ -244,7 +244,7 @@ export function SecuritySettings() {
             Presets:
             {["gmail.com", "hotmail.com", "yahoo.com"].map(p => (
               <button key={p} onClick={() => setDomain(p)}
-                className="rounded-md border border-[var(--border-soft)] px-2 py-1 hover:text-[var(--text-faint)] transition-colors">{p}</button>
+                className="rounded-sm border border-[var(--border-soft)] px-2 py-1 hover:text-[var(--text-faint)] transition-colors">{p}</button>
             ))}
           </div>
         </div>
@@ -286,7 +286,7 @@ export function SecuritySettings() {
         <div className="settings-section-header">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Audit log</h2>
-            <span className="rounded-full bg-stone-500/10 px-2 py-0.5 text-[10px] font-medium text-[var(--text-faint)]">Enterprise</span>
+            <span className="rounded-full bg-[var(--surface-hover)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-faint)]">Enterprise</span>
           </div>
           <button className="flex items-center gap-1.5 text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">
             <Download size={12} /> Export CSV

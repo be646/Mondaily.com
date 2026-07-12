@@ -328,12 +328,12 @@ export function AccountSettings() {
             </label>
           </div>
           <div className="block">
-            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">{t("settings.language")}</span>
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">{t("settings.language")}</span>
             <LanguageSelect value={language} onChange={setLanguage} includeFollowDefault followLabel={t("lang.follow_workspace")} />
             <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">{t("settings.language_help")}</p>
           </div>
           <label className="block">
-            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-stone-500">Context for the assistant</span>
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--text-muted)]">Context for the assistant</span>
             <textarea value={aiContext} onChange={e => setAiContext(e.target.value)} rows={3} placeholder="e.g. I run a B2B SaaS sales team; prioritize pipeline and revenue framing." className="key-input w-full resize-none p-3 text-sm" />
             <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">Mondaily uses this to personalize how it reasons, addresses you, and frames answers across the workspace.</p>
           </label>
@@ -422,7 +422,7 @@ export function AccountSettings() {
 
       {/* ── Connected accounts ── */}
       <SettingsSection title="Connected accounts">
-        <div className="-mx-4 -my-3 divide-y divide-white/[.05] px-4">
+        <div className="-mx-4 -my-3 divide-y divide-[var(--border-soft)] px-4">
           {(["gmail", "outlook"] as const).map(provider => {
             const account = accounts.find(a => a.provider.toLowerCase().includes(provider));
             return (
@@ -474,7 +474,7 @@ export function AccountSettings() {
 
       {/* ── Keyboard shortcuts ── */}
       <SettingsSection title="Keyboard shortcuts">
-        <div className="-mx-4 -my-3 divide-y divide-white/[.04] px-4">
+        <div className="-mx-4 -my-3 divide-y divide-[var(--border-soft)] px-4">
           {shortcuts.map(([label, keys]) => (
             <div key={label} className="flex items-center justify-between py-3">
               <span className="text-sm text-[var(--text-faint)]">{label}</span>
@@ -513,8 +513,8 @@ export function AccountSettings() {
           disabled={save.isPending}
           className={`flex items-center gap-2 rounded-sm px-5 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50 ${
             saved
-              ? "border border-[var(--section-accent)] bg-stone-700"
-              : "border border-stone-500/30 bg-stone-600 hover:bg-stone-500"
+              ? "border border-[var(--section-accent)] bg-[var(--section-accent-soft)]"
+              : "border border-[var(--border-strong)] bg-[var(--section-accent-soft)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"
           }`}
         >
           {saved ? <><Check size={14} /> Saved</> : save.isPending ? "Saving…" : "Save changes"}
@@ -531,7 +531,7 @@ export function AccountSettings() {
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder="DELETE" className="key-input mt-4 h-10 w-full px-3 text-sm" />
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={() => setDeleteOpen(false)} className="rounded-sm border border-[var(--border-soft)] px-4 py-2 text-sm text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
-              <button onClick={deleteAccount} disabled={deleteText !== "DELETE"} className="rounded-sm bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-colors">Delete account</button>
+              <button onClick={deleteAccount} disabled={deleteText !== "DELETE"} className="rounded-sm border border-[#9c6b72] bg-[color-mix(in_srgb,#9c6b72_16%,transparent)] px-4 py-2 text-sm font-semibold text-[#9c6b72] hover:bg-[color-mix(in_srgb,#9c6b72_24%,transparent)] disabled:opacity-40 transition-colors">Delete account</button>
             </div>
           </div>
         </>

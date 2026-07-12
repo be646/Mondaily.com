@@ -109,7 +109,7 @@ export function TrainingSettings() {
                 key={d}
                 onClick={() => savePolicy.mutate({ enabled: p.enabled, retention_days: d })}
                 disabled={savePolicy.isPending}
-                className={`rounded-lg border px-3 py-2 text-sm transition-colors ${p.retention_days === d ? "border-[var(--section-accent)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
+                className={`rounded-sm border px-3 py-2 text-sm transition-colors ${p.retention_days === d ? "border-[var(--section-accent)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}
               >
                 {d} days
               </button>
@@ -140,17 +140,17 @@ export function TrainingSettings() {
             {!confirmPurge ? (
               <button
                 onClick={() => setConfirmPurge(true)} disabled={busy !== null || p.captured === 0}
-                className="flex items-center gap-2 rounded-lg border border-[#9c6b72]/30 px-4 py-2 text-sm text-[#9c6b72] transition-colors hover:bg-[#9c6b72]/10 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-sm border border-[#9c6b72]/30 px-4 py-2 text-sm text-[#9c6b72] transition-colors hover:bg-[#9c6b72]/10 disabled:opacity-50"
               >
                 <Trash2 size={13} /> Delete all training data
               </button>
             ) : (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-[var(--text-faint)]">Delete {p.captured.toLocaleString()} example{p.captured === 1 ? "" : "s"}? This can't be undone.</span>
-                <button onClick={purgeData} disabled={busy !== null} className="rounded-lg bg-[#9c6b72] px-3 py-2 text-sm font-semibold text-white hover:bg-[#9c6b72] disabled:opacity-60">
+                <button onClick={purgeData} disabled={busy !== null} className="rounded-sm bg-[#9c6b72] px-3 py-2 text-sm font-semibold text-white hover:bg-[#9c6b72] disabled:opacity-60">
                   {busy === "purge" ? "Deleting…" : "Confirm delete"}
                 </button>
-                <button onClick={() => setConfirmPurge(false)} className="rounded-lg border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]">Cancel</button>
+                <button onClick={() => setConfirmPurge(false)} className="rounded-sm border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]">Cancel</button>
               </div>
             )}
           </div>

@@ -143,9 +143,9 @@ export function AskMondailySettings() {
       </div>
 
       {/* General */}
-      <section className="mb-6 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+      <section className="settings-section mb-6">
         <div className="border-b border-[var(--border-soft)] px-5 py-3">
-          <h2 className="text-sm font-medium text-[var(--text-primary)]">General</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">General</h2>
         </div>
         <Row label="Privacy" description="Web search queries will be shared with external search providers.">
           <Dropdown value={settings.privacy} onChange={v => update({ privacy: v as AskSettings["privacy"] })} options={privacyOptions}/>
@@ -159,9 +159,9 @@ export function AskMondailySettings() {
       </section>
 
       {/* Model */}
-      <section className="mb-6 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+      <section className="settings-section mb-6">
         <div className="border-b border-[var(--border-soft)] px-5 py-3">
-          <h2 className="text-sm font-medium text-[var(--text-primary)]">Model</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Model</h2>
         </div>
         <Row label="Default model" description="This model will be used to generate all responses unless overridden.">
           <Dropdown value={settings.model} onChange={v => update({ model: v as AskSettings["model"] })} options={modelOptions}/>
@@ -169,9 +169,9 @@ export function AskMondailySettings() {
       </section>
 
       {/* Behavior — advanced response + autonomy controls */}
-      <section className="mb-6 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+      <section className="settings-section mb-6">
         <div className="border-b border-[var(--border-soft)] px-5 py-3">
-          <h2 className="text-sm font-medium text-[var(--text-primary)]">Behavior</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Behavior</h2>
         </div>
         <Row label="Response tone" description="How concise or thorough Mondaily's answers should be.">
           <Dropdown value={settings.tone} onChange={v => update({ tone: v as AskSettings["tone"] })} options={toneOptions}/>
@@ -185,9 +185,9 @@ export function AskMondailySettings() {
       </section>
 
       {/* Credits */}
-      <section className="mb-6 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+      <section className="settings-section mb-6">
         <div className="border-b border-[var(--border-soft)] px-5 py-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-[var(--text-primary)]">Credits</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Credits</h2>
           <span className="text-xs text-[var(--text-muted)]">Resets on {resetStr}</span>
         </div>
         <div className="px-5 py-4">
@@ -203,9 +203,9 @@ export function AskMondailySettings() {
       </section>
 
       {/* Chat history */}
-      <section className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+      <section className="settings-section">
         <div className="border-b border-[var(--border-soft)] px-5 py-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-[var(--text-primary)]">Chat history</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Chat history</h2>
           {threads.length > 0 && (
             <button onClick={deleteAllThreads} className="text-xs text-[#9c6b72] hover:text-[#9c6b72] transition-colors">Delete all</button>
           )}
@@ -213,7 +213,7 @@ export function AskMondailySettings() {
         {threads.length === 0 ? (
           <div className="px-5 py-6 text-center text-sm text-[var(--text-muted)]">No conversations yet</div>
         ) : (
-          <div className="divide-y divide-white/10">
+          <div className="divide-y divide-[var(--border-soft)]">
             {threads.map(t => (
               <div key={t.id} className="flex items-center justify-between px-5 py-3">
                 <div className="flex items-center gap-3 min-w-0">
@@ -223,7 +223,7 @@ export function AskMondailySettings() {
                     <div className="text-xs text-[var(--text-muted)]">{t.messages.length} messages · {new Date(t.updatedAt).toLocaleDateString()}</div>
                   </div>
                 </div>
-                <button onClick={() => deleteThread(t.id)} className="ml-4 shrink-0 rounded-lg p-1.5 text-[var(--text-muted)] hover:bg-[#9c6b72]/10 hover:text-[#9c6b72] transition-colors">
+                <button onClick={() => deleteThread(t.id)} className="ml-4 shrink-0 rounded-sm p-1.5 text-[var(--text-muted)] hover:bg-[#9c6b72]/10 hover:text-[#9c6b72] transition-colors">
                   <Trash2 size={13}/>
                 </button>
               </div>

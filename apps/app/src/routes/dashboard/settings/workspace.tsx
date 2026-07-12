@@ -106,7 +106,7 @@ function GeneralSection({
         </label>
         <label className="block">
           <span className="mb-1.5 block text-[11px] text-[var(--text-faint)]">Workspace URL</span>
-          <div className="flex h-9 items-center rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+          <div className="flex h-9 items-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
             <span className="border-r border-[var(--border-soft)] px-3 text-[11px] text-[var(--text-muted)]">app.mondaily.com/</span>
             <input
               value={form.slug ?? ""}
@@ -131,8 +131,8 @@ function GeneralSection({
         <button onClick={() => save.mutate()} disabled={save.isPending}
           className={`flex items-center gap-2 rounded-sm px-5 py-2.5 text-[12px] font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50 ${
             saved
-              ? "border border-[var(--section-accent)] bg-stone-700"
-              : "border border-stone-500/30 bg-stone-600 hover:bg-stone-500"
+              ? "border border-[var(--section-accent)] bg-[var(--section-accent-soft)]"
+              : "border border-[var(--border-strong)] bg-[var(--section-accent-soft)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"
           }`}>
           {saved ? <><Check size={13} /> Saved</> : save.isPending ? "Saving…" : "Save changes"}
         </button>
@@ -197,7 +197,7 @@ function ModulesSection({
       <div className="flex items-center justify-end gap-3 pt-2">
         <span className="font-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>toggles persist instantly</span>
         <button onClick={() => save.mutate()} disabled={save.isPending}
-          className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-700 px-5 py-2.5 text-[12px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-stone-600 disabled:opacity-50">
+          className="flex items-center gap-2 rounded-sm border border-[var(--border-strong)] bg-[var(--section-accent-soft)] px-5 py-2.5 text-[12px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50">
           {saved ? <><Check size={13} /> Saved</> : save.isPending ? "Saving…" : "Save all"}
         </button>
       </div>
@@ -233,7 +233,7 @@ function DangerZoneSection({ form }: { form: WorkspaceData }) {
         <p className="text-[11px] text-[var(--text-muted)]">Irreversible actions. Proceed with caution.</p>
       </div>
 
-      <div className="border border-stone-500/20 rounded-sm p-6 space-y-4">
+      <div className="border border-[var(--border-soft)] rounded-sm p-6 space-y-4">
         <p className="text-[12px] text-[var(--text-muted)]">Export a portable copy of all workspace data, or permanently delete this workspace.</p>
         <div className="flex flex-wrap gap-3">
           <button onClick={exportData}
@@ -241,7 +241,7 @@ function DangerZoneSection({ form }: { form: WorkspaceData }) {
             <Download size={13} /> Export all data
           </button>
           <button onClick={() => setDeleteOpen(true)}
-            className="flex items-center gap-2 rounded-lg border border-stone-500/30 px-3 py-2 text-[12px] text-[var(--text-faint)] hover:bg-stone-500/[.08] transition-colors">
+            className="flex items-center gap-2 rounded-sm border border-[var(--border-strong)] px-3 py-2 text-[12px] text-[var(--text-faint)] hover:bg-[var(--surface-hover)] transition-colors">
             <Trash2 size={13} /> Delete workspace
           </button>
         </div>
@@ -258,8 +258,8 @@ function DangerZoneSection({ form }: { form: WorkspaceData }) {
             <p className="text-[12px] text-[var(--text-muted)]">All records, members, and activity in this workspace will be permanently removed. This cannot be undone. Type the workspace name to confirm.</p>
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder={form.name} className="key-input mt-4 h-10 w-full px-3 text-[12px]" />
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={() => setDeleteOpen(false)} className="rounded-lg border border-[var(--border-soft)] px-4 py-2 text-[12px] text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
-              <button onClick={deleteWorkspace} disabled={deleteText !== form.name} className="rounded-lg bg-stone-600 px-4 py-2 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-colors">Delete workspace</button>
+              <button onClick={() => setDeleteOpen(false)} className="rounded-sm border border-[var(--border-soft)] px-4 py-2 text-[12px] text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
+              <button onClick={deleteWorkspace} disabled={deleteText !== form.name} className="rounded-sm border border-[#9c6b72] bg-[color-mix(in_srgb,#9c6b72_16%,transparent)] px-4 py-2 text-[12px] font-semibold text-[#9c6b72] hover:bg-[color-mix(in_srgb,#9c6b72_24%,transparent)] disabled:opacity-40 transition-colors">Delete workspace</button>
             </div>
           </div>
         </>
@@ -292,7 +292,7 @@ function ProfileSection({ initial }: { initial: WorkspaceProfile }) {
     onError: (e: unknown) => alert(e instanceof Error ? e.message : "Could not save the workspace profile."),
   });
 
-  const field = "w-full rounded-lg border px-3 py-2 text-[13px] bg-transparent";
+  const field = "w-full rounded-sm border px-3 py-2 text-[13px] bg-transparent";
   const style = { borderColor: "var(--border-soft)", color: "var(--text-primary)" } as const;
   const Label = ({ children }: { children: React.ReactNode }) =>
     <label className="mb-1 block text-[12px] font-medium text-[var(--text-secondary)]">{children}</label>;
@@ -322,7 +322,7 @@ function ProfileSection({ initial }: { initial: WorkspaceProfile }) {
 
       <div className="mt-5 flex items-center gap-3">
         <button onClick={() => save.mutate()} disabled={save.isPending}
-          className="rounded-lg bg-stone-950 px-4 py-2 text-[13px] font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-black">
+          className="btn-primary text-[13px] font-semibold">
           {save.isPending ? "Saving…" : "Save profile"}
         </button>
         {saved && <span className="flex items-center gap-1.5 text-[12px] text-[#5f8169]"><Check size={13} /> Saved</span>}
@@ -432,7 +432,7 @@ export function WorkspaceSettings() {
           <button
             key={item.key}
             onClick={() => setSection(item.key)}
-            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] mb-0.5 transition-colors ${
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[12px] mb-0.5 transition-colors ${
               section === item.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:bg-[var(--surface-hover)]"
             } ${item.danger ? (section === item.key ? "text-[var(--text-faint)]" : "text-[#9c6b72] hover:text-[var(--text-faint)]") : ""}`}
           >

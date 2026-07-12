@@ -149,7 +149,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
                 <ArrowLeft size={14}/>
               </button>
             )}
-            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-stone-500/15">
+            <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-[var(--surface-hover)]">
               <LogoMark size={13} className="text-[var(--text-faint)]"/>
             </div>
             <div>
@@ -161,7 +161,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:bg-[var(--surface-hover)] transition-colors">
+          <button onClick={onClose} className="rounded-sm p-1 text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:bg-[var(--surface-hover)] transition-colors">
             <X size={14}/>
           </button>
         </div>
@@ -175,7 +175,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
               onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) generate(); }}
               placeholder={example}
               rows={3}
-              className="w-full resize-none rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3.5 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-stone-500/30 focus:bg-[var(--surface-hover)] transition-colors"
+              className="w-full resize-none rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3.5 py-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none focus:border-[var(--border-strong)] focus:bg-[var(--surface-hover)] transition-colors"
             />
 
             {error && <p className="mt-2 text-[11px] text-[var(--text-faint)]">{error}</p>}
@@ -187,7 +187,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
                 <button
                   key={ex}
                   onClick={() => setPrompt(ex)}
-                  className="rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all"
+                  className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--border-strong)] transition-all"
                 >
                   {ex}
                 </button>
@@ -195,13 +195,13 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
             </div>
 
             <div className="mt-5 flex justify-end gap-2">
-              <button onClick={onClose} className="rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">
+              <button onClick={onClose} className="rounded-sm border border-[var(--border-soft)] px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">
                 Cancel
               </button>
               <button
                 onClick={generate}
                 disabled={!prompt.trim() || loading}
-                className="flex items-center gap-2 rounded-lg bg-stone-500 px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-400 disabled:opacity-40 transition-colors"
+                className="flex items-center gap-2 rounded-sm bg-[var(--section-accent-soft)] px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-40 transition-colors"
               >
                 {loading ? <><Loader2 size={12} className="animate-spin"/> Generating…</> : <><LogoMark size={12}/> Generate schema</>}
               </button>
@@ -213,8 +213,8 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
         {step === "preview" && schema && (
           <div className="px-5 py-5">
             {/* Object summary */}
-            <div className="mb-4 flex items-center gap-3 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
-              <div className={`h-8 w-8 shrink-0 rounded-md bg-${schema.color}-500/15 flex items-center justify-center`}>
+            <div className="mb-4 flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5">
+              <div className={`h-8 w-8 shrink-0 rounded-sm bg-${schema.color}-500/15 flex items-center justify-center`}>
                 <Database size={14} className={`text-${schema.color}-400`}/>
               </div>
               <div className="min-w-0">
@@ -224,7 +224,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
             </div>
 
             {/* Attributes list */}
-            <div className="max-h-[280px] overflow-y-auto rounded-lg border border-[var(--border-soft)] divide-y divide-[var(--border-soft)]">
+            <div className="max-h-[280px] overflow-y-auto rounded-sm border border-[var(--border-soft)] divide-y divide-[var(--border-soft)]">
               {schema.attributes.map((attr, i) => {
                 const Icon = TYPE_ICON[attr.type] ?? Text;
                 return (
@@ -244,13 +244,13 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
             <div className="mt-4 flex justify-between gap-2">
               <button
                 onClick={() => { setStep("prompt"); setSchema(null); }}
-                className="rounded-lg border border-[var(--border-soft)] px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors"
+                className="rounded-sm border border-[var(--border-soft)] px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors"
               >
                 Regenerate
               </button>
               <button
                 onClick={createFromSchema}
-                className="flex items-center gap-2 rounded-lg bg-stone-500 px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-400 transition-colors"
+                className="flex items-center gap-2 rounded-sm bg-[var(--section-accent-soft)] px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors"
               >
                 <Check size={12}/> Create this object
               </button>
@@ -323,8 +323,8 @@ export function ObjectsSettings() {
       <PageHeader title="Objects & attributes" description="Define the record schemas Mondaily agents can read and update." />
 
       {/* AI Generate CTA */}
-      <div className="mb-4 flex items-center gap-3 rounded-sm border border-stone-500/30 bg-stone-600/5 px-4 py-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-stone-500/15">
+      <div className="mb-4 flex items-center gap-3 rounded-sm border border-[var(--border-strong)] bg-[var(--surface-hover)] px-4 py-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-[var(--surface-hover)]">
           <LogoMark size={16} className="text-[var(--text-faint)]"/>
         </div>
         <div className="flex-1 min-w-0">
@@ -333,7 +333,7 @@ export function ObjectsSettings() {
         </div>
         <button
           onClick={() => setAiOpen(true)}
-          className="shrink-0 flex items-center gap-1.5 rounded-lg bg-stone-500 px-3 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-400 transition-colors"
+          className="shrink-0 flex items-center gap-1.5 rounded-sm bg-[var(--section-accent-soft)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors"
         >
           <LogoMark size={11}/> Generate
         </button>
@@ -343,8 +343,8 @@ export function ObjectsSettings() {
         <EmptyState icon={Database} title="No object definitions" description="Create your first custom object or generate one with AI."
           action={
             <div className="flex gap-2">
-              <button onClick={() => setAiOpen(true)} className="flex items-center gap-1.5 rounded-md bg-stone-600 px-3 py-2 text-sm"><AIMark size={13}/> Generate</button>
-              <button onClick={() => setObjectOpen(true)} className="rounded-md border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)]">Manual</button>
+              <button onClick={() => setAiOpen(true)} className="flex items-center gap-1.5 rounded-sm bg-[var(--section-accent-soft)] px-3 py-2 text-sm"><AIMark size={13}/> Generate</button>
+              <button onClick={() => setObjectOpen(true)} className="rounded-sm border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-faint)]">Manual</button>
             </div>
           }
         />
@@ -358,17 +358,17 @@ export function ObjectsSettings() {
             <div className="space-y-1">
               {objects.map((object) => (
                 <button key={object.id} onClick={() => setSelectedId(object.id)}
-                  className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm ${selected?.id === object.id ? "bg-[var(--surface-hover)]" : "text-[var(--text-faint)] hover:bg-[var(--surface-hover)]"}`}>
+                  className={`flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm ${selected?.id === object.id ? "bg-[var(--surface-hover)]" : "text-[var(--text-faint)] hover:bg-[var(--surface-hover)]"}`}>
                   <span className={`h-2.5 w-2.5 rounded-full bg-${object.color ?? "slate"}-500`}/>
                   <span className="min-w-0 flex-1 truncate">{object.name_plural}</span>
                   {object.is_standard ? <Lock size={11} className="text-[var(--text-muted)]"/> : <ChevronRight size={12}/>}
                 </button>
               ))}
             </div>
-            <button onClick={() => setObjectOpen(true)} className="mt-3 flex w-full items-center gap-2 rounded-md border border-dashed border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:border-[var(--border-soft)] transition-colors">
+            <button onClick={() => setObjectOpen(true)} className="mt-3 flex w-full items-center gap-2 rounded-sm border border-dashed border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:border-[var(--border-soft)] transition-colors">
               <Plus size={13}/> Custom object
             </button>
-            <button onClick={() => setAiOpen(true)} className="mt-1.5 flex w-full items-center gap-2 rounded-md border border-dashed border-stone-500/30 px-3 py-2 text-sm text-[var(--text-faint)] hover:text-[var(--text-faint)] hover:border-stone-500/50 transition-colors">
+            <button onClick={() => setAiOpen(true)} className="mt-1.5 flex w-full items-center gap-2 rounded-sm border border-dashed border-[var(--border-strong)] px-3 py-2 text-sm text-[var(--text-faint)] hover:text-[var(--text-faint)] hover:border-[var(--border-strong)] transition-colors">
               <AIMark size={13}/> Generate
             </button>
           </aside>
@@ -377,14 +377,14 @@ export function ObjectsSettings() {
             <section className="p-5">
               <div className="mb-6 flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="grid h-9 w-9 place-items-center rounded-md bg-stone-500/10 text-[var(--text-faint)]"><Database size={16}/></div>
+                  <div className="grid h-9 w-9 place-items-center rounded-sm bg-[var(--surface-hover)] text-[var(--text-faint)]"><Database size={16}/></div>
                   <div>
                     <h2 className="font-medium">{selected.name_plural}</h2>
                     <p className="text-xs text-[var(--text-muted)]">{selected.slug} · {selected.vertical ?? "shared"}</p>
                   </div>
                   {selected.is_standard && <span className="rounded-full bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-[var(--text-muted)]">Standard</span>}
                 </div>
-                <button onClick={() => setAttributeOpen(true)} className="flex items-center gap-2 rounded-md bg-stone-600 px-3 py-2 text-sm">
+                <button onClick={() => setAttributeOpen(true)} className="flex items-center gap-2 rounded-sm bg-[var(--section-accent-soft)] px-3 py-2 text-sm">
                   <Plus size={13}/> Add attribute
                 </button>
               </div>
@@ -441,7 +441,7 @@ export function ObjectsSettings() {
             <div className="grid grid-cols-2 gap-2">
               {typeOptions.map(({ type, label, icon: Icon }) => (
                 <button type="button" key={type} onClick={() => setAttribute({ ...attribute, type })}
-                  className={`flex items-center gap-2 rounded-md border p-3 text-left text-sm ${attribute.type === type ? "border-stone-500 bg-stone-500/5" : "border-[var(--border-soft)]"}`}>
+                  className={`flex items-center gap-2 rounded-sm border p-3 text-left text-sm ${attribute.type === type ? "border-[var(--section-accent)] bg-[var(--surface-hover)]" : "border-[var(--border-soft)]"}`}>
                   <Icon size={14}/><span>{label}</span>
                 </button>
               ))}
@@ -451,7 +451,7 @@ export function ObjectsSettings() {
                 <p className="mb-2 text-sm">Options</p>
                 {selectOptions.map((opt, i) => (
                   <div key={i} className="mb-2 flex gap-2">
-                    <input value={opt} onChange={e => setSelectOptions(selectOptions.map((o, j) => j === i ? e.target.value : o))} className="h-9 flex-1 rounded-md border border-[var(--border-soft)] bg-transparent px-3 text-sm"/>
+                    <input value={opt} onChange={e => setSelectOptions(selectOptions.map((o, j) => j === i ? e.target.value : o))} className="h-9 flex-1 rounded-sm border border-[var(--border-soft)] bg-transparent px-3 text-sm"/>
                     <button type="button" onClick={() => setSelectOptions(selectOptions.filter((_, j) => j !== i))}><X size={13}/></button>
                   </div>
                 ))}
@@ -467,7 +467,7 @@ export function ObjectsSettings() {
               <Toggle label="Required" checked={attribute.required ?? false} change={v => setAttribute({ ...attribute, required: v })}/>
               <Toggle label="Unique" checked={attribute.unique ?? false} change={v => setAttribute({ ...attribute, unique: v })}/>
             </div>
-            <button disabled={!attribute.name.trim()} className="mt-6 h-10 w-full rounded-md bg-stone-600 text-sm disabled:opacity-40">Save attribute</button>
+            <button disabled={!attribute.name.trim()} className="mt-6 h-10 w-full rounded-sm bg-[var(--section-accent-soft)] text-sm disabled:opacity-40">Save attribute</button>
           </form>
         </div>
       )}
@@ -496,7 +496,7 @@ export function ObjectsSettings() {
                   className={`h-7 w-7 rounded-full bg-${color}-500 ${customObject.color === color ? "ring-2 ring-white ring-offset-2 ring-offset-[#111419]" : ""}`} aria-label={color}/>
               ))}
             </div>
-            <button className="mt-6 h-10 w-full rounded-md bg-stone-600 text-sm">Create object</button>
+            <button className="mt-6 h-10 w-full rounded-sm bg-[var(--section-accent-soft)] text-sm">Create object</button>
           </form>
         </div>
       )}
@@ -505,7 +505,7 @@ export function ObjectsSettings() {
 }
 
 function Toggle({ label, checked, change }: { label: string; checked: boolean; change: (v: boolean) => void }) {
-  return <label className="flex items-center justify-between rounded-md border border-[var(--border-soft)] p-3 text-sm"><span>{label}</span><input type="checkbox" checked={checked} onChange={e => change(e.target.checked)}/></label>;
+  return <label className="flex items-center justify-between rounded-sm border border-[var(--border-soft)] p-3 text-sm"><span>{label}</span><input type="checkbox" checked={checked} onChange={e => change(e.target.checked)}/></label>;
 }
 function Field({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
   return <label className="text-sm">{label}<input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="key-input mt-2 h-10 w-full"/></label>;

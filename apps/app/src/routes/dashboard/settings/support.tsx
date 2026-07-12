@@ -49,7 +49,7 @@ export function SupportSettings() {
     <div className="max-w-3xl">
       <div className="flex items-start justify-between gap-4">
         <PageHeader title={title} description={description} />
-        <button onClick={() => help.open()} className="mt-1 flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
+        <button onClick={() => help.open()} className="mt-1 flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
           style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
           <Plus size={13} /> {t("support.new_request")}
         </button>
@@ -132,7 +132,7 @@ function TicketPanel({ id, onClose, onChanged, statusLabel }: { id: string; onCl
             <div className="rounded-sm border p-3 text-[13px] whitespace-pre-wrap" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>{d.message}</div>
             <div className="space-y-2">
               {(d.comments ?? []).map((cm, i) => (
-                <div key={i} className={`max-w-[85%] rounded-md px-3.5 py-2.5 text-[13px] ${cm.author_role === "requester" ? "rounded-bl-sm" : "ml-auto rounded-br-sm"}`}
+                <div key={i} className={`max-w-[85%] rounded-sm px-3.5 py-2.5 text-[13px] ${cm.author_role === "requester" ? "rounded-bl-sm" : "ml-auto rounded-br-sm"}`}
                   style={{ background: cm.author_role === "requester" ? "var(--surface-card)" : "var(--surface-selected)", border: cm.author_role === "mondaily" ? "1px solid var(--border-strong)" : "1px solid var(--border-soft)", color: "var(--text-primary)" }}>
                   <p className="whitespace-pre-wrap">{cm.body}</p>
                   <p className="mt-1 text-[10px] text-[var(--text-faint)]">{cm.author_role === "mondaily" ? "Mondaily Support" : cm.author_role} · {new Date(cm.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
@@ -145,9 +145,9 @@ function TicketPanel({ id, onClose, onChanged, statusLabel }: { id: string; onCl
           <div className="flex items-end gap-2">
             <textarea value={reply} onChange={e => setReply(e.target.value)} rows={1} placeholder={t("support.reply")}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (reply.trim()) addComment.mutate(reply.trim()); } }}
-              className="max-h-28 flex-1 resize-none rounded-lg border bg-transparent px-3 py-2 text-[13px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+              className="max-h-28 flex-1 resize-none rounded-sm border bg-transparent px-3 py-2 text-[13px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
             <button onClick={() => reply.trim() && addComment.mutate(reply.trim())} disabled={!reply.trim() || addComment.isPending}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white disabled:opacity-40" style={{ background: "var(--section-accent)" }}><Send size={15} /></button>
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-white disabled:opacity-40" style={{ background: "var(--section-accent)" }}><Send size={15} /></button>
           </div>
         </div>
       </aside>

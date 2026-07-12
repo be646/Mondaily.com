@@ -57,6 +57,9 @@ const readWeb = (p: string) => readFileSync(fileURLToPath(new URL(`../../../../a
 const landing = readWeb("components/landing-page.tsx");
 const landingLogo = readWeb("components/logo.tsx");
 const askMondaily = read("components/ai/ask-mondaily.tsx");
+// Every settings page as a name→source map, for the Settings-wide normalization guards.
+const SETTINGS_PAGES = ["account", "security", "workspace", "members", "support", "objects", "integrations", "email", "billing", "ask-mondaily", "ai-control-room", "training", "calls"] as const;
+const SETTINGS_SRC: Record<string, string> = Object.fromEntries(SETTINGS_PAGES.map((n) => [n, read(`routes/dashboard/settings/${n}.tsx`)]));
 
 const hasButtonBubbly = (src: string) =>
   src.split("\n").some((l) => /rounded-(lg|xl)/.test(l) && /hover:bg-\[var\(--surface/.test(l));
@@ -604,6 +607,42 @@ describe("Calendar + Inbox AI-native polish", () => {
     // Cleared on send and on manual edit so the marker never lies.
     expect(messages).toMatch(/setAiDrafted\(false\)/);
     expect(messages).toMatch(/if \(aiDrafted\) setAiDrafted\(false\)/);
+  });
+});
+
+describe("Settings-wide visual normalization", () => {
+  it("no page-specific brown 'stone' theme survives anywhere in Settings", () => {
+    for (const [name, src] of Object.entries(SETTINGS_SRC)) {
+      expect(src, `${name} still uses a stone-* color`).not.toMatch(/\bstone-[0-9]/);
+    }
+  });
+  it("Settings buttons/frames are squared (no rounded-lg/md); dividers/frames are token-driven (no divide-white)", () => {
+    for (const [name, src] of Object.entries(SETTINGS_SRC)) {
+      expect(src, `${name} has rounded-lg/md`).not.toMatch(/rounded-(lg|md)/);
+      expect(src, `${name} has divide-white`).not.toContain("divide-white");
+    }
+  });
+  it("ask-mondaily + email use the shared transparent settings-section frame (no filled/tinted frames, no premium-panel)", () => {
+    expect(SETTINGS_SRC["ask-mondaily"]).toContain("settings-section");
+    expect(SETTINGS_SRC["ask-mondaily"]).not.toMatch(/rounded-sm border border-\[var\(--border-soft\)\] bg-\[var\(--surface-hover\)\]/);
+    expect(SETTINGS_SRC["email"]).toContain("settings-section");
+    expect(SETTINGS_SRC["email"]).not.toContain("premium-panel");
+  });
+  it("destructive Delete buttons use the shared rose danger tone, not a neutral fill", () => {
+    expect(SETTINGS_SRC["account"]).toMatch(/Delete account<\/button>/);
+    expect(SETTINGS_SRC["account"]).toMatch(/border-\[#9c6b72\][\s\S]*Delete account/);
+    expect(SETTINGS_SRC["workspace"]).toMatch(/border-\[#9c6b72\][\s\S]*Delete workspace/);
+  });
+  it("primary Settings actions resolve to the shared accent model (accent-soft / btn-primary), preserving handlers", () => {
+    // The former stone primaries now use the accent surface token used by btn-primary/MetricGrid.
+    expect(SETTINGS_SRC["workspace"]).toContain("btn-primary");
+    for (const key of ["section-accent-soft"]) {
+      expect(SETTINGS_SRC["integrations"]).toContain(key);
+    }
+    // Mutations/handlers untouched — spot-check the real save/connect calls still exist.
+    expect(SETTINGS_SRC["workspace"]).toContain("save.mutate");
+    expect(SETTINGS_SRC["email"]).toContain("connect(");
+    expect(SETTINGS_SRC["account"]).toContain("deleteAccount");
   });
 });
 

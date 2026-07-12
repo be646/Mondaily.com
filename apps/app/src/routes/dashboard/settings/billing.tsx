@@ -87,7 +87,7 @@ const PLAN_COLORS: Record<string, string> = {
   free: "bg-[var(--surface-hover)] text-[var(--text-faint)]",
   trial: "bg-[#5f8169]/10 text-[#5f8169]",
   pro: "bg-[#717784]/10 text-[#717784]",
-  business: "bg-stone-500/10 text-[var(--text-faint)]",
+  business: "bg-[var(--surface-hover)] text-[var(--text-faint)]",
   enterprise: "bg-[#97824f]/10 text-[#97824f]",
 };
 
@@ -319,7 +319,7 @@ export function BillingSettings() {
             </div>
             <button
               onClick={() => { void pickPlan(billing.plan === "free" ? "operator" : currentPlanId); }}
-              className="flex shrink-0 items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all"
+              className="flex shrink-0 items-center gap-2 rounded-sm border border-[var(--border-strong)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-all"
             >
               <Zap size={13} /> {billing.plan === "free" ? "Upgrade plan" : "Manage plan"}
             </button>
@@ -338,7 +338,7 @@ export function BillingSettings() {
               <>
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
                   <div
-                    className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-stone-500" : seatPct >= 70 ? "bg-[#97824f]" : "bg-[#5f8169]"}`}
+                    className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-[#9c6b72]" : seatPct >= 70 ? "bg-[#97824f]" : "bg-[#5f8169]"}`}
                     style={{ width: `${Math.max(seatPct, 3)}%` }}
                   />
                 </div>
@@ -526,7 +526,7 @@ export function BillingSettings() {
           <div className="p-5">
             {/* Exhausted / low warnings — premium, not a harsh red box. Never shows a negative balance. */}
             {wallet.exhausted ? (
-              <div className="mb-4 flex items-start gap-3 rounded-md border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
+              <div className="mb-4 flex items-start gap-3 rounded-sm border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
                 <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#9c6b721a" }}><Zap size={12} style={{ color: "#9c6b72" }} /></span>
                 <div>
                   <p className="text-[13px] font-semibold text-[var(--text-primary)]">You're out of AI credits</p>
@@ -534,7 +534,7 @@ export function BillingSettings() {
                 </div>
               </div>
             ) : wallet.low ? (
-              <div className="mb-4 flex items-start gap-3 rounded-md border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
+              <div className="mb-4 flex items-start gap-3 rounded-sm border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
                 <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#97824f1a" }}><Zap size={12} style={{ color: "#97824f" }} /></span>
                 <div>
                   <p className="text-[13px] font-semibold text-[var(--text-primary)]">Credits running low</p>
@@ -658,7 +658,7 @@ export function BillingSettings() {
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">Payment method</h2>
           </div>
           <div className="flex items-center gap-3 p-5">
-            <div className="grid h-9 w-14 place-items-center rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)]">
+            <div className="grid h-9 w-14 place-items-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)]">
               <CreditCard size={16} className="text-[var(--text-muted)]" />
             </div>
             <div>
