@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, Printer } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
-import { FieldSelect, CommandPageHeader } from "../../components/ui/controls";
+import { FieldSelect, CommandPageHeader, MetricGrid } from "../../components/ui/controls";
 
 /**
  * Team Intelligence — an AI-powered team behaviour & value dashboard for owners/admins.
@@ -271,9 +271,10 @@ function OversightAsk() {
         <Sparkles size={14} className="shrink-0" style={{ color: "var(--section-accent)" }} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about your team — grounded in real data, no guesses…"
           className="min-w-0 flex-1 bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)" }} />
+        {/* Accent AI-action style — same recognizable primary treatment as .btn-primary across the app. */}
         <button type="submit" disabled={ask.isPending || !q.trim()}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-sm border px-3 py-1 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50"
-          style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}>
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-sm border px-3 py-1 text-[12px] font-medium transition-colors disabled:opacity-50"
+          style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 14%, transparent)", color: "var(--section-accent-text)" }}>
           {ask.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} Ask
         </button>
       </form>
@@ -515,42 +516,32 @@ function MemberDetail({ op }: { op: Operator }) {
         ))}
       </div>
 
-      {/* One unified metrics block — soft borderless tiles (no hairline grid) reads calmer + more premium. */}
+      {/* Member metrics — the SHARED MetricGrid (same tile look everywhere). Real values only. */}
       {tab === "overview" && (<>
-      <div className="grid grid-cols-3 gap-1.5 border-b px-4 py-3.5 sm:grid-cols-3" style={{ borderColor: "var(--border-soft)" }}>
-        {[
-          { k: "Tasks", val: fmt(op.task_count) },
-          { k: "AI credits", val: fmt(op.tokens) },
-          { k: "Credits / task", val: fmt(op.complexity_delta) },
-          { k: "Records touched", val: fmt(op.records_touched ?? 0) },
-          { k: "Open tasks", val: fmt(op.open_tasks ?? 0) },
-          { k: "Overdue", val: fmt(op.overdue_tasks ?? 0), warn: (op.overdue_tasks ?? 0) > 0 },
-          { k: "Completed", val: fmt(op.completed_tasks ?? 0) },
-          { k: "Messages", val: fmt(op.messages_sent ?? 0) },
-          { k: "Decisions", val: fmt(op.decisions_resolved ?? 0) },
-        ].map((m) => (
-          <div key={m.k} className="rounded-sm px-3 py-2" style={{ background: "var(--surface-hover)" }}>
-            <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.warn ? "#97824f" : "var(--text-primary)" }}>{m.val}</div>
-            <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{m.k}</div>
-          </div>
-        ))}
+      <div className="border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+        <MetricGrid cols={3} items={[
+          { label: "Tasks", value: fmt(op.task_count) },
+          { label: "AI credits", value: fmt(op.tokens) },
+          { label: "Credits / task", value: fmt(op.complexity_delta) },
+          { label: "Records touched", value: fmt(op.records_touched ?? 0) },
+          { label: "Open tasks", value: fmt(op.open_tasks ?? 0) },
+          { label: "Overdue", value: fmt(op.overdue_tasks ?? 0), tone: (op.overdue_tasks ?? 0) > 0 ? "#97824f" : undefined },
+          { label: "Completed", value: fmt(op.completed_tasks ?? 0) },
+          { label: "Messages", value: fmt(op.messages_sent ?? 0) },
+          { label: "Decisions", value: fmt(op.decisions_resolved ?? 0) },
+        ]} />
       </div>
 
       {/* deals / opportunities — real tallies (ownership resolved from node data + created_by) */}
       {((op.deals_owned ?? 0) > 0 || (op.deals_updated ?? 0) > 0) && (
-        <div className="grid grid-cols-5 gap-1.5 border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
-          {[
-            { k: "Deals owned", val: op.deals_owned ?? 0 },
-            { k: "Open", val: op.deals_open ?? 0 },
-            { k: "Won", val: op.deals_won ?? 0, tone: "#5f8169" },
-            { k: "Lost", val: op.deals_lost ?? 0, tone: "#9c6b72" },
-            { k: "Updated", val: op.deals_updated ?? 0 },
-          ].map((m) => (
-            <div key={m.k} className="rounded-sm px-2.5 py-2" style={{ background: "var(--surface-hover)" }}>
-              <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.tone ?? "var(--text-primary)" }}>{fmt(m.val)}</div>
-              <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{m.k}</div>
-            </div>
-          ))}
+        <div className="border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+          <MetricGrid cols={5} items={[
+            { label: "Deals owned", value: fmt(op.deals_owned ?? 0) },
+            { label: "Open", value: fmt(op.deals_open ?? 0) },
+            { label: "Won", value: fmt(op.deals_won ?? 0), tone: "#5f8169" },
+            { label: "Lost", value: fmt(op.deals_lost ?? 0), tone: "#9c6b72" },
+            { label: "Updated", value: fmt(op.deals_updated ?? 0) },
+          ]} />
         </div>
       )}
       </>)}

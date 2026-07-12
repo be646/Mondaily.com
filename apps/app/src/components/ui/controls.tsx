@@ -572,3 +572,28 @@ export function SettingsSection({ title, description, action, notice, children, 
     </section>
   );
 }
+
+// ── MetricGrid — the ONE dashboard metric-tile grid ─────────────────────────────
+// Calm borderless value tiles (big value + small label), one look everywhere. Values are passed in
+// from real data — this primitive never computes or invents a number. Optional tone for semantic
+// emphasis (matte green/amber/rose), never a decorative rainbow.
+export interface MetricItem { label: string; value: ReactNode; tone?: string; title?: string }
+const METRIC_COLS: Record<number, string> = {
+  2: "grid-cols-2",
+  3: "grid-cols-2 sm:grid-cols-3",
+  4: "grid-cols-2 sm:grid-cols-4",
+  5: "grid-cols-3 sm:grid-cols-5",
+  6: "grid-cols-3 sm:grid-cols-6",
+};
+export function MetricGrid({ items, cols = 3, className }: { items: MetricItem[]; cols?: 2 | 3 | 4 | 5 | 6; className?: string }) {
+  return (
+    <div className={cx("grid gap-1.5", METRIC_COLS[cols] ?? METRIC_COLS[3], className)}>
+      {items.map((m, i) => (
+        <div key={i} className="rounded-sm px-3 py-2" style={{ background: "var(--surface-hover)" }} title={m.title}>
+          <div className="text-[15px] font-semibold tabular-nums" style={{ color: m.tone ?? "var(--text-primary)" }}>{m.value}</div>
+          <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{m.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}

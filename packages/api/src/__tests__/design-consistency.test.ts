@@ -410,6 +410,22 @@ describe("debt-closure pass — Decisions dossier unification + colour system", 
   });
 });
 
+describe("Team Oversight — shared MetricGrid + AI-action query bar (one metric look)", () => {
+  it("a shared MetricGrid primitive exists and Team Oversight uses it (no bespoke metric tile grids)", () => {
+    expect(controls).toMatch(/export function MetricGrid/);
+    expect(teamOversight).toMatch(/import \{[^}]*MetricGrid/);
+    expect((teamOversight.match(/<MetricGrid\b/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    // MetricGrid renders passed-in values only — it never computes/invents a number.
+    expect(controls).toMatch(/never computes or invents a number/);
+  });
+  it("Team Oversight query bar uses the accent AI-action style + preserves all handlers", () => {
+    expect(teamOversight).toMatch(/same recognizable primary treatment as \.btn-primary/);
+    for (const h of ["ask.mutate", "requestCall", "member-efficiency", "member-insight", "oversight-actor", "window.print"]) {
+      expect(teamOversight).toContain(h);
+    }
+  });
+});
+
 describe("Home + Agents unification — one shared AgentCard (same agent system)", () => {
   it("a shared AgentCard exists and is used by BOTH the Home constellation and the Agents control room", () => {
     expect(agentConstellationSrc).toMatch(/export function AgentCard/);
