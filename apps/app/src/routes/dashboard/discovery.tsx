@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
 import { MenuSelect, ActionMenu, CommandPageHeader, ProofOfWorkStrip } from "../../components/ui/controls";
+import { EmptyState, ErrorState, DelayedLoading, PageSkeletonCards } from "../../components/ui/page-state";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { useLanguage } from "../../hooks/useLanguage";
 import { requestAsk } from "../../lib/ask-bus";
@@ -689,19 +690,40 @@ const DISCOVERY_MODULES: { key: string; label: string; Icon: typeof Globe2; hint
   { key: "research", label: "Research", Icon: MessageSquare, hint: "Ask AI over a lead or the whole result set (grounded, source-backed)." },
 ];
 function ModuleStrip() {
-  // One quiet inline pipeline line (was a row of bordered chip-boxes → too noisy). Same info,
-  // far less visual weight: muted labels + arrows, no per-stage border/box.
+  // Collapsed-by-default disclosure (was an always-visible pipeline row → competed with the
+  // composer for attention). The composer is the primary surface; this is reference-only. It
+  // describes what a search *does*, never implies any step has actually run.
+  const [open, setOpen] = useState(false);
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
-      <span className="uppercase tracking-wide">Pipeline</span>
-      {DISCOVERY_MODULES.map((m, i) => (
-        <span key={m.key} className="inline-flex items-center gap-2">
-          <span title={m.hint} className="inline-flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
-            <m.Icon size={10} style={{ color: "var(--text-faint)" }} /> {m.label}
-          </span>
-          {i < DISCOVERY_MODULES.length - 1 && <ArrowRight size={9} />}
-        </span>
-      ))}
+    <div className="mb-3">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-expanded={open}
+        className="inline-flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide transition-colors"
+        style={{ color: "var(--text-faint)" }}
+      >
+        How Discovery works
+        <ChevronDown size={11} style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform .12s ease" }} />
+      </button>
+      {open && (
+        <div
+          className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-sm border px-3 py-2.5 text-[10.5px]"
+          style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-muted)" }}
+        >
+          {DISCOVERY_MODULES.map((m, i) => (
+            <span key={m.key} className="inline-flex items-center gap-2">
+              <span title={m.hint} className="inline-flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
+                <m.Icon size={10} style={{ color: "var(--text-faint)" }} /> {m.label}
+              </span>
+              {i < DISCOVERY_MODULES.length - 1 && <ArrowRight size={9} />}
+            </span>
+          ))}
+          <p className="mt-1.5 w-full text-[10px]" style={{ color: "var(--text-faint)" }}>
+            Stages only run when you search — the proof strip under each result shows exactly what ran.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -1141,16 +1163,15 @@ function SavedLeads({ lists }: { lists: ListRow[] }) {
   });
   void lists;
 
-  if (q.isLoading) return <div className="flex items-center gap-2 py-16 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> Loading saved leads…</div>;
+  if (q.isLoading) return <DelayedLoading onRetry={() => q.refetch()}><PageSkeletonCards count={4} label="Loading saved leads…" /></DelayedLoading>;
+  if (q.isError) return <ErrorState error={q.error as Error} onRetry={() => q.refetch()} />;
   const rows = q.data ?? [];
   if (rows.length === 0) return (
-    <div className="grid flex-1 place-items-center py-20 text-center">
-      <div>
-        <Users size={22} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
-        <p className="text-[14px] font-medium" style={{ color: "var(--text-primary)" }}>No saved leads yet</p>
-        <p className="mt-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>Run a search and “Save as lead” to build your list here.</p>
-      </div>
-    </div>
+    <EmptyState
+      icon={Users}
+      title="No saved leads yet"
+      description={"Run a search and “Save as lead” to build your list here."}
+    />
   );
   return (
     <div className="min-h-0 flex-1 overflow-y-auto pb-6">

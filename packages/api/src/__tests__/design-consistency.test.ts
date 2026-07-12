@@ -320,8 +320,18 @@ describe("structural adoption pass 2 (headers / settings frames / accent life)",
     // No fabricated AI — insights show an honest prompt state when none have run.
     expect(salesReport).toContain("Surface patterns in your data");
   });
-  it("Discovery pipeline strip is a quiet inline line, not a row of bordered chip-boxes", () => {
-    expect(discovery).toContain("One quiet inline pipeline line");
+  it("Discovery pipeline is a collapsed-by-default disclosure (composer is primary), never an always-visible strip", () => {
+    // Default-collapsed toggle, not an always-rendered pipeline row competing with the composer.
+    expect(discovery).toContain("How Discovery works");
+    expect(discovery).toContain("useState(false)");
+    expect(discovery).toMatch(/aria-expanded=\{open\}/);
+    // Honest: describes what a search does, never implies a stage already ran.
+    expect(discovery).toContain("Stages only run when you search");
+  });
+  it("Discovery Saved-leads tab uses the shared empty/error/loading primitives", () => {
+    expect(discovery).toMatch(/<EmptyState[\s\S]*No saved leads yet/);
+    expect(discovery).toContain("<ErrorState");
+    expect(discovery).toContain("<DelayedLoading");
   });
 });
 
