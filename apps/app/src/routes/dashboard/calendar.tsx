@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Send, StickyNote, Circle, CalendarClock, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { FieldSelect, CommandPageHeader } from "../../components/ui/controls";
+import { EmptyState as SharedEmptyState, ErrorState, DelayedLoading, PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -345,9 +346,10 @@ export function CalendarPage() {
         <div className="min-w-0">
 
           {eventsQ.isLoading ? (
-            <div className="flex items-center gap-2 rounded-sm border py-12 px-4 text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> {t("state.loading")}</div>
+            // Shared delayed-loading + skeleton — same stable load surface as Reports/Decisions/Discovery.
+            <DelayedLoading onRetry={() => eventsQ.refetch()}><PageSkeleton /></DelayedLoading>
           ) : eventsQ.isError ? (
-            <div className="rounded-sm border py-12 text-center text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>Couldn't load your calendar. <button onClick={() => eventsQ.refetch()} className="underline">Retry</button></div>
+            <ErrorState error={new Error("Couldn't load your calendar right now.")} onRetry={() => eventsQ.refetch()} />
           ) : view === "today" ? (
             // Always a real day timeline — even with zero meetings, a subtle in-grid hint + suggestions.
             <div className="relative overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
@@ -365,7 +367,8 @@ export function CalendarPage() {
               onCreateDay={(d) => { const s = new Date(d); s.setHours(9, 0, 0, 0); openSlot(s); }} onMove={moveEventToDay}
               lang={lang} moreLabel={(n) => t("cal.more_count").replace("{n}", String(n))} empty={monthCount === 0} emptyHint={t("cal.clear_day")} dragHint={t("cal.drag_hint")} />
           ) : groups.length === 0 ? (
-            <EmptyState label={t("cal.empty")} onNew={openCreate} newLabel={t("cal.new_meeting")} />
+            <SharedEmptyState icon={CalendarDays} title={t("cal.empty")} description={t("cal.clear_day")}
+              action={<button onClick={openCreate} className="btn-secondary text-[12px]"><Plus size={13} /> {t("cal.new_meeting")}</button>} />
           ) : (
             <div className="space-y-5">
               {groups.map(([key, evs]) => (
@@ -389,18 +392,6 @@ export function CalendarPage() {
       {/* Mobile drawer — same brief body, shown only below lg. */}
       {openId && <div className="lg:hidden"><EventDrawer id={openId} onClose={() => setParams({}, { replace: true })} /></div>}
       {createOpen && <CreateModal callsEnabled={eventsQ.data?.calls_enabled ?? false} initialStart={createInit?.start} initialEnd={createInit?.end} onClose={() => { setCreateOpen(false); setCreateInit(null); }} onCreated={(id) => { setCreateOpen(false); setCreateInit(null); openEvent(id); }} />}
-    </div>
-  );
-}
-
-function EmptyState({ label, onNew, newLabel }: { label: string; onNew: () => void; newLabel: string }) {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-sm border py-16 text-center" style={{ borderColor: "var(--border-soft)" }}>
-      <CalendarDays size={22} style={{ color: "var(--text-faint)" }} />
-      <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>{label}</p>
-      <button onClick={onNew} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-        <Plus size={13} /> {newLabel}
-      </button>
     </div>
   );
 }
@@ -1093,8 +1084,8 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
           </div>
         </div>
         <div className="flex justify-end gap-2 border-t px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
-          <button onClick={onClose} className="rounded-sm border px-3 py-1.5 text-[12px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>{t("common.cancel")}</button>
-          <button onClick={() => valid && create.mutate()} disabled={!valid || create.isPending} className="rounded-sm border px-4 py-1.5 text-[12px] font-semibold disabled:opacity-50" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
+          <button onClick={onClose} className="btn-secondary text-[12px]">{t("common.cancel")}</button>
+          <button onClick={() => valid && create.mutate()} disabled={!valid || create.isPending} className="btn-primary text-[12px] font-semibold">
             {create.isPending ? <Loader2 size={13} className="animate-spin" /> : t("common.save")}
           </button>
         </div>

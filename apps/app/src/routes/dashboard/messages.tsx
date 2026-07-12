@@ -6,6 +6,7 @@ import { apiClient } from "../../lib/api-client";
 import { useTableRealtime } from "../../hooks/useTableRealtime";
 import { useLanguage } from "../../hooks/useLanguage";
 import { CommandPageHeader } from "../../components/ui/controls";
+import { EmptyState, ErrorState } from "../../components/ui/page-state";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 
 /**
@@ -137,7 +138,7 @@ export function MessagesPage() {
           ) : inboxQ.isLoading ? (
             <div className="flex items-center gap-2 px-4 py-10 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> {t("state.loading")}</div>
           ) : inboxQ.isError ? (
-            <div className="px-4 py-10 text-center text-[12.5px]" style={{ color: "var(--text-muted)" }}>Couldn't load your inbox. <button onClick={() => inboxQ.refetch()} className="underline">Retry</button></div>
+            <ErrorState error={new Error("Couldn't load your inbox right now.")} onRetry={() => inboxQ.refetch()} />
           ) : inbox.length === 0 && !active ? (
             <div className="px-4 py-12 text-center">
               <InboxIcon size={20} className="mx-auto mb-2.5" style={{ color: "var(--text-faint)" }} />
@@ -196,13 +197,9 @@ export function MessagesPage() {
         {/* thread */}
         {activeGroup ? <GroupThread groupId={activeGroup} live={live.current} onSent={() => { qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onLeft={() => { setActiveGroup(""); qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onBack={() => setActiveGroup("")} />
           : active ? <Thread otherId={active} live={live.current} onSent={() => { qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onArchived={() => { setActive(""); qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onBack={() => setActive("")} />
-          : <div className="hidden flex-col items-center justify-center gap-3 rounded-sm border lg:flex" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-              <InboxIcon size={26} style={{ color: "var(--text-faint)" }} />
-              <p className="text-[13px]" style={{ color: "var(--text-faint)" }}>{t("inbox.select_conversation")}</p>
-              <button onClick={() => setPickerOpen(true)} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]"
-                style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
-                <Plus size={13} /> {t("inbox.new_message")}
-              </button>
+          : <div className="hidden items-center justify-center rounded-sm border lg:flex" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              <EmptyState icon={InboxIcon} title={t("inbox.select_conversation")} description={t("inbox.subtitle")}
+                action={<button onClick={() => setPickerOpen(true)} className="btn-secondary text-[12px]"><Plus size={13} /> {t("inbox.new_message")}</button>} />
             </div>}
       </div>
     </div>
@@ -222,6 +219,9 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState("");
+  // True only while the compose box holds an AI-generated draft the user hasn't touched yet — drives
+  // an honest "AI draft · review before sending" marker. Cleared the moment they edit or send.
+  const [aiDrafted, setAiDrafted] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const threadQ = useQuery<ThreadResp>({
@@ -236,7 +236,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
 
   const send = useMutation({
     mutationFn: (body: string) => apiClient.post("/messages", { recipient_id: otherId, body, ...(pending.length ? { attachments: pending } : {}) }),
-    onSuccess: () => { setDraft(""); setPending([]); qc.invalidateQueries({ queryKey: ["messages-thread", otherId] }); onSent(); },
+    onSuccess: () => { setDraft(""); setPending([]); setAiDrafted(false); qc.invalidateQueries({ queryKey: ["messages-thread", otherId] }); onSent(); },
   });
 
   // Upload files to the private bucket first; the metadata rides on the message when sent.
@@ -291,7 +291,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
     setAiBusy(true); setAiError("");
     try {
       const r = await apiClient.post<{ draft?: string; error?: string }>("/messages/draft", { prompt: p, existing: draft.trim() || undefined });
-      if (r.draft) { setDraft(r.draft); setAiOpen(false); setAiPrompt(""); }
+      if (r.draft) { setDraft(r.draft); setAiDrafted(true); setAiOpen(false); setAiPrompt(""); }
       else setAiError(r.error || "Couldn't draft that.");
     } catch { setAiError("Couldn't draft that — please try again."); }
     finally { setAiBusy(false); }
@@ -405,6 +405,15 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
         </div>
       )}
 
+      {/* Honest AI-draft marker — shown only while the box holds an untouched AI draft. Makes it
+          unmistakable this text was AI-generated and still needs a human review before it sends. */}
+      {aiDrafted && draft.trim() && (
+        <div className="flex items-center gap-1.5 border-t px-3 py-1.5 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--section-accent) 7%, transparent)", color: "var(--section-accent)" }}>
+          <Sparkles size={11} /> AI draft · review before sending
+          <button onClick={() => { setDraft(""); setAiDrafted(false); }} className="ml-auto shrink-0" title="Clear draft" style={{ color: "var(--text-faint)" }}><X size={12} /></button>
+        </div>
+      )}
+
       <div className="flex items-end gap-2 border-t px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
         {/* AI draft — the one clearly-marked assist control (always accent-tinted so it reads as AI,
             highlighted when its panel is open). Drafts into the box; never auto-sends. */}
@@ -415,7 +424,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
           className="btn-icon h-8 w-8 shrink-0 disabled:opacity-40" style={{ color: pending.length ? "var(--section-accent)" : "var(--text-faint)" }}>
           {uploading ? <Loader2 size={15} className="animate-spin" /> : <Paperclip size={15} />}
         </button>
-        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={1} placeholder={t("inbox.write_message")}
+        <textarea value={draft} onChange={(e) => { setDraft(e.target.value); if (aiDrafted) setAiDrafted(false); }} rows={1} placeholder={t("inbox.write_message")}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
           className="flex-1 resize-none bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)", maxHeight: 120 }} />
         <button onClick={submit} disabled={(!draft.trim() && pending.length === 0) || send.isPending || uploading}

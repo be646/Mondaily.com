@@ -582,6 +582,29 @@ describe("Calendar + Inbox AI-native polish", () => {
     expect(messages).toMatch(/m\.read_at \?/);
     for (const h of ["send.mutate", "aiDraft", "read_at"]) expect(messages).toContain(h);
   });
+  it("Calendar + Inbox adopt the shared page-state primitives (loading/error/empty) and shared button classes", () => {
+    // Calendar: shared DelayedLoading + ErrorState + EmptyState (no bespoke inline retry/empty cards).
+    expect(calendar).toContain("<DelayedLoading");
+    expect(calendar).toContain("<ErrorState");
+    expect(calendar).toContain("<SharedEmptyState");
+    expect(calendar).not.toMatch(/Couldn't load your calendar\. <button/);
+    // Calendar modal footer uses the shared button primitives, not bespoke bordered buttons.
+    expect(calendar).toMatch(/className="btn-secondary text-\[12px\]"/);
+    expect(calendar).toMatch(/className="btn-primary text-\[12px\] font-semibold"/);
+    // Inbox: shared ErrorState + EmptyState for the list / no-conversation surfaces.
+    expect(messages).toContain("<ErrorState");
+    expect(messages).toContain("<EmptyState");
+    expect(messages).not.toMatch(/Couldn't load your inbox\. <button/);
+  });
+  it("Inbox AI draft is honestly marked as an unsent draft until the human edits or sends", () => {
+    // A dedicated flag drives an explicit 'review before sending' marker — set on AI draft, cleared on edit/send.
+    expect(messages).toContain("const [aiDrafted, setAiDrafted]");
+    expect(messages).toContain("AI draft · review before sending");
+    expect(messages).toMatch(/setAiDrafted\(true\)/);
+    // Cleared on send and on manual edit so the marker never lies.
+    expect(messages).toMatch(/setAiDrafted\(false\)/);
+    expect(messages).toMatch(/if \(aiDrafted\) setAiDrafted\(false\)/);
+  });
 });
 
 describe("landing consolidation", () => {
