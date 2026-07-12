@@ -767,6 +767,36 @@ describe("Premium low-data UX — guided empty states (real actions, no fake dat
   });
 });
 
+describe("Credit Notes — polished finance operations page", () => {
+  const creditNotes = read("routes/dashboard/finance/credit-notes.tsx");
+  it("key totals are ONE shared MetricGrid over real sums (no fragmented telemetry cards, no duplicated total)", () => {
+    expect(creditNotes).toMatch(/<MetricGrid className="mb-4" cols=\{3\}/);
+    expect(creditNotes).not.toContain("telemetry-strip");
+    expect(creditNotes).not.toContain("Total credit issued"); // was a duplicate of Executed
+    // Rendered only when rows exist — no zeros-as-stats on an empty workspace.
+    expect(creditNotes).toMatch(/creditNotes\.length > 0 && \(/);
+  });
+  it("active status filter is actually VISIBLE (surface-card pill on surface-hover track)", () => {
+    expect(creditNotes).toMatch(/statusFilter === f\.key \? \{ background: "var\(--surface-card\)"/);
+    expect(creditNotes).not.toMatch(/statusFilter === f\.key \? "bg-\[var\(--surface-hover\)\]/);
+  });
+  it("amounts read as finance numerals: right-aligned + tabular-nums", () => {
+    expect(creditNotes).toMatch(/text-right text-\[13px\] font-semibold tabular-nums/);
+    expect(creditNotes).toMatch(/text-right text-\[11px\] font-medium[^>]*>Amount/);
+  });
+  it("loading/error/empty use the shared primitives; empty distinguishes filtered vs truly empty", () => {
+    expect(creditNotes).toContain("<DelayedLoading");
+    expect(creditNotes).toContain("<ErrorState");
+    expect(creditNotes).toMatch(/statusFilter \|\| search \? "Nothing matches this filter" : "No credit notes yet"/);
+  });
+  it("behavior preserved: create/open/search/filter and honest AI summary (real field only)", () => {
+    for (const h of ["setShowNew(true)", "navigate(`/finance/credit-notes/${cn.id}`)", "setStatusFilter", "setSearch", "cn.ai_summary ?"]) {
+      expect(creditNotes).toContain(h);
+    }
+    expect(creditNotes).toContain('apiClient.post<CreditNote>("/credit-notes"');
+  });
+});
+
 describe("landing consolidation", () => {
   it("email / start-free form is token-driven (no black-on-black dark:bg-black)", () => {
     expect(landing).not.toMatch(/dark:bg-black/);

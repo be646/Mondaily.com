@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogoMark } from "@/components/logo";
-import { FieldSelect } from "../../../components/ui/controls";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
+import { FieldSelect, MetricGrid, type MetricItem } from "../../../components/ui/controls";
+import { EmptyState, ErrorState, ConsoleSkeleton, DelayedLoading } from "../../../components/ui/page-state";
 import {
-  Plus, Search, ReceiptText, Clock, CheckCircle2, AlertCircle,
-  XCircle, DollarSign, ChevronRight, RefreshCcw,
+  Plus, Search, ReceiptText, Clock, CheckCircle2,
+  XCircle, ChevronRight,
 } from "lucide-react";
 
 type CreditReason = "refund" | "billing_error" | "goodwill" | "contract_discount";
@@ -96,7 +97,7 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
       <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-stone-500/20 flex items-center justify-center"><ReceiptText size={12} className="text-[var(--text-faint)]"/></div>
+            <div className="h-6 w-6 rounded-sm bg-[var(--surface-hover)] flex items-center justify-center"><ReceiptText size={12} className="text-[var(--text-faint)]"/></div>
             <span className="text-sm font-semibold text-[var(--text-primary)]">New Credit Note</span>
           </div>
           <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors text-lg leading-none">×</button>
@@ -135,7 +136,7 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
                 className="key-input w-full text-sm resize-none"/>
             </div>
           </div>
-          {error && <p className="text-[11px] text-[var(--text-faint)] bg-stone-400/10 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-[11px] rounded-sm px-3 py-2" style={{ color: "#9c6b72", background: "color-mix(in srgb, #9c6b72 10%, transparent)" }}>{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
@@ -190,31 +191,25 @@ export function CreditNotesPage() {
           </button>
         </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-          <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-[#97824f]"/><span className="text-[11px] text-[var(--text-muted)]">Pending</span></div>
-            <div className="text-[17px] font-semibold text-[#97824f]">{formatMoney(totalPending, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{creditNotes.filter(n => n.status === "pending_review").length} note{creditNotes.filter(n => n.status === "pending_review").length !== 1 ? "s" : ""}</div>
-          </div>
-          <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#5f8169]"/><span className="text-[11px] text-[var(--text-muted)]">Executed</span></div>
-            <div className="text-[17px] font-semibold text-[#5f8169]">{formatMoney(totalExecuted, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{creditNotes.filter(n => n.status === "executed").length} note{creditNotes.filter(n => n.status === "executed").length !== 1 ? "s" : ""}</div>
-          </div>
-          <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><DollarSign size={11} className="text-[var(--text-muted)]"/><span className="text-[11px] text-[var(--text-muted)]">Total credit issued</span></div>
-            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{formatMoney(totalExecuted, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{mixedCurrency ? `in ${display} · mixed currencies` : "this workspace"}</div>
-          </div>
-        </div>
+        {/* Key totals — ONE shared MetricGrid (same primitive as Decisions/Team Oversight) instead
+            of three fragmented divider-heavy cards. All values counted/summed from the loaded rows;
+            the old third card duplicated the Executed figure and is gone. */}
+        {creditNotes.length > 0 && (
+          <MetricGrid className="mb-4" cols={3} items={([
+            { label: `Pending review · ${creditNotes.filter(n => n.status === "pending_review").length}`, value: formatMoney(totalPending, currency), tone: totalPending > 0 ? "#97824f" : undefined, title: "Sum of credit notes awaiting review" },
+            { label: `Executed · ${creditNotes.filter(n => n.status === "executed").length}`, value: formatMoney(totalExecuted, currency), tone: totalExecuted > 0 ? "#5f8169" : undefined, title: "Credit actually issued" },
+            { label: mixedCurrency ? `All notes · shown in ${display}` : "All notes", value: creditNotes.length, title: "Every credit note in this view" },
+          ] as MetricItem[])} />
+        )}
 
-        {/* Filters + search */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-1">
+        {/* Filters + search — same segmented-tab pattern as Meeting Memory/Calendar (the active
+            pill previously used the same token as the track, so the selection was invisible). */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="inline-flex flex-wrap rounded-md border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
             {FILTERS.map(f => (
               <button key={f.key} onClick={() => setStatusFilter(f.key)}
-                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${statusFilter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
+                className="rounded-[3px] px-2.5 py-1 text-[11.5px] font-medium transition-colors"
+                style={statusFilter === f.key ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
                 {f.label}
               </button>
             ))}
@@ -226,25 +221,36 @@ export function CreditNotesPage() {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table — finance reading order: who/why/state on the left, the MONEY right-aligned in
+          tabular numerals (the premium finance convention), date last. */}
       <div className="flex-1 overflow-auto">
         {isLoading ? (
-          <div className="flex h-40 items-center justify-center text-[12px] text-[var(--text-secondary)]">Loading…</div>
+          <div className="p-6"><DelayedLoading onRetry={() => refetch()}><ConsoleSkeleton rows={6} cols={5} /></DelayedLoading></div>
         ) : isError ? (
-          <div className="flex h-40 flex-col items-center justify-center gap-2 text-[12px] text-[var(--text-muted)]">Couldn't load credit notes. <button onClick={() => refetch()} className="underline">Retry</button></div>
+          <div className="p-6"><ErrorState error={new Error("Couldn't load credit notes right now.")} onRetry={() => refetch()} /></div>
         ) : creditNotes.length === 0 ? (
-          <div className="flex h-60 flex-col items-center justify-center gap-3">
-            <ReceiptText size={32} className="text-[var(--text-secondary)]"/>
-            <div className="text-[13px] text-[var(--text-muted)]">No credit notes {statusFilter ? `with status "${statusFilter}"` : "yet"}</div>
-            <button onClick={() => setShowNew(true)} className="text-[12px] text-[var(--text-faint)] hover:text-[var(--text-faint)] transition-colors">Create your first credit note</button>
+          <div className="p-6">
+            <EmptyState
+              icon={ReceiptText}
+              title={statusFilter || search ? "Nothing matches this filter" : "No credit notes yet"}
+              description={statusFilter || search
+                ? "Clear the search or switch back to All to see every credit note."
+                : "Refunds, billing corrections, and goodwill credits are tracked here through review and execution."}
+              action={!statusFilter && !search ? (
+                <button onClick={() => setShowNew(true)} className="btn-primary text-[12px] font-semibold"><Plus size={13} /> New credit note</button>
+              ) : undefined}
+            />
           </div>
         ) : (
           <table className="minimal-table">
             <thead>
               <tr className="border-b border-[var(--border-soft)]">
-                {["Client", "Amount", "Reason", "Status", "AI Summary", "Created", ""].map(h => (
+                {(["Client", "Reason", "Status", "AI Summary"] as const).map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-[var(--text-secondary)]">{h}</th>
                 ))}
+                <th className="px-4 py-2.5 text-right text-[11px] font-medium text-[var(--text-secondary)]">Amount</th>
+                <th className="px-4 py-2.5 text-left text-[11px] font-medium text-[var(--text-secondary)]">Created</th>
+                <th className="px-4 py-2.5" />
               </tr>
             </thead>
             <tbody>
@@ -256,9 +262,8 @@ export function CreditNotesPage() {
                     className="border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
                     onClick={() => navigate(`/finance/credit-notes/${cn.id}`)}>
                     <td className="px-4 py-3">
-                      <div className="text-[12px] font-medium text-[var(--text-primary)]">{cn.client_name ?? "—"}</div>
+                      <div className="text-[12.5px] font-medium text-[var(--text-primary)]">{cn.client_name ?? "—"}</div>
                     </td>
-                    <td className="px-4 py-3 text-[13px] font-semibold text-[var(--text-primary)]">{fmt(cn.amount_cents, cn.currency)}</td>
                     <td className="px-4 py-3">
                       <span className="text-[11px] text-[var(--text-faint)] rounded-full bg-[var(--surface-hover)] px-2 py-0.5">{REASON_LABELS[cn.credit_reason]}</span>
                     </td>
@@ -275,11 +280,12 @@ export function CreditNotesPage() {
                         </div>
                       ) : <span className="text-[11px] text-[var(--text-secondary)]">—</span>}
                     </td>
+                    <td className="px-4 py-3 text-right text-[13px] font-semibold tabular-nums text-[var(--text-primary)]">{fmt(cn.amount_cents, cn.currency)}</td>
                     <td className="px-4 py-3 text-[11px] text-[var(--text-secondary)]">
                       {new Date(cn.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
                     </td>
                     <td className="px-4 py-3">
-                      <ChevronRight size={13} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors"/>
+                      <ChevronRight size={13} className="text-[var(--text-secondary)] transition-colors"/>
                     </td>
                   </tr>
                 );
