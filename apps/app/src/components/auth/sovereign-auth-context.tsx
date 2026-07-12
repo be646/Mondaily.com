@@ -22,14 +22,22 @@ function purgeSessionState() {
 const AUTH_URL = `${BASE_URL}/api/v1/auth`;
 
 async function authCall<T = Record<string, unknown>>(path: string, body?: unknown, method: "GET" | "POST" = "POST"): Promise<{ status: number; data: T }> {
-  const res = await fetch(`${AUTH_URL}${path}`, {
-    method,
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  const data = (await res.json().catch(() => ({}))) as T;
-  return { status: res.status, data };
+  try {
+    const res = await fetch(`${AUTH_URL}${path}`, {
+      method,
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = (await res.json().catch(() => ({}))) as T;
+    return { status: res.status, data };
+  } catch {
+    // Network error (offline, aborted mid-navigation, transient DNS/TLS blip). Return a synthetic
+    // status 0 so callers can distinguish "couldn't reach the server" from a real 401 — and NOT log
+    // the user out on a transient failure. This was the /calls direct-load false-logout: a boot-time
+    // network blip threw here and dropped the session to guest → redirect to /auth/shadow-login.
+    return { status: 0, data: {} as T };
+  }
 }
 
 export interface SovereignUser { userId: string; email: string; name: string | null; imageUrl: string | null; emailVerified: boolean }
@@ -95,14 +103,28 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
     })();
   };
 
-  // Bootstrap once: /me → on 401 try a silent refresh → else guest. Guarded so it never loops.
+  // Bootstrap once: /me → on real 401 try a silent refresh → else guest. Guarded so it never loops.
+  // A transient network error (authCall status 0) must NOT log the user out — retry a few times and
+  // stay in "loading" (the route guards render null, not a redirect) before giving up. This is the
+  // fix for the direct-navigation false-logout (e.g. loading /calls by URL) on a boot-time blip.
   useEffect(() => {
     if (booted.current) return;
     booted.current = true;
     (async () => {
-      const me = await authCall<MeResp>("/me", undefined, "GET");
-      if (me.status === 200 && me.data.userId) { setAuthed(toUser(me.data), me.data.workspaceId); claimSessionPow(); return; }
-      if (!(await refresh())) setGuest();
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const me = await authCall<MeResp>("/me", undefined, "GET");
+        if (me.status === 200 && me.data.userId) { setAuthed(toUser(me.data), me.data.workspaceId); claimSessionPow(); return; }
+        if (me.status === 401) {
+          // Genuine access-cookie expiry — the 30-day refresh cookie should renew it.
+          if (await refresh()) return;
+          setGuest(); return;
+        }
+        // Network error (status 0) / 5xx — a blip, not a logout. Back off and retry the boot.
+        if (attempt < 2) await new Promise<void>(r => setTimeout(r, 500 * (attempt + 1)));
+      }
+      // Still can't reach the session endpoint after 3 attempts → guest (user can re-auth). Only
+      // reached on a sustained outage, never a single transient failure.
+      setGuest();
     })().catch(setGuest);
   }, [refresh]);
 

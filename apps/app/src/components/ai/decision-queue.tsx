@@ -74,7 +74,10 @@ export function useCockpitDecisions() {
     queryFn: () => apiClient.get<Decision[]>("/decisions?view=cockpit"),
     staleTime: 20_000,
     refetchInterval: 20_000,
-    retry: false,
+    // One retry so a single transient blip recovers instead of dropping straight to an error state;
+    // the api-client 45s timeout still guarantees a hung request eventually rejects (no infinite skeleton).
+    retry: 1,
+    retryDelay: 800,
   });
 }
 

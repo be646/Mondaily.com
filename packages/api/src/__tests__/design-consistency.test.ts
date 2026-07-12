@@ -35,6 +35,10 @@ const reportsIndex = read("routes/dashboard/reports/index.tsx");
 const settingsAccount = read("routes/dashboard/settings/account.tsx");
 const settingsMembers = read("routes/dashboard/settings/members.tsx");
 const settingsAiControlRoom = read("routes/dashboard/settings/ai-control-room.tsx");
+const apiClientSrc = read("lib/api-client.ts");
+const sovereignAuthSrc = read("components/auth/sovereign-auth-context.tsx");
+const decisionQueueSrc = read("components/ai/decision-queue.tsx");
+const pageStateSrc = read("components/ui/page-state.tsx");
 const calendar = read("routes/dashboard/calendar.tsx");
 const messages = read("routes/dashboard/messages.tsx");
 const askMondailyPage = read("components/ai/ask-mondaily.tsx");
@@ -399,6 +403,37 @@ describe("debt-closure pass — Decisions dossier unification + colour system", 
     expect(stylesCss).toMatch(/\.btn-primary \{[^}]*background: color-mix\(in srgb, var\(--section-accent\) 14%/s);
     // No candy: still no rainbow section drift (theme-spread stays 0).
     expect(stylesCss).toMatch(/--theme-spread: 0\b/);
+  });
+});
+
+describe("route stability — no false logout / no infinite skeleton (Codex auth audit)", () => {
+  it("api-client bounds every request with a timeout so a hung backend errors instead of hanging forever", () => {
+    expect(apiClientSrc).toMatch(/REQUEST_TIMEOUT_MS\s*=\s*45_?000/);
+    expect(apiClientSrc).toContain("new AbortController()");
+    expect(apiClientSrc).toContain("signal: controller.signal");
+    expect(apiClientSrc).toContain("clearTimeout(timer)");
+  });
+  it("auth bootstrap does NOT log the user out on a transient network blip (the /calls false-logout)", () => {
+    // authCall returns a synthetic status 0 on a network error instead of throwing.
+    expect(sovereignAuthSrc).toMatch(/return \{ status: 0, data: \{\} as T \}/);
+    // Bootstrap retries before giving up; only a real 401 (+ failed refresh) drops to guest.
+    expect(sovereignAuthSrc).toMatch(/for \(let attempt = 0; attempt < 3; attempt\+\+\)/);
+    expect(sovereignAuthSrc).toMatch(/if \(me\.status === 401\)/);
+  });
+  it("Decisions load is stable: one retry + a delayed 'Still loading… / Retry' fallback, real error state", () => {
+    // The cockpit feed (Decisions page) now retries once (retry:1 + retryDelay:800, both unique to it)
+    // instead of dropping straight to an error. The separate ["decisions","pending"] hook keeps
+    // retry:false on purpose (migration-not-applied).
+    expect(decisionQueueSrc).toContain('queryKey: ["decisions", "cockpit"]');
+    expect(decisionQueueSrc).toMatch(/retry: 1,\s*\n\s*retryDelay: 800/);
+    expect(pageStateSrc).toMatch(/export function DelayedLoading/);
+    expect(decisions).toMatch(/<DelayedLoading onRetry=\{\(\) => refetch\(\)\}>/);
+    // Existing honest error branch preserved.
+    expect(decisions).toContain("Couldn't load the Decision Queue");
+  });
+  it("DelayedLoading shows no fabricated data — only an honest 'Still loading…' + optional Retry", () => {
+    expect(pageStateSrc).toContain("Still loading…");
+    expect(pageStateSrc).not.toMatch(/mock|fake|placeholder data/i);
   });
 });
 

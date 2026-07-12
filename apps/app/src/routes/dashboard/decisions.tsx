@@ -3,7 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
-import { PageSkeleton } from "../../components/ui/page-state";
+import { PageSkeleton, DelayedLoading } from "../../components/ui/page-state";
 import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, FilterToolbar, type ActionMenuItem, type CommandStatusItem, type FilterChip } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
@@ -50,7 +50,7 @@ const LANES: { key: LaneKey; label: string; statuses: string[]; open: boolean }[
 export function DecisionsPage() {
   const qc = useQueryClient();
   const { t } = useLanguage();
-  const { data: decisions, isLoading, isError } = useCockpitDecisions();
+  const { data: decisions, isLoading, isError, refetch } = useCockpitDecisions();
   const [lane, setLane] = useState<LaneKey>("approval");
   const [agentFilter, setAgentFilter] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
@@ -192,7 +192,9 @@ export function DecisionsPage() {
     return () => window.removeEventListener("keydown", onKey);
   }); // re-binds each render so it always sees current visible/selected
 
-  if (isLoading) return <PageSkeleton />;
+  // Skeleton, but never a blank/stuck one: after ~8s show "Still loading… / Retry" (the api-client's
+  // 45s timeout guarantees a hung request errors into the isError state below rather than hanging).
+  if (isLoading) return <DelayedLoading onRetry={() => refetch()}><PageSkeleton /></DelayedLoading>;
 
   // Queue intelligence — REAL numbers from the live queue (no invention), folded into the header's
   // honest status row instead of a separate stats box (one command header, not stacked blocks).

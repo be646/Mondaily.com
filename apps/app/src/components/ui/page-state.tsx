@@ -1,7 +1,32 @@
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw, Loader2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { LogoMark } from "@/components/logo";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+
+/**
+ * DelayedLoading — wraps a skeleton and, after a reasonable delay, adds an honest "Still loading…"
+ * line with an optional Retry. Prevents a slow/hung request from looking like a broken, blank
+ * skeleton-only screen. Shows nothing extra on fast loads (the skeleton alone). No invented data.
+ */
+export function DelayedLoading({ children, delayMs = 8000, onRetry, label = "Still loading…" }: { children: ReactNode; delayMs?: number; onRetry?: () => void; label?: string }) {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setSlow(true), delayMs); return () => clearTimeout(t); }, [delayMs]);
+  return (
+    <>
+      {children}
+      {slow && (
+        <div className="mt-4 flex items-center justify-center gap-3 text-[12px]" style={{ color: "var(--text-muted)" }}>
+          <Loader2 size={13} className="animate-spin" /> {label}
+          {onRetry && (
+            <button onClick={onRetry} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              <RefreshCw size={11} /> Retry
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
 
 /**
  * Console wireframe loader — a thin-bordered, zero-radius grid mesh for data-heavy panels

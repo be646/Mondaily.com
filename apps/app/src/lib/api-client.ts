@@ -55,11 +55,19 @@ export async function apiFetch(input: string, init?: RequestInit): Promise<Respo
   return res;
 }
 
+// Hard ceiling so a hung/stalled backend request eventually REJECTS (→ the caller's error state)
+// instead of leaving a page stuck on skeletons forever. Generous enough for slow AI generation.
+const REQUEST_TIMEOUT_MS = 45_000;
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const workspaceId = localStorage.getItem("mondaily_workspace_id");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
   const send = () => fetch(`${API_URL}${path}`, {
     ...init,
     credentials: "include",
+    signal: controller.signal,
     headers: {
       "Content-Type": "application/json",
       ...(workspaceId ? { "X-Workspace-Id": workspaceId } : {}),
@@ -91,6 +99,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     return JSON.parse(text) as T;
   } catch {
     return undefined as T;
+  }
+  } finally {
+    clearTimeout(timer);
   }
 }
 
