@@ -921,7 +921,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
       )}
       <div className="px-3 pb-3 pt-2 border-t border-[var(--border-soft)]">
         <button onClick={submit}
-          className="w-full rounded-sm bg-stone-500 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-400 transition-colors">
+          className="w-full rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
           Add {name.trim() || PRESET_DEFAULTS[type] || type}
         </button>
       </div>

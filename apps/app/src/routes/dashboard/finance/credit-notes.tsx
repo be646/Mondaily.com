@@ -139,7 +139,7 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
-              className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-600 px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-50">
+              className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-50">
               {loading ? "Creating…" : "Create"}
             </button>
           </div>
@@ -185,7 +185,7 @@ export function CreditNotesPage() {
             <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Manage refunds, billing corrections and goodwill credits</p>
           </div>
           <button onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
+            className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
             <Plus size={13}/> New Credit Note
           </button>
         </div>

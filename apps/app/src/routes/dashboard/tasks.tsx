@@ -358,7 +358,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
           <button onClick={onClose} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
           {suggestions.length === 0 ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
-              className="flex items-center gap-2 rounded-sm bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
+              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
               {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
             </button>
           ) : (
@@ -367,7 +367,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
                 {loading ? "Regenerating…" : "Regenerate"}
               </button>
               <button onClick={importSelected} disabled={selected.size === 0 || saving}
-                className="flex items-center gap-2 rounded-sm bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
+                className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
                 {saving ? <Loader2 size={13} className="animate-spin"/> : <Check size={13}/>}
                 Add {selected.size} task{selected.size !== 1 ? "s" : ""}
               </button>
@@ -547,7 +547,7 @@ export function TasksPage() {
                 <AIMark size={12}/> Suggest
               </button>
               <button onClick={() => setShowCreate(true)}
-                className="flex items-center gap-1.5 rounded-sm bg-stone-600 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-700 dark:hover:bg-stone-500 transition-colors">
+                className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
                 <Plus size={13}/> {t("tasks.new")}
               </button>
             </>

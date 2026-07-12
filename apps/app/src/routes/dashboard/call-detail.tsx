@@ -210,7 +210,7 @@ export function CallDetailPage() {
         {call.status === "failed" && (
           <button onClick={() => reprocess.mutate()} disabled={reprocess.isPending} title="Retry transcription/summary" className="flex h-9 items-center gap-1.5 rounded-sm border px-3 text-[13px] font-medium disabled:opacity-60" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{reprocess.isPending ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Reprocess</button>
         )}
-        <button onClick={() => setAnalysisOpen(true)} className="flex h-9 items-center gap-2 rounded-md bg-stone-600 px-3 text-sm font-medium"><LogoMark size={14} /> Run analysis</button>
+        <button onClick={() => setAnalysisOpen(true)} className="flex h-9 items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-sm font-medium text-[var(--section-accent-text)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors"><LogoMark size={14} /> Run analysis</button>
       </header>
       <div className="grid min-h-[calc(100vh-74px)] lg:grid-cols-[minmax(320px,0.8fr)_minmax(480px,1.2fr)]">
         <section className="border-b border-[var(--border-soft)] p-4 sm:p-6 lg:border-b-0 lg:border-r">
@@ -262,7 +262,7 @@ export function CallDetailPage() {
             {call.audio_url ? <>
               <div ref={containerRef} />
               <div className="mt-4 flex flex-wrap items-center gap-3">
-                <button disabled={!ready} onClick={() => waveRef.current?.playPause()} className="grid h-9 w-9 place-items-center rounded-full bg-stone-600 text-[var(--text-primary)] disabled:opacity-40">{playing ? <Pause size={15} /> : <Play size={15} />}</button>
+                <button disabled={!ready} onClick={() => waveRef.current?.playPause()} className="grid h-9 w-9 place-items-center rounded-full border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] text-[var(--section-accent-text)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-40">{playing ? <Pause size={15} /> : <Play size={15} />}</button>
                 <Clock3 size={14} className="text-[var(--text-secondary)]" />
                 <FieldSelect value={playbackRate} onChange={v => { setPlaybackRate(v); waveRef.current?.setPlaybackRate(Number(v)); }} ariaLabel="Playback speed" options={[{ value: "0.75", label: "0.75x" }, { value: "1", label: "1x" }, { value: "1.25", label: "1.25x" }, { value: "1.5", label: "1.5x" }, { value: "2", label: "2x" }]} />
                 <Volume2 size={14} className="ml-auto text-[var(--text-secondary)]" /><input aria-label="Volume" type="range" min="0" max="1" step="0.05" defaultValue="1" onChange={(event) => waveRef.current?.setVolume(Number(event.target.value))} className="w-28 accent-[#9c6b72]" />

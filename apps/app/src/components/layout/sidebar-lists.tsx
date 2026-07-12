@@ -336,7 +336,7 @@ export function SidebarLists() {
                 )}
 
                 <button type="submit" disabled={!name.trim() || create.isPending}
-                  className="flex w-full items-center justify-center gap-2 rounded-sm bg-stone-600 py-2 text-xs font-semibold text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-500 transition-colors">
+                  className="flex w-full items-center justify-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] py-2 text-xs font-semibold text-[var(--text-primary)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
                   {create.isPending ? "Creating…" : "Create list"}
                 </button>
               </form>
@@ -348,7 +348,7 @@ export function SidebarLists() {
                   className="w-full resize-none rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2.5 text-[12px] text-[var(--text-primary)] placeholder-stone-700 outline-none focus:border-stone-500/40 transition-colors" />
                 {aiError && <p className="text-[11px] text-stone-400">{aiError}</p>}
                 <button onClick={createWithAI} disabled={aiLoading || !aiPrompt.trim()}
-                  className="flex w-full items-center justify-center gap-2 rounded-sm bg-stone-600 py-2 text-xs font-semibold text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-500 transition-colors">
+                  className="flex w-full items-center justify-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] py-2 text-xs font-semibold text-[var(--text-primary)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
                   {aiLoading ? <><Loader2 size={13} className="animate-spin" /> Creating list…</> : <><AIMark size={13}/> {t("common.create")}</>}
                 </button>
               </div>

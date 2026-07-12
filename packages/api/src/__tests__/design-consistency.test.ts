@@ -646,6 +646,53 @@ describe("Settings-wide visual normalization", () => {
   });
 });
 
+describe("Primary-button unification (stone → shared accent model)", () => {
+  // Every dashboard app source (the surfaces that carried inline stone primary buttons).
+  const APP_SURFACES = [
+    "routes/dashboard/finance/quotes.tsx", "routes/dashboard/finance/invoices.tsx", "routes/dashboard/finance/expenses.tsx",
+    "routes/dashboard/finance/credit-notes.tsx", "routes/dashboard/finance/[invoiceId].tsx", "routes/dashboard/finance/[creditNoteId].tsx",
+    "routes/dashboard/automations/index.tsx", "routes/dashboard/automations/workflow-builder.tsx", "routes/dashboard/automations/sequence-builder.tsx",
+    "routes/dashboard/notes.tsx", "routes/dashboard/pipeline.tsx", "routes/dashboard/tasks.tsx", "routes/dashboard/call-detail.tsx",
+    "routes/dashboard/objects/[objectType]/index.tsx", "routes/dashboard/lists/[listId].tsx",
+    "routes/dashboard/reports/dashboard-view.tsx", "routes/dashboard/reports/report-builder.tsx", "routes/dashboard/reports/sales-report.tsx",
+    "components/records/board-view.tsx", "components/records/record-table.tsx", "components/records/dedup-panel.tsx",
+    "components/records/csv-importer.tsx", "components/records/segment-builder.tsx", "components/layout/sidebar-lists.tsx",
+    "components/notes/note-editor.tsx", "components/ai/prospecting-modal.tsx", "components/ai/ask-mondaily.tsx",
+  ].map((p) => [p, read(p)] as const);
+
+  it("no filled/solid stone PRIMARY BUTTON survives — solid stone button hovers are all converted to the accent color-mix", () => {
+    for (const [name, src] of APP_SURFACES) {
+      // A solid button hover (hover:bg-stone-400/500/600/700 with NO opacity suffix) is the signature of
+      // a stone primary button. All must now be the shared accent hover.
+      const solidStoneHover = src.match(/hover:bg-stone-[4567]00(?![/0-9])/g) ?? [];
+      expect(solidStoneHover, `${name} still has a solid stone button hover`).toHaveLength(0);
+      // The bordered stone primary cluster must be gone too.
+      expect(src, `${name} still has the stone primary border+fill cluster`).not.toMatch(/border-stone-500\/30 bg-stone-(600|700)(?![/0-9])/);
+    }
+  });
+  it("converted surfaces adopt the shared accent primary model (accent-line border + accent-soft fill)", () => {
+    // Spot-check representative surfaces actually gained the accent primary treatment.
+    for (const p of ["routes/dashboard/finance/quotes.tsx", "routes/dashboard/automations/index.tsx", "components/records/board-view.tsx"]) {
+      expect(read(p)).toMatch(/border-\[var\(--section-accent-line\)\] bg-\[var\(--section-accent-soft\)\]/);
+    }
+  });
+  it("PRESERVES intact — checkbox/selected fills, loading dots, and the segmented control keep their neutral stone", () => {
+    expect(read("routes/dashboard/tasks.tsx")).toContain("bg-stone-600 border-stone-600"); // selected checkbox
+    expect(read("components/ai/agent-status.tsx")).toMatch(/bg-stone-600 animate-bounce/);   // loading dots
+    expect(read("components/records/segment-builder.tsx")).toContain('bg-stone-600 text-[var(--text-primary)]'); // AND/OR segmented control
+  });
+  it("a destructive confirm mis-styled as neutral is now rose danger, not accent", () => {
+    // The objects 'Yes, delete sheet' confirm must read as danger (rose), never the neutral/accent fill.
+    expect(read("routes/dashboard/objects/[objectType]/index.tsx")).toMatch(/border-\[#9c6b72\] bg-\[color-mix\(in_srgb,#9c6b72[^)]*\)\][^"]*Yes, delete sheet|Yes, delete sheet/);
+    expect(read("routes/dashboard/objects/[objectType]/index.tsx")).toMatch(/border border-\[#9c6b72\] bg-\[color-mix\(in_srgb,#9c6b72_16%/);
+  });
+  it("handlers preserved on converted surfaces (className-only change)", () => {
+    expect(read("routes/dashboard/finance/quotes.tsx")).toMatch(/onClick|\.mutate/);
+    expect(read("routes/dashboard/call-detail.tsx")).toContain("setAnalysisOpen");
+    expect(read("routes/dashboard/reports/dashboard-view.tsx")).toContain("setAdding");
+  });
+});
+
 describe("landing consolidation", () => {
   it("email / start-free form is token-driven (no black-on-black dark:bg-black)", () => {
     expect(landing).not.toMatch(/dark:bg-black/);

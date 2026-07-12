@@ -337,14 +337,14 @@ function AIWorkflowModal({ onClose, onApply }: {
           <button onClick={onClose} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)]">Cancel</button>
           {!preview ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
-              className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-500">
+              className="flex items-center gap-2 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]">
               {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
             </button>
           ) : (
             <div className="flex items-center gap-2">
               <button onClick={generate} disabled={loading} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)]">Regenerate</button>
               <button onClick={apply}
-                className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500">
+                className="flex items-center gap-2 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]">
                 <LogoMark size={13}/> Apply to builder
               </button>
             </div>
@@ -513,7 +513,7 @@ export function WorkflowBuilderPage() {
 
         <button
           onClick={() => { setStatus(s => s === "active" ? "draft" : "active"); }}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${status === "active" ? "border-[#97824f]/40 bg-[#97824f]/80 text-[var(--text-primary)]" : "border-stone-500/30 bg-stone-600 text-[var(--text-primary)] hover:bg-stone-500"}`}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all ${status === "active" ? "border-[#97824f]/40 bg-[#97824f]/80 text-[var(--text-primary)]" : "border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"}`}
         >
           {status === "active" ? "Pause" : <><Play size={11}/> Activate</>}
         </button>

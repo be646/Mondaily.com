@@ -343,7 +343,7 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
         <div className="flex items-center justify-end gap-2 border-t border-[var(--border-soft)] px-5 py-3.5">
           <button onClick={onClose} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] transition-all">Cancel</button>
           <button onClick={save} disabled={saving}
-            className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-all">
+            className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50 transition-all">
             {saving ? "Creating…" : "Create"}
             <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-stone-400">⌘↵</kbd>
           </button>

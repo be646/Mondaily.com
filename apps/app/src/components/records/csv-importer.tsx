@@ -264,7 +264,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
           </button>
           <button
             onClick={runImport}
-            className="flex items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all"
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-all"
           >
             <Upload size={11}/> Import {rows.length} rows
           </button>

@@ -505,7 +505,7 @@ export function AskMondaily() {
             )}
             <button onClick={loading ? stop : send} disabled={!loading && !input.trim()}
               title={loading ? "Stop generating" : "Send"}
-              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-sm transition-all duration-150 ${(input.trim() || loading) ? "bg-stone-600 text-[var(--text-primary)] hover:bg-stone-700 dark:hover:bg-stone-500 shadow-lg shadow-stone-900/10 dark:shadow-stone-900/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-[var(--surface-hover)] dark:text-stone-600"}`}>
+              className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-sm transition-all duration-150 ${(input.trim() || loading) ? "border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] shadow-lg shadow-black/10 dark:shadow-black/30" : "bg-[#f4f4f5] text-[#9ca3af] dark:bg-[var(--surface-hover)] dark:text-stone-600"}`}>
               {loading ? <Square size={12} strokeWidth={3} fill="currentColor"/> : <Send size={14}/>}
             </button>
           </div>

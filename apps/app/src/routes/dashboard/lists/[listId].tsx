@@ -925,7 +925,7 @@ export function ListPage() {
                 <button
                   onClick={enrollInSequence}
                   disabled={enrolling}
-                  className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-600 hover:border-[var(--section-accent)] transition-colors disabled:opacity-40"
+                  className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] hover:border-[var(--section-accent)] transition-colors disabled:opacity-40"
                 >
                   {enrolling ? <><Loader2 size={12} className="animate-spin" /> Enrolling…</> : <><Mail size={12} /> Enroll {records.length} records</>}
                 </button>
@@ -933,7 +933,7 @@ export function ListPage() {
               {enrollStep === "done" && (
                 <button
                   onClick={() => setEnrollOpen(false)}
-                  className="rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-600 hover:border-[var(--section-accent)] transition-colors"
+                  className="rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] hover:border-[var(--section-accent)] transition-colors"
                 >
                   Done
                 </button>

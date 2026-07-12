@@ -409,7 +409,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
             <button onClick={() => { setResult(null); runForecast(); }} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
           </div>
         ) : (
-          <button onClick={runForecast} className="shrink-0 rounded-sm bg-stone-600 px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
+          <button onClick={runForecast} className="shrink-0 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
             Generate
           </button>
         )}
@@ -569,7 +569,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
             <button onClick={() => { setInsights(null); run(); }} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
           </div>
         ) : (
-          <button onClick={run} className="shrink-0 rounded-sm bg-stone-600 px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
+          <button onClick={run} className="shrink-0 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
             Analyse
           </button>
         )}
@@ -780,7 +780,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
             <button
               onClick={() => create.mutate({ object_type: objectType, period, frequency: freq, day_of_week: freq === "weekly" ? dayOfWeek : undefined, hour, recipients: emails })}
               disabled={emails.length === 0 || create.isPending}
-              className="w-full rounded-sm bg-stone-600 py-2.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-colors"
+              className="w-full rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] py-2.5 text-xs font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-40 transition-colors"
             >
               {create.isPending ? "Creating…" : "Create digest"}
             </button>
@@ -1241,7 +1241,7 @@ export function SalesReportPage() {
                 />
                 <button onClick={() => { if (presetName.trim()) savePreset(presetName.trim()); }}
                   disabled={!presetName.trim()}
-                  className="h-6 rounded-sm border border-stone-500/30 bg-stone-700 px-2 text-[10px] text-[var(--text-primary)] transition-colors hover:bg-stone-600 hover:border-[var(--section-accent)] disabled:opacity-40">
+                  className="h-6 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-2 text-[10px] text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] hover:border-[var(--section-accent)] disabled:opacity-40">
                   Save
                 </button>
                 <button onClick={() => { setSavingPreset(false); setPresetName(""); }} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><X size={11}/></button>
@@ -1325,7 +1325,7 @@ export function SalesReportPage() {
                     className="key-input w-full mb-3"
                   />
                   <div className="flex gap-2">
-                    <button onClick={saveGoal} className="flex-1 rounded-md bg-stone-600 py-2 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500">Set goal</button>
+                    <button onClick={saveGoal} className="flex-1 rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] py-2 text-xs font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]">Set goal</button>
                     <button onClick={() => setEditingGoal(false)} className="rounded-md border border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)]">Cancel</button>
                     {goal && <button onClick={() => { setGoal(null); setEditingGoal(false); }} className="rounded-md border border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-faint)]">Clear</button>}
                   </div>

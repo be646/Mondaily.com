@@ -113,14 +113,14 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
           <button onClick={onClose} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)]">Cancel</button>
           {!preview ? (
             <button onClick={generate} disabled={loading || !prompt.trim()}
-              className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-500">
+              className="flex items-center gap-2 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]">
               {loading ? <><Loader2 size={13} className="animate-spin"/> Generating…</> : <><LogoMark size={13}/> Generate</>}
             </button>
           ) : (
             <div className="flex items-center gap-2">
               <button onClick={generate} disabled={loading} className="text-sm text-[var(--text-muted)] hover:text-[var(--text-faint)]">Regenerate</button>
               <button onClick={createSequence} disabled={creating}
-                className="flex items-center gap-2 rounded-lg bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-stone-500">
+                className="flex items-center gap-2 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] disabled:opacity-50 hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]">
                 {creating ? <><Loader2 size={13} className="animate-spin"/> Creating…</> : <><Check size={13}/> Create sequence</>}
               </button>
             </div>
@@ -335,7 +335,7 @@ export function AutomationsPage() {
         <button
           onClick={() => createSequence.mutate()}
           disabled={createSequence.isPending}
-          className="flex items-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-all disabled:opacity-50"
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-all disabled:opacity-50"
         >
           <Plus size={13}/> New sequence
         </button>

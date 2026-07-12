@@ -248,7 +248,7 @@ export function SegmentBuilder({
             <button
               onClick={saveSegment}
               disabled={matched.length === 0 || saving}
-              className="flex items-center gap-1.5 rounded-sm bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-40"
             >
               {saving ? <><Loader2 size={12} className="animate-spin" /> Saving…</> : <><List size={12} /> Save {matched.length} records as list</>}
             </button>

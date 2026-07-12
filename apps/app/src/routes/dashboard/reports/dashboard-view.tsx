@@ -116,7 +116,7 @@ function BrokenWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
         <p className="text-xs text-[var(--text-faint)] text-center px-4">This widget is broken or from an older format.</p>
         <button
           onClick={onRemove}
-          className="flex items-center gap-1.5 rounded-md bg-stone-600/90 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors"
+          className="flex items-center gap-1.5 rounded-md bg-stone-600/90 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors"
         >
           <Trash2 size={11} /> Remove this widget
         </button>
@@ -242,7 +242,7 @@ function ReportWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
         <div className="flex h-48 flex-col items-center justify-center gap-2 text-center px-4">
           <AlertTriangle size={22} className="text-[#97824f]/60"/>
           <p className="text-xs text-[var(--text-faint)]">Report couldn't be loaded.</p>
-          <button onClick={onRemove} className="mt-1 flex items-center gap-1.5 rounded-md bg-stone-600/90 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
+          <button onClick={onRemove} className="mt-1 flex items-center gap-1.5 rounded-md bg-stone-600/90 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
             <Trash2 size={11}/> Remove widget
           </button>
         </div>
@@ -335,7 +335,7 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
       </label>
       {error && <p className="text-xs text-[var(--text-faint)]">{error}</p>}
       <button onClick={handleAdd} disabled={creating || !slug}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-stone-600 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-colors">
+        className="flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50 transition-colors">
         {creating ? <><Loader2 size={13} className="animate-spin"/> Creating…</> : "Add chart to dashboard"}
       </button>
     </div>
@@ -546,7 +546,7 @@ export function DashboardViewPage() {
           <Plus size={14}/> Add widget
         </button>
         <button onClick={() => save.mutate(dashboard)} disabled={save.isPending}
-          className="flex h-9 items-center gap-2 rounded-md bg-stone-600 px-3 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-60 transition-colors">
+          className="flex h-9 items-center gap-2 rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-60 transition-colors">
           {save.isPending ? <Loader2 size={13} className="animate-spin"/> : <Save size={13}/>}
           {saved ? "Saved!" : save.isPending ? "Saving…" : "Save"}
         </button>
@@ -566,7 +566,7 @@ export function DashboardViewPage() {
               <button
                 onClick={() => deleteDashboard.mutate()}
                 disabled={deleteDashboard.isPending}
-                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-stone-600 py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-colors"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] py-2.5 text-sm font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50 transition-colors"
               >
                 {deleteDashboard.isPending ? <Loader2 size={13} className="animate-spin"/> : <Trash2 size={13}/>}
                 Yes, delete
@@ -583,7 +583,7 @@ export function DashboardViewPage() {
       {widgets.length === 0 ? (
         <EmptyState icon={BarChart2} title="No widgets yet"
           description='Click "Add widget" — pick a Live Object for instant KPIs, a Saved Report, or build a Custom Chart.'
-          action={<button onClick={() => setAdding(true)} className="rounded-md bg-stone-600 px-3 py-2 text-sm text-[var(--text-primary)]">Add first widget</button>}
+          action={<button onClick={() => setAdding(true)} className="rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-2 text-sm text-[var(--section-accent-text)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">Add first widget</button>}
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">

@@ -551,7 +551,7 @@ export function NotesPage() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-stone-600 hover:border-[var(--section-accent)]">
+            className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] hover:border-[var(--section-accent)]">
             <Plus size={13} /> New Note
           </button>
         </div>
@@ -605,7 +605,7 @@ export function NotesPage() {
           description="Capture meeting context, call summaries, and decisions linked to any record."
           action={
             <button onClick={() => setModalOpen(true)}
-              className="flex items-center gap-2 rounded-sm bg-stone-600 px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500 transition-colors">
+              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
               <Plus size={14} /> Add first note
             </button>
           }

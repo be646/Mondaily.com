@@ -112,7 +112,7 @@ export function ReportBuilderPage() {
         />
         <button
           onClick={() => save.mutate(report)}
-          className="flex h-9 items-center gap-2 rounded-md bg-stone-600 px-3 text-sm font-medium text-[var(--text-primary)] hover:bg-stone-500"
+          className="flex h-9 items-center gap-2 rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-sm font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"
         >
           <Save size={14} /> {save.isPending ? "Saving…" : "Save report"}
         </button>

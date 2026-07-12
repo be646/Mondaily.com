@@ -267,7 +267,7 @@ function CreateRecordModal({
                 <button onClick={onClose} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 transition-all hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
                   Cancel
                 </button>
-                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50">
+                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50">
                   {saving ? "Creating…" : "Create record"}
                   <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-[#9c6b72]/70">⌘↵</kbd>
                 </button>
@@ -325,7 +325,7 @@ function CreateRecordModal({
                 <button
                   onClick={generateWithAI}
                   disabled={aiLoading || !aiPrompt.trim()}
-                  className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50"
                 >
                   {aiLoading ? <><Loader2 size={11} className="animate-spin"/> Searching the web…</> : <><LogoMark size={11}/> Find {aiCount} real records</>}
                 </button>
@@ -372,7 +372,7 @@ function CreateRecordModal({
                     <button
                       onClick={importSelected}
                       disabled={aiSelected.size === 0}
-                      className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 py-2 text-[11px] font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-40"
+                      className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] py-2 text-[11px] font-semibold text-[var(--text-primary)] transition-all hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-40"
                     >
                       <Check size={11}/> Import {aiSelected.size} record{aiSelected.size !== 1 ? "s" : ""}
                     </button>
@@ -536,7 +536,7 @@ function AIFillModal({
                 Cancel
               </button>
               <button onClick={generate} disabled={loading || !prompt.trim()}
-                className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-all">
+                className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50 transition-all">
                 {loading
                   ? <><Loader2 size={12} className="animate-spin"/> Searching the web…</>
                   : <><LogoMark size={12}/> Find {count} real records</>}
@@ -579,7 +579,7 @@ function AIFillModal({
                   </div>
                 ) : (
                   <button onClick={importSelected} disabled={selected.size === 0}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600 py-2.5 text-[11px] font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-40 transition-all">
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] py-2.5 text-[11px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-40 transition-all">
                     <Check size={11}/> Import {selected.size} record{selected.size !== 1 ? "s" : ""}
                   </button>
                 )}
@@ -646,7 +646,7 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
               Cancel
             </button>
             <button onClick={confirm} disabled={deleting}
-              className="flex items-center gap-2 rounded-sm border border-[#9c6b72]/60 bg-stone-600 px-4 py-2 text-xs font-semibold text-[var(--text-primary)] hover:bg-stone-500 disabled:opacity-50 transition-all">
+              className="flex items-center gap-2 rounded-sm border border-[#9c6b72] bg-[color-mix(in_srgb,#9c6b72_16%,transparent)] px-4 py-2 text-xs font-semibold text-[#9c6b72] hover:bg-[color-mix(in_srgb,#9c6b72_24%,transparent)] disabled:opacity-50 transition-all">
               {deleting ? "Deleting…" : "Yes, delete sheet"}
             </button>
           </div>
@@ -837,7 +837,7 @@ export function ObjectIndexPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowAIFill(true)}
-                className="flex items-center gap-2 rounded-lg border border-stone-300 bg-stone-100 px-5 py-2.5 text-[12px] font-semibold text-[var(--section-accent)] hover:bg-stone-200 dark:border-stone-400/40 dark:bg-stone-500 dark:text-[var(--text-primary)] dark:hover:bg-stone-400 transition-all"
+                className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-5 py-2.5 text-[12px] font-semibold text-[var(--section-accent-text)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-all"
               >
                 <AIMark size={13}/> Fill
               </button>

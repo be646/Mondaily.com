@@ -190,7 +190,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
             <button
               onClick={() => recordPayment.mutate()}
               disabled={recordPayment.isPending || !amount || parseFloat(amount) <= 0}
-              className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-4 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-600 hover:border-[var(--section-accent)] transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-4 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] hover:border-[var(--section-accent)] transition-colors disabled:opacity-50"
             >
               <CheckCircle size={11}/> {recordPayment.isPending ? "Recording…" : "Record Payment"}
             </button>
@@ -407,7 +407,7 @@ export function InvoiceDetailPage() {
             <button
               onClick={() => save({ status: "sent" })}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-stone-600 hover:border-[var(--section-accent)] disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] hover:border-[var(--section-accent)] disabled:opacity-50"
             >
               <Send size={12}/> Send Invoice
             </button>
@@ -416,7 +416,7 @@ export function InvoiceDetailPage() {
             <button
               onClick={() => save({ status: "paid" })}
               disabled={updateMutation.isPending}
-              className="flex items-center gap-1.5 rounded-sm border border-stone-500/30 bg-stone-700 px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-stone-600 hover:border-[var(--section-accent)] transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] hover:border-[var(--section-accent)] transition-colors disabled:opacity-50"
             >
               <CheckCircle size={12}/> Mark as Paid
             </button>

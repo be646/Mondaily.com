@@ -385,7 +385,7 @@ export function SequenceBuilderPage() {
         <button
           onClick={toggleStatus}
           disabled={patchSeq.isPending}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${seq.status === "active" ? "border-[#97824f]/40 bg-[#97824f]/80 text-[var(--text-primary)] hover:bg-[#97824f]" : "border-stone-500/30 bg-stone-600 text-[var(--text-primary)] hover:bg-stone-500"}`}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${seq.status === "active" ? "border-[#97824f]/40 bg-[#97824f]/80 text-[var(--text-primary)] hover:bg-[#97824f]" : "border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"}`}
         >
           {seq.status === "active" ? <><Pause size={11}/> Pause</> : <><Play size={11}/> Activate</>}
         </button>

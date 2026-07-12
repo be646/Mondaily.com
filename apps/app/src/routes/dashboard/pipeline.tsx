@@ -362,7 +362,7 @@ function CreateDealModal({ defaultStage, onClose, onCreated }: {
           <button
             onClick={save}
             disabled={saving}
-            className="flex items-center gap-2 rounded-lg border border-stone-500/30 bg-stone-600 px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50"
           >
             {saving ? "Creating…" : "Create deal"}
             <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-[#9c6b72]/70">⌘↵</kbd>
@@ -469,7 +469,7 @@ export function PipelinePage() {
         </div>
         <button
           onClick={() => setCreateForStage(stages[0] ?? "Lead")}
-          className="flex items-center gap-1.5 rounded-md border border-stone-500/30 bg-stone-600 px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] transition-all hover:bg-stone-500"
+          className="flex items-center gap-1.5 rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] transition-all hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"
         >
           <Plus size={11}/> New deal
         </button>
