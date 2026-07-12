@@ -8,7 +8,8 @@ import { CommandPageHeader } from "../../components/ui/controls";
 import { agentByRaw, AGENTS } from "../../lib/agents";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useAgentJobsRealtime } from "../../hooks/useAgentJobsRealtime";
-import { useAgentData, CONSTELLATION_STATE_LABEL, type ConstellationState } from "../../components/ai/agent-dock";
+import { useAgentData } from "../../components/ai/agent-dock";
+import { AgentCard } from "../../components/ai/agent-constellation";
 import { useDecisionQueue } from "../../components/ai/decision-queue";
 
 /**
@@ -44,15 +45,6 @@ function stepTone(status?: string): string {
 
 const agentOf = (raw: string) => { const a = agentByRaw(raw); return { label: a.name, Icon: a.Icon }; };
 
-// Calm, meaning-based status dot — never a decorative rainbow. Green = working, amber = waiting
-// on you, rose = problem, muted = watching, faint = disabled/not configured.
-function stateTone(state: ConstellationState): string {
-  return state === "active" ? "#5f8169"
-    : state === "needs_approval" ? "#97824f"
-    : state === "issue" ? "#9c6b72"
-    : state === "monitoring" ? "var(--text-muted)"
-    : "var(--text-faint)";
-}
 // Timeline run status → tone (derived from the DB status, never invented).
 function runTone(status: string): string {
   return status === "completed" ? "#5f8169" : status === "failed" ? "#9c6b72" : status === "running" ? "#97824f" : "var(--text-muted)";
@@ -61,14 +53,6 @@ function runLabel(status: string): string {
   return status === "completed" ? "Success" : status === "failed" ? "Failed" : status === "running" ? "Running" : status;
 }
 
-function relAgo(iso?: string | null): string {
-  if (!iso) return "never";
-  const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
-  if (s < 60) return `${s}s ago`;
-  const m = Math.round(s / 60); if (m < 60) return `${m}m ago`;
-  const h = Math.round(m / 60); if (h < 24) return `${h}h ago`;
-  return `${Math.round(h / 24)}d ago`;
-}
 function clockTime(iso?: string | null): string {
   if (!iso) return "--:--";
   return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -212,48 +196,46 @@ export function AgentActivityPage() {
           <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("nav.agents")}</h2>
           <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{constellation.length} in this workspace</span>
         </div>
-        <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-          {rosterLoading ? (
-            <div className="flex items-center gap-2 px-4 py-8 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> Loading agents…</div>
-          ) : (
-            <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
-              {constellation.map(agent => {
-                const tone = stateTone(agent.state);
-                const runnable = RUNNABLE.has(agent.id);
-                const ghost = agent.state === "disabled" || agent.state === "not_configured";
-                const filtered = agentFilter === agent.name;
-                return (
-                  <div key={agent.id} className="flex items-center gap-3 px-4 py-2.5" style={{ opacity: ghost ? 0.6 : 1, background: filtered ? "var(--surface-hover)" : undefined }}>
-                    <agent.icon size={14} className="shrink-0" style={{ color: agent.state === "active" ? tone : "var(--text-muted)" }} />
-                    <button onClick={() => setAgentFilter(filtered ? null : agent.name)} className="min-w-0 flex-1 text-left" title="Filter the timeline to this agent">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{agent.name.replace(" Agent", "")}</span>
-                        <StatusDot color={tone} />
-                        <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{CONSTELLATION_STATE_LABEL[agent.state]}</span>
+        {rosterLoading ? (
+          <div className="flex items-center gap-2 rounded-sm border px-4 py-8 text-[12px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> Loading agents…</div>
+        ) : (
+          // Shared AgentCard grid — the SAME card Home's constellation uses, now with the control-room
+          // footer (backed-by proof + Run now + open). One agent system across Home and Agents.
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {constellation.map(agent => {
+              const filtered = agentFilter === agent.name;
+              const runnable = RUNNABLE.has(agent.id);
+              return (
+                <AgentCard
+                  key={agent.id}
+                  agent={agent}
+                  selected={filtered}
+                  onSelect={() => setAgentFilter(filtered ? null : agent.name)}
+                  footer={(runnable || agent.to || (agent.backedBy && agent.backedBy.length > 0)) ? (
+                    <div className="mt-1 flex items-center gap-2 border-t pt-2" style={{ borderColor: "var(--border-soft)" }}>
+                      {agent.backedBy && agent.backedBy.length > 0 && (
+                        <span className="min-w-0 truncate text-[10px]" style={{ color: "var(--text-faint)" }} title={`Backed by ${agent.backedBy.join(", ")}`}>backed by {agent.backedBy.join(", ")}</span>
+                      )}
+                      <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                        {runnable && (
+                          <button onClick={() => runAgent.mutate(agent.id)} disabled={busy === agent.id} title="Run this agent now"
+                            className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                            {busy === agent.id ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />} Run now
+                          </button>
+                        )}
+                        {agent.to && (
+                          <Link to={agent.to} className="inline-flex items-center text-[11px] font-medium" style={{ color: "var(--section-accent)" }} title="Open related page">
+                            <ArrowUpRight size={13} />
+                          </Link>
+                        )}
                       </div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
-                        <span>Last run {relAgo(agent.lastRunAt)}</span>
-                        {agent.evidenceCount > 0 && <><span aria-hidden>·</span><span>{agent.evidenceCount} evidence</span></>}
-                        {agent.backedBy && agent.backedBy.length > 0 && <><span aria-hidden>·</span><span className="truncate">backed by {agent.backedBy.join(", ")}</span></>}
-                      </div>
-                    </button>
-                    {runnable && (
-                      <button onClick={() => runAgent.mutate(agent.id)} disabled={busy === agent.id} title="Run this agent now"
-                        className="inline-flex shrink-0 items-center gap-1 rounded-sm border px-2 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                        {busy === agent.id ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />} Run now
-                      </button>
-                    )}
-                    {agent.to && (
-                      <Link to={agent.to} className="inline-flex shrink-0 items-center text-[11px] font-medium" style={{ color: "var(--section-accent)" }} title="Open related page">
-                        <ArrowUpRight size={13} />
-                      </Link>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                    </div>
+                  ) : undefined}
+                />
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* ── 4. Decision queue bridge (placed high — it's the action that matters) ── */}

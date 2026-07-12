@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -158,6 +158,64 @@ function isLiveState(state: ConstellationState) {
   return state === "active" || state === "needs_approval" || state === "issue";
 }
 
+/** Relative "last run" from a real timestamp (or null when the agent has never run). */
+export function agentRanAgo(iso?: string | null): string | null {
+  if (!iso) return null;
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (!Number.isFinite(s) || s < 0) return null;
+  if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
+/**
+ * AgentCard — the ONE agent status/proof card shared by the Home constellation and the Agents
+ * control room, so both read as the same agent system. Honest state colour (matte, meaning-based),
+ * real last-run/evidence, optional footer for proof + actions (Run now / open). No fabricated state.
+ */
+export function AgentCard({ agent, selected, onSelect, footer, className }: {
+  agent: ConstellationAgent;
+  selected?: boolean;
+  onSelect?: () => void;
+  footer?: ReactNode;
+  className?: string;
+}) {
+  const live = isLiveState(agent.state);
+  const tone = STATE_TONE[agent.state];
+  const ran = agentRanAgo(agent.lastRunAt);
+  const ghost = agent.state === "disabled" || agent.state === "not_configured";
+  return (
+    <div className={`group flex flex-col gap-1.5 rounded-sm border px-3 py-2.5 transition-colors ${className ?? ""}`}
+      style={{
+        borderColor: selected ? "var(--section-accent)" : "var(--border-soft)",
+        borderStyle: ghost ? "dashed" : "solid",
+        background: selected ? "color-mix(in srgb, var(--section-accent) 5%, var(--surface-card))" : "var(--surface-card)",
+        opacity: ghost ? 0.65 : 1,
+      }}>
+      <button type="button" onClick={onSelect} disabled={!onSelect} className="w-full text-left disabled:cursor-default">
+        <span className="flex w-full items-center gap-2">
+          <agent.icon size={13} className="shrink-0" style={{ color: live ? tone : "var(--text-muted)" }}/>
+          <span className="min-w-0 flex-1 truncate text-[11.5px] font-semibold" style={{ color: "var(--text-primary)" }}>
+            {agent.name.replace(" Agent", "")}
+          </span>
+          <span className="relative flex h-1.5 w-1.5 shrink-0">
+            {live && <span className="live-ping absolute inline-flex h-full w-full rounded-full" style={{ background: tone }}/>}
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: tone }}/>
+          </span>
+        </span>
+        <span className="mt-1 flex w-full items-center gap-1.5 text-[10px]" style={{ color: "var(--text-faint)" }}>
+          <span className="truncate" style={{ color: live ? "var(--text-muted)" : "var(--text-faint)" }}>
+            {CONSTELLATION_STATE_LABEL[agent.state]}
+          </span>
+          {ran && <span className="ml-auto shrink-0 tabular-nums">{ran}</span>}
+          {!ran && agent.evidenceCount > 0 && <span className="ml-auto shrink-0 tabular-nums">{agent.evidenceCount} ev.</span>}
+        </span>
+      </button>
+      {footer}
+    </div>
+  );
+}
+
 /** Home panel — the visual heart of Home: every agent as a node connected
  * to a central "Workspace Graph" core by animated lines, not a card grid
  * and not a scrolling row. Falls back to a vertical agent rail on mobile,
@@ -231,45 +289,12 @@ export function AgentConstellationPanel() {
 
       {/* Premium info-grid: each agent shows its real state, last real run, and evidence count at
           a glance — the telemetry was always in the payload, the old pill rail just hid it. */}
+      {/* Shared AgentCard grid — the SAME card the Agents control room uses, so Home and Agents read
+          as one agent system (Home is the compact preview; the Control Room adds run/proof actions). */}
       <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-4">
-        {orderConstellation(constellation).map((agent) => {
-          const live = isLiveState(agent.state);
-          const isSelected = active?.id === agent.id;
-          const tone = stateTone(agent.state);
-          const ran = ranAgo(agent.lastRunAt);
-          const ghost = agent.state === "disabled" || agent.state === "not_configured";
-          return (
-            <button
-              key={agent.id}
-              onClick={() => setSelected(agent.id)}
-              className="group flex flex-col gap-1.5 rounded-sm border px-3 py-2.5 text-left transition-colors"
-              style={{
-                borderColor: isSelected ? "var(--section-accent)" : "var(--border-soft)",
-                borderStyle: ghost ? "dashed" : "solid",
-                background: isSelected ? "color-mix(in srgb, var(--section-accent) 5%, var(--surface-card))" : "var(--surface-card)",
-                opacity: ghost ? 0.65 : 1,
-              }}
-            >
-              <span className="flex w-full items-center gap-2">
-                <agent.icon size={13} className="shrink-0" style={{ color: live ? tone : "var(--text-muted)" }}/>
-                <span className="min-w-0 flex-1 truncate text-[11.5px] font-semibold" style={{ color: "var(--text-primary)" }}>
-                  {agent.name.replace(" Agent", "")}
-                </span>
-                <span className="relative flex h-1.5 w-1.5 shrink-0">
-                  {live && <span className="live-ping absolute inline-flex h-full w-full rounded-full" style={{ background: tone }}/>}
-                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full" style={{ background: tone }}/>
-                </span>
-              </span>
-              <span className="flex w-full items-center gap-1.5 text-[10px]" style={{ color: "var(--text-faint)" }}>
-                <span className="truncate" style={{ color: live ? "var(--text-muted)" : "var(--text-faint)" }}>
-                  {CONSTELLATION_STATE_LABEL[agent.state]}
-                </span>
-                {ran && <span className="ml-auto shrink-0 tabular-nums">{ran}</span>}
-                {!ran && agent.evidenceCount > 0 && <span className="ml-auto shrink-0 tabular-nums">{agent.evidenceCount} ev.</span>}
-              </span>
-            </button>
-          );
-        })}
+        {orderConstellation(constellation).map((agent) => (
+          <AgentCard key={agent.id} agent={agent} selected={active?.id === agent.id} onSelect={() => setSelected(agent.id)} />
+        ))}
       </div>
 
       {active && (

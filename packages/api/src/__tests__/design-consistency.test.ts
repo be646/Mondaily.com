@@ -35,6 +35,7 @@ const reportsIndex = read("routes/dashboard/reports/index.tsx");
 const settingsAccount = read("routes/dashboard/settings/account.tsx");
 const settingsMembers = read("routes/dashboard/settings/members.tsx");
 const settingsAiControlRoom = read("routes/dashboard/settings/ai-control-room.tsx");
+const agentConstellationSrc = read("components/ai/agent-constellation.tsx");
 const homeSrc = read("routes/dashboard/home.tsx");
 const tasksSrc = read("routes/dashboard/tasks.tsx");
 const billingSrc = read("routes/dashboard/settings/billing.tsx");
@@ -406,6 +407,23 @@ describe("debt-closure pass — Decisions dossier unification + colour system", 
     expect(stylesCss).toMatch(/\.btn-primary \{[^}]*background: color-mix\(in srgb, var\(--section-accent\) 14%/s);
     // No candy: still no rainbow section drift (theme-spread stays 0).
     expect(stylesCss).toMatch(/--theme-spread: 0\b/);
+  });
+});
+
+describe("Home + Agents unification — one shared AgentCard (same agent system)", () => {
+  it("a shared AgentCard exists and is used by BOTH the Home constellation and the Agents control room", () => {
+    expect(agentConstellationSrc).toMatch(/export function AgentCard/);
+    // Home constellation renders the shared card.
+    expect(agentConstellationSrc).toMatch(/<AgentCard key=\{agent\.id\} agent=\{agent\} selected/);
+    // Agents page imports + renders the same card (no more bespoke line-list divide-y rows).
+    expect(activity).toMatch(/import \{ AgentCard \} from "\.\.\/\.\.\/components\/ai\/agent-constellation"/);
+    expect(activity).toMatch(/<AgentCard\b/);
+  });
+  it("Agents control room preserves Run now / open / filter + honest state (no fake running)", () => {
+    for (const h of ["runAgent.mutate", "setAgentFilter", "RUNNABLE", "agent.to"]) expect(activity).toContain(h);
+    // AgentCard state/last-run come from real fields; label map + matte tone, never fabricated.
+    expect(agentConstellationSrc).toContain("CONSTELLATION_STATE_LABEL[agent.state]");
+    expect(agentConstellationSrc).toContain("agentRanAgo(agent.lastRunAt)");
   });
 });
 
