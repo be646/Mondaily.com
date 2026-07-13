@@ -467,8 +467,13 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
   const sources = mapEvidence(d.evidence ?? []);
   const target = (d.evidence ?? [])[0];
   const busy = acting?.id === d.id;
-  const currentState = target?.match_reason || (d.summary ? d.summary.split(",")[0] : "current state");
   const proposed = d.recommended_action || "Apply the agent's recommendation";
+  // "Current" only makes sense when we're MUTATING an existing record. A "Confidence NN" match_reason
+  // is provenance (not a state), and create-record decisions have no prior state at all — for those
+  // we show a single Proposed panel rather than inventing a nonsensical "Current" side.
+  const rawCurrent = target?.match_reason?.trim() || d.summary?.split(",")[0]?.trim() || "";
+  const createsRecord = /^confidence\b/i.test(rawCurrent) || /^(add|create|new)\b/i.test((d.recommended_action ?? "").trim());
+  const currentState = createsRecord ? null : (rawCurrent || "current state");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectNote, setRejectNote] = useState("");
   const [snoozeOpen, setSnoozeOpen] = useState(false);
@@ -568,13 +573,17 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
             </Link>
           )}
           <div className="flex items-stretch gap-2">
-            <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", borderLeft: "2px solid #97824f" }}>
-              <div className="font-mono text-[8.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>Current</div>
-              <div className="mt-1 break-words text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{currentState}</div>
-            </div>
-            <div className="flex shrink-0 items-center"><ArrowRight size={18} style={{ color: "var(--text-faint)" }} /></div>
+            {currentState != null && (
+              <>
+                <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", borderLeft: "2px solid #97824f" }}>
+                  <div className="font-mono text-[8.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>Current</div>
+                  <div className="mt-1 break-words text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{currentState}</div>
+                </div>
+                <div className="flex shrink-0 items-center"><ArrowRight size={18} style={{ color: "var(--text-faint)" }} /></div>
+              </>
+            )}
             <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", borderLeft: "2px solid #5f8169" }}>
-              <div className="font-mono text-[8.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>Proposed</div>
+              <div className="font-mono text-[8.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>{currentState != null ? "Proposed" : "Proposed — new record"}</div>
               <div className="mt-1 break-words text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{proposed}</div>
             </div>
           </div>
