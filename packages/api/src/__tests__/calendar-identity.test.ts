@@ -49,8 +49,11 @@ describe("every existing action preserved (nothing removed)", () => {
 });
 
 describe("no fake AI / squared modal", () => {
-  it("AI Meeting Brief stays source-backed (only renders with real prepare.data)", () => {
-    expect(cal).toMatch(/prepare\.data && <PrepView/);
+  it("AI Meeting Brief stays source-backed (only renders with a real prep result)", () => {
+    // `prep` = the real cached-or-fresh prepare result; the brief renders ONLY when it exists.
+    expect(cal).toMatch(/prep \? \(\s*<PrepView r=\{prep\}/);
+    // And prep is only ever the actual server result (cache seed or this run) — never fabricated.
+    expect(cal).toMatch(/prepare\.data \?\? qc\.getQueryData<PrepResult>\(\["calendar-prep", id\]\)/);
   });
   it("New meeting modal is squared (no bubbly radius on container/fields)", () => {
     const modal = cal.slice(cal.indexOf("function CreateModal"));

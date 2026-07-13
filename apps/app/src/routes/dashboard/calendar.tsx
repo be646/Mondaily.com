@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Send, StickyNote, Circle, CalendarClock, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
+import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Circle, CalendarClock, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { FieldSelect, CommandPageHeader } from "../../components/ui/controls";
 import { EmptyState as SharedEmptyState, ErrorState, DelayedLoading, PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
@@ -296,8 +296,19 @@ export function CalendarPage() {
     { k: "today", label: t("cal.view_today") }, { k: "week", label: t("cal.view_week") }, { k: "month", label: t("cal.view_month") }, { k: "upcoming", label: t("cal.view_upcoming") },
   ];
 
-  // The brief panel shows the SELECTED meeting; when nothing is selected it shows a Today briefing.
-  const selected = openId;
+  // Ambient brief: when the user hasn't explicitly opened a meeting, default the panel to the NEXT
+  // upcoming meeting (deterministic — no AI spend) so you land on a real briefed meeting instead of a
+  // generic panel. Only the desktop aside + selection highlight use this fallback; the mobile drawer
+  // stays tied to an explicit openId so it never auto-opens.
+  const nextMeetingId = useMemo(() => {
+    const upcoming = events
+      .filter(e => new Date(e.start_at).getTime() >= now.getTime() - 15 * 60_000)
+      .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
+    return upcoming[0]?.id ?? null;
+  }, [events]);
+  const focusId = openId ?? nextMeetingId;
+  // The strip/grid highlight follows the focused meeting; the panel shows it too.
+  const selected = focusId;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
@@ -384,7 +395,7 @@ export function CalendarPage() {
         {/* Persistent Meeting Brief (desktop). Mobile uses the drawer below. */}
         <aside className="hidden lg:block">
           <div className="sticky top-6 flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
-            {openId ? <MeetingBriefBody id={openId} /> : <TodayBriefingPanel onOpen={openEvent} onFollowups={() => navigateTo("/tasks")} />}
+            {focusId ? <MeetingBriefBody id={focusId} /> : <TodayBriefingPanel onOpen={openEvent} onFollowups={() => navigateTo("/tasks")} />}
           </div>
         </aside>
       </div>
@@ -709,7 +720,14 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
   const cancelOccurrence = useMutation({ mutationFn: () => apiClient.delete(`/calendar/events/${id}?occurrence=${occurrenceDate}`), onSuccess: () => { qc.invalidateQueries({ queryKey: ["calendar-events"] }); onClose?.(); } });
   const addCall = useMutation({ mutationFn: () => apiClient.post(`/calendar/events/${id}/call-link`, {}), onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar-event", id] }) });
   const respond = useMutation({ mutationFn: (response: Rsvp) => apiClient.post(`/calendar/events/${id}/respond`, { response }), onSuccess: () => { qc.invalidateQueries({ queryKey: ["calendar-event", id] }); qc.invalidateQueries({ queryKey: ["calendar-events"] }); } });
-  const prepare = useMutation<PrepResult>({ mutationFn: () => apiClient.post(`/calendar/events/${id}/prepare`, {}) });
+  // Prep is stateless server-side (regenerates each POST). We cache the real result per-meeting in the
+  // query cache so reopening a briefed meeting shows it INSTANTLY — no re-run, no extra AI spend. That's
+  // what makes the brief feel "already done" rather than a vending-machine button.
+  const prepare = useMutation<PrepResult>({
+    mutationFn: () => apiClient.post(`/calendar/events/${id}/prepare`, {}),
+    onSuccess: (data) => qc.setQueryData(["calendar-prep", id], data),
+  });
+  const prep = prepare.data ?? qc.getQueryData<PrepResult>(["calendar-prep", id]) ?? null;
   // Reuse the (cached) Today brief only to know if THIS meeting overlaps another — real data, no fabrication.
   const briefQ = useQuery<TodayBrief>({ queryKey: ["calendar-brief-today"], queryFn: () => apiClient.get("/calendar/brief/today"), staleTime: 30_000 });
   const conflict = !!briefQ.data?.conflicts?.some(c => c.a === id || c.b === id);
@@ -789,18 +807,18 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
                 ({ key, label, value, dot: neutral ? "var(--text-faint)" : good ? "#5f8a6a" : "#a2854f", tone: neutral ? "var(--text-faint)" : good ? "var(--text-secondary)" : "#a2854f" });
               // Every readiness row is derived from REAL fields — agenda/call/prep/conflict/related/follow-ups.
               // When nothing is found we say so ("None found"), never fabricating content.
-              const relN = prepare.data?.sources.length ?? 0;
+              const relN = prep?.sources.length ?? 0;
               const signals = [
                 S("agenda", t("cal.agenda"), hasAgenda, hasAgenda ? t("cal.st_set") : t("cal.st_missing")),
                 e.call_url ? S("call", t("cal.sig_call"), true, t("cal.st_linked")) : S("call", t("cal.sig_call"), false, t("cal.st_none"), !e.calls_enabled),
-                S("prep", t("cal.sig_prep"), !!prepare.data, prepare.data ? t("cal.st_ready") : t("cal.st_pending"), !prepare.data),
+                S("prep", t("cal.sig_prep"), !!prep, prep ? t("cal.st_ready") : t("cal.st_pending"), !prep),
                 S("conflict", t("cal.overlaps"), !conflict, conflict ? t("cal.st_overlap") : t("cal.st_clear")),
-                S("related", t("cal.sig_related"), relN > 0, prepare.data ? (relN ? `${relN} ${t("cal.st_found")}` : t("cal.st_none_found")) : t("cal.st_pending"), relN === 0),
+                S("related", t("cal.sig_related"), relN > 0, prep ? (relN ? `${relN} ${t("cal.st_found")}` : t("cal.st_none_found")) : t("cal.st_pending"), relN === 0),
                 S("followups", t("cal.followups"), followTotal > 0, followQ.data ? (followTotal ? `${followTotal} ${t("cal.st_found")}` : t("cal.st_none_found")) : "…", followTotal === 0),
               ];
               const action = e.status === "cancelled" ? null
                 : (!e.call_url && e.calls_enabled && isOrganizer) ? { label: t("cal.add_call"), run: () => addCall.mutate() }
-                : !prepare.data ? { label: t("cal.prepare"), run: () => prepare.mutate() }
+                : !prep ? { label: t("cal.prepare"), run: () => prepare.mutate() }
                 : e.call_url ? { label: t("cal.join_call"), run: () => navigate(`/calls/${e.id}`) }
                 : null;
               return <CoPilot signals={signals} action={action} label={t("cal.agent_checks")} nextLabel={t("cal.next_action")} />;
@@ -835,13 +853,27 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               </div>
             </div>
 
-            {/* AI Meeting Brief — source-backed, never fabricated. Flat section (thin divider, no card chrome). */}
+            {/* AI Meeting Brief — source-backed, never fabricated. Flat section (thin divider, no card chrome).
+                Cached per meeting: once run it renders instantly on reopen ("already done"), and re-runs
+                only on an explicit Refresh — so it feels ambient without silently re-spending credits. */}
             <div className="border-t pt-4" style={{ borderColor: "var(--border-soft)" }}>
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-[12.5px] font-semibold" style={{ color: "var(--text-primary)" }}><span className="flex h-4 w-4 items-center justify-center rounded-sm" style={{ background: "var(--surface-hover)" }}><Wand2 size={11} style={{ color: "var(--text-secondary)" }} /></span> {t("cal.ai_meeting_brief")}</span>
-                {!prepare.data && <button onClick={() => prepare.mutate()} disabled={prepare.isPending} className="flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{prepare.isPending ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />} {t("cal.prepare")}</button>}
+                {prep && e.status !== "cancelled" && <button onClick={() => prepare.mutate()} disabled={prepare.isPending} title={t("cal.refresh_brief")} className="btn-icon h-6 w-6" style={{ color: "var(--text-faint)" }}>{prepare.isPending ? <Loader2 size={11} className="animate-spin" /> : <Repeat size={11} />}</button>}
               </div>
-              {prepare.data && <PrepView r={prepare.data} onOpenRecord={(oid, nid) => navigate(`/objects/${oid}/${nid}`)} />}
+              {prep ? (
+                <PrepView r={prep} onOpenRecord={(oid, nid) => navigate(`/objects/${oid}/${nid}`)} />
+              ) : e.status !== "cancelled" ? (
+                // Pre-run: an inviting one-liner (not a bare button). The Meeting Agent is ready; one click.
+                <button onClick={() => prepare.mutate()} disabled={prepare.isPending}
+                  className="mt-1.5 flex w-full items-center gap-2.5 rounded-sm border px-3 py-2.5 text-left transition-colors hover:border-[var(--section-accent)] hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)" }}>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)" }}>{prepare.isPending ? <Loader2 size={13} className="animate-spin" style={{ color: "var(--section-accent)" }} /> : <Sparkles size={13} style={{ color: "var(--section-accent)" }} />}</span>
+                  <span className="min-w-0">
+                    <span className="block text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{prepare.isPending ? t("cal.preparing") : t("cal.prepare")}</span>
+                    <span className="mt-0.5 block text-[11px] leading-snug" style={{ color: "var(--text-muted)" }}>{t("cal.prepare_hint")}</span>
+                  </span>
+                </button>
+              ) : null}
               {prepare.isError && <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>{t("cal.ai_unavailable")}</p>}
             </div>
 
@@ -857,19 +889,12 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               )}
             </div>
 
-            {/* After-meeting — Create follow-up task is REAL; notes/recap are honestly "Coming soon". */}
+            {/* After-meeting — Create follow-up task is REAL (only ship what works; no dead placeholders). */}
             <div>
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.after_meeting")}</p>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => createTask.mutate(`Follow up on ${e.title}`)} disabled={createTask.isPending} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                  {createTask.isPending ? <Loader2 size={12} className="animate-spin" /> : <ListChecks size={12} />} {t("cal.create_task")}
-                </button>
-                {[{ i: <StickyNote size={12} />, l: t("cal.draft_notes") }, { i: <Send size={12} />, l: t("cal.send_recap") }].map((a, i) => (
-                  <span key={i} title={t("cal.coming_soon")} className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] opacity-60" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-                    {a.i} {a.l} <span className="ml-0.5 rounded-sm px-1.5 py-px text-[9px]" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>{t("cal.coming_soon")}</span>
-                  </span>
-                ))}
-              </div>
+              <button onClick={() => createTask.mutate(`Follow up on ${e.title}`)} disabled={createTask.isPending} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                {createTask.isPending ? <Loader2 size={12} className="animate-spin" /> : <ListChecks size={12} />} {t("cal.create_task")}
+              </button>
             </div>
 
             {isOrganizer && e.status !== "cancelled" && (
