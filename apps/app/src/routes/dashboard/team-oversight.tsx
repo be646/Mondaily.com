@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, Printer } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
-import { FieldSelect, CommandPageHeader, MetricGrid } from "../../components/ui/controls";
+import { FieldSelect, CommandPageHeader, MetricGrid, DossierSection } from "../../components/ui/controls";
 
 /**
  * Team Intelligence — an AI-powered team behaviour & value dashboard for owners/admins.
@@ -358,7 +358,7 @@ export function TeamOversightPage() {
         callsign="ORG"
         title="Team Intelligence"
         subtitle="Signal engine — real activity only, never invented."
-        status={[{ label: "live · real activity", kind: "complete" }]}
+        status={[{ label: "recorded activity only", kind: "complete" }]}
         primaryAction={
           <div className="w-40">
             <FieldSelect value={String(days)} onChange={v => setDays(Number(v) || 30)} ariaLabel="Period"
@@ -387,7 +387,7 @@ export function TeamOversightPage() {
       {/* ── Full-width roster table ── */}
       <div className="mb-2 flex items-center justify-between">
         <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Members</h2>
-        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{totals?.active_sessions ?? 0} live now</span>
+        <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{totals?.active_sessions ?? 0} active session{(totals?.active_sessions ?? 0) === 1 ? "" : "s"}</span>
       </div>
       {isLoading ? (
         <div className="flex items-center gap-2 py-16 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={15} className="animate-spin" /> Loading team activity…</div>
@@ -474,7 +474,7 @@ function MemberDetail({ op }: { op: Operator }) {
           </div>
           <div className="mt-0.5 truncate text-[11.5px]" style={{ color: "var(--text-faint)" }}>
             {op.email ?? op.role} · <span className="capitalize">{op.role}</span>
-            {op.has_session ? <span style={{ color: "#5f8169" }}> · online</span> : <span> · {ago(op.last_active_at)}</span>}
+            {op.has_session ? <span style={{ color: "#5f8169" }}> · active session</span> : <span> · {ago(op.last_active_at)}</span>}
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -516,9 +516,10 @@ function MemberDetail({ op }: { op: Operator }) {
         ))}
       </div>
 
-      {/* Member metrics — the SHARED MetricGrid (same tile look everywhere). Real values only. */}
+      {/* Member metrics — the SHARED MetricGrid (same tile look everywhere). Real values only.
+          Flat padded blocks, not border-ruled slabs — the panel is one composed dossier. */}
       {tab === "overview" && (<>
-      <div className="border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="px-4 py-3.5">
         <MetricGrid cols={3} items={[
           { label: "Tasks", value: fmt(op.task_count) },
           { label: "AI credits", value: fmt(op.tokens) },
@@ -534,7 +535,7 @@ function MemberDetail({ op }: { op: Operator }) {
 
       {/* deals / opportunities — real tallies (ownership resolved from node data + created_by) */}
       {((op.deals_owned ?? 0) > 0 || (op.deals_updated ?? 0) > 0) && (
-        <div className="border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="px-4 pb-3.5">
           <MetricGrid cols={5} items={[
             { label: "Deals owned", value: fmt(op.deals_owned ?? 0) },
             { label: "Open", value: fmt(op.deals_open ?? 0) },
@@ -548,9 +549,9 @@ function MemberDetail({ op }: { op: Operator }) {
 
       {/* ── AI Work-Efficiency Review — on-demand, grounded, actionable (AI review tab) ── */}
       {tab === "ai" && (
-      <div className="border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="px-4 py-3.5">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
+          <p className="flex items-center gap-1.5 font-mono text-[9.5px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-faint)" }}>
             <Sparkles size={12} style={{ color: "var(--section-accent)" }} /> AI work-efficiency review
           </p>
           {!efficiency.data && (
@@ -778,11 +779,13 @@ function MemberDetail({ op }: { op: Operator }) {
   );
 }
 
+/** Flat dossier section — the SAME shared header style as the Decisions dossier (mono uppercase
+ *  tick, no full-width border slab), so the member panel reads as one composed document instead
+ *  of a stack of ruled boxes. */
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
-      <p className="mb-2 text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{title}</p>
-      {children}
+    <div className="px-4">
+      <DossierSection title={title}>{children}</DossierSection>
     </div>
   );
 }

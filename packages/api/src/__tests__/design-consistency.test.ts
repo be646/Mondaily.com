@@ -822,6 +822,32 @@ describe("Agent Control Room — clear hierarchy, honest states", () => {
   });
 });
 
+describe("Team Oversight — member dossier composition + honest activity language", () => {
+  it("member panel sections are flat DossierSections, not border-ruled slabs", () => {
+    // The local Section wrapper now renders the SAME shared dossier header as Decisions.
+    expect(teamOversight).toMatch(/<DossierSection title=\{title\}>\{children\}<\/DossierSection>/);
+    // The metrics / deals / AI-review wrappers lost their full-width border-b rules.
+    expect(teamOversight).not.toMatch(/className="border-b px-4 py-3\.5" style=\{\{ borderColor: "var\(--border-soft\)" \}\}>\s*<MetricGrid/);
+  });
+  it("live/active language is honest — sessions and recorded activity, never invented presence", () => {
+    expect(teamOversight).toContain('"recorded activity only"');
+    expect(teamOversight).not.toContain("live · real activity");
+    expect(teamOversight).not.toContain("live now");
+    // 'active session' wording is gated on the REAL has_session flag; otherwise real last-active age.
+    expect(teamOversight).toMatch(/op\.has_session \? <span style=\{\{ color: "#5f8169" \}\}> · active session<\/span> : <span> · \{ago\(op\.last_active_at\)\}<\/span>/);
+  });
+  it("expanded-panel behavior preserved: message, call gating, print, tabs, insight, efficiency", () => {
+    for (const h of [
+      "navigate(`/messages?to=${encodeURIComponent(op.operator_id)}`)",
+      "callCap.data?.enabled",
+      "window.print()",
+      "efficiency.mutate()",
+      "insightQ.refetch()",
+      'queryKey: ["oversight-actor", op.operator_id]',
+    ]) expect(teamOversight).toContain(h);
+  });
+});
+
 describe("landing consolidation", () => {
   it("email / start-free form is token-driven (no black-on-black dark:bg-black)", () => {
     expect(landing).not.toMatch(/dark:bg-black/);
