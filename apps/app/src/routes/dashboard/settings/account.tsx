@@ -3,6 +3,7 @@ import { Camera, Check, KeyRound, LogOut, Loader2, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
+import { downscaleImageToDataUrl } from "../../../lib/image-resize";
 import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { useSovereignAuthOptional } from "../../../components/auth/sovereign-auth-context";
@@ -183,13 +184,10 @@ export function AccountSettings() {
   });
 
   async function uploadAvatar(file?: File) {
-    if (!file || file.size > 2 * 1024 * 1024) return; // cap at 2 MB (stored as a data URL)
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const r = new FileReader();
-      r.onload = () => resolve(String(r.result));
-      r.onerror = () => reject(r.error);
-      r.readAsDataURL(file);
-    });
+    // Accept up to 10 MB from disk — we downscale to a 128px square thumbnail (~5–15 KB) before
+    // storing, so avatar_url stays tiny in every member-list response instead of a 2 MB base64 blob.
+    if (!file || !file.type.startsWith("image/") || file.size > 10 * 1024 * 1024) return;
+    const dataUrl = await downscaleImageToDataUrl(file, { max: 128, quality: 0.85 });
     await apiClient.patch("/settings/profile", { avatar_url: dataUrl });
     await sov?.reloadProfile(); // profile header reflects the new avatar immediately
   }

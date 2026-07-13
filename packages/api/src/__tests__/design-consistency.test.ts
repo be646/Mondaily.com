@@ -933,6 +933,26 @@ describe("Currency wiring — sales report respects workspace currency + honest 
   });
 });
 
+describe("Avatar/logo uploads downscale client-side (no 2 MB base64 in member-list responses)", () => {
+  const account = read("routes/dashboard/settings/account.tsx");
+  const workspace = read("routes/dashboard/settings/workspace.tsx");
+  const util = read("lib/image-resize.ts");
+  it("the shared downscale util center-crops to a small square thumbnail via canvas", () => {
+    expect(util).toContain("export async function downscaleImageToDataUrl");
+    expect(util).toMatch(/const side = Math\.min\(img\.naturalWidth, img\.naturalHeight\)/);
+    expect(util).toMatch(/canvas\.toDataURL/);
+  });
+  it("avatar upload downscales to 128px instead of storing the raw file data URL", () => {
+    expect(account).toMatch(/downscaleImageToDataUrl\(file, \{ max: 128/);
+    // No raw full-file readAsDataURL left in the avatar path.
+    expect(account).not.toMatch(/uploadAvatar[\s\S]*?readAsDataURL\(file\)/);
+  });
+  it("workspace logo downscales raster to 256px but keeps SVG vector untouched", () => {
+    expect(workspace).toMatch(/downscaleImageToDataUrl\(file, \{ max: 256/);
+    expect(workspace).toMatch(/file\.type === "image\/svg\+xml"/);
+  });
+});
+
 describe("landing consolidation", () => {
   it("email / start-free form is token-driven (no black-on-black dark:bg-black)", () => {
     expect(landing).not.toMatch(/dark:bg-black/);

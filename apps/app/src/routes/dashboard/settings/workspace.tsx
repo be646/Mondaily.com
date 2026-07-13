@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
+import { downscaleImageToDataUrl } from "../../../lib/image-resize";
 import { PageSkeleton } from "../../../components/ui/page-state";
 import { FieldSelect } from "../../../components/ui/controls";
 import { EMPTY_PROFILE, discoverySuggestions, askStarterPrompts, profileRecommendations, type WorkspaceProfile } from "@mondaily/shared/profile";
@@ -398,15 +399,14 @@ export function WorkspaceSettings() {
     // Validate with FEEDBACK — the old code silently returned on a too-large file, so re-uploading
     // a bigger logo looked like "nothing happened".
     if (!file.type.startsWith("image/")) { setLogoError("Please choose an image file (PNG, JPG, SVG…)."); return; }
-    if (file.size > 2 * 1024 * 1024) { setLogoError("That image is too large — please use one under 2 MB."); return; }
+    if (file.size > 10 * 1024 * 1024) { setLogoError("That image is too large — please use one under 10 MB."); return; }
     setLogoBusy(true);
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(String(r.result));
-        r.onerror = () => reject(r.error);
-        r.readAsDataURL(file);
-      });
+      // SVGs stay vector (already tiny); raster logos downscale to a 256px thumbnail (~20–40 KB)
+      // so logo_url doesn't ship a multi-MB base64 blob everywhere the sidebar reads it.
+      const dataUrl = file.type === "image/svg+xml"
+        ? await new Promise<string>((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = () => reject(r.error); r.readAsDataURL(file); })
+        : await downscaleImageToDataUrl(file, { max: 256, quality: 0.88 });
       setLogoPreview(dataUrl);
       const next = { ...form, logo_url: dataUrl };
       setForm(next);
