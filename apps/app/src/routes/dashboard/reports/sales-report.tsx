@@ -12,6 +12,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { FieldSelect } from "../../../components/ui/controls";
+import { useCurrency, convertAmount, currencyOptions, CURRENCY_SYMBOL } from "../../../hooks/useCurrency";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; created_at?: string; updated_at?: string }
 
@@ -44,10 +45,12 @@ function isWon(stage: string)  { return WON_KEYWORDS.some(k  => stage.toLowerCas
 function isLost(stage: string) { return LOST_KEYWORDS.some(k => stage.toLowerCase().includes(k)); }
 function isOpen(stage: string) { return !isWon(stage) && !isLost(stage); }
 
-function fmtMoney(n: number) {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
-  return `$${n.toLocaleString()}`;
+// Currency symbol defaults to "$" so any untouched caller keeps working; the report threads the
+// workspace's real display symbol (from useCurrency) through so £/€ workspaces never see "$".
+function fmtMoney(n: number, sym = "$") {
+  if (n >= 1_000_000) return `${sym}${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${sym}${(n / 1_000).toFixed(0)}K`;
+  return `${sym}${n.toLocaleString()}`;
 }
 function fmtNum(n: number) { return n >= 1_000 ? `${(n / 1_000).toFixed(1)}K` : String(n); }
 
@@ -107,7 +110,7 @@ function bucketLabel(date: Date, p: Period): string {
   return date.toLocaleDateString([], { month: "short" });
 }
 
-function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: string | null, period: Period, customRange?: { start: Date; end: Date }) {
+function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: string | null, period: Period, customRange?: { start: Date; end: Date }, toDisplay?: ValueReader) {
   const start = customRange ? customRange.start : (period === "custom" ? new Date(0) : periodStart(period));
   const buckets: Map<string, { revenue: number; count: number }> = new Map();
   for (const r of records) {
@@ -117,7 +120,8 @@ function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: st
     if (d < start) continue;
     if (customRange && d > customRange.end) continue;
     const stage = stageCol ? String(r.data[stageCol] ?? "") : "";
-    const val   = valueCol ? Number(r.data[valueCol] ?? 0) : 0;
+    const rawVal = valueCol ? Number(r.data[valueCol] ?? 0) : 0;
+    const val   = toDisplay ? toDisplay(isNaN(rawVal) ? 0 : rawVal, (r.data.currency as string | undefined) ?? null) : rawVal;
     const label = bucketLabel(d, period);
     const existing = buckets.get(label) ?? { revenue: 0, count: 0 };
     if (!stageCol || isWon(stage)) { existing.revenue += isNaN(val) ? 0 : val; existing.count += 1; }
@@ -128,7 +132,11 @@ function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: st
     .map(([label,{revenue,count}]) => ({ label, revenue, count }));
 }
 
-function computeStats(records: NodeRecord[], valueCol: string | null, stageCol: string | null, period: Period, rangeOverride?: { start: Date; end: Date }) {
+// A per-record value reader that optionally converts the raw amount from the record's own currency
+// (data.currency, else the workspace base) into the caller's display currency. When no converter is
+// supplied it returns the raw number — so untouched callers are unchanged.
+type ValueReader = (raw: number, recordCurrency: string | null) => number;
+function computeStats(records: NodeRecord[], valueCol: string | null, stageCol: string | null, period: Period, rangeOverride?: { start: Date; end: Date }, toDisplay?: ValueReader) {
   const start = rangeOverride ? rangeOverride.start : periodStart(period);
   const end   = rangeOverride ? rangeOverride.end   : new Date();
   const inPeriod = records.filter(r => {
@@ -137,7 +145,7 @@ function computeStats(records: NodeRecord[], valueCol: string | null, stageCol: 
     const d = new Date(raw as string);
     return d >= start && d <= end;
   });
-  const getVal   = (r: NodeRecord) => { const v = valueCol ? r.data[valueCol] : undefined; const n = Number(v ?? 0); return isNaN(n) ? 0 : n; };
+  const getVal   = (r: NodeRecord) => { const v = valueCol ? r.data[valueCol] : undefined; const n = Number(v ?? 0); if (isNaN(n)) return 0; return toDisplay ? toDisplay(n, (r.data.currency as string | undefined) ?? null) : n; };
   const getStage = (r: NodeRecord) => stageCol ? String(r.data[stageCol] ?? "") : "";
 
   const wonRecs  = stageCol ? inPeriod.filter(r => isWon(getStage(r)))  : inPeriod;
@@ -171,13 +179,13 @@ function DeltaBadge({ delta }: { delta: number | null | undefined }) {
   );
 }
 
-function GoalBar({ value, goal }: { value: number; goal: number }) {
+function GoalBar({ value, goal, sym = "$" }: { value: number; goal: number; sym?: string }) {
   const pct = Math.min(100, Math.round(value / goal * 100));
   return (
     <div className="mt-2">
       <div className="flex justify-between text-[10px] text-[var(--text-secondary)] mb-1">
         <span>{pct}% of goal</span>
-        <span>{fmtMoney(goal)}</span>
+        <span>{fmtMoney(goal, sym)}</span>
       </div>
       <div className="h-1.5 rounded-full bg-[var(--surface-hover)]">
         <div className="h-1.5 rounded-full bg-current transition-all" style={{ width: `${pct}%` }}/>
@@ -186,9 +194,9 @@ function GoalBar({ value, goal }: { value: number; goal: number }) {
   );
 }
 
-function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSetGoal }: {
+function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSetGoal, sym = "$" }: {
   label: string; value: string; sub?: string; color: string; trend?: "up"|"down"|"neutral";
-  delta?: number | null; goal?: number | null; goalValue?: number; onSetGoal?: () => void;
+  delta?: number | null; goal?: number | null; goalValue?: number; onSetGoal?: () => void; sym?: string;
 }) {
   return (
     <div className={`relative overflow-hidden rounded-sm border p-5 print:border-[var(--border-soft)] ${color}`}>
@@ -212,7 +220,7 @@ function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSe
           </div>
         )}
       </div>
-      {goal != null && goalValue != null && <GoalBar value={goalValue} goal={goal}/>}
+      {goal != null && goalValue != null && <GoalBar value={goalValue} goal={goal} sym={sym}/>}
     </div>
   );
 }
@@ -321,10 +329,10 @@ const CONFIDENCE_STYLE: Record<string, string> = {
   low:    "border-stone-500/30 bg-stone-600/10 text-stone-400",
 };
 
-function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevStats, trendData }: {
+function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevStats, trendData, sym = "$" }: {
   objectType: string; valueCol: string | null; stageCol: string | null; period: Period;
   stats: ReturnType<typeof computeStats>; prevStats: ReturnType<typeof computeStats>;
-  trendData: { label: string; revenue: number; count: number }[];
+  trendData: { label: string; revenue: number; count: number }[]; sym?: string;
 }) {
   const [result, setResult]   = useState<ForecastResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -370,7 +378,7 @@ p{font-size:13px;color:#374151;line-height:1.6}
 <h1>AI Forecast</h1>
 <p class="meta">${objectType} · ${PERIOD_LABELS[period]} · Generated ${new Date().toLocaleDateString([], {year:"numeric",month:"long",day:"numeric"})}</p>
 <div class="label">Projected ${hasValue ? "Revenue" : "Completions"}</div>
-<div class="big">${hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</div>
+<div class="big">${hasValue ? fmtMoney(result.projectedValue, sym) : fmtNum(result.projectedValue)}</div>
 <span class="badge ${result.confidence}">${result.confidence.charAt(0).toUpperCase()+result.confidence.slice(1)} Confidence</span>
 <div class="section"><div class="section-title">Headline</div><p><em>${result.headline}</em></p></div>
 <div class="section"><div class="section-title">Analysis</div><p>${result.narrative}</p></div>
@@ -406,7 +414,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           <div className="flex items-center gap-2 shrink-0">
             <div className="text-right mr-1">
               <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Projected</p>
-              <p className="text-base font-bold text-[var(--text-primary)]">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
+              <p className="text-base font-bold text-[var(--text-primary)]">{hasValue ? fmtMoney(result.projectedValue, sym) : fmtNum(result.projectedValue)}</p>
             </div>
             <button onClick={() => setModalOpen(true)} className="rounded-sm border border-stone-500/30 bg-stone-600/10 px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-stone-500/20 transition-colors">View</button>
             <button onClick={() => { setResult(null); runForecast(); }} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
@@ -424,7 +432,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           {/* Projected value hero */}
           <div className="px-6 py-6 border-b border-[var(--border-soft)]">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1">Projected {hasValue ? "Revenue" : "Completions"}</p>
-            <p className="text-4xl font-bold text-[var(--text-primary)] mb-2">{hasValue ? fmtMoney(result.projectedValue) : fmtNum(result.projectedValue)}</p>
+            <p className="text-4xl font-bold text-[var(--text-primary)] mb-2">{hasValue ? fmtMoney(result.projectedValue, sym) : fmtNum(result.projectedValue)}</p>
             <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence] ?? CONFIDENCE_STYLE.medium}`}>
               {result.confidence} confidence
             </span>
@@ -938,22 +946,45 @@ export function SalesReportPage() {
     return { start: new Date(customStart), end: new Date(customEnd + "T23:59:59") };
   }, [period, customStart, customEnd]);
 
-  const stats     = useMemo(() => computeStats(filteredRecords, valueCol, stageCol, period, customRange), [filteredRecords, period, valueCol, stageCol, customRange]);
+  // Currency — the report reads the workspace base + the caller's display override and the ECB
+  // rates (same source as Finance Reports). Each record's value is converted from its own currency
+  // (data.currency, else the base) into the display currency; the symbol below matches. Values that
+  // can't convert (no rate) fall through at face value and are flagged in an honest note.
+  const { base, display, currencies, rates, hasRates, ratesAsOf, setDisplay } = useCurrency();
+  const curSym = CURRENCY_SYMBOL[display] ?? `${display} `;
+  const toDisplay = useCallback<ValueReader>((raw, recordCurrency) => {
+    const from = (recordCurrency || base).toUpperCase();
+    if (from === display) return raw;
+    const v = convertAmount(raw, from, display, rates);
+    return v == null ? raw : v;
+  }, [base, display, rates]);
+  // Honest state: does the value column span more than one currency, and could everything convert?
+  const valueCurrencies = useMemo(() => {
+    if (!valueCol) return new Set<string>();
+    return new Set(filteredRecords
+      .filter(r => r.data[valueCol] != null && r.data[valueCol] !== "")
+      .map(r => (String(r.data.currency ?? "") || base).toUpperCase()));
+  }, [filteredRecords, valueCol, base]);
+  const mixedCurrency = valueCurrencies.size > 1;
+  const unconverted = useMemo(() => [...valueCurrencies].filter(c => c !== display && convertAmount(1, c, display, rates) == null).length, [valueCurrencies, display, rates]);
+
+  const stats     = useMemo(() => computeStats(filteredRecords, valueCol, stageCol, period, customRange, toDisplay), [filteredRecords, period, valueCol, stageCol, customRange, toDisplay]);
   const prevStats = useMemo(() => {
     if (period === "custom" && customRange) {
       const dur = customRange.end.getTime() - customRange.start.getTime();
-      return computeStats(filteredRecords, valueCol, stageCol, period, { start: new Date(customRange.start.getTime() - dur), end: customRange.start });
+      return computeStats(filteredRecords, valueCol, stageCol, period, { start: new Date(customRange.start.getTime() - dur), end: customRange.start }, toDisplay);
     }
     const range = prevPeriodRange(period as Exclude<Period, "custom">);
-    return computeStats(filteredRecords, valueCol, stageCol, period, range);
-  }, [filteredRecords, period, valueCol, stageCol, customRange]);
+    return computeStats(filteredRecords, valueCol, stageCol, period, range, toDisplay);
+  }, [filteredRecords, period, valueCol, stageCol, customRange, toDisplay]);
 
   const stageData = useMemo(() => {
     if (!stageCol) return [];
     const counts: Record<string, { count: number; value: number }> = {};
     for (const r of filteredRecords) {
       const s = String(r.data[stageCol] ?? "Unknown");
-      const v = valueCol ? Number(r.data[valueCol] ?? 0) : 0;
+      const rawV = valueCol ? Number(r.data[valueCol] ?? 0) : 0;
+      const v = toDisplay(isNaN(rawV) ? 0 : rawV, (r.data.currency as string | undefined) ?? null);
       counts[s] = counts[s] ?? { count: 0, value: 0 };
       counts[s].count++;
       counts[s].value += isNaN(v) ? 0 : v;
@@ -964,7 +995,7 @@ export function SalesReportPage() {
       .slice(0, 8);
   }, [filteredRecords, stageCol, valueCol]);
 
-  const trendData = useMemo(() => buildTrend(filteredRecords, valueCol, stageCol, period, customRange), [filteredRecords, valueCol, stageCol, period, customRange]);
+  const trendData = useMemo(() => buildTrend(filteredRecords, valueCol, stageCol, period, customRange, toDisplay), [filteredRecords, valueCol, stageCol, period, customRange, toDisplay]);
 
 
   const topRecords = useMemo(() => {
@@ -979,22 +1010,22 @@ export function SalesReportPage() {
     const periodLabel = period === "custom" && customStart && customEnd
       ? `${customStart} – ${customEnd}`
       : PERIOD_LABELS[period];
-    const totalValue = hasValue
-      ? topRecords.reduce((s, r) => s + (isNaN(Number(r.data[valueCol!] ?? 0)) ? 0 : Number(r.data[valueCol!] ?? 0)), 0)
-      : 0;
-    const maxVal = hasValue ? Math.max(...topRecords.map(r => Number(r.data[valueCol!] ?? 0)).filter(v => !isNaN(v)), 1) : 1;
+    // Per-record value converted into the display currency (matches the KPIs + totals above).
+    const recVal = (r: NodeRecord) => { const n = Number(r.data[valueCol!] ?? 0); return toDisplay(isNaN(n) ? 0 : n, (r.data.currency as string | undefined) ?? null); };
+    const totalValue = hasValue ? topRecords.reduce((s, r) => s + recVal(r), 0) : 0;
+    const maxVal = hasValue ? Math.max(...topRecords.map(recVal), 1) : 1;
 
     const rows = topRecords.map((r, i) => {
       const name  = String(r.data[nameCol] ?? "—");
       const stage = hasStage ? String(r.data[stageCol!] ?? "—") : "";
-      const val   = hasValue ? Number(r.data[valueCol!] ?? 0) : 0;
+      const val   = hasValue ? recVal(r) : 0;
       const pct   = hasValue && !isNaN(val) ? Math.round((val / maxVal) * 100) : 0;
       return `
         <tr>
           <td class="rank">${i + 1}</td>
           <td class="name">${name}</td>
           ${hasStage ? `<td class="stage">${stage}</td>` : ""}
-          ${hasValue ? `<td class="value">${fmtMoney(isNaN(val) ? 0 : val)}</td>` : ""}
+          ${hasValue ? `<td class="value">${fmtMoney(isNaN(val) ? 0 : val, curSym)}</td>` : ""}
           ${hasValue ? `<td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div></td>` : ""}
         </tr>`;
     }).join("");
@@ -1002,15 +1033,15 @@ export function SalesReportPage() {
     const trendRows = trendData.map(d => `
       <tr>
         <td>${d.label}</td>
-        ${hasValue ? `<td class="num">${fmtMoney(d.revenue)}</td>` : ""}
+        ${hasValue ? `<td class="num">${fmtMoney(d.revenue, curSym)}</td>` : ""}
         <td class="num">${d.count}</td>
       </tr>`).join("");
 
     const kpis = [
-      { label: hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records", value: hasValue ? fmtMoney(stats.wonValue || stats.totalValue) : fmtNum(stats.totalCount) },
-      { label: hasStage ? "In Progress" : "This Period", value: hasValue ? fmtMoney(stats.openValue) : fmtNum(stats.openCount || stats.totalCount) },
+      { label: hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records", value: hasValue ? fmtMoney(stats.wonValue || stats.totalValue, curSym) : fmtNum(stats.totalCount) },
+      { label: hasStage ? "In Progress" : "This Period", value: hasValue ? fmtMoney(stats.openValue, curSym) : fmtNum(stats.openCount || stats.totalCount) },
       { label: hasStage ? "Completion Rate" : "Total Records", value: hasStage ? `${stats.completionRate}%` : fmtNum(stats.totalCount) },
-      { label: hasValue ? `Avg ${valueCol}` : "Avg / Bucket", value: hasValue ? fmtMoney(stats.avgVal) : fmtNum(stats.avgVal) },
+      { label: hasValue ? `Avg ${valueCol}` : "Avg / Bucket", value: hasValue ? fmtMoney(stats.avgVal, curSym) : fmtNum(stats.avgVal) },
     ];
 
     const html = `<!DOCTYPE html>
@@ -1091,7 +1122,7 @@ export function SalesReportPage() {
       </tr>
     </thead>
     <tbody>${rows}</tbody>
-    ${hasValue ? `<tfoot><tr><td colspan="${1 + (hasStage ? 1 : 0) + 1}" class="tfoot">Total</td><td class="tfoot value">${fmtMoney(totalValue)}</td><td></td></tr></tfoot>` : ""}
+    ${hasValue ? `<tfoot><tr><td colspan="${1 + (hasStage ? 1 : 0) + 1}" class="tfoot">Total</td><td class="tfoot value">${fmtMoney(totalValue, curSym)}</td><td></td></tr></tfoot>` : ""}
   </table>
 
   ${trendData.length > 0 ? `
@@ -1168,8 +1199,19 @@ export function SalesReportPage() {
           {objects.length > 0 && <ObjectPicker objects={objects} value={activeSlug} onChange={handleObjectChange}/>}
           <span className="text-xs text-[var(--text-secondary)] hidden sm:inline" title="Data scope — computed live from your real records">
             {records.length} records analysed{filteredRecords.length !== records.length && ` · ${filteredRecords.length} in filter`}
+            {hasValue && mixedCurrency && <> · <span title={hasRates ? `Converted to ${display} at ECB rate${ratesAsOf ? `, ${new Date(ratesAsOf).toLocaleDateString()}` : ""}` : "No FX rates loaded — mixed-currency values shown at face value"} style={{ color: unconverted > 0 || !hasRates ? "#97824f" : "var(--text-muted)" }}>{!hasRates ? `mixed currencies · at face value` : unconverted > 0 ? `${unconverted} currency${unconverted === 1 ? "" : "ies"} not converted` : `converted to ${display}`}</span></>}
           </span>
           <div className="flex items-center gap-1.5 ml-auto shrink-0">
+            {/* Show-in currency — the money is converted into this display currency (money reports only). */}
+            {hasValue && (
+              <div className="flex items-center gap-1.5">
+                <span className="hidden text-[11px] text-[var(--text-muted)] sm:inline">Show in</span>
+                <div className="w-[74px]">
+                  <FieldSelect value={display} onChange={v => setDisplay.mutate(v)} ariaLabel="Display currency"
+                    options={currencyOptions(currencies)} />
+                </div>
+              </div>
+            )}
             {/* Period buttons */}
             <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
               {(["today","week","month","quarter","year","custom"] as Period[]).map(p => (
@@ -1345,9 +1387,9 @@ export function SalesReportPage() {
 
             {/* KPI Grid */}
             <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 print:gap-3">
-              <KpiCard
+              <KpiCard sym={curSym}
                 label={hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records"}
-                value={hasValue ? fmtMoney(stats.wonValue || stats.totalValue) : fmtNum(stats.totalCount)}
+                value={hasValue ? fmtMoney(stats.wonValue || stats.totalValue, curSym) : fmtNum(stats.totalCount)}
                 sub={hasStage ? `${stats.wonCount} completed` : `${stats.totalCount} total`}
                 color="border-[#5f8169]/25 bg-[#5f8169]/[.06] text-[#5f8169]"
                 trend="up"
@@ -1356,15 +1398,15 @@ export function SalesReportPage() {
                 goalValue={hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount}
                 onSetGoal={() => setEditingGoal(true)}
               />
-              <KpiCard
+              <KpiCard sym={curSym}
                 label={hasStage ? "In Progress" : "This Period"}
-                value={hasValue ? fmtMoney(stats.openValue) : fmtNum(stats.openCount || stats.totalCount)}
+                value={hasValue ? fmtMoney(stats.openValue, curSym) : fmtNum(stats.openCount || stats.totalCount)}
                 sub={hasStage ? `${stats.openCount} open` : "active records"}
                 color="border-[#717784]/25 bg-[#717784]/[.06] text-[#717784]"
                 trend="neutral"
                 delta={pctDelta(hasValue ? stats.openValue : stats.openCount, hasValue ? prevStats.openValue : prevStats.openCount)}
               />
-              <KpiCard
+              <KpiCard sym={curSym}
                 label={hasStage ? "Completion Rate" : "Total This Period"}
                 value={hasStage ? `${stats.completionRate}%` : fmtNum(stats.totalCount)}
                 sub={hasStage ? "closed won vs. all closed" : `across ${PERIOD_LABELS[period].toLowerCase()}`}
@@ -1372,21 +1414,21 @@ export function SalesReportPage() {
                 trend={hasStage ? (stats.completionRate >= 50 ? "up" : "down") : "neutral"}
                 delta={pctDelta(stats.completionRate, prevStats.completionRate)}
               />
-              <KpiCard
+              <KpiCard sym={curSym}
                 label={hasValue ? `Avg ${valueCol}` : "Avg per bucket"}
-                value={hasValue ? fmtMoney(stats.avgVal) : fmtNum(stats.totalCount ? Math.round(stats.totalCount / Math.max(trendData.length, 1)) : 0)}
+                value={hasValue ? fmtMoney(stats.avgVal, curSym) : fmtNum(stats.totalCount ? Math.round(stats.totalCount / Math.max(trendData.length, 1)) : 0)}
                 sub="per record"
                 color="border-[#97824f]/25 bg-[#97824f]/[.06] text-[#97824f]"
                 delta={pctDelta(stats.avgVal, prevStats.avgVal)}
               />
-              <KpiCard
+              <KpiCard sym={curSym}
                 label="Total Records"
                 value={fmtNum(stats.totalCount)}
                 sub="in this period"
                 color="border-[#9c6b72]/25 bg-[#9c6b72]/[.06] text-[#9c6b72]"
                 delta={pctDelta(stats.totalCount, prevStats.totalCount)}
               />
-              <KpiCard
+              <KpiCard sym={curSym}
                 label={hasStage ? "Open / Active" : "All Time"}
                 value={fmtNum(hasStage ? stats.openCount : records.length)}
                 sub={hasStage ? "in pipeline" : "records total"}
@@ -1396,7 +1438,7 @@ export function SalesReportPage() {
 
             {/* AI Panels — side by side */}
             <div className="mb-6 grid gap-4 lg:grid-cols-2 print:hidden">
-              <AIForecastCard
+              <AIForecastCard sym={curSym}
                 objectType={activeSlug}
                 valueCol={valueCol}
                 stageCol={stageCol}
@@ -1478,12 +1520,10 @@ export function SalesReportPage() {
 
             {/* Top Records List */}
             {(() => {
-              const maxVal = hasValue
-                ? Math.max(...topRecords.map(r => Number(r.data[valueCol!] ?? 0)).filter(v => !isNaN(v)), 1)
-                : 1;
-              const total = hasValue
-                ? topRecords.reduce((s, r) => s + (isNaN(Number(r.data[valueCol!] ?? 0)) ? 0 : Number(r.data[valueCol!] ?? 0)), 0)
-                : 0;
+              // Per-record value in the display currency (matches the KPIs, totals, and the ⇅ selector).
+              const recVal = (r: NodeRecord) => { const n = Number(r.data[valueCol!] ?? 0); return toDisplay(isNaN(n) ? 0 : n, (r.data.currency as string | undefined) ?? null); };
+              const maxVal = hasValue ? Math.max(...topRecords.map(recVal), 1) : 1;
+              const total = hasValue ? topRecords.reduce((s, r) => s + recVal(r), 0) : 0;
               const ROW_COLORS = [
                 { bar: "from-stone-500 to-stone-400", badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
                 { bar: "from-[#717784] to-[#7d8a96]",     badge: "bg-[#717784]/15 text-[#717784] border-[#717784]/25" },
@@ -1503,7 +1543,7 @@ export function SalesReportPage() {
                     <h3 className="text-sm font-semibold text-[var(--text-primary)] print:text-black">{vocab.tableLabel}</h3>
                     {hasValue && (
                       <span className="text-xs text-[var(--text-muted)]">
-                        Total <span className="font-semibold text-[var(--text-faint)] ml-1">{fmtMoney(total)}</span>
+                        Total <span className="font-semibold text-[var(--text-faint)] ml-1">{fmtMoney(total, curSym)}</span>
                       </span>
                     )}
                   </div>
@@ -1518,7 +1558,7 @@ export function SalesReportPage() {
                   <div className="divide-y divide-white/[.03]">
                     {topRecords.map((r, i) => {
                       const stage   = hasStage ? String(r.data[stageCol!] ?? "—") : "";
-                      const val     = hasValue ? Number(r.data[valueCol!] ?? 0) : 0;
+                      const val     = hasValue ? recVal(r) : 0;
                       const pct     = hasValue && !isNaN(val) ? Math.max(4, Math.round((val / maxVal) * 100)) : 0;
                       const won     = hasStage && isWon(stage);
                       const lost    = hasStage && isLost(stage);
@@ -1543,7 +1583,7 @@ export function SalesReportPage() {
                                 </span>
                                 {hasValue && (
                                   <span className="ml-4 shrink-0 font-mono text-sm font-semibold text-[var(--text-primary)] print:text-black">
-                                    {fmtMoney(isNaN(val) ? 0 : val)}
+                                    {fmtMoney(isNaN(val) ? 0 : val, curSym)}
                                   </span>
                                 )}
                               </div>
@@ -1572,7 +1612,7 @@ export function SalesReportPage() {
                   {hasValue && (
                     <div className="flex items-center justify-between border-t border-[var(--border-soft)] px-5 py-3 print:border-[var(--border-soft)]">
                       <span className="text-xs text-[var(--text-muted)]">Top {topRecords.length} records</span>
-                      <span className="font-mono text-sm font-bold text-[var(--text-primary)] print:text-black">{fmtMoney(total)}</span>
+                      <span className="font-mono text-sm font-bold text-[var(--text-primary)] print:text-black">{fmtMoney(total, curSym)}</span>
                     </div>
                   )}
                 </div>

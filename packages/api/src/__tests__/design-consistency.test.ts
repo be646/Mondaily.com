@@ -899,6 +899,31 @@ describe("Decisions cockpit v2 — approved recommendations (all real data, no f
   });
 });
 
+describe("Currency wiring — sales report respects workspace currency + honest FX", () => {
+  const rep = read("routes/dashboard/reports/sales-report.tsx");
+  it("money is formatted with the workspace DISPLAY symbol, never a hardcoded $", () => {
+    expect(rep).toMatch(/const curSym = CURRENCY_SYMBOL\[display\]/);
+    expect(rep).toMatch(/function fmtMoney\(n: number, sym = "\$"\)/);
+    // No `$`-prefixed money template survives outside the fmtMoney default.
+    expect(rep).not.toMatch(/`\$\$\{\(n \/ 1_000_000\)/);
+    expect(rep).toMatch(/fmtMoney\([^)]*, (cur)?[Ss]ym\)/);
+  });
+  it("aggregates convert each record from its own currency into display via the shared convertAmount", () => {
+    expect(rep).toMatch(/import \{ useCurrency, convertAmount, currencyOptions, CURRENCY_SYMBOL \}/);
+    expect(rep).toMatch(/const v = convertAmount\(raw, from, display, rates\)/);
+    // computeStats + buildTrend receive the converter; per-record rows convert too.
+    expect(rep).toMatch(/computeStats\(filteredRecords, valueCol, stageCol, period, customRange, toDisplay\)/);
+    expect(rep).toMatch(/buildTrend\(filteredRecords, valueCol, stageCol, period, customRange, toDisplay\)/);
+    expect(rep).toMatch(/const recVal = \(r: NodeRecord\) =>/);
+  });
+  it("display-currency selector present + honest mixed/unconverted note (no silent mislabeling)", () => {
+    expect(rep).toMatch(/setDisplay\.mutate\(v\)/);
+    expect(rep).toContain("at face value");
+    expect(rep).toMatch(/const mixedCurrency = valueCurrencies\.size > 1/);
+    expect(rep).toMatch(/const unconverted = /);
+  });
+});
+
 describe("landing consolidation", () => {
   it("email / start-free form is token-driven (no black-on-black dark:bg-black)", () => {
     expect(landing).not.toMatch(/dark:bg-black/);
