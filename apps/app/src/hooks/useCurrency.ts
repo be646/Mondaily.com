@@ -1,6 +1,10 @@
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../lib/api-client";
+// The pure, unit-tested helpers live in lib/currency-format (no React/network deps). Re-exported
+// here so every existing `from "hooks/useCurrency"` import is unchanged.
+import { convertAmount, FALLBACK_CURRENCIES, type CurrencyState } from "../lib/currency-format";
+export { convertAmount, formatMoney, currencyOptions, CURRENCY_SYMBOL, FALLBACK_CURRENCIES, type CurrencyState } from "../lib/currency-format";
 
 /**
  * useCurrency — the single frontend source for the workspace base currency, the caller's
@@ -8,48 +12,6 @@ import { apiClient } from "../lib/api-client";
  * and returns null when a required rate is missing (never guessed) — mirrors the server's
  * lib/currency.convert so mixed-currency money can be shown honestly in one currency.
  */
-export interface CurrencyState {
-  base: string;
-  display: string;
-  default_base: string;
-  currencies: string[];
-  rates: Record<string, number>; // per 1 EUR (EUR implicit 1)
-  rates_as_of: string | null;
-}
-
-// The full supported set (mirrors server SUPPORTED_CURRENCIES) — used as a fallback so forms
-// show every currency even before the /currency query resolves.
-export const FALLBACK_CURRENCIES = [
-  "EUR", "USD", "GBP", "PLN", "CAD", "AUD", "CHF", "JPY", "SEK", "NOK", "DKK", "CZK",
-  "HUF", "RON", "BGN", "TRY", "ZAR", "INR", "BRL", "MXN", "SGD", "HKD", "NZD", "AED", "SAR",
-];
-
-export const CURRENCY_SYMBOL: Record<string, string> = {
-  EUR: "€", USD: "$", GBP: "£", PLN: "zł", CAD: "C$", AUD: "A$", CHF: "Fr", JPY: "¥",
-  SEK: "kr", NOK: "kr", DKK: "kr", CZK: "Kč", HUF: "Ft", RON: "lei", BGN: "лв", TRY: "₺",
-  ZAR: "R", INR: "₹", BRL: "R$", MXN: "Mex$", SGD: "S$", HKD: "HK$", NZD: "NZ$", AED: "د.إ", SAR: "﷼",
-};
-
-export function currencyOptions(list: string[]): { value: string; label: string }[] {
-  return list.map(c => ({ value: c, label: CURRENCY_SYMBOL[c] ? `${c} — ${CURRENCY_SYMBOL[c]}` : c }));
-}
-
-// EUR-crossed conversion; null when a needed rate is missing.
-export function convertAmount(amount: number, from: string, to: string, rates: Record<string, number>): number | null {
-  if (from === to) return amount;
-  const rFrom = from === "EUR" ? 1 : rates[from];
-  const rTo = to === "EUR" ? 1 : rates[to];
-  if (!rFrom || !rTo) return null;
-  return (amount / rFrom) * rTo;
-}
-
-export function formatMoney(amount: number, currency: string): string {
-  try {
-    return amount.toLocaleString(undefined, { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  } catch {
-    return `${amount.toFixed(2)} ${currency}`;
-  }
-}
 
 export function useCurrency() {
   const qc = useQueryClient();
