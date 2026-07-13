@@ -27,6 +27,15 @@ const RUNNABLE = new Set(["relationship", "operations", "finance", "graph-enrich
 // state itself comes untouched from GET /agents (never upgraded for effect).
 const STATE_ORDER: Record<string, number> = { issue: 0, needs_approval: 1, active: 2, monitoring: 3, disabled: 4, not_configured: 5 };
 
+// The roster is GROUPED by real state into three honest clusters so the control room reads like one
+// (agents needing you → agents working → dormant), not an undifferentiated wall of equal cards. The
+// grouping is purely a view of the untouched registry states.
+const ROSTER_GROUPS: { key: string; label: string; hint: string; states: string[]; quiet?: boolean }[] = [
+  { key: "attention", label: "Needs you", hint: "blocked or awaiting your approval", states: ["issue", "needs_approval"] },
+  { key: "working", label: "Working", hint: "active or monitoring your workspace", states: ["active", "monitoring"] },
+  { key: "quiet", label: "Quiet", hint: "not configured or disabled", states: ["disabled", "not_configured"], quiet: true },
+];
+
 // Canonical proof-of-work step (matches the API's normalizeStep output).
 type Step = {
   label: string;
@@ -115,6 +124,7 @@ export function AgentActivityPage() {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [showQuiet, setShowQuiet] = useState(false); // dormant agents collapse into a dense count by default
 
   const qc = useQueryClient();
   const live = useAgentJobsRealtime(() => qc.invalidateQueries({ queryKey: ["agent-activity"] }));
@@ -202,51 +212,77 @@ export function AgentActivityPage() {
         </div>
         {rosterLoading ? (
           <div className="flex items-center gap-2 rounded-sm border px-4 py-8 text-[12px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> Loading agents…</div>
-        ) : (
-          // Shared AgentCard grid — the SAME card Home's constellation uses, now with the control-room
-          // footer (backed-by proof + Run now + open). One agent system across Home and Agents.
-          // Ordered by REAL state priority (problems → approvals → working → monitoring → ghosts) so
-          // agents needing attention lead and unconfigured ones sink together — nothing "random".
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-            {[...constellation].sort((x, y) => (STATE_ORDER[x.state] ?? 9) - (STATE_ORDER[y.state] ?? 9)).map(agent => {
-              const filtered = agentFilter === agent.name;
-              const runnable = RUNNABLE.has(agent.id);
-              return (
-                <AgentCard
-                  key={agent.id}
-                  agent={agent}
-                  selected={filtered}
-                  onSelect={() => setAgentFilter(filtered ? null : agent.name)}
-                  footer={(runnable || agent.to || (agent.backedBy && agent.backedBy.length > 0)) ? (
-                    <div className="mt-1 flex items-center gap-2 border-t pt-2" style={{ borderColor: "var(--border-soft)" }}>
-                      {/* Proof line — the REAL data sources this agent reads, as a quiet glyph + names
-                          instead of a wordy 'backed by' sentence. */}
-                      {agent.backedBy && agent.backedBy.length > 0 && (
-                        <span className="inline-flex min-w-0 items-center gap-1 truncate text-[10px]" style={{ color: "var(--text-faint)" }} title={`Reads from ${agent.backedBy.join(", ")}`}>
-                          <ShieldCheck size={10} className="shrink-0" /> <span className="truncate">{agent.backedBy.join(" · ")}</span>
-                        </span>
+        ) : (() => {
+          // Shared AgentCard — the SAME card Home's constellation uses, now GROUPED by real state so
+          // the control room reads like a triage board. One card-renderer, three honest clusters.
+          const sorted = [...constellation].sort((x, y) => (STATE_ORDER[x.state] ?? 9) - (STATE_ORDER[y.state] ?? 9));
+          const cardFor = (agent: typeof sorted[number]) => {
+            const filtered = agentFilter === agent.name;
+            const runnable = RUNNABLE.has(agent.id);
+            return (
+              <AgentCard
+                key={agent.id}
+                agent={agent}
+                selected={filtered}
+                onSelect={() => setAgentFilter(filtered ? null : agent.name)}
+                footer={(runnable || agent.to || (agent.backedBy && agent.backedBy.length > 0)) ? (
+                  <div className="mt-1 flex items-center gap-2 border-t pt-2" style={{ borderColor: "var(--border-soft)" }}>
+                    {/* Proof line — the REAL data sources this agent reads, as a quiet glyph + names. */}
+                    {agent.backedBy && agent.backedBy.length > 0 && (
+                      <span className="inline-flex min-w-0 items-center gap-1 truncate text-[10px]" style={{ color: "var(--text-faint)" }} title={`Reads from ${agent.backedBy.join(", ")}`}>
+                        <ShieldCheck size={10} className="shrink-0" /> <span className="truncate">{agent.backedBy.join(" · ")}</span>
+                      </span>
+                    )}
+                    <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                      {runnable && (
+                        <button onClick={() => runAgent.mutate(agent.id)} disabled={busy === agent.id} title="Run this agent now"
+                          className="inline-flex items-center gap-1 rounded-sm px-1.5 py-1 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--section-accent)] disabled:opacity-50" style={{ color: "var(--text-muted)" }}>
+                          {busy === agent.id ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />} Run
+                        </button>
                       )}
-                      <div className="ml-auto flex shrink-0 items-center gap-1.5">
-                        {runnable && (
-                          // Quiet ghost trigger — one per card would be CTA noise as a bordered button.
-                          <button onClick={() => runAgent.mutate(agent.id)} disabled={busy === agent.id} title="Run this agent now"
-                            className="inline-flex items-center gap-1 rounded-sm px-1.5 py-1 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--section-accent)] disabled:opacity-50" style={{ color: "var(--text-muted)" }}>
-                            {busy === agent.id ? <Loader2 size={11} className="animate-spin" /> : <Play size={11} />} Run
-                          </button>
-                        )}
-                        {agent.to && (
-                          <Link to={agent.to} className="inline-flex items-center text-[11px] font-medium" style={{ color: "var(--section-accent)" }} title="Open related page">
-                            <ArrowUpRight size={13} />
-                          </Link>
-                        )}
-                      </div>
+                      {agent.to && (
+                        <Link to={agent.to} className="inline-flex items-center text-[11px] font-medium" style={{ color: "var(--section-accent)" }} title="Open related page">
+                          <ArrowUpRight size={13} />
+                        </Link>
+                      )}
                     </div>
-                  ) : undefined}
-                />
-              );
-            })}
-          </div>
-        )}
+                  </div>
+                ) : undefined}
+              />
+            );
+          };
+          return (
+            <div className="space-y-4">
+              {ROSTER_GROUPS.map(g => {
+                const members = sorted.filter(a => g.states.includes(a.state));
+                if (members.length === 0) return null;
+                const collapsed = g.quiet && !showQuiet;
+                return (
+                  <div key={g.key}>
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <span className="text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: g.key === "attention" ? "#9c6b72" : "var(--text-muted)" }}>{g.label}</span>
+                      <span className="text-[10.5px] tabular-nums" style={{ color: "var(--text-faint)" }}>{members.length}</span>
+                      <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>· {g.hint}</span>
+                      {g.quiet && (
+                        <button onClick={() => setShowQuiet(v => !v)} className="ml-auto inline-flex items-center gap-1 text-[10.5px] font-medium transition-colors hover:text-[var(--text-primary)]" style={{ color: "var(--text-muted)" }}>
+                          {collapsed ? "Show" : "Hide"} <ChevronDown size={11} style={{ transform: collapsed ? undefined : "rotate(180deg)" }} />
+                        </button>
+                      )}
+                    </div>
+                    {collapsed ? (
+                      // Dense dormant row — names only, so quiet agents don't cost a grid of empty cards.
+                      <button onClick={() => setShowQuiet(true)} className="flex w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-sm border px-3 py-2 text-left text-[11px] transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-faint)" }}>
+                        {members.map((a, i) => <span key={a.id}>{a.name.replace(" Agent", "")}{i < members.length - 1 ? " ·" : ""}</span>)}
+                      </button>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">{members.map(cardFor)}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </section>
 
       {/* ── 4. Decision queue bridge (placed high — it's the action that matters) ── */}
