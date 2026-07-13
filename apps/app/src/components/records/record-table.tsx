@@ -2731,7 +2731,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <tbody>
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={columns.length + 3} className="px-4 py-14 text-center text-xs text-stone-400 dark:text-[var(--text-secondary)]">
+                <td colSpan={columns.length + 3} className="px-4 py-14 text-center text-xs" style={{ color: "var(--text-muted)" }}>
                   No results{(filterText || filterQuery) ? ` for "${filterText || filterQuery}"` : ""}
                 </td>
               </tr>

@@ -716,6 +716,21 @@ describe("Premium low-data UX — guided empty states (real actions, no fake dat
     // Steps are documented as REAL actions only.
     expect(pageStateSrc).toContain("Never a placeholder for data that doesn't exist");
   });
+  it("empty object sheet uses the shared tokenized EmptyState — no hardcoded hexes, honest AI hint, real actions", () => {
+    // The old empty block was littered with off-token hexes (#111827, #6b7280, #e5e7eb, bg-white…).
+    // Isolate the empty-sheet block and assert it's gone.
+    const startIdx = objectsIndex.indexOf("Empty sheet — the shared guided EmptyState");
+    const block = objectsIndex.slice(startIdx, objectsIndex.indexOf("view === \"board\"", startIdx));
+    expect(block).toMatch(/<EmptyState\s/);
+    expect(block).not.toMatch(/#[0-9a-fA-F]{6}/);         // no raw hexes
+    expect(block).not.toMatch(/bg-stone-\d|text-stone-\d/); // no off-token stone greys
+    // Honest AI Fill copy — searches the live web for real, source-backed records (never invented).
+    expect(block).toContain("real, source-backed records");
+    // Three real actions preserved, same handlers.
+    expect(block).toContain("setShowAIFill(true)");
+    expect(block).toContain("setShowCreate(true)");
+    expect(block).toContain("setImportOpen(true)");
+  });
   it("Calendar empty grid is a guided card with three real actions (no fake meetings)", () => {
     expect(calendar).toContain("Guided empty-range card");
     for (const k of ["cal.new_meeting", "cal.draft_agenda", "cal.suggest_followups"]) expect(calendar).toContain(k);

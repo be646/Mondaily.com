@@ -2,7 +2,8 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
-import { Plus, X, Check, Loader2, ChevronDown, ChevronUp, Trash2, LayoutList, Kanban, ScanSearch, Filter } from "lucide-react";
+import { Plus, X, Check, Loader2, ChevronDown, ChevronUp, Trash2, LayoutList, Kanban, ScanSearch, Filter, Sparkles, UploadCloud } from "lucide-react";
+import { EmptyState } from "../../../../components/ui/page-state";
 import { RecordTable } from "../../../../components/records/record-table";
 import { BoardView } from "../../../../components/records/board-view";
 import { CategoryPills, INDUSTRY_TAXONOMY } from "../../../../components/records/record-detail";
@@ -819,41 +820,20 @@ export function ObjectIndexPage() {
 
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         {isEmpty ? (
-          /* Empty state — shown when the sheet has no records yet */
-          <div className="flex flex-1 flex-col items-center justify-center gap-6">
-            <div className="text-center space-y-2 max-w-sm">
-              <div className="flex justify-center mb-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-stone-100 border border-stone-300 dark:bg-stone-500/10 dark:border-stone-500/20">
-                  <LogoMark size={22} className="text-[var(--section-accent)] dark:text-stone-400"/>
-                </div>
-              </div>
-              <h3 className="text-[15px] font-semibold text-[#111827] dark:text-[var(--text-primary)] capitalize">
-                {objectType.replace(/[-_]/g, " ")} is empty
-              </h3>
-              <p className="text-[12px] text-[#6b7280] dark:text-stone-500 leading-relaxed">
-                Let AI build this sheet for you. It already knows your columns — just describe what records you want and it will generate them instantly.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowAIFill(true)}
-                className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-5 py-2.5 text-[12px] font-semibold text-[var(--section-accent-text)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-all"
-              >
-                <AIMark size={13}/> Fill
-              </button>
-              <button
-                onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 rounded-sm border border-[#e5e7eb] bg-white px-5 py-2.5 text-[12px] text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] dark:text-stone-400 dark:hover:text-[var(--text-primary)] dark:hover:bg-[var(--surface-hover)] transition-all"
-              >
-                <Plus size={13}/> Add manually
-              </button>
-              <button
-                onClick={() => setImportOpen(true)}
-                className="flex items-center gap-2 rounded-sm border border-dashed border-[#d1d5db] bg-[#f9fafb] px-5 py-2.5 text-[12px] text-[#6b7280] hover:bg-[#f3f4f6] hover:border-[#9ca3af] dark:border-stone-700/60 dark:bg-transparent dark:text-stone-500 dark:hover:text-stone-300 dark:hover:border-stone-600/60 transition-all"
-              >
-                <Plus size={13}/> Import CSV
-              </button>
-            </div>
+          /* Empty sheet — the shared guided EmptyState (fully tokenized, same as the rest of the app).
+             Every step is a real action; the AI hint is honest about how records are found. */
+          <div className="flex flex-1 items-center justify-center p-6">
+            <EmptyState
+              icon={LayoutList}
+              title={`${objectType.replace(/[-_]/g, " ")} is empty`}
+              description="Add records manually, import a CSV, or let AI find real ones on the web — the sheet already knows your columns."
+              aiHint="AI Fill searches the live web and extracts only real, source-backed records — never invented data."
+              steps={[
+                { icon: Sparkles, label: "Fill with AI", hint: "Describe what you want; the agent finds real, source-backed records and previews them before saving.", onClick: () => setShowAIFill(true) },
+                { icon: Plus, label: "Add manually", hint: "Create a single record inline — fast when you already have the details.", onClick: () => setShowCreate(true) },
+                { icon: UploadCloud, label: "Import a CSV", hint: "Bring existing data across; the importer maps your columns to this sheet.", onClick: () => setImportOpen(true) },
+              ]}
+            />
           </div>
         ) : view === "board" ? (
           <BoardView objectType={objectType}/>
