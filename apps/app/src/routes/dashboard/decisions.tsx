@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare } from "lucide-react";
+import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare, Search, Pencil, Link2 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton, DelayedLoading, EmptyState, ErrorState } from "../../components/ui/page-state";
-import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, FilterToolbar, type ActionMenuItem, type CommandStatusItem, type FilterChip } from "../../components/ui/controls";
+import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, type ActionMenuItem, type CommandStatusItem, type FilterChip } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -31,6 +31,15 @@ function relTime(iso?: string | null) {
   return `${Math.round(h / 24)}d`;
 }
 const exactTime = (iso?: string | null) => { if (!iso) return ""; const d = new Date(iso); return isNaN(d.getTime()) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
+/** Relative FUTURE time ("in 2d") from a real timestamp — for snoozed-until wake hints. */
+function relUntil(iso?: string | null) {
+  if (!iso) return "";
+  const s = Math.round((new Date(iso).getTime() - Date.now()) / 1000);
+  if (s <= 0) return "soon";
+  if (s < 3600) return `in ${Math.max(1, Math.round(s / 60))}m`;
+  if (s < 86400) return `in ${Math.round(s / 3600)}h`;
+  return `in ${Math.round(s / 86400)}d`;
+}
 
 // The four cockpit lanes → real decision statuses.
 type LaneKey = "approval" | "context" | "approved" | "rejected";
@@ -63,8 +72,18 @@ export function DecisionsPage() {
   const [acting, setActing] = useState<{ id: string; action: string } | null>(null);
   const [banner, setBanner] = useState<{ kind: "approved" | "rejected" | "snoozed" } | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [searchParams] = useSearchParams();
+  // Text search over the loaded queue (title/summary/agent) — client-side, the rows are already here.
+  const [search, setSearch] = useState("");
+  // "Risk first" ordering toggle — plain client-side sort over real risk levels.
+  const [sortRisk, setSortRisk] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const focusId = searchParams.get("id");
+  // Selection is mirrored to ?id= so a decision is shareable/refresh-stable (same pattern as
+  // Team Oversight's ?member=). replace:true keeps browser history clean while triaging.
+  const select = (id: string | null) => {
+    setSelectedId(id);
+    setSearchParams(id ? { id } : {}, { replace: true });
+  };
   // AI triage ranking of the pending lane — {id → priority/reason}. Pure view-state; never acts.
   const [triage, setTriage] = useState<Map<string, { priority: string; reason: string }> | null>(null);
   const [triageBusy, setTriageBusy] = useState(false);
@@ -79,30 +98,37 @@ export function DecisionsPage() {
   const agents = useMemo(() => Array.from(new Set(laneItems.map(d => d.agent_name))), [laneItems]);
   const types = useMemo(() => Array.from(new Set(laneItems.map(d => d.source_type))), [laneItems]);
   const assignees = useMemo(() => Array.from(new Set(laneItems.map(d => d.assignee_id).filter((x): x is string => !!x))), [laneItems]);
+  const q = search.trim().toLowerCase();
   const visibleUnordered = laneItems.filter(d =>
     (!agentFilter || d.agent_name === agentFilter) &&
     (!typeFilter || d.source_type === typeFilter) &&
     (!riskFilter || d.risk_level === riskFilter) &&
-    (!assigneeFilter || (assigneeFilter === "__none" ? !d.assignee_id : d.assignee_id === assigneeFilter)));
-  // With an AI triage ranking active, the approval lane orders by priority (high→low) — the
-  // ranking is advisory view-state only; every decision stays visible and individually actionable.
+    (!assigneeFilter || (assigneeFilter === "__none" ? !d.assignee_id : d.assignee_id === assigneeFilter)) &&
+    (!q || d.title.toLowerCase().includes(q) || (d.summary ?? "").toLowerCase().includes(q) || agentByRaw(d.agent_name).name.toLowerCase().includes(q)));
+  // Ordering precedence: an active AI triage ranking wins (advisory view-state only — every
+  // decision stays visible and individually actionable); else the optional risk-first sort;
+  // else newest-first as loaded.
   const PRIO = { high: 0, medium: 1, low: 2 } as Record<string, number>;
   const visible = (lane === "approval" && triage)
     ? [...visibleUnordered].sort((a, b) => (PRIO[triage.get(a.id)?.priority ?? "medium"] ?? 1) - (PRIO[triage.get(b.id)?.priority ?? "medium"] ?? 1))
+    : sortRisk
+    ? [...visibleUnordered].sort((a, b) => (PRIO[a.risk_level] ?? 1) - (PRIO[b.risk_level] ?? 1))
     : visibleUnordered;
 
   const laneCount = (k: LaneKey) => items.filter(d => LANES.find(l => l.key === k)!.statuses.includes(d.status)).length;
 
-  // A notification deep-link (?id=) jumps to that decision's lane + selection.
+  // A deep-link (?id=) jumps to that decision's lane + selection — but only when it isn't already
+  // the selection (selection itself is mirrored into ?id=, so without this guard, changing lane
+  // would snap straight back).
   useEffect(() => {
-    if (focusId) {
+    if (focusId && focusId !== selectedId) {
       const d = items.find(x => x.id === focusId);
       if (d) { const l = LANES.find(ln => ln.statuses.includes(d.status)); if (l) setLane(l.key); setSelectedId(focusId); return; }
     }
     if (!selectedId || !visible.some(d => d.id === selectedId)) setSelectedId(visible[0]?.id ?? null);
-  }, [focusId, decisions, lane, agentFilter, typeFilter, riskFilter, assigneeFilter]); // eslint-disable-line
+  }, [focusId, decisions, lane, agentFilter, typeFilter, riskFilter, assigneeFilter, search]); // eslint-disable-line
 
-  useEffect(() => { setChecked(new Set()); }, [lane, agentFilter, typeFilter, riskFilter, assigneeFilter]);
+  useEffect(() => { setChecked(new Set()); }, [lane, agentFilter, typeFilter, riskFilter, assigneeFilter, search]);
 
   const invalidate = () => { qc.invalidateQueries({ queryKey: ["decisions"] }); qc.invalidateQueries({ queryKey: ["agent-registry"] }); };
   const act = useMutation({ mutationFn: ({ id, action, body }: { id: string; action: "approve" | "reject" | "snooze"; body?: Record<string, unknown> }) => apiClient.post(`/decisions/${id}/${action}`, body ?? {}) });
@@ -122,7 +148,7 @@ export function DecisionsPage() {
       await act.mutateAsync({ id: d.id, action, body: opts?.until ? { until: opts.until } : {} });
       setBanner({ kind: action === "approve" ? "approved" : action === "reject" ? "rejected" : "snoozed" });
       await sleep(600);
-    } finally { setBanner(null); setActing(null); setSelectedId(next); invalidate(); }
+    } finally { setBanner(null); setActing(null); select(next); invalidate(); }
   }
 
   // Bulk approve is limited to SAFE (advisory, no side-effect) decisions — side-effecting ones
@@ -225,60 +251,83 @@ export function DecisionsPage() {
         rightSummary={<span title="j/k navigate · a approve · r reject · s snooze">keys j·k·a·r·s</span>}
       />
 
-      {/* Lane tabs */}
-      <div className="mb-3 flex flex-wrap gap-1 border-b" style={{ borderColor: "var(--border-soft)" }}>
-        {LANES.map(l => {
-          const on = lane === l.key; const n = laneCount(l.key);
-          return (
-            <button key={l.key} onClick={() => setLane(l.key)}
-              className="relative rounded-t-sm px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
-              style={{ color: on ? "var(--text-primary)" : "var(--text-muted)", borderBottom: `2px solid ${on ? "var(--section-accent)" : "transparent"}`, marginBottom: -1 }}>
-              {l.label} <span className="tabular-nums" style={{ color: "var(--text-faint)" }}>{n}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {isError ? (
         // Shared ErrorState with retry — same failure surface as Reports/Discovery/Team Oversight.
         <ErrorState error={new Error("Couldn't load the Decision Queue right now.")} onRetry={() => refetch()} />
       ) : (
         <>
-          {/* Shared FilterToolbar — same filter logic as Records/Lists: dropdown filters, an
-              advisory AI-tools menu, active selections as removable chips, summary on the right.
-              Every option stays reachable; per-row Approve/Reject/Snooze stay visible below. */}
-          {laneItems.length > 0 && (() => {
+          {/* ONE control band — lane tabs on the left; search, compact filters (shared MenuSelect),
+              risk-first sort, and the advisory AI-tools menu on the right. Three zones before the
+              work area (header → controls → work), not a stack of bars. Every option stays
+              reachable; per-row Approve/Reject/Snooze stay visible below. */}
+          <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b pb-2" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="flex flex-wrap gap-1">
+              {LANES.map(l => {
+                const on = lane === l.key; const n = laneCount(l.key);
+                return (
+                  <button key={l.key} onClick={() => setLane(l.key)}
+                    className="relative rounded-t-sm px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
+                    style={{ color: on ? "var(--text-primary)" : "var(--text-muted)", borderBottom: `2px solid ${on ? "var(--section-accent)" : "transparent"}`, marginBottom: -9 }}
+                    title={!l.open ? "Most recent resolved decisions (older history isn't loaded)" : undefined}>
+                    {l.label} <span className="tabular-nums" style={{ color: "var(--text-faint)" }}>{n}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="ml-auto flex flex-wrap items-center gap-1.5">
+              <label className="relative block">
+                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: "var(--text-faint)" }} />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search queue…"
+                  className="h-7 w-36 rounded-sm border bg-transparent pl-6.5 pr-2 text-[11.5px] outline-none focus:border-[var(--section-accent)]"
+                  style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)", paddingLeft: "1.625rem" }} />
+              </label>
+              <FilterSelect label="Agent" value={agentFilter} options={agents.map(a => ({ v: a, l: agentByRaw(a).name.replace(" Agent", "") }))} onChange={setAgentFilter} />
+              <FilterSelect label="Type" value={typeFilter} options={types.map(t => ({ v: t, l: t.replace(/_/g, " ") }))} onChange={setTypeFilter} />
+              <FilterSelect label="Risk" value={riskFilter} options={[{ v: "high", l: "High" }, { v: "medium", l: "Medium" }, { v: "low", l: "Low" }]} onChange={(v) => setRiskFilter(v as Decision["risk_level"] | null)} dot={(v) => RISK_DOT[v as Decision["risk_level"]]} />
+              {assignees.length > 0 && (
+                <FilterSelect label="Reviewer" value={assigneeFilter} onChange={setAssigneeFilter}
+                  options={[{ v: "__none", l: "Unassigned" }, ...assignees.map(a => ({ v: a, l: memberLabel(memberList, a) ?? "Assigned" }))]} />
+              )}
+              <button onClick={() => setSortRisk(s => !s)} disabled={lane === "approval" && !!triage}
+                title={lane === "approval" && triage ? "AI triage ranking is active — clear it to sort by risk" : "Order the list by risk level"}
+                className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-40"
+                style={sortRisk ? { borderColor: "var(--section-accent)", color: "var(--section-accent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                Risk first
+              </button>
+              {lane === "approval" && laneItems.length > 1 && (
+                <ActionMenu triggerLabel={(triageBusy || !!verdictBusy) ? "AI tools…" : "AI tools"} align="right" ariaLabel="AI decision tools"
+                  items={([
+                    { key: "triage", label: triageBusy ? "Triaging…" : (triage ? "Re-triage queue" : "AI triage"), icon: Sparkles, disabled: triageBusy, onClick: runTriage },
+                    ...(triage ? [{ key: "clear", label: "Clear ranking", onClick: () => setTriage(null) }] : []),
+                    { key: "adjudicate", label: verdictBusy ? "Adjudicating…" : "Adjudicate visible", icon: ShieldAlert, disabled: !!verdictBusy, onClick: adjudicateVisible },
+                  ] as ActionMenuItem[])} />
+              )}
+            </div>
+          </div>
+
+          {/* Contextual second line — ONLY when filters are active or an AI ranking has a summary. */}
+          {(() => {
             const filterChips: FilterChip[] = [
               ...(agentFilter ? [{ key: "agent", label: agentByRaw(agentFilter).name.replace(" Agent", ""), onRemove: () => setAgentFilter(null) }] : []),
               ...(typeFilter ? [{ key: "type", label: typeFilter.replace(/_/g, " "), onRemove: () => setTypeFilter(null) }] : []),
               ...(riskFilter ? [{ key: "risk", label: riskFilter, onRemove: () => setRiskFilter(null) }] : []),
               ...(assigneeFilter ? [{ key: "assignee", label: assigneeFilter === "__none" ? "Unassigned" : (memberLabel(memberList, assigneeFilter) ?? "Assigned"), onRemove: () => setAssigneeFilter(null) }] : []),
+              ...(search.trim() ? [{ key: "q", label: `"${search.trim()}"`, onRemove: () => setSearch("") }] : []),
             ];
             const aiSummary = verdicts.size > 0 && lane === "approval"
               ? `AI: ${[...verdicts.values()].filter(v => v === "approve").length} approve · ${[...verdicts.values()].filter(v => v === "investigate").length} investigate · ${[...verdicts.values()].filter(v => v === "reject").length} reject`
               : (triageNote || undefined);
+            if (filterChips.length === 0 && !aiSummary) return <div className="mb-2" />;
             return (
-              <FilterToolbar
-                filters={<>
-                  <FilterSelect label="Agent" value={agentFilter} options={agents.map(a => ({ v: a, l: agentByRaw(a).name.replace(" Agent", "") }))} onChange={setAgentFilter} />
-                  <FilterSelect label="Type" value={typeFilter} options={types.map(t => ({ v: t, l: t.replace(/_/g, " ") }))} onChange={setTypeFilter} />
-                  <FilterSelect label="Risk" value={riskFilter} options={[{ v: "high", l: "High" }, { v: "medium", l: "Medium" }, { v: "low", l: "Low" }]} onChange={(v) => setRiskFilter(v as Decision["risk_level"] | null)} dot={(v) => RISK_DOT[v as Decision["risk_level"]]} />
-                  {assignees.length > 0 && (
-                    <FilterSelect label="Reviewer" value={assigneeFilter} onChange={setAssigneeFilter}
-                      options={[{ v: "__none", l: "Unassigned" }, ...assignees.map(a => ({ v: a, l: memberLabel(memberList, a) ?? "Assigned" }))]} />
-                  )}
-                </>}
-                actionMenu={lane === "approval" && laneItems.length > 1 ? (
-                  <ActionMenu triggerLabel={(triageBusy || !!verdictBusy) ? "AI tools…" : "AI tools"} align="left" ariaLabel="AI decision tools"
-                    items={([
-                      { key: "triage", label: triageBusy ? "Triaging…" : (triage ? "Re-triage queue" : "AI triage"), icon: Sparkles, disabled: triageBusy, onClick: runTriage },
-                      ...(triage ? [{ key: "clear", label: "Clear ranking", onClick: () => setTriage(null) }] : []),
-                      { key: "adjudicate", label: verdictBusy ? "Adjudicating…" : "Adjudicate visible", icon: ShieldAlert, disabled: !!verdictBusy, onClick: adjudicateVisible },
-                    ] as ActionMenuItem[])} />
-                ) : undefined}
-                chips={filterChips}
-                summary={aiSummary}
-              />
+              <div className="mb-2 flex flex-wrap items-center gap-1.5 pt-1.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+                {filterChips.map(ch => (
+                  <button key={ch.key} onClick={ch.onRemove} className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 transition-colors hover:border-[var(--section-accent)]"
+                    style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                    {ch.label} <XCircle size={10} />
+                  </button>
+                ))}
+                {aiSummary && <span className="ml-auto">{aiSummary}</span>}
+              </div>
             );
           })()}
 
@@ -317,7 +366,7 @@ export function DecisionsPage() {
                         <input type="checkbox" checked={checked.has(d.id)} onChange={(e) => { const s = new Set(checked); e.target.checked ? s.add(d.id) : s.delete(d.id); setChecked(s); }}
                           className="ml-1 h-3.5 w-3.5 shrink-0 accent-[var(--section-accent)]" onClick={(e) => e.stopPropagation()} />
                       )}
-                      <button onClick={() => setSelectedId(d.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                      <button onClick={() => select(d.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: RISK_DOT[d.risk_level] }} title={`${d.risk_level} risk`} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
@@ -340,10 +389,22 @@ export function DecisionsPage() {
                             )}
                           </div>
                           <div className="mt-0.5 flex items-center gap-1.5">
-                            <a.Icon size={11} style={{ color: "var(--text-faint)" }} />
-                            <span className="truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+                            <a.Icon size={11} className="shrink-0" style={{ color: "var(--text-faint)" }} />
+                            <span className="min-w-0 flex-1 truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>
                               {lane === "approval" && triage?.get(d.id)?.reason ? triage.get(d.id)!.reason : `${a.name.replace(" Agent", "")} · ${laneDef.open ? `${relTime(d.created_at)} ago` : `resolved ${relTime(d.resolved_at)} ago`}`}
                             </span>
+                            {/* Behavior-changing markers only: approving this RUNS an action (real
+                                execution_preview flag), and snoozed rows say when they wake. */}
+                            {laneDef.open && d.execution_preview?.side_effect && (
+                              <span className="inline-flex shrink-0 items-center gap-0.5 text-[9.5px] font-medium" title={d.execution_preview.text} style={{ color: "#97824f" }}>
+                                <Zap size={9} /> runs action
+                              </span>
+                            )}
+                            {d.status === "snoozed" && d.snoozed_until && (
+                              <span className="inline-flex shrink-0 items-center gap-0.5 text-[9.5px]" title={`Snoozed until ${exactTime(d.snoozed_until)}`} style={{ color: "var(--text-muted)" }}>
+                                <Clock size={9} /> wakes {relUntil(d.snoozed_until)}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </button>
@@ -351,6 +412,11 @@ export function DecisionsPage() {
                   );
                 })}
                 {visible.length === 0 && <div className="px-4 py-10 text-center text-[12px]" style={{ color: "var(--text-muted)" }}>No decisions match these filters.</div>}
+                {/* Honest window note — the cockpit loads the most recent resolved decisions only,
+                    so closed-lane counts aren't presented as all-time totals. */}
+                {!laneDef.open && items.filter(x => ["approved", "rejected", "completed"].includes(x.status)).length >= 120 && (
+                  <div className="px-4 py-2.5 text-center text-[10.5px]" style={{ color: "var(--text-faint)" }}>Showing the most recent resolved decisions — older history isn't loaded.</div>
+                )}
               </div>
 
               {/* RIGHT — dossier (same surface) */}
@@ -409,6 +475,24 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
   const SNOOZE_PRESETS: { label: string; hours: number }[] = [
     { label: "1 hour", hours: 1 }, { label: "24 hours", hours: 24 }, { label: "3 days", hours: 72 }, { label: "1 week", hours: 168 },
   ];
+  // Copy a shareable deep-link to this decision (?id= is already honored on load).
+  const [linkCopied, setLinkCopied] = useState(false);
+  const copyLink = () => {
+    void navigator.clipboard?.writeText(`${window.location.origin}/decisions?id=${d.id}`)
+      .then(() => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 1500); }, () => {});
+  };
+  // Edit the proposal — the existing PATCH /decisions/:id (which also captures the EDITED
+  // training example server-side). Open lanes only; nothing about execution changes.
+  const [editOpen, setEditOpen] = useState(false);
+  const [editDraft, setEditDraft] = useState({ title: d.title, recommended_action: d.recommended_action ?? "", risk_level: d.risk_level });
+  const saveEdit = useMutation({
+    mutationFn: () => apiClient.patch(`/decisions/${d.id}`, {
+      title: editDraft.title.trim(),
+      recommended_action: editDraft.recommended_action.trim() || undefined,
+      risk_level: editDraft.risk_level,
+    }),
+    onSuccess: () => { setEditOpen(false); onChanged(); },
+  });
 
   return (
     <div className="flex h-full flex-col">
@@ -426,14 +510,58 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
               </span>
               {/* Confidence only when the backend actually computed one — else honest "source-backed". */}
               {d.confidence != null ? <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>{d.confidence}% confidence</span> : <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>source-backed</span>}
+              <button onClick={copyLink} title="Copy a shareable link to this decision"
+                className="ml-auto inline-flex shrink-0 items-center gap-1 text-[10px] font-medium transition-colors hover:text-[var(--section-accent)]" style={{ color: "var(--text-faint)" }}>
+                <Link2 size={10} /> {linkCopied ? "Copied" : "Copy link"}
+              </button>
             </div>
             <h2 className="mt-1.5 break-words text-[17px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{d.title}</h2>
             <p className="mt-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Raised {exactTime(d.created_at)}{!lane.open && d.resolved_at ? ` · ${d.status} ${exactTime(d.resolved_at)}` : ""}</p>
           </div>
         </div>
 
-        {/* Proposed change — shared DossierSection (flat, no extra card frame) */}
-        <DossierSection icon={Zap} title="Proposed change">
+        {/* Proposed change — shared DossierSection (flat, no extra card frame). Editable via the
+            existing PATCH endpoint (open lanes): fix a title/action/risk before approving, and the
+            backend records the EDITED training example. Evidence/summary are never editable. */}
+        <DossierSection icon={Zap} title="Proposed change"
+          action={lane.open && !editOpen ? (
+            <button onClick={() => { setEditDraft({ title: d.title, recommended_action: d.recommended_action ?? "", risk_level: d.risk_level }); setEditOpen(true); }}
+              className="inline-flex items-center gap-1 text-[10.5px] font-medium transition-colors hover:text-[var(--section-accent)]" style={{ color: "var(--text-faint)" }}>
+              <Pencil size={10} /> Edit proposal
+            </button>
+          ) : undefined}>
+          {editOpen && (
+            <div className="mb-3 space-y-2 rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Title</span>
+                <input value={editDraft.title} onChange={e => setEditDraft(f => ({ ...f, title: e.target.value }))}
+                  className="w-full rounded-sm border bg-transparent px-2.5 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Proposed action</span>
+                <textarea value={editDraft.recommended_action} onChange={e => setEditDraft(f => ({ ...f, recommended_action: e.target.value }))} rows={2}
+                  className="w-full resize-none rounded-sm border bg-transparent px-2.5 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Risk</span>
+                {(["low", "medium", "high"] as const).map(r => (
+                  <button key={r} onClick={() => setEditDraft(f => ({ ...f, risk_level: r }))}
+                    className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[10.5px] capitalize transition-colors"
+                    style={editDraft.risk_level === r ? { borderColor: RISK_DOT[r], color: RISK_DOT[r] } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                    <span className="h-1 w-1 rounded-full" style={{ background: RISK_DOT[r] }} /> {r}
+                  </button>
+                ))}
+                <div className="ml-auto flex gap-2">
+                  <button onClick={() => setEditOpen(false)} className="text-[11px]" style={{ color: "var(--text-muted)" }}>Cancel</button>
+                  <button onClick={() => saveEdit.mutate()} disabled={saveEdit.isPending || !editDraft.title.trim()}
+                    className="btn-primary px-3 py-1 text-[11px] font-semibold">
+                    {saveEdit.isPending ? <Loader2 size={11} className="animate-spin" /> : "Save"}
+                  </button>
+                </div>
+              </div>
+              {saveEdit.isError && <p className="text-[10.5px]" style={{ color: "#9c6b72" }}>Couldn't save the edit — try again.</p>}
+            </div>
+          )}
           {target?.node_id && (
             <Link to={`/objects/${encodeURIComponent(target.object_type ?? "deals")}/${target.node_id}`} className="mb-2.5 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
               Target: <span className="font-medium" style={{ color: "var(--text-primary)" }}>{target.title || "record"}</span><ExternalLink size={11} style={{ color: "var(--text-faint)" }} />

@@ -344,9 +344,12 @@ describe("priority pages preserve every existing action/handler", () => {
       expect(decisions).toContain(h);
     }
   });
-  it("Decisions is a redesigned approval cockpit: shared FilterToolbar + coherent DossierSection dossier + header-folded queue stats", () => {
-    // Filters now use the shared FilterToolbar (Records/List logic), not a bespoke bar / ActiveFilterChip.
-    expect(decisions).toMatch(/<FilterToolbar/);
+  it("Decisions is a redesigned approval cockpit: ONE control band (tabs+search+filters+AI tools) + coherent DossierSection dossier", () => {
+    // Lane tabs, search, the shared MenuSelect filters, risk sort, and the AI-tools ActionMenu
+    // live in a single band — three zones before the work area, not a stack of bars.
+    expect(decisions).toMatch(/ONE control band/);
+    expect(decisions).toMatch(/<FilterSelect label="Agent"/);
+    expect(decisions).toMatch(/<ActionMenu triggerLabel=/);
     expect(decisions).not.toContain("function ActiveFilterChip");
     // Queue intelligence folded into the CommandPageHeader honest status row (no separate stats box).
     expect(decisions).toContain("const queueStatus: CommandStatusItem[]");
@@ -845,6 +848,39 @@ describe("Team Oversight — member dossier composition + honest activity langua
       "insightQ.refetch()",
       'queryKey: ["oversight-actor", op.operator_id]',
     ]) expect(teamOversight).toContain(h);
+  });
+});
+
+describe("Decisions cockpit v2 — approved recommendations (all real data, no fabrication)", () => {
+  it("list rows flag side-effecting approvals and snoozed wake times from REAL fields", () => {
+    expect(decisions).toMatch(/laneDef\.open && d\.execution_preview\?\.side_effect/);
+    expect(decisions).toContain("runs action");
+    expect(decisions).toMatch(/d\.status === "snoozed" && d\.snoozed_until/);
+    expect(decisions).toMatch(/wakes \{relUntil\(d\.snoozed_until\)\}/);
+  });
+  it("queue search is client-side over loaded rows (title/summary/agent)", () => {
+    expect(decisions).toMatch(/d\.title\.toLowerCase\(\)\.includes\(q\)/);
+    expect(decisions).toMatch(/placeholder="Search queue…"/);
+  });
+  it("selection mirrors to ?id= with a loop guard, and resolve advances via select()", () => {
+    expect(decisions).toMatch(/setSearchParams\(id \? \{ id \} : \{\}, \{ replace: true \}\)/);
+    expect(decisions).toMatch(/focusId && focusId !== selectedId/);
+    expect(decisions).toMatch(/finally \{ setBanner\(null\); setActing\(null\); select\(next\); invalidate\(\); \}/);
+  });
+  it("risk-first sort defers to an active AI triage ranking", () => {
+    expect(decisions).toMatch(/lane === "approval" && triage\)/);
+    expect(decisions).toMatch(/: sortRisk\n/);
+    expect(decisions).toMatch(/AI triage ranking is active — clear it to sort by risk/);
+  });
+  it("edit proposal uses the existing PATCH endpoint, open lanes only, evidence untouched", () => {
+    expect(decisions).toMatch(/apiClient\.patch\(`\/decisions\/\$\{d\.id\}`/);
+    expect(decisions).toMatch(/lane\.open && !editOpen/);
+    // Only title / recommended_action / risk_level are editable — never evidence or summary.
+    expect(decisions).not.toMatch(/editDraft\.(evidence|summary|confidence)/);
+  });
+  it("copy-link shares the honored ?id= deep-link; closed lanes disclose the loaded window", () => {
+    expect(decisions).toMatch(/\/decisions\?id=\$\{d\.id\}/);
+    expect(decisions).toContain("older history isn't loaded");
   });
 });
 
