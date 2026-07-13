@@ -436,11 +436,12 @@ describe("Smart Calendar UI — command-center layout", () => {
     expect(page).toMatch(/apiClient\.post\(`\/calendar\/events\/\$\{id\}\/prepare`/);
     expect(page).toMatch(/t\("cal\.sources_note"\)/);   // grounding disclosure shown to the user
   });
-  it("after-meeting: create follow-up task is REAL; notes/recap stay honest 'Coming soon'", () => {
+  it("after-meeting: create follow-up task is REAL, and dead 'Coming soon' placeholders are gone", () => {
     expect(page).toMatch(/createTask\.mutate\(`Follow up on \$\{e\.title\}`\)/);   // real task create
     expect(page).toMatch(/apiClient\.post\("\/tasks", \{ title \}\)/);
-    expect(page).toMatch(/t\("cal\.coming_soon"\)/);
-    expect(page).toMatch(/cursor-not-allowed/);
+    // Only ship what works — the disabled Draft-notes / Send-recap placeholders were removed.
+    expect(page).not.toMatch(/t\("cal\.coming_soon"\)/);
+    expect(page).not.toMatch(/cursor-not-allowed/);
   });
   it("uses a persistent right-side Meeting Brief (desktop) + drawer (mobile), sharing one body", () => {
     expect(page).toMatch(/function MeetingBriefBody/);
@@ -449,7 +450,7 @@ describe("Smart Calendar UI — command-center layout", () => {
     expect(page).toMatch(/<aside className="hidden lg:block">/);
     expect(page).toMatch(/<div className="lg:hidden"><EventDrawer/);
     // selected meeting → its brief; nothing selected → the Today briefing (panel never sits empty)
-    expect(page).toMatch(/openId \? <MeetingBriefBody id=\{openId\} \/> : <TodayBriefingPanel/);
+    expect(page).toMatch(/focusId \? <MeetingBriefBody id=\{focusId\} \/> : <TodayBriefingPanel/);
   });
   it("when AI prep finds no records, it says it is based only on the meeting details (no fabrication)", () => {
     expect(page).toMatch(/r\.sources\.length === 0 \?[\s\S]*?t\("cal\.based_on_details"\)/);
@@ -529,7 +530,7 @@ describe("Calendar UX — click-to-create + review panel + semantic colours", ()
   });
   it("clicking an existing meeting opens the review panel (event, not slot)", () => {
     expect(page).toMatch(/onClick=\{\(ev\) => \{ ev\.stopPropagation\(\); onOpen\(pl\.e\.id\); \}\}/);
-    expect(page).toMatch(/openId \? <MeetingBriefBody id=\{openId\} \/> : <TodayBriefingPanel/);
+    expect(page).toMatch(/focusId \? <MeetingBriefBody id=\{focusId\} \/> : <TodayBriefingPanel/);
   });
   it("review panel carries the required actions (join / prepare / add-edit agenda / create task)", () => {
     expect(page).toMatch(/navigate\(`\/calls\/\$\{e\.id\}`\)/);                 // join call
@@ -540,7 +541,7 @@ describe("Calendar UX — click-to-create + review panel + semantic colours", ()
   });
   it("AI Meeting Brief readiness rows are derived from REAL fields only (incl. related + follow-ups)", () => {
     expect(page).toMatch(/t\("cal\.ai_meeting_brief"\)/);
-    expect(page).toMatch(/const relN = prepare\.data\?\.sources\.length \?\? 0/);        // related from real prep sources
+    expect(page).toMatch(/const relN = prep\?\.sources\.length \?\? 0/);        // related from real (cached-or-fresh) prep sources
     expect(page).toMatch(/followTotal > 0/);                                            // follow-ups from real tasks
     expect(page).toMatch(/t\("cal\.st_none_found"\)/);                                  // says what was NOT found
   });
@@ -596,7 +597,7 @@ describe("Smart Calendar — Meeting Agent co-pilot readiness (real signals, no 
   it("derives every signal from the meeting's own real fields (never fabricated)", () => {
     expect(page).toMatch(/const hasAgenda = !!\(e\.description \?\? ""\)\.trim\(\)/);   // agenda from real field
     expect(page).toMatch(/e\.call_url \? S\("call"/);                                     // call link from real field
-    expect(page).toMatch(/!!prepare\.data/);                                              // prep status from real state
+    expect(page).toMatch(/!!prep,/);                                                      // prep status from real (cached-or-fresh) state
     expect(page).toMatch(/briefQ\.data\?\.conflicts\?\.some\(c => c\.a === id \|\| c\.b === id\)/); // conflict from real brief
   });
   it("suggested next action reuses real, existing actions only (add call / prepare / join)", () => {

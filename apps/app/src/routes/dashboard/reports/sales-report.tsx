@@ -334,14 +334,21 @@ function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevSta
   stats: ReturnType<typeof computeStats>; prevStats: ReturnType<typeof computeStats>;
   trendData: { label: string; revenue: number; count: number }[]; sym?: string;
 }) {
-  const [result, setResult]   = useState<ForecastResult | null>(null);
+  // Persist the real forecast per (objectType, period, valueCol) in the query cache so it survives
+  // remounts/tab-switches and renders instantly on return — "already done", not a button you must
+  // re-press (and re-spend on). A run only happens on explicit Generate/Regenerate.
+  const qc = useQueryClient();
+  const cacheKey = useMemo(() => ["report-forecast", objectType, period, valueCol ?? "count"], [objectType, period, valueCol]);
+  const [result, setResult]   = useState<ForecastResult | null>(() => qc.getQueryData<ForecastResult>(cacheKey) ?? null);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const hasValue = !!valueCol;
+  // Re-seed from cache when the report's object/period/value changes (each has its own cached forecast).
+  useEffect(() => { setResult(qc.getQueryData<ForecastResult>(cacheKey) ?? null); setError(null); }, [cacheKey, qc]);
 
   async function runForecast() {
-    setLoading(true); setError(null); setModalOpen(true);
+    setLoading(true); setError(null);
     try {
       const res = await apiClient.post<ForecastResult>("/generate/forecast", {
         objectType, valueCol, stageCol, period,
@@ -349,7 +356,7 @@ function AIForecastCard({ objectType, valueCol, stageCol, period, stats, prevSta
         prevStats: { wonValue: prevStats.wonValue, wonCount: prevStats.wonCount, completionRate: prevStats.completionRate },
         trendData,
       });
-      setResult(res);
+      setResult(res); qc.setQueryData(cacheKey, res);
     } catch (e: any) {
       let msg = e?.message ?? "Forecast unavailable.";
       try { const j = JSON.parse(msg); msg = j.error ?? msg; } catch {}
@@ -391,38 +398,57 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
 
   return (
     <>
-      {/* Compact trigger card — never stretches */}
-      <div className="rounded-sm border border-stone-500/20 bg-[var(--surface-card)] p-5 flex items-center gap-4 print:hidden">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-stone-500/15 ring-1 ring-stone-500/25">
-          <LogoMark size={16} className="text-stone-400"/>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[var(--text-primary)]">AI Forecast</p>
-          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-            {result ? <span className="text-[var(--text-faint)] italic">{result.headline}</span>
-                    : `Project ${hasValue?"revenue":"completions"} with Mondaily AI`}
-          </p>
-        </div>
-        {loading ? (
-          <Loader2 size={15} className="animate-spin text-stone-400 shrink-0"/>
-        ) : error ? (
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[var(--text-faint)] max-w-[160px] truncate">{error}</span>
-            <button onClick={() => { setError(null); runForecast(); }} className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)]">Retry</button>
+      <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] print:hidden">
+        {/* Header row — the agent, its state, and refresh/expand once a real forecast exists. */}
+        <div className="flex items-center gap-4 p-5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-[var(--section-accent-soft)] ring-1 ring-[var(--section-accent-line)]">
+            <LogoMark size={16} className="text-[var(--section-accent)]"/>
           </div>
-        ) : result ? (
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="text-right mr-1">
-              <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wider">Projected</p>
-              <p className="text-base font-bold text-[var(--text-primary)]">{hasValue ? fmtMoney(result.projectedValue, sym) : fmtNum(result.projectedValue)}</p>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">AI Forecast</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+              {result ? `Projecting ${hasValue?"revenue":"completions"} · ${PERIOD_LABELS[period]}` : `Project ${hasValue?"revenue":"completions"} with Mondaily AI`}
+            </p>
+          </div>
+          {loading ? (
+            <Loader2 size={15} className="animate-spin text-[var(--section-accent)] shrink-0"/>
+          ) : error ? (
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-[var(--text-faint)] max-w-[160px] truncate">{error}</span>
+              <button onClick={() => { setError(null); runForecast(); }} className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)]">Retry</button>
             </div>
-            <button onClick={() => setModalOpen(true)} className="rounded-sm border border-stone-500/30 bg-stone-600/10 px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-stone-500/20 transition-colors">View</button>
-            <button onClick={() => { setResult(null); runForecast(); }} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
+          ) : result ? (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button onClick={() => setModalOpen(true)} title="Full analysis" className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">Expand</button>
+              <button onClick={runForecast} title="Regenerate" className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
+            </div>
+          ) : (
+            <button onClick={runForecast} className="shrink-0 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
+              Generate
+            </button>
+          )}
+        </div>
+        {/* Inline result — the forecast lives ON the page (no click-to-modal for the primary read). */}
+        {result && !loading && (
+          <div className="border-t border-[var(--border-soft)] px-5 py-4">
+            <div className="flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Projected {hasValue ? "revenue" : "completions"}</p>
+                <p className="text-2xl font-bold text-[var(--text-primary)] leading-tight mt-0.5">{hasValue ? fmtMoney(result.projectedValue, sym) : fmtNum(result.projectedValue)}</p>
+              </div>
+              <span className={`shrink-0 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence] ?? CONFIDENCE_STYLE.medium}`}>{result.confidence} confidence</span>
+            </div>
+            <p className="mt-2 text-[12px] italic text-[var(--text-faint)] leading-relaxed">{result.headline}</p>
+            {result.actions && result.actions[0] && (
+              <div className="mt-3 flex items-start gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2">
+                <span className={`mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold border ${result.actions[0].impact === "high" ? "border-[#5f8169]/25 bg-[#5f8169]/10 text-[#5f8169]" : result.actions[0].impact === "medium" ? "border-[#97824f]/25 bg-[#97824f]/10 text-[#97824f]" : "border-stone-500/30 bg-stone-600/10 text-stone-400"}`}>{result.actions[0].impact}</span>
+                <p className="text-[11.5px] text-[var(--text-secondary)] leading-snug"><span className="font-medium text-[var(--text-primary)]">{result.actions[0].action}.</span> {result.actions[0].why}</p>
+              </div>
+            )}
+            {result.actions && result.actions.length > 1 && (
+              <button onClick={() => setModalOpen(true)} className="mt-2 text-[11px] font-medium text-[var(--section-accent)] hover:underline">+{result.actions.length - 1} more {result.actions.length - 1 === 1 ? "action" : "actions"} & full analysis →</button>
+            )}
           </div>
-        ) : (
-          <button onClick={runForecast} className="shrink-0 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
-            Generate
-          </button>
         )}
       </div>
 
@@ -491,8 +517,12 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
 interface AIInsight { title: string; value: string; trend?: "up"|"down"|"neutral"; description: string; category: "performance"|"risk"|"opportunity"|"summary"; action?: string }
 
 function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objectType: string }) {
+  // Cache insights per object type in the query cache so they persist across remounts and render
+  // instantly on return (no silent re-run/re-spend). A run happens only on explicit Analyse/Regenerate.
+  const qc = useQueryClient();
+  const cacheKey = useMemo(() => ["report-insights", objectType], [objectType]);
   const [loading, setLoading]   = useState(false);
-  const [insights, setInsights] = useState<AIInsight[] | null>(null);
+  const [insights, setInsights] = useState<AIInsight[] | null>(() => qc.getQueryData<AIInsight[]>(cacheKey) ?? null);
   const [error, setError]       = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -505,20 +535,19 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
   type Cat = keyof typeof CATEGORY_META;
   const fallbackMeta = CATEGORY_META.summary;
 
-  // Reset when the object type the panel is analysing changes
+  // Re-seed from cache when the analysed object type changes (each type has its own cached insights).
   useEffect(() => {
-    setInsights(null);
+    setInsights(qc.getQueryData<AIInsight[]>(cacheKey) ?? null);
     setError(null);
     setModalOpen(false);
-  }, [objectType]);
+  }, [cacheKey, qc]);
 
   async function run() {
-    if (insights) { setModalOpen(true); return; }
     setLoading(true); setError(null);
     try {
       const res = await apiClient.post<{ insights: AIInsight[] }>("/generate/insights", { objectType, records: records.slice(0, 50) });
-      setInsights(res.insights ?? []);
-      setModalOpen(true);
+      const list = res.insights ?? [];
+      setInsights(list); qc.setQueryData(cacheKey, list);
     } catch (e: any) {
       let msg = e?.message ?? "Could not load AI insights.";
       try { const j = JSON.parse(msg); msg = j.error ?? msg; } catch {}
@@ -556,33 +585,56 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
 
   return (
     <>
-      {/* Compact trigger card */}
-      <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 flex items-center gap-4 print:hidden">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-stone-500/15 ring-1 ring-stone-500/25">
-          <LogoMark size={16} className="text-stone-400"/>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[var(--text-primary)]">AI Insights</p>
-          <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-            {insights ? `${insights.length} insights ready` : "Surface patterns in your data with Mondaily AI"}
-          </p>
-        </div>
-        {loading ? (
-          <Loader2 size={15} className="animate-spin text-stone-400 shrink-0"/>
-        ) : error ? (
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[var(--text-faint)] max-w-[160px] truncate">{error}</span>
-            <button onClick={() => { setError(null); run(); }} className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)]">Retry</button>
+      <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] print:hidden">
+        <div className="flex items-center gap-4 p-5">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-[var(--section-accent-soft)] ring-1 ring-[var(--section-accent-line)]">
+            <LogoMark size={16} className="text-[var(--section-accent)]"/>
           </div>
-        ) : insights ? (
-          <div className="flex items-center gap-2 shrink-0">
-            <button onClick={() => setModalOpen(true)} className="rounded-sm border border-stone-500/30 bg-stone-600/10 px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-stone-500/20 transition-colors">View</button>
-            <button onClick={() => { setInsights(null); run(); }} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-[var(--text-primary)]">AI Insights</p>
+            <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+              {insights ? `${insights.length} patterns from ${records.length} records` : "Surface patterns in your data with Mondaily AI"}
+            </p>
           </div>
-        ) : (
-          <button onClick={run} className="shrink-0 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
-            Analyse
-          </button>
+          {loading ? (
+            <Loader2 size={15} className="animate-spin text-[var(--section-accent)] shrink-0"/>
+          ) : error ? (
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-[var(--text-faint)] max-w-[160px] truncate">{error}</span>
+              <button onClick={() => { setError(null); run(); }} className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)]">Retry</button>
+            </div>
+          ) : insights ? (
+            <div className="flex items-center gap-1.5 shrink-0">
+              {insights.length > 2 && <button onClick={() => setModalOpen(true)} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">Expand</button>}
+              <button onClick={run} title="Regenerate" className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
+            </div>
+          ) : (
+            <button onClick={run} className="shrink-0 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
+              Analyse
+            </button>
+          )}
+        </div>
+        {/* Inline insights — the top patterns live ON the page; Expand opens the full grid. */}
+        {insights && insights.length > 0 && !loading && (
+          <div className="border-t border-[var(--border-soft)] divide-y divide-[var(--border-soft)]">
+            {insights.slice(0, 2).map((ins, i) => {
+              const m = CATEGORY_META[ins.category as Cat] ?? fallbackMeta;
+              return (
+                <div key={i} className="px-5 py-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${m.dot}`}/>
+                    <span className={`text-[9.5px] font-semibold uppercase tracking-widest ${m.text}`}>{m.label}</span>
+                    <span className="ml-auto text-[13px] font-bold text-[var(--text-primary)]">{ins.value}</span>
+                  </div>
+                  <p className="text-[12px] text-[var(--text-primary)] font-medium">{ins.title}</p>
+                  <p className="text-[11px] text-[var(--text-faint)] leading-relaxed mt-0.5">{ins.description}</p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {insights && insights.length === 0 && !loading && (
+          <div className="border-t border-[var(--border-soft)] px-5 py-3 text-[11px] text-[var(--text-faint)]">No clear patterns in this data yet — add more records and re-analyse.</div>
         )}
       </div>
 
