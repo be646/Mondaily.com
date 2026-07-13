@@ -192,3 +192,70 @@ export function evaluationLabel(op: EvalInput): EvalLabel {
   return { label: "Balanced workload", tone: "good", basis: `${op.open_tasks} open task(s), none overdue.` };
 }
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// Advanced team intelligence — velocity (real cycle times), collaboration (real message edges),
+// and goal attainment. Every function is a PURE aggregation over already-fetched real rows, so it's
+// unit-testable and never fabricates: when there's nothing to measure it returns null/empty, not a 0.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+export interface TaskTiming { completed?: boolean | null; completed_at?: string | null; due_date?: string | null; created_at?: string | null }
+/** Average task lead time (created → completed, in days) + on-time rate, from REAL completed tasks only. */
+export function avgTaskLeadDays(tasks: TaskTiming[]): { avg_days: number | null; on_time_rate: number | null; sample: number } {
+  const done = tasks.filter(t => t.completed && t.completed_at && t.created_at);
+  if (done.length === 0) return { avg_days: null, on_time_rate: null, sample: 0 };
+  let sum = 0, onTime = 0, dueSample = 0;
+  for (const t of done) {
+    const lead = (new Date(t.completed_at!).getTime() - new Date(t.created_at!).getTime()) / 86_400_000;
+    if (Number.isFinite(lead) && lead >= 0) sum += lead;
+    if (t.due_date) { dueSample++; if (new Date(t.completed_at!).getTime() <= new Date(t.due_date).getTime()) onTime++; }
+  }
+  return {
+    avg_days: Math.round((sum / done.length) * 10) / 10,
+    on_time_rate: dueSample ? Math.round((onTime / dueSample) * 100) : null,
+    sample: done.length,
+  };
+}
+
+export interface DecisionTiming { created_at?: string | null; resolved_at?: string | null }
+/** Average decision cycle time (raised → resolved, in hours), from REAL resolved decisions only. */
+export function avgDecisionCycleHours(decisions: DecisionTiming[]): { avg_hours: number | null; sample: number } {
+  const done = decisions.filter(d => d.resolved_at && d.created_at);
+  if (done.length === 0) return { avg_hours: null, sample: 0 };
+  let sum = 0;
+  for (const d of done) { const h = (new Date(d.resolved_at!).getTime() - new Date(d.created_at!).getTime()) / 3_600_000; if (Number.isFinite(h) && h >= 0) sum += h; }
+  return { avg_hours: Math.round((sum / done.length) * 10) / 10, sample: done.length };
+}
+
+export interface MsgEdge { sender_id?: string | null; recipient_id?: string | null }
+/** Directed collaboration edges (sender → recipient) with real message counts, busiest first. Self-messages dropped. */
+export function collaborationEdges(msgs: MsgEdge[]): { from: string; to: string; count: number }[] {
+  const m = new Map<string, number>();
+  for (const x of msgs) {
+    const a = String(x.sender_id ?? ""), b = String(x.recipient_id ?? "");
+    if (!a || !b || a === b) continue;
+    m.set(`${a} ${b}`, (m.get(`${a} ${b}`) ?? 0) + 1);
+  }
+  return [...m.entries()]
+    .map(([k, count]) => { const [from, to] = k.split(" "); return { from: from!, to: to!, count }; })
+    .sort((x, y) => y.count - x.count);
+}
+
+// The REAL metrics a goal can target — each maps 1:1 to an oversight-matrix per-member field.
+export const GOAL_METRICS = ["tasks_completed", "decisions_resolved", "deals_won", "records_touched", "ai_credits"] as const;
+export type GoalMetric = typeof GOAL_METRICS[number];
+export const GOAL_METRIC_LABEL: Record<GoalMetric, string> = {
+  tasks_completed: "Tasks completed",
+  decisions_resolved: "Decisions resolved",
+  deals_won: "Deals won",
+  records_touched: "Records touched",
+  ai_credits: "AI credits",
+};
+export function isGoalMetric(v: unknown): v is GoalMetric {
+  return typeof v === "string" && (GOAL_METRICS as readonly string[]).includes(v);
+}
+/** Attainment as a clamped 0–100 percentage of a real actual against a positive target. */
+export function goalAttainmentPct(actual: number, target: number): number {
+  if (!(target > 0)) return 0;
+  return Math.max(0, Math.min(100, Math.round((actual / target) * 100)));
+}
+

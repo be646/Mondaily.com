@@ -4,7 +4,7 @@ import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { verifiedPowUserIds } from "../lib/pow-claims";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
-import { workQuality, aggregateDeals, dailyTrend, evaluationLabel, type DealNode } from "../lib/oversight-metrics";
+import { workQuality, aggregateDeals, dailyTrend, evaluationLabel, dealStageClass, avgTaskLeadDays, avgDecisionCycleHours, collaborationEdges, isGoalMetric, goalAttainmentPct, type DealNode, type TaskTiming, type DecisionTiming } from "../lib/oversight-metrics";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -565,6 +565,158 @@ router.get("/", requireAuth, async (c) => {
     .order("created_at", { ascending: false })
     .limit(limit);
   return c.json(data ?? []);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// ADVANCED TEAM INTELLIGENCE — velocity, collaboration, and comparison (admin-only).
+// One extra endpoint the redesigned dashboard lazy-loads: prior-period deltas for trend arrows,
+// real cycle-time velocity, and a collaboration graph. All from existing tables; every value real
+// (null when unmeasurable), so nothing here fabricates.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+router.get("/oversight-advanced", requireAuth, requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const days = Math.min(365, Math.max(1, Math.round(Number(c.req.query("days") ?? 30))));
+  const now = Date.now();
+  const sinceIso = new Date(now - days * 86_400_000).toISOString();
+  const prevSinceIso = new Date(now - 2 * days * 86_400_000).toISOString();   // the window BEFORE this one
+
+  const [{ data: usageCur }, { data: usagePrev }, { data: actsCur }, { data: actsPrev }, { data: tasks }, { data: decisions }, { data: msgs }] = await Promise.all([
+    supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", sinceIso).limit(100000),
+    supabase.from("ai_usage").select("user_id, total_tokens, created_at").eq("workspace_id", ws).gte("created_at", prevSinceIso).lt("created_at", sinceIso).limit(100000),
+    supabase.from("activities").select("actor_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").gte("created_at", sinceIso).limit(50000),
+    supabase.from("activities").select("actor_id, created_at").eq("workspace_id", ws).eq("actor_type", "human").gte("created_at", prevSinceIso).lt("created_at", sinceIso).limit(50000),
+    // Task lead time needs created_at + completed_at (both real, migration 0019).
+    supabase.from("tasks").select("assignee_id, completed, completed_at, due_date, created_at").eq("workspace_id", ws).gte("created_at", prevSinceIso).limit(20000),
+    // Decision cycle time from raised → resolved (both real timestamps).
+    supabase.from("decision_queue").select("resolved_by, created_at, resolved_at").eq("workspace_id", ws).gte("created_at", prevSinceIso).limit(20000),
+    supabase.from("internal_messages").select("sender_id, recipient_id, created_at").eq("workspace_id", ws).gte("created_at", sinceIso).limit(20000),
+  ]);
+
+  // Per-member activity + AI-credit totals for THIS vs the PREVIOUS equal-length window → deltas.
+  const sumBy = (rows: { actor_id?: string | null; user_id?: string | null; total_tokens?: number | null }[], key: "actor_id" | "user_id", val?: (r: any) => number) => {
+    const m = new Map<string, number>();
+    for (const r of rows ?? []) { const k = String((r as any)[key] ?? ""); if (!k) continue; m.set(k, (m.get(k) ?? 0) + (val ? val(r) : 1)); }
+    return m;
+  };
+  const actCur = sumBy(actsCur ?? [], "actor_id");
+  const actPrev = sumBy(actsPrev ?? [], "actor_id");
+  const aiCur = sumBy(usageCur ?? [], "user_id", r => Number(r.total_tokens ?? 0));
+  const aiPrev = sumBy(usagePrev ?? [], "user_id", r => Number(r.total_tokens ?? 0));
+  const ids = new Set<string>([...actCur.keys(), ...actPrev.keys(), ...aiCur.keys(), ...aiPrev.keys()]);
+  const comparison = [...ids].map(id => ({
+    operator_id: id,
+    activity_now: actCur.get(id) ?? 0,
+    activity_prev: actPrev.get(id) ?? 0,
+    ai_now: aiCur.get(id) ?? 0,
+    ai_prev: aiPrev.get(id) ?? 0,
+  }));
+
+  // Per-member velocity — only tasks/decisions inside THIS window count toward the headline numbers.
+  const tasksCur = (tasks ?? []).filter(t => String(t.created_at ?? "") >= sinceIso || (t.completed_at && String(t.completed_at) >= sinceIso));
+  const decCur = (decisions ?? []).filter(d => d.resolved_at && String(d.resolved_at) >= sinceIso);
+  const tasksByUser = new Map<string, TaskTiming[]>();
+  for (const t of tasksCur) { const k = String(t.assignee_id ?? ""); if (!k) continue; (tasksByUser.get(k) ?? tasksByUser.set(k, []).get(k)!).push(t); }
+  const decByUser = new Map<string, DecisionTiming[]>();
+  for (const d of decCur) { const k = String(d.resolved_by ?? ""); if (!k) continue; (decByUser.get(k) ?? decByUser.set(k, []).get(k)!).push(d); }
+  const velocity = {
+    team: { task_lead: avgTaskLeadDays(tasksCur), decision_cycle: avgDecisionCycleHours(decCur) },
+    per_member: [...new Set([...tasksByUser.keys(), ...decByUser.keys()])].map(id => ({
+      operator_id: id,
+      task_lead: avgTaskLeadDays(tasksByUser.get(id) ?? []),
+      decision_cycle: avgDecisionCycleHours(decByUser.get(id) ?? []),
+    })),
+  };
+
+  // Collaboration graph — real directed message edges in the window.
+  const collaboration = collaborationEdges((msgs ?? []) as { sender_id: string; recipient_id: string }[]).slice(0, 60);
+
+  return c.json({ days, comparison, velocity, collaboration });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+// TEAM GOALS — owner/admin sets a real target against a real metric; attainment is computed LIVE
+// against the same source data as the matrix (never fabricated). Fail-closed: if the workspace_goals
+// table isn't migrated yet, list returns { goals: [], available: false } and writes 503 — no crash.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════
+const GOAL_TABLE_MISSING = (err: unknown) => /relation .*workspace_goals.* does not exist|could not find the table/i.test(String((err as { message?: string })?.message ?? err ?? ""));
+
+/** Real actual for a goal's metric over its window (per member or whole team). Read-only counts. */
+async function goalActual(ws: string, metric: string, userId: string | null, windowDays: number): Promise<number> {
+  const since = new Date(Date.now() - windowDays * 86_400_000).toISOString();
+  if (metric === "tasks_completed") {
+    let q = supabase.from("tasks").select("id", { count: "exact", head: true }).eq("workspace_id", ws).eq("completed", true).gte("completed_at", since);
+    if (userId) q = q.eq("assignee_id", userId);
+    const { count } = await q; return count ?? 0;
+  }
+  if (metric === "decisions_resolved") {
+    let q = supabase.from("decision_queue").select("id", { count: "exact", head: true }).eq("workspace_id", ws).gte("resolved_at", since);
+    if (userId) q = q.eq("resolved_by", userId);
+    const { count } = await q; return count ?? 0;
+  }
+  if (metric === "ai_credits") {
+    let q = supabase.from("ai_usage").select("total_tokens").eq("workspace_id", ws).gte("created_at", since).limit(100000);
+    if (userId) q = q.eq("user_id", userId);
+    const { data } = await q; return (data ?? []).reduce((s, r) => s + Number(r.total_tokens ?? 0), 0);
+  }
+  if (metric === "records_touched") {
+    let q = supabase.from("activities").select("node_id").eq("workspace_id", ws).eq("actor_type", "human").gte("created_at", since).not("node_id", "is", null).limit(50000);
+    if (userId) q = q.eq("actor_id", userId);
+    const { data } = await q; return new Set((data ?? []).map(r => String(r.node_id))).size;
+  }
+  if (metric === "deals_won") {
+    const { data: members } = await supabase.from("workspace_members").select("user_id, name, email").eq("workspace_id", ws);
+    const { data: deals } = await supabase.from("nodes").select("id, object_type, data, created_by").eq("workspace_id", ws).or("object_type.ilike.%deal%,object_type.ilike.%opportunit%").limit(10000);
+    if (!userId) return (deals ?? []).filter(d => dealStageClass((d.data ?? {}) as Record<string, unknown>) === "won").length;
+    const tally = aggregateDeals((deals ?? []) as DealNode[], (members ?? []).map(m => ({ user_id: String(m.user_id ?? ""), email: (m.email as string) ?? null, name: (m.name as string) ?? null })));
+    return tally.get(userId)?.won ?? 0;
+  }
+  return 0;
+}
+
+router.get("/goals", requireAuth, requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const { data, error } = await supabase.from("workspace_goals").select("*").eq("workspace_id", ws).eq("active", true).order("created_at", { ascending: false });
+  if (error) {
+    if (GOAL_TABLE_MISSING(error)) return c.json({ goals: [], available: false });   // not migrated yet — fail-closed
+    return c.json({ error: "Could not load goals." }, 500);
+  }
+  const goals = await Promise.all((data ?? []).map(async g => {
+    const actual = await goalActual(ws, String(g.metric), (g.target_user_id as string) ?? null, Number(g.window_days ?? 30));
+    return {
+      id: g.id, scope: g.scope, target_user_id: g.target_user_id ?? null, metric: g.metric,
+      target_value: Number(g.target_value), window_days: Number(g.window_days ?? 30), label: g.label ?? null,
+      actual, attainment_pct: goalAttainmentPct(actual, Number(g.target_value)),
+    };
+  }));
+  return c.json({ goals, available: true });
+});
+
+router.post("/goals", requireAuth, requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const body = await c.req.json().catch(() => ({})) as { scope?: string; target_user_id?: string | null; metric?: string; target_value?: number; window_days?: number; label?: string };
+  const scope = body.scope === "team" ? "team" : "member";
+  if (!isGoalMetric(body.metric)) return c.json({ error: "Unknown metric." }, 400);
+  const target = Number(body.target_value);
+  if (!(target > 0)) return c.json({ error: "Target must be greater than zero." }, 400);
+  if (scope === "member" && !body.target_user_id) return c.json({ error: "A member goal needs a member." }, 400);
+  const windowDays = Math.min(365, Math.max(1, Math.round(Number(body.window_days ?? 30))));
+  const { data, error } = await supabase.from("workspace_goals").insert({
+    workspace_id: ws, scope, target_user_id: scope === "team" ? null : String(body.target_user_id),
+    metric: body.metric, target_value: target, window_days: windowDays,
+    label: body.label ? String(body.label).slice(0, 120) : null, created_by: me,
+  }).select("id").single();
+  if (error) {
+    if (GOAL_TABLE_MISSING(error)) return c.json({ error: "Goals aren't enabled on this deployment yet (pending migration)." }, 503);
+    return c.json({ error: "Could not save the goal." }, 500);
+  }
+  return c.json({ id: data?.id, ok: true });
+});
+
+router.delete("/goals/:id", requireAuth, requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const { error } = await supabase.from("workspace_goals").update({ active: false }).eq("workspace_id", ws).eq("id", c.req.param("id"));
+  if (error && !GOAL_TABLE_MISSING(error)) return c.json({ error: "Could not remove the goal." }, 500);
+  return c.json({ ok: true });
 });
 
 export { router as activitiesRouter };
