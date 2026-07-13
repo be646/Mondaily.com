@@ -922,6 +922,15 @@ describe("Currency wiring — sales report respects workspace currency + honest 
     expect(rep).toMatch(/const mixedCurrency = valueCurrencies\.size > 1/);
     expect(rep).toMatch(/const unconverted = /);
   });
+  it("board-view column calcs convert per-record into the display currency + show the symbol", () => {
+    const board = read("components/records/board-view.tsx");
+    expect(board).toMatch(/import \{ useCurrency, convertAmount, CURRENCY_SYMBOL \}/);
+    expect(board).toMatch(/const curSym = CURRENCY_SYMBOL\[display\]/);
+    expect(board).toMatch(/function fmtDisplay\(n: number, sym = ""\)/);
+    // Calcs convert then format with the symbol; per-card editable value stays raw.
+    expect(board).toMatch(/toDisplay \? toDisplay\(n, \(c\.data\.currency/);
+    expect(board).toMatch(/<CalcFooter cards=\{cards\} valueCol=\{valueCol\} sym=\{curSym\} toDisplay=\{toDisplay\}/);
+  });
 });
 
 describe("landing consolidation", () => {

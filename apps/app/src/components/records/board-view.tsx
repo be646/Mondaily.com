@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Plus, Check, X, ChevronRight, ChevronDown } from "lucide-react";
 import { LeadScoreBadge } from "./lead-score-badge";
 import { apiClient } from "../../lib/api-client";
+import { useCurrency, convertAmount, CURRENCY_SYMBOL } from "../../hooks/useCurrency";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; updated_at: string; lead_score?: number | null }
 interface Member { id: string; name: string; email: string; avatar_url?: string | null }
@@ -36,11 +37,13 @@ function fmtVal(v: unknown): number | null {
   const n = typeof v === "number" ? v : parseFloat(String(v));
   return isNaN(n) ? null : n;
 }
-function fmtDisplay(n: number) {
-  return n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)}M`
-    : n >= 1_000 ? `${(n / 1_000).toFixed(0)}K`
-    : n.toLocaleString();
+function fmtDisplay(n: number, sym = "") {
+  return n >= 1_000_000 ? `${sym}${(n / 1_000_000).toFixed(1)}M`
+    : n >= 1_000 ? `${sym}${(n / 1_000).toFixed(0)}K`
+    : `${sym}${n.toLocaleString()}`;
 }
+// Convert a record's value from its own currency (data.currency, else workspace base) into display.
+type BoardValueReader = (raw: number, recordCurrency: string | null) => number;
 function memberInitials(name: string) {
   return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
 }
@@ -84,7 +87,7 @@ const CALC_LABELS: Record<CalcType, string> = {
   sum: "Sum", avg: "Average", max: "Max", min: "Min",
 };
 
-function CalcFooter({ cards, valueCol }: { cards: NodeRecord[]; valueCol: string | null }) {
+function CalcFooter({ cards, valueCol, sym = "", toDisplay }: { cards: NodeRecord[]; valueCol: string | null; sym?: string; toDisplay?: BoardValueReader }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<CalcType>("count");
   const ref = useRef<HTMLDivElement>(null);
@@ -99,8 +102,10 @@ function CalcFooter({ cards, valueCol }: { cards: NodeRecord[]; valueCol: string
   const total = cards.length;
   function result(): string {
     if (total === 0) return "—";
+    // Money calcs convert each card's value into the display currency before aggregating, so a
+    // mixed-currency column sums honestly instead of adding raw EUR + USD as one number.
     const vals = valueCol
-      ? cards.map(c => fmtVal(c.data[valueCol])).filter((n): n is number => n !== null)
+      ? cards.map(c => { const n = fmtVal(c.data[valueCol]); return n == null ? null : (toDisplay ? toDisplay(n, (c.data.currency as string | undefined) ?? null) : n); }).filter((n): n is number => n !== null)
       : [];
     switch (type) {
       case "count":        return String(total);
@@ -108,10 +113,10 @@ function CalcFooter({ cards, valueCol }: { cards: NodeRecord[]; valueCol: string
       case "count_filled": return String(vals.length);
       case "pct_empty":    return `${Math.round(((total - vals.length) / total) * 100)}%`;
       case "pct_filled":   return `${Math.round((vals.length / total) * 100)}%`;
-      case "sum":          return vals.length ? fmtDisplay(vals.reduce((a, b) => a + b, 0)) : "—";
-      case "avg":          return vals.length ? fmtDisplay(vals.reduce((a, b) => a + b, 0) / vals.length) : "—";
-      case "max":          return vals.length ? fmtDisplay(Math.max(...vals)) : "—";
-      case "min":          return vals.length ? fmtDisplay(Math.min(...vals)) : "—";
+      case "sum":          return vals.length ? fmtDisplay(vals.reduce((a, b) => a + b, 0), sym) : "—";
+      case "avg":          return vals.length ? fmtDisplay(vals.reduce((a, b) => a + b, 0) / vals.length, sym) : "—";
+      case "max":          return vals.length ? fmtDisplay(Math.max(...vals), sym) : "—";
+      case "min":          return vals.length ? fmtDisplay(Math.min(...vals), sym) : "—";
     }
   }
 
@@ -356,6 +361,16 @@ function AddCardModal({ objectType, groupCol, defaultStage, allRecords, onClose,
 // ─── Board View (exported) ────────────────────────────────────────────────────
 export function BoardView({ objectType }: { objectType: string }) {
   const qc = useQueryClient();
+  // Currency — column calc footers show money in the workspace display currency (same FX source
+  // as Finance Reports / Pipeline / the sales report). Per-card editable values stay raw.
+  const { base, display, rates } = useCurrency();
+  const curSym = CURRENCY_SYMBOL[display] ?? "";
+  const toDisplay = useCallback<BoardValueReader>((raw, recordCurrency) => {
+    const from = (recordCurrency || base).toUpperCase();
+    if (from === display) return raw;
+    const v = convertAmount(raw, from, display, rates);
+    return v == null ? raw : v;
+  }, [base, display, rates]);
   const [createForStage, setCreateForStage] = useState<string | null>(null);
   const [stages, setStages]                 = useState<string[]>([]);
   const [addingStage, setAddingStage]       = useState(false);
@@ -486,7 +501,7 @@ export function BoardView({ objectType }: { objectType: string }) {
               )}
             </div>
 
-            <CalcFooter cards={cards} valueCol={valueCol}/>
+            <CalcFooter cards={cards} valueCol={valueCol} sym={curSym} toDisplay={toDisplay}/>
           </div>
         );
       })}
