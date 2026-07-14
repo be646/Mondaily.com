@@ -87,7 +87,8 @@ const EMPTY_SUGGESTION_GROUPS = [
 
 export function AskMondaily() {
   const { threadId } = useParams();
-  const askMode = askModeForPath(useLocation().pathname);
+  const location = useLocation();
+  const askMode = askModeForPath(location.pathname);
   // Industry-aware starter prompts from the workspace profile, followed by the general defaults
   // (deduped). Falls back to the generic defaults while loading / when the profile has no signal.
   const { data: wsSuggestions } = useWorkspaceSuggestions();
@@ -122,6 +123,19 @@ export function AskMondaily() {
       context: { scope_label: "the Ask Mondaily page (general workspace)", ...attach.attachContext },
       onAssistantMessage: startStreaming,
     });
+
+  // One-shot: a prompt handed in via navigation state (e.g. the ⌘K command bar's
+  // "Ask AI" passthrough) is sent once on mount, then cleared from history state so
+  // a refresh or back-nav never re-fires it.
+  const initialPromptFired = useRef(false);
+  useEffect(() => {
+    const askPrompt = (location.state as { askPrompt?: string } | null)?.askPrompt?.trim();
+    if (!askPrompt || initialPromptFired.current) return;
+    initialPromptFired.current = true;
+    window.history.replaceState({ ...window.history.state, usr: null }, "");
+    doSend(askPrompt);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reasoning steps — cycles through while waiting on a response, honest UI
   // state (not a fake animation): each label is a real phase of the request.

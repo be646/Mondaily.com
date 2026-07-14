@@ -434,6 +434,14 @@ export function TasksPage() {
     // clear filters to find it; we don't 404 on a non-existent single-task endpoint.
     return () => { cancelled = true; };
   }, [focusId, query.data]);
+  // Deep-link: ?new=1 (e.g. from the ⌘K command bar "New task" action) opens the
+  // create modal once, then strips the param so a refresh doesn't reopen it.
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    setShowCreate(true);
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.delete("new"); return n; }, { replace: true });
+  }, [searchParams]);
+
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const members = membersQuery.data ?? [];
 
