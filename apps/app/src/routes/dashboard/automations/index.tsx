@@ -268,8 +268,10 @@ export function AutomationsPage() {
       ) : (
         <div className="overflow-hidden rounded-sm border border-[var(--border-soft)]">
           {items.map((item, i) => {
-            const steps = (item.data as any)?.steps?.length ?? 0;
-            const enrolled = (item.data as any)?.enrollments?.length ?? 0;
+            // The node's data is spread onto the item ({id, ...n.data}), so these live at the TOP
+            // level — reading item.data.* returned undefined (every row showed "No steps").
+            const steps = (item as any).steps?.length ?? 0;
+            const enrolled = (item as any).enrollments?.length ?? 0;
             const href = title.toLowerCase().includes("sequence")
               ? `/automations/sequences/${item.id}`
               : `/automations/workflows/${item.id}`;
@@ -291,7 +293,7 @@ export function AutomationsPage() {
                   </p>
                 </Link>
 
-                <StatusBadge status={(item.data as any)?.status ?? item.status ?? "draft"}/>
+                <StatusBadge status={(item as any).status ?? "draft"}/>
 
                 <div className="relative">
                   <button
@@ -333,7 +335,7 @@ export function AutomationsPage() {
 
   // Real at-a-glance counts from the loaded items (never fabricated).
   const activeCount = items.filter(i => ((i.data as any)?.status ?? (i as any).status) === "active").length;
-  const enrolledTotal = items.reduce((s, i) => s + (((i.data as any)?.enrollments?.length as number) ?? 0), 0);
+  const enrolledTotal = items.reduce((s, i) => s + (((i as any).enrollments?.length as number) ?? 0), 0);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -376,7 +378,7 @@ export function AutomationsPage() {
           <Section
             title="Email Sequences"
             icon={Mail}
-            items={items.filter(i => (i.data as any)?.type === "sequence" || !(i.data as any)?.type)}
+            items={sequences}
             newLabel="New sequence"
             onNew={() => createSequence.mutate()}
           />
