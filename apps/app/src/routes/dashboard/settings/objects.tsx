@@ -282,6 +282,11 @@ export function ObjectsSettings() {
   const [selectOptions, setSelectOptions] = useState(["New option"]);
   const [relationObject, setRelationObject] = useState("");
   const [customObject, setCustomObject] = useState({ singular: "", plural: "", icon: "circle", color: "red", vertical: "sales" });
+  // Columns the user defines up front — so a manually-created sheet has real structure immediately
+  // (was created empty → the record form/table had nothing to show). "name" is always implied.
+  const [customCols, setCustomCols] = useState<{ name: string; type: AttributeType }[]>([]);
+  const [newColName, setNewColName] = useState("");
+  const [newColType, setNewColType] = useState<AttributeType>("text");
   const objects = query.data ?? [];
   const selected = objects.find((item) => item.id === selectedId) ?? objects[0];
 
@@ -301,8 +306,10 @@ export function ObjectsSettings() {
       icon: customObject.icon,
       color: customObject.color,
       vertical: customObject.vertical,
+      // Send the user-defined columns so the new sheet is structured from the first record.
+      attributes: customCols.filter(c => c.name.trim()).map(c => ({ name: c.name.trim(), type: apiType(c.type) })),
     }),
-    onSuccess: () => { setObjectOpen(false); setCustomObject({ singular: "", plural: "", icon: "circle", color: "red", vertical: "sales" }); qc.invalidateQueries({ queryKey: ["object-definitions"] }); }
+    onSuccess: () => { setObjectOpen(false); setCustomObject({ singular: "", plural: "", icon: "circle", color: "red", vertical: "sales" }); setCustomCols([]); setNewColName(""); qc.invalidateQueries({ queryKey: ["object-definitions"] }); }
   });
 
   const createAttribute = useMutation({
@@ -496,6 +503,31 @@ export function ObjectsSettings() {
                   className={`h-7 w-7 rounded-full bg-${color}-500 ${customObject.color === color ? "ring-2 ring-white ring-offset-2 ring-offset-[#111419]" : ""}`} aria-label={color}/>
               ))}
             </div>
+
+            {/* Columns — define the sheet's real structure up front so a new record form/table isn't
+                empty. "Name" is always the first column; add as many more as you want. */}
+            <div className="mt-5">
+              <p className="mb-2 text-sm">Columns</p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }} title="Every sheet has a Name column"><Text size={11}/> Name</span>
+                {customCols.map((col, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                    {(() => { const Ic = TYPE_ICON[col.type] ?? Text; return <Ic size={11} style={{ color: "var(--text-faint)" }}/>; })()}
+                    {col.name}
+                    <button type="button" onClick={() => setCustomCols(cols => cols.filter((_, j) => j !== i))} className="ml-0.5" style={{ color: "var(--text-faint)" }}><X size={10}/></button>
+                  </span>
+                ))}
+              </div>
+              <div className="mt-2 flex items-center gap-1.5">
+                <input value={newColName} onChange={e => setNewColName(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && newColName.trim()) { e.preventDefault(); setCustomCols(c => [...c, { name: newColName.trim(), type: newColType }]); setNewColName(""); } }}
+                  placeholder="Add a column…" className="h-8 flex-1 rounded-sm border bg-transparent px-2.5 text-[12.5px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}/>
+                <div className="w-32"><FieldSelect value={newColType} onChange={v => setNewColType(v as AttributeType)} ariaLabel="Column type" options={typeOptions.map(t => ({ value: t.type, label: t.label }))}/></div>
+                <button type="button" disabled={!newColName.trim()} onClick={() => { setCustomCols(c => [...c, { name: newColName.trim(), type: newColType }]); setNewColName(""); }}
+                  className="inline-flex h-8 items-center gap-1 rounded-sm border px-2.5 text-[12px] font-medium disabled:opacity-40" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><Plus size={12}/> Add</button>
+              </div>
+            </div>
+
             <button className="mt-6 h-10 w-full rounded-sm bg-[var(--section-accent-soft)] text-sm">Create object</button>
           </form>
         </div>

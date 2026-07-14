@@ -707,6 +707,7 @@ function pluralize(word: string): string {
   if (/(s|x|z|ch|sh)$/i.test(w)) return w + "es";
   return w + "s";
 }
+const ATTR_TYPES = ["text", "number", "date", "select", "relation", "currency", "percentage", "url", "email", "phone", "checkbox", "long_text"] as const;
 router.post("/settings/objects", zValidator("json", z.object({
   name: z.string().min(1),                 // singular (kept for back-compat with older callers)
   singular: z.string().min(1).optional(),
@@ -715,6 +716,9 @@ router.post("/settings/objects", zValidator("json", z.object({
   icon: z.string().optional(),
   color: z.string().optional(),
   vertical: z.enum(["sales", "realestate", "hr", "finance", "investments", "shared"]).optional(),
+  // Columns the user defined up front in the create-object modal — so a new sheet has real structure
+  // immediately (fixes "new sheet is a mess"). Optional + back-compat: omitted → empty, as before.
+  attributes: z.array(z.object({ name: z.string().min(1), type: z.enum(ATTR_TYPES).optional() })).optional(),
 })), async (c) => {
   const body = c.req.valid("json");
   // The create-object modal collects singular + plural + icon + color + vertical, but this route
@@ -722,6 +726,10 @@ router.post("/settings/objects", zValidator("json", z.object({
   // dropped, and name_plural was set equal to name_singular ("Investments"/"Investments" in prod).
   const singular = body.singular ?? body.name;
   const plural = body.plural ?? pluralize(singular);
+  // Persist any user-defined columns (stamped with ids), so the record forms + table show them at once.
+  const attributes = (body.attributes ?? [])
+    .filter(a => a.name.trim())
+    .map(a => ({ id: crypto.randomUUID(), name: a.name.trim(), type: a.type ?? "text" }));
   const { data, error } = await supabase.from("object_definitions").insert({
     workspace_id: c.get("workspaceId"),
     vertical: body.vertical ?? "shared",
@@ -730,7 +738,7 @@ router.post("/settings/objects", zValidator("json", z.object({
     name_plural: plural,
     icon: body.icon || "circle",
     color: body.color || "gray",
-    attributes: [],
+    attributes,
   }).select().single();
   return error ? c.json({ error: error.message }, 400) : c.json(data, 201);
 });
