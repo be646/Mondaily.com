@@ -285,7 +285,7 @@ export function AutomationsPage() {
                 </div>
 
                 <Link to={href} className="flex-1 min-w-0">
-                  <p className="truncate text-sm font-medium text-[var(--text-primary)]">{item.name}</p>
+                  <p className="truncate text-sm font-medium text-[var(--text-primary)]">{item.name?.trim() || (title.toLowerCase().includes("sequence") ? "Untitled sequence" : "Untitled workflow")}</p>
                   <p className="mt-0.5 text-[10px] text-[var(--text-secondary)]">
                     {steps > 0 ? `${steps} step${steps !== 1 ? "s" : ""}` : "No steps"}
                     {enrolled > 0 ? ` · ${enrolled} enrolled` : ""}
