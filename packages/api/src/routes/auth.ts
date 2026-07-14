@@ -19,7 +19,7 @@ import { grantCredits } from "../lib/credits";
 import { grantAmountFor } from "@mondaily/shared/pricing";
 import { issuePowChallenge, requirePow, verifyPow } from "../lib/pow";
 import { logPowClaim } from "../lib/pow-claims";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireJwt } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 
 /**
@@ -395,7 +395,11 @@ router.get("/mail-health", requireAuth, requireAdminRole, (c) => {
 // POST /auth/pow-claim — an authenticated session submits a freshly-solved PoW. We re-verify the
 // nonce server-side and persist it to pow_claims, giving the ABI matrix absolute cryptographic
 // proof this operator is a real human (not a headless/botnet client).
-router.post("/pow-claim", requireAuth, async (c) => {
+// Uses requireJwt (session-only), NOT requireAuth: the claim is per-USER (logged with userId +
+// "session" context, no workspace scope), and the auth-context helper that calls this doesn't send
+// an X-Workspace-Id header — requireAuth was rejecting every claim with 400 before it could verify,
+// so verified_pow never lit up. requireJwt authenticates the session without demanding a workspace.
+router.post("/pow-claim", requireJwt, async (c) => {
   const { pow_challenge, pow_nonce } = await c.req.json<{ pow_challenge?: string; pow_nonce?: string }>().catch(() => ({} as { pow_challenge?: string; pow_nonce?: string }));
   if (!(await verifyPow(pow_challenge ?? "", pow_nonce ?? ""))) return c.json({ ok: false }, 400);
   logPowClaim(c.get("userId") as string, pow_challenge as string, pow_nonce as string, "session");
