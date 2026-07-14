@@ -546,6 +546,56 @@ function GoalsPanel({ operators }: { operators: Operator[] }) {
   );
 }
 
+/** Zone 2 — Collaboration graph: real directed message edges between members (sender → recipient),
+ *  rendered as a compact node-link diagram for small teams + a ranked edge list. Empty → hidden. */
+function CollaborationGraph({ edges, operators, onSelect }: { edges: AdvancedResp["collaboration"]; operators: Operator[]; onSelect: (id: string) => void }) {
+  const nameOf = (id: string) => operators.find(o => o.operator_id === id)?.name ?? "Member";
+  // Only edges between people we can name (real members); collapse A→B & B→A for the node ring weight.
+  const known = edges.filter(e => operators.some(o => o.operator_id === e.from) && operators.some(o => o.operator_id === e.to));
+  if (known.length === 0) return null;
+  const nodeIds = [...new Set(known.flatMap(e => [e.from, e.to]))];
+  const maxCount = known.reduce((m, e) => Math.max(m, e.count), 1);
+  // Lay the involved members on a circle; draw a line per directed edge, thickness ∝ real count.
+  const W = 320, H = 220, cx = W / 2, cy = H / 2, R = 78;
+  const pos = new Map(nodeIds.map((id, i) => {
+    const a = (i / nodeIds.length) * Math.PI * 2 - Math.PI / 2;
+    return [id, { x: cx + Math.cos(a) * R, y: cy + Math.sin(a) * R }];
+  }));
+  return (
+    <div className="mb-6 grid gap-3 md:grid-cols-[320px_1fr]">
+      <div className="rounded-sm border p-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        <div className="mb-1 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Collaboration</div>
+        <div className="mb-1.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>Real internal messages between members</div>
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="collaboration graph">
+          {known.map((e, i) => { const a = pos.get(e.from)!, b = pos.get(e.to)!; return (
+            <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="var(--section-accent)" strokeOpacity={0.15 + 0.5 * (e.count / maxCount)} strokeWidth={0.75 + 2.5 * (e.count / maxCount)} vectorEffect="non-scaling-stroke" />
+          ); })}
+          {nodeIds.map(id => { const p = pos.get(id)!; return (
+            <g key={id} style={{ cursor: "pointer" }} onClick={() => onSelect(id)}>
+              <circle cx={p.x} cy={p.y} r={5} fill="var(--section-accent)" />
+              <text x={p.x} y={p.y - 9} textAnchor="middle" fontSize="8.5" fill="var(--text-muted)">{nameOf(id).split(" ")[0]}</text>
+            </g>
+          ); })}
+        </svg>
+      </div>
+      <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        <div className="mb-2 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Busiest channels</div>
+        <div className="space-y-1.5">
+          {known.slice(0, 8).map((e, i) => (
+            <div key={i} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+              <span className="truncate text-[11.5px]" style={{ color: "var(--text-secondary)" }}>{nameOf(e.from)} <span style={{ color: "var(--text-faint)" }}>→</span> {nameOf(e.to)}</span>
+              <span className="flex items-center gap-2">
+                <span className="h-1.5 w-16 overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}><span className="block h-full rounded-full" style={{ width: `${Math.max(6, (e.count / maxCount) * 100)}%`, background: "var(--section-accent)" }} /></span>
+                <span className="w-8 text-right text-[10.5px] tabular-nums" style={{ color: "var(--text-faint)" }}>{e.count}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TeamOversightPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -633,6 +683,7 @@ export function TeamOversightPage() {
       {/* ── ZONE 2 · Velocity (real cycle times) + workload balance + goals ── */}
       {advancedQ.data && operators.length > 0 && <VelocityStrip adv={advancedQ.data} />}
       {operators.length > 1 && <WorkloadAttention operators={operators} onSelect={select} />}
+      {advancedQ.data && operators.length > 1 && <CollaborationGraph edges={advancedQ.data.collaboration} operators={operators} onSelect={select} />}
       {operators.length > 0 && <GoalsPanel operators={operators} />}
 
       {/* ── Team distributions — only meaningful with 2+ members (hidden for a solo workspace) ── */}
@@ -667,6 +718,9 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
   const scope = `${op.name}${op.email ? ` (${op.email})` : ""}`;
   // This member's real velocity (task lead / decision cycle) from the advanced payload, if present.
   const myVel = adv?.velocity.per_member.find(m => m.operator_id === op.operator_id) ?? null;
+  // This member's goals (shares the GoalsPanel query cache) — live attainment against real targets.
+  const goalsQ = useQuery<GoalsResp>({ queryKey: ["oversight-goals"], queryFn: () => apiClient.get<GoalsResp>("/activities/goals"), retry: false });
+  const myGoals = (goalsQ.data?.goals ?? []).filter(g => g.target_user_id === op.operator_id);
 
   const timelineQ = useQuery<{ activity: ActivityRow[] }>({
     queryKey: ["oversight-actor", op.operator_id],
@@ -810,6 +864,27 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
             { label: "On-time", value: myVel.task_lead.on_time_rate != null ? `${myVel.task_lead.on_time_rate}%` : "—" },
             { label: "Decision cycle", value: myVel.decision_cycle.avg_hours != null ? `${myVel.decision_cycle.avg_hours}h` : "—" },
           ]} />
+        </div>
+      )}
+
+      {/* This member's goals — live attainment against real targets (only their own goals). */}
+      {myGoals.length > 0 && (
+        <div className="px-4 pb-3.5">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}><Target size={11} style={{ color: "var(--section-accent)" }} /> Goals</p>
+          <div className="space-y-2">
+            {myGoals.map(g => {
+              const pct = g.attainment_pct; const tone = pct >= 100 ? "#5f8169" : pct >= 60 ? "var(--section-accent)" : pct >= 30 ? "#97824f" : "#9c6b72";
+              return (
+                <div key={g.id}>
+                  <div className="flex items-center justify-between text-[11.5px]">
+                    <span style={{ color: "var(--text-secondary)" }}>{GOAL_METRIC_LABEL[g.metric]} <span style={{ color: "var(--text-faint)" }}>· {g.window_days}d</span></span>
+                    <span className="tabular-nums" style={{ color: tone }}>{g.actual}/{g.target_value} · {pct}%</span>
+                  </div>
+                  <span className="mt-1 block h-1.5 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}><span className="block h-full rounded-full" style={{ width: `${Math.max(3, pct)}%`, background: tone }} /></span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
       </>)}
