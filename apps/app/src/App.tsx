@@ -2,6 +2,8 @@ import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
 import { useCurrentUser } from "./hooks/useCurrentUser";
 import { WorkspaceDiagnostic } from "./components/workspace-diagnostic";
+import { RouteThinking } from "./components/ui/page-state";
+import { ErrorBoundary } from "./components/ui/error-boundary";
 import { Navigate, Outlet, Route, Routes, useLocation } from "react-router-dom";
 import { ShadowLoginPage } from "./routes/auth/shadow-login";
 import { ShadowActivatePage } from "./routes/auth/shadow-activate";
@@ -104,7 +106,10 @@ export function App() {
   return (
     // One Suspense boundary for the lazy-loaded heavy routes (calendar, discovery, reports,
     // builders, canvas, call room, record detail) — first visit shows a quiet inline loader.
-    <Suspense fallback={<div className="flex h-full items-center justify-center py-24 text-[13px]" style={{ color: "var(--text-muted)" }}>Loading…</div>}>
+    // Wrapped in an ErrorBoundary so a stale-chunk load (after a deploy) auto-recovers instead of
+    // stranding the user on a "reload" screen.
+    <ErrorBoundary>
+    <Suspense fallback={<RouteThinking />}>
     <Routes>
       {/* Legacy Clerk auth paths → native login */}
       <Route path="/sign-in/*" element={<RedirectKeepingQuery to="/auth/shadow-login" />} />
@@ -187,5 +192,6 @@ export function App() {
       <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
     </Suspense>
+    </ErrorBoundary>
   );
 }

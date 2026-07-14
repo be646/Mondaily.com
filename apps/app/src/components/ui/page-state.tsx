@@ -8,7 +8,7 @@ import { useEffect, useState, type ReactNode } from "react";
  * line with an optional Retry. Prevents a slow/hung request from looking like a broken, blank
  * skeleton-only screen. Shows nothing extra on fast loads (the skeleton alone). No invented data.
  */
-export function DelayedLoading({ children, delayMs = 8000, onRetry, label = "Still loading…" }: { children: ReactNode; delayMs?: number; onRetry?: () => void; label?: string }) {
+export function DelayedLoading({ children, delayMs = 8000, onRetry, label = "Still thinking…" }: { children: ReactNode; delayMs?: number; onRetry?: () => void; label?: string }) {
   const [slow, setSlow] = useState(false);
   useEffect(() => { const t = setTimeout(() => setSlow(true), delayMs); return () => clearTimeout(t); }, [delayMs]);
   return (
@@ -33,6 +33,25 @@ export function DelayedLoading({ children, delayMs = 8000, onRetry, label = "Sti
  * (objects, members). Renders a wireline placeholder while a query hydrates so a fast transition
  * never flashes an empty black viewport. JetBrains-Mono header row to match the data aesthetic.
  */
+/** RouteThinking — the branded page-transition loader (replaces a bare "Loading…"). The Mondaily mark
+ *  pulses while the route module + its data come up, and an honest status line cycles through the real
+ *  stages. Used as the router Suspense fallback. */
+export function RouteThinking() {
+  const stages = ["Thinking…", "Loading the workspace…", "Preparing the view…"];
+  const [i, setI] = useState(0);
+  useEffect(() => { const t = setInterval(() => setI(v => (v + 1) % stages.length), 1300); return () => clearInterval(t); }, []);
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3.5 py-24" role="status" aria-label="Loading">
+      <span className="relative flex h-10 w-10 items-center justify-center">
+        <span className="absolute inset-0 animate-ping rounded-full opacity-60" style={{ background: "var(--section-accent-soft)" }} />
+        <span className="absolute inset-0 rounded-full" style={{ background: "var(--section-accent-soft)" }} />
+        <LogoMark size={20} className="relative animate-pulse" style={{ color: "var(--section-accent)" }} />
+      </span>
+      <span className="text-[12.5px] font-medium tabular-nums" style={{ color: "var(--text-muted)" }}>{stages[i]}</span>
+    </div>
+  );
+}
+
 export function ConsoleSkeleton({ rows = 7, cols = 4 }: { rows?: number; cols?: number }) {
   return (
     <div role="status" aria-label="Loading" className="overflow-hidden rounded-sm border font-mono" style={{ borderColor: "var(--border-soft)" }}>

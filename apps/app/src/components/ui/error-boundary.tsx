@@ -3,9 +3,17 @@ import { Component, type ReactNode } from "react";
 interface Props { children: ReactNode; fallback?: ReactNode }
 interface State { hasError: boolean; message: string }
 
+// A failed lazy-chunk load — almost always a stale chunk hash after a deploy while the tab was open,
+// or a transient network blip. Reloading fetches the fresh index.html + new chunk URLs and recovers.
+const CHUNK_RE = /Loading chunk|ChunkLoadError|dynamically imported module|Importing a module script failed|Failed to fetch dynamically|error loading dynamically imported/i;
+const RELOAD_FLAG = "mondaily_chunk_reloaded";
+// After a healthy 6s post-reload, clear the guard so a LATER chunk error (e.g. a second deploy this
+// session) can auto-recover again — while still preventing an immediate reload loop.
+try { if (typeof window !== "undefined") setTimeout(() => { try { sessionStorage.removeItem(RELOAD_FLAG); } catch { /* ignore */ } }, 6000); } catch { /* ignore */ }
+
 /** Catches render errors in its subtree and shows a graceful, recoverable fallback instead of
- *  white/black-screening the whole app. Wraps the dashboard content + onboarding so one broken
- *  page can't unmount everything. The fallback surfaces the error message for diagnosis. */
+ *  white/black-screening the whole app. Chunk-load errors (stale chunks after a deploy) auto-reload
+ *  ONCE to fetch fresh assets — so a routine deploy never strands the user on a "reload" screen. */
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { hasError: false, message: "" };
 
@@ -14,6 +22,17 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    // Auto-recover from a stale-chunk load: reload once (guarded against loops) to pull fresh assets.
+    if (CHUNK_RE.test(msg)) {
+      try {
+        if (!sessionStorage.getItem(RELOAD_FLAG)) {
+          sessionStorage.setItem(RELOAD_FLAG, "1");
+          window.location.reload();
+          return;
+        }
+      } catch { /* sessionStorage blocked — fall through to the manual fallback */ }
+    }
     // eslint-disable-next-line no-console
     console.error("[ErrorBoundary]", error);
   }
