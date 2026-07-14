@@ -576,28 +576,6 @@ export function TasksPage() {
 
         <div className="h-4 w-px bg-[var(--surface-hover)]"/>
 
-        {/* App-standard inline filter (same as the records sheet): Filter → opens in place. */}
-        <InlineFilterBar
-          filters={[
-            { key: "label", label: "Label", options: [
-              { value: "Help Needed", label: "Help Needed", dot: "#5b6bb0" },
-              { value: "Blocked", label: "Blocked", dot: "#d1524a" },
-              { value: "Waiting", label: "Waiting", dot: "#c6892e" },
-              { value: "Bug", label: "Bug", dot: "#d1524a" },
-              { value: "Feature", label: "Feature", dot: "#2f9e6b" },
-              { value: "Research", label: "Research", dot: "var(--section-accent)" },
-            ] },
-            { key: "priority", label: "Priority", options: [
-              { value: "urgent", label: "Urgent", dot: "#d1524a" },
-              { value: "high", label: "High", dot: "#c6892e" },
-              { value: "medium", label: "Medium", dot: "#c6892e" },
-              { value: "low", label: "Low", dot: "var(--text-faint)" },
-            ] },
-          ]}
-          values={{ label: labelFilter, priority: priorityFilter }}
-          onChange={(k, v) => { if (k === "label") setLabelFilter(v); else setPriorityFilter(v); }}
-        />
-
         {/* Sort */}
         <div className="relative">
           {sortOpen && <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)}/>}
@@ -629,6 +607,30 @@ export function TasksPage() {
           )}
         </div>
       </div>
+
+      {/* Filter — app-standard inline strip (records-sheet pattern): Filter button on its own row,
+          full-width dropdown strip drops below. Not crammed into the toolbar. */}
+      <InlineFilterBar
+        className="mb-4"
+        filters={[
+          { key: "label", label: "Label", options: [
+            { value: "Help Needed", label: "Help Needed", dot: "#5b6bb0" },
+            { value: "Blocked", label: "Blocked", dot: "#d1524a" },
+            { value: "Waiting", label: "Waiting", dot: "#c6892e" },
+            { value: "Bug", label: "Bug", dot: "#d1524a" },
+            { value: "Feature", label: "Feature", dot: "#2f9e6b" },
+            { value: "Research", label: "Research", dot: "var(--section-accent)" },
+          ] },
+          { key: "priority", label: "Priority", options: [
+            { value: "urgent", label: "Urgent", dot: "#d1524a" },
+            { value: "high", label: "High", dot: "#c6892e" },
+            { value: "medium", label: "Medium", dot: "#c6892e" },
+            { value: "low", label: "Low", dot: "var(--text-faint)" },
+          ] },
+        ]}
+        values={{ label: labelFilter, priority: priorityFilter }}
+        onChange={(k, v) => { if (k === "label") setLabelFilter(v); else setPriorityFilter(v); }}
+      />
 
       {/* ── LIST VIEW ── */}
       {viewMode === "list" && (
