@@ -90,6 +90,68 @@ const SENTIMENT: Record<Exclude<Sentiment, null>, { label: string; tone: string;
   mixed:    { label: "Mixed",    tone: "#97824f", Icon: Minus },
 };
 
+/** Sources rail — numbered pills of the REAL pages the answer/results came from (Perplexity-style).
+ *  Deduped by host, in result order so the number matches each card's [n]. Click opens the page. */
+function SourcesRail({ results }: { results: ResultRow[] }) {
+  const sources = results.slice(0, 12).map((r, i) => ({ n: i + 1, url: r.source_url, host: hostOf(r.source_url) || r.platform })).filter((s) => s.url);
+  if (sources.length === 0) return null;
+  return (
+    <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t pt-2.5" style={{ borderColor: "var(--section-accent-line)" }}>
+      <span className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Sources</span>
+      {sources.map((s) => (
+        <a key={s.n} href={s.url} target="_blank" rel="noreferrer" title={s.url}
+          className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10.5px] transition-colors hover:border-[color:var(--section-accent)]"
+          style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-muted)" }}>
+          <span className="font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{s.n}</span>
+          <span className="max-w-[140px] truncate">{s.host}</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+/** Result controls — sort + contact-only + CSV export, a view over the real streamed rows. */
+function ResultsToolbar({ sortBy, setSortBy, onlyContact, setOnlyContact, shownCount, total, onExport, reviews }: {
+  sortBy: "relevance" | "priority" | "confidence"; setSortBy: (v: "relevance" | "priority" | "confidence") => void;
+  onlyContact: boolean; setOnlyContact: (v: boolean) => void; shownCount: number; total: number; onExport: () => void; reviews: boolean;
+}) {
+  return (
+    <div className="mb-2 flex flex-wrap items-center gap-2 text-[11px]">
+      <span style={{ color: "var(--text-faint)" }}>{shownCount === total ? `${total} results` : `${shownCount} of ${total}`}</span>
+      <span className="ml-auto flex items-center gap-1.5">
+        <MenuSelect value={sortBy} onChange={(v) => setSortBy((v as "relevance" | "priority" | "confidence") || "relevance")} maxWidth={130}
+          options={[{ value: "relevance", label: "Sort: relevance" }, { value: "priority", label: "Sort: priority" }, { value: "confidence", label: "Sort: confidence" }]} />
+        {!reviews && (
+          <button onClick={() => setOnlyContact(!onlyContact)} className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 font-medium transition-colors"
+            style={onlyContact ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+            <Check size={11} /> Has contact
+          </button>
+        )}
+        <button onClick={onExport} title="Export these results to CSV" className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+          <ArrowUp size={11} className="rotate-45" /> CSV
+        </button>
+      </span>
+    </div>
+  );
+}
+
+/** Export the shown rows to a CSV file — pure client-side over the real result data (no backend). */
+function exportLeadsCsv(rows: ResultRow[], query: string) {
+  const cols = ["name", "source_url", "host", "region", "priority", "confidence_score", "email", "phone", "handle", "snippet"];
+  const esc = (v: unknown) => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+  const line = (r: ResultRow) => [
+    r.author_name && r.author_name !== "Anonymous" ? r.author_name : hostOf(r.source_url), r.source_url, hostOf(r.source_url),
+    r.region ?? "", r.priority ?? "", r.confidence_score, r.email ?? "", r.phone ?? "", r.handle ?? "", r.snippet ?? "",
+  ].map(esc).join(",");
+  const csv = [cols.join(","), ...rows.map(line)].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `discovery-${query.slice(0, 40).replace(/[^a-z0-9]+/gi, "-").toLowerCase() || "results"}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
 export function DiscoveryPage() {
   const qc = useQueryClient();
   const { data: suggestions } = useWorkspaceSuggestions();  // profile-aware placeholder/examples
@@ -411,6 +473,18 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [status, setStatus] = useState<Record<string, LeadStatus>>({});
   const [drawerKey, setDrawerKey] = useState<string | null>(null);
+  // Result view controls (client-side over the real streamed rows) — sort, contact-only, follow-up.
+  const [sortBy, setSortBy] = useState<"relevance" | "priority" | "confidence">("relevance");
+  const [onlyContact, setOnlyContact] = useState(false);
+  const [followUp, setFollowUp] = useState("");
+  const PRI_RANK: Record<string, number> = { hot: 0, warm: 1, cold: 2 };
+  const shown = useMemo(() => {
+    let arr = turn.results.map((r, i) => ({ r, i }));
+    if (onlyContact) arr = arr.filter((e) => e.r.email || e.r.phone);
+    if (sortBy === "priority") arr = [...arr].sort((a, b) => (PRI_RANK[a.r.priority ?? "cold"]! - PRI_RANK[b.r.priority ?? "cold"]!) || (b.r.confidence_score - a.r.confidence_score));
+    else if (sortBy === "confidence") arr = [...arr].sort((a, b) => b.r.confidence_score - a.r.confidence_score);
+    return arr;
+  }, [turn.results, onlyContact, sortBy]);
   const { data: members } = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members"), staleTime: 300_000 });
   const keyOf = (r: ResultRow, i: number) => `${i}:${r.source_url}`;
   const toggle = (k: string) => setSel((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
@@ -418,11 +492,17 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
   const drawerRow = drawerKey ? (() => { const r = turn.results.find((row, i) => keyOf(row, i) === drawerKey); return r ? { r, k: drawerKey } : null; })() : null;
   return (
     <div>
-      {/* user query bubble */}
-      <div className="flex justify-end">
-        <div className="max-w-[80%] rounded-md rounded-br-sm px-3.5 py-2 text-[13.5px]" style={{ background: "var(--section-accent)", color: "#fff" }}>
-          {turn.query}
-          {turn.deep && <span className="ml-2 text-[10px] opacity-80">· deep</span>}
+      {/* Query headline — reads like a search you ran (an answer document), not a chat bubble. */}
+      <div className="flex items-start gap-2.5 border-b pb-2.5" style={{ borderColor: "var(--border-soft)" }}>
+        <Radar size={18} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
+        <div className="min-w-0 flex-1">
+          <h2 className="break-words text-[18px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{turn.query}</h2>
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>
+            <span>{turn.kind === "REVIEWS" ? "Reviews & mentions" : "Lead search"}</span>
+            {turn.deep && <span>· deep</span>}
+            {typeof turn.scanned === "number" && turn.scanned > 0 && <span>· {turn.scanned} sources checked</span>}
+            {turn.results.length > 0 && <span>· {turn.results.length} {turn.kind === "REVIEWS" ? "found" : "leads"}</span>}
+          </div>
         </div>
       </div>
 
@@ -453,11 +533,15 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
           </div>
         )}
 
-        {/* Overview (shows once available). */}
+        {/* Answer hero — the AI overview is the headline answer (search-engine style), with a Sources
+            rail of the REAL pages the answer is built from directly beneath it. */}
         {turn.overview && (
-          <div className="mt-2 flex items-start gap-2 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
-            <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{turn.overview}</p>
+          <div className="mt-2 rounded-sm border px-3.5 py-3" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
+            <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--section-accent)" }}>
+              <Sparkles size={11} /> Answer
+            </div>
+            <p className="text-[13.5px] leading-relaxed" style={{ color: "var(--text-primary)" }}>{turn.overview}</p>
+            <SourcesRail results={turn.results} />
           </div>
         )}
 
@@ -482,18 +566,31 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
               <BulkBar entries={turn.results.map((r, i) => ({ key: keyOf(r, i), r })).filter((e) => sel.has(e.key))} query={turn.query} lists={lists} members={members ?? []}
                 onApplied={applyStatus} onClear={() => setSel(new Set())} />
             )}
+            {/* Result controls — sort, contact-only filter, CSV export. Purely a view over real rows. */}
+            {turn.results.length > 3 && (
+              <ResultsToolbar sortBy={sortBy} setSortBy={setSortBy} onlyContact={onlyContact} setOnlyContact={setOnlyContact}
+                shownCount={shown.length} total={turn.results.length} onExport={() => exportLeadsCsv(shown.map((e) => e.r), turn.query)} reviews={reviews} />
+            )}
             <div className="space-y-2">
-              {turn.results.map((r, i) => {
+              {shown.map(({ r, i }) => {
                 const k = keyOf(r, i);
                 return reviews
-                  ? <ReviewCard key={k} r={r} />
-                  : <LeadCard key={k} r={r} query={turn.query} lists={lists}
+                  ? <ReviewCard key={k} r={r} n={i + 1} />
+                  : <LeadCard key={k} r={r} n={i + 1} query={turn.query} lists={lists}
                       selected={sel.has(k)} onToggle={() => toggle(k)} bulkStatus={status[k]} onDetails={() => setDrawerKey(k)} />;
               })}
             </div>
             {drawerRow && <LeadDrawer r={drawerRow.r} query={turn.query} lists={lists} members={members ?? []}
               status={status[drawerRow.k]} onStatus={(s) => applyStatus({ [drawerRow.k]: s })} onClose={() => setDrawerKey(null)} />}
             <WatchButton query={turn.query} />
+            {/* Follow-up — refine the search in place (search-engine style), not a new chat turn. */}
+            <form onSubmit={(e) => { e.preventDefault(); const q = followUp.trim(); if (q) { onRun(q); setFollowUp(""); } }}
+              className="mt-3 flex items-center gap-2 rounded-sm border px-3 py-1.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              <ArrowRight size={13} className="shrink-0" style={{ color: "var(--text-faint)" }} />
+              <input value={followUp} onChange={(e) => setFollowUp(e.target.value)} placeholder="Refine or ask a follow-up search…"
+                className="min-w-0 flex-1 bg-transparent text-[12.5px] outline-none" style={{ color: "var(--text-primary)" }} />
+              {followUp.trim() && <button type="submit" className="shrink-0 text-[11.5px] font-medium" style={{ color: "var(--section-accent)" }}>Search →</button>}
+            </form>
           </>
         ) : turn.status === "done" && !turn.error ? (
           <NoResults reviews={reviews} scanned={turn.scanned} query={turn.query} onRun={onRun} />
@@ -643,12 +740,13 @@ function SentimentSummary({ results }: { results: ResultRow[] }) {
   );
 }
 
-function ReviewCard({ r }: { r: ResultRow }) {
+function ReviewCard({ r, n }: { r: ResultRow; n?: number }) {
   const s = r.sentiment ? SENTIMENT[r.sentiment] : null;
   return (
     <div className="rounded-sm border px-3.5 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2 text-[11.5px]" style={{ color: "var(--text-faint)" }}>
+          {n != null && <span className="shrink-0 font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{n}</span>}
           <Globe2 size={11} className="shrink-0" /> <span className="truncate">{r.platform || hostOf(r.source_url)}</span>
           {r.author_name && r.author_name !== "Anonymous" && <><span aria-hidden>·</span><span className="truncate" style={{ color: "var(--text-muted)" }}>{r.author_name}</span></>}
         </div>
@@ -970,6 +1068,8 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
     },
     onSuccess: (_r, ownerId) => { onStatus({ owner: ownerId }); qc.invalidateQueries({ queryKey: ["nodes"] }); },
   });
+  // Draft first-touch outreach grounded ONLY in the lead's real signal (surfaced here as a first-class action).
+  const outreach = useMutation({ mutationFn: () => apiClient.post<{ subject: string | null; message: string }>("/discovery/outreach", { name: r.author_name || hostOf(r.source_url), context: r.snippet, sector: r.target_subject ?? query, kind: "lead" }) });
   const askPrompt = `Assess this discovered lead as a prospect, using ONLY this info — name: ${name}; site: ${hostOf(r.source_url)}; what it is: ${r.snippet || "(no summary)"}; contact: ${r.email || r.phone || "none found"}. Source: ${r.source_url}. Say if it's worth pursuing and why, and do not invent details.`;
   return (
     <>
@@ -989,6 +1089,15 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
           {enrich.isLoading ? <div className="mt-3 flex items-center gap-2 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Building dossier…</div>
             : enrich.data?.dossier ? <DossierPanel d={enrich.data.dossier} />
             : <p className="mt-3 text-[11.5px]" style={{ color: "var(--text-faint)" }}>No dossier could be built from this site.</p>}
+          {/* Drafted outreach — grounded in the lead's real signal; copy to send. */}
+          {outreach.isError && <p className="mt-3 text-[11px]" style={{ color: "var(--text-faint)" }}>Couldn't draft a message right now — try again.</p>}
+          {outreach.data?.message && (
+            <div className="mt-3 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+              {outreach.data.subject && <p className="mb-1 text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{outreach.data.subject}</p>}
+              <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{outreach.data.message}</p>
+              <button onClick={() => navigator.clipboard?.writeText(`${outreach.data?.subject ? outreach.data.subject + "\n\n" : ""}${outreach.data?.message ?? ""}`)} className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}><Copy size={11} /> Copy</button>
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-1.5 border-t px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
           {(status?.saved || status?.existed) ? <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: status.existed ? "var(--text-muted)" : "#5f8169", background: status.existed ? "var(--surface-hover)" : "#5f816914" }}><Check size={11} /> {status.existed ? "In graph" : "Saved"}</span>
@@ -1001,6 +1110,7 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
           )}
           <button onClick={() => task.mutate()} disabled={task.isPending} className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{task.isPending ? <Loader2 size={11} className="animate-spin" /> : <CheckSquare size={11} />} Task</button>
           <button onClick={() => decision.mutate()} disabled={decision.isPending} className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{decision.isPending ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />} Decision</button>
+          <button onClick={() => outreach.mutate()} disabled={outreach.isPending} className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{outreach.isPending ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />} Draft outreach</button>
           <button onClick={() => { requestAsk(askPrompt); onClose(); }} className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><MessageSquare size={11} /> Ask AI</button>
         </div>
       </div>
@@ -1008,7 +1118,7 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
   );
 }
 
-function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }: { r: ResultRow; query: string; lists: ListRow[]; selected?: boolean; onToggle?: () => void; bulkStatus?: LeadStatus; onDetails?: () => void }) {
+function LeadCard({ r, n, query, lists, selected, onToggle, bulkStatus, onDetails }: { r: ResultRow; n?: number; query: string; lists: ListRow[]; selected?: boolean; onToggle?: () => void; bulkStatus?: LeadStatus; onDetails?: () => void }) {
   const qc = useQueryClient();
   const [savedId, setSavedId] = useState<string | null>(bulkStatus?.node_id ?? null);
   const [existed, setExisted] = useState(Boolean(bulkStatus?.existed));
@@ -1067,6 +1177,7 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--text-faint)" }}>
+            {n != null && <span className="shrink-0 font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{n}</span>}
             <Globe2 size={11} className="shrink-0" /> <span className="truncate">{hostOf(r.source_url) || r.platform}</span>
             {r.region && <><span aria-hidden>·</span><span>{r.region}</span></>}
             {r.priority && <span className="rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold" style={{ color: PRIORITY[r.priority].tone, background: `${PRIORITY[r.priority].tone}14` }}>{PRIORITY[r.priority].label}</span>}
@@ -1154,6 +1265,51 @@ function LeadCard({ r, query, lists, selected, onToggle, bulkStatus, onDetails }
   );
 }
 
+interface Monitor { id: string; query: string; enabled?: boolean; last_run_at?: string | null; params?: { last_new?: number; last_total?: number } | Record<string, unknown>; created_at?: string }
+/** Watched searches (monitors) management — lists the saved searches that re-run daily and alert you
+ *  to new results, with delete. Creation happens via "Watch this search" after a run; this is where
+ *  you see and manage them. Uses the real GET/DELETE /discovery/monitors endpoints. */
+function MonitorsPanel() {
+  const qc = useQueryClient();
+  const monitorsQ = useQuery<Monitor[]>({ queryKey: ["discovery-monitors"], queryFn: () => apiClient.get<Monitor[]>("/discovery/monitors"), retry: false });
+  const del = useMutation({ mutationFn: (id: string) => apiClient.delete(`/discovery/monitors/${id}`), onSuccess: () => qc.invalidateQueries({ queryKey: ["discovery-monitors"] }) });
+  const mons = monitorsQ.data ?? [];
+  const rel = (iso?: string | null) => { if (!iso) return "not run yet"; const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000); if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m ago`; if (s < 86400) return `${Math.floor(s / 3600)}h ago`; return `${Math.floor(s / 86400)}d ago`; };
+  return (
+    <div className="mb-4 rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="flex items-center gap-1.5 border-b px-3.5 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+        <Bell size={13} style={{ color: "var(--section-accent)" }} />
+        <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Watched searches</span>
+        {mons.length > 0 && <span className="text-[11px] tabular-nums" style={{ color: "var(--text-faint)" }}>{mons.length}</span>}
+        <span className="ml-auto text-[10.5px]" style={{ color: "var(--text-faint)" }}>re-run daily · alerts on new results</span>
+      </div>
+      {monitorsQ.isLoading ? (
+        <div className="flex items-center gap-2 px-3.5 py-3 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={12} className="animate-spin" /> Loading…</div>
+      ) : mons.length === 0 ? (
+        <p className="px-3.5 py-3 text-[11.5px]" style={{ color: "var(--text-faint)" }}>No watched searches yet. After a search, use <span style={{ color: "var(--text-secondary)" }}>“Watch this search”</span> to get alerted when new results appear.</p>
+      ) : (
+        <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+          {mons.map((m) => {
+            const lastNew = (m.params as { last_new?: number } | undefined)?.last_new;
+            return (
+              <div key={m.id} className="flex items-center gap-3 px-3.5 py-2.5">
+                <Radar size={12} className="shrink-0" style={{ color: "var(--text-faint)" }} />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[12.5px]" style={{ color: "var(--text-primary)" }}>{m.query}</div>
+                  <div className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>Last run {rel(m.last_run_at)}{typeof lastNew === "number" && lastNew > 0 ? ` · ${lastNew} new` : ""}</div>
+                </div>
+                <button onClick={() => del.mutate(m.id)} disabled={del.isPending && del.variables === m.id} title="Stop watching" className="btn-icon h-7 w-7" style={{ color: "var(--text-faint)" }}>
+                  {del.isPending && del.variables === m.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Saved leads — real graph records sourced through Discovery (data.source === "discovery"). */
 function SavedLeads({ lists }: { lists: ListRow[] }) {
   const qc = useQueryClient();
@@ -1172,20 +1328,17 @@ function SavedLeads({ lists }: { lists: ListRow[] }) {
   });
   void lists;
 
-  if (q.isLoading) return <DelayedLoading onRetry={() => q.refetch()}><PageSkeletonCards count={4} label="Loading saved leads…" /></DelayedLoading>;
-  if (q.isError) return <ErrorState error={q.error as Error} onRetry={() => q.refetch()} />;
   const rows = q.data ?? [];
-  if (rows.length === 0) return (
-    <EmptyState
-      icon={Users}
-      title="No saved leads yet"
-      description={"Run a search and “Save as lead” to build your list here."}
-    />
-  );
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto pb-6">
-      <div className="space-y-2">
-        {rows.map((r) => {
+  // The saved view always leads with the Watched-searches (monitors) manager, then saved leads.
+  const leadsSection = q.isLoading ? (
+    <DelayedLoading onRetry={() => q.refetch()}><PageSkeletonCards count={4} label="Loading saved leads…" /></DelayedLoading>
+  ) : q.isError ? (
+    <ErrorState error={q.error as Error} onRetry={() => q.refetch()} />
+  ) : rows.length === 0 ? (
+    <EmptyState icon={Users} title="No saved leads yet" description={"Run a search and “Save as lead” to build your list here."} />
+  ) : (
+    <div className="space-y-2">
+      {rows.map((r) => {
           const d = r.data ?? {};
           const name = String(d.name ?? d.company ?? d.title ?? "Untitled");
           return (
@@ -1204,7 +1357,12 @@ function SavedLeads({ lists }: { lists: ListRow[] }) {
             </div>
           );
         })}
-      </div>
+    </div>
+  );
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto pb-6">
+      <MonitorsPanel />
+      {leadsSection}
     </div>
   );
 }
