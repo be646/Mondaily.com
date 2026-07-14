@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { LogoMark } from "@/components/logo";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
+import { useCurrency, formatMoney } from "../../hooks/useCurrency";
 import {
   ShieldCheck, Clock, CheckCircle2, XCircle,
   ReceiptText, ChevronRight, AlertTriangle, UserCircle2,
@@ -255,10 +256,13 @@ export function ApprovalsPage() {
   });
 
   const shown = tab === "pending_review" ? pending : tab === "verified" ? verified : rejected;
-  const currency = allNotes[0]?.currency ?? "GBP";
-  const totalPending  = pending.reduce((s, n) => s + n.amount_cents, 0);
-  const totalVerified = verified.reduce((s, n) => s + n.amount_cents, 0);
-  const totalExecuted = executed.reduce((s, n) => s + n.amount_cents, 0);
+  // Totals normalized to the workspace display currency via FX — mixed-currency notes sum honestly
+  // instead of being mislabeled with the first note's currency (matches the Credit Notes page).
+  const { display, sumInDisplay } = useCurrency();
+  const cn$ = (n: CreditNote) => ({ amount: n.amount_cents / 100, currency: n.currency });
+  const totalPending  = sumInDisplay(pending.map(cn$)).value;
+  const totalVerified = sumInDisplay(verified.map(cn$)).value;
+  const totalExecuted = sumInDisplay(executed.map(cn$)).value;
 
   return (
     <div className="flex h-full flex-col bg-[var(--surface-card)] text-[var(--text-primary)]">
@@ -278,17 +282,17 @@ export function ApprovalsPage() {
         <div className="telemetry-strip mb-4">
           <div>
             <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-[#c6892e]"/><span className="text-[11px] text-[var(--text-muted)]">Needs review</span></div>
-            <div className="text-[17px] font-semibold text-[#c6892e]">{fmt(totalPending, currency)}</div>
+            <div className="text-[17px] font-semibold text-[#c6892e]">{formatMoney(totalPending, display)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{pending.length} note{pending.length !== 1 ? "s" : ""}</div>
           </div>
           <div>
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#717784]"/><span className="text-[11px] text-[var(--text-muted)]">Verified, not executed</span></div>
-            <div className="text-[17px] font-semibold text-[#717784]">{fmt(totalVerified, currency)}</div>
+            <div className="text-[17px] font-semibold text-[#717784]">{formatMoney(totalVerified, display)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{verified.length} note{verified.length !== 1 ? "s" : ""}</div>
           </div>
           <div>
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#2f9e6b]"/><span className="text-[11px] text-[var(--text-muted)]">Executed this period</span></div>
-            <div className="text-[17px] font-semibold text-[#2f9e6b]">{fmt(totalExecuted, currency)}</div>
+            <div className="text-[17px] font-semibold text-[#2f9e6b]">{formatMoney(totalExecuted, display)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{executed.length} note{executed.length !== 1 ? "s" : ""}</div>
           </div>
         </div>

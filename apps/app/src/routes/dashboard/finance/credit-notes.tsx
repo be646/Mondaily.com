@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 
 type CreditReason = "refund" | "billing_error" | "goodwill" | "contract_discount";
-type CreditStatus = "draft" | "pending_review" | "manager_approved" | "executed" | "void";
+// Mirrors the backend state machine: draft → pending_review → verified → executed (+ rejected, void).
+type CreditStatus = "draft" | "pending_review" | "verified" | "rejected" | "executed" | "void";
 
 interface CreditNote {
   id: string;
@@ -29,11 +30,12 @@ interface CreditNote {
 }
 
 const STATUS_CONFIG: Record<CreditStatus, { label: string; color: string; icon: React.ElementType }> = {
-  draft:            { label: "Draft",            color: "text-stone-400 bg-stone-400/10",     icon: ReceiptText   },
-  pending_review:   { label: "Pending Review",   color: "text-[#c6892e] bg-[#c6892e]/10",   icon: Clock         },
-  manager_approved: { label: "Approved",         color: "text-[#717784] bg-[#717784]/10",     icon: CheckCircle2  },
-  executed:         { label: "Executed",         color: "text-[#2f9e6b] bg-[#2f9e6b]/10", icon: CheckCircle2 },
-  void:             { label: "Void",             color: "text-stone-600 bg-stone-600/10",     icon: XCircle       },
+  draft:          { label: "Draft",          color: "text-stone-400 bg-stone-400/10",   icon: ReceiptText   },
+  pending_review: { label: "Pending Review", color: "text-[#c6892e] bg-[#c6892e]/10",   icon: Clock         },
+  verified:       { label: "Verified",       color: "text-[#717784] bg-[#717784]/10",   icon: CheckCircle2  },
+  rejected:       { label: "Rejected",       color: "text-[#d1524a] bg-[#d1524a]/10",   icon: XCircle       },
+  executed:       { label: "Executed",       color: "text-[#2f9e6b] bg-[#2f9e6b]/10",   icon: CheckCircle2  },
+  void:           { label: "Void",           color: "text-stone-600 bg-stone-600/10",   icon: XCircle       },
 };
 
 const REASON_LABELS: Record<CreditReason, string> = {
@@ -45,11 +47,12 @@ const REASON_LABELS: Record<CreditReason, string> = {
 
 const FILTERS = [
   { key: "", label: "All" },
-  { key: "pending_review",   label: "Pending" },
-  { key: "manager_approved", label: "Approved" },
-  { key: "executed",         label: "Executed" },
-  { key: "draft",            label: "Draft" },
-  { key: "void",             label: "Void" },
+  { key: "pending_review", label: "Pending" },
+  { key: "verified",       label: "Verified" },
+  { key: "rejected",       label: "Rejected" },
+  { key: "executed",       label: "Executed" },
+  { key: "draft",          label: "Draft" },
+  { key: "void",           label: "Void" },
 ];
 
 function fmt(cents: number, currency: string) {

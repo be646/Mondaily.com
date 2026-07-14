@@ -10,7 +10,9 @@ import {
 import { FieldSelect } from "../../../components/ui/controls";
 
 type CreditReason = "refund" | "billing_error" | "goodwill" | "contract_discount";
-type CreditStatus = "draft" | "pending_review" | "manager_approved" | "executed" | "void";
+// Mirrors the backend state machine (packages/api/src/routes/credit-notes.ts):
+// draft → pending_review → verified → executed, with rejected + void as branches.
+type CreditStatus = "draft" | "pending_review" | "verified" | "rejected" | "executed" | "void";
 
 interface CreditNote {
   id: string;
@@ -28,11 +30,12 @@ interface CreditNote {
 }
 
 const STATUS_CONFIG: Record<CreditStatus, { label: string; color: string; dot: string; icon: React.ElementType }> = {
-  draft:            { label: "Draft",            color: "text-stone-400",   dot: "bg-stone-400",   icon: ReceiptText   },
-  pending_review:   { label: "Pending Review",   color: "text-[#c6892e]",  dot: "bg-[#c6892e]",  icon: Clock         },
-  manager_approved: { label: "Approved",         color: "text-[#717784]",   dot: "bg-[#717784]",   icon: CheckCircle2  },
-  executed:         { label: "Executed",         color: "text-[#2f9e6b]",dot: "bg-[#2f9e6b]",icon: CheckCircle2  },
-  void:             { label: "Void",             color: "text-stone-600",   dot: "bg-stone-600",   icon: XCircle       },
+  draft:            { label: "Draft",          color: "text-stone-400",   dot: "bg-stone-400",   icon: ReceiptText   },
+  pending_review:   { label: "Pending Review", color: "text-[#c6892e]",   dot: "bg-[#c6892e]",   icon: Clock         },
+  verified:         { label: "Verified",       color: "text-[#717784]",   dot: "bg-[#717784]",   icon: CheckCircle2  },
+  rejected:         { label: "Rejected",       color: "text-[#d1524a]",   dot: "bg-[#d1524a]",   icon: XCircle       },
+  executed:         { label: "Executed",       color: "text-[#2f9e6b]",   dot: "bg-[#2f9e6b]",   icon: CheckCircle2  },
+  void:             { label: "Void",           color: "text-stone-600",   dot: "bg-stone-600",   icon: XCircle       },
 };
 
 const REASON_LABELS: Record<CreditReason, string> = {
@@ -42,13 +45,17 @@ const REASON_LABELS: Record<CreditReason, string> = {
   contract_discount: "Contract Discount",
 };
 
-// State machine — which transitions are available from a given status
+// State machine — mirrors the backend's VALID_TRANSITIONS. Only the moves the API
+// accepts are offered, so no button ever produces a 422/400.
+const VOID_ACTION = { to: "void" as const, label: "Void", style: "text-[var(--text-muted)] bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" };
+const REJECT_ACTION = { to: "rejected" as const, label: "Reject", style: "text-[#d1524a] bg-[#d1524a]/10 border-[#d1524a]/25 hover:bg-[#d1524a]/20" };
 const TRANSITIONS: Record<CreditStatus, { to: CreditStatus; label: string; style: string }[]> = {
-  draft:            [{ to: "pending_review", label: "Submit for review",  style: "text-[#c6892e] bg-[#c6892e]/10 border-[#c6892e]/25 hover:bg-[#c6892e]/20" }, { to: "void", label: "Void", style: "text-[var(--text-muted)] bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" }],
-  pending_review:   [{ to: "manager_approved", label: "Approve",         style: "text-[#717784] bg-[#717784]/10 border-[#717784]/25 hover:bg-[#717784]/20" },   { to: "void", label: "Void", style: "text-[var(--text-muted)] bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" }],
-  manager_approved: [{ to: "executed", label: "Execute credit",          style: "text-[#2f9e6b] bg-[#2f9e6b]/10 border-[#2f9e6b]/25 hover:bg-[#2f9e6b]/20" }, { to: "void", label: "Void", style: "text-[var(--text-muted)] bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" }],
-  executed:         [],
-  void:             [],
+  draft:          [{ to: "pending_review", label: "Submit for review", style: "text-[#c6892e] bg-[#c6892e]/10 border-[#c6892e]/25 hover:bg-[#c6892e]/20" }, VOID_ACTION],
+  pending_review: [{ to: "verified", label: "Approve", style: "text-[#717784] bg-[#717784]/10 border-[#717784]/25 hover:bg-[#717784]/20" }, REJECT_ACTION, VOID_ACTION],
+  verified:       [{ to: "executed", label: "Execute credit", style: "text-[#2f9e6b] bg-[#2f9e6b]/10 border-[#2f9e6b]/25 hover:bg-[#2f9e6b]/20" }, REJECT_ACTION, VOID_ACTION],
+  rejected:       [{ to: "pending_review", label: "Re-open for review", style: "text-[#c6892e] bg-[#c6892e]/10 border-[#c6892e]/25 hover:bg-[#c6892e]/20" }, VOID_ACTION],
+  executed:       [],
+  void:           [],
 };
 
 function fmt(cents: number, currency: string) {
