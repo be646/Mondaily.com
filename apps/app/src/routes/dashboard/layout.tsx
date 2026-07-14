@@ -160,7 +160,7 @@ export function DashboardLayout() {
       {/* Mobile sidebar drawer */}
       <MobileSidebar open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)}/>
 
-      <div className="section-soul flex min-w-0 flex-1 flex-col" style={{ "--section-hue": sectionHue(location.pathname) } as React.CSSProperties}>
+      <div className="section-soul app-content-shell flex min-w-0 flex-1 flex-col" style={{ "--section-hue": sectionHue(location.pathname) } as React.CSSProperties}>
         {/* Top bar — logo · page label · actions slot · AI/user buttons */}
         <AgentStatusBar leftSlot={
           <div className="flex items-center gap-3 min-w-0">

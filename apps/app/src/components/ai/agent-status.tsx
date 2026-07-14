@@ -375,6 +375,16 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
     window.addEventListener(ASK_EVENT, openIt);
     return () => window.removeEventListener(ASK_EVENT, openIt);
   }, []);
+  // Drawer behaviour: when open, push the whole app shell left so the chat sits BESIDE the page
+  // (not floating over the toolbar/top-bar), and close on Escape. The push is via a body class the
+  // layout shell reads (see styles.css .app-content-shell), so no cross-component state plumbing.
+  useEffect(() => {
+    if (!askOpen) { document.body.classList.remove("ask-drawer-open"); return; }
+    document.body.classList.add("ask-drawer-open");
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setAskOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("keydown", onKey); document.body.classList.remove("ask-drawer-open"); };
+  }, [askOpen]);
   const [theme, setTheme] = useState<ThemeId>(() => getTheme());
 
   const initials = (me.name || me.email)?.[0]?.toUpperCase() ?? "U";
@@ -484,11 +494,15 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
         </div>
       </div>
 
-      {/* Ask side panel */}
+      {/* Ask side panel — on desktop the app shell is pushed left (side-by-side, see styles.css); on
+          mobile there's no room to push, so a tap-to-close backdrop makes it a clean overlay instead. */}
       {askOpen && (
-        <div className="fixed right-0 top-0 bottom-0 z-30 flex shadow-[−8px_0_32px_rgba(0,0,0,0.4)]">
-          <AskPanel onClose={() => setAskOpen(false)}/>
-        </div>
+        <>
+          <div className="fixed inset-0 z-20 bg-black/40 backdrop-blur-[1px] md:hidden" onClick={() => setAskOpen(false)}/>
+          <div className="fixed right-0 top-0 bottom-0 z-30 flex shadow-[-8px_0_32px_rgba(0,0,0,0.4)]">
+            <AskPanel onClose={() => setAskOpen(false)}/>
+          </div>
+        </>
       )}
 
       {shareOpen && <ShareModal onClose={() => setShareOpen(false)}/>}

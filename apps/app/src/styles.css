@@ -1631,3 +1631,11 @@ html[data-theme="light"] .record-scroll { scrollbar-color: rgba(0,0,0,0.15) tran
 /* Team Oversight — "live AI" scanning bar in the section header */
 @keyframes oversight-live-scan { 0% { transform: translateX(-110%); } 100% { transform: translateX(320%); } }
 .oversight-live-scan { animation: oversight-live-scan 1.9s cubic-bezier(0.45,0,0.55,1) infinite; }
+
+/* Ask drawer — push the app shell left on desktop so the chat sits BESIDE the page (side-by-side),
+   never floating over the toolbar/top-bar. On mobile there's no room, so a backdrop overlay is used
+   (see agent-status.tsx). The 300px matches the AskPanel width. */
+.app-content-shell { transition: padding-right .18s ease; }
+@media (min-width: 768px) {
+  body.ask-drawer-open .app-content-shell { padding-right: 300px; }
+}
