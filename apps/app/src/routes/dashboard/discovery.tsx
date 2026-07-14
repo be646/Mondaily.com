@@ -90,21 +90,36 @@ const SENTIMENT: Record<Exclude<Sentiment, null>, { label: string; tone: string;
   mixed:    { label: "Mixed",    tone: "#97824f", Icon: Minus },
 };
 
+// A citation anchor id ties a Sources-rail pill to its result card (jump-to-source, Perplexity-style).
+const citeId = (turnId: string, n: number) => `cite-${turnId}-${n}`;
+/** Scroll to a cited result card and briefly ring it, so a citation number jumps to its source. */
+function jumpToCite(turnId: string, n: number) {
+  const el = document.getElementById(citeId(turnId, n));
+  if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.style.transition = "box-shadow .2s ease";
+  el.style.boxShadow = "0 0 0 2px var(--section-accent)";
+  setTimeout(() => { el.style.boxShadow = ""; }, 1300);
+}
+
 /** Sources rail — numbered pills of the REAL pages the answer/results came from (Perplexity-style).
- *  Deduped by host, in result order so the number matches each card's [n]. Click opens the page. */
-function SourcesRail({ results }: { results: ResultRow[] }) {
+ *  In result order so the number matches each card's [n]. Click the pill to JUMP to that card; the ↗
+ *  opens the real page in a new tab. */
+function SourcesRail({ results, turnId }: { results: ResultRow[]; turnId: string }) {
   const sources = results.slice(0, 12).map((r, i) => ({ n: i + 1, url: r.source_url, host: hostOf(r.source_url) || r.platform })).filter((s) => s.url);
   if (sources.length === 0) return null;
   return (
     <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t pt-2.5" style={{ borderColor: "var(--section-accent-line)" }}>
       <span className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Sources</span>
       {sources.map((s) => (
-        <a key={s.n} href={s.url} target="_blank" rel="noreferrer" title={s.url}
-          className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10.5px] transition-colors hover:border-[color:var(--section-accent)]"
+        <span key={s.n} className="inline-flex items-center gap-1 rounded-sm border pl-1.5 pr-1 py-0.5 text-[10.5px] transition-colors hover:border-[color:var(--section-accent)]"
           style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-muted)" }}>
-          <span className="font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{s.n}</span>
-          <span className="max-w-[140px] truncate">{s.host}</span>
-        </a>
+          <button onClick={() => jumpToCite(turnId, s.n)} title="Jump to this result" className="inline-flex items-center gap-1">
+            <span className="font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{s.n}</span>
+            <span className="max-w-[140px] truncate">{s.host}</span>
+          </button>
+          <a href={s.url} target="_blank" rel="noreferrer" title={s.url} className="shrink-0" style={{ color: "var(--text-faint)" }}><ExternalLink size={9} /></a>
+        </span>
       ))}
     </div>
   );
@@ -541,7 +556,7 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
               <Sparkles size={11} /> Answer
             </div>
             <p className="text-[13.5px] leading-relaxed" style={{ color: "var(--text-primary)" }}>{turn.overview}</p>
-            <SourcesRail results={turn.results} />
+            <SourcesRail results={turn.results} turnId={turn.id} />
           </div>
         )}
 
@@ -574,10 +589,15 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
             <div className="space-y-2">
               {shown.map(({ r, i }) => {
                 const k = keyOf(r, i);
-                return reviews
-                  ? <ReviewCard key={k} r={r} n={i + 1} />
-                  : <LeadCard key={k} r={r} n={i + 1} query={turn.query} lists={lists}
-                      selected={sel.has(k)} onToggle={() => toggle(k)} bulkStatus={status[k]} onDetails={() => setDrawerKey(k)} />;
+                // Anchor each card to its citation number so a Sources-rail pill can jump to it.
+                return (
+                  <div key={k} id={citeId(turn.id, i + 1)} className="scroll-mt-20 rounded-sm">
+                    {reviews
+                      ? <ReviewCard r={r} n={i + 1} />
+                      : <LeadCard r={r} n={i + 1} query={turn.query} lists={lists}
+                          selected={sel.has(k)} onToggle={() => toggle(k)} bulkStatus={status[k]} onDetails={() => setDrawerKey(k)} />}
+                  </div>
+                );
               })}
             </div>
             {drawerRow && <LeadDrawer r={drawerRow.r} query={turn.query} lists={lists} members={members ?? []}
