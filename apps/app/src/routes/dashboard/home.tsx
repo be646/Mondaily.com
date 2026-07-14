@@ -646,6 +646,37 @@ export function HomePage() {
           </div>
         )}
 
+        {/* "Right now" — a synthesized status band from data already loaded (no AI, no extra fetch):
+            what needs approval, what's overdue, your next meeting, unread. Each real segment links to
+            its surface, so you land already oriented instead of scrolling to assemble the picture. */}
+        {!isChatting && (() => {
+          const now = Date.now();
+          const pending = decisionsQuery.data?.length ?? 0;
+          const overdue = (tasksQuery.data ?? []).filter(t => !t.completed && t.due_date && new Date(t.due_date).getTime() < now).length;
+          const unread = (notificationsQuery.data ?? []).filter(n => !n.is_read).length;
+          const starts: number[] = [];
+          for (const m of meetings.data ?? []) { const t = new Date(m.start_time).getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
+          for (const e of nativeMeetingsQ.data?.events ?? []) { const t = new Date(e.start_at).getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
+          for (const e of (calendarQ.data?.events ?? []) as { start?: string; start_at?: string }[]) { const t = new Date(e.start ?? e.start_at ?? "").getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
+          const nextStart = starts.length ? Math.min(...starts) : null;
+          const seg: { label: string; to: string; tone: string }[] = [];
+          if (pending) seg.push({ label: `${pending} need${pending === 1 ? "s" : ""} approval`, to: "/decisions", tone: "var(--section-accent)" });
+          if (overdue) seg.push({ label: `${overdue} overdue`, to: "/tasks", tone: "#9c6b72" });
+          if (nextStart) seg.push({ label: `Next meeting ${new Date(nextStart).toLocaleTimeString(loc.lang, { hour: "2-digit", minute: "2-digit" })}`, to: "/calendar", tone: "var(--text-secondary)" });
+          if (seg.length === 0) return null;   // genuinely nothing pressing → keep the hero calm
+          return (
+            <div className="mx-auto mb-6 flex max-w-2xl flex-wrap items-center justify-center gap-x-2 gap-y-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Right now</span>
+              {seg.map((s, i) => (
+                <Link key={i} to={s.to} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: s.tone }}>
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.tone }} />{s.label}
+                </Link>
+              ))}
+              {unread > 0 && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>· {unread} unread</span>}
+            </div>
+          );
+        })()}
+
         {isChatting && (
           <div ref={messagesRef} onScroll={onMessagesScroll} className="relative w-full min-w-0 min-h-0 flex-1 space-y-6 overflow-y-auto overflow-x-hidden overscroll-contain pb-10 pt-2 pr-1" style={{ scrollbarWidth: "none", overflowAnchor: "none", scrollBehavior: "auto" }}>
             {(() => {
@@ -971,6 +1002,13 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* ── Needs you — LEADS the cockpit: the one ranked "act now" list (decisions/risk/activity),
+          promoted above the live-ops telemetry so what needs you is the first thing after the composer. ── */}
+      <NeedsYouPanel
+        notifications={notificationsQuery.data ?? []}
+        notificationsError={notificationsQuery.isError}
+      />
+
       {/* ── Operating Picture — graph telemetry and the agent map share one
           continuous control-room zone. The components keep their own data
           and actions; this wrapper only gives the page a clearer hierarchy. ── */}
@@ -988,13 +1026,6 @@ export function HomePage() {
           <WorkspaceGraphPulse />
         </div>
       </section>
-
-      {/* ── Needs you — the merged decision/risk/activity zone. One ranked
-          list instead of two sections doing overlapping jobs. ── */}
-      <NeedsYouPanel
-        notifications={notificationsQuery.data ?? []}
-        notificationsError={notificationsQuery.isError}
-      />
 
       {/* ── Today's Flow — tasks and meetings, side by side. ── */}
       <section className="home-section">
