@@ -1,5 +1,5 @@
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { Plus, X, Check, Loader2, ChevronDown, ChevronUp, Trash2, LayoutList, Kanban, ScanSearch, Filter, Sparkles, UploadCloud } from "lucide-react";
@@ -57,16 +57,32 @@ function CreateRecordModal({
   onClose: () => void;
   onEnrichStart: (recordId: string, name: string) => void;
 }) {
-  const fieldKeys = tableColumns.length > 0 ? tableColumns : (() => {
+  const queryClient = useQueryClient();
+
+  // Schema-aware fields — the create form now uses THIS sheet's real defined columns (object_definitions
+  // attributes), so a custom sheet like "Tax Sheet Report" shows its own columns, not generic hardcoded
+  // ones. We union the schema attributes with any columns already discovered on existing rows (so ad-hoc
+  // columns aren't lost), schema first. Hardcoded fallback is last resort (brand-new type, no schema yet).
+  const schemaQuery = useQuery({
+    queryKey: ["objects-schema"],
+    queryFn: () => apiClient.get<Array<{ slug: string; attributes?: Array<{ name: string }> }>>("/objects"),
+    staleTime: 60_000,
+  });
+  const fieldKeys = useMemo(() => {
+    const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "_");
+    const def = schemaQuery.data?.find(o => o.slug === objectType);
+    const fromSchema = def?.attributes?.length
+      ? ["name", ...def.attributes.map(a => norm(a.name)).filter(k => k !== "name")]
+      : [];
+    const merged = [...new Set([...fromSchema, ...tableColumns])];
+    if (merged.length) return merged;
     const t = objectType.toLowerCase();
     if (t === "companies") return ["name","description","arr","funding_raised","employee_range","country"];
     if (t === "people")    return ["name","email","job_title","twitter_followers","linkedin"];
     if (t === "deals")     return ["name","deal_stage","deal_value","deal_owner"];
     if (t.includes("employee") || t.includes("staff")) return ["name","email","role","department"];
     return ["name","email"];
-  })();
-
-  const queryClient = useQueryClient();
+  }, [schemaQuery.data, objectType, tableColumns]);
   const [tab, setTab] = useState<"manual"|"ai">("manual");
 
   // Read colMeta (defaults + required) from localStorage — same key as RecordTable
@@ -99,6 +115,17 @@ function CreateRecordModal({
     setCats([]);
   };
   const label = (k: string) => k.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+  // When the schema loads (async), add any newly-known fields to the form without clobbering typed values.
+  useEffect(() => {
+    setValues(prev => {
+      let changed = false;
+      const next = { ...prev };
+      for (const k of fieldKeys) if (!(k in next)) { next[k] = colMeta[k]?.defaultValue ?? ""; changed = true; }
+      return changed ? next : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldKeys]);
 
   // ── Manual save ──
   const save = useCallback(async () => {
@@ -422,10 +449,12 @@ function AIFillModal({
 
   useEffect(() => { promptRef.current?.focus(); }, []);
 
-  // Use tableColumns (from live table) → schema attrs → fallback
-  const fieldKeys = tableColumns.length > 0 ? tableColumns
-    : schemaAttrs.length > 0 ? schemaAttrs
-    : ["name"];
+  // Union the sheet's real schema attributes with columns discovered on existing rows (schema first),
+  // so AI-fill extracts exactly this sheet's columns — not a generic guess. Fallback: name only.
+  const fieldKeys = (() => {
+    const merged = [...new Set([...schemaAttrs, ...tableColumns])];
+    return merged.length ? merged : ["name"];
+  })();
 
   const generate = async () => {
     if (!prompt.trim()) return;
