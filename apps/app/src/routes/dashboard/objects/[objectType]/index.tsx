@@ -718,66 +718,50 @@ export function ObjectIndexPage() {
     <>
       <div className="flex h-full flex-col overflow-hidden">
 
-      {/* Page header — title + view toggle + actions */}
-      <div className="flex items-center justify-between border-b border-stone-200 dark:border-stone-800/40 px-6 py-2.5 shrink-0">
+      {/* Page header — title + view toggle + actions. On the shared variable/matte system (was
+          hardcoded stone / bg-white, which was inconsistent and theme-fragile). */}
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-6 py-2.5 shrink-0" style={{ borderColor: "var(--border-soft)" }}>
         <div className="flex items-center gap-3">
-          <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-stone-500 select-none">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.12em] select-none" style={{ color: "var(--text-muted)" }}>
             {objectType.replace(/[-_]/g, " ")}
           </span>
           {/* View toggle */}
-          <div className="flex items-center rounded-md border border-stone-200 bg-stone-50 dark:border-[var(--border-soft)] dark:bg-[var(--surface-hover)] p-0.5 gap-0.5">
-            <button
-              onClick={() => setView("table")}
-              title="Table view"
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "table" ? "bg-white text-stone-900 shadow-sm dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"}`}
-            >
+          <div className="flex items-center gap-0.5 rounded-sm border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+            <button onClick={() => setView("table")} title="Table view"
+              className="flex items-center gap-1.5 rounded-[3px] px-2 py-1 text-[11px] font-medium transition-colors"
+              style={view === "table" ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
               <LayoutList size={11}/> Table
             </button>
-            <button
-              onClick={() => setView("board")}
-              title="Board view"
-              className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-medium transition-colors ${view === "board" ? "bg-white text-stone-900 shadow-sm dark:bg-[var(--surface-hover)] dark:text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-800 dark:text-stone-400 dark:hover:text-stone-200"}`}
-            >
+            <button onClick={() => setView("board")} title="Board view"
+              className="flex items-center gap-1.5 rounded-[3px] px-2 py-1 text-[11px] font-medium transition-colors"
+              style={view === "board" ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
               <Kanban size={11}/> Board
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setShowDeleteSheet(true)}
-            className="flex items-center gap-1.5 rounded-md border border-stone-200 bg-transparent px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:border-stone-300 hover:text-stone-600 dark:border-[var(--border-soft)] dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]"
-            title="Delete this sheet"
-          >
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button onClick={() => setShowDeleteSheet(true)} title="Delete this sheet"
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2 py-1.5 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
             <Trash2 size={11}/>
           </button>
-          <button
-            onClick={() => setShowAIFill(true)}
-            className="flex items-center gap-1.5 rounded-md border border-stone-300 bg-stone-100 px-2.5 py-1.5 text-[11px] font-medium text-[var(--section-accent)] transition-all hover:bg-stone-200 dark:border-stone-500/30 dark:bg-stone-500/8 dark:text-stone-400 dark:hover:border-stone-500/50 dark:hover:bg-stone-500/15 dark:hover:text-stone-300"
-          >
-            <AIMark size={11}/> Fill
+          <button onClick={() => setShowAIFill(true)}
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <span style={{ color: "var(--section-accent)" }}><AIMark size={11}/></span> Fill
           </button>
-          <button
-            onClick={() => setDedupOpen(true)}
-            className="flex items-center gap-1.5 rounded-md border border-dashed border-stone-300 bg-stone-50 px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:bg-stone-100 dark:border-stone-800/80 dark:bg-stone-900/20 dark:text-stone-400 dark:hover:border-stone-500/40 dark:hover:text-stone-400 dark:hover:bg-stone-900/20"
-          >
-            <ScanSearch size={11}/> Clean & Lists
+          <button onClick={() => setDedupOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <ScanSearch size={11}/> Clean &amp; Lists
           </button>
-          <button
-            onClick={() => setSegmentOpen(true)}
-            className="flex items-center gap-1.5 rounded-md border border-dashed border-stone-300 bg-stone-50 px-2.5 py-1.5 text-[11px] font-medium text-stone-500 transition-all hover:bg-stone-100 dark:border-stone-800/80 dark:bg-stone-900/20 dark:text-stone-400 dark:hover:border-stone-500/40 dark:hover:text-stone-400 dark:hover:bg-stone-900/20"
-          >
+          <button onClick={() => setSegmentOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
             <Filter size={11}/> Segment
           </button>
-          <button
-            onClick={() => setImportOpen(p => !p)}
-            className={`flex items-center gap-1.5 rounded-md border border-dashed px-2.5 py-1.5 text-[11px] font-medium transition-all ${importOpen ? "border-stone-400 bg-stone-100 text-stone-700 dark:border-stone-600/60 dark:bg-stone-800/50 dark:text-stone-200" : "border-stone-300 bg-stone-50 text-stone-500 hover:bg-stone-100 dark:border-stone-800/80 dark:bg-stone-900/20 dark:text-stone-400 dark:hover:border-stone-700/60 dark:hover:text-stone-200 dark:hover:bg-stone-900/20"}`}
-          >
+          <button onClick={() => setImportOpen(p => !p)}
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
+            style={importOpen ? { borderColor: "var(--section-accent)", background: "var(--section-accent-soft)", color: "var(--text-primary)" } : { borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
             <Plus size={11}/> Import CSV
           </button>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="btn-primary text-[11px]"
-          >
+          <button onClick={() => setShowCreate(true)} className="btn-primary text-[11px]">
             <Plus size={11}/> New record
           </button>
         </div>
@@ -785,7 +769,7 @@ export function ObjectIndexPage() {
 
       {/* Enrichment banners */}
       {Object.entries(enriching).length > 0 && (
-        <div className="flex flex-col gap-1.5 border-b border-stone-800/40 px-6 py-2 shrink-0">
+        <div className="flex flex-col gap-1.5 border-b px-6 py-2 shrink-0" style={{ borderColor: "var(--border-soft)" }}>
           {Object.entries(enriching).map(([id, { name, done }]) => (
             <EnrichBanner key={id} name={name} done={done}/>
           ))}
@@ -813,7 +797,7 @@ export function ObjectIndexPage() {
 
       {/* Collapsible CSV importer */}
       {importOpen && (
-        <div className="border-b border-[#e5e7eb] dark:border-stone-800/40 px-6 py-3 shrink-0">
+        <div className="border-b px-6 py-3 shrink-0" style={{ borderColor: "var(--border-soft)" }}>
           <CsvImporter objectType={objectType} onImported={() => { queryClient.invalidateQueries({ queryKey: ["records", objectType] }); setImportOpen(false); }}/>
         </div>
       )}
