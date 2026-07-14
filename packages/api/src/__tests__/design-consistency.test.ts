@@ -348,8 +348,10 @@ describe("priority pages preserve every existing action/handler", () => {
     // Lane tabs, search, the shared MenuSelect filters, risk sort, and the AI-tools ActionMenu
     // live in a single band — three zones before the work area, not a stack of bars.
     expect(decisions).toMatch(/ONE control band/);
-    // Filters now use the shared InlineFilterBar (the app-wide records-style inline filter).
-    expect(decisions).toMatch(/<InlineFilterBar/);
+    // Filters use the shared records-style pattern: a FilterButton in the toolbar toggles a thin
+    // full-width FilterStrip below (no wasted row, no cramped floating box).
+    expect(decisions).toMatch(/<FilterButton /);
+    expect(decisions).toMatch(/<FilterStrip/);
     expect(decisions).toMatch(/key: "agent", label: "Agent"/);
     expect(decisions).toMatch(/<ActionMenu triggerLabel=/);
     expect(decisions).not.toContain("function ActiveFilterChip");

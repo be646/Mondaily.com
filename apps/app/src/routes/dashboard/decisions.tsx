@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare, Search, Pencil, Link2 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton, DelayedLoading, EmptyState, ErrorState } from "../../components/ui/page-state";
-import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, InlineFilterBar, type ActionMenuItem, type CommandStatusItem, type FilterChip } from "../../components/ui/controls";
+import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, FilterButton, FilterStrip, type ActionMenuItem, type CommandStatusItem, type FilterChip } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -76,6 +76,7 @@ export function DecisionsPage() {
   const [search, setSearch] = useState("");
   // "Risk first" ordering toggle — plain client-side sort over real risk levels.
   const [sortRisk, setSortRisk] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);   // records-style: Filter button in the toolbar, strip below
   const [searchParams, setSearchParams] = useSearchParams();
   const focusId = searchParams.get("id");
   // Selection is mirrored to ?id= so a decision is shareable/refresh-stable (same pattern as
@@ -281,6 +282,7 @@ export function DecisionsPage() {
                   className="h-7 w-36 rounded-sm border bg-transparent pl-6.5 pr-2 text-[11.5px] outline-none focus:border-[var(--section-accent)]"
                   style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)", paddingLeft: "1.625rem" }} />
               </label>
+              <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={[agentFilter, typeFilter, riskFilter, assigneeFilter].filter(Boolean).length} />
               <button onClick={() => setSortRisk(s => !s)} disabled={lane === "approval" && !!triage}
                 title={lane === "approval" && triage ? "AI triage ranking is active — clear it to sort by risk" : "Order the list by risk level"}
                 className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-40"
@@ -298,24 +300,26 @@ export function DecisionsPage() {
             </div>
           </div>
 
-          {/* Filter — the app-standard inline strip (records-sheet pattern): a Filter button on its own
-              full-width row; clicking it drops a full-width dropdown strip below, never a cramped box. */}
-          <InlineFilterBar
-            className="mb-2"
-            filters={[
-              { key: "agent", label: "Agent", options: agents.map(a => ({ value: a, label: agentByRaw(a).name.replace(" Agent", "") })) },
-              { key: "type", label: "Type", options: types.map(t => ({ value: t, label: t.replace(/_/g, " ") })) },
-              { key: "risk", label: "Risk", options: [{ value: "high", label: "High", dot: RISK_DOT.high }, { value: "medium", label: "Medium", dot: RISK_DOT.medium }, { value: "low", label: "Low", dot: RISK_DOT.low }] },
-              ...(assignees.length > 0 ? [{ key: "reviewer", label: "Reviewer", options: [{ value: "__none", label: "Unassigned" }, ...assignees.map(a => ({ value: a, label: memberLabel(memberList, a) ?? "Assigned" }))] }] : []),
-            ]}
-            values={{ agent: agentFilter ?? "", type: typeFilter ?? "", risk: riskFilter ?? "", reviewer: assigneeFilter ?? "" }}
-            onChange={(k, v) => {
-              if (k === "agent") setAgentFilter(v || null);
-              else if (k === "type") setTypeFilter(v || null);
-              else if (k === "risk") setRiskFilter((v || null) as Decision["risk_level"] | null);
-              else if (k === "reviewer") setAssigneeFilter(v || null);
-            }}
-          />
+          {/* Filter strip — the app-standard records-sheet pattern: appears flush + full-width below the
+              toolbar ONLY when the Filter button is toggled on. No wasted space when closed. */}
+          {filterOpen && (
+            <FilterStrip
+              className="mb-2"
+              filters={[
+                { key: "agent", label: "Agent", options: agents.map(a => ({ value: a, label: agentByRaw(a).name.replace(" Agent", "") })) },
+                { key: "type", label: "Type", options: types.map(t => ({ value: t, label: t.replace(/_/g, " ") })) },
+                { key: "risk", label: "Risk", options: [{ value: "high", label: "High", dot: RISK_DOT.high }, { value: "medium", label: "Medium", dot: RISK_DOT.medium }, { value: "low", label: "Low", dot: RISK_DOT.low }] },
+                ...(assignees.length > 0 ? [{ key: "reviewer", label: "Reviewer", options: [{ value: "__none", label: "Unassigned" }, ...assignees.map(a => ({ value: a, label: memberLabel(memberList, a) ?? "Assigned" }))] }] : []),
+              ]}
+              values={{ agent: agentFilter ?? "", type: typeFilter ?? "", risk: riskFilter ?? "", reviewer: assigneeFilter ?? "" }}
+              onChange={(k, v) => {
+                if (k === "agent") setAgentFilter(v || null);
+                else if (k === "type") setTypeFilter(v || null);
+                else if (k === "risk") setRiskFilter((v || null) as Decision["risk_level"] | null);
+                else if (k === "reviewer") setAssigneeFilter(v || null);
+              }}
+            />
+          )}
 
           {/* Contextual second line — ONLY when filters are active or an AI ranking has a summary. */}
           {(() => {

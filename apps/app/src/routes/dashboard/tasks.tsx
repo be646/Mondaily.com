@@ -9,7 +9,7 @@ import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useIsViewer } from "../../hooks/useModules";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { apiClient } from "../../lib/api-client";
-import { FieldSelect, InlineFilterBar } from "../../components/ui/controls";
+import { FieldSelect, FilterButton, FilterStrip } from "../../components/ui/controls";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
 import { useLanguage } from "../../hooks/useLanguage";
 
@@ -404,6 +404,7 @@ export function TasksPage() {
   const [sortDir, setSortDir]             = useState<"asc" | "desc">("desc");
   const [labelOpen, setLabelOpen]         = useState(false);
   const [sortOpen, setSortOpen]           = useState(false);
+  const [filterOpen, setFilterOpen]       = useState(false);
   const [editTask, setEditTask]           = useState<Task | null>(null);
   const [viewMode, setViewMode]           = useState<"list" | "board" | "sheet">("list");
   const [highlightId, setHighlightId]     = useState<string | null>(null);
@@ -606,11 +607,14 @@ export function TasksPage() {
             </div>
           )}
         </div>
+
+        <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={[labelFilter, priorityFilter].filter(Boolean).length} />
       </div>
 
-      {/* Filter — app-standard inline strip (records-sheet pattern): Filter button on its own row,
-          full-width dropdown strip drops below. Not crammed into the toolbar. */}
-      <InlineFilterBar
+      {/* Filter strip — records-sheet pattern: thin full-width strip appears flush below the toolbar
+          ONLY when the Filter button is toggled on. No wasted space when closed. */}
+      {filterOpen && (
+      <FilterStrip
         className="mb-4"
         filters={[
           { key: "label", label: "Label", options: [
@@ -631,6 +635,7 @@ export function TasksPage() {
         values={{ label: labelFilter, priority: priorityFilter }}
         onChange={(k, v) => { if (k === "label") setLabelFilter(v); else setPriorityFilter(v); }}
       />
+      )}
 
       {/* ── LIST VIEW ── */}
       {viewMode === "list" && (

@@ -598,64 +598,47 @@ export function MetricGrid({ items, cols = 3, className }: { items: MetricItem[]
   );
 }
 
-// ─── InlineFilterBar ──────────────────────────────────────────────────────────
-// The ONE app-wide filter pattern — same behaviour as the records sheet: a "Filter"
-// button that toggles an INLINE row of dropdowns (opens in place, not a floating
-// menu / separate page), with removable active-filter chips + Clear all. Retrofit
-// this onto every page that filters a list so filtering feels identical everywhere.
+// ─── Filter (records-sheet pattern) ───────────────────────────────────────────
+// Two decoupled pieces so every page filters EXACTLY like the records sheet: a compact
+// FilterButton that sits inline in the toolbar (no wasted row), and a thin full-width
+// FilterStrip that appears flush below only when open. The page owns the open state so
+// the button stays in the toolbar while the strip spans full width — like the sheet.
 export interface InlineFilterDef {
   key: string;
   label: string;                                   // e.g. "Agent", "Risk"
   options: { value: string; label: string; dot?: string }[];
 }
-export function InlineFilterBar({ filters, values, onChange, defaultOpen = false, extra, className }: {
+
+/** Compact toolbar toggle — place it inline with the page's other toolbar controls. */
+export function FilterButton({ open, onToggle, activeCount = 0, className }: { open: boolean; onToggle: () => void; activeCount?: number; className?: string }) {
+  const lit = open || activeCount > 0;
+  return (
+    <button onClick={onToggle} className={cx("inline-flex h-7 items-center gap-1.5 rounded-sm border px-2.5 text-[11.5px] font-medium transition-colors", className)}
+      style={lit ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+      <Filter size={12} /> Filter
+      {activeCount > 0 && <span className="tabular-nums rounded-full px-1.5 text-[9.5px]" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>{activeCount}</span>}
+    </button>
+  );
+}
+
+/** Thin full-width filter strip — render it (conditionally, when open) directly below the toolbar so
+ *  it spans the content width like the records sheet. Each dropdown carries its own inline label. */
+export function FilterStrip({ filters, values, onChange, extra, className }: {
   filters: InlineFilterDef[];
   values: Record<string, string>;                  // key → selected value ("" = All)
   onChange: (key: string, value: string) => void;
-  defaultOpen?: boolean;
-  extra?: ReactNode;                               // optional extra control rendered in the bar (e.g. a search box)
+  extra?: ReactNode;
   className?: string;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
-  const active = filters.filter(f => values[f.key]);
-  const labelFor = (f: InlineFilterDef) => f.options.find(o => o.value === values[f.key])?.label ?? values[f.key];
+  const anyActive = filters.some(f => values[f.key]);
   return (
-    <div className={className}>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <button
-          onClick={() => setOpen(o => !o)}
-          className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
-          style={open || active.length > 0
-            ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" }
-            : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
-        >
-          <Filter size={12} /> Filter
-          {active.length > 0 && <span className="tabular-nums rounded-full px-1.5 text-[9.5px]" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>{active.length}</span>}
-        </button>
-        {/* Active-filter chips — removable, always visible so the state is obvious even when the bar is closed. */}
-        {active.map(f => (
-          <span key={f.key} className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-            <span style={{ color: "var(--text-faint)" }}>{f.label}:</span> {labelFor(f)}
-            <button onClick={() => onChange(f.key, "")} className="ml-0.5" style={{ color: "var(--text-faint)" }} aria-label={`Clear ${f.label}`}><X size={10} /></button>
-          </span>
-        ))}
-        {active.length > 0 && (
-          <button onClick={() => filters.forEach(f => onChange(f.key, ""))} className="text-[11px] transition-colors hover:text-[var(--text-primary)]" style={{ color: "var(--text-faint)" }}>Clear all</button>
-        )}
-      </div>
-      {/* Inline dropdown row — opens in place under the button (the records-sheet behaviour). */}
-      {open && (
-        <div className="mt-2 flex flex-wrap items-end gap-2 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-          {filters.map(f => (
-            <label key={f.key} className="flex flex-col gap-1">
-              <span className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{f.label}</span>
-              <MenuSelect value={values[f.key] ?? ""} onChange={v => onChange(f.key, v || "")} allLabel={`All ${f.label.toLowerCase()}`} maxWidth={170}
-                options={f.options.map(o => ({ value: o.value, label: o.label, dot: o.dot }))} />
-            </label>
-          ))}
-          {extra}
-        </div>
-      )}
+    <div className={cx("flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-sm border px-2.5 py-1.5", className)} style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      {filters.map(f => (
+        <MenuSelect key={f.key} label={f.label} value={values[f.key] ?? ""} onChange={v => onChange(f.key, v || "")} allLabel={`All ${f.label.toLowerCase()}`} maxWidth={180}
+          options={f.options.map(o => ({ value: o.value, label: o.label, dot: o.dot }))} />
+      ))}
+      {extra}
+      {anyActive && <button onClick={() => filters.forEach(f => onChange(f.key, ""))} className="ml-auto text-[11px] transition-colors hover:text-[var(--text-primary)]" style={{ color: "var(--text-faint)" }}>Clear all</button>}
     </div>
   );
 }
