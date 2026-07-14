@@ -190,7 +190,7 @@ function CategoryCell({ value, onSave }: {
       {/* Display */}
       <div className="flex items-center gap-1 flex-wrap cursor-pointer" onClick={() => setOpen(o => !o)}>
         {cats.length === 0
-          ? <span className="text-stone-700 text-xs hover:text-stone-500 transition-colors">+ category</span>
+          ? <span className="text-xs transition-colors" style={{ color: "var(--text-faint)" }}>+ category</span>
           : <>
               {cats.slice(0, MAX).map((cat) => {
                 const t = INDUSTRY_TAXONOMY.find(x => x.name === cat.name) ?? INDUSTRY_TAXONOMY[0]!;
@@ -409,15 +409,15 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
   );
 }
 
-// ─── Stage / Status colours — matte semantic tones (flat-line design system) ─────────────────────
-// One tint-based style per tone works in both light and dark mode (opacity tints over the surface).
-// slate = in-flight/informational, green = success, amber = attention, rose = problem, stone = neutral.
+// ─── Stage / Status colours — semantic tones that actually READ (success is clearly green, problem is
+// clearly red), while staying tasteful (soft tint fills, not neon). Tint + dual light/dark text keeps
+// them legible in both themes. slate = in-flight/info, green = success, amber = attention, red = problem.
 const TONE_PILL = {
-  stone: { pill: "bg-stone-500/[.08] text-stone-500 border-stone-500/20 dark:text-stone-400", dot: "bg-stone-500" },
-  slate: { pill: "bg-[#717784]/10 text-[#5d6470] border-[#717784]/25 dark:text-[#8d94a1]",    dot: "bg-[#717784]" },
-  green: { pill: "bg-[#5f8169]/10 text-[#4d6a56] border-[#5f8169]/25 dark:text-[#7fa189]",    dot: "bg-[#5f8169]" },
-  amber: { pill: "bg-[#97824f]/10 text-[#7d6b3e] border-[#97824f]/25 dark:text-[#b3a06f]",    dot: "bg-[#97824f]" },
-  rose:  { pill: "bg-[#9c6b72]/10 text-[#84555c] border-[#9c6b72]/25 dark:text-[#b98d94]",    dot: "bg-[#9c6b72]" },
+  stone: { pill: "bg-stone-500/[.10] text-stone-600 border-stone-500/25 dark:text-stone-300",  dot: "bg-stone-500" },
+  slate: { pill: "bg-[#5b6bb0]/12 text-[#47569c] border-[#5b6bb0]/30 dark:text-[#97a4e2]",      dot: "bg-[#5b6bb0]" },
+  green: { pill: "bg-[#2f9e6b]/14 text-[#1f7d52] border-[#2f9e6b]/35 dark:text-[#56c78e]",      dot: "bg-[#2f9e6b]" },
+  amber: { pill: "bg-[#c6892e]/15 text-[#9a6a1f] border-[#c6892e]/35 dark:text-[#dcac60]",      dot: "bg-[#c6892e]" },
+  rose:  { pill: "bg-[#d1524a]/14 text-[#b2382f] border-[#d1524a]/35 dark:text-[#ed8b84]",      dot: "bg-[#d1524a]" },
 } as const;
 const STAGE_STYLES: Record<string, { pill: string; dot: string }> = {
   "Lead":         TONE_PILL.stone,
@@ -445,7 +445,9 @@ export const DEFAULT_STATUS_OPTIONS = [
 ];
 
 export function stageStyle(value: string) {
-  return STAGE_STYLES[value] ?? { pill: "bg-stone-900/60 text-stone-400 border-stone-700/50", dot: "bg-stone-500" };
+  // Unknown values fall back to the neutral stone tone (works in BOTH themes — the old dark-only
+  // bg-stone-900 fallback was invisible/wrong in light mode).
+  return STAGE_STYLES[value] ?? TONE_PILL.stone;
 }
 
 // Clickable stage pill — opens a dropdown to change the value inline
