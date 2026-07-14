@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
-import { FieldSelect } from "../../../components/ui/controls";
+import { FieldSelect, FilterButton, FilterStrip } from "../../../components/ui/controls";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import {
   Plus, Search, Car, Monitor, Coffee, Zap, Briefcase, Building2, MoreHorizontal, Receipt,
@@ -35,7 +35,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
   draft:     { label: "Draft",     color: "text-stone-400 bg-stone-400/10",     icon: Receipt      },
   submitted: { label: "Submitted", color: "text-[#717784] bg-[#717784]/10",     icon: Clock        },
   approved:  { label: "Approved",  color: "text-[#2f9e6b] bg-[#2f9e6b]/10", icon: CheckCircle2 },
-  rejected:  { label: "Rejected",  color: "text-stone-400 bg-stone-400/10",       icon: XCircle      },
+  rejected:  { label: "Rejected",  color: "text-[#d1524a] bg-[#d1524a]/10",       icon: XCircle      },
 };
 
 const CATEGORIES = Object.entries(CATEGORY_CONFIG).map(([k, v]) => ({ key: k, label: v.label }));
@@ -144,6 +144,7 @@ export function ExpensesPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const { display, sumInDisplay } = useCurrency();
 
   const { data: expenses = [], isLoading, isError, refetch } = useQuery<Expense[]>({
@@ -201,24 +202,23 @@ export function ExpensesPage() {
           </div>
         </div>
 
+        {/* Toolbar — records-sheet filter pattern (same as Decisions/Tasks): a Filter button
+            toggles a thin category strip below, replacing the old wall of category buttons. */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-1 flex-wrap">
-            <button onClick={() => setCategoryFilter("")}
-              className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${categoryFilter === "" ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
-              All
-            </button>
-            {CATEGORIES.map(c => (
-              <button key={c.key} onClick={() => setCategoryFilter(c.key)}
-                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${categoryFilter === c.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
-                {c.label}
-              </button>
-            ))}
-          </div>
           <div className="relative flex-1 max-w-xs">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"/>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search expenses…" className="key-input w-full pl-7 text-[12px]"/>
           </div>
+          <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={categoryFilter ? 1 : 0} />
         </div>
+        {filterOpen && (
+          <FilterStrip
+            className="mt-2"
+            filters={[{ key: "category", label: "Category", options: CATEGORIES.map(c => ({ value: c.key, label: c.label })) }]}
+            values={{ category: categoryFilter }}
+            onChange={(_k, v) => setCategoryFilter(v)}
+          />
+        )}
       </div>
 
       <div className="flex-1 overflow-auto">

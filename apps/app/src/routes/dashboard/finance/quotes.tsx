@@ -5,7 +5,7 @@ import { FieldSelect } from "../../../components/ui/controls";
 import { apiClient } from "../../../lib/api-client";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import {
-  Plus, Search, ReceiptText, Clock, CheckCircle2, XCircle, Send, ChevronRight,
+  Plus, Search, ReceiptText, Clock, CheckCircle2, XCircle, Send,
 } from "lucide-react";
 
 type QuoteStatus = "draft" | "sent" | "accepted" | "declined" | "expired";
@@ -26,7 +26,7 @@ const STATUS_CONFIG: Record<QuoteStatus, { label: string; color: string; icon: R
   draft:    { label: "Draft",    color: "text-stone-400 bg-stone-400/10",     icon: ReceiptText   },
   sent:     { label: "Sent",     color: "text-[#717784] bg-[#717784]/10",     icon: Send          },
   accepted: { label: "Accepted", color: "text-[#2f9e6b] bg-[#2f9e6b]/10", icon: CheckCircle2 },
-  declined: { label: "Declined", color: "text-stone-400 bg-stone-400/10",       icon: XCircle       },
+  declined: { label: "Declined", color: "text-[#d1524a] bg-[#d1524a]/10",       icon: XCircle       },
   expired:  { label: "Expired",  color: "text-stone-600 bg-stone-600/10",     icon: Clock         },
 };
 
@@ -218,7 +218,7 @@ export function QuotesPage() {
           <table className="minimal-table">
             <thead>
               <tr className="border-b border-[var(--border-soft)]">
-                {["Number", "Client", "Amount", "Status", "Expires", "Created", ""].map(h => (
+                {["Number", "Client", "Amount", "Status", "Expires", "Created"].map(h => (
                   <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-[var(--text-secondary)]">{h}</th>
                 ))}
               </tr>
@@ -243,9 +243,6 @@ export function QuotesPage() {
                     </td>
                     <td className="px-4 py-3 text-[11px] text-[var(--text-secondary)]">
                       {new Date(q.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                    </td>
-                    <td className="px-4 py-3">
-                      <ChevronRight size={13} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors"/>
                     </td>
                   </tr>
                 );

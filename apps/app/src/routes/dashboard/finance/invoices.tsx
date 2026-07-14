@@ -28,7 +28,7 @@ const STATUS_CONFIG: Record<InvoiceStatus, { label: string; color: string; icon:
   sent:      { label: "Sent",      color: "text-[#717784] bg-[#717784]/10",     icon: Send },
   viewed:    { label: "Viewed",    color: "text-stone-400 bg-stone-400/10", icon: Clock },
   paid:      { label: "Paid",      color: "text-[#2f9e6b] bg-[#2f9e6b]/10", icon: CheckCircle },
-  overdue:   { label: "Overdue",   color: "text-stone-400 bg-stone-400/10",       icon: AlertTriangle },
+  overdue:   { label: "Overdue",   color: "text-[#c6892e] bg-[#c6892e]/10",       icon: AlertTriangle },
   cancelled: { label: "Cancelled", color: "text-stone-600 bg-stone-600/10",     icon: XCircle },
 };
 
