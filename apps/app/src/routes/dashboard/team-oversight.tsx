@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, Printer } from "lucide-react";
+import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare, Users, ChevronRight, History, Sparkles, Send, Phone, Video, Printer, Target, Plus, Trash2 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
 import { FieldSelect, CommandPageHeader, MetricGrid, DossierSection } from "../../components/ui/controls";
@@ -63,6 +63,24 @@ const EFF_LABEL: Record<EffRating, { label: string; tone: string }> = {
   needs_support: { label: "Needs support", tone: "#97824f" },
   insufficient:  { label: "Not enough data", tone: "var(--text-faint)" },
 };
+
+// ── Advanced intelligence (GET /activities/oversight-advanced) ──
+interface LeadTime { avg_days: number | null; on_time_rate: number | null; sample: number }
+interface CycleTime { avg_hours: number | null; sample: number }
+interface CompareRow { operator_id: string; activity_now: number; activity_prev: number; ai_now: number; ai_prev: number }
+interface AdvancedResp {
+  days: number;
+  comparison: CompareRow[];
+  velocity: { team: { task_lead: LeadTime; decision_cycle: CycleTime }; per_member: { operator_id: string; task_lead: LeadTime; decision_cycle: CycleTime }[] };
+  collaboration: { from: string; to: string; count: number }[];
+}
+// ── Goals (GET/POST/DELETE /activities/goals) ──
+type GoalMetric = "tasks_completed" | "decisions_resolved" | "deals_won" | "records_touched" | "ai_credits";
+const GOAL_METRIC_LABEL: Record<GoalMetric, string> = {
+  tasks_completed: "Tasks completed", decisions_resolved: "Decisions resolved", deals_won: "Deals won", records_touched: "Records touched", ai_credits: "AI credits",
+};
+interface Goal { id: string; scope: "member" | "team"; target_user_id: string | null; metric: GoalMetric; target_value: number; window_days: number; label: string | null; actual: number; attainment_pct: number }
+interface GoalsResp { goals: Goal[]; available: boolean }
 
 const VERDICT: Record<Verdict, { label: string; tone: string }> = {
   engaged:         { label: "Engaged",        tone: "#5f8169" },
@@ -198,13 +216,14 @@ function OverviewTiles({ trends, periodLabel }: { trends: NonNullable<MatrixResp
 
 /** Full-width team roster — a real leaderboard table (Member · Tasks · Records · Decisions · AI
  *  credits bar · verdict), sorted, dense, scannable. Click a row to open that member's profile. */
-const ROSTER_COLS = "grid-cols-[1fr_auto] sm:grid-cols-[minmax(0,1.6fr)_4rem_4.5rem_5rem_minmax(96px,1fr)_1.25rem]";
-function RosterTable({ operators, selectedId, onSelect, detailFor }: { operators: Operator[]; selectedId: string | null; onSelect: (id: string | null) => void; detailFor: (op: Operator) => React.ReactNode }) {
+const ROSTER_COLS = "grid-cols-[1fr_auto] sm:grid-cols-[minmax(0,1.6fr)_3.5rem_4rem_4.5rem_5rem_minmax(96px,1fr)_1.25rem]";
+function RosterTable({ operators, selectedId, onSelect, detailFor, compareBy }: { operators: Operator[]; selectedId: string | null; onSelect: (id: string | null) => void; detailFor: (op: Operator) => React.ReactNode; compareBy?: Map<string, CompareRow> }) {
   const maxTokens = Math.max(1, ...operators.map(o => o.tokens));
   return (
     <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <div className={`hidden items-center gap-3 border-b px-4 py-2 text-[10px] font-semibold uppercase tracking-wide sm:grid ${ROSTER_COLS}`} style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
         <span>Member</span>
+        <span className="text-right">Trend</span>
         <span className="text-right">Tasks</span>
         <span className="text-right">Records</span>
         <span className="text-right">Decisions</span>
@@ -233,6 +252,7 @@ function RosterTable({ operators, selectedId, onSelect, detailFor }: { operators
                   </div>
                 </div>
               </div>
+              <span className="hidden justify-self-end sm:block">{(() => { const c = compareBy?.get(op.operator_id); return c ? <Trend now={c.activity_now} prev={c.activity_prev} /> : <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>—</span>; })()}</span>
               <span className="hidden text-right text-[12.5px] tabular-nums sm:block" style={{ color: "var(--text-secondary)" }}>{fmt(op.task_count)}</span>
               <span className="hidden text-right text-[12.5px] tabular-nums sm:block" style={{ color: "var(--text-secondary)" }}>{fmt(op.records_touched ?? 0)}</span>
               <span className="hidden text-right text-[12.5px] tabular-nums sm:block" style={{ color: "var(--text-secondary)" }}>{fmt(op.decisions_resolved ?? 0)}</span>
@@ -311,6 +331,221 @@ function OversightAsk() {
   );
 }
 
+// A small up/down/flat trend chip from two real counts (this window vs. the previous equal window).
+function Trend({ now, prev }: { now: number; prev: number }) {
+  if (prev === 0 && now === 0) return <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>—</span>;
+  const delta = now - prev;
+  const pct = prev > 0 ? Math.round((delta / prev) * 100) : 100;
+  const up = delta > 0, flat = delta === 0;
+  const tone = flat ? "var(--text-faint)" : up ? "#5f8169" : "#9c6b72";
+  return (
+    <span className="inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums" style={{ color: tone }} title={`${now} this period vs ${prev} previous`}>
+      {flat ? "→" : up ? "↑" : "↓"}{flat ? "" : `${Math.abs(pct)}%`}
+    </span>
+  );
+}
+
+/** Team-health read — a synthesized, source-backed headline from the real matrix (never a fake score). */
+function teamHealth(operators: Operator[]) {
+  const completed = operators.reduce((s, o) => s + (o.completed_tasks ?? 0), 0);
+  const open = operators.reduce((s, o) => s + (o.open_tasks ?? 0), 0);
+  const overdue = operators.reduce((s, o) => s + (o.overdue_tasks ?? 0), 0);
+  const decisions = operators.reduce((s, o) => s + (o.decisions_resolved ?? 0), 0);
+  const activeToday7 = operators.filter(o => activeToday(o.last_active_at)).length;
+  const completionRate = completed + open > 0 ? Math.round((completed / (completed + open)) * 100) : null;
+  const activeRatio = operators.length ? Math.round((activeToday7 / operators.length) * 100) : 0;
+  // Qualitative read from real signals — concentration of overdue + completion + engagement.
+  const risk = overdue >= 5 || (completionRate != null && completionRate < 40);
+  const strong = (completionRate ?? 0) >= 70 && overdue <= 1 && activeRatio >= 50;
+  const tone = risk ? "#9c6b72" : strong ? "#5f8169" : "#97824f";
+  const read = risk ? "Attention needed" : strong ? "Healthy" : "Steady";
+  return { read, tone, completionRate, open, overdue, decisions, activeRatio, activeToday7 };
+}
+
+/** Zone 1 — Team Health hero: one synthesized read + the real inputs + the evaluation distribution. */
+function TeamHealthHero({ operators, adv }: { operators: Operator[]; adv?: AdvancedResp }) {
+  const h = teamHealth(operators);
+  // Evaluation distribution across the team (from the source-backed per-member evaluation labels).
+  const dist = useMemo(() => {
+    const m = new Map<string, { label: string; tone: EvalLabel["tone"]; count: number }>();
+    for (const o of operators) { if (!o.evaluation) continue; const k = o.evaluation.label; const e = m.get(k) ?? { label: k, tone: o.evaluation.tone, count: 0 }; e.count++; m.set(k, e); }
+    return [...m.values()].sort((a, b) => b.count - a.count);
+  }, [operators]);
+  // Period-over-period team activity direction (real, from the advanced comparison).
+  const dir = useMemo(() => {
+    if (!adv) return null;
+    const now = adv.comparison.reduce((s, c) => s + c.activity_now, 0);
+    const prev = adv.comparison.reduce((s, c) => s + c.activity_prev, 0);
+    return { now, prev };
+  }, [adv]);
+  const Stat = ({ label, value, tone }: { label: string; value: string; tone?: string }) => (
+    <div><div className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</div><div className="mt-0.5 text-[15px] font-semibold tabular-nums" style={{ color: tone ?? "var(--text-primary)" }}>{value}</div></div>
+  );
+  return (
+    <div className="mb-4 rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-sm" style={{ background: `color-mix(in srgb, ${h.tone} 14%, transparent)` }}><ShieldCheck size={17} style={{ color: h.tone }} /></span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[15px] font-semibold" style={{ color: h.tone }}>{h.read}</span>
+              {dir && <Trend now={dir.now} prev={dir.prev} />}
+            </div>
+            <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>team health · this period</div>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <Stat label="Completion" value={h.completionRate != null ? `${h.completionRate}%` : "—"} />
+          <Stat label="Overdue" value={String(h.overdue)} tone={h.overdue > 0 ? "#97824f" : undefined} />
+          <Stat label="Active today" value={`${h.activeToday7}/${operators.length}`} tone="#5f8169" />
+          <Stat label="Decisions" value={String(h.decisions)} />
+        </div>
+      </div>
+      {dist.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Evaluation</span>
+          {dist.map(d => (
+            <span key={d.label} className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ color: EVAL_TONE[d.tone], background: `color-mix(in srgb, ${EVAL_TONE[d.tone]} 12%, transparent)` }}>
+              {d.count} {d.label.toLowerCase()}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Real cycle-time velocity (team) — task lead time + on-time rate, decision cycle time. Honest nulls. */
+function VelocityStrip({ adv }: { adv: AdvancedResp }) {
+  const v = adv.velocity.team;
+  const tiles = [
+    { label: "Avg task lead time", value: v.task_lead.avg_days != null ? `${v.task_lead.avg_days}d` : "—", sub: v.task_lead.sample ? `${v.task_lead.sample} completed` : "no completed tasks yet" },
+    { label: "On-time completion", value: v.task_lead.on_time_rate != null ? `${v.task_lead.on_time_rate}%` : "—", sub: v.task_lead.on_time_rate != null ? "of tasks with a due date" : "no due dates set" },
+    { label: "Avg decision cycle", value: v.decision_cycle.avg_hours != null ? `${v.decision_cycle.avg_hours}h` : "—", sub: v.decision_cycle.sample ? `${v.decision_cycle.sample} resolved` : "none resolved yet" },
+  ];
+  return (
+    <div className="mb-6 grid grid-cols-1 gap-px overflow-hidden rounded-sm border sm:grid-cols-3" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+      {tiles.map(t => (
+        <div key={t.label} className="px-4 py-3" style={{ background: "var(--surface-card)" }}>
+          <div className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t.label}</div>
+          <div className="mt-1 text-[20px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{t.value}</div>
+          <div className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>{t.sub}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Workload balance + attention: who's overloaded, and who's going quiet — real derived signals. */
+function WorkloadAttention({ operators, onSelect }: { operators: Operator[]; onSelect: (id: string) => void }) {
+  const overloaded = operators.map(o => ({ o, load: (o.open_tasks ?? 0) + (o.overdue_tasks ?? 0) })).filter(r => r.load >= 5).sort((a, b) => b.load - a.load).slice(0, 5);
+  const inactive = operators.filter(o => { const d = o.last_active_at ? Math.floor((Date.now() - new Date(o.last_active_at).getTime()) / 86_400_000) : null; return d != null && d >= 7; })
+    .map(o => ({ o, days: Math.floor((Date.now() - new Date(o.last_active_at!).getTime()) / 86_400_000) })).sort((a, b) => b.days - a.days).slice(0, 5);
+  if (overloaded.length === 0 && inactive.length === 0) return null;
+  return (
+    <div className="mb-6 grid gap-3 md:grid-cols-2">
+      <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        <div className="mb-2 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Heaviest workload</div>
+        {overloaded.length === 0 ? <p className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>No one is carrying an unusually heavy load.</p> : overloaded.map(({ o, load }) => (
+          <button key={o.operator_id} onClick={() => onSelect(o.operator_id)} className="flex w-full items-center justify-between gap-2 py-1 text-left transition-colors hover:opacity-80">
+            <span className="truncate text-[12px]" style={{ color: "var(--text-secondary)" }}>{o.name}</span>
+            <span className="shrink-0 text-[11px] tabular-nums" style={{ color: (o.overdue_tasks ?? 0) > 0 ? "#97824f" : "var(--text-faint)" }}>{load} open{(o.overdue_tasks ?? 0) > 0 ? ` · ${o.overdue_tasks} overdue` : ""}</span>
+          </button>
+        ))}
+      </div>
+      <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        <div className="mb-2 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Going quiet <span className="font-normal" style={{ color: "var(--text-faint)" }}>· 7+ days idle</span></div>
+        {inactive.length === 0 ? <p className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>Everyone has been active in the last week.</p> : inactive.map(({ o, days }) => (
+          <button key={o.operator_id} onClick={() => onSelect(o.operator_id)} className="flex w-full items-center justify-between gap-2 py-1 text-left transition-colors hover:opacity-80">
+            <span className="truncate text-[12px]" style={{ color: "var(--text-secondary)" }}>{o.name}</span>
+            <span className="shrink-0 text-[11px] tabular-nums" style={{ color: "#97824f" }}>{days}d idle</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Zone 2 — Goals: owner-set targets against REAL metrics, with live attainment. Fail-closed when the
+ *  goals table isn't enabled yet (pending migration) — the feature is discoverable but honest. */
+function GoalsPanel({ operators }: { operators: Operator[] }) {
+  const goalsQ = useQuery<GoalsResp>({ queryKey: ["oversight-goals"], queryFn: () => apiClient.get<GoalsResp>("/activities/goals"), retry: false });
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<{ scope: "member" | "team"; target_user_id: string; metric: GoalMetric; target_value: string; window_days: string }>(
+    { scope: "member", target_user_id: operators[0]?.operator_id ?? "", metric: "tasks_completed", target_value: "", window_days: "30" });
+  const create = useMutation({
+    mutationFn: () => apiClient.post("/activities/goals", { scope: form.scope, target_user_id: form.scope === "team" ? null : form.target_user_id, metric: form.metric, target_value: Number(form.target_value), window_days: Number(form.window_days) }),
+    onSuccess: () => { setOpen(false); setForm(f => ({ ...f, target_value: "" })); goalsQ.refetch(); },
+  });
+  const del = useMutation({ mutationFn: (id: string) => apiClient.delete(`/activities/goals/${id}`), onSuccess: () => goalsQ.refetch() });
+  const goals = goalsQ.data?.goals ?? [];
+  const nameOf = (id: string | null) => id ? (operators.find(o => o.operator_id === id)?.name ?? "Member") : "Whole team";
+  const available = goalsQ.data?.available !== false;
+  const canSubmit = Number(form.target_value) > 0 && (form.scope === "team" || !!form.target_user_id);
+
+  return (
+    <div className="mb-6 rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="flex items-center justify-between border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+        <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}><Target size={13} style={{ color: "var(--section-accent)" }} /> Goals &amp; targets</span>
+        {available && <button onClick={() => setOpen(o => !o)} className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><Plus size={11} /> {open ? "Cancel" : "Add goal"}</button>}
+      </div>
+      {!available ? (
+        <p className="px-4 py-3 text-[11.5px]" style={{ color: "var(--text-faint)" }}>Team goals activate once the goals table is enabled on this deployment (a pending migration). Every target tracks a real metric — nothing is fabricated.</p>
+      ) : (
+        <>
+          {open && (
+            <div className="flex flex-wrap items-end gap-2 border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+              <label className="flex flex-col gap-1"><span className="text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Scope</span>
+                <div className="w-28"><FieldSelect value={form.scope} onChange={v => setForm(f => ({ ...f, scope: v as "member" | "team" }))} ariaLabel="Scope" options={[{ value: "member", label: "Member" }, { value: "team", label: "Whole team" }]} /></div>
+              </label>
+              {form.scope === "member" && (
+                <label className="flex flex-col gap-1"><span className="text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Member</span>
+                  <div className="w-40"><FieldSelect value={form.target_user_id} onChange={v => setForm(f => ({ ...f, target_user_id: v }))} ariaLabel="Member" options={operators.map(o => ({ value: o.operator_id, label: o.name }))} /></div>
+                </label>
+              )}
+              <label className="flex flex-col gap-1"><span className="text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Metric</span>
+                <div className="w-44"><FieldSelect value={form.metric} onChange={v => setForm(f => ({ ...f, metric: v as GoalMetric }))} ariaLabel="Metric" options={(Object.keys(GOAL_METRIC_LABEL) as GoalMetric[]).map(m => ({ value: m, label: GOAL_METRIC_LABEL[m] }))} /></div>
+              </label>
+              <label className="flex flex-col gap-1"><span className="text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Target</span>
+                <input value={form.target_value} onChange={e => setForm(f => ({ ...f, target_value: e.target.value.replace(/[^0-9]/g, "") }))} inputMode="numeric" placeholder="0" className="h-8 w-20 rounded-sm border bg-transparent px-2 text-[12.5px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+              </label>
+              <label className="flex flex-col gap-1"><span className="text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Window</span>
+                <div className="w-24"><FieldSelect value={form.window_days} onChange={v => setForm(f => ({ ...f, window_days: v }))} ariaLabel="Window" options={[{ value: "7", label: "7 days" }, { value: "30", label: "30 days" }, { value: "90", label: "90 days" }]} /></div>
+              </label>
+              <button onClick={() => create.mutate()} disabled={!canSubmit || create.isPending} className="btn-primary h-8 px-3 text-[11.5px] font-semibold disabled:opacity-50">{create.isPending ? <Loader2 size={12} className="animate-spin" /> : "Set goal"}</button>
+              {create.isError && <span className="text-[10.5px]" style={{ color: "#9c6b72" }}>Couldn't save — check the target.</span>}
+            </div>
+          )}
+          {goals.length === 0 ? (
+            <p className="px-4 py-3 text-[11.5px]" style={{ color: "var(--text-faint)" }}>No targets set yet. Add a goal to track real attainment (tasks completed, decisions, deals won, records, or AI credits) per member or for the whole team.</p>
+          ) : (
+            <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+              {goals.map(g => {
+                const pct = g.attainment_pct; const tone = pct >= 100 ? "#5f8169" : pct >= 60 ? "var(--section-accent)" : pct >= 30 ? "#97824f" : "#9c6b72";
+                return (
+                  <div key={g.id} className="flex items-center gap-3 px-4 py-2.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{nameOf(g.target_user_id)}</span>
+                        <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>{GOAL_METRIC_LABEL[g.metric]} · {g.window_days}d</span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="h-1.5 w-40 max-w-full overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}><span className="block h-full rounded-full" style={{ width: `${Math.max(3, pct)}%`, background: tone }} /></span>
+                        <span className="text-[11px] tabular-nums" style={{ color: tone }}>{g.actual}/{g.target_value} · {pct}%</span>
+                      </div>
+                    </div>
+                    <button onClick={() => del.mutate(g.id)} title="Remove goal" className="btn-icon h-7 w-7" style={{ color: "var(--text-faint)" }}><Trash2 size={12} /></button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export function TeamOversightPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
@@ -323,6 +558,17 @@ export function TeamOversightPage() {
     refetchInterval: 30_000,
     retry: false,
   });
+  // Advanced intelligence (velocity / collaboration / comparison) — lazy, admin-only, real.
+  const advancedQ = useQuery<AdvancedResp>({
+    queryKey: ["oversight-advanced", days],
+    queryFn: () => apiClient.get<AdvancedResp>(`/activities/oversight-advanced?days=${days}`),
+    retry: false,
+  });
+  const compareBy = useMemo(() => {
+    const m = new Map<string, CompareRow>();
+    for (const c of advancedQ.data?.comparison ?? []) m.set(c.operator_id, c);
+    return m;
+  }, [advancedQ.data]);
   const forbidden = isError && /\b403\b|forbidden/i.test(String((error as Error | null)?.message ?? ""));
 
   const operators = useMemo(() => (Array.isArray(data?.operators) ? data!.operators : []), [data]);
@@ -370,8 +616,11 @@ export function TeamOversightPage() {
       {/* ── Slim AI ask bar, pinned right under the header ── */}
       {operators.length > 0 && <OversightAsk />}
 
+      {/* ── ZONE 1 · Team Health hero — one synthesized read + inputs + evaluation distribution ── */}
+      {operators.length > 0 && <div className="mt-3"><TeamHealthHero operators={operators} adv={advancedQ.data} /></div>}
+
       {/* ── One compact summary line (real counts) ── */}
-      <div className="mb-4 mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
+      <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
         <span className="inline-flex items-center gap-1.5"><Users size={13} style={{ color: "var(--text-faint)" }} /><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{totals?.operators ?? operators.length}</strong> member{(totals?.operators ?? operators.length) === 1 ? "" : "s"}</span>
         <span><strong className="tabular-nums" style={{ color: "#5f8169" }}>{activeTodayCount}</strong> active today</span>
         <span><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{fmt(totalTasks)}</strong> tasks</span>
@@ -380,6 +629,11 @@ export function TeamOversightPage() {
 
       {/* ── Unified overview tiles — number + inline sparkline, Home-style ── */}
       {data?.trends && <OverviewTiles trends={data.trends} periodLabel={`${days}d`} />}
+
+      {/* ── ZONE 2 · Velocity (real cycle times) + workload balance + goals ── */}
+      {advancedQ.data && operators.length > 0 && <VelocityStrip adv={advancedQ.data} />}
+      {operators.length > 1 && <WorkloadAttention operators={operators} onSelect={select} />}
+      {operators.length > 0 && <GoalsPanel operators={operators} />}
 
       {/* ── Team distributions — only meaningful with 2+ members (hidden for a solo workspace) ── */}
       {operators.length > 1 && <TeamCharts operators={operators} onSelect={select} />}
@@ -398,8 +652,8 @@ export function TeamOversightPage() {
           <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>Activity and AI usage appear here as members work. <Link to="/settings/members" className="font-medium hover:underline" style={{ color: "var(--section-accent)" }}>Invite members</Link>.</p>
         </div>
       ) : (
-        <RosterTable operators={operators} selectedId={selectedId} onSelect={select}
-          detailFor={(op) => <MemberDetail op={op} />} />
+        <RosterTable operators={operators} selectedId={selectedId} onSelect={select} compareBy={compareBy}
+          detailFor={(op) => <MemberDetail op={op} adv={advancedQ.data} />} />
       )}
     </div>
   );
@@ -407,10 +661,12 @@ export function TeamOversightPage() {
 
 
 /** In-page member dossier — identity, metrics, AI behaviour, activity chart + timeline, actions. */
-function MemberDetail({ op }: { op: Operator }) {
+function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
   const navigate = useNavigate();
   const v = VERDICT[op.verdict];
   const scope = `${op.name}${op.email ? ` (${op.email})` : ""}`;
+  // This member's real velocity (task lead / decision cycle) from the advanced payload, if present.
+  const myVel = adv?.velocity.per_member.find(m => m.operator_id === op.operator_id) ?? null;
 
   const timelineQ = useQuery<{ activity: ActivityRow[] }>({
     queryKey: ["oversight-actor", op.operator_id],
@@ -542,6 +798,17 @@ function MemberDetail({ op }: { op: Operator }) {
             { label: "Won", value: fmt(op.deals_won ?? 0), tone: "#5f8169" },
             { label: "Lost", value: fmt(op.deals_lost ?? 0), tone: "#9c6b72" },
             { label: "Updated", value: fmt(op.deals_updated ?? 0) },
+          ]} />
+        </div>
+      )}
+
+      {/* Per-member velocity — real cycle times, honest nulls (only when the advanced payload is loaded) */}
+      {myVel && (myVel.task_lead.sample > 0 || myVel.decision_cycle.sample > 0) && (
+        <div className="px-4 pb-3.5">
+          <MetricGrid cols={3} items={[
+            { label: "Task lead time", value: myVel.task_lead.avg_days != null ? `${myVel.task_lead.avg_days}d` : "—" },
+            { label: "On-time", value: myVel.task_lead.on_time_rate != null ? `${myVel.task_lead.on_time_rate}%` : "—" },
+            { label: "Decision cycle", value: myVel.decision_cycle.avg_hours != null ? `${myVel.decision_cycle.avg_hours}h` : "—" },
           ]} />
         </div>
       )}
