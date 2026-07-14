@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FieldSelect } from "../../../components/ui/controls";
+import { FinanceListToolbar } from "../../../components/finance/finance-toolbar";
 import { apiClient } from "../../../lib/api-client";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import {
-  Plus, Search, ReceiptText, Clock, CheckCircle2, XCircle, Send,
+  Plus, ReceiptText, Clock, CheckCircle2, XCircle, Send,
 } from "lucide-react";
 
 type QuoteStatus = "draft" | "sent" | "accepted" | "declined" | "expired";
@@ -187,20 +188,9 @@ export function QuotesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-1">
-            {FILTERS.map(f => (
-              <button key={f.key} onClick={() => setStatusFilter(f.key)}
-                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${statusFilter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
-                {f.label}
-              </button>
-            ))}
-          </div>
-          <div className="relative flex-1 max-w-xs">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"/>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by client…" className="key-input w-full pl-7 text-[12px]"/>
-          </div>
-        </div>
+        {/* Filters + search — shared finance toolbar (identical on every finance list page) */}
+        <FinanceListToolbar tabs={FILTERS} activeTab={statusFilter} onTab={setStatusFilter}
+          search={search} onSearch={setSearch} placeholder="Search by client…" />
       </div>
 
       <div className="flex-1 overflow-auto">

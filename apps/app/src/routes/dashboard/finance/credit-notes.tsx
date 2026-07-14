@@ -4,10 +4,11 @@ import { LogoMark } from "@/components/logo";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
-import { FieldSelect, MetricGrid, type MetricItem } from "../../../components/ui/controls";
+import { FieldSelect } from "../../../components/ui/controls";
+import { FinanceListToolbar } from "../../../components/finance/finance-toolbar";
 import { EmptyState, ErrorState, ConsoleSkeleton, DelayedLoading } from "../../../components/ui/page-state";
 import {
-  Plus, Search, ReceiptText, Clock, CheckCircle2,
+  Plus, ReceiptText, Clock, CheckCircle2,
   XCircle, ChevronRight,
 } from "lucide-react";
 
@@ -194,34 +195,31 @@ export function CreditNotesPage() {
           </button>
         </div>
 
-        {/* Key totals — ONE shared MetricGrid (same primitive as Decisions/Team Oversight) instead
-            of three fragmented divider-heavy cards. All values counted/summed from the loaded rows;
-            the old third card duplicated the Executed figure and is gone. */}
+        {/* Key totals — the same telemetry-strip 3-card KPI used across the finance pages
+            (Quotes / Expenses / Approvals), so credit notes no longer look like the odd one out. */}
         {creditNotes.length > 0 && (
-          <MetricGrid className="mb-4" cols={3} items={([
-            { label: `Pending review · ${creditNotes.filter(n => n.status === "pending_review").length}`, value: formatMoney(totalPending, currency), tone: totalPending > 0 ? "#c6892e" : undefined, title: "Sum of credit notes awaiting review" },
-            { label: `Executed · ${creditNotes.filter(n => n.status === "executed").length}`, value: formatMoney(totalExecuted, currency), tone: totalExecuted > 0 ? "#2f9e6b" : undefined, title: "Credit actually issued" },
-            { label: mixedCurrency ? `All notes · shown in ${display}` : "All notes", value: creditNotes.length, title: "Every credit note in this view" },
-          ] as MetricItem[])} />
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+            <div className="telemetry-strip">
+              <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-[#c6892e]"/><span className="text-[11px] text-[var(--text-muted)]">Pending review</span></div>
+              <div className="text-[17px] font-semibold" style={{ color: totalPending > 0 ? "#c6892e" : "var(--text-primary)" }}>{formatMoney(totalPending, currency)}</div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{creditNotes.filter(n => n.status === "pending_review").length} awaiting review</div>
+            </div>
+            <div className="telemetry-strip">
+              <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#2f9e6b]"/><span className="text-[11px] text-[var(--text-muted)]">Executed</span></div>
+              <div className="text-[17px] font-semibold" style={{ color: totalExecuted > 0 ? "#2f9e6b" : "var(--text-primary)" }}>{formatMoney(totalExecuted, currency)}</div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{creditNotes.filter(n => n.status === "executed").length} credit issued</div>
+            </div>
+            <div className="telemetry-strip">
+              <div className="flex items-center gap-1.5 mb-1"><ReceiptText size={11} className="text-[var(--text-muted)]"/><span className="text-[11px] text-[var(--text-muted)]">All notes</span></div>
+              <div className="text-[17px] font-semibold text-[var(--text-primary)]">{creditNotes.length}</div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{mixedCurrency ? `shown in ${display}` : "all statuses"}</div>
+            </div>
+          </div>
         )}
 
-        {/* Filters + search — same segmented-tab pattern as Meeting Memory/Calendar (the active
-            pill previously used the same token as the track, so the selection was invisible). */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex flex-wrap rounded-md border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
-            {FILTERS.map(f => (
-              <button key={f.key} onClick={() => setStatusFilter(f.key)}
-                className="rounded-[3px] px-2.5 py-1 text-[11.5px] font-medium transition-colors"
-                style={statusFilter === f.key ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
-                {f.label}
-              </button>
-            ))}
-          </div>
-          <div className="relative flex-1 max-w-xs">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"/>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by client or reason…" className="key-input w-full pl-7 text-[12px]"/>
-          </div>
-        </div>
+        {/* Filters + search — shared finance toolbar (identical on every finance list page) */}
+        <FinanceListToolbar tabs={FILTERS} activeTab={statusFilter} onTab={setStatusFilter}
+          search={search} onSearch={setSearch} placeholder="Search by client or reason…" />
       </div>
 
       {/* Table — finance reading order: who/why/state on the left, the MONEY right-aligned in

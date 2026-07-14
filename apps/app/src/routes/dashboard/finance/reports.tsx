@@ -275,7 +275,7 @@ export function FinanceReportsPage() {
                 <XAxis dataKey="name" tick={{ fill: "var(--text-faint)", fontSize: 11 }} axisLine={false} tickLine={false}/>
                 <YAxis tick={{ fill: "var(--text-faint)", fontSize: 11 }} axisLine={false} tickLine={false} width={60}
                   tickFormatter={v => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)}/>
-                <Tooltip {...TOOLTIP_STYLE} formatter={(v: number) => fmt(v, currency)}/>
+                <Tooltip {...TOOLTIP_STYLE} cursor={{ fill: "var(--surface-hover)", opacity: 0.5 }} formatter={(v: number) => fmt(v, currency)}/>
                 <Legend wrapperStyle={{ fontSize: 11, color: "var(--text-muted)" }}/>
                 <Bar dataKey="Billed" fill="var(--text-muted)" radius={[0, 0, 0, 0]}/>
                 <Bar dataKey="Collected" fill="var(--text-primary)" radius={[0, 0, 0, 0]}/>
@@ -294,22 +294,24 @@ export function FinanceReportsPage() {
               {topClients.length === 0 ? (
                 <div className="px-4 py-6 text-center text-[12px] text-[var(--text-muted)]">No invoice data</div>
               ) : (
-                <table className="minimal-table">
+                /* Numbers right-aligned + nowrap + tight padding so wide currency values never clip
+                   against the card edge; the low-value count column is dropped so money always fits. */
+                <table className="minimal-table w-full">
                   <thead>
                     <tr>
-                      {["Client", "Billed", "Paid", "Outstanding", "#"].map(h => (
-                        <th key={h} className="px-3 py-2 text-left text-[10px] font-medium">{h}</th>
-                      ))}
+                      <th className="!px-3 !py-2 text-left text-[10px] font-medium">Client</th>
+                      <th className="!px-2 !py-2 text-right text-[10px] font-medium">Billed</th>
+                      <th className="!px-2 !py-2 text-right text-[10px] font-medium">Paid</th>
+                      <th className="!px-3 !py-2 text-right text-[10px] font-medium">Outstanding</th>
                     </tr>
                   </thead>
                   <tbody>
                     {topClients.map(c => (
                       <tr key={c.name}>
-                        <td className="max-w-[100px] truncate px-3 py-2.5 text-[11px] font-medium text-[var(--text-primary)]">{c.name}</td>
-                        <td className="px-3 py-2.5 text-[11px] text-[var(--text-secondary)]">{fmt(c.billed, currency)}</td>
-                        <td className="px-3 py-2.5 text-[11px] text-[var(--text-secondary)]">{fmt(c.paid, currency)}</td>
-                        <td className="px-3 py-2.5 text-[11px] text-[#c6892e]">{fmt(c.outstanding, currency)}</td>
-                        <td className="px-3 py-2.5 text-[11px] text-[var(--text-faint)]">{c.count}</td>
+                        <td className="max-w-[120px] truncate !px-3 !py-2.5 text-[11px] font-medium text-[var(--text-primary)]">{c.name}</td>
+                        <td className="!px-2 !py-2.5 text-right text-[11px] tabular-nums whitespace-nowrap text-[var(--text-secondary)]">{fmt(c.billed, currency)}</td>
+                        <td className="!px-2 !py-2.5 text-right text-[11px] tabular-nums whitespace-nowrap text-[var(--text-secondary)]">{fmt(c.paid, currency)}</td>
+                        <td className="!px-3 !py-2.5 text-right text-[11px] tabular-nums whitespace-nowrap text-[#c6892e]">{fmt(c.outstanding, currency)}</td>
                       </tr>
                     ))}
                   </tbody>

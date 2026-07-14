@@ -5,7 +5,8 @@ import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { useCurrency } from "../../../hooks/useCurrency";
 import { FinanceAgentStrip } from "../../../components/ai/finance-agent-strip";
-import { Plus, Search, FileText, Clock, CheckCircle, AlertTriangle, XCircle, Send, DollarSign } from "lucide-react";
+import { Plus, FileText, Clock, CheckCircle, AlertTriangle, XCircle, Send, DollarSign } from "lucide-react";
+import { FinanceListToolbar } from "../../../components/finance/finance-toolbar";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
 
@@ -133,29 +134,9 @@ export function InvoicesPage() {
           </div>
         </div>
 
-        {/* Filters + search */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-1">
-            {FILTERS.map(f => (
-              <button
-                key={f.key}
-                onClick={() => setStatusFilter(f.key)}
-                className={`rounded-md px-2.5 py-1 text-[11px] transition-colors ${statusFilter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-          <div className="relative flex-1 max-w-xs">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"/>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search invoices…"
-              className="key-input w-full pl-7 text-[12px]"
-            />
-          </div>
-        </div>
+        {/* Filters + search — shared finance toolbar (identical on every finance list page) */}
+        <FinanceListToolbar tabs={FILTERS} activeTab={statusFilter} onTab={setStatusFilter}
+          search={search} onSearch={setSearch} placeholder="Search invoices…" />
       </div>
 
       {/* Table */}
