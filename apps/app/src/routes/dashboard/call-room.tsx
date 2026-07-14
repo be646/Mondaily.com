@@ -291,7 +291,7 @@ function CallRoom({ event }: { event: CalEvent }) {
           <ToolBtn on={camOn} onClick={toggleCam} label={t("cal.camera")} onIcon={<Video size={18} className="text-white" />} offIcon={<VideoOff size={18} className="text-white" />} />
           <ToolBtn on={!sharing} neutral onClick={toggleShare} label={sharing ? t("cal.stop_share") : t("cal.share_screen")} onIcon={<MonitorUp size={18} className={sharing ? "text-[color:var(--section-accent)]" : "text-white"} />} offIcon={<MonitorUp size={18} className="text-white" />} />
           <ToolBtn on={!showDevices} neutral onClick={() => { setShowDevices(s => !s); refreshDevices(); }} label={t("cal.devices")} onIcon={<Settings2 size={18} className="text-white" />} offIcon={<Settings2 size={18} className="text-white" />} />
-          <button onClick={leave} aria-label={t("cal.leave")} title={t("cal.leave")} className="flex h-11 items-center gap-2 rounded-full bg-[#9c6b72] px-5"><PhoneOff size={18} className="text-white" /><span className="text-[13px] font-medium text-white">{t("cal.leave")}</span></button>
+          <button onClick={leave} aria-label={t("cal.leave")} title={t("cal.leave")} className="flex h-11 items-center gap-2 rounded-full bg-[#d1524a] px-5"><PhoneOff size={18} className="text-white" /><span className="text-[13px] font-medium text-white">{t("cal.leave")}</span></button>
         </div>
       </div>
     );
@@ -351,7 +351,7 @@ function CallRoom({ event }: { event: CalEvent }) {
                 className="flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-[14px] font-semibold text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
                 <Video size={15} /> {t("cal.join_call")}
               </button>
-              {phase === "error" && <p className="mt-2 text-center text-[12px]" style={{ color: "#9c6b72" }}>{t("cal.connect_failed")}</p>}
+              {phase === "error" && <p className="mt-2 text-center text-[12px]" style={{ color: "#d1524a" }}>{t("cal.connect_failed")}</p>}
             </>
           )}
         </div>
@@ -361,7 +361,7 @@ function CallRoom({ event }: { event: CalEvent }) {
 }
 
 function StatusPill({ cancelled, enabled, readyLabel, offLabel, cancelledLabel }: { cancelled: boolean; enabled: boolean; readyLabel: string; offLabel: string; cancelledLabel: string }) {
-  const [label, dot, color] = cancelled ? [cancelledLabel, "#9c6b72", "#9c6b72"] : !enabled ? [offLabel, "var(--text-faint)", "var(--text-muted)"] : [readyLabel, "#5f8169", "#5f8169"];
+  const [label, dot, color] = cancelled ? [cancelledLabel, "#d1524a", "#d1524a"] : !enabled ? [offLabel, "var(--text-faint)", "var(--text-muted)"] : [readyLabel, "#2f9e6b", "#2f9e6b"];
   return (
     <span className="flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color }}>
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: dot }} /> {label}
@@ -378,7 +378,7 @@ function Avatar({ name, size }: { name: string; size: number }) {
 }
 
 function ToolBtn({ on, neutral, onClick, label, onIcon, offIcon }: { on: boolean; neutral?: boolean; onClick: () => void; label: string; onIcon: React.ReactNode; offIcon: React.ReactNode }) {
-  const bg = neutral ? "rgba(255,255,255,0.12)" : on ? "rgba(255,255,255,0.12)" : "#9c6b72";
+  const bg = neutral ? "rgba(255,255,255,0.12)" : on ? "rgba(255,255,255,0.12)" : "#d1524a";
   return <button onClick={onClick} aria-label={label} title={label} className="flex h-11 w-11 items-center justify-center rounded-full" style={{ background: bg }}>{on ? onIcon : offIcon}</button>;
 }
 

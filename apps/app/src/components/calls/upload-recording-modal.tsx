@@ -74,7 +74,7 @@ export function UploadRecordingModal({ onClose, onDone }: { onClose: () => void;
             <span>I confirm I have consent from all participants to upload and transcribe this recording.</span>
           </label>
 
-          {error && <p className="text-[12px]" style={{ color: "#9c6b72" }}>{error}</p>}
+          {error && <p className="text-[12px]" style={{ color: "#d1524a" }}>{error}</p>}
 
           <button onClick={upload} disabled={!file || !consent || busy}
             className="flex w-full items-center justify-center gap-1.5 rounded-sm px-4 py-2 text-[12.5px] font-semibold text-black disabled:opacity-50"

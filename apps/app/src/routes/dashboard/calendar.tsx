@@ -89,9 +89,9 @@ function layoutDay(evs: CalEvent[], startH: number, endH: number): Placed[] {
 // "AI-prepared" tone here because the event list carries no per-event prep signal (stays neutral).
 const TONE = {
   slate: { edge: "#717784", tint: "rgba(113,119,132,0.07)" },
-  green: { edge: "#5f8169", tint: "rgba(95,129,105,0.07)" },
-  amber: { edge: "#97824f", tint: "rgba(151,130,79,0.07)" },
-  rose:  { edge: "#9c6b72", tint: "rgba(156,107,114,0.08)" },
+  green: { edge: "#2f9e6b", tint: "rgba(47, 158, 107,0.07)" },
+  amber: { edge: "#c6892e", tint: "rgba(198, 137, 46,0.07)" },
+  rose:  { edge: "#d1524a", tint: "rgba(209, 82, 74,0.08)" },
 } as const;
 const FINANCE_RE = /\b(invoice|billing|payment|finance|budget|quote|renewal|pricing)\b/i;
 const EXTERNAL_RE = /\b(client|customer|external|prospect|demo|onboard\w*|kickoff|vendor|partner|intro)\b/i;
@@ -575,7 +575,7 @@ function TodayBriefingPanel({ onOpen, onFollowups }: { onOpen: (id: string) => v
           ) : attention.map(a => (
             <button key={a.id} onClick={() => onOpen(a.id)} className="flex w-full items-center justify-between gap-2 px-4 py-1.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
               <span className="min-w-0 truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{a.title}</span>
-              <span className="flex shrink-0 items-center gap-1">{a.tags.map((tag, i) => <span key={i} className="rounded-sm px-1.5 py-px text-[10px] font-medium" style={{ background: "rgba(151,130,79,0.14)", color: AMBER }}>{tag}</span>)}</span>
+              <span className="flex shrink-0 items-center gap-1">{a.tags.map((tag, i) => <span key={i} className="rounded-sm px-1.5 py-px text-[10px] font-medium" style={{ background: "rgba(198, 137, 46,0.14)", color: AMBER }}>{tag}</span>)}</span>
             </button>
           ))}
 
@@ -623,7 +623,7 @@ function TodayStrip({ onOpen, selectedId, events, onCreate, onDraft, onFollowups
   const q = useQuery<TodayBrief>({ queryKey: ["calendar-brief-today"], queryFn: () => apiClient.get("/calendar/brief/today"), retry: false });
   const b = q.data;
   if (q.isLoading || !b) return <div className="h-[72px] animate-pulse rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }} />;
-  const AMBER = "#a2854f", GREEN = "#5f8169";
+  const AMBER = "#a2854f", GREEN = "#2f9e6b";
   const todays = [...events].sort((a, b2) => new Date(a.start_at).getTime() - new Date(b2.start_at).getTime());
 
   const Stat = ({ icon, n, label, tone }: { icon: React.ReactNode; n: number; label: string; tone?: string }) => (

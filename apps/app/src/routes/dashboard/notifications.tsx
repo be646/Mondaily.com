@@ -129,7 +129,7 @@ export function NotificationsPage() {
                         }}
                       >
                         {isRisk && !n.is_read
-                          ? <ShieldAlert size={14} className="mt-1 shrink-0 text-[#97824f]" />
+                          ? <ShieldAlert size={14} className="mt-1 shrink-0 text-[#c6892e]" />
                           : <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: !n.is_read ? "var(--section-accent)" : "transparent" }} />}
 
                         <button className="min-w-0 flex-1 text-left" onClick={() => handleClick(n)}>
@@ -145,12 +145,12 @@ export function NotificationsPage() {
                         <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                           {!n.is_read && (
                             <button onClick={() => markRead.mutate(n.id)} title="Mark read"
-                              className="rounded-md p-1.5 text-[var(--text-secondary)] transition-colors hover:text-[#5f8169]">
+                              className="rounded-md p-1.5 text-[var(--text-secondary)] transition-colors hover:text-[#2f9e6b]">
                               <Check size={12} />
                             </button>
                           )}
                           <button onClick={() => deleteOne.mutate(n.id)} title="Delete"
-                            className="rounded-md p-1.5 text-[var(--text-secondary)] transition-colors hover:text-[#9c6b72]">
+                            className="rounded-md p-1.5 text-[var(--text-secondary)] transition-colors hover:text-[#d1524a]">
                             <Trash2 size={12} />
                           </button>
                         </div>

@@ -414,7 +414,7 @@ export function AccountSettings() {
                 </div>
               </div>
             )}
-            {pwMsg && <p className={`mt-3 text-xs ${pwMsg.ok ? "text-[#5f8169]" : "text-[#9c6b72]"}`}>{pwMsg.text}</p>}
+            {pwMsg && <p className={`mt-3 text-xs ${pwMsg.ok ? "text-[#2f9e6b]" : "text-[#d1524a]"}`}>{pwMsg.text}</p>}
         </SettingsSection>
       )}
 
@@ -430,7 +430,7 @@ export function AccountSettings() {
                   <p className="mt-0.5 text-xs text-[var(--text-muted)]">{account?.email ?? "Not connected"}</p>
                 </div>
                 {account ? (
-                  <button onClick={() => disconnect.mutate(account.id)} className="font-mono text-[10.5px] uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[#9c6b72]">[ TERMINATE LINK ]</button>
+                  <button onClick={() => disconnect.mutate(account.id)} className="font-mono text-[10.5px] uppercase tracking-wider text-[var(--text-muted)] transition-colors hover:text-[#d1524a]">[ TERMINATE LINK ]</button>
                 ) : (
                   <button onClick={() => connect(provider)} className="rounded-sm border px-3 py-1.5 font-mono text-[10.5px] uppercase tracking-wider text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }} onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--section-accent)")} onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-soft)")}>[ ESTABLISH SECURE HANDSHAKE ]</button>
                 )}
@@ -495,8 +495,8 @@ export function AccountSettings() {
           <button
             onClick={() => setDeleteOpen(true)}
             className="flex items-center gap-2 rounded-sm border px-3 py-2 text-sm font-medium transition-colors"
-            style={{ borderColor: "color-mix(in srgb, #9c6b72 45%, var(--border-soft))", color: "#9c6b72" }}
-            onMouseEnter={e => { e.currentTarget.style.background = "color-mix(in srgb, #9c6b72 10%, transparent)"; }}
+            style={{ borderColor: "color-mix(in srgb, #d1524a 45%, var(--border-soft))", color: "#d1524a" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "color-mix(in srgb, #d1524a 10%, transparent)"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "transparent"; }}
           >
             <Trash2 size={14} /> Delete account
@@ -529,7 +529,7 @@ export function AccountSettings() {
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder="DELETE" className="key-input mt-4 h-10 w-full px-3 text-sm" />
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={() => setDeleteOpen(false)} className="rounded-sm border border-[var(--border-soft)] px-4 py-2 text-sm text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
-              <button onClick={deleteAccount} disabled={deleteText !== "DELETE"} className="rounded-sm border border-[#9c6b72] bg-[color-mix(in_srgb,#9c6b72_16%,transparent)] px-4 py-2 text-sm font-semibold text-[#9c6b72] hover:bg-[color-mix(in_srgb,#9c6b72_24%,transparent)] disabled:opacity-40 transition-colors">Delete account</button>
+              <button onClick={deleteAccount} disabled={deleteText !== "DELETE"} className="rounded-sm border border-[#d1524a] bg-[color-mix(in_srgb,#d1524a_16%,transparent)] px-4 py-2 text-sm font-semibold text-[#d1524a] hover:bg-[color-mix(in_srgb,#d1524a_24%,transparent)] disabled:opacity-40 transition-colors">Delete account</button>
             </div>
           </div>
         </>

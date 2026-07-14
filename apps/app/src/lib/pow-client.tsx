@@ -54,7 +54,7 @@ const LABEL: Record<ShieldStatus, string> = {
 
 /** Subtle, low-profile terminal status line for the auth forms. */
 export function PowShieldLine({ status }: { status: ShieldStatus }) {
-  const color = status === "validated" ? "var(--accent)" : status === "solving" ? "#97824f" : "var(--text-faint)";
+  const color = status === "validated" ? "var(--accent)" : status === "solving" ? "#c6892e" : "var(--text-faint)";
   return (
     <p className="select-none font-mono text-[10.5px] tracking-wider" style={{ color }}>
       {LABEL[status]}

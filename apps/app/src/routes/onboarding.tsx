@@ -226,8 +226,8 @@ export function OnboardingPage() {
 
           {step === 4 && (
             <div className="py-4 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#5f8169]/10">
-                <CheckCircle2 size={24} className="text-[#5f8169]" />
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#2f9e6b]/10">
+                <CheckCircle2 size={24} className="text-[#2f9e6b]" />
               </div>
               <h1 className="mb-2 font-sans text-xl font-semibold tracking-tight text-zinc-900">You're all set!</h1>
               <p className="font-mono text-[12px] text-zinc-500">Your workspace is ready. Let's get started.</p>

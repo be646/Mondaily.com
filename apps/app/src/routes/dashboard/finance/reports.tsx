@@ -69,8 +69,8 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
   draft: "text-stone-500 dark:text-stone-500",
   sent: "text-stone-700 dark:text-stone-300",
   viewed: "text-stone-700 dark:text-stone-300",
-  paid: "text-[#5f8169]",
-  overdue: "text-[#97824f]",
+  paid: "text-[#2f9e6b]",
+  overdue: "text-[#c6892e]",
   cancelled: "text-stone-400 dark:text-stone-600",
 };
 
@@ -223,7 +223,7 @@ export function FinanceReportsPage() {
           <div className="telemetry-strip">
             <div>
               <div className="flex items-center gap-1.5 mb-2">
-                <TrendingUp size={11} className="text-[#5f8169]"/>
+                <TrendingUp size={11} className="text-[#2f9e6b]"/>
                 <span className="text-[11px] text-[var(--text-muted)]">Total Revenue</span>
               </div>
               <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(totalRevenue, currency)}</div>
@@ -231,7 +231,7 @@ export function FinanceReportsPage() {
             </div>
             <div>
               <div className="flex items-center gap-1.5 mb-2">
-                <Clock size={11} className="text-[#97824f]"/>
+                <Clock size={11} className="text-[#c6892e]"/>
                 <span className="text-[11px] text-[var(--text-muted)]">Outstanding</span>
               </div>
               <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(outstanding, currency)}</div>
@@ -250,7 +250,7 @@ export function FinanceReportsPage() {
                 <DollarSign size={11} className="text-[var(--text-faint)]"/>
                 <span className="text-[11px] text-[var(--text-muted)]">Net Revenue</span>
               </div>
-              <div className={`text-[20px] font-semibold tracking-tight ${netRevenue >= 0 ? "text-[var(--text-primary)]" : "text-[#97824f]"}`}>{fmt(netRevenue, currency)}</div>
+              <div className={`text-[20px] font-semibold tracking-tight ${netRevenue >= 0 ? "text-[var(--text-primary)]" : "text-[#c6892e]"}`}>{fmt(netRevenue, currency)}</div>
               <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">after credits</div>
             </div>
           </div>
@@ -299,7 +299,7 @@ export function FinanceReportsPage() {
                         <td className="max-w-[100px] truncate px-3 py-2.5 text-[11px] font-medium text-[var(--text-primary)]">{c.name}</td>
                         <td className="px-3 py-2.5 text-[11px] text-[var(--text-secondary)]">{fmt(c.billed, currency)}</td>
                         <td className="px-3 py-2.5 text-[11px] text-[var(--text-secondary)]">{fmt(c.paid, currency)}</td>
-                        <td className="px-3 py-2.5 text-[11px] text-[#97824f]">{fmt(c.outstanding, currency)}</td>
+                        <td className="px-3 py-2.5 text-[11px] text-[#c6892e]">{fmt(c.outstanding, currency)}</td>
                         <td className="px-3 py-2.5 text-[11px] text-[var(--text-faint)]">{c.count}</td>
                       </tr>
                     ))}

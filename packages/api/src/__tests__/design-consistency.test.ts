@@ -145,7 +145,7 @@ describe("agent cockpit is honest + matte (no per-agent rainbow, no bright hexes
     }
   });
   it("constellation uses the matte state palette", () => {
-    for (const matte of ["#5f8169", "#97824f", "#9c6b72"]) expect(constellation).toContain(matte);
+    for (const matte of ["#2f9e6b", "#c6892e", "#d1524a"]) expect(constellation).toContain(matte);
   });
   it("top bar uses themed CSS vars (no hardcoded light hexes) + squared controls", () => {
     expect(agentStatus).not.toMatch(/border-\[#e5e7eb\]/);
@@ -208,11 +208,11 @@ describe("one Mondaily design language (consolidation pass)", () => {
   });
   it("shared agent status dots/badges use the matte palette (no bright #d97706/#dc2626/#06b6d4)", () => {
     expect(stylesCss).not.toMatch(/agent-dot\[data-status="needs_approval"\]\s*\{\s*background:\s*#d97706/);
-    expect(stylesCss).toContain('.agent-dot[data-status="issue"]          { background: #9c6b72; }');
-    expect(stylesCss).toContain('.agent-dot[data-status="needs_approval"] { background: #97824f; }');
+    expect(stylesCss).toContain('.agent-dot[data-status="issue"]          { background: #d1524a; }');
+    expect(stylesCss).toContain('.agent-dot[data-status="needs_approval"] { background: #c6892e; }');
   });
   it("AIHealthScore uses matte semantic tones", () => {
-    expect(aiIntelligence).toContain('score >= 70 ? "#5f8169" : score >= 40 ? "#97824f" : "#9c6b72"');
+    expect(aiIntelligence).toContain('score >= 70 ? "#2f9e6b" : score >= 40 ? "#c6892e" : "#d1524a"');
   });
   it("no candy/bright hexes in key product surfaces (matte semantic only)", () => {
     for (const src of [aiIntelligence, commandCenter, aiControlRoom, home, decisions, discovery, teamOversight, boardView]) {
@@ -289,7 +289,7 @@ describe("structural adoption pass 2 (headers / settings frames / accent life)",
     expect(settingsAccount).not.toContain("settings-section");        // old CSS-class blocks gone
     expect(settingsAccount).not.toMatch(/linear-gradient|radial-gradient/); // hero gradient/orb removed
     // Danger zone signals danger via a rose delete action (not a weird tinted frame).
-    expect(settingsAccount).toContain('color: "#9c6b72"');
+    expect(settingsAccount).toContain('color: "#d1524a"');
     expect(settingsAccount).toContain("Delete account");
   });
   it("Account preserves every handler/action", () => {
@@ -642,8 +642,8 @@ describe("Settings-wide visual normalization", () => {
   });
   it("destructive Delete buttons use the shared rose danger tone, not a neutral fill", () => {
     expect(SETTINGS_SRC["account"]).toMatch(/Delete account<\/button>/);
-    expect(SETTINGS_SRC["account"]).toMatch(/border-\[#9c6b72\][\s\S]*Delete account/);
-    expect(SETTINGS_SRC["workspace"]).toMatch(/border-\[#9c6b72\][\s\S]*Delete workspace/);
+    expect(SETTINGS_SRC["account"]).toMatch(/border-\[#d1524a\][\s\S]*Delete account/);
+    expect(SETTINGS_SRC["workspace"]).toMatch(/border-\[#d1524a\][\s\S]*Delete workspace/);
   });
   it("primary Settings actions resolve to the shared accent model (accent-soft / btn-primary), preserving handlers", () => {
     // The former stone primaries now use the accent surface token used by btn-primary/MetricGrid.
@@ -695,8 +695,8 @@ describe("Primary-button unification (stone → shared accent model)", () => {
   });
   it("a destructive confirm mis-styled as neutral is now rose danger, not accent", () => {
     // The objects 'Yes, delete sheet' confirm must read as danger (rose), never the neutral/accent fill.
-    expect(read("routes/dashboard/objects/[objectType]/index.tsx")).toMatch(/border-\[#9c6b72\] bg-\[color-mix\(in_srgb,#9c6b72[^)]*\)\][^"]*Yes, delete sheet|Yes, delete sheet/);
-    expect(read("routes/dashboard/objects/[objectType]/index.tsx")).toMatch(/border border-\[#9c6b72\] bg-\[color-mix\(in_srgb,#9c6b72_16%/);
+    expect(read("routes/dashboard/objects/[objectType]/index.tsx")).toMatch(/border-\[#d1524a\] bg-\[color-mix\(in_srgb,#d1524a[^)]*\)\][^"]*Yes, delete sheet|Yes, delete sheet/);
+    expect(read("routes/dashboard/objects/[objectType]/index.tsx")).toMatch(/border border-\[#d1524a\] bg-\[color-mix\(in_srgb,#d1524a_16%/);
   });
   it("handlers preserved on converted surfaces (className-only change)", () => {
     expect(read("routes/dashboard/finance/quotes.tsx")).toMatch(/onClick|\.mutate/);
@@ -852,7 +852,7 @@ describe("Team Oversight — member dossier composition + honest activity langua
     expect(teamOversight).not.toContain("live · real activity");
     expect(teamOversight).not.toContain("live now");
     // 'active session' wording is gated on the REAL has_session flag; otherwise real last-active age.
-    expect(teamOversight).toMatch(/op\.has_session \? <span style=\{\{ color: "#5f8169" \}\}> · active session<\/span> : <span> · \{ago\(op\.last_active_at\)\}<\/span>/);
+    expect(teamOversight).toMatch(/op\.has_session \? <span style=\{\{ color: "#2f9e6b" \}\}> · active session<\/span> : <span> · \{ago\(op\.last_active_at\)\}<\/span>/);
   });
   it("expanded-panel behavior preserved: message, call gating, print, tabs, insight, efficiency", () => {
     for (const h of [

@@ -167,7 +167,7 @@ export function ReportsPage() {
               // Real widget composition (live / chart / other) — heights proportional to actual counts,
               // not decorative noise.
               const comp = [
-                { n: liveCount, color: "#5f8169" },
+                { n: liveCount, color: "#2f9e6b" },
                 { n: reportCount, color: "var(--text-secondary)" },
                 { n: otherCount, color: "var(--border-strong)" },
               ].filter(x => x.n > 0);
@@ -192,7 +192,7 @@ export function ReportsPage() {
                         {/* Widget type badges */}
                         <div className="mb-2 flex gap-1.5">
                           {liveCount > 0 && (
-                            <span className="rounded-sm border border-[#5f8169]/25 bg-[#5f8169]/10 px-2 py-0.5 text-[10px] font-medium text-[#5f8169]">
+                            <span className="rounded-sm border border-[#2f9e6b]/25 bg-[#2f9e6b]/10 px-2 py-0.5 text-[10px] font-medium text-[#2f9e6b]">
                               {liveCount} live
                             </span>
                           )}

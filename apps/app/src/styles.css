@@ -210,8 +210,8 @@ html[data-btnstyle="accent"] { --btn-solid-bg: var(--accent); --btn-solid-fg: #f
 .agent-dot { position: relative; display: inline-flex; height: 0.5rem; width: 0.5rem; border-radius: 9999px; flex-shrink: 0; }
 .agent-dot[data-status="idle"]           { background: var(--text-faint); }
 .agent-dot[data-status="working"]        { background: var(--accent); }
-.agent-dot[data-status="needs_approval"] { background: #97824f; }
-.agent-dot[data-status="issue"]          { background: #9c6b72; }
+.agent-dot[data-status="needs_approval"] { background: #c6892e; }
+.agent-dot[data-status="issue"]          { background: #d1524a; }
 .agent-dot[data-status="draft_ready"]    { background: #717784; }
 .agent-dot[data-status="working"]::before {
   content: "";
@@ -239,8 +239,8 @@ html[data-btnstyle="accent"] { --btn-solid-bg: var(--accent); --btn-solid-fg: #f
 }
 .agent-badge[data-status="idle"]           { color: var(--text-muted); background: var(--surface-hover); }
 .agent-badge[data-status="working"]        { color: var(--accent); background: rgba(138,133,125,0.14); }
-.agent-badge[data-status="needs_approval"] { color: #97824f; background: rgba(151,130,79,0.12); }
-.agent-badge[data-status="issue"]          { color: #9c6b72; background: rgba(156,107,114,0.12); }
+.agent-badge[data-status="needs_approval"] { color: #c6892e; background: rgba(198, 137, 46,0.12); }
+.agent-badge[data-status="issue"]          { color: #d1524a; background: rgba(209, 82, 74,0.12); }
 .agent-badge[data-status="draft_ready"]    { color: #717784; background: rgba(113,119,132,0.12); }
 html.dark .agent-badge[data-status="needs_approval"], html[data-theme="dark"] .agent-badge[data-status="needs_approval"] { color: #b3a06a; }
 html.dark .agent-badge[data-status="issue"], html[data-theme="dark"] .agent-badge[data-status="issue"] { color: #bd8f95; }

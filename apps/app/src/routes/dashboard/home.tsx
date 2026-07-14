@@ -146,7 +146,7 @@ interface WorkspaceSummary {
 
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 };
 const PRIORITY_STYLE: Record<string, string> = {
-  urgent: "border border-[#97824f]/30 bg-[#97824f]/10 text-[#97824f] dark:text-[#97824f]",
+  urgent: "border border-[#c6892e]/30 bg-[#c6892e]/10 text-[#c6892e] dark:text-[#c6892e]",
   high:   "border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300",
   medium: "border border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300",
   low:    "border border-stone-200 bg-stone-50 text-stone-500 dark:border-stone-800 dark:bg-stone-950 dark:text-stone-500",
@@ -612,7 +612,7 @@ export function HomePage() {
       </div>
 
       {showWorkspaceRecovery && populatedWorkspace && (
-        <div className="mb-4 rounded-sm px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4" style={{ background: "color-mix(in srgb, #97824f 8%, var(--surface-card))", border: "1px solid color-mix(in srgb, #97824f 25%, var(--border-soft))" }}>
+        <div className="mb-4 rounded-sm px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4" style={{ background: "color-mix(in srgb, #c6892e 8%, var(--surface-card))", border: "1px solid color-mix(in srgb, #c6892e 25%, var(--border-soft))" }}>
           <div>
             <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>You may be viewing an empty workspace.</p>
             <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
@@ -628,7 +628,7 @@ export function HomePage() {
       {/* ── Ask Mondaily — frameless console: suggestions/messages plus the
           actual input bar. No outer card around the whole area. ── */}
       {(notificationsQuery.isError || decisionsQuery.isError) && (
-        <div className="mb-4 rounded-sm border border-[#97824f]/25 bg-[#97824f]/[.07] px-4 py-3 text-sm text-[#97824f]">
+        <div className="mb-4 rounded-sm border border-[#c6892e]/25 bg-[#c6892e]/[.07] px-4 py-3 text-sm text-[#c6892e]">
           Could not load activity. Some agent and decision signals may be missing.
         </div>
       )}
@@ -640,8 +640,8 @@ export function HomePage() {
             <h2 className="text-[26px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {firstName}</h2>
             <p className="mt-1.5 text-[15px]" style={{ color: "var(--text-muted)" }}>What do you want to get done today?</p>
             <div className="mt-3 flex items-center gap-4">
-              <span className="status-line"><span className="live-dot" style={{ background: graphSynced ? "var(--section-accent)" : "#97824f" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
-              <span className="status-line"><span className="live-dot" style={{ background: sourcesChecked ? "var(--section-accent)" : "#97824f" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+              <span className="status-line"><span className="live-dot" style={{ background: graphSynced ? "var(--section-accent)" : "#c6892e" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
+              <span className="status-line"><span className="live-dot" style={{ background: sourcesChecked ? "var(--section-accent)" : "#c6892e" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
             </div>
           </div>
         )}
@@ -661,7 +661,7 @@ export function HomePage() {
           const nextStart = starts.length ? Math.min(...starts) : null;
           const seg: { label: string; to: string; tone: string }[] = [];
           if (pending) seg.push({ label: `${pending} need${pending === 1 ? "s" : ""} approval`, to: "/decisions", tone: "var(--section-accent)" });
-          if (overdue) seg.push({ label: `${overdue} overdue`, to: "/tasks", tone: "#9c6b72" });
+          if (overdue) seg.push({ label: `${overdue} overdue`, to: "/tasks", tone: "#d1524a" });
           if (nextStart) seg.push({ label: `Next meeting ${new Date(nextStart).toLocaleTimeString(loc.lang, { hour: "2-digit", minute: "2-digit" })}`, to: "/calendar", tone: "var(--text-secondary)" });
           if (seg.length === 0) return null;   // genuinely nothing pressing → keep the hero calm
           return (
@@ -1068,7 +1068,7 @@ export function HomePage() {
               <div className="py-4"><PageSkeleton rows={4} label="Loading tasks…"/></div>
             ) : tasksQuery.isError ? (
               <div className="py-4">
-                <div className="rounded-sm px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #97824f 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #97824f 24%, var(--border-soft))" }}>
+                <div className="rounded-sm px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #c6892e 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #c6892e 24%, var(--border-soft))" }}>
                   <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load tasks</p>
                   <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{(tasksQuery.error as Error)?.message || "The tasks API did not return data."}</p>
                   <button onClick={() => tasksQuery.refetch()} className="btn-suggested mt-3 !px-2.5 !py-1 !text-[11px]">Retry</button>
@@ -1090,7 +1090,7 @@ export function HomePage() {
                 }).slice(0, 6).map(item => {
                   const isOverdue = item.due_date && new Date(item.due_date) < new Date();
                   const assigneeName = getMemberName(item);
-                  const statusColor = item.status === "review" ? "bg-[#97824f]" : item.status === "done" ? "btn-solid dark:bg-stone-100" : item.status === "in_progress" ? "bg-stone-500 dark:bg-stone-400" : "bg-stone-300 dark:bg-stone-700";
+                  const statusColor = item.status === "review" ? "bg-[#c6892e]" : item.status === "done" ? "btn-solid dark:bg-stone-100" : item.status === "in_progress" ? "bg-stone-500 dark:bg-stone-400" : "bg-stone-300 dark:bg-stone-700";
                   return (
                     <li key={item.id} onClick={() => setDetailTask(item)}
                       className="flow-list-row group flex cursor-pointer items-center gap-3 transition-colors">
@@ -1101,7 +1101,7 @@ export function HomePage() {
                           <span className={`rounded-full px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[item.priority]}`}>{item.priority}</span>
                         )}
                         {item.due_date && (
-                          <span className="flex items-center gap-0.5 text-[11px]" style={{ color: isOverdue ? "#97824f" : "var(--text-faint)" }}>
+                          <span className="flex items-center gap-0.5 text-[11px]" style={{ color: isOverdue ? "#c6892e" : "var(--text-faint)" }}>
                             <Clock size={9}/>
                             {new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
@@ -1165,7 +1165,7 @@ export function HomePage() {
                   <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Meetings</span>
                   {calConnected && cal?.provider && (
                     <span className="flow-micro-badge" title={cal.email}>
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#5f8169" }}/> {cal.provider === "microsoft" ? "Outlook" : "Google"}
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#2f9e6b" }}/> {cal.provider === "microsoft" ? "Outlook" : "Google"}
                     </span>
                   )}
                 </div>
@@ -1216,7 +1216,7 @@ export function HomePage() {
                         {connectingCal === "microsoft" ? <Loader2 size={11} className="inline animate-spin"/> : "Connect Outlook"}
                       </button>
                     </div>
-                    {cal?.needs_reauth && <p className="mt-2 text-[10.5px]" style={{ color: "#97824f" }}>Reconnect needed — your calendar token expired.</p>}
+                    {cal?.needs_reauth && <p className="mt-2 text-[10.5px]" style={{ color: "#c6892e" }}>Reconnect needed — your calendar token expired.</p>}
                   </div>
                 )}
               </div>

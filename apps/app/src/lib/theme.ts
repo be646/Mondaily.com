@@ -17,7 +17,7 @@ export interface ThemeDef {
 }
 
 export const THEMES: ThemeDef[] = [
-  { id: "console",  label: "Console",  blurb: "Jet-black operations deck", swatch: ["#09090b", "#121214", "#5f8169"], isDark: true },
+  { id: "console",  label: "Console",  blurb: "Jet-black operations deck", swatch: ["#09090b", "#121214", "#2f9e6b"], isDark: true },
   { id: "paper",    label: "Paper",    blurb: "Warm cream document mode",  swatch: ["#f3ece0", "#faf5ec", "#4f7a5f"], isDark: false },
   { id: "daylight", label: "Daylight", blurb: "Pure white, high contrast", swatch: ["#ffffff", "#f7f7f5", "#1f8a6d"], isDark: false },
   { id: "rose",     label: "Rosé",     blurb: "Soft tonal pink",           swatch: ["#fbf0f1", "#fdf6f7", "#c64f74"], isDark: false },

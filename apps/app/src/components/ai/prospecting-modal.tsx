@@ -40,8 +40,8 @@ interface ProspectingRunResult {
 }
 
 const CONFIDENCE_STYLE: Record<ProspectCandidate["confidence_label"], string> = {
-  high: "text-[#5f8169] border-[#5f8169]/30 bg-[#5f8169]/10",
-  medium: "text-[#97824f] border-[#97824f]/30 bg-[#97824f]/10",
+  high: "text-[#2f9e6b] border-[#2f9e6b]/30 bg-[#2f9e6b]/10",
+  medium: "text-[#c6892e] border-[#c6892e]/30 bg-[#c6892e]/10",
   low: "text-stone-400 border-[var(--border-soft)] bg-[var(--surface-hover)]",
 };
 
@@ -168,7 +168,7 @@ export function ProspectingModal({
               Require review before creating records
             </label>
             {run.isError && (
-              <p className="text-[11px] text-[#9c6b72]">{(run.error as Error)?.message || "Search failed — try again."}</p>
+              <p className="text-[11px] text-[#d1524a]">{(run.error as Error)?.message || "Search failed — try again."}</p>
             )}
             <button
               onClick={() => run.mutate()}
@@ -182,8 +182,8 @@ export function ProspectingModal({
         ) : (
           <div className="space-y-3.5">
             <div className="flex flex-wrap gap-1.5 text-[11px]">
-              {result.created > 0 && <span className="rounded-full border border-[#5f8169]/30 bg-[#5f8169]/10 px-2 py-0.5 text-[#5f8169]">{result.created} created</span>}
-              {result.queued_for_review > 0 && <span className="rounded-full border border-[#97824f]/30 bg-[#97824f]/10 px-2 py-0.5 text-[#97824f]">{result.queued_for_review} awaiting approval</span>}
+              {result.created > 0 && <span className="rounded-full border border-[#2f9e6b]/30 bg-[#2f9e6b]/10 px-2 py-0.5 text-[#2f9e6b]">{result.created} created</span>}
+              {result.queued_for_review > 0 && <span className="rounded-full border border-[#c6892e]/30 bg-[#c6892e]/10 px-2 py-0.5 text-[#c6892e]">{result.queued_for_review} awaiting approval</span>}
               {result.existing > 0 && <span className="rounded-full border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-0.5 text-stone-400">{result.existing} already in graph</span>}
               {result.added_to_list > 0 && <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-2 py-0.5 text-stone-400">{result.added_to_list} added to list</span>}
             </div>
@@ -203,7 +203,7 @@ export function ProspectingModal({
                           className="mt-0.5 accent-stone-500"
                         />
                       ) : (
-                        <CheckCircle2 size={14} className={`mt-0.5 shrink-0 ${c.status === "created" ? "text-[#5f8169]" : "text-stone-500"}`} />
+                        <CheckCircle2 size={14} className={`mt-0.5 shrink-0 ${c.status === "created" ? "text-[#2f9e6b]" : "text-stone-500"}`} />
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">

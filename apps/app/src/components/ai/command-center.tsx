@@ -154,7 +154,7 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
   ].slice(0, 6);
 
   const TONE_COLOR: Record<StreamItem["tone"], string> = {
-    violet: "var(--accent)", amber: "#97824f", rose: "#9c6b72", blue: "#717784", default: "var(--text-muted)",
+    violet: "var(--accent)", amber: "#c6892e", rose: "#d1524a", blue: "#717784", default: "var(--text-muted)",
   };
 
   const isLoading = decisionsLoading;
@@ -221,21 +221,21 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
               const sources = mapEvidence(d.evidence ?? []);
               const act = acting?.id === d.id ? acting.action : null;
               const bnr = banner?.id === d.id ? banner.kind : null;
-              const accent = d.risk_level === "high" ? "#9c6b72" : d.risk_level === "medium" ? "#97824f" : "var(--text-muted)";
+              const accent = d.risk_level === "high" ? "#d1524a" : d.risk_level === "medium" ? "#c6892e" : "var(--text-muted)";
               return (
                 <div key={d.id} className="relative border-b" style={{ borderColor: "var(--border-soft)" }}>
                   {bnr && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--surface-card) 72%, transparent)" }}>
                       <span className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-semibold tracking-wide"
                         style={bnr === "approved"
-                          ? { borderColor: "#5f8169", color: "#5f8169", background: "color-mix(in srgb, #5f8169 12%, var(--surface-card))" }
-                          : { borderColor: bnr === "rejected" ? "#9c6b72" : "var(--text-faint)", color: bnr === "rejected" ? "#9c6b72" : "var(--text-muted)", background: "var(--surface-card)" }}>
+                          ? { borderColor: "#2f9e6b", color: "#2f9e6b", background: "color-mix(in srgb, #2f9e6b 12%, var(--surface-card))" }
+                          : { borderColor: bnr === "rejected" ? "#d1524a" : "var(--text-faint)", color: bnr === "rejected" ? "#d1524a" : "var(--text-muted)", background: "var(--surface-card)" }}>
                         {bnr === "approved" ? <><CheckCircle2 size={12} /> Approved</> : bnr === "rejected" ? <><XCircle size={12} /> Dismissed</> : <><Clock size={12} /> Snoozed</>}
                       </span>
                     </div>
                   )}
                   <div className="flex items-start gap-3 px-1 py-3 sm:px-2" style={{ borderLeft: `2px solid ${accent}` }}>
-                    {d.risk_level === "high" ? <ShieldAlert size={14} className="mt-0.5 shrink-0 text-[#9c6b72]"/> : <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }}/>}
+                    {d.risk_level === "high" ? <ShieldAlert size={14} className="mt-0.5 shrink-0 text-[#d1524a]"/> : <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }}/>}
                     <div className="min-w-0 flex-1">
                       <p className="text-[12.5px] leading-tight" style={{ color: "var(--text-secondary)" }}>
                         <span className="font-medium" style={{ color: "var(--text-primary)" }}>{d.agent_name.replace(/_/g, " ")}</span> · {d.title}
@@ -262,11 +262,11 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
                     {/* Actions — ALWAYS visible; act in one click */}
                     <div className="flex shrink-0 items-center gap-1">
                       <button onClick={() => resolveDecision(d.id, "approve")} disabled={!!act} title="Approve"
-                        className="flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: "#5f8169" }}>
+                        className="flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50" style={{ background: "#2f9e6b" }}>
                         {act === "approve" ? <Loader2 size={11} className="animate-spin"/> : <Check size={11}/>}<span className="hidden sm:inline">Approve</span>
                       </button>
                       <button onClick={() => resolveDecision(d.id, "reject")} disabled={!!act} title="Dismiss"
-                        className="flex h-[26px] w-[26px] items-center justify-center rounded-md transition-colors hover:bg-[#9c6b72]/10 hover:text-[#9c6b72] disabled:opacity-50" style={{ border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}>
+                        className="flex h-[26px] w-[26px] items-center justify-center rounded-md transition-colors hover:bg-[#d1524a]/10 hover:text-[#d1524a] disabled:opacity-50" style={{ border: "1px solid var(--border-soft)", color: "var(--text-muted)" }}>
                         {act === "reject" ? <Loader2 size={11} className="animate-spin"/> : <X size={12}/>}
                       </button>
                       <button onClick={() => resolveDecision(d.id, "snooze")} disabled={!!act} title="Snooze"
@@ -308,12 +308,12 @@ export function NeedsYouPanel({ notifications, notificationsError, onAskMondaily
 // workspace-wide, the hero pill's "open tasks" is assigned-to-you).
 const PULSE_CATEGORIES: { key: "tasksOpen" | "tasksOverdue" | "relationships" | "financeOverdue" | "records" | "workflows" | "risks"; label: string; icon: React.ElementType; color: string }[] = [
   { key: "tasksOpen",      label: "active tasks",        icon: CheckSquare, color: "var(--accent)" },
-  { key: "tasksOverdue",   label: "overdue tasks",        icon: Clock,       color: "#9c6b72" },
-  { key: "relationships",  label: "relationship records", icon: Users,       color: "#97824f" },
+  { key: "tasksOverdue",   label: "overdue tasks",        icon: Clock,       color: "#d1524a" },
+  { key: "relationships",  label: "relationship records", icon: Users,       color: "#c6892e" },
   { key: "financeOverdue", label: "overdue invoices",     icon: Receipt,     color: "#717784" },
   { key: "records",        label: "total records",        icon: Database,   color: "#059669" },
   { key: "workflows",      label: "workflow records",      icon: Workflow,   color: "var(--accent)" },
-  { key: "risks",          label: "open risk signals",     icon: ShieldAlert, color: "#9c6b72" },
+  { key: "risks",          label: "open risk signals",     icon: ShieldAlert, color: "#d1524a" },
 ];
 
 /**
@@ -370,7 +370,7 @@ export function WorkspaceGraphPulse() {
       ) : (
         <div className="workspace-pulse-grid grid grid-cols-2 sm:grid-cols-4">
           {[
-            { key: "", label: "graph health", icon: CheckSquare, color: "#5f8169", value: healthPct, suffix: "%" },
+            { key: "", label: "graph health", icon: CheckSquare, color: "#2f9e6b", value: healthPct, suffix: "%" },
             ...PULSE_CATEGORIES.map(({ key, label, icon, color }) => ({ key: key as string, label, icon, color, value: pulse[key], suffix: "" })),
           ].map((t, i) => {
             const connected = t.value != null;

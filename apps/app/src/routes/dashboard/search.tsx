@@ -45,7 +45,7 @@ function BrowseShortcuts({ types }: { types: ObjectType[] }) {
 function Highlight({ text, query }: { text: string; query: string }) {
   if (!query) return <>{text}</>;
   const parts = text.split(new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig"));
-  return <>{parts.map((part, index) => part.toLowerCase() === query.toLowerCase() ? <mark key={index} className="bg-stone-500/20 text-[#9c6b72]">{part}</mark> : part)}</>;
+  return <>{parts.map((part, index) => part.toLowerCase() === query.toLowerCase() ? <mark key={index} className="bg-stone-500/20 text-[#d1524a]">{part}</mark> : part)}</>;
 }
 
 export function SearchPage() {

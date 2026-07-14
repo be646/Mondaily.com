@@ -145,7 +145,7 @@ interface Automation {
 function StatusBadge({ status }: { status: string }) {
   // Matte state chip (dot + label) — consistent with the rest of the app's tone system.
   const label: Record<string, string> = { active: "Active", draft: "Draft", paused: "Paused", archived: "Archived" };
-  const color = status === "active" ? "#5f8169" : status === "paused" ? "#97824f" : "var(--text-faint)";
+  const color = status === "active" ? "#2f9e6b" : status === "paused" ? "#c6892e" : "var(--text-faint)";
   return (
     <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}>
       <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} /> {label[status] ?? "Draft"}
@@ -362,7 +362,7 @@ export function AutomationsPage() {
 
       {items.length > 0 && (
         <MetricGrid className="mb-6" cols={4} items={[
-          { label: "Active", value: activeCount, tone: activeCount > 0 ? "#5f8169" : undefined },
+          { label: "Active", value: activeCount, tone: activeCount > 0 ? "#2f9e6b" : undefined },
           { label: "Sequences", value: sequences.length },
           { label: "Workflows", value: workflows.length },
           { label: "Enrolled", value: enrolledTotal },

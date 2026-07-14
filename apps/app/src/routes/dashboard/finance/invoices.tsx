@@ -27,7 +27,7 @@ const STATUS_CONFIG: Record<InvoiceStatus, { label: string; color: string; icon:
   draft:     { label: "Draft",     color: "text-stone-400 bg-stone-400/10",     icon: FileText },
   sent:      { label: "Sent",      color: "text-[#717784] bg-[#717784]/10",     icon: Send },
   viewed:    { label: "Viewed",    color: "text-stone-400 bg-stone-400/10", icon: Clock },
-  paid:      { label: "Paid",      color: "text-[#5f8169] bg-[#5f8169]/10", icon: CheckCircle },
+  paid:      { label: "Paid",      color: "text-[#2f9e6b] bg-[#2f9e6b]/10", icon: CheckCircle },
   overdue:   { label: "Overdue",   color: "text-stone-400 bg-stone-400/10",       icon: AlertTriangle },
   cancelled: { label: "Cancelled", color: "text-stone-600 bg-stone-600/10",     icon: XCircle },
 };
@@ -126,7 +126,7 @@ export function InvoicesPage() {
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-2 mb-1">
-              <CheckCircle size={12} className="text-[#5f8169]"/>
+              <CheckCircle size={12} className="text-[#2f9e6b]"/>
               <span className="text-[11px] text-[var(--text-muted)]">Collected</span>
             </div>
             <div className="font-mono text-[18px] font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{formatCurrency(totalPaid, display)}</div>

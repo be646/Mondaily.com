@@ -229,7 +229,7 @@ export function SidebarLists() {
 
       {query.isError && (
         <div className="px-3 py-2">
-          <p className="text-[11px] text-[#9c6b72]">Couldn't load lists.</p>
+          <p className="text-[11px] text-[#d1524a]">Couldn't load lists.</p>
           <button onClick={() => query.refetch()} className="text-[11px] text-stone-400 hover:text-stone-300 transition-colors">Retry</button>
         </div>
       )}

@@ -73,7 +73,7 @@ export function TrainingSettings() {
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
             <ShieldCheck size={14} /> Capture human-in-the-loop training data
           </h2>
-          <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${p.enabled ? "bg-[#5f8169]/10 text-[#5f8169]" : "bg-[var(--surface-hover)] text-[var(--text-muted)]"}`}>
+          <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium ${p.enabled ? "bg-[#2f9e6b]/10 text-[#2f9e6b]" : "bg-[var(--surface-hover)] text-[var(--text-muted)]"}`}>
             {p.enabled ? "Enabled" : "Off (default)"}
           </span>
         </div>
@@ -140,14 +140,14 @@ export function TrainingSettings() {
             {!confirmPurge ? (
               <button
                 onClick={() => setConfirmPurge(true)} disabled={busy !== null || p.captured === 0}
-                className="flex items-center gap-2 rounded-sm border border-[#9c6b72]/30 px-4 py-2 text-sm text-[#9c6b72] transition-colors hover:bg-[#9c6b72]/10 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-sm border border-[#d1524a]/30 px-4 py-2 text-sm text-[#d1524a] transition-colors hover:bg-[#d1524a]/10 disabled:opacity-50"
               >
                 <Trash2 size={13} /> Delete all training data
               </button>
             ) : (
               <div className="flex items-center gap-2">
                 <span className="text-sm text-[var(--text-faint)]">Delete {p.captured.toLocaleString()} example{p.captured === 1 ? "" : "s"}? This can't be undone.</span>
-                <button onClick={purgeData} disabled={busy !== null} className="rounded-sm bg-[#9c6b72] px-3 py-2 text-sm font-semibold text-white hover:bg-[#9c6b72] disabled:opacity-60">
+                <button onClick={purgeData} disabled={busy !== null} className="rounded-sm bg-[#d1524a] px-3 py-2 text-sm font-semibold text-white hover:bg-[#d1524a] disabled:opacity-60">
                   {busy === "purge" ? "Deleting…" : "Confirm delete"}
                 </button>
                 <button onClick={() => setConfirmPurge(false)} className="rounded-sm border border-[var(--border-soft)] px-3 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)]">Cancel</button>

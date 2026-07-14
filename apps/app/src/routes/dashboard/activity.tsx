@@ -53,14 +53,14 @@ type ActivityItem = {
 
 // Per-step status dot tone — mirrors the run tones (green ok, amber warn, rose error, muted info).
 function stepTone(status?: string): string {
-  return status === "ok" ? "#5f8169" : status === "warn" ? "#97824f" : status === "error" ? "#9c6b72" : "var(--text-muted)";
+  return status === "ok" ? "#2f9e6b" : status === "warn" ? "#c6892e" : status === "error" ? "#d1524a" : "var(--text-muted)";
 }
 
 const agentOf = (raw: string) => { const a = agentByRaw(raw); return { label: a.name, Icon: a.Icon }; };
 
 // Timeline run status → tone (derived from the DB status, never invented).
 function runTone(status: string): string {
-  return status === "completed" ? "#5f8169" : status === "failed" ? "#9c6b72" : status === "running" ? "#97824f" : "var(--text-muted)";
+  return status === "completed" ? "#2f9e6b" : status === "failed" ? "#d1524a" : status === "running" ? "#c6892e" : "var(--text-muted)";
 }
 function runLabel(status: string): string {
   return status === "completed" ? "Success" : status === "failed" ? "Failed" : status === "running" ? "Running" : status;
@@ -94,7 +94,7 @@ function highlightJson(json: string): ReactNode[] {
       out.push(<span key={key++} style={{ color: m[2] ? "var(--text-primary)" : "var(--text-secondary)" }}>{m[1]}</span>);
       if (m[2]) out.push(m[2]);
     } else if (m[3] !== undefined) {
-      out.push(<span key={key++} style={{ color: "#97824f" }}>{m[3]}</span>);
+      out.push(<span key={key++} style={{ color: "#c6892e" }}>{m[3]}</span>);
     } else if (m[4] !== undefined) {
       out.push(<span key={key++} style={{ color: "var(--section-accent)" }}>{m[4]}</span>);
     }
@@ -201,7 +201,7 @@ export function AgentActivityPage() {
       <MetricGrid className="mb-8" cols={4} items={STATS.map(s => ({
         label: s.label,
         value: s.value,
-        tone: s.alert ? "#9c6b72" : s.accent ? "var(--section-accent)" : undefined,
+        tone: s.alert ? "#d1524a" : s.accent ? "var(--section-accent)" : undefined,
       }))} />
 
       {/* ── 2. Agent roster (GET /agents) ── */}
@@ -260,7 +260,7 @@ export function AgentActivityPage() {
                 return (
                   <div key={g.key}>
                     <div className="mb-1.5 flex items-center gap-2">
-                      <span className="text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: g.key === "attention" ? "#9c6b72" : "var(--text-muted)" }}>{g.label}</span>
+                      <span className="text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: g.key === "attention" ? "#d1524a" : "var(--text-muted)" }}>{g.label}</span>
                       <span className="text-[10.5px] tabular-nums" style={{ color: "var(--text-faint)" }}>{members.length}</span>
                       <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>· {g.hint}</span>
                       {g.quiet && (
@@ -343,7 +343,7 @@ export function AgentActivityPage() {
                         <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
                           <span className="font-medium" style={{ color: "var(--text-primary)" }}>{label.replace(" Agent", "")}</span>
                           <span className="mx-1.5" style={{ color: "var(--text-faint)" }}>·</span>
-                          <span style={{ color: a.status === "failed" ? "#9c6b72" : "var(--text-secondary)" }}>{a.error || a.summary}</span>
+                          <span style={{ color: a.status === "failed" ? "#d1524a" : "var(--text-secondary)" }}>{a.error || a.summary}</span>
                         </span>
                       </span>
                       <span className="mt-px hidden shrink-0 text-[10.5px] font-medium sm:inline" style={{ color: tone }}>{runLabel(a.status)}</span>
@@ -404,8 +404,8 @@ export function AgentActivityPage() {
                         </div>
 
                         {a.error && (
-                          <div className="rounded-sm border-l-2 py-2 pl-3 pr-2" style={{ borderColor: "#9c6b72", background: "color-mix(in srgb, #9c6b72 6%, transparent)" }}>
-                            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#9c6b72" }}>Error</div>
+                          <div className="rounded-sm border-l-2 py-2 pl-3 pr-2" style={{ borderColor: "#d1524a", background: "color-mix(in srgb, #d1524a 6%, transparent)" }}>
+                            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#d1524a" }}>Error</div>
                             <div className="mt-0.5 break-words text-[11.5px]" style={{ color: "var(--text-secondary)" }}>{a.error}</div>
                           </div>
                         )}

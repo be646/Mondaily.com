@@ -109,7 +109,7 @@ function StatusRow({ label, value, ok }: { label: string; value: string; ok?: bo
 }
 
 function DiagRow({ d }: { d: HelpDiagnostic }) {
-  const color = d.status === "ok" ? "#5fae8b" : d.status === "warn" ? "#a3946b" : d.status === "error" ? "#9c6b72" : "var(--text-faint)";
+  const color = d.status === "ok" ? "#5fae8b" : d.status === "warn" ? "#a3946b" : d.status === "error" ? "#d1524a" : "var(--text-faint)";
   return (
     <div className="flex items-start gap-2 font-mono text-[11px]">
       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
@@ -322,7 +322,7 @@ function HelpPanel({ prefill }: { prefill: string }) {
           )}
 
           {session.state === "closed" && session.rating != null && (
-            <p className="flex items-center gap-1.5 text-[12px] text-[#5f8169]"><Check size={13} /> Inquiry closed · rated {session.rating}/5. Start a new inquiry any time.</p>
+            <p className="flex items-center gap-1.5 text-[12px] text-[#2f9e6b]"><Check size={13} /> Inquiry closed · rated {session.rating}/5. Start a new inquiry any time.</p>
           )}
         </div>
 

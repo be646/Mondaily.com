@@ -15,18 +15,18 @@
  * template interpolation.
  */
 export const TONE_HEX = {
-  green: "#5f8169",
-  amber: "#97824f",
-  rose:  "#9c6b72",
+  green: "#2f9e6b",
+  amber: "#c6892e",
+  rose:  "#d1524a",
   slate: "#717784",
 } as const;
 export type Tone = keyof typeof TONE_HEX | "stone";
 
 /** Small status pill: thin border + tint + matte text. */
 const PILL: Record<Tone, string> = {
-  green: "bg-[#5f8169]/10 text-[#5f8169] border border-[#5f8169]/25",
-  amber: "bg-[#97824f]/10 text-[#97824f] border border-[#97824f]/25",
-  rose:  "bg-[#9c6b72]/10 text-[#9c6b72] border border-[#9c6b72]/25",
+  green: "bg-[#2f9e6b]/10 text-[#2f9e6b] border border-[#2f9e6b]/25",
+  amber: "bg-[#c6892e]/10 text-[#c6892e] border border-[#c6892e]/25",
+  rose:  "bg-[#d1524a]/10 text-[#d1524a] border border-[#d1524a]/25",
   slate: "bg-[#717784]/10 text-[#717784] border border-[#717784]/25",
   stone: "bg-stone-500/[.08] text-stone-500 dark:text-stone-400 border border-stone-500/20",
 };
@@ -34,9 +34,9 @@ export function tonePill(tone: Tone): string { return PILL[tone]; }
 
 /** Status dot class. */
 const DOT: Record<Tone, string> = {
-  green: "bg-[#5f8169]",
-  amber: "bg-[#97824f]",
-  rose:  "bg-[#9c6b72]",
+  green: "bg-[#2f9e6b]",
+  amber: "bg-[#c6892e]",
+  rose:  "bg-[#d1524a]",
   slate: "bg-[#717784]",
   stone: "bg-stone-500",
 };
@@ -44,9 +44,9 @@ export function toneDot(tone: Tone): string { return DOT[tone]; }
 
 /** Matte text-only class per tone. */
 const TEXT: Record<Tone, string> = {
-  green: "text-[#5f8169]",
-  amber: "text-[#97824f]",
-  rose:  "text-[#9c6b72]",
+  green: "text-[#2f9e6b]",
+  amber: "text-[#c6892e]",
+  rose:  "text-[#d1524a]",
   slate: "text-[#717784]",
   stone: "text-stone-500 dark:text-stone-400",
 };
@@ -60,4 +60,4 @@ export const CHIP_ACTIVE = "border-[var(--border-strong)] bg-[var(--surface-sele
 /** Buttons: primary = high-contrast neutral, secondary = thin border, danger = muted rose. */
 export const BTN_PRIMARY = "rounded-sm border border-[var(--border-strong)] bg-[var(--surface-card-2)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50";
 export const BTN_SECONDARY = "rounded-sm border border-[var(--border-soft)] px-3 py-1.5 text-[12px] font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-50";
-export const BTN_DANGER = "rounded-sm border border-[#9c6b72]/40 px-3 py-1.5 text-[12px] font-medium text-[#9c6b72] transition-colors hover:bg-[#9c6b72]/10 disabled:opacity-50";
+export const BTN_DANGER = "rounded-sm border border-[#d1524a]/40 px-3 py-1.5 text-[12px] font-medium text-[#d1524a] transition-colors hover:bg-[#d1524a]/10 disabled:opacity-50";

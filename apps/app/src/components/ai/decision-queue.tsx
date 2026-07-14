@@ -27,9 +27,9 @@ export interface Decision {
 }
 
 export const RISK_STYLE: Record<Decision["risk_level"], string> = {
-  low: "text-[#5f8169] dark:text-[#5f8169]",
-  medium: "text-[#97824f] dark:text-[#97824f]",
-  high: "text-[#9c6b72] dark:text-[#9c6b72]",
+  low: "text-[#2f9e6b] dark:text-[#2f9e6b]",
+  medium: "text-[#c6892e] dark:text-[#c6892e]",
+  high: "text-[#d1524a] dark:text-[#d1524a]",
 };
 
 // Every real SourceType the rest of the app knows how to render. Anything

@@ -297,7 +297,7 @@ function CreateRecordModal({
                 </button>
                 <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50">
                   {saving ? "Creating…" : "Create record"}
-                  <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-[#9c6b72]/70">⌘↵</kbd>
+                  <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-[#d1524a]/70">⌘↵</kbd>
                 </button>
               </div>
             </div>
@@ -676,7 +676,7 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
               Cancel
             </button>
             <button onClick={confirm} disabled={deleting}
-              className="flex items-center gap-2 rounded-sm border border-[#9c6b72] bg-[color-mix(in_srgb,#9c6b72_16%,transparent)] px-4 py-2 text-xs font-semibold text-[#9c6b72] hover:bg-[color-mix(in_srgb,#9c6b72_24%,transparent)] disabled:opacity-50 transition-all">
+              className="flex items-center gap-2 rounded-sm border border-[#d1524a] bg-[color-mix(in_srgb,#d1524a_16%,transparent)] px-4 py-2 text-xs font-semibold text-[#d1524a] hover:bg-[color-mix(in_srgb,#d1524a_24%,transparent)] disabled:opacity-50 transition-all">
               {deleting ? "Deleting…" : "Yes, delete sheet"}
             </button>
           </div>

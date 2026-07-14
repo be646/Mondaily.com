@@ -6,8 +6,8 @@ import { apiClient } from "../../lib/api-client";
 interface TagData { id: string; name: string; color: string }
 
 const PRESET_COLORS = [
-  "var(--accent)", "#ec4899", "#97824f", "#5f8169", "#717784",
-  "#9c6b72", "var(--accent)", "var(--accent)", "#f97316", "#84cc16",
+  "var(--accent)", "#ec4899", "#c6892e", "#2f9e6b", "#717784",
+  "#d1524a", "var(--accent)", "var(--accent)", "#f97316", "#84cc16",
 ];
 
 export function TagPicker({ nodeId, onClose }: { nodeId: string; onClose: () => void }) {

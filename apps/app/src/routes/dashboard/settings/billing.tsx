@@ -85,10 +85,10 @@ interface Usage {
 
 const PLAN_COLORS: Record<string, string> = {
   free: "bg-[var(--surface-hover)] text-[var(--text-faint)]",
-  trial: "bg-[#5f8169]/10 text-[#5f8169]",
+  trial: "bg-[#2f9e6b]/10 text-[#2f9e6b]",
   pro: "bg-[#717784]/10 text-[#717784]",
   business: "bg-[var(--surface-hover)] text-[var(--text-faint)]",
-  enterprise: "bg-[#97824f]/10 text-[#97824f]",
+  enterprise: "bg-[#c6892e]/10 text-[#c6892e]",
 };
 
 export function BillingSettings() {
@@ -338,7 +338,7 @@ export function BillingSettings() {
               <>
                 <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
                   <div
-                    className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-[#9c6b72]" : seatPct >= 70 ? "bg-[#97824f]" : "bg-[#5f8169]"}`}
+                    className={`h-full rounded-full transition-all ${seatPct >= 90 ? "bg-[#d1524a]" : seatPct >= 70 ? "bg-[#c6892e]" : "bg-[#2f9e6b]"}`}
                     style={{ width: `${Math.max(seatPct, 3)}%` }}
                   />
                 </div>
@@ -527,7 +527,7 @@ export function BillingSettings() {
             {/* Exhausted / low warnings — premium, not a harsh red box. Never shows a negative balance. */}
             {wallet.exhausted ? (
               <div className="mb-4 flex items-start gap-3 rounded-sm border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#9c6b721a" }}><Zap size={12} style={{ color: "#9c6b72" }} /></span>
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#d1524a1a" }}><Zap size={12} style={{ color: "#d1524a" }} /></span>
                 <div>
                   <p className="text-[13px] font-semibold text-[var(--text-primary)]">You're out of AI credits</p>
                   <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">Chat, agents, enrichment and Discovery pause until you add a pack below or upgrade your plan. Nothing else is affected.</p>
@@ -535,7 +535,7 @@ export function BillingSettings() {
               </div>
             ) : wallet.low ? (
               <div className="mb-4 flex items-start gap-3 rounded-sm border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
-                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#97824f1a" }}><Zap size={12} style={{ color: "#97824f" }} /></span>
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full" style={{ background: "#c6892e1a" }}><Zap size={12} style={{ color: "#c6892e" }} /></span>
                 <div>
                   <p className="text-[13px] font-semibold text-[var(--text-primary)]">Credits running low</p>
                   <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">Top up below or enable Auto-Refill so AI never stops mid-task.</p>
@@ -544,13 +544,13 @@ export function BillingSettings() {
             ) : null}
             <div className="flex items-end justify-between">
               <div>
-                <div className="text-3xl font-semibold tabular-nums" style={{ color: wallet.exhausted ? "#9c6b72" : "var(--text-primary)" }}>{fmtCredits(walletRemaining)}</div>
+                <div className="text-3xl font-semibold tabular-nums" style={{ color: wallet.exhausted ? "#d1524a" : "var(--text-primary)" }}>{fmtCredits(walletRemaining)}</div>
                 <div className="mt-0.5 text-xs text-[var(--text-muted)]">AI credits remaining</div>
               </div>
               <span className="tabular-nums text-sm text-[var(--text-faint)]">{walletPct}%</span>
             </div>
             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-hover)]">
-              <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#9c6b72" : "var(--section-accent)" }} />
+              <div className="h-full rounded-full transition-[width]" style={{ width: `${walletPct}%`, background: walletPct <= 10 ? "#d1524a" : "var(--section-accent)" }} />
             </div>
 
             {/* One clear wallet summary — the exact figures, so nothing looks contradictory. */}
@@ -604,8 +604,8 @@ export function BillingSettings() {
               {/* Honest activation state: the toggle only ARMS the policy — a real charge needs a
                   saved card. Say exactly which state we're in rather than implying it's live. */}
               {autoRefill && (billing.card_last4
-                ? <p className="mt-2 text-[11px] text-[#5f8169]">Auto-Refill active — will charge the card ending in {billing.card_last4} when credits run low.</p>
-                : <p className="mt-2 text-[11px] text-[#97824f]">Auto-Refill is armed but <span className="font-semibold">not active yet</span> — no saved card. Buy any credit pack once to save your card, and refills start working.</p>)}
+                ? <p className="mt-2 text-[11px] text-[#2f9e6b]">Auto-Refill active — will charge the card ending in {billing.card_last4} when credits run low.</p>
+                : <p className="mt-2 text-[11px] text-[#c6892e]">Auto-Refill is armed but <span className="font-semibold">not active yet</span> — no saved card. Buy any credit pack once to save your card, and refills start working.</p>)}
             </div>
           </div>
         </section>
@@ -631,12 +631,12 @@ export function BillingSettings() {
                       <tr key={row.id}>
                         <td className="whitespace-nowrap text-[var(--text-faint)]">{new Date(row.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>
                         <td>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${row.transaction_type === "grant" ? "bg-[#5f8169]/10 text-[#5f8169]" : row.transaction_type === "purchase" ? "bg-[#717784]/10 text-[#717784]" : "bg-[var(--surface-hover)] text-[var(--text-muted)]"}`}>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${row.transaction_type === "grant" ? "bg-[#2f9e6b]/10 text-[#2f9e6b]" : row.transaction_type === "purchase" ? "bg-[#717784]/10 text-[#717784]" : "bg-[var(--surface-hover)] text-[var(--text-muted)]"}`}>
                             {row.transaction_type}
                           </span>
                         </td>
                         <td className="max-w-[260px] truncate text-[var(--text-faint)]">{row.description ?? "—"}</td>
-                        <td className={`whitespace-nowrap text-right tabular-nums ${positive ? "text-[#5f8169]" : "text-[var(--text-muted)]"}`}>
+                        <td className={`whitespace-nowrap text-right tabular-nums ${positive ? "text-[#2f9e6b]" : "text-[var(--text-muted)]"}`}>
                           {positive ? "+" : "−"}{fmtCredits(Math.abs(row.amount))}
                         </td>
                       </tr>

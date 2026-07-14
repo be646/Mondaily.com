@@ -74,8 +74,8 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const STATUS_STYLES: Record<string, string> = {
-  active:       "bg-[#5f8169]/10 text-[#5f8169] border-[#5f8169]/25",
-  paused:       "bg-[#97824f]/10 text-[#97824f] border-[#97824f]/25",
+  active:       "bg-[#2f9e6b]/10 text-[#2f9e6b] border-[#2f9e6b]/25",
+  paused:       "bg-[#c6892e]/10 text-[#c6892e] border-[#c6892e]/25",
   unsubscribed: "bg-stone-500/10 text-stone-400 border-stone-500/20",
 };
 
@@ -319,7 +319,7 @@ export function SequenceBuilderPage() {
 
   if (query.isLoading || id === "new") return (
     <div className="flex h-full items-center justify-center">
-      <div className="h-5 w-5 animate-spin rounded-full border-2 border-stone-500/30 border-t-[#9c6b72]"/>
+      <div className="h-5 w-5 animate-spin rounded-full border-2 border-stone-500/30 border-t-[#d1524a]"/>
     </div>
   );
 
@@ -368,7 +368,7 @@ export function SequenceBuilderPage() {
           </h1>
         )}
 
-        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${seq.status === "active" ? "border-[#5f8169]/25 bg-[#5f8169]/10 text-[#5f8169]" : "border-stone-600/30 bg-stone-700/50 text-stone-400"}`}>
+        <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${seq.status === "active" ? "border-[#2f9e6b]/25 bg-[#2f9e6b]/10 text-[#2f9e6b]" : "border-stone-600/30 bg-stone-700/50 text-stone-400"}`}>
           {seq.status}
         </span>
 
@@ -385,7 +385,7 @@ export function SequenceBuilderPage() {
         <button
           onClick={toggleStatus}
           disabled={patchSeq.isPending}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${seq.status === "active" ? "border-[#97824f]/40 bg-[#97824f]/80 text-[var(--text-primary)] hover:bg-[#97824f]" : "border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"}`}
+          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 ${seq.status === "active" ? "border-[#c6892e]/40 bg-[#c6892e]/80 text-[var(--text-primary)] hover:bg-[#c6892e]" : "border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"}`}
         >
           {seq.status === "active" ? <><Pause size={11}/> Pause</> : <><Play size={11}/> Activate</>}
         </button>
@@ -502,9 +502,9 @@ export function SequenceBuilderPage() {
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
                 { label: "Enrolled", value: totalEnrolled, color: "text-[var(--text-primary)]" },
-                { label: "Open rate", value: `${openRate}%`, color: openRate >= 30 ? "text-[#5f8169]" : openRate >= 15 ? "text-[#97824f]" : "text-[var(--text-faint)]" },
-                { label: "Click rate", value: `${clickRate}%`, color: clickRate >= 10 ? "text-[#5f8169]" : "text-[var(--text-faint)]" },
-                { label: "Reply rate", value: `${replyRate}%`, color: replyRate >= 5 ? "text-[#5f8169]" : "text-[var(--text-faint)]" },
+                { label: "Open rate", value: `${openRate}%`, color: openRate >= 30 ? "text-[#2f9e6b]" : openRate >= 15 ? "text-[#c6892e]" : "text-[var(--text-faint)]" },
+                { label: "Click rate", value: `${clickRate}%`, color: clickRate >= 10 ? "text-[#2f9e6b]" : "text-[var(--text-faint)]" },
+                { label: "Reply rate", value: `${replyRate}%`, color: replyRate >= 5 ? "text-[#2f9e6b]" : "text-[var(--text-faint)]" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="premium-panel px-4 py-4">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">{label}</p>

@@ -29,7 +29,7 @@ const LABEL_COLORS: Record<string, string> = {
   "Help Needed": "text-[#717784] bg-[#717784]/10 border-[#717784]/25",
   "Blocked":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Waiting":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
-  "Bug":         "text-[#9c6b72] dark:text-[#9c6b72] bg-[#9c6b72]/10 dark:bg-[#9c6b72]/10 border-[#9c6b72]/25 dark:border-[#9c6b72]/30",
+  "Bug":         "text-[#d1524a] dark:text-[#d1524a] bg-[#d1524a]/10 dark:bg-[#d1524a]/10 border-[#d1524a]/25 dark:border-[#d1524a]/30",
   "Feature":     "text-stone-600 dark:text-stone-400 bg-stone-50 dark:bg-stone-400/10 border-stone-200 dark:border-stone-400/30",
   "Research":    "text-[var(--accent)] dark:text-[var(--accent)] bg-[var(--accent)] dark:bg-[var(--accent)]/10 border-[var(--accent)] dark:border-[var(--accent)]/30",
 };
@@ -47,7 +47,7 @@ function relTime(iso: string) {
 }
 
 function Avatar({ name, size = 6 }: { name: string; size?: number }) {
-  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#717784]/15 text-[#717784]","bg-[#5f8169]/15 text-[#5f8169]","bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#97824f]/15 text-[#97824f]","bg-[var(--accent)]/20 text-[var(--accent)] dark:text-[var(--accent)]"];
+  const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#717784]/15 text-[#717784]","bg-[#2f9e6b]/15 text-[#2f9e6b]","bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#c6892e]/15 text-[#c6892e]","bg-[var(--accent)]/20 text-[var(--accent)] dark:text-[var(--accent)]"];
   const color = colors[(name.charCodeAt(0) ?? 0) % colors.length];
   const sz = `h-${size} w-${size}`;
   return <div className={`${sz} rounded-full ${color} flex items-center justify-center text-xs font-medium shrink-0`}>{name.charAt(0).toUpperCase()}</div>;
@@ -149,13 +149,13 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
 const STATUS_META: Record<string, { label: string; dot: string }> = {
   todo:        { label: "To Do",        dot: "bg-stone-500" },
   in_progress: { label: "In Progress",  dot: "bg-[#717784]" },
-  review:      { label: "Review",       dot: "bg-[#97824f]" },
-  done:        { label: "Done",         dot: "bg-[#5f8169]" },
+  review:      { label: "Review",       dot: "bg-[#c6892e]" },
+  done:        { label: "Done",         dot: "bg-[#2f9e6b]" },
 };
 const PRIORITY_META: Record<string, { label: string; dot: string }> = {
   urgent: { label: "Urgent", dot: "bg-stone-500" },
-  high:   { label: "High",   dot: "bg-[#97824f]" },
-  medium: { label: "Medium", dot: "bg-[#97824f]" },
+  high:   { label: "High",   dot: "bg-[#c6892e]" },
+  medium: { label: "Medium", dot: "bg-[#c6892e]" },
   low:    { label: "Low",    dot: "bg-stone-400" },
 };
 
@@ -476,8 +476,8 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 <button onClick={() => setActiveTab("review")}
                   className="h-6 rounded-sm border px-2.5 text-[11px] font-medium transition-colors"
                   style={
-                    task.review_result === "approved"          ? { borderColor: "rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.1)", color: "#5f8169" } :
-                    task.review_result === "changes_requested" ? { borderColor: "rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.1)", color: "#97824f" } :
+                    task.review_result === "approved"          ? { borderColor: "rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.1)", color: "#2f9e6b" } :
+                    task.review_result === "changes_requested" ? { borderColor: "rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.1)", color: "#c6892e" } :
                     localStatus === "review"                   ? { borderColor: "rgba(234,179,8,0.3)", background: "rgba(234,179,8,0.1)", color: "#ca8a04" } :
                     { borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-muted)" }
                   }>
@@ -611,7 +611,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                     <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{Math.round(checklist.length ? (completedCount/checklist.length)*100 : 0)}%</span>
                   </div>
                   <div className="h-1 w-full rounded-full" style={{ background: "var(--surface-hover)" }}>
-                    <div className="h-1 rounded-full bg-[#5f8169] transition-all" style={{ width: `${checklist.length ? (completedCount/checklist.length)*100 : 0}%` }}/>
+                    <div className="h-1 rounded-full bg-[#2f9e6b] transition-all" style={{ width: `${checklist.length ? (completedCount/checklist.length)*100 : 0}%` }}/>
                   </div>
                 </div>
               )}
@@ -622,7 +622,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <div key={item.id} className="flex items-start gap-3 group rounded-sm px-3 py-2.5 transition-colors border border-transparent surface-hover">
                     <button onClick={() => toggleCheckItem.mutate({ itemId: item.id, completed: !item.completed })}
                       className="mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors"
-                      style={item.completed ? { borderColor: "#5f8169", background: "#5f8169" } : { borderColor: "var(--border-strong)" }}>
+                      style={item.completed ? { borderColor: "#2f9e6b", background: "#2f9e6b" } : { borderColor: "var(--border-strong)" }}>
                       {item.completed && <Check size={9} className="text-[var(--text-primary)]"/>}
                     </button>
                     <div className="flex-1 min-w-0">

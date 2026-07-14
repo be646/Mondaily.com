@@ -16,13 +16,13 @@ interface Readiness {
 
 // Map a coarse status → a badge look + label (never a secret, never a fake).
 const BADGE: Record<RowStatus, { label: string; tone: string; Icon: LucideIcon }> = {
-  ready:                 { label: "Ready",           tone: "#5f8169", Icon: Check },
-  available:             { label: "Available",       tone: "#5f8169", Icon: Check },
-  partially_configured:  { label: "Partial",         tone: "#97824f", Icon: AlertTriangle },
-  missing_config:        { label: "Missing config",  tone: "#9c6b72", Icon: AlertTriangle },
+  ready:                 { label: "Ready",           tone: "#2f9e6b", Icon: Check },
+  available:             { label: "Available",       tone: "#2f9e6b", Icon: Check },
+  partially_configured:  { label: "Partial",         tone: "#c6892e", Icon: AlertTriangle },
+  missing_config:        { label: "Missing config",  tone: "#d1524a", Icon: AlertTriangle },
   unavailable:           { label: "Unavailable",     tone: "var(--text-faint)", Icon: MinusCircle },
   not_enabled:           { label: "Not enabled",     tone: "var(--text-faint)", Icon: MinusCircle },
-  not_configured:        { label: "Not configured",  tone: "#9c6b72", Icon: AlertTriangle },
+  not_configured:        { label: "Not configured",  tone: "#d1524a", Icon: AlertTriangle },
 };
 
 const ROWS: { key: keyof Readiness["status"]; label: string; Icon: LucideIcon; means: string }[] = [

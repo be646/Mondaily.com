@@ -41,7 +41,7 @@ export function AIHealthScore({ score, label = "AI health score", updatedAt }: {
       </div>
     );
   }
-  const color = score >= 70 ? "#5f8169" : score >= 40 ? "#97824f" : "#9c6b72";
+  const color = score >= 70 ? "#2f9e6b" : score >= 40 ? "#c6892e" : "#d1524a";
   return (
     <div className="rounded-sm p-3" style={{ background: "var(--surface-hover)" }}>
       <div className="flex items-center justify-between">
@@ -63,10 +63,10 @@ export function AIHealthScore({ score, label = "AI health score", updatedAt }: {
 export function AIHealthScoreCompact({ score, label = "Health" }: { score?: number | null; label?: string }) {
   if (score == null) return null;
   const colors = score >= 70
-    ? { text: "text-[#5f8169]", bg: "bg-[#5f8169]/10 border-[#5f8169]/20" }
+    ? { text: "text-[#2f9e6b]", bg: "bg-[#2f9e6b]/10 border-[#2f9e6b]/20" }
     : score >= 40
-    ? { text: "text-[#97824f]", bg: "bg-[#97824f]/10 border-[#97824f]/20" }
-    : { text: "text-[#9c6b72]", bg: "bg-[#9c6b72]/10 border-[#9c6b72]/20" };
+    ? { text: "text-[#c6892e]", bg: "bg-[#c6892e]/10 border-[#c6892e]/20" }
+    : { text: "text-[#d1524a]", bg: "bg-[#d1524a]/10 border-[#d1524a]/20" };
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${colors.bg} ${colors.text}`} title={`${label}: ${score}/100`}>
       <Activity size={9}/>{score}

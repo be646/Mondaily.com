@@ -117,8 +117,8 @@ export function GraphContextDrawer({ ctx, activities: passedActivities, onClose 
             <div className="mt-0.5 flex items-center gap-2 text-[11px]" style={{ color: "var(--text-faint)" }}>
               <span>{ctx.objectType ? humanType(ctx.objectType) : humanType(ctx.kind)}</span>
               <span aria-hidden>·</span>
-              <span className="inline-flex items-center gap-1" style={{ color: sourceBacked ? "#5f8169" : "var(--text-faint)" }}>
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: sourceBacked ? "#5f8169" : "var(--text-faint)" }} />
+              <span className="inline-flex items-center gap-1" style={{ color: sourceBacked ? "#2f9e6b" : "var(--text-faint)" }}>
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: sourceBacked ? "#2f9e6b" : "var(--text-faint)" }} />
                 {sourceBacked ? "source-backed" : "no linked context"}
               </span>
             </div>

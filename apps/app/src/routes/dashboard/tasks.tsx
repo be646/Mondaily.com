@@ -29,9 +29,9 @@ interface Task {
 // rose for problems, muted green for done. No bright utility colors.
 const LABEL_COLORS: Record<string, string> = {
   "Help Needed": "text-[#717784] bg-[#717784]/10 border-[#717784]/30",
-  "Blocked":     "text-[#9c6b72] bg-[#9c6b72]/10 border-[#9c6b72]/30",
+  "Blocked":     "text-[#d1524a] bg-[#d1524a]/10 border-[#d1524a]/30",
   "Waiting":     "text-stone-400 bg-stone-400/10 border-stone-400/30",
-  "Bug":         "text-[#9c6b72] bg-[#9c6b72]/10 border-[#9c6b72]/30",
+  "Bug":         "text-[#d1524a] bg-[#d1524a]/10 border-[#d1524a]/30",
   "Feature":     "text-stone-400 bg-stone-400/10 border-stone-400/30",
   "Research":    "text-[#717784] bg-[#717784]/10 border-[#717784]/30",
 };
@@ -39,15 +39,15 @@ const LABEL_COLORS: Record<string, string> = {
 const PRIORITY_STYLE: Record<string, string> = {
   low:    "text-stone-400 bg-stone-400/10 border-stone-400/20",
   medium: "text-[#717784] bg-[#717784]/10 border-[#717784]/20",
-  high:   "text-[#97824f] bg-[#97824f]/10 border-[#97824f]/20",
-  urgent: "text-[#9c6b72] bg-[#9c6b72]/10 border-[#9c6b72]/20",
+  high:   "text-[#c6892e] bg-[#c6892e]/10 border-[#c6892e]/20",
+  urgent: "text-[#d1524a] bg-[#d1524a]/10 border-[#d1524a]/20",
 };
 
 const STATUS_META: Record<string, { label: string; dot: string }> = {
   todo:        { label: "To Do",        dot: "bg-stone-500" },
   in_progress: { label: "In Progress",  dot: "bg-[#717784]" },
-  review:      { label: "Needs Review", dot: "bg-[#97824f]" },
-  done:        { label: "Done",         dot: "bg-[#5f8169]" },
+  review:      { label: "Needs Review", dot: "bg-[#c6892e]" },
+  done:        { label: "Done",         dot: "bg-[#2f9e6b]" },
 };
 
 function fmtDate(iso: string) {
@@ -192,7 +192,7 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
       <div className="relative" style={{ zIndex: 1 }}>
         <div className="flex items-start gap-2 mb-2">
           <button onPointerDown={e => e.stopPropagation()} onClick={() => onToggle(task)}
-            className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-[#5f8169] bg-[#5f8169]" : isOverdue ? "border-stone-400/60 hover:border-stone-400" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}`}>
+            className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-[#2f9e6b] bg-[#2f9e6b]" : isOverdue ? "border-stone-400/60 hover:border-stone-400" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}`}>
             {task.completed && <Check size={9} className="text-[var(--text-primary)]"/>}
           </button>
           <button onPointerDown={e => e.stopPropagation()} onClick={() => onDetail(task)}
@@ -295,7 +295,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
     setSaving(false); onClose();
   };
 
-  const PCOL: Record<string, string> = { low: "text-stone-400", medium: "text-[#717784]", high: "text-[#97824f]", urgent: "text-stone-400" };
+  const PCOL: Record<string, string> = { low: "text-stone-400", medium: "text-[#717784]", high: "text-[#c6892e]", urgent: "text-stone-400" };
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
@@ -494,8 +494,8 @@ export function TasksPage() {
   const BOARD_COLS: { key: string; label: string; dotColor: string }[] = [
     { key: "todo",        label: "To Do",       dotColor: "bg-stone-500"   },
     { key: "in_progress", label: "In Progress",  dotColor: "bg-[#717784]"   },
-    { key: "review",      label: "Review",       dotColor: "bg-[#97824f]" },
-    { key: "done",        label: "Done",         dotColor: "bg-[#5f8169]"},
+    { key: "review",      label: "Review",       dotColor: "bg-[#c6892e]" },
+    { key: "done",        label: "Done",         dotColor: "bg-[#2f9e6b]"},
   ];
 
   function handleDragEnd(event: DragEndEvent) {
@@ -616,8 +616,8 @@ export function TasksPage() {
               {[
                 { value: "",       label: "All priorities", dot: "bg-stone-600" },
                 { value: "urgent", label: "Urgent",         dot: "bg-stone-500" },
-                { value: "high",   label: "High",           dot: "bg-[#97824f]" },
-                { value: "medium", label: "Medium",         dot: "bg-[#97824f]" },
+                { value: "high",   label: "High",           dot: "bg-[#c6892e]" },
+                { value: "medium", label: "Medium",         dot: "bg-[#c6892e]" },
                 { value: "low",    label: "Low",            dot: "bg-stone-400" },
               ].map(opt => (
                 <button key={opt.value} onClick={() => { setPriorityFilter(opt.value); setPriorityOpen(false); }}
@@ -678,7 +678,7 @@ export function TasksPage() {
                   <div className="flex items-center gap-3 px-4 py-3">
                     {/* Checkbox */}
                     <button onClick={() => handleToggle(task)}
-                      className={`h-5 w-5 shrink-0 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-[#5f8169] bg-[#5f8169]" : isOverdue ? "border-stone-400/60 hover:border-stone-400" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}`}>
+                      className={`h-5 w-5 shrink-0 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-[#2f9e6b] bg-[#2f9e6b]" : isOverdue ? "border-stone-400/60 hover:border-stone-400" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}`}>
                       {task.completed && <Check size={11} className="text-[var(--text-primary)]"/>}
                     </button>
 
@@ -780,7 +780,7 @@ export function TasksPage() {
           <>
             <div className="flex justify-end mb-3">
               <button onClick={() => setShowDone(v => !v)}
-                className={`flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs transition-colors ${showDone ? "border-[#5f8169]/25 bg-[#5f8169]/10 text-[#5f8169] dark:border-[#5f8169]/30 dark:bg-[#5f8169]/[.06] dark:text-[#5f8169]" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+                className={`flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs transition-colors ${showDone ? "border-[#2f9e6b]/25 bg-[#2f9e6b]/10 text-[#2f9e6b] dark:border-[#2f9e6b]/30 dark:bg-[#2f9e6b]/[.06] dark:text-[#2f9e6b]" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
                 <Check size={11}/>{showDone ? "Hiding completed" : "Show completed"}
               </button>
             </div>
@@ -803,7 +803,7 @@ export function TasksPage() {
                       <tr key={task.id} id={`task-${task.id}`} className="group bg-white hover:bg-[#f9fafb] dark:bg-transparent dark:hover:bg-[var(--surface-hover)] transition-colors" style={highlightId === task.id ? { boxShadow: "inset 2px 0 0 0 var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 7%, transparent)" } : undefined}>
                         <td className="px-4 py-3 w-8">
                           <button onClick={() => handleToggle(task)}
-                            className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-[#5f8169] bg-[#5f8169]" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}`}>
+                            className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-[#2f9e6b] bg-[#2f9e6b]" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}`}>
                             {task.completed && <Check size={9} className="text-[var(--text-primary)]"/>}
                           </button>
                         </td>
@@ -867,8 +867,8 @@ export function TasksPage() {
               {doneTasks.map(task => (
                 <div key={task.id} className="rounded-sm border border-[var(--border-soft)] p-3 flex items-center gap-3">
                   <button onClick={() => handleToggle(task)}
-                    className="h-4 w-4 shrink-0 rounded border border-[#5f8169]/50 bg-[#5f8169]/20 flex items-center justify-center">
-                    <Check size={9} className="text-[#5f8169]"/>
+                    className="h-4 w-4 shrink-0 rounded border border-[#2f9e6b]/50 bg-[#2f9e6b]/20 flex items-center justify-center">
+                    <Check size={9} className="text-[#2f9e6b]"/>
                   </button>
                   <button onClick={() => setDetailTask(task)} className="flex-1 text-sm text-[var(--text-muted)] line-through text-left hover:text-[var(--text-faint)] truncate transition-colors">{task.title}</button>
                   <span className="text-[10px] text-[var(--text-faint)] shrink-0">{task.status === "done" ? "Done" : "Completed"}</span>

@@ -11,7 +11,7 @@ const TYPE_ICON: Record<string, React.ElementType> = {
   task: CheckSquare, note: FileText,
 };
 const TYPE_COLOR: Record<string, string> = {
-  companies: "text-[#717784]", people: "text-[#5f8169]", deals: "text-[#97824f]",
+  companies: "text-[#717784]", people: "text-[#2f9e6b]", deals: "text-[#c6892e]",
   task: "text-stone-400", note: "text-stone-400",
 };
 

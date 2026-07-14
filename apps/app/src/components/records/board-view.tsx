@@ -17,13 +17,13 @@ const STAGE_COLORS: Record<string, { dot: string; text: string }> = {
   qualified:   { dot: "bg-[#717784]",    text: "text-[#717784]" },
   "in progress": { dot: "bg-stone-400", text: "text-stone-400" },
   active:      { dot: "bg-stone-400",  text: "text-stone-400" },
-  proposal:    { dot: "bg-[#97824f]",   text: "text-[#97824f]" },
-  review:      { dot: "bg-[#97824f]",   text: "text-[#97824f]" },
-  negotiation: { dot: "bg-[#97824f]",  text: "text-[#97824f]" },
-  "closed won": { dot: "bg-[#5f8169]", text: "text-[#5f8169]" },
-  won:         { dot: "bg-[#5f8169]", text: "text-[#5f8169]" },
-  done:        { dot: "bg-[#5f8169]", text: "text-[#5f8169]" },
-  completed:   { dot: "bg-[#5f8169]", text: "text-[#5f8169]" },
+  proposal:    { dot: "bg-[#c6892e]",   text: "text-[#c6892e]" },
+  review:      { dot: "bg-[#c6892e]",   text: "text-[#c6892e]" },
+  negotiation: { dot: "bg-[#c6892e]",  text: "text-[#c6892e]" },
+  "closed won": { dot: "bg-[#2f9e6b]", text: "text-[#2f9e6b]" },
+  won:         { dot: "bg-[#2f9e6b]", text: "text-[#2f9e6b]" },
+  done:        { dot: "bg-[#2f9e6b]", text: "text-[#2f9e6b]" },
+  completed:   { dot: "bg-[#2f9e6b]", text: "text-[#2f9e6b]" },
   "closed lost": { dot: "bg-stone-400",  text: "text-stone-400" },
   lost:        { dot: "bg-stone-400",     text: "text-stone-400" },
   rejected:    { dot: "bg-stone-400",     text: "text-stone-400" },
@@ -257,7 +257,7 @@ function RecordCard({ record, objectType, groupCol, valueCol, members, stages, o
             onSave={v => onPatch({ [valueCol]: v === "" ? null : v })}
             placeholder="—"
             numeric
-            className="flex-1 text-[#5f8169] font-semibold text-right"
+            className="flex-1 text-[#2f9e6b] font-semibold text-right"
           />
         </div>
       )}
@@ -514,7 +514,7 @@ export function BoardView({ objectType }: { objectType: string }) {
               onKeyDown={e => { if (e.key === "Enter") commitNewStage(); if (e.key === "Escape") { setAddingStage(false); setNewStageName(""); } }}
               placeholder="Stage name…"
               className="flex-1 bg-transparent text-[11px] text-[var(--text-primary)] placeholder-stone-600 outline-none"/>
-            <button onClick={commitNewStage} className="text-stone-500 hover:text-[#5f8169] transition-colors"><Check size={12}/></button>
+            <button onClick={commitNewStage} className="text-stone-500 hover:text-[#2f9e6b] transition-colors"><Check size={12}/></button>
             <button onClick={() => { setAddingStage(false); setNewStageName(""); }} className="text-stone-600 hover:text-stone-400 transition-colors"><X size={12}/></button>
           </div>
           <div className="flex-1 flex items-center justify-center min-h-[80px]">

@@ -18,11 +18,11 @@ interface Action {
 }
 
 const ACTIONS: Action[] = [
-  { label: "New Task",    description: "Create a task without leaving this page", icon: CheckSquare, type: "create_task",    shortcut: "T", color: "text-[#5f8169]", iconBg: "bg-[#5f8169]/10" },
-  { label: "New Note",    description: "Add a note instantly",                    icon: FileText,    type: "create_note",    shortcut: "N", color: "text-[#97824f]",   iconBg: "bg-[#97824f]/10"   },
+  { label: "New Task",    description: "Create a task without leaving this page", icon: CheckSquare, type: "create_task",    shortcut: "T", color: "text-[#2f9e6b]", iconBg: "bg-[#2f9e6b]/10" },
+  { label: "New Note",    description: "Add a note instantly",                    icon: FileText,    type: "create_note",    shortcut: "N", color: "text-[#c6892e]",   iconBg: "bg-[#c6892e]/10"   },
   { label: "New Contact", description: "Add a person to the workspace graph",      icon: Users,       type: "create_contact", shortcut: "C", color: "text-[#717784]",    iconBg: "bg-[#717784]/10"    },
   { label: "New Company", description: "Add a company to the workspace graph",    icon: Building2,   type: "create_company",                color: "text-stone-400",  iconBg: "bg-stone-500/10"  },
-  { label: "New Deal",    description: "Create a new deal",                        icon: TrendingUp,  type: "create_deal",    shortcut: "D", color: "text-[#9c6b72]",    iconBg: "bg-[#9c6b72]/10"    },
+  { label: "New Deal",    description: "Create a new deal",                        icon: TrendingUp,  type: "create_deal",    shortcut: "D", color: "text-[#d1524a]",    iconBg: "bg-[#d1524a]/10"    },
 ];
 
 // Shared input style matching CommandPalette

@@ -90,6 +90,6 @@ describe("route + frontend wiring (source guards)", () => {
   });
 
   it("PipelineChips can render a Failed chip with its reason (never a success chip for failures)", () => {
-    expect(ui).toMatch(/st\.failed \? \{ l: "Failed", tone: "#9c6b72", title: st\.failReason \|\| "no reason returned" \}/);
+    expect(ui).toMatch(/st\.failed \? \{ l: "Failed", tone: "#d1524a", title: st\.failReason \|\| "no reason returned" \}/);
   });
 });

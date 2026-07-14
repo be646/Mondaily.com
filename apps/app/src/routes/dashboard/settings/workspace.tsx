@@ -94,7 +94,7 @@ function GeneralSection({
             <ImagePlus size={13} /> {logoBusy ? "Saving…" : (logoPreview || organization?.imageUrl) ? "Change logo" : "Upload logo"}
           </button>
           <p className="mt-1.5 text-[11px] text-[var(--text-muted)]">Square PNG or JPG, at least 256×256px, under 2 MB. Saves instantly.</p>
-          {logoError && <p className="mt-1 text-[11px] text-[#9c6b72]">{logoError}</p>}
+          {logoError && <p className="mt-1 text-[11px] text-[#d1524a]">{logoError}</p>}
         </div>
         <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={e => onUploadLogo(e.target.files?.[0])} />
       </div>
@@ -260,7 +260,7 @@ function DangerZoneSection({ form }: { form: WorkspaceData }) {
             <input value={deleteText} onChange={e => setDeleteText(e.target.value)} placeholder={form.name} className="key-input mt-4 h-10 w-full px-3 text-[12px]" />
             <div className="mt-5 flex justify-end gap-2">
               <button onClick={() => setDeleteOpen(false)} className="rounded-sm border border-[var(--border-soft)] px-4 py-2 text-[12px] text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">Cancel</button>
-              <button onClick={deleteWorkspace} disabled={deleteText !== form.name} className="rounded-sm border border-[#9c6b72] bg-[color-mix(in_srgb,#9c6b72_16%,transparent)] px-4 py-2 text-[12px] font-semibold text-[#9c6b72] hover:bg-[color-mix(in_srgb,#9c6b72_24%,transparent)] disabled:opacity-40 transition-colors">Delete workspace</button>
+              <button onClick={deleteWorkspace} disabled={deleteText !== form.name} className="rounded-sm border border-[#d1524a] bg-[color-mix(in_srgb,#d1524a_16%,transparent)] px-4 py-2 text-[12px] font-semibold text-[#d1524a] hover:bg-[color-mix(in_srgb,#d1524a_24%,transparent)] disabled:opacity-40 transition-colors">Delete workspace</button>
             </div>
           </div>
         </>
@@ -326,7 +326,7 @@ function ProfileSection({ initial }: { initial: WorkspaceProfile }) {
           className="btn-primary text-[13px] font-semibold">
           {save.isPending ? "Saving…" : "Save profile"}
         </button>
-        {saved && <span className="flex items-center gap-1.5 text-[12px] text-[#5f8169]"><Check size={13} /> Saved</span>}
+        {saved && <span className="flex items-center gap-1.5 text-[12px] text-[#2f9e6b]"><Check size={13} /> Saved</span>}
       </div>
 
       {/* Live preview — generated from the CURRENT edits (before save), so admins see the effect. */}
@@ -434,7 +434,7 @@ export function WorkspaceSettings() {
             onClick={() => setSection(item.key)}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-sm text-[12px] mb-0.5 transition-colors ${
               section === item.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:bg-[var(--surface-hover)]"
-            } ${item.danger ? (section === item.key ? "text-[var(--text-faint)]" : "text-[#9c6b72] hover:text-[var(--text-faint)]") : ""}`}
+            } ${item.danger ? (section === item.key ? "text-[var(--text-faint)]" : "text-[#d1524a] hover:text-[var(--text-faint)]") : ""}`}
           >
             <item.icon size={13} />
             {item.label}

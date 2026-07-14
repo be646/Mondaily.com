@@ -13,7 +13,7 @@ import { MenuSelect } from "../../components/ui/controls";
 const STATUSES = ["open", "in_review", "waiting_on_user", "resolved", "closed"] as const;
 type Status = (typeof STATUSES)[number];
 const label = (s: string) => s.replace(/_/g, " ");
-const STATUS_TONE: Record<Status, string> = { open: "#97824f", in_review: "#717784", waiting_on_user: "#97824f", resolved: "#5f8169", closed: "#8a8f99" };
+const STATUS_TONE: Record<Status, string> = { open: "#c6892e", in_review: "#717784", waiting_on_user: "#c6892e", resolved: "#2f9e6b", closed: "#8a8f99" };
 
 interface TicketRow { id: string; workspace_id: string; workspace_name: string; subject: string; category: string; status: Status; created_at: string; last_updated: string; comment_count: number }
 interface Comment { author_id: string; author_role: "admin" | "requester" | "mondaily"; body: string; at: string }

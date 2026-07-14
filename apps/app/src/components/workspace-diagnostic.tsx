@@ -98,7 +98,7 @@ export function WorkspaceDiagnostic() {
       <div className="w-full rounded-sm border p-6" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
         <div className="mb-4 flex items-center gap-2.5">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ background: "var(--surface-hover)" }}>
-            {diag === "api_unreachable" ? <AlertTriangle size={15} style={{ color: "#97824f" }} /> : <LogoMark size={15} style={{ color: "var(--section-accent)" }} />}
+            {diag === "api_unreachable" ? <AlertTriangle size={15} style={{ color: "#c6892e" }} /> : <LogoMark size={15} style={{ color: "var(--section-accent)" }} />}
           </span>
           <div>
             <p className="text-[13.5px] font-semibold" style={{ color: "var(--text-primary)" }}>{copy.title}</p>

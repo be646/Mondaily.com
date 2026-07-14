@@ -28,9 +28,9 @@ import { useLanguage } from "../../hooks/useLanguage";
 const ACCENTS = [
   { border: "border-l-[#717784]/50", dot: "bg-stone-400", userBorder: "border-stone-500/30", userText: "text-stone-200" },
   { border: "border-l-[#717784]/50",   dot: "bg-[#717784]",   userBorder: "border-[#717784]/30",   userText: "text-[#717784]"   },
-  { border: "border-l-[#5f8169]/50",dot: "bg-[#5f8169]",userBorder: "border-[#5f8169]/30",userText: "text-[#5f8169]"},
-  { border: "border-l-[#9c6b72]/50",   dot: "bg-[#9c6b72]",   userBorder: "border-[#9c6b72]/30",   userText: "text-[#9c6b72]"   },
-  { border: "border-l-[#97824f]/50",  dot: "bg-[#97824f]",  userBorder: "border-[#97824f]/30",  userText: "text-[#97824f]"  },
+  { border: "border-l-[#2f9e6b]/50",dot: "bg-[#2f9e6b]",userBorder: "border-[#2f9e6b]/30",userText: "text-[#2f9e6b]"},
+  { border: "border-l-[#d1524a]/50",   dot: "bg-[#d1524a]",   userBorder: "border-[#d1524a]/30",   userText: "text-[#d1524a]"   },
+  { border: "border-l-[#c6892e]/50",  dot: "bg-[#c6892e]",  userBorder: "border-[#c6892e]/30",  userText: "text-[#c6892e]"  },
 ];
 
 // ── Quick prompt palette ───────────────────────────────────────────────────────
@@ -380,14 +380,14 @@ export function AskMondaily() {
                     {!isStreaming && i > 0 && (
                       <div className="flex items-center gap-0.5 mt-2 pl-4">
                         <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, 1, i)}
-                          className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === 1 ? "text-[#5f8169]" : "text-stone-700 hover:text-[#5f8169]"}`}
+                          className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === 1 ? "text-[#2f9e6b]" : "text-stone-700 hover:text-[#2f9e6b]"}`}
                           title="Good response"><ThumbsUp size={12}/></button>
                         <button onClick={() => sendFeedback(messages[i-1]?.content ?? "", m.content, -1, i)}
                           className={`rounded-md p-1.5 transition-colors ${feedbackGiven[i] === -1 ? "text-stone-400" : "text-stone-300 hover:text-stone-400 dark:text-stone-700 dark:hover:text-stone-400"}`}
                           title="Bad response"><ThumbsDown size={12}/></button>
                         {feedbackGiven[i] && <span className="text-[11px] text-[var(--text-faint)] ml-1">{feedbackGiven[i] === 1 ? "Thanks!" : "Got it"}</span>}
                         <button onClick={() => copyMessage(m.content, i)}
-                          className={`rounded-md p-1.5 ml-1 transition-colors ${copiedIdx === i ? "text-[#5f8169]" : "text-stone-300 hover:text-stone-500 dark:text-stone-700 dark:hover:text-stone-400"}`}
+                          className={`rounded-md p-1.5 ml-1 transition-colors ${copiedIdx === i ? "text-[#2f9e6b]" : "text-stone-300 hover:text-stone-500 dark:text-stone-700 dark:hover:text-stone-400"}`}
                           title="Copy">
                           {copiedIdx === i ? <Check size={12}/> : <Copy size={12}/>}
                         </button>

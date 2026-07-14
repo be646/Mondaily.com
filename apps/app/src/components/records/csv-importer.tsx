@@ -12,9 +12,9 @@ const TYPE_COLORS: Record<ColType, string> = {
   Number:   "bg-[#717784]/10 text-[#717784] border-[#717784]/25",
   Email:    "bg-stone-900/40 text-stone-300 border-stone-500/30",
   URL:      "bg-[var(--accent)]/40 text-[var(--accent)] border-[var(--accent)]/30",
-  Date:     "bg-[#97824f]/40 text-[#97824f] border-[#97824f]/30",
-  Status:   "bg-[#97824f]/10 text-[#97824f] border-[#97824f]/25",
-  Currency: "bg-[#5f8169]/10 text-[#5f8169] border-[#5f8169]/25",
+  Date:     "bg-[#c6892e]/40 text-[#c6892e] border-[#c6892e]/30",
+  Status:   "bg-[#c6892e]/10 text-[#c6892e] border-[#c6892e]/25",
+  Currency: "bg-[#2f9e6b]/10 text-[#2f9e6b] border-[#2f9e6b]/25",
   Phone:    "bg-[#717784]/40 text-[#717784] border-[#717784]/30",
   Boolean:  "bg-[#717784]/10 text-[#717784] border-[#717784]/25",
 };
@@ -276,7 +276,7 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
   // ── Importing ────────────────────────────────────────────────────────────────
   if (phase === "importing") return (
     <div className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-4">
-      <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-stone-500/30 border-t-[#9c6b72]"/>
+      <div className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-stone-500/30 border-t-[#d1524a]"/>
       <div>
         <p className="text-xs font-medium text-[var(--text-primary)]">Importing {rows.length} rows…</p>
         <p className="text-[10px] text-stone-600">Creating records in {objectType}</p>
@@ -286,14 +286,14 @@ export function CsvImporter({ objectType, onImported }: { objectType: string; on
 
   // ── Done ─────────────────────────────────────────────────────────────────────
   if (phase === "done" && result) return (
-    <div className={`flex items-start gap-3 rounded-sm border px-4 py-3 ${result.errors.length > 0 ? "border-[#97824f]/25 bg-[#97824f]/[.04]" : "border-[#5f8169]/25 bg-[#5f8169]/[.04]"}`}>
-      <CheckCircle2 size={16} className={`mt-0.5 shrink-0 ${result.errors.length > 0 ? "text-[#97824f]" : "text-[#5f8169]"}`}/>
+    <div className={`flex items-start gap-3 rounded-sm border px-4 py-3 ${result.errors.length > 0 ? "border-[#c6892e]/25 bg-[#c6892e]/[.04]" : "border-[#2f9e6b]/25 bg-[#2f9e6b]/[.04]"}`}>
+      <CheckCircle2 size={16} className={`mt-0.5 shrink-0 ${result.errors.length > 0 ? "text-[#c6892e]" : "text-[#2f9e6b]"}`}/>
       <div className="flex-1 min-w-0">
         <p className="text-xs font-semibold text-[var(--text-primary)]">
           {result.created} record{result.created !== 1 ? "s" : ""} imported successfully
         </p>
         {result.errors.length > 0 && (
-          <p className="text-[10px] text-[#97824f] mt-0.5">
+          <p className="text-[10px] text-[#c6892e] mt-0.5">
             {result.errors.length} row{result.errors.length !== 1 ? "s" : ""} failed · {result.errors[0]?.error}
           </p>
         )}

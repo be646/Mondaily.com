@@ -69,7 +69,7 @@ function RunAgentButton({ agentId }: { agentId: string }) {
         {running ? "Running…" : "Run now"}
       </button>
       {result && <span className="text-[10.5px]" style={{ color: "var(--text-secondary)" }}>{result}</span>}
-      {error && <span className="text-[10.5px] text-[#9c6b72]">{error}</span>}
+      {error && <span className="text-[10.5px] text-[#d1524a]">{error}</span>}
     </div>
   );
 }
@@ -97,9 +97,9 @@ function orderConstellation(list: ConstellationAgent[]): ConstellationAgent[] {
 // Matte, meaning-based tone per agent state — the single source for every agent dot/icon colour
 // across the constellation, hero strip and sidebar, so an agent never changes colour by position.
 const STATE_TONE: Record<ConstellationState, string> = {
-  active: "#5f8169",          // working — matte green
-  needs_approval: "#97824f",  // waiting on you — matte amber
-  issue: "#9c6b72",           // problem — matte rose
+  active: "#2f9e6b",          // working — matte green
+  needs_approval: "#c6892e",  // waiting on you — matte amber
+  issue: "#d1524a",           // problem — matte rose
   monitoring: "var(--text-muted)",
   disabled: "var(--text-faint)",
   not_configured: "var(--text-faint)",
@@ -108,8 +108,8 @@ const STATE_TONE: Record<ConstellationState, string> = {
 const STATE_RING: Record<ConstellationState, string> = {
   active: "border-stone-500",
   monitoring: "border-[var(--accent)]",
-  needs_approval: "border-[#97824f]",
-  issue: "border-[#9c6b72]",
+  needs_approval: "border-[#c6892e]",
+  issue: "border-[#d1524a]",
   disabled: "border-dashed border-stone-300/40",
   not_configured: "border-dashed border-stone-300/40",
 };

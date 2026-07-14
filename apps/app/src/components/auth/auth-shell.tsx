@@ -35,9 +35,9 @@ export function CapsuleInput({ label, hint, error, ...props }: { label: string; 
       <span className="mb-1.5 block text-[10.5px] uppercase tracking-wider text-zinc-500">{label}</span>
       <input
         {...props}
-        className={`w-full rounded-sm border bg-zinc-950 px-3.5 py-2.5 text-[13px] text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 disabled:opacity-60 ${error ? "border-[#9c6b72]" : "border-zinc-800 focus:border-[#8fcf7f]"}`}
+        className={`w-full rounded-sm border bg-zinc-950 px-3.5 py-2.5 text-[13px] text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 disabled:opacity-60 ${error ? "border-[#d1524a]" : "border-zinc-800 focus:border-[#8fcf7f]"}`}
       />
-      {error ? <span className="mt-1 block text-[10.5px] text-[#9c6b72]">{error}</span>
+      {error ? <span className="mt-1 block text-[10.5px] text-[#d1524a]">{error}</span>
         : hint ? <span className="mt-1 block text-[10.5px] text-zinc-600">{hint}</span> : null}
     </label>
   );

@@ -78,16 +78,16 @@ const hostOf = (url?: string | null) => {
 const uid = () => `t_${Math.random().toString(36).slice(2)}_${performance.now().toString(36)}`;
 
 const PRIORITY: Record<"hot" | "warm" | "cold", { label: string; tone: string }> = {
-  hot:  { label: "Hot",  tone: "#9c6b72" },
-  warm: { label: "Warm", tone: "#97824f" },
+  hot:  { label: "Hot",  tone: "#d1524a" },
+  warm: { label: "Warm", tone: "#c6892e" },
   cold: { label: "Cold", tone: "#737373" },
 };
 
 const SENTIMENT: Record<Exclude<Sentiment, null>, { label: string; tone: string; Icon: typeof ThumbsUp }> = {
-  positive: { label: "Positive", tone: "#5f8169", Icon: ThumbsUp },
-  negative: { label: "Negative", tone: "#9c6b72", Icon: ThumbsDown },
+  positive: { label: "Positive", tone: "#2f9e6b", Icon: ThumbsUp },
+  negative: { label: "Negative", tone: "#d1524a", Icon: ThumbsDown },
   neutral:  { label: "Neutral",  tone: "#737373", Icon: Minus },
-  mixed:    { label: "Mixed",    tone: "#97824f", Icon: Minus },
+  mixed:    { label: "Mixed",    tone: "#c6892e", Icon: Minus },
 };
 
 // A citation anchor id ties a Sources-rail pill to its result card (jump-to-source, Perplexity-style).
@@ -313,7 +313,7 @@ export function DiscoveryPage() {
           callsign="SWEEP"
           title={t("discovery.heading")}
           status={[
-            { label: degraded ? "Search engine offline" : "Web search online", tone: degraded ? "#97824f" : "#5f8169" },
+            { label: degraded ? "Search engine offline" : "Web search online", tone: degraded ? "#c6892e" : "#2f9e6b" },
             ...(connectorsQ.data ? [
               { node: <Source label={connectorsQ.data.places.provider === "google" ? "Google Maps" : "OpenStreetMap"} ok={connectorsQ.data.places.ok} detail={connectorsQ.data.places.detail} /> },
               { node: <Source label="Reddit" ok={connectorsQ.data.reddit.ok} detail={connectorsQ.data.reddit.detail} muted={!connectorsQ.data.reddit.enabled} /> },
@@ -363,7 +363,7 @@ export function DiscoveryPage() {
       )}
 
       {(degraded || statusQ.isError) && (
-        <div className="mb-3 flex items-start gap-2 rounded-sm border px-3 py-2.5 text-[12px]" style={{ borderColor: "#97824f33", background: "#97824f0f", color: "#97824f" }}>
+        <div className="mb-3 flex items-start gap-2 rounded-sm border px-3 py-2.5 text-[12px]" style={{ borderColor: "#c6892e33", background: "#c6892e0f", color: "#c6892e" }}>
           <AlertTriangle size={14} className="mt-0.5 shrink-0" />
           <span>
             {statusQ.isError
@@ -442,7 +442,7 @@ export function DiscoveryPage() {
 
 /** Tiny data-source status chip in the header — hover shows the live diagnostic detail. */
 function Source({ label, ok, detail, muted }: { label: string; ok: boolean; detail: string; muted?: boolean }) {
-  const color = muted ? "var(--text-faint)" : ok ? "#5f8169" : "#97824f";
+  const color = muted ? "var(--text-faint)" : ok ? "#2f9e6b" : "#c6892e";
   return (
     <span className="inline-flex items-center gap-1" title={detail} style={{ color: "var(--text-faint)" }}>
       <span aria-hidden>·</span>
@@ -543,7 +543,7 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
         <StepTrace steps={turn.steps} status={turn.status} />
 
         {turn.status === "error" && (
-          <div className="mt-2 flex items-start gap-2 rounded-sm border px-3 py-2 text-[12.5px]" style={{ borderColor: "#9c6b7233", background: "#9c6b720d", color: "#9c6b72" }}>
+          <div className="mt-2 flex items-start gap-2 rounded-sm border px-3 py-2 text-[12.5px]" style={{ borderColor: "#d1524a33", background: "#d1524a0d", color: "#d1524a" }}>
             <AlertTriangle size={14} className="mt-0.5 shrink-0" /> {turn.error}
           </div>
         )}
@@ -666,7 +666,7 @@ function WatchButton({ query }: { query: string }) {
     try { await apiClient.post("/discovery/monitors", { query }); setState("done"); }
     catch { setState("error"); }
   };
-  if (state === "done") return <p className="mt-2 inline-flex items-center gap-1.5 text-[11.5px]" style={{ color: "#5f8169" }}><Check size={12} /> Watching — you'll be notified of new results</p>;
+  if (state === "done") return <p className="mt-2 inline-flex items-center gap-1.5 text-[11.5px]" style={{ color: "#2f9e6b" }}><Check size={12} /> Watching — you'll be notified of new results</p>;
   return (
     <button onClick={save} disabled={state === "saving"}
       className="mt-2 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
@@ -688,7 +688,7 @@ function StepTrace({ steps, status }: { steps: string[]; status: Turn["status"] 
   return (
     <div className="rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <button onClick={() => setOpen((o) => !o)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px]" style={{ color: "var(--text-muted)" }}>
-        {status === "streaming" ? <Loader2 size={13} className="animate-spin shrink-0" style={{ color: "var(--section-accent)" }} /> : <Check size={13} className="shrink-0" style={{ color: "#5f8169" }} />}
+        {status === "streaming" ? <Loader2 size={13} className="animate-spin shrink-0" style={{ color: "var(--section-accent)" }} /> : <Check size={13} className="shrink-0" style={{ color: "#2f9e6b" }} />}
         <span className="min-w-0 flex-1 truncate">{status === "streaming" ? last : `Searched the web · ${steps.length} steps`}</span>
         <ChevronDown size={13} className="shrink-0 transition-transform" style={{ transform: open ? "rotate(180deg)" : "none" }} />
       </button>
@@ -738,7 +738,7 @@ function SaveAllLeads({ results, query }: { results: ResultRow[]; query: string 
     if (existed) parts.push(`${existed} already in graph`);
     if (result?.skipped) parts.push(`${result.skipped} skipped`);
     if (failed) parts.push(`${failed} failed`);
-    return <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: failed ? "#9c6b72" : "#5f8169" }}><Check size={12} /> {parts.join(" · ")}</span>;
+    return <span className="inline-flex items-center gap-1 text-[11px]" style={{ color: failed ? "#d1524a" : "#2f9e6b" }}><Check size={12} /> {parts.join(" · ")}</span>;
   }
   return (
     <button onClick={save} disabled={state === "saving"} className="inline-flex items-center gap-1 rounded-sm px-2.5 py-0.5 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
@@ -956,7 +956,7 @@ function PipelineChips({ st }: { st: LeadStatus }) {
     st.tasked ? { l: "Task created", tone: "#2563eb" } : null,
     st.queued ? { l: "In Decision Queue", tone: "#7c3aed" } : null,
     // Failed action — surfaced honestly (never alongside a success chip; bulk handlers set only this).
-    st.failed ? { l: "Failed", tone: "#9c6b72", title: st.failReason || "no reason returned" } : null,
+    st.failed ? { l: "Failed", tone: "#d1524a", title: st.failReason || "no reason returned" } : null,
   ].filter(Boolean) as { l: string; tone: string; title?: string }[];
   if (chips.length === 0) return null;
   return (
@@ -1054,7 +1054,7 @@ function BulkBar({ entries, query, lists, members, onApplied, onClear }: {
           <div className="w-full text-[11px]" style={{ color: "var(--text-muted)" }}>
             <span>{ledger.total} selected → {summary}</span>
             {ledger.failures.length > 0 && (
-              <ul className="mt-1 space-y-0.5" style={{ color: "#9c6b72" }}>
+              <ul className="mt-1 space-y-0.5" style={{ color: "#d1524a" }}>
                 {ledger.failures.slice(0, 8).map((f, i) => (
                   <li key={`${f.name}-${i}`} className="truncate">✕ {f.name || "Unnamed lead"} — {f.reason || "no reason returned"}</li>
                 ))}
@@ -1122,7 +1122,7 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
           )}
         </div>
         <div className="flex flex-wrap gap-1.5 border-t px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
-          {(status?.saved || status?.existed) ? <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: status.existed ? "var(--text-muted)" : "#5f8169", background: status.existed ? "var(--surface-hover)" : "#5f816914" }}><Check size={11} /> {status.existed ? "In graph" : "Saved"}</span>
+          {(status?.saved || status?.existed) ? <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: status.existed ? "var(--text-muted)" : "#2f9e6b", background: status.existed ? "var(--surface-hover)" : "#2f9e6b14" }}><Check size={11} /> {status.existed ? "In graph" : "Saved"}</span>
             : <button onClick={() => save.mutate()} disabled={save.isPending} className="inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>{save.isPending ? <Loader2 size={11} className="animate-spin" /> : <Plus size={11} />} Save</button>}
           {lists.length > 0 && (
             <MenuSelect value="" onChange={(v) => v && addList.mutate(v)} disabled={!status?.node_id} title={status?.node_id ? undefined : "Save the lead first"} allLabel="Add to list…" maxWidth={130} options={lists.map((l) => ({ value: l.id, label: l.name }))} />
@@ -1203,7 +1203,7 @@ function LeadCard({ r, n, query, lists, selected, onToggle, bulkStatus, onDetail
             <Globe2 size={11} className="shrink-0" /> <span className="truncate">{hostOf(r.source_url) || r.platform}</span>
             {r.region && <><span aria-hidden>·</span><span>{r.region}</span></>}
             {r.priority && <span className="rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold" style={{ color: PRIORITY[r.priority].tone, background: `${PRIORITY[r.priority].tone}14` }}>{PRIORITY[r.priority].label}</span>}
-            {r.confidence_score > 0 && <span className="rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold" style={{ color: r.confidence_score >= 70 ? "#5f8169" : "var(--text-muted)", background: r.confidence_score >= 70 ? "#5f816914" : "var(--surface-hover)" }}>{r.confidence_score}% match</span>}
+            {r.confidence_score > 0 && <span className="rounded-full px-1.5 py-0.5 text-[9.5px] font-semibold" style={{ color: r.confidence_score >= 70 ? "#2f9e6b" : "var(--text-muted)", background: r.confidence_score >= 70 ? "#2f9e6b14" : "var(--surface-hover)" }}>{r.confidence_score}% match</span>}
           </div>
           <a href={r.source_url} target="_blank" rel="noreferrer" className="mt-1 inline-flex max-w-full items-center gap-1 truncate text-[14.5px] font-semibold hover:underline" style={{ color: "var(--section-accent)" }}>
             {name} <ExternalLink size={12} className="shrink-0" style={{ color: "var(--text-faint)" }} />
@@ -1222,7 +1222,7 @@ function LeadCard({ r, n, query, lists, selected, onToggle, bulkStatus, onDetail
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {(st.saved || st.existed) ? (
-          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: st.existed ? "var(--text-muted)" : "#5f8169", background: st.existed ? "var(--surface-hover)" : "#5f816914" }}><Check size={11} /> {st.existed ? "In graph" : "Saved"}</span>
+          <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium" style={{ color: st.existed ? "var(--text-muted)" : "#2f9e6b", background: st.existed ? "var(--surface-hover)" : "#2f9e6b14" }}><Check size={11} /> {st.existed ? "In graph" : "Saved"}</span>
         ) : (
           <button onClick={() => save.mutate()} disabled={save.isPending}
             className="inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-[11px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
@@ -1372,7 +1372,7 @@ function SavedLeads({ lists }: { lists: ListRow[] }) {
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
                 <Link to={`/objects/${r.object_type}/${r.id}`} className="rounded-sm border px-2.5 py-1 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Open</Link>
-                <button onClick={() => remove.mutate(r.id)} disabled={remove.isPending && remove.variables === r.id} className="inline-flex items-center gap-1 rounded-sm px-2.5 py-1 text-[11px] font-medium" style={{ color: "#9c6b72", background: "#9c6b720d" }}>
+                <button onClick={() => remove.mutate(r.id)} disabled={remove.isPending && remove.variables === r.id} className="inline-flex items-center gap-1 rounded-sm px-2.5 py-1 text-[11px] font-medium" style={{ color: "#d1524a", background: "#d1524a0d" }}>
                   {remove.isPending && remove.variables === r.id ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
                 </button>
               </div>

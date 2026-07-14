@@ -416,7 +416,7 @@ export function TerminalOnboardingPage() {
                             {copied === iv.email ? "Copied ✓" : "Copy link"}
                           </button>
                         </>
-                      ) : <span className="text-[11px] text-[#97824f]">failed — retry in Settings → Members</span>}
+                      ) : <span className="text-[11px] text-[#c6892e]">failed — retry in Settings → Members</span>}
                     </div>
                   ))}
                 </div>

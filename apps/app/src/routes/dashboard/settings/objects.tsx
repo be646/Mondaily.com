@@ -132,8 +132,8 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
   }
 
   const typeColor: Record<string, string> = {
-    currency: "text-[#5f8169]", number: "text-[#717784]", date: "text-[#97824f]",
-    datetime: "text-[#97824f]", checkbox: "text-[var(--text-faint)]", select: "text-[var(--section-accent)]",
+    currency: "text-[#2f9e6b]", number: "text-[#717784]", date: "text-[#c6892e]",
+    datetime: "text-[#c6892e]", checkbox: "text-[var(--text-faint)]", select: "text-[var(--section-accent)]",
     multi_select: "text-[var(--section-accent)]", email: "text-[var(--text-faint)]", phone: "text-[var(--text-faint)]",
     url: "text-[#717784]", text: "text-[var(--text-faint)]", long_text: "text-[var(--text-faint)]",
   };

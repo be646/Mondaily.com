@@ -125,7 +125,7 @@ function PaymentsSection({ invoice }: { invoice: Invoice }) {
         <div className="w-56 space-y-1.5">
           <div className="flex justify-between text-[12px] text-[var(--text-muted)]">
             <span>Total paid</span>
-            <span className="text-[#5f8169]">{formatCurrency(totalPaid, invoice.currency)}</span>
+            <span className="text-[#2f9e6b]">{formatCurrency(totalPaid, invoice.currency)}</span>
           </div>
           {remaining > 0 && (
             <div className="flex justify-between text-[12px] text-[var(--text-muted)] border-t border-[var(--border-soft)] pt-1.5">
@@ -205,7 +205,7 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
   draft:     "text-stone-400 bg-stone-400/10",
   sent:      "text-[#717784] bg-[#717784]/10",
   viewed:    "text-stone-400 bg-stone-400/10",
-  paid:      "text-[#5f8169] bg-[#5f8169]/10",
+  paid:      "text-[#2f9e6b] bg-[#2f9e6b]/10",
   overdue:   "text-stone-400 bg-stone-400/10",
   cancelled: "text-stone-600 bg-stone-600/10",
 };
@@ -658,12 +658,12 @@ export function InvoiceDetailPage() {
                         </div>
                       )}
                       {paymentsAmt > 0 && (
-                        <div className="flex justify-between text-[12px] text-[#5f8169]">
+                        <div className="flex justify-between text-[12px] text-[#2f9e6b]">
                           <span>Payments</span>
                           <span>−{formatCurrency(paymentsAmt, currency)}</span>
                         </div>
                       )}
-                      <div className={`flex justify-between border-t border-[var(--border-soft)] pt-1.5 text-[14px] font-bold ${netOwed > 0 ? "text-[var(--text-faint)]" : "text-[#5f8169]"}`}>
+                      <div className={`flex justify-between border-t border-[var(--border-soft)] pt-1.5 text-[14px] font-bold ${netOwed > 0 ? "text-[var(--text-faint)]" : "text-[#2f9e6b]"}`}>
                         <span>Net owed</span>
                         <span>{formatCurrency(Math.max(0, netOwed), currency)}</span>
                       </div>

@@ -344,8 +344,8 @@ export function LiveSectionHeader({ icon: Icon, title, kicker, liveLabel = "Live
           <span className="oversight-live-scan block h-full w-1/3 rounded-full" style={{ background: "var(--section-accent)" }} />
         </span>
         <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ background: "#5f8169" }} />
-          <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#5f8169" }} />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" style={{ background: "#2f9e6b" }} />
+          <span className="relative inline-flex h-2 w-2 rounded-full" style={{ background: "#2f9e6b" }} />
         </span>
         <span className="font-mono text-[9.5px] uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>{liveLabel}</span>
       </div>
@@ -367,9 +367,9 @@ const STATUS_TONE: Record<CommandStatusKind, string> = {
   idle: "var(--text-faint)",
   monitoring: "var(--text-muted)",
   running: "var(--accent)",
-  waiting: "#97824f",
-  failed: "#9c6b72",
-  complete: "#5f8169",
+  waiting: "#c6892e",
+  failed: "#d1524a",
+  complete: "#2f9e6b",
 };
 const STATUS_LABEL: Record<CommandStatusKind, string> = {
   idle: "Idle", monitoring: "Monitoring", running: "Running", waiting: "Waiting", failed: "Failed", complete: "Ready",

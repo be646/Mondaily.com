@@ -148,7 +148,7 @@ export function MembersSettings() {
           <button onClick={copyInviteLink}
             className="flex h-9 items-center gap-2 rounded-sm border px-4 text-sm font-medium transition-colors hover:border-[color:var(--section-accent)] hover:text-[var(--text-primary)]"
             style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-            {copied ? <><Check size={14} className="text-[#5f8169]" /> Copied</> : <><Copy size={14} /> Copy link</>}
+            {copied ? <><Check size={14} className="text-[#2f9e6b]" /> Copied</> : <><Copy size={14} /> Copy link</>}
           </button>
         </div>
       )}
@@ -174,7 +174,7 @@ export function MembersSettings() {
                       {copiedLink === iv.email ? "Copied ✓" : "Copy"}
                     </button>
                   </>
-                ) : <span className="text-[11px] text-[#9c6b72]">{iv.error ?? "could not create invite"}</span>}
+                ) : <span className="text-[11px] text-[#d1524a]">{iv.error ?? "could not create invite"}</span>}
               </div>
             ))}
           </div>
@@ -252,12 +252,12 @@ export function MembersSettings() {
                         <span className="inline-flex items-center gap-1.5 text-[11px]">
                           <span className="text-[var(--text-faint)]">Remove?</span>
                           <button onClick={() => { remove.mutate(m.id!); setConfirmRemove(null); }}
-                            className="rounded-sm border border-[#9c6b72]/40 px-2 py-1 font-medium text-[#9c6b72] hover:bg-[#9c6b72]/10">Yes, remove</button>
+                            className="rounded-sm border border-[#d1524a]/40 px-2 py-1 font-medium text-[#d1524a] hover:bg-[#d1524a]/10">Yes, remove</button>
                           <button onClick={() => setConfirmRemove(null)}
                             className="rounded-sm border px-2 py-1 text-[var(--text-faint)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>Cancel</button>
                         </span>
                       ) : (
-                        <button onClick={() => setConfirmRemove(m.id!)} className="rounded-sm p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[#9c6b72]/10 hover:text-[#9c6b72]" title="Remove operator">
+                        <button onClick={() => setConfirmRemove(m.id!)} className="rounded-sm p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[#d1524a]/10 hover:text-[#d1524a]" title="Remove operator">
                           <Trash2 size={14} />
                         </button>
                       )
@@ -274,7 +274,7 @@ export function MembersSettings() {
                         {isAdmin && !isOwner && m?.id && (
                           <div className="flex items-center gap-2">
                             <button onClick={() => setAllModules.mutate({ id: m.id!, map: Object.fromEntries(modules.map(md => [md.key, "none"])) })}
-                              className="rounded-sm border px-2 py-1 text-[11px] text-[var(--text-faint)] transition-colors hover:border-[#9c6b72]/40 hover:text-[#9c6b72]" style={{ borderColor: "var(--border-soft)" }}>
+                              className="rounded-sm border px-2 py-1 text-[11px] text-[var(--text-faint)] transition-colors hover:border-[#d1524a]/40 hover:text-[#d1524a]" style={{ borderColor: "var(--border-soft)" }}>
                               Revoke all access
                             </button>
                             <button onClick={() => setAllModules.mutate({ id: m.id!, map: {} })}
@@ -338,11 +338,11 @@ export function MembersSettings() {
                     confirmRevoke === inv.id ? (
                       <span className="inline-flex items-center gap-1.5 text-[11px]">
                         <button onClick={() => { revokeInvite.mutate(inv.id!); setConfirmRevoke(null); }}
-                          className="rounded-sm border border-[#9c6b72]/40 px-2 py-1 font-medium text-[#9c6b72] hover:bg-[#9c6b72]/10">Revoke</button>
+                          className="rounded-sm border border-[#d1524a]/40 px-2 py-1 font-medium text-[#d1524a] hover:bg-[#d1524a]/10">Revoke</button>
                         <button onClick={() => setConfirmRevoke(null)} className="rounded-sm border px-2 py-1 text-[var(--text-faint)] hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)" }}>Cancel</button>
                       </span>
                     ) : (
-                      <button onClick={() => setConfirmRevoke(inv.id!)} className="rounded-sm p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[#9c6b72]/10 hover:text-[#9c6b72]" title="Revoke invite"><Trash2 size={13} /></button>
+                      <button onClick={() => setConfirmRevoke(inv.id!)} className="rounded-sm p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[#d1524a]/10 hover:text-[#d1524a]" title="Revoke invite"><Trash2 size={13} /></button>
                     )
                   )}
                 </div>

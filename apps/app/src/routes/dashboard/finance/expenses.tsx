@@ -24,9 +24,9 @@ const CATEGORY_CONFIG: Record<string, { color: string; icon: React.ElementType; 
   travel:               { color: "text-[#717784]",    icon: Car,           label: "Travel"               },
   software:             { color: "text-stone-400",  icon: Monitor,       label: "Software"             },
   hardware:             { color: "text-[var(--section-accent)]",    icon: Monitor,       label: "Hardware"             },
-  meals:                { color: "text-[#97824f]",   icon: Coffee,        label: "Meals"                },
+  meals:                { color: "text-[#c6892e]",   icon: Coffee,        label: "Meals"                },
   marketing:            { color: "text-[#717784]",    icon: Zap,           label: "Marketing"            },
-  professional_services:{ color: "text-[#5f8169]", icon: Briefcase,     label: "Professional Services"},
+  professional_services:{ color: "text-[#2f9e6b]", icon: Briefcase,     label: "Professional Services"},
   office:               { color: "text-stone-400",   icon: Building2,     label: "Office"              },
   other:                { color: "text-stone-500",    icon: MoreHorizontal,label: "Other"                },
 };
@@ -34,7 +34,7 @@ const CATEGORY_CONFIG: Record<string, { color: string; icon: React.ElementType; 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   draft:     { label: "Draft",     color: "text-stone-400 bg-stone-400/10",     icon: Receipt      },
   submitted: { label: "Submitted", color: "text-[#717784] bg-[#717784]/10",     icon: Clock        },
-  approved:  { label: "Approved",  color: "text-[#5f8169] bg-[#5f8169]/10", icon: CheckCircle2 },
+  approved:  { label: "Approved",  color: "text-[#2f9e6b] bg-[#2f9e6b]/10", icon: CheckCircle2 },
   rejected:  { label: "Rejected",  color: "text-stone-400 bg-stone-400/10",       icon: XCircle      },
 };
 
@@ -87,7 +87,7 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
       <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-[#97824f]/10 flex items-center justify-center"><Receipt size={12} className="text-[#97824f]"/></div>
+            <div className="h-6 w-6 rounded-lg bg-[#c6892e]/10 flex items-center justify-center"><Receipt size={12} className="text-[#c6892e]"/></div>
             <span className="text-sm font-semibold text-[var(--text-primary)]">Log Expense</span>
           </div>
           <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors text-lg leading-none">×</button>
@@ -190,8 +190,8 @@ export function ExpensesPage() {
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{expenses.filter(e => e.status === "submitted").length} pending approval</div>
           </div>
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#5f8169]"/><span className="text-[11px] text-[var(--text-muted)]">Approved</span></div>
-            <div className="text-[17px] font-semibold text-[#5f8169]">{formatMoney(totalApproved, currency)}</div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#2f9e6b]"/><span className="text-[11px] text-[var(--text-muted)]">Approved</span></div>
+            <div className="text-[17px] font-semibold text-[#2f9e6b]">{formatMoney(totalApproved, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{expenses.filter(e => e.status === "approved").length} approved</div>
           </div>
           <div className="telemetry-strip">

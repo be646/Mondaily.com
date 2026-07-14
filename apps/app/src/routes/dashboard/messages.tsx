@@ -402,7 +402,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
             <button onClick={aiDraft} disabled={!aiPrompt.trim() || aiBusy} className="rounded-sm border px-3 py-1.5 text-[12px] font-semibold disabled:opacity-50" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>{aiBusy ? <Loader2 size={13} className="animate-spin" /> : "Draft"}</button>
             <button onClick={() => { setAiOpen(false); setAiError(""); }} className="btn-icon h-8 w-8"><X size={14} /></button>
           </div>
-          {aiError && <p className="mt-1 text-[11px]" style={{ color: "#9c6b72" }}>{aiError}</p>}
+          {aiError && <p className="mt-1 text-[11px]" style={{ color: "#d1524a" }}>{aiError}</p>}
         </div>
       )}
 
@@ -419,7 +419,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
               ))}
             </div>
           )}
-          {attachError && <p className="mt-1 text-[11px]" style={{ color: "#9c6b72" }}>{attachError}</p>}
+          {attachError && <p className="mt-1 text-[11px]" style={{ color: "#d1524a" }}>{attachError}</p>}
         </div>
       )}
 
@@ -450,7 +450,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
           {send.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} {t("inbox.send")}
         </button>
       </div>
-      {send.isError && <p className="px-4 pb-2 text-[11.5px]" style={{ color: "#9c6b72" }}>Couldn't send — {(send.error as Error)?.message ?? "try again"}.</p>}
+      {send.isError && <p className="px-4 pb-2 text-[11.5px]" style={{ color: "#d1524a" }}>Couldn't send — {(send.error as Error)?.message ?? "try again"}.</p>}
     </div>
   );
 }
@@ -598,7 +598,7 @@ function GroupThread({ groupId, live, onSent, onLeft, onBack }: { groupId: strin
               ))}
             </div>
           )}
-          {attachError && <p className="mt-1 text-[11px]" style={{ color: "#9c6b72" }}>{attachError}</p>}
+          {attachError && <p className="mt-1 text-[11px]" style={{ color: "#d1524a" }}>{attachError}</p>}
         </div>
       )}
 
@@ -616,7 +616,7 @@ function GroupThread({ groupId, live, onSent, onLeft, onBack }: { groupId: strin
           {send.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} {t("inbox.send")}
         </button>
       </div>
-      {send.isError && <p className="px-4 pb-2 text-[11.5px]" style={{ color: "#9c6b72" }}>Couldn't send — {(send.error as Error)?.message ?? "try again"}.</p>}
+      {send.isError && <p className="px-4 pb-2 text-[11.5px]" style={{ color: "#d1524a" }}>Couldn't send — {(send.error as Error)?.message ?? "try again"}.</p>}
     </div>
   );
 }
@@ -709,7 +709,7 @@ function NewMessageModal({ onClose, onPick, onGroupCreated }: { onClose: () => v
         </div>
         {mode === "group" && (
           <div className="border-t px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
-            {createError && <p className="mb-1.5 text-[11px]" style={{ color: "#9c6b72" }}>{createError}</p>}
+            {createError && <p className="mb-1.5 text-[11px]" style={{ color: "#d1524a" }}>{createError}</p>}
             <button onClick={createGroup} disabled={!groupName.trim() || selected.size === 0 || creating}
               className="w-full rounded-sm px-3 py-2 text-[12.5px] font-semibold text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
               {creating ? "Creating…" : `Create group${selected.size ? ` · ${selected.size} member${selected.size !== 1 ? "s" : ""}` : ""}`}

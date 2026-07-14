@@ -33,10 +33,10 @@ interface Operator {
 }
 
 const SIGNAL_TONE: Record<SignalLevel, string> = {
-  good: "#5f8169", watch: "#97824f", risk: "#9c6b72", insufficient: "var(--text-faint)",
+  good: "#2f9e6b", watch: "#c6892e", risk: "#d1524a", insufficient: "var(--text-faint)",
 };
 const EVAL_TONE: Record<EvalLabel["tone"], string> = {
-  good: "#5f8169", watch: "#97824f", risk: "#9c6b72", neutral: "var(--text-faint)",
+  good: "#2f9e6b", watch: "#c6892e", risk: "#d1524a", neutral: "var(--text-faint)",
 };
 interface MatrixResp { operators: Operator[]; trends?: { activity: TrendPoint[]; ai_usage: TrendPoint[]; decisions: TrendPoint[]; tasks_completed?: TrendPoint[] }; totals: { operators: number; tokens: number; active_sessions: number } }
 interface ActivityRow { id: string; action: string; ai_summary: string | null; object: { type: string; name: string | null; node_id?: string | null } | null; changes?: { field: string; value: string }[]; created_at: string }
@@ -58,9 +58,9 @@ interface InsightResp { insight: string; sources: { type: string; title: string;
 type EffRating = "strong" | "steady" | "needs_support" | "insufficient";
 interface EfficiencyResp { sufficient: boolean; rating: EffRating; assessment: string; strengths: string[]; improvements: string[]; coaching_message: string; metrics?: { completion_rate: number; completed: number; overdue: number; active_days: number; decisions: number } }
 const EFF_LABEL: Record<EffRating, { label: string; tone: string }> = {
-  strong:        { label: "Strong",        tone: "#5f8169" },
+  strong:        { label: "Strong",        tone: "#2f9e6b" },
   steady:        { label: "Steady",        tone: "var(--section-accent)" },
-  needs_support: { label: "Needs support", tone: "#97824f" },
+  needs_support: { label: "Needs support", tone: "#c6892e" },
   insufficient:  { label: "Not enough data", tone: "var(--text-faint)" },
 };
 
@@ -83,11 +83,11 @@ interface Goal { id: string; scope: "member" | "team"; target_user_id: string | 
 interface GoalsResp { goals: Goal[]; available: boolean }
 
 const VERDICT: Record<Verdict, { label: string; tone: string }> = {
-  engaged:         { label: "Engaged",        tone: "#5f8169" },
-  high_complexity: { label: "Deep work",      tone: "#5f8169" },
-  bot:             { label: "Power user",     tone: "#5f8169" },
-  low_engagement:  { label: "Low engagement", tone: "#97824f" },
-  inactive:        { label: "Inactive",       tone: "#97824f" },
+  engaged:         { label: "Engaged",        tone: "#2f9e6b" },
+  high_complexity: { label: "Deep work",      tone: "#2f9e6b" },
+  bot:             { label: "Power user",     tone: "#2f9e6b" },
+  low_engagement:  { label: "Low engagement", tone: "#c6892e" },
+  inactive:        { label: "Inactive",       tone: "#c6892e" },
   idle:            { label: "Standby",        tone: "var(--text-faint)" },
 };
 
@@ -164,8 +164,8 @@ function TeamCharts({ operators, onSelect }: { operators: Operator[]; onSelect: 
   return (
     <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       <MetricBars title="Workload" hint="Open tasks assigned" operators={operators} tone="var(--section-accent)" onSelect={onSelect} value={(o) => (o.open_tasks ?? 0) + (o.overdue_tasks ?? 0)} />
-      <MetricBars title="Overdue work" hint="Overdue tasks by member" operators={operators} tone="#9c6b72" onSelect={onSelect} value={(o) => o.overdue_tasks ?? 0} />
-      <MetricBars title="Decisions resolved" hint="Approvals/rejections (30d)" operators={operators} tone="#5f8169" onSelect={onSelect} value={(o) => o.decisions_resolved ?? 0} />
+      <MetricBars title="Overdue work" hint="Overdue tasks by member" operators={operators} tone="#d1524a" onSelect={onSelect} value={(o) => o.overdue_tasks ?? 0} />
+      <MetricBars title="Decisions resolved" hint="Approvals/rejections (30d)" operators={operators} tone="#2f9e6b" onSelect={onSelect} value={(o) => o.decisions_resolved ?? 0} />
       <MetricBars title="AI usage" hint="Credits spent (30d)" operators={operators} tone="var(--section-accent)" onSelect={onSelect} value={(o) => o.tokens} />
     </div>
   );
@@ -191,8 +191,8 @@ function Sparkline({ points, tone }: { points: TrendPoint[]; tone: string }) {
 function OverviewTiles({ trends, periodLabel }: { trends: NonNullable<MatrixResp["trends"]>; periodLabel: string }) {
   const tiles: { label: string; tone: string; pts: TrendPoint[] }[] = [
     { label: "Activity", tone: "var(--section-accent)", pts: trends.activity ?? [] },
-    { label: "Tasks completed", tone: "#5f8169", pts: trends.tasks_completed ?? [] },
-    { label: "AI credits", tone: "#97824f", pts: trends.ai_usage ?? [] },
+    { label: "Tasks completed", tone: "#2f9e6b", pts: trends.tasks_completed ?? [] },
+    { label: "AI credits", tone: "#c6892e", pts: trends.ai_usage ?? [] },
     { label: "Decisions", tone: "#717784", pts: trends.decisions ?? [] },
   ];
   return (
@@ -244,7 +244,7 @@ function RosterTable({ operators, selectedId, onSelect, detailFor, compareBy }: 
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{op.name}</span>
-                    {activeToday(op.last_active_at) && <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#5f8169" }} title="active today" />}
+                    {activeToday(op.last_active_at) && <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#2f9e6b" }} title="active today" />}
                   </div>
                   <div className="mt-0.5 flex items-center gap-1.5 truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>
                     <span className="capitalize">{op.role}</span>
@@ -337,7 +337,7 @@ function Trend({ now, prev }: { now: number; prev: number }) {
   const delta = now - prev;
   const pct = prev > 0 ? Math.round((delta / prev) * 100) : 100;
   const up = delta > 0, flat = delta === 0;
-  const tone = flat ? "var(--text-faint)" : up ? "#5f8169" : "#9c6b72";
+  const tone = flat ? "var(--text-faint)" : up ? "#2f9e6b" : "#d1524a";
   return (
     <span className="inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums" style={{ color: tone }} title={`${now} this period vs ${prev} previous`}>
       {flat ? "→" : up ? "↑" : "↓"}{flat ? "" : `${Math.abs(pct)}%`}
@@ -357,7 +357,7 @@ function teamHealth(operators: Operator[]) {
   // Qualitative read from real signals — concentration of overdue + completion + engagement.
   const risk = overdue >= 5 || (completionRate != null && completionRate < 40);
   const strong = (completionRate ?? 0) >= 70 && overdue <= 1 && activeRatio >= 50;
-  const tone = risk ? "#9c6b72" : strong ? "#5f8169" : "#97824f";
+  const tone = risk ? "#d1524a" : strong ? "#2f9e6b" : "#c6892e";
   const read = risk ? "Attention needed" : strong ? "Healthy" : "Steady";
   return { read, tone, completionRate, open, overdue, decisions, activeRatio, activeToday7 };
 }
@@ -396,8 +396,8 @@ function TeamHealthHero({ operators, adv }: { operators: Operator[]; adv?: Advan
         </div>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
           <Stat label="Completion" value={h.completionRate != null ? `${h.completionRate}%` : "—"} />
-          <Stat label="Overdue" value={String(h.overdue)} tone={h.overdue > 0 ? "#97824f" : undefined} />
-          <Stat label="Active today" value={`${h.activeToday7}/${operators.length}`} tone="#5f8169" />
+          <Stat label="Overdue" value={String(h.overdue)} tone={h.overdue > 0 ? "#c6892e" : undefined} />
+          <Stat label="Active today" value={`${h.activeToday7}/${operators.length}`} tone="#2f9e6b" />
           <Stat label="Decisions" value={String(h.decisions)} />
         </div>
       </div>
@@ -449,7 +449,7 @@ function WorkloadAttention({ operators, onSelect }: { operators: Operator[]; onS
         {overloaded.length === 0 ? <p className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>No one is carrying an unusually heavy load.</p> : overloaded.map(({ o, load }) => (
           <button key={o.operator_id} onClick={() => onSelect(o.operator_id)} className="flex w-full items-center justify-between gap-2 py-1 text-left transition-colors hover:opacity-80">
             <span className="truncate text-[12px]" style={{ color: "var(--text-secondary)" }}>{o.name}</span>
-            <span className="shrink-0 text-[11px] tabular-nums" style={{ color: (o.overdue_tasks ?? 0) > 0 ? "#97824f" : "var(--text-faint)" }}>{load} open{(o.overdue_tasks ?? 0) > 0 ? ` · ${o.overdue_tasks} overdue` : ""}</span>
+            <span className="shrink-0 text-[11px] tabular-nums" style={{ color: (o.overdue_tasks ?? 0) > 0 ? "#c6892e" : "var(--text-faint)" }}>{load} open{(o.overdue_tasks ?? 0) > 0 ? ` · ${o.overdue_tasks} overdue` : ""}</span>
           </button>
         ))}
       </div>
@@ -458,7 +458,7 @@ function WorkloadAttention({ operators, onSelect }: { operators: Operator[]; onS
         {inactive.length === 0 ? <p className="text-[11.5px]" style={{ color: "var(--text-faint)" }}>Everyone has been active in the last week.</p> : inactive.map(({ o, days }) => (
           <button key={o.operator_id} onClick={() => onSelect(o.operator_id)} className="flex w-full items-center justify-between gap-2 py-1 text-left transition-colors hover:opacity-80">
             <span className="truncate text-[12px]" style={{ color: "var(--text-secondary)" }}>{o.name}</span>
-            <span className="shrink-0 text-[11px] tabular-nums" style={{ color: "#97824f" }}>{days}d idle</span>
+            <span className="shrink-0 text-[11px] tabular-nums" style={{ color: "#c6892e" }}>{days}d idle</span>
           </button>
         ))}
       </div>
@@ -513,7 +513,7 @@ function GoalsPanel({ operators }: { operators: Operator[] }) {
                 <div className="w-24"><FieldSelect value={form.window_days} onChange={v => setForm(f => ({ ...f, window_days: v }))} ariaLabel="Window" options={[{ value: "7", label: "7 days" }, { value: "30", label: "30 days" }, { value: "90", label: "90 days" }]} /></div>
               </label>
               <button onClick={() => create.mutate()} disabled={!canSubmit || create.isPending} className="btn-primary h-8 px-3 text-[11.5px] font-semibold disabled:opacity-50">{create.isPending ? <Loader2 size={12} className="animate-spin" /> : "Set goal"}</button>
-              {create.isError && <span className="text-[10.5px]" style={{ color: "#9c6b72" }}>Couldn't save — check the target.</span>}
+              {create.isError && <span className="text-[10.5px]" style={{ color: "#d1524a" }}>Couldn't save — check the target.</span>}
             </div>
           )}
           {goals.length === 0 ? (
@@ -521,7 +521,7 @@ function GoalsPanel({ operators }: { operators: Operator[] }) {
           ) : (
             <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
               {goals.map(g => {
-                const pct = g.attainment_pct; const tone = pct >= 100 ? "#5f8169" : pct >= 60 ? "var(--section-accent)" : pct >= 30 ? "#97824f" : "#9c6b72";
+                const pct = g.attainment_pct; const tone = pct >= 100 ? "#2f9e6b" : pct >= 60 ? "var(--section-accent)" : pct >= 30 ? "#c6892e" : "#d1524a";
                 return (
                   <div key={g.id} className="flex items-center gap-3 px-4 py-2.5">
                     <div className="min-w-0 flex-1">
@@ -672,7 +672,7 @@ export function TeamOversightPage() {
       {/* ── One compact summary line (real counts) ── */}
       <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px]" style={{ color: "var(--text-muted)" }}>
         <span className="inline-flex items-center gap-1.5"><Users size={13} style={{ color: "var(--text-faint)" }} /><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{totals?.operators ?? operators.length}</strong> member{(totals?.operators ?? operators.length) === 1 ? "" : "s"}</span>
-        <span><strong className="tabular-nums" style={{ color: "#5f8169" }}>{activeTodayCount}</strong> active today</span>
+        <span><strong className="tabular-nums" style={{ color: "#2f9e6b" }}>{activeTodayCount}</strong> active today</span>
         <span><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{fmt(totalTasks)}</strong> tasks</span>
         <span><strong className="tabular-nums" style={{ color: "var(--text-primary)" }}>{totals ? fmt(totals.tokens) : "—"}</strong> AI credits</span>
       </div>
@@ -784,7 +784,7 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
           </div>
           <div className="mt-0.5 truncate text-[11.5px]" style={{ color: "var(--text-faint)" }}>
             {op.email ?? op.role} · <span className="capitalize">{op.role}</span>
-            {op.has_session ? <span style={{ color: "#5f8169" }}> · active session</span> : <span> · {ago(op.last_active_at)}</span>}
+            {op.has_session ? <span style={{ color: "#2f9e6b" }}> · active session</span> : <span> · {ago(op.last_active_at)}</span>}
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -836,7 +836,7 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
           { label: "Credits / task", value: fmt(op.complexity_delta) },
           { label: "Records touched", value: fmt(op.records_touched ?? 0) },
           { label: "Open tasks", value: fmt(op.open_tasks ?? 0) },
-          { label: "Overdue", value: fmt(op.overdue_tasks ?? 0), tone: (op.overdue_tasks ?? 0) > 0 ? "#97824f" : undefined },
+          { label: "Overdue", value: fmt(op.overdue_tasks ?? 0), tone: (op.overdue_tasks ?? 0) > 0 ? "#c6892e" : undefined },
           { label: "Completed", value: fmt(op.completed_tasks ?? 0) },
           { label: "Messages", value: fmt(op.messages_sent ?? 0) },
           { label: "Decisions", value: fmt(op.decisions_resolved ?? 0) },
@@ -849,8 +849,8 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
           <MetricGrid cols={5} items={[
             { label: "Deals owned", value: fmt(op.deals_owned ?? 0) },
             { label: "Open", value: fmt(op.deals_open ?? 0) },
-            { label: "Won", value: fmt(op.deals_won ?? 0), tone: "#5f8169" },
-            { label: "Lost", value: fmt(op.deals_lost ?? 0), tone: "#9c6b72" },
+            { label: "Won", value: fmt(op.deals_won ?? 0), tone: "#2f9e6b" },
+            { label: "Lost", value: fmt(op.deals_lost ?? 0), tone: "#d1524a" },
             { label: "Updated", value: fmt(op.deals_updated ?? 0) },
           ]} />
         </div>
@@ -873,7 +873,7 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
           <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}><Target size={11} style={{ color: "var(--section-accent)" }} /> Goals</p>
           <div className="space-y-2">
             {myGoals.map(g => {
-              const pct = g.attainment_pct; const tone = pct >= 100 ? "#5f8169" : pct >= 60 ? "var(--section-accent)" : pct >= 30 ? "#97824f" : "#9c6b72";
+              const pct = g.attainment_pct; const tone = pct >= 100 ? "#2f9e6b" : pct >= 60 ? "var(--section-accent)" : pct >= 30 ? "#c6892e" : "#d1524a";
               return (
                 <div key={g.id}>
                   <div className="flex items-center justify-between text-[11.5px]">
@@ -921,14 +921,14 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
               <div className="grid gap-3 sm:grid-cols-2">
                 {e.strengths.length > 0 && (
                   <div>
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#5f8169" }}>Strengths</p>
-                    <ul className="space-y-1">{e.strengths.map((s, i) => <li key={i} className="flex gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "#5f8169" }} />{s}</li>)}</ul>
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#2f9e6b" }}>Strengths</p>
+                    <ul className="space-y-1">{e.strengths.map((s, i) => <li key={i} className="flex gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "#2f9e6b" }} />{s}</li>)}</ul>
                   </div>
                 )}
                 {e.improvements.length > 0 && (
                   <div>
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#97824f" }}>Where to improve</p>
-                    <ul className="space-y-1">{e.improvements.map((s, i) => <li key={i} className="flex gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "#97824f" }} />{s}</li>)}</ul>
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#c6892e" }}>Where to improve</p>
+                    <ul className="space-y-1">{e.improvements.map((s, i) => <li key={i} className="flex gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "#c6892e" }} />{s}</li>)}</ul>
                   </div>
                 )}
               </div>
@@ -1132,7 +1132,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 function Signal({ label, ok, okText, offText, neutral }: { label: string; ok: boolean; okText: string; offText: string; neutral?: boolean }) {
-  const tone = ok ? "#5f8169" : neutral ? "var(--text-faint)" : "#97824f";
+  const tone = ok ? "#2f9e6b" : neutral ? "var(--text-faint)" : "#c6892e";
   return (
     <div className="flex items-center justify-between">
       <span style={{ color: "var(--text-secondary)" }}>{label}</span>

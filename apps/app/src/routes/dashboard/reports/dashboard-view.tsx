@@ -107,12 +107,12 @@ function BrokenWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
   return (
     <WidgetShell
       title={widget.title || "Broken widget"}
-      icon={<AlertTriangle size={13} className="text-[#97824f]" />}
+      icon={<AlertTriangle size={13} className="text-[#c6892e]" />}
       size={widget.size} className={widget.size === "large" ? "lg:col-span-2" : ""}
       onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
     >
-      <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-lg border border-[#97824f]/10 bg-[#97824f]/[.05]">
-        <AlertTriangle size={22} className="text-[#97824f]/60" />
+      <div className="flex h-40 flex-col items-center justify-center gap-3 rounded-lg border border-[#c6892e]/10 bg-[#c6892e]/[.05]">
+        <AlertTriangle size={22} className="text-[#c6892e]/60" />
         <p className="text-xs text-[var(--text-faint)] text-center px-4">This widget is broken or from an older format.</p>
         <button
           onClick={onRemove}
@@ -176,7 +176,7 @@ function LiveWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver, o
   const fmt = (n: number) => n >= 1_000_000 ? `$${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `$${(n/1_000).toFixed(0)}K` : `$${n.toLocaleString()}`;
 
   return (
-    <WidgetShell title={title} icon={<Zap size={13} className="text-[#5f8169]"/>}
+    <WidgetShell title={title} icon={<Zap size={13} className="text-[#2f9e6b]"/>}
       link={`/reports/sales?object=${slug}`} linkLabel="Full report →"
       size={widget.size} className={widget.size === "large" ? "lg:col-span-2" : ""}
       onRemove={onRemove} onResize={onResize} onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
@@ -240,7 +240,7 @@ function ReportWidgetCard({ widget, onRemove, onResize, onDragStart, onDragOver,
         <div className="flex h-48 items-center justify-center"><Loader2 size={16} className="animate-spin text-[var(--text-muted)]"/></div>
       ) : runQ.isError ? (
         <div className="flex h-48 flex-col items-center justify-center gap-2 text-center px-4">
-          <AlertTriangle size={22} className="text-[#97824f]/60"/>
+          <AlertTriangle size={22} className="text-[#c6892e]/60"/>
           <p className="text-xs text-[var(--text-faint)]">Report couldn't be loaded.</p>
           <button onClick={onRemove} className="mt-1 flex items-center gap-1.5 rounded-md bg-stone-600/90 px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
             <Trash2 size={11}/> Remove widget
@@ -348,7 +348,7 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
 }) {
   const [tab, setTab] = useState<"live"|"report"|"custom">("live");
   const TABS = [
-    { id: "live"   as const, label: "Live Object",  icon: <Zap size={11}/>,         accent: "border-[#5f8169]" },
+    { id: "live"   as const, label: "Live Object",  icon: <Zap size={11}/>,         accent: "border-[#2f9e6b]" },
     { id: "report" as const, label: "Saved Report", icon: <FileBarChart size={11}/>, accent: "border-stone-500"     },
     { id: "custom" as const, label: "Custom Chart", icon: <Settings2 size={11}/>,    accent: "border-[#717784]"    },
   ];
@@ -378,7 +378,7 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
                       <button key={obj.slug}
                         onClick={() => { onAdd({ id: crypto.randomUUID(), type: "live", slug: obj.slug, title: obj.name_plural }); onClose(); }}
                         className="flex w-full items-center gap-3 rounded-sm border border-[var(--border-soft)] p-3 text-left hover:bg-[var(--surface-hover)] transition-colors">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#5f8169]/10 text-[#5f8169]"><BarChart2 size={14}/></div>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#2f9e6b]/10 text-[#2f9e6b]"><BarChart2 size={14}/></div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-[var(--text-primary)]">{obj.name_plural}</p>
                           <p className="text-[11px] text-[var(--text-muted)]">KPIs + 6-month trend</p>

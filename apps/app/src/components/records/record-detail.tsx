@@ -41,36 +41,36 @@ export const INDUSTRY_TAXONOMY: { name: string; bg: string; text: string; border
   { name: "B2C",                    bg: "#93739c20", text: "#93739c", border: "#93739c" },
   { name: "SaaS",                   bg: "#84739c20", text: "#84739c", border: "#84739c" },
   { name: "Web Services & Apps",    bg: "#5f848120", text: "var(--accent)", border: "var(--accent)" },
-  { name: "Consulting",             bg: "#97824f20", text: "#97824f", border: "#97824f" },
-  { name: "FinTech",                bg: "#5f816920", text: "#5f8169", border: "#5f8169" },
+  { name: "Consulting",             bg: "#c6892e20", text: "#c6892e", border: "#c6892e" },
+  { name: "FinTech",                bg: "#2f9e6b20", text: "#2f9e6b", border: "#2f9e6b" },
   { name: "HealthTech",             bg: "#5f848120", text: "#5f8481", border: "#5f8481" },
   { name: "EdTech",                 bg: "#6b7d9420", text: "#6b7d94", border: "#6b7d94" },
-  { name: "E-commerce",             bg: "#9c6b7220", text: "#9c6b72", border: "#9c6b72" },
+  { name: "E-commerce",             bg: "#d1524a20", text: "#d1524a", border: "#d1524a" },
   { name: "AI / ML",               bg: "#84739c20", text: "#84739c", border: "#84739c" },
-  { name: "Cybersecurity",          bg: "#9c6b7220", text: "#9c6b72", border: "#9c6b72" },
+  { name: "Cybersecurity",          bg: "#d1524a20", text: "#d1524a", border: "#d1524a" },
   { name: "Marketplace",            bg: "#6b7d9420", text: "#6b7d94", border: "#6b7d94" },
   { name: "Manufacturing",          bg: "#78716c20", text: "#8a8580", border: "#78716c" },
   { name: "Real Estate",            bg: "#9a735520", text: "#9a7355", border: "#9a7355" },
-  { name: "Logistics & Supply",     bg: "#5f816920", text: "#5f8169", border: "#5f8169" },
+  { name: "Logistics & Supply",     bg: "#2f9e6b20", text: "#2f9e6b", border: "#2f9e6b" },
   { name: "Media & Entertainment",  bg: "#93739c20", text: "#93739c", border: "#93739c" },
   { name: "Legal",                  bg: "#6b728020", text: "#8a8f99", border: "#6b7280" },
   { name: "Energy",                 bg: "#7d8a5520", text: "#7d8a55", border: "#7d8a55" },
   { name: "Agency",                 bg: "#9a735520", text: "#9a7355", border: "#9a7355" },
-  { name: "Nonprofit",              bg: "#5f816920", text: "#5f8169", border: "#5f8169" },
+  { name: "Nonprofit",              bg: "#2f9e6b20", text: "#2f9e6b", border: "#2f9e6b" },
 ];
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
   "from-stone-500/20 to-stone-500/10 text-stone-400 border-stone-500/20",
   "from-[#717784]/20 to-[#717784]/10 text-[#717784] border-[#717784]/25",
-  "from-[#5f8169]/20 to-[#5f8169]/10 text-[#5f8169] border-[#5f8169]/25",
+  "from-[#2f9e6b]/20 to-[#2f9e6b]/10 text-[#2f9e6b] border-[#2f9e6b]/25",
   "from-stone-500/30 to-stone-600/10 text-stone-300 border-stone-500/20",
-  "from-[#97824f]/20 to-[#97824f]/10 text-[#97824f] border-[#97824f]/25",
+  "from-[#c6892e]/20 to-[#c6892e]/10 text-[#c6892e] border-[#c6892e]/25",
 ];
 const PIPE_STAGES = ["Lead","Qualified","In Progress","Proposal","Negotiation"] as const;
 const STAGE_DOT: Record<string, string> = {
   "Lead": "bg-stone-400", "Qualified": "bg-[#717784]", "In Progress": "bg-stone-400",
-  "Proposal": "bg-[#97824f]", "Negotiation": "bg-[#97824f]",
+  "Proposal": "bg-[#c6892e]", "Negotiation": "bg-[#c6892e]",
 };
 function getTabsForType(type: string): string[] {
   const t = type.toLowerCase();
@@ -220,7 +220,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
   const overflow = categories.length - MAX;
   const selected = new Set(categories.map(c => c.name));
 
-  const CUSTOM_COLORS = ["var(--accent)","#ec4899","#97824f","#5f8169","#717784","#9c6b72","var(--accent)","var(--accent)"];
+  const CUSTOM_COLORS = ["var(--accent)","#ec4899","#c6892e","#2f9e6b","#717784","#d1524a","var(--accent)","var(--accent)"];
   const filtered = INDUSTRY_TAXONOMY.filter(t =>
     !query || t.name.toLowerCase().includes(query.toLowerCase())
   );
@@ -303,7 +303,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
                   >
                     {t.name}
                   </span>
-                  {isOn && <Check size={11} className="text-[#5f8169] shrink-0"/>}
+                  {isOn && <Check size={11} className="text-[#2f9e6b] shrink-0"/>}
                 </button>
               );
             })}
@@ -368,7 +368,7 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
             {fmt(value)}
           </button>
         )}
-        {saved && <Check size={10} className="text-[#5f8169] shrink-0"/>}
+        {saved && <Check size={10} className="text-[#2f9e6b] shrink-0"/>}
       </div>
     </div>
   );
@@ -378,7 +378,7 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
 type Accent = "slate"|"red"|"blue"|"emerald"|"amber"|"purple";
 const ACCENT_MAP: Record<Accent, string> = {
   slate: "text-stone-400", red: "text-stone-400", blue: "text-[#717784]",
-  emerald: "text-[#5f8169]", amber: "text-[#97824f]", purple: "text-stone-400",
+  emerald: "text-[#2f9e6b]", amber: "text-[#c6892e]", purple: "text-stone-400",
 };
 
 function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, numeric }: {
@@ -402,7 +402,7 @@ function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, num
           <Icon size={12} className={ACCENT_MAP[accent]}/>
           <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-600">{label}</span>
         </div>
-        {saved && <Check size={10} className="text-[#5f8169]"/>}
+        {saved && <Check size={10} className="text-[#2f9e6b]"/>}
       </div>
       {editing ? (
         <input
@@ -438,7 +438,7 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
           <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-600">Deal Pipeline</span>
         </div>
         <div className="flex gap-1.5">
-          <button onClick={() => onSave("Closed Won")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isWon ? "bg-[#5f8169]/15 text-[#5f8169] border-[#5f8169]/30" : "text-stone-600 border-[var(--border-soft)] hover:text-[#5f8169] hover:border-[#5f8169]/25"}`}>Won</button>
+          <button onClick={() => onSave("Closed Won")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isWon ? "bg-[#2f9e6b]/15 text-[#2f9e6b] border-[#2f9e6b]/30" : "text-stone-600 border-[var(--border-soft)] hover:text-[#2f9e6b] hover:border-[#2f9e6b]/25"}`}>Won</button>
           <button onClick={() => onSave("Closed Lost")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isLost ? "bg-stone-500/20 text-stone-300 border-stone-500/30" : "text-stone-600 border-[var(--border-soft)] hover:text-stone-300 hover:border-stone-500/20"}`}>Lost</button>
         </div>
       </div>
@@ -463,7 +463,7 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
         })}
       </div>
       {(isWon || isLost) && (
-        <div className={`mt-4 rounded-md px-3 py-2 text-xs font-semibold text-center ${isWon ? "bg-[#5f8169]/10 text-[#5f8169] border border-[#5f8169]/25" : "bg-stone-500/10 text-stone-400 border border-stone-500/20"}`}>
+        <div className={`mt-4 rounded-md px-3 py-2 text-xs font-semibold text-center ${isWon ? "bg-[#2f9e6b]/10 text-[#2f9e6b] border border-[#2f9e6b]/25" : "bg-stone-500/10 text-stone-400 border border-stone-500/20"}`}>
           {isWon ? "✓ Deal Won" : "✗ Deal Lost"}
         </div>
       )}
@@ -598,7 +598,7 @@ function MemberPickerField({ label, currentName, members, onSelect }: {
 
 // ─── Activity feed ────────────────────────────────────────────────────────────
 function ActivityDot({ type }: { type: "create"|"update"|"system" }) {
-  const cls = type === "create" ? "bg-[#5f8169]" : type === "update" ? "bg-[#97824f]" : "bg-stone-600";
+  const cls = type === "create" ? "bg-[#2f9e6b]" : type === "update" ? "bg-[#c6892e]" : "bg-stone-600";
   return <div className={`h-2 w-2 rounded-full shrink-0 mt-1.5 ${cls} ring-2 ring-[var(--surface-card)]`}/>;
 }
 
@@ -886,7 +886,7 @@ function InlineTasksPanel({ recordId, vertical }: { recordId: string; vertical: 
               <div key={task.id} className="flex items-center gap-2.5 rounded-md px-2 py-2 hover:bg-[var(--surface-hover)] transition-colors">
                 <button onClick={() => toggleTask.mutate({ id: task.id, data: { ...task.data, done: !isDone } })} className="shrink-0">
                   {isDone
-                    ? <CheckSquare size={13} className="text-[#5f8169]"/>
+                    ? <CheckSquare size={13} className="text-[#2f9e6b]"/>
                     : <Square size={13} className="text-stone-600 hover:text-stone-400 transition-colors"/>}
                 </button>
                 <span className={`flex-1 text-xs ${isDone ? "line-through text-stone-600" : "text-stone-300"}`}>{String(task.data.title || "Untitled")}</span>
@@ -1098,7 +1098,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
             return (
               <div key={task.id} className="group flex items-center gap-3 rounded-sm px-2 py-2.5 hover:bg-[var(--surface-hover)] transition-colors">
                 <button onClick={() => updateTask.mutate({ id: task.id, data: { ...task.data, done: !isDone } })} className="shrink-0">
-                  {isDone ? <CheckSquare size={15} className="text-[#5f8169]"/> : <Square size={15} className="text-stone-600 hover:text-stone-400 transition-colors"/>}
+                  {isDone ? <CheckSquare size={15} className="text-[#2f9e6b]"/> : <Square size={15} className="text-stone-600 hover:text-stone-400 transition-colors"/>}
                 </button>
                 {isEditing ? (
                   <input
@@ -1167,10 +1167,10 @@ function DescriptionField({ value, onSave }: { value: string; onSave: (v: string
 
 // ─── Contact log tab (H) ─────────────────────────────────────────────────────
 const CONTACT_LOG_TYPES = [
-  { value: "call",    label: "Call",    icon: PhoneCall,     color: "text-[#5f8169]", bg: "bg-[#5f8169]/10" },
+  { value: "call",    label: "Call",    icon: PhoneCall,     color: "text-[#2f9e6b]", bg: "bg-[#2f9e6b]/10" },
   { value: "email",   label: "Email",   icon: Mail,          color: "text-[#717784]",    bg: "bg-[#717784]/10" },
   { value: "meeting", label: "Meeting", icon: Video,         color: "text-stone-400",  bg: "bg-stone-400/10" },
-  { value: "message", label: "Message", icon: MessageSquare, color: "text-[#97824f]",   bg: "bg-[#97824f]/10" },
+  { value: "message", label: "Message", icon: MessageSquare, color: "text-[#c6892e]",   bg: "bg-[#c6892e]/10" },
 ] as const;
 
 const CONTACT_OUTCOMES = ["Positive", "Neutral", "No answer", "Follow-up needed", "Closed"];
@@ -1316,15 +1316,15 @@ const INVOICE_STATUS_COLORS: Record<string, string> = {
   draft:     "text-stone-400 bg-stone-400/10",
   sent:      "text-[#717784] bg-[#717784]/10",
   viewed:    "text-stone-400 bg-stone-400/10",
-  paid:      "text-[#5f8169] bg-[#5f8169]/10",
+  paid:      "text-[#2f9e6b] bg-[#2f9e6b]/10",
   overdue:   "text-stone-400 bg-stone-400/10",
   cancelled: "text-stone-600 bg-stone-600/10",
 };
 const CN_STATUS_COLORS: Record<string, string> = {
   draft:            "text-stone-400 bg-stone-400/10",
-  pending_review:   "text-[#97824f] bg-[#97824f]/10",
+  pending_review:   "text-[#c6892e] bg-[#c6892e]/10",
   manager_approved: "text-[#717784] bg-[#717784]/10",
-  executed:         "text-[#5f8169] bg-[#5f8169]/10",
+  executed:         "text-[#2f9e6b] bg-[#2f9e6b]/10",
   void:             "text-stone-600 bg-stone-600/10",
 };
 
@@ -1380,7 +1380,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
         {[
           { label: "Total Billed", value: fmtCcy(totalBilled, defaultCurrency), accent: "text-[var(--text-primary)]" },
           { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-stone-400" },
-          { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-stone-400" : "text-[#5f8169]" },
+          { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-stone-400" : "text-[#2f9e6b]" },
         ].map(card => (
           <div key={card.label} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-1.5">{card.label}</p>
@@ -1782,7 +1782,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
       </div>
 
       {autoMsg && (
-        <div className="flex items-center gap-2 border-b border-[#5f8169]/25 bg-[#5f8169]/[.06] px-6 py-2 text-xs text-[#5f8169] shrink-0">
+        <div className="flex items-center gap-2 border-b border-[#2f9e6b]/25 bg-[#2f9e6b]/[.06] px-6 py-2 text-xs text-[#2f9e6b] shrink-0">
           <LogoMark size={12} className="shrink-0"/>{autoMsg}
         </div>
       )}
@@ -1807,7 +1807,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 </p>
                 {lastContactLabel && (
                   <p className="text-[10px] text-stone-600 mt-1 flex items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#5f8169] inline-block"/>
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#2f9e6b] inline-block"/>
                     {lastContactLabel}
                   </p>
                 )}
@@ -1862,10 +1862,10 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                         return (
                           <button key={list.id}
                             onClick={() => { if (!added) addToList.mutate(list.id); }}
-                            className={`dropdown-item w-full flex items-center gap-2 ${added ? "text-[#5f8169] cursor-default" : ""}`}>
+                            className={`dropdown-item w-full flex items-center gap-2 ${added ? "text-[#2f9e6b] cursor-default" : ""}`}>
                             <List size={11} className="shrink-0 opacity-50"/>
                             <span className="flex-1 text-left">{list.name}</span>
-                            {added && <Check size={11} className="text-[#5f8169] shrink-0"/>}
+                            {added && <Check size={11} className="text-[#2f9e6b] shrink-0"/>}
                           </button>
                         );
                       })}

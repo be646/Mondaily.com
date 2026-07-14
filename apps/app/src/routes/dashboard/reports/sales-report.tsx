@@ -172,7 +172,7 @@ function DeltaBadge({ delta }: { delta: number | null | undefined }) {
   if (delta == null) return null;
   const up = delta >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border ${up ? "bg-[#5f8169]/10 text-[#5f8169] border-[#5f8169]/25" : "bg-stone-500/10 text-stone-400 border-stone-500/20"}`}>
+    <span className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold border ${up ? "bg-[#2f9e6b]/10 text-[#2f9e6b] border-[#2f9e6b]/25" : "bg-stone-500/10 text-stone-400 border-stone-500/20"}`}>
       {up ? <TrendingUp size={9}/> : <TrendingDown size={9}/>}
       {up ? "+" : ""}{delta}%
     </span>
@@ -213,7 +213,7 @@ function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSe
         {delta != null && <DeltaBadge delta={delta}/>}
         {sub && (
           <div className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] print:text-[var(--text-muted)]">
-            {trend === "up"      && <TrendingUp  size={11} className="text-[#5f8169]"/>}
+            {trend === "up"      && <TrendingUp  size={11} className="text-[#2f9e6b]"/>}
             {trend === "down"    && <TrendingDown size={11} className="text-stone-400"/>}
             {trend === "neutral" && <Minus size={11}/>}
             {sub}
@@ -324,8 +324,8 @@ interface ForecastAction { action: string; impact: "high"|"medium"|"low"; why: s
 interface ForecastResult { projectedValue: number; confidence: "high"|"medium"|"low"; headline: string; narrative: string; risks: string; actions?: ForecastAction[] }
 
 const CONFIDENCE_STYLE: Record<string, string> = {
-  high:   "border-[#5f8169]/25 bg-[#5f8169]/10 text-[#5f8169]",
-  medium: "border-[#97824f]/25 bg-[#97824f]/10 text-[#97824f]",
+  high:   "border-[#2f9e6b]/25 bg-[#2f9e6b]/10 text-[#2f9e6b]",
+  medium: "border-[#c6892e]/25 bg-[#c6892e]/10 text-[#c6892e]",
   low:    "border-stone-500/30 bg-stone-600/10 text-stone-400",
 };
 
@@ -374,12 +374,12 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}
 .label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af}
 .badge{display:inline-block;border-radius:99px;border:1px solid;padding:2px 10px;font-size:11px;font-weight:600;margin-bottom:20px}
 .high{border-color:#6ee7b7;color:#059669;background:#ecfdf5}
-.medium{border-color:#fcd34d;color:#97824f;background:#fffbeb}
-.low{border-color:#fca5a5;color:#9c6b72;background:#fef2f2}
+.medium{border-color:#fcd34d;color:#c6892e;background:#fffbeb}
+.low{border-color:#fca5a5;color:#d1524a;background:#fef2f2}
 .section{margin-bottom:20px}
 .section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:6px}
 p{font-size:13px;color:#374151;line-height:1.6}
-.risk{background:#fffbeb;border-left:3px solid #97824f;padding:10px 14px;border-radius:4px;font-size:12px;color:#92400e}
+.risk{background:#fffbeb;border-left:3px solid #c6892e;padding:10px 14px;border-radius:4px;font-size:12px;color:#92400e}
 .footer{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;display:flex;justify-content:space-between}
 </style></head><body>
 <h1>AI Forecast</h1>
@@ -390,7 +390,7 @@ p{font-size:13px;color:#374151;line-height:1.6}
 <div class="section"><div class="section-title">Headline</div><p><em>${result.headline}</em></p></div>
 <div class="section"><div class="section-title">Analysis</div><p>${result.narrative}</p></div>
 ${result.risks && result.risks !== "None identified" ? `<div class="risk"><strong>Risk:</strong> ${result.risks}</div>` : ""}
-${result.actions && result.actions.length > 0 ? `<div class="section" style="margin-top:24px"><div class="section-title">What to do now</div><div style="display:flex;flex-direction:column;gap:8px">${result.actions.map(a=>`<div style="display:flex;align-items:flex-start;gap:10px;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px"><span style="font-size:9px;font-weight:700;border-radius:99px;border:1px solid;padding:2px 8px;white-space:nowrap;${a.impact==="high"?"border-color:#6ee7b7;color:#059669;background:#ecfdf5":a.impact==="medium"?"border-color:#fcd34d;color:#97824f;background:#fffbeb":"border-color:#d1d5db;color:#6b7280;background:#f9fafb"}">${a.impact}</span><div><div style="font-size:13px;font-weight:600;color:#111;margin-bottom:2px">${a.action}</div><div style="font-size:11px;color:#6b7280">${a.why}</div></div></div>`).join("")}</div></div>` : ""}
+${result.actions && result.actions.length > 0 ? `<div class="section" style="margin-top:24px"><div class="section-title">What to do now</div><div style="display:flex;flex-direction:column;gap:8px">${result.actions.map(a=>`<div style="display:flex;align-items:flex-start;gap:10px;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px"><span style="font-size:9px;font-weight:700;border-radius:99px;border:1px solid;padding:2px 8px;white-space:nowrap;${a.impact==="high"?"border-color:#6ee7b7;color:#059669;background:#ecfdf5":a.impact==="medium"?"border-color:#fcd34d;color:#c6892e;background:#fffbeb":"border-color:#d1d5db;color:#6b7280;background:#f9fafb"}">${a.impact}</span><div><div style="font-size:13px;font-weight:600;color:#111;margin-bottom:2px">${a.action}</div><div style="font-size:11px;color:#6b7280">${a.why}</div></div></div>`).join("")}</div></div>` : ""}
 <div class="footer"><span>Mondaily AI · AI Forecast</span><span>${new Date().toLocaleDateString()}</span></div>
 <script>window.onload=()=>window.print()<\/script></body></html>`;
     const w = window.open("","_blank"); if(w){w.document.write(html);w.document.close();}
@@ -441,7 +441,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
             <p className="mt-2 text-[12px] italic text-[var(--text-faint)] leading-relaxed">{result.headline}</p>
             {result.actions && result.actions[0] && (
               <div className="mt-3 flex items-start gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2">
-                <span className={`mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold border ${result.actions[0].impact === "high" ? "border-[#5f8169]/25 bg-[#5f8169]/10 text-[#5f8169]" : result.actions[0].impact === "medium" ? "border-[#97824f]/25 bg-[#97824f]/10 text-[#97824f]" : "border-stone-500/30 bg-stone-600/10 text-stone-400"}`}>{result.actions[0].impact}</span>
+                <span className={`mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold border ${result.actions[0].impact === "high" ? "border-[#2f9e6b]/25 bg-[#2f9e6b]/10 text-[#2f9e6b]" : result.actions[0].impact === "medium" ? "border-[#c6892e]/25 bg-[#c6892e]/10 text-[#c6892e]" : "border-stone-500/30 bg-stone-600/10 text-stone-400"}`}>{result.actions[0].impact}</span>
                 <p className="text-[11.5px] text-[var(--text-secondary)] leading-snug"><span className="font-medium text-[var(--text-primary)]">{result.actions[0].action}.</span> {result.actions[0].why}</p>
               </div>
             )}
@@ -475,11 +475,11 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           </div>
           {/* Risk */}
           {result.risks && result.risks !== "None identified" && (
-            <div className="mx-6 my-4 flex items-start gap-3 rounded-sm border border-[#97824f]/25 bg-[#97824f]/[.06] px-4 py-3">
-              <AlertCircle size={14} className="text-[#97824f] shrink-0 mt-0.5"/>
+            <div className="mx-6 my-4 flex items-start gap-3 rounded-sm border border-[#c6892e]/25 bg-[#c6892e]/[.06] px-4 py-3">
+              <AlertCircle size={14} className="text-[#c6892e] shrink-0 mt-0.5"/>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#97824f] mb-0.5">Risk</p>
-                <p className="text-sm text-[#97824f]/80 leading-relaxed">{result.risks}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#c6892e] mb-0.5">Risk</p>
+                <p className="text-sm text-[#c6892e]/80 leading-relaxed">{result.risks}</p>
               </div>
             </div>
           )}
@@ -491,8 +491,8 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
                 {result.actions.map((a, i) => (
                   <div key={i} className="flex items-start gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3">
                     <span className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
-                      a.impact === "high"   ? "border-[#5f8169]/25 bg-[#5f8169]/10 text-[#5f8169]" :
-                      a.impact === "medium" ? "border-[#97824f]/25 bg-[#97824f]/10 text-[#97824f]" :
+                      a.impact === "high"   ? "border-[#2f9e6b]/25 bg-[#2f9e6b]/10 text-[#2f9e6b]" :
+                      a.impact === "medium" ? "border-[#c6892e]/25 bg-[#c6892e]/10 text-[#c6892e]" :
                                               "border-stone-500/30 bg-stone-600/10 text-stone-400"
                     }`}>{a.impact}</span>
                     <div className="flex-1 min-w-0">
@@ -527,7 +527,7 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
   const [modalOpen, setModalOpen] = useState(false);
 
   const CATEGORY_META = {
-    performance: { label: "Performance", dot: "bg-[#5f8169]", border: "border-[#5f8169]/25", bg: "bg-[#5f8169]/[.06]", text: "text-[#5f8169]" },
+    performance: { label: "Performance", dot: "bg-[#2f9e6b]", border: "border-[#2f9e6b]/25", bg: "bg-[#2f9e6b]/[.06]", text: "text-[#2f9e6b]" },
     opportunity: { label: "Opportunity", dot: "bg-[#717784]",    border: "border-[#717784]/25",    bg: "bg-[#717784]/[.06]",    text: "text-[#717784]"    },
     risk:        { label: "Risk",        dot: "bg-stone-400",     border: "border-stone-500/25",     bg: "bg-stone-500/[.06]",     text: "text-stone-400"     },
     summary:     { label: "Summary",     dot: "bg-stone-400",  border: "border-stone-500/25",  bg: "bg-stone-500/[.06]",  text: "text-stone-400"  },
@@ -559,7 +559,7 @@ function AIInsightsPanel({ records, objectType }: { records: NodeRecord[]; objec
     if (!insights) return;
     const cards = insights.map(ins => {
       const cat = ins.category as Cat;
-      const colors: Record<Cat, string> = { performance:"#5f8169", opportunity:"#717784", risk:"#9c6b72", summary:"var(--section-accent)" };
+      const colors: Record<Cat, string> = { performance:"#2f9e6b", opportunity:"#717784", risk:"#d1524a", summary:"var(--section-accent)" };
       const c = colors[cat] ?? colors.summary;
       return `<div style="border:1px solid #e5e7eb;border-radius:10px;padding:16px 18px;break-inside:avoid">
         <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:${c};margin-bottom:4px">${ins.category}</div>
@@ -652,7 +652,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
                       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${m.dot}`}/>
                       <span className={`text-[10px] font-semibold uppercase tracking-widest ${m.text}`}>{m.label}</span>
                     </div>
-                    {ins.trend === "up"   && <TrendingUp  size={12} className="text-[#5f8169] shrink-0"/>}
+                    {ins.trend === "up"   && <TrendingUp  size={12} className="text-[#2f9e6b] shrink-0"/>}
                     {ins.trend === "down" && <TrendingDown size={12} className="text-stone-400 shrink-0"/>}
                   </div>
                   <div>
@@ -764,7 +764,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                     <p className="text-[10px] text-[var(--text-muted)] truncate">{d.recipients.join(", ")}</p>
                   </div>
                   {sentMsg && sending === null && d.id === digests[0]?.id && (
-                    <span className="text-[10px] text-[#5f8169]">{sentMsg}</span>
+                    <span className="text-[10px] text-[#2f9e6b]">{sentMsg}</span>
                   )}
                   <button
                     onClick={() => sendNow(d.id)}
@@ -1124,7 +1124,7 @@ export function SalesReportPage() {
     td { padding: 9px 10px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
     tr:last-child td { border-bottom: none; }
     .rank { font-size: 11px; font-weight: 700; color: #d1d5db; width: 28px; }
-    tr:nth-child(1) .rank { color: #97824f; }
+    tr:nth-child(1) .rank { color: #c6892e; }
     tr:nth-child(2) .rank { color: #9ca3af; }
     tr:nth-child(3) .rank { color: #cd7c43; }
     .name { font-weight: 600; color: #111; }
@@ -1251,7 +1251,7 @@ export function SalesReportPage() {
           {objects.length > 0 && <ObjectPicker objects={objects} value={activeSlug} onChange={handleObjectChange}/>}
           <span className="text-xs text-[var(--text-secondary)] hidden sm:inline" title="Data scope — computed live from your real records">
             {records.length} records analysed{filteredRecords.length !== records.length && ` · ${filteredRecords.length} in filter`}
-            {hasValue && mixedCurrency && <> · <span title={hasRates ? `Converted to ${display} at ECB rate${ratesAsOf ? `, ${new Date(ratesAsOf).toLocaleDateString()}` : ""}` : "No FX rates loaded — mixed-currency values shown at face value"} style={{ color: unconverted > 0 || !hasRates ? "#97824f" : "var(--text-muted)" }}>{!hasRates ? `mixed currencies · at face value` : unconverted > 0 ? `${unconverted} currency${unconverted === 1 ? "" : "ies"} not converted` : `converted to ${display}`}</span></>}
+            {hasValue && mixedCurrency && <> · <span title={hasRates ? `Converted to ${display} at ECB rate${ratesAsOf ? `, ${new Date(ratesAsOf).toLocaleDateString()}` : ""}` : "No FX rates loaded — mixed-currency values shown at face value"} style={{ color: unconverted > 0 || !hasRates ? "#c6892e" : "var(--text-muted)" }}>{!hasRates ? `mixed currencies · at face value` : unconverted > 0 ? `${unconverted} currency${unconverted === 1 ? "" : "ies"} not converted` : `converted to ${display}`}</span></>}
           </span>
           <div className="flex items-center gap-1.5 ml-auto shrink-0">
             {/* Show-in currency — the money is converted into this display currency (money reports only). */}
@@ -1398,7 +1398,7 @@ export function SalesReportPage() {
 
         {recordsQ.isLoading ? (
           <div className="flex h-64 items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-stone-500/30 border-t-[#9c6b72]"/>
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-stone-500/30 border-t-[#d1524a]"/>
           </div>
         ) : records.length === 0 ? (
           // Guided empty report — real ways to get data in. The report recomputes live the moment
@@ -1443,7 +1443,7 @@ export function SalesReportPage() {
                 label={hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records"}
                 value={hasValue ? fmtMoney(stats.wonValue || stats.totalValue, curSym) : fmtNum(stats.totalCount)}
                 sub={hasStage ? `${stats.wonCount} completed` : `${stats.totalCount} total`}
-                color="border-[#5f8169]/25 bg-[#5f8169]/[.06] text-[#5f8169]"
+                color="border-[#2f9e6b]/25 bg-[#2f9e6b]/[.06] text-[#2f9e6b]"
                 trend="up"
                 delta={pctDelta(hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount, hasValue ? (prevStats.wonValue || prevStats.totalValue) : prevStats.totalCount)}
                 goal={goal}
@@ -1470,14 +1470,14 @@ export function SalesReportPage() {
                 label={hasValue ? `Avg ${valueCol}` : "Avg per bucket"}
                 value={hasValue ? fmtMoney(stats.avgVal, curSym) : fmtNum(stats.totalCount ? Math.round(stats.totalCount / Math.max(trendData.length, 1)) : 0)}
                 sub="per record"
-                color="border-[#97824f]/25 bg-[#97824f]/[.06] text-[#97824f]"
+                color="border-[#c6892e]/25 bg-[#c6892e]/[.06] text-[#c6892e]"
                 delta={pctDelta(stats.avgVal, prevStats.avgVal)}
               />
               <KpiCard sym={curSym}
                 label="Total Records"
                 value={fmtNum(stats.totalCount)}
                 sub="in this period"
-                color="border-[#9c6b72]/25 bg-[#9c6b72]/[.06] text-[#9c6b72]"
+                color="border-[#d1524a]/25 bg-[#d1524a]/[.06] text-[#d1524a]"
                 delta={pctDelta(stats.totalCount, prevStats.totalCount)}
               />
               <KpiCard sym={curSym}
@@ -1579,12 +1579,12 @@ export function SalesReportPage() {
               const ROW_COLORS = [
                 { bar: "from-stone-500 to-stone-400", badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
                 { bar: "from-[#717784] to-[#7d8a96]",     badge: "bg-[#717784]/15 text-[#717784] border-[#717784]/25" },
-                { bar: "from-[#5f8169] to-[#5f8169]",  badge: "bg-[#5f8169]/15 text-[#5f8169] border-[#5f8169]/25" },
-                { bar: "from-[#97824f] to-[#97824f]",  badge: "bg-[#97824f]/15 text-[#97824f] border-[#97824f]/25" },
-                { bar: "from-[#9c6b72] to-[#9c6b72]",     badge: "bg-[#9c6b72]/15 text-[#9c6b72] border-[#9c6b72]/25" },
+                { bar: "from-[#2f9e6b] to-[#2f9e6b]",  badge: "bg-[#2f9e6b]/15 text-[#2f9e6b] border-[#2f9e6b]/25" },
+                { bar: "from-[#c6892e] to-[#c6892e]",  badge: "bg-[#c6892e]/15 text-[#c6892e] border-[#c6892e]/25" },
+                { bar: "from-[#d1524a] to-[#d1524a]",     badge: "bg-[#d1524a]/15 text-[#d1524a] border-[#d1524a]/25" },
                 { bar: "from-stone-500 to-[#717784]",   badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
-                { bar: "from-[#7d8a96] to-[#5f8169]",  badge: "bg-[#7d8a96]/15 text-[#7d8a96] border-[#7d8a96]/25" },
-                { bar: "from-[#8a8071] to-[#97824f]",  badge: "bg-[#8a8071]/15 text-[#8a8071] border-[#8a8071]/25" },
+                { bar: "from-[#7d8a96] to-[#2f9e6b]",  badge: "bg-[#7d8a96]/15 text-[#7d8a96] border-[#7d8a96]/25" },
+                { bar: "from-[#8a8071] to-[#c6892e]",  badge: "bg-[#8a8071]/15 text-[#8a8071] border-[#8a8071]/25" },
                 { bar: "from-[#7d8a96] to-[#717784]",      badge: "bg-[var(--section-accent)]/15 text-[var(--section-accent)] border-[var(--section-accent)]/20" },
                 { bar: "from-[#717784] to-stone-400",badge: "bg-[#717784]/15 text-[#717784] border-[#717784]/25" },
               ];
@@ -1615,7 +1615,7 @@ export function SalesReportPage() {
                       const won     = hasStage && isWon(stage);
                       const lost    = hasStage && isLost(stage);
                       const color   = ROW_COLORS[i % ROW_COLORS.length]!;
-                      const rankColors = ["text-[#97824f]","text-stone-400","text-[#8a8071]"];
+                      const rankColors = ["text-[#c6892e]","text-stone-400","text-[#8a8071]"];
                       return (
                         <div
                           key={r.id}
@@ -1650,7 +1650,7 @@ export function SalesReportPage() {
                             </div>
                             {/* Stage badge */}
                             {hasStage && (
-                              <span className={`ml-3 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${won ? "bg-[#5f8169]/10 text-[#5f8169] border-[#5f8169]/25" : lost ? "bg-stone-500/10 text-stone-400 border-stone-500/20" : color.badge} print:bg-transparent print:text-[var(--text-secondary)] print:border-[var(--border-soft)]`}>
+                              <span className={`ml-3 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${won ? "bg-[#2f9e6b]/10 text-[#2f9e6b] border-[#2f9e6b]/25" : lost ? "bg-stone-500/10 text-stone-400 border-stone-500/20" : color.badge} print:bg-transparent print:text-[var(--text-secondary)] print:border-[var(--border-soft)]`}>
                                 {stage}
                               </span>
                             )}

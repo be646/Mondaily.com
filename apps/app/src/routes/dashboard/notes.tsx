@@ -46,14 +46,14 @@ type ViewMode = "list" | "board" | "timeline";
 const OBJECT_COLORS: Record<string, string> = {
   contacts:  "text-[#717784] bg-[#717784]/10 border-[#717784]/20",
   companies: "text-stone-400 bg-stone-500/10 border-stone-500/20",
-  deals:     "text-[#5f8169] bg-[#5f8169]/10 border-[#5f8169]/20",
+  deals:     "text-[#2f9e6b] bg-[#2f9e6b]/10 border-[#2f9e6b]/20",
 };
 
 const NOTE_COLORS: Record<string, { ring: string; bg: string; dot: string }> = {
   default: { ring: "ring-white/[.07]",     bg: "bg-[var(--surface-hover)]",        dot: "bg-stone-600"   },
-  amber:   { ring: "ring-[#97824f]/25",    bg: "bg-[#97824f]/[.04]",    dot: "bg-[#97824f]"   },
-  red:     { ring: "ring-[#9c6b72]/25",      bg: "bg-stone-500/[.04]",      dot: "bg-stone-400"     },
-  emerald: { ring: "ring-[#5f8169]/25",  bg: "bg-[#5f8169]/[.04]",  dot: "bg-[#5f8169]" },
+  amber:   { ring: "ring-[#c6892e]/25",    bg: "bg-[#c6892e]/[.04]",    dot: "bg-[#c6892e]"   },
+  red:     { ring: "ring-[#d1524a]/25",      bg: "bg-stone-500/[.04]",      dot: "bg-stone-400"     },
+  emerald: { ring: "ring-[#2f9e6b]/25",  bg: "bg-[#2f9e6b]/[.04]",  dot: "bg-[#2f9e6b]" },
   blue:    { ring: "ring-[#717784]/25",     bg: "bg-[#717784]/[.04]",     dot: "bg-[#717784]"    },
   violet:  { ring: "ring-stone-500/25",   bg: "bg-stone-500/[.04]",   dot: "bg-stone-400"  },
 };
@@ -166,12 +166,12 @@ function NoteCard({
     <div
       className={`group relative flex flex-col gap-3 rounded-sm border p-4 ring-1 transition-all
         ${scheme.bg} ${scheme.ring}
-        ${isPinned ? "border-[#97824f]/40" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}
+        ${isPinned ? "border-[#c6892e]/40" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}
         ${isAI ? "border-stone-500/20" : ""}`}
     >
       {/* AI accent */}
       {isAI && (
-        <div className="absolute inset-y-0 left-0 w-[3px] rounded-l-2xl bg-gradient-to-b from-[#9c6b72]/60 to-transparent" />
+        <div className="absolute inset-y-0 left-0 w-[3px] rounded-l-2xl bg-gradient-to-b from-[#d1524a]/60 to-transparent" />
       )}
 
       {/* Top row */}
@@ -221,7 +221,7 @@ function NoteCard({
           {onPin && (
             <button onClick={onPin} title={isPinned ? "Unpin" : "Pin"}
               className="grid h-6 w-6 place-items-center rounded-sm hover:bg-[var(--surface-hover)] transition-colors">
-              <Pin size={11} className={isPinned ? "fill-[#97824f] text-[#97824f]" : "text-[var(--text-muted)]"} />
+              <Pin size={11} className={isPinned ? "fill-[#c6892e] text-[#c6892e]" : "text-[var(--text-muted)]"} />
             </button>
           )}
           {isOwner && onEdit && (
@@ -255,8 +255,8 @@ function NoteCard({
           <span className="max-w-[100px] truncate">{note.record.name}</span>
         </Link>
         {isPinned && (
-          <span className="flex items-center gap-1 text-[10px] text-[#97824f]">
-            <Pin size={9} className="fill-[#97824f]" /> Pinned
+          <span className="flex items-center gap-1 text-[10px] text-[#c6892e]">
+            <Pin size={9} className="fill-[#c6892e]" /> Pinned
           </span>
         )}
       </div>
@@ -587,8 +587,8 @@ export function NotesPage() {
         {/* Count only notes actually present in THIS workspace (pins are stored globally as note ids,
             so filter to the loaded set — otherwise another workspace's pins leak into the badge). */}
         {pinnedNotes.length > 0 && (
-          <span className="flex items-center gap-1 rounded-sm border border-[#97824f]/20 bg-[#97824f]/[.06] px-2.5 py-1 text-[11px] text-[#97824f]">
-            <Pin size={10} className="fill-[#97824f]" /> {pinnedNotes.length} pinned
+          <span className="flex items-center gap-1 rounded-sm border border-[#c6892e]/20 bg-[#c6892e]/[.06] px-2.5 py-1 text-[11px] text-[#c6892e]">
+            <Pin size={10} className="fill-[#c6892e]" /> {pinnedNotes.length} pinned
           </span>
         )}
       </div>
@@ -624,8 +624,8 @@ export function NotesPage() {
           {pinnedNotes.length > 0 && (
             <section>
               <div className="mb-3 flex items-center gap-2">
-                <Pin size={11} className="fill-[#97824f] text-[#97824f]" />
-                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#97824f]/80">Pinned</span>
+                <Pin size={11} className="fill-[#c6892e] text-[#c6892e]" />
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-[#c6892e]/80">Pinned</span>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {pinnedNotes.map(note => (
@@ -706,8 +706,8 @@ export function NotesPage() {
           />
 
           {!linkedRecord && !editing && (
-            <p className="mt-3 flex items-center gap-1.5 text-xs text-[#97824f]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#97824f]" />
+            <p className="mt-3 flex items-center gap-1.5 text-xs text-[#c6892e]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#c6892e]" />
               Choose a record before saving.
             </p>
           )}

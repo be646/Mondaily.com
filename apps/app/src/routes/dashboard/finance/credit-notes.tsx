@@ -30,9 +30,9 @@ interface CreditNote {
 
 const STATUS_CONFIG: Record<CreditStatus, { label: string; color: string; icon: React.ElementType }> = {
   draft:            { label: "Draft",            color: "text-stone-400 bg-stone-400/10",     icon: ReceiptText   },
-  pending_review:   { label: "Pending Review",   color: "text-[#97824f] bg-[#97824f]/10",   icon: Clock         },
+  pending_review:   { label: "Pending Review",   color: "text-[#c6892e] bg-[#c6892e]/10",   icon: Clock         },
   manager_approved: { label: "Approved",         color: "text-[#717784] bg-[#717784]/10",     icon: CheckCircle2  },
-  executed:         { label: "Executed",         color: "text-[#5f8169] bg-[#5f8169]/10", icon: CheckCircle2 },
+  executed:         { label: "Executed",         color: "text-[#2f9e6b] bg-[#2f9e6b]/10", icon: CheckCircle2 },
   void:             { label: "Void",             color: "text-stone-600 bg-stone-600/10",     icon: XCircle       },
 };
 
@@ -136,7 +136,7 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
                 className="key-input w-full text-sm resize-none"/>
             </div>
           </div>
-          {error && <p className="text-[11px] rounded-sm px-3 py-2" style={{ color: "#9c6b72", background: "color-mix(in srgb, #9c6b72 10%, transparent)" }}>{error}</p>}
+          {error && <p className="text-[11px] rounded-sm px-3 py-2" style={{ color: "#d1524a", background: "color-mix(in srgb, #d1524a 10%, transparent)" }}>{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
@@ -196,8 +196,8 @@ export function CreditNotesPage() {
             the old third card duplicated the Executed figure and is gone. */}
         {creditNotes.length > 0 && (
           <MetricGrid className="mb-4" cols={3} items={([
-            { label: `Pending review · ${creditNotes.filter(n => n.status === "pending_review").length}`, value: formatMoney(totalPending, currency), tone: totalPending > 0 ? "#97824f" : undefined, title: "Sum of credit notes awaiting review" },
-            { label: `Executed · ${creditNotes.filter(n => n.status === "executed").length}`, value: formatMoney(totalExecuted, currency), tone: totalExecuted > 0 ? "#5f8169" : undefined, title: "Credit actually issued" },
+            { label: `Pending review · ${creditNotes.filter(n => n.status === "pending_review").length}`, value: formatMoney(totalPending, currency), tone: totalPending > 0 ? "#c6892e" : undefined, title: "Sum of credit notes awaiting review" },
+            { label: `Executed · ${creditNotes.filter(n => n.status === "executed").length}`, value: formatMoney(totalExecuted, currency), tone: totalExecuted > 0 ? "#2f9e6b" : undefined, title: "Credit actually issued" },
             { label: mixedCurrency ? `All notes · shown in ${display}` : "All notes", value: creditNotes.length, title: "Every credit note in this view" },
           ] as MetricItem[])} />
         )}

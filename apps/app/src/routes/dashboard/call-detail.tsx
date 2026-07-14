@@ -65,7 +65,7 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
   if (!query.trim()) return <>{text}</>;
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const parts = text.split(new RegExp(`(${escaped})`, "ig"));
-  return <>{parts.map((part, index) => part.toLowerCase() === query.toLowerCase() ? <mark key={index} className="bg-[#97824f]/30 text-[#97824f]">{part}</mark> : part)}</>;
+  return <>{parts.map((part, index) => part.toLowerCase() === query.toLowerCase() ? <mark key={index} className="bg-[#c6892e]/30 text-[#c6892e]">{part}</mark> : part)}</>;
 }
 
 function useWaveSurfer(audioUrl?: string) {
@@ -83,7 +83,7 @@ function useWaveSurfer(audioUrl?: string) {
         container: containerRef.current,
         url: audioUrl,
         waveColor: "#334155",
-        progressColor: "#9c6b72",
+        progressColor: "#d1524a",
         cursorColor: "#f8fafc",
         height: 72,
         barWidth: 2,
@@ -234,7 +234,7 @@ export function CallDetailPage() {
                 <p className="text-[var(--text-secondary)]">{item}</p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                   {promo ? (
-                    <span className="inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-[11px] font-medium" style={{ color: "#5f8169", background: "#5f816914" }}>
+                    <span className="inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-[11px] font-medium" style={{ color: "#2f9e6b", background: "#2f9e6b14" }}>
                       <Check size={11} /> {promo.type === "task" ? "Task created" : "Decision queued"}
                     </span>
                   ) : <>
@@ -249,12 +249,12 @@ export function CallDetailPage() {
                       {busy && promoting?.target === "decision" ? <Loader2 size={11} className="animate-spin" /> : <ShieldCheck size={11} />} Send to Decision Queue
                     </button>
                   </>}
-                  {err && <span className="text-[11px]" style={{ color: "#9c6b72" }}>Failed — {err}</span>}
+                  {err && <span className="text-[11px]" style={{ color: "#d1524a" }}>Failed — {err}</span>}
                 </div>
               </div>
             );
           })}</div> : <p className="text-sm text-[var(--text-muted)]">No action items identified.</p>}</SummarySection>
-          <SummarySection title="Buyer signals"><div className="space-y-2">{(call.buyer_signals ?? []).map((signal) => <div key={signal.text} className={`rounded-md border px-3 py-2 text-sm ${signal.type === "positive" ? "border-[#5f8169]/20 bg-[#5f8169]/5 text-[#5f8169]" : "border-stone-500/30 bg-stone-600/5 text-stone-300"}`}>{signal.text}</div>)}</div></SummarySection>
+          <SummarySection title="Buyer signals"><div className="space-y-2">{(call.buyer_signals ?? []).map((signal) => <div key={signal.text} className={`rounded-md border px-3 py-2 text-sm ${signal.type === "positive" ? "border-[#2f9e6b]/20 bg-[#2f9e6b]/5 text-[#2f9e6b]" : "border-stone-500/30 bg-stone-600/5 text-stone-300"}`}>{signal.text}</div>)}</div></SummarySection>
           <SummarySection title="Next steps">{(call.next_steps ?? []).length ? <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{(call.next_steps ?? []).map((step) => <li key={step}>• {step}</li>)}</ul> : <p className="text-sm text-[var(--text-muted)]">No next steps recommended.</p>}</SummarySection>
         </section>
         <section className="min-w-0 p-4 sm:p-6">
@@ -265,7 +265,7 @@ export function CallDetailPage() {
                 <button disabled={!ready} onClick={() => waveRef.current?.playPause()} className="grid h-9 w-9 place-items-center rounded-full border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] text-[var(--section-accent-text)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-40">{playing ? <Pause size={15} /> : <Play size={15} />}</button>
                 <Clock3 size={14} className="text-[var(--text-secondary)]" />
                 <FieldSelect value={playbackRate} onChange={v => { setPlaybackRate(v); waveRef.current?.setPlaybackRate(Number(v)); }} ariaLabel="Playback speed" options={[{ value: "0.75", label: "0.75x" }, { value: "1", label: "1x" }, { value: "1.25", label: "1.25x" }, { value: "1.5", label: "1.5x" }, { value: "2", label: "2x" }]} />
-                <Volume2 size={14} className="ml-auto text-[var(--text-secondary)]" /><input aria-label="Volume" type="range" min="0" max="1" step="0.05" defaultValue="1" onChange={(event) => waveRef.current?.setVolume(Number(event.target.value))} className="w-28 accent-[#9c6b72]" />
+                <Volume2 size={14} className="ml-auto text-[var(--text-secondary)]" /><input aria-label="Volume" type="range" min="0" max="1" step="0.05" defaultValue="1" onChange={(event) => waveRef.current?.setVolume(Number(event.target.value))} className="w-28 accent-[#d1524a]" />
               </div>
             </> : <div className="flex h-24 items-center justify-center text-sm text-[var(--text-muted)]">Audio recording unavailable.</div>}
           </div>

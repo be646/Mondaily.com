@@ -75,7 +75,7 @@ export function ShadowLoginPage() {
         <CapsuleInput label="Email" type="email" autoComplete="username" placeholder="you@company.com" value={email} onChange={e => setEmail(e.target.value)} disabled={loading} />
         <CapsuleInput label="Password" type="password" autoComplete="current-password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} disabled={loading} />
         <PowShieldLine status={shield.status} />
-        {error && <p className="text-[11px] text-[#9c6b72]">{error}</p>}
+        {error && <p className="text-[11px] text-[#d1524a]">{error}</p>}
         <GlowButton type="submit" disabled={!valid} loading={loading}>
           {loading ? <><Loader2 size={14} className="animate-spin" /> Verifying…</> : "Sign in"}
         </GlowButton>

@@ -137,8 +137,8 @@ export function SegmentBuilder({
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
           {saved ? (
             <div className="flex flex-col items-center gap-4 py-8 text-center">
-              <div className="h-12 w-12 rounded-sm bg-[#5f8169]/10 border border-[#5f8169]/20 flex items-center justify-center">
-                <Check size={22} className="text-[#5f8169]" />
+              <div className="h-12 w-12 rounded-sm bg-[#2f9e6b]/10 border border-[#2f9e6b]/20 flex items-center justify-center">
+                <Check size={22} className="text-[#2f9e6b]" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-[var(--text-primary)] mb-1">Segment saved as list</p>

@@ -377,7 +377,7 @@ function RecordIdCell({ id }: { id: string }) {
         title="Copy ID"
       >
         {copied
-          ? <Check size={9} className="text-[#5f8169]"/>
+          ? <Check size={9} className="text-[#2f9e6b]"/>
           : <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
         }
       </button>
@@ -390,9 +390,9 @@ function RowLogo({ name, enriched }: { name: string; enriched?: boolean }) {
   const colors = [
     "bg-stone-500/20 text-stone-400",
     "bg-[#717784]/15 text-[#717784]",
-    "bg-[#5f8169]/15 text-[#5f8169]",
+    "bg-[#2f9e6b]/15 text-[#2f9e6b]",
     "bg-stone-500/20 text-stone-400",
-    "bg-[#97824f]/15 text-[#97824f]",
+    "bg-[#c6892e]/15 text-[#c6892e]",
   ];
   const color = colors[(initials.charCodeAt(0) || 0) % colors.length];
   return (
@@ -621,7 +621,7 @@ function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
               </div>
               <button
                 onClick={() => updateRule(i, { dir: rule.dir === "asc" ? "desc" : "asc" })}
-                className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold transition-colors whitespace-nowrap ${rule.dir === "asc" ? "bg-[#717784]/10 text-[#717784] border border-[#717784]/25" : "bg-[#97824f]/10 text-[#97824f] border border-[#97824f]/25"}`}
+                className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold transition-colors whitespace-nowrap ${rule.dir === "asc" ? "bg-[#717784]/10 text-[#717784] border border-[#717784]/25" : "bg-[#c6892e]/10 text-[#c6892e] border border-[#c6892e]/25"}`}
               >
                 {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
               </button>
@@ -704,7 +704,7 @@ interface Member { id: string; name: string; email: string; avatar_url?: string;
 
 // Deterministic avatar colour from name string
 function avatarColor(name: string) {
-  const colors = ["bg-stone-500","bg-[#97824f]","bg-[#717784]","bg-[#5f8169]","bg-stone-600","bg-[#9c6b72]","bg-stone-400","bg-[#5f8169]"];
+  const colors = ["bg-stone-500","bg-[#c6892e]","bg-[#717784]","bg-[#2f9e6b]","bg-stone-600","bg-[#d1524a]","bg-stone-400","bg-[#2f9e6b]"];
   let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
   return colors[Math.abs(h) % colors.length];
 }
@@ -786,15 +786,15 @@ const WORLD_COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","A
 const COLUMN_TYPE_PRESETS = [
   { type: "status",    label: "Status",     hint: "Current state (New, In Progress, Done…)",   icon: ToggleLeft,   color: "text-[#717784]"     },
   { type: "stage",     label: "Stage",      hint: "Pipeline stage (Lead, Proposal, Closed…)",  icon: ChevronRight, color: "text-stone-400"  },
-  { type: "assignee",  label: "Assignee",   hint: "Team member responsible for this record",   icon: UserCircle2,  color: "text-[#5f8169]" },
-  { type: "owner",     label: "Owner",      hint: "Deal owner or account owner",               icon: User,         color: "text-[#97824f]"   },
-  { type: "tag",       label: "Tag",        hint: "Label or category tag (multi-select)",      icon: Tag,          color: "text-[#9c6b72]"    },
-  { type: "category",  label: "Category",   hint: "Pick a category with icon",                 icon: LayoutGrid,   color: "text-[#97824f]"  },
-  { type: "country",   label: "Country",    hint: "Country picker from world countries list",  icon: Globe,        color: "text-[#5f8169]"    },
+  { type: "assignee",  label: "Assignee",   hint: "Team member responsible for this record",   icon: UserCircle2,  color: "text-[#2f9e6b]" },
+  { type: "owner",     label: "Owner",      hint: "Deal owner or account owner",               icon: User,         color: "text-[#c6892e]"   },
+  { type: "tag",       label: "Tag",        hint: "Label or category tag (multi-select)",      icon: Tag,          color: "text-[#d1524a]"    },
+  { type: "category",  label: "Category",   hint: "Pick a category with icon",                 icon: LayoutGrid,   color: "text-[#c6892e]"  },
+  { type: "country",   label: "Country",    hint: "Country picker from world countries list",  icon: Globe,        color: "text-[#2f9e6b]"    },
   { type: "record_id", label: "Record ID",  hint: "Auto-generated unique ID for this record",  icon: Hash,         color: "text-[var(--text-secondary)]"    },
   { type: "text",      label: "Text",       hint: "Free text field",                           icon: Type,         color: "text-stone-400"   },
   { type: "number",    label: "Number",     hint: "Numeric value, amount, count",              icon: Hash,         color: "text-[#717784]"    },
-  { type: "date",      label: "Date",       hint: "Date or deadline",                          icon: Calendar,     color: "text-[#9c6b72]"    },
+  { type: "date",      label: "Date",       hint: "Date or deadline",                          icon: Calendar,     color: "text-[#d1524a]"    },
   { type: "relation",  label: "Relation",   hint: "Link to a record in another object",        icon: Link2,        color: "text-[#717784]"    },
 ] as const;
 
@@ -1037,7 +1037,7 @@ function CountryCell({ value, onSelect }: { value: string; onSelect: (v: string)
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(o => !o)}
         className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-        {value ? <><Globe size={11} className="text-[#5f8169]/70 shrink-0"/>{value}</> : <span className="text-stone-700 hover:text-stone-500">— select country</span>}
+        {value ? <><Globe size={11} className="text-[#2f9e6b]/70 shrink-0"/>{value}</> : <span className="text-stone-700 hover:text-stone-500">— select country</span>}
       </button>
       {open && (
         <PortalDropdown triggerRef={ref} onClose={() => { setOpen(false); setSearch(""); }} align="left" className="w-52">
@@ -1066,8 +1066,8 @@ function CountryCell({ value, onSelect }: { value: string; onSelect: (v: string)
 interface WorkspaceTag { id: string; name: string; color: string }
 
 const PRESET_TAG_COLORS = [
-  "var(--accent)","#ec4899","#97824f","#5f8169","#717784",
-  "#9c6b72","var(--accent)","var(--accent)","#f97316","#84cc16",
+  "var(--accent)","#ec4899","#c6892e","#2f9e6b","#717784",
+  "#d1524a","var(--accent)","var(--accent)","#f97316","#84cc16",
 ];
 
 // tagColor kept for backwards compat with filter badges
@@ -1075,10 +1075,10 @@ function tagColor(val: string) {
   const TAG_COLORS = [
     { bg: "bg-[#717784]/12 border-[#717784]/30 text-[#717784]", dot: "bg-[#717784]" },
     { bg: "bg-stone-500/15 border-stone-500/30 text-stone-300", dot: "bg-stone-400" },
-    { bg: "bg-[#5f8169]/12 border-[#5f8169]/30 text-[#5f8169]", dot: "bg-[#5f8169]" },
-    { bg: "bg-[#97824f]/12 border-[#97824f]/30 text-[#97824f]", dot: "bg-[#97824f]" },
-    { bg: "bg-[#9c6b72]/12 border-[#9c6b72]/30 text-[#9c6b72]", dot: "bg-[#9c6b72]" },
-    { bg: "bg-[#9c6b72]/12 border-[#9c6b72]/30 text-[#9c6b72]", dot: "bg-[#9c6b72]" },
+    { bg: "bg-[#2f9e6b]/12 border-[#2f9e6b]/30 text-[#2f9e6b]", dot: "bg-[#2f9e6b]" },
+    { bg: "bg-[#c6892e]/12 border-[#c6892e]/30 text-[#c6892e]", dot: "bg-[#c6892e]" },
+    { bg: "bg-[#d1524a]/12 border-[#d1524a]/30 text-[#d1524a]", dot: "bg-[#d1524a]" },
+    { bg: "bg-[#d1524a]/12 border-[#d1524a]/30 text-[#d1524a]", dot: "bg-[#d1524a]" },
   ];
   let h = 0; for (let i = 0; i < val.length; i++) h = (h * 31 + val.charCodeAt(i)) & 0xffffffff;
   return TAG_COLORS[Math.abs(h) % TAG_COLORS.length]!;
@@ -1637,9 +1637,9 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     const stageCol = columns.find(c => c.toLowerCase().includes("stage") || c === "status" || c === "deal_status");
     if (!stageCol) return "";
     const val = String(record.data[stageCol] ?? "");
-    if (val === "Closed Won" || val === "Complete" || val === "Completed" || val === "Active") return "border-l-2 border-l-[#5f8169]/50";
+    if (val === "Closed Won" || val === "Complete" || val === "Completed" || val === "Active") return "border-l-2 border-l-[#2f9e6b]/50";
     if (val === "Closed Lost" || val === "Cancelled" || val === "Churned") return "border-l-2 border-l-rose-500/30";
-    if (val === "In Progress" || val === "Negotiation") return "border-l-2 border-l-[#97824f]/40";
+    if (val === "In Progress" || val === "Negotiation") return "border-l-2 border-l-[#c6892e]/40";
     return "";
   }
 
@@ -2153,7 +2153,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 ariaLabel="Sort column" className="capitalize max-w-[120px]"
                 options={[...allColumnsWithCustom, "__updated_at"].map(c => ({ value: c, label: colLabel(c) }))} />
               <button onClick={() => setSortRules(r => r.map((x, idx) => idx === i ? { ...x, dir: x.dir === "asc" ? "desc" : "asc" } : x))}
-                className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${rule.dir === "asc" ? "bg-[#717784]/10 text-[#717784]" : "bg-[#97824f]/10 text-[#97824f]"}`}>
+                className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap ${rule.dir === "asc" ? "bg-[#717784]/10 text-[#717784]" : "bg-[#c6892e]/10 text-[#c6892e]"}`}>
                 {rule.dir === "asc" ? <><ChevronUp size={9}/>A→Z</> : <><ChevronDown size={9}/>Z→A</>}
               </button>
               <button onClick={() => setSortRules(r => r.filter((_, idx) => idx !== i))} className="text-[var(--text-secondary)] hover:text-stone-400"><X size={10}/></button>
@@ -2230,7 +2230,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 onKeyDown={e => { if (e.key === "Enter") saveCurrentView(); if (e.key === "Escape") setSaveViewOpen(false); }}
                 placeholder="Name this view…"
                 className="bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded-sm px-2.5 py-1 text-[11px] text-[var(--text-primary)] outline-none focus:border-[var(--border-soft)] placeholder:text-[var(--text-secondary)] w-36"/>
-              <button onClick={saveCurrentView} className="text-[#5f8169] hover:opacity-80 transition-colors p-0.5"><Check size={12}/></button>
+              <button onClick={saveCurrentView} className="text-[#2f9e6b] hover:opacity-80 transition-colors p-0.5"><Check size={12}/></button>
               <button onClick={() => setSaveViewOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--text-secondary)] p-0.5"><X size={11}/></button>
             </div>
           ) : (
