@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { LogoMark } from "@/components/logo";
+import { AIButton } from "@/components/ui/ai-button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import {
@@ -101,6 +102,19 @@ export function CreditNoteDetailPage() {
       setTransitionError(null);
     },
     onError: (e: Error) => { setTransitionError(e.message); setTransitioning(null); },
+  });
+
+  // On-demand AI summary — grounded in the note's real fields, persisted server-side.
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+  const summarize = useMutation({
+    mutationFn: () => apiClient.post<{ ai_summary?: string; error?: string }>(`/credit-notes/${creditNoteId}/summarize`, {}),
+    onSuccess: (res) => {
+      if (res.error) { setSummaryError(res.error); return; }
+      setSummaryError(null);
+      qc.setQueryData<CreditNote>(["credit-note", creditNoteId], prev => prev ? { ...prev, ai_summary: res.ai_summary } : prev);
+      qc.invalidateQueries({ queryKey: ["credit-notes"] });
+    },
+    onError: (e: Error) => setSummaryError(e.message),
   });
 
   async function applyToInvoice() {
@@ -236,16 +250,22 @@ export function CreditNoteDetailPage() {
 
         {/* ── Right panel ── */}
         <main className="flex-1 overflow-auto p-6 space-y-6 max-w-2xl">
-          {/* AI summary */}
-          {cn.ai_summary && (
-            <div className="rounded-sm border border-stone-500/30 bg-stone-600/[.04] p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <LogoMark size={12} className="text-[var(--text-faint)]"/>
-                <span className="text-[11px] font-semibold text-[var(--text-faint)] uppercase tracking-wider">AI Summary</span>
-              </div>
-              <p className="text-[13px] text-[var(--text-faint)] leading-relaxed">{cn.ai_summary}</p>
+          {/* AI summary — generated on demand from the note's real fields, persisted server-side. */}
+          <div className="rounded-sm border border-stone-500/30 bg-stone-600/[.04] p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <LogoMark size={12} className="text-[var(--text-faint)]"/>
+              <span className="text-[11px] font-semibold text-[var(--text-faint)] uppercase tracking-wider">AI Summary</span>
+              <AIButton variant="subtle" size="sm" className="ml-auto" loading={summarize.isPending} onClick={() => summarize.mutate()}>
+                {cn.ai_summary ? "Regenerate" : "Generate"}
+              </AIButton>
             </div>
-          )}
+            {cn.ai_summary ? (
+              <p className="text-[13px] text-[var(--text-faint)] leading-relaxed">{cn.ai_summary}</p>
+            ) : (
+              <p className="text-[12px] text-[var(--text-secondary)]">No summary yet — generate a grounded one-line recap from this note's amount, reason, and status.</p>
+            )}
+            {summaryError && <p className="mt-2 text-[11px] text-[#d1524a]">{summaryError}</p>}
+          </div>
 
           {/* Notes */}
           <div>

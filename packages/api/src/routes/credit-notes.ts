@@ -7,6 +7,7 @@ import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { inngest } from "../lib/inngest";
 import { createNotification } from "../lib/notify";
+import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
 
 type Variables = { userId: string; workspaceId: string; role: string; financeRole: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -317,6 +318,38 @@ router.post("/:id/apply-to-invoice", zValidator("json", z.object({ invoice_id: z
   });
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
+});
+
+// ─── AI: generate an on-demand summary from the note's REAL fields ────────────
+// Grounded strictly in the stored credit note — never invents figures. Persists to
+// data.ai_summary so the list "AI SUMMARY" column and the detail page both reflect it.
+router.post("/:id/summarize", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const node = await getCreditNote(workspaceId, c.req.param("id"));
+  const env = gatewayEnv();
+  if (!env.baseURL || !env.apiKey) return c.json({ error: "AI isn't available right now." }, 503);
+
+  const d = node.data as Record<string, unknown>;
+  const amount = ((Number(d.amount_cents ?? 0)) / 100).toLocaleString("en-GB", { style: "currency", currency: String(d.currency ?? "USD"), minimumFractionDigits: 2 });
+  const facts = [
+    `Amount: ${amount}`,
+    `Reason: ${String(d.credit_reason ?? "unspecified").replace(/_/g, " ")}`,
+    `Status: ${String(d.status ?? "draft").replace(/_/g, " ")}`,
+    d.client_name ? `Client: ${d.client_name}` : null,
+    d.notes ? `Internal notes: ${String(d.notes).slice(0, 500)}` : null,
+  ].filter(Boolean).join("\n");
+  const system = "You summarize a finance credit note for an operator in ONE or TWO sentences. Use ONLY the facts provided — never invent amounts, clients, or reasons. Be plain and specific: what the credit is for, its size, and where it stands. No preamble.";
+  const prompt = `Credit note facts:\n${facts}`;
+
+  try {
+    const res = await aiGateway({ system, prompt, maxTokens: 160, workspaceId, userId: c.get("userId"), feature: "credit_note_summary" });
+    const summary = (res.text ?? "").trim();
+    if (!summary || res.provider === "none") return c.json({ error: "Couldn't generate a summary (check your AI credits)." }, 200);
+    const nextData = { ...(node.data as object), ai_summary: summary };
+    const { error } = await supabase.from("nodes").update({ data: nextData, updated_at: new Date().toISOString() }).eq("id", c.req.param("id")).eq("workspace_id", workspaceId);
+    if (error) return c.json({ error: error.message }, 500);
+    return c.json({ ai_summary: summary });
+  } catch { return c.json({ error: "Couldn't generate a summary — please try again." }, 200); }
 });
 
 // ─── Assign reviewer (creates ASSIGNED_REVIEWER edge) ─────────────────────────
