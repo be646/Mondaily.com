@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare, Search, Pencil, Link2 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton, DelayedLoading, EmptyState, ErrorState } from "../../components/ui/page-state";
-import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, type ActionMenuItem, type CommandStatusItem, type FilterChip } from "../../components/ui/controls";
+import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, InlineFilterBar, type ActionMenuItem, type CommandStatusItem, type FilterChip } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -281,13 +281,22 @@ export function DecisionsPage() {
                   className="h-7 w-36 rounded-sm border bg-transparent pl-6.5 pr-2 text-[11.5px] outline-none focus:border-[var(--section-accent)]"
                   style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)", paddingLeft: "1.625rem" }} />
               </label>
-              <FilterSelect label="Agent" value={agentFilter} options={agents.map(a => ({ v: a, l: agentByRaw(a).name.replace(" Agent", "") }))} onChange={setAgentFilter} />
-              <FilterSelect label="Type" value={typeFilter} options={types.map(t => ({ v: t, l: t.replace(/_/g, " ") }))} onChange={setTypeFilter} />
-              <FilterSelect label="Risk" value={riskFilter} options={[{ v: "high", l: "High" }, { v: "medium", l: "Medium" }, { v: "low", l: "Low" }]} onChange={(v) => setRiskFilter(v as Decision["risk_level"] | null)} dot={(v) => RISK_DOT[v as Decision["risk_level"]]} />
-              {assignees.length > 0 && (
-                <FilterSelect label="Reviewer" value={assigneeFilter} onChange={setAssigneeFilter}
-                  options={[{ v: "__none", l: "Unassigned" }, ...assignees.map(a => ({ v: a, l: memberLabel(memberList, a) ?? "Assigned" }))]} />
-              )}
+              {/* App-standard inline filter (same as the records sheet): Filter → opens in place. */}
+              <InlineFilterBar
+                filters={[
+                  { key: "agent", label: "Agent", options: agents.map(a => ({ value: a, label: agentByRaw(a).name.replace(" Agent", "") })) },
+                  { key: "type", label: "Type", options: types.map(t => ({ value: t, label: t.replace(/_/g, " ") })) },
+                  { key: "risk", label: "Risk", options: [{ value: "high", label: "High", dot: RISK_DOT.high }, { value: "medium", label: "Medium", dot: RISK_DOT.medium }, { value: "low", label: "Low", dot: RISK_DOT.low }] },
+                  ...(assignees.length > 0 ? [{ key: "reviewer", label: "Reviewer", options: [{ value: "__none", label: "Unassigned" }, ...assignees.map(a => ({ value: a, label: memberLabel(memberList, a) ?? "Assigned" }))] }] : []),
+                ]}
+                values={{ agent: agentFilter ?? "", type: typeFilter ?? "", risk: riskFilter ?? "", reviewer: assigneeFilter ?? "" }}
+                onChange={(k, v) => {
+                  if (k === "agent") setAgentFilter(v || null);
+                  else if (k === "type") setTypeFilter(v || null);
+                  else if (k === "risk") setRiskFilter((v || null) as Decision["risk_level"] | null);
+                  else if (k === "reviewer") setAssigneeFilter(v || null);
+                }}
+              />
               <button onClick={() => setSortRisk(s => !s)} disabled={lane === "approval" && !!triage}
                 title={lane === "approval" && triage ? "AI triage ranking is active — clear it to sort by risk" : "Order the list by risk level"}
                 className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-40"
@@ -307,11 +316,9 @@ export function DecisionsPage() {
 
           {/* Contextual second line — ONLY when filters are active or an AI ranking has a summary. */}
           {(() => {
+            // Agent/Type/Risk/Reviewer chips now live in the InlineFilterBar above; only the search
+            // chip remains on this contextual line (alongside any AI-ranking summary).
             const filterChips: FilterChip[] = [
-              ...(agentFilter ? [{ key: "agent", label: agentByRaw(agentFilter).name.replace(" Agent", ""), onRemove: () => setAgentFilter(null) }] : []),
-              ...(typeFilter ? [{ key: "type", label: typeFilter.replace(/_/g, " "), onRemove: () => setTypeFilter(null) }] : []),
-              ...(riskFilter ? [{ key: "risk", label: riskFilter, onRemove: () => setRiskFilter(null) }] : []),
-              ...(assigneeFilter ? [{ key: "assignee", label: assigneeFilter === "__none" ? "Unassigned" : (memberLabel(memberList, assigneeFilter) ?? "Assigned"), onRemove: () => setAssigneeFilter(null) }] : []),
               ...(search.trim() ? [{ key: "q", label: `"${search.trim()}"`, onRemove: () => setSearch("") }] : []),
             ];
             const aiSummary = verdicts.size > 0 && lane === "approval"

@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ButtonHTMLAttributes, SelectHTMLAttributes, ReactNode } from "react";
-import { Check, ChevronDown, MoreHorizontal, X } from "lucide-react";
+import { Check, ChevronDown, MoreHorizontal, X, Filter } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 function cx(...parts: (string | false | null | undefined)[]): string {
@@ -594,6 +594,68 @@ export function MetricGrid({ items, cols = 3, className }: { items: MetricItem[]
           <div className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>{m.label}</div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ─── InlineFilterBar ──────────────────────────────────────────────────────────
+// The ONE app-wide filter pattern — same behaviour as the records sheet: a "Filter"
+// button that toggles an INLINE row of dropdowns (opens in place, not a floating
+// menu / separate page), with removable active-filter chips + Clear all. Retrofit
+// this onto every page that filters a list so filtering feels identical everywhere.
+export interface InlineFilterDef {
+  key: string;
+  label: string;                                   // e.g. "Agent", "Risk"
+  options: { value: string; label: string; dot?: string }[];
+}
+export function InlineFilterBar({ filters, values, onChange, defaultOpen = false, extra, className }: {
+  filters: InlineFilterDef[];
+  values: Record<string, string>;                  // key → selected value ("" = All)
+  onChange: (key: string, value: string) => void;
+  defaultOpen?: boolean;
+  extra?: ReactNode;                               // optional extra control rendered in the bar (e.g. a search box)
+  className?: string;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const active = filters.filter(f => values[f.key]);
+  const labelFor = (f: InlineFilterDef) => f.options.find(o => o.value === values[f.key])?.label ?? values[f.key];
+  return (
+    <div className={className}>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
+          style={open || active.length > 0
+            ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" }
+            : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
+        >
+          <Filter size={12} /> Filter
+          {active.length > 0 && <span className="tabular-nums rounded-full px-1.5 text-[9.5px]" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>{active.length}</span>}
+        </button>
+        {/* Active-filter chips — removable, always visible so the state is obvious even when the bar is closed. */}
+        {active.map(f => (
+          <span key={f.key} className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <span style={{ color: "var(--text-faint)" }}>{f.label}:</span> {labelFor(f)}
+            <button onClick={() => onChange(f.key, "")} className="ml-0.5" style={{ color: "var(--text-faint)" }} aria-label={`Clear ${f.label}`}><X size={10} /></button>
+          </span>
+        ))}
+        {active.length > 0 && (
+          <button onClick={() => filters.forEach(f => onChange(f.key, ""))} className="text-[11px] transition-colors hover:text-[var(--text-primary)]" style={{ color: "var(--text-faint)" }}>Clear all</button>
+        )}
+      </div>
+      {/* Inline dropdown row — opens in place under the button (the records-sheet behaviour). */}
+      {open && (
+        <div className="mt-2 flex flex-wrap items-end gap-2 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+          {filters.map(f => (
+            <label key={f.key} className="flex flex-col gap-1">
+              <span className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{f.label}</span>
+              <MenuSelect value={values[f.key] ?? ""} onChange={v => onChange(f.key, v || "")} allLabel={`All ${f.label.toLowerCase()}`} maxWidth={170}
+                options={f.options.map(o => ({ value: o.value, label: o.label, dot: o.dot }))} />
+            </label>
+          ))}
+          {extra}
+        </div>
+      )}
     </div>
   );
 }

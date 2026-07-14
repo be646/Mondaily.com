@@ -9,7 +9,7 @@ import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useIsViewer } from "../../hooks/useModules";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { apiClient } from "../../lib/api-client";
-import { FieldSelect } from "../../components/ui/controls";
+import { FieldSelect, InlineFilterBar } from "../../components/ui/controls";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
 import { useLanguage } from "../../hooks/useLanguage";
 
@@ -576,59 +576,27 @@ export function TasksPage() {
 
         <div className="h-4 w-px bg-[var(--surface-hover)]"/>
 
-        {/* Label filter */}
-        <div className="relative">
-          {labelOpen && <div className="fixed inset-0 z-40" onClick={() => setLabelOpen(false)}/>}
-          <button onClick={() => { setLabelOpen(o => !o); setPriorityOpen(false); setSortOpen(false); }}
-            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${labelFilter ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:border-[var(--border-soft)]"}`}>
-            <Tag size={11}/>{labelFilter || "Label"}<ChevronDown size={10} className={`transition-transform ${labelOpen ? "rotate-180" : ""}`}/>
-          </button>
-          {labelOpen && (
-            <div className="dropdown-panel left-0 w-44 z-50">
-              {[
-                { value: "", label: "All labels", dot: "bg-stone-600" },
-                { value: "Help Needed", label: "Help Needed", dot: "bg-[#717784]" },
-                { value: "Blocked",     label: "Blocked",     dot: "bg-stone-400" },
-                { value: "Waiting",     label: "Waiting",     dot: "bg-stone-400" },
-                { value: "Bug",         label: "Bug",         dot: "bg-stone-500" },
-                { value: "Feature",     label: "Feature",     dot: "bg-stone-400" },
-                { value: "Research",    label: "Research",    dot: "bg-[var(--section-accent)]" },
-              ].map(opt => (
-                <button key={opt.value} onClick={() => { setLabelFilter(opt.value); setLabelOpen(false); }}
-                  className={`dropdown-item ${labelFilter === opt.value ? "dropdown-item-active" : ""}`}>
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dot}`}/>{opt.label}
-                  {labelFilter === opt.value && <Check size={12} className="ml-auto text-[var(--text-faint)]"/>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Priority filter */}
-        <div className="relative">
-          {priorityOpen && <div className="fixed inset-0 z-40" onClick={() => setPriorityOpen(false)}/>}
-          <button onClick={() => { setPriorityOpen(o => !o); setLabelOpen(false); setSortOpen(false); }}
-            className={`flex items-center gap-1 rounded-sm border px-2.5 py-1 text-xs transition-colors ${priorityFilter ? "border-stone-500/30 bg-stone-600/[.06] text-stone-400" : "border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-faint)] hover:border-[var(--border-soft)]"}`}>
-            <Flag size={11}/>{priorityFilter ? priorityFilter.charAt(0).toUpperCase()+priorityFilter.slice(1) : "Priority"}<ChevronDown size={10} className={`transition-transform ${priorityOpen ? "rotate-180" : ""}`}/>
-          </button>
-          {priorityOpen && (
-            <div className="dropdown-panel left-0 w-40 z-50">
-              {[
-                { value: "",       label: "All priorities", dot: "bg-stone-600" },
-                { value: "urgent", label: "Urgent",         dot: "bg-stone-500" },
-                { value: "high",   label: "High",           dot: "bg-[#c6892e]" },
-                { value: "medium", label: "Medium",         dot: "bg-[#c6892e]" },
-                { value: "low",    label: "Low",            dot: "bg-stone-400" },
-              ].map(opt => (
-                <button key={opt.value} onClick={() => { setPriorityFilter(opt.value); setPriorityOpen(false); }}
-                  className={`dropdown-item ${priorityFilter === opt.value ? "dropdown-item-active" : ""}`}>
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${opt.dot}`}/>{opt.label}
-                  {priorityFilter === opt.value && <Check size={12} className="ml-auto text-[var(--text-faint)]"/>}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* App-standard inline filter (same as the records sheet): Filter → opens in place. */}
+        <InlineFilterBar
+          filters={[
+            { key: "label", label: "Label", options: [
+              { value: "Help Needed", label: "Help Needed", dot: "#5b6bb0" },
+              { value: "Blocked", label: "Blocked", dot: "#d1524a" },
+              { value: "Waiting", label: "Waiting", dot: "#c6892e" },
+              { value: "Bug", label: "Bug", dot: "#d1524a" },
+              { value: "Feature", label: "Feature", dot: "#2f9e6b" },
+              { value: "Research", label: "Research", dot: "var(--section-accent)" },
+            ] },
+            { key: "priority", label: "Priority", options: [
+              { value: "urgent", label: "Urgent", dot: "#d1524a" },
+              { value: "high", label: "High", dot: "#c6892e" },
+              { value: "medium", label: "Medium", dot: "#c6892e" },
+              { value: "low", label: "Low", dot: "var(--text-faint)" },
+            ] },
+          ]}
+          values={{ label: labelFilter, priority: priorityFilter }}
+          onChange={(k, v) => { if (k === "label") setLabelFilter(v); else setPriorityFilter(v); }}
+        />
 
         {/* Sort */}
         <div className="relative">

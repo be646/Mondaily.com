@@ -348,7 +348,9 @@ describe("priority pages preserve every existing action/handler", () => {
     // Lane tabs, search, the shared MenuSelect filters, risk sort, and the AI-tools ActionMenu
     // live in a single band — three zones before the work area, not a stack of bars.
     expect(decisions).toMatch(/ONE control band/);
-    expect(decisions).toMatch(/<FilterSelect label="Agent"/);
+    // Filters now use the shared InlineFilterBar (the app-wide records-style inline filter).
+    expect(decisions).toMatch(/<InlineFilterBar/);
+    expect(decisions).toMatch(/key: "agent", label: "Agent"/);
     expect(decisions).toMatch(/<ActionMenu triggerLabel=/);
     expect(decisions).not.toContain("function ActiveFilterChip");
     // Queue intelligence folded into the CommandPageHeader honest status row (no separate stats box).
