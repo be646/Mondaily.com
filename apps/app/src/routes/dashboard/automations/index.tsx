@@ -1,10 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Zap, Mail, GitBranch, Play, Pause, MoreHorizontal, Trash2, Copy, Loader2, X, Check } from "lucide-react";
+import { Plus, Zap, Mail, GitBranch, Play, MoreHorizontal, Trash2, Copy, Loader2, X, Check, Sparkles } from "lucide-react";
 import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { apiClient } from "../../../lib/api-client";
+import { CommandPageHeader, MetricGrid } from "../../../components/ui/controls";
+import { EmptyState } from "../../../components/ui/page-state";
 
 // ─── AI Sequence Generator Modal ──────────────────────────────────────────────
 function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
@@ -141,12 +143,12 @@ interface Automation {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  // Surgical text-only state claim (no bubble fill) — emerald for active, muted for the rest.
-  const label: Record<string, string> = { active: "ACTIVE", draft: "UN-DEPLOYED", paused: "PAUSED", archived: "ARCHIVED" };
-  const color = status === "active" ? "var(--section-accent)" : status === "paused" ? "#fbbf24" : "var(--text-faint)";
+  // Matte state chip (dot + label) — consistent with the rest of the app's tone system.
+  const label: Record<string, string> = { active: "Active", draft: "Draft", paused: "Paused", archived: "Archived" };
+  const color = status === "active" ? "#5f8169" : status === "paused" ? "#97824f" : "var(--text-faint)";
   return (
-    <span className="font-mono text-[10px] font-semibold uppercase tracking-wider" style={{ color }}>
-      [ STATE: {label[status] ?? "UN-DEPLOYED"} ]
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ color, background: `color-mix(in srgb, ${color} 12%, transparent)` }}>
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} /> {label[status] ?? "Draft"}
     </span>
   );
 }
@@ -237,14 +239,14 @@ export function AutomationsPage() {
           <button
             onClick={onNew}
             disabled={createSequence.isPending}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}
           >
             <Plus size={11}/> {newLabel}
           </button>
         ) : (
           <Link
             to={newHref!}
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-[var(--text-faint)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}
           >
             <Plus size={11}/> {newLabel}
           </Link>
@@ -252,10 +254,17 @@ export function AutomationsPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-sm border border-dashed border-[var(--border-soft)] px-6 py-8 text-center">
-          <Icon size={20} className="mx-auto mb-2 text-[var(--text-faint)]"/>
-          <p className="text-xs text-[var(--text-secondary)]">No {title.toLowerCase()} yet</p>
-        </div>
+        <EmptyState
+          icon={Icon}
+          title={`No ${title.toLowerCase()} yet`}
+          description={title.toLowerCase().includes("sequence")
+            ? "Multi-step email outreach that pauses when a lead replies. Draft one with AI, or start from scratch."
+            : "Event-triggered automations — when a record changes, run actions. Build one to put your playbook on autopilot."}
+          steps={[
+            ...(onNew ? [{ icon: Plus, label: newLabel, hint: "Start from a blank builder and add your steps.", onClick: onNew }] : []),
+            ...(title.toLowerCase().includes("sequence") ? [{ icon: Sparkles, label: "Generate with AI", hint: "Describe the goal — the agent drafts the steps for you to review.", onClick: () => setAiOpen(true) }] : []),
+          ]}
+        />
       ) : (
         <div className="overflow-hidden rounded-sm border border-[var(--border-soft)]">
           {items.map((item, i) => {
@@ -269,7 +278,7 @@ export function AutomationsPage() {
                 key={item.id}
                 className={`group relative flex items-center gap-4 px-4 py-3.5 hover:bg-[var(--surface-hover)] transition-colors ${i < items.length - 1 ? "border-b border-[var(--border-soft)]" : ""}`}
               >
-                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${title.toLowerCase().includes("sequence") ? "border-stone-500/30 bg-stone-600/[.08] text-stone-400" : "border-stone-500/30 bg-stone-600/[.08] text-stone-400"}`}>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)", color: "var(--text-muted)" }}>
                   <Icon size={14}/>
                 </div>
 
@@ -322,31 +331,48 @@ export function AutomationsPage() {
     </div>
   );
 
+  // Real at-a-glance counts from the loaded items (never fabricated).
+  const activeCount = items.filter(i => ((i.data as any)?.status ?? (i as any).status) === "active").length;
+  const enrolledTotal = items.reduce((s, i) => s + (((i.data as any)?.enrollments?.length as number) ?? 0), 0);
+
   return (
-    <div className="flex min-h-full flex-col">
-      {/* Header */}
-      <div className="flex items-center gap-3 border-b border-[var(--border-soft)] px-6 py-3">
-        <Zap size={16} style={{ color: "var(--section-accent)" }}/>
-        <h1 className="flex-1 text-[15px] font-semibold text-[var(--text-primary)] tracking-tight">Automations</h1>
-        <button onClick={() => setAiOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-stone-600/20 border border-stone-500/30 px-3 py-1.5 text-xs font-medium text-stone-300 hover:bg-stone-600/30 transition-colors">
-          <AIMark size={12}/> Generate
-        </button>
-        <button
-          onClick={() => createSequence.mutate()}
-          disabled={createSequence.isPending}
-          className="flex items-center gap-1.5 rounded-lg border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-all disabled:opacity-50"
-        >
-          <Plus size={13}/> New sequence
-        </button>
-      </div>
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+      {/* Shared command header — same pattern as Decisions / Reports / Team / Home. */}
+      <CommandPageHeader
+        icon={Zap}
+        callsign="AUTOMATIONS"
+        title="Automations"
+        subtitle="Sequences and workflows that run your playbook automatically."
+        status={[{ label: activeCount > 0 ? `${activeCount} active` : "none active", kind: activeCount > 0 ? "running" : "monitoring" }]}
+        secondaryActions={
+          <button onClick={() => setAiOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <AIMark size={12}/> Generate with AI
+          </button>
+        }
+        primaryAction={
+          <button onClick={() => createSequence.mutate()} disabled={createSequence.isPending}
+            className="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-semibold disabled:opacity-50">
+            {createSequence.isPending ? <Loader2 size={13} className="animate-spin"/> : <Plus size={13}/>} New sequence
+          </button>
+        }
+      />
+
+      {items.length > 0 && (
+        <MetricGrid className="mb-6" cols={4} items={[
+          { label: "Active", value: activeCount, tone: activeCount > 0 ? "#5f8169" : undefined },
+          { label: "Sequences", value: sequences.length },
+          { label: "Workflows", value: workflows.length },
+          { label: "Enrolled", value: enrolledTotal },
+        ]} />
+      )}
 
       {seqQuery.isLoading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-stone-500/30 border-t-red-500"/>
+        <div className="flex items-center justify-center py-16">
+          <Loader2 size={18} className="animate-spin" style={{ color: "var(--section-accent)" }} />
         </div>
       ) : (
-        <div className="flex-1 overflow-auto px-6 py-6 max-w-4xl">
+        <div>
           <Section
             title="Email Sequences"
             icon={Mail}
