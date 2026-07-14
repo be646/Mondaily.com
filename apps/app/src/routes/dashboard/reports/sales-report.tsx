@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
-import { FieldSelect } from "../../../components/ui/controls";
+import { FieldSelect, FilterButton } from "../../../components/ui/controls";
 import { useCurrency, convertAmount, currencyOptions, CURRENCY_SYMBOL } from "../../../hooks/useCurrency";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; created_at?: string; updated_at?: string }
@@ -874,6 +874,7 @@ export function SalesReportPage() {
   const [customStart, setCustomStart]   = useState("");
   const [customEnd, setCustomEnd]       = useState("");
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const [filterOpen, setFilterOpen]     = useState(false);   // records-style: toggled from the toolbar Filter button
   const [goal, setGoal]                 = useState<number | null>(null);
   const [goalInput, setGoalInput]       = useState("");
   const [editingGoal, setEditingGoal]   = useState(false);
@@ -1273,6 +1274,9 @@ export function SalesReportPage() {
                 </button>
               ))}
             </div>
+            {hasFilters && (
+              <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={Object.values(activeFilters).filter(Boolean).length} />
+            )}
             <button onClick={exportCSV}
               className="flex items-center gap-1 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1 text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)] transition-colors">
               <Download size={12}/> CSV
@@ -1307,7 +1311,7 @@ export function SalesReportPage() {
         <DigestPanel objectType={activeSlug} objects={objects}/>
 
         {/* Filter presets row */}
-        {(hasFilters && (presets.length > 0 || filtersActive)) && (
+        {(hasFilters && filterOpen && (presets.length > 0 || filtersActive)) && (
           <div className="mb-2 flex flex-wrap items-center gap-1.5 print:hidden">
             <Bookmark size={11} className="text-[var(--text-secondary)] shrink-0"/>
             <span className="text-[10px] font-medium text-[var(--text-secondary)] mr-0.5">Presets</span>
@@ -1351,8 +1355,8 @@ export function SalesReportPage() {
           </div>
         )}
 
-        {/* Filter bar */}
-        {hasFilters && (
+        {/* Filter bar — records-style: revealed only when the toolbar Filter button is toggled on */}
+        {hasFilters && filterOpen && (
           <div className={`mb-4 print:hidden rounded-sm border transition-colors ${filtersActive ? "border-[#717784]/25 bg-[#717784]/[.03]" : "border-[var(--border-soft)] bg-[var(--surface-hover)]"}`}>
             <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border-soft)]">
               <Filter size={11} className="text-[var(--text-muted)] shrink-0"/>
