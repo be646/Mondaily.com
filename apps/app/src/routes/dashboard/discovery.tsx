@@ -556,7 +556,6 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
               <Sparkles size={11} /> Answer
             </div>
             <p className="text-[13.5px] leading-relaxed" style={{ color: "var(--text-primary)" }}>{turn.overview}</p>
-            <SourcesRail results={turn.results} turnId={turn.id} />
           </div>
         )}
 
@@ -581,6 +580,9 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
               <BulkBar entries={turn.results.map((r, i) => ({ key: keyOf(r, i), r })).filter((e) => sel.has(e.key))} query={turn.query} lists={lists} members={members ?? []}
                 onApplied={applyStatus} onClear={() => setSel(new Set())} />
             )}
+            {/* Sources rail — the REAL pages behind these results; always shown with results (even when
+                the AI overview is null), so citation numbers on the cards always have a rail to jump from. */}
+            <SourcesRail results={turn.results} turnId={turn.id} />
             {/* Result controls — sort, contact-only filter, CSV export. Purely a view over real rows. */}
             {turn.results.length > 3 && (
               <ResultsToolbar sortBy={sortBy} setSortBy={setSortBy} onlyContact={onlyContact} setOnlyContact={setOnlyContact}
