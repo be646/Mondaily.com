@@ -149,15 +149,13 @@ export function ExpensesPage() {
 
   const { data: expenses = [], isLoading, isError, refetch } = useQuery<Expense[]>({
     queryKey: ["expenses", categoryFilter, search],
-    queryFn: async () => {
-      try {
-        const p = new URLSearchParams();
-        if (categoryFilter) p.set("category", categoryFilter);
-        if (search) p.set("search", search);
-        return await apiClient.get<Expense[]>(`/expenses?${p}`);
-      } catch {
-        return [];
-      }
+    // No try/catch swallow — a real failure must surface as isError (the error state),
+    // not masquerade as an empty "No expenses yet".
+    queryFn: () => {
+      const p = new URLSearchParams();
+      if (categoryFilter) p.set("category", categoryFilter);
+      if (search) p.set("search", search);
+      return apiClient.get<Expense[]>(`/expenses?${p}`);
     },
   });
 

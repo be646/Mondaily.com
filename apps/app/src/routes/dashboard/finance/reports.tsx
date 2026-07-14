@@ -93,11 +93,9 @@ export function FinanceReportsPage() {
     queryFn: () => apiClient.get<CreditNote[]>("/credit-notes"),
   });
 
-  useQuery({
+  const { data: expenses = [] } = useQuery<{ amount_cents: number; currency: string; status: string }[]>({
     queryKey: ["expenses-all"],
-    queryFn: async () => {
-      try { return await apiClient.get("/expenses"); } catch { return []; }
-    },
+    queryFn: () => apiClient.get("/expenses"),
   });
 
   // Page-level finance report context for the right-side Ask AI drawer.
@@ -121,7 +119,10 @@ export function FinanceReportsPage() {
   const totalRevenue = sumInDisplay(invoices.filter(i => i.status === "paid").map(inv$)).value;
   const outstanding = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$)).value;
   const creditsIssued = sumInDisplay(creditNotes.filter(cn => cn.status === "executed").map(cn$)).value;
-  const netRevenue = totalRevenue - creditsIssued;
+  const exp$ = (e: { amount_cents: number; currency: string }) => ({ amount: e.amount_cents / 100, currency: e.currency });
+  const totalExpenses = sumInDisplay(expenses.filter(e => e.status === "approved").map(exp$)).value;
+  // True net = collected revenue, minus credits issued, minus approved expenses.
+  const netRevenue = totalRevenue - creditsIssued - totalExpenses;
 
   // How many amounts couldn't be converted (missing rate) — surfaced honestly to the user.
   const unconverted = sumInDisplay([...invoices.map(inv$), ...creditNotes.map(cn$)]).missing;
@@ -247,11 +248,19 @@ export function FinanceReportsPage() {
             </div>
             <div>
               <div className="flex items-center gap-1.5 mb-2">
+                <MinusCircle size={11} className="text-[#c6892e]"/>
+                <span className="text-[11px] text-[var(--text-muted)]">Expenses</span>
+              </div>
+              <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(totalExpenses, currency)}</div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">approved expenses</div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
                 <DollarSign size={11} className="text-[var(--text-faint)]"/>
-                <span className="text-[11px] text-[var(--text-muted)]">Net Revenue</span>
+                <span className="text-[11px] text-[var(--text-muted)]">Net</span>
               </div>
               <div className={`text-[20px] font-semibold tracking-tight ${netRevenue >= 0 ? "text-[var(--text-primary)]" : "text-[#c6892e]"}`}>{fmt(netRevenue, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">after credits</div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">after credits & expenses</div>
             </div>
           </div>
 
