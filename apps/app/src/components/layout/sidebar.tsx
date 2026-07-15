@@ -4,7 +4,7 @@ import {
   Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
   ChevronsUpDown, Plus, X, Receipt, TrendingUp,
   GitBranch, Activity, Layers, Check, ReceiptText, ShieldCheck,
-  FileSignature, Wallet, MessageCircle, Radar, Inbox, CalendarDays, LifeBuoy, LayoutGrid,
+  FileSignature, Wallet, MessageCircle, Radar, Inbox, CalendarDays, LifeBuoy, LayoutGrid, Sparkles,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -24,6 +24,7 @@ type NavEntry = { to: string; label: string; icon: React.ElementType; tint?: str
 
 const CORE_NAV: NavEntry[] = [
   { to: "/home", label: "Home", icon: Home },
+  { to: "/briefing", label: "Brief", icon: Sparkles },
   { to: "/ask/new", label: "Ask", icon: MessageCircle },
   { to: "/search", label: "Graph", icon: GitBranch },
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
