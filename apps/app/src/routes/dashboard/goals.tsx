@@ -30,7 +30,13 @@ export function GoalsPage() {
       const res = await apiClient.post<{ goal: string; agent_name: string; steps: Step[]; error?: string }>("/decisions/plan-goal", { goal: goal.trim() });
       if (res.error) { setError(res.error); return; }
       setPlan(res);
-    } catch { setError("Couldn't plan that goal — please try again."); }
+    } catch (e) {
+      // apiClient throws with the raw response body on non-2xx — surface the honest
+      // server message (e.g. "AI service unavailable") rather than a generic line.
+      let msg = "Couldn't plan that goal — please try again.";
+      try { const p = JSON.parse((e as Error).message); if (p?.error) msg = p.error; } catch { /* keep generic */ }
+      setError(msg);
+    }
     finally { setPlanning(false); }
   }
 

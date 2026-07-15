@@ -146,19 +146,6 @@ router.get("/agent-scorecard", async (c) => {
   return c.json({ days, agents });
 });
 
-// Registered AFTER /autonomy so the literal path wins over this :id param route.
-router.get("/:id", async (c) => {
-  const { data, error } = await supabase
-    .from("decision_queue")
-    .select("*")
-    .eq("workspace_id", c.get("workspaceId"))
-    .eq("id", c.req.param("id"))
-    .maybeSingle();
-  if (error) return c.json({ error: error.message }, 500);
-  if (!data) return c.json({ error: "Decision not found" }, 404);
-  return c.json(data);
-});
-
 // Goal-directed planning — an agent turns a goal into an ordered, concrete plan of steps (each with
 // a risk level). Pure planning: NO side effects here. The client reviews, then dispatches steps into
 // the decision queue (POST /), where the autonomy dial + human approval govern execution. Honest:
@@ -206,6 +193,20 @@ router.post("/plan-goal", zValidator("json", z.object({ goal: z.string().min(1).
   } catch {
     return c.json({ error: "The AI service is unavailable right now — please try again." }, 503);
   }
+});
+
+// Registered AFTER all literal routes (/autonomy, /agent-scorecard, /plan-goal) so those
+// static paths win over this :id param route in Hono's matcher.
+router.get("/:id", async (c) => {
+  const { data, error } = await supabase
+    .from("decision_queue")
+    .select("*")
+    .eq("workspace_id", c.get("workspaceId"))
+    .eq("id", c.req.param("id"))
+    .maybeSingle();
+  if (error) return c.json({ error: error.message }, 500);
+  if (!data) return c.json({ error: "Decision not found" }, 404);
+  return c.json(data);
 });
 
 router.post("/", zValidator("json", createSchema), async (c) => {
