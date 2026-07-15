@@ -94,9 +94,10 @@ function Delta({ pct, goodUp = true }: { pct: number | null; goodUp?: boolean })
   const positive = pct >= 0;
   const good = positive === goodUp;
   const color = pct === 0 ? "var(--text-faint)" : good ? "#2f9e6b" : "#d1524a";
+  const abs = Math.abs(pct);
   return (
     <span className="text-[10px] font-semibold tabular-nums" style={{ color }}>
-      {positive ? "▲" : "▼"} {Math.abs(pct)}%
+      {positive ? "▲" : "▼"} {abs > 999 ? ">999" : abs}%
     </span>
   );
 }
