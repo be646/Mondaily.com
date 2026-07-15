@@ -4,7 +4,7 @@ import {
   Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
   ChevronsUpDown, Plus, X, Receipt, TrendingUp,
   GitBranch, Activity, Layers, Check, ReceiptText, ShieldCheck,
-  FileSignature, Wallet, MessageCircle, Radar, Inbox, CalendarDays, LifeBuoy,
+  FileSignature, Wallet, MessageCircle, Radar, Inbox, CalendarDays, LifeBuoy, LayoutGrid,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -36,6 +36,7 @@ const CORE_NAV: NavEntry[] = [
 const WORK_NAV: NavEntry[] = [
   { to: "/automations", label: "Automations", icon: Activity },
   { to: "/reports", label: "Reports", icon: BarChart2 },
+  { to: "/insights", label: "Insights", icon: LayoutGrid },
 ];
 
 // ─── Workspace — daily-use surfaces + Team Oversight, kept in a flat group so no link is lost.
