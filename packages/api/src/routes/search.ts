@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
+import { isEmbeddingsEnabled, embedOne, embedBatch } from "../lib/embeddings";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -95,6 +96,30 @@ router.post("/semantic", requireAuth, zValidator("json", z.object({
   const workspaceId = c.get("workspaceId");
   const q = c.req.valid("json").query;
   const limit = c.req.valid("json").limit;
+
+  // True vector search — when the embedding appliance is configured. Embed the query, find the
+  // nearest record vectors (pgvector cosine), return them. Falls through to LLM-rerank on any
+  // failure (appliance down, index empty, RPC error) so search never hard-fails.
+  if (isEmbeddingsEnabled()) {
+    try {
+      const qv = await embedOne(q);
+      if (qv) {
+        const { data: matches } = await supabase.rpc("match_node_embeddings", { ws: workspaceId, query_embedding: qv as unknown as string, k: limit });
+        if (matches && matches.length) {
+          const ids = matches.map((m: { node_id: string }) => m.node_id);
+          const { data: nodes } = await supabase.from("nodes").select("id, object_type, data, updated_at").eq("workspace_id", workspaceId).in("id", ids);
+          const byId = new Map((nodes ?? []).map((n) => [n.id, n]));
+          const results = matches
+            .map((m: { node_id: string; similarity: number }) => { const n = byId.get(m.node_id); return n ? { id: n.id, object_type: n.object_type, data: n.data, updated_at: n.updated_at, reason: `${Math.round(m.similarity * 100)}% semantic match` } : null; })
+            .filter(Boolean);
+          if (results.length) return c.json({ results, mode: "vector" });
+        }
+      }
+    } catch (e) {
+      console.error("[search] vector path failed, falling back to rerank:", e instanceof Error ? e.message : String(e));
+    }
+  }
+
   // Broaden lexical recall: match each meaningful word AND its stem (so "skincare" also catches
   // "skin", "cosmetics" catches "cosmetic") across the fields that carry meaning.
   const words = q.replace(/[(),]/g, " ").split(/\s+/).map(w => w.toLowerCase()).filter(w => w.length > 2).slice(0, 8);
@@ -135,6 +160,31 @@ router.post("/semantic", requireAuth, zValidator("json", z.object({
     .filter(Boolean)
     .slice(0, limit);
   return c.json({ results, mode: "semantic" });
+});
+
+// ── Reindex — embed every node in the workspace into node_embeddings (for true vector search). A
+//    no-op returning {enabled:false} until SOVEREIGN_EMBED_URL is set. Safe to re-run; upserts. ──
+router.post("/reindex", requireAuth, async (c) => {
+  if (!isEmbeddingsEnabled()) return c.json({ enabled: false, message: "Set SOVEREIGN_EMBED_URL on the API to enable vector search." }, 200);
+  const workspaceId = c.get("workspaceId");
+  let from = 0, indexed = 0, failed = 0;
+  const PAGE = 200, BATCH = 32;
+  for (;;) {
+    const { data: nodes } = await supabase.from("nodes").select("id, object_type, data").eq("workspace_id", workspaceId).range(from, from + PAGE - 1);
+    if (!nodes || nodes.length === 0) break;
+    for (let i = 0; i < nodes.length; i += BATCH) {
+      const slice = nodes.slice(i, i + BATCH);
+      const texts = slice.map((n) => summarizeNode(n.object_type, n.data as Record<string, unknown>));
+      const vectors = await embedBatch(texts);
+      if (!vectors) { failed += slice.length; continue; }
+      const rows = slice.map((n, j) => ({ node_id: n.id, workspace_id: workspaceId, content: texts[j], embedding: vectors[j] as unknown as string, updated_at: new Date().toISOString() }));
+      const { error } = await supabase.from("node_embeddings").upsert(rows, { onConflict: "node_id" });
+      if (error) failed += slice.length; else indexed += slice.length;
+    }
+    if (nodes.length < PAGE) break;
+    from += PAGE;
+  }
+  return c.json({ enabled: true, indexed, failed });
 });
 
 export { router as searchRouter };
