@@ -17,15 +17,16 @@ import { resolveDisplayName } from "@mondaily/shared/identity";
 import { SidebarObjects } from "./sidebar-records";
 import { SidebarLists } from "./sidebar-lists";
 import { SidebarAsk } from "./sidebar-ask";
+import { LogoMark } from "../logo";
 
 // ─── Core nav — the 7 always-visible surfaces. Monochrome; each row uses the shared nav-row
 // token (no per-section tints). Everything else lives in the grouped sections below. ─────────
-type NavEntry = { to: string; label: string; icon: React.ElementType; tint?: string };
+type NavEntry = { to: string; label: string; icon: React.ElementType; tint?: string; ai?: boolean };
 
 const CORE_NAV: NavEntry[] = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/briefing", label: "Brief", icon: Sparkles },
-  { to: "/ask/new", label: "Ask", icon: MessageCircle },
+  { to: "/ask/new", label: "Ask", icon: MessageCircle, ai: true },
   { to: "/search", label: "Graph", icon: GitBranch },
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
   { to: "/decisions", label: "Decisions", icon: ShieldCheck },
@@ -293,11 +294,39 @@ function useNavLabel(label: string): string {
 
 // ─── Single nav item ──────────────────────────────────────────────────────────
 function NavItem({
-  to, label: rawLabel, icon: Icon, collapsed, badge,
-}: { to: string; label: string; icon: React.ElementType; collapsed: boolean; badge?: number; tint?: string }) {
+  to, label: rawLabel, icon: Icon, collapsed, badge, ai,
+}: { to: string; label: string; icon: React.ElementType; collapsed: boolean; badge?: number; tint?: string; ai?: boolean }) {
   const label = useNavLabel(rawLabel);
   const location = useLocation();
   const active = location.pathname.startsWith(to);
+
+  // "Ask" — the primary AI entry. Elevated above the plain nav rows: it carries
+  // the orbital mark (not a generic icon) and a permanent faint accent wash so it
+  // reads as *the* way to talk to Mondaily, not just another link.
+  if (ai) {
+    if (collapsed) {
+      return (
+        <Link
+          to={to} title={label}
+          className="mb-1 relative flex items-center justify-center rounded-md p-2 transition-colors"
+          style={{ background: active ? "var(--section-accent-soft)" : "color-mix(in srgb, var(--section-accent) 6%, transparent)", boxShadow: `inset 0 0 0 1px var(--section-accent-line)` }}
+        >
+          <LogoMark size={17} />
+        </Link>
+      );
+    }
+    return (
+      <Link
+        to={to}
+        className="group mb-1.5 relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[14px] font-medium transition-colors"
+        style={{ color: "var(--text-primary)", background: active ? "var(--section-accent-soft)" : "color-mix(in srgb, var(--section-accent) 6%, transparent)", boxShadow: `inset 0 0 0 1px var(--section-accent-line)` }}
+      >
+        <LogoMark size={17} />
+        {label}
+        <span className="ml-auto text-[10px] font-medium tracking-wide transition-colors" style={{ color: "var(--text-faint)" }}>Ask anything</span>
+      </Link>
+    );
+  }
   // Monochrome by design: ONE active indicator (accent bar + primary text/icon). Inactive rows are
   // calm neutral tokens; hover lifts to the shared surface. No per-section tints, no mixed stone/hex.
   const iconColor = active ? "var(--text-primary)" : "var(--text-muted)";

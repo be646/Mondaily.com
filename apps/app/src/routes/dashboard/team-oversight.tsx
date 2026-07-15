@@ -5,6 +5,7 @@ import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare,
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
 import { FieldSelect, CommandPageHeader, MetricGrid, DossierSection } from "../../components/ui/controls";
+import { SuggestionHints } from "../../components/ui/ai-button";
 import { PeriodSelector } from "../../components/ui/period-selector";
 import { usePeriod, type Period } from "../../lib/period";
 
@@ -304,13 +305,7 @@ function OversightAsk() {
         </button>
       </form>
       {!ask.data && !ask.isPending && (
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {suggestions.map((s) => (
-            <button key={s} onClick={() => { setQ(s); ask.mutate(s); }}
-              className="rounded-sm border px-2.5 py-0.5 text-[10.5px] transition-colors hover:text-[var(--text-primary)]"
-              style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{s}</button>
-          ))}
-        </div>
+        <SuggestionHints className="mt-2" items={suggestions} onPick={(s) => { setQ(s); ask.mutate(s); }} />
       )}
       {(ask.data || ask.isPending) && (
         <div className="mt-2 rounded-sm border px-3.5 py-3" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>

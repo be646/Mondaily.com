@@ -58,3 +58,45 @@ export function AIButton({
     </button>
   );
 }
+
+/**
+ * SuggestionHints — AI-suggested prompts rendered as quiet, tappable *text*
+ * (not framed buttons). A faint sparkle + hover underline signals "try this"
+ * without competing with real actions. Use for example/coach/starter prompts.
+ */
+export function SuggestionHints({
+  items,
+  onPick,
+  label,
+  className = "",
+}: {
+  items: string[];
+  onPick: (s: string) => void;
+  label?: string;
+  className?: string;
+}) {
+  if (!items.length) return null;
+  return (
+    <div className={`flex flex-wrap items-center gap-x-4 gap-y-1.5 ${className}`}>
+      {label && (
+        <span className="text-[10.5px] font-medium uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
+          {label}
+        </span>
+      )}
+      {items.map((s) => (
+        <button key={s} type="button" onClick={() => onPick(s)} className="suggestion-hint">
+          <SparkleGlyph />
+          <span>{s}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SparkleGlyph() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3l1.9 5.6L19.5 10.5 13.9 12.4 12 18l-1.9-5.6L4.5 10.5 10.1 8.6 12 3z" fill="currentColor" />
+    </svg>
+  );
+}

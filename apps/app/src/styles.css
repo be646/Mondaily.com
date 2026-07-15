@@ -485,6 +485,33 @@ html[data-theme="dark"] .minimal-sparkline {
   border-color: transparent;
   background: color-mix(in srgb, var(--surface-hover) 46%, transparent);
 }
+/* Suggested AI text — NOT a button. Reads as a quiet, tappable prompt: no
+   border, no fill, a faint sparkle, and a hairline underline that only appears
+   on hover. Used for example/coach/starter suggestions app-wide. */
+.suggestion-hint {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+.suggestion-hint > svg { align-self: center; opacity: 0.4; transition: opacity 0.15s ease; }
+.suggestion-hint > span {
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.15s ease;
+}
+.suggestion-hint:hover { color: var(--text-secondary); }
+.suggestion-hint:hover > svg { opacity: 0.85; }
+.suggestion-hint:hover > span { text-decoration-color: var(--border-strong); }
+
 /* AI-agents row — only a soft transparent layer on hover, nothing else. */
 .agent-hero-row {
   transition: background 0.15s ease;

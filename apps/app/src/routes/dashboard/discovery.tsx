@@ -9,6 +9,7 @@ import {
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
 import { MenuSelect, ActionMenu, CommandPageHeader, ProofOfWorkStrip } from "../../components/ui/controls";
 import { EmptyState, ErrorState, DelayedLoading, PageSkeletonCards } from "../../components/ui/page-state";
+import { SuggestionHints } from "../../components/ui/ai-button";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { useLanguage } from "../../hooks/useLanguage";
 import { requestAsk } from "../../lib/ask-bus";
@@ -528,11 +529,9 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
             <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
             <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{turn.coach.message}</p>
           </div>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {turn.coach.suggestions.map((s) => (
-              <button key={s} onClick={() => onRun(s)} className="rounded-sm border px-2.5 py-1 text-[12px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{s}</button>
-            ))}
-            <button onClick={() => onRun(turn.query, true)} className="rounded-sm px-2.5 py-1 text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>Search “{turn.query}” anyway →</button>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+            <SuggestionHints items={turn.coach.suggestions} onPick={(s) => onRun(s)} />
+            <button onClick={() => onRun(turn.query, true)} className="text-[11.5px] font-medium hover:text-[var(--text-secondary)]" style={{ color: "var(--text-muted)" }}>Search “{turn.query}” anyway →</button>
           </div>
         </div>
       )}

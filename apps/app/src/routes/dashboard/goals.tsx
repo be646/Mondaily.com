@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Target, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
-import { AIButton } from "../../components/ui/ai-button";
+import { AIButton, SuggestionHints } from "../../components/ui/ai-button";
 
 interface Step { order: number; title: string; detail: string; risk_level: string }
 const RISK_TONE: Record<string, string> = { high: "#d1524a", medium: "#c6892e", low: "#2f9e6b" };
@@ -75,11 +75,7 @@ export function GoalsPage() {
           rows={2} className="key-input w-full resize-none text-[13px]"
         />
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-1.5">
-            {EXAMPLES.map(ex => (
-              <button key={ex} onClick={() => setGoal(ex)} className="rounded-full border px-2.5 py-1 text-[11px] transition-colors hover:text-[var(--text-primary)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{ex}</button>
-            ))}
-          </div>
+          <SuggestionHints label="Try" items={EXAMPLES} onPick={setGoal} />
           <AIButton size="sm" loading={planning} disabled={!goal.trim()} onClick={generate}>Plan it</AIButton>
         </div>
         {error && <p className="mt-2 text-[11.5px]" style={{ color: "#d1524a" }}>{error}</p>}
