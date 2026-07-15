@@ -11,6 +11,7 @@ import { logDecisionTrainingExample, type TrainingAction } from "../lib/training
 import { sendWorkspaceEmail } from "../lib/mail";
 import { describeExecution } from "../lib/decision-actions";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
+import { CreditsExhaustedError } from "../lib/credits";
 import { createNotification } from "../lib/notify";
 
 type Variables = { userId: string; workspaceId: string; role: string };
@@ -190,8 +191,12 @@ router.post("/plan-goal", zValidator("json", z.object({ goal: z.string().min(1).
     }));
     if (!steps.length) return c.json({ error: "Couldn't produce a plan for that goal — try rephrasing." }, 200);
     return c.json({ goal, agent_name: agent_name ?? "planner", steps });
-  } catch {
-    return c.json({ error: "The AI service is unavailable right now — please try again." }, 503);
+  } catch (e) {
+    // Be honest about WHY it failed. Out-of-credits is not a transient error — say so, don't
+    // tell the user to "try again". Anything else is a real service hiccup; log it for triage.
+    if (e instanceof CreditsExhaustedError) return c.json({ error: e.message }, 402);
+    console.error("[plan-goal] planning failed:", e);
+    return c.json({ error: "The AI planner is temporarily unavailable — please try again in a moment." }, 503);
   }
 });
 
