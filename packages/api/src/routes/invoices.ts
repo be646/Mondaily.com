@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
+import { makeBaseConverter } from "../lib/currency-store";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 
@@ -50,6 +51,30 @@ async function nextInvoiceNumber(workspaceId: string): Promise<string> {
   const n = (count ?? 0) + 1;
   return `INV-${String(n).padStart(4, "0")}`;
 }
+
+// Per-client finance rollup for the records sheet (one query powers a whole column, no N+1).
+// Totals are converted to the workspace BASE currency server-side via the sovereign ECB rates.
+router.get("/rollup", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const [{ data }, { base, toBase }] = await Promise.all([
+    supabase.from("nodes").select("data").eq("workspace_id", workspaceId).eq("vertical", "finance").eq("object_type", "invoice"),
+    makeBaseConverter(workspaceId),
+  ]);
+  const OUTSTANDING = new Set(["sent", "viewed", "overdue"]);
+  const byClient: Record<string, { billed: number; collected: number; outstanding: number; count: number }> = {};
+  for (const row of data ?? []) {
+    const d = (row.data ?? {}) as Record<string, unknown>;
+    const name = String(d.client_name ?? "").trim();
+    if (!name) continue;
+    const amt = toBase(Number(d.total ?? 0), String(d.currency ?? base));
+    const st = String(d.status ?? "draft");
+    const b = (byClient[name] ??= { billed: 0, collected: 0, outstanding: 0, count: 0 });
+    b.billed += amt; b.count += 1;
+    if (st === "paid") b.collected += amt;
+    if (OUTSTANDING.has(st)) b.outstanding += amt;
+  }
+  return c.json({ base, clients: byClient });
+});
 
 router.get("/", async (c) => {
   const status = c.req.query("status");

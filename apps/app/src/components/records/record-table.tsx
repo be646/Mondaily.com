@@ -7,12 +7,13 @@ import {
   UserCircle2, Type, ToggleLeft, ChevronRight, Trash2, RotateCcw, List,
   Rows3, BookmarkCheck, LayoutGrid, Percent, Link2,
   Briefcase, DollarSign, Heart, BookOpen, ShoppingCart, Cpu, Shield,
-  Store, Factory, Home, Truck, Tv, Scale, Zap, Megaphone,
+  Store, Factory, Home, Truck, Tv, Scale, Zap, Megaphone, Receipt,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
+import { formatMoney } from "../../hooks/useCurrency";
 import { parseNLPCommand } from "../../lib/ai-enrichment";
 import { ErrorState, PageSkeleton } from "../ui/page-state";
 import { FieldSelect } from "../ui/controls";
@@ -796,6 +797,8 @@ const COLUMN_TYPE_PRESETS = [
   { type: "number",    label: "Number",     hint: "Numeric value, amount, count",              icon: Hash,         color: "text-[#717784]"    },
   { type: "date",      label: "Date",       hint: "Date or deadline",                          icon: Calendar,     color: "text-[#d1524a]"    },
   { type: "relation",  label: "Relation",   hint: "Link to a record in another object",        icon: Link2,        color: "text-[#717784]"    },
+  { type: "finance_billed",      label: "Finance · Billed",      hint: "Total invoiced to this client (computed, base currency)", icon: Receipt, color: "text-[#2f9e6b]" },
+  { type: "finance_outstanding", label: "Finance · Outstanding", hint: "Unpaid invoices for this client (computed, base currency)", icon: Receipt, color: "text-[#c6892e]" },
 ] as const;
 
 type ColPresetType = typeof COLUMN_TYPE_PRESETS[number]["type"];
@@ -814,6 +817,8 @@ const PRESET_DEFAULTS: Record<ColPresetType, string> = {
   number:    "",
   date:      "",
   relation:  "Linked Record",
+  finance_billed:      "Billed",
+  finance_outstanding: "Outstanding",
 };
 
 // Types where only one instance makes sense
@@ -1478,6 +1483,16 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   // Non-ID custom cols go into the regular column flow
   const regularCustomCols = customCols.filter(c => c.type !== "record_id");
 
+  // Finance rollup — one query powers the "Finance · Billed/Outstanding" computed columns for the
+  // whole sheet (no per-row fetch). Only runs when such a column is actually added.
+  const hasFinanceCol = customCols.some(c => c.type === "finance_billed" || c.type === "finance_outstanding");
+  const financeRollup = useQuery({
+    queryKey: ["invoices-rollup"],
+    queryFn: () => apiClient.get<{ base: string; clients: Record<string, { billed: number; collected: number; outstanding: number; count: number }> }>("/invoices/rollup"),
+    enabled: hasFinanceCol,
+    staleTime: 60_000,
+  });
+
   const allColumnsWithCustom = useMemo(() => [...allColumns, ...regularCustomCols.map(c => c.key)], [allColumns, regularCustomCols]);
   const columns = useMemo(() => allColumnsWithCustom.filter(c => !hiddenCols.has(c)), [allColumnsWithCustom, hiddenCols]);
 
@@ -1840,6 +1855,20 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     // Record ID column — show the short ID, locked
     if (customDef?.type === "record_id") {
       return <RecordIdCell id={record.id}/>;
+    }
+
+    // Finance columns — computed, read-only, from the one-shot rollup keyed by the record's name.
+    if (customDef?.type === "finance_billed" || customDef?.type === "finance_outstanding") {
+      const roll = financeRollup.data;
+      const name = String(record.data.name ?? "").trim();
+      const entry = roll?.clients?.[name];
+      const value = customDef.type === "finance_billed" ? entry?.billed : entry?.outstanding;
+      const tone = customDef.type === "finance_billed" ? "#2f9e6b" : "#c6892e";
+      return (
+        <div className="px-2 py-1.5 text-right text-[12px] tabular-nums" style={{ color: value ? tone : "var(--text-faint)" }}>
+          {roll ? (value ? formatMoney(value, roll.base) : "—") : (hasFinanceCol && financeRollup.isLoading ? "…" : "—")}
+        </div>
+      );
     }
 
     // Country column — searchable dropdown
