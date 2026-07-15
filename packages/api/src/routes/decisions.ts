@@ -134,7 +134,14 @@ router.get("/agent-scorecard", async (c) => {
     else if (d.status === "pending") b.pending++;
   }
   const agents = Object.values(byAgent)
-    .map(b => ({ ...b, resolved: b.approved + b.rejected, approval_rate: (b.approved + b.rejected) ? Math.round((b.approved / (b.approved + b.rejected)) * 100) : null }))
+    .map(b => {
+      const resolved = b.approved + b.rejected;
+      const approval_rate = resolved ? Math.round((b.approved / resolved) * 100) : null;
+      // Learned trust signal: an agent you've approved ≥90% of over a meaningful sample is a safe
+      // candidate to let self-approve. This is what turns the raw history into an actionable nudge.
+      const autonomy_ready = approval_rate != null && approval_rate >= 90 && resolved >= 20;
+      return { ...b, resolved, approval_rate, autonomy_ready };
+    })
     .sort((x, y) => y.raised - x.raised);
   return c.json({ days, agents });
 });

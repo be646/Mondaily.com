@@ -132,7 +132,7 @@ export function AgentActivityPage() {
   // Agent scorecard — the trust surface for autonomy: per-agent approval rate + auto-approvals.
   const scorecardQ = useQuery({
     queryKey: ["agent-scorecard"],
-    queryFn: () => apiClient.get<{ days: number; agents: { agent: string; raised: number; approved: number; rejected: number; auto_approved: number; pending: number; resolved: number; approval_rate: number | null }[] }>("/decisions/agent-scorecard?days=30"),
+    queryFn: () => apiClient.get<{ days: number; agents: { agent: string; raised: number; approved: number; rejected: number; auto_approved: number; pending: number; resolved: number; approval_rate: number | null; autonomy_ready: boolean }[] }>("/decisions/agent-scorecard?days=30"),
     retry: false, staleTime: 60_000,
   });
 
@@ -234,7 +234,12 @@ export function AgentActivityPage() {
                   const tone = rate == null ? "var(--text-faint)" : rate >= 80 ? "#2f9e6b" : rate >= 50 ? "#c6892e" : "#d1524a";
                   return (
                     <tr key={a.agent} className="border-b last:border-0" style={{ borderColor: "var(--border-soft)" }}>
-                      <td className="px-4 py-2.5 text-[12px] font-medium capitalize" style={{ color: "var(--text-primary)" }}>{a.agent.replace(/_/g, " ")}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[12px] font-medium capitalize" style={{ color: "var(--text-primary)" }}>{a.agent.replace(/_/g, " ")}</span>
+                          {a.autonomy_ready && <span className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide" style={{ background: "color-mix(in srgb, #2f9e6b 14%, transparent)", color: "#2f9e6b" }} title="High approval rate over a meaningful sample — a safe candidate to let self-approve">autonomy-ready</span>}
+                        </div>
+                      </td>
                       <td className="px-4 py-2.5 text-right text-[12px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{a.raised}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-2">
