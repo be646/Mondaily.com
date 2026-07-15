@@ -9,6 +9,7 @@ import {
 } from "recharts";
 import { TrendingUp, DollarSign, Clock, MinusCircle, FileText, ReceiptText, BarChart2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { LogoMark } from "@/components/logo";
 import { EmptyState } from "../../../components/ui/page-state";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
@@ -98,6 +99,11 @@ export function FinanceReportsPage() {
     queryFn: () => apiClient.get("/expenses"),
   });
 
+  const { data: quotes = [] } = useQuery<{ id: string; status: string; created_at: string }[]>({
+    queryKey: ["quotes-all"],
+    queryFn: () => apiClient.get("/quotes"),
+  });
+
   // Page-level finance report context for the right-side Ask AI drawer.
   useEffect(() => {
     useAskContextStore.getState().setContext({
@@ -163,6 +169,23 @@ export function FinanceReportsPage() {
     reasonMap[cn.credit_reason] = (reasonMap[cn.credit_reason] ?? 0) + sumInDisplay([cn$(cn)]).value;
   }
 
+  // Finance Agent digest — proactive signals computed from REAL data (no AI/credits needed):
+  // overdue invoices, quotes gone cold (sent > 14 days ago, still open), and the month-over-month
+  // cash direction from the collected series.
+  const overdueInvoices = invoices.filter(i => i.status === "overdue");
+  const overdueTotal = sumInDisplay(overdueInvoices.map(inv$)).value;
+  const COLD_DAYS = 14;
+  const coldQuotes = quotes.filter(q => q.status === "sent" && (Date.now() - Date.parse(q.created_at)) > COLD_DAYS * 86_400_000);
+  const collectedSeries = monthlyData.map(m => m.Collected);
+  const lastCollected = collectedSeries[collectedSeries.length - 1] ?? 0;
+  const prevCollected = collectedSeries[collectedSeries.length - 2] ?? 0;
+  const cashDelta = prevCollected > 0 ? Math.round(((lastCollected - prevCollected) / prevCollected) * 100) : null;
+  const digestSignals = [
+    overdueInvoices.length > 0 ? { tone: "#d1524a", text: `${overdueInvoices.length} invoice${overdueInvoices.length === 1 ? "" : "s"} overdue`, sub: fmt(overdueTotal, currency), to: "/finance/invoices" } : null,
+    coldQuotes.length > 0 ? { tone: "#c6892e", text: `${coldQuotes.length} quote${coldQuotes.length === 1 ? "" : "s"} gone cold`, sub: `sent > ${COLD_DAYS}d ago`, to: "/finance/quotes" } : null,
+    cashDelta != null ? { tone: cashDelta >= 0 ? "#2f9e6b" : "#c6892e", text: `Cash ${cashDelta >= 0 ? "up" : "down"} ${Math.abs(cashDelta)}% MoM`, sub: "collected vs prior month", to: undefined } : null,
+  ].filter(Boolean) as { tone: string; text: string; sub: string; to?: string }[];
+
   return (
     <div className="flex h-full flex-col bg-[var(--surface-card)] text-[var(--text-primary)]">
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border-soft)] px-6 py-4">
@@ -197,6 +220,23 @@ export function FinanceReportsPage() {
 
       <div className="flex-1 overflow-auto">
         <div className="mx-auto max-w-5xl px-6 py-6 space-y-6">
+
+          {/* Finance Agent digest — proactive, data-derived signals (no AI credits needed). */}
+          {digestSignals.length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-sm border px-4 py-2.5" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--section-accent)" }}>
+                <LogoMark size={12}/> Finance Agent
+              </div>
+              {digestSignals.map((s, i) => (
+                <button key={i} onClick={() => s.to && navigate(s.to)} disabled={!s.to}
+                  className={`flex items-center gap-1.5 text-[12px] ${s.to ? "hover:underline" : "cursor-default"}`}>
+                  <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: s.tone }}/>
+                  <span style={{ color: "var(--text-primary)" }}>{s.text}</span>
+                  <span style={{ color: "var(--text-faint)" }}>· {s.sub}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* If the invoice data failed to load, an all-zeros report would be misleading — say so. */}
           {invoicesError && (
