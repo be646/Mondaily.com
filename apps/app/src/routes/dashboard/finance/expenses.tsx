@@ -231,10 +231,10 @@ export function ExpensesPage() {
 
         {/* Toolbar — records-sheet filter pattern (same as Decisions/Tasks): a Filter button
             toggles a thin category strip below, replacing the old wall of category buttons. */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-xs">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"/>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search expenses…" className="key-input w-full pl-7 text-[12px]"/>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+            <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-faint)]"/>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search expenses…" className="key-input h-8 w-full pl-8 pr-3 text-[12px]"/>
           </div>
           <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={categoryFilter ? 1 : 0} />
         </div>
