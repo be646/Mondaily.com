@@ -107,16 +107,19 @@ interface MenuSelectProps {
   options: MenuSelectOption[];
   onChange: (v: string) => void;
   allLabel?: string;                 // label for the "" option (default "All")
+  includeAll?: boolean;              // prepend the "" allLabel row (default true). Set false for a
+                                     // fixed choice set (e.g. an autonomy mode) where every value is
+                                     // real — otherwise the allLabel duplicates a real option.
   className?: string;
   maxWidth?: number;
   disabled?: boolean;
   title?: string;
 }
-export function MenuSelect({ label, value, options, onChange, allLabel = "All", className, maxWidth = 180, disabled, title }: MenuSelectProps) {
+export function MenuSelect({ label, value, options, onChange, allLabel = "All", includeAll = true, className, maxWidth = 180, disabled, title }: MenuSelectProps) {
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(0);   // highlighted row index
   const rootRef = useRef<HTMLDivElement>(null);
-  const all: MenuSelectOption[] = [{ value: "", label: allLabel }, ...options];
+  const all: MenuSelectOption[] = includeAll ? [{ value: "", label: allLabel }, ...options] : [...options];
   const current = all.find(o => o.value === value) ?? all[0]!;
 
   // Close on outside click.

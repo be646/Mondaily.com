@@ -1,6 +1,6 @@
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { motion } from "framer-motion";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText, Paperclip, X, Search, Square, RotateCcw, Copy, Check, ThumbsUp, ThumbsDown } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
@@ -295,6 +295,10 @@ export function HomePage() {
   const tasksQuery = useQuery({
     queryKey: ["tasks", "home", taskScope],
     queryFn: () => apiClient.get<Task[]>(`/tasks?filter=${taskScope}&sort=priority`),
+    // Keep the prior scope's data on screen while the new scope loads. Without this, toggling
+    // task scope (mine ↔ all) changes the query key → data briefly undefined → every derived
+    // count (overdue / urgent / unread) drops to 0 → the attention pills flicker out and back in.
+    placeholderData: keepPreviousData,
   });
   const membersQuery = useQuery({ queryKey: ["members"], queryFn: () => apiClient.get<Member[]>("/members") });
   const meetings = useQuery({ queryKey: ["meetings", "home"], queryFn: () => apiClient.get<Meeting[]>("/meetings/today") });

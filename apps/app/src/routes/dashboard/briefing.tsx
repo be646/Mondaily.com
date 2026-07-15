@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, ShieldCheck, Clock, Receipt, CheckSquare, TrendingUp, GitBranch, Trophy, ArrowRight } from "lucide-react";
+import { Sparkles, ShieldCheck, Clock, Receipt, CheckSquare, TrendingUp, GitBranch, Trophy, ArrowRight, RefreshCw } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { PageSkeleton, ErrorState } from "../../components/ui/page-state";
@@ -18,7 +18,7 @@ const RISK_TONE: Record<string, string> = { high: "#d1524a", medium: "#c6892e", 
 
 export function BriefingPage() {
   const navigate = useNavigate();
-  const { data, isLoading, isError, refetch } = useQuery<Brief>({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery<Brief>({
     queryKey: ["briefing"], queryFn: () => apiClient.get<Brief>("/briefing"), staleTime: 60_000,
   });
 
@@ -51,7 +51,7 @@ export function BriefingPage() {
         title={`${greeting} — here's your brief`}
         subtitle={new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
         status={[{ label: "real data only", kind: "complete" }]}
-        primaryAction={<button onClick={() => refetch()} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>Refresh</button>}
+        primaryAction={<button onClick={() => refetch()} disabled={isFetching} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-60" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><RefreshCw size={11} className={isFetching ? "animate-spin" : ""} /> {isFetching ? "Refreshing…" : "Refresh"}</button>}
       />
 
       {/* What agents handled for you */}
