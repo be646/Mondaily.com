@@ -5,6 +5,11 @@ import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare,
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
 import { FieldSelect, CommandPageHeader, MetricGrid, DossierSection } from "../../components/ui/controls";
+import { PeriodSelector } from "../../components/ui/period-selector";
+import { usePeriod, type Period } from "../../lib/period";
+
+// Oversight's backend measures "days back from now", so map the shared period to a day-window.
+const PERIOD_TO_DAYS: Record<Period, number> = { today: 1, week: 7, month: 30, quarter: 90, year: 365, all: 365, custom: 30 };
 
 /**
  * Team Intelligence — an AI-powered team behaviour & value dashboard for owners/admins.
@@ -160,13 +165,13 @@ function MetricBars({ title, hint, operators, value, tone, onSelect }: {
 }
 
 /** Team-level distributions built entirely from the real oversight-matrix operators array. */
-function TeamCharts({ operators, onSelect }: { operators: Operator[]; onSelect: (id: string) => void }) {
+function TeamCharts({ operators, onSelect, windowLabel }: { operators: Operator[]; onSelect: (id: string) => void; windowLabel: string }) {
   return (
     <div className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
       <MetricBars title="Workload" hint="Open tasks assigned" operators={operators} tone="var(--section-accent)" onSelect={onSelect} value={(o) => (o.open_tasks ?? 0) + (o.overdue_tasks ?? 0)} />
       <MetricBars title="Overdue work" hint="Overdue tasks by member" operators={operators} tone="#d1524a" onSelect={onSelect} value={(o) => o.overdue_tasks ?? 0} />
-      <MetricBars title="Decisions resolved" hint="Approvals/rejections (30d)" operators={operators} tone="#2f9e6b" onSelect={onSelect} value={(o) => o.decisions_resolved ?? 0} />
-      <MetricBars title="AI usage" hint="Credits spent (30d)" operators={operators} tone="var(--section-accent)" onSelect={onSelect} value={(o) => o.tokens} />
+      <MetricBars title="Decisions resolved" hint={`Approvals/rejections (${windowLabel})`} operators={operators} tone="#2f9e6b" onSelect={onSelect} value={(o) => o.decisions_resolved ?? 0} />
+      <MetricBars title="AI usage" hint={`Credits spent (${windowLabel})`} operators={operators} tone="var(--section-accent)" onSelect={onSelect} value={(o) => o.tokens} />
     </div>
   );
 }
@@ -493,6 +498,9 @@ function GoalsPanel({ operators }: { operators: Operator[] }) {
         <p className="px-4 py-3 text-[11.5px]" style={{ color: "var(--text-faint)" }}>Team goals activate once the goals table is enabled on this deployment (a pending migration). Every target tracks a real metric — nothing is fabricated.</p>
       ) : (
         <>
+          <p className="border-b px-4 py-2 text-[11px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
+            Set a target for one member or the whole team on a real metric (e.g. 20 tasks completed in 30 days). Attainment updates live from actual recorded activity — never estimated.
+          </p>
           {open && (
             <div className="flex flex-wrap items-end gap-2 border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
               <label className="flex flex-col gap-1"><span className="text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Scope</span>
@@ -600,7 +608,9 @@ export function TeamOversightPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const selectedId = params.get("member");
-  const [days, setDays] = useState(30);   // period filter — every metric recomputes for this window
+  // Shared reporting-period lens (same control as Finance) — every metric + trend recomputes.
+  const [period, setPeriod] = usePeriod("mondaily_oversight_period");
+  const days = PERIOD_TO_DAYS[period];
 
   const { data, isLoading, isError, error } = useQuery<MatrixResp>({
     queryKey: ["oversight-matrix", days],
@@ -655,12 +665,7 @@ export function TeamOversightPage() {
         title="Team Intelligence"
         subtitle="Signal engine — real activity only, never invented."
         status={[{ label: "recorded activity only", kind: "complete" }]}
-        primaryAction={
-          <div className="w-40">
-            <FieldSelect value={String(days)} onChange={v => setDays(Number(v) || 30)} ariaLabel="Period"
-              options={[{ value: "7", label: "Last 7 days" }, { value: "30", label: "Last 30 days" }, { value: "90", label: "Last 90 days" }]} />
-          </div>
-        }
+        primaryAction={<PeriodSelector value={period} onChange={setPeriod} />}
       />
 
       {/* ── Slim AI ask bar, pinned right under the header ── */}
@@ -687,7 +692,7 @@ export function TeamOversightPage() {
       {operators.length > 0 && <GoalsPanel operators={operators} />}
 
       {/* ── Team distributions — only meaningful with 2+ members (hidden for a solo workspace) ── */}
-      {operators.length > 1 && <TeamCharts operators={operators} onSelect={select} />}
+      {operators.length > 1 && <TeamCharts operators={operators} onSelect={select} windowLabel={`${days}d`} />}
 
       {/* ── Full-width roster table ── */}
       <div className="mb-2 flex items-center justify-between">
