@@ -12,7 +12,7 @@ import { sendWorkspaceEmail } from "../lib/mail";
 import { describeExecution } from "../lib/decision-actions";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { CreditsExhaustedError } from "../lib/credits";
-import { readAutonomy, maybeAutoApprove, getLearnedPreferences } from "../lib/autonomy";
+import { readAutonomy, maybeAutoApprove, getLearnedPreferences, learnedGuidanceFor } from "../lib/autonomy";
 import { createNotification } from "../lib/notify";
 
 type Variables = { userId: string; workspaceId: string; role: string };
@@ -155,11 +155,14 @@ router.get("/learned-preferences", async (c) => {
 router.post("/plan-goal", zValidator("json", z.object({ goal: z.string().min(1).max(500), agent_name: z.string().max(60).optional() })), async (c) => {
   const { goal, agent_name } = c.req.valid("json");
   try {
+    // Learning loop (actuation): bias the plan toward action types this user actually approves.
+    const guidance = await learnedGuidanceFor(c.get("workspaceId"));
     const result = await aiGatewayToolUse({
       system:
         "You are a goal-planning agent for a business operating system. Turn the user's goal into a concise ORDERED plan of 3–6 concrete steps a workspace agent could take. " +
         "Each step: a short imperative title, a one-line detail, and a risk_level — 'high' for anything that sends money/external email or deletes data, 'medium' for outbound drafts or bulk changes, 'low' for internal/reversible actions (create a task, flag for review, update a field, draft a note). " +
-        "Ground every step in realistic business actions. NEVER invent specific names, amounts, or data — describe the action, not fabricated specifics.",
+        "Ground every step in realistic business actions. NEVER invent specific names, amounts, or data — describe the action, not fabricated specifics." +
+        (guidance ? `\n\n${guidance}` : ""),
       prompt: `Goal: "${goal}"${agent_name ? ` — assigned agent: ${agent_name}` : ""}. Produce the ordered step plan.`,
       toolName: "record_plan",
       toolDescription: "Record the ordered plan of steps for the goal.",

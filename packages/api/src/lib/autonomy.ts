@@ -46,6 +46,25 @@ export function verdictFor(approved: number, rejected: number): LearnedPreferenc
   return "neutral";
 }
 
+/**
+ * ACTUATION half of the learning loop: turn the learned preferences into a short natural-language
+ * instruction to inject into an AI agent's generation prompt, so it proposes MORE of what you
+ * approve and LESS of what you reject. Returns "" when there's no meaningful signal yet (never
+ * fabricates a preference). Optionally scoped to one agent.
+ */
+export async function learnedGuidanceFor(workspaceId: string, agentName?: string): Promise<string> {
+  const prefs = (await getLearnedPreferences(workspaceId))
+    .filter((p) => !agentName || p.agent_name === agentName)
+    .filter((p) => p.verdict === "favored" || p.verdict === "disfavored");
+  if (!prefs.length) return "";
+  const favored = prefs.filter((p) => p.verdict === "favored").map((p) => `${p.agent_name}/${p.source_type}`);
+  const disfavored = prefs.filter((p) => p.verdict === "disfavored").map((p) => `${p.agent_name}/${p.source_type}`);
+  const parts: string[] = [];
+  if (favored.length) parts.push(`The user consistently APPROVES these kinds of proposals — keep producing them: ${favored.join(", ")}.`);
+  if (disfavored.length) parts.push(`The user consistently REJECTS these — avoid proposing them unless clearly warranted: ${disfavored.join(", ")}.`);
+  return `Learned from this user's own approve/reject history: ${parts.join(" ")}`;
+}
+
 export async function getLearnedPreferences(workspaceId: string): Promise<LearnedPreference[]> {
   // Only HUMAN resolutions count as preference signal: exclude resolved_by 'autonomy' / 'learned'.
   const { data } = await supabase
