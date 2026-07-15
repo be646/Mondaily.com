@@ -1351,19 +1351,34 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
   const [newInvCurrency, setNewInvCurrency] = useState("GBP");
   const [newInvDueDate, setNewInvDueDate] = useState("");
 
+  // Surface finance for this record via BOTH the explicit link AND a client-name match, so items
+  // created from the finance pages (which don't set linked_record_id) still show up here. Merged +
+  // deduped by id. (Expenses are internal, not client-scoped, so they stay link-only below.)
+  const mergeById = <T extends { id: string }>(...lists: T[][]): T[] => {
+    const seen = new Set<string>();
+    return lists.flat().filter(x => { if (seen.has(x.id)) return false; seen.add(x.id); return true; });
+  };
+  const byLinkAndName = async <T extends { id: string }>(path: string): Promise<T[]> => {
+    const [linked, named] = await Promise.all([
+      apiClient.get<T[]>(`${path}?linked_record_id=${recordId}`),
+      recordName ? apiClient.get<T[]>(`${path}?search=${encodeURIComponent(recordName)}`) : Promise.resolve([] as T[]),
+    ]);
+    return mergeById(linked, named);
+  };
+
   const { data: invoices = [], isLoading: invLoading } = useQuery<InvoiceRecord[]>({
-    queryKey: ["record-invoices", recordId],
-    queryFn: () => apiClient.get<InvoiceRecord[]>(`/invoices?linked_record_id=${recordId}`),
+    queryKey: ["record-invoices", recordId, recordName],
+    queryFn: () => byLinkAndName<InvoiceRecord>("/invoices"),
   });
 
   const { data: creditNotes = [], isLoading: cnLoading } = useQuery<CreditNoteRecord[]>({
-    queryKey: ["record-credit-notes", recordId],
-    queryFn: () => apiClient.get<CreditNoteRecord[]>(`/credit-notes?linked_record_id=${recordId}`),
+    queryKey: ["record-credit-notes", recordId, recordName],
+    queryFn: () => byLinkAndName<CreditNoteRecord>("/credit-notes"),
   });
 
   const { data: quotes = [] } = useQuery<QuoteRecord[]>({
-    queryKey: ["record-quotes", recordId],
-    queryFn: () => apiClient.get<QuoteRecord[]>(`/quotes?linked_record_id=${recordId}`),
+    queryKey: ["record-quotes", recordId, recordName],
+    queryFn: () => byLinkAndName<QuoteRecord>("/quotes"),
   });
 
   const { data: expenses = [] } = useQuery<ExpenseRecord[]>({
