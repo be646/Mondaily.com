@@ -129,6 +129,13 @@ export function AgentActivityPage() {
   const qc = useQueryClient();
   const live = useAgentJobsRealtime(() => qc.invalidateQueries({ queryKey: ["agent-activity"] }));
 
+  // Agent scorecard — the trust surface for autonomy: per-agent approval rate + auto-approvals.
+  const scorecardQ = useQuery({
+    queryKey: ["agent-scorecard"],
+    queryFn: () => apiClient.get<{ days: number; agents: { agent: string; raised: number; approved: number; rejected: number; auto_approved: number; pending: number; resolved: number; approval_rate: number | null }[] }>("/decisions/agent-scorecard?days=30"),
+    retry: false, staleTime: 60_000,
+  });
+
   // Roster — the SAME shared registry the Home constellation uses (GET /agents).
   const { constellation, isLoading: rosterLoading } = useAgentData();
   // Pending approvals — the decision-queue bridge count.
@@ -203,6 +210,50 @@ export function AgentActivityPage() {
         value: s.value,
         tone: s.alert ? "#d1524a" : s.accent ? "var(--section-accent)" : undefined,
       }))} />
+
+      {/* ── Trust & autonomy scorecard — per-agent approval rate + auto-approvals (last 30d). The
+             trust surface that makes turning the autonomy dial up a confident, evidenced choice. ── */}
+      {(scorecardQ.data?.agents.length ?? 0) > 0 && (
+        <section className="mb-8">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Trust &amp; autonomy</h2>
+            <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>approval rate &amp; auto-approvals · last 30d</span>
+          </div>
+          <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+            <table className="w-full">
+              <thead>
+                <tr className="border-b" style={{ borderColor: "var(--border-soft)" }}>
+                  {["Agent", "Raised", "Approval rate", "Auto-approved", "Pending"].map((h, i) => (
+                    <th key={h} className={`px-4 py-2 text-[10px] font-medium uppercase tracking-wider ${i === 0 ? "text-left" : "text-right"}`} style={{ color: "var(--text-secondary)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {scorecardQ.data!.agents.map(a => {
+                  const rate = a.approval_rate;
+                  const tone = rate == null ? "var(--text-faint)" : rate >= 80 ? "#2f9e6b" : rate >= 50 ? "#c6892e" : "#d1524a";
+                  return (
+                    <tr key={a.agent} className="border-b last:border-0" style={{ borderColor: "var(--border-soft)" }}>
+                      <td className="px-4 py-2.5 text-[12px] font-medium capitalize" style={{ color: "var(--text-primary)" }}>{a.agent.replace(/_/g, " ")}</td>
+                      <td className="px-4 py-2.5 text-right text-[12px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{a.raised}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center justify-end gap-2">
+                          <div className="h-1.5 w-16 overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
+                            <div className="h-full rounded-full" style={{ width: `${rate ?? 0}%`, background: tone }} />
+                          </div>
+                          <span className="w-9 text-right text-[12px] tabular-nums font-semibold" style={{ color: tone }}>{rate == null ? "—" : `${rate}%`}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-[12px] tabular-nums" style={{ color: a.auto_approved ? "var(--section-accent)" : "var(--text-faint)" }}>{a.auto_approved || "—"}</td>
+                      <td className="px-4 py-2.5 text-right text-[12px] tabular-nums" style={{ color: a.pending ? "#c6892e" : "var(--text-faint)" }}>{a.pending || "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {/* ── 2. Agent roster (GET /agents) ── */}
       <section className="mb-8">

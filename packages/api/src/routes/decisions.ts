@@ -113,6 +113,32 @@ router.patch("/autonomy", zValidator("json", z.object({ level: z.enum(["manual",
   return c.json({ level });
 });
 
+// Agent scorecard — the trust surface for autonomy. Per agent over a window: how many decisions
+// it raised, the human approval rate (trust), how many it auto-approved via autonomy, and pending.
+// All from the real decision_queue; nothing invented. Registered before /:id.
+router.get("/agent-scorecard", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const days = Math.min(365, Math.max(1, Math.round(Number(c.req.query("days") ?? 30))));
+  const sinceIso = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { data } = await supabase.from("decision_queue")
+    .select("agent_name, status, resolved_by, risk_level, created_at")
+    .eq("workspace_id", workspaceId).gte("created_at", sinceIso).limit(8000);
+  type Row = { agent: string; raised: number; approved: number; rejected: number; auto_approved: number; pending: number };
+  const byAgent: Record<string, Row> = {};
+  for (const d of data ?? []) {
+    const a = String(d.agent_name || "unknown");
+    const b = (byAgent[a] ??= { agent: a, raised: 0, approved: 0, rejected: 0, auto_approved: 0, pending: 0 });
+    b.raised++;
+    if (d.status === "approved" || d.status === "completed") { b.approved++; if (d.resolved_by === "autonomy") b.auto_approved++; }
+    else if (d.status === "rejected") b.rejected++;
+    else if (d.status === "pending") b.pending++;
+  }
+  const agents = Object.values(byAgent)
+    .map(b => ({ ...b, resolved: b.approved + b.rejected, approval_rate: (b.approved + b.rejected) ? Math.round((b.approved / (b.approved + b.rejected)) * 100) : null }))
+    .sort((x, y) => y.raised - x.raised);
+  return c.json({ days, agents });
+});
+
 // Registered AFTER /autonomy so the literal path wins over this :id param route.
 router.get("/:id", async (c) => {
   const { data, error } = await supabase
