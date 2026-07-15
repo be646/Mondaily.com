@@ -10,6 +10,7 @@ import { useAskContextStore } from "../../lib/ask-context-store";
 import { AIAgentOwnerChip } from "../ai/ai-intelligence";
 import { AIInspector } from "../ai/ai-inspector";
 import { GraphContextButton } from "../graph/graph-context-drawer";
+import { AIButton } from "../ui/ai-button";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
 interface Task {
@@ -412,10 +413,9 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-stone-600 dark:text-stone-400">
                     <LogoMark size={10}/> AI summary
                   </span>
-                  <button onClick={runAiSummary} disabled={aiSummaryLoading} className="btn-ai px-2 py-0.5 text-[11px]">
-                    {aiSummaryLoading ? <Loader2 size={11} className="animate-spin"/> : <LogoMark size={11}/>}
+                  <AIButton size="sm" variant="subtle" onClick={runAiSummary} loading={aiSummaryLoading}>
                     {aiSummary ? "Refresh" : "Summarize"}
-                  </button>
+                  </AIButton>
                 </div>
                 <div className="mt-1.5"><AIAgentOwnerChip objectType="task"/></div>
                 {aiSummary && (

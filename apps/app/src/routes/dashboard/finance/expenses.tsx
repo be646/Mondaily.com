@@ -138,7 +138,7 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Category</label>
                 <AIButton variant="subtle" size="sm" loading={suggesting} disabled={!form.description.trim()}
-                  className="!px-1.5 !py-0.5 !text-[10px]" title="Suggest a category from the description" onClick={suggestCategory}>
+                  title="Suggest a category from the description" onClick={suggestCategory}>
                   Suggest
                 </AIButton>
               </div>

@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
-import { AIMark } from "@/components/ui/ai-button";
+import { AIButton } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { LeadScoreBadge } from "@/components/records/lead-score-badge";
 import {
   Download, Globe, Loader2,
-  Plus, Search, Trash2, UserCheck, Users, X, Mail, Wand2,
+  Plus, Search, Trash2, UserCheck, Users, X, Mail,
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -475,15 +475,16 @@ export function ListPage() {
             <div className="flex flex-wrap items-center justify-end gap-2">
         {records.length > 0 && (
           <>
-            <button
+            <AIButton
+              size="sm"
+              variant="subtle"
               onClick={enrichAll}
               disabled={enrichingAll || !isEnrichable}
+              loading={enrichingAll}
               title={isEnrichable ? "Enrich every record with web/AI lookup" : "This list type can't be enriched"}
-              className="btn-ai !px-3 !py-1.5 !text-xs disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {enrichingAll ? <Loader2 size={13} className="animate-spin"/> : enrichAllDone ? <LogoMark size={13}/> : <Wand2 size={13}/>}
               {enrichAllDone ? "Enriching…" : "Enrich All"}
-            </button>
+            </AIButton>
             <button
               onClick={() => { setEnrollOpen(true); setEnrollStep("pick"); setEnrollSeqId(""); setEnrollSeqName(""); }}
               className="btn-secondary !px-3 !py-1.5 !text-xs"
@@ -498,12 +499,7 @@ export function ListPage() {
         >
           <Plus size={13}/> Add record
         </button>
-        <button
-          onClick={openAi}
-          className="btn-ai !px-3 !py-1.5 !text-xs"
-        >
-          <AIMark size={13}/> Add
-        </button>
+        <AIButton size="sm" variant="subtle" onClick={openAi}>Add</AIButton>
         <button
           onClick={() => setProspectOpen(true)}
           className="btn-secondary !px-3 !py-1.5 !text-xs"
@@ -565,12 +561,7 @@ export function ListPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={openAi}
-                className="btn-ai !px-4 !py-2 !text-xs"
-              >
-                <AIMark size={13}/> Add
-              </button>
+              <AIButton onClick={openAi}>Add</AIButton>
               <button
                 onClick={() => setAddOpen(true)}
                 className="btn-secondary !px-4 !py-2 !text-xs"
@@ -756,15 +747,16 @@ export function ListPage() {
             style={{ color: "var(--text-primary)" }}
           />
           {aiMatched === null ? (
-            <button
+            <AIButton
               onClick={runAiMatch}
               disabled={aiLoading || !aiPrompt.trim() || candidates.isLoading}
-              className="btn-ai mt-3 flex w-full !py-2.5 !text-xs"
+              loading={aiLoading || candidates.isLoading}
+              className="mt-3 w-full"
             >
               {aiLoading || candidates.isLoading
-                ? <><Loader2 size={13} className="animate-spin" /> {candidates.isLoading ? "Loading records…" : "Finding matches…"}</>
-                : <><LogoMark size={13} /> Find matching records</>}
-            </button>
+                ? (candidates.isLoading ? "Loading records…" : "Finding matches…")
+                : "Find matching records"}
+            </AIButton>
           ) : (
             <>
               {aiReason && (

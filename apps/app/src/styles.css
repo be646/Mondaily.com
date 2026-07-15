@@ -485,32 +485,84 @@ html[data-theme="dark"] .minimal-sparkline {
   border-color: transparent;
   background: color-mix(in srgb, var(--surface-hover) 46%, transparent);
 }
-/* Suggested AI text — NOT a button. Reads as a quiet, tappable prompt: no
-   border, no fill, a faint sparkle, and a hairline underline that only appears
-   on hover. Used for example/coach/starter suggestions app-wide. */
-.suggestion-hint {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.3rem;
-  color: var(--text-faint);
-  font-size: 0.75rem;
-  line-height: 1.4;
-  text-align: left;
-  background: transparent;
+/* AI composer — the Claude-style text box: a soft rounded surface with a light
+   shadow, a borderless textarea inside, and the AI action sitting bottom-right.
+   Lifts on focus-within. Reusable for any "type a prompt for the AI" surface. */
+.ai-composer {
+  border-radius: 1rem;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-card);
+  padding: 0.75rem 0.85rem 0.6rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.ai-composer:focus-within {
+  border-color: var(--border-strong);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+}
+.ai-composer-input {
+  width: 100%;
+  resize: none;
   border: none;
-  padding: 0;
-  transition: color 0.15s ease;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  line-height: 1.5;
 }
-.suggestion-hint > svg { align-self: center; opacity: 0.4; transition: opacity 0.15s ease; }
-.suggestion-hint > span {
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  text-underline-offset: 3px;
-  transition: text-decoration-color 0.15s ease;
+.ai-composer-input::placeholder { color: var(--text-faint); }
+
+/* Mode pill — a Claude model-picker-style toggle chip: soft rounded, quiet when
+   off, accent-filled when on. */
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 9999px;
+  padding: 0.28rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border-soft);
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 }
-.suggestion-hint:hover { color: var(--text-secondary); }
-.suggestion-hint:hover > svg { opacity: 0.85; }
-.suggestion-hint:hover > span { text-decoration-color: var(--border-strong); }
+.mode-pill:hover { color: var(--text-secondary); border-color: var(--border-strong); }
+.mode-pill[data-on="true"] {
+  color: var(--section-accent);
+  border-color: color-mix(in srgb, var(--section-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--section-accent) 10%, transparent);
+}
+
+/* Suggested-prompt rows — the Claude-composer look. A clean, ordered vertical
+   stack of soft cards with a light shadow (not framed pill-buttons). Used for
+   example/coach/starter suggestions app-wide. */
+.suggestion-stack { display: grid; gap: 0.375rem; }
+.suggestion-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--text-secondary);
+  background: var(--surface-card);
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.suggestion-row > svg:first-child { flex-shrink: 0; opacity: 0.5; transition: opacity 0.15s ease; color: var(--section-accent); }
+.suggestion-row > .suggestion-arrow { flex-shrink: 0; margin-left: auto; opacity: 0; transition: opacity 0.15s ease; color: var(--text-faint); }
+.suggestion-row:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+.suggestion-row:hover > svg:first-child { opacity: 0.9; }
+.suggestion-row:hover > .suggestion-arrow { opacity: 0.7; }
 
 /* AI-agents row — only a soft transparent layer on hover, nothing else. */
 .agent-hero-row {
@@ -704,11 +756,13 @@ html[data-theme="dark"] .minimal-sparkline {
 .ask-input {
   background: var(--surface-card);
   border: 1px solid var(--border-soft);
-  box-shadow: none;
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .ask-input:focus-within {
-  border-color: var(--accent); /* emerald micro-outline on active */
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  border-color: var(--border-strong);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10);
 }
 .ask-suggestion-row {
   display: flex;
@@ -1208,12 +1262,15 @@ html[data-theme="dark"] .minimal-sparkline {
     box-shadow: none;
   }
 
-  /* Suggested action — lighter touch than .btn-ai, for inline "you could do X" chips */
+  /* Suggested action — the SAME button as .btn-ai (identical geometry: radius,
+     padding, font, gap, AIMark) so the AI-button family reads as one thing
+     app-wide. Only the fill differs: this is the outline weight for secondary /
+     inline AI actions; .btn-ai is the filled weight for primary ones. */
   .btn-suggested {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors;
-    color: var(--text-secondary);
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
+    color: var(--text-primary);
     background: transparent;
-    border: 1px solid var(--border-soft);
+    border: 1px solid var(--border-strong);
   }
   .btn-suggested:hover {
     color: var(--text-primary);

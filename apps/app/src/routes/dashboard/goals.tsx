@@ -66,20 +66,21 @@ export function GoalsPage() {
         status={[{ label: "you stay in control", kind: "complete" }]}
       />
 
-      {/* Composer */}
-      <div className="rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      {/* Composer — a clean, focused text box (Claude-style), with the suggestions
+          stacked in order below it. */}
+      <div className="ai-composer">
         <textarea
           value={goal} onChange={e => setGoal(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); void generate(); } }}
           placeholder="What should the agent achieve? e.g. Recover overdue AR this month"
-          rows={2} className="key-input w-full resize-none text-[13px]"
+          rows={2} className="ai-composer-input text-[13.5px]"
         />
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <SuggestionHints label="Try" items={EXAMPLES} onPick={setGoal} />
+        <div className="mt-1 flex items-center justify-end">
           <AIButton size="sm" loading={planning} disabled={!goal.trim()} onClick={generate}>Plan it</AIButton>
         </div>
-        {error && <p className="mt-2 text-[11.5px]" style={{ color: "#d1524a" }}>{error}</p>}
       </div>
+      {error && <p className="mt-2 text-[11.5px]" style={{ color: "#d1524a" }}>{error}</p>}
+      {!plan && <SuggestionHints className="mt-4" label="Try" items={EXAMPLES} onPick={setGoal} />}
 
       {/* Plan */}
       {plan && (

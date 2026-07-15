@@ -383,8 +383,8 @@ export function DiscoveryPage() {
         const composer = (
           // AI command surface — a leading command glyph + the query line, with a quiet divider to a
           // "Mode" options row (Deep / Exhaustive). Reads as a prospecting command bar, not a textarea.
-          <div className="rounded-sm border transition-colors focus-within:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            <div className="flex items-start gap-2 px-3 pt-2.5">
+          <div className="ai-composer !p-0 overflow-hidden">
+            <div className="flex items-start gap-2 px-3.5 pt-3">
               <Radar size={15} className="mt-[3px] shrink-0" style={{ color: "var(--section-accent)" }} />
               <textarea
                 value={input}
@@ -393,26 +393,23 @@ export function DiscoveryPage() {
                 rows={1}
                 autoFocus={turns.length === 0}
                 placeholder={suggestions?.discovery_placeholder ?? "Find leads or reviews…"}
-                className="max-h-32 w-full resize-none bg-transparent text-[14px] outline-none"
-                style={{ color: "var(--text-primary)" }}
+                className="ai-composer-input max-h-32 text-[14px]"
               />
             </div>
-            <div className="mt-2 flex items-center justify-between border-t px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="mt-2 flex items-center justify-between px-2.5 py-2">
               <div className="flex items-center gap-1.5">
-                <span className="mr-0.5 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Mode</span>
+                {/* Mode pills — read like Claude's model picker: soft rounded chips that fill in when active. */}
                 <button onClick={() => setDeep((d) => !d)} title="Deep mode visits each business's own site to harvest emails & phones"
-                  className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
-                  style={deep ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                  className="mode-pill" data-on={deep}>
                   <Sparkles size={12} /> Deep
                 </button>
                 <button onClick={() => setExhaustive((e) => !e)} title="Exhaustive sweep loops the city's districts for full coverage (uses more Google Places credits)"
-                  className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors"
-                  style={exhaustive ? { borderColor: "var(--section-accent)", color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 8%, transparent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+                  className="mode-pill" data-on={exhaustive}>
                   <Globe2 size={12} /> Exhaustive
                 </button>
               </div>
               <button onClick={() => onSubmit(input)} disabled={!input.trim() || busy}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-white transition-opacity disabled:opacity-40" style={{ background: "var(--section-accent)" }}>
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white transition-opacity disabled:opacity-40" style={{ background: "var(--section-accent)" }}>
                 {busy ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={16} />}
               </button>
             </div>
@@ -462,17 +459,8 @@ function Empty({ onPick }: { onPick: (q: string) => void }) {
   return (
     // Compact suggestion chips directly under the composer — a workbench, not a hero. Industry-aware
     // when the workspace profile has signal; small, left-aligned, no icon tile / heading / sub-line.
-    <div className="mt-2.5">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[10.5px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Try</span>
-        {examples.map((ex) => (
-          <button key={ex.q} onClick={() => onPick(ex.q)}
-            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[12px] transition-colors hover:bg-[var(--surface-hover)]"
-            style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-            <ex.icon size={12} style={{ color: "var(--text-faint)" }} /> {ex.label}
-          </button>
-        ))}
-      </div>
+    <div className="mt-4">
+      <SuggestionHints label="Try" items={examples.map((ex) => ex.label)} onPick={(label) => onPick(examples.find((ex) => ex.label === label)?.q ?? label)} />
       {/* One quiet honesty line instead of pre-run cards — proof of work belongs AFTER a real run
           (the per-turn ProofOfWorkStrip), not as marketing before it. */}
       <p className="mt-4 text-[11px]" style={{ color: "var(--text-faint)" }}>

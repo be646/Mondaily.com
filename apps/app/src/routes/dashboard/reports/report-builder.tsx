@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Save, Sparkles, Loader2, GripVertical, Plus, Trash2 } from "lucide-react";
+import { AIButton } from "../../../components/ui/ai-button";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { PageSkeleton } from "../../../components/ui/page-state";
@@ -30,11 +31,9 @@ function InsightPanel({ reportId, type, config }: { reportId: string; type: Repo
         <span className="flex items-center gap-1.5 text-[12px] font-semibold" style={{ color: "var(--section-accent)" }}>
           <Sparkles size={13} /> AI insight
         </span>
-        <button onClick={() => insight.mutate()} disabled={insight.isPending}
-          className="rounded-md border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-60"
-          style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-          {insight.isPending ? <Loader2 size={11} className="inline animate-spin" /> : insight.data ? "Regenerate" : "Analyze"}
-        </button>
+        <AIButton size="sm" variant="subtle" onClick={() => insight.mutate()} loading={insight.isPending}>
+          {insight.data ? "Regenerate" : "Analyze"}
+        </AIButton>
       </div>
       {insight.data && <p className="mt-2 text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{insight.data.insight}</p>}
       {!insight.data && !insight.isPending && <p className="mt-2 text-[11.5px]" style={{ color: "var(--text-faint)" }}>Generate a grounded read of this report's real numbers — trend, peak, and direction.</p>}

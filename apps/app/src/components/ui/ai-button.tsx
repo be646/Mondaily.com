@@ -60,9 +60,9 @@ export function AIButton({
 }
 
 /**
- * SuggestionHints — AI-suggested prompts rendered as quiet, tappable *text*
- * (not framed buttons). A faint sparkle + hover underline signals "try this"
- * without competing with real actions. Use for example/coach/starter prompts.
+ * SuggestionHints — AI-suggested prompts as a clean, ordered vertical stack of
+ * soft cards with a light shadow (the Claude-composer look), NOT framed pill
+ * buttons. Use for example / coach / starter prompts app-wide.
  */
 export function SuggestionHints({
   items,
@@ -77,18 +77,23 @@ export function SuggestionHints({
 }) {
   if (!items.length) return null;
   return (
-    <div className={`flex flex-wrap items-center gap-x-4 gap-y-1.5 ${className}`}>
+    <div className={className}>
       {label && (
-        <span className="text-[10.5px] font-medium uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
+        <p className="mb-1.5 px-0.5 text-[10.5px] font-medium uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
           {label}
-        </span>
+        </p>
       )}
-      {items.map((s) => (
-        <button key={s} type="button" onClick={() => onPick(s)} className="suggestion-hint">
-          <SparkleGlyph />
-          <span>{s}</span>
-        </button>
-      ))}
+      <div className="suggestion-stack">
+        {items.map((s) => (
+          <button key={s} type="button" onClick={() => onPick(s)} className="suggestion-row group">
+            <SparkleGlyph />
+            <span className="flex-1">{s}</span>
+            <svg className="suggestion-arrow" width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 17L17 7M17 7H8M17 7V16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
