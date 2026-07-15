@@ -1,0 +1,18 @@
+# Bearer-token edge for the embedding appliance — identical pattern to the search appliance.
+# Every request to :8081 must carry `Authorization: Bearer <APPLIANCE_TOKEN>` (the exact header the
+# Mondaily API sends when SOVEREIGN_EMBED_TOKEN is set). Anything else gets 401.
+#
+# Plain HTTP on an IP: the token protects access but traffic isn't encrypted. Once you point a
+# domain at the box, replace `:8081` with `embed.yourdomain:443 { ... }` and Caddy auto-provisions
+# TLS — then use the https:// URL in Vercel.
+
+{
+	admin off
+	auto_https off
+}
+
+:8081 {
+	@unauthorized not header Authorization "Bearer {$APPLIANCE_TOKEN}"
+	respond @unauthorized "unauthorized" 401
+	reverse_proxy embeddings:80
+}

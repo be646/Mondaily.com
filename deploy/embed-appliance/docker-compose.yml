@@ -1,0 +1,32 @@
+# Mondaily embedding appliance — a self-hosted text-embeddings-inference (TEI) server behind a
+# bearer-token Caddy edge, mirroring the search appliance. Runs the embedding model on YOUR box,
+# so record text never leaves to a third party. Powers true vector search (SOVEREIGN_EMBED_URL).
+#
+# Usage on the box:
+#   APPLIANCE_TOKEN=your-long-random-token docker compose up -d
+# Then set on the Mondaily API (Vercel):
+#   SOVEREIGN_EMBED_URL=http://<box-ip>:8081   (or https://embed.<domain> once a domain is attached)
+#   SOVEREIGN_EMBED_TOKEN=your-long-random-token
+
+services:
+  embeddings:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-latest
+    container_name: mondaily-embeddings
+    # bge-small-en-v1.5 → 384 dims (must match the node_embeddings migration). Small, CPU-friendly.
+    command: --model-id BAAI/bge-small-en-v1.5 --port 80
+    volumes:
+      - ./data:/data          # model cache — persists across restarts
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    container_name: mondaily-embed-caddy
+    ports:
+      - "8081:8081"           # the port the Mondaily API will call
+    environment:
+      - APPLIANCE_TOKEN=${APPLIANCE_TOKEN:?set APPLIANCE_TOKEN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - embeddings
+    restart: unless-stopped
