@@ -95,14 +95,17 @@ router.post("/semantic", requireAuth, zValidator("json", z.object({
   const workspaceId = c.get("workspaceId");
   const q = c.req.valid("json").query;
   const limit = c.req.valid("json").limit;
-  const words = q.replace(/[(),]/g, " ").split(/\s+/).filter(w => w.length > 2).slice(0, 6);
-  const orFilter = words.length
-    ? words.flatMap(w => [`data->>name.ilike.%${w}%`, `data->>description.ilike.%${w}%`, `data->>company.ilike.%${w}%`, `data->>notes.ilike.%${w}%`]).join(",")
+  // Broaden lexical recall: match each meaningful word AND its stem (so "skincare" also catches
+  // "skin", "cosmetics" catches "cosmetic") across the fields that carry meaning.
+  const words = q.replace(/[(),]/g, " ").split(/\s+/).map(w => w.toLowerCase()).filter(w => w.length > 2).slice(0, 8);
+  const stems = [...new Set(words.flatMap(w => [w, w.replace(/(s|es|ed|ing|care)$/, "")]).filter(w => w.length > 2))];
+  const orFilter = stems.length
+    ? stems.flatMap(w => [`data->>name.ilike.%${w}%`, `data->>description.ilike.%${w}%`, `data->>company.ilike.%${w}%`, `data->>notes.ilike.%${w}%`]).join(",")
     : `data->>name.ilike.%${q}%`;
 
   const [keyword, recent] = await Promise.all([
-    supabase.from("nodes").select("id, object_type, data, updated_at").eq("workspace_id", workspaceId).or(orFilter).limit(60),
-    supabase.from("nodes").select("id, object_type, data, updated_at").eq("workspace_id", workspaceId).order("updated_at", { ascending: false }).limit(60),
+    supabase.from("nodes").select("id, object_type, data, updated_at").eq("workspace_id", workspaceId).or(orFilter).limit(120),
+    supabase.from("nodes").select("id, object_type, data, updated_at").eq("workspace_id", workspaceId).order("updated_at", { ascending: false }).limit(120),
   ]);
 
   const byId = new Map<string, { id: string; object_type: string; data: Record<string, unknown>; updated_at: string }>();
