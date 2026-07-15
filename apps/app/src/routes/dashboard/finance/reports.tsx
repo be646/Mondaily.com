@@ -215,10 +215,9 @@ export function FinanceReportsPage() {
   const overdueTotal = sumInDisplay(overdueInvoices.map(inv$)).value;
   const COLD_DAYS = 14;
   const coldQuotes = quotes.filter(q => q.status === "sent" && (Date.now() - Date.parse(q.created_at)) > COLD_DAYS * 86_400_000);
-  const collectedSeries = monthlyData.map(m => m.Collected);
-  const lastCollected = collectedSeries[collectedSeries.length - 1] ?? 0;
-  const prevCollected = collectedSeries[collectedSeries.length - 2] ?? 0;
-  const cashDelta = prevCollected > 0 ? Math.round(((lastCollected - prevCollected) / prevCollected) * 100) : null;
+  // Cash trend on the SAME paid-date basis as the KPI cards (revenue actually collected this
+  // calendar month vs last), so the digest never contradicts the Revenue delta above it.
+  const cashDelta = deltaPct(revenueIn(periodRange("month")), (() => { const p = previousRange("month"); return p ? revenueIn(p) : 0; })());
   const digestSignals = [
     overdueInvoices.length > 0 ? { tone: "#d1524a", text: `${overdueInvoices.length} invoice${overdueInvoices.length === 1 ? "" : "s"} overdue`, sub: fmt(overdueTotal, currency), to: "/finance/invoices" } : null,
     coldQuotes.length > 0 ? { tone: "#c6892e", text: `${coldQuotes.length} quote${coldQuotes.length === 1 ? "" : "s"} gone cold`, sub: `sent > ${COLD_DAYS}d ago`, to: "/finance/quotes" } : null,
