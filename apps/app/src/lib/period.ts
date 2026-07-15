@@ -46,15 +46,26 @@ export function periodRange(p: Period, ref: Date = new Date(), custom?: CustomRa
   }
 }
 
-/** The equivalent immediately-preceding range (for period-over-period deltas). Null for all/custom. */
+/** Shift a reference date back by exactly one period unit (calendar-aware for month/quarter/year). */
+function shiftBackOnePeriod(ref: Date, p: Period): Date {
+  const d = new Date(ref);
+  switch (p) {
+    case "today":   d.setDate(d.getDate() - 1); break;
+    case "week":    d.setDate(d.getDate() - 7); break;
+    case "month":   d.setMonth(d.getMonth() - 1); break;
+    case "quarter": d.setMonth(d.getMonth() - 3); break;
+    case "year":    d.setFullYear(d.getFullYear() - 1); break;
+  }
+  return d;
+}
+
+/**
+ * The comparable prior window for period-over-period deltas — a true "same point in the prior
+ * period" comparison (e.g. Jul 1–15 vs Jun 1–15), not a fixed-span shift. Null for all/custom.
+ */
 export function previousRange(p: Period, ref: Date = new Date()): DateRange | null {
   if (p === "all" || p === "custom") return null;
-  const curr = periodRange(p, ref);
-  const span = curr.end.getTime() - curr.start.getTime();
-  // Anchor the previous window to end right before the current one starts.
-  const prevEnd = new Date(curr.start.getTime() - 1);
-  const prevStart = new Date(prevEnd.getTime() - span);
-  return { start: prevStart, end: prevEnd };
+  return periodRange(p, shiftBackOnePeriod(ref, p));
 }
 
 export function inRange(dateISO: string | null | undefined, range: DateRange): boolean {

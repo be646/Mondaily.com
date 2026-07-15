@@ -330,7 +330,7 @@ router.post("/:id/summarize", async (c) => {
   if (!env.baseURL || !env.apiKey) return c.json({ error: "AI isn't available right now." }, 503);
 
   const d = node.data as Record<string, unknown>;
-  const amount = ((Number(d.amount_cents ?? 0)) / 100).toLocaleString("en-GB", { style: "currency", currency: String(d.currency ?? "USD"), minimumFractionDigits: 2 });
+  const amount = ((Number(d.amount_cents ?? 0)) / 100).toLocaleString("en-GB", { style: "currency", currency: String(d.currency ?? "GBP"), minimumFractionDigits: 2 });
   const facts = [
     `Amount: ${amount}`,
     `Reason: ${String(d.credit_reason ?? "unspecified").replace(/_/g, " ")}`,

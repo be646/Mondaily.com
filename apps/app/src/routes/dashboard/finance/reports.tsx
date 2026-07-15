@@ -221,7 +221,7 @@ export function FinanceReportsPage() {
   const digestSignals = [
     overdueInvoices.length > 0 ? { tone: "#d1524a", text: `${overdueInvoices.length} invoice${overdueInvoices.length === 1 ? "" : "s"} overdue`, sub: fmt(overdueTotal, currency), to: "/finance/invoices" } : null,
     coldQuotes.length > 0 ? { tone: "#c6892e", text: `${coldQuotes.length} quote${coldQuotes.length === 1 ? "" : "s"} gone cold`, sub: `sent > ${COLD_DAYS}d ago`, to: "/finance/quotes" } : null,
-    cashDelta != null ? { tone: cashDelta >= 0 ? "#2f9e6b" : "#c6892e", text: `Cash ${cashDelta >= 0 ? "up" : "down"} ${Math.abs(cashDelta)}% MoM`, sub: "collected vs prior month", to: undefined } : null,
+    cashDelta != null ? { tone: cashDelta >= 0 ? "#2f9e6b" : "#c6892e", text: `Cash ${cashDelta >= 0 ? "up" : "down"} ${Math.abs(cashDelta)}% MoM`, sub: "vs same point last month", to: undefined } : null,
   ].filter(Boolean) as { tone: string; text: string; sub: string; to?: string }[];
 
   return (
