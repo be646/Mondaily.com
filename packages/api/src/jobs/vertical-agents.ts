@@ -1,6 +1,7 @@
 import { supabase } from "@mondaily/db/client";
 import { startJob, completeJob, failJob, step } from "../lib/agent-logger";
 import { createNotification } from "../lib/notify";
+import { maybeAutoApprove } from "../lib/autonomy";
 
 /**
  * Vertical agents — Opportunity, People, Portfolio, Asset.
@@ -45,11 +46,12 @@ async function queueDecision(workspaceId: string, agent: string, recordId: strin
   const { data: existing } = await supabase.from("decision_queue").select("id")
     .eq("workspace_id", workspaceId).eq("source_id", recordId).eq("agent_name", agent).eq("status", "pending").maybeSingle();
   if (existing) return false;
-  await supabase.from("decision_queue").insert({
+  const { data: decision } = await supabase.from("decision_queue").insert({
     workspace_id: workspaceId, source_type: "node", source_id: recordId, agent_name: agent,
     title, summary, recommended_action: action, risk_level: risk,
     evidence: [{ type: "record", title: evidenceTitle, node_id: recordId, match_reason: summary }],
-  }).then(() => {}, () => {});
+  }).select("*").single().then((r) => r, () => ({ data: null }));
+  if (decision) await maybeAutoApprove(workspaceId, decision);
   return true;
 }
 

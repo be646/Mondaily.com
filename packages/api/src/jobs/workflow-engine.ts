@@ -2,6 +2,7 @@ import { supabase } from "@mondaily/db/client";
 import { startJob, completeJob, failJob, step } from "../lib/agent-logger";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { createNotification } from "../lib/notify";
+import { maybeAutoApprove } from "../lib/autonomy";
 
 /**
  * Workflow Agent execution engine.
@@ -150,14 +151,15 @@ async function runAction(workspaceId: string, action: WorkflowBlock, record: { i
       maxTokens: 800,
     }).catch(() => ({ title: action.label ?? action.type }));
     const d = draft as { title?: string; body?: string };
-    await supabase.from("decision_queue").insert({
+    const { data: wfDecision } = await supabase.from("decision_queue").insert({
       workspace_id: workspaceId, source_type: "node", source_id: record.id, agent_name: "workflow",
       title: `Workflow: ${d.title ?? action.label ?? action.type}`,
       summary: (d.body ?? "").slice(0, 1000) || `Action "${action.label ?? action.type}" ready for ${recName}.`,
       recommended_action: action.label ?? action.type,
       risk_level: type.includes("delete") || type.includes("charge") || type.includes("invoice") ? "high" : "medium",
       evidence: [{ type: "record", title: recName, node_id: record.id, match_reason: `Workflow action: ${action.label ?? action.type}` }],
-    });
+    }).select("*").single().then((r) => r, () => ({ data: null }));
+    if (wfDecision) await maybeAutoApprove(workspaceId, wfDecision);
     return { action: action.type, mode: "queued", detail: d.title ?? action.label ?? action.type };
   }
 

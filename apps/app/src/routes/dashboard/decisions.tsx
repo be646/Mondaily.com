@@ -290,14 +290,17 @@ export function DecisionsPage() {
                   className="h-7 w-36 rounded-sm border bg-transparent pl-6.5 pr-2 text-[11.5px] outline-none focus:border-[var(--section-accent)]"
                   style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)", paddingLeft: "1.625rem" }} />
               </label>
-              <div title="How much agents may self-approve without you. High-risk always needs your approval." className="w-[168px]">
-                <MenuSelect label="Autonomy" value={autonomy} onChange={v => setAutonomy.mutate(v || "manual")} allLabel="Manual"
+              <div title="How much agents may self-approve without you. High-risk always needs your approval.">
+                <MenuSelect label="Autonomy" value={autonomy} onChange={v => setAutonomy.mutate(v || "manual")} allLabel="Manual" maxWidth={230}
                   options={[
-                    { value: "manual", label: "Manual — I approve all" },
-                    { value: "assisted", label: "Assisted — auto low-risk" },
-                    { value: "autonomous", label: "Autonomous — auto low+med" },
+                    { value: "manual", label: "Manual" },
+                    { value: "assisted", label: "Auto low-risk" },
+                    { value: "autonomous", label: "Auto low + med" },
                   ]} />
               </div>
+              {/* Divider — Autonomy is a standing setting, not a per-view filter; keep it visually
+                  apart from the Search / Filter / sort cluster so they don't read as one control. */}
+              <span aria-hidden className="mx-0.5 h-5 w-px shrink-0" style={{ background: "var(--border-soft)" }} />
               <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={[agentFilter, typeFilter, riskFilter, assigneeFilter].filter(Boolean).length} />
               <button onClick={() => setSortRisk(s => !s)} disabled={lane === "approval" && !!triage}
                 title={lane === "approval" && triage ? "AI triage ranking is active — clear it to sort by risk" : "Order the list by risk level"}

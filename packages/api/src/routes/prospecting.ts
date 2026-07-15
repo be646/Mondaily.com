@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
+import { maybeAutoApprove } from "../lib/autonomy";
 import * as ubc from "@mondaily/db/ubc";
 import { inngest } from "../lib/inngest";
 import { startJob, completeJob, failJob, step } from "../lib/agent-logger";
@@ -299,7 +300,8 @@ export async function runProspecting(
             candidate,
             destination_list_id: input.destination_list_id ?? null,
           }],
-        }).select("id").single();
+        }).select("*").single();
+        if (decision) await maybeAutoApprove(workspaceId, decision);
         result.queued_for_review++;
         result.candidates.push({ ...candidate, status: "queued_for_review", decision_id: decision?.id });
       } else {

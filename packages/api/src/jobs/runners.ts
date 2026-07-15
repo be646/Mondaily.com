@@ -3,6 +3,7 @@ import { startJob, completeJob, failJob, logStep, step } from "../lib/agent-logg
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignWebContext } from "../lib/sovereign-search";
 import { createNotification } from "../lib/notify";
+import { maybeAutoApprove } from "../lib/autonomy";
 import { refreshFxRates } from "../lib/currency-store";
 import { runDiscoveryMonitors } from "./social-discovery";
 import { runMeetingAgent } from "./meeting-agent";
@@ -121,7 +122,8 @@ export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_crea
           recommended_action: "Reach out to re-engage, or mark as lost",
           risk_level: daysInactive > 30 ? "high" : "medium",
           evidence: [{ type: "record", title: String(data.name ?? data.title ?? "Deal"), node_id: deal.id, match_reason: `${daysInactive} days inactive` }],
-        }).select("id").single().then((r) => r, () => ({ data: null }));
+        }).select("*").single().then((r) => r, () => ({ data: null }));
+        if (dq) await maybeAutoApprove(wsId, dq);
         await createNotification({
           workspace_id: wsId, type: "alert", title: "🥶 Cold deal detected",
           body: `"${data.name ?? data.title ?? "Deal"}" has had no activity for ${daysInactive} days`,
@@ -262,19 +264,24 @@ export async function runOverdueTaskDecisions(workspaceId?: string): Promise<{ q
         .eq("workspace_id", wsId).eq("completed", false).lt("due_date", new Date().toISOString());
       scanned += tasks?.length ?? 0;
       for (const task of tasks ?? []) {
+        // Dedup across ANY status (not just pending): once we've raised this overdue task we don't
+        // nag about it every run. If the user resolves the decision but leaves the task overdue,
+        // re-raising it each cron would show the same "issue" forever — the reported "shows all the
+        // time" bug. The task leaves this scan the moment it's completed or rescheduled.
         const { data: existing } = await supabase.from("decision_queue").select("id")
           .eq("workspace_id", wsId).eq("source_type", "task").eq("source_id", task.id)
-          .eq("agent_name", "operations").eq("status", "pending").maybeSingle();
+          .eq("agent_name", "operations").limit(1).maybeSingle();
         if (existing) { alreadyQueued++; continue; }
         const daysOverdue = Math.floor((Date.now() - new Date(task.due_date!).getTime()) / 86_400_000);
-        await supabase.from("decision_queue").insert({
+        const { data: opsDecision } = await supabase.from("decision_queue").insert({
           workspace_id: wsId, source_type: "task", source_id: task.id, agent_name: "operations",
           title: `Overdue: ${task.title}`,
           summary: `${daysOverdue} day(s) overdue${task.assignee_email ? `, assigned to ${task.assignee_email}` : ", unassigned"}.`,
           recommended_action: "Reassign, reschedule, or mark complete",
           risk_level: daysOverdue > 7 || task.priority === "urgent" ? "high" : daysOverdue > 2 ? "medium" : "low",
           evidence: [{ type: "task", title: task.title, node_id: task.id, match_reason: `${daysOverdue} days overdue`, timestamp: task.due_date }],
-        });
+        }).select("*").single().then((r) => r, () => ({ data: null }));
+        if (opsDecision) await maybeAutoApprove(wsId, opsDecision);
         queued++;
       }
     }
@@ -342,14 +349,15 @@ export async function runInvoiceChaser(workspaceId?: string): Promise<{ total_ch
           .eq("agent_name", "invoice_chaser").eq("status", "pending").maybeSingle();
         if (existingDecision) { totalSkipped++; continue; }
 
-        await supabase.from("decision_queue").insert({
+        const { data: chaseDecision } = await supabase.from("decision_queue").insert({
           workspace_id: wsId, source_type: "invoice", source_id: invoice.id, agent_name: "invoice_chaser",
           title: `Chase invoice ${invoice.data.invoice_number ?? invoice.id} — ${days} days overdue`,
           summary: `Draft reminder ready to send to ${invoice.data.client_email ?? "no email on file"}.`,
           recommended_action: `Send: "${subject}"`,
           risk_level: days > 14 ? "high" : days > 7 ? "medium" : "low",
           evidence: [{ type: "invoice", title: subject, node_id: invoice.id, match_reason: `${days} days overdue`, timestamp: due }],
-        });
+        }).select("*").single().then((r) => r, () => ({ data: null }));
+        if (chaseDecision) await maybeAutoApprove(wsId, chaseDecision);
         steps.push(step(`Drafted chase for invoice ${invoice.data.invoice_number ?? invoice.id} — ${days} days overdue`, { status: "warn", sources: [{ title: `Invoice ${invoice.data.invoice_number ?? invoice.id}`, node_id: invoice.id }] }));
         await createNotification({
           workspace_id: wsId, type: "agent",

@@ -1,5 +1,6 @@
 import { inngest } from "../lib/inngest";
 import { supabase } from "@mondaily/db/client";
+import { maybeAutoApprove } from "../lib/autonomy";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignHeaders, sovereignScrape } from "../lib/sovereign-search";
 import { cacheGet, cacheSet, cacheKey } from "../lib/discovery-cache";
@@ -644,7 +645,8 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
         // Await the inserts so `queued` is accurate before the notification body reads it.
         const inserts = strong
           .filter((r) => !seenUrls.has(r.source_url))
-          .map((r) => supabase.from("decision_queue").insert({
+          .map(async (r) => {
+          const { data: sd } = await supabase.from("decision_queue").insert({
             workspace_id: workspaceId,
             source_type: "discovered_lead",
             source_id: null,
@@ -659,7 +661,11 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
               match_reason: `Confidence ${r.confidence_score ?? 0}${r.contact?.email ? ` · ${r.contact.email}` : ""}`,
               lead: { name: r.author_name, email: r.contact?.email ?? null, phone: r.contact?.phone ?? null, handle: r.contact?.handle ?? null, summary: r.contact?.summary ?? null, source_url: r.source_url, region: r.region, subject: r.target_subject },
             }],
-          }).then(() => true, () => false));
+          }).select("*").single().then((x) => x, () => ({ data: null }));
+          if (!sd) return false;
+          await maybeAutoApprove(workspaceId, sd);
+          return true;
+          });
         queued = (await Promise.all(inserts)).filter(Boolean).length;
       }
     }
