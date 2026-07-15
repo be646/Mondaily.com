@@ -95,14 +95,61 @@ router.get("/:id", async (c) => {
   return c.json(data);
 });
 
+// ── Agent autonomy dial ──────────────────────────────────────────────────────
+// How much agents may self-approve WITHOUT a human. Stored on workspaces.settings.agent_autonomy.
+//   manual     — everything waits for approval (default; the historical behaviour).
+//   assisted   — LOW-risk decisions auto-approve + execute; medium/high still queue.
+//   autonomous — LOW + MEDIUM auto-approve + execute; HIGH always queues.
+// HIGH-risk NEVER auto-runs at any level. Every auto-approval is logged (resolved_by='autonomy').
+type AutonomyLevel = "manual" | "assisted" | "autonomous";
+async function readAutonomy(workspaceId: string): Promise<AutonomyLevel> {
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const v = (data?.settings as { agent_autonomy?: string } | null)?.agent_autonomy;
+  return v === "assisted" || v === "autonomous" ? v : "manual";
+}
+function autoApproves(level: AutonomyLevel, risk: string): boolean {
+  if (risk === "high") return false;
+  if (level === "assisted") return risk === "low";
+  if (level === "autonomous") return risk === "low" || risk === "medium";
+  return false;
+}
+
+router.get("/autonomy", async (c) => c.json({ level: await readAutonomy(c.get("workspaceId")) }));
+router.patch("/autonomy", zValidator("json", z.object({ level: z.enum(["manual", "assisted", "autonomous"]) })), async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const { level } = c.req.valid("json");
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const settings = { ...((data?.settings as Record<string, unknown>) ?? {}), agent_autonomy: level };
+  const { error } = await supabase.from("workspaces").update({ settings }).eq("id", workspaceId);
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json({ level });
+});
+
 router.post("/", zValidator("json", createSchema), async (c) => {
   const body = c.req.valid("json");
+  const workspaceId = c.get("workspaceId");
   const { data, error } = await supabase
     .from("decision_queue")
-    .insert({ ...body, workspace_id: c.get("workspaceId") })
+    .insert({ ...body, workspace_id: workspaceId })
     .select()
     .single();
   if (error) return c.json({ error: error.message }, 400);
+
+  // Autonomy: if the workspace opted in and this decision is within the allowed risk band,
+  // execute the real action and mark it approved immediately — no human wait. Fully audited.
+  const level = await readAutonomy(workspaceId);
+  if (autoApproves(level, String(data.risk_level ?? "low"))) {
+    try { await executeApprovedAction(workspaceId, data); } catch (e) { console.error("[autonomy] execute failed:", e); }
+    const { data: resolved } = await supabase.from("decision_queue")
+      .update({ status: "approved", resolved_at: new Date().toISOString(), resolved_by: "autonomy" })
+      .eq("workspace_id", workspaceId).eq("id", data.id).select().single();
+    await supabase.from("activities").insert({
+      node_id: data.source_id ?? null, workspace_id: workspaceId, actor_type: "agent",
+      actor_id: String(data.agent_name ?? "agent"), action: "decision_auto_approved",
+      diff: { decision_id: data.id, title: data.title, risk: data.risk_level, autonomy: level },
+    }).then(() => {}, () => {});
+    return c.json(resolved ?? { ...data, status: "approved" }, 201);
+  }
   return c.json(data, 201);
 });
 

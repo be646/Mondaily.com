@@ -77,6 +77,14 @@ export function DecisionsPage() {
   // "Risk first" ordering toggle — plain client-side sort over real risk levels.
   const [sortRisk, setSortRisk] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);   // records-style: Filter button in the toolbar, strip below
+
+  // Agent autonomy dial — how much agents may self-approve without a human (manual/assisted/autonomous).
+  const autonomyQ = useQuery({ queryKey: ["decisions-autonomy"], queryFn: () => apiClient.get<{ level: string }>("/decisions/autonomy"), staleTime: 60_000 });
+  const setAutonomy = useMutation({
+    mutationFn: (level: string) => apiClient.patch("/decisions/autonomy", { level }),
+    onSuccess: () => autonomyQ.refetch(),
+  });
+  const autonomy = autonomyQ.data?.level ?? "manual";
   const [searchParams, setSearchParams] = useSearchParams();
   const focusId = searchParams.get("id");
   // Selection is mirrored to ?id= so a decision is shareable/refresh-stable (same pattern as
@@ -282,6 +290,14 @@ export function DecisionsPage() {
                   className="h-7 w-36 rounded-sm border bg-transparent pl-6.5 pr-2 text-[11.5px] outline-none focus:border-[var(--section-accent)]"
                   style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)", paddingLeft: "1.625rem" }} />
               </label>
+              <div title="How much agents may self-approve without you. High-risk always needs your approval." className="w-[168px]">
+                <MenuSelect label="Autonomy" value={autonomy} onChange={v => setAutonomy.mutate(v || "manual")} allLabel="Manual"
+                  options={[
+                    { value: "manual", label: "Manual — I approve all" },
+                    { value: "assisted", label: "Assisted — auto low-risk" },
+                    { value: "autonomous", label: "Autonomous — auto low+med" },
+                  ]} />
+              </div>
               <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={[agentFilter, typeFilter, riskFilter, assigneeFilter].filter(Boolean).length} />
               <button onClick={() => setSortRisk(s => !s)} disabled={lane === "approval" && !!triage}
                 title={lane === "approval" && triage ? "AI triage ranking is active — clear it to sort by risk" : "Order the list by risk level"}
