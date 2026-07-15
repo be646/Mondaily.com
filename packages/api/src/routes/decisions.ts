@@ -83,18 +83,6 @@ router.get("/", async (c) => {
   return c.json((data ?? []).map(withPreview));
 });
 
-router.get("/:id", async (c) => {
-  const { data, error } = await supabase
-    .from("decision_queue")
-    .select("*")
-    .eq("workspace_id", c.get("workspaceId"))
-    .eq("id", c.req.param("id"))
-    .maybeSingle();
-  if (error) return c.json({ error: error.message }, 500);
-  if (!data) return c.json({ error: "Decision not found" }, 404);
-  return c.json(data);
-});
-
 // ── Agent autonomy dial ──────────────────────────────────────────────────────
 // How much agents may self-approve WITHOUT a human. Stored on workspaces.settings.agent_autonomy.
 //   manual     — everything waits for approval (default; the historical behaviour).
@@ -123,6 +111,19 @@ router.patch("/autonomy", zValidator("json", z.object({ level: z.enum(["manual",
   const { error } = await supabase.from("workspaces").update({ settings }).eq("id", workspaceId);
   if (error) return c.json({ error: error.message }, 400);
   return c.json({ level });
+});
+
+// Registered AFTER /autonomy so the literal path wins over this :id param route.
+router.get("/:id", async (c) => {
+  const { data, error } = await supabase
+    .from("decision_queue")
+    .select("*")
+    .eq("workspace_id", c.get("workspaceId"))
+    .eq("id", c.req.param("id"))
+    .maybeSingle();
+  if (error) return c.json({ error: error.message }, 500);
+  if (!data) return c.json({ error: "Decision not found" }, 404);
+  return c.json(data);
 });
 
 router.post("/", zValidator("json", createSchema), async (c) => {
