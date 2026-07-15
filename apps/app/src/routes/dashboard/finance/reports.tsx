@@ -4,6 +4,8 @@ import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
 import { FieldSelect } from "../../../components/ui/controls";
+import { PeriodSelector } from "../../../components/ui/period-selector";
+import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange } from "../../../lib/period";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
@@ -24,6 +26,7 @@ interface Invoice {
   currency: string;
   status: InvoiceStatus;
   created_at: string;
+  paid_at?: string | null;
 }
 
 interface CreditNote {
@@ -32,6 +35,8 @@ interface CreditNote {
   currency: string;
   credit_reason: "refund" | "billing_error" | "goodwill" | "contract_discount";
   status: string;
+  updated_at?: string;
+  created_at?: string;
 }
 
 function getLastNMonths(n: number) {
@@ -82,6 +87,20 @@ const REASON_LABELS: Record<string, string> = {
   contract_discount: "Contract Discount",
 };
 
+// Period-over-period delta pill. `goodUp` flips the colour for cost-type metrics (where a
+// rise is bad). Neutral grey when there's no comparable prior period.
+function Delta({ pct, goodUp = true }: { pct: number | null; goodUp?: boolean }) {
+  if (pct == null) return null;
+  const positive = pct >= 0;
+  const good = positive === goodUp;
+  const color = pct === 0 ? "var(--text-faint)" : good ? "#2f9e6b" : "#d1524a";
+  return (
+    <span className="text-[10px] font-semibold tabular-nums" style={{ color }}>
+      {positive ? "▲" : "▼"} {Math.abs(pct)}%
+    </span>
+  );
+}
+
 export function FinanceReportsPage() {
   const navigate = useNavigate();
   const { data: invoices = [], isError: invoicesError, refetch: refetchInvoices } = useQuery<Invoice[]>({
@@ -94,7 +113,7 @@ export function FinanceReportsPage() {
     queryFn: () => apiClient.get<CreditNote[]>("/credit-notes"),
   });
 
-  const { data: expenses = [] } = useQuery<{ amount_cents: number; currency: string; status: string }[]>({
+  const { data: expenses = [] } = useQuery<{ amount_cents: number; currency: string; status: string; date?: string; created_at?: string }[]>({
     queryKey: ["expenses-all"],
     queryFn: () => apiClient.get("/expenses"),
   });
@@ -120,15 +139,35 @@ export function FinanceReportsPage() {
   const currency = display;
   const inv$ = (i: Invoice) => ({ amount: i.total, currency: i.currency });
   const cn$ = (cn: CreditNote) => ({ amount: cn.amount_cents / 100, currency: cn.currency });
-
-  // Summary
-  const totalRevenue = sumInDisplay(invoices.filter(i => i.status === "paid").map(inv$)).value;
-  const outstanding = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$)).value;
-  const creditsIssued = sumInDisplay(creditNotes.filter(cn => cn.status === "executed").map(cn$)).value;
   const exp$ = (e: { amount_cents: number; currency: string }) => ({ amount: e.amount_cents / 100, currency: e.currency });
-  const totalExpenses = sumInDisplay(expenses.filter(e => e.status === "approved").map(exp$)).value;
-  // True net = collected revenue, minus credits issued, minus approved expenses.
+
+  // ── Reporting period (cumulative ledger, period-scoped LENS) ──
+  // FLOW metrics (revenue collected, credits issued, expenses) are counted within the range on
+  // their real event date; BALANCE metrics (outstanding) are read as-of and ignore the range.
+  const [period, setPeriod] = usePeriod("mondaily_finance_period");
+  const range = periodRange(period);
+  const prev = previousRange(period);
+  const periodScope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
+  const paidDate = (i: Invoice) => i.paid_at ?? i.created_at;               // when cash actually landed
+  const cnDate = (cn: CreditNote) => cn.updated_at ?? cn.created_at ?? "";  // when it was executed
+  const expDate = (e: { date?: string; created_at?: string }) => e.date ?? e.created_at ?? "";
+
+  const revenueIn = (r: DateRange) => sumInDisplay(invoices.filter(i => i.status === "paid" && inRange(paidDate(i), r)).map(inv$)).value;
+  const creditsIn = (r: DateRange) => sumInDisplay(creditNotes.filter(cn => cn.status === "executed" && inRange(cnDate(cn), r)).map(cn$)).value;
+  const expensesIn = (r: DateRange) => sumInDisplay(expenses.filter(e => e.status === "approved" && inRange(expDate(e), r)).map(exp$)).value;
+
+  const totalRevenue = revenueIn(range);
+  const creditsIssued = creditsIn(range);
+  const totalExpenses = expensesIn(range);
   const netRevenue = totalRevenue - creditsIssued - totalExpenses;
+  // Outstanding is a point-in-time balance, not a period flow — always current.
+  const outstanding = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$)).value;
+
+  // Period-over-period deltas (null when there's no comparable prior window — e.g. "All").
+  const revDelta = prev ? deltaPct(totalRevenue, revenueIn(prev)) : null;
+  const creditsDelta = prev ? deltaPct(creditsIssued, creditsIn(prev)) : null;
+  const expDelta = prev ? deltaPct(totalExpenses, expensesIn(prev)) : null;
+  const netDelta = prev ? deltaPct(netRevenue, revenueIn(prev) - creditsIn(prev) - expensesIn(prev)) : null;
 
   // How many amounts couldn't be converted (missing rate) — surfaced honestly to the user.
   const unconverted = sumInDisplay([...invoices.map(inv$), ...creditNotes.map(cn$)]).missing;
@@ -199,11 +238,14 @@ export function FinanceReportsPage() {
             )}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-[var(--text-muted)]">Show in</span>
-          <div className="w-28">
-            <FieldSelect value={display} onChange={v => setDisplay.mutate(v)} ariaLabel="Display currency"
-              options={currencies.map(c => ({ value: c, label: c }))} />
+        <div className="flex flex-wrap items-center gap-2.5">
+          <PeriodSelector value={period} onChange={setPeriod} />
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-[var(--text-muted)]">Show in</span>
+            <div className="w-28">
+              <FieldSelect value={display} onChange={v => setDisplay.mutate(v)} ariaLabel="Display currency"
+                options={currencies.map(c => ({ value: c, label: c }))} />
+            </div>
           </div>
         </div>
       </div>
@@ -265,10 +307,13 @@ export function FinanceReportsPage() {
             <div>
               <div className="flex items-center gap-1.5 mb-2">
                 <TrendingUp size={11} className="text-[#2f9e6b]"/>
-                <span className="text-[11px] text-[var(--text-muted)]">Total Revenue</span>
+                <span className="text-[11px] text-[var(--text-muted)]">Revenue</span>
               </div>
-              <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(totalRevenue, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">from paid invoices</div>
+              <div className="flex items-baseline gap-2">
+                <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(totalRevenue, currency)}</div>
+                <Delta pct={revDelta}/>
+              </div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">collected · {periodScope}</div>
             </div>
             <div>
               <div className="flex items-center gap-1.5 mb-2">
@@ -276,31 +321,40 @@ export function FinanceReportsPage() {
                 <span className="text-[11px] text-[var(--text-muted)]">Outstanding</span>
               </div>
               <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(outstanding, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">sent / viewed / overdue</div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">unpaid · as of today</div>
             </div>
             <div>
               <div className="flex items-center gap-1.5 mb-2">
                 <MinusCircle size={11} className="text-[var(--text-faint)]"/>
                 <span className="text-[11px] text-[var(--text-muted)]">Credits Issued</span>
               </div>
-              <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(creditsIssued, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">executed credit notes</div>
+              <div className="flex items-baseline gap-2">
+                <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(creditsIssued, currency)}</div>
+                <Delta pct={creditsDelta} goodUp={false}/>
+              </div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">executed · {periodScope}</div>
             </div>
             <div>
               <div className="flex items-center gap-1.5 mb-2">
                 <MinusCircle size={11} className="text-[#c6892e]"/>
                 <span className="text-[11px] text-[var(--text-muted)]">Expenses</span>
               </div>
-              <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(totalExpenses, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">approved expenses</div>
+              <div className="flex items-baseline gap-2">
+                <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(totalExpenses, currency)}</div>
+                <Delta pct={expDelta} goodUp={false}/>
+              </div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">approved · {periodScope}</div>
             </div>
             <div>
               <div className="flex items-center gap-1.5 mb-2">
                 <DollarSign size={11} className="text-[var(--text-faint)]"/>
                 <span className="text-[11px] text-[var(--text-muted)]">Net</span>
               </div>
-              <div className={`text-[20px] font-semibold tracking-tight ${netRevenue >= 0 ? "text-[var(--text-primary)]" : "text-[#c6892e]"}`}>{fmt(netRevenue, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">after credits & expenses</div>
+              <div className="flex items-baseline gap-2">
+                <div className={`text-[20px] font-semibold tracking-tight ${netRevenue >= 0 ? "text-[var(--text-primary)]" : "text-[#c6892e]"}`}>{fmt(netRevenue, currency)}</div>
+                <Delta pct={netDelta}/>
+              </div>
+              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">after credits &amp; expenses</div>
             </div>
           </div>
 
