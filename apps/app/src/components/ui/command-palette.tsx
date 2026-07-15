@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Building2, UserRound, TrendingUp, CheckSquare, FileText, ArrowRight, Plus, Radar, BarChart3, Workflow } from "lucide-react";
+import { Search, Building2, UserRound, TrendingUp, CheckSquare, FileText, ArrowRight, Plus, Radar, BarChart3, Workflow, Receipt, ReceiptText, CreditCard } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import { AIMark } from "./ai-button";
@@ -10,10 +10,20 @@ interface SearchResult { id: string; object_type: string; data: Record<string, u
 const TYPE_ICON: Record<string, React.ElementType> = {
   companies: Building2, people: UserRound, deals: TrendingUp,
   task: CheckSquare, note: FileText,
+  invoice: Receipt, quote: ReceiptText, expense: Receipt, credit_note: CreditCard,
 };
 const TYPE_COLOR: Record<string, string> = {
   companies: "text-[#717784]", people: "text-[#2f9e6b]", deals: "text-[#c6892e]",
   task: "text-stone-400", note: "text-stone-400",
+  invoice: "text-[#2f9e6b]", quote: "text-[#717784]", expense: "text-[#c6892e]", credit_note: "text-[#717784]",
+};
+
+// Finance nodes navigate to their finance route, not /objects/*.
+const FINANCE_ROUTE: Record<string, (id: string) => string> = {
+  invoice: id => `/finance/invoices/${id}`,
+  credit_note: id => `/finance/credit-notes/${id}`,
+  quote: () => `/finance/quotes`,
+  expense: () => `/finance/expenses`,
 };
 
 // A palette item is one of: an AI passthrough, a quick action, a nav link, or a record hit.
@@ -101,6 +111,8 @@ export function CommandPalette() {
       navigate(item.to);
     } else if (item.object_type === "task") {
       navigate("/tasks");
+    } else if (FINANCE_ROUTE[item.object_type]) {
+      navigate(FINANCE_ROUTE[item.object_type]!(item.id));
     } else {
       navigate(`/objects/${item.object_type}/${item.id}`);
     }
