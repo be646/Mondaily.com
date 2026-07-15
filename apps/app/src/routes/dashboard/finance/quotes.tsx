@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FieldSelect } from "../../../components/ui/controls";
-import { FinanceListToolbar } from "../../../components/finance/finance-toolbar";
+import { FinanceListToolbar, FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { AIButton } from "../../../components/ui/ai-button";
 import { apiClient } from "../../../lib/api-client";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
@@ -193,16 +193,14 @@ export function QuotesPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-[var(--border-soft)] px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-[15px] font-semibold text-[var(--text-primary)]">Quotes</h1>
-            <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Manage proposals and client quotes</p>
-          </div>
-          <button onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
-            <Plus size={13}/> New Quote
-          </button>
-        </div>
+        <FinanceHeader icon={ReceiptText} callsign="QUOTES" title="Quotes" subtitle="Manage proposals and client quotes"
+          action={
+            <button onClick={() => setShowNew(true)}
+              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
+              <Plus size={13}/> New Quote
+            </button>
+          }
+        />
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">

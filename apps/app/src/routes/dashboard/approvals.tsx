@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { LogoMark } from "@/components/logo";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
+import { FinanceHeader } from "../../components/finance/finance-toolbar";
 import { useCurrency, formatMoney } from "../../hooks/useCurrency";
 import {
   ShieldCheck, Clock, CheckCircle2, XCircle,
@@ -268,15 +269,7 @@ export function ApprovalsPage() {
     <div className="flex h-full flex-col bg-[var(--surface-card)] text-[var(--text-primary)]">
       {/* Header */}
       <div className="shrink-0 border-b border-[var(--border-soft)] px-6 py-4">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex h-7 w-7 items-center justify-center rounded-sm border border-stone-200 bg-stone-50 dark:border-[var(--section-accent)]/20 dark:bg-[var(--section-accent)]/[.05]">
-            <ShieldCheck size={14} className="text-[var(--text-faint)]"/>
-          </div>
-          <div>
-            <h1 className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">Approval Dashboard</h1>
-            <p className="text-[12px] text-[var(--text-muted)]">Review and authorise credit notes across the workspace</p>
-          </div>
-        </div>
+        <FinanceHeader icon={ShieldCheck} callsign="APPROVALS" title="Approval Dashboard" subtitle="Review and authorise credit notes across the workspace" />
 
         {/* Summary row */}
         <div className="telemetry-strip mb-4">

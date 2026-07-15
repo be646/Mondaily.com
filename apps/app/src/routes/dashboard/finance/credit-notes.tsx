@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import { FieldSelect } from "../../../components/ui/controls";
-import { FinanceListToolbar } from "../../../components/finance/finance-toolbar";
+import { FinanceListToolbar, FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { EmptyState, ErrorState, ConsoleSkeleton, DelayedLoading } from "../../../components/ui/page-state";
 import {
   Plus, ReceiptText, Clock, CheckCircle2,
@@ -184,16 +184,14 @@ export function CreditNotesPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-[var(--border-soft)] px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-[15px] font-semibold text-[var(--text-primary)]">Credit Notes</h1>
-            <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Manage refunds, billing corrections and goodwill credits</p>
-          </div>
-          <button onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
-            <Plus size={13}/> New Credit Note
-          </button>
-        </div>
+        <FinanceHeader icon={ReceiptText} callsign="CREDITS" title="Credit Notes" subtitle="Manage refunds, billing corrections and goodwill credits"
+          action={
+            <button onClick={() => setShowNew(true)}
+              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
+              <Plus size={13}/> New Credit Note
+            </button>
+          }
+        />
 
         {/* Key totals — the same telemetry-strip 3-card KPI used across the finance pages
             (Quotes / Expenses / Approvals), so credit notes no longer look like the odd one out. */}

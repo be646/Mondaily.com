@@ -6,7 +6,7 @@ import { useAskContextStore } from "../../../lib/ask-context-store";
 import { useCurrency } from "../../../hooks/useCurrency";
 import { FinanceAgentStrip } from "../../../components/ai/finance-agent-strip";
 import { Plus, FileText, Clock, CheckCircle, AlertTriangle, XCircle, Send, DollarSign } from "lucide-react";
-import { FinanceListToolbar } from "../../../components/finance/finance-toolbar";
+import { FinanceListToolbar, FinanceHeader } from "../../../components/finance/finance-toolbar";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
 
@@ -100,19 +100,17 @@ export function InvoicesPage() {
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="border-b border-[var(--border-soft)] px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-[15px] font-semibold text-[var(--text-primary)]">Invoices</h1>
-            <p className="text-[12px] text-[var(--text-muted)] mt-0.5">Create, send, and track invoices</p>
-          </div>
-          <button
-            onClick={() => createMutation.mutate()}
-            disabled={createMutation.isPending}
-            className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-50"
-          >
-            <Plus size={13}/> New Invoice
-          </button>
-        </div>
+        <FinanceHeader icon={FileText} callsign="BILLING" title="Invoices" subtitle="Create, send, and track invoices"
+          action={
+            <button
+              onClick={() => createMutation.mutate()}
+              disabled={createMutation.isPending}
+              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-50"
+            >
+              <Plus size={13}/> New Invoice
+            </button>
+          }
+        />
 
         <FinanceAgentStrip/>
 

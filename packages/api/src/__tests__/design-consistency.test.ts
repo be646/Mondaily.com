@@ -791,16 +791,14 @@ describe("Premium low-data UX — guided empty states (real actions, no fake dat
 
 describe("Credit Notes — polished finance operations page", () => {
   const creditNotes = read("routes/dashboard/finance/credit-notes.tsx");
-  it("key totals are ONE shared MetricGrid over real sums (no fragmented telemetry cards, no duplicated total)", () => {
-    expect(creditNotes).toMatch(/<MetricGrid className="mb-4" cols=\{3\}/);
-    expect(creditNotes).not.toContain("telemetry-strip");
+  it("key totals use the shared telemetry-strip 3-card KPI (same as the other finance pages, not the odd-one-out MetricGrid)", () => {
+    expect(creditNotes).toMatch(/telemetry-strip/);
     expect(creditNotes).not.toContain("Total credit issued"); // was a duplicate of Executed
     // Rendered only when rows exist — no zeros-as-stats on an empty workspace.
     expect(creditNotes).toMatch(/creditNotes\.length > 0 && \(/);
   });
-  it("active status filter is actually VISIBLE (surface-card pill on surface-hover track)", () => {
-    expect(creditNotes).toMatch(/statusFilter === f\.key \? \{ background: "var\(--surface-card\)"/);
-    expect(creditNotes).not.toMatch(/statusFilter === f\.key \? "bg-\[var\(--surface-hover\)\]/);
+  it("status filter uses the shared FinanceListToolbar (visible active tab lives in the one toolbar component)", () => {
+    expect(creditNotes).toMatch(/<FinanceListToolbar /);
   });
   it("amounts read as finance numerals: right-aligned + tabular-nums", () => {
     expect(creditNotes).toMatch(/text-right text-\[13px\] font-semibold tabular-nums/);

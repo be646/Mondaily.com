@@ -5,6 +5,7 @@ import { useAskContextStore } from "../../../lib/ask-context-store";
 import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
 import { FieldSelect } from "../../../components/ui/controls";
 import { PeriodSelector } from "../../../components/ui/period-selector";
+import { FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange, type CustomRange } from "../../../lib/period";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
@@ -231,27 +232,22 @@ export function FinanceReportsPage() {
 
   return (
     <div className="flex h-full flex-col bg-[var(--surface-card)] text-[var(--text-primary)]">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border-soft)] px-6 py-4">
-        <div>
-          <h1 className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]">Finance Reports</h1>
-          <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
-            Revenue overview, client breakdown and credit analysis
-            {mixedCurrency && (
-              <> · shown in <span className="font-medium text-[var(--text-secondary)]">{display}</span>
-                {hasRates && ratesAsOf ? <> at ECB rate, {new Date(ratesAsOf).toLocaleDateString()}</> : ""}</>
-            )}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <PeriodSelector value={period} onChange={setPeriod} custom={customRange} onCustom={setCustomRange} />
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-[var(--text-muted)]">Show in</span>
-            <div className="w-28">
-              <FieldSelect value={display} onChange={v => setDisplay.mutate(v)} ariaLabel="Display currency"
-                options={currencies.map(c => ({ value: c, label: c }))} />
-            </div>
-          </div>
-        </div>
+      <div className="border-b border-[var(--border-soft)] px-6 py-4">
+        <FinanceHeader icon={BarChart2} callsign="FINANCE" title="Finance Reports"
+          subtitle={<>Revenue overview, client breakdown and credit analysis{mixedCurrency && (<> · shown in <span className="font-medium text-[var(--text-secondary)]">{display}</span>{hasRates && ratesAsOf ? <> at ECB rate, {new Date(ratesAsOf).toLocaleDateString()}</> : ""}</>)}</>}
+          action={
+            <>
+              <PeriodSelector value={period} onChange={setPeriod} custom={customRange} onCustom={setCustomRange} />
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-[var(--text-muted)]">Show in</span>
+                <div className="w-28">
+                  <FieldSelect value={display} onChange={v => setDisplay.mutate(v)} ariaLabel="Display currency"
+                    options={currencies.map(c => ({ value: c, label: c }))} />
+                </div>
+              </div>
+            </>
+          }
+        />
       </div>
       {mixedCurrency && !hasRates && (
         <div className="border-b border-[var(--border-soft)] px-6 py-2 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
