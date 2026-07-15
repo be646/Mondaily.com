@@ -4,7 +4,7 @@ import {
   Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
   ChevronsUpDown, Plus, X, Receipt, TrendingUp,
   GitBranch, Activity, Layers, Check, ReceiptText, ShieldCheck,
-  FileSignature, Wallet, MessageCircle, Radar, Inbox, CalendarDays, LifeBuoy, LayoutGrid, Sparkles,
+  FileSignature, Wallet, MessageCircle, Radar, Inbox, CalendarDays, LifeBuoy, LayoutGrid, Sparkles, Target,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -29,6 +29,7 @@ const CORE_NAV: NavEntry[] = [
   { to: "/search", label: "Graph", icon: GitBranch },
   { to: "/tasks", label: "Tasks", icon: CheckSquare },
   { to: "/decisions", label: "Decisions", icon: ShieldCheck },
+  { to: "/goals", label: "Goals", icon: Target },
   { to: "/activity", label: "Agents", icon: Zap },
   { to: "/discovery", label: "Discovery", icon: Radar },
 ];

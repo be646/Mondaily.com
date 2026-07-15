@@ -30,6 +30,7 @@ const CallRoomDispatch = lazy(() => import("./routes/dashboard/call-room").then(
 const ReportsPage = lazy(() => import("./routes/dashboard/reports").then(m => ({ default: m.ReportsPage })));
 const InsightsPage = lazy(() => import("./routes/dashboard/insights").then(m => ({ default: m.InsightsPage })));
 const BriefingPage = lazy(() => import("./routes/dashboard/briefing").then(m => ({ default: m.BriefingPage })));
+const GoalsPage = lazy(() => import("./routes/dashboard/goals").then(m => ({ default: m.GoalsPage })));
 const DashboardViewPage = lazy(() => import("./routes/dashboard/reports/dashboard-view").then(m => ({ default: m.DashboardViewPage })));
 const ReportBuilderPage = lazy(() => import("./routes/dashboard/reports/report-builder").then(m => ({ default: m.ReportBuilderPage })));
 const SalesReportPage = lazy(() => import("./routes/dashboard/reports/sales-report").then(m => ({ default: m.SalesReportPage })));
@@ -150,6 +151,7 @@ export function App() {
         <Route path="reports" element={<ReportsPage />} />
         <Route path="insights" element={<InsightsPage />} />
         <Route path="briefing" element={<BriefingPage />} />
+        <Route path="goals" element={<GoalsPage />} />
         <Route path="reports/sales" element={<SalesReportPage />} />
         <Route path="reports/dashboards/:id" element={<DashboardViewPage />} />
         <Route path="reports/:id" element={<ReportBuilderPage />} />

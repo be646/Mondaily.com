@@ -159,6 +159,55 @@ router.get("/:id", async (c) => {
   return c.json(data);
 });
 
+// Goal-directed planning — an agent turns a goal into an ordered, concrete plan of steps (each with
+// a risk level). Pure planning: NO side effects here. The client reviews, then dispatches steps into
+// the decision queue (POST /), where the autonomy dial + human approval govern execution. Honest:
+// grounded in realistic business actions; never invents specific data.
+router.post("/plan-goal", zValidator("json", z.object({ goal: z.string().min(1).max(500), agent_name: z.string().max(60).optional() })), async (c) => {
+  const { goal, agent_name } = c.req.valid("json");
+  try {
+    const result = await aiGatewayToolUse({
+      system:
+        "You are a goal-planning agent for a business operating system. Turn the user's goal into a concise ORDERED plan of 3–6 concrete steps a workspace agent could take. " +
+        "Each step: a short imperative title, a one-line detail, and a risk_level — 'high' for anything that sends money/external email or deletes data, 'medium' for outbound drafts or bulk changes, 'low' for internal/reversible actions (create a task, flag for review, update a field, draft a note). " +
+        "Ground every step in realistic business actions. NEVER invent specific names, amounts, or data — describe the action, not fabricated specifics.",
+      prompt: `Goal: "${goal}"${agent_name ? ` — assigned agent: ${agent_name}` : ""}. Produce the ordered step plan.`,
+      toolName: "record_plan",
+      toolDescription: "Record the ordered plan of steps for the goal.",
+      toolSchema: {
+        type: "object",
+        properties: {
+          steps: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                detail: { type: "string" },
+                risk_level: { type: "string", enum: ["low", "medium", "high"] },
+              },
+              required: ["title", "risk_level"],
+            },
+          },
+        },
+        required: ["steps"],
+      },
+      maxTokens: 700, workspaceId: c.get("workspaceId"), userId: c.get("userId"), feature: "goal_plan", taskClass: "reasoning",
+    });
+    const raw = Array.isArray((result as { steps?: unknown[] }).steps) ? (result as { steps: Record<string, unknown>[] }).steps : [];
+    const steps = raw.slice(0, 6).map((s, i) => ({
+      order: i + 1,
+      title: String(s.title ?? `Step ${i + 1}`).slice(0, 160),
+      detail: String(s.detail ?? "").slice(0, 300),
+      risk_level: ["low", "medium", "high"].includes(String(s.risk_level)) ? String(s.risk_level) : "medium",
+    }));
+    if (!steps.length) return c.json({ error: "Couldn't produce a plan for that goal — try rephrasing." }, 200);
+    return c.json({ goal, agent_name: agent_name ?? "planner", steps });
+  } catch {
+    return c.json({ error: "The AI service is unavailable right now — please try again." }, 503);
+  }
+});
+
 router.post("/", zValidator("json", createSchema), async (c) => {
   const body = c.req.valid("json");
   const workspaceId = c.get("workspaceId");
