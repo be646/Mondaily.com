@@ -20,6 +20,67 @@ export function autoApproves(level: AutonomyLevel, risk: string): boolean {
   return false;
 }
 
+// ── Learning loop: what agents have LEARNED you want, from your real approve/reject history ──
+// Deterministic (no AI): aggregates decisions YOU resolved by hand — autonomy/learned auto-actions
+// are excluded so this is a true human-preference signal, not a feedback echo of the machine.
+export interface LearnedPreference {
+  agent_name: string;
+  source_type: string;
+  approved: number;
+  rejected: number;
+  resolved: number;          // human-resolved total (approved + rejected)
+  approval_rate: number | null;   // null until there's a meaningful sample
+  verdict: "favored" | "neutral" | "disfavored" | "learning";
+}
+
+const LEARN_MIN_SAMPLE = 6;   // need at least this many human decisions before we claim a pattern
+const FAVOR_AT = 80;          // ≥80% approved → favored
+const DISFAVOR_AT = 20;       // ≤20% approved → disfavored
+
+export function verdictFor(approved: number, rejected: number): LearnedPreference["verdict"] {
+  const resolved = approved + rejected;
+  if (resolved < LEARN_MIN_SAMPLE) return "learning";
+  const rate = (approved / resolved) * 100;
+  if (rate >= FAVOR_AT) return "favored";
+  if (rate <= DISFAVOR_AT) return "disfavored";
+  return "neutral";
+}
+
+export async function getLearnedPreferences(workspaceId: string): Promise<LearnedPreference[]> {
+  // Only HUMAN resolutions count as preference signal: exclude resolved_by 'autonomy' / 'learned'.
+  const { data } = await supabase
+    .from("decision_queue")
+    .select("agent_name, source_type, status, resolved_by")
+    .eq("workspace_id", workspaceId)
+    .in("status", ["approved", "rejected", "executed", "completed"]);
+  const rows = (data ?? []).filter((d) => {
+    const by = String((d as { resolved_by?: string }).resolved_by ?? "");
+    return by !== "autonomy" && by !== "learned_policy";
+  });
+  const agg = new Map<string, { agent_name: string; source_type: string; approved: number; rejected: number }>();
+  for (const d of rows) {
+    const agent_name = String((d as { agent_name?: string }).agent_name ?? "agent");
+    const source_type = String((d as { source_type?: string }).source_type ?? "other");
+    const status = String((d as { status?: string }).status ?? "");
+    const key = `${agent_name}::${source_type}`;
+    const e = agg.get(key) ?? { agent_name, source_type, approved: 0, rejected: 0 };
+    if (status === "rejected") e.rejected++;
+    else e.approved++; // approved / executed / completed all read as "you wanted this"
+    agg.set(key, e);
+  }
+  return [...agg.values()]
+    .map((e) => {
+      const resolved = e.approved + e.rejected;
+      return {
+        ...e,
+        resolved,
+        approval_rate: resolved ? Math.round((e.approved / resolved) * 100) : null,
+        verdict: verdictFor(e.approved, e.rejected),
+      };
+    })
+    .sort((a, b) => b.resolved - a.resolved);
+}
+
 type DecisionRow = {
   id: string;
   risk_level?: string | null;

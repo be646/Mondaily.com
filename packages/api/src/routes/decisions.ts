@@ -12,7 +12,7 @@ import { sendWorkspaceEmail } from "../lib/mail";
 import { describeExecution } from "../lib/decision-actions";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { CreditsExhaustedError } from "../lib/credits";
-import { readAutonomy, maybeAutoApprove } from "../lib/autonomy";
+import { readAutonomy, maybeAutoApprove, getLearnedPreferences } from "../lib/autonomy";
 import { createNotification } from "../lib/notify";
 
 type Variables = { userId: string; workspaceId: string; role: string };
@@ -137,6 +137,15 @@ router.get("/agent-scorecard", async (c) => {
     })
     .sort((x, y) => y.raised - x.raised);
   return c.json({ days, agents });
+});
+
+// Learning loop — what agents have LEARNED you want, from your real approve/reject history, broken
+// down per agent + decision type. Deterministic (no AI); registered before /:id so the literal wins.
+router.get("/learned-preferences", async (c) => {
+  const prefs = await getLearnedPreferences(c.get("workspaceId"));
+  const favored = prefs.filter((p) => p.verdict === "favored").length;
+  const disfavored = prefs.filter((p) => p.verdict === "disfavored").length;
+  return c.json({ preferences: prefs, summary: { favored, disfavored, patterns: prefs.length } });
 });
 
 // Goal-directed planning — an agent turns a goal into an ordered, concrete plan of steps (each with

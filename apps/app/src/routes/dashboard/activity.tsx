@@ -130,6 +130,11 @@ export function AgentActivityPage() {
   const live = useAgentJobsRealtime(() => qc.invalidateQueries({ queryKey: ["agent-activity"] }));
 
   // Agent scorecard — the trust surface for autonomy: per-agent approval rate + auto-approvals.
+  const learnedQ = useQuery({
+    queryKey: ["learned-preferences"],
+    queryFn: () => apiClient.get<{ preferences: { agent_name: string; source_type: string; approved: number; rejected: number; resolved: number; approval_rate: number | null; verdict: "favored" | "neutral" | "disfavored" | "learning" }[]; summary: { favored: number; disfavored: number; patterns: number } }>("/decisions/learned-preferences"),
+    staleTime: 60_000,
+  });
   const scorecardQ = useQuery({
     queryKey: ["agent-scorecard"],
     queryFn: () => apiClient.get<{ days: number; agents: { agent: string; raised: number; approved: number; rejected: number; auto_approved: number; pending: number; resolved: number; approval_rate: number | null; autonomy_ready: boolean }[] }>("/decisions/agent-scorecard?days=30"),
@@ -259,6 +264,44 @@ export function AgentActivityPage() {
           </div>
         </section>
       )}
+
+      {/* ── Learned from you — deterministic learning loop. Aggregates the decisions YOU resolved by
+             hand (autonomy auto-actions excluded) per agent + type, so the app shows what your agents
+             have learned you want vs. don't. The honest, evidence-first half of "agents adapt to me". ── */}
+      {(() => {
+        const learned = (learnedQ.data?.preferences ?? []).filter(p => p.verdict === "favored" || p.verdict === "disfavored");
+        if (learned.length === 0) return null;
+        const V: Record<string, { label: string; tone: string }> = {
+          favored: { label: "You approve", tone: "#2f9e6b" },
+          disfavored: { label: "You reject", tone: "#d1524a" },
+        };
+        return (
+          <section className="mb-8">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Learned from you</h2>
+              <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>patterns from your own approvals &amp; rejections</span>
+            </div>
+            <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+              {learned.map((p, i) => {
+                const v = V[p.verdict]!;
+                return (
+                  <div key={`${p.agent_name}-${p.source_type}-${i}`} className="flex items-center gap-3 border-b px-4 py-2.5 last:border-0" style={{ borderColor: "var(--border-soft)" }}>
+                    <span className="rounded-full px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide" style={{ background: `color-mix(in srgb, ${v.tone} 14%, transparent)`, color: v.tone }}>{v.label}</span>
+                    <span className="min-w-0 flex-1 truncate text-[12.5px]" style={{ color: "var(--text-primary)" }}>
+                      <span className="font-medium capitalize">{p.agent_name.replace(/_/g, " ")}</span>
+                      <span style={{ color: "var(--text-faint)" }}> · {p.source_type.replace(/_/g, " ")}</span>
+                    </span>
+                    <span className="shrink-0 text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>{p.approval_rate}% of {p.resolved}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 px-0.5 text-[11px]" style={{ color: "var(--text-faint)" }}>
+              Computed from your real decisions — the more you approve and reject, the sharper this gets.
+            </p>
+          </section>
+        );
+      })()}
 
       {/* ── 2. Agent roster (GET /agents) ── */}
       <section className="mb-8">
