@@ -38,14 +38,24 @@ router.post("/schema", requireAuth, zValidator("json", z.object({ prompt: z.stri
   try {
     const data = await callGatewayTool({
       max_tokens: 2048,
+      system: [
+        "You are Mondaily's schema architect. Design a PRECISE, domain-accurate object schema for exactly what the user describes.",
+        "HARD RULES:",
+        "1. Every column MUST be directly relevant to the stated domain. NEVER add generic contact or social fields (twitter/linkedin/instagram followers, etc.) UNLESS the domain is explicitly about people, influencers, or social accounts.",
+        "2. The FIRST attribute must be the record's primary label — a 'text' field named for the domain (e.g. 'Ticker' for a stock tracker, 'Property Address' for real estate, 'Company Name' for companies, 'Deal Name' for deals).",
+        "3. Choose the MOST precise type: currency for money, percentage for rates/returns/allocations, date/datetime for time, select/multi_select for fixed categories (ALWAYS provide realistic `options` for these), checkbox for yes/no, number for counts, url/email/phone where apt.",
+        "4. Include 6–12 columns a real professional in that domain would actually use.",
+        "5. Give every attribute a short `description` of what it holds.",
+        "Example — 'finance investing dashboard' → Ticker(text), Asset Class(select: Equity/Bond/Crypto/ETF/Cash), Sector(select), Position Size(number), Entry Price(currency), Current Price(currency), Market Value(currency), Unrealized P&L(currency), Return %(percentage), Purchase Date(date), Conviction(select: High/Medium/Low). NOT social metrics.",
+      ].join("\n"),
       tools: [{
         name: "create_object_schema",
         description: "Create a Mondaily object schema with attributes for the described use case",
         input_schema: {
           type: "object",
           properties: {
-            singular: { type: "string", description: "Singular name e.g. Invoice" },
-            plural:   { type: "string", description: "Plural name e.g. Invoices" },
+            singular: { type: "string", description: "Singular name e.g. Investment" },
+            plural:   { type: "string", description: "Plural name e.g. Investments" },
             vertical: { type: "string", enum: ["sales","finance","hr","realestate","investments","shared"] },
             color:    { type: "string", enum: ["red","orange","amber","emerald","cyan","blue","violet","pink"] },
             description: { type: "string", description: "One-line description of what this tracks" },
@@ -54,12 +64,14 @@ router.post("/schema", requireAuth, zValidator("json", z.object({ prompt: z.stri
               items: {
                 type: "object",
                 properties: {
-                  name: { type: "string" },
-                  type: { type: "string", enum: ["text","long_text","number","currency","percentage","date","datetime","checkbox","select","multi_select","url","email","phone"] }
+                  name: { type: "string", description: "Column name in Title Case" },
+                  type: { type: "string", enum: ["text","long_text","number","currency","percentage","date","datetime","checkbox","select","multi_select","url","email","phone"] },
+                  description: { type: "string", description: "One short line: what this column holds" },
+                  options: { type: "array", items: { type: "string" }, description: "For select/multi_select ONLY: the realistic choice values" }
                 },
                 required: ["name","type"]
               },
-              minItems: 5,
+              minItems: 6,
               maxItems: 14
             }
           },
@@ -69,7 +81,7 @@ router.post("/schema", requireAuth, zValidator("json", z.object({ prompt: z.stri
       tool_choice: { type: "tool", name: "create_object_schema" },
       messages: [{
         role: "user",
-        content: `Create a comprehensive Mondaily object schema for: ${prompt}\n\nUse appropriate field types: currency for money, date for dates, checkbox for yes/no, select for status/category, percentage for rates, number for quantities.`
+        content: `Design the object schema for: "${prompt}". Return domain-specific columns only — no generic social/contact fields unless the domain is about people. Put the primary label column first.`
       }]
     });
 

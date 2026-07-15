@@ -15,7 +15,7 @@ import { useWorkspaceSuggestions } from "../../../hooks/useWorkspaceSuggestions"
 type AttributeType = "text" | "long_text" | "number" | "currency" | "percentage" | "date" | "datetime" | "checkbox" | "select" | "multi_select" | "url" | "email" | "phone" | "relation" | "formula" | "file";
 interface Attribute { id?: string; name: string; type: AttributeType; required?: boolean; unique?: boolean }
 interface ObjectDefinition { id: string; name_singular?: string; name_plural: string; slug: string; icon?: string; color?: string; is_standard?: boolean; vertical?: string; attributes: Attribute[] }
-interface GeneratedSchema { singular: string; plural: string; vertical: string; color: string; description?: string; attributes: { name: string; type: AttributeType }[] }
+interface GeneratedSchema { singular: string; plural: string; vertical: string; color: string; description?: string; attributes: { name: string; type: AttributeType; description?: string; options?: string[] }[] }
 
 const typeOptions: { type: AttributeType; label: string; icon: typeof Text }[] = [
   { type: "text", label: "Text", icon: Text }, { type: "long_text", label: "Long text", icon: Text },
@@ -31,7 +31,11 @@ const typeOptions: { type: AttributeType; label: string; icon: typeof Text }[] =
 const TYPE_ICON: Record<AttributeType, typeof Text> = Object.fromEntries(typeOptions.map(t => [t.type, t.icon])) as any;
 
 const colors = ["red", "orange", "amber", "emerald", "cyan", "blue", "violet", "pink"];
-const apiType = (type: AttributeType) => type === "number" || type === "date" || type === "select" || type === "relation" ? type : type === "multi_select" ? "select" : "text";
+// Types the object_definitions backend persists. The AI generator emits from this set, so pass
+// the real type straight through (the old code flattened currency/percentage/date-time/etc. to
+// "text", destroying every rich column). Only app-only types (formula/file) fall back to text.
+const BACKEND_ATTR_TYPES = new Set<AttributeType>(["text","long_text","number","currency","percentage","date","datetime","checkbox","select","multi_select","url","email","phone","relation"]);
+const apiType = (type: AttributeType): AttributeType => BACKEND_ATTR_TYPES.has(type) ? type : "text";
 
 // ─── Example prompts ──────────────────────────────────────────────────────────
 const EXAMPLES = [
@@ -117,6 +121,8 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
             name: attr.name,
             type: apiType(attr.type),
             display_type: attr.type,
+            ...(attr.description ? { description: attr.description } : {}),
+            ...(attr.options?.length ? { options: attr.options } : {}),
             required: false,
             unique: false,
           });

@@ -707,7 +707,7 @@ function pluralize(word: string): string {
   if (/(s|x|z|ch|sh)$/i.test(w)) return w + "es";
   return w + "s";
 }
-const ATTR_TYPES = ["text", "number", "date", "select", "relation", "currency", "percentage", "url", "email", "phone", "checkbox", "long_text"] as const;
+const ATTR_TYPES = ["text", "number", "date", "datetime", "select", "multi_select", "relation", "currency", "percentage", "url", "email", "phone", "checkbox", "long_text"] as const;
 router.post("/settings/objects", zValidator("json", z.object({
   name: z.string().min(1),                 // singular (kept for back-compat with older callers)
   singular: z.string().min(1).optional(),
@@ -744,7 +744,11 @@ router.post("/settings/objects", zValidator("json", z.object({
 });
 router.post("/settings/objects/:id/attributes", zValidator("json", z.object({
   name: z.string().min(1),
-  type: z.enum(["text", "number", "date", "select", "relation"])
+  // Full type set — previously capped at 5 types, so AI-generated currency/percentage/date-time/
+  // multi-select columns silently 400'd and were dropped (e.g. a finance schema lost every money field).
+  type: z.enum(ATTR_TYPES),
+  description: z.string().optional(),
+  options: z.array(z.string()).optional(),
 })), async (c) => {
   const body = c.req.valid("json");
   const { data: object } = await supabase.from("object_definitions").select("attributes").eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).single();
