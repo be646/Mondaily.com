@@ -57,6 +57,7 @@ const ACTIONS = [
   { type: "send_notification", label: "Send notification", icon: Bell },
   { type: "update_field",    label: "Update field",       icon: Tag },
   { type: "draft_quote",     label: "Draft quote",        icon: GitBranch },
+  { type: "create_record",   label: "Create record",      icon: Plus },
 ];
 
 const KIND_STYLES: Record<NodeKind, { border: string; bg: string; text: string; icon: string }> = {
@@ -132,6 +133,12 @@ function NodeConfigFields({ node, onChange }: { node: WFNode; onChange: (config:
     <div className="space-y-2">
       {inp("field", "Field name")}
       {inp("value", "New value")}
+    </div>
+  );
+  if (node.type === "create_record") return (
+    <div className="space-y-2">
+      {inp("object_type", "Create which object? (e.g. invoice, task, contact)")}
+      <p className="text-[10px] text-[var(--text-faint)]">A linked {"{object}"} is drafted from this record (finance docs start as Draft for you to review).</p>
     </div>
   );
   return null;

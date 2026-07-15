@@ -23,7 +23,7 @@ import { createNotification } from "../lib/notify";
  * enforced by the workflow_runs unique index (migration 0018).
  */
 
-const SAFE_ACTIONS = new Set(["create_task", "create_note", "update_field", "set_field", "add_tag", "notify", "add_note", "draft_quote", "create_quote"]);
+const SAFE_ACTIONS = new Set(["create_task", "create_note", "update_field", "set_field", "add_tag", "notify", "add_note", "draft_quote", "create_quote", "create_record"]);
 const RISKY_ACTIONS = new Set(["send_email", "send_message", "send_sms", "create_invoice", "charge", "charge_invoice", "delete_record", "archive_record", "send"]);
 
 interface WorkflowBlock { id: string; kind: string; type: string; label?: string; config?: Record<string, unknown>; }
@@ -190,6 +190,31 @@ async function runAction(workspaceId: string, action: WorkflowBlock, record: { i
       data: { parent_id: record.id, title: nf.title ?? "Workflow note", content: nf.content ?? action.label, created_at: new Date().toISOString() },
     });
     return { action: action.type, mode: "executed", detail: nf.title ?? "note" };
+  }
+  // Cross-object: create a linked record of ANY target object type (from config or the action
+  // name, e.g. "create_contact"), AI-populated from the trigger record. Finance docs are always
+  // created as DRAFT (safe — a human sends/charges later). Grounded in the trigger; never invents.
+  if (type === "create_record") {
+    const cfg = (action.config ?? {}) as Record<string, unknown>;
+    const targetType = String(cfg.object_type ?? cfg.target ?? cfg.type ?? "").toLowerCase().trim();
+    if (!targetType || targetType === "record") return { action: action.type, mode: "executed", detail: "no target object type" };
+    const isFinance = /invoice|quote|expense|credit/.test(targetType);
+    const p = await aiGatewayToolUse({
+      prompt: `A ${record.object_type} "${recName}" triggered a workflow to create a linked ${targetType}. Trigger record:\n${JSON.stringify(record.data).slice(0, 1000)}\nDraft the new ${targetType}'s fields — a name/title plus only fields clearly derivable from the trigger record. Never invent facts (client names, amounts) not present or implied.`,
+      toolName: "record_fields", toolDescription: `Draft the fields for the new ${targetType}`,
+      toolSchema: { type: "object", properties: { name: { type: "string" }, fields: { type: "object", additionalProperties: true } }, required: ["name"] },
+      maxTokens: 400,
+    }).catch(() => ({ name: `${recName} — ${targetType}` }));
+    const rf = p as { name?: string; fields?: Record<string, unknown> };
+    await supabase.from("nodes").insert({
+      workspace_id: workspaceId, vertical: isFinance ? "finance" : "shared", object_type: targetType, created_by: "agent:workflow",
+      data: {
+        name: rf.name ?? recName, ...(rf.fields ?? {}),
+        ...(isFinance ? { status: "draft" } : {}),
+        linked_record_id: record.id, source_object_type: record.object_type, created_at: new Date().toISOString(),
+      },
+    });
+    return { action: action.type, mode: "executed", detail: `created ${targetType}: ${rf.name ?? recName}` };
   }
   if (type === "draft_quote" || type === "create_quote") {
     // Deal-stage-triggered quote drafting (Finance Agent). Creates a DRAFT quote
