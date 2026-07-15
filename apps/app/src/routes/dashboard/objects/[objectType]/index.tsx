@@ -486,16 +486,21 @@ function AIFillModal({
   const importSelected = async () => {
     const toCreate = records.filter((_, i) => selected.has(i));
     if (!toCreate.length) return;
-    setSaving(true); setProgress(0);
+    setSaving(true); setProgress(0); setError("");
     const safeType = objectType.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_-]/g, "");
-    let done = 0;
+    let done = 0, failed = 0;
     for (const rec of toCreate) {
-      try { await apiClient.post("/nodes", { vertical: "shared", object_type: safeType, data: rec }); } catch {}
+      try { await apiClient.post("/nodes", { vertical: "shared", object_type: safeType, data: rec }); }
+      catch { failed++; }
       done++;
       setProgress(Math.round((done / toCreate.length) * 100));
     }
     queryClient.invalidateQueries({ queryKey: ["records", objectType] });
     setSaving(false);
+    // Never fake success: if some (or all) inserts failed, tell the user honestly instead of
+    // silently closing on a 100% bar.
+    if (failed === toCreate.length) { setError(`Couldn't create any of the ${toCreate.length} record(s). Please try again.`); return; }
+    if (failed > 0) { setError(`Created ${toCreate.length - failed} of ${toCreate.length} — ${failed} failed.`); return; }
     onClose();
   };
 

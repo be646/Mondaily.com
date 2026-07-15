@@ -1778,14 +1778,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     const failed = results.filter(r => r.status === "rejected").length;
     const succeeded = results.length - failed;
     setSelected(new Set());
-    if (succeeded > 0) {
-      setUndoToast(null); // repurpose existing toast slot for feedback
-      // Brief success flash via window title hack — or just log
-      console.log(`Added ${succeeded} record(s) to list`);
-    }
-    if (failed > 0) {
-      console.warn(` record(s) could not be added — list type may not match.`);
-    }
+    // Real UI feedback (previously this only logged to the console, so the user got nothing).
+    if (succeeded > 0 && failed === 0) showFlash(`Added ${succeeded} record${succeeded === 1 ? "" : "s"} to the list.`, "ok");
+    else if (succeeded > 0 && failed > 0) showFlash(`Added ${succeeded}, but ${failed} couldn't be added — the list type may not match.`, "warn");
+    else if (failed > 0) showFlash(`Couldn't add ${failed} record${failed === 1 ? "" : "s"} — the list type may not match.`, "warn");
   }
 
   const [filterSearchOpen, setFilterSearchOpen] = useState(false);
@@ -1801,6 +1797,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   });
 
   const [undoToast, setUndoToast] = useState<{ record: NodeRecord; timer: ReturnType<typeof setTimeout> } | null>(null);
+  // Lightweight transient feedback toast (bulk add-to-list results, etc.). Auto-dismisses.
+  const [flash, setFlash] = useState<{ msg: string; kind: "ok" | "warn" } | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function showFlash(msg: string, kind: "ok" | "warn") {
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    setFlash({ msg, kind });
+    flashTimer.current = setTimeout(() => setFlash(null), 4000);
+  }
 
   function deleteRow(record: NodeRecord) {
     // Clear any existing undo toast first
@@ -2854,6 +2858,13 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           <RotateCcw size={11} />
           Undo
         </button>
+      </div>
+    )}
+
+    {flash && (
+      <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-sm border bg-[var(--surface-card)] px-4 py-3 shadow-2xl"
+        style={{ borderColor: flash.kind === "warn" ? "color-mix(in srgb, #c6892e 40%, transparent)" : "var(--border-soft)" }}>
+        <span className="text-sm" style={{ color: flash.kind === "warn" ? "#c6892e" : "var(--text-secondary)" }}>{flash.msg}</span>
       </div>
     )}
 

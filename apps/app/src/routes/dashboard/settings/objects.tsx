@@ -136,6 +136,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
       if (includeSamples && schema.sample_records?.length) {
         const colSlug = (n: string) => n.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
         const primary = schema.attributes[0]?.name;
+        let seedFailed = 0;
         for (const rec of schema.sample_records.slice(0, 3)) {
           const data: Record<string, unknown> = {};
           for (const attr of schema.attributes) {
@@ -144,9 +145,13 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
           }
           if (primary && (rec as Record<string, unknown>)[primary] != null) data.name = (rec as Record<string, unknown>)[primary];
           if (Object.keys(data).length) {
-            try { await apiClient.post("/nodes", { vertical: schema.vertical || "shared", object_type: slug, data }); } catch {}
+            try { await apiClient.post("/nodes", { vertical: schema.vertical || "shared", object_type: slug, data }); }
+            catch { seedFailed++; }
           }
         }
+        // The object itself was created — seeds are opt-in sample rows, so a seed failure must not
+        // fail the whole flow. Surface it honestly in logs rather than silently pretending success.
+        if (seedFailed) console.warn(`[object-create] ${seedFailed} sample record(s) could not be seeded for "${slug}".`);
       }
 
       await qc.invalidateQueries({ queryKey: ["object-definitions"] });

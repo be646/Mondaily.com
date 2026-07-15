@@ -285,14 +285,20 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
   };
 
   const importSelected = async () => {
-    setSaving(true);
-    for (const t of suggestions.filter((_, i) => selected.has(i))) {
+    setSaving(true); setError("");
+    const chosen = suggestions.filter((_, i) => selected.has(i));
+    let failed = 0;
+    for (const t of chosen) {
       const member = members.find(m => m.email === t.suggested_assignee_email);
       const dueDate = t.due_days ? new Date(Date.now() + t.due_days * 86400000).toISOString() : undefined;
-      try { await apiClient.post("/tasks", { title: t.title, notes: t.notes || undefined, priority: t.priority || "medium", status: "todo", due_date: dueDate, assignee_id: member?.user_id || undefined, assignee_email: member?.email || undefined }); } catch {}
+      try { await apiClient.post("/tasks", { title: t.title, notes: t.notes || undefined, priority: t.priority || "medium", status: "todo", due_date: dueDate, assignee_id: member?.user_id || undefined, assignee_email: member?.email || undefined }); }
+      catch { failed++; }
     }
     qc.invalidateQueries({ queryKey: ["tasks"] });
-    setSaving(false); onClose();
+    setSaving(false);
+    if (failed === chosen.length) { setError(`Couldn't create any of the ${chosen.length} task(s). Please try again.`); return; }
+    if (failed > 0) { setError(`Created ${chosen.length - failed} of ${chosen.length} — ${failed} failed.`); return; }
+    onClose();
   };
 
   const PCOL: Record<string, string> = { low: "text-stone-400", medium: "text-[#717784]", high: "text-[#c6892e]", urgent: "text-stone-400" };
