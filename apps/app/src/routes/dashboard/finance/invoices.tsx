@@ -7,6 +7,8 @@ import { useCurrency } from "../../../hooks/useCurrency";
 import { FinanceAgentStrip } from "../../../components/ai/finance-agent-strip";
 import { Plus, FileText, Clock, CheckCircle, AlertTriangle, XCircle, Send, DollarSign } from "lucide-react";
 import { FinanceListToolbar, FinanceHeader } from "../../../components/finance/finance-toolbar";
+import { PeriodSelector } from "../../../components/ui/period-selector";
+import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
 
@@ -91,10 +93,14 @@ export function InvoicesPage() {
     },
   });
 
-  // Totals normalized to the caller's display currency (mixed-currency invoices sum honestly).
+  // Period lens (default All for a list page). Outstanding is a point-in-time BALANCE (as-of, never
+  // scoped); Collected is a FLOW counted within the window on paid date.
+  const [period, setPeriod] = usePeriod("mondaily_invoices_period", "all");
+  const range = periodRange(period);
   const inv$ = (i: Invoice) => ({ amount: i.total, currency: i.currency });
   const totalOwed = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$)).value;
-  const totalPaid = sumInDisplay(invoices.filter(i => i.status === "paid").map(inv$)).value;
+  const totalPaid = sumInDisplay(invoices.filter(i => i.status === "paid" && (period === "all" || inRange(i.paid_at ?? i.created_at, range))).map(inv$)).value;
+  const collectedScope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
 
   return (
     <div className="flex h-full flex-col">
@@ -102,13 +108,16 @@ export function InvoicesPage() {
       <div className="border-b border-[var(--border-soft)] px-6 py-4">
         <FinanceHeader icon={FileText} callsign="BILLING" title="Invoices" subtitle="Create, send, and track invoices"
           action={
-            <button
-              onClick={() => createMutation.mutate()}
-              disabled={createMutation.isPending}
-              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-50"
-            >
-              <Plus size={13}/> New Invoice
-            </button>
+            <>
+              <PeriodSelector value={period} onChange={setPeriod} />
+              <button
+                onClick={() => createMutation.mutate()}
+                disabled={createMutation.isPending}
+                className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-50"
+              >
+                <Plus size={13}/> New Invoice
+              </button>
+            </>
           }
         />
 
@@ -122,6 +131,7 @@ export function InvoicesPage() {
               <span className="text-[11px] text-[var(--text-muted)]">Outstanding</span>
             </div>
             <div className="font-mono text-[18px] font-semibold tabular-nums text-[var(--text-primary)]">{formatCurrency(totalOwed, display)}</div>
+            <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">unpaid · as of today</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-2 mb-1">
@@ -129,6 +139,7 @@ export function InvoicesPage() {
               <span className="text-[11px] text-[var(--text-muted)]">Collected</span>
             </div>
             <div className="font-mono text-[18px] font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{formatCurrency(totalPaid, display)}</div>
+            <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{collectedScope}</div>
           </div>
         </div>
 

@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { FieldSelect, FilterButton, FilterStrip } from "../../../components/ui/controls";
 import { FinanceHeader } from "../../../components/finance/finance-toolbar";
+import { PeriodSelector } from "../../../components/ui/period-selector";
+import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
 import { AIButton } from "../../../components/ui/ai-button";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import {
@@ -191,22 +193,28 @@ export function ExpensesPage() {
 
   const currency = display;
   const e$ = (e: Expense) => ({ amount: e.amount_cents / 100, currency: e.currency });
-
-  const now = new Date();
-  const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [period, setPeriod] = usePeriod("mondaily_expenses_period", "all");
+  // Period lens (default All for a list page). Submitted is a pending BALANCE (as-of); Approved and
+  // the period total are FLOWs counted within the window on the expense date.
+  const range = periodRange(period);
+  const inPeriod = (e: Expense) => period === "all" || inRange(e.date ?? "", range);
+  const periodScope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
   const totalSubmitted = sumInDisplay(expenses.filter(e => e.status === "submitted").map(e$)).value;
-  const totalApproved  = sumInDisplay(expenses.filter(e => e.status === "approved").map(e$)).value;
-  const totalThisMonth = sumInDisplay(expenses.filter(e => e.date?.slice(0, 7) === thisMonthKey).map(e$)).value;
+  const totalApproved  = sumInDisplay(expenses.filter(e => e.status === "approved" && inPeriod(e)).map(e$)).value;
+  const totalInPeriod  = sumInDisplay(expenses.filter(inPeriod).map(e$)).value;
 
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-[var(--border-soft)] px-6 py-4">
         <FinanceHeader icon={Receipt} callsign="EXPENSES" title="Expenses" subtitle="Track and manage business expenses"
           action={
+            <>
+            <PeriodSelector value={period} onChange={setPeriod} />
             <button onClick={() => setShowNew(true)}
               className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
               <Plus size={13}/> Log Expense
             </button>
+            </>
           }
         />
 
@@ -219,12 +227,12 @@ export function ExpensesPage() {
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#2f9e6b]"/><span className="text-[11px] text-[var(--text-muted)]">Approved</span></div>
             <div className="text-[17px] font-semibold text-[#2f9e6b]">{formatMoney(totalApproved, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{expenses.filter(e => e.status === "approved").length} approved</div>
+            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">approved · {periodScope}</div>
           </div>
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Receipt size={11} className="text-[var(--text-muted)]"/><span className="text-[11px] text-[var(--text-muted)]">This Month</span></div>
-            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{formatMoney(totalThisMonth, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">all statuses</div>
+            <div className="flex items-center gap-1.5 mb-1"><Receipt size={11} className="text-[var(--text-muted)]"/><span className="text-[11px] text-[var(--text-muted)]">Total logged</span></div>
+            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{formatMoney(totalInPeriod, currency)}</div>
+            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">all statuses · {periodScope}</div>
           </div>
         </div>
 
