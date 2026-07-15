@@ -36,7 +36,8 @@ function KpiCard({ icon: Icon, tone, label, value, sub, delta, goodUp, onClick }
 }) {
   return (
     <button onClick={onClick} disabled={!onClick}
-      className={`telemetry-strip text-left ${onClick ? "transition-colors hover:border-[var(--border-strong)]" : "cursor-default"}`}>
+      className={`block rounded-sm border px-4 py-3 text-left transition-colors ${onClick ? "hover:border-[var(--border-strong)]" : "cursor-default"}`}
+      style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
       <div className="flex items-center gap-1.5 mb-2">
         <Icon size={11} style={{ color: tone }} />
         <span className="text-[11px] text-[var(--text-muted)]">{label}</span>

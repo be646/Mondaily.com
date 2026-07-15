@@ -67,7 +67,7 @@ export function BriefingPage() {
       {needsAnything ? (
         <div className="mb-8 grid gap-3 sm:grid-cols-3">
           {attention.map((a, i) => (
-            <button key={i} onClick={() => navigate(a.to)} className="telemetry-strip text-left transition-colors hover:border-[var(--border-strong)]">
+            <button key={i} onClick={() => navigate(a.to)} className="block rounded-sm border px-4 py-3 text-left transition-colors hover:border-[var(--border-strong)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
               <div className="mb-1.5 flex items-center gap-1.5"><a.icon size={12} style={{ color: a.tone }} /><span className="text-[11px] text-[var(--text-muted)]">{a.label}</span></div>
               <div className="flex items-center justify-between">
                 <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{a.sub}</span>
@@ -102,7 +102,7 @@ export function BriefingPage() {
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Workspace pulse</p>
       <div className="grid gap-3 sm:grid-cols-3">
         {pulse.map(p => (
-          <div key={p.label} className="telemetry-strip">
+          <div key={p.label} className="rounded-sm border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
             <div className="mb-1.5 flex items-center gap-1.5"><p.icon size={12} style={{ color: p.tone }} /><span className="text-[11px] text-[var(--text-muted)]">{p.label}</span></div>
             <div className="text-[18px] font-semibold tracking-tight text-[var(--text-primary)]">{p.value}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{p.sub}</div>
