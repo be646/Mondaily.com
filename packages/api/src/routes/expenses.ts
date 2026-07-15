@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
+import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 
@@ -131,6 +132,36 @@ router.delete("/:id", async (c) => {
     .eq("object_type", "expense");
   if (error) return c.json({ error: error.message }, 500);
   return c.json({ ok: true });
+});
+
+// ─── AI: suggest a category from the description/vendor ───────────────────────
+// Classifier only — returns one of the fixed EXPENSE_CATEGORIES (never invents one),
+// plus a short rationale. The client applies it; nothing is persisted here.
+router.post("/categorize", zValidator("json", z.object({
+  description: z.string().min(1).max(500),
+  vendor: z.string().max(200).optional(),
+  amount_cents: z.number().int().min(0).optional(),
+})), async (c) => {
+  const env = gatewayEnv();
+  if (!env.baseURL || !env.apiKey) return c.json({ error: "AI isn't available right now." }, 503);
+  const { description, vendor, amount_cents } = c.req.valid("json");
+
+  const system = `You classify a business expense into EXACTLY ONE of these categories: ${EXPENSE_CATEGORIES.join(", ")}. Reply with ONLY a compact JSON object {"category":"<one of the list>","rationale":"<max 12 words>"}. If unsure, use "other". Never invent a category outside the list.`;
+  const prompt = `Description: ${description}${vendor ? `\nVendor: ${vendor}` : ""}${amount_cents != null ? `\nAmount: ${(amount_cents / 100).toFixed(2)}` : ""}`;
+
+  try {
+    const res = await aiGateway({ system, prompt, maxTokens: 80, workspaceId: c.get("workspaceId"), userId: c.get("userId"), feature: "expense_categorize" });
+    const raw = (res.text ?? "").trim();
+    if (!raw || res.provider === "none") return c.json({ error: "Couldn't suggest a category (check your AI credits)." }, 200);
+    let category = "other", rationale = "";
+    try {
+      const m = raw.match(/\{[\s\S]*\}/);
+      const parsed = m ? JSON.parse(m[0]) : {};
+      if (typeof parsed.category === "string" && (EXPENSE_CATEGORIES as readonly string[]).includes(parsed.category)) category = parsed.category;
+      if (typeof parsed.rationale === "string") rationale = parsed.rationale.slice(0, 120);
+    } catch { /* fall back to "other" if the model didn't return clean JSON */ }
+    return c.json({ category, rationale });
+  } catch { return c.json({ error: "Couldn't suggest a category — please try again." }, 200); }
 });
 
 export { router as expensesRouter };

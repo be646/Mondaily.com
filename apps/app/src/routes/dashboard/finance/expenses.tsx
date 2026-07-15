@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { FieldSelect, FilterButton, FilterStrip } from "../../../components/ui/controls";
+import { AIButton } from "../../../components/ui/ai-button";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import {
   Plus, Search, Car, Monitor, Coffee, Zap, Briefcase, Building2, MoreHorizontal, Receipt,
@@ -58,6 +59,27 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // AI category suggestion — grounded in the typed description/vendor/amount; applies the
+  // returned category and shows the model's short rationale. Never invents a category.
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestNote, setSuggestNote] = useState<string | null>(null);
+  async function suggestCategory() {
+    if (!form.description.trim()) return;
+    setSuggesting(true); setSuggestNote(null);
+    try {
+      const cents = Math.round(parseFloat(form.amount) * 100);
+      const res = await apiClient.post<{ category?: string; rationale?: string; error?: string }>("/expenses/categorize", {
+        description: form.description.trim(),
+        vendor: form.vendor || undefined,
+        amount_cents: isNaN(cents) ? undefined : cents,
+      });
+      if (res.error) { setSuggestNote(res.error); return; }
+      if (res.category) setForm(f => ({ ...f, category: res.category! }));
+      setSuggestNote(res.rationale ? `AI: ${res.rationale}` : null);
+    } catch { setSuggestNote("Couldn't suggest a category."); }
+    finally { setSuggesting(false); }
+  }
+
   async function submit() {
     const cents = Math.round(parseFloat(form.amount) * 100);
     if (!form.description || isNaN(cents) || cents <= 0) {
@@ -110,9 +132,16 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
                 options={currencyOptions(currencies)} />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Category</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Category</label>
+                <AIButton variant="subtle" size="sm" loading={suggesting} disabled={!form.description.trim()}
+                  className="!px-1.5 !py-0.5 !text-[10px]" title="Suggest a category from the description" onClick={suggestCategory}>
+                  Suggest
+                </AIButton>
+              </div>
               <FieldSelect value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} ariaLabel="Category"
                 options={CATEGORIES.map(c => ({ value: c.key, label: c.label }))} />
+              {suggestNote && <p className="mt-1 text-[10px] text-[var(--text-faint)]">{suggestNote}</p>}
             </div>
             <div>
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Date</label>
