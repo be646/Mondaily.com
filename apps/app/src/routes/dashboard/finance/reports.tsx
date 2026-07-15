@@ -1,11 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
 import { FieldSelect } from "../../../components/ui/controls";
 import { PeriodSelector } from "../../../components/ui/period-selector";
-import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange } from "../../../lib/period";
+import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange, type CustomRange } from "../../../lib/period";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
@@ -146,9 +146,13 @@ export function FinanceReportsPage() {
   // FLOW metrics (revenue collected, credits issued, expenses) are counted within the range on
   // their real event date; BALANCE metrics (outstanding) are read as-of and ignore the range.
   const [period, setPeriod] = usePeriod("mondaily_finance_period");
-  const range = periodRange(period);
+  const [customRange, setCustomRange] = useState<CustomRange>({});
+  const range = periodRange(period, new Date(), customRange);
   const prev = previousRange(period);
-  const periodScope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
+  const periodScope = period === "all" ? "all time"
+    : period === "custom" ? "selected range"
+    : period === "today" ? "today"
+    : `this ${periodLabel(period).toLowerCase()}`;
   const paidDate = (i: Invoice) => i.paid_at ?? i.created_at;               // when cash actually landed
   const cnDate = (cn: CreditNote) => cn.updated_at ?? cn.created_at ?? "";  // when it was executed
   const expDate = (e: { date?: string; created_at?: string }) => e.date ?? e.created_at ?? "";
@@ -239,7 +243,7 @@ export function FinanceReportsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
-          <PeriodSelector value={period} onChange={setPeriod} />
+          <PeriodSelector value={period} onChange={setPeriod} custom={customRange} onCustom={setCustomRange} />
           <div className="flex items-center gap-2">
             <span className="text-[11px] text-[var(--text-muted)]">Show in</span>
             <div className="w-28">
