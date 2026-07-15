@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { requireModuleRW } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
+import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 
@@ -263,6 +264,31 @@ router.post("/:id/convert", async (c) => {
     .eq("id", quote.id);
 
   return c.json({ id: newInvoice.id, ...newInvoice.data, created_at: newInvoice.created_at, created_by: newInvoice.created_by }, 201);
+});
+
+// ─── AI: draft a quote from a short brief ─────────────────────────────────────
+// Drafting aid only — grounded in the brief the user typed (which may describe a deal).
+// Returns a client name, an amount, and a one/two-line deliverable note for the modal to
+// fill; the user reviews and edits before creating. Never invents figures not implied.
+router.post("/draft", zValidator("json", z.object({ brief: z.string().min(1).max(1000), currency: z.string().max(8).optional() })), async (c) => {
+  const env = gatewayEnv();
+  if (!env.baseURL || !env.apiKey) return c.json({ error: "AI isn't available right now." }, 503);
+  const { brief, currency } = c.req.valid("json");
+  const system = `You draft a business sales quote from a short brief${currency ? ` (currency ${currency})` : ""}. Reply with ONLY compact JSON {"client_name":"<name or empty>","amount":<number in major units, 0 if unknown>,"notes":"<one or two lines describing the deliverable>"}. Use ONLY what the brief implies — never invent a client or a price that isn't suggested. If a value is unknown, use "" or 0.`;
+  try {
+    const res = await aiGateway({ system, prompt: brief, maxTokens: 220, workspaceId: c.get("workspaceId"), userId: c.get("userId"), feature: "quote_draft" });
+    const raw = (res.text ?? "").trim();
+    if (!raw || res.provider === "none") return c.json({ error: "Couldn't draft that (check your AI credits)." }, 200);
+    let client_name = "", amount = 0, notes = "";
+    try {
+      const m = raw.match(/\{[\s\S]*\}/);
+      const p = m ? JSON.parse(m[0]) : {};
+      if (typeof p.client_name === "string") client_name = p.client_name.slice(0, 200);
+      if (typeof p.amount === "number" && Number.isFinite(p.amount) && p.amount >= 0) amount = Math.min(p.amount, 1_000_000_000);
+      if (typeof p.notes === "string") notes = p.notes.slice(0, 600);
+    } catch { /* leave defaults if the model didn't return clean JSON */ }
+    return c.json({ client_name, amount, notes });
+  } catch { return c.json({ error: "Couldn't draft that — please try again." }, 200); }
 });
 
 export { router as quotesRouter };

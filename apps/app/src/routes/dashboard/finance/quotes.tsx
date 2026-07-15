@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FieldSelect } from "../../../components/ui/controls";
 import { FinanceListToolbar } from "../../../components/finance/finance-toolbar";
+import { AIButton } from "../../../components/ui/ai-button";
 import { apiClient } from "../../../lib/api-client";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import {
@@ -57,6 +58,28 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // AI draft — turn a short brief (e.g. a deal description) into client/amount/notes the user
+  // reviews before creating. Grounded in the brief; nothing is auto-submitted.
+  const [brief, setBrief] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [draftNote, setDraftNote] = useState<string | null>(null);
+  async function aiDraft() {
+    if (!brief.trim()) return;
+    setDrafting(true); setDraftNote(null);
+    try {
+      const res = await apiClient.post<{ client_name?: string; amount?: number; notes?: string; error?: string }>("/quotes/draft", { brief: brief.trim(), currency: form.currency || undefined });
+      if (res.error) { setDraftNote(res.error); return; }
+      setForm(f => ({
+        ...f,
+        client_name: res.client_name || f.client_name,
+        amount: res.amount ? String(res.amount) : f.amount,
+        notes: res.notes || f.notes,
+      }));
+      setDraftNote("Drafted — review and edit before creating.");
+    } catch { setDraftNote("Couldn't draft that."); }
+    finally { setDrafting(false); }
+  }
+
   async function submit() {
     const cents = Math.round(parseFloat(form.amount) * 100);
     if (!form.client_name || isNaN(cents) || cents <= 0) {
@@ -93,6 +116,17 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
           <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors text-lg leading-none">×</button>
         </div>
         <div className="p-5 space-y-3">
+          {/* AI draft — optional: describe the deal and let AI pre-fill the fields to review. */}
+          <div className="rounded-sm border border-[var(--section-accent-line)] bg-[color-mix(in_srgb,var(--section-accent)_4%,transparent)] p-2.5">
+            <div className="flex items-center gap-2">
+              <input value={brief} onChange={e => setBrief(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); aiDraft(); } }}
+                placeholder="Describe the deal — e.g. Annual Design Ops bundle for Acme, 3 seats…"
+                className="key-input h-8 flex-1 text-[12px]"/>
+              <AIButton variant="subtle" size="sm" loading={drafting} disabled={!brief.trim()} onClick={aiDraft}>Draft</AIButton>
+            </div>
+            {draftNote && <p className="mt-1.5 text-[10px] text-[var(--text-faint)]">{draftNote}</p>}
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Client name</label>
