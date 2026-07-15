@@ -134,7 +134,7 @@ router.post("/semantic", requireAuth, zValidator("json", z.object({
     .map(m => { const r = candidates[m.index]; return r ? { id: r.id, object_type: r.object_type, data: r.data, updated_at: r.updated_at, reason: m.reason ?? null } : null; })
     .filter(Boolean)
     .slice(0, limit);
-  return c.json({ results, mode: "semantic", debug: { candidates: candidates.length, ranked: ranked.length, keyword: keyword.data?.length ?? 0, keyword_error: keyword.error?.message ?? null, recent: recent.data?.length ?? 0 } });
+  return c.json({ results, mode: "semantic" });
 });
 
 export { router as searchRouter };
