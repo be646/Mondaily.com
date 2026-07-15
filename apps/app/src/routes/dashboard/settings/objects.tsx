@@ -15,7 +15,7 @@ import { useWorkspaceSuggestions } from "../../../hooks/useWorkspaceSuggestions"
 type AttributeType = "text" | "long_text" | "number" | "currency" | "percentage" | "date" | "datetime" | "checkbox" | "select" | "multi_select" | "url" | "email" | "phone" | "relation" | "formula" | "file";
 interface Attribute { id?: string; name: string; type: AttributeType; required?: boolean; unique?: boolean }
 interface ObjectDefinition { id: string; name_singular?: string; name_plural: string; slug: string; icon?: string; color?: string; is_standard?: boolean; vertical?: string; attributes: Attribute[] }
-interface GeneratedSchema { singular: string; plural: string; vertical: string; color: string; description?: string; attributes: { name: string; type: AttributeType; description?: string; options?: string[] }[] }
+interface GeneratedSchema { singular: string; plural: string; vertical: string; color: string; description?: string; attributes: { name: string; type: AttributeType; description?: string; options?: string[] }[]; sample_records?: Record<string, unknown>[] }
 
 const typeOptions: { type: AttributeType; label: string; icon: typeof Text }[] = [
   { type: "text", label: "Text", icon: Text }, { type: "long_text", label: "Long text", icon: Text },
@@ -79,6 +79,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [schema, setSchema] = useState<GeneratedSchema | null>(null);
+  const [includeSamples, setIncludeSamples] = useState(true);
   // Prefer profile-aware object examples (from the workspace's tracked objects); fall back to generic.
   const { data: wsSuggestions } = useWorkspaceSuggestions();
   const examples = wsSuggestions?.object_examples?.length ? [...wsSuggestions.object_examples, ...EXAMPLES] : EXAMPLES;
@@ -103,10 +104,11 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
     if (!schema) return;
     setStep("creating");
     try {
+      const slug = schema.plural.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       // Create the object
       const obj = await apiClient.post<{ id: string }>("/settings/objects", {
         name: schema.plural,
-        slug: schema.plural.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        slug,
         singular: schema.singular,
         plural: schema.plural,
         vertical: schema.vertical,
@@ -127,6 +129,24 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
             unique: false,
           });
         } catch {}
+      }
+
+      // Optional AI starter rows — clearly opt-in example data (user edits/deletes). Keyed to the
+      // column slugs; the first (primary) column also becomes the record's display name.
+      if (includeSamples && schema.sample_records?.length) {
+        const colSlug = (n: string) => n.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+        const primary = schema.attributes[0]?.name;
+        for (const rec of schema.sample_records.slice(0, 3)) {
+          const data: Record<string, unknown> = {};
+          for (const attr of schema.attributes) {
+            const v = (rec as Record<string, unknown>)[attr.name];
+            if (v != null && v !== "") data[colSlug(attr.name)] = v;
+          }
+          if (primary && (rec as Record<string, unknown>)[primary] != null) data.name = (rec as Record<string, unknown>)[primary];
+          if (Object.keys(data).length) {
+            try { await apiClient.post("/nodes", { vertical: schema.vertical || "shared", object_type: slug, data }); } catch {}
+          }
+        }
       }
 
       await qc.invalidateQueries({ queryKey: ["object-definitions"] });
@@ -246,6 +266,13 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
             </div>
 
             {error && <p className="mt-2 text-[11px] text-[var(--text-faint)]">{error}</p>}
+
+            {schema.sample_records && schema.sample_records.length > 0 && (
+              <label className="mt-3 flex cursor-pointer items-center gap-2 rounded-sm border px-3 py-2 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                <input type="checkbox" checked={includeSamples} onChange={e => setIncludeSamples(e.target.checked)} className="accent-[var(--section-accent)]"/>
+                Start with {schema.sample_records.length} example row{schema.sample_records.length === 1 ? "" : "s"} <span className="text-[var(--text-faint)]">— edit or delete them anytime</span>
+              </label>
+            )}
 
             <div className="mt-4 flex justify-between gap-2">
               <button

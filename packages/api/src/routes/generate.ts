@@ -73,6 +73,12 @@ router.post("/schema", requireAuth, zValidator("json", z.object({ prompt: z.stri
               },
               minItems: 6,
               maxItems: 14
+            },
+            sample_records: {
+              type: "array",
+              description: "2–3 realistic ILLUSTRATIVE example rows demonstrating the schema (clearly examples the user will edit/delete). Each is an object keyed by the column names above, using plausible domain values. Omit if the domain is about real specific people/companies where invented data would mislead.",
+              items: { type: "object", additionalProperties: true },
+              maxItems: 3
             }
           },
           required: ["singular","plural","vertical","color","attributes"]
