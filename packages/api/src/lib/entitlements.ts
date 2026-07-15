@@ -1,5 +1,6 @@
 import { supabase } from "@mondaily/db/client";
 import { PLAN_TIERS, normalizeTierId, monthlyCreditsFor, type TierId } from "@mondaily/shared/pricing";
+import { isOwnerWorkspace } from "./owner";
 
 /**
  * THE single source of truth for "what tier is this workspace actually entitled to right now".
@@ -89,6 +90,17 @@ export function resolveEntitlement(
 
 /** Load a workspace and resolve its entitlement. The one function the routes should call. */
 export async function getEntitlement(workspaceId: string): Promise<Entitlement> {
+  // Product-owner override: owner workspaces resolve to the top tier with NO payment, regardless of
+  // trial/billing state. Gated to exact emails (see lib/owner). Kept here so EVERY tier consumer
+  // (limits, seats, billing UI, credit grants) sees the same answer.
+  if (await isOwnerWorkspace(workspaceId)) {
+    const top: TierId = "sovereign";
+    return {
+      tier: top, source: "paid", isTrial: false, trialEndsAt: null, trialActive: false,
+      pendingPlan: null, includedMonthlyCredits: monthlyCreditsFor(top), seats: PLAN_TIERS[top].seats,
+      billingStatus: "active",
+    };
+  }
   const { data } = await supabase.from("workspaces").select("plan, settings").eq("id", workspaceId).maybeSingle();
   return resolveEntitlement(
     (data?.settings as Record<string, unknown> | null) ?? null,

@@ -4,6 +4,7 @@ import { supabase } from "@mondaily/db/client";
 import { grantAmountFor, burstCapFor, normalizeTierId, BURST_WINDOW_HOURS } from "@mondaily/shared/pricing";
 import { maybeAutoRefill } from "./auto-refill";
 import { getEntitlement } from "./entitlements";
+import { isOwnerWorkspace } from "./owner";
 
 export { BURST_WINDOW_HOURS };
 
@@ -149,6 +150,8 @@ export function recordCreditUsage(workspaceId: string | undefined, tokens: numbe
  */
 export async function assertCreditsOk(workspaceId?: string): Promise<void> {
   if (!workspaceId) return;
+  // Product-owner override: owner workspaces get unmetered AI (no payment). Gated to exact emails.
+  if (await isOwnerWorkspace(workspaceId)) return;
   const { balance, enrolled } = await creditStatus(workspaceId);
   if (!enrolled) return;
   if (balance <= 0) {
