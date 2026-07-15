@@ -15,6 +15,7 @@ import { apiClient } from "../../lib/api-client";
 import { detectStageFromActivity } from "../../lib/ai-enrichment";
 import { PageSkeleton, ErrorState } from "../ui/page-state";
 import { FieldSelect } from "../ui/controls";
+import { useCurrency, formatMoney } from "../../hooks/useCurrency";
 import { TagPicker, TagBadges } from "./tag-picker";
 import { StagePill, DEFAULT_STAGE_OPTIONS, DEFAULT_STATUS_OPTIONS } from "./record-table";
 import { ActivityTimeline } from "./activity-timeline";
@@ -76,7 +77,7 @@ function getTabsForType(type: string): string[] {
   const t = type.toLowerCase();
   if (t === "companies" || t.includes("compan")) return ["Overview","People","Deals","Contact Log","Finance","Notes","Tasks","Files"];
   if (t === "people" || t.includes("person") || t.includes("contact")) return ["Overview","Company","Deals","Emails","Contact Log","Finance","Notes","Tasks"];
-  if (t === "deals" || t.includes("deal")) return ["Overview","Contact","Company","Contact Log","Notes","Tasks"];
+  if (t === "deals" || t.includes("deal")) return ["Overview","Contact","Company","Contact Log","Finance","Notes","Tasks"];
   if (t.includes("invest")) return ["Overview","Notes","Tasks"];
   if (t.includes("tax") || t.includes("cost")) return ["Overview","Notes","Files"];
   if (t === "tasks" || t.includes("task")) return ["Overview","Notes"];
@@ -1311,21 +1312,32 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
 // ─── Finance tab ──────────────────────────────────────────────────────────────
 interface InvoiceRecord { id: string; number: string; client_name: string; total: number; status: string; due_date?: string; currency: string }
 interface CreditNoteRecord { id: string; amount_cents: number; currency: string; credit_reason: string; status: string }
+interface QuoteRecord { id: string; client_name?: string; total?: number; currency: string; status: string; created_at?: string }
+interface ExpenseRecord { id: string; description?: string; amount_cents: number; currency: string; status: string; category?: string }
 
 const INVOICE_STATUS_COLORS: Record<string, string> = {
   draft:     "text-stone-400 bg-stone-400/10",
   sent:      "text-[#717784] bg-[#717784]/10",
   viewed:    "text-stone-400 bg-stone-400/10",
   paid:      "text-[#2f9e6b] bg-[#2f9e6b]/10",
-  overdue:   "text-stone-400 bg-stone-400/10",
+  overdue:   "text-[#c6892e] bg-[#c6892e]/10",
   cancelled: "text-stone-600 bg-stone-600/10",
 };
+// Mirrors the backend credit-note state machine (verified/rejected, not manager_approved).
 const CN_STATUS_COLORS: Record<string, string> = {
-  draft:            "text-stone-400 bg-stone-400/10",
-  pending_review:   "text-[#c6892e] bg-[#c6892e]/10",
-  manager_approved: "text-[#717784] bg-[#717784]/10",
-  executed:         "text-[#2f9e6b] bg-[#2f9e6b]/10",
-  void:             "text-stone-600 bg-stone-600/10",
+  draft:          "text-stone-400 bg-stone-400/10",
+  pending_review: "text-[#c6892e] bg-[#c6892e]/10",
+  verified:       "text-[#717784] bg-[#717784]/10",
+  rejected:       "text-[#d1524a] bg-[#d1524a]/10",
+  executed:       "text-[#2f9e6b] bg-[#2f9e6b]/10",
+  void:           "text-stone-600 bg-stone-600/10",
+};
+const QUOTE_STATUS_COLORS: Record<string, string> = {
+  draft:    "text-stone-400 bg-stone-400/10",
+  sent:     "text-[#717784] bg-[#717784]/10",
+  accepted: "text-[#2f9e6b] bg-[#2f9e6b]/10",
+  declined: "text-[#d1524a] bg-[#d1524a]/10",
+  expired:  "text-stone-600 bg-stone-600/10",
 };
 
 function fmtCcy(amount: number, currency = "GBP") {
@@ -1349,12 +1361,25 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
     queryFn: () => apiClient.get<CreditNoteRecord[]>(`/credit-notes?linked_record_id=${recordId}`),
   });
 
-  const totalBilled = invoices.reduce((s, inv) => s + (inv.total ?? 0), 0);
-  const creditsApplied = creditNotes
-    .filter(cn => cn.status === "executed")
-    .reduce((s, cn) => s + (cn.amount_cents ?? 0) / 100, 0);
+  const { data: quotes = [] } = useQuery<QuoteRecord[]>({
+    queryKey: ["record-quotes", recordId],
+    queryFn: () => apiClient.get<QuoteRecord[]>(`/quotes?linked_record_id=${recordId}`),
+  });
+
+  const { data: expenses = [] } = useQuery<ExpenseRecord[]>({
+    queryKey: ["record-expenses", recordId],
+    queryFn: () => apiClient.get<ExpenseRecord[]>(`/expenses?linked_record_id=${recordId}`),
+  });
+
+  // Totals normalized to the workspace display currency via FX — mixed-currency finance items
+  // sum honestly instead of being mislabeled with the first item's currency.
+  const { display, sumInDisplay } = useCurrency();
+  const totalBilled = sumInDisplay(invoices.map(i => ({ amount: i.total ?? 0, currency: i.currency }))).value;
+  const creditsApplied = sumInDisplay(creditNotes.filter(cn => cn.status === "executed").map(cn => ({ amount: (cn.amount_cents ?? 0) / 100, currency: cn.currency }))).value;
   const netOwed = totalBilled - creditsApplied;
-  const defaultCurrency = invoices[0]?.currency ?? "GBP";
+  const openQuotes = sumInDisplay(quotes.filter(q => q.status === "sent" || q.status === "draft").map(q => ({ amount: q.total ?? 0, currency: q.currency }))).value;
+  const totalExpenses = sumInDisplay(expenses.filter(e => e.status === "approved").map(e => ({ amount: (e.amount_cents ?? 0) / 100, currency: e.currency }))).value;
+  const defaultCurrency = display;
 
   const createInvoice = useMutation({
     mutationFn: () => apiClient.post<InvoiceRecord>("/invoices", {
@@ -1381,6 +1406,8 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
           { label: "Total Billed", value: fmtCcy(totalBilled, defaultCurrency), accent: "text-[var(--text-primary)]" },
           { label: "Credits Applied", value: fmtCcy(creditsApplied, defaultCurrency), accent: "text-stone-400" },
           { label: "Net Owed", value: fmtCcy(netOwed, defaultCurrency), accent: netOwed > 0 ? "text-stone-400" : "text-[#2f9e6b]" },
+          { label: "Open Quotes", value: fmtCcy(openQuotes, defaultCurrency), accent: "text-stone-400" },
+          { label: "Expenses", value: fmtCcy(totalExpenses, defaultCurrency), accent: "text-stone-400" },
         ].map(card => (
           <div key={card.label} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-1.5">{card.label}</p>
@@ -1515,6 +1542,41 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
           </div>
         )}
       </div>
+
+      {/* Quotes */}
+      {quotes.length > 0 && (
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600 mb-3">Quotes</p>
+          <div className="space-y-2">
+            {quotes.map(q => (
+              <div key={q.id} className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5">
+                <Receipt size={13} className="text-stone-400 shrink-0"/>
+                <span className="flex-1 text-[12px] text-[var(--text-primary)]">{fmtCcy(q.total ?? 0, q.currency)}</span>
+                <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${QUOTE_STATUS_COLORS[q.status] ?? "text-stone-400 bg-stone-400/10"}`}>
+                  {q.status.charAt(0).toUpperCase() + q.status.slice(1)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Expenses */}
+      {expenses.length > 0 && (
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600 mb-3">Expenses</p>
+          <div className="space-y-2">
+            {expenses.map(e => (
+              <div key={e.id} className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5">
+                <Receipt size={13} className="text-stone-400 shrink-0"/>
+                <span className="flex-1 text-[12px] text-[var(--text-primary)]">{e.description || "Expense"}</span>
+                <span className="text-[12px] text-stone-400">{fmtCcy(e.amount_cents / 100, e.currency)}</span>
+                <span className="text-[10px] text-stone-500 capitalize">{(e.category ?? "").replace(/_/g, " ")}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
