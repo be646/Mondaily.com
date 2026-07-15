@@ -117,12 +117,12 @@ router.post("/semantic", requireAuth, zValidator("json", z.object({
   let ranked: { index: number; reason?: string }[] = [];
   try {
     const out = await aiGatewayToolUse({
-      system: "You are a semantic search ranker over a business workspace. Given a query and candidate records, return ONLY the candidates whose MEANING genuinely matches the query intent (not mere keyword overlap), most relevant first. If none truly fit, return an empty list. Never invent indices.",
-      prompt: `Query: "${q}"\n\nCandidates:\n${listing}\n\nReturn the matching candidate indices, most relevant first, each with a short reason.`,
+      system: `You are a semantic search ranker over a business workspace. Given a query and candidate records, return ONLY the candidates whose MEANING genuinely matches the query intent (not mere keyword overlap), most relevant first. Return AT MOST ${limit} matches. If none truly fit, return an empty list. Never invent indices; keep each reason under 12 words.`,
+      prompt: `Query: "${q}"\n\nCandidates:\n${listing}\n\nReturn up to ${limit} matching candidate indices, most relevant first, each with a very short reason.`,
       toolName: "rank_matches",
       toolDescription: "Return the semantically-matching candidate indices, best first",
       toolSchema: { type: "object", properties: { matches: { type: "array", items: { type: "object", properties: { index: { type: "number" }, reason: { type: "string" } }, required: ["index"] } } }, required: ["matches"] },
-      maxTokens: 700, workspaceId, userId: c.get("userId"), feature: "semantic_search", taskClass: "reasoning",
+      maxTokens: 1400, workspaceId, userId: c.get("userId"), feature: "semantic_search", taskClass: "reasoning",
     });
     ranked = Array.isArray((out as { matches?: unknown[] }).matches) ? (out as { matches: { index: number; reason?: string }[] }).matches : [];
   } catch {
