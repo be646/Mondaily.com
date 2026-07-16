@@ -34,27 +34,11 @@ router.post("/:id/relate", requireAuth, denyViewerWrites, zValidator("json", z.o
   return c.json({ ok: true }, 201);
 });
 
-router.get("/:id", requireAuth, async (c) => {
-  const node = await ubc.getNode(c.req.param("id"), c.get("workspaceId"));
-  if (!node) return c.json({ error: "Not found" }, 404);
-  return c.json(node);
-});
-
-router.get("/", requireAuth, zValidator("query", z.object({
-  vertical: z.string().optional(),
-  object_type: z.string().optional(),
-  limit: z.coerce.number().default(50),
-  cursor: z.string().optional()
-})), async (c) => {
-  const query = c.req.valid("query");
-  const nodes = await ubc.listNodes(c.get("workspaceId"), query);
-  return c.json(nodes);
-});
-
 // Semantic dedup — before creating a record, surface likely EXISTING duplicates so the user doesn't
 // create a second "Acme Corp". Uses the sovereign embedding appliance (cosine over node vectors) when
 // configured; falls back to a name ILIKE so it still catches obvious dupes with embeddings off. Read-
 // only + fail-soft: any error returns no candidates rather than blocking record creation.
+// NOTE: registered BEFORE "/:id" so the static path isn't captured as a record id.
 router.get("/similar", requireAuth, zValidator("query", z.object({
   q: z.string().min(2).max(200),
   object_type: z.string().optional(),
@@ -91,6 +75,23 @@ router.get("/similar", requireAuth, zValidator("query", z.object({
   } catch {
     return c.json({ candidates: [], mode: "none" });
   }
+});
+
+router.get("/:id", requireAuth, async (c) => {
+  const node = await ubc.getNode(c.req.param("id"), c.get("workspaceId"));
+  if (!node) return c.json({ error: "Not found" }, 404);
+  return c.json(node);
+});
+
+router.get("/", requireAuth, zValidator("query", z.object({
+  vertical: z.string().optional(),
+  object_type: z.string().optional(),
+  limit: z.coerce.number().default(50),
+  cursor: z.string().optional()
+})), async (c) => {
+  const query = c.req.valid("query");
+  const nodes = await ubc.listNodes(c.get("workspaceId"), query);
+  return c.json(nodes);
 });
 
 router.post("/", requireAuth, denyViewerWrites, zValidator("json", z.object({
