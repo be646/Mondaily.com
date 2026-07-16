@@ -133,6 +133,7 @@ router.post("/stripe", async (c) => {
       if (ws) {
         const prevSettings = (ws.settings as Record<string, unknown> | null) ?? {};
         const settings: Record<string, unknown> = { ...prevSettings, billing_status: "active", last_payment_at: new Date().toISOString() };
+        delete settings.trial_ends_at;   // a paid renewal is no longer a trial — clear any stale marker
         await supabase.from("workspaces").update({ settings }).eq("id", ws.id as string).then(() => {}, () => {});
         // Renewal — top the wallet back up to the tier's monthly allotment.
         const tier = normalizeTier(settings.account_tier as string | undefined);
@@ -151,6 +152,15 @@ router.post("/stripe", async (c) => {
       if (ws) {
         const settings = { ...((ws.settings as Record<string, unknown> | null) ?? {}), billing_status: "payment_failed" };
         await supabase.from("workspaces").update({ settings }).eq("id", ws.id as string).then(() => {}, () => {});
+        // Tell the user — in-app notification AND email (createNotification does both, per prefs).
+        // Without this the failure was silent: full access kept until Stripe finally cancels.
+        await createNotification({
+          workspace_id: ws.id as string,
+          type: "billing",
+          title: "Payment failed — action needed",
+          body: "Your subscription payment didn't go through. Update your card in Settings → Billing to keep your plan active.",
+          metadata: { billing_status: "payment_failed", cta: "/settings/billing" },
+        }).catch(() => {});
       }
     }
   }
@@ -166,6 +176,14 @@ router.post("/stripe", async (c) => {
       const isGone = event.type === "customer.subscription.deleted" || !["active", "trialing"].includes(status);
       if (isGone) {
         await downgradeToScout(workspaceId);
+        // Never strip access silently — tell the user why features changed and how to restore them.
+        await createNotification({
+          workspace_id: workspaceId,
+          type: "billing",
+          title: "Subscription ended — downgraded to Scout",
+          body: "Your paid plan lapsed, so the workspace is back on the free Scout tier. Re-subscribe in Settings → Billing to restore full access.",
+          metadata: { billing_status: "cancelled", cta: "/settings/billing" },
+        }).catch(() => {});
       } else {
         await activateTier(workspaceId, normalizeTier(planMeta), sub.id as string | undefined);
       }

@@ -1287,7 +1287,7 @@ function HeroPipelinePreview() {
 
 const WORKSPACE_GRAPH_NODES = [
   { label: "Graph Agent", x: 17, y: 20, color: "#9fb08f", detail: "Searches, links, and explains records" },
-  { label: "Enrichment Agent", x: 50, y: 18, color: "#8a8071", detail: "Adds sourced fields from the web" },
+  { label: "Graph Enrichment Agent", x: 50, y: 18, color: "#8a8071", detail: "Adds sourced fields from the web" },
   { label: "Relationship Agent", x: 83, y: 20, color: "#a68762", detail: "Watches follow-ups and relationship health" },
   { label: "Finance Agent", x: 15, y: 39, color: "#a07164", detail: "Prepares invoice and credit-note actions" },
   { label: "Operations Agent", x: 50, y: 41, color: "#6f8068", detail: "Finds overdue and stalled work" },
@@ -1927,7 +1927,7 @@ const AGENTS = [
     approval: "No approval needed to answer — sensitive actions still route to the Decision Queue",
   },
   {
-    icon: "◆", name: "Enrichment Agent", accent: "#8a8071", brush: "-18deg",
+    icon: "◆", name: "Graph Enrichment Agent", accent: "#8a8071", brush: "-18deg",
     desc: "Fires the moment a new record enters the graph — pulls ARR, headcount, funding, tech stack, and other public signals automatically from the web.",
     watches: "New records as they're created",
     prepares: "Firmographic and contact fields, sourced and attached to the record",
@@ -2393,7 +2393,7 @@ function UseCasesSection() {
   );
 }
 
-// ── Lead finding (Prospecting agent) ─────────────────────────────────────────
+// ── Lead finding (Prospecting Agent) ─────────────────────────────────────────
 // A light, auto-playing replica of the real "Find from web" tool
 // (apps/app/src/components/ai/prospecting-modal.tsx → POST /prospecting/run).
 // The flow plays itself: query types out → searches the web → candidates stream
@@ -2449,7 +2449,7 @@ function LeadFindingSection() {
 
   return (
     <section id="prospecting" className="mx-auto max-w-6xl px-6 py-16">
-      <p className="mb-2 text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: "#6f8068" }}>Prospecting agent</p>
+      <p className="mb-2 text-[13px] font-medium uppercase tracking-[0.18em]" style={{ color: "#6f8068" }}>Prospecting Agent</p>
       <h2 className="mb-2 font-sans font-semibold tracking-tight text-zinc-900">
         Find leads on the open web — with real sources
       </h2>
@@ -3334,7 +3334,7 @@ export function LandingPage() {
           {/* ── Product process tabs ── */}
           <FadeIn><ProcessTabsSection /></FadeIn>
 
-          {/* ── Lead finding (Prospecting agent) live demo ── */}
+          {/* ── Lead finding (Prospecting Agent) live demo ── */}
           <FadeIn><LeadFindingSection /></FadeIn>
 
           {/* ── Feature map ── */}

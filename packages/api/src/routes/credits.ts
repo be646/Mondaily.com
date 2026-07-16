@@ -75,6 +75,9 @@ router.get("/balance", async (c) => {
     account_tier: tier,
     source: ent.source,
     trial_ends_at: ent.trialEndsAt,
+    // Surfaced so the app can show a dunning banner when a renewal charge fails ("payment_failed")
+    // or the sub is past due. Owner workspaces resolve to "active" (never dunned).
+    billing_status: ent.billingStatus,
     low: remaining > 0 && capacity > 0 && remaining < capacity * 0.1,
     exhausted: enrolled && remaining <= 0,
     burst: { used: burst.used, cap: burst.cap, limited: burst.limited, resets_at: burst.resetsAt },

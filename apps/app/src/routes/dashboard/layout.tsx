@@ -13,6 +13,7 @@ import { sectionHue } from "../../lib/sections";
 import { agentForRoute } from "../../lib/agents";
 import { VerifyEmailBanner } from "../../components/ui/verify-email-banner";
 import { PendingPlanBanner } from "../../components/ui/pending-plan-banner";
+import { BillingAlertBanner } from "../../components/ui/billing-alert-banner";
 import { useLanguage } from "../../hooks/useLanguage";
 import { HelpProvider } from "../../components/help/help-panel";
 import {
@@ -212,6 +213,7 @@ export function DashboardLayout() {
         }/>
 
         <VerifyEmailBanner />
+        <BillingAlertBanner />
         <PendingPlanBanner />
 
         <main className={`min-h-0 flex-1 pb-16 md:pb-0 overscroll-none ${isGrid ? "overflow-hidden" : "overflow-y-auto overflow-x-hidden"}`}
