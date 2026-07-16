@@ -113,16 +113,22 @@ tasks.patch("/:id", async (c) => {
   if (updateBody.assignee_id !== undefined && oldTask?.assignee_id !== updateBody.assignee_id) {
     activities.push(updateBody.assignee_id ? `assigned task to ${updateBody.assignee_email || updateBody.assignee_id}` : "removed assignee");
     if (updateBody.assignee_id && updateBody.assignee_id !== userId) {
-      const { data: taskInfo } = await supabase.from("tasks").select("title").eq("id", id).single();
-      await supabase.from("notifications").insert({
-        workspace_id: workspaceId,
-        user_id: updateBody.assignee_id,
-        title: `You were assigned a task`,
-        body: `${userName} assigned you to "${taskInfo?.title || "a task"}"`,
-        type: "assignment",
-        task_id: id,
-        is_read: false
-      });
+      // Only notify if the assignee is actually a member of THIS workspace — never mint a
+      // cross-workspace notification for an arbitrary user_id a client might send.
+      const { data: member } = await supabase.from("workspace_members")
+        .select("user_id").eq("workspace_id", workspaceId).eq("user_id", updateBody.assignee_id).maybeSingle();
+      if (member) {
+        const { data: taskInfo } = await supabase.from("tasks").select("title").eq("id", id).single();
+        await supabase.from("notifications").insert({
+          workspace_id: workspaceId,
+          user_id: updateBody.assignee_id,
+          title: `You were assigned a task`,
+          body: `${userName} assigned you to "${taskInfo?.title || "a task"}"`,
+          type: "assignment",
+          task_id: id,
+          is_read: false
+        });
+      }
     }
   }
   if (updateBody.due_date !== undefined)
