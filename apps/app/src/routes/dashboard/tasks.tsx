@@ -12,6 +12,7 @@ import { apiClient } from "../../lib/api-client";
 import { FieldSelect, FilterButton, FilterStrip } from "../../components/ui/controls";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
 import { useLanguage } from "../../hooks/useLanguage";
+import { isOverdue as isPastDue } from "@mondaily/shared/dates";
 
 interface Member { id: string; user_id: string; email: string; name: string; }
 interface Task {
@@ -181,7 +182,7 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: task.id });
   const style = transform ? { transform: `translate3d(${transform.x}px,${transform.y}px,0)`, zIndex: 50 } : undefined;
-  const isOverdue = !task.completed && task.due_date && new Date(task.due_date) < new Date();
+  const isOverdue = !task.completed && isPastDue(task.due_date);
   const assigneeName = getMemberName(task);
 
   return (
@@ -528,7 +529,7 @@ export function TasksPage() {
   // tick is actually visible, instead of vanishing the instant it's marked done.
   const tasks      = allTasks.filter(t => (!t.completed && t.status !== "done") || keepVisible.has(t.id));
   const doneTasks  = allTasks.filter(t => (t.completed || t.status === "done") && !keepVisible.has(t.id));
-  const overdueTasks = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date) < new Date());
+  const overdueTasks = tasks.filter(t => !t.completed && isPastDue(t.due_date));
 
   const getMemberName = (task: Task) => {
     const m = members.find(m => m.user_id === task.assignee_id);
@@ -659,7 +660,7 @@ export function TasksPage() {
           <div className="space-y-1.5">
             {tasks.map(task => {
               const expanded = expandedId === task.id;
-              const isOverdue = !task.completed && task.due_date && new Date(task.due_date) < new Date();
+              const isOverdue = !task.completed && isPastDue(task.due_date);
               const assigneeName = getMemberName(task);
               const sm = STATUS_META[task.status ?? "todo"] ?? STATUS_META["todo"]!;
               return (
@@ -785,7 +786,7 @@ export function TasksPage() {
                 </thead>
                 <tbody className="divide-y divide-stone-100 dark:divide-white/[.04]">
                   {(showDone ? allTasks : tasks).map(task => {
-                    const isOverdue = !task.completed && task.due_date && new Date(task.due_date) < new Date();
+                    const isOverdue = !task.completed && isPastDue(task.due_date);
                     const assigneeName = getMemberName(task);
                     const sm = STATUS_META[task.status ?? "todo"] ?? STATUS_META["todo"]!;
                     return (

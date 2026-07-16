@@ -5,6 +5,7 @@ import { supabase } from "@mondaily/db/client";
 import { verifiedPowUserIds } from "../lib/pow-claims";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { workQuality, aggregateDeals, dailyTrend, evaluationLabel, dealStageClass, avgTaskLeadDays, avgDecisionCycleHours, collaborationEdges, isGoalMetric, goalAttainmentPct, type DealNode, type TaskTiming, type DecisionTiming } from "../lib/oversight-metrics";
+import { isOverdue } from "@mondaily/shared/dates";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -194,7 +195,7 @@ router.get("/oversight-matrix", requireAuth, requireAdminRole, async (c) => {
     if (!uid) continue;
     const cur = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
     if (t.completed) cur.completed += 1;
-    else { cur.open += 1; if (t.due_date && String(t.due_date) < nowIso) cur.overdue += 1; }
+    else { cur.open += 1; if (isOverdue(t.due_date)) cur.overdue += 1; }
     taskAgg.set(uid, cur);
   }
   // Distinct records each member touched in the window (real, from activity node_ids).
@@ -337,7 +338,7 @@ router.post("/member-insight", requireAuth, requireAdminRole, async (c) => {
   const taskRoll = { open: 0, overdue: 0, completed: 0 };
   for (const t of tasks ?? []) {
     if (t.completed) taskRoll.completed += 1;
-    else { taskRoll.open += 1; if (t.due_date && String(t.due_date) < nowIso) taskRoll.overdue += 1; }
+    else { taskRoll.open += 1; if (isOverdue(t.due_date)) taskRoll.overdue += 1; }
   }
 
   // The subject must be a real member of THIS workspace before we generate anything.
@@ -401,7 +402,6 @@ router.post("/member-efficiency", requireAuth, requireAdminRole, async (c) => {
   const actorId = String(body.actor_id ?? "");
   if (!actorId) return c.json({ error: "actor_id required" }, 400);
 
-  const nowIso = new Date().toISOString();
   const sinceIso = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const [{ data: member }, { data: usage }, { data: acts }, { data: tasks }, { data: decisions }, { data: msgs }] = await Promise.all([
     supabase.from("workspace_members").select("name, email, role").eq("workspace_id", ws).eq("user_id", actorId).maybeSingle(),
@@ -416,7 +416,7 @@ router.post("/member-efficiency", requireAuth, requireAdminRole, async (c) => {
   const taskRoll = { open: 0, overdue: 0, completed: 0 };
   for (const t of tasks ?? []) {
     if (t.completed) taskRoll.completed += 1;
-    else { taskRoll.open += 1; if (t.due_date && String(t.due_date) < nowIso) taskRoll.overdue += 1; }
+    else { taskRoll.open += 1; if (isOverdue(t.due_date)) taskRoll.overdue += 1; }
   }
   const totalTasks = taskRoll.open + taskRoll.completed;
   const completionRate = totalTasks > 0 ? Math.round((taskRoll.completed / totalTasks) * 100) : 0;
@@ -505,7 +505,7 @@ router.post("/oversight-ask", requireAuth, requireAdminRole, async (c) => {
   for (const t of tasks ?? []) {
     const uid = String(t.assignee_id ?? ""); if (!uid) continue;
     const cur = taskAgg.get(uid) ?? { open: 0, overdue: 0, completed: 0 };
-    if (t.completed) cur.completed += 1; else { cur.open += 1; if (t.due_date && String(t.due_date) < nowIso) cur.overdue += 1; }
+    if (t.completed) cur.completed += 1; else { cur.open += 1; if (isOverdue(t.due_date)) cur.overdue += 1; }
     taskAgg.set(uid, cur);
   }
   const decBy = new Map<string, number>();

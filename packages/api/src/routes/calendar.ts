@@ -9,6 +9,7 @@ import { createNotification } from "../lib/notify";
 import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
 import { resolveProfile } from "@mondaily/shared/profile";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
+import { isOverdue } from "@mondaily/shared/dates";
 
 /**
  * MONDAILY CALENDAR + CALLS — native, workspace-scoped meetings with Mondaily-owned call links.
@@ -582,11 +583,10 @@ router.post("/events/:id/prepare", async (c) => {
 export interface FollowTask { id: string; title: string; due_date: string | null; priority?: string | null }
 export function groupFollowUps(tasks: FollowTask[], meetingTitle: string, now: Date): { overdue: FollowTask[]; due_today: FollowTask[]; related: FollowTask[] } {
   const todayStr = now.toDateString();
-  const isOverdue = (d?: string | null) => !!d && new Date(d) < now && new Date(d).toDateString() !== todayStr;
   const isToday = (d?: string | null) => !!d && new Date(d).toDateString() === todayStr;
   const toks = new Set(tokenize(meetingTitle));
   const relatedIds = new Set(tasks.filter((t) => tokenize(t.title || "").some((w) => toks.has(w))).map((t) => t.id));
-  const overdue = tasks.filter((t) => isOverdue(t.due_date));
+  const overdue = tasks.filter((t) => isOverdue(t.due_date, now));
   const due_today = tasks.filter((t) => isToday(t.due_date));
   const seen = new Set([...overdue, ...due_today].map((t) => t.id));   // a task shows in ONE group only
   const related = tasks.filter((t) => relatedIds.has(t.id) && !seen.has(t.id));

@@ -22,6 +22,7 @@ import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { applyTerms, EMPTY_PROFILE } from "@mondaily/shared/profile";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useDisplayIdentity } from "../../hooks/useDisplayIdentity";
+import { isOverdue as isPastDue } from "@mondaily/shared/dates";
 
 // Converts markdown to clean readable JSX — strips tables, stars, dashes
 function renderMarkdown(text: string): React.ReactNode {
@@ -544,7 +545,7 @@ export function HomePage() {
   }, []);
 
   const todayLabel = loc.formatDate(new Date(), { weekday: "long", month: "long", day: "numeric" });
-  const overdueCount = activeTasks.filter(t => t.due_date && new Date(t.due_date) < new Date()).length;
+  const overdueCount = activeTasks.filter(t => isPastDue(t.due_date)).length;
   const openTaskCount = activeTasks.length;
   const urgentCount  = activeTasks.filter(t => t.priority === "urgent").length;
   // Count unread AI risk alerts from notifications (persists across page loads, not just the one scan run)
@@ -656,7 +657,7 @@ export function HomePage() {
         {!isChatting && (() => {
           const now = Date.now();
           const pending = decisionsQuery.data?.length ?? 0;
-          const overdue = (tasksQuery.data ?? []).filter(t => !t.completed && t.due_date && new Date(t.due_date).getTime() < now).length;
+          const overdue = (tasksQuery.data ?? []).filter(t => !t.completed && isPastDue(t.due_date)).length;
           const unread = (notificationsQuery.data ?? []).filter(n => !n.is_read).length;
           const starts: number[] = [];
           for (const m of meetings.data ?? []) { const t = new Date(m.start_time).getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
@@ -1092,7 +1093,7 @@ export function HomePage() {
                   const bd = b.due_date ? new Date(b.due_date).getTime() : Infinity;
                   return ad - bd;
                 }).slice(0, 6).map(item => {
-                  const isOverdue = item.due_date && new Date(item.due_date) < new Date();
+                  const isOverdue = isPastDue(item.due_date);
                   const assigneeName = getMemberName(item);
                   const statusColor = item.status === "review" ? "bg-[#c6892e]" : item.status === "done" ? "btn-solid dark:bg-stone-100" : item.status === "in_progress" ? "bg-stone-500 dark:bg-stone-400" : "bg-stone-300 dark:bg-stone-700";
                   return (

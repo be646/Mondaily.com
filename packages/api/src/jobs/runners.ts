@@ -9,6 +9,7 @@ import { refreshFxRates } from "../lib/currency-store";
 import { runDiscoveryMonitors } from "./social-discovery";
 import { runMeetingAgent } from "./meeting-agent";
 import { runDailyBrief } from "./daily-brief";
+import { overdueCutoffISO } from "@mondaily/shared/dates";
 import { runPendingPlanReminders } from "./pending-plan-reminders";
 
 // ── Security primitives (exported so the AI-security test suite can assert these
@@ -363,7 +364,7 @@ export async function runOverdueTaskDecisions(workspaceId?: string): Promise<{ q
     for (const wsId of wsIds) {
       const { data: tasks } = await supabase
         .from("tasks").select("id, title, due_date, priority, assignee_email")
-        .eq("workspace_id", wsId).eq("completed", false).lt("due_date", new Date().toISOString());
+        .eq("workspace_id", wsId).eq("completed", false).lt("due_date", overdueCutoffISO());
       scanned += tasks?.length ?? 0;
       // Reasoning budget: the Operations agent REASONS about its most important findings (a sharp
       // title, a specific action, a rationale) via the shared reasoning layer, capped per run to

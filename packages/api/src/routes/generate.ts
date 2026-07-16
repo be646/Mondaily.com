@@ -5,6 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignWebContext } from "../lib/sovereign-search";
+import { isOverdue } from "@mondaily/shared/dates";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 
@@ -709,7 +710,7 @@ router.post("/risk-alerts", requireAuth, async (c) => {
   const recentTitles = new Set((existingRes.data ?? []).map((n: any) => n.title));
 
   // Build context summary
-  const overdueTasks = tasks.filter(t => t.due_date && new Date(t.due_date) < now);
+  const overdueTasks = tasks.filter(t => isOverdue(t.due_date, now));
   const urgentTasks = tasks.filter(t => t.priority === "urgent");
   const staleNodes = nodes.filter(n => n.updated_at && new Date(n.updated_at) < new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000));
   const dealNodes = nodes.filter(n => n.object_type === "deals");

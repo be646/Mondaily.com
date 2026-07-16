@@ -3,6 +3,7 @@ import { requireAuth } from "../middleware/auth";
 import { denyViewerWrites } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { resolveCompletedAt } from "../lib/task-completion";
+import { overdueCutoffISO } from "@mondaily/shared/dates";
 
 const tasks = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 tasks.use("*", requireAuth);
@@ -26,7 +27,7 @@ tasks.get("/", async (c) => {
     .order(sortBy === "due_date" ? "due_date" : sortBy === "priority" ? "priority" : sortBy === "assignee" ? "assignee_email" : "created_at", { ascending: sortDir === "asc", nullsFirst: false });
 
   if (filter === "mine") query = query.or(`assignee_id.eq.${userId},created_by.eq.${userId}`);
-  if (filter === "overdue") query = query.lt("due_date", new Date().toISOString()).eq("completed", false).neq("status", "done");
+  if (filter === "overdue") query = query.lt("due_date", overdueCutoffISO()).eq("completed", false).neq("status", "done");
   if (filter === "review") query = query.eq("status", "review");
   if (labelFilter) query = query.contains("labels", [labelFilter]);
   if (priorityFilter) query = query.eq("priority", priorityFilter);
@@ -233,7 +234,6 @@ tasks.patch("/:id/review-action", async (c) => {
 // POST /tasks/check-overdue - called on page load to notify overdue assignees
 tasks.post("/check-overdue", async (c) => {
   const workspaceId = c.get("workspaceId");
-  const now = new Date().toISOString();
 
   // Find overdue tasks that haven't been notified yet
   const { data: overdueTasks } = await supabase
@@ -242,7 +242,7 @@ tasks.post("/check-overdue", async (c) => {
     .eq("workspace_id", workspaceId)
     .eq("completed", false)
     .neq("status", "done")
-    .lt("due_date", now)
+    .lt("due_date", overdueCutoffISO())
     .is("overdue_notified_at", null);
 
   if (!overdueTasks || overdueTasks.length === 0) return c.json({ notified: 0 });
@@ -262,7 +262,7 @@ tasks.post("/check-overdue", async (c) => {
       notified++;
     }
     // Mark as notified
-    await supabase.from("tasks").update({ overdue_notified_at: now }).eq("id", task.id);
+    await supabase.from("tasks").update({ overdue_notified_at: new Date().toISOString() }).eq("id", task.id);
   }
 
   return c.json({ notified });

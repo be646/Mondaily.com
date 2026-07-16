@@ -1,6 +1,7 @@
 import { inngest } from "../lib/inngest";
 import { supabase } from "@mondaily/db/client";
 import { createNotification } from "../lib/notify";
+import { isOverdue } from "@mondaily/shared/dates";
 
 /**
  * Proactive daily brief — a sovereign, in-house morning summary. Once a day it
@@ -37,7 +38,7 @@ export async function runDailyBrief(): Promise<{ briefs_posted: number }> {
           .from("tasks").select("completed, due_date, status").eq("workspace_id", wsId);
         const active = (tasks ?? []).filter(t => !t.completed && t.status !== "done");
         const openCount = active.length;
-        const overdue = active.filter(t => t.due_date && new Date(t.due_date) < now).length;
+        const overdue = active.filter(t => isOverdue(t.due_date, now)).length;
 
         const { count: pending } = await supabase
           .from("decision_queue").select("id", { count: "exact", head: true })

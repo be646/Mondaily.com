@@ -10,6 +10,7 @@ import { runOpportunityScan, runPeopleScan, runPortfolioScan, runAssetScan } fro
 import { runMeetingAgent } from "../jobs/meeting-agent";
 import { normalizeStep } from "../lib/agent-logger";
 import { inngest } from "../lib/inngest";
+import { isOverdue } from "@mondaily/shared/dates";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
@@ -260,7 +261,7 @@ router.get("/", async (c) => {
   const now = Date.now();
   const FOURTEEN_DAYS = 14 * 24 * 60 * 60 * 1000;
 
-  const overdueTasks = tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date).getTime() < now);
+  const overdueTasks = tasks.filter(t => !t.completed && isOverdue(t.due_date));
   const reviewTasks = tasks.filter(t => !t.completed && t.status === "review");
 
   const deals = nodes.filter(n => n.object_type.toLowerCase().includes("deal"));

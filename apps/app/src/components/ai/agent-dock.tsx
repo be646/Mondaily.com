@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import { useModules } from "../../hooks/useModules";
 import { agentById } from "../../lib/agents";
+import { isOverdue as isPastDue } from "@mondaily/shared/dates";
 
 /**
  * Agent Dock / Constellation data — backed by the real Agent Registry at
@@ -113,7 +114,7 @@ export function useAgentData() {
     // Finance/Signal agent cards show) instead of being recomputed here.
     pulse: {
       tasksOpen: tasks.filter(t => !t.completed).length,
-      tasksOverdue: tasks.filter(t => !t.completed && t.due_date && new Date(t.due_date).getTime() < Date.now()).length,
+      tasksOverdue: tasks.filter(t => !t.completed && isPastDue(t.due_date)).length,
       relationships: relationships.length,
       financeOverdue: hasFinance ? (financeAgent?.evidence_count ?? 0) : null,
       records: nodes.length,

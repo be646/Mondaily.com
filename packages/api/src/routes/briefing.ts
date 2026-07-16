@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { makeBaseConverter } from "../lib/currency-store";
+import { overdueCutoffISO } from "@mondaily/shared/dates";
 
 /**
  * GET /api/v1/briefing — the "chief of staff" morning brief. Composes what needs you, what the
@@ -26,7 +27,7 @@ router.get("/", async (c) => {
   const [pendingR, autoR, overdueTasksR, financeR, dealsR, conv] = await Promise.all([
     supabase.from("decision_queue").select("id,title,risk_level,agent_name").eq("workspace_id", ws).eq("status", "pending").order("created_at", { ascending: true }).limit(500),
     supabase.from("decision_queue").select("id").eq("workspace_id", ws).eq("resolved_by", "autonomy").gte("resolved_at", startOfToday.toISOString()).limit(500),
-    supabase.from("tasks").select("id").eq("workspace_id", ws).eq("completed", false).lt("due_date", new Date().toISOString()).limit(500),
+    supabase.from("tasks").select("id").eq("workspace_id", ws).eq("completed", false).lt("due_date", overdueCutoffISO()).limit(500),
     supabase.from("nodes").select("data").eq("workspace_id", ws).eq("vertical", "finance").eq("object_type", "invoice"),
     supabase.from("nodes").select("data,created_at").eq("workspace_id", ws).ilike("object_type", "%deal%").limit(2000),
     makeBaseConverter(ws),

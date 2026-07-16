@@ -15,6 +15,7 @@ import { isEmbeddingsEnabled, embedOne } from "../lib/embeddings";
 import { executeApprovedAction } from "./decisions";
 import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway, gatewayHealthCheck, getLastGatewayError } from "../lib/ai-gateway";
 import { recallContext } from "../lib/memory-recall";
+import { isOverdue } from "@mondaily/shared/dates";
 
 // Naive English pluralization (covers the common custom-object-type names: company/property/box/
 // dash/church) — a bare `+ "s"` turned "Company" into "Companys" and "Property" into "Propertys".
@@ -580,7 +581,7 @@ async function executeTool(
         const isDone = (t: { completed?: boolean | null; status?: string | null }) => t.completed === true || t.status === "done";
         let rows = (data ?? []) as Array<{ id: string; title: string; priority?: string; status?: string; due_date?: string | null; completed?: boolean }>;
         if (filter !== "all" && filter !== "review") rows = rows.filter(t => !isDone(t));
-        if (filter === "overdue") rows = rows.filter(t => t.due_date && new Date(t.due_date).getTime() < now);
+        if (filter === "overdue") rows = rows.filter(t => isOverdue(t.due_date));
         rows = rows.slice(0, 20);
 
         if (!rows.length) {
