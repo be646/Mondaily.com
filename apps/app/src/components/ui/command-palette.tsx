@@ -78,9 +78,21 @@ export function CommandPalette() {
   const query = input.trim();
   const { data: results = [] } = useQuery({
     queryKey: ["cmd-search", query],
-    queryFn: () => apiClient.post<SearchResult[]>("/search", { query, limit: 8 }),
+    // Keyword-first for instant exact hits, MERGED with semantic (vector) matches so the palette
+    // finds records by meaning too — deduped, keyword ranked first. Semantic only for 3+ chars to
+    // keep it cheap; fails soft to keyword alone.
+    queryFn: async () => {
+      const [kw, sem] = await Promise.all([
+        apiClient.post<SearchResult[]>("/search", { query, limit: 8 }),
+        query.length > 2
+          ? apiClient.post<{ results: SearchResult[] }>("/search/semantic", { query, limit: 6 }).then(r => r.results ?? []).catch(() => [] as SearchResult[])
+          : Promise.resolve([] as SearchResult[]),
+      ]);
+      const seen = new Set(kw.map(r => r.id));
+      return [...kw, ...sem.filter(r => !seen.has(r.id))].slice(0, 10);
+    },
     enabled: query.length > 1,
-    staleTime: 5_000,
+    staleTime: 15_000,
   });
 
   // Build the flat, ordered item list. When the user has typed, the AI passthrough is always the
