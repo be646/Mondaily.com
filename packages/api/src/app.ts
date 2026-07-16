@@ -179,7 +179,10 @@ app.get("/api/cron/daily", async (c) => {
   const results = await runAllDaily();
   const workflows = await runAllWorkflows().catch((e) => ({ error: String(e) }));
   const vertical = await runAllVertical().catch((e) => ({ error: String(e) }));
-  return c.json({ ran: true, at: new Date().toISOString(), results, workflows, vertical });
+  // Keep the vector-search index fresh: embed any new/edited records (no-op unless the embedding
+  // appliance is configured). Non-fatal.
+  const embeddings = await (await import("./lib/embed-index")).reconcileAllEmbeddings().catch((e) => ({ error: String(e) }));
+  return c.json({ ran: true, at: new Date().toISOString(), results, workflows, vertical, embeddings });
 });
 
 /**
@@ -209,7 +212,9 @@ app.get("/api/cron/monitors", async (c) => {
       }
     }
   } catch { /* best-effort retention */ }
-  return c.json({ ran: true, at: new Date().toISOString(), result });
+  // Refresh the vector index every ~4h too (new/edited records → searchable soon, not next day).
+  const embeddings = await (await import("./lib/embed-index")).reconcileAllEmbeddings().catch((e) => ({ error: String(e) }));
+  return c.json({ ran: true, at: new Date().toISOString(), result, embeddings });
 });
 
 // `commit` surfaces the actually-deployed git SHA (Vercel injects VERCEL_GIT_COMMIT_SHA at build

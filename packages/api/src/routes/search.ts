@@ -5,21 +5,9 @@ import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { isEmbeddingsEnabled, embedOne, embedBatch } from "../lib/embeddings";
+import { nodeEmbedText as summarizeNode } from "../lib/embed-index";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
-
-// A compact one-line summary of a record for the semantic ranker — pulls the fields that carry
-// meaning (name, who/where, and any free text) without dumping the whole JSON blob.
-function summarizeNode(objectType: string, data: Record<string, unknown>): string {
-  const d = data ?? {};
-  const pick = (...keys: string[]) => keys.map(k => d[k]).find(v => v != null && v !== "");
-  const name = pick("name", "title", "full_name", "company", "client_name", "number") ?? "Record";
-  const bits = [
-    pick("email"), pick("company", "organization"), pick("location", "region", "city"),
-    pick("status", "stage"), pick("role", "job_title"), pick("description", "notes", "summary"),
-  ].filter(Boolean).map(v => String(v).slice(0, 120));
-  return `${objectType}: ${String(name).slice(0, 120)}${bits.length ? " — " + bits.join(" · ") : ""}`;
-}
 
 router.post("/", requireAuth, zValidator("json", z.object({
   query: z.string().min(1),
@@ -185,6 +173,15 @@ router.post("/reindex", requireAuth, async (c) => {
     from += PAGE;
   }
   return c.json({ enabled: true, indexed, failed });
+});
+
+// Incremental refresh — embed only NEW/edited records for this workspace (cheap; the cron calls the
+// same logic across all indexed workspaces every ~4h). No-op when the appliance is unconfigured.
+router.post("/reconcile", requireAuth, async (c) => {
+  const { reconcileWorkspaceEmbeddings } = await import("../lib/embed-index");
+  if (!isEmbeddingsEnabled()) return c.json({ enabled: false });
+  const embedded = await reconcileWorkspaceEmbeddings(c.get("workspaceId"));
+  return c.json({ enabled: true, embedded });
 });
 
 export { router as searchRouter };
