@@ -42,14 +42,18 @@ function calcTotals(lineItems: z.infer<typeof lineItemSchema>[]) {
 }
 
 async function nextInvoiceNumber(workspaceId: string): Promise<string> {
-  const { count } = await supabase
+  // Highest existing number + 1 (not count+1, which collides after a deletion).
+  const { data } = await supabase
     .from("nodes")
-    .select("id", { count: "exact", head: true })
+    .select("data")
     .eq("workspace_id", workspaceId)
     .eq("vertical", "finance")
-    .eq("object_type", "invoice");
-  const n = (count ?? 0) + 1;
-  return `INV-${String(n).padStart(4, "0")}`;
+    .eq("object_type", "invoice")
+    .order("data->>number", { ascending: false })
+    .limit(1);
+  const last = String((data?.[0]?.data as Record<string, unknown> | undefined)?.number ?? "");
+  const lastN = parseInt(last.replace(/\D/g, ""), 10) || 0;
+  return `INV-${String(lastN + 1).padStart(4, "0")}`;
 }
 
 // Per-client finance rollup for the records sheet (one query powers a whole column, no N+1).

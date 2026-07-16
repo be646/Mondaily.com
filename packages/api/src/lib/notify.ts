@@ -160,6 +160,28 @@ export async function createNotification(n: NotifyInput): Promise<boolean> {
 
   const payload = buildNotificationPayload(n);
 
+  // Workspace-wide notice (no user_id): FAN OUT to one row per member instead of a single shared
+  // null-user row. A shared row let any one member mark-read/delete it for EVERYONE; per-member rows
+  // make read/dismiss naturally per-user (the read/delete routes already scope by user_id). Still
+  // in-app only — broadcasts never email (channelPrefs above returned email:false for no user_id).
+  if (!n.user_id) {
+    const { data: members } = await supabase
+      .from("workspace_members").select("user_id").eq("workspace_id", n.workspace_id);
+    const ids = (members ?? []).map((m) => m.user_id as string).filter(Boolean);
+    // Guard against pathological fan-out; fall back to a single shared row if the team is huge.
+    if (ids.length && ids.length <= 500) {
+      const rows = ids.map((uid) => ({ ...payload, user_id: uid }));
+      let { error } = await supabase.from("notifications").insert(rows);
+      if (error && /metadata/i.test(error.message)) {
+        const stripped = rows.map((r) => { const { metadata: _d, ...base } = r as Record<string, unknown>; return base; });
+        ({ error } = await supabase.from("notifications").insert(stripped));
+      }
+      if (error) { console.error("[notify] failed to fan out notification:", error.message); return false; }
+      return true;
+    }
+    // else: no members resolved (or too many) → fall through to a single row as before.
+  }
+
   let { error } = await supabase.from("notifications").insert(payload);
   if (error && /metadata/i.test(error.message)) {
     // metadata column not migrated yet — persist anyway (deep-link added once migrated).

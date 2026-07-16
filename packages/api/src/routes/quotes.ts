@@ -39,26 +39,28 @@ function calcTotals(lineItems: z.infer<typeof lineItemSchema>[]) {
   return { subtotal, tax_total, total: round2(subtotal + tax_total) };
 }
 
-async function nextQuoteNumber(workspaceId: string): Promise<string> {
-  const { count } = await supabase
+// Next sequence number from the MAX existing number, not count+1 — count collides after any deletion
+// (delete QUO-0003 of 5 → count 4 → next QUO-0005, which already exists). Highest-number + 1 is stable.
+async function nextSeqNumber(workspaceId: string, objectType: "quote" | "invoice", prefix: string): Promise<string> {
+  const { data } = await supabase
     .from("nodes")
-    .select("id", { count: "exact", head: true })
+    .select("data")
     .eq("workspace_id", workspaceId)
     .eq("vertical", "finance")
-    .eq("object_type", "quote");
-  const n = (count ?? 0) + 1;
-  return `QUO-${String(n).padStart(4, "0")}`;
+    .eq("object_type", objectType)
+    .order("data->>number", { ascending: false })
+    .limit(1);
+  const last = String((data?.[0]?.data as Record<string, unknown> | undefined)?.number ?? "");
+  const lastN = parseInt(last.replace(/\D/g, ""), 10) || 0;
+  return `${prefix}-${String(lastN + 1).padStart(4, "0")}`;
+}
+
+async function nextQuoteNumber(workspaceId: string): Promise<string> {
+  return nextSeqNumber(workspaceId, "quote", "QUO");
 }
 
 async function nextInvoiceNumber(workspaceId: string): Promise<string> {
-  const { count } = await supabase
-    .from("nodes")
-    .select("id", { count: "exact", head: true })
-    .eq("workspace_id", workspaceId)
-    .eq("vertical", "finance")
-    .eq("object_type", "invoice");
-  const n = (count ?? 0) + 1;
-  return `INV-${String(n).padStart(4, "0")}`;
+  return nextSeqNumber(workspaceId, "invoice", "INV");
 }
 
 router.get("/", async (c) => {
