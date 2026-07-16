@@ -2,6 +2,34 @@ import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse } from "./ai-gateway";
 import { isEmbeddingsEnabled, embedOne } from "./embeddings";
 import { learnedGuidanceFor } from "./autonomy";
+import { getEntitlement } from "./entitlements";
+
+// Reasoning is a plan-differentiated capability with a per-hour, per-workspace budget so cost scales
+// with the tier — higher plans let agents reason on more findings. Toggleable off per workspace
+// (settings.agent_reasoning === false). Both the config and the usage are cached in-process.
+const HOURLY_CAP_BY_TIER: Record<string, number> = { scout: 12, operator: 80, command: 200, sovereign: 600 };
+const cfgCache = new Map<string, { enabled: boolean; cap: number; ts: number }>();
+const usage = new Map<string, { hour: number; used: number }>();
+
+async function reasoningConfig(workspaceId: string): Promise<{ enabled: boolean; cap: number }> {
+  const c = cfgCache.get(workspaceId);
+  if (c && Date.now() - c.ts < 60_000) return { enabled: c.enabled, cap: c.cap };
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const enabled = ((data?.settings as { agent_reasoning?: boolean } | null)?.agent_reasoning) !== false; // default ON
+  let cap = HOURLY_CAP_BY_TIER.operator ?? 80;
+  try { cap = HOURLY_CAP_BY_TIER[(await getEntitlement(workspaceId)).tier] ?? cap; } catch { /* keep default */ }
+  cfgCache.set(workspaceId, { enabled, cap, ts: Date.now() });
+  return { enabled, cap };
+}
+
+// Consume one unit of the hourly budget; false when the workspace is out (→ fall back to rule-based).
+function consumeBudget(workspaceId: string, cap: number): boolean {
+  const hour = Math.floor(Date.now() / 3_600_000);
+  const u = usage.get(workspaceId);
+  if (!u || u.hour !== hour) { usage.set(workspaceId, { hour, used: 1 }); return true; }
+  if (u.used >= cap) return false;
+  u.used++; return true;
+}
 
 /**
  * The reasoning layer that turns any agent's raw RULE-BASED finding into a REASONED recommendation:
@@ -38,6 +66,10 @@ export async function reasonAboutFinding(workspaceId: string, f: RawFinding): Pr
     rationale: "", risk_level: f.defaultRisk, confidence: "medium", reasoned: false,
   };
   try {
+    // Plan gate + budget: reasoning off for this workspace, or over its hourly tier budget → the
+    // agent stays on the cheap rule-based path (no regression, just no extra AI spend).
+    const cfg = await reasoningConfig(workspaceId);
+    if (!cfg.enabled || !consumeBudget(workspaceId, cfg.cap)) return fallback;
     const guidance = await learnedGuidanceFor(workspaceId, f.agentName);
 
     // RAG — pull the k most-related records so the agent reasons WITH the surrounding graph.

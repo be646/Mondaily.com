@@ -85,6 +85,13 @@ export function DecisionsPage() {
     onSuccess: () => autonomyQ.refetch(),
   });
   const autonomy = autonomyQ.data?.level ?? "manual";
+  // Agent reasoning on/off — when on, agents reason about their findings (RAG + reasoning model).
+  const reasoningQ = useQuery({ queryKey: ["decisions-reasoning"], queryFn: () => apiClient.get<{ enabled: boolean }>("/decisions/reasoning"), staleTime: 60_000 });
+  const setReasoning = useMutation({
+    mutationFn: (enabled: boolean) => apiClient.patch("/decisions/reasoning", { enabled }),
+    onSuccess: () => reasoningQ.refetch(),
+  });
+  const reasoningOn = reasoningQ.data?.enabled !== false;
   const [searchParams, setSearchParams] = useSearchParams();
   const focusId = searchParams.get("id");
   // Selection is mirrored to ?id= so a decision is shareable/refresh-stable (same pattern as
@@ -298,6 +305,13 @@ export function DecisionsPage() {
                     { value: "autonomous", label: "Auto low + med" },
                   ]} />
               </div>
+              {/* Reasoning on/off — agents reason about each finding (RAG + reasoning model) vs. fixed
+                  templates. Depth scales with the plan tier. */}
+              <button onClick={() => setReasoning.mutate(!reasoningOn)}
+                title="When on, agents reason about each finding (related context + the reasoning model) for sharper, specific recommendations. Off = cheaper rule-based. Depth scales with your plan."
+                className="mode-pill" data-on={reasoningOn}>
+                <Sparkles size={12} /> Reasoning {reasoningOn ? "on" : "off"}
+              </button>
               {/* Divider — Autonomy is a standing setting, not a per-view filter; keep it visually
                   apart from the Search / Filter / sort cluster so they don't read as one control. */}
               <span aria-hidden className="mx-0.5 h-5 w-px shrink-0" style={{ background: "var(--border-soft)" }} />

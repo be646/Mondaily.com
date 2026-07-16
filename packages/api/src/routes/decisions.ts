@@ -96,6 +96,23 @@ router.get("/", async (c) => {
 // created (previously only decisions made through POST /decisions were ever auto-approved).
 
 router.get("/autonomy", async (c) => c.json({ level: await readAutonomy(c.get("workspaceId")) }));
+
+// Agent reasoning on/off — when off, agents stay on the cheap rule-based path (no per-finding AI).
+// Default ON. (Depth/budget scales with the plan tier in lib/agent-reasoning.)
+router.get("/reasoning", async (c) => {
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", c.get("workspaceId")).maybeSingle();
+  const enabled = ((data?.settings as { agent_reasoning?: boolean } | null)?.agent_reasoning) !== false;
+  return c.json({ enabled });
+});
+router.patch("/reasoning", zValidator("json", z.object({ enabled: z.boolean() })), async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const { enabled } = c.req.valid("json");
+  const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
+  const settings = { ...((data?.settings as Record<string, unknown>) ?? {}), agent_reasoning: enabled };
+  const { error } = await supabase.from("workspaces").update({ settings }).eq("id", workspaceId);
+  if (error) return c.json({ error: error.message }, 400);
+  return c.json({ enabled });
+});
 router.patch("/autonomy", zValidator("json", z.object({ level: z.enum(["manual", "assisted", "autonomous"]) })), async (c) => {
   const workspaceId = c.get("workspaceId");
   const { level } = c.req.valid("json");
