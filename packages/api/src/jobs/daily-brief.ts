@@ -9,20 +9,30 @@ import { createNotification } from "../lib/notify";
  * nudging the user to open the full brief in chat. Purely data-driven (counts) —
  * no AI call, so it never consumes the inference rate limit at scale.
  */
-export const dailyBrief = inngest.createFunction(
-  { id: "daily-brief", name: "Daily brief notification", concurrency: { limit: 4 } },
-  { cron: "0 7 * * *" }, // 07:00 UTC, every day
-  async () => {
-    const { data: workspaces } = await supabase.from("workspaces").select("id");
-    if (!workspaces?.length) return { briefs_posted: 0 };
+/**
+ * Core daily-brief loop, callable directly. Idempotent per-day per-workspace: it skips any workspace
+ * that already has a `daily_brief` notification from the last 20h, so it's safe to invoke from BOTH
+ * the Inngest schedule AND the Vercel `/api/cron/daily` path without double-posting.
+ */
+export async function runDailyBrief(): Promise<{ briefs_posted: number }> {
+  const { data: workspaces } = await supabase.from("workspaces").select("id");
+  if (!workspaces?.length) return { briefs_posted: 0 };
 
-    const now = new Date();
-    const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-    let posted = 0;
+  const now = new Date();
+  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const dedupeSince = new Date(now.getTime() - 20 * 60 * 60 * 1000).toISOString();
+  let posted = 0;
 
-    for (const ws of workspaces) {
-      const wsId = ws.id as string;
-      try {
+  for (const ws of workspaces) {
+    const wsId = ws.id as string;
+    try {
+      // Idempotency: don't post a second brief if one already went out in the last 20h.
+      const { count: already } = await supabase
+        .from("notifications").select("id", { count: "exact", head: true })
+        .eq("workspace_id", wsId).eq("type", "daily_brief").gte("created_at", dedupeSince);
+      if ((already ?? 0) > 0) continue;
+
+      {
         const { data: tasks } = await supabase
           .from("tasks").select("completed, due_date, status").eq("workspace_id", wsId);
         const active = (tasks ?? []).filter(t => !t.completed && t.status !== "done");
@@ -58,10 +68,18 @@ export const dailyBrief = inngest.createFunction(
           source: { source_agent: "insights", route: "/home" },
         });
         posted++;
-      } catch (e) {
-        console.error(`[daily-brief] workspace ${wsId} failed (non-fatal):`, e instanceof Error ? e.message : String(e));
       }
+    } catch (e) {
+      console.error(`[daily-brief] workspace ${wsId} failed (non-fatal):`, e instanceof Error ? e.message : String(e));
     }
-    return { briefs_posted: posted };
-  },
+  }
+  return { briefs_posted: posted };
+}
+
+// Inngest schedule (07:00 UTC). Delegates to the shared, idempotent runner so the Vercel cron path
+// (runAllDaily → runDailyBrief) and this schedule can coexist without posting duplicate briefs.
+export const dailyBrief = inngest.createFunction(
+  { id: "daily-brief", name: "Daily brief notification", concurrency: { limit: 4 } },
+  { cron: "0 7 * * *" },
+  async () => runDailyBrief(),
 );

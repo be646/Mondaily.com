@@ -7,6 +7,7 @@ import { Nav } from "./nav";
 import { HeroChat } from "./hero-chat";
 import { Logo } from "./logo";
 import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER, BILLING_CURRENCIES, PRICING_SYMBOL, priceInCurrency, localeToCurrency, billingCurrencyForLocale, showsCurrencySwitcher, type BillingCurrency } from "@mondaily/shared/pricing";
+import { assertAgentCoverage } from "@mondaily/shared/agents";
 import { SUPPORTED_LANGUAGES, normalizeLang, languageMeta, t, dir as i18nDir } from "@mondaily/shared/i18n";
 
 // Credit display helper — shared catalog is the source of truth for the numbers.
@@ -2042,6 +2043,8 @@ const AGENTS = [
     approval: "On-demand — runs when you ask, and you approve the plan",
   },
 ];
+// Fails loudly in dev if the marketed roster drifts from the canonical list (shared with Home + Status).
+assertAgentCoverage("landing/agents", AGENTS.map((a) => a.name));
 
 function AgentTerminalLine({ label, text, color, active }: { label: string; text: string; color: string; active: boolean }) {
   const [shown, setShown] = useState("");

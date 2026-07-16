@@ -10,7 +10,8 @@
     "./profile": "./src/profile.ts",
     "./i18n": "./src/i18n.ts",
     "./identity": "./src/identity.ts",
-    "./markdown-stream": "./src/markdown-stream.ts"
+    "./markdown-stream": "./src/markdown-stream.ts",
+    "./agents": "./src/agents.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

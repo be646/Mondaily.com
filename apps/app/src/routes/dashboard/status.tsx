@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, CircleSlash, HelpCircle, Network } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import { apiClient } from "../../lib/api-client";
+import { assertAgentCoverage } from "@mondaily/shared/agents";
 import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
 
 /**
@@ -132,6 +133,8 @@ const AGENT_CAPABILITIES: AgentCapability[] = [
   { name: "Meeting Agent", canRead: "Calendar events, meeting rosters, conflicts", canWrite: "Meeting briefs + Decision Queue rows for conflicts", autonomous: true, requiresApproval: true, sourcesEvidence: true, limitations: "Recommends only — never reschedules a meeting without approval; daily cron + on-demand." },
   { name: "Goal Planner", canRead: "The goal you describe + related workspace records", canWrite: "A proposed multi-step plan (Decision Queue)", autonomous: false, requiresApproval: true, sourcesEvidence: true, limitations: "On-demand only — runs when you ask it to plan a goal, never on a schedule." },
 ];
+// Fails loudly in dev if this board drifts from the canonical roster (shared with Home + Landing).
+assertAgentCoverage("status/capability-board", AGENT_CAPABILITIES.map((a) => a.name));
 
 function useStatus() {
   return useQuery({

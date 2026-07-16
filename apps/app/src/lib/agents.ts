@@ -1,4 +1,5 @@
 import type { ElementType } from "react";
+import { assertAgentCoverage } from "@mondaily/shared/agents";
 import {
   MessageCircle, Workflow, Users, Receipt, ShieldAlert, GitBranch, Search,
   TrendingUp, Briefcase, Building2, BarChart2, Bot, CalendarClock, Target,
@@ -89,3 +90,7 @@ const RAW_TO_ID: Record<string, string> = {
 export function agentByRaw(raw: string): AgentIdentity {
   return agentById(RAW_TO_ID[raw] ?? raw);
 }
+
+// Drift guard: this registry's names must match the framework-agnostic canonical roster in
+// @mondaily/shared (which Status + Landing also check against). Throws in dev if they diverge.
+assertAgentCoverage("app/lib/agents", Object.values(AGENTS).map((a) => a.name));

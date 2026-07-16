@@ -90,10 +90,31 @@ export async function runReportData(
   }
   if (type === "time_in_stage") {
     const stageField = String(config.stage_field ?? "stage");
+    const nodeIds = (nodes ?? []).map((n) => n.id);
+    // TRUE time-in-stage: how long each record has sat in its CURRENT stage, measured from when it
+    // ENTERED that stage (the latest activity that changed the stage field), not from created_at and
+    // not to updated_at (which moves on any edit). Falls back to created_at when there's no stage-change
+    // history for the record (e.g. it was created directly into its current stage).
+    const enteredAt = new Map<string, number>(); // node_id → ms timestamp it entered current stage
+    if (nodeIds.length) {
+      const { data: acts } = await supabase
+        .from("activities")
+        .select("node_id,created_at,diff")
+        .eq("workspace_id", workspaceId)
+        .in("node_id", nodeIds)
+        .order("created_at", { ascending: true });
+      for (const a of acts ?? []) {
+        const diff = a.diff as Record<string, unknown> | null;
+        const changed = diff && (stageField in diff || (diff.data as Record<string, unknown> | undefined)?.[stageField] !== undefined);
+        if (changed) enteredAt.set(a.node_id as string, new Date(a.created_at as string).getTime());
+      }
+    }
+    const now = Date.now();
     const grouped = new Map<string, number[]>();
     for (const node of nodes ?? []) {
       const stage = String(node.data?.[stageField] ?? "Unknown");
-      const days = Math.max(0, (new Date(node.updated_at).getTime() - new Date(node.created_at).getTime()) / 86_400_000);
+      const since = enteredAt.get(node.id) ?? new Date(node.created_at).getTime();
+      const days = Math.max(0, (now - since) / 86_400_000);
       grouped.set(stage, [...(grouped.get(stage) ?? []), days]);
     }
     return { data: [...grouped].map(([label, values]) => ({ label, value: Number((values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)).toFixed(1)) })), chart_type: "bar" };

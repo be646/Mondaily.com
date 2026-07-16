@@ -8,6 +8,7 @@ import { reasonAboutFinding } from "../lib/agent-reasoning";
 import { refreshFxRates } from "../lib/currency-store";
 import { runDiscoveryMonitors } from "./social-discovery";
 import { runMeetingAgent } from "./meeting-agent";
+import { runDailyBrief } from "./daily-brief";
 import { runPendingPlanReminders } from "./pending-plan-reminders";
 
 // ── Security primitives (exported so the AI-security test suite can assert these
@@ -771,6 +772,9 @@ export async function runAllDaily(): Promise<Record<string, unknown>> {
   results.discovery_monitors = await runDiscoveryMonitors().catch((e) => ({ error: String(e) }));
   // Meeting Agent daily sweep — real per-workspace scheduled runs (conflicts → Decision Queue, deduped).
   results.meeting_agent = await runMeetingAgent().catch((e) => ({ error: String(e) }));
+  // Insights Agent daily brief — idempotent per workspace, so running it here (Vercel cron) is safe
+  // even though it's also on the Inngest 07:00 schedule; whichever fires first posts, the other skips.
+  results.daily_brief = await runDailyBrief().catch((e) => ({ error: String(e) }));
   // Refresh FX reference rates (global) so multi-currency totals normalize with fresh data.
   results.fx_rates = await refreshFxRates().catch((e) => ({ error: String(e) }));
   // Polite day-2 / day-7 follow-up to workspaces that picked a paid plan at onboarding but never
