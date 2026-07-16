@@ -203,7 +203,7 @@ export async function reactDeepReason(workspaceId: string, f: RawFinding): Promi
     } catch (e) { console.error("[react] investigation failed, structuring from evidence:", e instanceof Error ? e.message : String(e)); }
     // 2. STRUCTURE — a forced tool call turns the investigation into the decision fields.
     const structured = await aiGatewayToolUse({
-      system: `Turn the ${f.agentName} agent's investigation into a decision recommendation. Use ONLY the finding, gathered evidence, and analysis below — never invent. recommended_action must be SPECIFIC (name who/what/amount).`,
+      system: `Turn the ${f.agentName} agent's investigation into a decision recommendation. Use ONLY the finding, gathered evidence, and analysis below — never invent. recommended_action must be SPECIFIC (name who/what/amount), BUT never name a person, team member, or record that does not appear in the evidence — if the responsible party wasn't found, refer to them by role (e.g. "the account owner", "a senior account manager"), never by an invented name.`,
       prompt: `Finding: ${f.facts}\nSubject: ${f.recordName}\n${evidenceLog.length ? `Evidence gathered:\n${evidenceLog.join("\n").slice(0, 4000)}\n` : ""}Analysis: ${String(reply).slice(0, 2000)}\n\nProduce the recommendation.`,
       toolName: "recommend", toolDescription: "The reasoned recommendation",
       toolSchema: {
