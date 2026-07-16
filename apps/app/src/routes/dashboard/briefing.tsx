@@ -18,6 +18,9 @@ const RISK_TONE: Record<string, string> = { high: "#d1524a", medium: "#c6892e", 
 
 export function BriefingPage() {
   const navigate = useNavigate();
+  const cos = useQuery<{ priorities: { title: string; why: string; action: string; decision_id: string | null; agent_name: string | null }[]; count: number }>({
+    queryKey: ["chief-of-staff"], queryFn: () => apiClient.get("/decisions/chief-of-staff"), staleTime: 120_000, retry: false,
+  });
   const { data, isLoading, isError, refetch, isFetching } = useQuery<Brief>({
     queryKey: ["briefing"], queryFn: () => apiClient.get<Brief>("/briefing"), staleTime: 60_000,
   });
@@ -53,6 +56,28 @@ export function BriefingPage() {
         status={[{ label: "real data only", kind: "complete" }]}
         primaryAction={<button onClick={() => refetch()} disabled={isFetching} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-60" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><RefreshCw size={11} className={isFetching ? "animate-spin" : ""} /> {isFetching ? "Refreshing…" : "Refresh"}</button>}
       />
+
+      {/* Chief of Staff — the meta-agent's top-3 priorities, reasoned across every agent's queue. */}
+      {(cos.data?.priorities?.length ?? 0) > 0 && (
+        <div className="mb-6 overflow-hidden rounded-sm border" style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)" }}>
+          <div className="flex items-center gap-2 border-b px-4 py-2.5" style={{ borderColor: "var(--section-accent-line)" }}>
+            <Sparkles size={13} style={{ color: "var(--section-accent)" }} />
+            <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--section-accent)" }}>Chief of Staff · what needs you most</span>
+          </div>
+          {cos.data!.priorities.map((p, i) => (
+            <button key={i} onClick={() => navigate(p.decision_id ? `/decisions?id=${p.decision_id}` : "/decisions")}
+              className="flex w-full items-start gap-3 border-b px-4 py-3 text-left transition-colors last:border-0 hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)" }}>
+              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold tabular-nums" style={{ background: "var(--section-accent)", color: "var(--surface-page)" }}>{i + 1}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{p.title}</p>
+                {p.why && <p className="mt-0.5 text-[11.5px]" style={{ color: "var(--text-muted)" }}>{p.why}</p>}
+                {p.action && <p className="mt-1 text-[11.5px] font-medium" style={{ color: "var(--section-accent)" }}>→ {p.action}</p>}
+              </div>
+              <ArrowRight size={13} className="mt-1 shrink-0" style={{ color: "var(--text-faint)" }} />
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* What agents handled for you */}
       {data.handled.auto_approved_today > 0 && (

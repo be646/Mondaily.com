@@ -148,6 +148,37 @@ router.get("/learned-preferences", async (c) => {
   return c.json({ preferences: prefs, summary: { favored, disfavored, patterns: prefs.length } });
 });
 
+// Chief of Staff — a meta-agent that reasons ACROSS every agent's pending decisions and ranks the
+// TOP 3 things that most need the operator right now (by real impact + urgency, not just the risk
+// label), each with a why + the single next action. Registered before /:id.
+router.get("/chief-of-staff", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const { data: pending } = await supabase.from("decision_queue")
+    .select("id, agent_name, title, summary, risk_level, source_type, created_at")
+    .eq("workspace_id", workspaceId).eq("status", "pending")
+    .order("created_at", { ascending: false }).limit(30);
+  if (!pending?.length) return c.json({ priorities: [], count: 0 });
+  const digest = pending.map((d, i) => `[${i}] agent=${d.agent_name} risk=${d.risk_level} :: ${d.title} — ${String(d.summary ?? "").slice(0, 160)}`).join("\n").slice(0, 9000);
+  try {
+    const out = await aiGatewayToolUse({
+      system: "You are the Chief of Staff for a business operator. Given the pending agent decisions across the whole workspace, pick the TOP 3 that most need the operator's attention RIGHT NOW — judged by real business impact and urgency, NOT just the risk label. For each: a short title, a one-line 'why' it's the priority, and the single concrete next action. Ground strictly in the given items; never invent.",
+      prompt: `Pending decisions:\n${digest}\n\nReturn the 3 highest-priority items (fewer if there are fewer).`,
+      toolName: "prioritize",
+      toolDescription: "The top priorities for the operator",
+      toolSchema: { type: "object", properties: { priorities: { type: "array", items: { type: "object", properties: { index: { type: "number" }, title: { type: "string" }, why: { type: "string" }, action: { type: "string" } }, required: ["title", "why", "action"] } } }, required: ["priorities"] },
+      maxTokens: 700, workspaceId, userId: c.get("userId"), feature: "chief_of_staff", taskClass: "reasoning",
+    });
+    const raw = Array.isArray((out as { priorities?: unknown[] }).priorities) ? (out as { priorities: { index?: number; title?: string; why?: string; action?: string }[] }).priorities : [];
+    const priorities = raw.slice(0, 3).map((p) => {
+      const d = typeof p.index === "number" ? pending[p.index] : undefined;
+      return { title: String(p.title ?? "").slice(0, 160), why: String(p.why ?? "").slice(0, 240), action: String(p.action ?? "").slice(0, 240), decision_id: d?.id ?? null, agent_name: d?.agent_name ?? null };
+    }).filter((p) => p.title);
+    return c.json({ priorities, count: pending.length });
+  } catch {
+    return c.json({ priorities: [], count: pending.length, error: "unavailable" });
+  }
+});
+
 // Goal-directed planning — an agent turns a goal into an ordered, concrete plan of steps (each with
 // a risk level). Pure planning: NO side effects here. The client reviews, then dispatches steps into
 // the decision queue (POST /), where the autonomy dial + human approval govern execution. Honest:
