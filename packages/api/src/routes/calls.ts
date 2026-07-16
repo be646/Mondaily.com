@@ -170,6 +170,45 @@ router.get("/memory", zValidator("query", z.object({ search: z.string().default(
   return c.json({ memories });
 });
 
+// GET /calls/readiness — owner/admin only. Reports whether calls/recording/transcription/summary/
+// storage/webhook are configured, as BOOLEANS + coarse statuses. Never returns env values or keys.
+// MUST be registered BEFORE "/:id" or the static path is captured as a call id (was a silent 404).
+router.get("/readiness", requireAdminRole, async (c) => {
+  const calls_configured = liveKitEnabled();
+  const recording_flag_enabled = process.env.LIVEKIT_RECORDING_ENABLED === "1";
+  const recording_available = recordingEnabled();                 // liveKit + flag
+  const stt_configured = transcriptionEnabled();                  // SOVEREIGN_STT_URL set
+  const summary_configured = !!(process.env.AI_GATEWAY_BASE_URL && process.env.AI_GATEWAY_API_KEY);
+  const webhook_secret_set = !!(process.env.LIVEKIT_API_SECRET || "").trim(); // egress webhook signature check
+
+  // Private-bucket check (best-effort; never throws). Only booleans leave this route.
+  let bucket_ready = false, bucket_checkable = true;
+  try {
+    const { data } = await supabase.storage.getBucket(RECORDINGS_BUCKET);
+    bucket_ready = !!data && data.public === false;
+  } catch { bucket_checkable = false; }
+
+  const nativeStatus = !calls_configured ? "not_configured"
+    : (recording_available && bucket_ready) ? "available"
+    : "partially_configured";
+
+  return c.json({
+    // raw booleans (no secrets)
+    calls_configured, recording_flag_enabled, recording_available,
+    stt_configured, summary_configured, webhook_secret_set, bucket_ready, bucket_checkable,
+    // coarse per-capability status for the UI rows
+    status: {
+      calls: calls_configured ? "ready" : "missing_config",
+      native_recording: nativeStatus,                                   // available | partially_configured | not_configured
+      upload_import: bucket_ready ? "available" : "unavailable",
+      transcription: stt_configured ? "available" : "unavailable",
+      ai_summaries: summary_configured ? "available" : "unavailable",
+      secure_playback: bucket_ready ? "ready" : "missing_config",
+      webhook: webhook_secret_set ? "ready" : "not_enabled",
+    },
+  });
+});
+
 router.get("/:id", async (c) => {
   const node = await getCall(c.get("workspaceId"), c.req.param("id"));
   return node ? c.json(normalizeCall(node)) : c.json({ error: "Call not found" }, 404);
@@ -379,44 +418,6 @@ router.post("/:id/action-items/:index/promote", zValidator("json", z.object({ ta
   map[String(idx)] = { type: target, id: createdId!, at: new Date().toISOString() };
   await supabase.from("nodes").update({ data: { ...((fresh?.data as object) ?? node.data), action_item_promotions: map } }).eq("workspace_id", ws).eq("id", node.id);
   return c.json({ index: idx, type: target, id: createdId, status: statusFor(target) });
-});
-
-// GET /calls/readiness — owner/admin only. Reports whether calls/recording/transcription/summary/
-// storage/webhook are configured, as BOOLEANS + coarse statuses. Never returns env values or keys.
-router.get("/readiness", requireAdminRole, async (c) => {
-  const calls_configured = liveKitEnabled();
-  const recording_flag_enabled = process.env.LIVEKIT_RECORDING_ENABLED === "1";
-  const recording_available = recordingEnabled();                 // liveKit + flag
-  const stt_configured = transcriptionEnabled();                  // SOVEREIGN_STT_URL set
-  const summary_configured = !!(process.env.AI_GATEWAY_BASE_URL && process.env.AI_GATEWAY_API_KEY);
-  const webhook_secret_set = !!(process.env.LIVEKIT_API_SECRET || "").trim(); // egress webhook signature check
-
-  // Private-bucket check (best-effort; never throws). Only booleans leave this route.
-  let bucket_ready = false, bucket_checkable = true;
-  try {
-    const { data } = await supabase.storage.getBucket(RECORDINGS_BUCKET);
-    bucket_ready = !!data && data.public === false;
-  } catch { bucket_checkable = false; }
-
-  const nativeStatus = !calls_configured ? "not_configured"
-    : (recording_available && bucket_ready) ? "available"
-    : "partially_configured";
-
-  return c.json({
-    // raw booleans (no secrets)
-    calls_configured, recording_flag_enabled, recording_available,
-    stt_configured, summary_configured, webhook_secret_set, bucket_ready, bucket_checkable,
-    // coarse per-capability status for the UI rows
-    status: {
-      calls: calls_configured ? "ready" : "missing_config",
-      native_recording: nativeStatus,                                   // available | partially_configured | not_configured
-      upload_import: bucket_ready ? "available" : "unavailable",
-      transcription: stt_configured ? "available" : "unavailable",
-      ai_summaries: summary_configured ? "available" : "unavailable",
-      secure_playback: bucket_ready ? "ready" : "missing_config",
-      webhook: webhook_secret_set ? "ready" : "not_enabled",
-    },
-  });
 });
 
 export { router as callsRouter };
