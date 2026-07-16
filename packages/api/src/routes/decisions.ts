@@ -252,6 +252,82 @@ router.post("/plan-goal", zValidator("json", z.object({ goal: z.string().min(1).
   }
 });
 
+// Dispatch a planned goal AS A TRACKABLE UNIT: persist the goal (a `goal` node) and create one
+// decision per step, each linked back to the goal, so progress is measurable (vs the old approach
+// of firing N unlinked decisions the user could never reconcile against the goal). Steps still route
+// through the queue + autonomy — nothing auto-executes beyond the workspace's own risk band.
+const dispatchPlanSchema = z.object({
+  goal: z.string().min(1).max(500),
+  agent_name: z.string().max(60).optional(),
+  steps: z.array(z.object({
+    order: z.number().int().optional(),
+    title: z.string().min(1).max(200),
+    detail: z.string().max(400).optional(),
+    risk_level: z.enum(["low", "medium", "high"]).default("medium"),
+  })).min(1).max(10),
+});
+router.post("/dispatch-plan", zValidator("json", dispatchPlanSchema), async (c) => {
+  const { goal, agent_name, steps } = c.req.valid("json");
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+  // 1) Persist the goal itself so its steps can be reconciled against it.
+  const { data: goalNode, error: goalErr } = await supabase.from("nodes").insert({
+    workspace_id: workspaceId, vertical: "shared", object_type: "goal", created_by: userId,
+    data: { title: goal, agent_name: agent_name ?? "planner", total_steps: steps.length, status: "active", created_at: new Date().toISOString() },
+  }).select("id").single();
+  if (goalErr || !goalNode) return c.json({ error: goalErr?.message ?? "Couldn't create the goal." }, 400);
+
+  // 2) One decision per step, linked to the goal (source_id) + ordered, then run autonomy on each.
+  let dispatched = 0;
+  const ordered = steps.map((s, i) => ({ ...s, order: s.order ?? i + 1 })).sort((a, b) => a.order - b.order);
+  for (const s of ordered) {
+    const { data: d } = await supabase.from("decision_queue").insert({
+      workspace_id: workspaceId, source_type: "goal_step", source_id: goalNode.id, agent_name: agent_name ?? "planner",
+      title: s.title, summary: s.detail || `Goal: ${goal}`, recommended_action: s.title, risk_level: s.risk_level,
+      evidence: [{ type: "goal", title: goal, node_id: goalNode.id, match_reason: `Step ${s.order} of ${steps.length}`, goal_step: s.order }],
+    }).select("*").single().then((r) => r, () => ({ data: null }));
+    if (!d) continue;
+    await maybeAutoApprove(workspaceId, d);
+    dispatched++;
+  }
+  return c.json({ goal_id: goalNode.id, dispatched, total: steps.length }, 201);
+});
+
+// Active/recent goals with REAL progress computed from their linked step-decisions.
+router.get("/goals", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const { data: goals } = await supabase.from("nodes")
+    .select("id, data, created_at").eq("workspace_id", workspaceId).eq("object_type", "goal")
+    .order("created_at", { ascending: false }).limit(25);
+  if (!goals?.length) return c.json({ goals: [] });
+  const ids = goals.map((g) => g.id);
+  const { data: steps } = await supabase.from("decision_queue")
+    .select("source_id, status").eq("workspace_id", workspaceId).eq("source_type", "goal_step").in("source_id", ids);
+  const agg = new Map<string, { done: number; rejected: number; pending: number; total: number }>();
+  for (const s of steps ?? []) {
+    const k = String(s.source_id);
+    const e = agg.get(k) ?? { done: 0, rejected: 0, pending: 0, total: 0 };
+    e.total++;
+    const st = String(s.status);
+    if (st === "rejected") e.rejected++;
+    else if (st === "pending") e.pending++;
+    else e.done++; // approved / executed / completed
+    agg.set(k, e);
+  }
+  const out = goals.map((g) => {
+    const d = (g.data ?? {}) as Record<string, unknown>;
+    const a = agg.get(g.id) ?? { done: 0, rejected: 0, pending: 0, total: Number(d.total_steps ?? 0) };
+    const resolved = a.done + a.rejected;
+    const complete = a.total > 0 && resolved >= a.total;
+    return {
+      id: g.id, title: String(d.title ?? "Goal"), agent_name: String(d.agent_name ?? "planner"),
+      created_at: g.created_at, total: a.total, done: a.done, rejected: a.rejected, pending: a.pending,
+      progress: a.total > 0 ? Math.round((a.done / a.total) * 100) : 0, status: complete ? "complete" : "active",
+    };
+  });
+  return c.json({ goals: out });
+});
+
 // Registered AFTER all literal routes (/autonomy, /agent-scorecard, /plan-goal) so those
 // static paths win over this :id param route in Hono's matcher.
 router.get("/:id", async (c) => {

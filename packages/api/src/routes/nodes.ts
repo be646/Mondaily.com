@@ -7,6 +7,7 @@ import * as ubc from "@mondaily/db/ubc";
 import { supabase } from "@mondaily/db/client";
 import { inngest } from "../lib/inngest";
 import { createNotification } from "../lib/notify";
+import { isEmbeddingsEnabled, embedOne } from "../lib/embeddings";
 
 /** Deal stage lives in data.deal_stage (fallbacks: stage, status). */
 function dealStageOf(data: unknown): string {
@@ -48,6 +49,48 @@ router.get("/", requireAuth, zValidator("query", z.object({
   const query = c.req.valid("query");
   const nodes = await ubc.listNodes(c.get("workspaceId"), query);
   return c.json(nodes);
+});
+
+// Semantic dedup — before creating a record, surface likely EXISTING duplicates so the user doesn't
+// create a second "Acme Corp". Uses the sovereign embedding appliance (cosine over node vectors) when
+// configured; falls back to a name ILIKE so it still catches obvious dupes with embeddings off. Read-
+// only + fail-soft: any error returns no candidates rather than blocking record creation.
+router.get("/similar", requireAuth, zValidator("query", z.object({
+  q: z.string().min(2).max(200),
+  object_type: z.string().optional(),
+  limit: z.coerce.number().min(1).max(10).default(5),
+})), async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const { q, object_type, limit } = c.req.valid("query");
+  const SIMILARITY_FLOOR = 0.82; // only flag STRONG matches — a dup warning must be trustworthy
+  try {
+    if (isEmbeddingsEnabled()) {
+      const qv = await embedOne(q);
+      if (qv) {
+        const { data: matches } = await supabase.rpc("match_node_embeddings", { ws: workspaceId, query_embedding: qv as unknown as string, k: 12 });
+        const strong = (matches ?? []).filter((m: { similarity: number }) => m.similarity >= SIMILARITY_FLOOR);
+        if (strong.length) {
+          const ids = strong.map((m: { node_id: string }) => m.node_id);
+          const { data: nodes } = await supabase.from("nodes").select("id, object_type, data").eq("workspace_id", workspaceId).in("id", ids);
+          const byId = new Map((nodes ?? []).map((n) => [n.id, n]));
+          const candidates = strong
+            .map((m: { node_id: string; similarity: number }) => { const n = byId.get(m.node_id); return n ? { id: n.id, object_type: n.object_type, name: String((n.data as Record<string, unknown>).name ?? (n.data as Record<string, unknown>).title ?? (n.data as Record<string, unknown>).full_name ?? "Untitled"), similarity: Math.round(m.similarity * 100) } : null; })
+            .filter((x: unknown): x is { id: string; object_type: string; name: string; similarity: number } => !!x)
+            .filter((x: { object_type: string }) => !object_type || x.object_type === object_type)
+            .slice(0, limit);
+          if (candidates.length) return c.json({ candidates, mode: "vector" });
+        }
+      }
+    }
+    // Fallback: name ILIKE within the same object type (still catches exact/near-exact dupes).
+    let query = supabase.from("nodes").select("id, object_type, data").eq("workspace_id", workspaceId).ilike("data->>name", `%${q}%`).limit(limit);
+    if (object_type) query = query.eq("object_type", object_type);
+    const { data: nameHits } = await query;
+    const candidates = (nameHits ?? []).map((n) => ({ id: n.id, object_type: n.object_type, name: String((n.data as Record<string, unknown>).name ?? (n.data as Record<string, unknown>).title ?? "Untitled"), similarity: null as number | null }));
+    return c.json({ candidates, mode: "name" });
+  } catch {
+    return c.json({ candidates: [], mode: "none" });
+  }
 });
 
 router.post("/", requireAuth, denyViewerWrites, zValidator("json", z.object({

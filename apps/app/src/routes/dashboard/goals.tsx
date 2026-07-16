@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Target, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { AIButton, SuggestionHints } from "../../components/ui/ai-button";
 
 interface Step { order: number; title: string; detail: string; risk_level: string }
+interface GoalProgress { id: string; title: string; agent_name: string; created_at: string; total: number; done: number; rejected: number; pending: number; progress: number; status: "active" | "complete" }
 const RISK_TONE: Record<string, string> = { high: "#d1524a", medium: "#c6892e", low: "#2f9e6b" };
 
 const EXAMPLES = [
@@ -40,26 +42,25 @@ export function GoalsPage() {
     finally { setPlanning(false); }
   }
 
+  const qc = useQueryClient();
+  const goalsQ = useQuery({
+    queryKey: ["goals-progress"],
+    queryFn: () => apiClient.get<{ goals: GoalProgress[] }>("/decisions/goals"),
+    retry: false, staleTime: 30_000,
+  });
+
   async function dispatch() {
     if (!plan?.steps.length) return;
     setDispatching(true);
-    let n = 0;
-    for (const s of plan.steps) {
-      try {
-        await apiClient.post("/decisions", {
-          agent_name: plan.agent_name || "planner",
-          source_type: "goal_step",
-          title: s.title,
-          summary: s.detail || `Goal: ${plan.goal}`,
-          recommended_action: s.title,
-          risk_level: s.risk_level,
-          evidence: [{ type: "goal", title: plan.goal, match_reason: `Step ${s.order} of the plan` }],
-        });
-        n++;
-      } catch { /* skip failed step */ }
-    }
-    setDispatched(n);
-    setDispatching(false);
+    try {
+      // One call: persists the goal + creates every linked step-decision, so progress is trackable.
+      const res = await apiClient.post<{ dispatched: number }>("/decisions/dispatch-plan", {
+        goal: plan.goal, agent_name: plan.agent_name || "planner", steps: plan.steps,
+      });
+      setDispatched(res.dispatched);
+      qc.invalidateQueries({ queryKey: ["goals-progress"] });
+    } catch { setDispatched(0); }
+    finally { setDispatching(false); }
   }
 
   return (
@@ -125,6 +126,35 @@ export function GoalsPage() {
               <button onClick={() => navigate("/decisions")} className="inline-flex items-center gap-1 font-medium hover:underline" style={{ color: "var(--section-accent)" }}>Review in Decisions <ArrowRight size={12} /></button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Active goals — real progress from each goal's linked step-decisions (done / total). */}
+      {(goalsQ.data?.goals.length ?? 0) > 0 && (
+        <div className="mt-10">
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Your goals · progress</p>
+          <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+            {goalsQ.data!.goals.map(g => (
+              <button key={g.id} onClick={() => navigate("/decisions")}
+                className="flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors last:border-0 hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)" }}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{g.title}</span>
+                    {g.status === "complete" && <CheckCircle2 size={13} className="shrink-0" style={{ color: "#2f9e6b" }} />}
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <div className="h-1.5 w-32 overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
+                      <div className="h-full rounded-full" style={{ width: `${g.progress}%`, background: g.status === "complete" ? "#2f9e6b" : "var(--section-accent)" }} />
+                    </div>
+                    <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+                      {g.done}/{g.total} done{g.pending > 0 ? ` · ${g.pending} pending` : ""}{g.rejected > 0 ? ` · ${g.rejected} skipped` : ""}
+                    </span>
+                  </div>
+                </div>
+                <ArrowRight size={13} className="shrink-0" style={{ color: "var(--text-faint)" }} />
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

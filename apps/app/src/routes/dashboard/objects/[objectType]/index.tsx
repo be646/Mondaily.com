@@ -99,6 +99,23 @@ function CreateRecordModal({
   const [error, setError]       = useState("");
   const [createMore, setCreateMore] = useState(false);
 
+  // ── Semantic dedup — as the user types a name, surface likely EXISTING duplicates (GET
+  //    /nodes/similar, embedding-backed, fail-soft) so they don't create a second "Acme Corp". ──
+  const [dupes, setDupes] = useState<{ id: string; name: string; similarity: number | null }[]>([]);
+  const nameValue = values.name ?? "";
+  useEffect(() => {
+    const q = nameValue.trim();
+    if (q.length < 3) { setDupes([]); return; }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const res = await apiClient.get<{ candidates: { id: string; name: string; similarity: number | null }[] }>(`/nodes/similar?q=${encodeURIComponent(q)}&object_type=${encodeURIComponent(objectType)}&limit=3`);
+        if (!cancelled) setDupes(res.candidates ?? []);
+      } catch { if (!cancelled) setDupes([]); }
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [nameValue, objectType]);
+
   // ── AI tab state ──
   const [aiPrompt, setAiPrompt]           = useState("");
   const [aiCount, setAiCount]             = useState(10);
@@ -258,6 +275,19 @@ function CreateRecordModal({
         {/* ── Manual tab ── */}
         {tab === "manual" && (
           <>
+            {dupes.length > 0 && (
+              <div className="mx-5 mt-4 rounded-md border px-3 py-2" style={{ borderColor: "color-mix(in srgb, #c6892e 45%, transparent)", background: "color-mix(in srgb, #c6892e 8%, transparent)" }}>
+                <p className="text-[11px] font-medium" style={{ color: "#c6892e" }}>Possible duplicate{dupes.length === 1 ? "" : "s"} already in this workspace:</p>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {dupes.map(d => (
+                    <a key={d.id} href={`/objects/${objectType}/${d.id}`} target="_blank" rel="noreferrer"
+                      className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[11px] transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                      {d.name}{d.similarity != null ? <span style={{ color: "var(--text-faint)" }}>· {d.similarity}%</span> : null}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="max-h-[400px] overflow-auto px-5 py-4 space-y-0.5">
               {fieldKeys.map(k => {
                 const isRequired = colMeta[k]?.required;
