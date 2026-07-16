@@ -11,6 +11,7 @@ import * as ubc from "@mondaily/db/ubc";
 import { runReportData } from "./reports";
 import { runProspecting } from "./prospecting";
 import { sovereignSearchUrls, sovereignScrape, sovereignWebContext } from "../lib/sovereign-search";
+import { isEmbeddingsEnabled, embedOne } from "../lib/embeddings";
 import { executeApprovedAction } from "./decisions";
 import { aiGatewayToolUse, aiGatewayAgent, aiGatewayAgentStream, aiGateway, gatewayHealthCheck, getLastGatewayError } from "../lib/ai-gateway";
 import { recallContext } from "../lib/memory-recall";
@@ -131,11 +132,11 @@ const TOOLS = [
   },
   {
     name: "search_records",
-    description: "Search contacts, companies, deals, or any record type by name, email, or keyword. Use for 'find contact X', 'show me deals with Y', 'look up company Z'.",
+    description: "Search contacts, companies, deals, or any record type by MEANING (semantic) or by name/email/keyword. Because it matches on meaning, you can pass a descriptive phrase ('boutique skincare businesses', 'stalled enterprise deals', 'clients in Poland') and it finds the most relevant records even when they share no exact words. Use for 'find contact X', 'show me deals like Y', 'which records are about Z'.",
     input_schema: {
       type: "object",
       properties: {
-        query: { type: "string", description: "Search term — name, email, company, or keyword" },
+        query: { type: "string", description: "Search term or descriptive phrase — matched semantically as well as by name/email/company" },
         object_type: {
           type: "string",
           description: "Optional filter: contacts, companies, deals, or omit to search all"
@@ -633,6 +634,29 @@ async function executeTool(
       }
 
       case "search_records": {
+        // Vector-first (RAG): when the embedding appliance is on, retrieve by MEANING so the agent
+        // finds relevant records even when the query shares no keywords with the name. Falls through
+        // to the keyword search below on any miss/failure.
+        if (isEmbeddingsEnabled()) {
+          try {
+            const qv = await embedOne(input.query);
+            if (qv) {
+              const { data: matches } = await supabase.rpc("match_node_embeddings", { ws: workspaceId, query_embedding: qv as unknown as string, k: 8 });
+              if (matches && matches.length) {
+                const rank = new Map((matches as { node_id: string }[]).map((m, i) => [m.node_id, i]));
+                const { data: vnodes } = await supabase.from("nodes").select("id, object_type, data").eq("workspace_id", workspaceId).in("id", [...rank.keys()]);
+                let rows = (vnodes ?? []) as { id: string; object_type: string; data: Record<string, unknown> }[];
+                if (input.object_type) rows = rows.filter((r) => r.object_type === input.object_type);
+                rows.sort((a, b) => (rank.get(a.id) ?? 99) - (rank.get(b.id) ?? 99));
+                if (rows.length) {
+                  for (const r of rows) sources.push({ type: "record", title: (r.data as any).name || "Untitled", node_id: r.id, object_type: r.object_type, match_reason: `semantically matches "${input.query}"` });
+                  const list = rows.map((r) => `- [${r.id}] ${(r.data as any).name || "Untitled"} (${r.object_type})${(r.data as any).email ? ` | ${(r.data as any).email}` : ""}${(r.data as any).company ? ` | ${(r.data as any).company}` : ""}`).join("\n");
+                  return `Found ${rows.length} record(s):\n${list}`;
+                }
+              }
+            }
+          } catch { /* fall through to keyword search */ }
+        }
         let query = supabase
           .from("nodes")
           .select("id, object_type, data")
