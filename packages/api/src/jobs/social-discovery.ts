@@ -1,6 +1,7 @@
 import { inngest } from "../lib/inngest";
 import { supabase } from "@mondaily/db/client";
 import { maybeAutoApprove } from "../lib/autonomy";
+import { reasonAboutFinding } from "../lib/agent-reasoning";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignHeaders, sovereignScrape } from "../lib/sovereign-search";
 import { cacheGet, cacheSet, cacheKey } from "../lib/discovery-cache";
@@ -643,22 +644,45 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
           .select("evidence").eq("workspace_id", workspaceId).eq("agent_name", "discovery").eq("status", "pending");
         const seenUrls = new Set((pending ?? []).flatMap((d) => Array.isArray(d.evidence) ? d.evidence.map((e: any) => e?.lead?.source_url) : []));
         // Await the inserts so `queued` is accurate before the notification body reads it.
-        const inserts = strong
-          .filter((r) => !seenUrls.has(r.source_url))
-          .map(async (r) => {
+        // Reason about the top few leads (RAG-grounded WHY this lead matters vs the workspace's
+        // existing graph) — capped so a big harvest doesn't blow the reasoning budget; the rest keep
+        // the rule-based line. reasonAboutFinding is fail-soft (returns the defaults on any error).
+        const fresh = strong.filter((r) => !seenUrls.has(r.source_url));
+        let reasonBudget = 5;
+        const inserts = fresh.map(async (r) => {
+          const defaultAction = `Add "${r.author_name || "this lead"}" as a lead record`;
+          const defaultReason = `Confidence ${r.confidence_score ?? 0}${r.contact?.email ? ` · ${r.contact.email}` : ""}`;
+          let title = `Add ${r.author_name || "lead"} from Discovery?`;
+          let summary = r.contact?.summary || (r.raw_content || "").slice(0, 160) || "Discovered from the web";
+          let action = defaultAction;
+          let matchReason = defaultReason;
+          let confidence: "low" | "medium" | "high" | undefined;
+          if (reasonBudget > 0) {
+            reasonBudget--;
+            const rec = await reasonAboutFinding(workspaceId, {
+              agentName: "Prospecting Agent",
+              recordName: r.author_name || "Discovered lead",
+              facts: `Discovered lead "${r.author_name ?? "unknown"}" from ${r.platform ?? "the web"}${r.target_subject ? ` about "${r.target_subject}"` : ""}${r.region ? ` in ${r.region}` : ""}. Confidence ${r.confidence_score ?? 0}. ${r.contact?.email ? `Email: ${r.contact.email}. ` : ""}${r.contact?.summary || (r.raw_content || "").slice(0, 240)}`,
+              defaultTitle: title,
+              defaultAction,
+              defaultRisk: "low",
+            }).catch(() => null);
+            if (rec?.reasoned) { title = rec.title; summary = rec.summary || summary; action = rec.recommended_action; matchReason = rec.rationale || defaultReason; confidence = rec.confidence; }
+          }
           const { data: sd } = await supabase.from("decision_queue").insert({
             workspace_id: workspaceId,
             source_type: "discovered_lead",
             source_id: null,
             agent_name: "discovery",
-            title: `Add ${r.author_name || "lead"} from Discovery?`,
-            summary: r.contact?.summary || (r.raw_content || "").slice(0, 160) || "Discovered from the web",
-            recommended_action: `Add "${r.author_name || "this lead"}" as a lead record`,
+            title,
+            summary,
+            recommended_action: action,
             risk_level: "low",
             evidence: [{
               type: "discovered_lead",
               title: r.author_name || "Lead",
-              match_reason: `Confidence ${r.confidence_score ?? 0}${r.contact?.email ? ` · ${r.contact.email}` : ""}`,
+              match_reason: matchReason,
+              ...(confidence ? { confidence } : {}),
               lead: { name: r.author_name, email: r.contact?.email ?? null, phone: r.contact?.phone ?? null, handle: r.contact?.handle ?? null, summary: r.contact?.summary ?? null, source_url: r.source_url, region: r.region, subject: r.target_subject },
             }],
           }).select("*").single().then((x) => x, () => ({ data: null }));

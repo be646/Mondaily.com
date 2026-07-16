@@ -144,20 +144,24 @@ async function runAction(workspaceId: string, action: WorkflowBlock, record: { i
       .eq("status", "pending").maybeSingle();
     if (pendingDupe) return { action: action.type, mode: "queued", detail: "already awaiting approval" };
     const draft = await aiGatewayToolUse({
-      prompt: `Workflow action: "${action.label ?? action.type}" for ${record.object_type} "${recName}".\nRecord:\n${JSON.stringify(record.data).slice(0, 1200)}\n\nDraft the content this action would produce (e.g. the email subject+body, or a one-line description).`,
+      prompt: `Workflow action: "${action.label ?? action.type}" for ${record.object_type} "${recName}".\nRecord:\n${JSON.stringify(record.data).slice(0, 1200)}\n\nDraft the content this action would produce (e.g. the email subject+body, or a one-line description), and give a one-line rationale for why this action fits this record right now. Ground it strictly in the record — never invent.`,
       toolName: "draft_action",
       toolDescription: "Draft the content for a sensitive workflow action awaiting approval",
-      toolSchema: { type: "object", properties: { title: { type: "string" }, body: { type: "string" } }, required: ["title"] },
+      toolSchema: { type: "object", properties: { title: { type: "string" }, body: { type: "string" }, rationale: { type: "string" } }, required: ["title"] },
       maxTokens: 800,
     }).catch(() => ({ title: action.label ?? action.type }));
-    const d = draft as { title?: string; body?: string };
+    const d = draft as { title?: string; body?: string; rationale?: string };
+    const evidence: Record<string, unknown>[] = [{ type: "record", title: recName, node_id: record.id, match_reason: `Workflow action: ${action.label ?? action.type}` }];
+    // Attach a reasoning row so workflow decisions show the same "Agent reasoning" callout as the
+    // other reasoning agents in the Decisions dossier.
+    if (d.rationale) evidence.push({ type: "rationale", match_reason: d.rationale, confidence: "medium" });
     const { data: wfDecision } = await supabase.from("decision_queue").insert({
       workspace_id: workspaceId, source_type: "node", source_id: record.id, agent_name: "workflow",
       title: `Workflow: ${d.title ?? action.label ?? action.type}`,
       summary: (d.body ?? "").slice(0, 1000) || `Action "${action.label ?? action.type}" ready for ${recName}.`,
       recommended_action: action.label ?? action.type,
       risk_level: type.includes("delete") || type.includes("charge") || type.includes("invoice") ? "high" : "medium",
-      evidence: [{ type: "record", title: recName, node_id: record.id, match_reason: `Workflow action: ${action.label ?? action.type}` }],
+      evidence,
     }).select("*").single().then((r) => r, () => ({ data: null }));
     if (wfDecision) await maybeAutoApprove(workspaceId, wfDecision);
     return { action: action.type, mode: "queued", detail: d.title ?? action.label ?? action.type };
