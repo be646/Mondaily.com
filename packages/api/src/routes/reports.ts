@@ -96,7 +96,7 @@ export async function runReportData(
       const days = Math.max(0, (new Date(node.updated_at).getTime() - new Date(node.created_at).getTime()) / 86_400_000);
       grouped.set(stage, [...(grouped.get(stage) ?? []), days]);
     }
-    return { data: [...grouped].map(([label, values]) => ({ label, value: Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1)) })), chart_type: "bar" };
+    return { data: [...grouped].map(([label, values]) => ({ label, value: Number((values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1)).toFixed(1)) })), chart_type: "bar" };
   }
   if (type === "historical") {
     const field = String(config.field ?? "value");
@@ -120,10 +120,19 @@ export async function runReportData(
   // value when a rate is missing). Count metrics never need this.
   const moneyAware = metric !== "count" && (nodes ?? []).some((n) => n.data?.currency);
   const conv = moneyAware ? await makeBaseConverter(workspaceId) : null;
+  // ISO-8601 week label — unique across months/years (day-of-month/7 collided every "W1–W5").
+  const isoWeekLabel = (d: Date) => {
+    const t = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+    const day = t.getUTCDay() || 7;
+    t.setUTCDate(t.getUTCDate() + 4 - day); // shift to the Thursday of this ISO week
+    const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+    const week = Math.ceil(((t.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+    return `${t.getUTCFullYear()} W${String(week).padStart(2, "0")}`;
+  };
   const groups = new Map<string, number[]>();
   for (const node of nodes ?? []) {
     const date = new Date(node.created_at);
-    const label = groupBy === "day" ? date.toISOString().slice(0, 10) : groupBy === "week" ? `${date.getFullYear()} W${Math.ceil(date.getDate() / 7)}` : groupBy === "quarter" ? `${date.getFullYear()} Q${Math.floor(date.getMonth() / 3) + 1}` : date.toLocaleDateString("en", { month: "short", year: "numeric" });
+    const label = groupBy === "day" ? date.toISOString().slice(0, 10) : groupBy === "week" ? isoWeekLabel(date) : groupBy === "quarter" ? `${date.getFullYear()} Q${Math.floor(date.getMonth() / 3) + 1}` : date.toLocaleDateString("en", { month: "short", year: "numeric" });
     const raw = Number(node.data?.[field] ?? 0);
     const value = conv ? conv.toBase(raw, node.data?.currency as string | undefined) : raw;
     groups.set(label, [...(groups.get(label) ?? []), value]);

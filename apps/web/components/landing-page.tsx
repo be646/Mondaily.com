@@ -274,7 +274,7 @@ function AiReportDemo() {
       </div>
       <div className="flex items-center gap-2 border-t border-zinc-100 bg-zinc-50/60 px-4 py-2.5 text-[10.5px] text-zinc-500">
         <motion.span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "#6f8068" }} animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.6, repeat: Infinity }} />
-        <span><span className="font-medium text-zinc-700">Reports Agent</span> · composed from your graph · every figure links to its records</span>
+        <span><span className="font-medium text-zinc-700">Insights Agent</span> · composed from your graph · every figure links to its records</span>
       </div>
     </div>
   );
@@ -1299,6 +1299,8 @@ const WORKSPACE_GRAPH_NODES = [
   { label: "Portfolio Agent", x: 50, y: 81, color: "#4f9bc4", detail: "Tracks companies and holdings" },
   { label: "Asset Agent", x: 85, y: 79, color: "#a8896c", detail: "Monitors assets and renewals" },
   { label: "Meeting Agent", x: 66, y: 30, color: "#5f8a8f", detail: "Scans meetings for conflicts, agenda, and prep" },
+  { label: "Insights Agent", x: 34, y: 30, color: "#8f8fb3", detail: "Writes the Daily Brief and top priorities" },
+  { label: "Goal Planner", x: 34, y: 70, color: "#b39a5f", detail: "Turns a goal into a step-by-step plan" },
 ];
 
 // Per-agent execution traces — one log per node (same order as WORKSPACE_GRAPH_NODES).
@@ -1380,6 +1382,19 @@ const WORKSPACE_AGENT_LOGS: WgLogLine[][] = [
     { t: "ok", s: "1 conflict · 2 missing agenda" },
     { t: "out", s: "conflict → decision_queue" },
   ],
+  [ // Insights
+    { t: "cmd", s: "insights.brief --scope workspace" },
+    { t: "call", s: "GET /api/v1/activities + /decisions" },
+    { t: "meta", s: "model Mondaily Reasoning · private gateway" },
+    { t: "ok", s: "3 priorities · 12 signals synthesized" },
+    { t: "out", s: '"Daily Brief ready · 3 need you"' },
+  ],
+  [ // Goal Planner
+    { t: "cmd", s: 'planner.plan("hit €1M ARR by Q4")' },
+    { t: "call", s: "POST /api/v1/decisions/plan-goal" },
+    { t: "ok", s: "6-step plan · owners + dates" },
+    { t: "out", s: "plan → decision_queue" },
+  ],
 ];
 
 const WG_LOG_STYLE: Record<WgLogLine["t"], { prefix: string; color: string }> = {
@@ -1405,6 +1420,8 @@ const AGENT_ASK_PROMPTS = [
   "How are my portfolio companies trending?",
   "Which assets or renewals are coming due soon?",
   "Do any of my meetings this week conflict or need an agenda?",
+  "What's in my Daily Brief — what needs me most today?",
+  "Plan how to reach my next revenue goal, step by step.",
 ];
 
 
@@ -2009,6 +2026,20 @@ const AGENTS = [
     watches: "Your meetings today and over the next 7 days",
     prepares: "Conflict and prep flags, plus the related records for each meeting",
     approval: "Recommends only — real conflicts route to the Decision Queue",
+  },
+  {
+    icon: "◔", name: "Insights Agent", accent: "#8f8fb3", brush: "42deg",
+    desc: "Reads across the whole workspace each day and writes your Daily Brief — the few things that actually need you, synthesized from tasks, deals, records, and pending decisions.",
+    watches: "Cross-workspace activity — tasks, deals, records, and decisions",
+    prepares: "The Daily Brief: a short summary plus the top priorities",
+    approval: "Read-only synthesis — it writes no records, only the brief",
+  },
+  {
+    icon: "◈", name: "Goal Planner", accent: "#b39a5f", brush: "-66deg",
+    desc: "Turns a goal you describe into a concrete, step-by-step plan — owners, sequencing, and dates — grounded in the records you already have, ready for you to approve.",
+    watches: "The goal you describe and the related workspace records",
+    prepares: "A multi-step plan proposed to the Decision Queue",
+    approval: "On-demand — runs when you ask, and you approve the plan",
   },
 ];
 

@@ -61,15 +61,18 @@ router.get("/rollup", async (c) => {
     makeBaseConverter(workspaceId),
   ]);
   const OUTSTANDING = new Set(["sent", "viewed", "overdue"]);
+  // "Billed" = real committed billing — a draft or cancelled invoice was never billed to the client.
+  const BILLED = new Set(["sent", "viewed", "overdue", "paid"]);
   const byClient: Record<string, { billed: number; collected: number; outstanding: number; count: number }> = {};
   for (const row of data ?? []) {
     const d = (row.data ?? {}) as Record<string, unknown>;
     const name = String(d.client_name ?? "").trim();
     if (!name) continue;
-    const amt = toBase(Number(d.total ?? 0), String(d.currency ?? base));
+    const amt = toBase(Number(d.total ?? 0) || 0, String(d.currency ?? base));
     const st = String(d.status ?? "draft");
     const b = (byClient[name] ??= { billed: 0, collected: 0, outstanding: 0, count: 0 });
-    b.billed += amt; b.count += 1;
+    b.count += 1;
+    if (BILLED.has(st)) b.billed += amt;
     if (st === "paid") b.collected += amt;
     if (OUTSTANDING.has(st)) b.outstanding += amt;
   }
@@ -261,10 +264,12 @@ router.post("/:id/payments", zValidator("json", z.object({
     paid_at: body.paid_at ?? new Date().toISOString(),
   };
   const updatedPayments = [...payments, newPayment];
-  const totalPaid = updatedPayments.reduce((s, p) => s + Number(p.amount), 0);
-  const invoiceTotal = Number(current.total ?? 0);
+  // Payments are recorded in the invoice's own currency (no per-payment currency field), so a plain
+  // sum is correct here. Guard against a malformed amount poisoning the total with NaN.
+  const totalPaid = updatedPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const invoiceTotal = Number(current.total ?? 0) || 0;
   const statusUpdates: Record<string, unknown> = {};
-  if (totalPaid >= invoiceTotal && current.status !== "paid") {
+  if (invoiceTotal > 0 && totalPaid >= invoiceTotal && current.status !== "paid") {
     statusUpdates.status = "paid";
     statusUpdates.paid_at = new Date().toISOString();
   }

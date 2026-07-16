@@ -26,7 +26,7 @@ tasks.get("/", async (c) => {
     .order(sortBy === "due_date" ? "due_date" : sortBy === "priority" ? "priority" : sortBy === "assignee" ? "assignee_email" : "created_at", { ascending: sortDir === "asc", nullsFirst: false });
 
   if (filter === "mine") query = query.or(`assignee_id.eq.${userId},created_by.eq.${userId}`);
-  if (filter === "overdue") query = query.lt("due_date", new Date().toISOString()).eq("completed", false);
+  if (filter === "overdue") query = query.lt("due_date", new Date().toISOString()).eq("completed", false).neq("status", "done");
   if (filter === "review") query = query.eq("status", "review");
   if (labelFilter) query = query.contains("labels", [labelFilter]);
   if (priorityFilter) query = query.eq("priority", priorityFilter);
@@ -171,7 +171,11 @@ tasks.patch("/:id/review-action", async (c) => {
   };
 
   if (action === "approved") {
-    updates.status = "review";
+    // Approval completes the task — move it to done (not back into the review column) and mirror
+    // the completed/timestamp fields so it doesn't linger as open/overdue.
+    updates.status = "done";
+    updates.completed = true;
+    updates.completed_at = new Date().toISOString();
     updates.labels = [];
   } else {
     updates.status = "in_progress";

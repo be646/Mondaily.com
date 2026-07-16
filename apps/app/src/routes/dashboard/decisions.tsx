@@ -637,8 +637,8 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
               {saveEdit.isError && <p className="text-[10.5px]" style={{ color: "#d1524a" }}>Couldn't save the edit — try again.</p>}
             </div>
           )}
-          {target?.node_id && (
-            <Link to={`/objects/${encodeURIComponent(target.object_type ?? "deals")}/${target.node_id}`} className="mb-2.5 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          {target?.node_id && target?.object_type && (
+            <Link to={`/objects/${encodeURIComponent(target.object_type)}/${target.node_id}`} className="mb-2.5 inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] transition-colors" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
               Target: <span className="font-medium" style={{ color: "var(--text-primary)" }}>{target.title || "record"}</span><ExternalLink size={11} style={{ color: "var(--text-faint)" }} />
             </Link>
           )}

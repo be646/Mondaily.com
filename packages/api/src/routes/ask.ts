@@ -613,7 +613,7 @@ async function executeTool(
           .select()
           .single();
         if (error) return `Error creating task: ${error.message}`;
-        return `Task created successfully: "${data.title}" (ID: ${data.id}) with priority ${data.priority}.`;
+        return `Task created successfully: "${data.title}" with priority ${data.priority}.`;
       }
 
       case "update_task": {
@@ -736,7 +736,7 @@ async function executeTool(
             }).then(() => {}, () => {});
           }
         }
-        return `${input.object_type} record created: "${input.name}" (ID: ${data.id}). Its page is at /objects/${typeSlug}.`;
+        return `${input.object_type} record created: "${input.name}". Its page is at /objects/${typeSlug}.`;
       }
 
       case "list_records": {
@@ -789,7 +789,7 @@ async function executeTool(
           .select()
           .single();
         if (error) return `Error creating list: ${error.message}`;
-        return `List "${data.name}" created (ID: ${data.id}) for ${data.object_type} records. Use add_to_list to populate it, or the user can open it in the Lists section.`;
+        return `List "${data.name}" created for ${data.object_type} records. Use add_to_list to populate it, or the user can open it in the Lists section.`;
       }
 
       case "list_lists": {
@@ -915,7 +915,7 @@ async function executeTool(
         const fieldSummary = attributes.length
           ? attributes.map((a) => `${a.name} (${a.type})`).join(", ")
           : "no fields yet — the user can add them in Settings → Objects";
-        return `Object type "${input.name}" created (slug: ${data.slug}, ID: ${data.id}) with ${attributes.length} field(s): ${fieldSummary}. It now appears under Objects in the sidebar.`;
+        return `Object type "${input.name}" created (slug: ${data.slug}) with ${attributes.length} field(s): ${fieldSummary}. It now appears under Objects in the sidebar.`;
       }
 
       case "find_related_objects": {
@@ -1112,7 +1112,7 @@ async function executeTool(
         // Run it once so the reply shows real numbers, not a guess.
         const run = await runReportData(workspaceId, rpt.id).catch(() => null);
         const preview = run && !("error" in run) ? run.data.slice(0, 8).map((p) => `- ${p.label}: ${p.value}`).join("\n") : "";
-        return `Created report "${input.name}" (${input.type} on ${input.object_type}, ID: ${rpt.id}). It's saved under Reports.${preview ? `\nLive preview:\n${preview}` : ""}`;
+        return `Created report "${input.name}" (${input.type} on ${input.object_type}). It's saved under Reports.${preview ? `\nLive preview:\n${preview}` : ""}`;
       }
 
       case "create_note": {
@@ -1134,7 +1134,7 @@ async function executeTool(
           .single();
         if (error) return `Error creating note: ${error.message}`;
         sources.push({ type: "note", title: input.title ?? "Untitled note", node_id: data.id, object_type: "note" });
-        return `Note created (ID: ${data.id}).`;
+        return `Note created.`;
       }
 
       case "list_decisions": {
@@ -1197,7 +1197,7 @@ async function executeTool(
           .single();
         if (error) return `Error adding to decision queue: ${error.message}`;
         sources.push({ type: "record", title: input.title, node_id: data.id, object_type: "decision" });
-        return `Added to the decision queue: "${input.title}" (ID: ${data.id}). It's pending — a human needs to approve, reject, or snooze it before anything happens.`;
+        return `Added to the decision queue: "${input.title}". It's pending — a human needs to approve, reject, or snooze it before anything happens.`;
       }
 
       case "create_workflow_draft": {
@@ -1332,7 +1332,10 @@ async function executeTool(
         return `Unknown tool: ${name}`;
     }
   } catch (err: any) {
-    return `Tool error: ${err.message}`;
+    // Log the real error (DB down, malformed query, etc.) so a tool failure is diagnosable, but hand
+    // the model a generic message so it doesn't treat the raw error string as valid data.
+    console.error(`[ask] tool "${name}" failed:`, err?.message ?? err);
+    return `The ${name} tool is temporarily unavailable — tell the user you couldn't complete that part and suggest they retry.`;
   }
 }
 

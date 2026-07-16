@@ -199,9 +199,14 @@ export function ExpensesPage() {
   const range = periodRange(period);
   const inPeriod = (e: Expense) => period === "all" || inRange(e.date ?? "", range);
   const periodScope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
-  const totalSubmitted = sumInDisplay(expenses.filter(e => e.status === "submitted").map(e$)).value;
-  const totalApproved  = sumInDisplay(expenses.filter(e => e.status === "approved" && inPeriod(e)).map(e$)).value;
-  const totalInPeriod  = sumInDisplay(expenses.filter(inPeriod).map(e$)).value;
+  const submittedSum = sumInDisplay(expenses.filter(e => e.status === "submitted").map(e$));
+  const approvedSum  = sumInDisplay(expenses.filter(e => e.status === "approved" && inPeriod(e)).map(e$));
+  // "Total logged" = real spend in the window: exclude rejected AND draft (neither is committed spend).
+  const loggedSum    = sumInDisplay(expenses.filter(e => inPeriod(e) && e.status !== "rejected" && e.status !== "draft").map(e$));
+  const totalSubmitted = submittedSum.value, totalApproved = approvedSum.value, totalInPeriod = loggedSum.value;
+  // If any amount couldn't be converted to the display currency (missing FX rate), we summed at face
+  // value — flag it with a "~" so the figure is never presented as an exact cross-currency total.
+  const approx = (n: number) => (n > 0 ? "~" : "");
 
   return (
     <div className="flex h-full flex-col">
@@ -218,21 +223,21 @@ export function ExpensesPage() {
           }
         />
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-[#717784]"/><span className="text-[11px] text-[var(--text-muted)]">Submitted</span></div>
-            <div className="text-[17px] font-semibold text-[#717784]">{formatMoney(totalSubmitted, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{expenses.filter(e => e.status === "submitted").length} pending approval</div>
+            <div className="text-[17px] font-semibold text-[#717784]">{approx(submittedSum.missing)}{formatMoney(totalSubmitted, currency)}</div>
+            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{expenses.filter(e => e.status === "submitted").length} pending approval · as of now</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#2f9e6b]"/><span className="text-[11px] text-[var(--text-muted)]">Approved</span></div>
-            <div className="text-[17px] font-semibold text-[#2f9e6b]">{formatMoney(totalApproved, currency)}</div>
+            <div className="text-[17px] font-semibold text-[#2f9e6b]">{approx(approvedSum.missing)}{formatMoney(totalApproved, currency)}</div>
             <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">approved · {periodScope}</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Receipt size={11} className="text-[var(--text-muted)]"/><span className="text-[11px] text-[var(--text-muted)]">Total logged</span></div>
-            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{formatMoney(totalInPeriod, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">all statuses · {periodScope}</div>
+            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{approx(loggedSum.missing)}{formatMoney(totalInPeriod, currency)}</div>
+            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">excl. rejected · {periodScope}{loggedSum.missing > 0 ? ` · ${loggedSum.missing} unconverted` : ""}</div>
           </div>
         </div>
 
