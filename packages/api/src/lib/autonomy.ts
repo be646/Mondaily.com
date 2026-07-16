@@ -56,13 +56,55 @@ export async function learnedGuidanceFor(workspaceId: string, agentName?: string
   const prefs = (await getLearnedPreferences(workspaceId))
     .filter((p) => !agentName || p.agent_name === agentName)
     .filter((p) => p.verdict === "favored" || p.verdict === "disfavored");
-  if (!prefs.length) return "";
   const favored = prefs.filter((p) => p.verdict === "favored").map((p) => `${p.agent_name}/${p.source_type}`);
   const disfavored = prefs.filter((p) => p.verdict === "disfavored").map((p) => `${p.agent_name}/${p.source_type}`);
   const parts: string[] = [];
   if (favored.length) parts.push(`The user consistently APPROVES these kinds of proposals — keep producing them: ${favored.join(", ")}.`);
   if (disfavored.length) parts.push(`The user consistently REJECTS these — avoid proposing them unless clearly warranted: ${disfavored.join(", ")}.`);
-  return `Learned from this user's own approve/reject history: ${parts.join(" ")}`;
+
+  // FEW-SHOT: concrete recent decisions the user actually approved / rejected for this agent, so the
+  // model learns the specific style + threshold — not just the category. Bounded + fail-soft.
+  const examples = await learnedExamplesFor(workspaceId, agentName).catch(() => "");
+
+  if (!parts.length && !examples) return "";
+  const preferenceLine = parts.length ? `Learned from this user's own approve/reject history: ${parts.join(" ")}` : "";
+  return [preferenceLine, examples].filter(Boolean).join("\n");
+}
+
+/**
+ * Pulls a few real, recently HUMAN-resolved decisions for this agent and formats them as approve/
+ * reject examples — few-shot signal the reasoning model can pattern-match against. Human resolutions
+ * only (excludes autonomy/learned auto-approvals). Returns "" when there's nothing to learn from yet.
+ */
+export async function learnedExamplesFor(workspaceId: string, agentName?: string): Promise<string> {
+  let q = supabase
+    .from("decision_queue")
+    .select("title, recommended_action, status, resolved_by, agent_name, updated_at")
+    .eq("workspace_id", workspaceId)
+    .in("status", ["approved", "rejected", "executed", "completed"])
+    .order("updated_at", { ascending: false })
+    .limit(40);
+  if (agentName) q = q.eq("agent_name", agentName);
+  const { data } = await q;
+  const rows = (data ?? []).filter((d) => {
+    const by = String((d as { resolved_by?: string }).resolved_by ?? "");
+    return by !== "autonomy" && by !== "learned_policy";
+  });
+  const approved: string[] = [], rejected: string[] = [];
+  for (const d of rows) {
+    const status = String((d as { status?: string }).status ?? "");
+    const title = String((d as { title?: string }).title ?? "").trim();
+    if (!title) continue;
+    const line = `"${title.slice(0, 90)}"`;
+    if (status === "rejected") { if (rejected.length < 3) rejected.push(line); }
+    else { if (approved.length < 3) approved.push(line); }
+    if (approved.length >= 3 && rejected.length >= 3) break;
+  }
+  if (!approved.length && !rejected.length) return "";
+  const lines: string[] = ["Recent examples of this user's own calls (match the approved style, avoid the rejected pattern):"];
+  if (approved.length) lines.push(`APPROVED: ${approved.join("; ")}.`);
+  if (rejected.length) lines.push(`REJECTED: ${rejected.join("; ")}.`);
+  return lines.join(" ");
 }
 
 export async function getLearnedPreferences(workspaceId: string): Promise<LearnedPreference[]> {
