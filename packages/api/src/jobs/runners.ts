@@ -116,13 +116,19 @@ export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_crea
         // Create the decision FIRST so we can deep-link the notification straight to it. Capturing
         // the id is best-effort — if the insert fails, decisionId stays null and the notification
         // still lands (linked to the record instead).
+        const relName = String(data.name ?? data.title ?? "This relationship");
+        const relBaseRisk: "medium" | "high" = daysInactive > 30 ? "high" : "medium";
+        const relRec = await reasonAboutFinding(wsId, {
+          agentName: "relationship", recordName: relName,
+          facts: `The deal/relationship "${relName}" has had no activity for ${daysInactive} days${data.stage ? ` (stage: ${data.stage})` : ""}${data.value ? ` (value: ${data.value})` : ""}.`,
+          defaultTitle: `${relName} has gone quiet`, defaultAction: "Reach out to re-engage, or mark as lost", defaultRisk: relBaseRisk, sourceId: deal.id,
+        });
+        const relEvidence: Record<string, unknown>[] = [{ type: "record", title: relName, node_id: deal.id, match_reason: `${daysInactive} days inactive` }];
+        if (relRec.rationale) relEvidence.push({ type: "rationale", title: "Agent reasoning", match_reason: relRec.rationale });
         const { data: dq } = await supabase.from("decision_queue").insert({
           workspace_id: wsId, source_type: "node", source_id: deal.id, agent_name: "relationship",
-          title: `${data.name ?? data.title ?? "This relationship"} has gone quiet`,
-          summary: `No activity for ${daysInactive} days.`,
-          recommended_action: "Reach out to re-engage, or mark as lost",
-          risk_level: daysInactive > 30 ? "high" : "medium",
-          evidence: [{ type: "record", title: String(data.name ?? data.title ?? "Deal"), node_id: deal.id, match_reason: `${daysInactive} days inactive` }],
+          title: relRec.title, summary: relRec.summary, recommended_action: relRec.recommended_action, risk_level: relRec.risk_level,
+          evidence: relEvidence,
         }).select("*").single().then((r) => r, () => ({ data: null }));
         if (dq) await maybeAutoApprove(wsId, dq);
         await createNotification({
@@ -363,13 +369,19 @@ export async function runInvoiceChaser(workspaceId?: string): Promise<{ total_ch
           .eq("agent_name", "invoice_chaser").eq("status", "pending").maybeSingle();
         if (existingDecision) { totalSkipped++; continue; }
 
+        const invNo = invoice.data.invoice_number ?? invoice.id;
+        const chaseBaseRisk: "low" | "medium" | "high" = days > 14 ? "high" : days > 7 ? "medium" : "low";
+        const chaseRec = await reasonAboutFinding(wsId, {
+          agentName: "invoice_chaser", recordName: `Invoice ${invNo}`,
+          facts: (() => { const d = invoice.data as Record<string, unknown>; const amt = d.total ?? d.amount ?? d.amount_due; return `Invoice ${invNo}${d.client_name ? ` for ${d.client_name}` : ""}${amt ? ` (${amt})` : ""} is ${days} days overdue. This is reminder #${chaseCount}. Client email: ${d.client_email ?? "none on file"}. A reminder is drafted with subject "${subject}".`; })(),
+          defaultTitle: `Chase invoice ${invNo} — ${days} days overdue`, defaultAction: `Send: "${subject}"`, defaultRisk: chaseBaseRisk, sourceId: invoice.id,
+        });
+        const chaseEvidence: Record<string, unknown>[] = [{ type: "invoice", title: subject, node_id: invoice.id, match_reason: `${days} days overdue`, timestamp: due }];
+        if (chaseRec.rationale) chaseEvidence.push({ type: "rationale", title: "Agent reasoning", match_reason: chaseRec.rationale });
         const { data: chaseDecision } = await supabase.from("decision_queue").insert({
           workspace_id: wsId, source_type: "invoice", source_id: invoice.id, agent_name: "invoice_chaser",
-          title: `Chase invoice ${invoice.data.invoice_number ?? invoice.id} — ${days} days overdue`,
-          summary: `Draft reminder ready to send to ${invoice.data.client_email ?? "no email on file"}.`,
-          recommended_action: `Send: "${subject}"`,
-          risk_level: days > 14 ? "high" : days > 7 ? "medium" : "low",
-          evidence: [{ type: "invoice", title: subject, node_id: invoice.id, match_reason: `${days} days overdue`, timestamp: due }],
+          title: chaseRec.title, summary: chaseRec.summary, recommended_action: chaseRec.recommended_action, risk_level: chaseRec.risk_level,
+          evidence: chaseEvidence,
         }).select("*").single().then((r) => r, () => ({ data: null }));
         if (chaseDecision) await maybeAutoApprove(wsId, chaseDecision);
         steps.push(step(`Drafted chase for invoice ${invoice.data.invoice_number ?? invoice.id} — ${days} days overdue`, { status: "warn", sources: [{ title: `Invoice ${invoice.data.invoice_number ?? invoice.id}`, node_id: invoice.id }] }));

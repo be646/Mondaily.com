@@ -2,6 +2,7 @@ import { supabase } from "@mondaily/db/client";
 import { startJob, completeJob, failJob, step } from "../lib/agent-logger";
 import { createNotification } from "../lib/notify";
 import { maybeAutoApprove } from "../lib/autonomy";
+import { reasonAboutFinding } from "../lib/agent-reasoning";
 
 /**
  * Vertical agents — Opportunity, People, Portfolio, Asset.
@@ -46,10 +47,18 @@ async function queueDecision(workspaceId: string, agent: string, recordId: strin
   const { data: existing } = await supabase.from("decision_queue").select("id")
     .eq("workspace_id", workspaceId).eq("source_id", recordId).eq("agent_name", agent).eq("status", "pending").maybeSingle();
   if (existing) return false;
+  // Reason about the finding (all vertical agents flow through here) — a sharper title + specific
+  // action + rationale, grounded in related records. Only for medium/high risk to bound AI cost
+  // across large scans; low-risk stays rule-based. Fail-soft to the rule-based inputs.
+  const rec = risk !== "low"
+    ? await reasonAboutFinding(workspaceId, { agentName: agent, recordName: evidenceTitle, facts: summary, defaultTitle: title, defaultAction: action, defaultRisk: risk, sourceId: recordId })
+    : { title, summary, recommended_action: action, rationale: "", risk_level: risk, confidence: "medium" as const, reasoned: false };
+  const ev: Record<string, unknown>[] = [{ type: "record", title: evidenceTitle, node_id: recordId, match_reason: summary }];
+  if (rec.rationale) ev.push({ type: "rationale", title: "Agent reasoning", match_reason: rec.rationale });
   const { data: decision } = await supabase.from("decision_queue").insert({
     workspace_id: workspaceId, source_type: "node", source_id: recordId, agent_name: agent,
-    title, summary, recommended_action: action, risk_level: risk,
-    evidence: [{ type: "record", title: evidenceTitle, node_id: recordId, match_reason: summary }],
+    title: rec.title, summary: rec.summary, recommended_action: rec.recommended_action, risk_level: rec.risk_level,
+    evidence: ev,
   }).select("*").single().then((r) => r, () => ({ data: null }));
   if (decision) await maybeAutoApprove(workspaceId, decision);
   return true;
