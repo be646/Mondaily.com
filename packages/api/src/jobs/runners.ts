@@ -153,6 +153,100 @@ export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_crea
   }
 }
 
+// ── Signal Agent: stalled-stage alerts (data-driven, not a flat threshold) ──────
+// Flags open deals dwelling in their current stage far longer than that stage's own historical
+// median across the pipeline — i.e. "this deal is stuck relative to how long deals normally take
+// here", which a fixed 14-day rule can't express (some stages are fast, some are slow).
+export async function runStageDwellAlerts(workspaceId?: string): Promise<{ alerts_created: number }> {
+  const jobId = await startJob({ workspace_id: workspaceId ?? "system", agent_name: "deal_alerts", trigger_type: workspaceId ? "manual" : "scheduled", input: { kind: "stalled_stage" }, node_ids: [] });
+  try {
+    const wsIds = await listWorkspaceIds(workspaceId);
+    let totalAlerts = 0, dealsScanned = 0;
+    const now = Date.now();
+    const CLOSED = ["won", "lost", "closed"];
+    const MIN_DEALS_PER_STAGE = 4;   // need enough history for a meaningful median
+    const MIN_DWELL_DAYS = 7;        // never nag about a deal that's only been in-stage a few days
+    const OVER_FACTOR = 1.5;         // "stalled" = > 1.5× the stage's median dwell
+
+    for (const wsId of wsIds) {
+      const { data: deals } = await supabase
+        .from("nodes").select("id, data, created_at, updated_at")
+        .eq("workspace_id", wsId).ilike("object_type", "%deal%");
+      const open = (deals ?? []).filter((d) => {
+        const s = String((d.data as Record<string, unknown>).stage ?? (d.data as Record<string, unknown>).status ?? "").toLowerCase();
+        return s && !CLOSED.some((c) => s.includes(c));
+      });
+      dealsScanned += open.length;
+      if (open.length < MIN_DEALS_PER_STAGE) continue;
+
+      // When did each deal enter its current stage? Latest stage-change activity, else created_at.
+      const ids = open.map((d) => d.id);
+      const enteredAt = new Map<string, number>();
+      const { data: acts } = await supabase
+        .from("activities").select("node_id, created_at, diff")
+        .eq("workspace_id", wsId).in("node_id", ids).order("created_at", { ascending: true });
+      for (const a of acts ?? []) {
+        const diff = a.diff as Record<string, unknown> | null;
+        const changed = diff && ("stage" in diff || "status" in diff || (diff.data as Record<string, unknown> | undefined)?.stage !== undefined || (diff.data as Record<string, unknown> | undefined)?.status !== undefined);
+        if (changed) enteredAt.set(a.node_id as string, new Date(a.created_at as string).getTime());
+      }
+      const dwellDays = (d: { id: string; created_at: string }) => (now - (enteredAt.get(d.id) ?? new Date(d.created_at).getTime())) / 86_400_000;
+      const stageOf = (d: { data: Record<string, unknown> }) => String(d.data.stage ?? d.data.status ?? "").toLowerCase();
+
+      // Median dwell per stage (across open deals currently in it).
+      const byStage = new Map<string, number[]>();
+      for (const d of open) byStage.set(stageOf(d), [...(byStage.get(stageOf(d)) ?? []), dwellDays(d)]);
+      const median = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2; };
+      const stageMedian = new Map<string, number>();
+      for (const [stage, xs] of byStage) if (xs.length >= MIN_DEALS_PER_STAGE) stageMedian.set(stage, median(xs));
+
+      for (const deal of open) {
+        const stage = stageOf(deal);
+        const med = stageMedian.get(stage);
+        if (med == null) continue; // not enough peers in this stage to judge
+        const dwell = dwellDays(deal);
+        if (dwell < MIN_DWELL_DAYS || dwell <= med * OVER_FACTOR) continue;
+
+        const { data: existing } = await supabase.from("deal_alerts").select("id")
+          .eq("node_id", deal.id).eq("alert_type", "stalled_stage").is("dismissed_at", null).maybeSingle();
+        if (existing) continue;
+
+        const { error: alertErr } = await supabase.from("deal_alerts").insert({ workspace_id: wsId, node_id: deal.id, alert_type: "stalled_stage", days_inactive: Math.round(dwell) });
+        if (alertErr) throw new Error(`deal_alerts insert failed: ${alertErr.message}`);
+
+        const data = deal.data as Record<string, unknown>;
+        const name = String(data.name ?? data.title ?? "This deal");
+        const baseRisk: "medium" | "high" = dwell > med * 2.5 ? "high" : "medium";
+        const rec = await reasonAboutFinding(wsId, {
+          agentName: "signal", recordName: name,
+          facts: `The deal "${name}" has been in the "${data.stage ?? data.status}" stage for ${Math.round(dwell)} days — the median for that stage in this pipeline is ${Math.round(med)} days, so it's ${(dwell / med).toFixed(1)}× the norm${data.value ? ` (value: ${data.value})` : ""}.`,
+          defaultTitle: `${name} is stalled in ${data.stage ?? data.status}`,
+          defaultAction: "Advance the stage, log the blocker, or re-qualify the deal", defaultRisk: baseRisk, sourceId: deal.id,
+        });
+        const evidence: Record<string, unknown>[] = [{ type: "record", title: name, node_id: deal.id, match_reason: `${Math.round(dwell)}d in stage vs ${Math.round(med)}d median (${(dwell / med).toFixed(1)}×)` }];
+        if (rec.rationale) evidence.push({ type: "rationale", title: "Agent reasoning", match_reason: rec.rationale, confidence: rec.confidence });
+        const { data: dq } = await supabase.from("decision_queue").insert({
+          workspace_id: wsId, source_type: "node", source_id: deal.id, agent_name: "signal",
+          title: rec.title, summary: rec.summary, recommended_action: rec.recommended_action, risk_level: rec.risk_level, evidence,
+        }).select("*").single().then((r) => r, () => ({ data: null }));
+        if (dq) await maybeAutoApprove(wsId, dq);
+        await createNotification({
+          workspace_id: wsId, type: "alert", title: "⏳ Deal stalled in stage",
+          body: `"${name}" has been in ${data.stage ?? data.status} for ${Math.round(dwell)} days (${(dwell / med).toFixed(1)}× the stage median).`,
+          metadata: { dwell_days: Math.round(dwell), stage_median: Math.round(med) },
+          source: { source_agent: "signal", agent_job_id: jobId, decision_id: (dq as { id?: string } | null)?.id ?? null, node_id: deal.id, object_type: "deal" },
+        });
+        totalAlerts++;
+      }
+    }
+    await completeJob(jobId, { alerts_created: totalAlerts, deals_scanned: dealsScanned, summary: `Flagged ${totalAlerts} stalled deal(s)` }, [
+      step(`Scanned ${dealsScanned} open deal(s) against per-stage median dwell`),
+      step(`Flagged ${totalAlerts} deal(s) stalled past ${OVER_FACTOR}× their stage median`, { status: totalAlerts ? "warn" : "ok" }),
+    ]);
+    return { alerts_created: totalAlerts };
+  } catch (err: unknown) { await failJob(jobId, err instanceof Error ? err.message : String(err)); throw err; }
+}
+
 // ── Relationship Agent: health scoring ──────────────────────────────────────────
 export async function runRelationshipHealth(workspaceId?: string): Promise<{ total_scored: number }> {
   const wsIds = await listWorkspaceIds(workspaceId);
@@ -766,6 +860,7 @@ export async function runAllDaily(): Promise<Record<string, unknown>> {
   results.recurring_invoices = await runRecurringInvoices().catch((e) => ({ error: String(e) }));
   results.overdue_task_decisions = await runOverdueTaskDecisions().catch((e) => ({ error: String(e) }));
   results.deal_alerts = await runDealAlerts().catch((e) => ({ error: String(e) }));
+  results.stage_dwell_alerts = await runStageDwellAlerts().catch((e) => ({ error: String(e) }));
   results.invoice_chaser = await runInvoiceChaser().catch((e) => ({ error: String(e) }));
   // Saved Discovery searches ("watch this search") — re-run each monitor; the fingerprint-keyed
   // upsert means only genuinely NEW results are added, and the owner is notified about the delta.

@@ -141,6 +141,13 @@ export function AgentActivityPage() {
     retry: false, staleTime: 60_000,
   });
 
+  // 30-day operations rollup — real run/failure/token spend per agent (GET /agents/analytics).
+  const analyticsQ = useQuery({
+    queryKey: ["agent-analytics"],
+    queryFn: () => apiClient.get<{ window_days: number; totals: { runs: number; failures: number; produced: number; approved: number; rejected: number; pending: number; tokens: number } }>("/agents/analytics?days=30"),
+    retry: false, staleTime: 60_000,
+  });
+
   // Roster — the SAME shared registry the Home constellation uses (GET /agents).
   const { constellation, isLoading: rosterLoading } = useAgentData();
   // Pending approvals — the decision-queue bridge count.
@@ -210,11 +217,22 @@ export function AgentActivityPage() {
       {/* Shared MetricGrid — same primitive as Team Oversight/Credit Notes (was a third hand-rolled
           stat pattern). All four values are real: registry states, today's run/error aggregates,
           and the live decision-queue count. */}
-      <MetricGrid className="mb-8" cols={4} items={STATS.map(s => ({
+      <MetricGrid className="mb-4" cols={4} items={STATS.map(s => ({
         label: s.label,
         value: s.value,
         tone: s.alert ? "#d1524a" : s.accent ? "var(--section-accent)" : undefined,
       }))} />
+
+      {/* 30-day operations — real agent runs, failures, decisions produced, and AI tokens spent
+          (GET /agents/analytics). Only shown once there's history, so an empty workspace stays clean. */}
+      {analyticsQ.data && analyticsQ.data.totals.runs + analyticsQ.data.totals.produced > 0 && (
+        <MetricGrid className="mb-8" cols={4} items={[
+          { label: "Agent runs · 30d", value: analyticsQ.data.totals.runs.toLocaleString() },
+          { label: "Failed runs · 30d", value: analyticsQ.data.totals.failures.toLocaleString(), tone: analyticsQ.data.totals.failures > 0 ? "#d1524a" : undefined },
+          { label: "Decisions produced · 30d", value: analyticsQ.data.totals.produced.toLocaleString(), tone: "var(--section-accent)" },
+          { label: "AI tokens · 30d", value: analyticsQ.data.totals.tokens >= 1000 ? `${Math.round(analyticsQ.data.totals.tokens / 1000).toLocaleString()}k` : analyticsQ.data.totals.tokens.toLocaleString() },
+        ]} />
+      )}
 
       {/* ── Trust & autonomy scorecard — per-agent approval rate + auto-approvals (last 30d). The
              trust surface that makes turning the autonomy dial up a confident, evidenced choice. ── */}

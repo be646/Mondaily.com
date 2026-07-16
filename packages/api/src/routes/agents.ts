@@ -89,6 +89,83 @@ router.post("/replay", async (c) => {
   }
 });
 
+// decision_queue.agent_name → canonical registry id (mostly identity; a couple of aliases).
+const DECISION_AGENT_TO_ID: Record<string, string> = {
+  discovery: "prospecting", prospecting: "prospecting",
+  operations: "operations", relationship: "relationship", finance: "finance", signal: "signal",
+  workflow: "workflow", opportunity: "opportunity", people: "people", portfolio: "portfolio",
+  asset: "asset", insights: "insights", planner: "planner", "graph-enrichment": "graph-enrichment",
+};
+
+/**
+ * Agent observability — a real "what did my agents do?" rollup over a window (default 30 days),
+ * per canonical agent id: runs + failures + last run (agent_jobs), decisions produced + approval
+ * rate (decision_queue), and total AI tokens spent (ai_usage). All scoped to the workspace, all
+ * from real tables — no synthetic numbers. Frontend resolves ids → names/icons via lib/agents.ts.
+ */
+router.get("/analytics", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const days = Math.min(Math.max(Number(c.req.query("days") ?? 30), 1), 180);
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+
+  const [{ data: jobs }, { data: decisions }, { data: usage }] = await Promise.all([
+    supabase.from("agent_jobs").select("agent_name,status,started_at").eq("workspace_id", workspaceId).gte("started_at", since),
+    supabase.from("decision_queue").select("agent_name,status,created_at").eq("workspace_id", workspaceId).gte("created_at", since),
+    supabase.from("ai_usage").select("feature,total_tokens,created_at").eq("workspace_id", workspaceId).gte("created_at", since),
+  ]);
+
+  type Row = { id: string; runs: number; failures: number; last_run_at: string | null; produced: number; approved: number; rejected: number; pending: number; tokens: number };
+  const rows = new Map<string, Row>();
+  const row = (id: string): Row => {
+    let r = rows.get(id);
+    if (!r) { r = { id, runs: 0, failures: 0, last_run_at: null, produced: 0, approved: 0, rejected: 0, pending: 0, tokens: 0 }; rows.set(id, r); }
+    return r;
+  };
+
+  for (const j of jobs ?? []) {
+    const id = RAW_TO_RUNNER[String(j.agent_name)] ?? String(j.agent_name);
+    const r = row(id);
+    r.runs++;
+    if (String(j.status) === "failed") r.failures++;
+    if (j.started_at && (!r.last_run_at || j.started_at > r.last_run_at)) r.last_run_at = j.started_at as string;
+  }
+  for (const d of decisions ?? []) {
+    const id = DECISION_AGENT_TO_ID[String(d.agent_name)] ?? String(d.agent_name);
+    const r = row(id);
+    r.produced++;
+    const st = String(d.status);
+    if (st === "rejected") r.rejected++;
+    else if (st === "pending") r.pending++;
+    else r.approved++; // approved / executed / completed
+  }
+  // Best-effort per-agent token attribution: agent runs write feature "agent_react_<name>" /
+  // "agent_reason_<name>"; anything else is user/chat usage and stays in the workspace total only.
+  let totalTokens = 0;
+  for (const u of usage ?? []) {
+    totalTokens += Number(u.total_tokens ?? 0) || 0;
+    const feat = String(u.feature ?? "");
+    const m = feat.match(/^agent_(?:react|reason)_(.+)$/);
+    if (m) { const id = DECISION_AGENT_TO_ID[m[1]!] ?? m[1]!; row(id).tokens += Number(u.total_tokens ?? 0) || 0; }
+  }
+
+  const agents = [...rows.values()].map((r) => ({
+    ...r,
+    resolved: r.approved + r.rejected,
+    approval_rate: r.approved + r.rejected > 0 ? Math.round((r.approved / (r.approved + r.rejected)) * 100) : null,
+  })).sort((a, b) => b.produced - a.produced || b.runs - a.runs);
+
+  const totals = {
+    runs: agents.reduce((s, a) => s + a.runs, 0),
+    failures: agents.reduce((s, a) => s + a.failures, 0),
+    produced: agents.reduce((s, a) => s + a.produced, 0),
+    approved: agents.reduce((s, a) => s + a.approved, 0),
+    rejected: agents.reduce((s, a) => s + a.rejected, 0),
+    pending: agents.reduce((s, a) => s + a.pending, 0),
+    tokens: totalTokens,
+  };
+  return c.json({ window_days: days, since, totals, agents });
+});
+
 /**
  * Real Agent Registry — every agent concept that actually exists in this
  * codebase, with status derived from real data (tasks, notifications,
