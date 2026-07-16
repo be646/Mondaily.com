@@ -19,7 +19,7 @@ router.get("/token", async (c) => {
   const secret = process.env.SUPABASE_JWT_SECRET;
   const url = process.env.SUPABASE_URL;
   const anonKey = process.env.SUPABASE_ANON_KEY;
-  if (!secret || !url || !anonKey) return c.json({ enabled: false, _missing: { SUPABASE_JWT_SECRET: !secret, SUPABASE_URL: !url, SUPABASE_ANON_KEY: !anonKey } });
+  if (!secret || !url || !anonKey) return c.json({ enabled: false });
 
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
