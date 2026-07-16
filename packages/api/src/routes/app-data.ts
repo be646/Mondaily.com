@@ -948,13 +948,15 @@ router.get("/settings/email", async (c) => {
 });
 router.get("/billing", async (c) => {
   const workspaceId = c.get("workspaceId");
-  const [{ data }, { count: memberCount }] = await Promise.all([
-    supabase.from("workspaces").select("plan, settings").eq("id", workspaceId).single(),
+  const [{ data }, { count: memberCount }, ent] = await Promise.all([
+    supabase.from("workspaces").select("settings").eq("id", workspaceId).single(),
     supabase.from("workspace_members").select("user_id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
+    // getEntitlement (NOT the raw resolver) so the owner override + single-source tier apply here too
+    // — otherwise the billing card disagreed with the wallet/sidebar (showed operator/trial while the
+    // resolved tier was sovereign).
+    getEntitlement(workspaceId),
   ]);
   const settings = (data?.settings as Record<string, unknown> | null) ?? {};
-  // ONE resolver — same tier the wallet + sidebar show, so the "Current plan" card can't disagree.
-  const ent = resolveEntitlement(settings, (data as { plan?: string } | null)?.plan ?? null);
   const trialDaysLeft = ent.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(ent.trialEndsAt).getTime() - Date.now()) / 86_400_000))
     : null;

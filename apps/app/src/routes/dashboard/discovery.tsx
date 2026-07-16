@@ -215,15 +215,18 @@ export function DiscoveryPage() {
     if (!query || busy) return;
     setInput("");
     if (force) { runSearch(query); return; }
+    // Only coach TRULY bare queries (a single generic word like "leads" / "companies"). Anything
+    // with a qualifier — "companies in Poland", "skincare clinics Warsaw" — is specific enough to
+    // run immediately. Previously the coach intercepted most searches and showed suggestions instead
+    // of results, which read as "Discovery doesn't search".
+    const w = query.split(/\s+/).filter(Boolean);
+    const bareTerm = /^(leads?|companies|company|businesses|business|prospects?|clients?|contacts?|people|customers?|firms?)$/i;
+    const vague = w.length <= 1 || (w.length === 2 && bareTerm.test(w[0] ?? "") && bareTerm.test(w[1] ?? ""));
+    if (!vague) { runSearch(query); return; }
     setBusy(true);
     let coach: { specific?: boolean; coach_message?: string; suggestions?: string[] } | null = null;
     try { coach = await apiClient.post("/discovery/coach", { query }); } catch { coach = null; }
     setBusy(false);
-    // Decide vagueness client-side too, so the coach appears even if /coach is slow or errors.
-    const w = query.split(/\s+/).filter(Boolean);
-    const clientVague = (/^(leads?|companies|company|businesses|business|prospects?|clients?|contacts?|people|customers?|firms?)$/i.test(w[0] ?? "") && w.length <= 4) || w.length <= 1;
-    const vague = coach?.specific === false || clientVague;
-    if (!vague) { runSearch(query); return; }
     // Suggestions: server's if any, else derive from the place in the query.
     const place = (query.match(/\b(?:in|near|around|from)\s+(.+)$/i)?.[1] ?? "").trim();
     const fallback = place ? [`restaurants in ${place}`, `law firms in ${place}`, `dentists in ${place}`, `marketing agencies in ${place}`, `real estate agencies in ${place}`] : [];
@@ -517,10 +520,8 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
             <Sparkles size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
             <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{turn.coach.message}</p>
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5">
-            <SuggestionHints items={turn.coach.suggestions} onPick={(s) => onRun(s)} />
-            <button onClick={() => onRun(turn.query, true)} className="text-[11.5px] font-medium hover:text-[var(--text-secondary)]" style={{ color: "var(--text-muted)" }}>Search “{turn.query}” anyway →</button>
-          </div>
+          <SuggestionHints className="mt-2" items={turn.coach.suggestions} onPick={(s) => onRun(s)} />
+          <button onClick={() => onRun(turn.query, true)} className="mt-2 text-[11.5px] font-medium hover:text-[var(--text-secondary)]" style={{ color: "var(--text-muted)" }}>Search “{turn.query}” anyway →</button>
         </div>
       )}
 

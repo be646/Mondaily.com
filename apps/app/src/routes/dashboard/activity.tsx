@@ -241,7 +241,7 @@ export function AgentActivityPage() {
                     <tr key={a.agent} className="border-b last:border-0" style={{ borderColor: "var(--border-soft)" }}>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
-                          <span className="text-[12px] font-medium capitalize" style={{ color: "var(--text-primary)" }}>{a.agent.replace(/_/g, " ")}</span>
+                          <span className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{agentByRaw(a.agent).name}</span>
                           {a.autonomy_ready && <span className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide" style={{ background: "color-mix(in srgb, #2f9e6b 14%, transparent)", color: "#2f9e6b" }} title="High approval rate over a meaningful sample — a safe candidate to let self-approve">autonomy-ready</span>}
                         </div>
                       </td>
@@ -288,7 +288,7 @@ export function AgentActivityPage() {
                   <div key={`${p.agent_name}-${p.source_type}-${i}`} className="flex items-center gap-3 border-b px-4 py-2.5 last:border-0" style={{ borderColor: "var(--border-soft)" }}>
                     <span className="rounded-full px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide" style={{ background: `color-mix(in srgb, ${v.tone} 14%, transparent)`, color: v.tone }}>{v.label}</span>
                     <span className="min-w-0 flex-1 truncate text-[12.5px]" style={{ color: "var(--text-primary)" }}>
-                      <span className="font-medium capitalize">{p.agent_name.replace(/_/g, " ")}</span>
+                      <span className="font-medium">{agentByRaw(p.agent_name).name}</span>
                       <span style={{ color: "var(--text-faint)" }}> · {p.source_type.replace(/_/g, " ")}</span>
                     </span>
                     <span className="shrink-0 text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>{p.approval_rate}% of {p.resolved}</span>

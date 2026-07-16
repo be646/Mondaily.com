@@ -1,7 +1,7 @@
 import type { ElementType } from "react";
 import {
   MessageCircle, Workflow, Users, Receipt, ShieldAlert, GitBranch, Search,
-  TrendingUp, Briefcase, Building2, BarChart2, Bot, CalendarClock,
+  TrendingUp, Briefcase, Building2, BarChart2, Bot, CalendarClock, Target,
 } from "lucide-react";
 
 /**
@@ -29,6 +29,7 @@ export const AGENTS: Record<string, AgentIdentity> = {
   insights:           { id: "insights",         name: "Insights Agent",         Icon: BarChart2 },
   // On-demand only (no scheduled backend job) — surfaces as the Calendar/Calls section owner.
   meeting:            { id: "meeting",          name: "Meeting Agent",          Icon: CalendarClock },
+  planner:            { id: "planner",          name: "Goal Planner",           Icon: Target },
 };
 
 const FALLBACK: AgentIdentity = { id: "agent", name: "Agent", Icon: Bot };
