@@ -187,14 +187,20 @@ export async function reactDeepReason(workspaceId: string, f: RawFinding): Promi
   try {
     const guidance = await learnedGuidanceFor(workspaceId, f.agentName);
     // 1. INVESTIGATE — the model chains tools to gather evidence; its prose reply is the analysis.
-    const { reply } = await aiGatewayAgent({
-      system:
-        `You are the ${f.agentName} agent in a business operating system, handling a HIGH-RISK finding. INVESTIGATE it: use search_records to find related records by meaning and get_record to read their detail (2–3 tool calls is usually enough — don't over-investigate). Then state your analysis: what's really going on and the single best next action. Ground everything strictly in the tool results and the given facts — never invent.` +
-        (guidance ? `\n\n${guidance}` : ""),
-      tools,
-      messages: [{ role: "user", content: `Finding: ${f.facts}\nSubject: ${f.recordName}\n\nInvestigate with the tools, then give your analysis + recommended next action.` }],
-      onToolCall, maxRounds: 4, maxTokens: 1000, workspaceId, feature: `agent_react_${f.agentName}`, taskClass: "reasoning",
-    });
+    //    NON-FATAL: if the tool loop errors, we still structure from the finding + any evidence
+    //    gathered so far, so a high-risk finding never silently degrades to rule-based.
+    let reply = "";
+    try {
+      const res = await aiGatewayAgent({
+        system:
+          `You are the ${f.agentName} agent in a business operating system, handling a HIGH-RISK finding. INVESTIGATE it: use search_records to find related records by meaning and get_record to read their detail (2–3 tool calls is usually enough — don't over-investigate). Then state your analysis: what's really going on and the single best next action. Ground everything strictly in the tool results and the given facts — never invent.` +
+          (guidance ? `\n\n${guidance}` : ""),
+        tools,
+        messages: [{ role: "user", content: `Finding: ${f.facts}\nSubject: ${f.recordName}\n\nInvestigate with the tools, then give your analysis + recommended next action.` }],
+        onToolCall, maxRounds: 4, maxTokens: 1000, workspaceId, feature: `agent_react_${f.agentName}`, taskClass: "reasoning",
+      });
+      reply = String(res.reply ?? "");
+    } catch (e) { console.error("[react] investigation failed, structuring from evidence:", e instanceof Error ? e.message : String(e)); }
     // 2. STRUCTURE — a forced tool call turns the investigation into the decision fields.
     const structured = await aiGatewayToolUse({
       system: `Turn the ${f.agentName} agent's investigation into a decision recommendation. Use ONLY the finding, gathered evidence, and analysis below — never invent. recommended_action must be SPECIFIC (name who/what/amount).`,
