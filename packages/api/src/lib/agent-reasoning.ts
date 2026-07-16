@@ -152,11 +152,12 @@ export async function reactDeepReason(workspaceId: string, f: RawFinding): Promi
   const cfg = await reasoningConfig(workspaceId);
   if (!cfg.enabled || !consumeBudget(workspaceId, cfg.cap)) return fallback;
 
-  let captured: Record<string, unknown> | null = null;
+  // Evidence the model gathers during the loop — accumulated so we can STRUCTURE it afterward with a
+  // forced tool call (the loop model tends to reply in prose instead of calling a structured tool).
+  const evidenceLog: string[] = [];
   const tools = [
     { name: "search_records", description: "Search the workspace for records related to a query, BY MEANING. Returns matching record names + types.", input_schema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } },
     { name: "get_record", description: "Fetch the full detail (all fields) of a workspace record by its name.", input_schema: { type: "object", properties: { name: { type: "string" } }, required: ["name"] } },
-    { name: "finalize", description: "Record your FINAL reasoned recommendation once you have enough evidence. Call this exactly once.", input_schema: { type: "object", properties: { title: { type: "string" }, summary: { type: "string" }, recommended_action: { type: "string" }, rationale: { type: "string" }, risk_level: { type: "string", enum: ["low", "medium", "high"] }, confidence: { type: "string", enum: ["low", "medium", "high"] } }, required: ["title", "recommended_action", "risk_level"] } },
   ];
   const onToolCall = async (name: string, input: Record<string, unknown>): Promise<string> => {
     try {
@@ -168,29 +169,46 @@ export async function reactDeepReason(workspaceId: string, f: RawFinding): Promi
         const ids = ((matches ?? []) as { node_id: string }[]).map((m) => m.node_id).slice(0, 8);
         if (!ids.length) return "No matching records.";
         const { data: nodes } = await supabase.from("nodes").select("object_type, data").eq("workspace_id", workspaceId).in("id", ids);
-        return ((nodes ?? []) as { object_type: string; data: Record<string, unknown> }[]).map((n) => `- ${n.object_type}: ${String((n.data as { name?: string })?.name ?? "record")}`).join("\n") || "No matching records.";
+        const res = ((nodes ?? []) as { object_type: string; data: Record<string, unknown> }[]).map((n) => `- ${n.object_type}: ${String((n.data as { name?: string })?.name ?? "record")}`).join("\n") || "No matching records.";
+        evidenceLog.push(`search "${String(input.query ?? "")}":\n${res}`);
+        return res;
       }
       if (name === "get_record") {
         const { data: nodes } = await supabase.from("nodes").select("object_type, data").eq("workspace_id", workspaceId).ilike("data->>name", `%${String(input.name ?? "")}%`).limit(1);
         const n = ((nodes ?? []) as { object_type: string; data: Record<string, unknown> }[])[0];
-        return n ? `${n.object_type}: ${JSON.stringify(n.data).slice(0, 700)}` : "Record not found.";
+        const res = n ? `${n.object_type}: ${JSON.stringify(n.data).slice(0, 700)}` : "Record not found.";
+        evidenceLog.push(`record "${String(input.name ?? "")}": ${res}`);
+        return res;
       }
-      if (name === "finalize") { captured = input; return "Recommendation recorded."; }
       return "Unknown tool.";
     } catch { return "Tool error."; }
   };
 
   try {
     const guidance = await learnedGuidanceFor(workspaceId, f.agentName);
-    await aiGatewayAgent({
+    // 1. INVESTIGATE — the model chains tools to gather evidence; its prose reply is the analysis.
+    const { reply } = await aiGatewayAgent({
       system:
-        `You are the ${f.agentName} agent in a business operating system, handling a HIGH-RISK finding. INVESTIGATE before deciding: use search_records to find related records by meaning and get_record to read their detail (2–3 tool calls is usually enough — don't over-investigate). Then call finalize ONCE with: a sharp title, a SPECIFIC recommended_action (name the who/what/amount from the data — never generic like "reassign or reschedule"), a one-sentence rationale, a risk_level, and your confidence. Ground everything strictly in the tool results and the given facts — never invent names, numbers, or records.` +
+        `You are the ${f.agentName} agent in a business operating system, handling a HIGH-RISK finding. INVESTIGATE it: use search_records to find related records by meaning and get_record to read their detail (2–3 tool calls is usually enough — don't over-investigate). Then state your analysis: what's really going on and the single best next action. Ground everything strictly in the tool results and the given facts — never invent.` +
         (guidance ? `\n\n${guidance}` : ""),
       tools,
-      messages: [{ role: "user", content: `Finding: ${f.facts}\nSubject: ${f.recordName}\n\nInvestigate, then finalize your recommendation.` }],
+      messages: [{ role: "user", content: `Finding: ${f.facts}\nSubject: ${f.recordName}\n\nInvestigate with the tools, then give your analysis + recommended next action.` }],
       onToolCall, maxRounds: 4, maxTokens: 1000, workspaceId, feature: `agent_react_${f.agentName}`, taskClass: "reasoning",
     });
-    const r = captured as Record<string, unknown> | null;
+    // 2. STRUCTURE — a forced tool call turns the investigation into the decision fields.
+    const structured = await aiGatewayToolUse({
+      system: `Turn the ${f.agentName} agent's investigation into a decision recommendation. Use ONLY the finding, gathered evidence, and analysis below — never invent. recommended_action must be SPECIFIC (name who/what/amount).`,
+      prompt: `Finding: ${f.facts}\nSubject: ${f.recordName}\n${evidenceLog.length ? `Evidence gathered:\n${evidenceLog.join("\n").slice(0, 4000)}\n` : ""}Analysis: ${String(reply).slice(0, 2000)}\n\nProduce the recommendation.`,
+      toolName: "recommend", toolDescription: "The reasoned recommendation",
+      toolSchema: {
+        type: "object", properties: {
+          title: { type: "string" }, summary: { type: "string" }, recommended_action: { type: "string" }, rationale: { type: "string" },
+          risk_level: { type: "string", enum: ["low", "medium", "high"] }, confidence: { type: "string", enum: ["low", "medium", "high"] },
+        }, required: ["title", "recommended_action", "risk_level"],
+      },
+      maxTokens: 600, workspaceId, feature: `agent_react_finalize_${f.agentName}`, taskClass: "reasoning",
+    });
+    const r = structured as Record<string, unknown> | null;
     if (!r?.recommended_action) return fallback;
     const risk = String(r.risk_level); const conf = String(r.confidence);
     return {
