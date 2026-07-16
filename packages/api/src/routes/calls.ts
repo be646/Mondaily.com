@@ -421,3 +421,5 @@ router.post("/:id/action-items/:index/promote", zValidator("json", z.object({ ta
 });
 
 export { router as callsRouter };
+
+// deploy marker: force fresh build to load LIVEKIT_RECORDING_ENABLED (2026-07-17)
