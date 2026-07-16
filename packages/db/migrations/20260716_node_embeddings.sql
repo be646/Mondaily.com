@@ -17,10 +17,12 @@ create table if not exists node_embeddings (
 
 create index if not exists node_embeddings_ws_idx on node_embeddings (workspace_id);
 
--- Approximate-nearest-neighbour index (cosine). ivfflat needs ANALYZE after the first bulk load;
--- the reindex endpoint runs it. lists=100 suits up to ~100k rows.
-create index if not exists node_embeddings_vec_idx
-  on node_embeddings using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+-- NOTE ON THE VECTOR INDEX: for up to tens of thousands of rows per workspace, EXACT nearest-
+-- neighbour (a plain scan ordered by <=>) is sub-millisecond and 100% accurate, so we intentionally
+-- do NOT create an approximate (ivfflat) index — ivfflat only probes a few clusters and tanks
+-- recall at small scale (it made an obvious match rank outside the top-k). When a workspace grows
+-- past ~100k records and exact scans get slow, add an HNSW index (good recall AND speed):
+--   create index node_embeddings_hnsw on node_embeddings using hnsw (embedding vector_cosine_ops);
 
 -- Nearest-neighbour search within a workspace. Returns node_id + cosine similarity (1 = identical).
 create or replace function match_node_embeddings(ws uuid, query_embedding vector(384), k int)
