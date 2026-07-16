@@ -307,9 +307,15 @@ router.patch("/:id", zValidator("json", creditNoteSchema.partial()), async (c) =
 // ─── Apply to invoice (creates APPLIED_TO edge) ───────────────────────────────
 router.post("/:id/apply-to-invoice", zValidator("json", z.object({ invoice_id: z.string().uuid() })), async (c) => {
   const workspaceId = c.get("workspaceId");
-  await getCreditNote(workspaceId, c.req.param("id"));
+  const note = await getCreditNote(workspaceId, c.req.param("id"));
+  // A voided credit note can't be applied to anything.
+  if (String((note.data as Record<string, unknown>).status) === "void") return c.json({ error: "This credit note is void." }, 422);
 
   const { invoice_id } = c.req.valid("json");
+  // The target invoice must exist IN THIS WORKSPACE — never link to an arbitrary/cross-tenant id.
+  const { data: invoice } = await supabase.from("nodes")
+    .select("id").eq("workspace_id", workspaceId).eq("id", invoice_id).eq("object_type", "invoice").maybeSingle();
+  if (!invoice) return c.json({ error: "Invoice not found in this workspace." }, 404);
   const { error } = await supabase.from("edges").upsert({
     workspace_id: workspaceId,
     from_node_id: c.req.param("id"),
@@ -358,7 +364,11 @@ router.post("/:id/assign-reviewer", zValidator("json", z.object({ user_id: z.str
   await getCreditNote(workspaceId, c.req.param("id"));
 
   const { user_id } = c.req.valid("json");
-  await supabase.from("edges").delete().eq("from_node_id", c.req.param("id")).eq("relationship", "ASSIGNED_REVIEWER");
+  // The reviewer must be a member of this workspace — never assign to an arbitrary user id.
+  const { data: member } = await supabase.from("workspace_members")
+    .select("user_id").eq("workspace_id", workspaceId).eq("user_id", user_id).maybeSingle();
+  if (!member) return c.json({ error: "Reviewer is not a member of this workspace." }, 403);
+  await supabase.from("edges").delete().eq("workspace_id", workspaceId).eq("from_node_id", c.req.param("id")).eq("relationship", "ASSIGNED_REVIEWER");
   const { error } = await supabase.from("edges").insert({
     workspace_id: workspaceId,
     from_node_id: c.req.param("id"),

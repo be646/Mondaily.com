@@ -262,7 +262,9 @@ async function runAction(workspaceId: string, action: WorkflowBlock, record: { i
       } else {
         merged[fu.field] = fu.value;
       }
-      await supabase.from("nodes").update({ data: merged }).eq("id", record.id);
+      // Scope the write to this workspace (every other write in the engine does) — never mutate a
+      // node by bare id, which would be a cross-tenant isolation hole.
+      await supabase.from("nodes").update({ data: merged }).eq("id", record.id).eq("workspace_id", workspaceId);
       return { action: action.type, mode: "executed", detail: `${fu.field}=${fu.value}` };
     }
     return { action: action.type, mode: "executed", detail: "no field resolved" };

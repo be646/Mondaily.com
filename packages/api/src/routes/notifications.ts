@@ -39,11 +39,20 @@ router.post("/", async (c) => {
     type?: string;
     task_id?: string;
   };
+  // Prevent spoofing a notification to an arbitrary id: a caller may only target THEMSELVES or a
+  // real member of this workspace.
+  let targetUserId = userId;
+  if (body.user_id && body.user_id !== userId) {
+    const { data: member } = await supabase.from("workspace_members")
+      .select("user_id").eq("workspace_id", workspaceId).eq("user_id", body.user_id).maybeSingle();
+    if (!member) return c.json({ error: "Target user is not a member of this workspace." }, 403);
+    targetUserId = body.user_id;
+  }
   const { data, error } = await supabase
     .from("notifications")
     .insert({
       workspace_id: workspaceId,
-      user_id: body.user_id ?? userId,
+      user_id: targetUserId,
       title: body.title,
       body: body.body ?? null,
       message: body.title,        // keep legacy column populated

@@ -358,15 +358,20 @@ router.get("/attachment", zValidator("query", z.object({ path: z.string().min(1)
   const me = c.get("userId");
   const path = c.req.valid("query").path;
   if (!path.startsWith(`${ws}/`)) return c.json({ error: "Not allowed." }, 403);
+  // Find the message that references this attachment in THIS workspace, then authorize the caller:
+  // a DM participant (sender/recipient) OR a member of the group the message was posted to. The old
+  // guard only matched sender/recipient, so group attachments were undownloadable by every recipient.
   const { data: msg } = await supabase
     .from("internal_messages")
-    .select("id")
+    .select("id, sender_id, recipient_id, group_id")
     .eq("workspace_id", ws)
-    .or(`sender_id.eq.${me},recipient_id.eq.${me}`)
     .contains("attachments", JSON.stringify([{ path }]))
     .limit(1)
     .maybeSingle();
   if (!msg) return c.json({ error: "Attachment not found." }, 404);
+  const isDmParticipant = msg.sender_id === me || msg.recipient_id === me;
+  const isGroupMember = msg.group_id ? !!(await assertGroupMember(ws, msg.group_id as string, me)) : false;
+  if (!isDmParticipant && !isGroupMember) return c.json({ error: "Attachment not found." }, 404);
   const { data, error } = await supabase.storage.from(MSG_ATTACH_BUCKET).createSignedUrl(path, 120);
   if (error || !data?.signedUrl) return c.json({ error: "Attachment not found." }, 404);
   return c.json({ url: data.signedUrl });

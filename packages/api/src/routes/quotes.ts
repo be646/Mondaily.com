@@ -32,9 +32,11 @@ const quoteBodySchema = z.object({
 });
 
 function calcTotals(lineItems: z.infer<typeof lineItemSchema>[]) {
-  const subtotal = lineItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-  const tax_total = lineItems.reduce((s, i) => s + i.quantity * i.unit_price * (i.tax_rate / 100), 0);
-  return { subtotal, tax_total, total: subtotal + tax_total };
+  // Round to 2dp so accumulated float error (0.1 + 0.2 …) never drifts the stored money totals.
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const subtotal = round2(lineItems.reduce((s, i) => s + i.quantity * i.unit_price, 0));
+  const tax_total = round2(lineItems.reduce((s, i) => s + i.quantity * i.unit_price * (i.tax_rate / 100), 0));
+  return { subtotal, tax_total, total: round2(subtotal + tax_total) };
 }
 
 async function nextQuoteNumber(workspaceId: string): Promise<string> {
@@ -223,6 +225,13 @@ router.post("/:id/convert", async (c) => {
   if (!quote) return c.json({ error: "Not found" }, 404);
 
   const qd = quote.data as Record<string, unknown>;
+  // Idempotency: a quote converts to an invoice exactly once. If it already has, return the existing
+  // invoice instead of minting a duplicate (double-click / retry safe).
+  if (qd.converted_to_invoice_id) {
+    const { data: existing } = await supabase.from("nodes")
+      .select("id,data,created_at,created_by").eq("workspace_id", workspaceId).eq("id", qd.converted_to_invoice_id as string).maybeSingle();
+    if (existing) return c.json({ id: existing.id, ...(existing.data as object), created_at: existing.created_at, created_by: existing.created_by, already_converted: true }, 200);
+  }
   const invoiceNumber = await nextInvoiceNumber(workspaceId);
 
   const invoiceData = {
@@ -257,11 +266,11 @@ router.post("/:id/convert", async (c) => {
 
   if (insertErr) return c.json({ error: insertErr.message }, 500);
 
-  // Update quote status to accepted
+  // Mark the quote accepted AND record the invoice id so a re-convert is a no-op. Scope the write.
   await supabase
     .from("nodes")
-    .update({ data: { ...qd, status: "accepted" }, updated_at: new Date().toISOString() })
-    .eq("id", quote.id);
+    .update({ data: { ...qd, status: "accepted", converted_to_invoice_id: newInvoice.id }, updated_at: new Date().toISOString() })
+    .eq("id", quote.id).eq("workspace_id", workspaceId).eq("object_type", "quote");
 
   return c.json({ id: newInvoice.id, ...newInvoice.data, created_at: newInvoice.created_at, created_by: newInvoice.created_by }, 201);
 });

@@ -1,6 +1,7 @@
 import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 import { runWorkflowsForWorkspace } from "../jobs/workflow-engine";
 import { planLimits, workspaceTier } from "../lib/plan-limits";
 
@@ -39,7 +40,7 @@ router.get("/:id", async (c) => {
   return node ? c.json(response(node as never)) : c.json({ error: "Workflow not found" }, 404);
 });
 
-router.patch("/:id", async (c) => {
+router.patch("/:id", denyViewerWrites, async (c) => {
   const body = await c.req.json<WorkflowData>();
   const workspaceId = c.get("workspaceId");
   let result;
@@ -93,7 +94,7 @@ router.patch("/:id", async (c) => {
  * Run a workflow now — executes its trigger -> condition -> action logic
  * against current records. Safe actions run; risky ones queue for approval.
  */
-router.post("/:id/run", async (c) => {
+router.post("/:id/run", denyViewerWrites, async (c) => {
   const id = c.req.param("id");
   if (id === "new") return c.json({ error: "Save the workflow before running it." }, 400);
   try {
@@ -132,7 +133,7 @@ router.get("/:id/runs", async (c) => {
   });
 });
 
-router.delete("/:id", async (c) => {
+router.delete("/:id", denyViewerWrites, async (c) => {
   const { error } = await supabase
     .from("nodes")
     .delete()
