@@ -112,10 +112,13 @@ interface MenuSelectProps {
                                      // real — otherwise the allLabel duplicates a real option.
   className?: string;
   maxWidth?: number;
+  width?: number;                    // FIXED trigger width — use when the control sits in a wrap row
+                                     // and different option labels would otherwise resize it and
+                                     // reflow the row (the Decisions autonomy filter-bar shift).
   disabled?: boolean;
   title?: string;
 }
-export function MenuSelect({ label, value, options, onChange, allLabel = "All", includeAll = true, className, maxWidth = 180, disabled, title }: MenuSelectProps) {
+export function MenuSelect({ label, value, options, onChange, allLabel = "All", includeAll = true, className, maxWidth = 180, width, disabled, title }: MenuSelectProps) {
   const [open, setOpen] = useState(false);
   const [hi, setHi] = useState(0);   // highlighted row index
   const rootRef = useRef<HTMLDivElement>(null);
@@ -146,11 +149,11 @@ export function MenuSelect({ label, value, options, onChange, allLabel = "All", 
   }
 
   return (
-    <div ref={rootRef} className={cx("relative inline-block", className)} onKeyDown={onKeyDown}>
+    <div ref={rootRef} className={cx("relative", width ? "block" : "inline-block", className)} style={width ? { width } : undefined} onKeyDown={onKeyDown}>
       <button type="button" onClick={() => (open ? setOpen(false) : openMenu())} disabled={disabled} title={title}
         aria-haspopup="listbox" aria-expanded={open}
-        className="inline-flex h-7 items-center gap-1.5 rounded-sm border px-2 text-[11.5px] transition-colors hover:bg-[var(--surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"
-        style={{ borderColor: open ? "var(--border-strong)" : "var(--border-soft)", background: "var(--surface-input)", color: "var(--text-secondary)", maxWidth }}>
+        className={cx("inline-flex h-7 items-center gap-1.5 rounded-sm border px-2 text-[11.5px] transition-colors hover:bg-[var(--surface-hover)] disabled:cursor-not-allowed disabled:opacity-50", width ? "w-full justify-between" : "")}
+        style={{ borderColor: open ? "var(--border-strong)" : "var(--border-soft)", background: "var(--surface-input)", color: "var(--text-secondary)", maxWidth: width ?? maxWidth }}>
         {label && <span className="text-[10px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</span>}
         <span className="truncate font-medium capitalize" style={{ color: value ? "var(--text-primary)" : "var(--text-muted)" }}>
           {current.dot && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: current.dot }} />}

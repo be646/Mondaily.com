@@ -291,7 +291,7 @@ export function DecisionsPage() {
                   style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)", paddingLeft: "1.625rem" }} />
               </label>
               <div title="How much agents may self-approve without you. High-risk always needs your approval.">
-                <MenuSelect label="Autonomy" value={autonomy} onChange={v => setAutonomy.mutate(v || "manual")} includeAll={false} maxWidth={230}
+                <MenuSelect label="Autonomy" value={autonomy} onChange={v => setAutonomy.mutate(v || "manual")} includeAll={false} width={188}
                   options={[
                     { value: "manual", label: "Manual" },
                     { value: "assisted", label: "Auto low-risk" },
