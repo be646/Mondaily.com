@@ -462,6 +462,22 @@ router.get("/", async (c) => {
     });
   }
 
+  // Insights & Goal Planner — real capabilities that run ON DEMAND (not background crons), so like
+  // the Graph Agent they carry no pending decisions. Included so the roster matches the registry
+  // (Home showed 13 of 15 without these).
+  agents.push({
+    id: "insights", name: "Insights Agent", category: "core",
+    status: "Daily brief + live workspace analytics",
+    state: "monitoring", backed_by: ["daily_brief"], last_run_at: null, last_action: "Available on demand",
+    evidence_count: 0, suggested_action: null, destination: "/insights",
+  });
+  agents.push({
+    id: "planner", name: "Goal Planner", category: "core",
+    status: "Turns a goal into an approved action plan",
+    state: "monitoring", backed_by: [], last_run_at: null, last_action: "Available on demand",
+    evidence_count: 0, suggested_action: null, destination: "/goals",
+  });
+
   return c.json({ agents });
 });
 
