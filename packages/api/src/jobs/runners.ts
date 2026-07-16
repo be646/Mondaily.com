@@ -4,6 +4,7 @@ import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignWebContext } from "../lib/sovereign-search";
 import { createNotification } from "../lib/notify";
 import { maybeAutoApprove } from "../lib/autonomy";
+import { reasonAboutFinding } from "../lib/agent-reasoning";
 import { refreshFxRates } from "../lib/currency-store";
 import { runDiscoveryMonitors } from "./social-discovery";
 import { runMeetingAgent } from "./meeting-agent";
@@ -263,6 +264,10 @@ export async function runOverdueTaskDecisions(workspaceId?: string): Promise<{ q
         .from("tasks").select("id, title, due_date, priority, assignee_email")
         .eq("workspace_id", wsId).eq("completed", false).lt("due_date", new Date().toISOString());
       scanned += tasks?.length ?? 0;
+      // Reasoning budget: the Operations agent REASONS about its most important findings (a sharp
+      // title, a specific action, a rationale) via the shared reasoning layer, capped per run to
+      // bound AI cost. Low-risk / overflow findings stay on the cheap rule-based path (fail-soft).
+      let reasonedCount = 0; const REASON_CAP = 8;
       for (const task of tasks ?? []) {
         // Dedup across ANY status (not just pending): once we've raised this overdue task we don't
         // nag about it every run. If the user resolves the decision but leaves the task overdue,
@@ -273,13 +278,22 @@ export async function runOverdueTaskDecisions(workspaceId?: string): Promise<{ q
           .eq("agent_name", "operations").limit(1).maybeSingle();
         if (existing) { alreadyQueued++; continue; }
         const daysOverdue = Math.floor((Date.now() - new Date(task.due_date!).getTime()) / 86_400_000);
+        const baseRisk: "low" | "medium" | "high" = daysOverdue > 7 || task.priority === "urgent" ? "high" : daysOverdue > 2 ? "medium" : "low";
+        const facts = `Task "${task.title}" is ${daysOverdue} day(s) overdue${task.assignee_email ? `, assigned to ${task.assignee_email}` : ", unassigned"}${task.priority ? `, priority ${task.priority}` : ""}.`;
+        // Reason on the findings that matter (medium/high), capped; else cheap rule-based.
+        const rec = (baseRisk !== "low" && reasonedCount < REASON_CAP)
+          ? await reasonAboutFinding(wsId, { agentName: "operations", recordName: String(task.title), facts, defaultTitle: `Overdue: ${task.title}`, defaultAction: "Reassign, reschedule, or mark complete", defaultRisk: baseRisk, sourceId: task.id })
+          : { title: `Overdue: ${task.title}`, summary: facts, recommended_action: "Reassign, reschedule, or mark complete", rationale: "", risk_level: baseRisk, confidence: "medium" as const, reasoned: false };
+        if (rec.reasoned) reasonedCount++;
+        const opsEvidence: Record<string, unknown>[] = [{ type: "task", title: task.title, node_id: task.id, match_reason: `${daysOverdue} days overdue`, timestamp: task.due_date }];
+        if (rec.rationale) opsEvidence.push({ type: "rationale", title: "Agent reasoning", match_reason: rec.rationale });
         const { data: opsDecision } = await supabase.from("decision_queue").insert({
           workspace_id: wsId, source_type: "task", source_id: task.id, agent_name: "operations",
-          title: `Overdue: ${task.title}`,
-          summary: `${daysOverdue} day(s) overdue${task.assignee_email ? `, assigned to ${task.assignee_email}` : ", unassigned"}.`,
-          recommended_action: "Reassign, reschedule, or mark complete",
-          risk_level: daysOverdue > 7 || task.priority === "urgent" ? "high" : daysOverdue > 2 ? "medium" : "low",
-          evidence: [{ type: "task", title: task.title, node_id: task.id, match_reason: `${daysOverdue} days overdue`, timestamp: task.due_date }],
+          title: rec.title,
+          summary: rec.summary,
+          recommended_action: rec.recommended_action,
+          risk_level: rec.risk_level,
+          evidence: opsEvidence,
         }).select("*").single().then((r) => r, () => ({ data: null }));
         if (opsDecision) await maybeAutoApprove(wsId, opsDecision);
         queued++;
