@@ -124,7 +124,7 @@ export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_crea
           defaultTitle: `${relName} has gone quiet`, defaultAction: "Reach out to re-engage, or mark as lost", defaultRisk: relBaseRisk, sourceId: deal.id,
         });
         const relEvidence: Record<string, unknown>[] = [{ type: "record", title: relName, node_id: deal.id, match_reason: `${daysInactive} days inactive` }];
-        if (relRec.rationale) relEvidence.push({ type: "rationale", title: "Agent reasoning", match_reason: relRec.rationale });
+        if (relRec.rationale) relEvidence.push({ type: "rationale", title: "Agent reasoning", match_reason: relRec.rationale, confidence: relRec.confidence });
         const { data: dq } = await supabase.from("decision_queue").insert({
           workspace_id: wsId, source_type: "node", source_id: deal.id, agent_name: "relationship",
           title: relRec.title, summary: relRec.summary, recommended_action: relRec.recommended_action, risk_level: relRec.risk_level,
@@ -292,7 +292,7 @@ export async function runOverdueTaskDecisions(workspaceId?: string): Promise<{ q
           : { title: `Overdue: ${task.title}`, summary: facts, recommended_action: "Reassign, reschedule, or mark complete", rationale: "", risk_level: baseRisk, confidence: "medium" as const, reasoned: false };
         if (rec.reasoned) reasonedCount++;
         const opsEvidence: Record<string, unknown>[] = [{ type: "task", title: task.title, node_id: task.id, match_reason: `${daysOverdue} days overdue`, timestamp: task.due_date }];
-        if (rec.rationale) opsEvidence.push({ type: "rationale", title: "Agent reasoning", match_reason: rec.rationale });
+        if (rec.rationale) opsEvidence.push({ type: "rationale", title: "Agent reasoning", match_reason: rec.rationale, confidence: rec.confidence });
         const { data: opsDecision } = await supabase.from("decision_queue").insert({
           workspace_id: wsId, source_type: "task", source_id: task.id, agent_name: "operations",
           title: rec.title,
@@ -377,7 +377,7 @@ export async function runInvoiceChaser(workspaceId?: string): Promise<{ total_ch
           defaultTitle: `Chase invoice ${invNo} — ${days} days overdue`, defaultAction: `Send: "${subject}"`, defaultRisk: chaseBaseRisk, sourceId: invoice.id,
         });
         const chaseEvidence: Record<string, unknown>[] = [{ type: "invoice", title: subject, node_id: invoice.id, match_reason: `${days} days overdue`, timestamp: due }];
-        if (chaseRec.rationale) chaseEvidence.push({ type: "rationale", title: "Agent reasoning", match_reason: chaseRec.rationale });
+        if (chaseRec.rationale) chaseEvidence.push({ type: "rationale", title: "Agent reasoning", match_reason: chaseRec.rationale, confidence: chaseRec.confidence });
         const { data: chaseDecision } = await supabase.from("decision_queue").insert({
           workspace_id: wsId, source_type: "invoice", source_id: invoice.id, agent_name: "invoice_chaser",
           title: chaseRec.title, summary: chaseRec.summary, recommended_action: chaseRec.recommended_action, risk_level: chaseRec.risk_level,

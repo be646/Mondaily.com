@@ -54,7 +54,7 @@ async function queueDecision(workspaceId: string, agent: string, recordId: strin
     ? await reasonAboutFinding(workspaceId, { agentName: agent, recordName: evidenceTitle, facts: summary, defaultTitle: title, defaultAction: action, defaultRisk: risk, sourceId: recordId })
     : { title, summary, recommended_action: action, rationale: "", risk_level: risk, confidence: "medium" as const, reasoned: false };
   const ev: Record<string, unknown>[] = [{ type: "record", title: evidenceTitle, node_id: recordId, match_reason: summary }];
-  if (rec.rationale) ev.push({ type: "rationale", title: "Agent reasoning", match_reason: rec.rationale });
+  if (rec.rationale) ev.push({ type: "rationale", title: "Agent reasoning", match_reason: rec.rationale, confidence: rec.confidence });
   const { data: decision } = await supabase.from("decision_queue").insert({
     workspace_id: workspaceId, source_type: "node", source_id: recordId, agent_name: agent,
     title: rec.title, summary: rec.summary, recommended_action: rec.recommended_action, risk_level: rec.risk_level,

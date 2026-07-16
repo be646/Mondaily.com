@@ -497,8 +497,13 @@ function FilterSelect<T extends string>({ label, value, options, onChange, dot }
 
 function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decision; lane: { key: LaneKey; open: boolean }; acting: { id: string; action: string } | null; onResolve: (d: Decision, a: "approve" | "reject" | "snooze", opts?: { until?: string; note?: string }) => void; members: Member[]; onChanged: () => void }) {
   const a = agentByRaw(d.agent_name);
-  const sources = mapEvidence(d.evidence ?? []);
-  const target = (d.evidence ?? [])[0];
+  // The reasoning agents attach a rationale (+ confidence) as a "rationale" evidence row — surface it
+  // as a distinct callout, and keep it out of the generic sources list.
+  const rationaleItem = (d.evidence ?? []).find((e) => (e as { type?: string }).type === "rationale") as { match_reason?: string; confidence?: string } | undefined;
+  const reasoning = rationaleItem?.match_reason;
+  const reasoningConfidence = rationaleItem?.confidence;
+  const sources = mapEvidence((d.evidence ?? []).filter((e) => (e as { type?: string }).type !== "rationale"));
+  const target = (d.evidence ?? []).find((e) => (e as { type?: string }).type !== "rationale");
   const busy = acting?.id === d.id;
   const proposed = d.recommended_action || "Apply the agent's recommendation";
   // "Current" only makes sense when we're MUTATING an existing record. A "Confidence NN" match_reason
@@ -557,6 +562,24 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
             <p className="mt-1 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Raised {exactTime(d.created_at)}{!lane.open && d.resolved_at ? ` · ${d.status} ${exactTime(d.resolved_at)}` : ""}</p>
           </div>
         </div>
+
+        {/* Agent reasoning — the rationale + confidence the reasoning layer produced (RAG + learned
+            preferences + the reasoning model). Only present when the agent actually reasoned. */}
+        {reasoning && (
+          <div className="rounded-sm border px-3.5 py-3" style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)" }}>
+            <div className="mb-1 flex items-center gap-2">
+              <Sparkles size={12} style={{ color: "var(--section-accent)" }} />
+              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--section-accent)" }}>Agent reasoning</span>
+              {reasoningConfidence && (
+                <span className="ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
+                  style={{ background: `color-mix(in srgb, ${reasoningConfidence === "high" ? "#2f9e6b" : reasoningConfidence === "low" ? "#717784" : "#c6892e"} 15%, transparent)`, color: reasoningConfidence === "high" ? "#2f9e6b" : reasoningConfidence === "low" ? "#717784" : "#c6892e" }}>
+                  {reasoningConfidence} confidence
+                </span>
+              )}
+            </div>
+            <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{reasoning}</p>
+          </div>
+        )}
 
         {/* Proposed change — shared DossierSection (flat, no extra card frame). Editable via the
             existing PATCH endpoint (open lanes): fix a title/action/risk before approving, and the
