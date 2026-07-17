@@ -16,8 +16,12 @@ warn(){ printf "  \033[33m!\033[0m %s\n" "$1"; }
 
 # ── 1. PROVIDER LEAK SCAN ─────────────────────────────────────────────────────
 sec "1. Provider leak scan (Clerk / OpenAI / Anthropic / Tavily)"
+# Scan RUNTIME code only. Test files legitimately name provider hosts as DENYLIST fixtures/assertions
+# (e.g. sovereignty.test.ts lists api.tavily.com to assert it's absent from runtime) — excluding them
+# keeps the scan meaningful (all runtime dirs still covered) without flagging the assertions themselves.
 LEAK=$(grep -rInE "from ['\"](@clerk|@anthropic|@anthropic-ai/sdk)|api\.openai\.com|api\.anthropic\.com|api\.tavily\.com|clerkClient|ClerkProvider|new Anthropic|process\.env\.(CLERK|OPENAI|ANTHROPIC|TAVILY)[A-Z_]*" \
-  "$API" "$APP" "$WEB/app" "$WEB/components" --include="*.ts" --include="*.tsx" 2>/dev/null | grep -vE ":\s*(//|\*)")
+  "$API" "$APP" "$WEB/app" "$WEB/components" --include="*.ts" --include="*.tsx" \
+  --exclude-dir=__tests__ --exclude="*.test.ts" --exclude="*.test.tsx" 2>/dev/null | grep -vE ":\s*(//|\*)")
 if [ -z "$LEAK" ]; then ok "no active Clerk/Anthropic/Tavily/direct-OpenAI code paths"; else bad "provider references found:"; echo "$LEAK" | sed 's/^/      /'; fi
 # The openai SDK is allowed ONLY as an openai-compatible client with an explicit baseURL (the sovereign
 # gateway). Check a 3-line window so multi-line `new OpenAI({ \n baseURL, ... })` isn't a false positive.
@@ -39,7 +43,7 @@ if grep -q "refusing to route inference to a default OpenAI endpoint" "$API/lib/
 # ── 4. SEARCH FAIL-CLOSED / SOVEREIGN-ONLY CHECK ──────────────────────────────
 sec "4. Search routes only via SOVEREIGN_SEARCH_URL (no third-party search)"
 if grep -q "SOVEREIGN_SEARCH_URL" "$API/lib/sovereign-search.ts" && grep -q "SOVEREIGN_SEARCH_URL" "$API/jobs/social-discovery.ts"; then ok "search paths read SOVEREIGN_SEARCH_URL"; else bad "sovereign search env not referenced in search paths"; fi
-THIRDPARTYSEARCH=$(grep -rInE "serpapi|api\.tavily|bing\.microsoft|googleapis\.com/customsearch|scrapfly|scraperapi|firecrawl" "$API" --include="*.ts" | grep -vE ":\s*(//|\*)")
+THIRDPARTYSEARCH=$(grep -rInE "serpapi|api\.tavily|bing\.microsoft|googleapis\.com/customsearch|scrapfly|scraperapi|firecrawl" "$API" --include="*.ts" --exclude-dir=__tests__ --exclude="*.test.ts" | grep -vE ":\s*(//|\*)")
 if [ -z "$THIRDPARTYSEARCH" ]; then ok "no third-party search/scrape SaaS in the API"; else warn "third-party search/scrape references (review):"; echo "$THIRDPARTYSEARCH" | sed 's/^/      /'; fi
 
 # ── 5. WORKSPACE ISOLATION HEURISTIC ──────────────────────────────────────────

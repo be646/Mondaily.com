@@ -991,7 +991,7 @@ export async function runPipelineHealth(workspaceId?: string): Promise<{ scored:
       for (let i = 0; i < rows.length; i += CHUNK) {
         const results = await Promise.all(rows.slice(i, i + CHUNK).map((r) => {
           const health = { band: r.band, momentum: r.momentum, momentum_source: r.momentumSource, value: r.value, weighted_value: r.weighted, days_idle: r.daysIdle, updated_at: nowIso };
-          return supabase.from("nodes").update({ data: { ...(r.deal.data as Record<string, unknown>), pipeline_health: health } }).eq("id", r.deal.id);
+          return supabase.from("nodes").update({ data: { ...(r.deal.data as Record<string, unknown>), pipeline_health: health } }).eq("workspace_id", wsId).eq("id", r.deal.id);
         }));
         for (const res of results) { if (res.error) { if (!firstErr) firstErr = res.error.message; } else written++; }
       }

@@ -56,7 +56,13 @@ describe("pipeline — sovereign + fail-closed + honest", () => {
     expect(pipeline).toMatch(/if \(!transcriptionEnabled\(\)\) \{[^]*?transcript_status: "failed"/);
   });
   it("AI gateway missing/failing → transcript kept, summary stays empty (no fake summary)", () => {
-    expect(pipeline).toMatch(/try \{\s*summary = await summarizeTranscript[^]*?\} catch \{\s*summary = "";/);
+    // The Meeting Agent extracts structured intel; on a missing/exhausted gateway extractMeetingIntel
+    // returns empty, the overview fallback keeps it empty on catch, and ai_summary is written as
+    // `summary || null` — never a fabricated summary. Transcript is stored regardless.
+    expect(pipeline).toMatch(/let intel = await extractMeetingIntel\(/);
+    expect(pipeline).toMatch(/if \(!intel\.overview\) \{[^]*?summarizeTranscript[^]*?\} catch \{[^]*?\}/);
+    expect(pipeline).toMatch(/const summary = intel\.overview;/);
+    expect(pipeline).toMatch(/ai_summary: summary \|\| null/);
   });
   it("node data (upload AND native) never carries the raw path/egress url in audio_url", () => {
     expect(pipeline).toMatch(/has_recording: true,/);

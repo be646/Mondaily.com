@@ -75,17 +75,44 @@ for (const dir of DIRS) {
       const scoped = /workspace_id/.test(context) || /workspace_id\s*:/.test(chain);
       if (!scoped) {
         flagged++;
-        rows.push({ file: file.replace(ROOT + "/", ""), line: startLine + 1, table });
+        rows.push({ file: file.replace(ROOT + "/", ""), line: startLine + 1, table, sig: (lines[startLine] ?? "").trim() });
       }
     }
   }
 }
 
-if (rows.length === 0) {
-  console.log("✓ No workspace-scoped query is missing a workspace_id filter (heuristic).");
-} else {
-  console.log(`! ${rows.length} query site(s) on workspace-scoped tables with no workspace_id in the chain — REVIEW:\n`);
-  for (const r of rows) console.log(`  ${r.file}:${r.line}  .from("${r.table}")`);
-  console.log("\n(Some may be scoped via a joined/param'd id or a helper — confirm each by hand.)");
+// ── Allowlist of manually-audited false positives (content-signature multiset) ────────────────────
+// Each entry pins a specific audited query by (file + exact source line text). A NEW or MODIFIED
+// .from() on a workspace-scoped table will not match any signature and WILL surface below — so the
+// gate stays useful (converges to 0 for the audited set, flags anything new). Signatures are matched
+// as a MULTISET: N identical audited occurrences consume N allowlist entries; an (N+1)th flags.
+let allow = [];
+try {
+  allow = JSON.parse(readFileSync(join(import.meta.dirname, "isolation-allowlist.json"), "utf8")).entries ?? [];
+} catch { /* no allowlist → every flagged site is reported (original behaviour) */ }
+const remaining = new Map();
+for (const e of allow) { const k = `${e.file}::${e.sig}`; remaining.set(k, (remaining.get(k) ?? 0) + 1); }
+
+const knownRows = [];
+const newRows = [];
+for (const r of rows) {
+  const k = `${r.file}::${r.sig}`;
+  if ((remaining.get(k) ?? 0) > 0) { remaining.set(k, remaining.get(k) - 1); knownRows.push(r); }
+  else newRows.push(r);
 }
-process.exit(Math.min(flagged, 250));
+// Entries left in `remaining` are allowlisted sites that no longer exist (query removed/changed) —
+// stale allowlist rows. Report them so the baseline can be pruned, but they don't fail the gate.
+const staleAllow = [...remaining.entries()].filter(([, n]) => n > 0);
+
+console.log(`Audited false positives suppressed: ${knownRows.length}/${allow.length} (see scripts/audit/isolation-allowlist.json).`);
+if (staleAllow.length) {
+  console.log(`\n⚠ ${staleAllow.length} stale allowlist signature(s) no longer present (prune the baseline):`);
+  for (const [k, n] of staleAllow) console.log(`  (${n}×) ${k}`);
+}
+if (newRows.length === 0) {
+  console.log("\n✓ No NEW/unexplained workspace-scoped query missing a workspace_id filter.");
+  process.exit(0);
+}
+console.log(`\n✗ ${newRows.length} NEW query site(s) on workspace-scoped tables with no workspace_id in the chain — REVIEW & either scope them or add to the audited allowlist:\n`);
+for (const r of newRows) console.log(`  ${r.file}:${r.line}  .from("${r.table}")  ${r.sig}`);
+process.exit(Math.min(newRows.length, 250));

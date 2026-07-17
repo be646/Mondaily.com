@@ -22,9 +22,13 @@ describe("Operations Agent — real, not dormant (audit fixes)", () => {
     expect(fn).toMatch(/step\(`Queued \$\{queued\} new decision\(s\)`/);
     expect(fn).toMatch(/completeJob\(jobId, \{ queued, scanned, already_queued: alreadyQueued/);
   });
-  it("still dedupes decisions per task before inserting", () => {
-    const fn = runners.slice(runners.indexOf("export async function runOverdueTaskDecisions"));
-    expect(fn).toMatch(/\.eq\("agent_name", "operations"\)\.eq\("status", "pending"\)\.maybeSingle\(\)/);
+  it("still dedupes decisions per task before inserting (across ANY status — the 'shows every run' fix)", () => {
+    const fn = runners.slice(runners.indexOf("export async function runOverdueTaskDecisions"), runners.indexOf("export async function runInvoiceChaser"));
+    // Dedup is intentionally status-agnostic: once an overdue task has been raised we don't re-nag
+    // every cron even if the user resolved the decision but left the task overdue. The task only
+    // leaves this scan when it's completed/rescheduled.
+    expect(fn).toMatch(/\.eq\("source_type", "task"\)\.eq\("source_id", task\.id\)/);
+    expect(fn).toMatch(/\.eq\("agent_name", "operations"\)\.limit\(1\)\.maybeSingle\(\)/);
   });
 });
 

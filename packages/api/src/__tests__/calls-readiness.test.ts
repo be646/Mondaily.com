@@ -58,7 +58,12 @@ describe("settings page — every readiness row + honest copy", () => {
 
 describe("must-not-change", () => {
   it("recording behavior + Memory 2B untouched by readiness", () => {
-    const block = calls.slice(calls.indexOf('router.get("/readiness"'));
+    // Scope to the readiness HANDLER only (up to the next route). The readiness route is not the last
+    // route in the file — recording routes (analyze/reprocess) legitimately live after it and use
+    // ingestRecording etc., so slicing to end-of-file was a brittle false positive. The invariant is
+    // that the readiness handler itself never touches recording/egress/Memory-2B.
+    const start = calls.indexOf('router.get("/readiness"');
+    const block = calls.slice(start, calls.indexOf("\nrouter.", start + 10));
     expect(block).not.toMatch(/startRoomEgress|stopRoomEgress|ingestRecording|memory-recall|recallContext/);
   });
 });

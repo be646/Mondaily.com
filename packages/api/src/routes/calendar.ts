@@ -501,7 +501,7 @@ router.post("/events/:id/revoke-guest-links", async (c) => {
   const nextEpoch = Number(ev.data.guest_link_epoch ?? 0) + 1;
   const { error } = await supabase.from("nodes")
     .update({ data: { ...ev.data, guest_link_epoch: nextEpoch } })
-    .eq("workspace_id", ws).eq("id", baseId(ev.id));
+    .eq("workspace_id", ws).eq("object_type", "calendar_event").eq("id", baseId(ev.id));
   if (error) return c.json({ error: "Could not revoke guest links." }, 500);
   return c.json({ ok: true, revoked: true, epoch: nextEpoch });
 });

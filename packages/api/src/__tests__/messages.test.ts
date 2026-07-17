@@ -166,10 +166,14 @@ describe("Inbox — attachments", () => {
     expect(src).toMatch(/a\.path\.startsWith\(`\$\{ws\}\/\$\{me\}\/`\)/);
     expect(src).toMatch(/Invalid attachment reference/);
   });
-  it("downloads require workspace prefix AND a message the caller participates in", () => {
+  it("downloads require workspace prefix AND a message the caller participates in (DM party OR group member)", () => {
     const fn = src.slice(src.indexOf('router.get("/attachment"'), src.indexOf('/** POST /messages —'));
     expect(fn).toMatch(/path\.startsWith\(`\$\{ws\}\/`\)/);
-    expect(fn).toMatch(/\.or\(`sender_id\.eq\.\$\{me\},recipient_id\.eq\.\$\{me\}`\)/);
+    // Authorization now covers BOTH DM participants AND group members (the group-attachment
+    // download fix). The old sender/recipient-only `.or()` under-authorized group recipients.
+    expect(fn).toMatch(/isDmParticipant = msg\.sender_id === me \|\| msg\.recipient_id === me/);
+    expect(fn).toMatch(/isGroupMember = msg\.group_id \? .*assertGroupMember\(ws, msg\.group_id/);
+    expect(fn).toMatch(/if \(!isDmParticipant && !isGroupMember\) return/);
     expect(fn).toMatch(/createSignedUrl\(path, 120\)/);
   });
   it("the bucket is private and size/count caps exist", () => {

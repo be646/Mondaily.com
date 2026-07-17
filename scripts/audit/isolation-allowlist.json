@@ -1,0 +1,231 @@
+{
+  "audited": "2026-07-09 + 2026-07-18 re-audit",
+  "note": "Content-signature allowlist of manually-audited isolation false positives. A NEW or MODIFIED .from() on a workspace-scoped table will NOT match a signature and WILL flag. Multiset: each occurrence is listed once.",
+  "entries": [
+    {
+      "file": "packages/api/src/routes/credit-notes.ts",
+      "sig": ".from(\"edges\")",
+      "reason": "ownership-chain: getCreditNote() pre-verifies workspace_id; follow-ups key on the verified id"
+    },
+    {
+      "file": "packages/api/src/routes/credit-notes.ts",
+      "sig": ".from(\"nodes\")",
+      "reason": "ownership-chain: getCreditNote() pre-verifies workspace_id; follow-ups key on the verified id"
+    },
+    {
+      "file": "packages/api/src/routes/discovery.ts",
+      "sig": "const { data, error } = await supabase.from(\"tasks\").insert(row).select(\"id, title\").single();",
+      "reason": "insert payload carries workspace_id inside buildLeadTask/buildLeadDecision (scanner sees only .insert())"
+    },
+    {
+      "file": "packages/api/src/routes/discovery.ts",
+      "sig": "const { data, error } = await supabase.from(\"decision_queue\").insert(row).select(\"id, title\").single();",
+      "reason": "insert payload carries workspace_id inside buildLeadTask/buildLeadDecision (scanner sees only .insert())"
+    },
+    {
+      "file": "packages/api/src/routes/discovery.ts",
+      "sig": "const { data, error } = await supabase.from(\"decision_queue\").insert(row).select(\"id\").single();",
+      "reason": "insert payload carries workspace_id inside buildLeadTask/buildLeadDecision (scanner sees only .insert())"
+    },
+    {
+      "file": "packages/api/src/routes/emails.ts",
+      "sig": "supabase.from(\"nodes\")",
+      "reason": "verified tracking-token access: the signed open/click token IS the authorization; node id is the one it was minted for"
+    },
+    {
+      "file": "packages/api/src/routes/emails.ts",
+      "sig": "supabase.from(\"nodes\").update({ data: { ...(node.data as object), opens, last_opened_at: ts } })",
+      "reason": "verified tracking-token access: the signed open/click token IS the authorization; node id is the one it was minted for"
+    },
+    {
+      "file": "packages/api/src/routes/emails.ts",
+      "sig": "supabase.from(\"nodes\")",
+      "reason": "verified tracking-token access: the signed open/click token IS the authorization; node id is the one it was minted for"
+    },
+    {
+      "file": "packages/api/src/routes/emails.ts",
+      "sig": "supabase.from(\"nodes\").update({ data: { ...(node.data as object), clicks, last_clicked_at: new Date().toISOString() } })",
+      "reason": "verified tracking-token access: the signed open/click token IS the authorization; node id is the one it was minted for"
+    },
+    {
+      "file": "packages/api/src/routes/invoices.ts",
+      "sig": ".from(\"nodes\")",
+      "reason": "ownership-chain: invoice GET/PATCH pre-fetches the row with .eq(workspace_id); follow-ups key on the verified id"
+    },
+    {
+      "file": "packages/api/src/routes/invoices.ts",
+      "sig": ".from(\"nodes\")",
+      "reason": "ownership-chain: invoice GET/PATCH pre-fetches the row with .eq(workspace_id); follow-ups key on the verified id"
+    },
+    {
+      "file": "packages/api/src/routes/live-calls.ts",
+      "sig": "await supabase.from(\"call_sessions\").update({ recording_status: \"processing\" }).eq(\"id\", session.id);",
+      "reason": "session-id correlation: call_sessions row was fetched/authorized before this status update by id"
+    },
+    {
+      "file": "packages/api/src/routes/prospecting.ts",
+      "sig": ".from(\"list_entries\").select(\"id\").eq(\"list_id\", listId).eq(\"node_id\", nodeId).maybeSingle();",
+      "reason": "verifyListInWorkspace() authorizes the list before list_entries writes (real leak found+fixed 2026-07-09)"
+    },
+    {
+      "file": "packages/api/src/routes/prospecting.ts",
+      "sig": "const { count } = await supabase.from(\"list_entries\").select(\"*\", { count: \"exact\", head: true }).eq(\"list_id\", listId);",
+      "reason": "verifyListInWorkspace() authorizes the list before list_entries writes (real leak found+fixed 2026-07-09)"
+    },
+    {
+      "file": "packages/api/src/routes/prospecting.ts",
+      "sig": "const { error } = await supabase.from(\"list_entries\").insert({ list_id: listId, node_id: nodeId, position: (count ?? 0) + 1 });",
+      "reason": "verifyListInWorkspace() authorizes the list before list_entries writes (real leak found+fixed 2026-07-09)"
+    },
+    {
+      "file": "packages/api/src/routes/quotes.ts",
+      "sig": ".from(\"nodes\")",
+      "reason": "ownership-chain: quote GET/PATCH pre-fetches the row with .eq(workspace_id); follow-ups key on the verified id"
+    },
+    {
+      "file": "packages/api/src/routes/status.ts",
+      "sig": "const { data, error } = await supabase.from(\"project_log\").insert({",
+      "reason": "platform-admin-gated global project_log (fail-closed; real leak found+fixed 2026-07-09)"
+    },
+    {
+      "file": "packages/api/src/routes/status.ts",
+      "sig": "const { error } = await supabase.from(\"project_log\").update(patch).eq(\"id\", id);",
+      "reason": "platform-admin-gated global project_log (fail-closed; real leak found+fixed 2026-07-09)"
+    },
+    {
+      "file": "packages/api/src/routes/task-details.ts",
+      "sig": ".from(\"task_comments\").select(\"id\").eq(\"id\", commentId).eq(\"task_id\", taskId).maybeSingle();",
+      "reason": "ownership-chain: assertTaskOwnership() binds commentId/attachment/view/activity to the workspace-verified task"
+    },
+    {
+      "file": "packages/api/src/routes/task-details.ts",
+      "sig": ".from(\"task_comment_reactions\").select(\"*\").eq(\"comment_id\", c.req.param(\"commentId\"));",
+      "reason": "ownership-chain: assertTaskOwnership() binds commentId/attachment/view/activity to the workspace-verified task"
+    },
+    {
+      "file": "packages/api/src/routes/task-details.ts",
+      "sig": ".from(\"task_comment_reactions\").select(\"id\")",
+      "reason": "ownership-chain: assertTaskOwnership() binds commentId/attachment/view/activity to the workspace-verified task"
+    },
+    {
+      "file": "packages/api/src/routes/task-details.ts",
+      "sig": "await supabase.from(\"task_comment_reactions\").delete().eq(\"id\", existing.id);",
+      "reason": "ownership-chain: assertTaskOwnership() binds commentId/attachment/view/activity to the workspace-verified task"
+    },
+    {
+      "file": "packages/api/src/routes/task-details.ts",
+      "sig": ".from(\"task_comment_reactions\")",
+      "reason": "ownership-chain: assertTaskOwnership() binds commentId/attachment/view/activity to the workspace-verified task"
+    },
+    {
+      "file": "packages/api/src/routes/task-details.ts",
+      "sig": ".from(\"task_attachments\").select(\"*\").eq(\"task_id\", taskId).order(\"created_at\");",
+      "reason": "ownership-chain: assertTaskOwnership() binds commentId/attachment/view/activity to the workspace-verified task"
+    },
+    {
+      "file": "packages/api/src/routes/task-details.ts",
+      "sig": ".from(\"task_views\").select(\"user_id, viewed_at\")",
+      "reason": "ownership-chain: assertTaskOwnership() binds commentId/attachment/view/activity to the workspace-verified task"
+    },
+    {
+      "file": "packages/api/src/routes/task-details.ts",
+      "sig": ".from(\"task_activity\").select(\"*\")",
+      "reason": "ownership-chain: assertTaskOwnership() binds commentId/attachment/view/activity to the workspace-verified task"
+    },
+    {
+      "file": "packages/api/src/routes/task-reviews.ts",
+      "sig": ".from(\"task_reviews\")",
+      "reason": "ownership-chain: reviewId/counts/inserts scoped to the workspace-verified task_id"
+    },
+    {
+      "file": "packages/api/src/routes/task-reviews.ts",
+      "sig": "await supabase.from(\"task_reviews\")",
+      "reason": "ownership-chain: reviewId/counts/inserts scoped to the workspace-verified task_id"
+    },
+    {
+      "file": "packages/api/src/routes/task-reviews.ts",
+      "sig": "const { data, error } = await supabase.from(\"task_reviews\").insert({",
+      "reason": "ownership-chain: reviewId/counts/inserts scoped to the workspace-verified task_id"
+    },
+    {
+      "file": "packages/api/src/routes/task-reviews.ts",
+      "sig": "const { data: review } = await supabase.from(\"task_reviews\")",
+      "reason": "ownership-chain: reviewId/counts/inserts scoped to the workspace-verified task_id"
+    },
+    {
+      "file": "packages/api/src/routes/task-reviews.ts",
+      "sig": "await supabase.from(\"task_activity\").insert({",
+      "reason": "ownership-chain: reviewId/counts/inserts scoped to the workspace-verified task_id"
+    },
+    {
+      "file": "packages/api/src/routes/task-reviews.ts",
+      "sig": "await supabase.from(\"tasks\").update({",
+      "reason": "ownership-chain: reviewId/counts/inserts scoped to the workspace-verified task_id"
+    },
+    {
+      "file": "packages/api/src/routes/task-reviews.ts",
+      "sig": "await supabase.from(\"tasks\").update({",
+      "reason": "ownership-chain: reviewId/counts/inserts scoped to the workspace-verified task_id"
+    },
+    {
+      "file": "packages/api/src/routes/task-reviews.ts",
+      "sig": "const { count } = await supabase.from(\"task_reviews\")",
+      "reason": "ownership-chain: reviewId/counts/inserts scoped to the workspace-verified task_id"
+    },
+    {
+      "file": "packages/api/src/routes/task-reviews.ts",
+      "sig": "await supabase.from(\"task_reviews\").insert({",
+      "reason": "ownership-chain: reviewId/counts/inserts scoped to the workspace-verified task_id"
+    },
+    {
+      "file": "packages/api/src/routes/webhooks.ts",
+      "sig": ".from(\"call_sessions\").select(\"id, recording_status\").eq(\"egress_id\", hook.egressId).maybeSingle();",
+      "reason": "signed-webhook: LiveKit JWT verified before DB access; egress_id correlation is the scope"
+    },
+    {
+      "file": "packages/api/src/routes/webhooks.ts",
+      "sig": "await supabase.from(\"call_sessions\").update({ recording_status: \"recording\" }).eq(\"id\", session.id);",
+      "reason": "signed-webhook: LiveKit JWT verified before DB access; egress_id correlation is the scope"
+    },
+    {
+      "file": "packages/api/src/routes/webhooks.ts",
+      "sig": "await supabase.from(\"call_sessions\").update({ recording_status: \"failed\" }).eq(\"id\", session.id);",
+      "reason": "signed-webhook: LiveKit JWT verified before DB access; egress_id correlation is the scope"
+    },
+    {
+      "file": "packages/api/src/routes/webhooks.ts",
+      "sig": "await supabase.from(\"call_sessions\").update({ recording_status: \"ready\", recording_url: hook.url }).eq(\"id\", session.id);",
+      "reason": "signed-webhook: LiveKit JWT verified before DB access; egress_id correlation is the scope"
+    },
+    {
+      "file": "packages/api/src/jobs/meeting-memory.ts",
+      "sig": "await supabase.from(\"call_sessions\").update({ transcript_status: \"failed\" }).eq(\"id\", session.id);",
+      "reason": "signed/egress-correlated call_sessions update by session id (session already authorized upstream)"
+    },
+    {
+      "file": "packages/api/src/jobs/runners.ts",
+      "sig": ".from(\"activities\").select(\"node_id\").gte(\"created_at\", since).in(\"node_id\", contactIds);",
+      "reason": "per-workspace job loop: id set fetched with .eq(workspace_id, wsId); update keyed on those ids"
+    },
+    {
+      "file": "packages/api/src/jobs/runners.ts",
+      "sig": "supabase.from(\"nodes\").update({ relationship_health: u.finalScore, health_updated_at: nowIso, health_signals: u.signals }).eq(\"id\", u.id)",
+      "reason": "per-workspace job loop: id set fetched with .eq(workspace_id, wsId); update keyed on those ids"
+    },
+    {
+      "file": "packages/api/src/jobs/runners.ts",
+      "sig": "supabase.from(\"nodes\").update({ lead_score: u.finalScore, lead_score_updated_at: nowIso, lead_score_signals: u.signals }).eq(\"id\", u.id)",
+      "reason": "per-workspace job loop: id set fetched with .eq(workspace_id, wsId); update keyed on those ids"
+    },
+    {
+      "file": "packages/api/src/jobs/training-export.ts",
+      "sig": "const { error } = await supabase.from(\"training_exports\").insert({",
+      "reason": "global-by-design: platform-level corpus artifact; per-row workspace redaction happens upstream"
+    },
+    {
+      "file": "packages/api/src/jobs/workflow-engine.ts",
+      "sig": "const { data: priorRuns } = await supabase.from(\"workflow_runs\").select(\"id,status\")",
+      "reason": "per-workspace job loop: workflow_runs scoped to the workspace's workflow ids"
+    }
+  ]
+}
