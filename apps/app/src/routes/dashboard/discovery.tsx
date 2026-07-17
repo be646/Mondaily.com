@@ -401,6 +401,8 @@ export function DiscoveryPage() {
             </div>
             <div className="mt-2 flex items-center justify-between px-2.5 py-2">
               <div className="flex items-center gap-1.5">
+                {/* Quiet section label for the Mode options row — same faint micro-label used for "Sources". */}
+                <span className="mr-0.5 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Mode</span>
                 {/* Mode pills — read like Claude's model picker: soft rounded chips that fill in when active. */}
                 <button onClick={() => setDeep((d) => !d)} title="Deep mode visits each business's own site to harvest emails & phones"
                   className="mode-pill" data-on={deep}>
@@ -412,7 +414,7 @@ export function DiscoveryPage() {
                 </button>
               </div>
               <button onClick={() => onSubmit(input)} disabled={!input.trim() || busy}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-white transition-opacity disabled:opacity-40" style={{ background: "var(--section-accent)" }}>
+                className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-white transition-opacity disabled:opacity-40" style={{ background: "var(--section-accent)" }}>
                 {busy ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={16} />}
               </button>
             </div>
