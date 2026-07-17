@@ -4,6 +4,7 @@ import { supabase } from "@mondaily/db/client";
 import {
   runDealAlerts, runRelationshipHealth, runOverdueTaskDecisions,
   runInvoiceChaser, runRecurringInvoices, runEnrichWorkspace, runLeadScoring,
+  runStageDwellAlerts, runPipelineHealth,
 } from "../jobs/runners";
 import { runWorkflowsForWorkspace } from "../jobs/workflow-engine";
 import { runOpportunityScan, runPeopleScan, runPortfolioScan, runAssetScan } from "../jobs/vertical-agents";
@@ -33,6 +34,9 @@ const AGENT_RUNNERS: Record<string, (workspaceId: string) => Promise<Record<stri
   portfolio: async (ws) => runPortfolioScan(ws),
   asset: async (ws) => runAssetScan(ws),
   meeting: async (ws) => ({ ...(await runMeetingAgent(ws)) }),   // real calendar inspection (conflicts / missing agenda / missing call link)
+  // Signal Agent surfaces deal-risk signals. Its "Run now" runs the stalled-stage sweep
+  // AND the Forecast pipeline-health synthesis (per-deal health + high-value-at-risk flags).
+  signal: async (ws) => ({ ...(await runStageDwellAlerts(ws)), ...(await runPipelineHealth(ws)) }),
 };
 
 router.post("/:id/run", async (c) => {
