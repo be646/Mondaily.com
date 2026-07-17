@@ -772,22 +772,30 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
 
   return (
     <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-      {/* identity + primary actions, all on top */}
-      <div className="flex flex-wrap items-center gap-3 border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+      {/* Identity zone — a recessed profile header: avatar, name + status/evaluation pills, the honest
+          role/session line and (when present) the source-backed evaluation basis, with the primary
+          contact/report actions on the right. One cohesive block instead of two stacked border rows. */}
+      <div className="flex flex-wrap items-start gap-3 border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-hover) 45%, transparent)" }}>
         <Avatar op={op} size={40} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="truncate text-[15px] font-semibold" style={{ color: "var(--text-primary)" }}>{op.name}</span>
             <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ color: v.tone, background: `color-mix(in srgb, ${v.tone} 12%, transparent)` }}>
               <span className="h-1.5 w-1.5 rounded-full" style={{ background: v.tone }} /> {v.label}
             </span>
+            {op.evaluation && (
+              <span className="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ color: EVAL_TONE[op.evaluation.tone], background: `color-mix(in srgb, ${EVAL_TONE[op.evaluation.tone]} 12%, transparent)` }}>
+                {op.evaluation.label}
+              </span>
+            )}
           </div>
           <div className="mt-0.5 truncate text-[11.5px]" style={{ color: "var(--text-faint)" }}>
             {op.email ?? op.role} · <span className="capitalize">{op.role}</span>
             {op.has_session ? <span style={{ color: "#2f9e6b" }}> · active session</span> : <span> · {ago(op.last_active_at)}</span>}
           </div>
+          {op.evaluation && <p className="mt-1 line-clamp-2 text-[11px] leading-snug" style={{ color: "var(--text-muted)" }}>{op.evaluation.basis}</p>}
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           <button onClick={() => navigate(`/messages?to=${encodeURIComponent(op.operator_id)}`)} title="Message"
             className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
             <Send size={11} style={{ color: "var(--section-accent)" }} /> Message
@@ -805,16 +813,6 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
         </div>
       </div>
 
-      {/* admin evaluation headline — a source-backed label, not a score */}
-      {op.evaluation && (
-        <div className="flex items-center gap-2 border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
-          <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ color: EVAL_TONE[op.evaluation.tone], background: `color-mix(in srgb, ${EVAL_TONE[op.evaluation.tone]} 12%, transparent)` }}>
-            {op.evaluation.label}
-          </span>
-          <span className="min-w-0 truncate text-[11px]" style={{ color: "var(--text-muted)" }}>{op.evaluation.basis}</span>
-        </div>
-      )}
-
       {/* Tab bar — one clean profile surface. Tabs only gate visibility; every query still runs. */}
       <div className="flex items-center gap-1 border-b px-3 pt-2" style={{ borderColor: "var(--border-soft)" }}>
         {TABS.map((tb) => (
@@ -829,67 +827,72 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
       {/* Member metrics — the SHARED MetricGrid (same tile look everywhere). Real values only.
           Flat padded blocks, not border-ruled slabs — the panel is one composed dossier. */}
       {tab === "overview" && (<>
-      <div className="px-4 py-3.5">
-        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Workload</p>
-        <MetricGrid cols={3} items={[
-          { label: "Tasks", value: fmt(op.task_count) },
-          { label: "AI credits", value: fmt(op.tokens) },
-          { label: "Credits / task", value: fmt(op.complexity_delta) },
-          { label: "Records touched", value: fmt(op.records_touched ?? 0) },
-          { label: "Open tasks", value: fmt(op.open_tasks ?? 0) },
-          { label: "Overdue", value: fmt(op.overdue_tasks ?? 0), tone: (op.overdue_tasks ?? 0) > 0 ? "#c6892e" : undefined },
-          { label: "Completed", value: fmt(op.completed_tasks ?? 0) },
-          { label: "Messages", value: fmt(op.messages_sent ?? 0) },
-          { label: "Decisions", value: fmt(op.decisions_resolved ?? 0) },
-        ]} />
-      </div>
-
-      {/* deals / opportunities — real tallies (ownership resolved from node data + created_by) */}
-      {((op.deals_owned ?? 0) > 0 || (op.deals_updated ?? 0) > 0) && (
-        <div className="px-4 pb-3.5">
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Deals</p>
-          <MetricGrid cols={5} items={[
-            { label: "Deals owned", value: fmt(op.deals_owned ?? 0) },
-            { label: "Open", value: fmt(op.deals_open ?? 0) },
-            { label: "Won", value: fmt(op.deals_won ?? 0), tone: "#2f9e6b" },
-            { label: "Lost", value: fmt(op.deals_lost ?? 0), tone: "#d1524a" },
-            { label: "Updated", value: fmt(op.deals_updated ?? 0) },
-          ]} />
-        </div>
-      )}
-
-      {/* Per-member velocity — real cycle times, honest nulls (only when the advanced payload is loaded) */}
-      {myVel && (myVel.task_lead.sample > 0 || myVel.decision_cycle.sample > 0) && (
-        <div className="px-4 pb-3.5">
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Velocity</p>
+      {/* Overview as a dashboard — the same real numbers, grouped into meaningful sections (workload
+          in flight · delivered · AI & comms) instead of one 9-tile wall. Each is the shared MetricGrid. */}
+      <div className="py-1">
+        <Section title="Workload">
           <MetricGrid cols={3} items={[
-            { label: "Task lead time", value: myVel.task_lead.avg_days != null ? `${myVel.task_lead.avg_days}d` : "—" },
-            { label: "On-time", value: myVel.task_lead.on_time_rate != null ? `${myVel.task_lead.on_time_rate}%` : "—" },
-            { label: "Decision cycle", value: myVel.decision_cycle.avg_hours != null ? `${myVel.decision_cycle.avg_hours}h` : "—" },
+            { label: "Tasks", value: fmt(op.task_count) },
+            { label: "Open tasks", value: fmt(op.open_tasks ?? 0) },
+            { label: "Overdue", value: fmt(op.overdue_tasks ?? 0), tone: (op.overdue_tasks ?? 0) > 0 ? "#c6892e" : undefined },
           ]} />
-        </div>
-      )}
-
-      {/* This member's goals — live attainment against real targets (only their own goals). */}
-      {myGoals.length > 0 && (
-        <div className="px-4 pb-3.5">
-          <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}><Target size={11} style={{ color: "var(--section-accent)" }} /> Goals</p>
-          <div className="space-y-2">
-            {myGoals.map(g => {
-              const pct = g.attainment_pct; const tone = pct >= 100 ? "#2f9e6b" : pct >= 60 ? "var(--section-accent)" : pct >= 30 ? "#c6892e" : "#d1524a";
-              return (
-                <div key={g.id}>
-                  <div className="flex items-center justify-between text-[11.5px]">
-                    <span style={{ color: "var(--text-secondary)" }}>{GOAL_METRIC_LABEL[g.metric]} <span style={{ color: "var(--text-faint)" }}>· {g.window_days}d</span></span>
-                    <span className="tabular-nums" style={{ color: tone }}>{g.actual}/{g.target_value} · {pct}%</span>
+        </Section>
+        <Section title="Delivered">
+          <MetricGrid cols={3} items={[
+            { label: "Completed", value: fmt(op.completed_tasks ?? 0) },
+            { label: "Records touched", value: fmt(op.records_touched ?? 0) },
+            { label: "Decisions", value: fmt(op.decisions_resolved ?? 0) },
+          ]} />
+        </Section>
+        <Section title="AI & comms">
+          <MetricGrid cols={3} items={[
+            { label: "AI credits", value: fmt(op.tokens) },
+            { label: "Credits / task", value: fmt(op.complexity_delta) },
+            { label: "Messages", value: fmt(op.messages_sent ?? 0) },
+          ]} />
+        </Section>
+        {/* deals / opportunities — real tallies (ownership resolved from node data + created_by) */}
+        {((op.deals_owned ?? 0) > 0 || (op.deals_updated ?? 0) > 0) && (
+          <Section title="Deals">
+            <MetricGrid cols={5} items={[
+              { label: "Deals owned", value: fmt(op.deals_owned ?? 0) },
+              { label: "Open", value: fmt(op.deals_open ?? 0) },
+              { label: "Won", value: fmt(op.deals_won ?? 0), tone: "#2f9e6b" },
+              { label: "Lost", value: fmt(op.deals_lost ?? 0), tone: "#d1524a" },
+              { label: "Updated", value: fmt(op.deals_updated ?? 0) },
+            ]} />
+          </Section>
+        )}
+        {/* Per-member velocity — real cycle times, honest nulls (only when the advanced payload is loaded) */}
+        {myVel && (myVel.task_lead.sample > 0 || myVel.decision_cycle.sample > 0) && (
+          <Section title="Velocity">
+            <MetricGrid cols={3} items={[
+              { label: "Task lead time", value: myVel.task_lead.avg_days != null ? `${myVel.task_lead.avg_days}d` : "—" },
+              { label: "On-time", value: myVel.task_lead.on_time_rate != null ? `${myVel.task_lead.on_time_rate}%` : "—" },
+              { label: "Decision cycle", value: myVel.decision_cycle.avg_hours != null ? `${myVel.decision_cycle.avg_hours}h` : "—" },
+            ]} />
+          </Section>
+        )}
+        {/* This member's goals — live attainment against real targets (only their own goals). */}
+        {myGoals.length > 0 && (
+          <Section title="Goals">
+            <div className="space-y-2">
+              {myGoals.map(g => {
+                const pct = g.attainment_pct; const tone = pct >= 100 ? "#2f9e6b" : pct >= 60 ? "var(--section-accent)" : pct >= 30 ? "#c6892e" : "#d1524a";
+                return (
+                  <div key={g.id}>
+                    <div className="flex items-center justify-between text-[11.5px]">
+                      <span style={{ color: "var(--text-secondary)" }}>{GOAL_METRIC_LABEL[g.metric]} <span style={{ color: "var(--text-faint)" }}>· {g.window_days}d</span></span>
+                      <span className="tabular-nums" style={{ color: tone }}>{g.actual}/{g.target_value} · {pct}%</span>
+                    </div>
+                    <span className="mt-1 block h-1.5 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}><span className="block h-full rounded-full" style={{ width: `${Math.max(3, pct)}%`, background: tone }} /></span>
                   </div>
-                  <span className="mt-1 block h-1.5 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}><span className="block h-full rounded-full" style={{ width: `${Math.max(3, pct)}%`, background: tone }} /></span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                );
+              })}
+            </div>
+          </Section>
+        )}
+      </div>
       </>)}
 
       {/* ── AI Work-Efficiency Review — on-demand, grounded, actionable (AI review tab) ── */}
