@@ -35,8 +35,9 @@ const AGENT_RUNNERS: Record<string, (workspaceId: string) => Promise<Record<stri
   asset: async (ws) => runAssetScan(ws),
   meeting: async (ws) => ({ ...(await runMeetingAgent(ws)) }),   // real calendar inspection (conflicts / missing agenda / missing call link)
   // Signal Agent surfaces deal-risk signals. Its "Run now" runs the stalled-stage sweep
-  // AND the Forecast pipeline-health synthesis (per-deal health + high-value-at-risk flags).
-  signal: async (ws) => ({ ...(await runStageDwellAlerts(ws)), ...(await runPipelineHealth(ws)) }),
+  // AND the Forecast pipeline-health synthesis (per-deal health + high-value-at-risk flags) —
+  // concurrently, since they're independent, so the button returns in ~one pass not two.
+  signal: async (ws) => { const [a, b] = await Promise.all([runStageDwellAlerts(ws), runPipelineHealth(ws)]); return { ...a, ...b }; },
 };
 
 router.post("/:id/run", async (c) => {

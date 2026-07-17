@@ -253,27 +253,34 @@ export async function runStageDwellAlerts(workspaceId?: string): Promise<{ alert
         .filter((x): x is { deal: typeof open[number]; med: number; dwell: number; ratio: number } => x !== null)
         .sort((a, b) => b.ratio - a.ratio);
 
-      let createdThisWs = 0;
-      for (const cand of candidates) {
-        if (createdThisWs >= MAX_ALERTS_PER_RUN) break;
+      // Dedup in TWO batched reads (not 2 per candidate): which candidates already have an open
+      // stalled_stage alert, or a pending Signal decision. Then take the worst MAX_ALERTS_PER_RUN
+      // fresh ones. (Skipping a pending decision avoids re-creating duplicates + re-burning reasoning
+      // every run while a deal stays stalled.)
+      const candIds = candidates.map((c) => c.deal.id);
+      const [existingAlerts, pendingDecs] = candIds.length ? await Promise.all([
+        supabase.from("deal_alerts").select("node_id").eq("workspace_id", wsId).eq("alert_type", "stalled_stage").is("dismissed_at", null).in("node_id", candIds),
+        supabase.from("decision_queue").select("source_id").eq("workspace_id", wsId).eq("agent_name", "signal").eq("status", "pending").in("source_id", candIds),
+      ]) : [{ data: [] as { node_id: string }[] }, { data: [] as { source_id: string }[] }];
+      const alertedSet = new Set((existingAlerts.data ?? []).map((r) => (r as { node_id: string }).node_id));
+      const pendingSet = new Set((pendingDecs.data ?? []).map((r) => (r as { source_id: string }).source_id));
+      const fresh = candidates.filter((c) => !alertedSet.has(c.deal.id) && !pendingSet.has(c.deal.id)).slice(0, MAX_ALERTS_PER_RUN);
+
+      // Reason + record each in PARALLEL. The per-deal AI reasoning call dominates latency, so running
+      // the (≤8) of them concurrently collapses ~8×N seconds into ~N. allSettled so one failure can't
+      // sink the batch; if EVERY insert failed we surface it (a broken table shouldn't look like "0 found").
+      const settled = await Promise.allSettled(fresh.map(async (cand) => {
         const deal = cand.deal, med = cand.med, dwell = cand.dwell;
-
-        const { data: existing } = await supabase.from("deal_alerts").select("id")
-          .eq("node_id", deal.id).eq("alert_type", "stalled_stage").is("dismissed_at", null).maybeSingle();
-        if (existing) continue;
-        // Also skip if a pending Signal decision already exists for this deal — otherwise dismissing the
-        // deal_alert (but not the decision) would re-create a duplicate decision + burn reasoning budget
-        // every daily run while the deal stays stalled.
-        const { data: pendingDec } = await supabase.from("decision_queue").select("id")
-          .eq("workspace_id", wsId).eq("source_id", deal.id).eq("agent_name", "signal").eq("status", "pending").limit(1).maybeSingle();
-        if (pendingDec) continue;
-
         const { error: alertErr } = await supabase.from("deal_alerts").insert({ workspace_id: wsId, node_id: deal.id, alert_type: "stalled_stage", days_inactive: Math.round(dwell) });
         if (alertErr) throw new Error(`deal_alerts insert failed: ${alertErr.message}`);
 
         const data = deal.data as Record<string, unknown>;
         const name = String(data.name ?? data.title ?? "This deal");
-        const baseRisk: "medium" | "high" = dwell > med * 2.5 ? "high" : "medium";
+        // Reason at MEDIUM depth (single grounded pass), not the multi-step ReAct investigation the
+        // "high" path triggers: the finding is already fully quantified (exact dwell vs historical
+        // median), so a deep record-by-record investigation adds latency without adding much. The
+        // model still returns the true risk_level from the facts, so severity isn't lost.
+        const baseRisk = "medium" as const;
         const rec = await reasonAboutFinding(wsId, {
           agentName: "signal", recordName: name,
           facts: `The deal "${name}" has been in the "${data.stage ?? data.status}" stage for ${Math.round(dwell)} days — historically, deals take a median of ${Math.round(med)} days to move through that stage, so it's ${(dwell / med).toFixed(1)}× the usual cycle time${data.value ? ` (value: ${data.value})` : ""}.`,
@@ -293,8 +300,13 @@ export async function runStageDwellAlerts(workspaceId?: string): Promise<{ alert
           metadata: { dwell_days: Math.round(dwell), stage_median: Math.round(med) },
           source: { source_agent: "signal", agent_job_id: jobId, decision_id: (dq as { id?: string } | null)?.id ?? null, node_id: deal.id, object_type: "deal" },
         });
-        totalAlerts++;
-        createdThisWs++;
+        return true;
+      }));
+      const created = settled.filter((s) => s.status === "fulfilled").length;
+      totalAlerts += created;
+      if (created === 0 && fresh.length > 0) {
+        const firstErr = settled.find((s): s is PromiseRejectedResult => s.status === "rejected");
+        if (firstErr) throw new Error(String(firstErr.reason instanceof Error ? firstErr.reason.message : firstErr.reason));
       }
     }
     await completeJob(jobId, { alerts_created: totalAlerts, deals_scanned: dealsScanned, summary: `Flagged ${totalAlerts} stalled deal(s)` }, [
@@ -973,18 +985,25 @@ export async function runPipelineHealth(workspaceId?: string): Promise<{ scored:
 
       // ── Surface the top save candidates to the Decision Queue (highest value first,
       // capped, deduped against an existing pending forecast decision for that deal). ──
-      const candidates = rows.filter((r) => r.saveCandidate).sort((a, b) => (b.value ?? 0) - (a.value ?? 0)).slice(0, 5);
-      let flagged = 0;
-      for (const r of candidates) {
-        const { data: pendingDec } = await supabase.from("decision_queue").select("id")
-          .eq("workspace_id", wsId).eq("source_id", r.deal.id).eq("agent_name", "forecast").eq("status", "pending").limit(1).maybeSingle();
-        if (pendingDec) continue;
-
+      const shortlist = rows.filter((r) => r.saveCandidate).sort((a, b) => (b.value ?? 0) - (a.value ?? 0)).slice(0, 5);
+      // Batch the pending-decision dedup (one read, not one per candidate), then reason + record the
+      // survivors CONCURRENTLY — the reasoning call is the slow part, so parallelising collapses ~5×N
+      // seconds into ~N.
+      const slIds = shortlist.map((r) => r.deal.id);
+      const { data: pendingF } = slIds.length
+        ? await supabase.from("decision_queue").select("source_id").eq("workspace_id", wsId).eq("agent_name", "forecast").eq("status", "pending").in("source_id", slIds)
+        : { data: [] as { source_id: string }[] };
+      const pendingFSet = new Set((pendingF ?? []).map((r) => (r as { source_id: string }).source_id));
+      const toFlag = shortlist.filter((r) => !pendingFSet.has(r.deal.id));
+      const flagResults = await Promise.allSettled(toFlag.map(async (r) => {
         const rec = await reasonAboutFinding(wsId, {
           agentName: "forecast", recordName: r.name,
           facts: `The deal "${r.name}" carries a value of ${r.value} but its momentum (lead) score is only ${r.momentum}/100${r.momentumSource === "default" ? " (not yet scored — treated as neutral)" : ""}, and it's been ${r.daysIdle} days since the last update${r.stage ? ` (stage: ${r.stage})` : ""}. It's one of the highest-value deals at risk of slipping out of the forecast.`,
           defaultTitle: `${r.name} is a high-value deal at risk`,
-          defaultAction: "Re-engage the buyer, confirm the timeline, or re-forecast the deal", defaultRisk: "high", sourceId: r.deal.id,
+          // MEDIUM reasoning depth (single grounded pass) — the finding is already fully quantified
+          // (value + momentum + idle days), so skip the multi-step ReAct investigation the "high" path
+          // runs. The model still returns the real risk_level (typically high) from these facts.
+          defaultAction: "Re-engage the buyer, confirm the timeline, or re-forecast the deal", defaultRisk: "medium", sourceId: r.deal.id,
         });
         const evidence: Record<string, unknown>[] = [{ type: "record", title: r.name, node_id: r.deal.id, match_reason: `value ${r.value} · momentum ${r.momentum}/100 · ${r.daysIdle}d idle` }];
         if (rec.rationale) evidence.push({ type: "rationale", title: "Agent reasoning", match_reason: rec.rationale, confidence: rec.confidence });
@@ -999,8 +1018,9 @@ export async function runPipelineHealth(workspaceId?: string): Promise<{ scored:
           metadata: { value: r.value, momentum: r.momentum, days_idle: r.daysIdle },
           source: { source_agent: "forecast", agent_job_id: jobId, decision_id: (dq as { id?: string } | null)?.id ?? null, node_id: r.deal.id, object_type: "deal" },
         });
-        flagged++;
-      }
+        return true;
+      }));
+      const flagged = flagResults.filter((s) => s.status === "fulfilled").length;
       totalAtRisk += flagged;
 
       const atRiskCount = rows.filter((r) => r.band === "at_risk").length;
