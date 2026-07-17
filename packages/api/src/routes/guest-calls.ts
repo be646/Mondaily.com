@@ -16,7 +16,7 @@ const router = new Hono();
 
 const callsEnabled = () => !!(process.env.LIVEKIT_URL && process.env.LIVEKIT_API_KEY && process.env.LIVEKIT_API_SECRET);
 
-interface GuestClaims { kind?: string; ev?: string; ws?: string; room?: string; exp?: number }
+interface GuestClaims { kind?: string; ev?: string; ws?: string; room?: string; exp?: number; epoch?: number; jti?: string }
 
 router.post("/token", zValidator("json", z.object({ token: z.string().min(1), name: z.string().max(60).optional() })), async (c) => {
   const { token, name } = c.req.valid("json");
@@ -37,6 +37,13 @@ router.post("/token", zValidator("json", z.object({ token: z.string().min(1), na
     .select("data").eq("workspace_id", claims.ws).eq("object_type", "calendar_event").eq("id", claims.ev).maybeSingle();
   if (!node) return c.json({ error: "This meeting no longer exists." }, 404);
   if ((node.data as { status?: string })?.status === "cancelled") return c.json({ error: "This meeting was cancelled." }, 410);
+  // Revocation: the host can invalidate all outstanding links by bumping the event's guest-link epoch.
+  // A link whose epoch is older than the event's current epoch has been revoked. (Legacy links minted
+  // before this feature have no epoch claim → treated as 0, matching a never-revoked event.)
+  const currentEpoch = Number((node.data as { guest_link_epoch?: number })?.guest_link_epoch ?? 0);
+  if (Number(claims.epoch ?? 0) < currentEpoch) {
+    return c.json({ error: "This guest link has been revoked by the host." }, 403);
+  }
 
   const guestName = (String(name ?? "").trim().slice(0, 40)) || "Guest";
   const identity = `guest_${Math.random().toString(36).slice(2, 10)}`;   // guest_ prefix → UI badges it

@@ -93,6 +93,7 @@ export function StripePaymentModal({
   onClose: () => void; onSuccess: () => void;
 }) {
   const [status, setStatus] = useState<"loading" | "ready" | "submitting" | "error">("loading");
+  const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const stripeRef = useRef<StripeJs | null>(null);
@@ -140,7 +141,7 @@ export function StripePaymentModal({
       const paymentMethodId = result.setupIntent?.payment_method;
       if (!paymentMethodId) { setError("Could not save the card — please try again."); setStatus("ready"); return; }
 
-      const sub = await apiClient.post<{ ok?: boolean; requires_action?: boolean; client_secret?: string; subscription_id?: string; error?: string }>(
+      const sub = await apiClient.post<{ ok?: boolean; requires_action?: boolean; pending?: boolean; message?: string; client_secret?: string; subscription_id?: string; error?: string }>(
         "/billing/subscribe",
         { plan, interval, currency, payment_method_id: paymentMethodId },
       );
@@ -151,6 +152,12 @@ export function StripePaymentModal({
         const confirm = await stripe.confirmCardPayment(sub.client_secret);
         if (confirm.error) { setError(confirm.error.message ?? "Payment could not be verified."); setStatus("ready"); return; }
         await apiClient.post("/billing/confirm-subscription", { subscription_id: sub.subscription_id });
+      } else if (sub.pending) {
+        // Async settlement (bank debit) — the plan is NOT active yet; it activates via webhook once
+        // the payment clears. Show that honestly rather than a false "you're upgraded".
+        setPending(sub.message ?? "Payment is processing — your plan activates automatically once it clears.");
+        setStatus("ready");
+        return;
       }
       onSuccess();
     } catch (e) {
@@ -188,7 +195,15 @@ export function StripePaymentModal({
 
           {error && <p className="text-[12.5px]" style={{ color: "#be123c" }}>{error}</p>}
 
-          {status !== "loading" && status !== "error" && (
+          {pending && (
+            <div className="rounded-sm border p-3 text-[12.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
+              <div className="mb-1 font-semibold" style={{ color: "var(--text-primary)" }}>Payment processing</div>
+              {pending}
+              <button onClick={onClose} className="mt-3 w-full rounded-sm px-4 py-2 text-[12.5px] font-semibold text-black" style={{ background: "var(--accent)" }}>Done</button>
+            </div>
+          )}
+
+          {!pending && status !== "loading" && status !== "error" && (
             <button
               onClick={handleSubmit}
               disabled={status === "submitting"}

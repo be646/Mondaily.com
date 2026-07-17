@@ -147,10 +147,22 @@ router.post("/stripe", async (c) => {
         const prevSettings = (ws.settings as Record<string, unknown> | null) ?? {};
         const settings: Record<string, unknown> = { ...prevSettings, billing_status: "active", last_payment_at: new Date().toISOString() };
         delete settings.trial_ends_at;   // a paid renewal is no longer a trial — clear any stale marker
+        // Stamp payment + keep active first (preserves account_tier; activateTier below re-reads and
+        // keeps last_payment_at). This event = money genuinely received.
         await supabase.from("workspaces").update({ settings }).eq("id", ws.id as string).then(() => {}, () => {});
-        // Renewal — top the wallet back up to the tier's monthly allotment.
-        const tier = normalizeTier(settings.account_tier as string | undefined);
-        await grantTierCredits(ws.id as string, tier, `${tier} plan renewed via Stripe`).catch(() => {});
+        // AUTHORITATIVE ACTIVATION: for an async/ACH FIRST payment we deliberately did NOT grant the
+        // tier at /subscribe time, so activate it here from the subscription's plan metadata (Stripe
+        // stamps it on the invoice's subscription_details). activateTier is idempotent AND grants the
+        // monthly credit top-up, so it doubles as the ordinary renewal path — exactly one grant.
+        const planFromInvoice = ((inv.subscription_details as { metadata?: Record<string, unknown> } | undefined)?.metadata?.plan
+          ?? settings.account_tier) as string | undefined;
+        const tier = normalizeTier(planFromInvoice);
+        if (tier && tier !== "scout") {
+          await activateTier(ws.id as string, tier, inv.subscription as string | undefined).catch(() => {});
+        } else {
+          // Unknown/scout plan on a paid invoice — just top up whatever tier is on file.
+          await grantTierCredits(ws.id as string, tier, `${tier} plan payment received via Stripe`).catch(() => {});
+        }
       }
     }
   }

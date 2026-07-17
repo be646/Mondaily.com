@@ -238,9 +238,14 @@ function CallRoom({ event }: { event: CalEvent }) {
   });
 
   const [guestCopied, setGuestCopied] = useState(false);
+  const [guestRevoked, setGuestRevoked] = useState(false);
   const guestLink = useMutation({
     mutationFn: () => apiClient.post<{ url?: string; error?: string }>(`/calendar/events/${event.id}/guest-link`, {}),
     onSuccess: (r) => { if (r.url) navigator.clipboard?.writeText(r.url).then(() => { setGuestCopied(true); setTimeout(() => setGuestCopied(false), 2000); }).catch(() => {}); },
+  });
+  const revokeGuestLinks = useMutation({
+    mutationFn: () => apiClient.post<{ ok?: boolean; error?: string }>(`/calendar/events/${event.id}/revoke-guest-links`, {}),
+    onSuccess: () => { setGuestRevoked(true); setTimeout(() => setGuestRevoked(false), 2500); },
   });
 
   async function endForEveryone() {
@@ -356,7 +361,8 @@ function CallRoom({ event }: { event: CalEvent }) {
               existing={new Set([event.organizer.user_id, ...event.attendees.map(a => a.user_id)])}
               selected={inviteSel} onToggle={id => setInviteSel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; })}
               onInvite={() => invite.mutate()} inviting={invite.isPending} onClose={() => setShowInvite(false)} onCopyLink={copyLink} copied={copied}
-              isHost={isHost} onCopyGuestLink={() => guestLink.mutate()} guestCopied={guestCopied} guestPending={guestLink.isPending} />
+              isHost={isHost} onCopyGuestLink={() => guestLink.mutate()} guestCopied={guestCopied} guestPending={guestLink.isPending}
+              onRevokeGuestLinks={() => revokeGuestLinks.mutate()} guestRevoked={guestRevoked} revokePending={revokeGuestLinks.isPending} />
           )}
         </div>
 
@@ -492,7 +498,8 @@ function CallRoom({ event }: { event: CalEvent }) {
               existing={new Set([event.organizer.user_id, ...event.attendees.map(a => a.user_id)])}
               selected={inviteSel} onToggle={id => setInviteSel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; })}
               onInvite={() => invite.mutate()} inviting={invite.isPending} onClose={() => setShowInvite(false)} onCopyLink={copyLink} copied={copied}
-              isHost={isHost} onCopyGuestLink={() => guestLink.mutate()} guestCopied={guestCopied} guestPending={guestLink.isPending} />
+              isHost={isHost} onCopyGuestLink={() => guestLink.mutate()} guestCopied={guestCopied} guestPending={guestLink.isPending}
+              onRevokeGuestLinks={() => revokeGuestLinks.mutate()} guestRevoked={guestRevoked} revokePending={revokeGuestLinks.isPending} />
           )}
         </div>
 
@@ -547,10 +554,11 @@ export function ToolBtn({ on, neutral, onClick, label, onIcon, offIcon }: { on: 
  * call link, and can then join). Also surfaces the shareable link. Anchored dropdown; works on light
  * (lobby) or dark (in-call) backgrounds via its own surface.
  */
-function InvitePanel({ members, loading, existing, selected, onToggle, onInvite, inviting, onClose, onCopyLink, copied, isHost, onCopyGuestLink, guestCopied, guestPending }: {
+function InvitePanel({ members, loading, existing, selected, onToggle, onInvite, inviting, onClose, onCopyLink, copied, isHost, onCopyGuestLink, guestCopied, guestPending, onRevokeGuestLinks, guestRevoked, revokePending }: {
   members: Member[]; loading: boolean; existing: Set<string>; selected: Set<string>;
   onToggle: (id: string) => void; onInvite: () => void; inviting: boolean; onClose: () => void; onCopyLink: () => void; copied: boolean;
   isHost?: boolean; onCopyGuestLink?: () => void; guestCopied?: boolean; guestPending?: boolean;
+  onRevokeGuestLinks?: () => void; guestRevoked?: boolean; revokePending?: boolean;
 }) {
   const [q, setQ] = useState("");
   const invitable = members.filter(m => !existing.has(m.id));
@@ -569,6 +577,12 @@ function InvitePanel({ members, loading, existing, selected, onToggle, onInvite,
         {guestPending ? <Loader2 size={13} className="animate-spin" /> : guestCopied ? <Check size={13} className="text-[#2f9e6b]" /> : <UserPlus size={13} />}
         <span className="flex-1">{guestCopied ? "Guest link copied" : "Copy guest link (external)"}</span>
         <span className="text-[9.5px]" style={{ color: "var(--text-faint)" }}>no account · 24h</span>
+      </button>
+      )}
+      {isHost && onRevokeGuestLinks && (
+        <button onClick={onRevokeGuestLinks} disabled={revokePending} className="flex w-full items-center gap-2 border-b px-3 py-2.5 text-left text-[12px] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-60" style={{ borderColor: "var(--border-soft)", color: guestRevoked ? "#2f9e6b" : "#d1524a" }}>
+        {revokePending ? <Loader2 size={13} className="animate-spin" /> : guestRevoked ? <Check size={13} /> : <X size={13} />}
+        <span className="flex-1">{guestRevoked ? "All guest links revoked" : "Revoke all guest links"}</span>
       </button>
       )}
       <div className="p-2">

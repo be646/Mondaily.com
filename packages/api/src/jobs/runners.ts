@@ -154,10 +154,24 @@ export async function runDealAlerts(workspaceId?: string): Promise<{ alerts_crea
   }
 }
 
+// Extract the NEW stage/status value a record was moved to from an activity diff. Record PATCHes
+// store the changed fields as the diff (e.g. { stage: "Negotiation" } or { data: { status: "won" } }),
+// so a diff carrying stage/status marks a stage transition and names the stage entered. Lowercased to
+// match how current stage is read elsewhere. Returns null when the diff isn't a stage change.
+function stageFromDiff(diff: Record<string, unknown> | null): string | null {
+  if (!diff) return null;
+  const nested = (diff.data as Record<string, unknown> | undefined) ?? undefined;
+  const raw = diff.stage ?? diff.status ?? nested?.stage ?? nested?.status;
+  if (raw == null || raw === "") return null;
+  return String(raw).toLowerCase();
+}
+
 // ── Signal Agent: stalled-stage alerts (data-driven, not a flat threshold) ──────
-// Flags open deals dwelling in their current stage far longer than that stage's own historical
-// median across the pipeline — i.e. "this deal is stuck relative to how long deals normally take
-// here", which a fixed 14-day rule can't express (some stages are fast, some are slow).
+// Flags open deals dwelling in their current stage far longer than that stage's real historical
+// CYCLE TIME — the median time deals actually take to move THROUGH that stage, reconstructed from
+// completed stage transitions across every deal (open + closed). This is not the survivorship-biased
+// median of whoever is currently stuck in the stage; a fixed 14-day rule can't express it either
+// (some stages are fast, some are slow).
 export async function runStageDwellAlerts(workspaceId?: string): Promise<{ alerts_created: number }> {
   const jobId = await startJob({ workspace_id: workspaceId ?? "system", agent_name: "deal_alerts", trigger_type: workspaceId ? "manual" : "scheduled", input: { kind: "stalled_stage" }, node_ids: [] });
   try {
@@ -165,41 +179,63 @@ export async function runStageDwellAlerts(workspaceId?: string): Promise<{ alert
     let totalAlerts = 0, dealsScanned = 0;
     const now = Date.now();
     const CLOSED = ["won", "lost", "closed"];
-    const MIN_DEALS_PER_STAGE = 4;   // need enough history for a meaningful median
+    const MIN_TRANSIT_SAMPLES = 4;   // need enough COMPLETED transits through a stage for a real median
     const MIN_DWELL_DAYS = 7;        // never nag about a deal that's only been in-stage a few days
-    const OVER_FACTOR = 1.5;         // "stalled" = > 1.5× the stage's median dwell
+    const OVER_FACTOR = 1.5;         // "stalled" = > 1.5× the stage's historical cycle time
 
     for (const wsId of wsIds) {
       const { data: deals } = await supabase
         .from("nodes").select("id, data, created_at, updated_at")
         .eq("workspace_id", wsId).ilike("object_type", "%deal%");
-      const open = (deals ?? []).filter((d) => {
+      const all = deals ?? [];
+      const open = all.filter((d) => {
         const s = String((d.data as Record<string, unknown>).stage ?? (d.data as Record<string, unknown>).status ?? "").toLowerCase();
         return s && !CLOSED.some((c) => s.includes(c));
       });
       dealsScanned += open.length;
-      if (open.length < MIN_DEALS_PER_STAGE) continue;
+      if (!open.length) continue;
 
-      // When did each deal enter its current stage? Latest stage-change activity, else created_at.
-      const ids = open.map((d) => d.id);
+      // Reconstruct every deal's stage timeline from its stage-change activities (open AND closed
+      // deals — closed ones are exactly where completed transits come from). Each change names the
+      // stage entered and when.
+      const allIds = all.map((d) => d.id);
+      const changesByDeal = new Map<string, { stage: string; at: number }[]>();
+      const IN_CHUNK = 300;
+      for (let i = 0; i < allIds.length; i += IN_CHUNK) {
+        const { data: acts } = await supabase
+          .from("activities").select("node_id, created_at, diff")
+          .eq("workspace_id", wsId).in("node_id", allIds.slice(i, i + IN_CHUNK)).order("created_at", { ascending: true });
+        for (const a of acts ?? []) {
+          const st = stageFromDiff(a.diff as Record<string, unknown> | null);
+          if (!st) continue;
+          const arr = changesByDeal.get(a.node_id as string) ?? [];
+          arr.push({ stage: st, at: new Date(a.created_at as string).getTime() });
+          changesByDeal.set(a.node_id as string, arr);
+        }
+      }
+
+      // Completed transits: for each consecutive pair of changes on a deal, the earlier stage was
+      // dwelled from entry until the next change (a real, finished stage duration). This is the
+      // exit-based cycle-time distribution — no survivorship bias.
+      const transitSamples = new Map<string, number[]>();
+      for (const [, changes] of changesByDeal) {
+        for (let i = 0; i < changes.length - 1; i++) {
+          const days = (changes[i + 1]!.at - changes[i]!.at) / 86_400_000;
+          if (days >= 0 && days < 3650) transitSamples.set(changes[i]!.stage, [...(transitSamples.get(changes[i]!.stage) ?? []), days]);
+        }
+      }
+      const median = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2; };
+      const stageMedian = new Map<string, number>();
+      for (const [stage, xs] of transitSamples) if (xs.length >= MIN_TRANSIT_SAMPLES) stageMedian.set(stage, median(xs));
+
+      // When did each open deal enter its CURRENT stage? Its last stage-change, else created_at.
       const enteredAt = new Map<string, number>();
-      const { data: acts } = await supabase
-        .from("activities").select("node_id, created_at, diff")
-        .eq("workspace_id", wsId).in("node_id", ids).order("created_at", { ascending: true });
-      for (const a of acts ?? []) {
-        const diff = a.diff as Record<string, unknown> | null;
-        const changed = diff && ("stage" in diff || "status" in diff || (diff.data as Record<string, unknown> | undefined)?.stage !== undefined || (diff.data as Record<string, unknown> | undefined)?.status !== undefined);
-        if (changed) enteredAt.set(a.node_id as string, new Date(a.created_at as string).getTime());
+      for (const d of open) {
+        const ch = changesByDeal.get(d.id);
+        enteredAt.set(d.id, ch && ch.length ? ch[ch.length - 1]!.at : new Date(d.created_at as string).getTime());
       }
       const dwellDays = (d: { id: string; created_at: string }) => (now - (enteredAt.get(d.id) ?? new Date(d.created_at).getTime())) / 86_400_000;
       const stageOf = (d: { data: Record<string, unknown> }) => String(d.data.stage ?? d.data.status ?? "").toLowerCase();
-
-      // Median dwell per stage (across open deals currently in it).
-      const byStage = new Map<string, number[]>();
-      for (const d of open) byStage.set(stageOf(d), [...(byStage.get(stageOf(d)) ?? []), dwellDays(d)]);
-      const median = (xs: number[]) => { const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m]! : (s[m - 1]! + s[m]!) / 2; };
-      const stageMedian = new Map<string, number>();
-      for (const [stage, xs] of byStage) if (xs.length >= MIN_DEALS_PER_STAGE) stageMedian.set(stage, median(xs));
 
       for (const deal of open) {
         const stage = stageOf(deal);
@@ -226,7 +262,7 @@ export async function runStageDwellAlerts(workspaceId?: string): Promise<{ alert
         const baseRisk: "medium" | "high" = dwell > med * 2.5 ? "high" : "medium";
         const rec = await reasonAboutFinding(wsId, {
           agentName: "signal", recordName: name,
-          facts: `The deal "${name}" has been in the "${data.stage ?? data.status}" stage for ${Math.round(dwell)} days — the median for that stage in this pipeline is ${Math.round(med)} days, so it's ${(dwell / med).toFixed(1)}× the norm${data.value ? ` (value: ${data.value})` : ""}.`,
+          facts: `The deal "${name}" has been in the "${data.stage ?? data.status}" stage for ${Math.round(dwell)} days — historically, deals take a median of ${Math.round(med)} days to move through that stage, so it's ${(dwell / med).toFixed(1)}× the usual cycle time${data.value ? ` (value: ${data.value})` : ""}.`,
           defaultTitle: `${name} is stalled in ${data.stage ?? data.status}`,
           defaultAction: "Advance the stage, log the blocker, or re-qualify the deal", defaultRisk: baseRisk, sourceId: deal.id,
         });
@@ -247,8 +283,8 @@ export async function runStageDwellAlerts(workspaceId?: string): Promise<{ alert
       }
     }
     await completeJob(jobId, { alerts_created: totalAlerts, deals_scanned: dealsScanned, summary: `Flagged ${totalAlerts} stalled deal(s)` }, [
-      step(`Scanned ${dealsScanned} open deal(s) against per-stage median dwell`),
-      step(`Flagged ${totalAlerts} deal(s) stalled past ${OVER_FACTOR}× their stage median`, { status: totalAlerts ? "warn" : "ok" }),
+      step(`Scanned ${dealsScanned} open deal(s) against historical per-stage cycle time (completed transits)`),
+      step(`Flagged ${totalAlerts} deal(s) stalled past ${OVER_FACTOR}× their stage's usual cycle time`, { status: totalAlerts ? "warn" : "ok" }),
     ]);
     return { alerts_created: totalAlerts };
   } catch (err: unknown) { await failJob(jobId, err instanceof Error ? err.message : String(err)); throw err; }

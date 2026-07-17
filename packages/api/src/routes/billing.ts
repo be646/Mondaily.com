@@ -246,14 +246,32 @@ router.post("/subscribe", async (c) => {
     });
 
     const pi = sub?.latest_invoice?.payment_intent as { status?: string; client_secret?: string } | undefined;
-    // Most cards confirm instantly; some require 3D Secure — hand the client_secret back so the
-    // frontend can complete that one extra step. We don't activate the tier until it's genuinely paid.
-    if (pi?.status && pi.status !== "succeeded" && pi.status !== "processing" && pi.client_secret) {
+    const subStatus = String(sub?.status ?? "");
+
+    // Instant path — the card actually charged. Grant the tier now.
+    if (pi?.status === "succeeded") {
+      await activateTier(workspaceId, plan, sub.id as string);
+      return c.json({ ok: true, plan, subscription_id: sub.id });
+    }
+    // 3D Secure — hand the client_secret back so the frontend completes that one step, then
+    // /confirm-subscription re-checks server-side before granting.
+    if (pi?.status && pi.status !== "processing" && pi.client_secret) {
       return c.json({ requires_action: true, client_secret: pi.client_secret, subscription_id: sub.id });
     }
-
-    await activateTier(workspaceId, plan, sub.id as string);
-    return c.json({ ok: true, plan, subscription_id: sub.id });
+    // Async/pending settlement (e.g. ACH, SEPA debit) — the money has NOT arrived yet and can still
+    // fail days later. Do NOT grant the tier optimistically; return a pending state. The subscription
+    // moves to `active` and `invoice.payment_succeeded` fires once it clears — both webhook paths then
+    // activate the tier. If it fails, subscription.deleted downgrades and nothing was ever granted.
+    if (pi?.status === "processing") {
+      return c.json({ pending: true, plan, subscription_id: sub.id, message: "Payment is processing — your plan activates automatically once it clears (usually a few days for bank debits)." });
+    }
+    // No PaymentIntent at all (100%-off coupon, trial) — the subscription itself is authoritative.
+    if (["active", "trialing"].includes(subStatus)) {
+      await activateTier(workspaceId, plan, sub.id as string);
+      return c.json({ ok: true, plan, subscription_id: sub.id });
+    }
+    // Anything else (incomplete without a client_secret) — treat as pending, never grant.
+    return c.json({ pending: true, plan, subscription_id: sub.id, message: "Your subscription is being set up — it will activate once payment is confirmed." });
   } catch (e: unknown) {
     return c.json({ error: e instanceof Error ? e.message : "Could not start your subscription." }, 500);
   }

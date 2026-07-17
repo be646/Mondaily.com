@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
@@ -45,6 +46,7 @@ interface EventData {
   recurrence?: RecurrenceRule | null;   // set only on the SERIES MASTER
   exdates?: string[];                   // occurrence dates (YYYY-MM-DD) cancelled individually
   responses?: Record<string, RsvpResponse>;   // per-attendee RSVP; absent = not yet responded
+  guest_link_epoch?: number;            // bumped to revoke all outstanding external guest links at once
 }
 
 export const RSVP_RESPONSES = ["accepted", "declined", "tentative"] as const;
@@ -478,9 +480,30 @@ router.post("/events/:id/guest-link", async (c) => {
   const room = ev.data.call_room_id || internalRoom(ws, ev.id);
   const now = Math.floor(Date.now() / 1000);
   const exp = now + 24 * 60 * 60;
-  const token = await sign({ kind: "call_guest", ev: ev.id, ws, room, exp }, secret, "HS256");
+  // `epoch` binds the link to the event's current guest-link generation. Revoking (below) bumps the
+  // event's epoch, which instantly invalidates every previously-issued link without waiting for exp.
+  // `jti` is a unique id for audit/logging (and future per-link revocation).
+  const epoch = Number(ev.data.guest_link_epoch ?? 0);
+  const jti = randomUUID();
+  const token = await sign({ kind: "call_guest", ev: ev.id, ws, room, exp, epoch, jti }, secret, "HS256");
   // Token in the URL fragment (#g=) so it isn't sent to the server in logs/referrers — the SPA reads it.
   return c.json({ url: `${appUrl()}/join/${ev.id}#g=${token}`, expires_at: new Date(exp * 1000).toISOString() });
+});
+
+// POST /calendar/events/:id/revoke-guest-links — ORGANIZER/ADMIN invalidates EVERY outstanding guest
+// link for this meeting at once (e.g. a link was shared too widely). Bumps the event's guest-link
+// epoch; any link minted before this call fails redemption immediately. New links keep working.
+router.post("/events/:id/revoke-guest-links", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const ev = await getEvent(ws, c.req.param("id"));
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canManage(ev.data, me, c.get("role"))) return c.json({ error: "Only the organizer or an admin can revoke guest links." }, 403);
+  const nextEpoch = Number(ev.data.guest_link_epoch ?? 0) + 1;
+  const { error } = await supabase.from("nodes")
+    .update({ data: { ...ev.data, guest_link_epoch: nextEpoch } })
+    .eq("workspace_id", ws).eq("id", baseId(ev.id));
+  if (error) return c.json({ error: "Could not revoke guest links." }, 500);
+  return c.json({ ok: true, revoked: true, epoch: nextEpoch });
 });
 
 // POST /calendar/draft-agenda — AI agenda draft. Returns TEXT only; never creates/sends an event.
