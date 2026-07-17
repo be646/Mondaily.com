@@ -506,24 +506,22 @@ function GridEmpty({ hint, onCreate, onDraft, onFollowups, t }: { hint: string; 
     { icon: ListChecks, label: t("cal.suggest_followups"), hint: "Open your real task list — meetings link their follow-ups here.", run: onFollowups },
   ];
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center pt-12">
-      <div className="pointer-events-auto w-full max-w-sm rounded-sm border px-4 py-4 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-        <div className="mb-3 flex items-center gap-2.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)" }}><CalendarDays size={15} style={{ color: "var(--section-accent)" }} /></span>
-          <p className="text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{hint}</p>
-        </div>
-        <div className="space-y-1.5">
-          {steps.map((s, i) => (
-            <button key={i} onClick={s.run}
-              className="flex w-full items-start gap-2.5 rounded-sm border px-3 py-2 text-left transition-colors hover:border-[var(--section-accent)] hover:bg-[var(--surface-hover)]"
-              style={{ borderColor: "var(--border-soft)" }}>
-              <s.icon size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
-              <span className="min-w-0">
-                <span className="block text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</span>
-                <span className="mt-0.5 block text-[11px] leading-snug" style={{ color: "var(--text-muted)" }}>{s.hint}</span>
-              </span>
-            </button>
-          ))}
+    <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center pt-10">
+      {/* Compact guided card — an icon, the day hint, and three real actions as quiet chips (tooltip
+          carries the detail). Slimmer than the old stacked buttons; no action duplicated or removed. */}
+      <div className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-sm border px-3.5 py-3 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)" }}><CalendarDays size={15} style={{ color: "var(--section-accent)" }} /></span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{hint}</p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {steps.map((s, i) => (
+              <button key={i} onClick={s.run} title={s.hint}
+                className="inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 text-[11.5px] font-medium transition-colors hover:border-[var(--section-accent)] hover:bg-[var(--surface-hover)]"
+                style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                <s.icon size={12} className="shrink-0" style={{ color: "var(--section-accent)" }} />{s.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -553,7 +551,7 @@ function TodayBriefingPanel({ onOpen, onFollowups }: { onOpen: (id: string) => v
   );
   return (
     <>
-      <div className="border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-hover) 45%, transparent)" }}>
         <span className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}><CalendarClock size={11} style={{ color: "var(--text-faint)" }} /> {t("cal.meeting_agent")}</span>
         <span className="mt-1 block text-[14.5px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{t("cal.today_briefing")}</span>
       </div>
@@ -639,8 +637,8 @@ function TodayStrip({ onOpen, selectedId, events, onCreate, onDraft, onFollowups
 
   return (
     <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-      {/* Header: Meeting Agent brief + live counts */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5">
+      {/* Header: Meeting Agent brief + live counts (recessed band → reads as a distinct brief, not a flat banner) */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5" style={{ background: "color-mix(in srgb, var(--surface-hover) 45%, transparent)" }}>
         <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}><CalendarClock size={12} style={{ color: "var(--text-faint)" }} /> {t("cal.brief_heading")}</span>
         <Stat icon={<CalendarDays size={14} />} n={b.count} label={t("cal.meetings_today")} />
         {b.conflicts.length > 0 && <Stat icon={<AlertTriangle size={14} />} n={b.conflicts.length} label={t("cal.overlaps")} tone={AMBER} />}
@@ -744,8 +742,8 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
 
   return (
     <>
-        {/* AI Meeting Brief header — clearly framed, with Meeting Agent attribution. */}
-        <div className="border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
+        {/* AI Meeting Brief header — clearly framed, with Meeting Agent attribution (recessed band, matching the Today briefing + strip). */}
+        <div className="border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-hover) 45%, transparent)" }}>
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}><Wand2 size={11} style={{ color: "var(--text-faint)" }} /> {t("cal.ai_meeting_brief")}</span>
             {onClose && <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>}
