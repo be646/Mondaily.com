@@ -297,24 +297,6 @@ export function DecisionsPage() {
                   className="h-7 w-36 rounded-sm border bg-transparent pl-6.5 pr-2 text-[11.5px] outline-none focus:border-[var(--section-accent)]"
                   style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)", paddingLeft: "1.625rem" }} />
               </label>
-              <div title="How much agents may self-approve without you. High-risk always needs your approval.">
-                <MenuSelect label="Autonomy" value={autonomy} onChange={v => setAutonomy.mutate(v || "manual")} includeAll={false} width={188}
-                  options={[
-                    { value: "manual", label: "Manual" },
-                    { value: "assisted", label: "Auto low-risk" },
-                    { value: "autonomous", label: "Auto low + med" },
-                  ]} />
-              </div>
-              {/* Reasoning on/off — agents reason about each finding (RAG + reasoning model) vs. fixed
-                  templates. Depth scales with the plan tier. */}
-              <button onClick={() => setReasoning.mutate(!reasoningOn)}
-                title="When on, agents reason about each finding (related context + the reasoning model) for sharper, specific recommendations. Off = cheaper rule-based. Depth scales with your plan."
-                className="mode-pill" data-on={reasoningOn}>
-                <Sparkles size={12} /> Reasoning {reasoningOn ? "on" : "off"}
-              </button>
-              {/* Divider — Autonomy is a standing setting, not a per-view filter; keep it visually
-                  apart from the Search / Filter / sort cluster so they don't read as one control. */}
-              <span aria-hidden className="mx-0.5 h-5 w-px shrink-0" style={{ background: "var(--border-soft)" }} />
               <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={[agentFilter, typeFilter, riskFilter, assigneeFilter].filter(Boolean).length} />
               <button onClick={() => setSortRisk(s => !s)} disabled={lane === "approval" && !!triage}
                 title={lane === "approval" && triage ? "AI triage ranking is active — clear it to sort by risk" : "Order the list by risk level"}
@@ -330,6 +312,17 @@ export function DecisionsPage() {
                     { key: "adjudicate", label: verdictBusy ? "Adjudicating…" : "Adjudicate visible", icon: ShieldAlert, disabled: !!verdictBusy, onClick: adjudicateVisible },
                   ] as ActionMenuItem[])} />
               )}
+              {/* Standing agent-behaviour settings (Autonomy + Reasoning) folded into ONE quiet menu so
+                  they don't crowd the per-view controls. Same handlers, nothing removed. Separated by a
+                  divider — these are workspace settings, not per-view filters. */}
+              <span aria-hidden className="mx-0.5 h-5 w-px shrink-0" style={{ background: "var(--border-soft)" }} />
+              <ActionMenu triggerLabel="Agent behavior" align="right" ariaLabel="Agent autonomy and reasoning settings"
+                items={([
+                  { key: "au-manual", label: `${autonomy === "manual" ? "✓ " : ""}Manual — you approve everything`, onClick: () => setAutonomy.mutate("manual") },
+                  { key: "au-assisted", label: `${autonomy === "assisted" ? "✓ " : ""}Auto-approve low-risk`, onClick: () => setAutonomy.mutate("assisted") },
+                  { key: "au-autonomous", label: `${autonomy === "autonomous" ? "✓ " : ""}Auto-approve low + medium (high always asks)`, onClick: () => setAutonomy.mutate("autonomous") },
+                  { key: "reasoning", label: `Reasoning ${reasoningOn ? "on" : "off"} — sharper, specific recommendations`, icon: Sparkles, onClick: () => setReasoning.mutate(!reasoningOn) },
+                ] as ActionMenuItem[])} />
             </div>
           </div>
 
