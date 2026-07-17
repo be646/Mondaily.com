@@ -830,6 +830,7 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
           Flat padded blocks, not border-ruled slabs — the panel is one composed dossier. */}
       {tab === "overview" && (<>
       <div className="px-4 py-3.5">
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Workload</p>
         <MetricGrid cols={3} items={[
           { label: "Tasks", value: fmt(op.task_count) },
           { label: "AI credits", value: fmt(op.tokens) },
@@ -846,6 +847,7 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
       {/* deals / opportunities — real tallies (ownership resolved from node data + created_by) */}
       {((op.deals_owned ?? 0) > 0 || (op.deals_updated ?? 0) > 0) && (
         <div className="px-4 pb-3.5">
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Deals</p>
           <MetricGrid cols={5} items={[
             { label: "Deals owned", value: fmt(op.deals_owned ?? 0) },
             { label: "Open", value: fmt(op.deals_open ?? 0) },
@@ -859,6 +861,7 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
       {/* Per-member velocity — real cycle times, honest nulls (only when the advanced payload is loaded) */}
       {myVel && (myVel.task_lead.sample > 0 || myVel.decision_cycle.sample > 0) && (
         <div className="px-4 pb-3.5">
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Velocity</p>
           <MetricGrid cols={3} items={[
             { label: "Task lead time", value: myVel.task_lead.avg_days != null ? `${myVel.task_lead.avg_days}d` : "—" },
             { label: "On-time", value: myVel.task_lead.on_time_rate != null ? `${myVel.task_lead.on_time_rate}%` : "—" },
