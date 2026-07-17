@@ -80,6 +80,38 @@ export async function startRoomEgress(room: string): Promise<{ egressId: string 
   }
 }
 
+/** Mint a short-lived room-admin token (roomAdmin grant scoped to one room) for RoomService calls. */
+async function mintRoomAdminToken(room: string): Promise<string> {
+  const { key, secret } = env();
+  const now = Math.floor(Date.now() / 1000);
+  return sign(
+    { iss: key, sub: "admin", nbf: now, iat: now, exp: now + 2 * 60, video: { roomAdmin: true, room } },
+    secret as string,
+    "HS256",
+  );
+}
+
+/**
+ * End a call for EVERYONE — deletes the LiveKit room, which disconnects all participants. Used by the
+ * organizer's "End for everyone" (leaving only disconnects yourself). Best-effort + returns whether it
+ * succeeded. Recording egress is stopped separately by the caller before/after.
+ */
+export async function endRoom(room: string): Promise<boolean> {
+  if (!liveKitEnabled() || !room) return false;
+  const { url } = env();
+  try {
+    const token = await mintRoomAdminToken(room);
+    const res = await fetch(`${(url as string).replace(/\/$/, "")}/twirp/livekit.RoomService/DeleteRoom`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ room }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 /** Stop a running egress (best-effort; called when the call ends). */
 export async function stopRoomEgress(egressId: string): Promise<void> {
   if (!recordingEnabled() || !egressId) return;

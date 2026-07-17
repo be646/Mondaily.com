@@ -38,6 +38,62 @@ function loadStripeJs(): Promise<void> {
   return stripeJsPromise;
 }
 
+/**
+ * Stripe's appearance API needs REAL color values — it does not resolve CSS custom properties like
+ * `var(--text-primary)`. So we resolve each theme token to its computed rgb() via a throwaway probe
+ * element, then hand Stripe concrete colors. This makes the embedded card field match whichever theme
+ * (dark or light) the user is on, instead of falling back to Stripe's white default.
+ */
+function resolveVar(name: string, prop: "color" | "backgroundColor" = "color", fallback = ""): string {
+  try {
+    const el = document.createElement("div");
+    el.style.position = "absolute"; el.style.opacity = "0"; el.style.pointerEvents = "none";
+    if (prop === "color") el.style.color = `var(${name})`; else el.style.backgroundColor = `var(${name})`;
+    document.body.appendChild(el);
+    const v = getComputedStyle(el)[prop] as string;
+    el.remove();
+    return v && v !== "rgba(0, 0, 0, 0)" ? v : fallback;
+  } catch { return fallback; }
+}
+
+function buildStripeAppearance() {
+  const text = resolveVar("--text-primary", "color", "#e7e7ea");
+  const muted = resolveVar("--text-faint", "color", "#8b8b93");
+  const inputBg = resolveVar("--surface-hover", "backgroundColor", "#1b1b20");
+  const border = resolveVar("--border-soft", "color", "#33333a");
+  const accent = resolveVar("--section-accent", "color", "#6f8a6a");
+  const font = getComputedStyle(document.body).fontFamily || "system-ui, -apple-system, sans-serif";
+  return {
+    theme: "flat" as const,
+    variables: {
+      colorPrimary: accent,
+      colorBackground: inputBg,
+      colorText: text,
+      colorTextSecondary: muted,
+      colorTextPlaceholder: muted,
+      colorIcon: muted,
+      fontFamily: font,
+      borderRadius: "8px",
+      spacingUnit: "4px",
+      fontSizeBase: "14px",
+    },
+    rules: {
+      ".Input": { backgroundColor: inputBg, border: `1px solid ${border}`, color: text, boxShadow: "none" },
+      ".Input::placeholder": { color: muted },
+      ".Input:focus": { border: `1px solid ${accent}`, boxShadow: `0 0 0 1px ${accent}` },
+      ".Label": { color: muted, fontWeight: "500", fontSize: "12px" },
+      ".Tab": { backgroundColor: inputBg, border: `1px solid ${border}`, color: text },
+      ".Tab:hover": { color: text, backgroundColor: inputBg },
+      ".Tab--selected": { border: `1px solid ${accent}`, backgroundColor: inputBg, color: text },
+      ".Tab--selected:focus": { boxShadow: `0 0 0 1px ${accent}` },
+      ".TabLabel": { color: text },
+      ".TabIcon": { color: muted },
+      ".Block": { backgroundColor: inputBg, border: `1px solid ${border}` },
+      ".AccordionItem": { backgroundColor: inputBg, border: `1px solid ${border}`, color: text },
+    },
+  };
+}
+
 export function StripePaymentModal({
   plan, planLabel, priceLabel, interval, currency = "USD", onClose, onSuccess,
 }: {
@@ -65,16 +121,7 @@ export function StripePaymentModal({
         stripeRef.current = stripe;
         const elements = stripe.elements({
           clientSecret: setup.client_secret,
-          appearance: {
-            theme: "flat",
-            variables: {
-              colorPrimary: "#18181b",
-              colorBackground: "transparent",
-              colorText: "var(--text-primary)",
-              fontFamily: "inherit",
-              borderRadius: "6px",
-            },
-          },
+          appearance: buildStripeAppearance(),
         });
         elementsRef.current = elements;
         const paymentElement = elements.create("payment");

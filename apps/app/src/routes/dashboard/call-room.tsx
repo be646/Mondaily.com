@@ -1,12 +1,15 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Room, Participant, Track as TrackNS } from "livekit-client";
-import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Wifi, Brain, Sparkles, FileText, ListChecks } from "lucide-react";
+import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Brain, Sparkles, FileText, ListChecks, Link2, UserPlus, Check, X } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { FieldSelect } from "../../components/ui/controls";
 import { useLanguage } from "../../hooks/useLanguage";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { CallDetailPage } from "./call-detail";
+
+interface Member { id: string; name?: string; email: string }
 
 /**
  * Mondaily call room at /calls/:eventId — the native meeting experience. Loads the calendar event,
@@ -179,6 +182,43 @@ function CallRoom({ event }: { event: CalEvent }) {
   const roomRef = useRef<Room | null>(null);
   const lkRef = useRef<LKModule | null>(null);
 
+  // Host controls + invite/link.
+  const me = useCurrentUser();
+  const qc = useQueryClient();
+  const isHost = !!me.userId && me.userId === event.organizer.user_id;
+  const [copied, setCopied] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteSel, setInviteSel] = useState<Set<string>>(new Set());
+  const [selAudio, setSelAudio] = useState("");
+  const [selVideo, setSelVideo] = useState("");
+  const [ending, setEnding] = useState(false);
+
+  const membersQ = useQuery<{ members: Member[] }>({
+    queryKey: ["workspace-members-full"],
+    queryFn: () => apiClient.get("/workspace/members-full"),
+    staleTime: 60_000, enabled: showInvite,
+  });
+
+  function copyLink() {
+    const url = `${window.location.origin}/calls/${event.id}`;
+    navigator.clipboard?.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600); }).catch(() => {});
+  }
+
+  const invite = useMutation({
+    mutationFn: () => {
+      const attendee_ids = [...new Set([...event.attendees.map(a => a.user_id), ...[...inviteSel].filter(id => id !== event.organizer.user_id)])];
+      return apiClient.patch(`/calendar/events/${event.id}`, { attendee_ids });
+    },
+    onSuccess: () => { setShowInvite(false); setInviteSel(new Set()); qc.invalidateQueries({ queryKey: ["calendar-event", event.id] }); },
+  });
+
+  async function endForEveryone() {
+    setEnding(true);
+    try { await apiClient.post(`/calendar/events/${event.id}/end-call`, {}); } catch { /* fall through to leaving */ }
+    try { await roomRef.current?.disconnect(); } catch { /* ignore */ }
+    setEnding(false); setPhase("ended");
+  }
+
   const when = (() => { try { return new Date(event.start_at).toLocaleString(lang, { weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return event.start_at; } })();
 
   async function refreshDevices() {
@@ -231,7 +271,11 @@ function CallRoom({ event }: { event: CalEvent }) {
     catch { /* user cancelled the picker — no-op */ }
   }
   async function switchDevice(kind: "audioinput" | "videoinput", deviceId: string) {
-    try { await roomRef.current?.switchActiveDevice(kind, deviceId); } catch { /* ignore */ }
+    if (!deviceId) return;
+    try {
+      await roomRef.current?.switchActiveDevice(kind, deviceId);
+      if (kind === "audioinput") setSelAudio(deviceId); else setSelVideo(deviceId);
+    } catch { /* ignore — device may be in use */ }
   }
 
   useEffect(() => () => { roomRef.current?.disconnect().catch(() => {}); }, []);
@@ -248,12 +292,26 @@ function CallRoom({ event }: { event: CalEvent }) {
 
     return (
       <div className="flex h-full flex-col" style={{ background: "#0b0b0d" }}>
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="relative flex items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
             <span className="block truncate text-[14px] font-semibold text-white">{event.title}</span>
-            <span className="flex items-center gap-1.5 text-[11px] text-white/50"><Users size={11} /> {everyone.length}</span>
+            <span className="flex items-center gap-1.5 text-[11px] text-white/50"><Users size={11} /> {everyone.length} {everyone.length === 1 ? "person" : "people"}</span>
           </div>
-          {(phase === "connecting" || reconnecting) && <span className="flex items-center gap-2 text-[12px] text-white/70"><Loader2 size={13} className="animate-spin" /> {reconnecting ? t("cal.reconnecting") : t("cal.connecting")}</span>}
+          <div className="flex items-center gap-2">
+            {(phase === "connecting" || reconnecting) && <span className="flex items-center gap-2 text-[12px] text-white/70"><Loader2 size={13} className="animate-spin" /> {reconnecting ? t("cal.reconnecting") : t("cal.connecting")}</span>}
+            <button onClick={copyLink} title="Copy invite link" className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-white/20">
+              {copied ? <Check size={13} className="text-[#6fd08a]" /> : <Link2 size={13} />} {copied ? "Copied" : "Link"}
+            </button>
+            <button onClick={() => setShowInvite(s => !s)} title="Invite workspace members" className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-white/20">
+              <UserPlus size={13} /> Invite
+            </button>
+          </div>
+          {showInvite && (
+            <InvitePanel members={membersQ.data?.members ?? []} loading={membersQ.isLoading}
+              existing={new Set([event.organizer.user_id, ...event.attendees.map(a => a.user_id)])}
+              selected={inviteSel} onToggle={id => setInviteSel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; })}
+              onInvite={() => invite.mutate()} inviting={invite.isPending} onClose={() => setShowInvite(false)} onCopyLink={copyLink} copied={copied} />
+          )}
         </div>
 
         <div className="flex-1 space-y-2 overflow-y-auto px-3 pb-2">
@@ -275,10 +333,10 @@ function CallRoom({ event }: { event: CalEvent }) {
               return (
                 <label key={kind} className="flex items-center gap-2 text-[11px] text-white/60">
                   <span className="w-20 shrink-0">{kind === "audio" ? t("cal.microphone") : t("cal.camera")}</span>
-                  <FieldSelect value="" onChange={v => switchDevice(kind === "audio" ? "audioinput" : "videoinput", v)}
-                    ariaLabel={kind === "audio" ? t("cal.microphone") : t("cal.camera")} placeholder="—"
+                  <FieldSelect value={kind === "audio" ? selAudio : selVideo} onChange={v => switchDevice(kind === "audio" ? "audioinput" : "videoinput", v)}
+                    ariaLabel={kind === "audio" ? t("cal.microphone") : t("cal.camera")} placeholder={list.length ? "Default" : "No devices"}
                     className="min-w-0 flex-1"
-                    options={list.map(d => ({ value: d.deviceId, label: d.label || `${kind} device` }))} />
+                    options={list.map(d => ({ value: d.deviceId, label: d.label || `${kind === "audio" ? "Microphone" : "Camera"} ${d.deviceId.slice(0, 4)}` }))} />
                 </label>
               );
             })}
@@ -291,7 +349,18 @@ function CallRoom({ event }: { event: CalEvent }) {
           <ToolBtn on={camOn} onClick={toggleCam} label={t("cal.camera")} onIcon={<Video size={18} className="text-white" />} offIcon={<VideoOff size={18} className="text-white" />} />
           <ToolBtn on={!sharing} neutral onClick={toggleShare} label={sharing ? t("cal.stop_share") : t("cal.share_screen")} onIcon={<MonitorUp size={18} className={sharing ? "text-[color:var(--section-accent)]" : "text-white"} />} offIcon={<MonitorUp size={18} className="text-white" />} />
           <ToolBtn on={!showDevices} neutral onClick={() => { setShowDevices(s => !s); refreshDevices(); }} label={t("cal.devices")} onIcon={<Settings2 size={18} className="text-white" />} offIcon={<Settings2 size={18} className="text-white" />} />
-          <button onClick={leave} aria-label={t("cal.leave")} title={t("cal.leave")} className="flex h-11 items-center gap-2 rounded-full bg-[#d1524a] px-5"><PhoneOff size={18} className="text-white" /><span className="text-[13px] font-medium text-white">{t("cal.leave")}</span></button>
+          {/* Leave = disconnect yourself (call keeps running). Host also gets End-for-everyone. */}
+          <button onClick={leave} aria-label={t("cal.leave")} title={t("cal.leave")}
+            className="flex h-11 items-center gap-2 rounded-full px-5" style={{ background: isHost ? "rgba(255,255,255,0.12)" : "#d1524a" }}>
+            <PhoneOff size={18} className="text-white" /><span className="text-[13px] font-medium text-white">{t("cal.leave")}</span>
+          </button>
+          {isHost && (
+            <button onClick={endForEveryone} disabled={ending} aria-label="End for everyone" title="End the call for everyone"
+              className="flex h-11 items-center gap-2 rounded-full bg-[#d1524a] px-5 disabled:opacity-60">
+              {ending ? <Loader2 size={18} className="animate-spin text-white" /> : <PhoneOff size={18} className="text-white" />}
+              <span className="text-[13px] font-medium text-white">End for all</span>
+            </button>
+          )}
         </div>
       </div>
     );
@@ -328,12 +397,28 @@ function CallRoom({ event }: { event: CalEvent }) {
 
         {event.description && <div className="mt-4 whitespace-pre-wrap rounded-lg border p-3 text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{event.description}</div>}
 
-        <div className="mt-4">
-          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}><Users size={12} /> {t("cal.attendees")} · {event.attendees.length + 1}</p>
+        <div className="relative mt-4">
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}><Users size={12} /> {t("cal.attendees")} · {event.attendees.length + 1}</p>
+            <div className="flex items-center gap-1.5">
+              <button onClick={copyLink} className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                {copied ? <Check size={12} className="text-[#2f9e6b]" /> : <Link2 size={12} />} {copied ? "Copied" : "Copy link"}
+              </button>
+              <button onClick={() => setShowInvite(s => !s)} className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--section-accent-line)", color: "var(--text-primary)", background: "var(--section-accent-soft)" }}>
+                <UserPlus size={12} /> Invite
+              </button>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-1.5">
             <span className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px]" style={{ background: "var(--surface-selected)", color: "var(--text-primary)" }}><Avatar name={event.organizer.name} size={16} /> {event.organizer.name} · organizer</span>
             {event.attendees.map(a => <span key={a.user_id} className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px]" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}><Avatar name={a.name} size={16} /> {a.name}</span>)}
           </div>
+          {showInvite && (
+            <InvitePanel members={membersQ.data?.members ?? []} loading={membersQ.isLoading}
+              existing={new Set([event.organizer.user_id, ...event.attendees.map(a => a.user_id)])}
+              selected={inviteSel} onToggle={id => setInviteSel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; })}
+              onInvite={() => invite.mutate()} inviting={invite.isPending} onClose={() => setShowInvite(false)} onCopyLink={copyLink} copied={copied} />
+          )}
         </div>
 
         <div className="mt-6 border-t pt-5" style={{ borderColor: "var(--border-soft)" }}>
@@ -380,6 +465,59 @@ function Avatar({ name, size }: { name: string; size: number }) {
 function ToolBtn({ on, neutral, onClick, label, onIcon, offIcon }: { on: boolean; neutral?: boolean; onClick: () => void; label: string; onIcon: React.ReactNode; offIcon: React.ReactNode }) {
   const bg = neutral ? "rgba(255,255,255,0.12)" : on ? "rgba(255,255,255,0.12)" : "#d1524a";
   return <button onClick={onClick} aria-label={label} title={label} className="flex h-11 w-11 items-center justify-center rounded-full" style={{ background: bg }}>{on ? onIcon : offIcon}</button>;
+}
+
+/**
+ * Invite panel — add workspace members to this meeting (they become attendees, get notified with the
+ * call link, and can then join). Also surfaces the shareable link. Anchored dropdown; works on light
+ * (lobby) or dark (in-call) backgrounds via its own surface.
+ */
+function InvitePanel({ members, loading, existing, selected, onToggle, onInvite, inviting, onClose, onCopyLink, copied }: {
+  members: Member[]; loading: boolean; existing: Set<string>; selected: Set<string>;
+  onToggle: (id: string) => void; onInvite: () => void; inviting: boolean; onClose: () => void; onCopyLink: () => void; copied: boolean;
+}) {
+  const [q, setQ] = useState("");
+  const invitable = members.filter(m => !existing.has(m.id));
+  const shown = invitable.filter(m => !q.trim() || `${m.name ?? ""} ${m.email}`.toLowerCase().includes(q.trim().toLowerCase()));
+  return (
+    <div className="absolute right-3 top-14 z-30 w-72 overflow-hidden rounded-xl border shadow-2xl" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="flex items-center justify-between border-b px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+        <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Invite to this call</span>
+        <button onClick={onClose} className="btn-icon h-6 w-6"><X size={13} /></button>
+      </div>
+      <button onClick={onCopyLink} className="flex w-full items-center gap-2 border-b px-3 py-2.5 text-left text-[12px] transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+        {copied ? <Check size={13} className="text-[#2f9e6b]" /> : <Link2 size={13} />} {copied ? "Link copied" : "Copy invite link"}
+      </button>
+      <div className="p-2">
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search members…" className="key-input mb-1.5 h-8 w-full px-2.5 text-[12px]" />
+        <div className="max-h-56 overflow-y-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-4"><Loader2 size={14} className="animate-spin" style={{ color: "var(--text-muted)" }} /></div>
+          ) : shown.length === 0 ? (
+            <p className="px-2 py-3 text-center text-[11.5px]" style={{ color: "var(--text-faint)" }}>{invitable.length === 0 ? "Everyone's already invited." : "No members match."}</p>
+          ) : shown.map(m => {
+            const on = selected.has(m.id);
+            return (
+              <button key={m.id} onClick={() => onToggle(m.id)} className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded border" style={{ borderColor: on ? "var(--section-accent)" : "var(--border-soft)", background: on ? "var(--section-accent)" : "transparent" }}>{on && <Check size={11} className="text-white" />}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[12px]" style={{ color: "var(--text-primary)" }}>{m.name || m.email}</span>
+                  {m.name && <span className="block truncate text-[10.5px]" style={{ color: "var(--text-faint)" }}>{m.email}</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      <div className="border-t px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+        <button onClick={onInvite} disabled={inviting || selected.size === 0}
+          className="flex w-full items-center justify-center gap-1.5 rounded-md py-2 text-[12px] font-semibold text-white transition-opacity disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
+          {inviting ? <Loader2 size={13} className="animate-spin" /> : <UserPlus size={13} />} Invite {selected.size > 0 ? selected.size : ""}
+        </button>
+        <p className="mt-1.5 text-center text-[10px]" style={{ color: "var(--text-faint)" }}>Invited members get a notification and can join from Calendar.</p>
+      </div>
+    </div>
+  );
 }
 
 /** One participant camera tile: live video when available, initials placeholder otherwise. */

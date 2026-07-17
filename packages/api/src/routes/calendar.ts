@@ -10,6 +10,7 @@ import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
 import { resolveProfile } from "@mondaily/shared/profile";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
 import { isOverdue } from "@mondaily/shared/dates";
+import { endRoom } from "../lib/livekit";
 
 /**
  * MONDAILY CALENDAR + CALLS — native, workspace-scoped meetings with Mondaily-owned call links.
@@ -437,6 +438,20 @@ router.post("/events/:id/call-token", async (c) => {
   const dir = await members(ws); const meRow = dir.get(me);
   const token = await mintCallToken(me, meRow?.name || meRow?.email || "Member", room);
   return c.json({ token, url: process.env.LIVEKIT_URL, room });
+});
+
+// POST /calendar/events/:id/end-call — ORGANIZER/ADMIN ends the meeting for EVERYONE (deletes the
+// LiveKit room, disconnecting all participants). Plain "leave" only disconnects yourself; this is the
+// host control. Fails closed when calls aren't configured. Idempotent (deleting a gone room is fine).
+router.post("/events/:id/end-call", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const ev = await getEvent(ws, c.req.param("id"));
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canManage(ev.data, me, c.get("role"))) return c.json({ error: "Only the organizer or an admin can end the call for everyone." }, 403);
+  if (!callsEnabled()) return c.json({ error: "Calls aren't configured on this workspace.", calls_enabled: false }, 503);
+  const room = ev.data.call_room_id || internalRoom(ws, ev.id);
+  const ended = await endRoom(room);
+  return c.json({ ended });
 });
 
 // POST /calendar/draft-agenda — AI agenda draft. Returns TEXT only; never creates/sends an event.
