@@ -454,6 +454,26 @@ router.post("/events/:id/end-call", async (c) => {
   return c.json({ ended });
 });
 
+// POST /calendar/events/:id/guest-link — ORGANIZER/ADMIN mints a shareable EXTERNAL guest link. The
+// token is SIGNED, event+room-scoped, and expires in 24h — it grants ONLY the ability to join THIS
+// one room as a named guest (no account, no workspace or API access). Anyone with the link can join
+// until it expires; the host can also "End for all" to force everyone out.
+router.post("/events/:id/guest-link", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const ev = await getEvent(ws, c.req.param("id"));
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canManage(ev.data, me, c.get("role"))) return c.json({ error: "Only the organizer or an admin can create a guest link." }, 403);
+  if (!callsEnabled()) return c.json({ error: "Calls aren't configured on this workspace.", calls_enabled: false }, 503);
+  const secret = process.env.AUTH_JWT_SECRET;
+  if (!secret) return c.json({ error: "Guest links aren't available right now." }, 503);
+  const room = ev.data.call_room_id || internalRoom(ws, ev.id);
+  const now = Math.floor(Date.now() / 1000);
+  const exp = now + 24 * 60 * 60;
+  const token = await sign({ kind: "call_guest", ev: ev.id, ws, room, exp }, secret, "HS256");
+  // Token in the URL fragment (#g=) so it isn't sent to the server in logs/referrers — the SPA reads it.
+  return c.json({ url: `${appUrl()}/join/${ev.id}#g=${token}`, expires_at: new Date(exp * 1000).toISOString() });
+});
+
 // POST /calendar/draft-agenda — AI agenda draft. Returns TEXT only; never creates/sends an event.
 router.post("/draft-agenda", zValidator("json", z.object({ title: z.string().max(200).optional(), prompt: z.string().min(1).max(1000) })), async (c) => {
   const ws = c.get("workspaceId"); const me = c.get("userId");

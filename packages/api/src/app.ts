@@ -12,6 +12,7 @@ import { searchRouter } from "./routes/search";
 import { briefingRouter } from "./routes/briefing";
 import { askRouter } from "./routes/ask";
 import { publicAskRouter } from "./routes/public-ask";
+import { guestCallsRouter } from "./routes/guest-calls";
 import { agentsRouter } from "./routes/agents";
 import { decisionsRouter } from "./routes/decisions";
 import { activitiesRouter } from "./routes/activities";
@@ -88,6 +89,7 @@ app.route("/api/v1/search", searchRouter);
 app.route("/api/v1/briefing", briefingRouter);
 app.route("/api/v1/ask", askRouter);
 app.route("/api/v1/public/ask", publicAskRouter);
+app.route("/api/v1/public/calls", guestCallsRouter);   // PUBLIC guest-call redemption (no account)
 app.route("/api/v1/agents", agentsRouter);
 app.route("/api/v1/decisions", decisionsRouter);
 app.route("/api/v1/prospecting", prospectingRouter);

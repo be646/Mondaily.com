@@ -159,7 +159,7 @@ function NotAllowed() {
 }
 
 /** First-letters of a name → up to two initials for the no-video placeholder. */
-function initialsOf(name: string): string {
+export function initialsOf(name: string): string {
   const parts = (name || "?").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
   if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
@@ -210,6 +210,12 @@ function CallRoom({ event }: { event: CalEvent }) {
       return apiClient.patch(`/calendar/events/${event.id}`, { attendee_ids });
     },
     onSuccess: () => { setShowInvite(false); setInviteSel(new Set()); qc.invalidateQueries({ queryKey: ["calendar-event", event.id] }); },
+  });
+
+  const [guestCopied, setGuestCopied] = useState(false);
+  const guestLink = useMutation({
+    mutationFn: () => apiClient.post<{ url?: string; error?: string }>(`/calendar/events/${event.id}/guest-link`, {}),
+    onSuccess: (r) => { if (r.url) navigator.clipboard?.writeText(r.url).then(() => { setGuestCopied(true); setTimeout(() => setGuestCopied(false), 2000); }).catch(() => {}); },
   });
 
   async function endForEveryone() {
@@ -310,7 +316,8 @@ function CallRoom({ event }: { event: CalEvent }) {
             <InvitePanel members={membersQ.data?.members ?? []} loading={membersQ.isLoading}
               existing={new Set([event.organizer.user_id, ...event.attendees.map(a => a.user_id)])}
               selected={inviteSel} onToggle={id => setInviteSel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; })}
-              onInvite={() => invite.mutate()} inviting={invite.isPending} onClose={() => setShowInvite(false)} onCopyLink={copyLink} copied={copied} />
+              onInvite={() => invite.mutate()} inviting={invite.isPending} onClose={() => setShowInvite(false)} onCopyLink={copyLink} copied={copied}
+              isHost={isHost} onCopyGuestLink={() => guestLink.mutate()} guestCopied={guestCopied} guestPending={guestLink.isPending} />
           )}
         </div>
 
@@ -417,7 +424,8 @@ function CallRoom({ event }: { event: CalEvent }) {
             <InvitePanel members={membersQ.data?.members ?? []} loading={membersQ.isLoading}
               existing={new Set([event.organizer.user_id, ...event.attendees.map(a => a.user_id)])}
               selected={inviteSel} onToggle={id => setInviteSel(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; })}
-              onInvite={() => invite.mutate()} inviting={invite.isPending} onClose={() => setShowInvite(false)} onCopyLink={copyLink} copied={copied} />
+              onInvite={() => invite.mutate()} inviting={invite.isPending} onClose={() => setShowInvite(false)} onCopyLink={copyLink} copied={copied}
+              isHost={isHost} onCopyGuestLink={() => guestLink.mutate()} guestCopied={guestCopied} guestPending={guestLink.isPending} />
           )}
         </div>
 
@@ -462,7 +470,7 @@ function Avatar({ name, size }: { name: string; size: number }) {
   );
 }
 
-function ToolBtn({ on, neutral, onClick, label, onIcon, offIcon }: { on: boolean; neutral?: boolean; onClick: () => void; label: string; onIcon: React.ReactNode; offIcon: React.ReactNode }) {
+export function ToolBtn({ on, neutral, onClick, label, onIcon, offIcon }: { on: boolean; neutral?: boolean; onClick: () => void; label: string; onIcon: React.ReactNode; offIcon: React.ReactNode }) {
   const bg = neutral ? "rgba(255,255,255,0.12)" : on ? "rgba(255,255,255,0.12)" : "#d1524a";
   return <button onClick={onClick} aria-label={label} title={label} className="flex h-11 w-11 items-center justify-center rounded-full" style={{ background: bg }}>{on ? onIcon : offIcon}</button>;
 }
@@ -472,9 +480,10 @@ function ToolBtn({ on, neutral, onClick, label, onIcon, offIcon }: { on: boolean
  * call link, and can then join). Also surfaces the shareable link. Anchored dropdown; works on light
  * (lobby) or dark (in-call) backgrounds via its own surface.
  */
-function InvitePanel({ members, loading, existing, selected, onToggle, onInvite, inviting, onClose, onCopyLink, copied }: {
+function InvitePanel({ members, loading, existing, selected, onToggle, onInvite, inviting, onClose, onCopyLink, copied, isHost, onCopyGuestLink, guestCopied, guestPending }: {
   members: Member[]; loading: boolean; existing: Set<string>; selected: Set<string>;
   onToggle: (id: string) => void; onInvite: () => void; inviting: boolean; onClose: () => void; onCopyLink: () => void; copied: boolean;
+  isHost?: boolean; onCopyGuestLink?: () => void; guestCopied?: boolean; guestPending?: boolean;
 }) {
   const [q, setQ] = useState("");
   const invitable = members.filter(m => !existing.has(m.id));
@@ -486,8 +495,15 @@ function InvitePanel({ members, loading, existing, selected, onToggle, onInvite,
         <button onClick={onClose} className="btn-icon h-6 w-6"><X size={13} /></button>
       </div>
       <button onClick={onCopyLink} className="flex w-full items-center gap-2 border-b px-3 py-2.5 text-left text-[12px] transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-        {copied ? <Check size={13} className="text-[#2f9e6b]" /> : <Link2 size={13} />} {copied ? "Link copied" : "Copy invite link"}
+        {copied ? <Check size={13} className="text-[#2f9e6b]" /> : <Link2 size={13} />} {copied ? "Link copied" : "Copy member link"}
       </button>
+      {isHost && onCopyGuestLink && (
+        <button onClick={onCopyGuestLink} disabled={guestPending} className="flex w-full items-center gap-2 border-b px-3 py-2.5 text-left text-[12px] transition-colors hover:bg-[var(--surface-hover)] disabled:opacity-60" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+        {guestPending ? <Loader2 size={13} className="animate-spin" /> : guestCopied ? <Check size={13} className="text-[#2f9e6b]" /> : <UserPlus size={13} />}
+        <span className="flex-1">{guestCopied ? "Guest link copied" : "Copy guest link (external)"}</span>
+        <span className="text-[9.5px]" style={{ color: "var(--text-faint)" }}>no account · 24h</span>
+      </button>
+      )}
       <div className="p-2">
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search members…" className="key-input mb-1.5 h-8 w-full px-2.5 text-[12px]" />
         <div className="max-h-56 overflow-y-auto">
@@ -521,7 +537,7 @@ function InvitePanel({ members, loading, existing, selected, onToggle, onInvite,
 }
 
 /** One participant camera tile: live video when available, initials placeholder otherwise. */
-function ParticipantTile({ p, source, isLocal, speaking, youLabel, muted }: { p: Participant; source: TrackNS.Source; isLocal: boolean; speaking: boolean; youLabel: string; muted: boolean }) {
+export function ParticipantTile({ p, source, isLocal, speaking, youLabel, muted }: { p: Participant; source: TrackNS.Source; isLocal: boolean; speaking: boolean; youLabel: string; muted: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [hasVideo, setHasVideo] = useState(false);
   const name = p.name || p.identity || "Member";
@@ -553,7 +569,7 @@ function ParticipantTile({ p, source, isLocal, speaking, youLabel, muted }: { p:
 }
 
 /** Prominent stage for an active screen share. */
-function ScreenTile({ p, source }: { p: Participant; source: TrackNS.Source }) {
+export function ScreenTile({ p, source }: { p: Participant; source: TrackNS.Source }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
     const track = p.getTrackPublication(source)?.track;

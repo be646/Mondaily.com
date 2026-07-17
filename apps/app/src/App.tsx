@@ -12,6 +12,7 @@ import { ShadowForgotPage } from "./routes/auth/shadow-forgot";
 import { ShadowResetPage } from "./routes/auth/shadow-reset";
 import { WorkspaceSelectPage } from "./routes/auth/workspace-select";
 import { InviteAcceptPage } from "./routes/auth/invite-accept";
+import { GuestCallPage } from "./routes/guest-call";
 import { VerifyEmailPage } from "./routes/auth/verify-email";
 import { TerminalOnboardingPage } from "./routes/onboarding/terminal-console";
 import { DashboardLayout } from "./routes/dashboard/layout";
@@ -120,6 +121,8 @@ export function App() {
       <Route path="/sso-callback" element={<Navigate to="/auth/shadow-login" replace />} />
       <Route path="/workspaces" element={<WorkspaceSelectPage />} />
       <Route path="/invite/:token" element={<InviteAcceptPage />} />
+      {/* PUBLIC guest call — no account; token rides in the URL fragment. Standalone (no dashboard). */}
+      <Route path="/join/:eventId" element={<GuestCallPage />} />
       {/* Sovereign Auth — native cookie session (the sole auth runtime) */}
       <Route path="/auth" element={<Outlet />}>
         <Route path="shadow-login" element={<ShadowLoginPage />} />
