@@ -13,6 +13,8 @@ import { SegmentBuilder } from "../../../../components/records/segment-builder";
 import { apiClient, apiFetch, getAuthHeaders } from "../../../../lib/api-client";
 import { enrichCompany, enrichPerson } from "../../../../lib/ai-enrichment";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { PeriodSelector } from "../../../../components/ui/period-selector";
+import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel } from "../../../../lib/period";
 
 // ─── Toggle pill ──────────────────────────────────────────────────────────────
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -752,6 +754,18 @@ export function ObjectIndexPage() {
   });
   const isEmpty = recordsQuery.isSuccess && (recordsQuery.data?.length ?? 0) === 0;
 
+  // Period lens (FLOW): how many records of this type were CREATED within the selected window, with a
+  // period-over-period delta. Generic across every object type. Created date = node created_at
+  // (fallback data.created_at). "All" hides the flow chip (nothing to scope).
+  const [period, setPeriod] = usePeriod(`mondaily_obj_${objectType}_period`, "month");
+  const allRecords = recordsQuery.data ?? [];
+  const recCreatedAt = (r: { created_at?: string; data?: Record<string, unknown> }) => String(r.created_at ?? (r.data?.created_at as string | undefined) ?? "");
+  const pRange = periodRange(period);
+  const pPrev = previousRange(period);
+  const newThisPeriod = period === "all" ? [] : allRecords.filter((r) => inRange(recCreatedAt(r as never), pRange));
+  const newPrevCount = pPrev ? allRecords.filter((r) => inRange(recCreatedAt(r as never), pPrev)).length : 0;
+  const newDelta = pPrev ? deltaPct(newThisPeriod.length, newPrevCount) : null;
+
   const enrichedIds = Object.entries(enriching).filter(([, v]) => v.done).map(([id]) => id);
 
   const handleEnrichStart = useCallback((recordId: string, name: string) => {
@@ -802,6 +816,17 @@ export function ObjectIndexPage() {
               <Kanban size={11}/> Board
             </button>
           </div>
+          {/* Period lens — new records this window + period-over-period delta (flow). */}
+          <PeriodSelector value={period} onChange={setPeriod} />
+          {period !== "all" && allRecords.length > 0 && (
+            <span className="hidden items-center gap-1 text-[11px] sm:inline-flex" style={{ color: "var(--text-muted)" }}>
+              <span style={{ color: "var(--section-accent)" }}>{newThisPeriod.length} new</span>
+              <span style={{ color: "var(--text-faint)" }}>{periodLabel(period).toLowerCase()}</span>
+              {newDelta != null && (
+                <span style={{ color: newDelta >= 0 ? "#2f9e6b" : "#d1524a" }}>{newDelta >= 0 ? "↑" : "↓"}{Math.abs(newDelta)}%</span>
+              )}
+            </span>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5">
           <button onClick={() => setShowDeleteSheet(true)} title="Delete this sheet"
