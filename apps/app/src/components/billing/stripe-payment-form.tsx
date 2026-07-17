@@ -59,39 +59,29 @@ function resolveVar(host: HTMLElement, name: string, prop: "color" | "background
 }
 
 function buildStripeAppearance(host: HTMLElement) {
-  const text = resolveVar(host, "--text-primary", "color", "#e7e7ea");
-  const muted = resolveVar(host, "--text-faint", "color", "#8b8b93");
-  const inputBg = resolveVar(host, "--surface-hover", "backgroundColor", "#1b1b20");
-  const border = resolveVar(host, "--border-soft", "color", "#33333a");
-  const accent = resolveVar(host, "--section-accent", "color", "#6f8a6a");
+  // Judge dark vs light from a SOLID surface (--surface-card is the modal's real bg). Using a
+  // translucent token like --surface-hover mis-read as near-white, which left Stripe on its light
+  // default. With the right base theme ("night"/"stripe") the fields match without hand-picking.
+  const surface = resolveVar(host, "--surface-card", "backgroundColor", "#111114");
+  const rgb = (surface.match(/\d+(\.\d+)?/g) ?? ["17", "17", "20"]).map(Number);
+  const lum = (0.299 * (rgb[0] ?? 17) + 0.587 * (rgb[1] ?? 17) + 0.114 * (rgb[2] ?? 20)) / 255;
+  const dark = lum < 0.5;
+  const accent = resolveVar(host, "--section-accent", "color", dark ? "#7d9b83" : "#2f6f4f");
   const font = getComputedStyle(host).fontFamily || "system-ui, -apple-system, sans-serif";
   return {
-    theme: "flat" as const,
+    theme: (dark ? "night" : "stripe") as "night" | "stripe",
     variables: {
       colorPrimary: accent,
-      colorBackground: inputBg,
-      colorText: text,
-      colorTextSecondary: muted,
-      colorTextPlaceholder: muted,
-      colorIcon: muted,
       fontFamily: font,
       borderRadius: "8px",
       spacingUnit: "4px",
       fontSizeBase: "14px",
+      ...(dark ? { colorBackground: surface } : {}),
     },
     rules: {
-      ".Input": { backgroundColor: inputBg, border: `1px solid ${border}`, color: text, boxShadow: "none" },
-      ".Input::placeholder": { color: muted },
       ".Input:focus": { border: `1px solid ${accent}`, boxShadow: `0 0 0 1px ${accent}` },
-      ".Label": { color: muted, fontWeight: "500", fontSize: "12px" },
-      ".Tab": { backgroundColor: inputBg, border: `1px solid ${border}`, color: text },
-      ".Tab:hover": { color: text, backgroundColor: inputBg },
-      ".Tab--selected": { border: `1px solid ${accent}`, backgroundColor: inputBg, color: text },
+      ".Tab--selected": { borderColor: accent },
       ".Tab--selected:focus": { boxShadow: `0 0 0 1px ${accent}` },
-      ".TabLabel": { color: text },
-      ".TabIcon": { color: muted },
-      ".Block": { backgroundColor: inputBg, border: `1px solid ${border}` },
-      ".AccordionItem": { backgroundColor: inputBg, border: `1px solid ${border}`, color: text },
     },
   };
 }
