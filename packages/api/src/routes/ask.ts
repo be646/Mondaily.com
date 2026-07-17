@@ -258,6 +258,18 @@ const TOOLS = [
     }
   },
   {
+    name: "brief_entity",
+    description: "Assemble a COMPLETE 360° briefing on a single record (a person, company, deal, or any object) in ONE call — its own fields, every related object in the graph grouped by type, recent activity, and any open tasks linked to it. Use whenever the user asks to 'brief me on X', 'tell me everything about X', 'summarize X', 'what's the status of X', 'catch me up on the Acme deal', or 'give me the full picture on this record'. Prefer this over chaining search_records + find_related_objects when the user wants a rounded summary of one entity. Returns a structured digest you then synthesize into a cited briefing.",
+    input_schema: {
+      type: "object",
+      properties: {
+        node_id: { type: "string", description: "The record's node_id if already known from this conversation or the open record context" },
+        name: { type: "string", description: "The record's name to resolve to a node first, if node_id is not known" }
+      },
+      required: []
+    }
+  },
+  {
     name: "list_invoices",
     description: "List real invoices in the workspace, optionally filtered by status. Use for 'what invoices are overdue', 'show unpaid invoices', 'what needs attention' on a finance/invoices page, or any question about invoice status across the workspace.",
     input_schema: {
@@ -458,6 +470,7 @@ const CORE_TOOLS = new Set([
   "search_records", "list_records", "list_tasks", "find_related_objects", "create_note", "list_notifications",
 ]);
 const TOOL_GROUPS: { tools: string[]; keywords: RegExp }[] = [
+  { tools: ["brief_entity"], keywords: /\b(brief|briefing|tell me (everything|all) about|summari[sz]e|catch me up|full picture|status (of|on)|everything about|overview of|the .* (deal|account|company|contact))\b/i },
   { tools: ["create_task", "update_task"], keywords: /\b(task|to-?do|follow.?up|assign|complete|mark|done|priority|due|review|remind)\b/i },
   { tools: ["create_record", "create_object_type"], keywords: /\b(contact|compan|deal|record|person|people|lead|client|account|create|add|new|object type|field|custom)\b/i },
   { tools: ["create_list", "list_lists", "add_to_list"], keywords: /\b(list|group|segment|bucket|add to|enterprise accounts|hot leads)\b/i },
@@ -959,6 +972,70 @@ async function executeTool(
           `${type} (${nodes.length}): ${nodes.map(n => `[${n.id}] ${(n.data as any)?.name || (n.data as any)?.title || "Untitled"}`).join(", ")}`
         ).join("\n");
         return `Found ${related.length} related object(s) in the workspace graph${sourceLabel ? ` for ${sourceLabel}` : ""}, grouped by type:\n${summary}`;
+      }
+
+      case "brief_entity": {
+        // One-call entity-360: the record's own fields + graph neighbours + recent
+        // activity + open linked tasks. Everything is real workspace data; the model
+        // synthesizes the cited briefing from this digest.
+        let nodeId = input.node_id as string | undefined;
+        let entity: { id: string; object_type: string; data: Record<string, unknown>; updated_at?: string } | undefined;
+        if (!nodeId && input.name) {
+          const { data: matches } = await supabase
+            .from("nodes").select("id, object_type, data, updated_at")
+            .eq("workspace_id", workspaceId).ilike("data->>name", `%${input.name}%`).limit(1);
+          if (!matches?.length) return `No record found matching "${input.name}" — cannot build a briefing.`;
+          entity = matches[0] as typeof entity;
+          nodeId = entity!.id;
+        } else if (nodeId) {
+          const { data: one } = await supabase
+            .from("nodes").select("id, object_type, data, updated_at")
+            .eq("workspace_id", workspaceId).eq("id", nodeId).maybeSingle();
+          if (!one) return "That record could not be found in this workspace.";
+          entity = one as typeof entity;
+        }
+        if (!entity || !nodeId) return "No node_id or name provided — cannot build a briefing.";
+
+        const eName = String((entity.data as any)?.name ?? (entity.data as any)?.title ?? "Untitled");
+        sources.push({ type: "record", title: eName, node_id: entity.id, object_type: entity.object_type });
+
+        // Own fields (skip empties + long blobs, cap count).
+        const fieldLines = Object.entries(entity.data ?? {})
+          .filter(([, v]) => v != null && v !== "" && (typeof v !== "object"))
+          .slice(0, 30)
+          .map(([k, v]) => `  - ${k}: ${String(v).slice(0, 160)}`).join("\n");
+
+        // Graph neighbours grouped by type.
+        const related = await ubc.getRelated(nodeId, workspaceId).catch(() => []);
+        for (const node of related.slice(0, 8)) {
+          sources.push({ type: "related_object", title: (node.data as any)?.name || (node.data as any)?.title || "Untitled", node_id: node.id, object_type: node.object_type, relationship: "related" });
+        }
+        const relGrouped: Record<string, string[]> = {};
+        for (const n of related) (relGrouped[n.object_type] ??= []).push(String((n.data as any)?.name || (n.data as any)?.title || "Untitled"));
+        const relText = Object.entries(relGrouped).map(([t, ns]) => `  - ${t} (${ns.length}): ${ns.slice(0, 12).join(", ")}`).join("\n");
+
+        // Recent activity on this record.
+        const { data: acts } = await supabase
+          .from("activities").select("action, actor_type, created_at, diff")
+          .eq("workspace_id", workspaceId).eq("node_id", nodeId)
+          .order("created_at", { ascending: false }).limit(8);
+        const actText = (acts ?? []).map((a) => `  - ${new Date(a.created_at as string).toISOString().slice(0, 10)}: ${a.action}${a.actor_type ? ` (${a.actor_type})` : ""}`).join("\n");
+
+        // Open tasks linked to this record (tasks reference it via data.record_id).
+        const { data: taskNodes } = await supabase
+          .from("nodes").select("id, data").eq("workspace_id", workspaceId)
+          .ilike("object_type", "%task%").eq("data->>record_id", nodeId).limit(20);
+        const openTasks = (taskNodes ?? []).filter((t) => String((t.data as any)?.status ?? "") !== "done");
+        const taskText = openTasks.slice(0, 10).map((t) => `  - ${String((t.data as any)?.title ?? "Untitled task")}${(t.data as any)?.due_date ? ` (due ${(t.data as any).due_date})` : ""}`).join("\n");
+
+        return [
+          `BRIEFING DIGEST for "${eName}" (${entity.object_type})${entity.updated_at ? ` — last updated ${new Date(entity.updated_at).toISOString().slice(0, 10)}` : ""}:`,
+          fieldLines ? `\nFields:\n${fieldLines}` : "\nFields: (none recorded)",
+          related.length ? `\nRelated objects in the graph:\n${relText}` : "\nRelated objects: none linked in the graph yet.",
+          acts?.length ? `\nRecent activity:\n${actText}` : "\nRecent activity: none logged.",
+          openTasks.length ? `\nOpen tasks (${openTasks.length}):\n${taskText}` : "\nOpen tasks: none.",
+          `\nSynthesize this into a concise, well-organized briefing. Cite by record name only, never raw IDs.`,
+        ].join("\n");
       }
 
       case "list_invoices": {

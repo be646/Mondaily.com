@@ -355,6 +355,16 @@ export function HomePage() {
   // Real pending-decision count for the command room's telemetry strip —
   // same query/endpoint the Decision Queue panel itself uses below.
   const decisionsQuery = useDecisionQueue();
+  // AI Chief-of-Staff: reasons over ALL pending decisions and returns the top-3
+  // that most need the operator right now (impact+urgency, not just risk label).
+  // Only fetched when there's actually a pending queue, and fail-soft (retry:false).
+  const chiefQuery = useQuery<{ priorities: { title: string; why: string; action: string; decision_id: string | null; agent_name: string | null }[]; count: number }>({
+    queryKey: ["chief-of-staff", "home"],
+    queryFn: () => apiClient.get("/decisions/chief-of-staff"),
+    enabled: (decisionsQuery.data?.length ?? 0) > 0,
+    staleTime: 180_000,
+    retry: false,
+  });
   const workspacesQuery = useQuery({
     queryKey: ["workspaces", "mine", "home"],
     queryFn: () => apiClient.get<{ workspaces: WorkspaceSummary[] }>("/workspaces/mine"),
@@ -681,6 +691,42 @@ export function HomePage() {
             </div>
           );
         })()}
+
+        {/* AI Chief-of-Staff rail: the single "what needs you most" reasoned readout.
+            Reasons over the whole pending queue and surfaces the top-3 with a one-line
+            why + concrete action, each jumping to that decision. Only shows when the
+            model returned priorities (fail-soft: no queue / model down → nothing). */}
+        {!isChatting && (chiefQuery.data?.priorities?.length ?? 0) > 0 && (
+          <div className="mx-auto mb-6 w-full max-w-2xl">
+            <div className="mb-2 flex items-center gap-2">
+              <Brain size={13} style={{ color: "var(--section-accent)" }} />
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>What needs you most</span>
+              {chiefQuery.data && chiefQuery.data.count > chiefQuery.data.priorities.length && (
+                <Link to="/decisions" className="text-[10px] font-medium hover:underline" style={{ color: "var(--text-faint)" }}>+{chiefQuery.data.count - chiefQuery.data.priorities.length} more</Link>
+              )}
+            </div>
+            <div className="grid gap-1.5">
+              {chiefQuery.data!.priorities.map((p, i) => (
+                <Link
+                  key={i}
+                  to={p.decision_id ? `/decisions?id=${p.decision_id}` : "/decisions"}
+                  className="group flex items-start gap-3 rounded-md border px-3 py-2.5 transition-colors hover:border-[color:var(--section-accent)]"
+                  style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
+                >
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold" style={{ background: "var(--section-accent-soft, var(--surface-hover))", color: "var(--section-accent)" }}>{i + 1}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{p.title}</span>
+                      <ArrowUpRight size={13} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-60" style={{ color: "var(--section-accent)" }} />
+                    </span>
+                    <span className="mt-0.5 block text-[11.5px] leading-snug" style={{ color: "var(--text-secondary)" }}>{p.why}</span>
+                    <span className="mt-1 flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}><Zap size={10} />{p.action}</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {isChatting && (
           <div ref={messagesRef} onScroll={onMessagesScroll} className="relative w-full min-w-0 min-h-0 flex-1 space-y-6 overflow-y-auto overflow-x-hidden overscroll-contain pb-10 pt-2 pr-1" style={{ scrollbarWidth: "none", overflowAnchor: "none", scrollBehavior: "auto" }}>

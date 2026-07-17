@@ -501,8 +501,8 @@ router.post("/workflow", requireAuth, zValidator("json", z.object({
 })), async (c) => {
   const { prompt } = c.req.valid("json");
   const TRIGGER_TYPES = ["record_created","record_updated","deal_stage_change","email_received","form_submitted"];
-  const CONDITION_TYPES = ["field_equals","field_contains","field_changed","time_elapsed"];
-  const ACTION_TYPES = ["send_email","create_task","assign_owner","add_to_sequence","send_notification","update_field"];
+  const CONDITION_TYPES = ["field_equals","field_contains","field_gt","field_lt","field_changed","time_elapsed"];
+  const ACTION_TYPES = ["send_email","create_task","assign_owner","add_to_sequence","send_notification","update_field","draft_quote","create_record"];
 
   const TRIGGER_LABELS: Record<string,string> = {
     record_created: "Record created", record_updated: "Record updated",
@@ -510,11 +510,13 @@ router.post("/workflow", requireAuth, zValidator("json", z.object({
   };
   const CONDITION_LABELS: Record<string,string> = {
     field_equals: "Field equals", field_contains: "Field contains",
+    field_gt: "Number greater than", field_lt: "Number less than",
     field_changed: "Field changed", time_elapsed: "Time elapsed"
   };
   const ACTION_LABELS: Record<string,string> = {
     send_email: "Send email", create_task: "Create task", assign_owner: "Assign owner",
-    add_to_sequence: "Add to sequence", send_notification: "Send notification", update_field: "Update field"
+    add_to_sequence: "Add to sequence", send_notification: "Send notification", update_field: "Update field",
+    draft_quote: "Draft quote", create_record: "Create record"
   };
 
   try {
@@ -538,7 +540,20 @@ router.post("/workflow", requireAuth, zValidator("json", z.object({
                     type: "string",
                     description: `Trigger types: ${TRIGGER_TYPES.join(", ")}. Condition types: ${CONDITION_TYPES.join(", ")}. Action types: ${ACTION_TYPES.join(", ")}`
                   },
-                  label: { type: "string", description: "Human-readable label for this node" }
+                  label: { type: "string", description: "Human-readable label for this node" },
+                  config: {
+                    type: "object",
+                    description: "Fill in the concrete parameters so this node runs WITHOUT further editing. Only set the keys relevant to this node's type.",
+                    properties: {
+                      object_type: { type: "string", description: "For triggers: the record type to watch (e.g. deal, contact, invoice). Lowercase singular." },
+                      field: { type: "string", description: "For field_* conditions and update_field: the record field name (e.g. stage, status, lead_score, amount)." },
+                      value: { type: "string", description: "For conditions: the value to compare against (e.g. Won, 50000). For update_field: the new value." },
+                      operator: { type: "string", enum: ["equals","contains","gt","lt"], description: "Comparison operator for field conditions." },
+                      amount: { type: "string", description: "For time_elapsed: the numeric amount." },
+                      unit: { type: "string", enum: ["hours","days","weeks"], description: "For time_elapsed: the unit." },
+                      message: { type: "string", description: "For send_notification/send_email: the message or subject line to draft." }
+                    }
+                  }
                 },
                 required: ["kind","type","label"]
               },
@@ -552,16 +567,25 @@ router.post("/workflow", requireAuth, zValidator("json", z.object({
       tool_choice: { type: "tool", name: "create_workflow" },
       messages: [{
         role: "user",
-        content: `Design a workflow automation for: "${prompt}"\n\nRules:\n- First node must be a trigger (kind=trigger)\n- Then optional conditions (kind=condition)\n- Then actions (kind=action) — at least one action\n- Pick the most appropriate types from the available options\n- Use clear, descriptive labels\n\nExample: Deal stage changed → Field equals "Won" → Send email, Create task`
+        content: `Design a workflow automation for: "${prompt}"\n\nRules:\n- First node must be a trigger (kind=trigger)\n- Then optional conditions (kind=condition)\n- Then actions (kind=action) — at least one action\n- Pick the most appropriate types from the available options\n- Use clear, descriptive labels\n- CRITICAL: fill each node's "config" with the concrete parameters implied by the request so the workflow runs without manual editing. E.g. "when a deal is Won" → trigger record_updated {object_type:"deal"} + condition field_equals {field:"stage", value:"Won", operator:"equals"}; "notify the team" → send_notification {message:"..."}; "deals over $50k" → field_gt {field:"amount", value:"50000", operator:"gt"}.\n- Ground every value in the user's request; never invent field values that weren't asked for.\n\nExample: Deal stage changed → Field equals "Won" → Send email, Create task`
       }]
     });
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
     if (!toolUse?.input) return c.json({ error: "No workflow generated" }, 500);
 
-    // Normalize labels using our label maps
+    // Normalize labels + carry the concrete config through so the generated
+    // workflow is runnable on apply (the builder previously discarded config,
+    // leaving an empty skeleton the user had to re-fill by hand).
+    const ALLOWED_CONFIG = new Set(["object_type","field","value","operator","amount","unit","message"]);
     const nodes = (toolUse.input.nodes as any[]).map((n: any) => {
       const labelMap = n.kind === "trigger" ? TRIGGER_LABELS : n.kind === "condition" ? CONDITION_LABELS : ACTION_LABELS;
-      return { kind: n.kind, type: n.type, label: n.label || labelMap[n.type] || n.type };
+      const config: Record<string, string> = {};
+      if (n.config && typeof n.config === "object") {
+        for (const [k, v] of Object.entries(n.config)) {
+          if (ALLOWED_CONFIG.has(k) && v != null && v !== "") config[k] = String(v).slice(0, 200);
+        }
+      }
+      return { kind: n.kind, type: n.type, label: n.label || labelMap[n.type] || n.type, config };
     });
     return c.json({ name: toolUse.input.name, nodes });
   } catch (e: any) {

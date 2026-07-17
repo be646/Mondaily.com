@@ -94,6 +94,7 @@ router.post("/replay", async (c) => {
 const DECISION_AGENT_TO_ID: Record<string, string> = {
   discovery: "prospecting", prospecting: "prospecting",
   operations: "operations", relationship: "relationship", finance: "finance", signal: "signal",
+  forecast: "signal",
   workflow: "workflow", opportunity: "opportunity", people: "people", portfolio: "portfolio",
   asset: "asset", insights: "insights", planner: "planner", "graph-enrichment": "graph-enrichment",
 };

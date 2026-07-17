@@ -858,6 +858,114 @@ export async function runLeadScoring(workspaceId?: string): Promise<{ total_scor
   return { total_scored: totalScored };
 }
 
+// ── Forecast Agent: live pipeline-health synthesis ──────────────────────────────
+// Runs AFTER lead scoring (momentum) and stage-dwell (stall). It doesn't re-score —
+// it SYNTHESIZES the two into a per-deal forecast-risk band written onto the deal
+// (data.pipeline_health) and a risk-adjusted (weighted) pipeline value, then surfaces
+// the highest-value deals that are slipping — high value but low momentum — to the
+// Decision Queue with a concrete save play. Everything is grounded in real signals
+// (lead_score, deal value, stage-median dwell); no dates are invented.
+export async function runPipelineHealth(workspaceId?: string): Promise<{ scored: number; at_risk: number }> {
+  const wsIds = await listWorkspaceIds(workspaceId);
+  let totalScored = 0, totalAtRisk = 0;
+
+  for (const wsId of wsIds) {
+    const jobId = await startJob({ workspace_id: wsId, agent_name: "forecast", trigger_type: workspaceId ? "manual" : "scheduled", input: { workspace_id: wsId } });
+    try {
+      const { data: allDeals } = await supabase.from("nodes")
+        .select("id, data, object_type, created_at, updated_at, lead_score, lead_score_signals")
+        .eq("workspace_id", wsId).limit(5000);
+      const open = (allDeals ?? []).filter((n) => {
+        if (!isDealType(String(n.object_type))) return false;
+        const d = (n.data ?? {}) as Record<string, unknown>;
+        const stage = String(d.stage ?? d.deal_stage ?? d.status ?? "").toLowerCase();
+        return !["won", "lost", "closed"].some((s) => stage.includes(s));
+      });
+      if (!open.length) { await completeJob(jobId, { scored: 0, at_risk: 0, summary: "No open deals" }, [step("Scanned 0 open deal(s)"), step("Nothing to synthesize", { status: "info" })]); continue; }
+
+      const nowIso = new Date().toISOString();
+      // Momentum = the Lead Agent's already-computed score (0-100); fall back to a
+      // neutral 50 (flagged) when a deal hasn't been scored yet.
+      const rows = open.map((deal) => {
+        const d = (deal.data ?? {}) as Record<string, unknown>;
+        const name = String(d.name ?? d.title ?? "Untitled deal");
+        const value = numericValue(d.deal_value ?? d.value ?? d.amount ?? d.arr);
+        const scored = typeof deal.lead_score === "number";
+        const momentum = scored ? clampScore(deal.lead_score as number) : 50;
+        const stage = String(d.stage ?? d.deal_stage ?? d.status ?? "");
+        const daysIdle = Math.floor((Date.now() - new Date(deal.updated_at).getTime()) / 86400000);
+        // Risk-adjusted (weighted) contribution to the forecast.
+        const weighted = value != null ? Math.round(value * (momentum / 100)) : null;
+        // Band: forecast risk = the intersection of value at stake and momentum.
+        let band: "healthy" | "watch" | "at_risk";
+        if (momentum >= 60) band = "healthy";
+        else if (momentum >= 40) band = "watch";
+        else band = "at_risk";
+        // A high-value deal drifting (idle) with weak momentum is a save candidate.
+        const highValue = value != null && value >= 25000;
+        const saveCandidate = band === "at_risk" && highValue;
+        return { deal, d, name, value, momentum, momentumSource: scored ? "lead_score" as const : "default" as const, stage, daysIdle, weighted, band, saveCandidate };
+      });
+
+      // ── Write per-deal pipeline_health onto the node (merged into data jsonb). ──
+      const CHUNK = 25;
+      let written = 0, firstErr = "";
+      for (let i = 0; i < rows.length; i += CHUNK) {
+        const results = await Promise.all(rows.slice(i, i + CHUNK).map((r) => {
+          const health = { band: r.band, momentum: r.momentum, momentum_source: r.momentumSource, value: r.value, weighted_value: r.weighted, days_idle: r.daysIdle, updated_at: nowIso };
+          return supabase.from("nodes").update({ data: { ...(r.deal.data as Record<string, unknown>), pipeline_health: health } }).eq("id", r.deal.id);
+        }));
+        for (const res of results) { if (res.error) { if (!firstErr) firstErr = res.error.message; } else written++; }
+      }
+      if (written === 0 && rows.length > 0) throw new Error(`pipeline_health wrote 0/${rows.length} rows — ${firstErr || "unknown write error"}`);
+      totalScored += written;
+
+      // ── Surface the top save candidates to the Decision Queue (highest value first,
+      // capped, deduped against an existing pending forecast decision for that deal). ──
+      const candidates = rows.filter((r) => r.saveCandidate).sort((a, b) => (b.value ?? 0) - (a.value ?? 0)).slice(0, 5);
+      let flagged = 0;
+      for (const r of candidates) {
+        const { data: pendingDec } = await supabase.from("decision_queue").select("id")
+          .eq("workspace_id", wsId).eq("source_id", r.deal.id).eq("agent_name", "forecast").eq("status", "pending").limit(1).maybeSingle();
+        if (pendingDec) continue;
+
+        const rec = await reasonAboutFinding(wsId, {
+          agentName: "forecast", recordName: r.name,
+          facts: `The deal "${r.name}" carries a value of ${r.value} but its momentum (lead) score is only ${r.momentum}/100${r.momentumSource === "default" ? " (not yet scored — treated as neutral)" : ""}, and it's been ${r.daysIdle} days since the last update${r.stage ? ` (stage: ${r.stage})` : ""}. It's one of the highest-value deals at risk of slipping out of the forecast.`,
+          defaultTitle: `${r.name} is a high-value deal at risk`,
+          defaultAction: "Re-engage the buyer, confirm the timeline, or re-forecast the deal", defaultRisk: "high", sourceId: r.deal.id,
+        });
+        const evidence: Record<string, unknown>[] = [{ type: "record", title: r.name, node_id: r.deal.id, match_reason: `value ${r.value} · momentum ${r.momentum}/100 · ${r.daysIdle}d idle` }];
+        if (rec.rationale) evidence.push({ type: "rationale", title: "Agent reasoning", match_reason: rec.rationale, confidence: rec.confidence });
+        const { data: dq } = await supabase.from("decision_queue").insert({
+          workspace_id: wsId, source_type: "node", source_id: r.deal.id, agent_name: "forecast",
+          title: rec.title, summary: rec.summary, recommended_action: rec.recommended_action, risk_level: rec.risk_level, evidence,
+        }).select("*").single().then((res) => res, () => ({ data: null }));
+        if (dq) await maybeAutoApprove(wsId, dq);
+        await createNotification({
+          workspace_id: wsId, type: "alert", title: "📉 High-value deal at risk",
+          body: `"${r.name}" (${r.value}) has weak momentum (${r.momentum}/100) and ${r.daysIdle}d idle — at risk of slipping.`,
+          metadata: { value: r.value, momentum: r.momentum, days_idle: r.daysIdle },
+          source: { source_agent: "forecast", agent_job_id: jobId, decision_id: (dq as { id?: string } | null)?.id ?? null, node_id: r.deal.id, object_type: "deal" },
+        });
+        flagged++;
+      }
+      totalAtRisk += flagged;
+
+      const atRiskCount = rows.filter((r) => r.band === "at_risk").length;
+      const weightedTotal = rows.reduce((sum, r) => sum + (r.weighted ?? 0), 0);
+      await completeJob(jobId, { scored: written, at_risk: atRiskCount, flagged, weighted_pipeline: weightedTotal, summary: `Synthesized ${written} deal(s); flagged ${flagged} at-risk` }, [
+        step(`Loaded ${open.length} open deal(s) with momentum (lead) scores`),
+        step(`Wrote pipeline health to ${written}/${rows.length} deal(s); risk-adjusted pipeline ≈ ${weightedTotal}`),
+        step(`Flagged ${flagged} high-value deal(s) at risk of slipping`, { status: flagged ? "warn" : "ok" }),
+      ]);
+    } catch (err: unknown) {
+      await failJob(jobId, err instanceof Error ? err.message : String(err));
+    }
+  }
+  return { scored: totalScored, at_risk: totalAtRisk };
+}
+
 /** Every daily runner, in execution order. Used by the Vercel Cron endpoint. */
 export async function runAllDaily(): Promise<Record<string, unknown>> {
   const results: Record<string, unknown> = {};
@@ -868,6 +976,10 @@ export async function runAllDaily(): Promise<Record<string, unknown>> {
   results.overdue_task_decisions = await runOverdueTaskDecisions().catch((e) => ({ error: String(e) }));
   results.deal_alerts = await runDealAlerts().catch((e) => ({ error: String(e) }));
   results.stage_dwell_alerts = await runStageDwellAlerts().catch((e) => ({ error: String(e) }));
+  // Forecast Agent — synthesizes lead momentum + stage dwell into per-deal pipeline
+  // health and flags high-value deals at risk of slipping. Runs AFTER lead_scoring so
+  // momentum is fresh.
+  results.pipeline_health = await runPipelineHealth().catch((e) => ({ error: String(e) }));
   results.invoice_chaser = await runInvoiceChaser().catch((e) => ({ error: String(e) }));
   // Saved Discovery searches ("watch this search") — re-run each monitor; the fingerprint-keyed
   // upsert means only genuinely NEW results are added, and the owner is notified about the delta.

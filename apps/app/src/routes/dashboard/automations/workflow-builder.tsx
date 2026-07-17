@@ -268,13 +268,13 @@ function AIWorkflowModal({ onClose, onApply }: {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [preview, setPreview] = useState<{ name: string; nodes: Array<{ kind: NodeKind; type: string; label: string }> } | null>(null);
+  const [preview, setPreview] = useState<{ name: string; nodes: Array<{ kind: NodeKind; type: string; label: string; config?: Record<string, string> }> } | null>(null);
 
   const generate = async () => {
     if (!prompt.trim()) return;
     setLoading(true); setError(""); setPreview(null);
     try {
-      const res = await apiClient.post<{ name: string; nodes: Array<{ kind: NodeKind; type: string; label: string }> }>("/generate/workflow", { prompt });
+      const res = await apiClient.post<{ name: string; nodes: Array<{ kind: NodeKind; type: string; label: string; config?: Record<string, string> }> }>("/generate/workflow", { prompt });
       setPreview(res);
     } catch (e: any) { setError(e.message || "Failed to generate"); }
     finally { setLoading(false); }
@@ -287,7 +287,7 @@ function AIWorkflowModal({ onClose, onApply }: {
       kind: n.kind,
       type: n.type,
       label: n.label,
-      config: {},
+      config: n.config ?? {},
       children: [],
     }));
     // Ensure first node is a trigger; if not, prepend default
@@ -333,6 +333,13 @@ function AIWorkflowModal({ onClose, onApply }: {
                   <div key={i} className={`flex items-center gap-3 rounded-lg border ${s.border} ${s.bg} px-3 py-2`}>
                     <span className={`text-[9px] font-bold uppercase tracking-widest w-16 shrink-0 ${s.text}`}>{n.kind}</span>
                     <span className="text-xs text-[var(--text-faint)]">{n.label}</span>
+                    {n.config && Object.keys(n.config).length > 0 && (
+                      <span className="ml-auto flex flex-wrap justify-end gap-1">
+                        {Object.entries(n.config).map(([k, v]) => (
+                          <span key={k} className="rounded border border-[var(--border-soft)] px-1.5 py-0.5 text-[9px] text-[var(--text-muted)]">{k}: {v}</span>
+                        ))}
+                      </span>
+                    )}
                   </div>
                 );
               })}

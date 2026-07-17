@@ -77,6 +77,7 @@ const RAW_TO_ID: Record<string, string> = {
   credit_note_dispute_handler: "finance",
   relationship_health: "relationship",
   deal_alerts: "signal",
+  forecast: "signal",
   lead_scoring: "operations",
   operations: "operations",
   overdue_task_decisions: "operations",
