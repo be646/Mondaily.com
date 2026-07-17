@@ -20,6 +20,7 @@ import { TagPicker, TagBadges } from "./tag-picker";
 import { StagePill, DEFAULT_STAGE_OPTIONS, DEFAULT_STATUS_OPTIONS } from "./record-table";
 import { ActivityTimeline } from "./activity-timeline";
 import { LeadScoreBadge } from "./lead-score-badge";
+import { PipelineHealthBadge, type PipelineHealth } from "./pipeline-health-badge";
 import { useAskContextStore } from "../../lib/ask-context-store";
 import { AIAgentOwnerChip, AIInsightBadge, AIHealthScore, AISignalList } from "../ai/ai-intelligence";
 import { AIInspector } from "../ai/ai-inspector";
@@ -1895,6 +1896,10 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
             {(record as unknown as Record<string,unknown>).lead_score != null && (
               <LeadScoreBadge score={(record as unknown as Record<string,unknown>).lead_score as number} size="md" signals={(record as unknown as Record<string,unknown>).lead_score_signals as Record<string, unknown> | null}/>
             )}
+
+            {/* Forecast health — written onto data.pipeline_health by the Forecast agent. Renders
+                only once the agent has run for this deal. */}
+            <PipelineHealthBadge health={(record.data as Record<string, unknown> | undefined)?.pipeline_health as PipelineHealth | undefined}/>
 
             {/* AI Intelligence layer — real fields written by relationship-health.ts
                 and the enrichment job, with honest empty states when they
