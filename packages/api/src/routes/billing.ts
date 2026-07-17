@@ -258,6 +258,12 @@ router.post("/subscribe", async (c) => {
     if (pi?.status && pi.status !== "processing" && pi.client_secret) {
       return c.json({ requires_action: true, client_secret: pi.client_secret, subscription_id: sub.id });
     }
+    // The PI needs authentication/a payment method but Stripe gave us no client_secret to complete it
+    // here — DON'T report a false "pending" (an `incomplete` sub that needs 3DS never self-confirms and
+    // Stripe voids it in ~23h). Surface an explicit, actionable error so the user can retry.
+    if (pi?.status && ["requires_action", "requires_confirmation", "requires_payment_method"].includes(pi.status)) {
+      return c.json({ error: "This card needs additional authentication we couldn't complete here. Please try again or use a different card." }, 402);
+    }
     // Async/pending settlement (e.g. ACH, SEPA debit) — the money has NOT arrived yet and can still
     // fail days later. Do NOT grant the tier optimistically; return a pending state. The subscription
     // moves to `active` and `invoice.payment_succeeded` fires once it clears — both webhook paths then

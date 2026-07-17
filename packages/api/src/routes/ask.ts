@@ -1021,12 +1021,23 @@ async function executeTool(
           .order("created_at", { ascending: false }).limit(8);
         const actText = (acts ?? []).map((a) => `  - ${new Date(a.created_at as string).toISOString().slice(0, 10)}: ${a.action}${a.actor_type ? ` (${a.actor_type})` : ""}`).join("\n");
 
-        // Open tasks linked to this record (tasks reference it via data.record_id).
-        const { data: taskNodes } = await supabase
-          .from("nodes").select("id, data").eq("workspace_id", workspaceId)
-          .ilike("object_type", "%task%").eq("data->>record_id", nodeId).limit(20);
-        const openTasks = (taskNodes ?? []).filter((t) => String((t.data as any)?.status ?? "") !== "done");
-        const taskText = openTasks.slice(0, 10).map((t) => `  - ${String((t.data as any)?.title ?? "Untitled task")}${(t.data as any)?.due_date ? ` (due ${(t.data as any).due_date})` : ""}`).join("\n");
+        // Open follow-up tasks linked to this record. Record-linked tasks live primarily in the
+        // dedicated `tasks` table (record_id column — how meeting/call/decision follow-ups are
+        // created); some legacy tasks are nodes carrying data.record_id. Query BOTH so the briefing
+        // never misses real open items.
+        const [taskTableRes, taskNodeRes] = await Promise.all([
+          supabase.from("tasks").select("title, due_date, completed, status").eq("workspace_id", workspaceId).eq("record_id", nodeId).limit(25),
+          supabase.from("nodes").select("data").eq("workspace_id", workspaceId).ilike("object_type", "%task%").eq("data->>record_id", nodeId).limit(25),
+        ]);
+        const openTasks: { title: string; due: string | null }[] = [
+          ...((taskTableRes.data ?? []) as { title?: string; due_date?: string | null; completed?: boolean; status?: string }[])
+            .filter((t) => !t.completed && String(t.status ?? "") !== "done")
+            .map((t) => ({ title: String(t.title ?? "Untitled task"), due: t.due_date ?? null })),
+          ...((taskNodeRes.data ?? []) as { data?: Record<string, unknown> }[])
+            .filter((t) => String((t.data as any)?.status ?? "") !== "done" && !(t.data as any)?.completed)
+            .map((t) => ({ title: String((t.data as any)?.title ?? "Untitled task"), due: ((t.data as any)?.due_date as string | null) ?? null })),
+        ];
+        const taskText = openTasks.slice(0, 12).map((t) => `  - ${t.title}${t.due ? ` (due ${t.due})` : ""}`).join("\n");
 
         return [
           `BRIEFING DIGEST for "${eName}" (${entity.object_type})${entity.updated_at ? ` — last updated ${new Date(entity.updated_at).toISOString().slice(0, 10)}` : ""}:`,

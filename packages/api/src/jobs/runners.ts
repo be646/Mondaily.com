@@ -214,11 +214,24 @@ export async function runStageDwellAlerts(workspaceId?: string): Promise<{ alert
         }
       }
 
-      // Completed transits: for each consecutive pair of changes on a deal, the earlier stage was
-      // dwelled from entry until the next change (a real, finished stage duration). This is the
-      // exit-based cycle-time distribution — no survivorship bias.
+      // COLLAPSE consecutive same-stage events. A record PATCH diff often echoes the current
+      // stage/status even when it didn't change (a re-save, a bulk edit, a diff that includes
+      // unchanged fields), so raw activity order can list the same stage twice in a row. Left
+      // uncollapsed, one real 30-day dwell interrupted by an incidental edit at day 10 would be
+      // mis-counted as two transits (10d + 20d) — deflating the median (false-positive alerts) — and
+      // the current-stage entry would reset to that late echo (false-negative: a genuinely stalled
+      // deal that was recently touched never gets flagged). Keeping only the FIRST event of each
+      // contiguous run gives true stage entries and true completed-transit durations.
+      const collapsedByDeal = new Map<string, { stage: string; at: number }[]>();
+      for (const [id, changes] of changesByDeal) {
+        collapsedByDeal.set(id, changes.filter((c, i) => i === 0 || c.stage !== changes[i - 1]!.stage));
+      }
+
+      // Completed transits: for each consecutive pair of (collapsed) changes, the earlier stage was
+      // dwelled from entry until the next change — a real, finished stage duration. Exit-based
+      // cycle-time distribution, no survivorship bias.
       const transitSamples = new Map<string, number[]>();
-      for (const [, changes] of changesByDeal) {
+      for (const [, changes] of collapsedByDeal) {
         for (let i = 0; i < changes.length - 1; i++) {
           const days = (changes[i + 1]!.at - changes[i]!.at) / 86_400_000;
           if (days >= 0 && days < 3650) transitSamples.set(changes[i]!.stage, [...(transitSamples.get(changes[i]!.stage) ?? []), days]);
@@ -228,10 +241,12 @@ export async function runStageDwellAlerts(workspaceId?: string): Promise<{ alert
       const stageMedian = new Map<string, number>();
       for (const [stage, xs] of transitSamples) if (xs.length >= MIN_TRANSIT_SAMPLES) stageMedian.set(stage, median(xs));
 
-      // When did each open deal enter its CURRENT stage? Its last stage-change, else created_at.
+      // When did each open deal enter its CURRENT stage? The start of its last contiguous stage run
+      // (collapsed → the last entry is the first event of the current run), else created_at. Using
+      // the collapsed series means an incidental no-op edit can't reset the dwell clock.
       const enteredAt = new Map<string, number>();
       for (const d of open) {
-        const ch = changesByDeal.get(d.id);
+        const ch = collapsedByDeal.get(d.id);
         enteredAt.set(d.id, ch && ch.length ? ch[ch.length - 1]!.at : new Date(d.created_at as string).getTime());
       }
       const dwellDays = (d: { id: string; created_at: string }) => (now - (enteredAt.get(d.id) ?? new Date(d.created_at).getTime())) / 86_400_000;
