@@ -4,12 +4,15 @@ import { Link } from "react-router-dom";
 import { Plus, DollarSign, User, ChevronRight, ChevronDown, X, Check } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useCurrency, convertAmount, CURRENCY_SYMBOL } from "../../hooks/useCurrency";
+import { PeriodSelector } from "../../components/ui/period-selector";
+import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel } from "../../lib/period";
 
 interface DealRecord {
   id: string;
   object_type: string;
   data: Record<string, unknown>;
   updated_at: string;
+  created_at?: string;
 }
 
 interface Member { id: string; name: string; email: string; avatar_url?: string | null }
@@ -380,6 +383,7 @@ export function PipelinePage() {
   const [stages, setStages] = useState<string[]>(DEFAULT_STAGES);
   const [addingStage, setAddingStage] = useState(false);
   const [newStageName, setNewStageName] = useState("");
+  const [period, setPeriod] = usePeriod("mondaily_pipeline_period", "month");
   const [createForStage, setCreateForStage] = useState<string | null>(null);
   const newStageRef = useRef<HTMLInputElement>(null);
 
@@ -448,6 +452,17 @@ export function PipelinePage() {
   const totalValue = deals.reduce((sum, d) => sum + (dealValue(d) ?? 0), 0);
   const wonValue = (byStage["Closed Won"] ?? []).reduce((sum, d) => sum + (dealValue(d) ?? 0), 0);
 
+  // Period lens (FLOW): deals CREATED within the selected window + period-over-period delta. Total
+  // pipeline / won stay as current balance (a stock, not a flow) — the flow-vs-balance split the
+  // shared period system models. Created date = node created_at (fallback data.created_at).
+  const createdAt = (d: DealRecord) => String(d.created_at ?? (d.data.created_at as string | undefined) ?? "");
+  const range = periodRange(period);
+  const prevRange = previousRange(period);
+  const newInPeriod = deals.filter((d) => period === "all" || inRange(createdAt(d), range));
+  const newValue = newInPeriod.reduce((sum, d) => sum + (dealValue(d) ?? 0), 0);
+  const newPrevCount = prevRange ? deals.filter((d) => inRange(createdAt(d), prevRange)).length : 0;
+  const newDelta = prevRange ? deltaPct(newInPeriod.length, newPrevCount) : null;
+
   function commitNewStage() {
     const name = newStageName.trim();
     if (name && !stages.includes(name)) setStages(prev => [...prev, name]);
@@ -465,14 +480,27 @@ export function PipelinePage() {
             {deals.length} deal{deals.length !== 1 ? "s" : ""}
             {wonValue > 0 && <> · <span className="text-[#2f9e6b]">{fmtDisplay(wonValue, curSym)} won</span></>}
             {totalValue > 0 && <> · <span className="text-[var(--text-muted)]">{fmtDisplay(totalValue, curSym)} pipeline</span></>}
+            {/* FLOW: new deals within the selected period (won/pipeline above are current balance). */}
+            {period !== "all" && (
+              <> · <span style={{ color: "var(--section-accent)" }}>{newInPeriod.length} new{newValue > 0 ? ` (${fmtDisplay(newValue, curSym)})` : ""} {periodLabel(period).toLowerCase()}</span>
+                {newDelta != null && (
+                  <span className="ml-1" style={{ color: newDelta >= 0 ? "#2f9e6b" : "#d1524a" }}>
+                    {newDelta >= 0 ? "↑" : "↓"}{Math.abs(newDelta)}%
+                  </span>
+                )}
+              </>
+            )}
           </p>
         </div>
-        <button
-          onClick={() => setCreateForStage(stages[0] ?? "Lead")}
-          className="flex items-center gap-1.5 rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] transition-all hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"
-        >
-          <Plus size={11}/> New deal
-        </button>
+        <div className="flex items-center gap-2">
+          <PeriodSelector value={period} onChange={setPeriod} />
+          <button
+            onClick={() => setCreateForStage(stages[0] ?? "Lead")}
+            className="flex items-center gap-1.5 rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] transition-all hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"
+          >
+            <Plus size={11}/> New deal
+          </button>
+        </div>
       </div>
 
       {/* Kanban board — on phones each column is ~85vw with scroll-snap (swipe one at a time);
