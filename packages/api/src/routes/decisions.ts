@@ -441,6 +441,23 @@ async function emailFallbackTask(workspaceId: string, createdBy: string, title: 
 }
 
 export async function executeApprovedAction(workspaceId: string, decision: any): Promise<void> {
+  // Meeting-agent follow-up: approving a call action item creates a real task (assigned to the
+  // meeting's owner, linked back to the call record).
+  if (decision.source_type === "meeting_action") {
+    const title = String(decision.recommended_action || decision.title || "").slice(0, 200);
+    if (!title) return;
+    const callId = decision.source_id as string | undefined;
+    let owner: string | null = null;
+    if (callId) {
+      const { data: callNode } = await supabase.from("nodes").select("created_by").eq("id", callId).eq("workspace_id", workspaceId).maybeSingle();
+      owner = (callNode?.created_by as string) ?? null;
+    }
+    await supabase.from("tasks").insert({
+      workspace_id: workspaceId, title, assignee_id: owner, completed: false, priority: "medium", status: "todo",
+      ...(callId ? { record_id: callId } : {}),
+    }).then(() => {}, () => {});
+    return;
+  }
   if (decision.agent_name === "prospecting" && decision.source_type === "prospecting_candidate") {
     const evidenceItem = (decision.evidence ?? [])[0] as { candidate?: ProspectCandidate; destination_list_id?: string | null } | undefined;
     const candidate = evidenceItem?.candidate;
