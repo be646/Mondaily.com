@@ -2,7 +2,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Room, Participant, Track as TrackNS } from "livekit-client";
-import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Brain, Sparkles, FileText, ListChecks, Link2, UserPlus, Check, X } from "lucide-react";
+import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Brain, Sparkles, FileText, ListChecks, Link2, UserPlus, Check, X, MessageSquare, Maximize2, LayoutGrid, Send } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { FieldSelect } from "../../components/ui/controls";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -193,6 +193,31 @@ function CallRoom({ event }: { event: CalEvent }) {
   const [selVideo, setSelVideo] = useState("");
   const [ending, setEnding] = useState(false);
 
+  // In-call collaboration: layout, raise-hand, chat — all over the real-time data channel.
+  const [viewMode, setViewMode] = useState<"grid" | "speaker">("grid");
+  const [handRaised, setHandRaised] = useState(false);
+  const [hands, setHands] = useState<Set<string>>(new Set());
+  const [showChat, setShowChat] = useState(false);
+  const [chat, setChat] = useState<{ id: string; from: string; text: string; mine: boolean }[]>([]);
+  const [unread, setUnread] = useState(0);
+
+  function sendData(obj: Record<string, unknown>) {
+    const r = roomRef.current; if (!r) return;
+    try { r.localParticipant.publishData(new TextEncoder().encode(JSON.stringify(obj)), { reliable: true }); } catch { /* ignore */ }
+  }
+  function toggleHand() {
+    const next = !handRaised; setHandRaised(next);
+    const id = roomRef.current?.localParticipant.identity;
+    if (id) setHands(s => { const n = new Set(s); next ? n.add(id) : n.delete(id); return n; });
+    sendData({ t: "hand", raised: next });
+  }
+  function sendChat(text: string) {
+    const body = text.trim(); if (!body) return;
+    const from = roomRef.current?.localParticipant.name || t("cal.you");
+    setChat(c => [...c, { id: `${Date.now()}-me`, from, text: body, mine: true }].slice(-200));
+    sendData({ t: "chat", text: body });
+  }
+
   const membersQ = useQuery<{ members: Member[] }>({
     queryKey: ["workspace-members-full"],
     queryFn: () => apiClient.get("/workspace/members-full"),
@@ -258,6 +283,20 @@ function CallRoom({ event }: { event: CalEvent }) {
         .on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => setSpeaking(new Set(speakers.map(s => s.identity))))
         .on(RoomEvent.Reconnecting, () => setReconnecting(true))
         .on(RoomEvent.Reconnected, () => setReconnecting(false))
+        .on(RoomEvent.DataReceived, (payload: Uint8Array, participant?: Participant) => {
+          try {
+            const msg = JSON.parse(new TextDecoder().decode(payload)) as { t?: string; text?: string; raised?: boolean };
+            const from = participant?.name || participant?.identity || "Member";
+            const pid = participant?.identity || "";
+            if (msg.t === "chat" && msg.text) {
+              setChat(c => [...c, { id: `${Date.now()}-${pid}`, from, text: String(msg.text).slice(0, 2000), mine: false }].slice(-200));
+              setShowChat(open => { if (!open) setUnread(u => u + 1); return open; });
+            } else if (msg.t === "hand" && pid) {
+              setHands(s => { const n = new Set(s); msg.raised ? n.add(pid) : n.delete(pid); return n; });
+            }
+          } catch { /* ignore malformed */ }
+        })
+        .on(RoomEvent.ParticipantDisconnected, (p: Participant) => { setHands(s => { const n = new Set(s); n.delete(p.identity); return n; }); })
         .on(RoomEvent.Disconnected, () => setPhase("ended"));
       await room.connect(url, token);
       await room.localParticipant.setMicrophoneEnabled(micOn);
@@ -321,15 +360,37 @@ function CallRoom({ event }: { event: CalEvent }) {
           )}
         </div>
 
-        <div className="flex-1 space-y-2 overflow-y-auto px-3 pb-2">
-          {lk && screenSharer && <ScreenTile p={screenSharer.p} source={lk.Track.Source.ScreenShare} />}
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {lk && everyone.map(({ p, isLocal }) => (
-              <ParticipantTile key={p.sid || p.identity} p={p} source={lk.Track.Source.Camera}
-                isLocal={isLocal} speaking={speaking.has(p.identity)} youLabel={t("cal.you")}
-                muted={isLocal ? !micOn : !!p.getTrackPublication(lk.Track.Source.Microphone)?.isMuted} />
-            ))}
+        <div className="flex min-h-0 flex-1 gap-2 px-3 pb-2">
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {(() => {
+              if (!lk) return null;
+              const tile = (p: Participant, isLocal: boolean) => (
+                <ParticipantTile key={p.sid || p.identity} p={p} source={lk.Track.Source.Camera}
+                  isLocal={isLocal} speaking={speaking.has(p.identity)} youLabel={t("cal.you")}
+                  handRaised={hands.has(p.identity)}
+                  muted={isLocal ? !micOn : !!p.getTrackPublication(lk.Track.Source.Microphone)?.isMuted} />
+              );
+              // Screen share OR speaker view → a big stage + a filmstrip of everyone else.
+              const stageEntry = screenSharer
+                ? undefined
+                : (everyone.find(e => speaking.has(e.p.identity)) ?? everyone.find(e => !e.isLocal) ?? everyone[0]);
+              if (screenSharer || (viewMode === "speaker" && everyone.length > 1)) {
+                const others = everyone.filter(e => e.p.identity !== stageEntry?.p.identity);
+                return (
+                  <div className="flex h-full flex-col gap-2">
+                    <div className="min-h-0 flex-1">
+                      {screenSharer ? <ScreenTile p={screenSharer.p} source={lk.Track.Source.ScreenShare} /> : stageEntry && tile(stageEntry.p, stageEntry.isLocal)}
+                    </div>
+                    <div className="flex shrink-0 gap-2 overflow-x-auto pb-1">
+                      {(screenSharer ? everyone : others).map(({ p, isLocal }) => <div key={p.sid || p.identity} className="w-40 shrink-0">{tile(p, isLocal)}</div>)}
+                    </div>
+                  </div>
+                );
+              }
+              return <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">{everyone.map(({ p, isLocal }) => tile(p, isLocal))}</div>;
+            })()}
           </div>
+          {showChat && <ChatPanel messages={chat} onSend={sendChat} onClose={() => setShowChat(false)} youLabel={t("cal.you")} />}
         </div>
 
         {/* Device pickers (optional, safe) */}
@@ -356,6 +417,12 @@ function CallRoom({ event }: { event: CalEvent }) {
           <ToolBtn on={camOn} onClick={toggleCam} label={t("cal.camera")} onIcon={<Video size={18} className="text-white" />} offIcon={<VideoOff size={18} className="text-white" />} />
           <ToolBtn on={!sharing} neutral onClick={toggleShare} label={sharing ? t("cal.stop_share") : t("cal.share_screen")} onIcon={<MonitorUp size={18} className={sharing ? "text-[color:var(--section-accent)]" : "text-white"} />} offIcon={<MonitorUp size={18} className="text-white" />} />
           <ToolBtn on={!showDevices} neutral onClick={() => { setShowDevices(s => !s); refreshDevices(); }} label={t("cal.devices")} onIcon={<Settings2 size={18} className="text-white" />} offIcon={<Settings2 size={18} className="text-white" />} />
+          <ToolBtn on={!handRaised} neutral onClick={toggleHand} label={handRaised ? "Lower hand" : "Raise hand"} onIcon={<span className={`text-[17px] ${handRaised ? "" : "opacity-70"}`}>✋</span>} offIcon={<span className="text-[17px]">✋</span>} />
+          <div className="relative">
+            <ToolBtn on={!showChat} neutral onClick={() => { setShowChat(s => !s); setUnread(0); }} label="Chat" onIcon={<MessageSquare size={18} className="text-white" />} offIcon={<MessageSquare size={18} className="text-white" />} />
+            {unread > 0 && !showChat && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#d1524a] px-1 text-[9px] font-bold text-white">{unread}</span>}
+          </div>
+          <ToolBtn on neutral onClick={() => setViewMode(v => v === "grid" ? "speaker" : "grid")} label={viewMode === "grid" ? "Speaker view" : "Grid view"} onIcon={viewMode === "grid" ? <Maximize2 size={18} className="text-white" /> : <LayoutGrid size={18} className="text-white" />} offIcon={<LayoutGrid size={18} className="text-white" />} />
           {/* Leave = disconnect yourself (call keeps running). Host also gets End-for-everyone. */}
           <button onClick={leave} aria-label={t("cal.leave")} title={t("cal.leave")}
             className="flex h-11 items-center gap-2 rounded-full px-5" style={{ background: isHost ? "rgba(255,255,255,0.12)" : "#d1524a" }}>
@@ -536,11 +603,44 @@ function InvitePanel({ members, loading, existing, selected, onToggle, onInvite,
   );
 }
 
+/** In-call chat — rides the real-time data channel (ephemeral; not persisted). */
+function ChatPanel({ messages, onSend, onClose, youLabel }: { messages: { id: string; from: string; text: string; mine: boolean }[]; onSend: (t: string) => void; onClose: () => void; youLabel: string }) {
+  const [draft, setDraft] = useState("");
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
+  return (
+    <div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}>
+      <div className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+        <span className="flex items-center gap-1.5 text-[12px] font-semibold text-white"><MessageSquare size={13} /> Chat</span>
+        <button onClick={onClose} className="text-white/50 hover:text-white"><X size={14} /></button>
+      </div>
+      <div className="flex-1 space-y-2 overflow-y-auto px-3 py-2">
+        {messages.length === 0 ? (
+          <p className="pt-4 text-center text-[11px] text-white/35">No messages yet. Say hello 👋</p>
+        ) : messages.map(m => (
+          <div key={m.id}>
+            <span className="text-[10px] font-medium text-white/45">{m.mine ? youLabel : m.from}</span>
+            <p className="whitespace-pre-wrap break-words text-[12.5px] text-white/90">{m.text}</p>
+          </div>
+        ))}
+        <div ref={endRef} />
+      </div>
+      <div className="flex items-center gap-1.5 border-t p-2" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+        <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && draft.trim()) { onSend(draft); setDraft(""); } }}
+          placeholder="Message…" maxLength={2000}
+          className="min-w-0 flex-1 rounded-lg bg-black/30 px-2.5 py-1.5 text-[12.5px] text-white placeholder-white/30 outline-none" />
+        <button onClick={() => { if (draft.trim()) { onSend(draft); setDraft(""); } }} disabled={!draft.trim()} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg disabled:opacity-40" style={{ background: "var(--section-accent)" }}><Send size={14} className="text-white" /></button>
+      </div>
+    </div>
+  );
+}
+
 /** One participant camera tile: live video when available, initials placeholder otherwise. */
-export function ParticipantTile({ p, source, isLocal, speaking, youLabel, muted }: { p: Participant; source: TrackNS.Source; isLocal: boolean; speaking: boolean; youLabel: string; muted: boolean }) {
+export function ParticipantTile({ p, source, isLocal, speaking, youLabel, muted, handRaised }: { p: Participant; source: TrackNS.Source; isLocal: boolean; speaking: boolean; youLabel: string; muted: boolean; handRaised?: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [hasVideo, setHasVideo] = useState(false);
   const name = p.name || p.identity || "Member";
+  const isGuest = (p.identity || "").startsWith("guest_");
 
   useEffect(() => {
     const pub = p.getTrackPublication(source);
@@ -552,17 +652,21 @@ export function ParticipantTile({ p, source, isLocal, speaking, youLabel, muted 
   });
 
   return (
-    <div className="relative aspect-video overflow-hidden rounded-xl" style={{ background: "#17171b", outline: speaking ? "2px solid var(--section-accent)" : "1px solid rgba(255,255,255,0.06)", outlineOffset: -1 }}>
+    <div className="relative aspect-video w-full overflow-hidden rounded-xl" style={{ background: "#17171b", outline: speaking ? "2px solid var(--section-accent)" : "1px solid rgba(255,255,255,0.06)", outlineOffset: -1 }}>
       <video ref={ref} autoPlay playsInline muted={isLocal} className="h-full w-full object-cover" style={{ display: hasVideo ? "block" : "none" }} />
       {!hasVideo && (
         <div className="flex h-full w-full items-center justify-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-full text-[18px] font-semibold text-white" style={{ background: "var(--section-accent)" }}>{initialsOf(name)}</span>
         </div>
       )}
+      {handRaised && (
+        <div className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-[#c6892e] text-[13px] shadow" title="Hand raised">✋</div>
+      )}
       <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-md bg-black/50 px-2 py-1 text-[11px] font-medium text-white">
         {muted ? <MicOff size={11} className="text-white/70" /> : <Mic size={11} className="text-white/70" />}
         <span className="max-w-[140px] truncate">{name}</span>
         {isLocal && <span className="rounded-sm bg-white/20 px-1 text-[9px] uppercase tracking-wide">{youLabel}</span>}
+        {isGuest && <span className="rounded-sm bg-[#c6892e]/30 px-1 text-[9px] uppercase tracking-wide text-[#e6be7e]">guest</span>}
       </div>
     </div>
   );

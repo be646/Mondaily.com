@@ -290,7 +290,10 @@ router.get("/events/:id", async (c) => {
 router.post("/events", zValidator("json", EventCreate), async (c) => {
   const ws = c.get("workspaceId"); const me = c.get("userId");
   const b = c.req.valid("json");
-  const attendees = [...new Set((b.attendee_ids ?? []).filter((a) => a && a !== me))];
+  // SECURITY: attendees MUST be members of this workspace — never trust arbitrary user_ids, or a
+  // foreign user named as an attendee would gain event-read + call-join access (canView) in this tenant.
+  const memberSet = new Set((await members(ws)).keys());
+  const attendees = [...new Set((b.attendee_ids ?? []).filter((a) => a && a !== me && memberSet.has(a)))];
   const now = new Date().toISOString();
   const data: EventData = {
     title: b.title, description: b.description ?? "", start_at: b.start_at, end_at: b.end_at,
@@ -321,6 +324,12 @@ router.patch("/events/:id", zValidator("json", EventInput.partial().extend({ sta
   if (!ev) return c.json({ error: "Event not found." }, 404);
   if (!canManage(ev.data, me, c.get("role"))) return c.json({ error: "Only the organizer or an admin can edit this." }, 403);
   const b = c.req.valid("json");
+  // SECURITY: same membership check as create — attendees must belong to this workspace.
+  let nextAttendees: string[] | undefined;
+  if (b.attendee_ids !== undefined) {
+    const memberSet = new Set((await members(ws)).keys());
+    nextAttendees = [...new Set(b.attendee_ids.filter((a) => a && a !== ev.data.organizer_id && memberSet.has(a)))];
+  }
   const next: EventData = {
     ...ev.data,
     ...(b.title !== undefined ? { title: b.title } : {}),
@@ -329,7 +338,7 @@ router.patch("/events/:id", zValidator("json", EventInput.partial().extend({ sta
     ...(b.end_at !== undefined ? { end_at: b.end_at } : {}),
     ...(b.timezone !== undefined ? { timezone: b.timezone } : {}),
     ...(b.location !== undefined ? { location: b.location } : {}),
-    ...(b.attendee_ids !== undefined ? { attendee_ids: [...new Set(b.attendee_ids.filter((a) => a && a !== ev.data.organizer_id))] } : {}),
+    ...(nextAttendees !== undefined ? { attendee_ids: nextAttendees } : {}),
     ...(b.status !== undefined ? { status: b.status } : {}),
     // Editing the series' recurrence (null clears it). Edits always apply to the whole series.
     ...(b.recurrence !== undefined ? { recurrence: b.recurrence ? normalizeRule(b.recurrence) : null } : {}),

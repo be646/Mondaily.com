@@ -61,6 +61,7 @@ function priceFor(plan: string, interval: string): string | undefined {
 
 // POST /checkout { plan, interval } → { url }
 router.post("/checkout", async (c) => {
+  if (!isWorkspaceAdmin(c.get("role"))) return c.json({ error: "Only owners and admins can manage billing." }, 403);
   const body = await c.req.json<{ plan?: string; interval?: string; currency?: string }>().catch(() => ({} as { plan?: string; interval?: string; currency?: string }));
   const plan = (body.plan ?? "").toLowerCase();
   const interval = (body.interval ?? "month").toLowerCase();

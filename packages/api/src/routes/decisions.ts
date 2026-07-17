@@ -316,13 +316,17 @@ router.get("/goals", async (c) => {
   }
   const out = goals.map((g) => {
     const d = (g.data ?? {}) as Record<string, unknown>;
-    const a = agg.get(g.id) ?? { done: 0, rejected: 0, pending: 0, total: Number(d.total_steps ?? 0) };
+    const a = agg.get(g.id) ?? { done: 0, rejected: 0, pending: 0, total: 0 };
+    // Denominator is the goal's RECORDED total_steps (authoritative), not the count of surviving
+    // step-decisions — a partial dispatch would otherwise shrink the denominator and flip progress/
+    // complete prematurely.
+    const total = Number(d.total_steps ?? 0) || a.done + a.rejected + a.pending;
     const resolved = a.done + a.rejected;
-    const complete = a.total > 0 && resolved >= a.total;
+    const complete = total > 0 && resolved >= total;
     return {
       id: g.id, title: String(d.title ?? "Goal"), agent_name: String(d.agent_name ?? "planner"),
-      created_at: g.created_at, total: a.total, done: a.done, rejected: a.rejected, pending: a.pending,
-      progress: a.total > 0 ? Math.round((a.done / a.total) * 100) : 0, status: complete ? "complete" : "active",
+      created_at: g.created_at, total, done: a.done, rejected: a.rejected, pending: a.pending,
+      progress: total > 0 ? Math.round((a.done / total) * 100) : 0, status: complete ? "complete" : "active",
     };
   });
   return c.json({ goals: out });

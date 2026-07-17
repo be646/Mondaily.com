@@ -211,6 +211,12 @@ export async function runStageDwellAlerts(workspaceId?: string): Promise<{ alert
         const { data: existing } = await supabase.from("deal_alerts").select("id")
           .eq("node_id", deal.id).eq("alert_type", "stalled_stage").is("dismissed_at", null).maybeSingle();
         if (existing) continue;
+        // Also skip if a pending Signal decision already exists for this deal — otherwise dismissing the
+        // deal_alert (but not the decision) would re-create a duplicate decision + burn reasoning budget
+        // every daily run while the deal stays stalled.
+        const { data: pendingDec } = await supabase.from("decision_queue").select("id")
+          .eq("workspace_id", wsId).eq("source_id", deal.id).eq("agent_name", "signal").eq("status", "pending").limit(1).maybeSingle();
+        if (pendingDec) continue;
 
         const { error: alertErr } = await supabase.from("deal_alerts").insert({ workspace_id: wsId, node_id: deal.id, alert_type: "stalled_stage", days_inactive: Math.round(dwell) });
         if (alertErr) throw new Error(`deal_alerts insert failed: ${alertErr.message}`);

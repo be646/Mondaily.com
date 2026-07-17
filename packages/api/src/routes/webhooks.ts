@@ -69,8 +69,12 @@ router.post("/stripe", async (c) => {
   const secret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
   const rawBody = await c.req.text();
 
-  // Basic timestamp tolerance check (Stripe embeds t= in signature)
-  if (secret && sig) {
+  // FAIL CLOSED: a webhook grants tiers/credits, so an UNVERIFIED body is never trusted. If the secret
+  // isn't configured, reject outright rather than parsing a forgeable body (a misconfig must not become
+  // a free-credits exploit). A configured secret with a missing/invalid signature is also rejected.
+  if (!secret) { console.error("[stripe webhook] STRIPE_WEBHOOK_SECRET not set — rejecting unverifiable webhook"); return c.json({ error: "Webhook not configured." }, 503); }
+  if (!sig) return c.json({ error: "Missing signature." }, 401);
+  {
     const parts     = Object.fromEntries(sig.split(",").map(p => p.split("="))) as Record<string, string>;
     const timestamp = parts["t"] ?? "0";
     const age       = Math.abs(Date.now() / 1000 - parseInt(timestamp));
@@ -79,12 +83,12 @@ router.post("/stripe", async (c) => {
     const payload   = `${timestamp}.${rawBody}`;
     const expected  = createHmac("sha256", secret).update(payload).digest("hex");
     const provided  = parts["v1"] ?? "";
-    if (!timingSafeEqual(Buffer.from(expected), Buffer.from(provided.padEnd(expected.length, "0")))) {
+    if (provided.length !== expected.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(provided))) {
       return c.json({ error: "invalid signature" }, 401);
     }
   }
 
-  const event = JSON.parse(rawBody) as { type: string; data: { object: Record<string, unknown> } };
+  const event = JSON.parse(rawBody) as { id?: string; type: string; data: { object: Record<string, unknown> } };
 
   // When checkout finishes, link the Stripe customer to the workspace and
   // activate the chosen plan. WITHOUT this, the customer id is never stored,
@@ -107,12 +111,21 @@ router.post("/stripe", async (c) => {
         await supabase.from("workspaces").update({ stripe_customer_id: customerId }).eq("id", workspaceId);
       }
       if (workspaceId && finalCredits > 0) {
-        await supabase.from("ai_credits_ledger").insert({
-          workspace_id: workspaceId,
-          amount: Math.round(finalCredits),
-          transaction_type: "purchase",
-          description: `${packId} pack · ${base.toLocaleString()} + ${bonus.toLocaleString()} bonus = ${finalCredits.toLocaleString()} AI credits`,
-        }).then(() => {}, () => {});
+        // IDEMPOTENCY: Stripe delivers at-least-once and retries on any non-2xx. The checkout session
+        // id is unique per payment, so refuse to grant twice for the same session (a credit purchase
+        // is additive — replays would stack free credits without this guard).
+        const sessionId = String(s.id ?? "");
+        const { data: dup } = sessionId
+          ? await supabase.from("ai_credits_ledger").select("id").eq("workspace_id", workspaceId).eq("transaction_type", "purchase").ilike("description", `%[${sessionId}]%`).limit(1).maybeSingle()
+          : { data: null };
+        if (!dup) {
+          await supabase.from("ai_credits_ledger").insert({
+            workspace_id: workspaceId,
+            amount: Math.round(finalCredits),
+            transaction_type: "purchase",
+            description: `${packId} pack · ${base.toLocaleString()} + ${bonus.toLocaleString()} bonus = ${finalCredits.toLocaleString()} AI credits [${sessionId}]`,
+          }).then(() => {}, () => {});
+        }
       }
     } else if (workspaceId) {
       // Subscription checkout: link the Stripe customer + activate the real tier (settings.
