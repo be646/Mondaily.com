@@ -237,12 +237,26 @@ export async function runStageDwellAlerts(workspaceId?: string): Promise<{ alert
       const dwellDays = (d: { id: string; created_at: string }) => (now - (enteredAt.get(d.id) ?? new Date(d.created_at).getTime())) / 86_400_000;
       const stageOf = (d: { data: Record<string, unknown> }) => String(d.data.stage ?? d.data.status ?? "").toLowerCase();
 
-      for (const deal of open) {
-        const stage = stageOf(deal);
-        const med = stageMedian.get(stage);
-        if (med == null) continue; // not enough peers in this stage to judge
-        const dwell = dwellDays(deal);
-        if (dwell < MIN_DWELL_DAYS || dwell <= med * OVER_FACTOR) continue;
+      // Rank all stalled candidates by how far past their stage's cycle time they are, then flag only
+      // the worst MAX_ALERTS_PER_RUN this run — each flag makes a sequential AI reasoning call, so an
+      // uncapped first run over a big pipeline could exceed the function timeout. The rest are picked
+      // up on subsequent runs (the dedup guards below skip anything already flagged).
+      const MAX_ALERTS_PER_RUN = 8;
+      const candidates = open
+        .map((deal) => {
+          const stage = stageOf(deal); const med = stageMedian.get(stage);
+          if (med == null) return null;
+          const dwell = dwellDays(deal);
+          if (dwell < MIN_DWELL_DAYS || dwell <= med * OVER_FACTOR) return null;
+          return { deal, med, dwell, ratio: dwell / med };
+        })
+        .filter((x): x is { deal: typeof open[number]; med: number; dwell: number; ratio: number } => x !== null)
+        .sort((a, b) => b.ratio - a.ratio);
+
+      let createdThisWs = 0;
+      for (const cand of candidates) {
+        if (createdThisWs >= MAX_ALERTS_PER_RUN) break;
+        const deal = cand.deal, med = cand.med, dwell = cand.dwell;
 
         const { data: existing } = await supabase.from("deal_alerts").select("id")
           .eq("node_id", deal.id).eq("alert_type", "stalled_stage").is("dismissed_at", null).maybeSingle();
@@ -280,6 +294,7 @@ export async function runStageDwellAlerts(workspaceId?: string): Promise<{ alert
           source: { source_agent: "signal", agent_job_id: jobId, decision_id: (dq as { id?: string } | null)?.id ?? null, node_id: deal.id, object_type: "deal" },
         });
         totalAlerts++;
+        createdThisWs++;
       }
     }
     await completeJob(jobId, { alerts_created: totalAlerts, deals_scanned: dealsScanned, summary: `Flagged ${totalAlerts} stalled deal(s)` }, [
