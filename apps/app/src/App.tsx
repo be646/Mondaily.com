@@ -43,20 +43,23 @@ const CanvasPage = lazy(() => import("./routes/dashboard/canvas"));
 const ObjectIndexPage = lazy(() => import("./routes/dashboard/objects/[objectType]/index").then(m => ({ default: m.ObjectIndexPage })));
 const PipelinePage = lazy(() => import("./routes/dashboard/pipeline").then(m => ({ default: m.PipelinePage })));
 const RecordDetailPage = lazy(() => import("./routes/dashboard/objects/[objectType]/[recordId]").then(m => ({ default: m.RecordDetailPage })));
+// SettingsLayout stays static — it's the stable settings shell/nav. The individual settings pages are
+// lazy-loaded so their code (and settings/email's Tiptap editor → the ~304 kB vendor-editor chunk) no
+// longer sits in the eager first-paint graph. Same lazy()+Suspense pattern as the other heavy routes.
 import { SettingsLayout } from "./routes/dashboard/settings/layout";
-import { AccountSettings } from "./routes/dashboard/settings/account";
-import { WorkspaceSettings } from "./routes/dashboard/settings/workspace";
-import { MembersSettings } from "./routes/dashboard/settings/members";
-import { BillingSettings } from "./routes/dashboard/settings/billing";
-import { ObjectsSettings } from "./routes/dashboard/settings/objects";
-import { SupportSettings } from "./routes/dashboard/settings/support";
-import { CallsSettings } from "./routes/dashboard/settings/calls";
-import { IntegrationsSettings } from "./routes/dashboard/settings/integrations";
-import { EmailSettings } from "./routes/dashboard/settings/email";
-import { SecuritySettings } from "./routes/dashboard/settings/security";
-import { TrainingSettings } from "./routes/dashboard/settings/training";
-import { AskMondailySettings } from "./routes/dashboard/settings/ask-mondaily";
-import { AIControlRoomSettings } from "./routes/dashboard/settings/ai-control-room";
+const AccountSettings = lazy(() => import("./routes/dashboard/settings/account").then(m => ({ default: m.AccountSettings })));
+const WorkspaceSettings = lazy(() => import("./routes/dashboard/settings/workspace").then(m => ({ default: m.WorkspaceSettings })));
+const MembersSettings = lazy(() => import("./routes/dashboard/settings/members").then(m => ({ default: m.MembersSettings })));
+const BillingSettings = lazy(() => import("./routes/dashboard/settings/billing").then(m => ({ default: m.BillingSettings })));
+const ObjectsSettings = lazy(() => import("./routes/dashboard/settings/objects").then(m => ({ default: m.ObjectsSettings })));
+const SupportSettings = lazy(() => import("./routes/dashboard/settings/support").then(m => ({ default: m.SupportSettings })));
+const CallsSettings = lazy(() => import("./routes/dashboard/settings/calls").then(m => ({ default: m.CallsSettings })));
+const IntegrationsSettings = lazy(() => import("./routes/dashboard/settings/integrations").then(m => ({ default: m.IntegrationsSettings })));
+const EmailSettings = lazy(() => import("./routes/dashboard/settings/email").then(m => ({ default: m.EmailSettings })));
+const SecuritySettings = lazy(() => import("./routes/dashboard/settings/security").then(m => ({ default: m.SecuritySettings })));
+const TrainingSettings = lazy(() => import("./routes/dashboard/settings/training").then(m => ({ default: m.TrainingSettings })));
+const AskMondailySettings = lazy(() => import("./routes/dashboard/settings/ask-mondaily").then(m => ({ default: m.AskMondailySettings })));
+const AIControlRoomSettings = lazy(() => import("./routes/dashboard/settings/ai-control-room").then(m => ({ default: m.AIControlRoomSettings })));
 const ListPage = lazy(() => import("./routes/dashboard/lists/[listId]").then(m => ({ default: m.ListPage })));
 const SearchPage = lazy(() => import("./routes/dashboard/search").then(m => ({ default: m.SearchPage })));
 const InvoicesPage = lazy(() => import("./routes/dashboard/finance/invoices").then(m => ({ default: m.InvoicesPage })));

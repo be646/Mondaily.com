@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 /**
@@ -12,6 +12,7 @@ const layout = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/rout
 const appTsx = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/App.tsx", import.meta.url)), "utf8");
 const guestCall = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/guest-call.tsx", import.meta.url)), "utf8");
 const callTiles = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/call-tiles.tsx", import.meta.url)), "utf8");
+const settingsDir = fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/settings/", import.meta.url));
 
 describe("readiness endpoint — admin-gated + booleans only, no secrets", () => {
   it("is registered and owner/admin-gated", () => {
@@ -73,6 +74,34 @@ describe("call-room chunk split — guest-call must not statically import call-r
     // livekit is imported for types only, so the shared file never pulls the LiveKit runtime into a chunk.
     expect(callTiles).toMatch(/import type \{ Participant, Track as TrackNS \} from "livekit-client"/);
     expect(callTiles).not.toMatch(/^import \{[^}]*\} from "livekit-client"/m);
+  });
+});
+
+describe("settings pages are lazy-loaded — Tiptap (vendor-editor) stays out of first paint", () => {
+  const SETTINGS_PAGES = ["account", "workspace", "members", "billing", "objects", "support", "calls", "integrations", "email", "security", "training", "ask-mondaily", "ai-control-room"];
+  it("every settings PAGE is lazy() in App.tsx (not a static import)", () => {
+    for (const p of SETTINGS_PAGES) {
+      // lazy import present…
+      expect(appTsx).toMatch(new RegExp(`lazy\\(\\(\\) => import\\("\\./routes/dashboard/settings/${p}"\\)`));
+      // …and NO static named import of that page's export remains.
+      expect(appTsx).not.toMatch(new RegExp(`^import \\{[^}]+\\} from "\\./routes/dashboard/settings/${p}"`, "m"));
+    }
+  });
+  it("EmailSettings specifically is lazy, not statically imported (it pulls Tiptap)", () => {
+    expect(appTsx).toMatch(/const EmailSettings = lazy\(\(\) => import\("\.\/routes\/dashboard\/settings\/email"\)/);
+    expect(appTsx).not.toMatch(/import \{ EmailSettings \} from "\.\/routes\/dashboard\/settings\/email"/);
+  });
+  it("settings/email.tsx is the ONLY settings page importing Tiptap", () => {
+    const tiptapPages = readdirSync(settingsDir)
+      .filter(f => f.endsWith(".tsx"))
+      .filter(f => /from ["']@tiptap/.test(readFileSync(settingsDir + f, "utf8")));
+    expect(tiptapPages).toEqual(["email.tsx"]);
+  });
+  it("SettingsLayout, GuestCallPage, HomePage, DashboardLayout stay static (stable/first-paint)", () => {
+    expect(appTsx).toMatch(/import \{ SettingsLayout \} from "\.\/routes\/dashboard\/settings\/layout"/);
+    expect(appTsx).toMatch(/import \{ GuestCallPage \} from "\.\/routes\/guest-call"/);
+    expect(appTsx).toMatch(/import \{ HomePage \} from "\.\/routes\/dashboard\/home"/);
+    expect(appTsx).toMatch(/import \{ DashboardLayout \} from "\.\/routes\/dashboard\/layout"/);
   });
 });
 
