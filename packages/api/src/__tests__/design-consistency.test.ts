@@ -333,6 +333,23 @@ describe("structural adoption pass 2 (headers / settings frames / accent life)",
     expect(salesReport).toMatch(/\{!result && !loading && !error &&/);                  // forecast: only pre-run
     expect(salesReport).toMatch(/\{!insights && !loading && !error &&/);                // insights: only pre-run
   });
+  it("sales-report KPI area is a cohesive two-tier executive strip (primary vs secondary), not 6 candy cards", () => {
+    // Cards are driven by a single `tone` hex accent on a neutral surface — no per-card candy background classes.
+    expect(salesReport).toMatch(/function KpiCard\(\{[\s\S]*?tone: string/);
+    expect(salesReport).toMatch(/borderLeft: `2px solid \$\{tone\}`/);        // toned left-accent, shared geometry
+    expect(salesReport).toMatch(/primary\?: boolean/);                        // primary/secondary hierarchy exists
+    // Three headline KPIs are marked primary; the strip is no longer one flat 6-up grid.
+    const primaryCount = (salesReport.match(/<KpiCard sym=\{curSym\} primary/g) || []).length;
+    expect(primaryCount).toBe(3);
+    // No card passes the old candy `color=` background prop anymore.
+    expect(salesReport).not.toMatch(/<KpiCard[^>]*\bcolor=/);
+  });
+  it("sales-report value charts show an HONEST empty state when there's no value signal (no dead flat line)", () => {
+    // A value column exists but every bucket is zero → inline NoValueData instead of a misleading flat line.
+    expect(salesReport).toContain("No value data for this view");
+    expect(salesReport).toMatch(/const hasValueData = useMemo\(\(\) => trendData\.some\(d => \(d\.revenue \?\? 0\) > 0\)/);
+    expect(salesReport).toMatch(/hasValue && !hasValueData\) \? \(\s*<NoValueData/);
+  });
   it("Discovery pipeline is a collapsed-by-default disclosure (composer is primary), never an always-visible strip", () => {
     // Default-collapsed toggle, not an always-rendered pipeline row competing with the composer.
     expect(discovery).toContain("How Discovery works");

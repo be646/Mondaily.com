@@ -54,6 +54,21 @@ function fmtMoney(n: number, sym = "$") {
 }
 function fmtNum(n: number) { return n >= 1_000 ? `${(n / 1_000).toFixed(1)}K` : String(n); }
 
+// Honest inline empty state for value charts — a value column exists but every bucket is zero.
+// Better than a flat line at the floor, which reads as a real (misleadingly empty) trend.
+function NoValueData({ col }: { col?: string | null }) {
+  return (
+    <div className="flex h-48 flex-col items-center justify-center gap-1.5 text-center">
+      <BarChart2 size={18} style={{ color: "var(--text-faint)" }} />
+      <span className="text-xs" style={{ color: "var(--text-muted)" }}>No value data for this view</span>
+      <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>
+        {col ? <>Records in this period have no <span className="tabular-nums">{col}</span> amounts — </> : "These records carry no numeric value — "}
+        counts are still charted above.
+      </span>
+    </div>
+  );
+}
+
 function Sparkline({ values, height = 220 }: { values: number[]; height?: number }) {
   const clean = values.map(v => Number.isFinite(v) ? v : 0);
   const min = Math.min(...clean, 0);
@@ -194,22 +209,26 @@ function GoalBar({ value, goal, sym = "$" }: { value: number; goal: number; sym?
   );
 }
 
-function KpiCard({ label, value, sub, color, trend, delta, goal, goalValue, onSetGoal, sym = "$" }: {
-  label: string; value: string; sub?: string; color: string; trend?: "up"|"down"|"neutral";
-  delta?: number | null; goal?: number | null; goalValue?: number; onSetGoal?: () => void; sym?: string;
+// Executive KPI cell — a cohesive neutral surface with a thin toned left-accent (no per-card candy
+// background). `primary` renders the headline metrics larger; secondary metrics are compact, so the
+// strip reads as one hierarchy instead of six equal floating cards. Values/calcs are unchanged.
+function KpiCard({ label, value, sub, tone, trend, delta, goal, goalValue, onSetGoal, sym = "$", primary }: {
+  label: string; value: string; sub?: string; tone: string; trend?: "up"|"down"|"neutral";
+  delta?: number | null; goal?: number | null; goalValue?: number; onSetGoal?: () => void; sym?: string; primary?: boolean;
 }) {
   return (
-    <div className={`relative overflow-hidden rounded-sm border p-5 print:border-[var(--border-soft)] ${color}`}>
+    <div className={`relative overflow-hidden rounded-sm border print:border-[var(--border-soft)] ${primary ? "p-4" : "p-3.5"}`}
+      style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", borderLeft: `2px solid ${tone}` }}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-current opacity-60">{label}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: tone }}>{label}</p>
         {onSetGoal && (
-          <button onClick={onSetGoal} title="Set goal" className="text-current opacity-30 hover:opacity-60 transition-opacity print:hidden">
+          <button onClick={onSetGoal} title="Set goal" className="opacity-30 hover:opacity-60 transition-opacity print:hidden" style={{ color: tone }}>
             <Target size={12}/>
           </button>
         )}
       </div>
-      <p className="mt-2 text-3xl font-bold text-[var(--text-primary)] leading-none print:text-black">{value}</p>
-      <div className="mt-2 flex items-center gap-2 flex-wrap">
+      <p className={`mt-1.5 font-bold text-[var(--text-primary)] leading-none tabular-nums print:text-black ${primary ? "text-[26px]" : "text-xl"}`}>{value}</p>
+      <div className="mt-1.5 flex items-center gap-2 flex-wrap">
         {delta != null && <DeltaBadge delta={delta}/>}
         {sub && (
           <div className="flex items-center gap-1 text-[11px] text-[var(--text-secondary)] print:text-[var(--text-muted)]">
@@ -1063,6 +1082,9 @@ export function SalesReportPage() {
   }, [filteredRecords, stageCol, valueCol]);
 
   const trendData = useMemo(() => buildTrend(filteredRecords, valueCol, stageCol, period, customRange, toDisplay), [filteredRecords, valueCol, stageCol, period, customRange, toDisplay]);
+  // Honest value-chart gate: a value column exists but every bucket is zero → show an inline empty
+  // state instead of a dead flat line (never pretend there's a value signal when there isn't one).
+  const hasValueData = useMemo(() => trendData.some(d => (d.revenue ?? 0) > 0), [trendData]);
 
 
   const topRecords = useMemo(() => {
@@ -1455,54 +1477,57 @@ export function SalesReportPage() {
               </div>
             )}
 
-            {/* KPI Grid */}
-            <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 print:gap-3">
-              <KpiCard sym={curSym}
+            {/* Executive KPI strip — PRIMARY headline metrics (large), then a compact SECONDARY row.
+                Cohesive neutral cards with toned left-accents (no candy backgrounds). Values unchanged. */}
+            <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 print:gap-3">
+              <KpiCard sym={curSym} primary
                 label={hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records"}
                 value={hasValue ? fmtMoney(stats.wonValue || stats.totalValue, curSym) : fmtNum(stats.totalCount)}
                 sub={hasStage ? `${stats.wonCount} completed` : `${stats.totalCount} total`}
-                color="border-[#2f9e6b]/25 bg-[#2f9e6b]/[.06] text-[#2f9e6b]"
+                tone="#2f9e6b"
                 trend="up"
                 delta={pctDelta(hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount, hasValue ? (prevStats.wonValue || prevStats.totalValue) : prevStats.totalCount)}
                 goal={goal}
                 goalValue={hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount}
                 onSetGoal={() => setEditingGoal(true)}
               />
+              <KpiCard sym={curSym} primary
+                label={hasStage ? "Completion Rate" : "Total This Period"}
+                value={hasStage ? `${stats.completionRate}%` : fmtNum(stats.totalCount)}
+                sub={hasStage ? "closed won vs. all closed" : `across ${PERIOD_LABELS[period].toLowerCase()}`}
+                tone="var(--section-accent)"
+                trend={hasStage ? (stats.completionRate >= 50 ? "up" : "down") : "neutral"}
+                delta={pctDelta(stats.completionRate, prevStats.completionRate)}
+              />
+              <KpiCard sym={curSym} primary
+                label="Total Records"
+                value={fmtNum(stats.totalCount)}
+                sub="in this period"
+                tone="#8a8f9a"
+                delta={pctDelta(stats.totalCount, prevStats.totalCount)}
+              />
+            </div>
+            <div className="mb-6 grid gap-3 grid-cols-3 print:grid-cols-3 print:gap-3">
               <KpiCard sym={curSym}
                 label={hasStage ? "In Progress" : "This Period"}
                 value={hasValue ? fmtMoney(stats.openValue, curSym) : fmtNum(stats.openCount || stats.totalCount)}
                 sub={hasStage ? `${stats.openCount} open` : "active records"}
-                color="border-[#717784]/25 bg-[#717784]/[.06] text-[#717784]"
+                tone="#717784"
                 trend="neutral"
                 delta={pctDelta(hasValue ? stats.openValue : stats.openCount, hasValue ? prevStats.openValue : prevStats.openCount)}
-              />
-              <KpiCard sym={curSym}
-                label={hasStage ? "Completion Rate" : "Total This Period"}
-                value={hasStage ? `${stats.completionRate}%` : fmtNum(stats.totalCount)}
-                sub={hasStage ? "closed won vs. all closed" : `across ${PERIOD_LABELS[period].toLowerCase()}`}
-                color="border-stone-500/30 bg-stone-600/[.06] text-stone-400"
-                trend={hasStage ? (stats.completionRate >= 50 ? "up" : "down") : "neutral"}
-                delta={pctDelta(stats.completionRate, prevStats.completionRate)}
               />
               <KpiCard sym={curSym}
                 label={hasValue ? `Avg ${valueCol}` : "Avg per bucket"}
                 value={hasValue ? fmtMoney(stats.avgVal, curSym) : fmtNum(stats.totalCount ? Math.round(stats.totalCount / Math.max(trendData.length, 1)) : 0)}
                 sub="per record"
-                color="border-[#c6892e]/25 bg-[#c6892e]/[.06] text-[#c6892e]"
+                tone="#c6892e"
                 delta={pctDelta(stats.avgVal, prevStats.avgVal)}
-              />
-              <KpiCard sym={curSym}
-                label="Total Records"
-                value={fmtNum(stats.totalCount)}
-                sub="in this period"
-                color="border-[#d1524a]/25 bg-[#d1524a]/[.06] text-[#d1524a]"
-                delta={pctDelta(stats.totalCount, prevStats.totalCount)}
               />
               <KpiCard sym={curSym}
                 label={hasStage ? "Open / Active" : "All Time"}
                 value={fmtNum(hasStage ? stats.openCount : records.length)}
                 sub={hasStage ? "in pipeline" : "records total"}
-                color="border-[var(--section-accent)]/20 bg-[var(--section-accent)]/[.06] text-[var(--section-accent)]"
+                tone="var(--section-accent)"
               />
             </div>
 
@@ -1529,6 +1554,8 @@ export function SalesReportPage() {
                 </div>
                 {trendData.length === 0 ? (
                   <div className="flex h-48 flex-col items-center justify-center gap-1 text-center"><span className="text-xs" style={{ color: "var(--text-muted)" }}>No records in this period</span><span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Widen the date range above, or add records — the trend draws itself from real data.</span></div>
+                ) : (hasValue && !hasValueData) ? (
+                  <NoValueData col={valueCol} />
                 ) : (
                   <div className="relative">
                     <Sparkline values={trendData.map(item => hasValue ? item.revenue : item.count)} />
@@ -1576,14 +1603,22 @@ export function SalesReportPage() {
               {hasValue && hasStage && (
                 <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-[var(--border-soft)] print:bg-white">
                   <h3 className="mb-4 text-sm font-semibold print:text-black">Value by {stageCol}</h3>
-                  <Sparkline values={stageData.map(item => item.value)} />
+                  {stageData.some(item => (item.value ?? 0) > 0) ? (
+                    <Sparkline values={stageData.map(item => item.value)} />
+                  ) : (
+                    <NoValueData col={valueCol} />
+                  )}
                 </div>
               )}
 
               {hasValue && !hasStage && (
                 <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-5 print:border-[var(--border-soft)] print:bg-white">
                   <h3 className="mb-4 text-sm font-semibold print:text-black">{valueCol} Distribution</h3>
-                  <Sparkline values={trendData.map(item => item.revenue)} />
+                  {hasValueData ? (
+                    <Sparkline values={trendData.map(item => item.revenue)} />
+                  ) : (
+                    <NoValueData col={valueCol} />
+                  )}
                 </div>
               )}
             </div>
