@@ -563,6 +563,43 @@ function calcResultTyped(
   return calcResult(op, col, records);
 }
 
+// ─── Server-side authoritative total (Phase 3) ───────────────────────────────
+// The client footer above totals the fetched page (capped at 1000). When the sheet is UNFILTERED,
+// we additionally ask the server to aggregate the WHOLE table via POST /records/aggregate — the same
+// nodes source, currency-aware + fail-closed. The client value shows instantly and stays as the
+// fallback while the server result loads or if the request errors (labeled honestly).
+type AggResp = { op: string; value?: number; total_rows: number; truncated: boolean; unconverted: number; currency: string | null };
+function serverAggOp(kind: string | undefined, op: CalcOp): "count" | "sum" | "avg" | "min" | "max" | "filled" | "checked" | null {
+  if (!op) return null;
+  if (kind === "checkbox") return op === "filled" ? "filled" : "checked"; // checkbox "count" means checked
+  return op;
+}
+function formatAgg(kind: string | undefined, op: CalcOp, resp: AggResp, display: string): string {
+  const v = resp.value ?? 0;
+  const trunc = resp.truncated ? ` · first ${resp.total_rows.toLocaleString()}` : ` · over ${resp.total_rows.toLocaleString()}`;
+  if (op === "count") return `${v.toLocaleString()}`;
+  if (op === "filled") return `${Math.round((v / Math.max(resp.total_rows, 1)) * 100)}% filled${trunc}`;
+  if (kind === "checkbox") return `${v.toLocaleString()} checked${trunc}`;
+  if (kind === "currency") return formatMoney(v, resp.currency ?? display) + (resp.unconverted > 0 ? ` · ${resp.unconverted} unconverted` : "") + trunc;
+  if (kind === "percentage") return `${(v % 1 === 0 ? v : Number(v.toFixed(1))).toLocaleString()}%${trunc}`;
+  return `${v % 1 === 0 ? v.toLocaleString() : v.toFixed(2)}${trunc}`;
+}
+function ServerTotalValue({ objectType, col, op, kind, display, fallback }: {
+  objectType: string; col: string; op: CalcOp; kind: string | undefined; display: string; fallback: string;
+}) {
+  const aggOp = serverAggOp(kind, op);
+  const q = useQuery<AggResp>({
+    queryKey: ["records-agg", objectType, col, aggOp, kind === "currency"],
+    queryFn: () => apiClient.post<AggResp>("/records/aggregate", { object_type: objectType, column: col, op: aggOp, group_by: "none", currency: kind === "currency" }),
+    enabled: !!aggOp,
+    staleTime: 30_000,
+    retry: false,
+  });
+  // Loading or errored → keep the honest client subtotal (never a blank or a fake number).
+  if (!q.data) return <>{fallback}</>;
+  return <>{formatAgg(kind, op, q.data, display)}</>;
+}
+
 // ─── Calc dropdown ────────────────────────────────────────────────────────────
 function CalcDropdown({ col, current, onSelect, onClose, triggerRef, kind }: {
   col: string; current: CalcOp; onSelect: (op: CalcOp) => void; onClose: () => void;
@@ -3112,7 +3149,15 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
                         className="flex items-center gap-1.5 text-[11px] text-stone-400 hover:text-[var(--text-primary)] transition-colors tabular-nums font-mono">
                         <span className="text-stone-600 uppercase text-[10px] tracking-wide mr-0.5">{calculations[col]}</span>
-                        {calcResultTyped(calculations[col], col, sorted, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase })}
+                        {(() => {
+                          const clientStr = calcResultTyped(calculations[col], col, sorted, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase });
+                          // A filtered/searched view is a client subtotal (the endpoint has no filters
+                          // yet). Only reach for the authoritative full-table server total when the
+                          // client set already IS the full table.
+                          const isFiltered = !!filterText.trim() || quickFilters.length > 0 || !!filterQuery;
+                          if (isFiltered) return clientStr;
+                          return <ServerTotalValue objectType={objectType} col={col} op={calculations[col]} kind={effectiveType(col)} display={wsDisplay} fallback={clientStr} />;
+                        })()}
                       </button>
                     ) : (
                       <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}

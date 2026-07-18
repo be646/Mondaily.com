@@ -106,3 +106,23 @@ describe("Phase 2 — fuller server field-type adoption (select / multi_select /
     expect(table).not.toMatch(/\/invoices\/[^r]/); // only the pre-existing /invoices/rollup read remains
   });
 });
+
+describe("Phase 3 — footer uses the authoritative server total, client calc stays the fallback", () => {
+  it("posts to the generic aggregate endpoint with the resolved kind (currency flag) and op", () => {
+    expect(table).toMatch(/apiClient\.post<AggResp>\("\/records\/aggregate", \{ object_type: objectType, column: col, op: aggOp, group_by: "none", currency: kind === "currency" \}\)/);
+    expect(table).toMatch(/function serverAggOp/);
+    // checkbox "count" maps to the server "checked" op.
+    expect(table).toMatch(/if \(kind === "checkbox"\) return op === "filled" \? "filled" : "checked"/);
+  });
+  it("keeps the client subtotal instantly and on error (never blank, never a fake number)", () => {
+    expect(table).toMatch(/if \(!q\.data\) return <>\{fallback\}<\/>/);
+    expect(table).toMatch(/<ServerTotalValue objectType=\{objectType\} col=\{col\} op=\{calculations\[col\]\} kind=\{effectiveType\(col\)\} display=\{wsDisplay\} fallback=\{clientStr\}/);
+  });
+  it("only uses the full-table server total when the view is UNFILTERED (endpoint has no filters yet)", () => {
+    expect(table).toMatch(/const isFiltered = !!filterText\.trim\(\) \|\| quickFilters\.length > 0 \|\| !!filterQuery;\s*if \(isFiltered\) return clientStr;/);
+  });
+  it("labels truncation and unconverted amounts honestly (no silent full-coverage claim)", () => {
+    expect(table).toMatch(/resp\.truncated \? ` · first \$\{resp\.total_rows\.toLocaleString\(\)\}` : ` · over \$\{resp\.total_rows\.toLocaleString\(\)\}`/);
+    expect(table).toMatch(/resp\.unconverted > 0 \? ` · \$\{resp\.unconverted\} unconverted`/);
+  });
+});
