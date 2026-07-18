@@ -132,10 +132,15 @@ function ReportObjectCard({ obj }: { obj: ObjectType }) {
   // The selected field exists but is entirely empty → show "no data yet", never a misleading "0 Σ".
   const moneyEmpty = !!primary && filled === 0;
   const filledPct = (totalN != null && totalN > 0 && filled != null) ? Math.round((filled / totalN) * 100) : null;
-  const moneyStr = !moneyEmpty && money?.value != null
-    ? (primary?.type === "currency" ? formatMoney(money.value, money.currency ?? display)
-      : primary?.type === "percentage" ? `${(money.value % 1 === 0 ? money.value : Number(money.value.toFixed(1))).toLocaleString()}%`
-      : (money.value % 1 === 0 ? money.value.toLocaleString() : money.value.toFixed(2)))
+  // A ZERO sum is only trustworthy once we know the column actually has data — otherwise a transient
+  // (filled still loading) or errored probe would flash a misleading "0 Σ field". So render the sum
+  // only when it's non-zero, OR when the filled probe has settled with filled > 0 (a real all-zeros
+  // column). A non-zero sum always renders regardless of the filled probe.
+  const sumTrustworthy = money?.value != null && (money.value !== 0 || (filled != null && filled > 0));
+  const moneyStr = !moneyEmpty && sumTrustworthy
+    ? (primary?.type === "currency" ? formatMoney(money!.value!, money!.currency ?? display)
+      : primary?.type === "percentage" ? `${(money!.value! % 1 === 0 ? money!.value! : Number(money!.value!.toFixed(1))).toLocaleString()}%`
+      : (money!.value! % 1 === 0 ? money!.value!.toLocaleString() : money!.value!.toFixed(2)))
     : null;
   const top = topGroup(groupQ.data);
   // A card that can only ever show a plain record count (no numeric, checkbox, or group field) is

@@ -63,7 +63,7 @@ describe("Reports index — real record-backed KPI cards, honest + finance-safe"
     expect(index).toMatch(/const moneyEmpty = !!primary && filled === 0/);
     expect(index).toMatch(/no data yet/);
     // moneyStr is suppressed when the field is empty (never surface a fabricated-looking 0).
-    expect(index).toMatch(/const moneyStr = !moneyEmpty && money\?\.value != null/);
+    expect(index).toMatch(/const moneyStr = !moneyEmpty && sumTrustworthy/);
     // Completeness percent, shown only when partially filled.
     expect(index).toMatch(/filledPct != null && filledPct < 100/);
     expect(index).toMatch(/\{filledPct\}% filled/);
@@ -87,6 +87,12 @@ describe("Reports index — real record-backed KPI cards, honest + finance-safe"
     // All-empty candidates keep the first field (→ "no data yet"); reuses the winning probe's filled.
     expect(index).toMatch(/return \{ field: candidates\[0\]!, filled: first\?\.settled \? \(first\.filled \?\? 0\) : null \}/);
     expect(index).toMatch(/const \{ field: primary, filled \} = pickPrimaryField\(cands, probes\)/);
+  });
+  it("Phase 3j.1 — a zero sum is suppressed until the filled probe confirms data (no transient '0 Σ')", () => {
+    // A ZERO sum only renders once we KNOW the column has data: sum !== 0, OR filled settled > 0.
+    // While filled is unknown (loading/error) and sum is 0, the sum KPI is omitted — never "0 Σ field".
+    expect(index).toMatch(/const sumTrustworthy = money\?\.value != null && \(money\.value !== 0 \|\| \(filled != null && filled > 0\)\)/);
+    expect(index).toMatch(/const moneyStr = !moneyEmpty && sumTrustworthy/);
   });
   it("Phase 3j — probes reuse the SAME endpoint/op (filled); no new API, still fail-soft fallback", () => {
     // filled is an existing op — no backend/contract change.
