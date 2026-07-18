@@ -281,8 +281,8 @@ export function DecisionsPage() {
               {LANES.map(l => {
                 const on = lane === l.key; const n = laneCount(l.key);
                 return (
-                  <button key={l.key} onClick={() => setLane(l.key)}
-                    className="relative rounded-t-sm px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
+                  <button key={l.key} onClick={() => setLane(l.key)} aria-pressed={on} aria-label={`${l.label} lane, ${n}`}
+                    className="relative rounded-t-sm px-2.5 py-1.5 text-[11.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
                     style={{ color: on ? "var(--text-primary)" : "var(--text-muted)", borderBottom: `2px solid ${on ? "var(--section-accent)" : "transparent"}`, marginBottom: -9 }}
                     title={!l.open ? "Most recent resolved decisions (older history isn't loaded)" : undefined}>
                     {l.label} <span className="tabular-nums" style={{ color: "var(--text-faint)" }}>{n}</span>
@@ -293,14 +293,14 @@ export function DecisionsPage() {
             <div className="ml-auto flex flex-wrap items-center gap-1.5">
               <label className="relative block">
                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: "var(--text-faint)" }} />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search queue…"
-                  className="h-7 w-36 rounded-sm border bg-transparent pl-6.5 pr-2 text-[11.5px] outline-none focus:border-[var(--section-accent)]"
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search queue…" aria-label="Search the decision queue"
+                  className="h-7 w-36 rounded-sm border bg-transparent pl-6.5 pr-2 text-[11.5px] outline-none focus:border-[var(--section-accent)] focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
                   style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)", paddingLeft: "1.625rem" }} />
               </label>
               <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={[agentFilter, typeFilter, riskFilter, assigneeFilter].filter(Boolean).length} />
-              <button onClick={() => setSortRisk(s => !s)} disabled={lane === "approval" && !!triage}
+              <button onClick={() => setSortRisk(s => !s)} disabled={lane === "approval" && !!triage} aria-pressed={sortRisk}
                 title={lane === "approval" && triage ? "AI triage ranking is active — clear it to sort by risk" : "Order the list by risk level"}
-                className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-40"
+                className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[11px] font-medium transition-colors disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
                 style={sortRisk ? { borderColor: "var(--section-accent)", color: "var(--section-accent)" } : { borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
                 Risk first
               </button>
@@ -404,7 +404,8 @@ export function DecisionsPage() {
                       style={{ borderTop: i > 0 ? "1px solid var(--border-soft)" : undefined, borderLeft: `2px solid ${on ? RISK_DOT[d.risk_level] : "transparent"}`, background: on ? "var(--surface-selected)" : "transparent" }}>
                       {laneDef.key === "approval" && (
                         <input type="checkbox" checked={checked.has(d.id)} onChange={(e) => { const s = new Set(checked); e.target.checked ? s.add(d.id) : s.delete(d.id); setChecked(s); }}
-                          className="ml-1 h-3.5 w-3.5 shrink-0 accent-[var(--section-accent)]" onClick={(e) => e.stopPropagation()} />
+                          aria-label={`Select "${d.title}" for bulk action`}
+                          className="ml-1 h-3.5 w-3.5 shrink-0 accent-[var(--section-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" onClick={(e) => e.stopPropagation()} />
                       )}
                       <button onClick={() => select(d.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                         <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: RISK_DOT[d.risk_level] }} title={`${d.risk_level} risk`} />
@@ -570,6 +571,27 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           </div>
         </div>
 
+        {/* Identity / status summary — the packet's at-a-glance line: real state, whether approving
+            runs an action, and how long it has waited. All from recorded fields; nothing invented. */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-sm border px-3.5 py-2.5 text-[11px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Status</span>
+            <span className="font-medium capitalize" style={{ color: "var(--text-secondary)" }}>{d.status}</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>On approval</span>
+            <span className="inline-flex items-center gap-1 font-medium" style={{ color: d.execution_preview?.side_effect ? "#c6892e" : "var(--text-secondary)" }}>
+              {d.execution_preview?.side_effect ? <><Zap size={10} /> runs an action</> : "advisory only"}
+            </span>
+          </span>
+          {lane.open && (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Waiting</span>
+              <span className="font-medium" style={{ color: "var(--text-secondary)" }}>{relTime(d.created_at)}</span>
+            </span>
+          )}
+        </div>
+
         {/* Agent reasoning — the rationale + confidence the reasoning layer produced (RAG + learned
             preferences + the reasoning model). Only present when the agent actually reasoned. */}
         {reasoning && (
@@ -586,6 +608,14 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
             </div>
             <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{reasoning}</p>
           </div>
+        )}
+
+        {/* What your agent found — the summary that triggered this. Lifted to the top of the packet
+            so the reader sees the finding before the proposed change. Shared DossierSection block. */}
+        {d.summary && (
+          <DossierSection title="Why your agent raised this">
+            <p className="break-words text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{d.summary}</p>
+          </DossierSection>
         )}
 
         {/* Proposed change — shared DossierSection (flat, no extra card frame). Editable via the
@@ -652,6 +682,15 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           </div>
         </DossierSection>
 
+        {/* Evidence — what the proposal is grounded on. Source-backed rows only, never invented.
+            Placed before Impact so the reader weighs the proof before what approving will do. */}
+        {sources.length > 0 && (
+          <DossierSection title="Evidence">
+            <p className="mb-2 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Source-backed — the recorded items this proposal is grounded on.</p>
+            <div className="flex flex-wrap gap-1.5">{sources.map((s, i) => <SourceCard key={i} source={s} />)}</div>
+          </DossierSection>
+        )}
+
         {/* Impact — exactly what approving does (real, mirrors backend execution) */}
         {d.execution_preview && (
           <DossierSection icon={PlayCircle} title={`Impact${d.execution_preview.side_effect ? " · runs an action" : " · advisory"}`}>
@@ -659,22 +698,8 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           </DossierSection>
         )}
 
-        {/* AI verdict — structured, grounded adjudication (open lanes only) */}
+        {/* AI verdict — structured, grounded adjudication (open lanes only). Advisory: what to review. */}
         {lane.open && <DecisionVerdict decision={d} />}
-
-        {/* Why — shared DossierSection block */}
-        {d.summary && (
-          <DossierSection title="Why your agent raised this">
-            <p className="break-words text-[13px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{d.summary}</p>
-          </DossierSection>
-        )}
-
-        {/* Evidence — shared DossierSection block */}
-        {sources.length > 0 && (
-          <DossierSection title="Evidence">
-            <div className="flex flex-wrap gap-1.5">{sources.map((s, i) => <SourceCard key={i} source={s} />)}</div>
-          </DossierSection>
-        )}
 
         {/* AI reasoning — shared collapsible DossierSection (only when LLM-generated). */}
         {d.generation_context?.user_prompt && (
@@ -746,12 +771,17 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
               <button onClick={() => setSnoozeOpen(false)} className="ml-auto btn-icon h-7 w-7"><XCircle size={13} /></button>
             </div>
           )}
+          {/* The gate is human. The agent only proposed this — separate its proposal (above) from
+              your approval (below). Nothing runs until a person acts here. */}
+          <div className="flex items-center gap-1.5 px-3 pt-2.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+            <ShieldAlert size={11} className="shrink-0" /> Agent proposal · your approval required — nothing runs until you act.
+          </div>
           <div className="flex items-center gap-2 p-3">
-            <button onClick={() => onResolve(d, "approve")} disabled={busy} className="flex flex-1 items-center justify-center gap-2 rounded-sm border px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-60"
+            <button onClick={() => onResolve(d, "approve")} disabled={busy} aria-label="Approve and run this decision" className="flex flex-1 items-center justify-center gap-2 rounded-sm border px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
               style={{ borderColor: "color-mix(in srgb, #2f9e6b 55%, transparent)", background: "color-mix(in srgb, #2f9e6b 14%, transparent)", color: "#2f9e6b" }}>
               {busy && acting?.action === "approve" ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Approve &amp; run
             </button>
-            <button onClick={() => setRejectOpen(o => !o)} disabled={busy} className="flex items-center gap-2 rounded-sm border px-4 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60"
+            <button onClick={() => setRejectOpen(o => !o)} disabled={busy} aria-label="Reject this decision" className="flex items-center gap-2 rounded-sm border px-4 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
               style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-secondary)" }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = "#d1524a"; e.currentTarget.style.color = "#d1524a"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>

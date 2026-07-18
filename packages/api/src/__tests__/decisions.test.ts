@@ -170,3 +170,53 @@ describe("Decisions 2.0 round 2 — cockpit functions stay honest", () => {
     expect(page).toMatch(/memberLabel\(members, d\.resolved_by\)/);
   });
 });
+
+// ── Premium approval-cockpit redesign pass (packet hierarchy, human gate, source-backed, a11y) ──
+describe("Decisions cockpit — approval-packet hierarchy + honest human gate", () => {
+  const page = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/decisions.tsx", import.meta.url)), "utf8");
+
+  it("the dossier opens with an at-a-glance identity/status summary built from real fields", () => {
+    // Status + what approving does + how long it has waited — no invented numbers.
+    expect(page).toMatch(/Identity \/ status summary/);
+    expect(page).toMatch(/On approval/);
+    // The 'runs an action' vs 'advisory only' split reads straight off the real execution_preview flag.
+    expect(page).toMatch(/d\.execution_preview\?\.side_effect \? <><Zap size=\{10\} \/> runs an action<\/> : "advisory only"/);
+  });
+
+  it("packet order puts Evidence before Impact and labels evidence as source-backed", () => {
+    const idxWhy = page.indexOf('title="Why your agent raised this"');
+    const idxProposed = page.indexOf('title="Proposed change"');
+    const idxEvidence = page.indexOf('title="Evidence"');
+    const idxImpact = page.indexOf("title={`Impact${");
+    const idxVerdict = page.indexOf("lane.open && <DecisionVerdict");
+    // what the agent found → what will change → what evidence → what happens → what to review
+    expect(idxWhy).toBeGreaterThan(0);
+    expect(idxWhy).toBeLessThan(idxProposed);
+    expect(idxProposed).toBeLessThan(idxEvidence);
+    expect(idxEvidence).toBeLessThan(idxImpact);
+    expect(idxImpact).toBeLessThan(idxVerdict);
+    // Evidence is explicitly labelled source-backed (honest grounding, not a confidence number).
+    expect(page).toMatch(/Source-backed — the recorded items this proposal is grounded on\./);
+  });
+
+  it("the action bar separates the agent's proposal from the required human approval", () => {
+    expect(page).toMatch(/Agent proposal · your approval required — nothing runs until you act\./);
+  });
+
+  it("AI verdict stays advisory and never wires an execute path", () => {
+    const verdictUi = page.slice(page.indexOf("function DecisionVerdict"));
+    expect(verdictUi).toMatch(/Advisory only — nothing runs until you act below/);
+    expect(verdictUi).not.toMatch(/\/approve|\/reject|\/bulk/);
+  });
+
+  it("no fake presence/live/confidence language leaks into the cockpit", () => {
+    expect(page).not.toMatch(/online now|is thinking|AI is (live|working)|live now|typing…/i);
+  });
+
+  it("key controls are keyboard-reachable with focus-visible rings + labels", () => {
+    expect(page).toMatch(/aria-label="Search the decision queue"/);
+    expect(page).toMatch(/aria-pressed=\{sortRisk\}/);
+    expect(page).toMatch(/aria-label=\{`Select "\$\{d\.title\}" for bulk action`\}/);
+    expect((page.match(/focus-visible:ring-2/g) ?? []).length).toBeGreaterThanOrEqual(6);
+  });
+});
