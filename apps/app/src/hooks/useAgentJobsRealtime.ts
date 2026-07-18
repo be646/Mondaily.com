@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { apiClient } from "../lib/api-client";
+import { realtimeDown, markRealtimeDown } from "./useTableRealtime";
 
 /**
  * True real-time for the agent ops center via Supabase Realtime, bridged from Clerk.
@@ -27,6 +28,7 @@ export function useAgentJobsRealtime(onChange: () => void): { current: boolean }
     let channel: any = null;
 
     (async () => {
+      if (realtimeDown()) return;   // already failed this session → keep adaptive polling, no doomed socket
       const cfg = await apiClient
         .get<{ enabled: boolean; token?: string; url?: string; anonKey?: string; workspaceId?: string }>("/realtime/token")
         .catch(() => null);
@@ -36,7 +38,7 @@ export function useAgentJobsRealtime(onChange: () => void): { current: boolean }
       if (cancelled) return;
       client = createClient(cfg.url, cfg.anonKey, {
         auth: { persistSession: false, autoRefreshToken: false },
-        realtime: { params: { eventsPerSecond: 5 } },
+        realtime: { params: { eventsPerSecond: 5 }, reconnectAfterMs: () => 1_000_000 },
       });
       client.realtime.setAuth(cfg.token);
       channel = client
@@ -47,7 +49,15 @@ export function useAgentJobsRealtime(onChange: () => void): { current: boolean }
           () => cb.current(),
         )
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .subscribe((status: string) => { if (status === "SUBSCRIBED") live.current = true; });
+        .subscribe((status: string) => {
+          if (status === "SUBSCRIBED") { live.current = true; return; }
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            live.current = false;
+            markRealtimeDown();
+            try { client.removeChannel(channel); } catch { /* ignore */ }
+            try { client.realtime.disconnect(); } catch { /* ignore */ }
+          }
+        });
     })();
 
     return () => {

@@ -1,6 +1,15 @@
 import { useEffect, useRef } from "react";
 import { apiClient } from "../lib/api-client";
 
+// Per-session flag: once the Supabase realtime WS has failed (e.g. the deployment's anon apikey isn't
+// accepted by the realtime endpoint), we stop reopening a doomed socket on every hook mount. Realtime
+// is only a latency enhancement — every consumer already polls — so this fails silently, never breaking
+// notifications / unread / live updates. Cleared naturally on a new browser session (or when the env
+// is fixed, the WS subscribes and the flag is never set).
+const RT_DOWN_KEY = "mondaily_realtime_down";
+export const realtimeDown = () => { try { return typeof sessionStorage !== "undefined" && sessionStorage.getItem(RT_DOWN_KEY) === "1"; } catch { return false; } };
+export const markRealtimeDown = () => { try { sessionStorage.setItem(RT_DOWN_KEY, "1"); } catch { /* ignore */ } };
+
 /**
  * Generic workspace-scoped Supabase Realtime subscription. Fetches a short-lived Supabase
  * JWT from our API (/realtime/token), then opens a postgres_changes channel on `table`
@@ -27,6 +36,7 @@ export function useTableRealtime(table: string, onChange: () => void): { current
     let channel: any = null;
 
     (async () => {
+      if (realtimeDown()) return;   // already failed this session → poll silently, no doomed socket
       const cfg = await apiClient
         .get<{ enabled: boolean; token?: string; url?: string; anonKey?: string; workspaceId?: string }>("/realtime/token")
         .catch(() => null);
@@ -36,7 +46,7 @@ export function useTableRealtime(table: string, onChange: () => void): { current
       if (cancelled) return;
       client = createClient(cfg.url, cfg.anonKey, {
         auth: { persistSession: false, autoRefreshToken: false },
-        realtime: { params: { eventsPerSecond: 5 } },
+        realtime: { params: { eventsPerSecond: 5 }, reconnectAfterMs: () => 1_000_000 },
       });
       client.realtime.setAuth(cfg.token);
       channel = client
@@ -47,7 +57,17 @@ export function useTableRealtime(table: string, onChange: () => void): { current
           () => cb.current(),
         )
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .subscribe((status: string) => { if (status === "SUBSCRIBED") live.current = true; });
+        .subscribe((status: string) => {
+          if (status === "SUBSCRIBED") { live.current = true; return; }
+          // Bridge unavailable (WS rejected) → mark down for the session + tear the socket down so
+          // supabase-js stops retrying and spamming the console. Polling stays the source of truth.
+          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+            live.current = false;
+            markRealtimeDown();
+            try { client.removeChannel(channel); } catch { /* ignore */ }
+            try { client.realtime.disconnect(); } catch { /* ignore */ }
+          }
+        });
     })();
 
     return () => {

@@ -5,6 +5,7 @@ import { Lock, ArrowLeft, Loader2, User as UserIcon, ShieldCheck, MessageSquare,
 import { apiClient } from "../../lib/api-client";
 import { requestCall } from "../../lib/call-bus";
 import { FieldSelect, CommandPageHeader, MetricGrid, DossierSection } from "../../components/ui/controls";
+import { ErrorState } from "../../components/ui/page-state";
 import { SuggestionHints } from "../../components/ui/ai-button";
 import { PeriodSelector } from "../../components/ui/period-selector";
 import { usePeriod, type Period } from "../../lib/period";
@@ -607,7 +608,7 @@ export function TeamOversightPage() {
   const [period, setPeriod] = usePeriod("mondaily_oversight_period");
   const days = PERIOD_TO_DAYS[period];
 
-  const { data, isLoading, isError, error } = useQuery<MatrixResp>({
+  const { data, isLoading, isError, error, refetch } = useQuery<MatrixResp>({
     queryKey: ["oversight-matrix", days],
     queryFn: () => apiClient.get<MatrixResp>(`/activities/oversight-matrix?days=${days}`),
     refetchInterval: 30_000,
@@ -696,6 +697,10 @@ export function TeamOversightPage() {
       </div>
       {isLoading ? (
         <div className="flex items-center gap-2 py-16 text-[13px]" style={{ color: "var(--text-muted)" }}><Loader2 size={15} className="animate-spin" /> Loading team activity…</div>
+      ) : isError ? (
+        // A non-403 failure previously fell through to "No members yet" (misleading). Show an honest
+        // retryable error instead — shared primitive, no internals exposed.
+        <ErrorState error={new Error("Couldn't load Team Intelligence right now.")} onRetry={() => refetch()} />
       ) : operators.length === 0 ? (
         <div className="rounded-sm border px-5 py-14 text-center" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
           <Users size={20} className="mx-auto mb-2" style={{ color: "var(--text-faint)" }} />
