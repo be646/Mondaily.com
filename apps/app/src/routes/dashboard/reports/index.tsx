@@ -231,8 +231,12 @@ function ExecutiveOverview({ objects, stats }: { objects: ObjectType[]; stats: R
   const nameOf = (slug: string) => objects.find(o => o.slug === slug)?.name_plural ?? slug;
 
   // Data readiness — honest completeness signals across the loaded cards.
+  //  • withData: a numeric field that actually has values (any fill > 0), including fully-filled.
+  //  • partial:  that field is only partially populated (0 < fill < 100).
+  //  • empty:    a numeric field that settled with no data. • noField: no numeric field at all.
   const noNumeric = loaded.filter(([, s]) => !s.hasNumeric).length;
   const noDataYet = loaded.filter(([, s]) => s.hasNumeric && s.noData).length;
+  const withData  = loaded.filter(([, s]) => s.hasNumeric && !s.noData && s.filledPct != null && s.filledPct > 0).length;
   const partial   = loaded.filter(([, s]) => s.filledPct != null && s.filledPct > 0 && s.filledPct < 100).length;
 
   // Value signal — a SINGLE top object by trustworthy sum (never a cross-object total; different value
@@ -283,8 +287,8 @@ function ExecutiveOverview({ objects, stats }: { objects: ObjectType[]; stats: R
         <Cell label="Data readiness">
           {loadedCount === 0 ? <span style={{ color: "var(--text-faint)" }}>—</span> : (
             <span>
-              <span className="tabular-nums font-medium" style={{ color: partial ? "#2f9e6b" : "var(--text-secondary)" }}>{partial}</span>
-              <span style={{ color: "var(--text-faint)" }}> with data · </span>
+              <span className="tabular-nums font-medium" style={{ color: withData ? "#2f9e6b" : "var(--text-secondary)" }}>{withData}</span>
+              <span style={{ color: "var(--text-faint)" }}> with data{partial ? ` (${partial} partial)` : ""} · </span>
               <span className="tabular-nums" style={{ color: noDataYet ? "#c6892e" : "var(--text-faint)" }}>{noDataYet} empty</span>
               <span style={{ color: "var(--text-faint)" }}> · {noNumeric} no field</span>
             </span>
@@ -315,8 +319,8 @@ function ExecutiveOverview({ objects, stats }: { objects: ObjectType[]; stats: R
               </Link>
             )}
             {financeObj && (
-              <Link to={`/reports/sales?object=${financeObj.slug}`} className="inline-flex items-center gap-0.5 hover:underline" style={{ color: "var(--text-muted)" }}>
-                Finance report <ArrowRight size={11} />
+              <Link to="/finance/reports" className="inline-flex items-center gap-0.5 hover:underline" style={{ color: "var(--text-muted)" }}>
+                Finance reports <ArrowRight size={11} />
               </Link>
             )}
           </div>

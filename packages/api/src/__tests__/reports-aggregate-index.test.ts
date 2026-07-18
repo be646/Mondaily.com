@@ -129,11 +129,18 @@ describe("Phase 3k — Reports Executive Overview (derived from card aggregates,
     expect(index).toMatch(/Computed from records · all-time · visible cards only/);
     expect(index).toMatch(/loadedCount\}\/\{objects\.length\} types loaded/);
   });
-  it("has data-readiness signals (partial / empty / no-field), labelled — not AI magic", () => {
+  it("has data-readiness signals (with-data / partial / empty / no-field), labelled — not AI magic", () => {
     expect(index).toMatch(/Data readiness/);
     expect(index).toMatch(/const noNumeric = loaded\.filter\(\(\[, s\]\) => !s\.hasNumeric\)\.length/);
     expect(index).toMatch(/const noDataYet = loaded\.filter\(\(\[, s\]\) => s\.hasNumeric && s\.noData\)\.length/);
     expect(index).toMatch(/s\.filledPct > 0 && s\.filledPct < 100/);
+  });
+  it("Phase 3k.1 — 'with data' label maps to a real with-data metric (not the partial count)", () => {
+    // withData counts numeric fields that actually have values (incl. fully filled), NOT partial-only.
+    expect(index).toMatch(/const withData  = loaded\.filter\(\(\[, s\]\) => s\.hasNumeric && !s\.noData && s\.filledPct != null && s\.filledPct > 0\)\.length/);
+    // The "with data" number rendered is `withData`; the partial count is a parenthetical, never mislabeled.
+    expect(index).toMatch(/\{withData\}<\/span>/);
+    expect(index).toMatch(/> with data\{partial \? ` \(\$\{partial\} partial\)` : ""\} · </);
   });
   it("value signal is a single top object (no cross-object total) + honest empty state", () => {
     expect(index).toMatch(/if \(!topValue \|\| s\.sum > topValue\.sum\)/);
@@ -146,6 +153,12 @@ describe("Phase 3k — Reports Executive Overview (derived from card aggregates,
     expect(index).toMatch(/Review sparse data/);
     expect(index).toMatch(/const financeObj = objects\.find\(o => groupOf\(o\) === "revenue"\)/);
     expect(index).toMatch(/to=\{`\/reports\/sales\?object=\$\{strongest\}`\}/);
+  });
+  it("Phase 3k.1 — the finance next-step label matches its real route (/finance/reports)", () => {
+    // Labelled "Finance reports" → must go to the actual finance reports route, not an object report.
+    expect(index).toMatch(/<Link to="\/finance\/reports"[\s\S]*?Finance reports/);
+    // The finance link no longer points at /reports/sales for the revenue object.
+    expect(index).not.toMatch(/to=\{`\/reports\/sales\?object=\$\{financeObj\.slug\}`\}/);
   });
   it("adds NO aggregate calls of its own + no fake AI/live language", () => {
     // The overview reads cardStats only — it never calls useRecordAggregate itself.
