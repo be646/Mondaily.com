@@ -10,6 +10,17 @@ import { useAskContextStore } from "../../../lib/ask-context-store";
 interface DashboardItem { id: string; name?: string; updated_at: string; widgets?: unknown[] }
 interface ObjectType   { slug: string; name_plural: string }
 
+// Group live reports by PURPOSE instead of one flat wall of near-identical cards. Each object type is
+// matched to the first category whose pattern hits its slug/name; anything unmatched falls to "Other".
+// Purely presentational — every object still links to the same live report.
+const REPORT_GROUPS: { key: string; label: string; match: RegExp }[] = [
+  { key: "revenue",  label: "Revenue & finance", match: /deal|invoice|expense|payment|tax|cost|quote|credit|billing|revenue|order/i },
+  { key: "people",   label: "Relationships",     match: /compan|people|person|contact|lead|investor|partner|client|account|employee|patient|doctor/i },
+  { key: "ops",      label: "Operations",        match: /task|project|ticket|asset|training|visit|feature|ops|activit|event/i },
+  { key: "other",    label: "Other records",     match: /.*/ },
+];
+const groupOf = (o: ObjectType) => (REPORT_GROUPS.find(g => g.match.test(`${o.slug} ${o.name_plural}`)) ?? REPORT_GROUPS[REPORT_GROUPS.length - 1]!).key;
+
 
 function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) => void; onClose: () => void }) {
   const [name, setName] = useState("");
@@ -102,34 +113,35 @@ export function ReportsPage() {
         ) : objects.length === 0 ? (
           <EmptyState icon={BarChart2} title="No object types yet" description="Reports appear here once your workspace has record types to analyse." />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {objects.map(obj => (
-              <Link
-                key={obj.slug}
-                to={`/reports/sales?object=${obj.slug}`}
-                className="group flex flex-col gap-2.5 overflow-hidden rounded-sm border p-4 transition-colors hover:border-[var(--section-accent)]"
-                style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm border"
-                    style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>
-                    <BarChart2 size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>{obj.name_plural}</p>
-                    {/* Honest scope — live reports recompute from real records on open (no stored run). */}
-                    <p className="mt-0.5 truncate text-[11px]" style={{ color: "var(--text-muted)" }}>Computed from your {obj.name_plural.toLowerCase()} on open</p>
-                  </div>
-                  <ArrowRight size={14} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
-                </div>
-                {/* Real capabilities every live report provides — AI is "on demand" (generated on the
-                    report page), never claimed as pre-computed. */}
-                <div className="flex flex-wrap gap-1">
-                  {["KPIs", "Charts", "Filters", "AI insights on demand"].map(cap => (
-                    <span key={cap} className="rounded-sm border px-1.5 py-0.5 text-[9.5px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{cap}</span>
+          // Grouped by purpose (Revenue / Relationships / Operations / Other) so the list is scannable
+          // instead of one wall of identical cards. The repeated per-card capability chips are gone —
+          // "AI insights on demand" is stated once in the section badge above.
+          <div className="space-y-6">
+            {REPORT_GROUPS.filter(g => objects.some(o => groupOf(o) === g.key)).map(group => (
+              <div key={group.key}>
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{group.label}</p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {objects.filter(o => groupOf(o) === group.key).map(obj => (
+                    <Link
+                      key={obj.slug}
+                      to={`/reports/sales?object=${obj.slug}`}
+                      className="group flex items-center gap-3 overflow-hidden rounded-sm border p-3.5 transition-colors hover:border-[var(--section-accent)]"
+                      style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border"
+                        style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>
+                        <BarChart2 size={16} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{obj.name_plural}</p>
+                        {/* Honest scope — live reports recompute from real records on open (no stored run). */}
+                        <p className="mt-0.5 truncate text-[11px]" style={{ color: "var(--text-muted)" }}>Computed from your {obj.name_plural.toLowerCase()} on open</p>
+                      </div>
+                      <ArrowRight size={14} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
+                    </Link>
                   ))}
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}

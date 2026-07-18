@@ -471,6 +471,15 @@ describe("Reports control room — honest cards + responsive finance stats + rea
     expect(reportsIndex).toContain("reports/sales?object=");
     expect(reportsIndex).toContain("createDashboard");
   });
+  it("Reports index is grouped by purpose + decluttered (no repeated per-card capability chip wall)", () => {
+    // Live reports are grouped (Revenue / Relationships / Operations / Other) instead of one flat wall.
+    expect(reportsIndex).toMatch(/REPORT_GROUPS/);
+    expect(reportsIndex).toContain('label: "Revenue & finance"');
+    expect(reportsIndex).toMatch(/groupOf\(o\) === group\.key/);
+    // The repeated 4-chip row per card is gone — "AI insights on demand" is stated once (section badge),
+    // and the per-card "KPIs/Charts/Filters" chip array no longer exists.
+    expect(reportsIndex).not.toMatch(/\["KPIs", "Charts", "Filters", "AI insights on demand"\]/);
+  });
   it("Finance report stat cards wrap responsively (no horizontal clipping of totals)", () => {
     expect(stylesCss).toMatch(/\.telemetry-strip\s*\{[^}]*flex-wrap:\s*wrap/);
   });
