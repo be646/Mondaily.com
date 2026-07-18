@@ -75,10 +75,11 @@ describe("Phase 3e — Sales Report switches only the semantics-identical KPIs t
     expect(sales).toMatch(/field: "updated_at", from: start\.toISOString\(\), to: end\.toISOString\(\)/);
     expect(sales).toMatch(/Object\.entries\(activeFilters\)\.filter\(\(\[, v\]\) => !!v\)\.map\(\(\[column, value\]\) => \(\{ column, value \}\)\)/);
   });
-  it("Total Value only switches for STAGE-LESS objects (won/lost is never invented server-side)", () => {
+  it("Total Value (stage-less) uses a plain server sum; Won Value (staged) uses the grouped-derived value", () => {
+    // The plain sum only runs for stage-less objects — won/lost is never inferred by the endpoint.
     expect(sales).toMatch(/op: "sum", currency: true, dateFilter, filters: aggFilters, enabled: !!activeSlug && !!valueCol && !stageCol/);
-    // the Won Value card still uses the CLIENT stat (stage-derived, unchanged)
-    expect(sales).toMatch(/hasStage \? \(stats\.wonValue \|\| stats\.totalValue\) : kTotalValue/);
+    // Phase 3f: the Won Value card now uses the FRONTEND-classified grouped value (kWonValue).
+    expect(sales).toMatch(/hasStage \? \(kWonValue \|\| \(sStage\?\.totalValue \?\? stats\.totalValue\)\) : kTotalValue/);
   });
   it("server value is preferred but falls back to the client stat (never blank, never fake)", () => {
     expect(sales).toMatch(/const kTotalCount = serverCount\.data\?\.value \?\? stats\.totalCount/);
@@ -86,13 +87,48 @@ describe("Phase 3e — Sales Report switches only the semantics-identical KPIs t
   });
   it("provenance is honest — server total, over N / first N (truncated), K unconverted", () => {
     expect(sales).toMatch(/server total/);
-    expect(sales).toMatch(/serverCount\.data!\.truncated \?/);
-    expect(sales).toMatch(/first \{serverCount\.data!\.total_rows\.toLocaleString\(\)\}/);
-    expect(sales).toMatch(/over \{serverCount\.data!\.total_rows\.toLocaleString\(\)\}/);
-    expect(sales).toMatch(/serverValue\.data!\.unconverted\} unconverted/);
+    // note now uses a shared scope (count or stage-grouped) + a combined unconverted total
+    expect(sales).toMatch(/scope\.truncated \?/);
+    expect(sales).toMatch(/first \{scope\.total_rows\.toLocaleString\(\)\}/);
+    expect(sales).toMatch(/over \{scope\.total_rows\.toLocaleString\(\)\}/);
+    expect(sales).toMatch(/serverUnconverted > 0 && <span[^>]*> · \{serverUnconverted\} unconverted<\/span>/);
   });
   it("no finance recomputation / formula / schema in the sales report switch", () => {
     expect(sales).not.toMatch(/\/invoices\/rollup|makeBaseConverter|outstanding/);
     expect(sales).not.toMatch(/new Function/);
+  });
+});
+
+describe("Phase 3f — stage-derived KPIs from ONE grouped aggregate, classified on the frontend", () => {
+  it("issues a grouped aggregate on the stage column (currency-aware, date + equality scoped)", () => {
+    expect(sales).toMatch(/const serverStage = useRecordAggregate\(\{\s*objectType: activeSlug, column: valueCol \?\? "name", op: valueCol \? "sum" : "count",\s*groupBy: stageCol \?\? "none", currency: !!valueCol, dateFilter, filters: aggFilters,/);
+  });
+  it("won/lost/open classification happens on the FRONTEND via the existing isWon/isLost/isOpen", () => {
+    expect(sales).toMatch(/function deriveStageStats\(groups: StageGroup\[\], hasValue: boolean\)/);
+    expect(sales).toMatch(/if \(isWon\(g\.label\)\)\s+\{ wonValue \+= val; wonCount \+= g\.count; \}/);
+    expect(sales).toMatch(/if \(isLost\(g\.label\)\) \{ lostCount \+= g\.count; \}/);
+    expect(sales).toMatch(/if \(isOpen\(g\.label\)\)\s+\{ openValue \+= val; openCount \+= g\.count; \}/);
+    // completion + avg reconstructed with the SAME formulas the client computeStats uses
+    expect(sales).toMatch(/completionRate = \(wonCount \+ lostCount\) > 0 \? Math\.round\(wonCount \/ \(wonCount \+ lostCount\) \* 100\) : 0/);
+    expect(sales).toMatch(/avgVal = wonCount \? Math\.round\(wonValue \/ wonCount\) : \(totalCount \? Math\.round\(totalValue \/ totalCount\) : 0\)/);
+  });
+  it("the 5 stage KPIs prefer the server value, falling back to the client stat", () => {
+    for (const k of [
+      /const kWonValue   = sStage\?\.wonValue \?\? stats\.wonValue/,
+      /const kCompletion = sStage\?\.completionRate \?\? stats\.completionRate/,
+      /const kOpenValue  = sStage\?\.openValue \?\? stats\.openValue/,
+      /const kOpenCount  = sStage\?\.openCount \?\? stats\.openCount/,
+      /const kAvg        = sStage\?\.avgVal \?\? stats\.avgVal/,
+    ]) expect(sales).toMatch(k);
+    // the cards render the k* values (server-preferred), not the raw client stats
+    expect(sales).toMatch(/value=\{hasStage \? `\$\{kCompletion\}%`/);
+    expect(sales).toMatch(/fmtMoney\(kOpenValue, curSym\)/);
+    expect(sales).toMatch(/fmtNum\(hasStage \? kOpenCount : records\.length\)/);
+  });
+  it("stays backend-generic: NO value_in, NO backend stage semantics (isWon lives only in the frontend)", () => {
+    const route = read("../routes/records.ts");
+    const agg = read("../lib/aggregate.ts");
+    expect(route).not.toMatch(/value_in|isWon|isLost|isOpen|won|lost/i);
+    expect(agg).not.toMatch(/value_in|isWon|isLost|isOpen/);
   });
 });

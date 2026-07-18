@@ -46,6 +46,25 @@ function isWon(stage: string)  { return WON_KEYWORDS.some(k  => stage.toLowerCas
 function isLost(stage: string) { return LOST_KEYWORDS.some(k => stage.toLowerCase().includes(k)); }
 function isOpen(stage: string) { return !isWon(stage) && !isLost(stage); }
 
+// Phase 3f — reconstruct the stage-derived KPIs from ONE grouped server aggregate (group_by=stageCol).
+// The backend stays generic: it only groups by the raw stage column. ALL won/lost/open classification
+// happens HERE with the SAME isWon/isLost/isOpen used client-side, so the numbers match today's logic
+// exactly — just computed over the full (date+filter-scoped, capped) table instead of the 500-row page.
+type StageGroup = { label: string; value: number; count: number; unconverted: number };
+function deriveStageStats(groups: StageGroup[], hasValue: boolean) {
+  let wonValue = 0, openValue = 0, wonCount = 0, lostCount = 0, openCount = 0, totalValue = 0, totalCount = 0, unconverted = 0;
+  for (const g of groups) {
+    const val = hasValue ? g.value : 0; // for op:"count", g.value === g.count (not money) — ignore as value
+    totalCount += g.count; totalValue += val; unconverted += g.unconverted;
+    if (isWon(g.label))  { wonValue += val; wonCount += g.count; }
+    if (isLost(g.label)) { lostCount += g.count; }
+    if (isOpen(g.label)) { openValue += val; openCount += g.count; }
+  }
+  const completionRate = (wonCount + lostCount) > 0 ? Math.round(wonCount / (wonCount + lostCount) * 100) : 0;
+  const avgVal = wonCount ? Math.round(wonValue / wonCount) : (totalCount ? Math.round(totalValue / totalCount) : 0);
+  return { wonValue, openValue, wonCount, lostCount, openCount, totalValue, totalCount, completionRate, avgVal, unconverted };
+}
+
 // Currency symbol defaults to "$" so any untouched caller keeps working; the report threads the
 // workspace's real display symbol (from useCurrency) through so £/€ workspaces never see "$".
 function fmtMoney(n: number, sym = "$") {
@@ -1105,7 +1124,27 @@ export function SalesReportPage() {
   const serverValue = useRecordAggregate({ objectType: activeSlug, column: valueCol ?? "", op: "sum", currency: true, dateFilter, filters: aggFilters, enabled: !!activeSlug && !!valueCol && !stageCol });
   const kTotalCount = serverCount.data?.value ?? stats.totalCount;   // server full-table count, else client
   const kTotalValue = serverValue.data?.value ?? stats.totalValue;   // server full-table sum (stage-less), else client
-  const serverBacked = !!serverCount.data;
+
+  // ── Phase 3f — stage-derived KPIs from ONE grouped aggregate on the stage column ──
+  // Backend only groups by the raw stage column (already supported); we classify the returned labels
+  // client-side with the same isWon/isLost/isOpen. Currency-aware (op:sum when there's a value column),
+  // same date + equality scope, capped/truncation-honest. Falls back to the client 500-row stats.
+  const serverStage = useRecordAggregate({
+    objectType: activeSlug, column: valueCol ?? "name", op: valueCol ? "sum" : "count",
+    groupBy: stageCol ?? "none", currency: !!valueCol, dateFilter, filters: aggFilters,
+    enabled: !!activeSlug && !!stageCol,
+  });
+  const sStage = useMemo(() => {
+    const groups = serverStage.data?.groups;
+    return groups ? deriveStageStats(groups as StageGroup[], !!valueCol) : null;
+  }, [serverStage.data, valueCol]);
+  const kWonValue   = sStage?.wonValue ?? stats.wonValue;
+  const kCompletion = sStage?.completionRate ?? stats.completionRate;
+  const kOpenValue  = sStage?.openValue ?? stats.openValue;
+  const kOpenCount  = sStage?.openCount ?? stats.openCount;
+  const kAvg        = sStage?.avgVal ?? stats.avgVal;
+  const serverBacked = !!serverCount.data || !!sStage;
+  const serverUnconverted = (serverValue.data?.unconverted ?? 0) + (serverStage.data?.unconverted ?? 0);
 
 
   const topRecords = useMemo(() => {
@@ -1503,21 +1542,21 @@ export function SalesReportPage() {
             <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 print:gap-3">
               <KpiCard sym={curSym} primary
                 label={hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records"}
-                value={hasValue ? fmtMoney(hasStage ? (stats.wonValue || stats.totalValue) : kTotalValue, curSym) : fmtNum(kTotalCount)}
-                sub={hasStage ? `${stats.wonCount} completed` : `${kTotalCount} total`}
+                value={hasValue ? fmtMoney(hasStage ? (kWonValue || (sStage?.totalValue ?? stats.totalValue)) : kTotalValue, curSym) : fmtNum(kTotalCount)}
+                sub={hasStage ? `${sStage?.wonCount ?? stats.wonCount} completed` : `${kTotalCount} total`}
                 tone="#2f9e6b"
                 trend="up"
                 delta={pctDelta(hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount, hasValue ? (prevStats.wonValue || prevStats.totalValue) : prevStats.totalCount)}
                 goal={goal}
-                goalValue={hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount}
+                goalValue={hasValue ? (hasStage ? (kWonValue || (sStage?.totalValue ?? stats.totalValue)) : kTotalValue) : kTotalCount}
                 onSetGoal={() => setEditingGoal(true)}
               />
               <KpiCard sym={curSym} primary
                 label={hasStage ? "Completion Rate" : "Total This Period"}
-                value={hasStage ? `${stats.completionRate}%` : fmtNum(kTotalCount)}
+                value={hasStage ? `${kCompletion}%` : fmtNum(kTotalCount)}
                 sub={hasStage ? "closed won vs. all closed" : `across ${PERIOD_LABELS[period].toLowerCase()}`}
                 tone="var(--section-accent)"
-                trend={hasStage ? (stats.completionRate >= 50 ? "up" : "down") : "neutral"}
+                trend={hasStage ? (kCompletion >= 50 ? "up" : "down") : "neutral"}
                 delta={pctDelta(stats.completionRate, prevStats.completionRate)}
               />
               <KpiCard sym={curSym} primary
@@ -1530,32 +1569,36 @@ export function SalesReportPage() {
             </div>
             {/* Honest provenance for the switched KPIs — server totals over the WHOLE table (period +
                 filters scoped), truncated/unconverted flagged; a plain client-500 note otherwise. */}
-            {serverBacked && (
-              <p className="mb-4 -mt-1 text-[10px]" style={{ color: "var(--text-faint)" }}>
-                Total records{!hasStage && hasValue ? " & value" : ""} · server total
-                {serverCount.data!.truncated ? <span style={{ color: "#c6892e" }}> · first {serverCount.data!.total_rows.toLocaleString()}</span> : <> · over {serverCount.data!.total_rows.toLocaleString()}</>}
-                {(serverValue.data?.unconverted ?? 0) > 0 && <span style={{ color: "#c6892e" }}> · {serverValue.data!.unconverted} unconverted</span>}
-              </p>
-            )}
+            {serverBacked && (() => {
+              // Prefer the count scope for the row-window note; fall back to the stage-grouped scope.
+              const scope = serverCount.data ?? serverStage.data;
+              return (
+                <p className="mb-4 -mt-1 text-[10px]" style={{ color: "var(--text-faint)" }}>
+                  {hasStage ? "KPIs" : `Total records${hasValue ? " & value" : ""}`} · server total
+                  {scope && (scope.truncated ? <span style={{ color: "#c6892e" }}> · first {scope.total_rows.toLocaleString()}</span> : <> · over {scope.total_rows.toLocaleString()}</>)}
+                  {serverUnconverted > 0 && <span style={{ color: "#c6892e" }}> · {serverUnconverted} unconverted</span>}
+                </p>
+              );
+            })()}
             <div className="mb-6 grid gap-3 grid-cols-3 print:grid-cols-3 print:gap-3">
               <KpiCard sym={curSym}
                 label={hasStage ? "In Progress" : "This Period"}
-                value={hasValue ? fmtMoney(stats.openValue, curSym) : fmtNum(stats.openCount || stats.totalCount)}
-                sub={hasStage ? `${stats.openCount} open` : "active records"}
+                value={hasValue ? fmtMoney(kOpenValue, curSym) : fmtNum(kOpenCount || kTotalCount)}
+                sub={hasStage ? `${kOpenCount} open` : "active records"}
                 tone="#717784"
                 trend="neutral"
                 delta={pctDelta(hasValue ? stats.openValue : stats.openCount, hasValue ? prevStats.openValue : prevStats.openCount)}
               />
               <KpiCard sym={curSym}
                 label={hasValue ? `Avg ${valueCol}` : "Avg per bucket"}
-                value={hasValue ? fmtMoney(stats.avgVal, curSym) : fmtNum(stats.totalCount ? Math.round(stats.totalCount / Math.max(trendData.length, 1)) : 0)}
+                value={hasValue ? fmtMoney(kAvg, curSym) : fmtNum(stats.totalCount ? Math.round(stats.totalCount / Math.max(trendData.length, 1)) : 0)}
                 sub="per record"
                 tone="#c6892e"
                 delta={pctDelta(stats.avgVal, prevStats.avgVal)}
               />
               <KpiCard sym={curSym}
                 label={hasStage ? "Open / Active" : "All Time"}
-                value={fmtNum(hasStage ? stats.openCount : records.length)}
+                value={fmtNum(hasStage ? kOpenCount : records.length)}
                 sub={hasStage ? "in pipeline" : "records total"}
                 tone="var(--section-accent)"
               />
