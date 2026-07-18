@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { aggregateRows, aggregateGrouped, aggNum, aggChecked, groupKeyOf, applyFilters, type AggRow } from "../lib/aggregate";
+import { aggregateRows, aggregateGrouped, aggregateTop, dateBucketKey, aggNum, aggChecked, groupKeyOf, applyFilters, type AggRow } from "../lib/aggregate";
 
 // ECB "units per 1 EUR": 1 EUR = 1.10 USD = 0.85 GBP.
 const RATES = { USD: 1.10, GBP: 0.85 };
@@ -102,6 +102,68 @@ describe("aggregate.ts — equality filters (the record table's quickFilters), c
   });
 });
 
+describe("aggregate.ts — Phase 3h op:'top' ranks rows by a numeric/currency column", () => {
+  const rows: AggRow[] = [
+    { id: "a", data: { name: "Alpha", amount: 100 } },
+    { id: "b", data: { name: "Bravo", amount: 300 } },
+    { id: "c", data: { name: "Cara",  amount: 200 } },
+    { id: "d", data: { name: "Dud",   amount: "n/a" } }, // non-numeric → skipped
+  ];
+  it("returns the highest-value rows first, capped at limit, with id + display name", () => {
+    const t = aggregateTop(rows, "amount", 2);
+    expect(t.rows.map(r => r.id)).toEqual(["b", "c"]);
+    expect(t.rows[0]).toMatchObject({ id: "b", label: "Bravo", value: 300 });
+    expect(t.unconverted).toBe(0);
+  });
+  it("skips rows with no numeric value in the column (never fabricated)", () => {
+    const t = aggregateTop(rows, "amount", 10);
+    expect(t.rows.map(r => r.id)).toEqual(["b", "c", "a"]); // "d" excluded
+  });
+  it("is currency-aware and FAILS CLOSED — a missing rate uses face value and is flagged", () => {
+    const money = [
+      { id: "u", data: { name: "US",  price: 100, currency: "USD" } },
+      { id: "g", data: { name: "GB",  price: 100, currency: "GBP" } }, // 100 GBP→USD ≈ 129.41
+      { id: "j", data: { name: "JP",  price: 500, currency: "JPY" } }, // no rate → face 500, flagged
+    ];
+    const t = aggregateTop(money, "price", 10, { target: "USD", base: "USD", rates: RATES });
+    expect(t.rows[0].id).toBe("j");              // face 500 ranks first (fail-closed, honest)
+    expect(t.rows.every(r => r.currency === "USD")).toBe(true);
+    expect(t.rows.find(r => r.id === "j")!.unconverted).toBe(true);
+    expect(t.unconverted).toBe(1);
+  });
+});
+
+describe("aggregate.ts — Phase 3h generic date buckets (pure UTC, sortable keys)", () => {
+  const d = "2026-03-09T14:25:00Z"; // Mon 9 Mar 2026, ISO week 11
+  it("truncates to each granularity deterministically", () => {
+    const dt = new Date(d);
+    expect(dateBucketKey(dt, "year")).toBe("2026");
+    expect(dateBucketKey(dt, "quarter")).toBe("2026-Q1");
+    expect(dateBucketKey(dt, "month")).toBe("2026-03");
+    expect(dateBucketKey(dt, "day")).toBe("2026-03-09");
+    expect(dateBucketKey(dt, "hour")).toBe("2026-03-09T14");
+    expect(dateBucketKey(dt, "week")).toBe("2026-W11");
+  });
+  it("group_by:'date' honours the bucket arg (default stays month, back-compat)", () => {
+    expect(groupKeyOf({ data: {}, created_at: d }, "date")).toBe("2026-03");         // default month
+    expect(groupKeyOf({ data: {}, created_at: d }, "date", "day")).toBe("2026-03-09");
+    expect(groupKeyOf({ data: {}, created_at: d }, "date", "quarter")).toBe("2026-Q1");
+    expect(groupKeyOf({ data: {} }, "date", "day")).toBe("—");                        // no date → honest
+  });
+  it("aggregateGrouped buckets by day when asked, sorted chronologically by key", () => {
+    const rows: AggRow[] = [
+      { data: { amount: 10 }, created_at: "2026-03-09T01:00:00Z" },
+      { data: { amount: 5 },  created_at: "2026-03-10T01:00:00Z" },
+      { data: { amount: 7 },  created_at: "2026-03-09T20:00:00Z" },
+    ];
+    const g = aggregateGrouped(rows, "sum", "amount", "date", undefined, "day");
+    expect(g).toEqual([
+      { label: "2026-03-09", value: 17, count: 2, unconverted: 0 },
+      { label: "2026-03-10", value: 5,  count: 1, unconverted: 0 },
+    ]);
+  });
+});
+
 // ── Route-level guards (source): isolation, validation, cap/truncation, shared helpers, no finance dup ──
 const route = readFileSync(fileURLToPath(new URL("../routes/records.ts", import.meta.url)), "utf8");
 describe("POST /records/aggregate — safe, workspace-scoped, honest", () => {
@@ -112,7 +174,7 @@ describe("POST /records/aggregate — safe, workspace-scoped, honest", () => {
   });
   it("validates object_type/column/op/group_by/filters (no raw SQL from user input)", () => {
     expect(route).toMatch(/object_type: z\.string\(\)\.min\(1\)\.max\(64\)\.regex/);
-    expect(route).toMatch(/op: z\.enum\(\["count", "sum", "avg", "min", "max", "filled", "checked"\]\)/);
+    expect(route).toMatch(/op: z\.enum\(\["count", "sum", "avg", "min", "max", "filled", "checked", "top"\]\)/);
     // group_by is now a validated key (none | date | keyword | column), not a fixed enum.
     expect(route).toMatch(/group_by: z\.string\(\)\.max\(120\)\.regex\(KEY, "invalid group_by"\)/);
     // filters are validated equality pairs, capped in count, each column key-shaped.
@@ -137,7 +199,7 @@ describe("POST /records/aggregate — safe, workspace-scoped, honest", () => {
     expect(route).toMatch(/workspaceBaseCurrency\(ws\)/);
     expect(route).toMatch(/loadRates\(\)/);
     // only converts when the CALLER flags the column as currency — never re-inferred from data
-    expect(route).toMatch(/if \(currency && numericOp\)/);
+    expect(route).toMatch(/if \(currency && \(numericOp \|\| op === "top"\)\)/);
   });
   it("stays generic — never queries finance verticals or the finance rollup converter", () => {
     // No hardcoded finance object_type / vertical, and no reuse of the finance rollup's makeBaseConverter.
@@ -163,5 +225,37 @@ describe("POST /records/aggregate — Phase 3e date_filter (safe, SQL-applied, f
     expect(route).toMatch(/const \{ data, error \} = await withDate\(supabase/);
     // withDate's closing `))` is followed by .order().limit() → the range narrows the query pre-cap.
     expect(route).toMatch(/\)\)\s*\.order\("created_at", \{ ascending: true \}\)\s*\.limit\(CAP \+ 1\)/);
+  });
+});
+
+describe("POST /records/aggregate — Phase 3h op:'top' + generic date bucket (bounded, safe, honest)", () => {
+  it("adds 'top' to the op enum and validates limit (1..50) + bucket enum", () => {
+    expect(route).toMatch(/op: z\.enum\(\["count", "sum", "avg", "min", "max", "filled", "checked", "top"\]\)/);
+    expect(route).toMatch(/limit: z\.number\(\)\.int\(\)\.min\(1\)\.max\(50\)\.default\(10\)/);
+    expect(route).toMatch(/bucket: z\.enum\(\["hour", "day", "week", "month", "quarter", "year"\]\)\.default\("month"\)/);
+  });
+  it("ranks in-memory via the shared helper — never an ORDER BY on a JSON data key", () => {
+    expect(route).toMatch(/aggregateTop\(rows, column, limit, money\)/);
+    // the sort is done in aggregateTop over already-fetched rows; no dynamic order on a data-> key
+    expect(route).not.toMatch(/\.order\(`data|\.order\(\$\{|order\("data->/);
+  });
+  it("top is currency-aware (money context extends to it) and returns honest rows/truncated/unconverted", () => {
+    expect(route).toMatch(/if \(currency && \(numericOp \|\| op === "top"\)\)/);
+    expect(route).toMatch(/rows: t\.rows, total_rows: rows\.length, truncated, unconverted: t\.unconverted, currency: currencyCode/);
+  });
+  it("top rows come from the SAME workspace/date/filter-scoped, capped fetch (no separate query)", () => {
+    // aggregateTop consumes `rows` — the applyFilters(...) output of the capped, workspace-scoped fetch.
+    expect(route).toMatch(/const rows = applyFilters\(truncated \? all\.slice\(0, CAP\) : all, filters\)/);
+  });
+  it("the date bucket is passed only to the grouped path (group_by:'date' granularity)", () => {
+    expect(route).toMatch(/aggregateGrouped\(rows, op, column, group_by, money, bucket\)/);
+  });
+  it("column stays regex-bounded — top can't rank on an unsafe/injected column key", () => {
+    expect(route).toMatch(/column: z\.string\(\)\.min\(1\)\.max\(120\)/);
+    expect(route).toMatch(/const KEY = \/\^\[a-z0-9_\.-\]\+\$\/i/);
+  });
+  it("stays generic — no won/lost/open, no value_in, no finance recomputation in the top/bucket path", () => {
+    expect(route).not.toMatch(/value_in|isWon|isLost|isOpen|won|lost/i);
+    expect(route).not.toMatch(/makeBaseConverter/);
   });
 });

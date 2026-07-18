@@ -10,11 +10,14 @@ import { apiClient } from "../lib/api-client";
  * are surfaced as scope notes by `aggScopeNotes` — a total is never presented as more complete than it is.
  * Nothing here recomputes finance concepts; it only aggregates a generic record column.
  */
-export type AggOp = "count" | "sum" | "avg" | "min" | "max" | "filled" | "checked";
+export type AggOp = "count" | "sum" | "avg" | "min" | "max" | "filled" | "checked" | "top";
+export type AggDateBucket = "hour" | "day" | "week" | "month" | "quarter" | "year";
+export interface AggTopRow { id: string | null; label: string; value: number; currency: string | null; unconverted: boolean }
 export interface AggResp {
   op: string; column: string; group_by: string; object_type: string;
   value?: number;
   groups?: { label: string; value: number; count: number; unconverted: number }[];
+  rows?: AggTopRow[];
   total_rows: number; truncated: boolean; unconverted: number; currency: string | null;
 }
 
@@ -23,15 +26,17 @@ export type AggDateFilter = { field: "created_at" | "updated_at"; from?: string;
 
 export function useRecordAggregate(args: {
   objectType: string; column: string; op: AggOp; groupBy?: string; currency?: boolean; enabled?: boolean;
-  filters?: AggFilter[]; dateFilter?: AggDateFilter | null;
+  filters?: AggFilter[]; dateFilter?: AggDateFilter | null; limit?: number; bucket?: AggDateBucket;
 }) {
-  const { objectType, column, op, groupBy = "none", currency = false, enabled = true, filters, dateFilter } = args;
+  const { objectType, column, op, groupBy = "none", currency = false, enabled = true, filters, dateFilter, limit, bucket } = args;
   return useQuery<AggResp>({
-    queryKey: ["records-agg", objectType, column, op, groupBy, currency, JSON.stringify(filters ?? []), JSON.stringify(dateFilter ?? null)],
+    queryKey: ["records-agg", objectType, column, op, groupBy, currency, JSON.stringify(filters ?? []), JSON.stringify(dateFilter ?? null), limit ?? null, bucket ?? null],
     queryFn: () => apiClient.post<AggResp>("/records/aggregate", {
       object_type: objectType, column, op, group_by: groupBy, currency,
       ...(filters?.length ? { filters } : {}),
       ...(dateFilter ? { date_filter: dateFilter } : {}),
+      ...(op === "top" && limit ? { limit } : {}),
+      ...(groupBy === "date" && bucket ? { bucket } : {}),
     }),
     enabled: enabled && !!objectType && !!column,
     staleTime: 5 * 60_000,

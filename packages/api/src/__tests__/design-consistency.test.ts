@@ -990,7 +990,7 @@ describe("Currency wiring — sales report respects workspace currency + honest 
     // computeStats + buildTrend receive the converter; per-record rows convert too.
     expect(rep).toMatch(/computeStats\(filteredRecords, valueCol, stageCol, period, customRange, toDisplay\)/);
     expect(rep).toMatch(/buildTrend\(filteredRecords, valueCol, stageCol, period, customRange, toDisplay\)/);
-    expect(rep).toMatch(/const recVal = \(r: NodeRecord\) =>/);
+    expect(rep).toMatch(/const topValOf = \(r: NodeRecord\) =>/);
   });
   it("display-currency selector present + honest mixed/unconverted note (no silent mislabeling)", () => {
     expect(rep).toMatch(/setDisplay\.mutate\(v\)/);

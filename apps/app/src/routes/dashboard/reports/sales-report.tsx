@@ -1155,19 +1155,65 @@ export function SalesReportPage() {
       .slice(0, 10);
   }, [filteredRecords, valueCol]);
 
+  // ── Phase 3h — server-backed Top Records ──
+  // Ranks the WHOLE (date + filter-scoped, capped) table by the value column on the server, escaping
+  // the client 500-row page. Only meaningful when there's a value column; otherwise the client first-10
+  // is kept. Semantically identical to the client sort (rank all rows by value, no stage semantics on the
+  // backend). Falls back to the client topRecords on load/error, so behaviour never blanks.
+  const serverTop = useRecordAggregate({
+    objectType: activeSlug, column: valueCol ?? "name", op: "top", limit: 10,
+    currency: !!valueCol, dateFilter, filters: aggFilters,
+    enabled: !!activeSlug && !!valueCol,
+  });
+  // Loaded-page lookup so a server-ranked row can be enriched (stage badge + drill) when it's on the
+  // current page; rows beyond the page render name+value only (honest, no fabricated stage/drill).
+  const recById = useMemo(() => {
+    const m = new Map<string, NodeRecord>();
+    for (const r of records) m.set(r.id, r);
+    return m;
+  }, [records]);
+  const topValOf = (r: NodeRecord) => { const n = Number(r.data[valueCol!] ?? 0); return toDisplay(isNaN(n) ? 0 : n, (r.data.currency as string | undefined) ?? null); };
+  // Normalised rows the visible table AND the print/export both consume (single source → they can't drift).
+  // Uses valueCol/stageCol directly (hasValue/hasStage are declared further down).
+  const topRows = useMemo(() => {
+    const srv = serverTop.data?.rows;
+    if (valueCol && srv?.length) {
+      return srv.map((row) => {
+        const rec = row.id ? recById.get(row.id) ?? null : null;
+        return {
+          id: row.id ?? rec?.id ?? row.label,
+          name: rec ? String(rec.data[nameCol] ?? row.label) : row.label,
+          stage: stageCol && rec ? String(rec.data[stageCol] ?? "—") : "",
+          val: row.value,
+          record: rec,
+        };
+      });
+    }
+    return topRecords.map((r) => ({
+      id: r.id,
+      name: String(r.data[nameCol] ?? "—"),
+      stage: stageCol ? String(r.data[stageCol] ?? "—") : "",
+      val: valueCol ? topValOf(r) : 0,
+      record: r as NodeRecord | null,
+    }));
+  }, [serverTop.data, topRecords, recById, nameCol, stageCol, valueCol, toDisplay]);
+  const topServer = !!valueCol && !!serverTop.data?.rows?.length;
+  const topTruncated = topServer && !!serverTop.data?.truncated;
+  const topUnconverted = topServer ? (serverTop.data?.unconverted ?? 0) : 0;
+
   function generateReport() {
     const periodLabel = period === "custom" && customStart && customEnd
       ? `${customStart} – ${customEnd}`
       : PERIOD_LABELS[period];
-    // Per-record value converted into the display currency (matches the KPIs + totals above).
-    const recVal = (r: NodeRecord) => { const n = Number(r.data[valueCol!] ?? 0); return toDisplay(isNaN(n) ? 0 : n, (r.data.currency as string | undefined) ?? null); };
-    const totalValue = hasValue ? topRecords.reduce((s, r) => s + recVal(r), 0) : 0;
-    const maxVal = hasValue ? Math.max(...topRecords.map(recVal), 1) : 1;
+    // Print/export ranks from the SAME normalised topRows the visible table uses (server-backed when
+    // available, else the client page) — so the printed table can never drift from the screen.
+    const totalValue = hasValue ? topRows.reduce((s, r) => s + r.val, 0) : 0;
+    const maxVal = hasValue ? Math.max(...topRows.map(r => r.val), 1) : 1;
 
-    const rows = topRecords.map((r, i) => {
-      const name  = String(r.data[nameCol] ?? "—");
-      const stage = hasStage ? String(r.data[stageCol!] ?? "—") : "";
-      const val   = hasValue ? recVal(r) : 0;
+    const rows = topRows.map((r, i) => {
+      const name  = r.name;
+      const stage = hasStage ? (r.stage || "—") : "";
+      const val   = hasValue ? r.val : 0;
       const pct   = hasValue && !isNaN(val) ? Math.round((val / maxVal) * 100) : 0;
       return `
         <tr>
@@ -1703,10 +1749,10 @@ export function SalesReportPage() {
 
             {/* Top Records List */}
             {(() => {
-              // Per-record value in the display currency (matches the KPIs, totals, and the ⇅ selector).
-              const recVal = (r: NodeRecord) => { const n = Number(r.data[valueCol!] ?? 0); return toDisplay(isNaN(n) ? 0 : n, (r.data.currency as string | undefined) ?? null); };
-              const maxVal = hasValue ? Math.max(...topRecords.map(recVal), 1) : 1;
-              const total = hasValue ? topRecords.reduce((s, r) => s + recVal(r), 0) : 0;
+              // Ranked from the shared topRows (server-backed full-table ranking when available, else the
+              // client page). Values are already in the display currency.
+              const maxVal = hasValue ? Math.max(...topRows.map(r => r.val), 1) : 1;
+              const total = hasValue ? topRows.reduce((s, r) => s + r.val, 0) : 0;
               const ROW_COLORS = [
                 { bar: "from-stone-500 to-stone-400", badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
                 { bar: "from-[#717784] to-[#7d8a96]",     badge: "bg-[#717784]/15 text-[#717784] border-[#717784]/25" },
@@ -1739,19 +1785,21 @@ export function SalesReportPage() {
                   </div>
                   {/* Rows */}
                   <div className="divide-y divide-white/[.03]">
-                    {topRecords.map((r, i) => {
-                      const stage   = hasStage ? String(r.data[stageCol!] ?? "—") : "";
-                      const val     = hasValue ? recVal(r) : 0;
+                    {topRows.map((row, i) => {
+                      const r       = row.record;
+                      const stage   = hasStage ? (row.stage || "—") : "";
+                      const val     = hasValue ? row.val : 0;
                       const pct     = hasValue && !isNaN(val) ? Math.max(4, Math.round((val / maxVal) * 100)) : 0;
                       const won     = hasStage && isWon(stage);
                       const lost    = hasStage && isLost(stage);
                       const color   = ROW_COLORS[i % ROW_COLORS.length]!;
                       const rankColors = ["text-[#c6892e]","text-stone-400","text-[#8a8071]"];
+                      const drillable = !!r;
                       return (
                         <div
-                          key={r.id}
-                          onClick={() => setDrillRecord(r)}
-                          className="group relative cursor-pointer px-5 py-3 hover:bg-[var(--surface-hover)] transition-colors"
+                          key={row.id}
+                          onClick={drillable ? () => setDrillRecord(r!) : undefined}
+                          className={`group relative px-5 py-3 transition-colors ${drillable ? "cursor-pointer hover:bg-[var(--surface-hover)]" : ""}`}
                         >
                           <div className="flex items-center gap-3">
                             {/* Rank */}
@@ -1762,7 +1810,7 @@ export function SalesReportPage() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-1.5">
                                 <span className="text-sm font-medium text-[var(--text-primary)] truncate print:text-black">
-                                  {String(r.data[nameCol] ?? "—")}
+                                  {row.name}
                                 </span>
                                 {hasValue && (
                                   <span className="ml-4 shrink-0 font-mono text-sm font-semibold text-[var(--text-primary)] print:text-black">
@@ -1779,13 +1827,14 @@ export function SalesReportPage() {
                                 </div>
                               )}
                             </div>
-                            {/* Stage badge */}
-                            {hasStage && (
+                            {/* Stage badge — only when we have the record on the current page (off-page
+                                server-ranked rows carry no stage, so we don't fabricate one). */}
+                            {hasStage && stage && (
                               <span className={`ml-3 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium ${won ? "bg-[#2f9e6b]/10 text-[#2f9e6b] border-[#2f9e6b]/25" : lost ? "bg-stone-500/10 text-stone-400 border-stone-500/20" : color.badge} print:bg-transparent print:text-[var(--text-secondary)] print:border-[var(--border-soft)]`}>
                                 {stage}
                               </span>
                             )}
-                            <ChevronRight size={12} className="shrink-0 text-[var(--text-secondary)] group-hover:text-[var(--text-faint)] transition-colors print:hidden"/>
+                            {drillable && <ChevronRight size={12} className="shrink-0 text-[var(--text-secondary)] group-hover:text-[var(--text-faint)] transition-colors print:hidden"/>}
                           </div>
                         </div>
                       );
@@ -1794,7 +1843,15 @@ export function SalesReportPage() {
                   {/* Footer total */}
                   {hasValue && (
                     <div className="flex items-center justify-between border-t border-[var(--border-soft)] px-5 py-3 print:border-[var(--border-soft)]">
-                      <span className="text-xs text-[var(--text-muted)]">Top {topRecords.length} records</span>
+                      <span className="text-xs text-[var(--text-muted)]">
+                        Top {topRows.length} records
+                        {topServer
+                          ? (topTruncated
+                              ? <span className="text-[#c6892e]" title="Ranked within the first 10,000 records (the full table exceeds the aggregation cap)."> · ranked within first {serverTop.data!.total_rows.toLocaleString()}</span>
+                              : <span title="Ranked across the full table on the server."> · across {serverTop.data!.total_rows.toLocaleString()}</span>)
+                          : <span title="Ranked from the recent record sample, not the full table."> · recent sample</span>}
+                        {topUnconverted > 0 && <span className="text-[#c6892e]" title="Some records used their face value because a currency rate was missing."> · {topUnconverted} unconverted</span>}
+                      </span>
                       <span className="font-mono text-sm font-bold text-[var(--text-primary)] print:text-black">{fmtMoney(total, curSym)}</span>
                     </div>
                   )}

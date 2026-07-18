@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { loadRates, userDisplayCurrency, workspaceBaseCurrency } from "../lib/currency-store";
-import { aggregateGrouped, aggregateRows, applyFilters, type AggRow, type MoneyCtx } from "../lib/aggregate";
+import { aggregateGrouped, aggregateRows, aggregateTop, applyFilters, type AggRow, type MoneyCtx } from "../lib/aggregate";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -23,9 +23,13 @@ const KEY = /^[a-z0-9_.-]+$/i;
 const aggInput = z.object({
   object_type: z.string().min(1).max(64).regex(/^[a-z0-9_-]+$/i, "invalid object_type"),
   column: z.string().min(1).max(120),
-  op: z.enum(["count", "sum", "avg", "min", "max", "filled", "checked"]),
-  // "none" | "date" (month bucket) | keyword alias | any validated column key.
+  op: z.enum(["count", "sum", "avg", "min", "max", "filled", "checked", "top"]),
+  // "none" | "date" (time bucket) | keyword alias | any validated column key.
   group_by: z.string().max(120).regex(KEY, "invalid group_by").default("none"),
+  // Ranked-rows count for op:"top" — bounded so a caller can't ask for the whole table.
+  limit: z.number().int().min(1).max(50).default(10),
+  // Time-bucket granularity for group_by:"date" only (ignored otherwise). Default month (back-compat).
+  bucket: z.enum(["hour", "day", "week", "month", "quarter", "year"]).default("month"),
   // Equality filters (AND-combined) — the safe subset the record table's quickFilters use. Applied
   // in-memory; a column that doesn't exist simply matches nothing (honest empty, never an error).
   filters: z.array(z.object({ column: z.string().min(1).max(120).regex(KEY), value: z.string().max(200) })).max(8).optional(),
@@ -50,7 +54,7 @@ const aggInput = z.object({
  */
 router.post("/aggregate", zValidator("json", aggInput), async (c) => {
   const ws = c.get("workspaceId");
-  const { object_type, column, op, group_by, currency, filters, date_filter } = c.req.valid("json");
+  const { object_type, column, op, group_by, currency, filters, date_filter, limit, bucket } = c.req.valid("json");
   const hasFilters = !!filters?.length;
 
   // Narrow a nodes query by the date_filter (root timestamp column, fixed name, parameterized value —
@@ -97,7 +101,7 @@ router.post("/aggregate", zValidator("json", aggInput), async (c) => {
   let money: MoneyCtx | undefined;
   let currencyCode: string | null = null;
   const numericOp = op === "sum" || op === "avg" || op === "min" || op === "max";
-  if (currency && numericOp) {
+  if (currency && (numericOp || op === "top")) {
     const [target, base, { rates }] = await Promise.all([
       userDisplayCurrency(ws, c.get("userId")),
       workspaceBaseCurrency(ws),
@@ -107,8 +111,16 @@ router.post("/aggregate", zValidator("json", aggInput), async (c) => {
     currencyCode = target;
   }
 
+  // Ranked top-N rows by a numeric/currency column. Sort runs in-memory over the already
+  // workspace/date/filter-scoped, capped rows — never an ORDER BY on a JSON data key. When truncated
+  // the caller must present this as "ranked within the first N rows", not a global ranking.
+  if (op === "top") {
+    const t = aggregateTop(rows, column, limit, money);
+    return c.json({ op, column, group_by, object_type, rows: t.rows, total_rows: rows.length, truncated, unconverted: t.unconverted, currency: currencyCode });
+  }
+
   if (group_by !== "none") {
-    const groups = aggregateGrouped(rows, op, column, group_by, money);
+    const groups = aggregateGrouped(rows, op, column, group_by, money, bucket);
     const unconverted = groups.reduce((s, g) => s + g.unconverted, 0);
     return c.json({ op, column, group_by, object_type, groups, total_rows: rows.length, truncated, unconverted, currency: currencyCode });
   }

@@ -10,11 +10,14 @@ import { convert } from "./currency";
  *    guessed number).  Mirrors the frontend `sumInDisplay`.
  *  • Nothing is fabricated — non-numeric cells are simply skipped, and an empty set aggregates to 0.
  */
-export type AggOp = "count" | "sum" | "avg" | "min" | "max" | "filled" | "checked";
-// "none" | "date" (month bucket) | the keyword aliases | any validated column key.
+export type AggOp = "count" | "sum" | "avg" | "min" | "max" | "filled" | "checked" | "top";
+// "none" | "date" (time bucket) | the keyword aliases | any validated column key.
 export type AggGroupBy = string;
+// Granularity for the "date" group — a generic time bucket over the row's created_at. Default month
+// (backward-compatible). No calendar library: pure UTC truncation, so it stays deterministic + testable.
+export type DateBucket = "hour" | "day" | "week" | "month" | "quarter" | "year";
 
-export interface AggRow { data: Record<string, unknown>; created_at?: string | null }
+export interface AggRow { id?: string | null; data: Record<string, unknown>; created_at?: string | null }
 export interface MoneyCtx { target: string; rates: Record<string, number>; base: string }
 
 export interface AggResult {
@@ -49,8 +52,30 @@ function nonEmpty(v: unknown): boolean {
   return s !== "" && s !== "—";
 }
 
+// Truncate a date to a generic time-bucket KEY (sortable string). Pure UTC math — no calendar lib, so
+// it's deterministic. ISO-8601 week for "week" (Monday-based). These keys sort lexicographically into
+// chronological order, which is exactly what aggregateGrouped's label sort relies on.
+export function dateBucketKey(dt: Date, bucket: DateBucket): string {
+  const y = dt.getUTCFullYear();
+  const mo = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const da = String(dt.getUTCDate()).padStart(2, "0");
+  if (bucket === "year") return `${y}`;
+  if (bucket === "quarter") return `${y}-Q${Math.floor(dt.getUTCMonth() / 3) + 1}`;
+  if (bucket === "month") return `${y}-${mo}`;
+  if (bucket === "day") return `${y}-${mo}-${da}`;
+  if (bucket === "hour") return `${y}-${mo}-${da}T${String(dt.getUTCHours()).padStart(2, "0")}`;
+  // ISO week: Thursday-of-week determines the year+week number.
+  const t = new Date(Date.UTC(y, dt.getUTCMonth(), dt.getUTCDate()));
+  const day = t.getUTCDay() || 7;            // Sun=0 → 7
+  t.setUTCDate(t.getUTCDate() + 4 - day);    // shift to Thursday
+  const isoYear = t.getUTCFullYear();
+  const week1 = new Date(Date.UTC(isoYear, 0, 1));
+  const wk = Math.ceil(((t.getTime() - week1.getTime()) / 86400000 + 1) / 7);
+  return `${isoYear}-W${String(wk).padStart(2, "0")}`;
+}
+
 /** The value used to group a row — resolved from the common alias keys, honestly ("—" when absent). */
-export function groupKeyOf(row: AggRow, groupBy: AggGroupBy): string {
+export function groupKeyOf(row: AggRow, groupBy: AggGroupBy, bucket: DateBucket = "month"): string {
   const d = row.data ?? {};
   if (groupBy === "none") return "all";
   if (groupBy === "status") return String(d.status ?? "—") || "—";
@@ -60,7 +85,7 @@ export function groupKeyOf(row: AggRow, groupBy: AggGroupBy): string {
     const iso = row.created_at ?? "";
     const dt = new Date(String(iso));
     if (isNaN(dt.getTime())) return "—";
-    return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}`; // month bucket
+    return dateBucketKey(dt, bucket);
   }
   return String(d[groupBy] ?? "—") || "—"; // any other validated column key — read the value directly
 }
@@ -113,13 +138,43 @@ export function aggregateRows(rows: AggRow[], op: AggOp, column: string, money?:
 export interface AggGroup { label: string; value: number; count: number; unconverted: number }
 
 /** Group rows by the chosen dimension and aggregate each group; returns groups sorted by label. */
-export function aggregateGrouped(rows: AggRow[], op: AggOp, column: string, groupBy: AggGroupBy, money?: MoneyCtx): AggGroup[] {
+export function aggregateGrouped(rows: AggRow[], op: AggOp, column: string, groupBy: AggGroupBy, money?: MoneyCtx, bucket: DateBucket = "month"): AggGroup[] {
   const buckets = new Map<string, AggRow[]>();
   for (const r of rows) {
-    const k = groupKeyOf(r, groupBy);
+    const k = groupKeyOf(r, groupBy, bucket);
     (buckets.get(k) ?? buckets.set(k, []).get(k)!).push(r);
   }
   return [...buckets.entries()]
     .map(([label, rs]) => { const a = aggregateRows(rs, op, column, money); return { label, value: a.value, count: a.count, unconverted: a.unconverted }; })
     .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+// One ranked row for the "top" op — the record id (for a row link), its display name, the numeric
+// value (currency-converted toward the target when money context is given), and whether the rate was
+// missing (fail-closed: face value used, flagged). Nothing finance-specific — it's generic column math.
+export interface AggTopRow { id: string | null; label: string; value: number; currency: string | null; unconverted: boolean }
+
+/** Rank rows by a numeric/currency column, highest first, keeping only the top `limit`. Currency-aware
+ *  and fail-closed exactly like aggregateRows. Rows with no numeric value in the column are skipped. */
+export function aggregateTop(rows: AggRow[], column: string, limit: number, money?: MoneyCtx): { rows: AggTopRow[]; unconverted: number } {
+  let unconverted = 0;
+  const scored: AggTopRow[] = [];
+  for (const r of rows) {
+    const n = aggNum(r.data?.[column]);
+    if (n == null) continue;
+    let value = n;
+    let unconv = false;
+    if (money) {
+      const cur = String(r.data?.currency ?? money.base).toUpperCase();
+      if (cur !== money.target) {
+        const v = convert(n, cur, money.target, money.rates);
+        if (v == null) { unconv = true; unconverted += 1; } // fail-closed: face value, flagged
+        else value = v;
+      }
+    }
+    const label = String(r.data?.name ?? r.data?.title ?? r.data?.label ?? "—") || "—";
+    scored.push({ id: r.id ?? null, label, value, currency: money ? money.target : null, unconverted: unconv });
+  }
+  scored.sort((a, b) => b.value - a.value);
+  return { rows: scored.slice(0, Math.max(0, limit)), unconverted };
 }

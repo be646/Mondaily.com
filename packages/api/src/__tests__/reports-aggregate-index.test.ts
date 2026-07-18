@@ -150,3 +150,31 @@ describe("Phase 3f parity — print/export KPIs match the visible cards; deltas 
     expect(sales).toMatch(/serverUnconverted > 0/);
   });
 });
+
+describe("Phase 3h — server-backed Top Records (full-table ranking) + honest fallback", () => {
+  it("issues an op:'top' aggregate ranked by the value column, currency-aware, same date+filter scope", () => {
+    expect(sales).toMatch(/const serverTop = useRecordAggregate\(\{[\s\S]*?op: "top", limit: 10,[\s\S]*?currency: !!valueCol, dateFilter, filters: aggFilters,[\s\S]*?enabled: !!activeSlug && !!valueCol,/);
+  });
+  it("prefers server-ranked rows, enriching on-page records; falls back to the client topRecords", () => {
+    expect(sales).toMatch(/const srv = serverTop\.data\?\.rows;/);
+    expect(sales).toMatch(/if \(valueCol && srv\?\.length\) \{/);
+    // off-page ranked rows keep name+value only (no fabricated stage), on-page ones enrich via recById
+    expect(sales).toMatch(/const rec = row\.id \? recById\.get\(row\.id\) \?\? null : null/);
+    // the fallback branch maps the client topRecords
+    expect(sales).toMatch(/return topRecords\.map\(\(r\) => \(\{/);
+  });
+  it("the visible table AND print both render the SAME normalised topRows (no drift)", () => {
+    expect(sales).toMatch(/\{topRows\.map\(\(row, i\) => \{/);         // visible table
+    expect(sales).toMatch(/const rows = topRows\.map\(\(r, i\) => \{/); // print/export
+  });
+  it("truncation + unconverted are surfaced honestly (ranked within first N, not global)", () => {
+    expect(sales).toMatch(/ranked within first \{serverTop\.data!\.total_rows\.toLocaleString\(\)\}/);
+    expect(sales).toMatch(/across \{serverTop\.data!\.total_rows\.toLocaleString\(\)\}/);
+    expect(sales).toMatch(/recent sample/);
+    expect(sales).toMatch(/topUnconverted > 0 &&/);
+  });
+  it("row links preserved for on-page records; off-page rows are not drillable (no fake drill)", () => {
+    expect(sales).toMatch(/const drillable = !!r;/);
+    expect(sales).toMatch(/onClick=\{drillable \? \(\) => setDrillRecord\(r!\) : undefined\}/);
+  });
+});
