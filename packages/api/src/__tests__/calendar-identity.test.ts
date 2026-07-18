@@ -61,3 +61,36 @@ describe("no fake AI / squared modal", () => {
     expect(modal).toMatch(/w-full rounded-sm border bg-transparent/);   // squared field
   });
 });
+
+describe("Calendar premium repair — integrated empty state + active, honest Meeting Agent panel", () => {
+  const gridEmpty = cal.slice(cal.indexOf("function GridEmpty"), cal.indexOf("function TodayBriefingPanel"));
+  const briefing = cal.slice(cal.indexOf("function TodayBriefingPanel"), cal.indexOf("interface TodayBrief"));
+
+  it("empty-day state is INTEGRATED in the grid, not a bulky floating modal card", () => {
+    // Centered within the grid area (not pinned to the top as a shadowed card).
+    expect(gridEmpty).toMatch(/absolute inset-0 flex items-center justify-center/);
+    expect(gridEmpty).not.toMatch(/shadow-\[/);                 // no modal drop-shadow
+    expect(gridEmpty).not.toMatch(/rounded-(lg|xl|2xl)/);       // controls stay squared
+    // Still the calm calendar icon + the three real actions (nothing removed).
+    expect(gridEmpty).toMatch(/<CalendarDays size=\{15\}/);
+    for (const h of ["onCreate", "onDraft", "onFollowups"]) expect(gridEmpty).toContain(h);
+  });
+
+  it("Meeting Agent panel shows proof-of-work from REAL derived counts (no fabricated status)", () => {
+    expect(briefing).toContain("Checked");                      // a real proof-of-work strip
+    expect(briefing).toMatch(/n: b\.count/);                    // meetings today = real brief count
+    expect(briefing).toMatch(/n: b\.no_agenda\.length/);        // agenda-gap = real count
+    expect(briefing).toMatch(/warn: b\.no_agenda\.length > 0/); // warn tone derived from real gaps only
+  });
+
+  it("no fake live/AI claims on Calendar — only the honest monitoring status", () => {
+    expect(cal).toContain('kind: "monitoring"');
+    expect(cal).not.toMatch(/\b(live now|running now|AI is (thinking|working|live))\b/i);
+  });
+
+  it("all existing Calendar actions/handlers preserved after the repair", () => {
+    for (const h of ["openCreate", "onSlot={openSlot}", "prepare.mutate", "saveAgenda", "respond.mutate", "addCall.mutate", "createTask.mutate", "draftAgenda"]) {
+      expect(cal).toContain(h);
+    }
+  });
+});

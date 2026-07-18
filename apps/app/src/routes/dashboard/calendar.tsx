@@ -506,22 +506,21 @@ function GridEmpty({ hint, onCreate, onDraft, onFollowups, t }: { hint: string; 
     { icon: ListChecks, label: t("cal.suggest_followups"), hint: "Open your real task list — meetings link their follow-ups here.", run: onFollowups },
   ];
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center pt-10">
-      {/* Compact guided card — an icon, the day hint, and three real actions as quiet chips (tooltip
-          carries the detail). Slimmer than the old stacked buttons; no action duplicated or removed. */}
-      <div className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-sm border px-3.5 py-3 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)" }}><CalendarDays size={15} style={{ color: "var(--section-accent)" }} /></span>
-        <div className="min-w-0 flex-1">
-          <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{hint}</p>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {steps.map((s, i) => (
-              <button key={i} onClick={s.run} title={s.hint}
-                className="inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 text-[11.5px] font-medium transition-colors hover:border-[var(--section-accent)] hover:bg-[var(--surface-hover)]"
-                style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-                <s.icon size={12} className="shrink-0" style={{ color: "var(--section-accent)" }} />{s.label}
-              </button>
-            ))}
-          </div>
+    // INTEGRATED empty state — centered within the grid, no card frame or shadow, so it reads as part
+    // of the calendar rather than a modal floating over it. Honest hint + the three real actions as
+    // quiet chips (tooltip carries the detail). Nothing duplicated or removed.
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
+      <div className="pointer-events-auto flex max-w-sm flex-col items-center gap-3 text-center">
+        <span className="flex h-11 w-11 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)" }}><CalendarDays size={15} style={{ color: "var(--section-accent)" }} /></span>
+        <p className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>{hint}</p>
+        <div className="flex flex-wrap justify-center gap-1.5">
+          {steps.map((s, i) => (
+            <button key={i} onClick={s.run} title={s.hint}
+              className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[var(--section-accent)] hover:bg-[var(--surface-hover)]"
+              style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              <s.icon size={12} className="shrink-0" style={{ color: "var(--section-accent)" }} />{s.label}
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -557,6 +556,22 @@ function TodayBriefingPanel({ onOpen, onFollowups }: { onOpen: (id: string) => v
       </div>
       {!b ? <div className="p-5"><Loader2 size={16} className="animate-spin" /></div> : (
         <div className="flex-1 overflow-y-auto pb-2 text-[13px]">
+          {/* Proof-of-work — what the Meeting Agent checked across today's real schedule. Every number is
+              a real derived count from the brief; zeros read as "clear", never a fabricated status. */}
+          <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+            <span className="flex items-center gap-1 font-mono text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}><Sparkles size={10} style={{ color: "var(--section-accent)" }} /> Checked</span>
+            {([
+              { n: b.count, label: t("cal.meetings_today") },
+              { n: b.no_agenda.length, label: t("cal.needs_agenda"), warn: b.no_agenda.length > 0 },
+              ...(b.conflicts.length > 0 ? [{ n: b.conflicts.length, label: t("cal.overlaps"), warn: true }] : []),
+              ...(b.calls_enabled ? [{ n: b.no_call_link.length, label: t("cal.needs_call"), warn: b.no_call_link.length > 0 }] : []),
+            ] as { n: number; label: string; warn?: boolean }[]).map((c, i) => (
+              <span key={i} className="flex items-center gap-1 text-[11px]">
+                <span className="tabular-nums font-semibold" style={{ color: c.warn ? AMBER : "var(--text-primary)" }}>{c.n}</span>
+                <span style={{ color: "var(--text-muted)" }}>{c.label}</span>
+              </span>
+            ))}
+          </div>
           {/* Next meeting — clickable */}
           <SectionHead>{t("cal.next_up")}</SectionHead>
           {b.next ? (
