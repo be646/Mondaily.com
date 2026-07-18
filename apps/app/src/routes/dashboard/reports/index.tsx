@@ -6,9 +6,12 @@ import { EmptyState, PageSkeletonCards, DelayedLoading, ErrorState } from "../..
 import { CommandPageHeader } from "../../../components/ui/controls";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
+import { useRecordAggregate, aggScopeNotes, topGroup, type AggResp, type AggOp } from "../../../hooks/useRecordAggregate";
+import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
 
+interface ObjAttr { name: string; type?: string }
 interface DashboardItem { id: string; name?: string; updated_at: string; widgets?: unknown[] }
-interface ObjectType   { slug: string; name_plural: string }
+interface ObjectType   { slug: string; name_plural: string; attributes?: ObjAttr[] }
 
 // Group live reports by PURPOSE instead of one flat wall of near-identical cards. Each object type is
 // matched to the first category whose pattern hits its slug/name; anything unmatched falls to "Other".
@@ -20,6 +23,106 @@ const REPORT_GROUPS: { key: string; label: string; match: RegExp }[] = [
   { key: "other",    label: "Other records",     match: /.*/ },
 ];
 const groupOf = (o: ObjectType) => (REPORT_GROUPS.find(g => g.match.test(`${o.slug} ${o.name_plural}`)) ?? REPORT_GROUPS[REPORT_GROUPS.length - 1]!).key;
+
+// Same attribute-name → data-key normalization the record table + create form use.
+const normKey = (s: string) => s.toLowerCase().replace(/\s+/g, "_");
+// Resolve the few fields worth a card KPI from the persisted object schema (no inference of finance
+// state — a currency column is just a numeric column; paid/unpaid stays a plain checkbox).
+function resolveKpiFields(attrs?: ObjAttr[]) {
+  const typed = (attrs ?? []).filter(a => a?.name).map(a => ({ key: normKey(a.name), type: a.type ?? "" }));
+  const money = typed.find(t => t.type === "currency") ?? typed.find(t => t.type === "number" || t.type === "percentage") ?? null;
+  const checkbox = typed.find(t => t.type === "checkbox") ?? null;
+  const group = typed.find(t => t.type === "select")
+    ?? typed.find(t => /(^|_)(status|stage)($|_)/.test(t.key) || t.key === "deal_stage") ?? null;
+  return { money, checkbox, group };
+}
+
+// Lazy-in-view: only fire a card's aggregate calls once it scrolls near the viewport, so an index with
+// many object types doesn't fan out dozens of requests on first paint.
+function useInView<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || inView) return;
+    const io = new IntersectionObserver(([e]) => { if (e?.isIntersecting) { setInView(true); io.disconnect(); } }, { rootMargin: "160px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [inView]);
+  return [ref, inView] as const;
+}
+
+function ScopeNotes({ resp, op }: { resp: AggResp; op: AggOp }) {
+  const notes = aggScopeNotes(resp, op);
+  if (!notes.length) return null;
+  return <>{notes.map((n, i) => <span key={i} className="ml-1" style={{ color: n.warn ? "#c6892e" : "var(--text-faint)" }}>· {n.text}</span>)}</>;
+}
+function Kpi({ label, value, resp, op }: { label: string; value: string; resp?: AggResp; op: AggOp }) {
+  return (
+    <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+      <span className="tabular-nums font-medium" style={{ color: "var(--text-primary)" }}>{value}</span>
+      <span style={{ color: "var(--text-faint)" }}>{label}</span>
+      {resp && <ScopeNotes resp={resp} op={op} />}
+    </span>
+  );
+}
+
+// A single generic-object report card — the same link/target as before, now with REAL all-time KPIs
+// pulled from /records/aggregate. Any failing/loading call simply omits its KPI (never a fake number),
+// so the card always degrades cleanly to its original shell.
+function ReportObjectCard({ obj }: { obj: ObjectType }) {
+  const [ref, inView] = useInView<HTMLAnchorElement>();
+  const { display } = useCurrency();
+  const fields = resolveKpiFields(obj.attributes);
+
+  const countQ = useRecordAggregate({ objectType: obj.slug, column: "name", op: "count", enabled: inView });
+  // One "primary value" KPI: a money/number sum, else a checked-count. (≤1 heavier call per card.)
+  const moneyQ = useRecordAggregate({ objectType: obj.slug, column: fields.money?.key ?? "", op: "sum", currency: fields.money?.type === "currency", enabled: inView && !!fields.money });
+  const checkedQ = useRecordAggregate({ objectType: obj.slug, column: fields.checkbox?.key ?? "", op: "checked", enabled: inView && !fields.money && !!fields.checkbox });
+  // Top status/stage group (a real category, not "unset").
+  const groupQ = useRecordAggregate({ objectType: obj.slug, column: "name", op: "count", groupBy: fields.group?.key ?? "none", enabled: inView && !!fields.group });
+
+  const money = moneyQ.data;
+  const moneyStr = money?.value != null
+    ? (fields.money?.type === "currency" ? formatMoney(money.value, money.currency ?? display)
+      : fields.money?.type === "percentage" ? `${(money.value % 1 === 0 ? money.value : Number(money.value.toFixed(1))).toLocaleString()}%`
+      : (money.value % 1 === 0 ? money.value.toLocaleString() : money.value.toFixed(2)))
+    : null;
+  const top = topGroup(groupQ.data);
+  const hasKpis = !!(countQ.data || moneyStr || checkedQ.data || top);
+
+  return (
+    <Link
+      ref={ref}
+      to={`/reports/sales?object=${obj.slug}`}
+      className="group flex items-start gap-3 overflow-hidden rounded-sm border p-3.5 transition-colors hover:border-[var(--section-accent)]"
+      style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
+    >
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border"
+        style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>
+        <BarChart2 size={16} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{obj.name_plural}</p>
+        {hasKpis ? (
+          <>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>
+              {countQ.data && <Kpi label="records" value={countQ.data.value?.toLocaleString() ?? "0"} op="count" />}
+              {moneyStr && <Kpi label={`Σ ${fields.money!.key}`} value={moneyStr} resp={money} op="sum" />}
+              {!fields.money && checkedQ.data && <Kpi label="checked" value={(checkedQ.data.value ?? 0).toLocaleString()} resp={checkedQ.data} op="checked" />}
+              {top && <span className="inline-flex items-baseline gap-1 whitespace-nowrap"><span className="font-medium" style={{ color: "var(--text-secondary)" }}>{top.label}</span><span style={{ color: "var(--text-faint)" }}>top · {top.count.toLocaleString()}</span></span>}
+            </div>
+            <p className="mt-1 text-[10px]" style={{ color: "var(--text-faint)" }}>Computed from records · all-time</p>
+          </>
+        ) : (
+          // Loading / no-KPI fallback — the original honest shell, never a fabricated number.
+          <p className="mt-0.5 truncate text-[11px]" style={{ color: "var(--text-muted)" }}>Computed from your {obj.name_plural.toLowerCase()} on open</p>
+        )}
+      </div>
+      <ArrowRight size={14} className="mt-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
+    </Link>
+  );
+}
 
 
 function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) => void; onClose: () => void }) {
@@ -122,23 +225,7 @@ export function ReportsPage() {
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{group.label}</p>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {objects.filter(o => groupOf(o) === group.key).map(obj => (
-                    <Link
-                      key={obj.slug}
-                      to={`/reports/sales?object=${obj.slug}`}
-                      className="group flex items-center gap-3 overflow-hidden rounded-sm border p-3.5 transition-colors hover:border-[var(--section-accent)]"
-                      style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
-                    >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border"
-                        style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>
-                        <BarChart2 size={16} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{obj.name_plural}</p>
-                        {/* Honest scope — live reports recompute from real records on open (no stored run). */}
-                        <p className="mt-0.5 truncate text-[11px]" style={{ color: "var(--text-muted)" }}>Computed from your {obj.name_plural.toLowerCase()} on open</p>
-                      </div>
-                      <ArrowRight size={14} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100" style={{ color: "var(--section-accent)" }} />
-                    </Link>
+                    <ReportObjectCard key={obj.slug} obj={obj} />
                   ))}
                 </div>
               </div>
