@@ -78,17 +78,28 @@ function ReportObjectCard({ obj }: { obj: ObjectType }) {
   const countQ = useRecordAggregate({ objectType: obj.slug, column: "name", op: "count", enabled: inView });
   // One "primary value" KPI: a money/number sum, else a checked-count. (≤1 heavier call per card.)
   const moneyQ = useRecordAggregate({ objectType: obj.slug, column: fields.money?.key ?? "", op: "sum", currency: fields.money?.type === "currency", enabled: inView && !!fields.money });
+  // Completeness of the primary numeric field — turns a bare "0 Σ" on an empty column into an honest
+  // "no data yet" instead of a misleading zero. One extra call, only on cards that have a numeric field.
+  const filledQ = useRecordAggregate({ objectType: obj.slug, column: fields.money?.key ?? "", op: "filled", enabled: inView && !!fields.money });
   const checkedQ = useRecordAggregate({ objectType: obj.slug, column: fields.checkbox?.key ?? "", op: "checked", enabled: inView && !fields.money && !!fields.checkbox });
   // Top status/stage group (a real category, not "unset").
   const groupQ = useRecordAggregate({ objectType: obj.slug, column: "name", op: "count", groupBy: fields.group?.key ?? "none", enabled: inView && !!fields.group });
 
   const money = moneyQ.data;
-  const moneyStr = money?.value != null
+  const filled = filledQ.data?.value ?? null;
+  const totalN = countQ.data?.value ?? null;
+  // The primary field exists but is entirely empty → show "no data yet", never a misleading "0 Σ".
+  const moneyEmpty = !!fields.money && filled === 0;
+  const filledPct = (totalN != null && totalN > 0 && filled != null) ? Math.round((filled / totalN) * 100) : null;
+  const moneyStr = !moneyEmpty && money?.value != null
     ? (fields.money?.type === "currency" ? formatMoney(money.value, money.currency ?? display)
       : fields.money?.type === "percentage" ? `${(money.value % 1 === 0 ? money.value : Number(money.value.toFixed(1))).toLocaleString()}%`
       : (money.value % 1 === 0 ? money.value.toLocaleString() : money.value.toFixed(2)))
     : null;
   const top = topGroup(groupQ.data);
+  // A card that can only ever show a plain record count (no numeric, checkbox, or group field) is
+  // labelled honestly so a sparse card reads as "nothing else to compute", not "broken/generic".
+  const noComputableKpi = !fields.money && !fields.checkbox && !fields.group;
   const hasKpis = !!(countQ.data || moneyStr || checkedQ.data || top);
 
   return (
@@ -107,12 +118,16 @@ function ReportObjectCard({ obj }: { obj: ObjectType }) {
         {hasKpis ? (
           <>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>
-              {countQ.data && <Kpi label="records" value={countQ.data.value?.toLocaleString() ?? "0"} op="count" />}
+              {countQ.data && <Kpi label={(countQ.data.value ?? 0) === 1 ? "record" : "records"} value={countQ.data.value?.toLocaleString() ?? "0"} op="count" />}
               {moneyStr && <Kpi label={`Σ ${fields.money!.key}`} value={moneyStr} resp={money} op="sum" />}
+              {/* Numeric field exists but is empty → honest "no data yet", not a misleading 0. */}
+              {moneyEmpty && <span className="inline-flex items-baseline gap-1 whitespace-nowrap"><span style={{ color: "var(--text-faint)" }}>{fields.money!.key} · no data yet</span></span>}
+              {/* Completeness of the primary numeric field, shown only when partially filled (signal, not noise). */}
+              {moneyStr && filledPct != null && filledPct < 100 && <span className="whitespace-nowrap" style={{ color: "var(--text-faint)" }}>{filledPct}% filled</span>}
               {!fields.money && checkedQ.data && <Kpi label="checked" value={(checkedQ.data.value ?? 0).toLocaleString()} resp={checkedQ.data} op="checked" />}
               {top && <span className="inline-flex items-baseline gap-1 whitespace-nowrap"><span className="font-medium" style={{ color: "var(--text-secondary)" }}>{top.label}</span><span style={{ color: "var(--text-faint)" }}>top · {top.count.toLocaleString()}</span></span>}
             </div>
-            <p className="mt-1 text-[10px]" style={{ color: "var(--text-faint)" }}>Computed from records · all-time</p>
+            <p className="mt-1 text-[10px]" style={{ color: "var(--text-faint)" }}>Computed from records · all-time{noComputableKpi && " · no numeric field"}</p>
           </>
         ) : (
           // Loading / no-KPI fallback — the original honest shell, never a fabricated number.

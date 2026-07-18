@@ -58,6 +58,30 @@ describe("Reports index — real record-backed KPI cards, honest + finance-safe"
   it("existing report navigation is unchanged (cards still open /reports/sales?object=slug)", () => {
     expect(index).toMatch(/to=\{`\/reports\/sales\?object=\$\{obj\.slug\}`\}/);
   });
+  it("Phase 3i — completeness + honest empty/sparse labels (filled op, no-data, filled%, pluralize)", () => {
+    // A filled aggregate on the primary numeric field — one extra call, only when a numeric field exists.
+    expect(index).toMatch(/const filledQ = useRecordAggregate\(\{ objectType: obj\.slug, column: fields\.money\?\.key \?\? "", op: "filled", enabled: inView && !!fields\.money \}\)/);
+    // An entirely-empty numeric column reads "no data yet" instead of a misleading "0 Σ".
+    expect(index).toMatch(/const moneyEmpty = !!fields\.money && filled === 0/);
+    expect(index).toMatch(/no data yet/);
+    // moneyStr is suppressed when the field is empty (never surface a fabricated-looking 0).
+    expect(index).toMatch(/const moneyStr = !moneyEmpty && money\?\.value != null/);
+    // Completeness percent, shown only when partially filled.
+    expect(index).toMatch(/filledPct != null && filledPct < 100/);
+    expect(index).toMatch(/\{filledPct\}% filled/);
+    // Honest "no numeric field" note when only a plain count can be computed.
+    expect(index).toMatch(/const noComputableKpi = !fields\.money && !fields\.checkbox && !fields\.group/);
+    expect(index).toMatch(/no numeric field/);
+    // Record/records pluralization (no "1 records").
+    expect(index).toMatch(/\(countQ\.data\.value \?\? 0\) === 1 \? "record" : "records"/);
+  });
+  it("Phase 3i — completeness reuses the SAME endpoint + honesty (no new API, still fail-soft)", () => {
+    // filled is an existing op on /records/aggregate — no backend/contract change.
+    expect(hook).toMatch(/AggOp = "count" \| "sum" \| "avg" \| "min" \| "max" \| "filled" \| "checked" \| "top"/);
+    // The empty/sparse labels are derived from real responses (count + filled), never invented.
+    expect(index).toMatch(/const filled = filledQ\.data\?\.value \?\? null/);
+    expect(index).toMatch(/const totalN = countQ\.data\?\.value \?\? null/);
+  });
   it("no finance recomputation, no formula engine, no schema — generic records only", () => {
     // The index never queries finance domain endpoints or invents paid/outstanding.
     expect(index).not.toMatch(/\/invoices|\/expenses|\/quotes|\/credit-notes|outstanding|makeBaseConverter/);
