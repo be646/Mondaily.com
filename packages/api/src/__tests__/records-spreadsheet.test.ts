@@ -65,3 +65,44 @@ describe("record table — currency-aware, fail-closed column totals (no fabrica
     expect(table).toMatch(/calcResultTyped\(calculations\[col\], col, sorted, effectiveType\(col\), \{ display: wsDisplay, rates: fxRates, base: wsBase \}\)/);
   });
 });
+
+describe("Phase 2 — fuller server field-type adoption (select / multi_select / datetime / url / email / phone)", () => {
+  it("maps a persisted select type to a real picker built from options ∪ existing values", () => {
+    expect(table).toMatch(/kind === "select"/);
+    expect(table).toMatch(/serverAttrOptions\.get\(col\)/);
+    expect(table).toMatch(/<StagePill value=\{shown\} options=\{opts\} onSelect/);
+    // No options yet → degrade to a plain editable cell, never crash.
+    expect(table).toMatch(/if \(!opts\.length\) return <div[^>]*><EditableCell raw=\{val\}/);
+  });
+  it("maps multi_select to read chips from an array OR comma string (unknown shapes degrade to text)", () => {
+    expect(table).toMatch(/kind === "multi_select"[\s\S]*?<MultiSelectChips/);
+    expect(table).toMatch(/Array\.isArray\(value\)\s*\?\s*value\.map\(v => String\(v\)\)/);
+  });
+  it("datetime/date format honestly and degrade to the raw stored string on bad input (no crash)", () => {
+    expect(table).toMatch(/kind === "datetime" \|\| kind === "date"[\s\S]*?<DateCell/);
+    expect(table).toMatch(/function fmtAbsDate/);
+    expect(table).toMatch(/if \(isNaN\(d\.getTime\(\)\)\) return \{ text: s, ok: false \}/);
+  });
+  it("url/email/phone render as typed links only when the value plausibly matches, else plain text", () => {
+    expect(table).toMatch(/kind === "url" \|\| kind === "email" \|\| kind === "phone"[\s\S]*?<ContactCell/);
+    expect(table).toMatch(/kind === "email" && \/\^\[\^\\s@\]\+@/);
+    expect(table).toMatch(/href=\{`mailto:\$\{s\}`\}/);
+    expect(table).toMatch(/href=\{`tel:/);
+  });
+  it("resolution order is unchanged: explicit local preset → server type → name inference", () => {
+    // effectiveType still checks the local preset first, then the server type.
+    expect(table).toMatch(/const local = customCols\.find\(cc => cc\.key === col\)\?\.type;\s*if \(local\) return local;\s*return serverAttrType\.get\(col\);/);
+    // Name inference (isNumeric) still exists as the final fallback for untyped columns.
+    expect(table).toMatch(/function isNumeric\(col: string\)/);
+  });
+  it("text-like server types never total to sums/averages — only count / % filled", () => {
+    expect(table).toMatch(/const textKind = kind === "select" \|\| kind === "multi_select" \|\| kind === "url" \|\| kind === "email" \|\| kind === "phone" \|\| kind === "datetime" \|\| kind === "date" \|\| kind === "text"/);
+    expect(table).toMatch(/textKind\s*\?\s*\[\{ op:"count",label:"Count" \},\{ op:"filled",label:"% Filled" \}\]/);
+  });
+  it("still no schema/finance/AI/formula changes in this component (Phase 2 stays display-only)", () => {
+    // No eval-based formula engine introduced; the only evalFormula is the pre-existing per-cell one.
+    expect((table.match(/function evalFormula/g) ?? []).length).toBe(1);
+    // No finance write paths / payment logic added here.
+    expect(table).not.toMatch(/\/invoices\/[^r]/); // only the pre-existing /invoices/rollup read remains
+  });
+});

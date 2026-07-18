@@ -569,9 +569,16 @@ function CalcDropdown({ col, current, onSelect, onClose, triggerRef, kind }: {
   triggerRef: React.RefObject<HTMLElement | null>; kind?: string;
 }) {
   const numericKind = kind === "currency" || kind === "percentage" || kind === "number";
+  // Text-like server types never aggregate to sums/averages — only count / % filled (even if the
+  // column NAME would otherwise trip the numeric heuristic, e.g. "phone_number").
+  const textKind = kind === "select" || kind === "multi_select" || kind === "url" || kind === "email" || kind === "phone" || kind === "datetime" || kind === "date" || kind === "text";
   const options: { op: CalcOp; label: string }[] = kind === "checkbox"
     ? [{ op:"count",label:"Checked" },{ op:"filled",label:"% Filled" }]
-    : (numericKind || isNumeric(col))
+    : numericKind
+    ? [{ op:"sum",label:"Sum" },{ op:"avg",label:"Average" },{ op:"min",label:"Min" },{ op:"max",label:"Max" },{ op:"count",label:"Count" },{ op:"filled",label:"% Filled" }]
+    : textKind
+    ? [{ op:"count",label:"Count" },{ op:"filled",label:"% Filled" }]
+    : isNumeric(col)
     ? [{ op:"sum",label:"Sum" },{ op:"avg",label:"Average" },{ op:"min",label:"Min" },{ op:"max",label:"Max" },{ op:"count",label:"Count" },{ op:"filled",label:"% Filled" }]
     : [{ op:"count",label:"Count" },{ op:"filled",label:"% Filled" }];
   return (
@@ -1381,6 +1388,73 @@ function PercentCell({ value, onSave }: { value: unknown; onSave: (v: number | s
   );
 }
 
+// ─── Safe absolute date/datetime formatter — degrades to the raw string, never throws/crashes. ──
+function fmtAbsDate(v: unknown, withTime: boolean): { text: string; ok: boolean } {
+  const s = String(v ?? "").trim();
+  if (!s) return { text: "", ok: false };
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return { text: s, ok: false }; // honest: show what's stored, don't invent
+  return {
+    ok: true,
+    text: d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric", ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}) }),
+  };
+}
+// Date / datetime cell — formatted display, editable as raw text (unparseable input degrades to text).
+function DateCell({ value, withTime, onSave }: { value: unknown; withTime: boolean; onSave: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(value ?? ""));
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editing) { setDraft(String(value ?? "")); inputRef.current?.focus(); inputRef.current?.select(); } }, [editing, value]);
+  function commit() { onSave(draft.trim()); setEditing(false); }
+  const { text, ok } = fmtAbsDate(value, withTime);
+  if (editing) {
+    return (
+      <input ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit}
+        onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
+        placeholder={withTime ? "2026-01-31 14:00" : "2026-01-31"}
+        className="w-full max-w-[150px] bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded px-2 py-0.5 text-xs text-[var(--text-primary)] outline-none font-mono"/>
+    );
+  }
+  return (
+    <button onClick={() => setEditing(true)} className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-left w-full truncate">
+      {text ? <span className={ok ? "tabular-nums" : ""}>{text}</span> : <span className="text-stone-700">— date</span>}
+    </button>
+  );
+}
+// Multi-select — renders the stored value (array OR comma string) as read chips; unknown shapes
+// degrade to plain text. No fabricated options; empty shows a dash.
+function MultiSelectChips({ value }: { value: unknown }) {
+  const parts = Array.isArray(value)
+    ? value.map(v => String(v)).filter(Boolean)
+    : String(value ?? "").split(",").map(s => s.trim()).filter(Boolean);
+  if (!parts.length) return <span className="text-stone-700 text-xs">—</span>;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {parts.slice(0, 6).map((p, i) => (
+        <span key={i} className="inline-flex items-center rounded-sm border px-1.5 py-0.5 text-[10px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{p}</span>
+      ))}
+      {parts.length > 6 && <span className="text-[10px] text-[var(--text-faint)]">+{parts.length - 6}</span>}
+    </div>
+  );
+}
+// url / email / phone — a typed link when the value plausibly matches, else honest plain text.
+function ContactCell({ value, kind }: { value: unknown; kind: "url" | "email" | "phone" }) {
+  const s = String(value ?? "").trim();
+  if (!s) return <span className="text-stone-700 text-xs">—</span>;
+  const linkClass = "text-[#717784] hover:text-[var(--text-primary)] text-[11px] underline underline-offset-2 truncate block max-w-[160px]";
+  const stop = (e: React.MouseEvent) => e.stopPropagation();
+  if (kind === "email" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) {
+    return <a href={`mailto:${s}`} onClick={stop} className={linkClass}>{s}</a>;
+  }
+  if (kind === "phone" && /[0-9]/.test(s) && /^[+()\-.\s0-9]{5,}$/.test(s)) {
+    return <a href={`tel:${s.replace(/[^\d+]/g, "")}`} onClick={stop} className={linkClass}>{s}</a>;
+  }
+  if (kind === "url" && /^https?:\/\//i.test(s)) {
+    return <a href={s} target="_blank" rel="noreferrer" onClick={stop} className={linkClass}>{s.replace(/^https?:\/\/(www\.)?/, "").slice(0, 30)}</a>;
+  }
+  return <span className="text-[var(--text-secondary)] text-[11px] truncate block max-w-[160px]">{s}</span>;
+}
+
 // ─── Relation cell — link a record to another object record ──────────────────
 type RelationValue = { id: string; label: string } | null;
 
@@ -1623,7 +1697,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   // carry a real type enum (currency/percentage/checkbox/date/…). We map each attribute → its data
   // key via the same normalization the create form uses (lower + spaces→underscore). An explicit
   // local preset (customCols) still overrides; name inference remains the final fallback.
-  const { data: objectDefsForTypes = [] } = useQuery<{ slug: string; attributes?: { name: string; type?: string }[] }[]>({
+  const { data: objectDefsForTypes = [] } = useQuery<{ slug: string; attributes?: { name: string; type?: string; options?: string[] }[] }[]>({
     queryKey: ["object-defs"],
     queryFn: () => apiClient.get("/objects"),
     staleTime: 60_000,
@@ -1633,6 +1707,16 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     const m = new Map<string, string>();
     for (const a of def?.attributes ?? []) {
       if (a?.type) m.set(a.name.toLowerCase().replace(/\s+/g, "_"), a.type);
+    }
+    return m;
+  }, [objectDefsForTypes, objectType]);
+  // Persisted select/multi_select option lists (when the schema provides them). Used as a clean
+  // starting set; distinct existing column values are merged in so the picker always has real choices.
+  const serverAttrOptions = useMemo(() => {
+    const def = objectDefsForTypes.find(o => o.slug === objectType);
+    const m = new Map<string, string[]>();
+    for (const a of def?.attributes ?? []) {
+      if (Array.isArray(a?.options) && a.options.length) m.set(a.name.toLowerCase().replace(/\s+/g, "_"), a.options.map(String));
     }
     return m;
   }, [objectDefsForTypes, objectType]);
@@ -2019,6 +2103,34 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     }
     if (kind === "percentage") {
       return <div className="px-2 py-1.5 text-right"><PercentCell value={val} onSave={v => saveCell(record, col, v)} /></div>;
+    }
+    // Server 'number' — reuse the formula-aware number editor.
+    if (kind === "number" && !customDef) {
+      return <NumberCell value={val} onSave={v => saveCell(record, col, v)} />;
+    }
+    // Select — a clean picker built from any persisted options ∪ the distinct values already in the
+    // column. If there are genuinely no options yet, degrade to a plain editable cell (never crash).
+    if (kind === "select") {
+      const opts = [...new Set([...(serverAttrOptions.get(col) ?? []), ...records.map(r => String(r.data[col] ?? "")).filter(Boolean)])];
+      const shown = String(val ?? "");
+      if (!opts.length) return <div className="px-2 py-1.5"><EditableCell raw={val} onSave={v => saveCell(record, col, v)} /></div>;
+      if (!shown) return (
+        <button className="text-stone-700 text-xs hover:text-stone-400 transition-colors px-2 py-1.5"
+          onClick={() => saveCell(record, col, opts[0]!)}>— set</button>
+      );
+      return <StagePill value={shown} options={opts} onSelect={v => saveCell(record, col, v)} />;
+    }
+    // Multi-select — read chips from an array or comma string; unknown shapes degrade to text.
+    if (kind === "multi_select") {
+      return <div className="px-2 py-1.5"><MultiSelectChips value={val} /></div>;
+    }
+    // Date / datetime — honest formatted display, editable as raw text; bad values degrade to text.
+    if (kind === "datetime" || kind === "date") {
+      return <div className="px-2 py-1.5"><DateCell value={val} withTime={kind === "datetime"} onSave={v => saveCell(record, col, v)} /></div>;
+    }
+    // Typed contact/link values — email/phone/url as links when plausible, else plain text.
+    if (kind === "url" || kind === "email" || kind === "phone") {
+      return <div className="px-2 py-1.5"><ContactCell value={val} kind={kind} /></div>;
     }
 
     // Custom assignee/owner/stage/status columns
