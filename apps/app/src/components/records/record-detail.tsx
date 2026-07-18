@@ -2068,7 +2068,32 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
             {tab === "Overview" && (
               <div className="space-y-7 max-w-3xl">
-                {/* AI Inspector (interpretation) + Graph Context Drawer trigger (connected context) */}
+                {/* Summary — the record's own description, kept at the very top (real fields lead). */}
+                {(data.description != null && data.description !== "") && (
+                  <DescriptionField value={String(data.description)} onSave={v => save("description", v)}/>
+                )}
+                {/* Key fields — the type-specific highlights, lifted above the AI interpretation so the
+                    important recorded values are visible first, not buried below analysis. */}
+                <div>
+                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-stone-600">Key fields</p>
+                  {isCompany     && <CompanyHighlights      data={data} onSave={save}/>}
+                  {isPeople      && <PeopleHighlights       data={data} onSave={save}/>}
+                  {isDeals       && <DealHighlights         data={data} onSave={save}/>}
+                  {isInvestment  && <InvestmentHighlights   data={data} onSave={save}/>}
+                  {isExpense     && <ExpenseHighlights      data={data} onSave={save}/>}
+                  {isTax         && <TaxHighlights          data={data} onSave={save}/>}
+                  {isTaskType    && <TaskHighlights         data={data} onSave={save}/>}
+                  {isVisitPayment && <VisitPaymentHighlights data={data} onSave={save}/>}
+                  {!isCompany && !isPeople && !isDeals && !isInvestment && !isExpense && !isTax && !isTaskType && !isVisitPayment && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      <HighlightCard icon={Clock}  label="Updated"    value={new Date(record.updated_at).toLocaleDateString()} accent="slate"/>
+                      <HighlightCard icon={Star}   label="Object"     value={record.object_type} accent="blue"/>
+                      <HighlightCard icon={Users}  label="Vertical"   value={record.vertical}    accent="purple"/>
+                    </div>
+                  )}
+                </div>
+                {/* AI Inspector (interpretation) + Graph Context Drawer trigger — advisory context BELOW
+                    the real recorded fields, never above them. */}
                 {(() => {
                   const inspectorCtx = {
                     kind: "record" as const,
@@ -2089,29 +2114,6 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                     </div>
                   );
                 })()}
-                {/* Description — full-width editable */}
-                {(data.description != null && data.description !== "") && (
-                  <DescriptionField value={String(data.description)} onSave={v => save("description", v)}/>
-                )}
-                {/* Type-specific highlights */}
-                <div>
-                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-stone-600">Highlights</p>
-                  {isCompany     && <CompanyHighlights      data={data} onSave={save}/>}
-                  {isPeople      && <PeopleHighlights       data={data} onSave={save}/>}
-                  {isDeals       && <DealHighlights         data={data} onSave={save}/>}
-                  {isInvestment  && <InvestmentHighlights   data={data} onSave={save}/>}
-                  {isExpense     && <ExpenseHighlights      data={data} onSave={save}/>}
-                  {isTax         && <TaxHighlights          data={data} onSave={save}/>}
-                  {isTaskType    && <TaskHighlights         data={data} onSave={save}/>}
-                  {isVisitPayment && <VisitPaymentHighlights data={data} onSave={save}/>}
-                  {!isCompany && !isPeople && !isDeals && !isInvestment && !isExpense && !isTax && !isTaskType && !isVisitPayment && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      <HighlightCard icon={Clock}  label="Updated"    value={new Date(record.updated_at).toLocaleDateString()} accent="slate"/>
-                      <HighlightCard icon={Star}   label="Object"     value={record.object_type} accent="blue"/>
-                      <HighlightCard icon={Users}  label="Vertical"   value={record.vertical}    accent="purple"/>
-                    </div>
-                  )}
-                </div>
 
                 {/* Notes + Tasks side-by-side */}
                 <div className="grid grid-cols-2 gap-6">

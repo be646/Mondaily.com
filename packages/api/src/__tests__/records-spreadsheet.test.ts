@@ -119,8 +119,10 @@ describe("Phase 3 — footer uses the authoritative server total, client calc st
     expect(table).toMatch(/<ServerTotalValue objectType=\{objectType\} col=\{col\} op=\{calculations\[col\]\} kind=\{effectiveType\(col\)\} display=\{wsDisplay\} fallback=\{clientStr\}/);
   });
   it("labels truncation and unconverted amounts honestly (no silent full-coverage claim)", () => {
-    expect(table).toMatch(/resp\.truncated \? ` · first \$\{resp\.total_rows\.toLocaleString\(\)\}` : ` · over \$\{resp\.total_rows\.toLocaleString\(\)\}`/);
-    expect(table).toMatch(/resp\.unconverted > 0 \? ` · \$\{resp\.unconverted\} unconverted`/);
+    // Now rendered as structured scope notes (aggParts) rather than a single string.
+    expect(table).toMatch(/first \$\{resp\.total_rows\.toLocaleString\(\)\}`, warn: true/);
+    expect(table).toMatch(/over \$\{resp\.total_rows\.toLocaleString\(\)\}`/);
+    expect(table).toMatch(/\$\{resp\.unconverted\} unconverted`, warn: true/);
   });
 });
 
@@ -130,7 +132,7 @@ describe("Phase 3b.1 — filtered server totals + group subtotals (still no sche
     expect(table).toMatch(/!f\.col\.endsWith\("__from"\) && !f\.col\.endsWith\("__to"\) && !\/owner\|assign\/i\.test\(f\.col\)/);
   });
   it("footer uses the server total (with filters) only when the WHOLE active filter set is representable", () => {
-    expect(table).toMatch(/const allRepresentable = !filterText\.trim\(\) && !filterQuery && reprFilters\.length === quickFilters\.length;\s*if \(!allRepresentable\) return clientStr;/);
+    expect(table).toMatch(/const allRepresentable = !filterText\.trim\(\) && !filterQuery && reprFilters\.length === quickFilters\.length;\s*if \(!allRepresentable\) return <>\{clientStr\}<TotalNote text="this view" \/><\/>;/);
     expect(table).toMatch(/<ServerTotalValue[^]*?filters=\{reprFilters\}/);
     // the aggregate call forwards the validated equality filters
     expect(table).toMatch(/\.\.\.\(filters\?\.length \? \{ filters \} : \{\}\)/);
@@ -147,5 +149,68 @@ describe("Phase 3b.1 — filtered server totals + group subtotals (still no sche
   it("group subtotal currency stays honest (unconverted marker) and reuses formatMoney only", () => {
     expect(table).toMatch(/function fmtGroupVal/);
     expect(table).toMatch(/formatMoney\(value, currency\) \+ \(unconverted > 0 \? ` ·\$\{unconverted\}✗`/);
+  });
+});
+
+// ── Phase 3 UX polish — honest footer labels, group chip, a11y, profile section order ──
+const detail = readFileSync(
+  fileURLToPath(new URL("../../../../apps/app/src/components/records/record-detail.tsx", import.meta.url)),
+  "utf8",
+);
+describe("Phase 3 UX polish — footer totals scope is explicit and honest", () => {
+  it("footer distinguishes full-table / filtered / truncated / unconverted / this-view", () => {
+    expect(table).toMatch(/function aggParts/);
+    expect(table).toMatch(/function TotalNote/);
+    // full table vs filtered vs truncated scope note
+    expect(table).toMatch(/filtered · \$\{resp\.total_rows/);
+    expect(table).toMatch(/first \$\{resp\.total_rows.*?warn: true/);
+    expect(table).toMatch(/over \$\{resp\.total_rows/);
+    expect(table).toMatch(/\$\{resp\.unconverted\} unconverted`, warn: true/);
+    // a client subtotal (unrepresentable filter) is labelled "this view", never as full truth
+    expect(table).toMatch(/return <>\{clientStr\}<TotalNote text="this view" \/><\/>/);
+  });
+  it("truncated + unconverted use a warn tone (not silently shown as full truth)", () => {
+    expect(table).toMatch(/color: warn \? "#c6892e" : "var\(--text-faint\)"/);
+  });
+  it("group subtotal is a compact non-wrapping chip that names server vs this-view scope", () => {
+    expect(table).toMatch(/whitespace-nowrap rounded-sm border/);
+    expect(table).toMatch(/srv \? "Group subtotal \(full table\)" : "Group subtotal \(this view\)"/);
+  });
+});
+
+describe("Phase 3 UX polish — accessibility (focus-visible + labels), no actions removed", () => {
+  it("shared toolbar button class carries a focus ring; add-column + calc buttons labelled", () => {
+    expect(table).toMatch(/const TB = "[^"]*focus-visible:ring-2 focus-visible:ring-\[var\(--section-accent\)\]/);
+    expect(table).toMatch(/aria-label="Add a column"/);
+    expect(table).toMatch(/aria-label=\{`Add a total for \$\{colLabel\(col\)\}`\}/);
+    expect(table).toMatch(/aria-label=\{`Change \$\{calculations\[col\]\} total for \$\{colLabel\(col\)\}`\}/);
+  });
+  it("typed-cell edit triggers are keyboard-focusable (currency/percent/date)", () => {
+    expect((table.match(/text-left w-full[^"]*focus-visible:ring-2/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
+  it("all existing table actions/tools preserved (nothing removed)", () => {
+    for (const h of ["AddColumnDropdown", "CalcDropdown", "ServerTotalValue", "board", "startResize", "colOrder", "exportCSV", "setOpenPanel"]) {
+      expect(table).toContain(h);
+    }
+  });
+});
+
+describe("Phase 3 UX polish — record profile puts real fields above AI interpretation", () => {
+  it("Overview shows the record's Key fields BEFORE the AI Inspector block", () => {
+    const keyIdx = detail.indexOf('Key fields</p>');
+    const aiIdx = detail.indexOf("AI Inspector (interpretation)");
+    expect(keyIdx).toBeGreaterThan(0);
+    expect(aiIdx).toBeGreaterThan(0);
+    expect(keyIdx).toBeLessThan(aiIdx); // key fields render above the AI block
+  });
+  it("editing behavior preserved — fields still save through the same PATCH path", () => {
+    expect(detail).toMatch(/onSave=\{v => save\("description", v\)\}/);
+    expect(detail).toMatch(/<CompanyHighlights\s+data=\{data\} onSave=\{save\}/);
+  });
+  it("Finance stays read-only aggregation (no recomputation added in this pass)", () => {
+    // The finance tab still reads the domain endpoints; this pass added no finance write/compute.
+    expect(detail).toMatch(/linked_record_id=\$\{recordId\}/);
+    expect(detail).toMatch(/byLinkAndName<InvoiceRecord>\("\/invoices"\)/);
+    expect(detail).not.toMatch(/records\/aggregate/);
   });
 });

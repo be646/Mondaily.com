@@ -574,15 +574,33 @@ function serverAggOp(kind: string | undefined, op: CalcOp): "count" | "sum" | "a
   if (kind === "checkbox") return op === "filled" ? "filled" : "checked"; // checkbox "count" means checked
   return op;
 }
-function formatAgg(kind: string | undefined, op: CalcOp, resp: AggResp, display: string): string {
+// A small muted/warn qualifier chip shown after a footer total — communicates the SCOPE of the number
+// (full table vs filtered vs truncated) and any unconverted-currency count. Warn tone = the honesty
+// cases where the number is NOT the whole picture (truncated / unconverted).
+function TotalNote({ text, warn }: { text: string; warn?: boolean }) {
+  return <span className="ml-1 font-sans text-[9px] font-normal normal-case tracking-normal" style={{ color: warn ? "#c6892e" : "var(--text-faint)" }}>· {text}</span>;
+}
+// Splits a server aggregate into the main value + honest scope notes. `filtered` = the server total
+// reflects the active (equality) filters, so it's labelled "filtered" rather than "over N".
+function aggParts(kind: string | undefined, op: CalcOp, resp: AggResp, display: string, filtered: boolean): { value: string; notes: { text: string; warn?: boolean }[] } {
   const v = resp.value ?? 0;
-  const trunc = resp.truncated ? ` · first ${resp.total_rows.toLocaleString()}` : ` · over ${resp.total_rows.toLocaleString()}`;
-  if (op === "count") return `${v.toLocaleString()}`;
-  if (op === "filled") return `${Math.round((v / Math.max(resp.total_rows, 1)) * 100)}% filled${trunc}`;
-  if (kind === "checkbox") return `${v.toLocaleString()} checked${trunc}`;
-  if (kind === "currency") return formatMoney(v, resp.currency ?? display) + (resp.unconverted > 0 ? ` · ${resp.unconverted} unconverted` : "") + trunc;
-  if (kind === "percentage") return `${(v % 1 === 0 ? v : Number(v.toFixed(1))).toLocaleString()}%${trunc}`;
-  return `${v % 1 === 0 ? v.toLocaleString() : v.toFixed(2)}${trunc}`;
+  const value =
+    op === "count" ? v.toLocaleString() :
+    op === "filled" ? `${Math.round((v / Math.max(resp.total_rows, 1)) * 100)}% filled` :
+    kind === "checkbox" ? `${v.toLocaleString()} checked` :
+    kind === "currency" ? formatMoney(v, resp.currency ?? display) :
+    kind === "percentage" ? `${(v % 1 === 0 ? v : Number(v.toFixed(1))).toLocaleString()}%` :
+    (v % 1 === 0 ? v.toLocaleString() : v.toFixed(2));
+  // A plain exact count needs no scope note (the value IS the row count).
+  if (op === "count" && !filtered) return { value, notes: [] };
+  const notes: { text: string; warn?: boolean }[] = [];
+  notes.push(filtered
+    ? { text: `filtered · ${resp.total_rows.toLocaleString()}` }
+    : resp.truncated
+    ? { text: `first ${resp.total_rows.toLocaleString()}`, warn: true }
+    : { text: `over ${resp.total_rows.toLocaleString()}` });
+  if (resp.unconverted > 0) notes.push({ text: `${resp.unconverted} unconverted`, warn: true });
+  return { value, notes };
 }
 type AggFilter = { column: string; value: string };
 // The subset of the table's quickFilters the server can reproduce EXACTLY: plain equality on a
@@ -614,7 +632,8 @@ function ServerTotalValue({ objectType, col, op, kind, display, fallback, filter
   });
   // Loading or errored → keep the honest client subtotal (never a blank or a fake number).
   if (!q.data) return <>{fallback}</>;
-  return <>{formatAgg(kind, op, q.data, display)}</>;
+  const { value, notes } = aggParts(kind, op, q.data, display, !!filters?.length);
+  return <>{value}{notes.map((n, i) => <TotalNote key={i} text={n.text} warn={n.warn} />)}</>;
 }
 
 // ─── Calc dropdown ────────────────────────────────────────────────────────────
@@ -1354,7 +1373,7 @@ function NumberCell({ value, onSave }: { value: unknown; onSave: (v: number | st
   }
   return (
     <button onClick={() => setEditing(true)}
-      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] tabular-nums transition-colors text-left w-full">
+      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] tabular-nums transition-colors text-left w-full rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
       {displayVal ?? <span className="text-stone-700">— number</span>}
     </button>
   );
@@ -1405,7 +1424,7 @@ function CurrencyCell({ value, currency, onSave }: { value: unknown; currency: s
   }
   return (
     <button onClick={() => setEditing(true)}
-      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] tabular-nums transition-colors text-left w-full">
+      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] tabular-nums transition-colors text-left w-full rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
       {shown ?? <span className="text-stone-700">— amount</span>}
     </button>
   );
@@ -1436,7 +1455,7 @@ function PercentCell({ value, onSave }: { value: unknown; onSave: (v: number | s
   }
   return (
     <button onClick={() => setEditing(true)}
-      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] tabular-nums transition-colors text-left w-full">
+      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] tabular-nums transition-colors text-left w-full rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
       {shown ?? <span className="text-stone-700">— %</span>}
     </button>
   );
@@ -1470,7 +1489,7 @@ function DateCell({ value, withTime, onSave }: { value: unknown; withTime: boole
     );
   }
   return (
-    <button onClick={() => setEditing(true)} className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-left w-full truncate">
+    <button onClick={() => setEditing(true)} className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors text-left w-full truncate rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
       {text ? <span className={ok ? "tabular-nums" : ""}>{text}</span> : <span className="text-stone-700">— date</span>}
     </button>
   );
@@ -2441,7 +2460,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   }
 
   // Toolbar button styles — clean clickable pills with real borders in light mode
-  const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[11px] font-medium transition-colors duration-150 select-none border";
+  const TB = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-sm text-[11px] font-medium transition-colors duration-150 select-none border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]";
   const TB_IDLE = `${TB} border-[#dfe3ea] bg-white text-[#374151] hover:bg-[#f8fafc] hover:border-[#cbd5e1] dark:border-transparent dark:bg-transparent dark:text-stone-300 dark:hover:text-[var(--text-primary)] dark:hover:bg-[var(--surface-hover)] dark:hover:border-[var(--border-soft)]`;
   const TB_ON   = `${TB} border-stone-300 bg-stone-200 text-stone-900 dark:border-[var(--border-soft)] dark:text-[var(--text-primary)] dark:bg-[var(--surface-hover)]`;
   const TB_DOT  = "ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-stone-200 px-1 text-[9px] font-semibold text-[var(--accent)] dark:bg-[var(--surface-hover)] dark:text-stone-300";
@@ -3111,8 +3130,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               >
                 <button
                   onClick={() => setOpenPanel(p => p === "addcol" ? null : "addcol")}
-                  className="flex h-6 w-6 items-center justify-center rounded-sm text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:text-[var(--text-secondary)] dark:hover:text-[var(--text-secondary)] dark:hover:bg-[var(--surface-hover)] transition-all"
-                  title="Add column"
+                  className="flex h-6 w-6 items-center justify-center rounded-sm text-stone-400 hover:text-stone-700 hover:bg-stone-100 dark:text-[var(--text-secondary)] dark:hover:text-[var(--text-secondary)] dark:hover:bg-[var(--surface-hover)] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
+                  title="Add column" aria-label="Add a column"
                 >
                   <Plus size={13}/>
                 </button>
@@ -3162,8 +3181,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                               ? fmtGroupVal(groupCalcKind, groupCalcOp, srv.value, groupAggCurrency, srv.unconverted)
                               : calcResultTyped(groupCalcOp, groupCalcCol, groupRows, groupCalcKind, { display: wsDisplay, rates: fxRates, base: wsBase });
                             return (
-                              <span className="ml-auto text-[10px] font-mono tabular-nums text-stone-500 dark:text-[var(--text-secondary)]">
-                                <span className="uppercase tracking-wide text-stone-400 mr-1">{colLabel(groupCalcCol)} · {groupCalcOp}</span>{str}
+                              <span title={srv ? "Group subtotal (full table)" : "Group subtotal (this view)"}
+                                className="ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-sm border px-1.5 py-0.5 text-[10px] font-mono tabular-nums"
+                                style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
+                                <span className="uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{colLabel(groupCalcCol)} · {groupCalcOp}</span>{str}
                               </span>
                             );
                           })()}
@@ -3200,8 +3221,8 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       />
                     )}
                     {calculations[col] ? (
-                      <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
-                        className="flex items-center gap-1.5 text-[11px] text-stone-400 hover:text-[var(--text-primary)] transition-colors tabular-nums font-mono">
+                      <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)} aria-label={`Change ${calculations[col]} total for ${colLabel(col)}`}
+                        className="flex items-center gap-1.5 text-[11px] text-stone-400 hover:text-[var(--text-primary)] transition-colors tabular-nums font-mono rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
                         <span className="text-stone-600 uppercase text-[10px] tracking-wide mr-0.5">{calculations[col]}</span>
                         {(() => {
                           const clientStr = calcResultTyped(calculations[col], col, sorted, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase });
@@ -3210,16 +3231,17 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                           // state the server can't see; date-range __from/__to and free-text search
                           // aren't equality). If the whole active filter set is representable we send
                           // it so the server total matches the filtered view; otherwise we keep the
-                          // honest client subtotal over the visible rows.
+                          // honest client subtotal over the visible rows — LABELLED "this view" so it's
+                          // never mistaken for the authoritative full-table server total.
                           const reprFilters = serverFilters(quickFilters);
                           const allRepresentable = !filterText.trim() && !filterQuery && reprFilters.length === quickFilters.length;
-                          if (!allRepresentable) return clientStr;
+                          if (!allRepresentable) return <>{clientStr}<TotalNote text="this view" /></>;
                           return <ServerTotalValue objectType={objectType} col={col} op={calculations[col]} kind={effectiveType(col)} display={wsDisplay} fallback={clientStr} filters={reprFilters} />;
                         })()}
                       </button>
                     ) : (
-                      <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
-                        className="flex items-center gap-1 text-[11px] text-stone-700 hover:text-stone-400 transition-colors group">
+                      <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)} aria-label={`Add a total for ${colLabel(col)}`}
+                        className="flex items-center gap-1 text-[11px] text-stone-700 hover:text-stone-400 transition-colors group rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
                         <Plus size={10} className="group-hover:text-stone-400 transition-colors"/>
                         <span>Calculate</span>
                       </button>
