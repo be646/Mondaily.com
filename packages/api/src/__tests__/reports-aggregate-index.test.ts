@@ -111,6 +111,54 @@ describe("Reports index — real record-backed KPI cards, honest + finance-safe"
   });
 });
 
+describe("Phase 3k — Reports Executive Overview (derived from card aggregates, honest, no extra calls)", () => {
+  it("renders an Executive Overview strip above the object-card groups", () => {
+    expect(index).toMatch(/function ExecutiveOverview\(\{ objects, stats \}/);
+    expect(index).toMatch(/<ExecutiveOverview objects=\{objects\} stats=\{cardStats\} \/>/);
+  });
+  it("derives from card-reported aggregate state, not hardcoded numbers", () => {
+    // Cards report their resolved KPI up; the page collects it into cardStats with a loop-guard.
+    expect(index).toMatch(/onStat\?\.\(obj\.slug, \{/);
+    expect(index).toMatch(/const \[cardStats, setCardStats\] = useState<Record<string, CardStat>>\(\{\}\)/);
+    expect(index).toMatch(/<ReportObjectCard key=\{obj\.slug\} obj=\{obj\} onStat=\{reportStat\} \/>/);
+    // Totals are summed from the reported counts — never a literal.
+    expect(index).toMatch(/const totalRecords = loaded\.reduce\(\(n, \[, s\]\) => n \+ \(s\.count \?\? 0\), 0\)/);
+  });
+  it("only counts loaded cards and says so — never implies whole-workspace completeness", () => {
+    expect(index).toMatch(/const loaded = entries\.filter\(\(\[, s\]\) => s\.count != null\)/);
+    expect(index).toMatch(/Computed from records · all-time · visible cards only/);
+    expect(index).toMatch(/loadedCount\}\/\{objects\.length\} types loaded/);
+  });
+  it("has data-readiness signals (partial / empty / no-field), labelled — not AI magic", () => {
+    expect(index).toMatch(/Data readiness/);
+    expect(index).toMatch(/const noNumeric = loaded\.filter\(\(\[, s\]\) => !s\.hasNumeric\)\.length/);
+    expect(index).toMatch(/const noDataYet = loaded\.filter\(\(\[, s\]\) => s\.hasNumeric && s\.noData\)\.length/);
+    expect(index).toMatch(/s\.filledPct > 0 && s\.filledPct < 100/);
+  });
+  it("value signal is a single top object (no cross-object total) + honest empty state", () => {
+    expect(index).toMatch(/if \(!topValue \|\| s\.sum > topValue\.sum\)/);
+    expect(index).toMatch(/No value signal yet/);
+    // never sums different value fields together into a fake grand total
+    expect(index).not.toMatch(/reduce\([^)]*s\.sum/);
+  });
+  it("next-step links point to real routes only (no invented recommendations)", () => {
+    expect(index).toMatch(/Strongest report/);
+    expect(index).toMatch(/Review sparse data/);
+    expect(index).toMatch(/const financeObj = objects\.find\(o => groupOf\(o\) === "revenue"\)/);
+    expect(index).toMatch(/to=\{`\/reports\/sales\?object=\$\{strongest\}`\}/);
+  });
+  it("adds NO aggregate calls of its own + no fake AI/live language", () => {
+    // The overview reads cardStats only — it never calls useRecordAggregate itself.
+    expect(index).not.toMatch(/ExecutiveOverview[\s\S]*?useRecordAggregate/);
+    // No fabricated intelligence claims in the overview.
+    expect(index).not.toMatch(/AI (?:found|detected|recommends|says)|live AI|AI is analy/i);
+  });
+  it("existing lazy in-view card loading is unchanged", () => {
+    expect(index).toMatch(/enabled: inView/);
+    expect(index).toMatch(/new IntersectionObserver/);
+  });
+});
+
 const sales = read("../../../../apps/app/src/routes/dashboard/reports/sales-report.tsx");
 describe("Phase 3e — Sales Report switches only the semantics-identical KPIs to server aggregation", () => {
   it("Total Records uses a server count scoped to the SAME period (date_filter) + equality filters", () => {

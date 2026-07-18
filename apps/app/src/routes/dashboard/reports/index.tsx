@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart2, LayoutDashboard, Plus, Zap, ArrowRight, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, PageSkeletonCards, DelayedLoading, ErrorState } from "../../../components/ui/page-state";
 import { CommandPageHeader } from "../../../components/ui/controls";
@@ -12,6 +12,20 @@ import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
 interface ObjAttr { name: string; type?: string }
 interface DashboardItem { id: string; name?: string; updated_at: string; widgets?: unknown[] }
 interface ObjectType   { slug: string; name_plural: string; attributes?: ObjAttr[] }
+
+// What each card reports up to the Executive Overview once its (lazy, in-view) aggregates resolve.
+// Everything here is derived from the SAME record aggregates the card already fetched — the overview
+// adds no calls of its own, and only ever reflects cards that have actually loaded ("visible cards").
+interface CardStat {
+  count: number | null;        // record count (null until loaded)
+  hasNumeric: boolean;         // object has ≥1 numeric/currency candidate field
+  valueField: string | null;   // the selected primary field key (null if none)
+  sum: number | null;          // trustworthy sum of the primary field (null if untrustworthy/absent)
+  sumCurrency: string | null;   // display currency of that sum, when it's a currency field
+  isCurrency: boolean;         // whether the primary field is a currency type
+  filledPct: number | null;     // completeness of the primary field
+  noData: boolean;             // has a numeric field but it settled empty ("no data yet")
+}
 
 // Group live reports by PURPOSE instead of one flat wall of near-identical cards. Each object type is
 // matched to the first category whose pattern hits its slug/name; anything unmatched falls to "Other".
@@ -102,7 +116,7 @@ function Kpi({ label, value, resp, op }: { label: string; value: string; resp?: 
 // A single generic-object report card — the same link/target as before, now with REAL all-time KPIs
 // pulled from /records/aggregate. Any failing/loading call simply omits its KPI (never a fake number),
 // so the card always degrades cleanly to its original shell.
-function ReportObjectCard({ obj }: { obj: ObjectType }) {
+function ReportObjectCard({ obj, onStat }: { obj: ObjectType; onStat?: (slug: string, stat: CardStat) => void }) {
   const [ref, inView] = useInView<HTMLAnchorElement>();
   const { display } = useCurrency();
   const fields = resolveKpiFields(obj.attributes);
@@ -148,6 +162,23 @@ function ReportObjectCard({ obj }: { obj: ObjectType }) {
   const noComputableKpi = !cands.length && !fields.checkbox && !fields.group;
   const hasKpis = !!(countQ.data || moneyStr || checkedQ.data || top);
 
+  // Report this card's resolved KPI up to the Executive Overview. Purely derived from the aggregates
+  // already fetched above — no extra request. Fires only as values change (count/field/sum/completeness).
+  const sumForStat = sumTrustworthy && money?.value != null ? money.value : null;
+  useEffect(() => {
+    onStat?.(obj.slug, {
+      count: countQ.data?.value ?? null,
+      hasNumeric: cands.length > 0,
+      valueField: primary?.key ?? null,
+      sum: sumForStat,
+      sumCurrency: money?.currency ?? null,
+      isCurrency: primary?.type === "currency",
+      filledPct,
+      noData: moneyEmpty,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [obj.slug, countQ.data?.value, cands.length, primary?.key, primary?.type, sumForStat, money?.currency, filledPct, moneyEmpty]);
+
   return (
     <Link
       ref={ref}
@@ -186,6 +217,119 @@ function ReportObjectCard({ obj }: { obj: ObjectType }) {
 }
 
 
+// ── Executive Overview (Phase 3k) ──────────────────────────────────────────────
+// A calm, compact strip above the object cards. Every number is derived from the cards' OWN record
+// aggregates (reported up via CardStat) — the overview issues ZERO extra requests and only ever counts
+// cards that have actually loaded, so it says "visible cards only" and never implies whole-workspace
+// completeness. No AI, no finance inference — generic record signals + links to real routes.
+function ExecutiveOverview({ objects, stats }: { objects: ObjectType[]; stats: Record<string, CardStat> }) {
+  const { display } = useCurrency();
+  const entries = Object.entries(stats);
+  const loaded = entries.filter(([, s]) => s.count != null);
+  const loadedCount = loaded.length;
+  const totalRecords = loaded.reduce((n, [, s]) => n + (s.count ?? 0), 0);
+  const nameOf = (slug: string) => objects.find(o => o.slug === slug)?.name_plural ?? slug;
+
+  // Data readiness — honest completeness signals across the loaded cards.
+  const noNumeric = loaded.filter(([, s]) => !s.hasNumeric).length;
+  const noDataYet = loaded.filter(([, s]) => s.hasNumeric && s.noData).length;
+  const partial   = loaded.filter(([, s]) => s.filledPct != null && s.filledPct > 0 && s.filledPct < 100).length;
+
+  // Value signal — a SINGLE top object by trustworthy sum (never a cross-object total; different value
+  // fields aren't additive). "Value fields detected" counts objects that expose a numeric/value field.
+  const valueDetected = loaded.filter(([, s]) => s.hasNumeric).length;
+  let topValue: { slug: string; sum: number; currency: string | null; isCurrency: boolean } | null = null;
+  for (const [slug, s] of entries) {
+    if (s.sum == null) continue;
+    if (!topValue || s.sum > topValue.sum) topValue = { slug, sum: s.sum, currency: s.sumCurrency, isCurrency: s.isCurrency };
+  }
+  const topValueStr = topValue
+    ? (topValue.isCurrency ? formatMoney(topValue.sum, topValue.currency ?? display)
+      : (topValue.sum % 1 === 0 ? topValue.sum.toLocaleString() : topValue.sum.toFixed(2)))
+    : null;
+
+  // Strongest report = the top-value object, else the highest record count among loaded cards.
+  let strongest = topValue?.slug ?? null;
+  if (!strongest) { let best = -1; for (const [slug, s] of entries) { if ((s.count ?? -1) > best) { best = s.count ?? -1; strongest = slug; } } }
+  // Sparse = an object with a numeric field but no data, else the least-filled primary field.
+  let sparse: string | null = null;
+  for (const [slug, s] of entries) { if (s.hasNumeric && s.noData) { sparse = slug; break; } }
+  if (!sparse) { let low = 101; for (const [slug, s] of entries) { if (s.filledPct != null && s.filledPct > 0 && s.filledPct < low) { low = s.filledPct; sparse = slug; } } }
+  // Finance objects (real route target only — no finance recomputation here).
+  const financeObj = objects.find(o => groupOf(o) === "revenue");
+
+  const Cell = ({ label, children }: { label: string; children: ReactNode }) => (
+    <div className="min-w-0 px-4 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{label}</p>
+      <div className="mt-1 text-[12px]" style={{ color: "var(--text-secondary)" }}>{children}</div>
+    </div>
+  );
+
+  return (
+    <section className="mb-8 overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="grid divide-y sm:grid-cols-2 lg:grid-cols-4 sm:divide-y-0 sm:divide-x" style={{ borderColor: "var(--border-soft)" }}>
+        {/* 1 — Coverage */}
+        <Cell label="Coverage">
+          {loadedCount === 0 ? (
+            <span style={{ color: "var(--text-faint)" }}>Computing as cards load…</span>
+          ) : (
+            <>
+              <span className="tabular-nums font-medium" style={{ color: "var(--text-primary)" }}>{totalRecords.toLocaleString()}</span>
+              <span style={{ color: "var(--text-faint)" }}> records · {loadedCount}/{objects.length} types loaded</span>
+            </>
+          )}
+        </Cell>
+        {/* 2 — Data readiness */}
+        <Cell label="Data readiness">
+          {loadedCount === 0 ? <span style={{ color: "var(--text-faint)" }}>—</span> : (
+            <span>
+              <span className="tabular-nums font-medium" style={{ color: partial ? "#2f9e6b" : "var(--text-secondary)" }}>{partial}</span>
+              <span style={{ color: "var(--text-faint)" }}> with data · </span>
+              <span className="tabular-nums" style={{ color: noDataYet ? "#c6892e" : "var(--text-faint)" }}>{noDataYet} empty</span>
+              <span style={{ color: "var(--text-faint)" }}> · {noNumeric} no field</span>
+            </span>
+          )}
+        </Cell>
+        {/* 3 — Value signal (generic, no finance inference) */}
+        <Cell label="Value signal">
+          {topValueStr ? (
+            <>
+              <span className="tabular-nums font-medium" style={{ color: "var(--text-primary)" }}>{topValueStr}</span>
+              <span style={{ color: "var(--text-faint)" }}> · {nameOf(topValue!.slug)} · {valueDetected} value field{valueDetected === 1 ? "" : "s"}</span>
+            </>
+          ) : (
+            <span style={{ color: "var(--text-faint)" }}>No value signal yet</span>
+          )}
+        </Cell>
+        {/* 4 — Next steps (real routes only) */}
+        <Cell label="Next steps">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {strongest && (
+              <Link to={`/reports/sales?object=${strongest}`} className="inline-flex items-center gap-0.5 hover:underline" style={{ color: "var(--section-accent)" }}>
+                Strongest report <ArrowRight size={11} />
+              </Link>
+            )}
+            {sparse && (
+              <Link to={`/reports/sales?object=${sparse}`} className="inline-flex items-center gap-0.5 hover:underline" style={{ color: "var(--text-muted)" }}>
+                Review sparse data <ArrowRight size={11} />
+              </Link>
+            )}
+            {financeObj && (
+              <Link to={`/reports/sales?object=${financeObj.slug}`} className="inline-flex items-center gap-0.5 hover:underline" style={{ color: "var(--text-muted)" }}>
+                Finance report <ArrowRight size={11} />
+              </Link>
+            )}
+          </div>
+        </Cell>
+      </div>
+      {/* Source / proof line — never implies whole-workspace completeness. */}
+      <p className="border-t px-4 py-2 text-[10px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
+        Computed from records · all-time · visible cards only{loadedCount < objects.length ? " (scroll to load the rest)" : ""}
+      </p>
+    </section>
+  );
+}
+
 function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) => void; onClose: () => void }) {
   const [name, setName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -221,6 +365,19 @@ export function ReportsPage() {
   const navigate  = useNavigate();
   const qc        = useQueryClient();
   const [creating, setCreating] = useState(false);
+
+  // Cross-object KPI state, fed by each card as its aggregates resolve. Drives the Executive Overview
+  // with zero extra requests. A shallow-equality guard prevents a card's repeated reports from looping.
+  const [cardStats, setCardStats] = useState<Record<string, CardStat>>({});
+  const reportStat = useCallback((slug: string, stat: CardStat) => {
+    setCardStats(prev => {
+      const p = prev[slug];
+      if (p && p.count === stat.count && p.hasNumeric === stat.hasNumeric && p.valueField === stat.valueField
+        && p.sum === stat.sum && p.sumCurrency === stat.sumCurrency && p.isCurrency === stat.isCurrency
+        && p.filledPct === stat.filledPct && p.noData === stat.noData) return prev;
+      return { ...prev, [slug]: stat };
+    });
+  }, []);
 
   // Page-level reports context — no specific report/dashboard selected yet.
   useEffect(() => {
@@ -280,18 +437,22 @@ export function ReportsPage() {
           // Grouped by purpose (Revenue / Relationships / Operations / Other) so the list is scannable
           // instead of one wall of identical cards. The repeated per-card capability chips are gone —
           // "AI insights on demand" is stated once in the section badge above.
-          <div className="space-y-6">
-            {REPORT_GROUPS.filter(g => objects.some(o => groupOf(o) === g.key)).map(group => (
-              <div key={group.key}>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{group.label}</p>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {objects.filter(o => groupOf(o) === group.key).map(obj => (
-                    <ReportObjectCard key={obj.slug} obj={obj} />
-                  ))}
+          <>
+            {/* Executive Overview — derived from the cards' own aggregates (no extra calls). */}
+            <ExecutiveOverview objects={objects} stats={cardStats} />
+            <div className="space-y-6">
+              {REPORT_GROUPS.filter(g => objects.some(o => groupOf(o) === g.key)).map(group => (
+                <div key={group.key}>
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{group.label}</p>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {objects.filter(o => groupOf(o) === group.key).map(obj => (
+                      <ReportObjectCard key={obj.slug} obj={obj} onStat={reportStat} />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </section>
 
