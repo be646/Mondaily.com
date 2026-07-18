@@ -13,7 +13,7 @@ import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
-import { formatMoney } from "../../hooks/useCurrency";
+import { formatMoney, convertAmount, useCurrency } from "../../hooks/useCurrency";
 import { parseNLPCommand } from "../../lib/ai-enrichment";
 import { ErrorState, PageSkeleton } from "../ui/page-state";
 import { FieldSelect } from "../ui/controls";
@@ -521,12 +521,57 @@ function calcResult(op: CalcOp, col: string, records: NodeRecord[]): string {
   return "—";
 }
 
+// Type-aware footer total. Currency columns convert each row to the workspace DISPLAY currency
+// (fail-closed via convertAmount — a missing rate is flagged, never guessed). Checkbox columns
+// count the checked rows. Percentage columns default to an average. Everything else falls back to
+// the plain numeric calc above. Pure over the passed rows + rate table — no fabrication.
+function calcResultTyped(
+  op: CalcOp, col: string, records: NodeRecord[], kind: string | undefined,
+  ctx: { display: string; rates: Record<string, number>; base: string },
+): string {
+  if (!op) return "";
+  if (kind === "checkbox") {
+    const checked = records.filter(r => truthy(r.data[col])).length;
+    if (op === "filled") { const f = records.filter(r => r.data[col] != null && r.data[col] !== "").length; return `${Math.round((f / Math.max(records.length, 1)) * 100)}% filled`; }
+    return `${checked} checked`;
+  }
+  if (kind === "currency" && (op === "sum" || op === "avg" || op === "min" || op === "max")) {
+    const items = records
+      .map(r => ({ n: typeof r.data[col] === "number" ? r.data[col] as number : parseFloat(String(r.data[col] ?? "").replace(/[^0-9.\-]/g, "")), cur: String(r.data.currency ?? ctx.base) }))
+      .filter(x => !isNaN(x.n));
+    if (!items.length) return "—";
+    let missing = 0;
+    const conv = items.map(x => {
+      if (x.cur === ctx.display) return x.n;
+      const v = convertAmount(x.n, x.cur, ctx.display, ctx.rates);
+      if (v == null) { missing += 1; return x.n; } // face-value fallback, flagged
+      return v;
+    });
+    const agg = op === "sum" ? conv.reduce((a, b) => a + b, 0)
+      : op === "avg" ? conv.reduce((a, b) => a + b, 0) / conv.length
+      : op === "min" ? Math.min(...conv) : Math.max(...conv);
+    return formatMoney(agg, ctx.display) + (missing > 0 ? ` · ${missing} unconverted` : "");
+  }
+  if (kind === "percentage" && (op === "sum" || op === "avg" || op === "min" || op === "max")) {
+    const nums = records.map(r => typeof r.data[col] === "number" ? r.data[col] as number : parseFloat(String(r.data[col] ?? "").replace(/[^0-9.\-]/g, ""))).filter(n => !isNaN(n));
+    if (!nums.length) return "—";
+    const agg = op === "sum" ? nums.reduce((a, b) => a + b, 0)
+      : op === "avg" ? nums.reduce((a, b) => a + b, 0) / nums.length
+      : op === "min" ? Math.min(...nums) : Math.max(...nums);
+    return `${(agg % 1 === 0 ? agg : Number(agg.toFixed(1))).toLocaleString()}%`;
+  }
+  return calcResult(op, col, records);
+}
+
 // ─── Calc dropdown ────────────────────────────────────────────────────────────
-function CalcDropdown({ col, current, onSelect, onClose, triggerRef }: {
+function CalcDropdown({ col, current, onSelect, onClose, triggerRef, kind }: {
   col: string; current: CalcOp; onSelect: (op: CalcOp) => void; onClose: () => void;
-  triggerRef: React.RefObject<HTMLElement | null>;
+  triggerRef: React.RefObject<HTMLElement | null>; kind?: string;
 }) {
-  const options: { op: CalcOp; label: string }[] = isNumeric(col)
+  const numericKind = kind === "currency" || kind === "percentage" || kind === "number";
+  const options: { op: CalcOp; label: string }[] = kind === "checkbox"
+    ? [{ op:"count",label:"Checked" },{ op:"filled",label:"% Filled" }]
+    : (numericKind || isNumeric(col))
     ? [{ op:"sum",label:"Sum" },{ op:"avg",label:"Average" },{ op:"min",label:"Min" },{ op:"max",label:"Max" },{ op:"count",label:"Count" },{ op:"filled",label:"% Filled" }]
     : [{ op:"count",label:"Count" },{ op:"filled",label:"% Filled" }];
   return (
@@ -795,6 +840,9 @@ const COLUMN_TYPE_PRESETS = [
   { type: "record_id", label: "Record ID",  hint: "Auto-generated unique ID for this record",  icon: Hash,         color: "text-[var(--text-secondary)]"    },
   { type: "text",      label: "Text",       hint: "Free text field",                           icon: Type,         color: "text-stone-400"   },
   { type: "number",    label: "Number",     hint: "Numeric value, amount, count",              icon: Hash,         color: "text-[#717784]"    },
+  { type: "currency",  label: "Currency",   hint: "Money amount — totals in your display currency", icon: Receipt,  color: "text-[#2f9e6b]"  },
+  { type: "percentage",label: "Percent",    hint: "Percentage value (totals average)",         icon: Hash,         color: "text-[#c6892e]"  },
+  { type: "checkbox",  label: "Checkbox",   hint: "Yes/no — e.g. paid, done (totals count checked)", icon: ToggleLeft, color: "text-[#2f9e6b]" },
   { type: "date",      label: "Date",       hint: "Date or deadline",                          icon: Calendar,     color: "text-[#d1524a]"    },
   { type: "relation",  label: "Relation",   hint: "Link to a record in another object",        icon: Link2,        color: "text-[#717784]"    },
   { type: "finance_billed",      label: "Finance · Billed",      hint: "Total invoiced to this client (computed, base currency)", icon: Receipt, color: "text-[#2f9e6b]" },
@@ -815,6 +863,9 @@ const PRESET_DEFAULTS: Record<ColPresetType, string> = {
   record_id: "Record ID",
   text:      "",
   number:    "",
+  currency:  "Amount",
+  percentage:"Percent",
+  checkbox:  "Paid",
   date:      "",
   relation:  "Linked Record",
   finance_billed:      "Billed",
@@ -1248,6 +1299,88 @@ function NumberCell({ value, onSave }: { value: unknown; onSave: (v: number | st
   );
 }
 
+// ─── Checkbox cell — a real boolean toggle (e.g. paid / done). Writes data[col] = true|false ──
+function truthy(v: unknown): boolean {
+  if (typeof v === "boolean") return v;
+  if (typeof v === "number") return v !== 0;
+  const s = String(v ?? "").trim().toLowerCase();
+  return s === "true" || s === "yes" || s === "paid" || s === "done" || s === "1" || s === "✓";
+}
+function CheckboxCell({ value, onSave }: { value: unknown; onSave: (v: boolean) => void }) {
+  const checked = truthy(value);
+  return (
+    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+      <input type="checkbox" checked={checked} onChange={e => onSave(e.target.checked)}
+        aria-label={checked ? "Checked" : "Unchecked"}
+        className="h-3.5 w-3.5 accent-[var(--section-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" />
+    </label>
+  );
+}
+
+// ─── Currency cell — money amount, edited as a number (formula-aware), shown in its own currency.
+//     Totals convert to the workspace DISPLAY currency (fail-closed) in the footer, never here. ──
+function CurrencyCell({ value, currency, onSave }: { value: unknown; currency: string; onSave: (v: number | string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(value ?? ""));
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editing) { setDraft(String(value ?? "")); inputRef.current?.focus(); inputRef.current?.select(); } }, [editing, value]);
+  function commit() {
+    const s = draft.trim();
+    if (!s) { onSave(""); setEditing(false); return; }
+    if (s.startsWith("=")) { const r = evalFormula(s.slice(1)); if (r !== null) { onSave(r); setEditing(false); return; } }
+    const n = parseFloat(s.replace(/[^0-9.\-]/g, ""));
+    onSave(isNaN(n) ? s : n);
+    setEditing(false);
+  }
+  const num = typeof value === "number" ? value : parseFloat(String(value ?? "").replace(/[^0-9.\-]/g, ""));
+  const shown = value === "" || value == null || isNaN(num) ? null : formatMoney(num, currency);
+  if (editing) {
+    return (
+      <input ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit}
+        onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
+        placeholder="0 or =A*0.1"
+        className="w-full max-w-[110px] bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded px-2 py-0.5 text-xs text-[var(--text-primary)] outline-none font-mono"/>
+    );
+  }
+  return (
+    <button onClick={() => setEditing(true)}
+      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] tabular-nums transition-colors text-left w-full">
+      {shown ?? <span className="text-stone-700">— amount</span>}
+    </button>
+  );
+}
+
+// ─── Percentage cell — editable number shown with a trailing %. Totals AVERAGE in the footer. ──
+function PercentCell({ value, onSave }: { value: unknown; onSave: (v: number | string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(value ?? ""));
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (editing) { setDraft(String(value ?? "")); inputRef.current?.focus(); inputRef.current?.select(); } }, [editing, value]);
+  function commit() {
+    const s = draft.trim();
+    if (!s) { onSave(""); setEditing(false); return; }
+    const n = parseFloat(s.replace(/[^0-9.\-]/g, ""));
+    onSave(isNaN(n) ? s : n);
+    setEditing(false);
+  }
+  const num = typeof value === "number" ? value : parseFloat(String(value ?? "").replace(/[^0-9.\-]/g, ""));
+  const shown = value === "" || value == null || isNaN(num) ? null : `${num.toLocaleString()}%`;
+  if (editing) {
+    return (
+      <input ref={inputRef} value={draft} onChange={e => setDraft(e.target.value)} onBlur={commit}
+        onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
+        placeholder="0"
+        className="w-full max-w-[80px] bg-[var(--surface-hover)] border border-[var(--border-soft)] rounded px-2 py-0.5 text-xs text-[var(--text-primary)] outline-none font-mono"/>
+    );
+  }
+  return (
+    <button onClick={() => setEditing(true)}
+      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] tabular-nums transition-colors text-left w-full">
+      {shown ?? <span className="text-stone-700">— %</span>}
+    </button>
+  );
+}
+
 // ─── Relation cell — link a record to another object record ──────────────────
 type RelationValue = { id: string; label: string } | null;
 
@@ -1482,6 +1615,34 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const hasRecordIdCol = customCols.some(c => c.type === "record_id");
   // Non-ID custom cols go into the regular column flow
   const regularCustomCols = customCols.filter(c => c.type !== "record_id");
+
+  // Workspace currency context — base + display override + ECB rates (fail-closed conversion).
+  const { base: wsBase, display: wsDisplay, rates: fxRates } = useCurrency();
+
+  // Server field types are AUTHORITATIVE when present: the persisted object_definitions.attributes
+  // carry a real type enum (currency/percentage/checkbox/date/…). We map each attribute → its data
+  // key via the same normalization the create form uses (lower + spaces→underscore). An explicit
+  // local preset (customCols) still overrides; name inference remains the final fallback.
+  const { data: objectDefsForTypes = [] } = useQuery<{ slug: string; attributes?: { name: string; type?: string }[] }[]>({
+    queryKey: ["object-defs"],
+    queryFn: () => apiClient.get("/objects"),
+    staleTime: 60_000,
+  });
+  const serverAttrType = useMemo(() => {
+    const def = objectDefsForTypes.find(o => o.slug === objectType);
+    const m = new Map<string, string>();
+    for (const a of def?.attributes ?? []) {
+      if (a?.type) m.set(a.name.toLowerCase().replace(/\s+/g, "_"), a.type);
+    }
+    return m;
+  }, [objectDefsForTypes, objectType]);
+  // Effective type for a column: explicit local preset → persisted server type → undefined (fall back
+  // to the existing name/value inference). Only the spreadsheet display types are consumed here.
+  const effectiveType = useCallback((col: string): string | undefined => {
+    const local = customCols.find(cc => cc.key === col)?.type;
+    if (local) return local;
+    return serverAttrType.get(col);
+  }, [customCols, serverAttrType]);
 
   // Finance rollup — one query powers the "Finance · Billed/Outstanding" computed columns for the
   // whole sheet (no per-row fetch). Only runs when such a column is actually added.
@@ -1831,7 +1992,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     setUndoToast(null);
   }
 
-  function saveCell(record: NodeRecord, col: string, newVal: string | number | object) {
+  function saveCell(record: NodeRecord, col: string, newVal: string | number | boolean | object) {
     const newData = { ...record.data, [col]: newVal };
     qc.setQueryData<NodeRecord[]>(["records", objectType], old =>
       (old ?? []).map(r => r.id === record.id ? { ...r, data: newData } : r)
@@ -1845,6 +2006,20 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     const val = cellValue(record, col);
     const isEnriched = enrichedIds.includes(record.id);
     const customDef = customCols.find(c => c.key === col);
+
+    // Spreadsheet display types — resolved from the explicit local preset OR the persisted server
+    // attribute type. These render as real typed cells; totals are handled type-aware in the footer.
+    const kind = effectiveType(col);
+    if (kind === "checkbox") {
+      return <div className="px-2 py-1.5"><CheckboxCell value={val} onSave={v => saveCell(record, col, v)} /></div>;
+    }
+    if (kind === "currency") {
+      const cur = String(record.data.currency ?? wsBase);
+      return <div className="px-2 py-1.5 text-right"><CurrencyCell value={val} currency={cur} onSave={v => saveCell(record, col, v)} /></div>;
+    }
+    if (kind === "percentage") {
+      return <div className="px-2 py-1.5 text-right"><PercentCell value={val} onSave={v => saveCell(record, col, v)} /></div>;
+    }
 
     // Custom assignee/owner/stage/status columns
     if (customDef?.type === "owner" || customDef?.type === "assignee") {
@@ -2815,7 +2990,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                     className={`inline-block ${isNumeric(col) ? "ml-auto" : ""}`}
                   >
                     {openCalcCol === col && (
-                      <CalcDropdown col={col} current={calculations[col] ?? null}
+                      <CalcDropdown col={col} current={calculations[col] ?? null} kind={effectiveType(col)}
                         onSelect={op => setCalculations(prev => ({ ...prev, [col]: op }))}
                         onClose={() => setOpenCalcCol(null)}
                         triggerRef={{ current: calcWrapRefs.current.get(col) ?? null }}
@@ -2825,7 +3000,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
                         className="flex items-center gap-1.5 text-[11px] text-stone-400 hover:text-[var(--text-primary)] transition-colors tabular-nums font-mono">
                         <span className="text-stone-600 uppercase text-[10px] tracking-wide mr-0.5">{calculations[col]}</span>
-                        {calcResult(calculations[col], col, sorted)}
+                        {calcResultTyped(calculations[col], col, sorted, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase })}
                       </button>
                     ) : (
                       <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)}
