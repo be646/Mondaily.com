@@ -32,6 +32,14 @@ const aggInput = z.object({
   // Frontend passes this when the column is a currency type (it already resolves the type). We never
   // re-infer money-ness from the data — only convert when the caller says it's a money column.
   currency: z.boolean().default(false),
+  // Optional date-range filter on a ROOT timestamp column (never an arbitrary data key), applied in
+  // SQL via .gte/.lte BEFORE the cap so the fetched window is correct + truncation stays honest. The
+  // field is an enum (no dynamic column from user input); from/to are inclusive UTC ISO instants.
+  date_filter: z.object({
+    field: z.enum(["created_at", "updated_at"]),
+    from: z.string().refine((s) => !Number.isNaN(Date.parse(s)), "invalid from date").optional(),
+    to: z.string().refine((s) => !Number.isNaN(Date.parse(s)), "invalid to date").optional(),
+  }).refine((d) => d.from != null || d.to != null, "date_filter needs from or to").optional(),
 });
 
 /**
@@ -42,16 +50,26 @@ const aggInput = z.object({
  */
 router.post("/aggregate", zValidator("json", aggInput), async (c) => {
   const ws = c.get("workspaceId");
-  const { object_type, column, op, group_by, currency, filters } = c.req.valid("json");
+  const { object_type, column, op, group_by, currency, filters, date_filter } = c.req.valid("json");
   const hasFilters = !!filters?.length;
 
-  // Cheap path: a plain unfiltered count never fetches rows.
+  // Narrow a nodes query by the date_filter (root timestamp column, fixed name, parameterized value —
+  // no dynamic SQL). Applied BEFORE the cap so the fetched window is the correct date-scoped set.
+  const withDate = <Q extends { gte: (c: string, v: string) => Q; lte: (c: string, v: string) => Q }>(q: Q): Q => {
+    if (!date_filter) return q;
+    let out = q;
+    if (date_filter.from) out = out.gte(date_filter.field, date_filter.from);
+    if (date_filter.to) out = out.lte(date_filter.field, date_filter.to);
+    return out;
+  };
+
+  // Cheap path: a plain unfiltered count never fetches rows (a date_filter stays a cheap SQL count).
   if (op === "count" && group_by === "none" && !hasFilters) {
-    const { count, error } = await supabase
+    const { count, error } = await withDate(supabase
       .from("nodes")
       .select("id", { count: "exact", head: true })
       .eq("workspace_id", ws)
-      .eq("object_type", object_type);
+      .eq("object_type", object_type));
     if (error) return c.json({ error: error.message }, 400);
     return c.json({
       op, column, group_by, object_type,
@@ -59,12 +77,12 @@ router.post("/aggregate", zValidator("json", aggInput), async (c) => {
     });
   }
 
-  // Everything else needs the rows. Cap the fetch; flag truncation honestly.
-  const { data, error } = await supabase
+  // Everything else needs the rows. Date-filter in SQL, then cap the fetch; flag truncation honestly.
+  const { data, error } = await withDate(supabase
     .from("nodes")
     .select("id,data,created_at")
     .eq("workspace_id", ws)
-    .eq("object_type", object_type)
+    .eq("object_type", object_type))
     .order("created_at", { ascending: true })
     .limit(CAP + 1);
   if (error) return c.json({ error: error.message }, 400);

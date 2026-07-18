@@ -144,3 +144,24 @@ describe("POST /records/aggregate — safe, workspace-scoped, honest", () => {
     expect(route).not.toMatch(/vertical",\s*"finance"|object_type",\s*"invoice"|object_type",\s*"expense"|makeBaseConverter/);
   });
 });
+
+describe("POST /records/aggregate — Phase 3e date_filter (safe, SQL-applied, fail-closed)", () => {
+  it("validates date_filter: field enum, ISO from/to, at least one bound (invalid → 400)", () => {
+    expect(route).toMatch(/date_filter: z\.object\(\{\s*field: z\.enum\(\["created_at", "updated_at"\]\)/);
+    expect(route).toMatch(/from: z\.string\(\)\.refine\(\(s\) => !Number\.isNaN\(Date\.parse\(s\)\), "invalid from date"\)\.optional\(\)/);
+    expect(route).toMatch(/to: z\.string\(\)\.refine\(\(s\) => !Number\.isNaN\(Date\.parse\(s\)\), "invalid to date"\)\.optional\(\)/);
+    expect(route).toMatch(/\.refine\(\(d\) => d\.from != null \|\| d\.to != null, "date_filter needs from or to"\)/);
+  });
+  it("applies the range in SQL on a FIXED root column via .gte/.lte — no dynamic column from user input", () => {
+    expect(route).toMatch(/out = out\.gte\(date_filter\.field, date_filter\.from\)/);
+    expect(route).toMatch(/out = out\.lte\(date_filter\.field, date_filter\.to\)/);
+    // field is an enum, so date_filter.field is only ever "created_at" | "updated_at".
+    expect(route).not.toMatch(/\.gte\(`|\.lte\(`|\.gte\(\$\{|\.lte\(\$\{/);
+  });
+  it("date filter is applied BEFORE the cap (correct window) on BOTH the count + fetch paths", () => {
+    expect(route).toMatch(/const \{ count, error \} = await withDate\(supabase/);
+    expect(route).toMatch(/const \{ data, error \} = await withDate\(supabase/);
+    // withDate's closing `))` is followed by .order().limit() → the range narrows the query pre-cap.
+    expect(route).toMatch(/\)\)\s*\.order\("created_at", \{ ascending: true \}\)\s*\.limit\(CAP \+ 1\)/);
+  });
+});

@@ -13,6 +13,7 @@ import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { FieldSelect, FilterButton } from "../../../components/ui/controls";
 import { useCurrency, convertAmount, currencyOptions, CURRENCY_SYMBOL } from "../../../hooks/useCurrency";
+import { useRecordAggregate, type AggDateFilter, type AggFilter } from "../../../hooks/useRecordAggregate";
 
 interface NodeRecord { id: string; object_type: string; data: Record<string, unknown>; created_at?: string; updated_at?: string }
 
@@ -1086,6 +1087,26 @@ export function SalesReportPage() {
   // state instead of a dead flat line (never pretend there's a value signal when there isn't one).
   const hasValueData = useMemo(() => trendData.some(d => (d.revenue ?? 0) > 0), [trendData]);
 
+  // ── Phase 3e — server-backed KPIs (Total Records always; Total Value for stage-less objects) ──
+  // These escape the client 500-row cap by aggregating the WHOLE table on the server, scoped to the
+  // SAME period (date_filter on updated_at) + the SAME equality filters the client applies. Only
+  // count/sum switch — semantics identical; the stage-derived KPIs (won/open/completion) stay client
+  // because the generic endpoint deliberately doesn't classify won/lost. Server value is preferred
+  // when present; on load/error it falls back to the client stat (never a blank, never a fake number).
+  const dateFilter = useMemo<AggDateFilter>(() => {
+    const start = customRange ? customRange.start : periodStart(period);
+    const end   = customRange ? customRange.end   : new Date();
+    return { field: "updated_at", from: start.toISOString(), to: end.toISOString() };
+  }, [period, customRange]);
+  const aggFilters = useMemo<AggFilter[]>(
+    () => Object.entries(activeFilters).filter(([, v]) => !!v).map(([column, value]) => ({ column, value })),
+    [activeFilters]);
+  const serverCount = useRecordAggregate({ objectType: activeSlug, column: "name", op: "count", dateFilter, filters: aggFilters, enabled: !!activeSlug });
+  const serverValue = useRecordAggregate({ objectType: activeSlug, column: valueCol ?? "", op: "sum", currency: true, dateFilter, filters: aggFilters, enabled: !!activeSlug && !!valueCol && !stageCol });
+  const kTotalCount = serverCount.data?.value ?? stats.totalCount;   // server full-table count, else client
+  const kTotalValue = serverValue.data?.value ?? stats.totalValue;   // server full-table sum (stage-less), else client
+  const serverBacked = !!serverCount.data;
+
 
   const topRecords = useMemo(() => {
     if (!valueCol) return filteredRecords.slice(0, 10);
@@ -1482,8 +1503,8 @@ export function SalesReportPage() {
             <div className="mb-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 print:gap-3">
               <KpiCard sym={curSym} primary
                 label={hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records"}
-                value={hasValue ? fmtMoney(stats.wonValue || stats.totalValue, curSym) : fmtNum(stats.totalCount)}
-                sub={hasStage ? `${stats.wonCount} completed` : `${stats.totalCount} total`}
+                value={hasValue ? fmtMoney(hasStage ? (stats.wonValue || stats.totalValue) : kTotalValue, curSym) : fmtNum(kTotalCount)}
+                sub={hasStage ? `${stats.wonCount} completed` : `${kTotalCount} total`}
                 tone="#2f9e6b"
                 trend="up"
                 delta={pctDelta(hasValue ? (stats.wonValue || stats.totalValue) : stats.totalCount, hasValue ? (prevStats.wonValue || prevStats.totalValue) : prevStats.totalCount)}
@@ -1493,7 +1514,7 @@ export function SalesReportPage() {
               />
               <KpiCard sym={curSym} primary
                 label={hasStage ? "Completion Rate" : "Total This Period"}
-                value={hasStage ? `${stats.completionRate}%` : fmtNum(stats.totalCount)}
+                value={hasStage ? `${stats.completionRate}%` : fmtNum(kTotalCount)}
                 sub={hasStage ? "closed won vs. all closed" : `across ${PERIOD_LABELS[period].toLowerCase()}`}
                 tone="var(--section-accent)"
                 trend={hasStage ? (stats.completionRate >= 50 ? "up" : "down") : "neutral"}
@@ -1501,12 +1522,21 @@ export function SalesReportPage() {
               />
               <KpiCard sym={curSym} primary
                 label="Total Records"
-                value={fmtNum(stats.totalCount)}
+                value={fmtNum(kTotalCount)}
                 sub="in this period"
                 tone="#8a8f9a"
                 delta={pctDelta(stats.totalCount, prevStats.totalCount)}
               />
             </div>
+            {/* Honest provenance for the switched KPIs — server totals over the WHOLE table (period +
+                filters scoped), truncated/unconverted flagged; a plain client-500 note otherwise. */}
+            {serverBacked && (
+              <p className="mb-4 -mt-1 text-[10px]" style={{ color: "var(--text-faint)" }}>
+                Total records{!hasStage && hasValue ? " & value" : ""} · server total
+                {serverCount.data!.truncated ? <span style={{ color: "#c6892e" }}> · first {serverCount.data!.total_rows.toLocaleString()}</span> : <> · over {serverCount.data!.total_rows.toLocaleString()}</>}
+                {(serverValue.data?.unconverted ?? 0) > 0 && <span style={{ color: "#c6892e" }}> · {serverValue.data!.unconverted} unconverted</span>}
+              </p>
+            )}
             <div className="mb-6 grid gap-3 grid-cols-3 print:grid-cols-3 print:gap-3">
               <KpiCard sym={curSym}
                 label={hasStage ? "In Progress" : "This Period"}

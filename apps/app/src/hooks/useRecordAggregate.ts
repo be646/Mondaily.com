@@ -18,14 +18,20 @@ export interface AggResp {
   total_rows: number; truncated: boolean; unconverted: number; currency: string | null;
 }
 
+export type AggFilter = { column: string; value: string };
+export type AggDateFilter = { field: "created_at" | "updated_at"; from?: string; to?: string };
+
 export function useRecordAggregate(args: {
   objectType: string; column: string; op: AggOp; groupBy?: string; currency?: boolean; enabled?: boolean;
+  filters?: AggFilter[]; dateFilter?: AggDateFilter | null;
 }) {
-  const { objectType, column, op, groupBy = "none", currency = false, enabled = true } = args;
+  const { objectType, column, op, groupBy = "none", currency = false, enabled = true, filters, dateFilter } = args;
   return useQuery<AggResp>({
-    queryKey: ["records-agg", objectType, column, op, groupBy, currency],
+    queryKey: ["records-agg", objectType, column, op, groupBy, currency, JSON.stringify(filters ?? []), JSON.stringify(dateFilter ?? null)],
     queryFn: () => apiClient.post<AggResp>("/records/aggregate", {
       object_type: objectType, column, op, group_by: groupBy, currency,
+      ...(filters?.length ? { filters } : {}),
+      ...(dateFilter ? { date_filter: dateFilter } : {}),
     }),
     enabled: enabled && !!objectType && !!column,
     staleTime: 5 * 60_000,

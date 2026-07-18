@@ -67,3 +67,32 @@ describe("Reports index — real record-backed KPI cards, honest + finance-safe"
     expect(index).toMatch(/import \{ useCurrency, formatMoney \}/);
   });
 });
+
+const sales = read("../../../../apps/app/src/routes/dashboard/reports/sales-report.tsx");
+describe("Phase 3e — Sales Report switches only the semantics-identical KPIs to server aggregation", () => {
+  it("Total Records uses a server count scoped to the SAME period (date_filter) + equality filters", () => {
+    expect(sales).toMatch(/useRecordAggregate\(\{ objectType: activeSlug, column: "name", op: "count", dateFilter, filters: aggFilters/);
+    expect(sales).toMatch(/field: "updated_at", from: start\.toISOString\(\), to: end\.toISOString\(\)/);
+    expect(sales).toMatch(/Object\.entries\(activeFilters\)\.filter\(\(\[, v\]\) => !!v\)\.map\(\(\[column, value\]\) => \(\{ column, value \}\)\)/);
+  });
+  it("Total Value only switches for STAGE-LESS objects (won/lost is never invented server-side)", () => {
+    expect(sales).toMatch(/op: "sum", currency: true, dateFilter, filters: aggFilters, enabled: !!activeSlug && !!valueCol && !stageCol/);
+    // the Won Value card still uses the CLIENT stat (stage-derived, unchanged)
+    expect(sales).toMatch(/hasStage \? \(stats\.wonValue \|\| stats\.totalValue\) : kTotalValue/);
+  });
+  it("server value is preferred but falls back to the client stat (never blank, never fake)", () => {
+    expect(sales).toMatch(/const kTotalCount = serverCount\.data\?\.value \?\? stats\.totalCount/);
+    expect(sales).toMatch(/const kTotalValue = serverValue\.data\?\.value \?\? stats\.totalValue/);
+  });
+  it("provenance is honest — server total, over N / first N (truncated), K unconverted", () => {
+    expect(sales).toMatch(/server total/);
+    expect(sales).toMatch(/serverCount\.data!\.truncated \?/);
+    expect(sales).toMatch(/first \{serverCount\.data!\.total_rows\.toLocaleString\(\)\}/);
+    expect(sales).toMatch(/over \{serverCount\.data!\.total_rows\.toLocaleString\(\)\}/);
+    expect(sales).toMatch(/serverValue\.data!\.unconverted\} unconverted/);
+  });
+  it("no finance recomputation / formula / schema in the sales report switch", () => {
+    expect(sales).not.toMatch(/\/invoices\/rollup|makeBaseConverter|outstanding/);
+    expect(sales).not.toMatch(/new Function/);
+  });
+});
