@@ -244,7 +244,8 @@ function RosterTable({ operators, selectedId, onSelect, detailFor, compareBy }: 
           return (
             <Fragment key={op.operator_id}>
             <button onClick={() => onSelect(isSel ? null : op.operator_id)}
-              className={`grid w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)] ${ROSTER_COLS}`}
+              aria-expanded={isSel} aria-label={`${isSel ? "Collapse" : "Expand"} ${op.name}'s dossier`}
+              className={`grid w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--section-accent)] ${ROSTER_COLS}`}
               style={{ background: isSel ? "var(--surface-selected)" : undefined }}>
               <div className="flex min-w-0 items-center gap-2.5">
                 <Avatar op={op} />
@@ -296,11 +297,11 @@ function OversightAsk() {
       <form onSubmit={(e) => { e.preventDefault(); if (q.trim()) ask.mutate(q.trim()); }}
         className="flex items-center gap-2 rounded-sm border px-3 py-1.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
         <Sparkles size={14} className="shrink-0" style={{ color: "var(--section-accent)" }} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about your team — grounded in real data, no guesses…"
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask about your team — grounded in real data, no guesses…" aria-label="Ask about your team, grounded in recorded data"
           className="min-w-0 flex-1 bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)" }} />
         {/* Accent AI-action style — same recognizable primary treatment as .btn-primary across the app. */}
-        <button type="submit" disabled={ask.isPending || !q.trim()}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-sm border px-3 py-1 text-[12px] font-medium transition-colors disabled:opacity-50"
+        <button type="submit" disabled={ask.isPending || !q.trim()} aria-label="Ask about your team"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-sm border px-3 py-1 text-[12px] font-medium transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
           style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 14%, transparent)", color: "var(--section-accent-text)" }}>
           {ask.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} Ask
         </button>
@@ -801,28 +802,28 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
           {op.evaluation && <p className="mt-1 line-clamp-2 text-[11px] leading-snug" style={{ color: "var(--text-muted)" }}>{op.evaluation.basis}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <button onClick={() => navigate(`/messages?to=${encodeURIComponent(op.operator_id)}`)} title="Message"
-            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          <button onClick={() => navigate(`/messages?to=${encodeURIComponent(op.operator_id)}`)} title="Message" aria-label={`Message ${op.name}`}
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
             <Send size={11} style={{ color: "var(--section-accent)" }} /> Message
           </button>
           {callCap.data?.enabled && (
             <>
-              <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "audio", name: op.name })} title="Call" className="btn-icon h-7 w-7"><Phone size={13} /></button>
-              <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "video", name: op.name })} title="Video" className="btn-icon h-7 w-7"><Video size={13} /></button>
+              <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "audio", name: op.name })} title="Call" aria-label={`Call ${op.name}`} className="btn-icon h-7 w-7 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"><Phone size={13} /></button>
+              <button onClick={() => requestCall({ inviteeId: op.operator_id, kind: "video", name: op.name })} title="Video" aria-label={`Video call ${op.name}`} className="btn-icon h-7 w-7 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"><Video size={13} /></button>
             </>
           )}
-          <button onClick={() => window.print()} title="Print / save this member's report as PDF"
-            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          <button onClick={() => window.print()} title="Print / save this member's report as PDF" aria-label={`Print ${op.name}'s report`}
+            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
             <Printer size={11} style={{ color: "var(--section-accent)" }} /> Print report
           </button>
         </div>
       </div>
 
       {/* Tab bar — one clean profile surface. Tabs only gate visibility; every query still runs. */}
-      <div className="flex items-center gap-1 border-b px-3 pt-2" style={{ borderColor: "var(--border-soft)" }}>
+      <div role="tablist" aria-label={`${op.name} dossier sections`} className="flex items-center gap-1 overflow-x-auto border-b px-3 pt-2" style={{ borderColor: "var(--border-soft)" }}>
         {TABS.map((tb) => (
-          <button key={tb.id} onClick={() => setTab(tb.id)}
-            className="rounded-t-sm px-2.5 py-1.5 text-[11.5px] font-medium transition-colors"
+          <button key={tb.id} role="tab" aria-selected={tab === tb.id} onClick={() => setTab(tb.id)}
+            className="shrink-0 rounded-t-sm px-2.5 py-1.5 text-[11.5px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
             style={{ color: tab === tb.id ? "var(--text-primary)" : "var(--text-muted)", borderBottom: `2px solid ${tab === tb.id ? "var(--section-accent)" : "transparent"}` }}>
             {tb.label}
           </button>
@@ -908,12 +909,16 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
             <Sparkles size={12} style={{ color: "var(--section-accent)" }} /> AI work-efficiency review
           </p>
           {!efficiency.data && (
-            <button onClick={() => efficiency.mutate()} disabled={efficiency.isPending}
-              className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50" style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}>
+            <button onClick={() => efficiency.mutate()} disabled={efficiency.isPending} aria-label={`Generate AI work-efficiency review for ${op.name}`}
+              className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11px] font-medium disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" style={{ borderColor: "var(--border-strong)", color: "var(--text-primary)" }}>
               {efficiency.isPending ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} style={{ color: "var(--section-accent)" }} />} Generate review
             </button>
           )}
         </div>
+        {/* What the Signal Agent reads + its advisory nature — honest scope, no productivity fiction. */}
+        <p className="mb-2.5 text-[10.5px] leading-snug" style={{ color: "var(--text-faint)" }}>
+          Reads recorded activity only — tasks, records, decisions, AI usage &amp; messages. Advisory: it summarizes and suggests; you decide.
+        </p>
         {efficiency.isPending && <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>Analyzing real work data…</p>}
         {efficiency.isError && <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>Couldn't generate the review — please try again.</p>}
         {!efficiency.data && !efficiency.isPending && !efficiency.isError && (

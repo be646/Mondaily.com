@@ -920,6 +920,26 @@ describe("Team Oversight — member dossier composition + honest activity langua
       'queryKey: ["oversight-actor", op.operator_id]',
     ]) expect(teamOversight).toContain(h);
   });
+  it("Team Oversight is keyboard-reachable: roster expand + dossier tabs carry a11y roles/labels", () => {
+    // Roster row is a real expand control with aria-expanded + a focus ring.
+    expect(teamOversight).toMatch(/aria-expanded=\{isSel\}/);
+    expect(teamOversight).toMatch(/aria-label=\{`\$\{isSel \? "Collapse" : "Expand"\} \$\{op\.name\}'s dossier`\}/);
+    // Dossier tabs are a proper tablist with selected state.
+    expect(teamOversight).toMatch(/role="tablist"/);
+    expect(teamOversight).toMatch(/role="tab" aria-selected=\{tab === tb\.id\}/);
+    // Focus-visible rings are present across the interactive controls.
+    expect((teamOversight.match(/focus-visible:ring-2/g) ?? []).length).toBeGreaterThanOrEqual(6);
+  });
+  it("AI review states the Signal Agent's real data scope and stays advisory (no productivity fiction)", () => {
+    expect(teamOversight).toMatch(/Reads recorded activity only — tasks, records, decisions, AI usage &amp; messages\. Advisory: it summarizes and suggests; you decide\./);
+    // No fake live / presence / productivity-score language anywhere.
+    expect(teamOversight).not.toMatch(/live now|is online now|productivity score|currently working|watching now/i);
+  });
+  it("load failure shows the honest ErrorState, never the empty 'No members yet' surface", () => {
+    // The error branch renders ErrorState; the 'No members yet' copy is only in the empty (non-error) branch.
+    expect(teamOversight).toMatch(/isError \? \(\s*\/\/[^\n]*\n[\s\S]*?<ErrorState error=\{new Error\("Couldn't load Team Intelligence/);
+    expect(teamOversight).toMatch(/operators\.length === 0 \? \([\s\S]*?No members yet/);
+  });
 });
 
 describe("Decisions cockpit v2 — approved recommendations (all real data, no fabrication)", () => {
