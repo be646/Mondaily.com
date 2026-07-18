@@ -26,15 +26,47 @@ const groupOf = (o: ObjectType) => (REPORT_GROUPS.find(g => g.match.test(`${o.sl
 
 // Same attribute-name → data-key normalization the record table + create form use.
 const normKey = (s: string) => s.toLowerCase().replace(/\s+/g, "_");
-// Resolve the few fields worth a card KPI from the persisted object schema (no inference of finance
-// state — a currency column is just a numeric column; paid/unpaid stays a plain checkbox).
+type KpiField = { key: string; type: string };
+// How many numeric/currency candidate fields a card will probe for data (Phase 3j). Bounded so a card
+// with many numeric columns still fans out only a handful of cheap `filled` checks — never the whole
+// schema. Candidates stay in schema order, so candidates[0] is the legacy "first field" fallback.
+const MAX_KPI_CANDIDATES = 4;
+// Resolve the fields worth a card KPI from the persisted object schema (no inference of finance state —
+// a currency column is just a numeric column; paid/unpaid stays a plain checkbox). Returns the ordered
+// numeric/currency candidates plus the checkbox + group fields.
 function resolveKpiFields(attrs?: ObjAttr[]) {
-  const typed = (attrs ?? []).filter(a => a?.name).map(a => ({ key: normKey(a.name), type: a.type ?? "" }));
-  const money = typed.find(t => t.type === "currency") ?? typed.find(t => t.type === "number" || t.type === "percentage") ?? null;
+  const typed: KpiField[] = (attrs ?? []).filter(a => a?.name).map(a => ({ key: normKey(a.name), type: a.type ?? "" }));
+  const candidates = typed.filter(t => t.type === "currency" || t.type === "number" || t.type === "percentage").slice(0, MAX_KPI_CANDIDATES);
   const checkbox = typed.find(t => t.type === "checkbox") ?? null;
   const group = typed.find(t => t.type === "select")
     ?? typed.find(t => /(^|_)(status|stage)($|_)/.test(t.key) || t.key === "deal_stage") ?? null;
-  return { money, checkbox, group };
+  return { candidates, checkbox, group };
+}
+
+// Smarter primary-field pick (Phase 3j): from the probed candidates, choose the one with the most
+// filled cells; ties prefer a currency/money field over a plain number. While probes are loading, or
+// on error, fall back to the first schema numeric field. If every candidate is empty, keep the first
+// field (its "no data yet" label stays honest). Returns { field, filled } — filled reused for %.
+function pickPrimaryField(
+  candidates: KpiField[],
+  probes: { field: KpiField; filled: number | null; settled: boolean }[],
+): { field: KpiField | null; filled: number | null } {
+  if (!candidates.length) return { field: null, filled: null };
+  const withData = probes.filter(p => p.filled != null);
+  const anyFilled = withData.some(p => (p.filled ?? 0) > 0);
+  if (anyFilled) {
+    let best = withData[0]!;
+    for (const p of withData) {
+      const better = (p.filled ?? 0) > (best.filled ?? 0);
+      const tieToMoney = (p.filled ?? 0) === (best.filled ?? 0) && p.field.type === "currency" && best.field.type !== "currency";
+      if (better || tieToMoney) best = p;
+    }
+    return { field: best.field, filled: best.filled };
+  }
+  // No candidate has data → keep the first field. Report its filled only once its probe has settled
+  // (so an empty column reads "no data yet", but a still-loading one doesn't prematurely).
+  const first = probes.find(p => p.field.key === candidates[0]!.key);
+  return { field: candidates[0]!, filled: first?.settled ? (first.filled ?? 0) : null };
 }
 
 // Lazy-in-view: only fire a card's aggregate calls once it scrolls near the viewport, so an index with
@@ -76,30 +108,39 @@ function ReportObjectCard({ obj }: { obj: ObjectType }) {
   const fields = resolveKpiFields(obj.attributes);
 
   const countQ = useRecordAggregate({ objectType: obj.slug, column: "name", op: "count", enabled: inView });
-  // One "primary value" KPI: a money/number sum, else a checked-count. (≤1 heavier call per card.)
-  const moneyQ = useRecordAggregate({ objectType: obj.slug, column: fields.money?.key ?? "", op: "sum", currency: fields.money?.type === "currency", enabled: inView && !!fields.money });
-  // Completeness of the primary numeric field — turns a bare "0 Σ" on an empty column into an honest
-  // "no data yet" instead of a misleading zero. One extra call, only on cards that have a numeric field.
-  const filledQ = useRecordAggregate({ objectType: obj.slug, column: fields.money?.key ?? "", op: "filled", enabled: inView && !!fields.money });
-  const checkedQ = useRecordAggregate({ objectType: obj.slug, column: fields.checkbox?.key ?? "", op: "checked", enabled: inView && !fields.money && !!fields.checkbox });
+  // Probe the completeness of up to MAX_KPI_CANDIDATES numeric/currency fields with cheap `filled`
+  // checks, so we can pick the field that actually has data. Fixed slot count keeps the hook order
+  // stable; each slot is disabled when there's no candidate or the card isn't in view.
+  const cands = fields.candidates;
+  const p0 = useRecordAggregate({ objectType: obj.slug, column: cands[0]?.key ?? "", op: "filled", enabled: inView && !!cands[0] });
+  const p1 = useRecordAggregate({ objectType: obj.slug, column: cands[1]?.key ?? "", op: "filled", enabled: inView && !!cands[1] });
+  const p2 = useRecordAggregate({ objectType: obj.slug, column: cands[2]?.key ?? "", op: "filled", enabled: inView && !!cands[2] });
+  const p3 = useRecordAggregate({ objectType: obj.slug, column: cands[3]?.key ?? "", op: "filled", enabled: inView && !!cands[3] });
+  const probeQs = [p0, p1, p2, p3];
+  const probes = cands.map((field, i) => ({ field, filled: probeQs[i]!.data?.value ?? null, settled: probeQs[i]!.isSuccess || probeQs[i]!.isError }));
+  const { field: primary, filled } = pickPrimaryField(cands, probes);
+
+  // Sum of the SELECTED primary field (currency-aware). The completeness (`filled`) is reused from the
+  // winning probe, so no extra call is spent on it.
+  const moneyQ = useRecordAggregate({ objectType: obj.slug, column: primary?.key ?? "", op: "sum", currency: primary?.type === "currency", enabled: inView && !!primary });
+  const checkedQ = useRecordAggregate({ objectType: obj.slug, column: fields.checkbox?.key ?? "", op: "checked", enabled: inView && !primary && !!fields.checkbox });
   // Top status/stage group (a real category, not "unset").
   const groupQ = useRecordAggregate({ objectType: obj.slug, column: "name", op: "count", groupBy: fields.group?.key ?? "none", enabled: inView && !!fields.group });
 
   const money = moneyQ.data;
-  const filled = filledQ.data?.value ?? null;
   const totalN = countQ.data?.value ?? null;
-  // The primary field exists but is entirely empty → show "no data yet", never a misleading "0 Σ".
-  const moneyEmpty = !!fields.money && filled === 0;
+  // The selected field exists but is entirely empty → show "no data yet", never a misleading "0 Σ".
+  const moneyEmpty = !!primary && filled === 0;
   const filledPct = (totalN != null && totalN > 0 && filled != null) ? Math.round((filled / totalN) * 100) : null;
   const moneyStr = !moneyEmpty && money?.value != null
-    ? (fields.money?.type === "currency" ? formatMoney(money.value, money.currency ?? display)
-      : fields.money?.type === "percentage" ? `${(money.value % 1 === 0 ? money.value : Number(money.value.toFixed(1))).toLocaleString()}%`
+    ? (primary?.type === "currency" ? formatMoney(money.value, money.currency ?? display)
+      : primary?.type === "percentage" ? `${(money.value % 1 === 0 ? money.value : Number(money.value.toFixed(1))).toLocaleString()}%`
       : (money.value % 1 === 0 ? money.value.toLocaleString() : money.value.toFixed(2)))
     : null;
   const top = topGroup(groupQ.data);
   // A card that can only ever show a plain record count (no numeric, checkbox, or group field) is
   // labelled honestly so a sparse card reads as "nothing else to compute", not "broken/generic".
-  const noComputableKpi = !fields.money && !fields.checkbox && !fields.group;
+  const noComputableKpi = !cands.length && !fields.checkbox && !fields.group;
   const hasKpis = !!(countQ.data || moneyStr || checkedQ.data || top);
 
   return (
@@ -119,12 +160,12 @@ function ReportObjectCard({ obj }: { obj: ObjectType }) {
           <>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>
               {countQ.data && <Kpi label={(countQ.data.value ?? 0) === 1 ? "record" : "records"} value={countQ.data.value?.toLocaleString() ?? "0"} op="count" />}
-              {moneyStr && <Kpi label={`Σ ${fields.money!.key}`} value={moneyStr} resp={money} op="sum" />}
+              {moneyStr && <Kpi label={`Σ ${primary!.key}`} value={moneyStr} resp={money} op="sum" />}
               {/* Numeric field exists but is empty → honest "no data yet", not a misleading 0. */}
-              {moneyEmpty && <span className="inline-flex items-baseline gap-1 whitespace-nowrap"><span style={{ color: "var(--text-faint)" }}>{fields.money!.key} · no data yet</span></span>}
+              {moneyEmpty && <span className="inline-flex items-baseline gap-1 whitespace-nowrap"><span style={{ color: "var(--text-faint)" }}>{primary!.key} · no data yet</span></span>}
               {/* Completeness of the primary numeric field, shown only when partially filled (signal, not noise). */}
               {moneyStr && filledPct != null && filledPct < 100 && <span className="whitespace-nowrap" style={{ color: "var(--text-faint)" }}>{filledPct}% filled</span>}
-              {!fields.money && checkedQ.data && <Kpi label="checked" value={(checkedQ.data.value ?? 0).toLocaleString()} resp={checkedQ.data} op="checked" />}
+              {!primary && checkedQ.data && <Kpi label="checked" value={(checkedQ.data.value ?? 0).toLocaleString()} resp={checkedQ.data} op="checked" />}
               {top && <span className="inline-flex items-baseline gap-1 whitespace-nowrap"><span className="font-medium" style={{ color: "var(--text-secondary)" }}>{top.label}</span><span style={{ color: "var(--text-faint)" }}>top · {top.count.toLocaleString()}</span></span>}
             </div>
             <p className="mt-1 text-[10px]" style={{ color: "var(--text-faint)" }}>Computed from records · all-time{noComputableKpi && " · no numeric field"}</p>

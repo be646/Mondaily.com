@@ -32,7 +32,7 @@ describe("useRecordAggregate adapter — reuses the existing endpoint, carries h
 describe("Reports index — real record-backed KPI cards, honest + finance-safe", () => {
   it("cards fetch real aggregates via the adapter (count + primary value + top group)", () => {
     expect(index).toMatch(/useRecordAggregate\(\{ objectType: obj\.slug, column: "name", op: "count"/);
-    expect(index).toMatch(/op: "sum", currency: fields\.money\?\.type === "currency"/);
+    expect(index).toMatch(/op: "sum", currency: primary\?\.type === "currency"/);
     expect(index).toMatch(/op: "checked"/);
     expect(index).toMatch(/groupBy: fields\.group\?\.key \?\? "none"/);
   });
@@ -58,11 +58,9 @@ describe("Reports index — real record-backed KPI cards, honest + finance-safe"
   it("existing report navigation is unchanged (cards still open /reports/sales?object=slug)", () => {
     expect(index).toMatch(/to=\{`\/reports\/sales\?object=\$\{obj\.slug\}`\}/);
   });
-  it("Phase 3i — completeness + honest empty/sparse labels (filled op, no-data, filled%, pluralize)", () => {
-    // A filled aggregate on the primary numeric field — one extra call, only when a numeric field exists.
-    expect(index).toMatch(/const filledQ = useRecordAggregate\(\{ objectType: obj\.slug, column: fields\.money\?\.key \?\? "", op: "filled", enabled: inView && !!fields\.money \}\)/);
+  it("Phase 3i — honest empty/sparse labels (no-data, filled%, no numeric field, pluralize)", () => {
     // An entirely-empty numeric column reads "no data yet" instead of a misleading "0 Σ".
-    expect(index).toMatch(/const moneyEmpty = !!fields\.money && filled === 0/);
+    expect(index).toMatch(/const moneyEmpty = !!primary && filled === 0/);
     expect(index).toMatch(/no data yet/);
     // moneyStr is suppressed when the field is empty (never surface a fabricated-looking 0).
     expect(index).toMatch(/const moneyStr = !moneyEmpty && money\?\.value != null/);
@@ -70,16 +68,31 @@ describe("Reports index — real record-backed KPI cards, honest + finance-safe"
     expect(index).toMatch(/filledPct != null && filledPct < 100/);
     expect(index).toMatch(/\{filledPct\}% filled/);
     // Honest "no numeric field" note when only a plain count can be computed.
-    expect(index).toMatch(/const noComputableKpi = !fields\.money && !fields\.checkbox && !fields\.group/);
+    expect(index).toMatch(/const noComputableKpi = !cands\.length && !fields\.checkbox && !fields\.group/);
     expect(index).toMatch(/no numeric field/);
     // Record/records pluralization (no "1 records").
     expect(index).toMatch(/\(countQ\.data\.value \?\? 0\) === 1 \? "record" : "records"/);
   });
-  it("Phase 3i — completeness reuses the SAME endpoint + honesty (no new API, still fail-soft)", () => {
-    // filled is an existing op on /records/aggregate — no backend/contract change.
+  it("Phase 3j — smarter field selection: bounded candidate probes, prefers populated + money on tie", () => {
+    // Candidates are capped (never a probe per schema field).
+    expect(index).toMatch(/const MAX_KPI_CANDIDATES = 4/);
+    expect(index).toMatch(/\.slice\(0, MAX_KPI_CANDIDATES\)/);
+    // A fixed number of `filled` probe slots keeps the hook order stable; each disabled when absent.
+    expect(index).toMatch(/const p0 = useRecordAggregate\(\{ objectType: obj\.slug, column: cands\[0\]\?\.key \?\? "", op: "filled", enabled: inView && !!cands\[0\] \}\)/);
+    expect(index).toMatch(/const p3 = useRecordAggregate\(\{ objectType: obj\.slug, column: cands\[3\]\?\.key \?\? "", op: "filled", enabled: inView && !!cands\[3\] \}\)/);
+    // Selection prefers the most-filled candidate; ties break toward a currency/money field.
+    expect(index).toMatch(/const anyFilled = withData\.some\(p => \(p\.filled \?\? 0\) > 0\)/);
+    expect(index).toMatch(/const better = \(p\.filled \?\? 0\) > \(best\.filled \?\? 0\)/);
+    expect(index).toMatch(/tieToMoney = .*p\.field\.type === "currency" && best\.field\.type !== "currency"/);
+    // All-empty candidates keep the first field (→ "no data yet"); reuses the winning probe's filled.
+    expect(index).toMatch(/return \{ field: candidates\[0\]!, filled: first\?\.settled \? \(first\.filled \?\? 0\) : null \}/);
+    expect(index).toMatch(/const \{ field: primary, filled \} = pickPrimaryField\(cands, probes\)/);
+  });
+  it("Phase 3j — probes reuse the SAME endpoint/op (filled); no new API, still fail-soft fallback", () => {
+    // filled is an existing op — no backend/contract change.
     expect(hook).toMatch(/AggOp = "count" \| "sum" \| "avg" \| "min" \| "max" \| "filled" \| "checked" \| "top"/);
-    // The empty/sparse labels are derived from real responses (count + filled), never invented.
-    expect(index).toMatch(/const filled = filledQ\.data\?\.value \?\? null/);
+    // Fallback to the first schema field while probes load/error (settled = success || error).
+    expect(index).toMatch(/settled: probeQs\[i\]!\.isSuccess \|\| probeQs\[i\]!\.isError/);
     expect(index).toMatch(/const totalN = countQ\.data\?\.value \?\? null/);
   });
   it("no finance recomputation, no formula engine, no schema — generic records only", () => {
