@@ -323,6 +323,16 @@ describe("structural adoption pass 2 (headers / settings frames / accent life)",
     // No fabricated AI — insights show an honest prompt state when none have run.
     expect(salesReport).toContain("Surface patterns in your data");
   });
+  it("sales-report AI panels show real DATA SCOPE (proof-of-work inputs) before a run, honestly", () => {
+    // Both panels state what they WILL analyse from real records before Generate/Analyse is pressed,
+    // gated on the not-run state (no result/insights yet) — never implying a run already happened.
+    expect(salesReport).toContain("nothing is generated until you run it");
+    expect(salesReport).toContain("no results until you run it");
+    expect(salesReport).toMatch(/Will analyse <span[^>]*>\{stats\.totalCount\}/);       // forecast scope = real count
+    expect(salesReport).toMatch(/Will analyse <span[^>]*>\{Math\.min\(records\.length, 50\)\}/); // insights scope = real count
+    expect(salesReport).toMatch(/\{!result && !loading && !error &&/);                  // forecast: only pre-run
+    expect(salesReport).toMatch(/\{!insights && !loading && !error &&/);                // insights: only pre-run
+  });
   it("Discovery pipeline is a collapsed-by-default disclosure (composer is primary), never an always-visible strip", () => {
     // Default-collapsed toggle, not an always-rendered pipeline row competing with the composer.
     expect(discovery).toContain("How Discovery works");

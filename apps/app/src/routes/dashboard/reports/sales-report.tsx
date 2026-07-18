@@ -428,6 +428,13 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
             </button>
           )}
         </div>
+        {/* Data scope BEFORE a run — the real inputs the agent will use (honest proof-of-work, no
+            result implied until Generate is pressed). Hidden once a real forecast exists. */}
+        {!result && !loading && !error && (
+          <div className="border-t border-[var(--border-soft)] px-5 py-2.5 text-[11px] text-[var(--text-muted)]">
+            Will analyse <span className="font-medium text-[var(--text-secondary)] tabular-nums">{stats.totalCount}</span> {objectType} · {PERIOD_LABELS[period]}{valueCol ? ` · by ${valueCol}` : " · by count"} — grounded in your real records; nothing is generated until you run it.
+          </div>
+        )}
         {/* Inline result — the forecast lives ON the page (no click-to-modal for the primary read). */}
         {result && !loading && (
           <div className="border-t border-[var(--border-soft)] px-5 py-4">
@@ -614,6 +621,13 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
             </button>
           )}
         </div>
+        {/* Data scope BEFORE a run — the real records the agent will read (honest proof-of-work; no
+            patterns implied until Analyse is pressed). Hidden once real insights exist. */}
+        {!insights && !loading && !error && (
+          <div className="border-t border-[var(--border-soft)] px-5 py-2.5 text-[11px] text-[var(--text-muted)]">
+            Will analyse <span className="font-medium text-[var(--text-secondary)] tabular-nums">{Math.min(records.length, 50)}</span>{records.length > 50 ? ` of ${records.length}` : ""} {objectType} — real records only; no results until you run it.
+          </div>
+        )}
         {/* Inline insights — the top patterns live ON the page; Expand opens the full grid. */}
         {insights && insights.length > 0 && !loading && (
           <div className="border-t border-[var(--border-soft)] divide-y divide-[var(--border-soft)]">
