@@ -2,7 +2,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import type { Room, Participant } from "livekit-client";
 import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, MonitorUp, ShieldAlert } from "lucide-react";
 import { BASE_URL } from "../lib/api-client";
-import { ParticipantTile, ScreenTile, ToolBtn } from "./dashboard/call-room";
+import { ParticipantTile, ScreenTile, ToolBtn } from "./dashboard/call-tiles";
 
 /**
  * PUBLIC guest call page at /join/:eventId#g=<token> — for people WITHOUT a Mondaily account. It reads

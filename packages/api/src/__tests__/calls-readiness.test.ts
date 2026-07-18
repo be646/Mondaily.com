@@ -10,6 +10,8 @@ const calls = readFileSync(fileURLToPath(new URL("../routes/calls.ts", import.me
 const page = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/settings/calls.tsx", import.meta.url)), "utf8");
 const layout = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/settings/layout.tsx", import.meta.url)), "utf8");
 const appTsx = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/App.tsx", import.meta.url)), "utf8");
+const guestCall = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/guest-call.tsx", import.meta.url)), "utf8");
+const callTiles = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/call-tiles.tsx", import.meta.url)), "utf8");
 
 describe("readiness endpoint — admin-gated + booleans only, no secrets", () => {
   it("is registered and owner/admin-gated", () => {
@@ -53,6 +55,24 @@ describe("settings page — every readiness row + honest copy", () => {
   it("is wired into settings nav + routing", () => {
     expect(layout).toMatch(/\["calls", Video, "Calls & Recording"\]/);
     expect(appTsx).toMatch(/<Route path="calls" element=\{<CallsSettings \/>\} \/>/);
+  });
+});
+
+describe("call-room chunk split — guest-call must not statically import call-room", () => {
+  it("guest-call imports shared tiles from call-tiles, NOT from call-room (keeps call-room lazy-splittable)", () => {
+    // The static edge guest-call → call-room was forcing call-room into guest-call's chunk and defeating
+    // its lazy() split in App.tsx. Guests now pull the presentational tiles from the small shared file.
+    expect(guestCall).toMatch(/import \{ ParticipantTile, ScreenTile, ToolBtn \} from "\.\/dashboard\/call-tiles"/);
+    expect(guestCall).not.toMatch(/from "\.\/dashboard\/call-room"/);
+  });
+  it("call-room stays lazy-loaded in App.tsx (its own chunk)", () => {
+    expect(appTsx).toMatch(/const CallRoomDispatch = lazy\(\(\) => import\("\.\/routes\/dashboard\/call-room"\)/);
+  });
+  it("the shared tiles file is presentational only — livekit is a TYPE-only import (no runtime bundle)", () => {
+    expect(callTiles).toMatch(/export function (ParticipantTile|ScreenTile|ToolBtn|initialsOf)/);
+    // livekit is imported for types only, so the shared file never pulls the LiveKit runtime into a chunk.
+    expect(callTiles).toMatch(/import type \{ Participant, Track as TrackNS \} from "livekit-client"/);
+    expect(callTiles).not.toMatch(/^import \{[^}]*\} from "livekit-client"/m);
   });
 });
 

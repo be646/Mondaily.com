@@ -8,6 +8,9 @@ import { analyzeMeetings, relatedFollowUps, type MeetingLite } from "../jobs/mee
 const src = readFileSync(fileURLToPath(new URL("../routes/calendar.ts", import.meta.url)), "utf8");
 const page = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/calendar.tsx", import.meta.url)), "utf8");
 const room = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/call-room.tsx", import.meta.url)), "utf8");
+// Presentational tiles were extracted into call-tiles.tsx so guest-call no longer statically imports
+// call-room (keeps call-room lazy-splittable). Tile-shape assertions read from the shared file.
+const roomTiles = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/call-tiles.tsx", import.meta.url)), "utf8");
 
 describe("Calendar — model + mounting", () => {
   it("has the required statuses", () => {
@@ -317,18 +320,18 @@ describe("Calls — call room page (native, no engine branding, correct access s
 
 describe("Calls — in-call UI polish (named tiles, controls, screen share, no branding)", () => {
   it("renders named participant tiles with initials placeholders when there's no video", () => {
-    expect(room).toMatch(/function ParticipantTile/);
-    expect(room).toMatch(/function initialsOf/);
-    expect(room).toMatch(/\{initialsOf\(name\)\}/);            // initials shown when hasVideo is false
-    expect(room).toMatch(/\{name\}</);                        // the participant's name is rendered
+    expect(roomTiles).toMatch(/function ParticipantTile/);
+    expect(roomTiles).toMatch(/function initialsOf/);
+    expect(roomTiles).toMatch(/\{initialsOf\(name\)\}/);      // initials shown when hasVideo is false
+    expect(roomTiles).toMatch(/\{name\}</);                   // the participant's name is rendered
   });
   it("clearly marks the local user's own tile", () => {
-    expect(room).toMatch(/isLocal &&[\s\S]*?youLabel/);
-    expect(room).toMatch(/t\("cal\.you"\)/);
+    expect(roomTiles).toMatch(/isLocal &&[\s\S]*?youLabel/);  // the tile marks the local user
+    expect(room).toMatch(/t\("cal\.you"\)/);                 // call-room supplies the localized label
   });
   it("highlights the active speaker when the client SDK reports it", () => {
-    expect(room).toMatch(/ActiveSpeakersChanged/);
-    expect(room).toMatch(/speaking \? "2px solid var\(--section-accent\)"/);
+    expect(room).toMatch(/ActiveSpeakersChanged/);            // call-room subscribes to the SDK event
+    expect(roomTiles).toMatch(/speaking \? "2px solid var\(--section-accent\)"/); // tile renders the outline
   });
   it("has mute, camera, and leave controls in the toolbar", () => {
     expect(room).toMatch(/onClick=\{toggleMic\}/);
