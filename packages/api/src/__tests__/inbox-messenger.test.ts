@@ -61,3 +61,54 @@ describe("every chat action still exists (nothing removed/hidden)", () => {
     expect((inbox.match(/onClick=\{onBack\} className="btn-icon h-7 w-7 lg:hidden"/g) ?? []).length).toBe(2);
   });
 });
+
+// ── Premium AI-native redesign pass (structured empty states, accessible modal, stronger honest AI) ──
+describe("premium redesign — structured empty states (not giant dead panels)", () => {
+  it("empty Inbox list is guided + branded, with an honest workspace-only / no-fake-presence line", () => {
+    expect(inbox).toMatch(/Smart, private team messaging/);
+    expect(inbox).toMatch(/Workspace-only\. No outside inboxes, no fake presence\./);
+    // Real starting points, not decorative — both CTAs open the real picker.
+    expect(inbox).toMatch(/t\("inbox\.message_teammate"\)/);
+    expect(inbox).toContain("Create a group");
+  });
+  it("empty conversation panel is filled with intent: centered EmptyState + an honest capability rail", () => {
+    // Still the shared EmptyState with the select-conversation copy…
+    expect(inbox).toMatch(/<EmptyState icon=\{InboxIcon\}[^]*?inbox\.select_conversation/);
+    // …plus a real capability rail describing what the messenger does (no metrics, no fake state).
+    expect(inbox).toContain("Direct & groups");
+    expect(inbox).toMatch(/AI draft[^]*?You review, you send/);
+    // Not a bare centered void: the panel is a flex column that hosts the rail.
+    expect(inbox).toMatch(/hidden flex-col overflow-hidden rounded-sm border lg:flex/);
+  });
+});
+
+describe("premium redesign — accessible, keyboard-friendly new-message modal", () => {
+  const modal = inbox.slice(inbox.indexOf("function NewMessageModal"));
+  it("modal is a labelled dialog with a tablist and Esc-to-close", () => {
+    expect(modal).toMatch(/role="dialog" aria-modal="true"/);
+    expect(modal).toMatch(/role="tablist"/);
+    expect(modal).toMatch(/role="tab" aria-selected=\{mode === m\}/);
+    expect(modal).toMatch(/if \(e\.key === "Escape"\) onClose\(\)/);
+  });
+  it("modal controls expose focus-visible rings + labels (keyboard + a11y)", () => {
+    expect(modal).toMatch(/aria-label="Group name"/);
+    expect((modal.match(/focus-visible:ring-2/g) ?? []).length).toBeGreaterThanOrEqual(4);
+    // Tabs stay squared (segmented grid), never pill-shaped.
+    expect(modal).not.toMatch(/rounded-full/);
+    expect(modal).toMatch(/grid grid-cols-2 gap-1 border-b p-2/);
+  });
+});
+
+describe("premium redesign — AI draft reads as a reviewed assist, never fake automation", () => {
+  it("draft panel states its honest scope: prompt-only, doesn't read the conversation, sent manually", () => {
+    expect(inbox).toMatch(/it doesn't read the conversation/);
+    expect(inbox).toMatch(/You send manually\./);
+  });
+  it("the unsent-draft marker spells out that nothing sends automatically", () => {
+    expect(inbox).toContain("AI draft · review before sending");
+    expect(inbox).toMatch(/nothing sends until you press Send/);
+  });
+  it("no fake presence / typing / auto-read anywhere in Inbox", () => {
+    expect(inbox).not.toMatch(/online now|active now|is typing|typing…|last seen|seen just now/i);
+  });
+});

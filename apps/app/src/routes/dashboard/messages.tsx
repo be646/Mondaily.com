@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Send, User as UserIcon, Inbox as InboxIcon, Archive, Plus, X, Search, Copy, Trash2, Sparkles, ArrowLeft, Check, CheckCheck, Paperclip, FileText, Download, UsersRound } from "lucide-react";
+import { Loader2, Send, User as UserIcon, Inbox as InboxIcon, Archive, Plus, X, Search, Copy, Trash2, Sparkles, ArrowLeft, Check, CheckCheck, Paperclip, FileText, Download, UsersRound, Lock, MessagesSquare, CornerDownLeft } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { useTableRealtime } from "../../hooks/useTableRealtime";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -90,8 +90,8 @@ export function MessagesPage() {
         title={t("inbox.title")}
         subtitle={t("inbox.subtitle")}
         primaryAction={
-          <button onClick={() => setPickerOpen(true)}
-            className="flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
+          <button onClick={() => setPickerOpen(true)} aria-label={t("inbox.new_message")}
+            className="flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
             <Plus size={13} /> {t("inbox.new_message")}
           </button>
         }
@@ -141,23 +141,31 @@ export function MessagesPage() {
             <ErrorState error={new Error("Couldn't load your inbox right now.")} onRetry={() => inboxQ.refetch()} />
           ) : inbox.length === 0 && !active ? (
             // Guided empty list — real starting points, honest about what each does. No fake threads.
-            <div className="px-3 py-10">
-              <InboxIcon size={20} className="mx-auto mb-2.5 block" style={{ color: "var(--text-faint)" }} />
-              <p className="mb-1 text-center text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{t("inbox.empty_title")}</p>
-              <p className="mb-4 text-center text-[11.5px] leading-snug" style={{ color: "var(--text-muted)" }}>Conversations with your workspace members live here — private, inside Mondaily.</p>
+            <div className="px-3 py-8">
+              <span className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>
+                <MessagesSquare size={20} />
+              </span>
+              <p className="mb-1 text-center text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("inbox.empty_title")}</p>
+              <p className="mb-1.5 text-center text-[11.5px] leading-snug" style={{ color: "var(--text-muted)" }}>Smart, private team messaging — direct threads and groups, all inside Mondaily.</p>
+              <p className="mb-4 flex items-center justify-center gap-1 text-center text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+                <Lock size={9} className="shrink-0" /> Workspace-only. No outside inboxes, no fake presence.
+              </p>
               <div className="space-y-1.5">
                 {[
                   { icon: Plus, label: t("inbox.message_teammate"), hint: "Start a direct message with anyone in this workspace." },
                   { icon: UsersRound, label: "Create a group", hint: "A shared thread for a team or project — members only." },
                 ].map((s, i) => (
                   <button key={i} onClick={() => setPickerOpen(true)}
-                    className="flex w-full items-start gap-2.5 rounded-sm border px-3 py-2 text-left transition-colors hover:border-[var(--section-accent)] hover:bg-[var(--surface-hover)]"
+                    className="group/cta flex w-full items-start gap-2.5 rounded-sm border px-3 py-2.5 text-left transition-colors hover:border-[var(--section-accent)] hover:bg-[var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
                     style={{ borderColor: "var(--border-soft)" }}>
-                    <s.icon size={14} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }} />
-                    <span className="min-w-0">
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>
+                      <s.icon size={13} />
+                    </span>
+                    <span className="min-w-0 flex-1">
                       <span className="block text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</span>
                       <span className="mt-0.5 block text-[11px] leading-snug" style={{ color: "var(--text-muted)" }}>{s.hint}</span>
                     </span>
+                    <CornerDownLeft size={12} className="mt-1 shrink-0 opacity-0 transition-opacity group-hover/cta:opacity-60" style={{ color: "var(--section-accent)" }} />
                   </button>
                 ))}
               </div>
@@ -166,7 +174,10 @@ export function MessagesPage() {
             <div className="flex-1 overflow-y-auto">
               {(inboxQ.data?.groups ?? []).length > 0 && (
                 <div className="divide-y border-b" style={{ borderColor: "var(--border-soft)" }}>
-                  <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Groups</div>
+                  <div className="flex items-center gap-1.5 px-3 pb-1 pt-2.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
+                    <UsersRound size={11} /> Groups
+                    <span className="ml-auto tabular-nums" style={{ color: "var(--text-faint)" }}>{(inboxQ.data?.groups ?? []).length}</span>
+                  </div>
                   {(inboxQ.data?.groups ?? []).map((g) => (
                     <button key={g.group_id} onClick={() => setActiveGroup(g.group_id)}
                       className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
@@ -187,7 +198,10 @@ export function MessagesPage() {
               {/* Only label the direct list when groups are also present, so a groups-less inbox
                   stays clean — clear separation between team groups and 1:1s. */}
               {(inboxQ.data?.groups ?? []).length > 0 && inbox.length > 0 && (
-                <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Direct messages</div>
+                <div className="flex items-center gap-1.5 px-3 pb-1 pt-2.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
+                  <MessagesSquare size={11} /> Direct messages
+                  <span className="ml-auto tabular-nums" style={{ color: "var(--text-faint)" }}>{inbox.length}</span>
+                </div>
               )}
               {inbox.map((th) => (
                 <button key={th.thread_key} onClick={() => setActive(th.other_id)}
@@ -211,13 +225,30 @@ export function MessagesPage() {
         {/* thread */}
         {activeGroup ? <GroupThread groupId={activeGroup} live={live.current} onSent={() => { qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onLeft={() => { setActiveGroup(""); qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onBack={() => setActiveGroup("")} />
           : active ? <Thread otherId={active} live={live.current} onSent={() => { qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onArchived={() => { setActive(""); qc.invalidateQueries({ queryKey: ["messages-inbox"] }); }} onBack={() => setActive("")} />
-          : <div className="hidden items-center justify-center rounded-sm border lg:flex" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-              <EmptyState icon={InboxIcon} title={t("inbox.select_conversation")} description={t("inbox.subtitle")}
-                aiHint="Once you're chatting, the ✦ button drafts a message with AI — you always review before it sends."
-                steps={[
-                  { icon: Plus, label: t("inbox.new_message"), hint: "Direct message any workspace member.", onClick: () => setPickerOpen(true) },
-                  { icon: UsersRound, label: "Create a group", hint: "A membership-guarded thread for a team or project.", onClick: () => setPickerOpen(true) },
-                ]} />
+          : <div className="hidden flex-col overflow-hidden rounded-sm border lg:flex" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              {/* Centered guided empty state — real CTAs, honest AI line. Fills the panel with intent, not a dead void. */}
+              <div className="flex flex-1 items-center justify-center px-4">
+                <EmptyState icon={InboxIcon} title={t("inbox.select_conversation")} description={t("inbox.subtitle")}
+                  aiHint="Once you're chatting, the ✦ button drafts a message with AI — you always review before it sends."
+                  steps={[
+                    { icon: Plus, label: t("inbox.new_message"), hint: "Direct message any workspace member.", onClick: () => setPickerOpen(true) },
+                    { icon: UsersRound, label: "Create a group", hint: "A membership-guarded thread for a team or project.", onClick: () => setPickerOpen(true) },
+                  ]} />
+              </div>
+              {/* Honest capability rail — describes what this messenger actually does. No metrics, no fake state. */}
+              <div className="grid shrink-0 grid-cols-3 gap-px border-t" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
+                {[
+                  { icon: MessagesSquare, label: "Direct & groups", hint: "1:1 and team threads" },
+                  { icon: Paperclip, label: "Share files", hint: "Up to 5 × 10 MB" },
+                  { icon: Sparkles, label: "AI draft", hint: "You review, you send" },
+                ].map((f, i) => (
+                  <div key={i} className="flex flex-col items-center gap-1 px-3 py-3.5 text-center" style={{ background: "var(--surface-card)" }}>
+                    <f.icon size={14} style={{ color: "var(--section-accent)" }} />
+                    <span className="text-[11.5px] font-medium" style={{ color: "var(--text-primary)" }}>{f.label}</span>
+                    <span className="text-[10px] leading-tight" style={{ color: "var(--text-faint)" }}>{f.hint}</span>
+                  </div>
+                ))}
+              </div>
             </div>}
       </div>
     </div>
@@ -393,7 +424,13 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
       {/* AI draft prompt (opens above the compose box) — drafts into the box, never sends. */}
       {aiOpen && (
         <div className="border-t px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card-2)" }}>
-          <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}><Sparkles size={12} /> Draft with AI · you review &amp; send</div>
+          <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}><Sparkles size={12} /> Draft with AI · you review &amp; send</div>
+          {/* Honest scope — the draft endpoint only sees your prompt (+ current draft), never the conversation. */}
+          <p className="mb-2 text-[10.5px] leading-snug" style={{ color: "var(--text-faint)" }}>
+            {draft.trim()
+              ? "Rewrites your current draft from the instruction below. It doesn't read the conversation."
+              : "Writes from your instruction below only — it doesn't read the conversation. You send manually."}
+          </p>
           <div className="flex items-end gap-2">
             <input autoFocus value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); aiDraft(); } }}
@@ -427,8 +464,9 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
           unmistakable this text was AI-generated and still needs a human review before it sends. */}
       {aiDrafted && draft.trim() && (
         <div className="flex items-center gap-1.5 border-t px-3 py-1.5 text-[11px] font-medium" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--section-accent) 7%, transparent)", color: "var(--section-accent)" }}>
-          <Sparkles size={11} /> AI draft · review before sending
-          <button onClick={() => { setDraft(""); setAiDrafted(false); }} className="ml-auto shrink-0" title="Clear draft" style={{ color: "var(--text-faint)" }}><X size={12} /></button>
+          <Sparkles size={11} className="shrink-0" /> AI draft · review before sending
+          <span className="font-normal" style={{ color: "var(--text-muted)" }}>— nothing sends until you press Send</span>
+          <button onClick={() => { setDraft(""); setAiDrafted(false); }} className="ml-auto shrink-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" title="Clear draft" aria-label="Clear AI draft" style={{ color: "var(--text-faint)" }}><X size={12} /></button>
         </div>
       )}
 
@@ -446,7 +484,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
           className="flex-1 resize-none bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)", maxHeight: 120 }} />
         <button onClick={submit} disabled={(!draft.trim() && pending.length === 0) || send.isPending || uploading}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-1.5 text-[12px] font-medium text-white transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1" style={{ background: "var(--section-accent)" }}>
           {send.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} {t("inbox.send")}
         </button>
       </div>
@@ -612,7 +650,7 @@ function GroupThread({ groupId, live, onSent, onLeft, onBack }: { groupId: strin
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
           className="flex-1 resize-none bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)", maxHeight: 120 }} />
         <button onClick={submit} disabled={(!draft.trim() && pending.length === 0) || send.isPending || uploading}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-sm px-3 py-1.5 text-[12px] font-medium text-white transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1" style={{ background: "var(--section-accent)" }}>
           {send.isPending ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />} {t("inbox.send")}
         </button>
       </div>
@@ -654,45 +692,62 @@ function NewMessageModal({ onClose, onPick, onGroupCreated }: { onClose: () => v
     .filter((m) => m.id !== me.userId)   // can't DM yourself
     .filter((m) => { const s = q.trim().toLowerCase(); return !s || (m.name ?? "").toLowerCase().includes(s) || m.email.toLowerCase().includes(s); });
 
+  // Keyboard-friendly: Esc closes the modal from anywhere inside it.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   return (
     <>
       <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-sm border shadow-lg" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
-        <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
-          <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("inbox.new_message")}</span>
-          <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>
+      <div role="dialog" aria-modal="true" aria-label={t("inbox.new_message")}
+        className="fixed left-1/2 top-1/2 z-[201] flex max-h-[85vh] w-[calc(100%-1.5rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-sm border shadow-lg" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
+        {/* Premium header — accent glyph tile + honest subtitle. */}
+        <div className="flex items-center gap-2.5 border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)", color: "var(--section-accent)" }}>
+            {mode === "dm" ? <MessagesSquare size={15} /> : <UsersRound size={15} />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <span className="block text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("inbox.new_message")}</span>
+            <span className="block text-[11px]" style={{ color: "var(--text-faint)" }}>{mode === "dm" ? "Open a private 1:1 thread" : "A members-only team thread"}</span>
+          </div>
+          <button onClick={onClose} className="btn-icon h-7 w-7 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" aria-label="Close"><X size={15} /></button>
         </div>
-        <div className="flex gap-1 border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
+        {/* Segmented, squared tab control — full-width, clear active state. */}
+        <div role="tablist" aria-label="New conversation type" className="grid grid-cols-2 gap-1 border-b p-2" style={{ borderColor: "var(--border-soft)" }}>
           {(["dm", "group"] as const).map((m) => (
-            <button key={m} onClick={() => setMode(m)}
-              className="rounded-sm px-3 py-1 text-[11.5px] font-medium transition-colors"
-              style={mode === m ? { background: "var(--surface-selected)", color: "var(--section-accent)" } : { color: "var(--text-muted)" }}>
+            <button key={m} role="tab" aria-selected={mode === m} onClick={() => setMode(m)}
+              className="flex items-center justify-center gap-1.5 rounded-sm py-1.5 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
+              style={mode === m ? { background: "var(--section-accent-soft)", color: "var(--section-accent)" } : { color: "var(--text-muted)" }}>
+              {m === "dm" ? <MessagesSquare size={13} /> : <UsersRound size={13} />}
               {m === "dm" ? "Direct message" : "New group"}
             </button>
           ))}
         </div>
         {mode === "group" && (
           <div className="border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
-            <input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Group name…"
-              className="w-full rounded-sm border bg-transparent px-2.5 py-1.5 text-[13px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+            <input value={groupName} onChange={(e) => setGroupName(e.target.value)} placeholder="Group name…" aria-label="Group name"
+              className="w-full rounded-sm border bg-transparent px-2.5 py-1.5 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
           </div>
         )}
         <div className="border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
-          <div className="flex items-center gap-2 rounded-sm border px-2.5 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="flex items-center gap-2 rounded-sm border px-2.5 py-1.5 focus-within:ring-2 focus-within:ring-[var(--section-accent)]" style={{ borderColor: "var(--border-soft)" }}>
             <Search size={13} style={{ color: "var(--text-faint)" }} />
-            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("inbox.search_members")}
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("inbox.search_members")} aria-label={t("inbox.search_members")}
               className="flex-1 bg-transparent text-[13px] outline-none" style={{ color: "var(--text-primary)" }} />
           </div>
         </div>
-        <div className="max-h-72 overflow-y-auto p-1.5">
+        <div className="max-h-72 min-h-0 flex-1 overflow-y-auto p-1.5">
           {membersQ.isLoading ? (
             <div className="flex items-center gap-2 px-3 py-6 text-[12.5px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> {t("state.loading")}</div>
           ) : list.length === 0 ? (
             <p className="px-3 py-6 text-center text-[12.5px]" style={{ color: "var(--text-muted)" }}>{t("state.empty")}</p>
           ) : list.map((m) => (
-            <button key={m.id}
+            <button key={m.id} aria-pressed={mode === "group" ? selected.has(m.id) : undefined}
               onClick={() => { if (mode === "dm") { onPick(m.id); } else { setSelected((prev) => { const next = new Set(prev); if (next.has(m.id)) next.delete(m.id); else next.add(m.id); return next; }); } }}
-              className="flex w-full items-center gap-2.5 rounded-sm px-2.5 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]"
+              className="flex w-full items-center gap-2.5 rounded-sm px-2.5 py-2 text-left transition-colors hover:bg-[var(--surface-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
               style={mode === "group" && selected.has(m.id) ? { background: "var(--surface-selected)" } : undefined}>
               {mode === "group" && (
                 <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border" style={{ borderColor: selected.has(m.id) ? "var(--section-accent)" : "var(--border-strong)", background: selected.has(m.id) ? "var(--section-accent)" : "transparent" }}>
@@ -707,11 +762,15 @@ function NewMessageModal({ onClose, onPick, onGroupCreated }: { onClose: () => v
             </button>
           ))}
         </div>
-        {mode === "group" && (
-          <div className="border-t px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
+        {mode === "dm" ? (
+          <div className="shrink-0 border-t px-3 py-2 text-center text-[11px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
+            Pick a member to open a private thread.
+          </div>
+        ) : (
+          <div className="shrink-0 border-t px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
             {createError && <p className="mb-1.5 text-[11px]" style={{ color: "#d1524a" }}>{createError}</p>}
             <button onClick={createGroup} disabled={!groupName.trim() || selected.size === 0 || creating}
-              className="w-full rounded-sm px-3 py-2 text-[12.5px] font-semibold text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
+              className="w-full rounded-sm px-3 py-2 text-[12.5px] font-semibold text-white transition-opacity disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1" style={{ background: "var(--section-accent)" }}>
               {creating ? "Creating…" : `Create group${selected.size ? ` · ${selected.size} member${selected.size !== 1 ? "s" : ""}` : ""}`}
             </button>
           </div>
