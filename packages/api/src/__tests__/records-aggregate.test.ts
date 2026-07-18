@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { aggregateRows, aggregateGrouped, aggNum, aggChecked, groupKeyOf, type AggRow } from "../lib/aggregate";
+import { aggregateRows, aggregateGrouped, aggNum, aggChecked, groupKeyOf, applyFilters, type AggRow } from "../lib/aggregate";
 
 // ECB "units per 1 EUR": 1 EUR = 1.10 USD = 0.85 GBP.
 const RATES = { USD: 1.10, GBP: 0.85 };
@@ -72,6 +72,34 @@ describe("aggregate.ts — grouping by status/stage/owner/date", () => {
     expect(groupKeyOf(row({ deal_owner: "Alex" }), "owner")).toBe("Alex");
     expect(groupKeyOf(row({}), "status")).toBe("—"); // honest missing
   });
+  it("group-by an ARBITRARY column key reads that value directly (Phase 3b.1)", () => {
+    expect(groupKeyOf(row({ region: "EU" }), "region")).toBe("EU");
+    expect(groupKeyOf(row({}), "region")).toBe("—"); // honest missing
+    expect(groupKeyOf(row({ region: "EU" }), "none")).toBe("all");
+  });
+});
+
+describe("aggregate.ts — equality filters (the record table's quickFilters), case-insensitive AND", () => {
+  const rows: AggRow[] = [
+    row({ amount: 100, stage: "Won", region: "EU" }),
+    row({ amount: 50, stage: "won", region: "US" }),
+    row({ amount: 25, stage: "Open", region: "EU" }),
+  ];
+  it("no filters is a pass-through", () => {
+    expect(applyFilters(rows).length).toBe(3);
+    expect(applyFilters(rows, []).length).toBe(3);
+  });
+  it("filters are case-insensitive and AND-combined; a filtered total matches only the kept rows", () => {
+    const kept = applyFilters(rows, [{ column: "stage", value: "WON" }]);
+    expect(kept.length).toBe(2);
+    expect(aggregateRows(kept, "sum", "amount").value).toBe(150);
+    const both = applyFilters(rows, [{ column: "stage", value: "won" }, { column: "region", value: "eu" }]);
+    expect(both.length).toBe(1);
+    expect(aggregateRows(both, "sum", "amount").value).toBe(100);
+  });
+  it("a filter on a non-existent column matches nothing — honest empty, never an error", () => {
+    expect(applyFilters(rows, [{ column: "nope", value: "x" }]).length).toBe(0);
+  });
 });
 
 // ── Route-level guards (source): isolation, validation, cap/truncation, shared helpers, no finance dup ──
@@ -82,12 +110,23 @@ describe("POST /records/aggregate — safe, workspace-scoped, honest", () => {
     expect((route.match(/\.eq\("workspace_id", ws\)/g) ?? []).length).toBeGreaterThanOrEqual(2);
     expect(route).not.toMatch(/\.eq\("workspace_id", [^w]/); // never a workspace id from user input
   });
-  it("validates object_type/column/op/group_by (no raw SQL from user input)", () => {
+  it("validates object_type/column/op/group_by/filters (no raw SQL from user input)", () => {
     expect(route).toMatch(/object_type: z\.string\(\)\.min\(1\)\.max\(64\)\.regex/);
     expect(route).toMatch(/op: z\.enum\(\["count", "sum", "avg", "min", "max", "filled", "checked"\]\)/);
-    expect(route).toMatch(/group_by: z\.enum\(\["none", "status", "stage", "owner", "date"\]\)/);
+    // group_by is now a validated key (none | date | keyword | column), not a fixed enum.
+    expect(route).toMatch(/group_by: z\.string\(\)\.max\(120\)\.regex\(KEY, "invalid group_by"\)/);
+    // filters are validated equality pairs, capped in count, each column key-shaped.
+    expect(route).toMatch(/filters: z\.array\(z\.object\(\{ column: z\.string\(\)\.min\(1\)\.max\(120\)\.regex\(KEY\), value: z\.string\(\)\.max\(200\) \}\)\)\.max\(8\)/);
+    expect(route).toMatch(/const KEY = \/\^\[a-z0-9_\.-\]\+\$\/i/);
   });
-  it("count with no grouping uses a cheap head count; everything else caps rows + flags truncation", () => {
+  it("filters run in-memory over fetched rows — never a dynamic .eq() from a user key", () => {
+    expect(route).toMatch(/applyFilters\(truncated \? all\.slice\(0, CAP\) : all, filters\)/);
+    // the only .eq() calls are the fixed workspace_id + object_type scopes
+    expect(route).not.toMatch(/\.eq\(`data/);
+    expect(route).not.toMatch(/\.eq\(\$\{/);
+  });
+  it("count with no grouping AND no filters uses a cheap head count; else caps rows + flags truncation", () => {
+    expect(route).toMatch(/op === "count" && group_by === "none" && !hasFilters/);
     expect(route).toMatch(/count: "exact", head: true/);
     expect(route).toMatch(/const CAP = 10_000/);
     expect(route).toMatch(/const truncated = all\.length > CAP/);

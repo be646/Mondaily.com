@@ -11,7 +11,8 @@ import { convert } from "./currency";
  *  • Nothing is fabricated — non-numeric cells are simply skipped, and an empty set aggregates to 0.
  */
 export type AggOp = "count" | "sum" | "avg" | "min" | "max" | "filled" | "checked";
-export type AggGroupBy = "none" | "status" | "stage" | "owner" | "date";
+// "none" | "date" (month bucket) | the keyword aliases | any validated column key.
+export type AggGroupBy = string;
 
 export interface AggRow { data: Record<string, unknown>; created_at?: string | null }
 export interface MoneyCtx { target: string; rates: Record<string, number>; base: string }
@@ -51,6 +52,7 @@ function nonEmpty(v: unknown): boolean {
 /** The value used to group a row — resolved from the common alias keys, honestly ("—" when absent). */
 export function groupKeyOf(row: AggRow, groupBy: AggGroupBy): string {
   const d = row.data ?? {};
+  if (groupBy === "none") return "all";
   if (groupBy === "status") return String(d.status ?? "—") || "—";
   if (groupBy === "stage") return String(d.stage ?? d.deal_stage ?? d.deal_status ?? "—") || "—";
   if (groupBy === "owner") return String(d.owner ?? d.deal_owner ?? d.assigned_to ?? d.assignee ?? "—") || "—";
@@ -60,7 +62,14 @@ export function groupKeyOf(row: AggRow, groupBy: AggGroupBy): string {
     if (isNaN(dt.getTime())) return "—";
     return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}`; // month bucket
   }
-  return "all";
+  return String(d[groupBy] ?? "—") || "—"; // any other validated column key — read the value directly
+}
+
+// Equality filters (AND-combined, case-insensitive) — the exact safe subset the record table applies
+// as `quickFilters`. Pure + in-memory, so no dynamic SQL is ever built from a user-supplied key.
+export function applyFilters(rows: AggRow[], filters?: { column: string; value: string }[]): AggRow[] {
+  if (!filters?.length) return rows;
+  return rows.filter((r) => filters.every((f) => String(r.data?.[f.column] ?? "").toLowerCase() === f.value.toLowerCase()));
 }
 
 /** Aggregate one flat set of rows for a single column + op. Money context makes sum/avg/min/max

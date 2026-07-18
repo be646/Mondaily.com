@@ -584,13 +584,30 @@ function formatAgg(kind: string | undefined, op: CalcOp, resp: AggResp, display:
   if (kind === "percentage") return `${(v % 1 === 0 ? v : Number(v.toFixed(1))).toLocaleString()}%${trunc}`;
   return `${v % 1 === 0 ? v.toLocaleString() : v.toFixed(2)}${trunc}`;
 }
-function ServerTotalValue({ objectType, col, op, kind, display, fallback }: {
-  objectType: string; col: string; op: CalcOp; kind: string | undefined; display: string; fallback: string;
+type AggFilter = { column: string; value: string };
+// The subset of the table's quickFilters the server can reproduce EXACTLY: plain equality on a
+// non-owner column. Owner/assignee filters resolve through display-name state the server can't see;
+// __from/__to are date ranges, not equality — those keep the client subtotal.
+function serverFilters(quickFilters: { col: string; value: string }[]): AggFilter[] {
+  return quickFilters
+    .filter(f => !f.col.endsWith("__from") && !f.col.endsWith("__to") && !/owner|assign/i.test(f.col))
+    .map(f => ({ column: f.col, value: f.value }));
+}
+// Compact Excel-style subtotal string for a single group value (server-provided).
+function fmtGroupVal(kind: string | undefined, op: CalcOp, value: number, currency: string, unconverted: number): string {
+  if (op === "count" || op === "filled") return value.toLocaleString();
+  if (kind === "checkbox") return `${value.toLocaleString()} checked`;
+  if (kind === "currency") return formatMoney(value, currency) + (unconverted > 0 ? ` ·${unconverted}✗` : "");
+  if (kind === "percentage") return `${(value % 1 === 0 ? value : Number(value.toFixed(1))).toLocaleString()}%`;
+  return value % 1 === 0 ? value.toLocaleString() : value.toFixed(2);
+}
+function ServerTotalValue({ objectType, col, op, kind, display, fallback, filters }: {
+  objectType: string; col: string; op: CalcOp; kind: string | undefined; display: string; fallback: string; filters?: AggFilter[];
 }) {
   const aggOp = serverAggOp(kind, op);
   const q = useQuery<AggResp>({
-    queryKey: ["records-agg", objectType, col, aggOp, kind === "currency"],
-    queryFn: () => apiClient.post<AggResp>("/records/aggregate", { object_type: objectType, column: col, op: aggOp, group_by: "none", currency: kind === "currency" }),
+    queryKey: ["records-agg", objectType, col, aggOp, kind === "currency", JSON.stringify(filters ?? [])],
+    queryFn: () => apiClient.post<AggResp>("/records/aggregate", { object_type: objectType, column: col, op: aggOp, group_by: "none", currency: kind === "currency", ...(filters?.length ? { filters } : {}) }),
     enabled: !!aggOp,
     staleTime: 30_000,
     retry: false,
@@ -1972,6 +1989,30 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     if (col) localStorage.setItem(groupByKey, col); else localStorage.removeItem(groupByKey);
   }
 
+  // ── Group subtotals (Phase 3b.1) ──
+  // When the view is grouped AND a column has an active calc, ask the server for per-group aggregates
+  // so grouped views show Excel-style subtotals over the whole (optionally filtered) table. Falls back
+  // to a client per-group calc if the request is disabled/loading/errored (never a fake number).
+  const groupCalcCol = groupByCol ? (Object.keys(calculations).find(k => calculations[k]) ?? null) : null;
+  const groupCalcOp: CalcOp = groupCalcCol ? (calculations[groupCalcCol] ?? null) : null;
+  const groupCalcKind = groupCalcCol ? effectiveType(groupCalcCol) : undefined;
+  // Only send filters when the whole active set is server-representable; otherwise disable the server
+  // group query and fall back to the client per-group calc (honest, over the visible rows).
+  const groupFiltersRepresentable = !filterText.trim() && !filterQuery && serverFilters(quickFilters).length === quickFilters.length;
+  const groupAggQ = useQuery<{ groups?: { label: string; value: number; count: number; unconverted: number }[]; currency: string | null }>({
+    queryKey: ["records-group-agg", objectType, groupByCol, groupCalcCol, groupCalcOp, groupCalcKind === "currency", JSON.stringify(groupFiltersRepresentable ? serverFilters(quickFilters) : "client")],
+    queryFn: () => apiClient.post("/records/aggregate", { object_type: objectType, column: groupCalcCol, op: serverAggOp(groupCalcKind, groupCalcOp), group_by: groupByCol, currency: groupCalcKind === "currency", ...(serverFilters(quickFilters).length ? { filters: serverFilters(quickFilters) } : {}) }),
+    enabled: !!(groupByCol && groupCalcCol && groupCalcOp && serverAggOp(groupCalcKind, groupCalcOp) && groupFiltersRepresentable),
+    staleTime: 30_000,
+    retry: false,
+  });
+  const groupSubtotals = useMemo(() => {
+    const m = new Map<string, { value: number; count: number; unconverted: number }>();
+    for (const g of groupAggQ.data?.groups ?? []) m.set(g.label, g);
+    return m;
+  }, [groupAggQ.data]);
+  const groupAggCurrency = groupAggQ.data?.currency ?? wsDisplay;
+
   // ── Saved views ──
   const savedViewsKey = `mondaily_views_${objectType}`;
   interface SavedView { id: string; name: string; filters: typeof quickFilters; sortRules: typeof sortRules; hiddenCols: string[]; groupBy: string | null }
@@ -3113,6 +3154,19 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                           <span className={`h-2 w-2 rounded-full ${ss.dot}`}/>
                           <span className="text-[11px] font-semibold text-stone-600 dark:text-[var(--text-secondary)] capitalize">{groupVal}</span>
                           <span className="text-[10px] text-stone-400 dark:text-[var(--text-secondary)] ml-1">{groupRows.length}</span>
+                          {/* Excel-style per-group subtotal for the primary calc'd column — server value
+                              when available, else an honest client per-group calc over the shown rows. */}
+                          {groupCalcCol && groupCalcOp && (() => {
+                            const srv = groupSubtotals.get(groupVal);
+                            const str = srv
+                              ? fmtGroupVal(groupCalcKind, groupCalcOp, srv.value, groupAggCurrency, srv.unconverted)
+                              : calcResultTyped(groupCalcOp, groupCalcCol, groupRows, groupCalcKind, { display: wsDisplay, rates: fxRates, base: wsBase });
+                            return (
+                              <span className="ml-auto text-[10px] font-mono tabular-nums text-stone-500 dark:text-[var(--text-secondary)]">
+                                <span className="uppercase tracking-wide text-stone-400 mr-1">{colLabel(groupCalcCol)} · {groupCalcOp}</span>{str}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </td>
                     </tr>
@@ -3151,12 +3205,16 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                         <span className="text-stone-600 uppercase text-[10px] tracking-wide mr-0.5">{calculations[col]}</span>
                         {(() => {
                           const clientStr = calcResultTyped(calculations[col], col, sorted, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase });
-                          // A filtered/searched view is a client subtotal (the endpoint has no filters
-                          // yet). Only reach for the authoritative full-table server total when the
-                          // client set already IS the full table.
-                          const isFiltered = !!filterText.trim() || quickFilters.length > 0 || !!filterQuery;
-                          if (isFiltered) return clientStr;
-                          return <ServerTotalValue objectType={objectType} col={col} op={calculations[col]} kind={effectiveType(col)} display={wsDisplay} fallback={clientStr} />;
+                          // Which active filters can the server reproduce EXACTLY? Only plain equality
+                          // quickFilters on non-owner columns (owner cells resolve via display-name
+                          // state the server can't see; date-range __from/__to and free-text search
+                          // aren't equality). If the whole active filter set is representable we send
+                          // it so the server total matches the filtered view; otherwise we keep the
+                          // honest client subtotal over the visible rows.
+                          const reprFilters = serverFilters(quickFilters);
+                          const allRepresentable = !filterText.trim() && !filterQuery && reprFilters.length === quickFilters.length;
+                          if (!allRepresentable) return clientStr;
+                          return <ServerTotalValue objectType={objectType} col={col} op={calculations[col]} kind={effectiveType(col)} display={wsDisplay} fallback={clientStr} filters={reprFilters} />;
                         })()}
                       </button>
                     ) : (

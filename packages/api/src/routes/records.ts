@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { loadRates, userDisplayCurrency, workspaceBaseCurrency } from "../lib/currency-store";
-import { aggregateGrouped, aggregateRows, type AggRow, type MoneyCtx } from "../lib/aggregate";
+import { aggregateGrouped, aggregateRows, applyFilters, type AggRow, type MoneyCtx } from "../lib/aggregate";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
@@ -15,11 +15,20 @@ router.use("*", requireAuth);
 // and is never truncated.
 const CAP = 10_000;
 
+// A safe key regex — used for object_type, group_by, and every filter column. No dynamic SQL is ever
+// built from these (filters + grouping run in-memory over already-fetched rows), but we still bound
+// the shape so nothing weird reaches the query builder.
+const KEY = /^[a-z0-9_.-]+$/i;
+
 const aggInput = z.object({
   object_type: z.string().min(1).max(64).regex(/^[a-z0-9_-]+$/i, "invalid object_type"),
   column: z.string().min(1).max(120),
   op: z.enum(["count", "sum", "avg", "min", "max", "filled", "checked"]),
-  group_by: z.enum(["none", "status", "stage", "owner", "date"]).default("none"),
+  // "none" | "date" (month bucket) | keyword alias | any validated column key.
+  group_by: z.string().max(120).regex(KEY, "invalid group_by").default("none"),
+  // Equality filters (AND-combined) — the safe subset the record table's quickFilters use. Applied
+  // in-memory; a column that doesn't exist simply matches nothing (honest empty, never an error).
+  filters: z.array(z.object({ column: z.string().min(1).max(120).regex(KEY), value: z.string().max(200) })).max(8).optional(),
   // Frontend passes this when the column is a currency type (it already resolves the type). We never
   // re-infer money-ness from the data — only convert when the caller says it's a money column.
   currency: z.boolean().default(false),
@@ -33,10 +42,11 @@ const aggInput = z.object({
  */
 router.post("/aggregate", zValidator("json", aggInput), async (c) => {
   const ws = c.get("workspaceId");
-  const { object_type, column, op, group_by, currency } = c.req.valid("json");
+  const { object_type, column, op, group_by, currency, filters } = c.req.valid("json");
+  const hasFilters = !!filters?.length;
 
-  // Cheap path: a plain count with no grouping never fetches rows.
-  if (op === "count" && group_by === "none") {
+  // Cheap path: a plain unfiltered count never fetches rows.
+  if (op === "count" && group_by === "none" && !hasFilters) {
     const { count, error } = await supabase
       .from("nodes")
       .select("id", { count: "exact", head: true })
@@ -61,7 +71,8 @@ router.post("/aggregate", zValidator("json", aggInput), async (c) => {
 
   const all = (data ?? []) as AggRow[];
   const truncated = all.length > CAP;
-  const rows = truncated ? all.slice(0, CAP) : all;
+  // Equality filters (the record table's quickFilters) applied in-memory — no dynamic SQL.
+  const rows = applyFilters(truncated ? all.slice(0, CAP) : all, filters);
 
   // Money context — only when the caller flags the column as currency. Target is the user's display
   // currency (fallback: workspace base). Reuses the shared, fail-closed currency helpers only.

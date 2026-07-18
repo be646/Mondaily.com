@@ -108,8 +108,8 @@ describe("Phase 2 — fuller server field-type adoption (select / multi_select /
 });
 
 describe("Phase 3 — footer uses the authoritative server total, client calc stays the fallback", () => {
-  it("posts to the generic aggregate endpoint with the resolved kind (currency flag) and op", () => {
-    expect(table).toMatch(/apiClient\.post<AggResp>\("\/records\/aggregate", \{ object_type: objectType, column: col, op: aggOp, group_by: "none", currency: kind === "currency" \}\)/);
+  it("posts to the generic aggregate endpoint with the resolved kind (currency flag), op, and filters", () => {
+    expect(table).toMatch(/apiClient\.post<AggResp>\("\/records\/aggregate", \{ object_type: objectType, column: col, op: aggOp, group_by: "none", currency: kind === "currency", \.\.\.\(filters\?\.length \? \{ filters \} : \{\}\) \}\)/);
     expect(table).toMatch(/function serverAggOp/);
     // checkbox "count" maps to the server "checked" op.
     expect(table).toMatch(/if \(kind === "checkbox"\) return op === "filled" \? "filled" : "checked"/);
@@ -118,11 +118,34 @@ describe("Phase 3 — footer uses the authoritative server total, client calc st
     expect(table).toMatch(/if \(!q\.data\) return <>\{fallback\}<\/>/);
     expect(table).toMatch(/<ServerTotalValue objectType=\{objectType\} col=\{col\} op=\{calculations\[col\]\} kind=\{effectiveType\(col\)\} display=\{wsDisplay\} fallback=\{clientStr\}/);
   });
-  it("only uses the full-table server total when the view is UNFILTERED (endpoint has no filters yet)", () => {
-    expect(table).toMatch(/const isFiltered = !!filterText\.trim\(\) \|\| quickFilters\.length > 0 \|\| !!filterQuery;\s*if \(isFiltered\) return clientStr;/);
-  });
   it("labels truncation and unconverted amounts honestly (no silent full-coverage claim)", () => {
     expect(table).toMatch(/resp\.truncated \? ` · first \$\{resp\.total_rows\.toLocaleString\(\)\}` : ` · over \$\{resp\.total_rows\.toLocaleString\(\)\}`/);
     expect(table).toMatch(/resp\.unconverted > 0 \? ` · \$\{resp\.unconverted\} unconverted`/);
+  });
+});
+
+describe("Phase 3b.1 — filtered server totals + group subtotals (still no schema/finance/formula)", () => {
+  it("only server-representable filters (equality, non-owner) are sent; owner/date-range/text stay client", () => {
+    expect(table).toMatch(/function serverFilters/);
+    expect(table).toMatch(/!f\.col\.endsWith\("__from"\) && !f\.col\.endsWith\("__to"\) && !\/owner\|assign\/i\.test\(f\.col\)/);
+  });
+  it("footer uses the server total (with filters) only when the WHOLE active filter set is representable", () => {
+    expect(table).toMatch(/const allRepresentable = !filterText\.trim\(\) && !filterQuery && reprFilters\.length === quickFilters\.length;\s*if \(!allRepresentable\) return clientStr;/);
+    expect(table).toMatch(/<ServerTotalValue[^]*?filters=\{reprFilters\}/);
+    // the aggregate call forwards the validated equality filters
+    expect(table).toMatch(/\.\.\.\(filters\?\.length \? \{ filters \} : \{\}\)/);
+  });
+  it("group subtotals come from the server grouped response, with an honest client per-group fallback", () => {
+    expect(table).toMatch(/const groupAggQ = useQuery/);
+    expect(table).toMatch(/group_by: groupByCol/);
+    // server value when present, else a client per-group calcResultTyped — never a blank/fake
+    expect(table).toMatch(/srv\s*\?\s*fmtGroupVal\(groupCalcKind, groupCalcOp, srv\.value, groupAggCurrency, srv\.unconverted\)\s*:\s*calcResultTyped\(groupCalcOp, groupCalcCol, groupRows/);
+    // group query only runs when the filter set is server-representable (else client fallback)
+    expect(table).toMatch(/groupFiltersRepresentable/);
+    expect(table).toMatch(/enabled: !!\(groupByCol && groupCalcCol && groupCalcOp && serverAggOp\(groupCalcKind, groupCalcOp\) && groupFiltersRepresentable\)/);
+  });
+  it("group subtotal currency stays honest (unconverted marker) and reuses formatMoney only", () => {
+    expect(table).toMatch(/function fmtGroupVal/);
+    expect(table).toMatch(/formatMoney\(value, currency\) \+ \(unconverted > 0 \? ` ·\$\{unconverted\}✗`/);
   });
 });
