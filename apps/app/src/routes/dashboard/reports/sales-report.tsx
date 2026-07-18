@@ -1186,11 +1186,14 @@ export function SalesReportPage() {
         <td class="num">${d.count}</td>
       </tr>`).join("");
 
+    // Print/export KPIs read the SAME server-preferred source (k*) as the visible cards, so a printed
+    // report never diverges from what's on screen. The k* consts are declared above this function
+    // (server value when the grouped/total aggregate is loaded, else the client stat) — no TDZ.
     const kpis = [
-      { label: hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records", value: hasValue ? fmtMoney(stats.wonValue || stats.totalValue, curSym) : fmtNum(stats.totalCount) },
-      { label: hasStage ? "In Progress" : "This Period", value: hasValue ? fmtMoney(stats.openValue, curSym) : fmtNum(stats.openCount || stats.totalCount) },
-      { label: hasStage ? "Completion Rate" : "Total Records", value: hasStage ? `${stats.completionRate}%` : fmtNum(stats.totalCount) },
-      { label: hasValue ? `Avg ${valueCol}` : "Avg / Bucket", value: hasValue ? fmtMoney(stats.avgVal, curSym) : fmtNum(stats.avgVal) },
+      { label: hasValue ? (hasStage ? "Won Value" : "Total Value") : "Total Records", value: hasValue ? fmtMoney(hasStage ? (kWonValue || (sStage?.totalValue ?? stats.totalValue)) : kTotalValue, curSym) : fmtNum(kTotalCount) },
+      { label: hasStage ? "In Progress" : "This Period", value: hasValue ? fmtMoney(kOpenValue, curSym) : fmtNum(kOpenCount || kTotalCount) },
+      { label: hasStage ? "Completion Rate" : "Total Records", value: hasStage ? `${kCompletion}%` : fmtNum(kTotalCount) },
+      { label: hasValue ? `Avg ${valueCol}` : "Avg / Bucket", value: hasValue ? fmtMoney(kAvg, curSym) : fmtNum(stats.totalCount ? Math.round(stats.totalCount / Math.max(trendData.length, 1)) : 0) },
     ];
 
     const html = `<!DOCTYPE html>
@@ -1577,6 +1580,8 @@ export function SalesReportPage() {
                   {hasStage ? "KPIs" : `Total records${hasValue ? " & value" : ""}`} · server total
                   {scope && (scope.truncated ? <span style={{ color: "#c6892e" }}> · first {scope.total_rows.toLocaleString()}</span> : <> · over {scope.total_rows.toLocaleString()}</>)}
                   {serverUnconverted > 0 && <span style={{ color: "#c6892e" }}> · {serverUnconverted} unconverted</span>}
+                  {/* The ± badges are period-over-period from the recent sample, not the server total. */}
+                  <span title="Period-over-period change is computed from the recent record sample, not the full-table server total."> · Δ vs. previous period (recent sample)</span>
                 </p>
               );
             })()}

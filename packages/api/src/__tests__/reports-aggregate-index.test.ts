@@ -132,3 +132,21 @@ describe("Phase 3f — stage-derived KPIs from ONE grouped aggregate, classified
     expect(agg).not.toMatch(/value_in|isWon|isLost|isOpen/);
   });
 });
+
+describe("Phase 3f parity — print/export KPIs match the visible cards; deltas labelled honestly", () => {
+  it("the print/export KPI array reads the SAME server-preferred k* source as the on-screen cards", () => {
+    expect(sales).toMatch(/hasStage \? \(kWonValue \|\| \(sStage\?\.totalValue \?\? stats\.totalValue\)\) : kTotalValue, curSym\) : fmtNum\(kTotalCount\) \}/);
+    expect(sales).toMatch(/hasValue \? fmtMoney\(kOpenValue, curSym\) : fmtNum\(kOpenCount \|\| kTotalCount\) \}/);
+    expect(sales).toMatch(/hasStage \? `\$\{kCompletion\}%` : fmtNum\(kTotalCount\) \}/);
+    expect(sales).toMatch(/hasValue \? fmtMoney\(kAvg, curSym\)/);
+  });
+  it("deltas are honestly labelled as period-over-period from the recent sample (not the server total)", () => {
+    expect(sales).toMatch(/Δ vs\. previous period \(recent sample\)/);
+    expect(sales).toMatch(/Period-over-period change is computed from the recent record sample, not the full-table server total\./);
+  });
+  it("client fallback + honesty labels preserved (server total / over N / first N / unconverted)", () => {
+    expect(sales).toMatch(/const kWonValue   = sStage\?\.wonValue \?\? stats\.wonValue/);
+    expect(sales).toMatch(/scope\.truncated \?/);
+    expect(sales).toMatch(/serverUnconverted > 0/);
+  });
+});
