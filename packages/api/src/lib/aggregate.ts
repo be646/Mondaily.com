@@ -17,7 +17,10 @@ export type AggGroupBy = string;
 // (backward-compatible). No calendar library: pure UTC truncation, so it stays deterministic + testable.
 export type DateBucket = "hour" | "day" | "week" | "month" | "quarter" | "year";
 
-export interface AggRow { id?: string | null; data: Record<string, unknown>; created_at?: string | null }
+export interface AggRow { id?: string | null; data: Record<string, unknown>; created_at?: string | null; updated_at?: string | null }
+// Which root timestamp a date bucket reads from. Mirrors the date_filter field so a row is grouped by
+// the SAME column it was filtered on (else updated_at-filtered rows would bucket by created_at).
+export type DateField = "created_at" | "updated_at";
 export interface MoneyCtx { target: string; rates: Record<string, number>; base: string }
 
 export interface AggResult {
@@ -74,15 +77,17 @@ export function dateBucketKey(dt: Date, bucket: DateBucket): string {
   return `${isoYear}-W${String(wk).padStart(2, "0")}`;
 }
 
-/** The value used to group a row — resolved from the common alias keys, honestly ("—" when absent). */
-export function groupKeyOf(row: AggRow, groupBy: AggGroupBy, bucket: DateBucket = "month"): string {
+/** The value used to group a row — resolved from the common alias keys, honestly ("—" when absent).
+ *  For group_by:"date", buckets on `dateField` (defaults to created_at) so a row is grouped by the same
+ *  timestamp it was filtered on. */
+export function groupKeyOf(row: AggRow, groupBy: AggGroupBy, bucket: DateBucket = "month", dateField: DateField = "created_at"): string {
   const d = row.data ?? {};
   if (groupBy === "none") return "all";
   if (groupBy === "status") return String(d.status ?? "—") || "—";
   if (groupBy === "stage") return String(d.stage ?? d.deal_stage ?? d.deal_status ?? "—") || "—";
   if (groupBy === "owner") return String(d.owner ?? d.deal_owner ?? d.assigned_to ?? d.assignee ?? "—") || "—";
   if (groupBy === "date") {
-    const iso = row.created_at ?? "";
+    const iso = (dateField === "updated_at" ? row.updated_at : row.created_at) ?? "";
     const dt = new Date(String(iso));
     if (isNaN(dt.getTime())) return "—";
     return dateBucketKey(dt, bucket);
@@ -137,11 +142,12 @@ export function aggregateRows(rows: AggRow[], op: AggOp, column: string, money?:
 
 export interface AggGroup { label: string; value: number; count: number; unconverted: number }
 
-/** Group rows by the chosen dimension and aggregate each group; returns groups sorted by label. */
-export function aggregateGrouped(rows: AggRow[], op: AggOp, column: string, groupBy: AggGroupBy, money?: MoneyCtx, bucket: DateBucket = "month"): AggGroup[] {
+/** Group rows by the chosen dimension and aggregate each group; returns groups sorted by label.
+ *  `dateField` selects which root timestamp a date bucket reads from (mirrors the date_filter field). */
+export function aggregateGrouped(rows: AggRow[], op: AggOp, column: string, groupBy: AggGroupBy, money?: MoneyCtx, bucket: DateBucket = "month", dateField: DateField = "created_at"): AggGroup[] {
   const buckets = new Map<string, AggRow[]>();
   for (const r of rows) {
-    const k = groupKeyOf(r, groupBy, bucket);
+    const k = groupKeyOf(r, groupBy, bucket, dateField);
     (buckets.get(k) ?? buckets.set(k, []).get(k)!).push(r);
   }
   return [...buckets.entries()]

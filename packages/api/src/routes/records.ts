@@ -84,7 +84,7 @@ router.post("/aggregate", zValidator("json", aggInput), async (c) => {
   // Everything else needs the rows. Date-filter in SQL, then cap the fetch; flag truncation honestly.
   const { data, error } = await withDate(supabase
     .from("nodes")
-    .select("id,data,created_at")
+    .select("id,data,created_at,updated_at")
     .eq("workspace_id", ws)
     .eq("object_type", object_type))
     .order("created_at", { ascending: true })
@@ -120,7 +120,10 @@ router.post("/aggregate", zValidator("json", aggInput), async (c) => {
   }
 
   if (group_by !== "none") {
-    const groups = aggregateGrouped(rows, op, column, group_by, money, bucket);
+    // Bucket a date group on the SAME timestamp the caller filtered on (else updated_at-filtered rows
+    // would be grouped by created_at). Defaults to created_at when there's no date_filter.
+    const dateField = date_filter?.field ?? "created_at";
+    const groups = aggregateGrouped(rows, op, column, group_by, money, bucket, dateField);
     const unconverted = groups.reduce((s, g) => s + g.unconverted, 0);
     return c.json({ op, column, group_by, object_type, groups, total_rows: rows.length, truncated, unconverted, currency: currencyCode });
   }

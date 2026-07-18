@@ -164,6 +164,28 @@ describe("aggregate.ts — Phase 3h generic date buckets (pure UTC, sortable key
   });
 });
 
+describe("aggregate.ts — date bucket reads the SAME timestamp the caller filtered on (dateField)", () => {
+  // A row whose created_at and updated_at fall in DIFFERENT day buckets — the whole point of the fix.
+  const divergent: AggRow = { data: { amount: 100 }, created_at: "2026-03-01T00:00:00Z", updated_at: "2026-03-20T00:00:00Z" };
+  it("defaults to created_at (back-compat) when no dateField is given", () => {
+    expect(groupKeyOf(divergent, "date", "day")).toBe("2026-03-01");
+    expect(groupKeyOf(divergent, "date", "day", "created_at")).toBe("2026-03-01");
+  });
+  it("buckets by updated_at when dateField is updated_at", () => {
+    expect(groupKeyOf(divergent, "date", "day", "updated_at")).toBe("2026-03-20");
+  });
+  it("a divergent row lands in a DIFFERENT bucket depending on the field", () => {
+    const byCreated = aggregateGrouped([divergent], "sum", "amount", "date", undefined, "day", "created_at");
+    const byUpdated = aggregateGrouped([divergent], "sum", "amount", "date", undefined, "day", "updated_at");
+    expect(byCreated[0]!.label).toBe("2026-03-01");
+    expect(byUpdated[0]!.label).toBe("2026-03-20");
+    expect(byCreated[0]!.label).not.toBe(byUpdated[0]!.label);
+  });
+  it("missing updated_at → honest '—' bucket (never a fabricated date)", () => {
+    expect(groupKeyOf({ data: {}, created_at: "2026-03-01T00:00:00Z" }, "date", "day", "updated_at")).toBe("—");
+  });
+});
+
 // ── Route-level guards (source): isolation, validation, cap/truncation, shared helpers, no finance dup ──
 const route = readFileSync(fileURLToPath(new URL("../routes/records.ts", import.meta.url)), "utf8");
 describe("POST /records/aggregate — safe, workspace-scoped, honest", () => {
@@ -247,8 +269,16 @@ describe("POST /records/aggregate — Phase 3h op:'top' + generic date bucket (b
     // aggregateTop consumes `rows` — the applyFilters(...) output of the capped, workspace-scoped fetch.
     expect(route).toMatch(/const rows = applyFilters\(truncated \? all\.slice\(0, CAP\) : all, filters\)/);
   });
-  it("the date bucket is passed only to the grouped path (group_by:'date' granularity)", () => {
-    expect(route).toMatch(/aggregateGrouped\(rows, op, column, group_by, money, bucket\)/);
+  it("the date bucket + dateField are passed to the grouped path (buckets on the filtered timestamp)", () => {
+    expect(route).toMatch(/const dateField = date_filter\?\.field \?\? "created_at"/);
+    expect(route).toMatch(/aggregateGrouped\(rows, op, column, group_by, money, bucket, dateField\)/);
+  });
+  it("fetches BOTH root timestamps so a date bucket can read created_at or updated_at", () => {
+    expect(route).toMatch(/\.select\("id,data,created_at,updated_at"\)/);
+  });
+  it("dateField is bounded to the date_filter enum — only created_at | updated_at ever reach the bucket", () => {
+    // The bucket source is date_filter.field, and that field is a zod enum (validated 400 otherwise).
+    expect(route).toMatch(/field: z\.enum\(\["created_at", "updated_at"\]\)/);
   });
   it("column stays regex-bounded — top can't rank on an unsafe/injected column key", () => {
     expect(route).toMatch(/column: z\.string\(\)\.min\(1\)\.max\(120\)/);
