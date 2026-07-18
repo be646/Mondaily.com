@@ -129,6 +129,18 @@ describe("Phase 3k — Reports Executive Overview (derived from card aggregates,
     expect(index).toMatch(/Computed from records · all-time · visible cards only/);
     expect(index).toMatch(/loadedCount\}\/\{objects\.length\} types loaded/);
   });
+  it("Phase 3k.2 — denominator matches rendered report cards (each object → exactly one group/card)", () => {
+    // groupOf resolves to a SINGLE group key (find → first match), so an object can't land in two groups.
+    expect(index).toMatch(/const groupOf = \(o: ObjectType\) => \(REPORT_GROUPS\.find\(g => g\.match\.test\([\s\S]*?\)\) \?\? REPORT_GROUPS\[REPORT_GROUPS\.length - 1\]!\)\.key/);
+    // Cards are rendered once per object, filtered by that single group → card count === objects.length.
+    expect(index).toMatch(/objects\.filter\(o => groupOf\(o\) === group\.key\)\.map\(obj => \(/);
+    // The overview denominator is objects.length — the same set the cards render from (no mismatch).
+    expect(index).toMatch(/loadedCount\}\/\{objects\.length\} types loaded/);
+    // Each card reports its stat exactly once, keyed by the object slug (no cross-object overwrite of a
+    // *different* object — same-slug collisions would require duplicate objects, which /objects doesn't emit).
+    expect(index).toMatch(/onStat\?\.\(obj\.slug, \{/);
+    expect(index).toMatch(/<ReportObjectCard key=\{obj\.slug\} obj=\{obj\} onStat=\{reportStat\} \/>/);
+  });
   it("has data-readiness signals (with-data / partial / empty / no-field), labelled — not AI magic", () => {
     expect(index).toMatch(/Data readiness/);
     expect(index).toMatch(/const noNumeric = loaded\.filter\(\(\[, s\]\) => !s\.hasNumeric\)\.length/);
