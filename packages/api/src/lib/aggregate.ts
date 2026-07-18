@@ -67,9 +67,14 @@ export function groupKeyOf(row: AggRow, groupBy: AggGroupBy): string {
 
 // Equality filters (AND-combined, case-insensitive) — the exact safe subset the record table applies
 // as `quickFilters`. Pure + in-memory, so no dynamic SQL is ever built from a user-supplied key.
-export function applyFilters(rows: AggRow[], filters?: { column: string; value: string }[]): AggRow[] {
+// Props are accepted as optional so the zod-inferred input type assigns cleanly under strict configs;
+// a filter missing its column is simply skipped (honest no-op, never a crash).
+export function applyFilters(rows: AggRow[], filters?: { column?: string | null; value?: string | null }[]): AggRow[] {
   if (!filters?.length) return rows;
-  return rows.filter((r) => filters.every((f) => String(r.data?.[f.column] ?? "").toLowerCase() === f.value.toLowerCase()));
+  return rows.filter((r) => filters.every((f) => {
+    if (!f.column) return true;
+    return String(r.data?.[f.column] ?? "").toLowerCase() === String(f.value ?? "").toLowerCase();
+  }));
 }
 
 /** Aggregate one flat set of rows for a single column + op. Money context makes sum/avg/min/max
