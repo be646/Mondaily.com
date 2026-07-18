@@ -316,12 +316,11 @@ export function DiscoveryPage() {
           icon={Radar}
           callsign="SWEEP"
           title={t("discovery.heading")}
+          // ONE calm pre-run signal in the header — just whether web search is reachable. The
+          // per-connector source dots were a banner-like row before any run; they now live inside the
+          // collapsed "How Discovery works" disclosure (reference, not decoration).
           status={[
             { label: degraded ? "Search engine offline" : "Web search online", tone: degraded ? "#c6892e" : "#2f9e6b" },
-            ...(connectorsQ.data ? [
-              { node: <Source label={connectorsQ.data.places.provider === "google" ? "Google Maps" : "OpenStreetMap"} ok={connectorsQ.data.places.ok} detail={connectorsQ.data.places.detail} /> },
-              { node: <Source label="Reddit" ok={connectorsQ.data.reddit.ok} detail={connectorsQ.data.reddit.detail} muted={!connectorsQ.data.reddit.enabled} /> },
-            ] : []),
           ]}
           secondaryActions={<>
             {view === "chat" && (
@@ -338,7 +337,8 @@ export function DiscoveryPage() {
           primaryAction={
             <div className="flex overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
               {(["chat", "saved"] as const).map((v) => (
-                <button key={v} onClick={() => setView(v)} className="px-3 py-1.5 text-[12px] font-medium capitalize transition-colors"
+                <button key={v} onClick={() => setView(v)} aria-pressed={view === v} aria-label={v === "chat" ? "Discover" : "Saved leads"}
+                  className="px-3 py-1.5 text-[12px] font-medium capitalize transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--section-accent)]"
                   style={{ background: view === v ? "var(--surface-selected)" : "transparent", color: view === v ? "var(--text-primary)" : "var(--text-muted)" }}>
                   {v === "chat" ? "Discover" : t("discovery.saved")}
                 </button>
@@ -395,6 +395,7 @@ export function DiscoveryPage() {
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSubmit(input); } }}
                 rows={1}
                 autoFocus={turns.length === 0}
+                aria-label="Describe the leads or reviews to find"
                 placeholder={suggestions?.discovery_placeholder ?? "Find leads or reviews…"}
                 className="ai-composer-input max-h-32 text-[14px]"
               />
@@ -403,18 +404,18 @@ export function DiscoveryPage() {
               <div className="flex items-center gap-1.5">
                 {/* Quiet section label for the Mode options row — same faint micro-label used for "Sources". */}
                 <span className="mr-0.5 text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Mode</span>
-                {/* Mode pills — read like Claude's model picker: soft rounded chips that fill in when active. */}
-                <button onClick={() => setDeep((d) => !d)} title="Deep mode visits each business's own site to harvest emails & phones"
-                  className="mode-pill" data-on={deep}>
+                {/* Mode pills — secondary chips that fill in when active; the query line stays primary. */}
+                <button onClick={() => setDeep((d) => !d)} aria-pressed={deep} title="Deep mode visits each business's own site to harvest emails & phones"
+                  className="mode-pill focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" data-on={deep}>
                   <Sparkles size={12} /> Deep
                 </button>
-                <button onClick={() => setExhaustive((e) => !e)} title="Exhaustive sweep loops the city's districts for full coverage (uses more Google Places credits)"
-                  className="mode-pill" data-on={exhaustive}>
+                <button onClick={() => setExhaustive((e) => !e)} aria-pressed={exhaustive} title="Exhaustive sweep loops the city's districts for full coverage (uses more Google Places credits)"
+                  className="mode-pill focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]" data-on={exhaustive}>
                   <Globe2 size={12} /> Exhaustive
                 </button>
               </div>
-              <button onClick={() => onSubmit(input)} disabled={!input.trim() || busy}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-white transition-opacity disabled:opacity-40" style={{ background: "var(--section-accent)" }}>
+              <button onClick={() => onSubmit(input)} disabled={!input.trim() || busy} aria-label="Run discovery search"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-sm text-white transition-opacity disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1" style={{ background: "var(--section-accent)" }}>
                 {busy ? <Loader2 size={15} className="animate-spin" /> : <ArrowUp size={16} />}
               </button>
             </div>
@@ -425,7 +426,7 @@ export function DiscoveryPage() {
           /* WORKBENCH — search-first: composer at the top, compact suggestions right below. */
           <div className="min-h-0 flex-1 overflow-y-auto pt-3">
             {composer}
-            <Empty onPick={onSubmit} />
+            <Empty onPick={onSubmit} connectors={connectorsQ.data} />
           </div>
         ) : (
           <>
@@ -454,13 +455,14 @@ function Source({ label, ok, detail, muted }: { label: string; ok: boolean; deta
   );
 }
 
-function Empty({ onPick }: { onPick: (q: string) => void }) {
+function Empty({ onPick, connectors }: { onPick: (q: string) => void; connectors?: ConnectorInfo }) {
   // Industry-aware examples from the workspace profile; fall back to neutral generic ones while
   // loading or when the profile has no signal. Free-form search is always available regardless.
+  // Capped to 3 so the Try list stays a quiet hint, not a dominant card stack over the composer.
   const { data: suggestions } = useWorkspaceSuggestions();
-  const examples = suggestions?.discovery?.length
+  const examples = (suggestions?.discovery?.length
     ? suggestions.discovery.map((q, i) => ({ icon: i % 2 === 0 ? Users : Star, label: q, q }))
-    : FALLBACK_EXAMPLES;
+    : FALLBACK_EXAMPLES).slice(0, 3);
   return (
     // Compact suggestion chips directly under the composer — a workbench, not a hero. Industry-aware
     // when the workspace profile has signal; small, left-aligned, no icon tile / heading / sub-line.
@@ -472,7 +474,7 @@ function Empty({ onPick }: { onPick: (q: string) => void }) {
         Every result links to the real page it came from — each run shows the pages checked and leads found.
       </p>
       {/* Reference disclosure lives quietly below the examples, not above the composer. */}
-      <div className="mt-4"><ModuleStrip /></div>
+      <div className="mt-4"><ModuleStrip connectors={connectors} /></div>
     </div>
   );
 }
@@ -808,10 +810,14 @@ const DISCOVERY_MODULES: { key: string; label: string; Icon: typeof Globe2; hint
   { key: "monitor", label: "Monitor", Icon: Bell, hint: "Watch a search — saved monitors re-run and alert you to new results." },
   { key: "research", label: "Research", Icon: MessageSquare, hint: "Ask AI over a lead or the whole result set (grounded, source-backed)." },
 ];
-function ModuleStrip() {
+// Live connector-status shape (Google/OSM places + Reddit) — surfaced on demand in the disclosure.
+type ConnectorInfo = { places: { provider: string; ok: boolean; detail: string }; reddit: { enabled: boolean; ok: boolean; detail: string } };
+
+function ModuleStrip({ connectors }: { connectors?: ConnectorInfo }) {
   // Collapsed-by-default disclosure (was an always-visible pipeline row → competed with the
   // composer for attention). The composer is the primary surface; this is reference-only. It
-  // describes what a search *does*, never implies any step has actually run.
+  // describes what a search *does*, never implies any step has actually run. The live connected
+  // sources moved here from the header so no source dots decorate the pre-run view.
   const [open, setOpen] = useState(false);
   return (
     <div className="mb-3">
@@ -819,7 +825,7 @@ function ModuleStrip() {
         type="button"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
-        className="inline-flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide transition-colors"
+        className="inline-flex items-center gap-1.5 rounded-sm text-[10.5px] font-medium uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
         style={{ color: "var(--text-faint)" }}
       >
         How Discovery works
@@ -841,6 +847,14 @@ function ModuleStrip() {
           <p className="mt-1.5 w-full text-[10px]" style={{ color: "var(--text-faint)" }}>
             Stages only run when you search — the proof strip under each result shows exactly what ran.
           </p>
+          {/* Live connected sources — real reachability from the status probe, shown on demand only. */}
+          {connectors && (
+            <div className="mt-1.5 flex w-full flex-wrap items-center gap-x-3 gap-y-1 border-t pt-2" style={{ borderColor: "var(--border-soft)" }}>
+              <span className="text-[9.5px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Connected sources</span>
+              <Source label={connectors.places.provider === "google" ? "Google Maps" : "OpenStreetMap"} ok={connectors.places.ok} detail={connectors.places.detail} />
+              <Source label="Reddit" ok={connectors.reddit.ok} detail={connectors.reddit.detail} muted={!connectors.reddit.enabled} />
+            </div>
+          )}
         </div>
       )}
     </div>

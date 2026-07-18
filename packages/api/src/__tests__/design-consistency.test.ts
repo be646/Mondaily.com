@@ -812,9 +812,27 @@ describe("Premium low-data UX — guided empty states (real actions, no fake dat
     // "How Discovery works" renders ONLY inside the empty view (below Try), not above the composer.
     expect(discovery).not.toMatch(/\{view === "chat" && <ModuleStrip \/>\}/);
     const emptyFn = discovery.slice(discovery.indexOf("function Empty"), discovery.indexOf("function TurnView"));
-    expect(emptyFn).toContain("<ModuleStrip />");
+    expect(emptyFn).toMatch(/<ModuleStrip connectors=\{connectors\} \/>/);
     // Per-run proof strip still present for real runs.
     expect(discovery).toMatch(/<ProofOfWorkStrip/);
+    // The per-connector source dots no longer decorate the header — only ONE web-search signal there
+    // (the header wrapped each connector as `{ node: <Source … }`); the live connected sources moved
+    // into the on-demand disclosure (bare <Source> under "Connected sources").
+    expect(discovery).not.toContain("{ node: <Source");
+    expect(discovery).toMatch(/Connected sources[\s\S]*?<Source label=/);
+  });
+  it("Discovery workbench: composer is primary, Try is a capped quiet hint, mode controls secondary, a11y wired", () => {
+    // The composer command surface stays the hero (leading glyph + query line + submit).
+    expect(discovery).toContain('className="ai-composer !p-0 overflow-hidden"');
+    expect(discovery).toMatch(/aria-label="Describe the leads or reviews to find"/);
+    expect(discovery).toMatch(/aria-label="Run discovery search"/);
+    // Try examples are capped to 3 so they never dominate the composer.
+    expect(discovery).toMatch(/\)\.slice\(0, 3\)/);
+    // Mode pills are secondary + keyboard-operable (pressed state + focus ring), never fake-live.
+    expect((discovery.match(/aria-pressed=\{(deep|exhaustive)\}/g) ?? []).length).toBe(2);
+    expect(discovery).not.toMatch(/live now|is searching now|AI is (thinking|live)|typing…/i);
+    // Keyboard reachability across the pre-run controls.
+    expect((discovery.match(/focus-visible:ring-2/g) ?? []).length).toBeGreaterThanOrEqual(5);
   });
   it("AgentCard shows an explicit honest 'no runs yet' instead of a blank", () => {
     expect(agentConstellationSrc).toContain("no runs yet");
