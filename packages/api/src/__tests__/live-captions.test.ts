@@ -80,8 +80,10 @@ describe("Phase 1 scope guards — no STT / no persistence / no live AI", () => 
     expect(read(CALL_TILES)).not.toMatch(/supabase|apiClient|fetch\(/i);
   });
 
-  it("does not add a caption/transcribe endpoint or audio chunking", () => {
-    expect(captionFiles).not.toMatch(/caption-chunk|\/transcribe|MediaRecorder|audio_url/);
+  it("does not misuse the batch transcribe endpoint or MediaRecorder audio chunking", () => {
+    // Phase 2 legitimately adds a `caption-chunk` proxy; what stays forbidden is the batch /transcribe
+    // path, MediaRecorder/webm chunking, and audio_url (the caption path uses AudioWorklet PCM, no files).
+    expect(captionFiles).not.toMatch(/\/transcribe|MediaRecorder|audio_url/);
   });
 
   it("does not use browser Web Speech API or any external STT provider", () => {

@@ -5,6 +5,7 @@ import { parseCaptionPacket, type CaptionPacket } from "@mondaily/shared/caption
 import { BASE_URL } from "../lib/api-client";
 import { LogoMark } from "@/components/logo";
 import { ParticipantTile, ScreenTile, ToolBtn, CaptionsPanel } from "./dashboard/call-tiles";
+import { useCaptionCapture } from "./dashboard/use-caption-capture";
 
 // SAFE pre-join metadata (whitelist from POST /public/calls/meta). No workspace internals.
 interface GuestMeta {
@@ -157,6 +158,41 @@ export function GuestCallPage() {
   async function toggleShare() { const r = roomRef.current; if (!r) return; try { const n = !sharing; await r.localParticipant.setScreenShareEnabled(n); setSharing(n); bump(); } catch { /* cancelled */ } }
 
   useEffect(() => () => { roomRef.current?.disconnect().catch(() => {}); }, []);
+
+  // Live Captions Phase 2 (guest) — same LOCAL-mic-only capture as members, but posts to the PUBLIC
+  // caption endpoint with the guest token + explicit consent. Turning CC on (with the "transcribes only
+  // your mic, not saved" notice visible) is the consent action. Stays on /public/calls/* — never an
+  // authenticated API. No audio/transcript stored; STT key/appliance URL never reach the browser.
+  useCaptionCapture({
+    active: !!meta?.live_captions_available && showCaptions && micOn && phase === "live",
+    getMicTrack: () => {
+      const lk = lkRef.current, r = roomRef.current;
+      if (!lk || !r) return null;
+      return r.localParticipant.getTrackPublication(lk.Track.Source.Microphone)?.track?.mediaStreamTrack ?? null;
+    },
+    sendChunk: async (pcm, seq) => {
+      const fd = new FormData();
+      fd.append("token", token);
+      fd.append("consent", "true");
+      fd.append("audio", pcm, "chunk.pcm");
+      fd.append("format", "pcm_s16le");
+      fd.append("sample_rate", String(16000));
+      fd.append("session", roomRef.current?.localParticipant.identity ?? "guest");
+      fd.append("seq", String(seq));
+      try {
+        const res = await fetch(`${BASE_URL}/api/v1/public/calls/caption-chunk`, { method: "POST", body: fd });
+        const body = await res.json().catch(() => ({} as Record<string, unknown>));
+        return { ok: res.ok, status: res.status, text: typeof body.text === "string" ? body.text : "", noSpeech: body.no_speech === true, language: typeof body.language === "string" ? body.language : null };
+      } catch { return { ok: false, status: 0, text: "", noSpeech: false, language: null }; }
+    },
+    onCaption: (text, language, seq) => {
+      const lp = roomRef.current?.localParticipant; if (!lp) return;
+      const pkt = { t: "caption" as const, id: `${lp.identity}-${seq}`, participantId: lp.identity, name: lp.name || name || "Guest", text, final: true, ts: Date.now() };
+      setCaptions(cs => [...cs.filter(x => x.id !== pkt.id), pkt].slice(-60));
+      try { lp.publishData(new TextEncoder().encode(JSON.stringify(pkt)), { reliable: true }); } catch { /* ignore */ }
+    },
+    onStop: () => setShowCaptions(false),
+  });
 
   const Shell = ({ children }: { children: React.ReactNode }) => (
     <div className="flex min-h-screen flex-col" style={{ background: "#0b0b0d" }}>{children}</div>

@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Room, Participant, Track as TrackNS } from "livekit-client";
 import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Brain, Sparkles, FileText, ListChecks, Link2, UserPlus, UserX, Check, X, MessageSquare, Maximize2, LayoutGrid, Send, Captions } from "lucide-react";
-import { apiClient } from "../../lib/api-client";
+import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
+import { useCaptionCapture } from "./use-caption-capture";
 import { FieldSelect } from "../../components/ui/controls";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -237,6 +238,39 @@ function CallRoom({ event }: { event: CalEvent }) {
     const r = roomRef.current; if (!r) return;
     try { r.localParticipant.publishData(new TextEncoder().encode(JSON.stringify(obj)), { reliable: true }); } catch { /* ignore */ }
   }
+  // Live Captions Phase 2 (member) — capture the LOCAL mic only, transcribe via the authenticated proxy,
+  // and self-publish CaptionPacket. Active ONLY when captions are available + CC on + mic on + connected;
+  // flipping any of those off tears the capture down. No audio/transcript is stored; the STT key/appliance
+  // URL never touch the browser (the server proxy holds them).
+  useCaptionCapture({
+    active: !!event.live_captions_available && showCaptions && micOn && phase === "live",
+    getMicTrack: () => {
+      const lk = lkRef.current, r = roomRef.current;
+      if (!lk || !r) return null;
+      return r.localParticipant.getTrackPublication(lk.Track.Source.Microphone)?.track?.mediaStreamTrack ?? null;
+    },
+    sendChunk: async (pcm, seq) => {
+      const fd = new FormData();
+      fd.append("audio", pcm, "chunk.pcm");
+      fd.append("format", "pcm_s16le");
+      fd.append("sample_rate", String(16000));
+      fd.append("session", `${event.id}:${roomRef.current?.localParticipant.identity ?? ""}`);
+      fd.append("seq", String(seq));
+      try {
+        const res = await apiFetch(`${BASE_URL}/api/v1/live-calls/caption-chunk`, { method: "POST", body: fd });
+        const body = await res.json().catch(() => ({} as Record<string, unknown>));
+        return { ok: res.ok, status: res.status, text: typeof body.text === "string" ? body.text : "", noSpeech: body.no_speech === true, language: typeof body.language === "string" ? body.language : null };
+      } catch { return { ok: false, status: 0, text: "", noSpeech: false, language: null }; }
+    },
+    onCaption: (text, language, seq) => {
+      const lp = roomRef.current?.localParticipant; if (!lp) return;
+      const pkt: CaptionPacket = { t: "caption", id: `${lp.identity}-${seq}`, participantId: lp.identity, name: lp.name || "You", text, final: true, ts: Date.now() };
+      setCaptions(cs => [...cs.filter(x => x.id !== pkt.id), pkt].slice(-60));   // sender renders own caption (own publishData isn't echoed back)
+      sendData(pkt as unknown as Record<string, unknown>);
+    },
+    onStop: () => setShowCaptions(false),
+  });
+
   function toggleHand() {
     const next = !handRaised; setHandRaised(next);
     const id = roomRef.current?.localParticipant.identity;

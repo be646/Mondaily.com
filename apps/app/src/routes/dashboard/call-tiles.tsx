@@ -34,6 +34,11 @@ export function CaptionsPanel({ available, captions, onClose }: { available: boo
         ))}
         <div ref={endRef} />
       </div>
+      {available && (
+        <div className="border-t px-3 py-1.5 text-[10px] leading-snug text-white/40" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+          Transcribes only your microphone while captions are on. Not saved.
+        </div>
+      )}
     </div>
   );
 }

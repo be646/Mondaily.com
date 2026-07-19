@@ -141,13 +141,46 @@ describe("Phase 2 API — endpoints are gated, private, and leak nothing", () =>
   });
 });
 
-describe("Phase 2 frontend safety (guards against future regressions)", () => {
+describe("Phase 2 frontend safety + capture path", () => {
   const APP = "apps/app/src";
-  const files = ["routes/dashboard/call-room.tsx", "routes/guest-call.tsx", "routes/dashboard/call-tiles.tsx"].map((f) => read(`${APP}/${f}`)).join("\n");
-  it("no raw SOVEREIGN_STT_KEY anywhere in the frontend", () => {
-    expect(files).not.toMatch(/SOVEREIGN_STT_KEY/);
+  const capFiles = ["routes/dashboard/call-room.tsx", "routes/guest-call.tsx", "routes/dashboard/call-tiles.tsx", "routes/dashboard/use-caption-capture.ts"];
+  const files = capFiles.map((f) => read(`${APP}/${f}`)).join("\n");
+  const hook = read(`${APP}/routes/dashboard/use-caption-capture.ts`);
+  const callRoom = read(`${APP}/routes/dashboard/call-room.tsx`);
+  const guest = read(`${APP}/routes/guest-call.tsx`);
+
+  it("no raw SOVEREIGN_STT_KEY or appliance URL anywhere in the frontend caption path", () => {
+    expect(files).not.toMatch(/SOVEREIGN_STT_KEY|SOVEREIGN_STT_CHUNK_URL|SOVEREIGN_STT_STREAM_URL|SOVEREIGN_STT_URL/);
   });
-  it("no browser Web Speech API / no external STT in the call UI", () => {
-    expect(files).not.toMatch(/webkitSpeechRecognition|[^a-zA-Z]SpeechRecognition|deepgram|whisper\.|openai|assemblyai/i);
+  it("no browser Web Speech API / no third-party STT in the caption path", () => {
+    expect(files).not.toMatch(/webkitSpeechRecognition|[^a-zA-Z]SpeechRecognition|deepgram|assemblyai|api\.openai|whisper\.(ai|api)/i);
+  });
+  it("captures LOCAL mic only (no mixed room / remote audio)", () => {
+    expect(hook).toMatch(/getMicTrack/);
+    expect(hook).toMatch(/createMediaStreamSource/);
+    expect(hook).not.toMatch(/getDisplayMedia|remoteParticipants|createMediaStreamDestination/);
+  });
+  it("publishes a caption ONLY on non-empty, non-silence text (never fabricated)", () => {
+    // the hook only calls onCaption when res.ok && res.text && !res.noSpeech
+    expect(hook).toMatch(/res\.text && !res\.noSpeech/);
+  });
+  it("backs off on transient errors and stops honestly on auth failure", () => {
+    expect(hook).toMatch(/backoffUntil = Date\.now\(\) \+ backoffMs/);
+    expect(hook).toMatch(/status === 401 \|\| res\.status === 403[\s\S]{0,80}onStop/);
+  });
+  it("tears down capture (interval/context/nodes) on cleanup", () => {
+    expect(hook).toMatch(/clearInterval\(flushTimer\)/);
+    expect(hook).toMatch(/ctx\?\.close\(\)/);
+    expect(hook).toMatch(/node\?\.disconnect\(\)/);
+  });
+  it("capture is active only when available + CC on + mic on + live", () => {
+    expect(callRoom).toMatch(/active:\s*!!event\.live_captions_available && showCaptions && micOn && phase === "live"/);
+    expect(guest).toMatch(/active:\s*!!meta\?\.live_captions_available && showCaptions && micOn && phase === "live"/);
+  });
+  it("member posts to the authenticated endpoint; guest posts to public with token + consent", () => {
+    expect(callRoom).toMatch(/apiFetch\(`\$\{BASE_URL\}\/api\/v1\/live-calls\/caption-chunk`/);
+    expect(guest).toMatch(/\/api\/v1\/public\/calls\/caption-chunk/);
+    expect(guest).toMatch(/fd\.append\("token", token\)/);
+    expect(guest).toMatch(/fd\.append\("consent", "true"\)/);
   });
 });
