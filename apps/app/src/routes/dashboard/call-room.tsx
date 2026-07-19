@@ -9,6 +9,7 @@ import { useLanguage } from "../../hooks/useLanguage";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { CallDetailPage } from "./call-detail";
 import { ParticipantTile, ScreenTile, ToolBtn, initialsOf } from "./call-tiles";
+import { MEETING_TYPE_META, type MeetingType } from "@mondaily/shared/meeting-types";
 
 interface Member { id: string; name?: string; email: string }
 
@@ -28,6 +29,7 @@ interface Person { user_id: string; name: string; email: string | null }
 interface CalEvent {
   id: string; title: string; description: string; start_at: string; end_at: string; timezone: string;
   location: string; status: string; call_url: string | null; organizer: Person; attendees: Person[]; calls_enabled: boolean;
+  meeting_type?: MeetingType;
 }
 type LKModule = typeof import("livekit-client");
 
@@ -376,7 +378,12 @@ function CallRoom({ event }: { event: CalEvent }) {
       <div className="flex h-full flex-col" style={{ background: "#0b0b0d" }}>
         <div className="relative flex items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
-            <span className="block truncate text-[14px] font-semibold text-white">{event.title}</span>
+            <span className="flex items-center gap-2">
+              <span className="block truncate text-[14px] font-semibold text-white">{event.title}</span>
+              {event.meeting_type && event.meeting_type !== "general" && (
+                <span className="shrink-0 rounded-sm bg-white/10 px-1.5 py-0.5 text-[10px] font-medium text-white/80">{MEETING_TYPE_META[event.meeting_type].label}</span>
+              )}
+            </span>
             <span className="flex items-center gap-1.5 text-[11px] text-white/50"><Users size={11} /> {everyone.length} {everyone.length === 1 ? "person" : "people"}</span>
           </div>
           <div className="flex items-center gap-2">

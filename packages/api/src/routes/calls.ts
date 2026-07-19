@@ -7,6 +7,7 @@ import { denyViewerWrites } from "../middleware/rbac";
 import { aiGateway } from "../lib/ai-gateway";
 import { inngest } from "../lib/inngest";
 import { ingestRecording, RECORDINGS_BUCKET } from "../jobs/meeting-memory";
+import { normalizeMeetingType } from "@mondaily/shared/meeting-types";
 import { liveKitEnabled, recordingEnabled, transcriptionEnabled } from "../lib/livekit";
 import { requireAdminRole } from "../middleware/rbac";
 
@@ -28,6 +29,7 @@ function normalizeCall(node: CallNode) {
   const data = node.data ?? {};
   return {
     id: node.id,
+    meeting_type: normalizeMeetingType(data.meeting_type),   // classification label (absent/legacy → general)
     contact_name: String(data.contact_name ?? data.name ?? "Unknown contact"),
     company_name: data.company_name ? String(data.company_name) : undefined,
     occurred_at: String(data.occurred_at ?? data.date ?? node.created_at),

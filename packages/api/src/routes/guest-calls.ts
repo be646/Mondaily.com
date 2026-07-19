@@ -6,6 +6,7 @@ import { z } from "zod";
 import { supabase } from "@mondaily/db/client";
 import { recordingEnabled } from "../lib/livekit";
 import { rateLimit } from "../middleware/rate-limit";
+import { guestSafeMeetingLabel, normalizeMeetingType } from "@mondaily/shared/meeting-types";
 
 /**
  * Waiting-room state (Phase 2A) is stored as generic `nodes` rows (object_type "call_waiting_request")
@@ -35,7 +36,7 @@ const callsEnabled = () => !!(process.env.LIVEKIT_URL && process.env.LIVEKIT_API
 
 interface GuestClaims { kind?: string; ev?: string; ws?: string; room?: string; exp?: number; epoch?: number; jti?: string }
 type GuestStatus = "ok" | "expired" | "revoked" | "cancelled" | "ended" | "not_configured";
-interface EventData { title?: string; start_at?: string; status?: string; guest_link_epoch?: number; organizer_id?: string; guest_waiting_room?: boolean }
+interface EventData { title?: string; start_at?: string; status?: string; guest_link_epoch?: number; organizer_id?: string; guest_waiting_room?: boolean; meeting_type?: string }
 
 // Read a waiting request by its (unguessable) request_id, scoped to the event's workspace. Returns null
 // when missing or stale (older than the TTL). The guest holds the request_id it received from /request.
@@ -122,6 +123,9 @@ router.post("/meta", rateLimit({ max: 20, windowMs: 60_000 }), zValidator("json"
     start_time: r.data.start_at ?? null,
     host_display_name,
     workspace_display_name,
+    // GUEST-SAFE label only — sensitive/internal types collapse to a neutral "Meeting"; never the raw
+    // type id or any private meeting note.
+    meeting_type_label: guestSafeMeetingLabel(normalizeMeetingType(r.data.meeting_type)),
   });
 });
 

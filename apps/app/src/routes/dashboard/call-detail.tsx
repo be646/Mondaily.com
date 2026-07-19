@@ -6,12 +6,14 @@ import { Link, useParams } from "react-router-dom";
 import { PageSkeleton } from "../../components/ui/page-state";
 import { FieldSelect } from "../../components/ui/controls";
 import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
+import { MEETING_TYPE_META, type MeetingType } from "@mondaily/shared/meeting-types";
 
 interface TranscriptLine { speaker: string; text: string; start_time: number }
 interface Participant { id?: string; name: string; email?: string; object_type?: string }
 interface LinkedRecord { id: string; name: string; object_type: string }
 interface CallDetail {
   id: string;
+  meeting_type?: MeetingType;
   contact_name: string;
   occurred_at: string;
   duration_seconds: number;
@@ -193,7 +195,11 @@ export function CallDetailPage() {
       <header className="flex flex-wrap items-center gap-3 border-b border-[var(--border-soft)] px-4 py-4 sm:px-6">
         <Link to="/calls" title="Back to calls" className="grid h-8 w-8 place-items-center rounded hover:bg-[var(--surface-hover)]"><ChevronLeft size={17} /></Link>
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-lg font-semibold">{call.contact_name}</h1>
+          <h1 className="flex items-center gap-2 truncate text-lg font-semibold">{call.contact_name}
+            {call.meeting_type && call.meeting_type !== "general" && (
+              <span className="shrink-0 rounded-sm border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{MEETING_TYPE_META[call.meeting_type].label}</span>
+            )}
+          </h1>
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">{new Date(call.occurred_at).toLocaleString()} · {Math.max(1, Math.round(call.duration_seconds / 60))} min</p>
           {call.source === "upload_recording" && (
             <p className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--text-faint)]">

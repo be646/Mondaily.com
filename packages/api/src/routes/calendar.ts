@@ -12,6 +12,7 @@ import { resolveProfile } from "@mondaily/shared/profile";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
 import { isOverdue } from "@mondaily/shared/dates";
 import { endRoom, removeParticipant } from "../lib/livekit";
+import { MEETING_TYPES, normalizeMeetingType } from "@mondaily/shared/meeting-types";
 
 /**
  * MONDAILY CALENDAR + CALLS — native, workspace-scoped meetings with Mondaily-owned call links.
@@ -41,6 +42,7 @@ export interface RecurrenceRule {
 
 interface EventData {
   title: string; description: string; start_at: string; end_at: string; timezone: string;
+  meeting_type?: string;   // classification (Phase 1) — absent = general; drives type-specific AI later
   organizer_id: string; attendee_ids: string[]; location: string;
   call_room_id: string | null; call_url: string | null; status: EventStatus;
   recurrence?: RecurrenceRule | null;   // set only on the SERIES MASTER
@@ -194,6 +196,7 @@ function shape(id: string, d: EventData, dir: Map<string, { name?: string; email
     id, title: d.title, description: d.description ?? "", start_at: d.start_at, end_at: d.end_at,
     timezone: d.timezone ?? "UTC", location: d.location ?? "", status: d.status ?? "scheduled",
     call_url: d.call_url ?? null, call_room_id: d.call_room_id ?? null,
+    meeting_type: normalizeMeetingType(d.meeting_type),   // absent/legacy → general
     guest_waiting_room: (d as { guest_waiting_room?: boolean }).guest_waiting_room ?? false,
     organizer: person(d.organizer_id), attendees: (d.attendee_ids ?? []).map(person),
     recurrence: d.recurrence ?? null,
@@ -220,6 +223,7 @@ async function notifyAttendees(ws: string, eventId: string, d: EventData, actor:
 
 const EventInput = z.object({
   title: z.string().min(1).max(200),
+  meeting_type: z.enum(MEETING_TYPES).optional(),
   description: z.string().max(5000).optional(),
   start_at: z.string().min(1),
   end_at: z.string().min(1),
@@ -301,6 +305,7 @@ router.post("/events", zValidator("json", EventCreate), async (c) => {
   const data: EventData = {
     title: b.title, description: b.description ?? "", start_at: b.start_at, end_at: b.end_at,
     timezone: b.timezone ?? "UTC", organizer_id: me, attendee_ids: attendees, location: b.location ?? "",
+    meeting_type: normalizeMeetingType(b.meeting_type),   // default general
     call_room_id: null, call_url: null, status: "scheduled",
     ...(b.recurrence ? { recurrence: normalizeRule(b.recurrence), exdates: [] } : {}),
   };
@@ -336,6 +341,7 @@ router.patch("/events/:id", zValidator("json", EventInput.partial().extend({ sta
   const next: EventData = {
     ...ev.data,
     ...(b.title !== undefined ? { title: b.title } : {}),
+    ...(b.meeting_type !== undefined ? { meeting_type: normalizeMeetingType(b.meeting_type) } : {}),
     ...(b.description !== undefined ? { description: b.description } : {}),
     ...(b.start_at !== undefined ? { start_at: b.start_at } : {}),
     ...(b.end_at !== undefined ? { end_at: b.end_at } : {}),

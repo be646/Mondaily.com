@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Circle, CalendarClock, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { FieldSelect, CommandPageHeader } from "../../components/ui/controls";
+import { MEETING_TYPES, MEETING_TYPE_META, type MeetingType } from "@mondaily/shared/meeting-types";
 import { EmptyState as SharedEmptyState, ErrorState, DelayedLoading, PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -20,7 +21,7 @@ interface Person { user_id: string; name: string; email: string | null; response
 interface CalEvent {
   id: string; title: string; description: string; start_at: string; end_at: string; timezone: string;
   location: string; status: "scheduled" | "cancelled" | "completed"; call_url: string | null;
-  guest_waiting_room?: boolean;
+  guest_waiting_room?: boolean; meeting_type?: MeetingType;
   organizer: Person; attendees: Person[];
   // Recurrence — series master carries the rule + summary; a list occurrence also carries these.
   recurrence?: { freq: "daily" | "weekly" | "monthly"; interval: number; count?: number; until?: string } | null;
@@ -769,6 +770,11 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
     mutationFn: (enabled: boolean) => apiClient.post<{ ok?: boolean; enabled?: boolean }>(`/calendar/events/${id}/waiting-room`, { enabled }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["calendar-event", id] }); },
   });
+  // Meeting type — classification only; organizer can change it (drives type-specific AI later).
+  const setType = useMutation({
+    mutationFn: (meeting_type: MeetingType) => apiClient.patch(`/calendar/events/${id}`, { meeting_type }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["calendar-event", id] }); qc.invalidateQueries({ queryKey: ["calendar-events"] }); },
+  });
   const e = detail.data;
   const isOrganizer = e?.organizer.user_id === me.userId;
   const followTotal = followQ.data ? followQ.data.overdue.length + followQ.data.due_today.length + followQ.data.related.length : 0;
@@ -792,6 +798,17 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
             </div>
             {e.recurrence_summary && <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--text-muted)" }}><Repeat size={12} style={{ color: "var(--text-faint)" }} /> {e.recurrence_summary}</div>}
             {e.status === "cancelled" && <span className="inline-block rounded-sm px-2 py-0.5 text-[11px] font-medium" style={{ background: "rgba(168,106,114,0.14)", color: "#a86a72" }}>{t("cal.cancelled")}</span>}
+
+            {/* Meeting type — organizer can change (drives type-specific AI later; nothing AI runs on it yet). */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>Type</span>
+              {isOrganizer ? (
+                <FieldSelect value={e.meeting_type ?? "general"} onChange={v => setType.mutate(v as MeetingType)} ariaLabel="Meeting type"
+                  options={MEETING_TYPES.map(mt => ({ value: mt, label: MEETING_TYPE_META[mt].label }))} />
+              ) : (
+                <span className="rounded-sm border px-2 py-0.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{MEETING_TYPE_META[e.meeting_type ?? "general"].label}</span>
+              )}
+            </div>
 
             {/* RSVP — attendees respond; the organizer sees the tally. Only real responses shown. */}
             {e.status !== "cancelled" && (() => {
@@ -1083,6 +1100,7 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
   const [location, setLocation] = useState("");
   const [attendees, setAttendees] = useState<string[]>([]);
   const [withCall, setWithCall] = useState(false);
+  const [meetingType, setMeetingType] = useState<MeetingType>("general");
   const [repeat, setRepeat] = useState<"none" | "daily" | "weekly" | "monthly">("none");
   const [repeatUntil, setRepeatUntil] = useState("");   // optional YYYY-MM-DD end date
   const [aiBusy, setAiBusy] = useState(false);
@@ -1093,7 +1111,7 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
 
   const create = useMutation({
     mutationFn: () => apiClient.post<{ id: string }>("/calendar/events", {
-      title, description: desc || undefined, start_at: new Date(start).toISOString(), end_at: new Date(end || start).toISOString(),
+      title, meeting_type: meetingType, description: desc || undefined, start_at: new Date(start).toISOString(), end_at: new Date(end || start).toISOString(),
       timezone: tz, attendee_ids: attendees, location: location || undefined, generate_call_link: withCall && callsEnabled,
       recurrence: repeat === "none" ? undefined : { freq: repeat, interval: 1, ...(repeatUntil ? { until: repeatUntil } : {}) },
     }),
@@ -1149,6 +1167,18 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
               {others.length === 0 && <span className="px-2 py-1.5 text-[12px]" style={{ color: "var(--text-faint)" }}>{t("state.empty")}</span>}
             </div>
           </div>
+          {/* Meeting type — classification only (drives type-specific AI later; nothing AI runs on it yet). */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="flex items-center gap-1.5 text-[12.5px]" style={{ color: "var(--text-primary)" }}>Meeting type</span>
+            <FieldSelect
+              value={meetingType}
+              onChange={v => setMeetingType(v as MeetingType)}
+              ariaLabel="Meeting type"
+              options={MEETING_TYPES.map(id => ({ value: id, label: MEETING_TYPE_META[id].label }))}
+            />
+            <span className="w-full text-[11px]" style={{ color: "var(--text-faint)" }}>{MEETING_TYPE_META[meetingType].description}</span>
+          </div>
+
           <label className="flex items-center gap-2 text-[12.5px]" style={{ color: callsEnabled ? "var(--text-primary)" : "var(--text-faint)" }}>
             <input type="checkbox" checked={withCall && callsEnabled} disabled={!callsEnabled} onChange={e => setWithCall(e.target.checked)} />
             <Video size={13} /> {t("cal.add_call")} {!callsEnabled && <span className="text-[11px]">— {t("cal.calls_off")}</span>}

@@ -10,6 +10,7 @@ interface GuestMeta {
   event_title: string | null; start_time: string | null;
   host_display_name: string | null; workspace_display_name: string | null;
   recording_may_occur: boolean; calls_enabled: boolean; waiting_room: boolean;
+  meeting_type_label?: string;   // guest-SAFE label only (sensitive types collapse to "Meeting")
   status: "ok" | "expired" | "revoked" | "cancelled" | "ended" | "not_configured";
 }
 const STATUS_COPY: Record<string, string> = {
@@ -245,6 +246,7 @@ export function GuestCallPage() {
             <>
               <h1 className="text-[20px] font-semibold leading-tight text-white">{meta?.event_title || "Join the meeting"}</h1>
               <div className="mt-1.5 space-y-0.5 text-[12.5px] text-white/55">
+                {meta?.meeting_type_label && meta.meeting_type_label !== "Meeting" && <p className="inline-block rounded-sm bg-white/10 px-1.5 py-0.5 text-[11px] text-white/70">{meta.meeting_type_label}</p>}
                 {meta?.host_display_name && <p>Hosted by {meta.host_display_name}{meta?.workspace_display_name ? ` · ${meta.workspace_display_name}` : ""}</p>}
                 {startLabel && <p className="flex items-center gap-1.5"><CalendarClock size={12} /> {startLabel}</p>}
                 <p className="pt-1 text-white/40">You've been invited as a guest — enter your name to join.</p>

@@ -12,7 +12,8 @@
     "./identity": "./src/identity.ts",
     "./markdown-stream": "./src/markdown-stream.ts",
     "./agents": "./src/agents.ts",
-    "./dates": "./src/dates.ts"
+    "./dates": "./src/dates.ts",
+    "./meeting-types": "./src/meeting-types.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
