@@ -105,6 +105,33 @@ describe("settings pages are lazy-loaded — Tiptap (vendor-editor) stays out of
   });
 });
 
+describe("secondary dashboard routes are lazy-loaded (kept off first paint)", () => {
+  const askPage = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/ask/[threadId].tsx", import.meta.url)), "utf8");
+  const LAZY = [
+    { name: "AskPage", path: "./routes/dashboard/ask/\\[threadId\\]" },
+    { name: "AgentActivityPage", path: "./routes/dashboard/activity" },
+    { name: "StatusPage", path: "./routes/dashboard/status" },
+    { name: "NotificationsPage", path: "./routes/dashboard/notifications" },
+  ];
+  it("the four secondary routes are lazy() and no longer statically imported", () => {
+    for (const { name, path } of LAZY) {
+      expect(appTsx).toMatch(new RegExp(`const ${name} = lazy\\(\\(\\) => import\\("${path}"\\)\\.then\\(m => \\(\\{ default: m\\.${name} \\}\\)\\)\\)`));
+      expect(appTsx).not.toMatch(new RegExp(`^import \\{ ${name} \\} from`, "m"));
+    }
+  });
+  it("first-paint anchors stay static — Home, DashboardLayout, SettingsLayout, auth pages", () => {
+    expect(appTsx).toMatch(/import \{ HomePage \} from "\.\/routes\/dashboard\/home"/);
+    expect(appTsx).toMatch(/import \{ DashboardLayout \} from "\.\/routes\/dashboard\/layout"/);
+    expect(appTsx).toMatch(/import \{ SettingsLayout \} from "\.\/routes\/dashboard\/settings\/layout"/);
+    expect(appTsx).toMatch(/import \{ ShadowLoginPage \} from "\.\/routes\/auth\/shadow-login"/);
+    expect(appTsx).toMatch(/import \{ WorkspaceSelectPage \} from "\.\/routes\/auth\/workspace-select"/);
+  });
+  it("AskPage still renders AskMondaily unchanged — only load timing changed", () => {
+    expect(askPage).toMatch(/import \{ AskMondaily \} from "\.\.\/\.\.\/\.\.\/components\/ai\/ask-mondaily"/);
+    expect(askPage).toMatch(/return <AskMondaily key=\{threadId \?\? "new"\} \/>/);
+  });
+});
+
 describe("must-not-change", () => {
   it("recording behavior + Memory 2B untouched by readiness", () => {
     // Scope to the readiness HANDLER only (up to the next route). The readiness route is not the last
