@@ -8,6 +8,11 @@
 > `SOVEREIGN_STT_CHUNK_URL` and does NOT wire the call room. When every row of the §9 pass/fail table
 > is ✅, Phase 2 wiring is allowed. If anything fails, **do not wire the app** — report the failure.
 >
+> **For the long-term, production-grade Linux plan** (standard runtime, CPU Tier A + GPU Tier B,
+> deployment architecture, and go/no-go gates) see
+> [`PRODUCTION_VALIDATION.md`](./PRODUCTION_VALIDATION.md). This runbook is the quick copy-paste
+> subset; Mac/laptop Docker is **not** required and not a gate.
+>
 > Contract reference: [`LIVE_CAPTIONS_STT_CONTRACT.md`](./LIVE_CAPTIONS_STT_CONTRACT.md).
 > The endpoint code + real-model behavior were already proven outside Docker (Phase 1.2); this run
 > confirms the **exact pinned deps** resolve/run under `python:3.11-slim`.
