@@ -1,5 +1,5 @@
 import { supabase } from "@mondaily/db/client";
-import { normalizeMeetingType } from "@mondaily/shared/meeting-types";
+import { normalizeMeetingType, summarySectionsGuidance, MEETING_TYPE_SECTIONS, type MeetingType } from "@mondaily/shared/meeting-types";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { transcribeAudio, transcriptionEnabled, type TranscriptLine } from "../lib/livekit";
 import { startJob, completeJob, failJob, step, type AgentStep } from "../lib/agent-logger";
@@ -71,19 +71,28 @@ async function summarizeTranscript(ws: string, userId: string, lines: Transcript
   return (res.text || "").trim();
 }
 
-interface MeetingIntel { overview: string; key_topics: string[]; action_items: { text: string; owner?: string }[]; decisions: string[]; next_steps: string[] }
+interface SummarySection { key: string; label: string; points: string[] }
+interface MeetingIntel { overview: string; key_topics: string[]; action_items: { text: string; owner?: string }[]; decisions: string[]; next_steps: string[]; summary_sections: SummarySection[] }
 
 /**
  * The AI MEETING AGENT: from the real transcript, extract a factual overview PLUS structured outcomes
  * (key topics, action items with owners when stated, decisions made, next steps). Grounded strictly in
  * the transcript — empty arrays are correct when nothing was said. Fail-soft to an empty result.
+ *
+ * Phase 2: for a typed meeting it ALSO fills `summary_sections` — additional, transcript-grounded
+ * sections chosen by the meeting_type (general adds none, so its behaviour is unchanged). The core
+ * overview/topics/actions/decisions prompt is identical for every type; only the type guidance is
+ * appended. Sections with no evidence are omitted — never invented.
  */
-async function extractMeetingIntel(ws: string, userId: string, lines: TranscriptLine[]): Promise<MeetingIntel> {
-  const empty: MeetingIntel = { overview: "", key_topics: [], action_items: [], decisions: [], next_steps: [] };
+async function extractMeetingIntel(ws: string, userId: string, lines: TranscriptLine[], meetingType: MeetingType): Promise<MeetingIntel> {
+  const empty: MeetingIntel = { overview: "", key_topics: [], action_items: [], decisions: [], next_steps: [], summary_sections: [] };
   const transcript = lines.map((l) => `${l.speaker}: ${l.text}`).join("\n").slice(0, 24_000);
+  const guidance = summarySectionsGuidance(meetingType);   // "" for general → prompt/behaviour unchanged
+  const allowedKeys = new Set(MEETING_TYPE_SECTIONS[meetingType].map((s) => s.key));
+  const labelOf = new Map(MEETING_TYPE_SECTIONS[meetingType].map((s) => [s.key, s.label] as const));
   try {
     const r = await aiGatewayToolUse({
-      system: "You are a meeting analyst. From the call transcript, produce a tight factual overview and structured outcomes. Use ONLY what the transcript actually states — never infer, never invent an owner or an item that wasn't discussed. Empty arrays are correct when nothing was said. Action items are concrete tasks someone agreed to do; owner is a name ONLY if the transcript names who owns it.",
+      system: "You are a meeting analyst. From the call transcript, produce a tight factual overview and structured outcomes. Use ONLY what the transcript actually states — never infer, never invent an owner or an item that wasn't discussed. Empty arrays are correct when nothing was said. Action items are concrete tasks someone agreed to do; owner is a name ONLY if the transcript names who owns it." + guidance,
       prompt: `Transcript:\n${transcript}`,
       toolName: "record_meeting",
       toolDescription: "Record the meeting's overview and structured outcomes.",
@@ -95,20 +104,30 @@ async function extractMeetingIntel(ws: string, userId: string, lines: Transcript
           action_items: { type: "array", items: { type: "object", properties: { text: { type: "string" }, owner: { type: "string" } }, required: ["text"] } },
           decisions: { type: "array", items: { type: "string" } },
           next_steps: { type: "array", items: { type: "string" } },
+          summary_sections: { type: "array", items: { type: "object", properties: { key: { type: "string" }, points: { type: "array", items: { type: "string" } } }, required: ["key"] } },
         },
         required: ["overview"],
       },
-      maxTokens: 900, workspaceId: ws, userId, feature: "meeting_memory_intel", taskClass: "meeting",
+      maxTokens: 1100, workspaceId: ws, userId, feature: "meeting_memory_intel", taskClass: "meeting",
     });
     const o = (r ?? {}) as Record<string, unknown>;
     const strs = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean) : []);
     const items = Array.isArray(o.action_items) ? (o.action_items as Record<string, unknown>[]) : [];
+    // Parse type sections defensively: keep only KNOWN keys for this type, drop empty ones (omit, never
+    // fabricate). Label comes from the canonical registry, not the model.
+    const rawSections = Array.isArray(o.summary_sections) ? (o.summary_sections as Record<string, unknown>[]) : [];
+    const summary_sections: SummarySection[] = rawSections
+      .map((s) => ({ key: String(s.key ?? "").trim(), points: strs(s.points).slice(0, 8) }))
+      .filter((s) => allowedKeys.has(s.key) && s.points.length > 0)
+      .map((s) => ({ key: s.key, label: labelOf.get(s.key) ?? s.key, points: s.points }))
+      .slice(0, MEETING_TYPE_SECTIONS[meetingType].length);
     return {
       overview: String(o.overview ?? "").trim(),
       key_topics: strs(o.key_topics).slice(0, 8),
       action_items: items.map((a) => ({ text: String(a.text ?? "").trim(), owner: a.owner ? String(a.owner).trim() : undefined })).filter((a) => a.text).slice(0, 10),
       decisions: strs(o.decisions).slice(0, 8),
       next_steps: strs(o.next_steps).slice(0, 8),
+      summary_sections,
     };
   } catch {
     return empty;
@@ -226,7 +245,7 @@ export async function ingestRecording(sessionId: string): Promise<{ ok: boolean;
 
     // 4. MEETING AGENT — extract overview + structured outcomes (best-effort; a missing/exhausted
     //    gateway must not lose the transcript). Falls back to the plain text summary if extraction fails.
-    let intel = await extractMeetingIntel(ws, session.initiator_id, lines);
+    let intel = await extractMeetingIntel(ws, session.initiator_id, lines, normalizeMeetingType(meeting_type));
     if (!intel.overview) {
       try { intel = { ...intel, overview: await summarizeTranscript(ws, session.initiator_id, lines) }; } catch { /* keep empty */ }
     }
@@ -240,6 +259,9 @@ export async function ingestRecording(sessionId: string): Promise<{ ok: boolean;
         action_items: intel.action_items.map((a) => (a.owner ? `${a.text} — ${a.owner}` : a.text)),
         next_steps: intel.next_steps,
         decisions: intel.decisions,
+        // Type-aware sections — stored ONLY when the transcript produced some (general → none, so old +
+        // general records are byte-identical to before).
+        ...(intel.summary_sections.length ? { summary_sections: intel.summary_sections } : {}),
       },
     }).eq("id", nodeId).eq("workspace_id", ws);
     steps.push(summary

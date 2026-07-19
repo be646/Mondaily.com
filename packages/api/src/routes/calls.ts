@@ -30,6 +30,7 @@ function normalizeCall(node: CallNode) {
   return {
     id: node.id,
     meeting_type: normalizeMeetingType(data.meeting_type),   // classification label (absent/legacy → general)
+    summary_sections: Array.isArray(data.summary_sections) ? data.summary_sections : [],   // type-aware (absent on old/general)
     contact_name: String(data.contact_name ?? data.name ?? "Unknown contact"),
     company_name: data.company_name ? String(data.company_name) : undefined,
     occurred_at: String(data.occurred_at ?? data.date ?? node.created_at),

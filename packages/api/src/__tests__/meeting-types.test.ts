@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import {
   MEETING_TYPES, DEFAULT_MEETING_TYPE, normalizeMeetingType, isMeetingType,
   MEETING_TYPE_META, guestSafeMeetingLabel,
+  MEETING_TYPE_SECTIONS, summarySectionsGuidance,
 } from "@mondaily/shared/meeting-types";
 
 /**
@@ -77,7 +78,7 @@ describe("backend — meeting_type stored in event data (no schema), default gen
 
 describe("Phase 1.1 — Meeting Memory propagates the event's meeting_type onto the call record", () => {
   it("copies the originating event's meeting_type into the call record node data (normalized)", () => {
-    expect(memory).toMatch(/import \{ normalizeMeetingType \} from "@mondaily\/shared\/meeting-types"/);
+    expect(memory).toMatch(/import \{ normalizeMeetingType, summarySectionsGuidance, MEETING_TYPE_SECTIONS, type MeetingType \} from "@mondaily\/shared\/meeting-types"/);
     expect(memory).toMatch(/const meeting_type = await resolveEventMeetingType\(ws, isUpload \? null : session\.room\)/);
     expect(memory).toMatch(/meeting_type,/);   // added to baseData (the persisted node data)
   });
@@ -92,11 +93,60 @@ describe("Phase 1.1 — Meeting Memory propagates the event's meeting_type onto 
   it("upload path passes null (standalone recordings stay general) — no fabricated event link", () => {
     expect(memory).toMatch(/isUpload \? null : session\.room/);
   });
-  it("does NOT change prompts / summaries / STT — meeting_type is metadata only, never fed to AI", () => {
-    // meeting_type is never passed into the gateway or the meeting-intel extraction.
-    expect(memory).not.toMatch(/aiGateway[\s\S]{0,120}meeting_type/);
-    expect(memory).not.toMatch(/extractMeetingIntel\([^)]*meeting_type/);
-    expect(memory).not.toMatch(/aiGatewayToolUse\([^)]*meeting_type/);
+  it("meeting_type is used only to SELECT type guidance — never fed as raw content to the model", () => {
+    // Phase 2: extractMeetingIntel receives the normalized type (to pick the section guidance)…
+    expect(memory).toMatch(/extractMeetingIntel\(ws, session\.initiator_id, lines, normalizeMeetingType\(meeting_type\)\)/);
+    // …but the raw type string is never interpolated into the transcript prompt or a gateway argument.
+    expect(memory).not.toMatch(/prompt: `[^`]*meeting_type/);
+    expect(memory).not.toMatch(/aiGatewayToolUse\(\{[^}]*meeting_type/);
+  });
+});
+
+describe("Phase 2 — type-aware post-call summary sections (transcript-grounded, additive)", () => {
+  it("general adds NO sections (behaviour preserved); every other type has sections + guidance", () => {
+    expect(MEETING_TYPE_SECTIONS.general).toEqual([]);
+    expect(summarySectionsGuidance("general")).toBe("");
+    for (const t of MEETING_TYPES.filter(x => x !== "general")) {
+      expect(MEETING_TYPE_SECTIONS[t].length).toBeGreaterThan(0);
+      expect(summarySectionsGuidance(t).length).toBeGreaterThan(0);
+    }
+  });
+  it("each type's guidance names its own sections (right lens per type)", () => {
+    expect(summarySectionsGuidance("sales")).toMatch(/Buying signals[\s\S]*Objections|Objections[\s\S]*Buying signals/);
+    expect(summarySectionsGuidance("support")).toMatch(/Resolution \/ status/);
+    expect(summarySectionsGuidance("client_review")).toMatch(/Renewal \/ expansion signals/);
+    expect(summarySectionsGuidance("finance_review")).toMatch(/Figures discussed/);
+  });
+  it("hiring_interview guidance FORBIDS scoring/ranking and protected-class judgments", () => {
+    const g = summarySectionsGuidance("hiring_interview");
+    expect(g).toMatch(/Do NOT score, rate, rank, or recommend the candidate/);
+    expect(g).toMatch(/protected characteristic \(age, race, ethnicity, gender, religion, disability/);
+    // no field asks for a numeric score / rating.
+    expect(MEETING_TYPE_SECTIONS.hiring_interview.map(s => s.key)).not.toContain("score");
+    expect(MEETING_TYPE_SECTIONS.hiring_interview.map(s => s.key)).not.toContain("rating");
+  });
+  it("unknown/legacy type → general guidance (empty), so it can't fabricate sections", () => {
+    expect(summarySectionsGuidance(normalizeMeetingType("bogus"))).toBe("");
+  });
+  it("extraction: core prompt unchanged, type guidance APPENDED, sections parsed safely", () => {
+    // The base transcript-grounded prompt is intact; type guidance is concatenated, not replacing it.
+    expect(memory).toMatch(/You are a meeting analyst\.[\s\S]*owner is a name ONLY if the transcript names who owns it\." \+ guidance/);
+    expect(memory).toMatch(/const guidance = summarySectionsGuidance\(meetingType\)/);
+    // sections: only KNOWN keys kept, empty ones dropped (omit, never invent); label from the registry.
+    expect(memory).toMatch(/\.filter\(\(s\) => allowedKeys\.has\(s\.key\) && s\.points\.length > 0\)/);
+    expect(memory).toMatch(/label: labelOf\.get\(s\.key\) \?\? s\.key/);
+  });
+  it("stored under data.summary_sections ONLY when non-empty (old/general records unchanged); no schema", () => {
+    expect(memory).toMatch(/\.\.\.\(intel\.summary_sections\.length \? \{ summary_sections: intel\.summary_sections \} : \{\}\)/);
+    expect(calls).toMatch(/summary_sections: Array\.isArray\(data\.summary_sections\) \? data\.summary_sections : \[\]/);
+    expect(memory).not.toMatch(/\bcreate table\b|\balter table\b/i);
+  });
+  it("preserved fields + no auto-task/guest-email/live-caption code added by this change", () => {
+    // core intel fields still present.
+    for (const f of ["overview", "key_topics", "action_items", "decisions", "next_steps"]) expect(memory).toMatch(new RegExp(`${f}:`));
+    // no new guest email / live caption / candidate scoring introduced here.
+    expect(memory).not.toMatch(/sendTransactionalEmail|guest.*email|live_caption|caption|candidate_score|interview_score/i);
+    expect(memory).not.toMatch(/tavily|api\.openai\.com|api\.anthropic\.com/i);   // sovereign: gateway only
   });
 });
 

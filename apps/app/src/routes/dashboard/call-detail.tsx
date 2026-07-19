@@ -24,6 +24,7 @@ interface CallDetail {
   overview?: string;
   key_topics: string[];
   action_items: string[];
+  summary_sections?: { key: string; label: string; points: string[] }[];   // type-aware (Phase 2)
   action_item_promotions?: Record<string, { type: string; id: string; at?: string }>;
   buyer_signals: { type: "positive" | "objection"; text: string }[];
   next_steps: string[];
@@ -230,6 +231,12 @@ export function CallDetailPage() {
           <div className="space-y-2">{(call.participants ?? []).map((person) => person.id ? <Link key={person.id} to={`/objects/${person.object_type || "people"}/${person.id}`} className="flex items-center gap-3 rounded-md border border-[var(--border-soft)] p-3 hover:bg-[var(--surface-hover)]"><div className="grid h-8 w-8 place-items-center rounded-full bg-[var(--surface-hover)] text-xs">{person.name.slice(0, 2).toUpperCase()}</div><div><p className="text-sm">{person.name}</p><p className="text-xs text-[var(--text-secondary)]">{person.email}</p></div></Link> : <div key={person.email || person.name} className="flex items-center gap-3 rounded-md border border-[var(--border-soft)] p-3"><div className="grid h-8 w-8 place-items-center rounded-full bg-[var(--surface-hover)] text-xs">{person.name.slice(0, 2).toUpperCase()}</div><div><p className="text-sm">{person.name}</p><p className="text-xs text-[var(--text-secondary)]">{person.email}</p></div></div>)}</div>
           {(call.linked_records ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{(call.linked_records ?? []).map((record) => <Link key={record.id} to={`/objects/${record.object_type}/${record.id}`} className="rounded-full border border-[var(--border-soft)] px-2.5 py-1 text-xs text-[var(--text-faint)]">{record.name}</Link>)}</div> : null}
           <SummarySection title="Overview"><p className="text-sm leading-6 text-[var(--text-secondary)]">{call.overview || call.ai_summary || "No summary generated yet."}</p></SummarySection>
+          {/* Type-aware sections — only rendered when the transcript produced them (never fabricated). */}
+          {(call.summary_sections ?? []).filter(s => s.points?.length).map((s) => (
+            <SummarySection key={s.key} title={s.label}>
+              <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{s.points.map((p, i) => <li key={i}>• {p}</li>)}</ul>
+            </SummarySection>
+          ))}
           <SummarySection title="Key topics">{(call.key_topics ?? []).length ? <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{(call.key_topics ?? []).map((topic) => <li key={topic}>• {topic}</li>)}</ul> : <p className="text-sm text-[var(--text-muted)]">No key topics extracted.</p>}</SummarySection>
           <SummarySection title="Action items">{(call.action_items ?? []).length ? <div className="space-y-1.5">{(call.action_items ?? []).map((item, index) => {
             const promo = call.action_item_promotions?.[String(index)];
