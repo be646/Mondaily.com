@@ -11,7 +11,7 @@ import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
 import { resolveProfile } from "@mondaily/shared/profile";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
 import { isOverdue } from "@mondaily/shared/dates";
-import { endRoom, removeParticipant, liveCaptionsAvailable } from "../lib/livekit";
+import { endRoom, removeParticipant, liveCaptionsAllowed } from "../lib/livekit";
 import { MEETING_TYPES, normalizeMeetingType } from "@mondaily/shared/meeting-types";
 
 /**
@@ -290,7 +290,7 @@ router.get("/events/:id", async (c) => {
   if (!ev) return c.json({ error: "Event not found." }, 404);
   if (!canView(ev.data, me)) return c.json({ error: "Not allowed." }, 403);
   const dir = await members(ws);
-  return c.json({ ...shape(ev.id, ev.data, dir, ev.created_at), calls_enabled: callsEnabled(), live_captions_available: liveCaptionsAvailable() });
+  return c.json({ ...shape(ev.id, ev.data, dir, ev.created_at), calls_enabled: callsEnabled(), live_captions_available: liveCaptionsAllowed(ws) });
 });
 
 // POST /calendar/events — create a meeting (organizer = caller). Notifies attendees.

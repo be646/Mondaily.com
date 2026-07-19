@@ -68,7 +68,75 @@ export const transcriptionEnabled = (): boolean => !!(process.env.SOVEREIGN_STT_
 export const liveCaptionsAvailable = (): boolean =>
   !!((process.env.SOVEREIGN_STT_STREAM_URL || "").trim() || (process.env.SOVEREIGN_STT_CHUNK_URL || "").trim());
 
+/**
+ * Phase 2 canary gate. Live captions are enabled for a workspace only when (a) a live/chunk STT endpoint
+ * is configured AND (b) either LIVE_CAPTIONS_WORKSPACES is unset (env-gated only — fine in a staging env
+ * that has no real tenants) OR it lists this workspace id. This keeps captions off for everyone until an
+ * operator opts a specific workspace in. Production has no SOVEREIGN_STT_CHUNK_URL, so this is always
+ * false there — the UI stays honestly "unavailable".
+ */
+export const liveCaptionsAllowed = (workspaceId: string | null | undefined): boolean => {
+  if (!liveCaptionsAvailable()) return false;
+  const allow = (process.env.LIVE_CAPTIONS_WORKSPACES || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (allow.length === 0) return true;
+  return !!workspaceId && allow.includes(workspaceId);
+};
+
 const sttBase = () => (process.env.SOVEREIGN_STT_URL || "").replace(/\/$/, "");
+const chunkBase = () => (process.env.SOVEREIGN_STT_CHUNK_URL || "").replace(/\/$/, "");
+
+/** Max caption chunk the API will forward (~a few seconds of 16k PCM is <100KB; cap generously). */
+export const CAPTION_CHUNK_MAX_BYTES = Number(process.env.CAPTION_CHUNK_MAX_BYTES || 2 * 1024 * 1024);
+
+export interface CaptionChunkResult { ok: boolean; status: number; text: string; no_speech: boolean; language: string | null; confidence: number | null }
+
+/**
+ * Server-side proxy to the sovereign live-STT appliance (`POST {SOVEREIGN_STT_CHUNK_URL}/caption/chunk`).
+ * The bearer SOVEREIGN_STT_KEY is added HERE and NEVER reaches the browser. Returns text only — the audio
+ * is forwarded straight through, never stored, never logged; the transcript is returned to the caller and
+ * not persisted. Fails closed (ok:false) on missing config, non-2xx, timeout, or network error so the
+ * caller publishes NO caption rather than inventing one.
+ */
+export async function captionChunk(input: {
+  audio: ArrayBuffer; format: string; sampleRate: number; session: string; seq: number; language?: string; final?: boolean;
+}): Promise<CaptionChunkResult> {
+  const base = chunkBase();
+  const fail = (status: number): CaptionChunkResult => ({ ok: false, status, text: "", no_speech: false, language: null, confidence: null });
+  if (!base) return fail(503);
+  const fd = new FormData();
+  fd.append("audio", new Blob([input.audio]), "chunk.bin");
+  fd.append("format", input.format);
+  fd.append("sample_rate", String(input.sampleRate));
+  fd.append("session", input.session);
+  fd.append("seq", String(input.seq));
+  if (input.language) fd.append("language", input.language);
+  if (input.final != null) fd.append("final", String(input.final));
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10_000);
+  try {
+    const res = await fetch(`${base}/caption/chunk`, {
+      method: "POST",
+      // Do NOT set Content-Type — fetch sets the multipart boundary. Bearer stays server-side.
+      headers: { ...(process.env.SOVEREIGN_STT_KEY ? { Authorization: `Bearer ${process.env.SOVEREIGN_STT_KEY}` } : {}) },
+      body: fd,
+      signal: ctrl.signal,
+    });
+    if (!res.ok) return fail(res.status);
+    const j = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+    return {
+      ok: true, status: 200,
+      text: typeof j.text === "string" ? j.text : "",
+      no_speech: j.no_speech === true,
+      language: typeof j.language === "string" ? j.language : null,
+      confidence: typeof j.confidence === "number" ? j.confidence : null,
+    };
+  } catch {
+    return fail(504); // abort/network → transient; caller drops the chunk, never fakes text
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /** Deterministic, tenant-namespaced egress output path (so files can never collide across rooms). */
 export function egressFilepath(room: string): string {

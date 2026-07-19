@@ -4,7 +4,7 @@ import { sign, verify } from "hono/jwt";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { supabase } from "@mondaily/db/client";
-import { recordingEnabled, liveCaptionsAvailable } from "../lib/livekit";
+import { recordingEnabled, liveCaptionsAllowed, captionChunk, CAPTION_CHUNK_MAX_BYTES } from "../lib/livekit";
 import { rateLimit } from "../middleware/rate-limit";
 import { guestSafeMeetingLabel, normalizeMeetingType } from "@mondaily/shared/meeting-types";
 
@@ -107,7 +107,7 @@ router.post("/meta", rateLimit({ max: 20, windowMs: 60_000 }), zValidator("json"
     calls_enabled,
     recording_may_occur,
     waiting_room: !!r.data?.guest_waiting_room,   // guest must be admitted by the host before getting a token
-    live_captions_available: liveCaptionsAvailable(),   // false until a streaming/chunk STT endpoint exists
+    live_captions_available: liveCaptionsAllowed(r.claims?.ws),   // env + per-workspace canary gate; false until Phase 2 staging
     // If the token is otherwise valid but calls aren't wired, report not_configured.
     status: (r.status === "ok" && !calls_enabled) ? ("not_configured" as GuestStatus) : r.status,
   };
@@ -224,6 +224,43 @@ router.post("/token", rateLimit({ max: 15, windowMs: 60_000 }), zValidator("json
     process.env.LIVEKIT_API_SECRET as string, "HS256",
   );
   return c.json({ token: lkToken, url: process.env.LIVEKIT_URL, room: r.claims!.room, name: guestName, event_title: r.data?.title ?? "Meeting" });
+});
+
+/**
+ * POST /public/calls/caption-chunk — guest twin of the member caption proxy (Live Captions Phase 2,
+ * staging/canary). Multipart: token, consent, audio, format, sample_rate, session, seq, language?. Stays
+ * on /public/calls/* so guests never touch an authenticated workspace API. Requires a VALID guest token
+ * (same signature+meeting checks as /token) AND explicit consent (live captions send the guest's mic to
+ * the sovereign STT). Canary-gated by the token's workspace. Forwards to the appliance with the
+ * server-side key, returns { text, no_speech } only — no audio stored, no transcript persisted, no
+ * invented text. Rate-limited like the other public routes.
+ */
+router.post("/caption-chunk", rateLimit({ max: 300, windowMs: 60_000 }), async (c) => {
+  if (!callsEnabled()) return c.json({ error: "unavailable" }, 503);
+  const body = await c.req.parseBody();
+  const token = String(body["token"] ?? "");
+  if (!token) return c.json({ error: "token_required" }, 400);
+
+  const r = await resolveGuest(token);
+  if (r.status !== "ok") return c.json({ error: "invalid_or_expired" }, 401);
+  if (!liveCaptionsAllowed(r.claims?.ws)) return c.json({ error: "live_captions_unavailable" }, 503);
+  // Explicit consent required — captions are a live audio egress of the guest's own mic.
+  if (String(body["consent"] ?? "") !== "true") return c.json({ error: "consent_required" }, 400);
+
+  const audio = body["audio"];
+  if (!(audio instanceof File)) return c.json({ error: "audio_required" }, 400);
+  if (audio.size > CAPTION_CHUNK_MAX_BYTES) return c.json({ error: "payload_too_large" }, 413);
+
+  const out = await captionChunk({
+    audio: await audio.arrayBuffer(),
+    format: String(body["format"] ?? ""),
+    sampleRate: Number(body["sample_rate"] ?? 0),
+    session: String(body["session"] ?? ""),
+    seq: Number(body["seq"] ?? 0),
+    language: body["language"] ? String(body["language"]) : undefined,
+  });
+  if (!out.ok) return c.json({ text: "", no_speech: false, error: out.status === 413 ? "payload_too_large" : "stt_unavailable" }, out.status === 413 ? 413 : 502);
+  return c.json({ text: out.text, no_speech: out.no_speech, language: out.language, confidence: out.confidence });
 });
 
 export { router as guestCallsRouter };

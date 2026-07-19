@@ -1,0 +1,131 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { liveCaptionsAllowed, captionChunk } from "../lib/livekit";
+
+const ROOT = join(__dirname, "..", "..", "..", "..");
+const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
+const LIVEKIT = "packages/api/src/lib/livekit.ts";
+const LIVE_CALLS = "packages/api/src/routes/live-calls.ts";
+const GUEST_CALLS = "packages/api/src/routes/guest-calls.ts";
+
+// ── Canary gate (pure, env-driven) ─────────────────────────────────────────────────────────────────
+describe("liveCaptionsAllowed — env + workspace canary gate", () => {
+  const save = { ...process.env };
+  beforeEach(() => {
+    delete process.env.SOVEREIGN_STT_CHUNK_URL;
+    delete process.env.SOVEREIGN_STT_STREAM_URL;
+    delete process.env.LIVE_CAPTIONS_WORKSPACES;
+  });
+  afterEach(() => { process.env = { ...save }; });
+
+  it("false when no chunk/stream STT endpoint is configured (prod stays off)", () => {
+    expect(liveCaptionsAllowed("ws_1")).toBe(false);
+  });
+  it("true for any workspace when configured and no allowlist set (staging env)", () => {
+    process.env.SOVEREIGN_STT_CHUNK_URL = "https://stt.example";
+    expect(liveCaptionsAllowed("ws_1")).toBe(true);
+    expect(liveCaptionsAllowed("ws_2")).toBe(true);
+  });
+  it("restricts to the allowlist when LIVE_CAPTIONS_WORKSPACES is set (canary)", () => {
+    process.env.SOVEREIGN_STT_CHUNK_URL = "https://stt.example";
+    process.env.LIVE_CAPTIONS_WORKSPACES = "ws_test, ws_other";
+    expect(liveCaptionsAllowed("ws_test")).toBe(true);
+    expect(liveCaptionsAllowed("ws_nope")).toBe(false);
+    expect(liveCaptionsAllowed(null)).toBe(false);
+  });
+});
+
+// ── Proxy behavior (mocked fetch — no network) ─────────────────────────────────────────────────────
+describe("captionChunk — server-side proxy, fail-closed, never invents text", () => {
+  const save = { ...process.env };
+  afterEach(() => { process.env = { ...save }; vi.unstubAllGlobals(); });
+
+  const call = () => captionChunk({ audio: new ArrayBuffer(8), format: "pcm_s16le", sampleRate: 16000, session: "s", seq: 1 });
+
+  it("fails closed (503, empty text) when SOVEREIGN_STT_CHUNK_URL is unset", async () => {
+    delete process.env.SOVEREIGN_STT_CHUNK_URL;
+    const r = await call();
+    expect(r.ok).toBe(false); expect(r.status).toBe(503); expect(r.text).toBe("");
+  });
+
+  it("sends the bearer key server-side and maps a real transcript", async () => {
+    process.env.SOVEREIGN_STT_CHUNK_URL = "https://stt.example";
+    process.env.SOVEREIGN_STT_KEY = "secret-key";
+    const fetchMock = vi.fn(async (_url: string, init: any) => {
+      // the master key is attached HERE, never handed to a browser
+      expect(init.headers.Authorization).toBe("Bearer secret-key");
+      expect(String(_url)).toBe("https://stt.example/caption/chunk");
+      return new Response(JSON.stringify({ text: "hello world", no_speech: false, language: "en", confidence: 0.9 }), { status: 200 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const r = await call();
+    expect(r).toMatchObject({ ok: true, status: 200, text: "hello world", no_speech: false, language: "en", confidence: 0.9 });
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("passes silence through as no_speech with empty text", async () => {
+    process.env.SOVEREIGN_STT_CHUNK_URL = "https://stt.example";
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ text: "", no_speech: true }), { status: 200 })));
+    const r = await call();
+    expect(r).toMatchObject({ ok: true, no_speech: true, text: "" });
+  });
+
+  it("fails closed on a non-2xx appliance response (no fabricated text)", async () => {
+    process.env.SOVEREIGN_STT_CHUNK_URL = "https://stt.example";
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("overloaded", { status: 503 })));
+    const r = await call();
+    expect(r.ok).toBe(false); expect(r.status).toBe(503); expect(r.text).toBe("");
+  });
+
+  it("fails closed (504) on a network/abort error", async () => {
+    process.env.SOVEREIGN_STT_CHUNK_URL = "https://stt.example";
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("network down"); }));
+    const r = await call();
+    expect(r.ok).toBe(false); expect(r.status).toBe(504); expect(r.text).toBe("");
+  });
+});
+
+// ── Source-scan guards ─────────────────────────────────────────────────────────────────────────────
+describe("Phase 2 API — endpoints are gated, private, and leak nothing", () => {
+  it("member caption endpoint is auth-gated + canary-gated + fail-closed", () => {
+    const s = read(LIVE_CALLS);
+    expect(s).toMatch(/\/caption-chunk/);
+    expect(s).toMatch(/liveCaptionsAllowed\(ws\)/);            // per-workspace canary
+    expect(s).toMatch(/live_captions_unavailable/);            // 503 fail-closed
+    expect(s).toMatch(/requireAuth/);                          // member session required
+    expect(s).toMatch(/rateLimit\(/);                          // rate-limited
+  });
+
+  it("guest caption endpoint requires token + consent + canary, stays public-only", () => {
+    const s = read(GUEST_CALLS);
+    expect(s).toMatch(/\/caption-chunk/);
+    expect(s).toMatch(/resolveGuest\(token\)/);                // valid guest token required
+    expect(s).toMatch(/consent_required/);                     // explicit consent gate
+    expect(s).toMatch(/liveCaptionsAllowed\(r\.claims\?\.ws\)/); // canary by token workspace
+    expect(s).toMatch(/rateLimit\(/);
+  });
+
+  it("the STT bearer key is added server-side only and never returned to the caller", () => {
+    const s = read(LIVEKIT);
+    expect(s).toMatch(/Authorization: `Bearer \$\{process\.env\.SOVEREIGN_STT_KEY\}`/);
+    // response never carries the key/url — only text/no_speech/language/confidence
+    expect(s).not.toMatch(/return[^;]*SOVEREIGN_STT_KEY/);
+  });
+
+  it("the caption path persists nothing (no DB writes) and stores no audio", () => {
+    // captionChunk + both endpoints must not insert/upsert or write files in the caption flow.
+    expect(read(LIVEKIT)).not.toMatch(/from\(["']call|insert\(|upsert\(|writeFile|createWriteStream/);
+  });
+});
+
+describe("Phase 2 frontend safety (guards against future regressions)", () => {
+  const APP = "apps/app/src";
+  const files = ["routes/dashboard/call-room.tsx", "routes/guest-call.tsx", "routes/dashboard/call-tiles.tsx"].map((f) => read(`${APP}/${f}`)).join("\n");
+  it("no raw SOVEREIGN_STT_KEY anywhere in the frontend", () => {
+    expect(files).not.toMatch(/SOVEREIGN_STT_KEY/);
+  });
+  it("no browser Web Speech API / no external STT in the call UI", () => {
+    expect(files).not.toMatch(/webkitSpeechRecognition|[^a-zA-Z]SpeechRecognition|deepgram|whisper\.|openai|assemblyai/i);
+  });
+});

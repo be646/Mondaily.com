@@ -4,7 +4,8 @@ import { z } from "zod";
 import { sign } from "hono/jwt";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
-import { recordingEnabled, transcriptionEnabled, startRoomEgress, stopRoomEgress } from "../lib/livekit";
+import { rateLimit } from "../middleware/rate-limit";
+import { recordingEnabled, transcriptionEnabled, startRoomEgress, stopRoomEgress, liveCaptionsAllowed, captionChunk, CAPTION_CHUNK_MAX_BYTES } from "../lib/livekit";
 
 /**
  * Live calls — member-to-member audio/video over a self-hosted LiveKit server (sovereign:
@@ -192,6 +193,37 @@ router.get("/rooms/:id/recording/status", async (c) => {
     configured: recordingEnabled(),
     can_control: me === session.initiator_id,              // organizer-only start/stop
   });
+});
+
+/**
+ * POST /live-calls/caption-chunk — Live Captions Phase 2 (staging/canary). Accepts ONE short local-mic
+ * audio chunk (multipart: audio, format, sample_rate, session, seq, language?) from an authenticated
+ * member and proxies it to the sovereign STT appliance, returning { text, no_speech } only. The caller
+ * publishes the CaptionPacket over the LiveKit data channel itself — this endpoint neither stores audio
+ * nor persists the transcript, and adds the SOVEREIGN_STT_KEY server-side so it never reaches the browser.
+ * FAIL-CLOSED: 503 when live captions aren't configured/allowed for this workspace (canary gate). Never
+ * returns invented text — on any STT failure the body carries empty text so the client shows nothing.
+ */
+router.post("/caption-chunk", rateLimit({ max: 300, windowMs: 60_000 }), async (c) => {
+  const ws = c.get("workspaceId");
+  if (!liveCaptionsAllowed(ws)) return c.json({ error: "live_captions_unavailable" }, 503);
+
+  const body = await c.req.parseBody();
+  const audio = body["audio"];
+  if (!(audio instanceof File)) return c.json({ error: "audio_required" }, 400);
+  if (audio.size > CAPTION_CHUNK_MAX_BYTES) return c.json({ error: "payload_too_large" }, 413);
+
+  const r = await captionChunk({
+    audio: await audio.arrayBuffer(),
+    format: String(body["format"] ?? ""),
+    sampleRate: Number(body["sample_rate"] ?? 0),
+    session: String(body["session"] ?? ""),
+    seq: Number(body["seq"] ?? 0),
+    language: body["language"] ? String(body["language"]) : undefined,
+  });
+  // Fail-closed: no fabricated text. 413 passes through; other failures are transient → 502 so the client backs off.
+  if (!r.ok) return c.json({ text: "", no_speech: false, error: r.status === 413 ? "payload_too_large" : "stt_unavailable" }, r.status === 413 ? 413 : 502);
+  return c.json({ text: r.text, no_speech: r.no_speech, language: r.language, confidence: r.confidence });
 });
 
 /** GET /live-calls/incoming — ringing calls addressed to the caller in the last 60s. */
