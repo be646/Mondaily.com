@@ -3,3 +3,7 @@ uvicorn[standard]==0.34.0
 faster-whisper==1.1.1
 httpx==0.28.1
 requests==2.32.3
+python-multipart==0.0.20
+numpy==2.2.1
+# Pinned for to_thread.run_sync(abandon_on_cancel=...) used by the /caption/chunk decode timeout.
+anyio==4.12.1
