@@ -4,6 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { supabase } from "@mondaily/db/client";
 import { recordingEnabled } from "../lib/livekit";
+import { rateLimit } from "../middleware/rate-limit";
 
 /**
  * PUBLIC (no account) guest-call surface. A guest opens a shareable link the host minted
@@ -65,7 +66,11 @@ async function workspaceDisplayName(ws: string): Promise<string> {
  * start time, host + workspace display names, whether recording may occur, calls_enabled, and a coarse
  * status. No attendee list, room name, notes, transcript, storage paths, IDs, or secrets ever leave here.
  */
-router.post("/meta", zValidator("json", z.object({ token: z.string().min(1).max(4000) })), async (c) => {
+// Abuse guard (Phase 1.1): reuse the shared per-IP sliding-window limiter the auth routes use. It keys
+// by path+IP (the guest body carries no email, so nothing token-derived enters the key — the raw token
+// is never stored or logged). In-memory, bounded, per-warm-instance — a solid first layer for a public
+// endpoint. Limits are generous so a real guest (or a group behind one office NAT) is never blocked.
+router.post("/meta", rateLimit({ max: 20, windowMs: 60_000 }), zValidator("json", z.object({ token: z.string().min(1).max(4000) })), async (c) => {
   const { token } = c.req.valid("json");
   const r = await resolveGuest(token);
   const calls_enabled = callsEnabled();
@@ -99,7 +104,7 @@ router.post("/meta", zValidator("json", z.object({ token: z.string().min(1).max(
  * POST /public/calls/token { token, name?, consent? } — redeem for a room-scoped LiveKit join token.
  * When recording may occur, `consent === true` is REQUIRED before a token is minted. roomJoin ONLY.
  */
-router.post("/token", zValidator("json", z.object({
+router.post("/token", rateLimit({ max: 15, windowMs: 60_000 }), zValidator("json", z.object({
   token: z.string().min(1).max(4000),
   name: z.string().max(60).optional(),
   consent: z.boolean().optional(),

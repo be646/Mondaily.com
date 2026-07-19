@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { Hono } from "hono";
+import { rateLimit } from "../middleware/rate-limit";
 
 /**
  * Guest Call Experience Phase 1 — a public, account-less way to join ONE Mondaily call safely.
@@ -16,6 +18,7 @@ const appTsx = read("../../../../apps/app/src/App.tsx");
 const calendar = read("../routes/calendar.ts");
 const calendarUi = read("../../../../apps/app/src/routes/dashboard/calendar.tsx");
 const authCtx = read("../../../../apps/app/src/components/auth/sovereign-auth-context.tsx");
+const limiter = read("../middleware/rate-limit.ts");
 
 describe("guest-calls — public, no-account, fails closed", () => {
   it("is mounted PUBLIC (outside requireAuth) and exposes only /meta + /token", () => {
@@ -95,6 +98,41 @@ describe("host guest-link actions — organizer/admin gated (unchanged endpoints
     expect(calendarUi).toMatch(/Revoke links/);
     expect(calendarUi).toMatch(/\/calendar\/events\/\$\{id\}\/guest-link/);
     expect(calendarUi).toMatch(/\/calendar\/events\/\$\{id\}\/revoke-guest-links/);
+  });
+});
+
+describe("Phase 1.1 — public guest endpoints are rate-limited (reuses the shared limiter)", () => {
+  it("both guest routes apply the shared rateLimit middleware", () => {
+    expect(route).toMatch(/import \{ rateLimit \} from "\.\.\/middleware\/rate-limit"/);
+    expect(route).toMatch(/router\.post\("\/meta", rateLimit\(\{ max: 20, windowMs: 60_000 \}\)/);
+    expect(route).toMatch(/router\.post\("\/token", rateLimit\(\{ max: 15, windowMs: 60_000 \}\)/);
+  });
+  it("the limiter never stores or logs the raw guest token (keys by path+IP+email only)", () => {
+    // The limiter only extracts `email` from the body — the guest body's `token` is never read/keyed.
+    expect(limiter).toMatch(/email = String\(\(b as \{ email\?: string \}\)\?\.email/);
+    expect(limiter).not.toMatch(/\btoken\b/);              // no token handling in the limiter
+    expect(limiter).not.toMatch(/console\.(log|info|warn|error)/); // never logs the body
+  });
+  it("throttles after the max within the window; the first request passes (IP-keyed)", async () => {
+    const app = new Hono();
+    app.post("/meta", rateLimit({ max: 2, windowMs: 60_000 }), (c) => c.json({ ok: true }));
+    const hit = (ip: string) => app.request("/meta", { method: "POST", headers: { "content-type": "application/json", "x-forwarded-for": ip }, body: JSON.stringify({ token: "abc" }) });
+    const a1 = await hit("9.9.9.1"); expect(a1.status).toBe(200);   // first request passes
+    const a2 = await hit("9.9.9.1"); expect(a2.status).toBe(200);
+    const a3 = await hit("9.9.9.1"); expect(a3.status).toBe(429);   // over the limit → throttled
+    // a fresh IP is unaffected (per-IP keying, not global).
+    const b1 = await hit("9.9.9.2"); expect(b1.status).toBe(200);
+  });
+  it("the 429 response leaks no event/workspace/token detail", async () => {
+    const app = new Hono();
+    app.post("/token", rateLimit({ max: 1, windowMs: 60_000 }), (c) => c.json({ ok: true }));
+    const ip = "8.8.8.8";
+    await app.request("/token", { method: "POST", headers: { "x-forwarded-for": ip, "content-type": "application/json" }, body: JSON.stringify({ token: "secret-guest-token" }) });
+    const blocked = await app.request("/token", { method: "POST", headers: { "x-forwarded-for": ip, "content-type": "application/json" }, body: JSON.stringify({ token: "secret-guest-token" }) });
+    expect(blocked.status).toBe(429);
+    const body = await blocked.text();
+    expect(body).not.toMatch(/secret-guest-token|workspace|event|room/i);
+    expect(body).toMatch(/Too many attempts/);
   });
 });
 
