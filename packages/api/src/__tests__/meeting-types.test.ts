@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { sanitizeSummarySections } from "../routes/calls";
 import {
   MEETING_TYPES, DEFAULT_MEETING_TYPE, normalizeMeetingType, isMeetingType,
   MEETING_TYPE_META, guestSafeMeetingLabel,
@@ -138,7 +139,7 @@ describe("Phase 2 — type-aware post-call summary sections (transcript-grounded
   });
   it("stored under data.summary_sections ONLY when non-empty (old/general records unchanged); no schema", () => {
     expect(memory).toMatch(/\.\.\.\(intel\.summary_sections\.length \? \{ summary_sections: intel\.summary_sections \} : \{\}\)/);
-    expect(calls).toMatch(/summary_sections: Array\.isArray\(data\.summary_sections\) \? data\.summary_sections : \[\]/);
+    expect(calls).toMatch(/summary_sections: sanitizeSummarySections\(data\.summary_sections\)/);
     expect(memory).not.toMatch(/\bcreate table\b|\balter table\b/i);
   });
   it("preserved fields + no auto-task/guest-email/live-caption code added by this change", () => {
@@ -147,6 +148,56 @@ describe("Phase 2 — type-aware post-call summary sections (transcript-grounded
     // no new guest email / live caption / candidate scoring introduced here.
     expect(memory).not.toMatch(/sendTransactionalEmail|guest.*email|live_caption|caption|candidate_score|interview_score/i);
     expect(memory).not.toMatch(/tavily|api\.openai\.com|api\.anthropic\.com/i);   // sovereign: gateway only
+  });
+});
+
+describe("Phase 2.1 — read-path hardening for summary_sections (never crash / never garbage)", () => {
+  it("absent / non-array → [] (old + general calls unchanged)", () => {
+    expect(sanitizeSummarySections(undefined)).toEqual([]);
+    expect(sanitizeSummarySections(null)).toEqual([]);
+    expect(sanitizeSummarySections("nope")).toEqual([]);
+    expect(sanitizeSummarySections({})).toEqual([]);
+  });
+  it("valid sections pass through as { key, label, points: string[] }", () => {
+    const out = sanitizeSummarySections([{ key: "risks", label: "Risks", points: ["a", "b"] }]);
+    expect(out).toEqual([{ key: "risks", label: "Risks", points: ["a", "b"] }]);
+  });
+  it("MALFORMED points (string instead of array) can't crash — coerced/dropped, never .map on a string", () => {
+    // The exact shape that would crash the UI's `s.points.map(...)` if passed through raw.
+    const out = sanitizeSummarySections([{ key: "issue", label: "Issue", points: "not-an-array" }]);
+    expect(out).toEqual([]);   // no real string points → section dropped
+    // mixed: keep the valid entry, drop the malformed one.
+    const mixed = sanitizeSummarySections([
+      { key: "issue", label: "Issue", points: "x" },
+      { key: "impact", label: "Impact", points: ["down 2h", ""] },
+    ]);
+    expect(mixed).toEqual([{ key: "impact", label: "Impact", points: ["down 2h"] }]);   // empty string filtered
+  });
+  it("drops non-object entries, empty-key entries, and empty-points entries (no hollow sections)", () => {
+    const out = sanitizeSummarySections([
+      "junk", 42, null,
+      { label: "No key", points: ["x"] },        // missing key → dropped
+      { key: "empty", label: "Empty", points: [] }, // no points → dropped
+      { key: "ok", label: "OK", points: ["real"] },
+    ]);
+    expect(out).toEqual([{ key: "ok", label: "OK", points: ["real"] }]);
+  });
+  it("blank label falls back to the key; point values coerced to strings", () => {
+    const out = sanitizeSummarySections([{ key: "owners", label: "  ", points: [1, { x: 1 }, "  Alex  "] }]);
+    expect(out[0]!.label).toBe("owners");
+    expect(out[0]!.points).toContain("Alex");        // trimmed
+    expect(out[0]!.points.every(p => typeof p === "string")).toBe(true);   // never an object → no [object Object]
+  });
+  it("call route uses the sanitizer; UI renders sections only when non-empty (no implied sections)", () => {
+    expect(calls).toMatch(/summary_sections: sanitizeSummarySections\(data\.summary_sections\)/);
+    expect(callDetailUi).toMatch(/\.filter\(s => s && Array\.isArray\(s\.points\) && s\.points\.length > 0\)/);
+    expect(callDetailUi).toMatch(/title=\{s\.label \|\| s\.key\}/);
+  });
+  it("no prompt/extraction/STT/generation code changed by this read-path pass", () => {
+    // the extraction prompt + generation live in meeting-memory.ts; this pass didn't touch them.
+    expect(memory).toMatch(/You are a meeting analyst\./);   // still present, unchanged shape
+    // the read route never runs meeting-memory generation (extraction/STT live in meeting-memory.ts).
+    expect(calls).not.toMatch(/extractMeetingIntel|toolSchema|summarySectionsGuidance|transcribeAudio/);
   });
 });
 

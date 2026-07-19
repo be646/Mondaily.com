@@ -25,12 +25,34 @@ const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth);
 router.use("*", denyViewerWrites); // viewers are read-only
 
+/**
+ * Read-boundary sanitizer for type-aware summary_sections (Phase 2.1). The write path already validates,
+ * but a legacy / hand-edited / partially-written record could carry a malformed shape (e.g. `points` as a
+ * string). This guarantees the client ALWAYS gets `{ key, label, points: string[] }[]` — dropping any
+ * entry that isn't an object, has an empty key, or has no non-empty string points — so the UI can never
+ * crash or render raw garbage. Absent/non-array → [] (old + general calls unchanged).
+ */
+export function sanitizeSummarySections(v: unknown): { key: string; label: string; points: string[] }[] {
+  if (!Array.isArray(v)) return [];
+  return v
+    .map((s) => (s && typeof s === "object" ? (s as Record<string, unknown>) : null))
+    .filter((s): s is Record<string, unknown> => s !== null)
+    .map((s) => ({
+      key: String(s.key ?? "").trim(),
+      label: String(s.label ?? "").trim(),
+      points: (Array.isArray(s.points) ? s.points : []).map((p) => String(p ?? "").trim()).filter(Boolean).slice(0, 12),
+    }))
+    .filter((s) => s.key && s.points.length > 0)   // no key or no real points → omit (never a hollow section)
+    .map((s) => ({ ...s, label: s.label || s.key }))   // fall back to key if the stored label was blank
+    .slice(0, 12);
+}
+
 function normalizeCall(node: CallNode) {
   const data = node.data ?? {};
   return {
     id: node.id,
     meeting_type: normalizeMeetingType(data.meeting_type),   // classification label (absent/legacy → general)
-    summary_sections: Array.isArray(data.summary_sections) ? data.summary_sections : [],   // type-aware (absent on old/general)
+    summary_sections: sanitizeSummarySections(data.summary_sections),   // type-aware; sanitized so the UI never sees malformed shapes
     contact_name: String(data.contact_name ?? data.name ?? "Unknown contact"),
     company_name: data.company_name ? String(data.company_name) : undefined,
     occurred_at: String(data.occurred_at ?? data.date ?? node.created_at),

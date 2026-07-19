@@ -232,9 +232,9 @@ export function CallDetailPage() {
           {(call.linked_records ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{(call.linked_records ?? []).map((record) => <Link key={record.id} to={`/objects/${record.object_type}/${record.id}`} className="rounded-full border border-[var(--border-soft)] px-2.5 py-1 text-xs text-[var(--text-faint)]">{record.name}</Link>)}</div> : null}
           <SummarySection title="Overview"><p className="text-sm leading-6 text-[var(--text-secondary)]">{call.overview || call.ai_summary || "No summary generated yet."}</p></SummarySection>
           {/* Type-aware sections — only rendered when the transcript produced them (never fabricated). */}
-          {(call.summary_sections ?? []).filter(s => s.points?.length).map((s) => (
-            <SummarySection key={s.key} title={s.label}>
-              <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{s.points.map((p, i) => <li key={i}>• {p}</li>)}</ul>
+          {(call.summary_sections ?? []).filter(s => s && Array.isArray(s.points) && s.points.length > 0).map((s) => (
+            <SummarySection key={s.key} title={s.label || s.key}>
+              <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{s.points.map((p, i) => <li key={i}>• {String(p)}</li>)}</ul>
             </SummarySection>
           ))}
           <SummarySection title="Key topics">{(call.key_topics ?? []).length ? <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{(call.key_topics ?? []).map((topic) => <li key={topic}>• {topic}</li>)}</ul> : <p className="text-sm text-[var(--text-muted)]">No key topics extracted.</p>}</SummarySection>
