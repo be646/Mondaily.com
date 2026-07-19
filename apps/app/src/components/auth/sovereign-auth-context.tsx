@@ -110,6 +110,9 @@ export function SovereignAuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (booted.current) return;
     booted.current = true;
+    // PUBLIC guest routes (external call join) must never probe the authenticated session — a guest has
+    // no account. Skipping /me here keeps the guest page free of any authenticated API call.
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/join/")) { setGuest(); return; }
     (async () => {
       for (let attempt = 0; attempt < 3; attempt++) {
         const me = await authCall<MeResp>("/me", undefined, "GET");

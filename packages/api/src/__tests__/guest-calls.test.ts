@@ -15,6 +15,7 @@ const guestPage = read("../../../../apps/app/src/routes/guest-call.tsx");
 const appTsx = read("../../../../apps/app/src/App.tsx");
 const calendar = read("../routes/calendar.ts");
 const calendarUi = read("../../../../apps/app/src/routes/dashboard/calendar.tsx");
+const authCtx = read("../../../../apps/app/src/components/auth/sovereign-auth-context.tsx");
 
 describe("guest-calls — public, no-account, fails closed", () => {
   it("is mounted PUBLIC (outside requireAuth) and exposes only /meta + /token", () => {
@@ -109,6 +110,10 @@ describe("guest page — outside dashboard/auth, public APIs only, consent gate"
     // no apiClient (which attaches auth) and no other /api/v1 calls.
     expect(guestPage).not.toMatch(/apiClient|getAuthHeaders/);
     expect(guestPage).not.toMatch(/\/api\/v1\/(?!public\/calls)/);
+  });
+  it("the global auth bootstrap SKIPS its /me probe on the public /join route (no auth call at all)", () => {
+    // The provider wraps the router, so without this guard it would fire /auth/me on the guest page.
+    expect(authCtx).toMatch(/window\.location\.pathname\.startsWith\("\/join\/"\)[\s\S]{0,40}setGuest\(\); return;/);
   });
   it("keeps the token in the URL fragment (#g=) and never puts it in a query string", () => {
     expect(guestPage).toMatch(/\[#&\]g=\(\[\^&\]\+\)/);
