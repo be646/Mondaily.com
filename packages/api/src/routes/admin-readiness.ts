@@ -41,8 +41,9 @@ router.get("/readiness", async (c) => {
   const native_recording_enabled = recordingEnabled();
   const stt_configured = transcriptionEnabled();
   const supabase_core_configured = has("SUPABASE_URL") && has("SUPABASE_SERVICE_KEY");
-  // The realtime TOKEN endpoint only needs these three; a live WS still depends on the Supabase project
-  // enabling realtime replication on the tables + accepting this anon key (see note below).
+  // Realtime credentials — URL + JWT secret + anon key. Presence of all three means the token endpoint
+  // can mint valid credentials; a live socket is verified out-of-band by the readiness smoke test (we do
+  // NOT open a websocket here — see note below).
   const supabase_realtime_token_configured = has("SUPABASE_URL") && has("SUPABASE_JWT_SECRET") && has("SUPABASE_ANON_KEY");
   const search_configured = has("SOVEREIGN_SEARCH_URL");
   const scrape_configured = has("SOVEREIGN_SCRAPE_URL");
@@ -65,8 +66,9 @@ router.get("/readiness", async (c) => {
     ai: ai_gateway_configured ? "ready" : "missing",
     calls: livekit_configured ? (native_recording_enabled && recording_bucket_ready ? "ready" : "partial") : "missing",
     meeting_memory: stt_configured ? (ai_gateway_configured ? "ready" : "partial") : "missing",
-    // Env token can be present while the live WS is still rejected by the Supabase project → "partial".
-    realtime: supabase_realtime_token_configured ? "partial" : "missing",
+    // Ready when all three credentials are present. We don't open a socket here; the live subscription
+    // is confirmed by the readiness smoke test (env presence is the honest thing this endpoint checks).
+    realtime: supabase_realtime_token_configured ? "ready" : "missing",
     search: search_configured && scrape_configured ? "ready" : (search_configured || scrape_configured ? "partial" : "missing"),
     private_inference: embeddings_configured ? "ready" : "missing",
   };
@@ -89,7 +91,7 @@ router.get("/readiness", async (c) => {
       stt_configured,
       supabase_core_configured,
       supabase_realtime_token_configured,
-      supabase_realtime_note: "Token env is present, but a live realtime websocket also requires the Supabase project to enable realtime replication on the target tables and to accept this anon key. Verify in the Supabase dashboard.",
+      supabase_realtime_note: "Realtime credentials are configured. Live subscription should be verified by smoke test after any env change.",
       search_configured,
       scrape_configured,
       embeddings_configured,

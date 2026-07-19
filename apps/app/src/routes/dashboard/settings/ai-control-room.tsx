@@ -472,8 +472,9 @@ function ProdReadinessSection() {
                     </div>
                     <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-muted)" }}>Unlocks: {r.unlocks}</p>
                     <p className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>Without it: {r.failClosed}</p>
-                    {r.key === "realtime" && st === "partial" && note && (
-                      <p className="mt-0.5 text-[10.5px]" style={{ color: "#c6892e" }}>{note}</p>
+                    {r.key === "realtime" && note && (st === "ready" || st === "partial") && (
+                      // Advisory, not a warning: faint when ready (creds configured), amber only if partial.
+                      <p className="mt-0.5 text-[10.5px]" style={{ color: st === "ready" ? "var(--text-faint)" : "#c6892e" }}>{note}</p>
                     )}
                     {/* Admin-only safe self-tests. Mail sends one message to your own address; LiveKit only
                         mints+discards a token. Neither touches product mail, calls, recording, or payments. */}

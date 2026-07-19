@@ -47,9 +47,20 @@ describe("admin readiness — gated, read-only, no secrets", () => {
     for (const g of ["billing", "mail", "ai", "calls", "meeting_memory", "realtime", "search", "private_inference"]) {
       expect(route).toMatch(new RegExp(`${g}:`));
     }
-    // realtime is honestly "partial" when only the token env is present (WS still needs Supabase config).
-    expect(route).toMatch(/realtime: supabase_realtime_token_configured \? "partial" : "missing"/);
-    expect(route).toMatch(/supabase_realtime_note: "Token env is present/);
+    // realtime is READY when all three credentials are present (creds → mintable token); MISSING otherwise.
+    // Not hardcoded "partial" — the live socket is confirmed by the smoke test, not this endpoint.
+    expect(route).toMatch(/realtime: supabase_realtime_token_configured \? "ready" : "missing"/);
+    expect(route).not.toMatch(/realtime: supabase_realtime_token_configured \? "partial"/);
+    // Note no longer implies missing publication/anon config; it's an advisory to smoke-test the socket.
+    expect(route).toMatch(/supabase_realtime_note: "Realtime credentials are configured\. Live subscription should be verified by smoke test/);
+    expect(route).not.toMatch(/Token env is present, but a live realtime websocket also requires/);
+  });
+  it("adds NO live websocket / realtime probe from the endpoint (env presence only)", () => {
+    // The readiness endpoint must never open a realtime socket or call the Supabase realtime API.
+    expect(route).not.toMatch(/realtime\/v1\/websocket|createClient|\.channel\(|WebSocket|new RealtimeClient|setAuth\(/);
+    // supabase usage stays limited to the read-only bucket metadata check.
+    expect((route.match(/supabase\.storage\.getBucket/g) ?? []).length).toBe(1);
+    expect(route).not.toMatch(/supabase\.realtime/);
   });
   it("does NOT run a paid AI health probe — configured-only", () => {
     expect(route).toMatch(/ai_gateway_healthy: null/);
