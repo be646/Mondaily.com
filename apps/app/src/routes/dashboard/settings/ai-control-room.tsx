@@ -153,6 +153,11 @@ export function AIControlRoomSettings() {
         );
       })()}
 
+      {/* Production readiness — owner/admin-only, READ-ONLY config inspector. Booleans only, never any
+          secret value. Sourced from /admin/readiness which reuses the same gating helpers the features
+          use, so it can't drift from real behavior. */}
+      <ProdReadinessSection />
+
       {/* Workspace memory (shadow) — Phase 2A. Default OFF. Turning it on ONLY unlocks this debug
           view; recall is NOT wired into Ask/agents, so no answer changes. Admin-only surface. */}
       <MemoryShadowSection />
@@ -386,6 +391,77 @@ function MemoryShadowSection() {
             </>
           )}
         </div>
+      )}
+    </Section>
+  );
+}
+
+// ── Production readiness (read-only config inspector) ──────────────────────────
+type ReadinessGroup = "ready" | "partial" | "missing" | "unknown";
+interface ReadinessResp {
+  deploy_commit: string | null;
+  fields: Record<string, unknown> & { supabase_realtime_note?: string };
+  group: Record<string, ReadinessGroup | string>;
+}
+// Static, human copy per subsystem — what it unlocks, what happens without it, how urgent. No env values
+// live here; the live status comes purely from the API booleans.
+const READINESS_ROWS: { key: string; label: string; unlocks: string; failClosed: string; priority: "Must add before customers" | "Can wait" }[] = [
+  { key: "ai", label: "AI gateway", unlocks: "All AI — chat, Ask, agents, insights", failClosed: "AI features return an honest error; nothing fabricated", priority: "Must add before customers" },
+  { key: "billing", label: "Billing (Stripe)", unlocks: "Paid checkout & subscriptions", failClosed: "Upgrades return “billing isn’t connected”; no fake paid state", priority: "Must add before customers" },
+  { key: "mail", label: "Transactional mail", unlocks: "Activation, support & follow-up emails", failClosed: "Sends are skipped (one-shot, fail-safe); signup never blocks", priority: "Must add before customers" },
+  { key: "realtime", label: "Supabase realtime", unlocks: "Instant notifications / decisions / inbox", failClosed: "Falls back to polling — everything stays current, just not instant", priority: "Can wait" },
+  { key: "calls", label: "Calls (LiveKit)", unlocks: "Native calls, guest calls, recording", failClosed: "Call URLs 503 — no fake tokens; code-ready, inactive", priority: "Can wait" },
+  { key: "meeting_memory", label: "Meeting Memory (STT)", unlocks: "Transcripts & AI summaries", failClosed: "Transcript “unavailable”, summary “pending” — never fabricated", priority: "Can wait" },
+  { key: "search", label: "Search / Discovery", unlocks: "Web-backed lead & review discovery", failClosed: "Honest empty results (fail-loud), never fake sources", priority: "Can wait" },
+  { key: "private_inference", label: "Private inference / embeddings", unlocks: "Vector recall acceleration", failClosed: "Fails soft to LLM-rerank; product unchanged", priority: "Can wait" },
+];
+const STATUS_META: Record<string, { color: string; label: string }> = {
+  ready:   { color: "#2f9e6b", label: "Ready" },
+  partial: { color: "#c6892e", label: "Partial" },
+  missing: { color: "#d1524a", label: "Missing" },
+  unknown: { color: "var(--text-faint)", label: "Unknown" },
+};
+function ProdReadinessSection() {
+  const q = useQuery<ReadinessResp>({ queryKey: ["admin-readiness"], queryFn: () => apiClient.get<ReadinessResp>("/admin/readiness"), retry: false, staleTime: 60_000 });
+  const g = q.data?.group ?? {};
+  const note = q.data?.fields?.supabase_realtime_note;
+  return (
+    <Section title="Production readiness" hint="Read-only — which production subsystems are configured. Booleans only; no secret values are ever shown or editable here.">
+      {q.isLoading ? (
+        <div className="flex items-center gap-2 py-3 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={13} className="animate-spin" /> Checking configuration…</div>
+      ) : q.isError ? (
+        <p className="py-3 text-[12px]" style={{ color: "var(--text-faint)" }}>Readiness is unavailable right now.</p>
+      ) : (
+        <>
+          <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+            {READINESS_ROWS.map((r, i) => {
+              const st = String(g[r.key] ?? "unknown");
+              const meta = STATUS_META[st] ?? STATUS_META.unknown!;
+              return (
+                <div key={r.key} className="flex items-start gap-3 px-3.5 py-2.5" style={{ borderTop: i === 0 ? "none" : "1px solid var(--border-soft)" }}>
+                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: meta.color }} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{r.label}</span>
+                      <span className="rounded-sm border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide" style={{ color: meta.color, borderColor: meta.color + "55" }}>{meta.label}</span>
+                      {r.priority === "Must add before customers" && (st === "missing" || st === "partial") && (
+                        <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: "#c6892e" }}>· before customers</span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-muted)" }}>Unlocks: {r.unlocks}</p>
+                    <p className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>Without it: {r.failClosed}</p>
+                    {r.key === "realtime" && st === "partial" && note && (
+                      <p className="mt-0.5 text-[10.5px]" style={{ color: "#c6892e" }}>{note}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {q.data?.deploy_commit && (
+            <p className="mt-2 font-mono text-[10px]" style={{ color: "var(--text-faint)" }}>deploy · {q.data.deploy_commit.slice(0, 8)}</p>
+          )}
+        </>
       )}
     </Section>
   );

@@ -33,6 +33,7 @@ import { invitesRouter } from "./routes/invites";
 import { notesRouter } from "./routes/notes";
 import { emailsRouter } from "./routes/emails";
 import { callsRouter } from "./routes/calls";
+import { adminReadinessRouter } from "./routes/admin-readiness";
 import { reportsRouter } from "./routes/reports";
 import { recordsRouter } from "./routes/records";
 import { dashboardsRouter } from "./routes/dashboards";
@@ -110,6 +111,7 @@ app.route("/api/v1/invites", invitesRouter);
 app.route("/api/v1/notes", notesRouter);
 app.route("/api/v1/emails", emailsRouter);
 app.route("/api/v1/calls", callsRouter);
+app.route("/api/v1/admin", adminReadinessRouter);   // owner/admin-only READ-ONLY prod config inspector
 app.route("/api/v1/reports", reportsRouter);
 app.route("/api/v1/dashboards", dashboardsRouter);
 app.route("/api/v1/sequences", sequencesRouter);
