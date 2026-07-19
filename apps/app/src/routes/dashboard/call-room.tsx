@@ -2,7 +2,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Room, Participant, Track as TrackNS } from "livekit-client";
-import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Brain, Sparkles, FileText, ListChecks, Link2, UserPlus, Check, X, MessageSquare, Maximize2, LayoutGrid, Send } from "lucide-react";
+import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Brain, Sparkles, FileText, ListChecks, Link2, UserPlus, UserX, Check, X, MessageSquare, Maximize2, LayoutGrid, Send } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { FieldSelect } from "../../components/ui/controls";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -270,6 +270,11 @@ function CallRoom({ event }: { event: CalEvent }) {
     mutationFn: () => apiClient.post<{ url?: string; error?: string }>(`/calendar/events/${event.id}/guest-link`, {}),
     onSuccess: (r) => { if (r.url) navigator.clipboard?.writeText(r.url).then(() => { setGuestCopied(true); setTimeout(() => setGuestCopied(false), 2000); }).catch(() => {}); },
   });
+  // Host removes ONE external guest from the live call. The server disconnects them; the room's
+  // ParticipantDisconnected event drops their tile — no fake local hiding.
+  const removeGuest = useMutation({
+    mutationFn: (identity: string) => apiClient.post<{ removed?: boolean }>(`/calendar/events/${event.id}/remove-guest`, { identity }),
+  });
   const revokeGuestLinks = useMutation({
     mutationFn: () => apiClient.post<{ ok?: boolean; error?: string }>(`/calendar/events/${event.id}/revoke-guest-links`, {}),
     onSuccess: () => { setGuestRevoked(true); setTimeout(() => setGuestRevoked(false), 2500); },
@@ -399,12 +404,29 @@ function CallRoom({ event }: { event: CalEvent }) {
           <div className="min-h-0 flex-1 overflow-y-auto">
             {(() => {
               if (!lk) return null;
-              const tile = (p: Participant, isLocal: boolean) => (
-                <ParticipantTile key={p.sid || p.identity} p={p} source={lk.Track.Source.Camera}
-                  isLocal={isLocal} speaking={speaking.has(p.identity)} youLabel={t("cal.you")}
-                  handRaised={hands.has(p.identity)}
-                  muted={isLocal ? !micOn : !!p.getTrackPublication(lk.Track.Source.Microphone)?.isMuted} />
-              );
+              const tile = (p: Participant, isLocal: boolean) => {
+                // Host-only Remove control, shown ONLY on external guest tiles (identity "guest_…").
+                const isGuest = !isLocal && (p.identity || "").startsWith("guest_");
+                const inner = (
+                  <ParticipantTile key={p.sid || p.identity} p={p} source={lk.Track.Source.Camera}
+                    isLocal={isLocal} speaking={speaking.has(p.identity)} youLabel={t("cal.you")}
+                    handRaised={hands.has(p.identity)}
+                    muted={isLocal ? !micOn : !!p.getTrackPublication(lk.Track.Source.Microphone)?.isMuted} />
+                );
+                if (!(isHost && isGuest)) return inner;
+                return (
+                  <div key={p.sid || p.identity} className="group/tile relative">
+                    {inner}
+                    <button
+                      onClick={() => { if (window.confirm(`Remove ${p.name || "this guest"} from the call?`)) removeGuest.mutate(p.identity); }}
+                      disabled={removeGuest.isPending}
+                      title="Remove guest"
+                      className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-md bg-black/60 px-2 py-1 text-[10px] font-semibold text-white opacity-0 transition-opacity group-hover/tile:opacity-100 hover:bg-[#d1524a] disabled:opacity-50">
+                      <UserX size={11} /> Remove
+                    </button>
+                  </div>
+                );
+              };
               // Screen share OR speaker view → a big stage + a filmstrip of everyone else.
               const stageEntry = screenSharer
                 ? undefined

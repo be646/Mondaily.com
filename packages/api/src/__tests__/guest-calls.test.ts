@@ -18,6 +18,7 @@ const appTsx = read("../../../../apps/app/src/App.tsx");
 const calendar = read("../routes/calendar.ts");
 const calendarUi = read("../../../../apps/app/src/routes/dashboard/calendar.tsx");
 const callRoomUi = read("../../../../apps/app/src/routes/dashboard/call-room.tsx");
+const livekitLib = read("../lib/livekit.ts");
 const authCtx = read("../../../../apps/app/src/components/auth/sovereign-auth-context.tsx");
 const limiter = read("../middleware/rate-limit.ts");
 
@@ -186,6 +187,36 @@ describe("Phase 2A — waiting room + host admit/deny (schema-free, node-backed)
     expect(callRoomUi).toMatch(/waiting\/\$\{rid\}\/\$\{action\}/);
     expect(calendarUi).toMatch(/Waiting room \{e\.guest_waiting_room \? "on" : "off"\}/);
     expect(calendarUi).toMatch(/\/calendar\/events\/\$\{id\}\/waiting-room/);
+  });
+});
+
+describe("Phase 2A.1 — host removes an admitted guest from the live call", () => {
+  it("uses the LiveKit RoomService RemoveParticipant API (same roomAdmin pattern as endRoom)", () => {
+    expect(livekitLib).toMatch(/export async function removeParticipant\(room: string, identity: string\)/);
+    expect(livekitLib).toMatch(/twirp\/livekit\.RoomService\/RemoveParticipant/);
+    expect(livekitLib).toMatch(/mintRoomAdminToken\(room\)/);         // host-side admin token, short-lived
+    expect(livekitLib).toMatch(/if \(!liveKitEnabled\(\) \|\| !room \|\| !identity\) return false/); // fail closed
+  });
+  it("the endpoint is organizer/admin gated, event+workspace scoped, guest-only, fail-closed", () => {
+    expect(calendar).toMatch(/router\.post\("\/events\/:id\/remove-guest"/);
+    expect(calendar).toMatch(/Only the organizer or an admin can remove guests\./);   // canManage-gated message
+    expect(calendar).toMatch(/getEvent\(ws, c\.req\.param\("id"\)\)/);        // event + workspace scoped
+    expect(calendar).toMatch(/if \(!callsEnabled\(\)\)[\s\S]{0,140}, 503\)/);   // fail closed
+    // ONLY external guests (identity "guest_…") can be removed here — never workspace members.
+    expect(calendar).toMatch(/if \(!identity\.startsWith\("guest_"\)\) return c\.json\(\{ error: "Only external guests can be removed here\." \}, 400\)/);
+    expect(calendar).toMatch(/const removed = await removeParticipant\(room, identity\)/);
+  });
+  it("the UI shows Remove ONLY to the host and ONLY on external guest tiles — no fake local hide", () => {
+    expect(callRoomUi).toMatch(/const isGuest = !isLocal && \(p\.identity \|\| ""\)\.startsWith\("guest_"\)/);
+    expect(callRoomUi).toMatch(/if \(!\(isHost && isGuest\)\) return inner/);   // gate: host + guest only
+    expect(callRoomUi).toMatch(/removeGuest\.mutate\(p\.identity\)/);
+    expect(callRoomUi).toMatch(/remove-guest/);
+    // removal is server-driven (LiveKit disconnect → ParticipantDisconnected), not a local filter.
+    expect(callRoomUi).not.toMatch(/setRemoved|filter\(p => p\.identity !==/);
+  });
+  it("does not grant guests roomAdmin anywhere", () => {
+    expect(calendar).not.toMatch(/roomAdmin: true[\s\S]{0,40}guest/);
+    expect(route).not.toMatch(/roomAdmin: true/);
   });
 });
 

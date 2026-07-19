@@ -11,7 +11,7 @@ import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
 import { resolveProfile } from "@mondaily/shared/profile";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
 import { isOverdue } from "@mondaily/shared/dates";
-import { endRoom } from "../lib/livekit";
+import { endRoom, removeParticipant } from "../lib/livekit";
 
 /**
  * MONDAILY CALENDAR + CALLS — native, workspace-scoped meetings with Mondaily-owned call links.
@@ -464,6 +464,22 @@ router.post("/events/:id/end-call", async (c) => {
   const room = ev.data.call_room_id || internalRoom(ws, ev.id);
   const ended = await endRoom(room);
   return c.json({ ended });
+});
+
+// POST /calendar/events/:id/remove-guest { identity } — ORGANIZER/ADMIN removes ONE external guest from
+// the live LiveKit room. Restricted to EXTERNAL GUESTS (identity prefix "guest_") so workspace members
+// can never be kicked here. Fails closed when calls aren't configured. Never grants the guest roomAdmin.
+router.post("/events/:id/remove-guest", zValidator("json", z.object({ identity: z.string().min(1).max(120) })), async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const ev = await getEvent(ws, c.req.param("id"));
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canManage(ev.data, me, c.get("role"))) return c.json({ error: "Only the organizer or an admin can remove guests." }, 403);
+  if (!callsEnabled()) return c.json({ error: "Calls aren't configured on this workspace.", calls_enabled: false }, 503);
+  const { identity } = c.req.valid("json");
+  if (!identity.startsWith("guest_")) return c.json({ error: "Only external guests can be removed here." }, 400);
+  const room = ev.data.call_room_id || internalRoom(ws, ev.id);
+  const removed = await removeParticipant(room, identity);
+  return c.json({ removed });
 });
 
 // POST /calendar/events/:id/guest-link — ORGANIZER/ADMIN mints a shareable EXTERNAL guest link. The

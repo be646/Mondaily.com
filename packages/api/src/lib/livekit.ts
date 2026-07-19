@@ -135,6 +135,28 @@ export async function endRoom(room: string): Promise<boolean> {
   }
 }
 
+/**
+ * Remove ONE participant from a room — LiveKit disconnects them and (since their join token is one-shot
+ * and room-scoped) they cannot silently rejoin the same session. Used by the host to eject an external
+ * guest. Best-effort; returns whether LiveKit accepted the removal. Uses the same short-lived roomAdmin
+ * token as endRoom — the guest NEVER receives roomAdmin.
+ */
+export async function removeParticipant(room: string, identity: string): Promise<boolean> {
+  if (!liveKitEnabled() || !room || !identity) return false;
+  const { url } = env();
+  try {
+    const token = await mintRoomAdminToken(room);
+    const res = await fetch(`${(url as string).replace(/\/$/, "")}/twirp/livekit.RoomService/RemoveParticipant`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ room, identity }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 /** Stop a running egress (best-effort; called when the call ends). */
 export async function stopRoomEgress(egressId: string): Promise<void> {
   if (!recordingEnabled() || !egressId) return;
