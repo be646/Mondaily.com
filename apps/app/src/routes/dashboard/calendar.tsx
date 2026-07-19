@@ -20,6 +20,7 @@ interface Person { user_id: string; name: string; email: string | null; response
 interface CalEvent {
   id: string; title: string; description: string; start_at: string; end_at: string; timezone: string;
   location: string; status: "scheduled" | "cancelled" | "completed"; call_url: string | null;
+  guest_waiting_room?: boolean;
   organizer: Person; attendees: Person[];
   // Recurrence — series master carries the rule + summary; a list occurrence also carries these.
   recurrence?: { freq: "daily" | "weekly" | "monthly"; interval: number; count?: number; until?: string } | null;
@@ -763,6 +764,11 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
     mutationFn: () => apiClient.post<{ ok?: boolean }>(`/calendar/events/${id}/revoke-guest-links`, {}),
     onSuccess: () => { setGuestRevoked(true); setTimeout(() => setGuestRevoked(false), 2500); },
   });
+  // Waiting room — when on, external guests must be admitted by the host before they get a room token.
+  const waitingRoom = useMutation({
+    mutationFn: (enabled: boolean) => apiClient.post<{ ok?: boolean; enabled?: boolean }>(`/calendar/events/${id}/waiting-room`, { enabled }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["calendar-event", id] }); },
+  });
   const e = detail.data;
   const isOrganizer = e?.organizer.user_id === me.userId;
   const followTotal = followQ.data ? followQ.data.overdue.length + followQ.data.due_today.length + followQ.data.related.length : 0;
@@ -839,6 +845,13 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
                   {guestRevoked ? "Links revoked" : "Revoke links"}
                 </button>
                 <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>Anyone with the link can join · expires in 24h · no account</span>
+                {/* Waiting room toggle — host admits each external guest before they get a room token. */}
+                <button onClick={() => waitingRoom.mutate(!e.guest_waiting_room)} disabled={waitingRoom.isPending}
+                  className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-60"
+                  style={{ borderColor: e.guest_waiting_room ? "var(--section-accent-line)" : "var(--border-soft)", background: e.guest_waiting_room ? "var(--section-accent-soft)" : "transparent", color: e.guest_waiting_room ? "var(--section-accent-text)" : "var(--text-faint)" }}>
+                  {waitingRoom.isPending ? <Loader2 size={12} className="animate-spin" /> : e.guest_waiting_room ? <Check size={12} /> : <Circle size={12} />}
+                  Waiting room {e.guest_waiting_room ? "on" : "off"}
+                </button>
               </div>
             )}
             {e.location && <div className="flex items-center gap-2" style={{ color: "var(--text-secondary)" }}><MapPin size={13} style={{ color: "var(--text-faint)" }} /> {e.location}</div>}

@@ -160,6 +160,39 @@ function NotAllowed() {
 }
 
 /** First-letters of a name → up to two initials for the no-video placeholder. */
+/** Host-only waiting-guests panel — polls the event's waiting list and admits/denies each guest. Quiet:
+ *  renders nothing when no one is waiting. Never shows fake participants or AI. */
+function WaitingGuestsPanel({ eventId }: { eventId: string }) {
+  const qc = useQueryClient();
+  const q = useQuery<{ waiting: { request_id: string; guest_name: string; created_at: string }[] }>({
+    queryKey: ["call-waiting", eventId],
+    queryFn: () => apiClient.get(`/calendar/events/${eventId}/waiting`),
+    refetchInterval: 4000, retry: false,
+  });
+  const decide = useMutation({
+    mutationFn: ({ rid, action }: { rid: string; action: "admit" | "deny" }) => apiClient.post(`/calendar/events/${eventId}/waiting/${rid}/${action}`, {}),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["call-waiting", eventId] }),
+  });
+  const waiting = q.data?.waiting ?? [];
+  if (waiting.length === 0) return null;
+  return (
+    <div className="absolute right-3 top-16 z-30 w-72 overflow-hidden rounded-xl border shadow-2xl" style={{ borderColor: "rgba(255,255,255,0.12)", background: "rgba(20,20,24,0.96)" }}>
+      <div className="border-b px-3 py-2.5 text-[12px] font-semibold text-white" style={{ borderColor: "rgba(255,255,255,0.08)" }}>Waiting to join ({waiting.length})</div>
+      <div className="max-h-64 divide-y overflow-y-auto" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+        {waiting.map(g => (
+          <div key={g.request_id} className="flex items-center gap-2 px-3 py-2.5">
+            <span className="min-w-0 flex-1 truncate text-[12.5px] text-white/90">{g.guest_name}</span>
+            <button onClick={() => decide.mutate({ rid: g.request_id, action: "admit" })} disabled={decide.isPending}
+              className="rounded-md px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-50" style={{ background: "#2f9e6b" }}>Admit</button>
+            <button onClick={() => decide.mutate({ rid: g.request_id, action: "deny" })} disabled={decide.isPending}
+              className="rounded-md px-2 py-1 text-[11px] font-medium text-white/80 disabled:opacity-50" style={{ background: "rgba(255,255,255,0.1)" }}>Deny</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function CallRoom({ event }: { event: CalEvent }) {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
@@ -358,6 +391,8 @@ function CallRoom({ event }: { event: CalEvent }) {
               isHost={isHost} onCopyGuestLink={() => guestLink.mutate()} guestCopied={guestCopied} guestPending={guestLink.isPending}
               onRevokeGuestLinks={() => revokeGuestLinks.mutate()} guestRevoked={guestRevoked} revokePending={revokeGuestLinks.isPending} />
           )}
+          {/* Host-only waiting-room admit/deny — quiet (hidden when nobody is waiting). */}
+          {isHost && <WaitingGuestsPanel eventId={event.id} />}
         </div>
 
         <div className="flex min-h-0 flex-1 gap-2 px-3 pb-2">
@@ -495,6 +530,8 @@ function CallRoom({ event }: { event: CalEvent }) {
               isHost={isHost} onCopyGuestLink={() => guestLink.mutate()} guestCopied={guestCopied} guestPending={guestLink.isPending}
               onRevokeGuestLinks={() => revokeGuestLinks.mutate()} guestRevoked={guestRevoked} revokePending={revokeGuestLinks.isPending} />
           )}
+          {/* Host-only waiting-room admit/deny — quiet (hidden when nobody is waiting). */}
+          {isHost && <WaitingGuestsPanel eventId={event.id} />}
         </div>
 
         <div className="mt-6 border-t pt-5" style={{ borderColor: "var(--border-soft)" }}>

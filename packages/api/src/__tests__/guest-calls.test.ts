@@ -17,6 +17,7 @@ const guestPage = read("../../../../apps/app/src/routes/guest-call.tsx");
 const appTsx = read("../../../../apps/app/src/App.tsx");
 const calendar = read("../routes/calendar.ts");
 const calendarUi = read("../../../../apps/app/src/routes/dashboard/calendar.tsx");
+const callRoomUi = read("../../../../apps/app/src/routes/dashboard/call-room.tsx");
 const authCtx = read("../../../../apps/app/src/components/auth/sovereign-auth-context.tsx");
 const limiter = read("../middleware/rate-limit.ts");
 
@@ -133,6 +134,58 @@ describe("Phase 1.1 — public guest endpoints are rate-limited (reuses the shar
     const body = await blocked.text();
     expect(body).not.toMatch(/secret-guest-token|workspace|event|room/i);
     expect(body).toMatch(/Too many attempts/);
+  });
+});
+
+describe("Phase 2A — waiting room + host admit/deny (schema-free, node-backed)", () => {
+  it("uses generic nodes (call_waiting_request) — NO migration/table added", () => {
+    expect(route).toMatch(/const WAITING_OBJECT = "call_waiting_request"/);
+    expect(route).toMatch(/object_type: WAITING_OBJECT/);
+    expect(calendar).toMatch(/const WAITING_OBJECT = "call_waiting_request"/);
+    // stores only display name + status — never the guest token or a profile.
+    expect(route).toMatch(/interface WaitingData \{ event_id: string; room: string; guest_name: string; status: WaitStatus; request_id: string; created_at: string \}/);
+    expect(route).not.toMatch(/guest_token|jwt.*: token/);
+  });
+  it("meta exposes waiting_room; /request creates a waiting node only when it's ON", () => {
+    expect(route).toMatch(/waiting_room: !!r\.data\?\.guest_waiting_room/);
+    expect(route).toMatch(/router\.post\("\/request"/);
+    expect(route).toMatch(/if \(!r\.data!\.guest_waiting_room\) return c\.json\(\{ waiting: false \}\)/);
+    expect(route).toMatch(/const request_id = randomUUID\(\)/);
+  });
+  it("a guest CANNOT get a token before admission when the waiting room is on", () => {
+    expect(route).toMatch(/if \(r\.data!\.guest_waiting_room\) \{/);
+    expect(route).toMatch(/if \(!node \|\| node\.d\.status !== "admitted"\)/);
+    expect(route).toMatch(/code: "not_admitted" \}, 403\)/);
+    // an admitted request is one-time use (consumed on redemption).
+    expect(route).toMatch(/await supabase\.from\("nodes"\)\.delete\(\)\.eq\("id", node\.id\)/);
+  });
+  it("wait-status returns ONLY the coarse status — no host/workspace data", () => {
+    expect(route).toMatch(/router\.post\("\/wait-status"/);
+    expect(route).toMatch(/return c\.json\(\{ status: node \? node\.d\.status : "expired" \}\)/);
+  });
+  it("request lookups are event+workspace scoped and TTL-bounded (unguessable request_id)", () => {
+    expect(route).toMatch(/\.eq\("data->>request_id", requestId\)/);
+    expect(route).toMatch(/if \(d\.event_id !== eventId\) return null/);
+    expect(route).toMatch(/Date\.now\(\) - new Date\(d\.created_at\)\.getTime\(\) > WAITING_TTL_MS/);
+    expect(route).toMatch(/request_id: z\.string\(\)\.uuid\(\)/);
+  });
+  it("host admit/deny/list/toggle are organizer-admin gated (canManage)", () => {
+    for (const p of [
+      /router\.post\("\/events\/:id\/waiting-room"/,
+      /router\.get\("\/events\/:id\/waiting"/,
+      /router\.post\("\/events\/:id\/waiting\/:rid\/admit"/,
+      /router\.post\("\/events\/:id\/waiting\/:rid\/deny"/,
+    ]) expect(calendar).toMatch(p);
+    expect(calendar).toMatch(/canManage\(ev\.data, me, c\.get\("role"\)\)[\s\S]{0,90}admit or deny guests/);
+    // the waiting list returns only name + request id + created_at — no emails/IDs.
+    expect(calendar).toMatch(/request_id: d\.request_id, guest_name: d\.guest_name, created_at: d\.created_at/);
+  });
+  it("host waiting panel + toggle exist in the UI, host-only", () => {
+    expect(callRoomUi).toMatch(/function WaitingGuestsPanel/);
+    expect(callRoomUi).toMatch(/isHost && <WaitingGuestsPanel eventId=\{event\.id\} \/>/);
+    expect(callRoomUi).toMatch(/waiting\/\$\{rid\}\/\$\{action\}/);
+    expect(calendarUi).toMatch(/Waiting room \{e\.guest_waiting_room \? "on" : "off"\}/);
+    expect(calendarUi).toMatch(/\/calendar\/events\/\$\{id\}\/waiting-room/);
   });
 });
 

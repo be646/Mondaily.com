@@ -9,7 +9,7 @@ import { ParticipantTile, ScreenTile, ToolBtn } from "./dashboard/call-tiles";
 interface GuestMeta {
   event_title: string | null; start_time: string | null;
   host_display_name: string | null; workspace_display_name: string | null;
-  recording_may_occur: boolean; calls_enabled: boolean;
+  recording_may_occur: boolean; calls_enabled: boolean; waiting_room: boolean;
   status: "ok" | "expired" | "revoked" | "cancelled" | "ended" | "not_configured";
 }
 const STATUS_COPY: Record<string, string> = {
@@ -30,7 +30,8 @@ const STATUS_COPY: Record<string, string> = {
 type LKModule = typeof import("livekit-client");
 
 export function GuestCallPage() {
-  const [phase, setPhase] = useState<"lobby" | "connecting" | "live" | "ended" | "error" | "invalid">("lobby");
+  const [phase, setPhase] = useState<"lobby" | "waiting" | "denied" | "connecting" | "live" | "ended" | "error" | "invalid">("lobby");
+  const [requestId, setRequestId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [micOn, setMicOn] = useState(true);
   const [camOn, setCamOn] = useState(true);
@@ -71,16 +72,56 @@ export function GuestCallPage() {
   }, [token]);
 
   const recordingMayOccur = !!meta?.recording_may_occur;
+  const waitingRoom = !!meta?.waiting_room;
   const canJoin = !!name.trim() && (!recordingMayOccur || consent);
 
-  async function join() {
+  // Ask to join. With a waiting room ON, this records a request and the guest waits for the host to admit
+  // (no token yet). With it OFF, it connects straight away (Phase 1 behaviour).
+  async function requestJoin() {
     if (!token) { setPhase("invalid"); return; }
     if (!canJoin) return;
+    setErrMsg("");
+    if (!waitingRoom) { await connectWithToken(); return; }
+    setPhase("connecting");
+    try {
+      const res = await fetch(`${BASE_URL}/api/v1/public/calls/request`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, name: name.trim() || "Guest", consent: recordingMayOccur ? consent : undefined }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { setErrMsg(data.error || "Couldn't request entry."); setPhase(res.status === 401 || res.status === 410 ? "invalid" : "error"); return; }
+      if (data.waiting === false) { await connectWithToken(); return; }   // waiting room turned off meanwhile
+      setRequestId(data.request_id); setPhase("waiting");
+    } catch { setPhase("error"); setErrMsg("Couldn't reach the meeting."); }
+  }
+
+  // Poll the host's admission decision while waiting. Admitted → connect; denied → denied screen.
+  useEffect(() => {
+    if (phase !== "waiting" || !requestId || !token) return;
+    let stop = false;
+    const tick = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/api/v1/public/calls/wait-status`, {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, request_id: requestId }),
+        });
+        const { status } = await res.json().catch(() => ({ status: "waiting" }));
+        if (stop) return;
+        if (status === "admitted") { connectWithToken(requestId); return; }
+        if (status === "denied") { setPhase("denied"); return; }
+        if (status === "expired") { setErrMsg("This request expired — ask the host for a fresh link."); setPhase("invalid"); return; }
+      } catch { /* keep polling */ }
+    };
+    const iv = setInterval(tick, 3000); tick();
+    return () => { stop = true; clearInterval(iv); };
+  }, [phase, requestId, token]);
+
+  async function connectWithToken(reqId?: string) {
+    if (!token) { setPhase("invalid"); return; }
     setPhase("connecting"); setErrMsg("");
     try {
       const res = await fetch(`${BASE_URL}/api/v1/public/calls/token`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, name: name.trim() || "Guest", consent: recordingMayOccur ? consent : undefined }),
+        body: JSON.stringify({ token, name: name.trim() || "Guest", consent: recordingMayOccur ? consent : undefined, request_id: reqId ?? requestId ?? undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.token || !data.url) { setErrMsg(data.error || "Couldn't join this call."); setPhase(res.status === 401 || res.status === 410 || res.status === 404 ? "invalid" : "error"); return; }
@@ -166,6 +207,23 @@ export function GuestCallPage() {
     </div></Shell>;
   }
 
+  if (phase === "waiting") {
+    return <Shell><div className="mx-auto flex max-w-md flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+      <div className="mb-1 flex items-center gap-2"><LogoMark className="h-5 w-5" /><span className="text-[12px] font-semibold text-white/70">Mondaily</span></div>
+      <Loader2 size={22} className="animate-spin text-white/60" />
+      <p className="text-[15px] font-medium text-white">Waiting for the host to admit you…</p>
+      <p className="text-[12.5px] text-white/50">{meta?.event_title ? `“${meta.event_title}”` : "You're in the waiting room."} The host will let you in shortly.</p>
+    </div></Shell>;
+  }
+
+  if (phase === "denied") {
+    return <Shell><div className="mx-auto flex max-w-md flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+      <ShieldAlert size={24} className="text-white/50" />
+      <p className="text-[15px] font-medium text-white">The host didn't admit you</p>
+      <p className="text-[12.5px] text-white/55">You weren't admitted to this meeting. If you think this is a mistake, contact the host.</p>
+    </div></Shell>;
+  }
+
   // Lobby — branded pre-join preview + name + device toggles + (conditional) recording consent.
   const startLabel = (() => {
     if (!meta?.start_time) return null;
@@ -191,7 +249,8 @@ export function GuestCallPage() {
                 {startLabel && <p className="flex items-center gap-1.5"><CalendarClock size={12} /> {startLabel}</p>}
                 <p className="pt-1 text-white/40">You've been invited as a guest — enter your name to join.</p>
               </div>
-              <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && canJoin && join()}
+              {waitingRoom && <p className="mt-2 flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] text-white/60" style={{ borderColor: "rgba(255,255,255,0.12)" }}><Users size={12} /> The host admits guests — you'll wait briefly after asking to join.</p>}
+              <input value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === "Enter" && canJoin && requestJoin()}
                 placeholder="Your name" autoFocus maxLength={40}
                 className="mt-4 w-full rounded-lg border bg-black/30 px-3 py-2.5 text-[14px] text-white placeholder-white/30 outline-none focus:border-[color:var(--section-accent)]"
                 style={{ borderColor: "rgba(255,255,255,0.12)" }} />
@@ -206,9 +265,9 @@ export function GuestCallPage() {
                   <span className="text-[11.5px] leading-snug text-white/70">This meeting may be recorded and transcribed. By joining, I consent to being recorded.</span>
                 </button>
               )}
-              <button onClick={join} disabled={!canJoin}
+              <button onClick={requestJoin} disabled={!canJoin}
                 className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-[14px] font-semibold text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
-                <Video size={15} /> Join call
+                <Video size={15} /> {waitingRoom ? "Ask to join" : "Join call"}
               </button>
               {phase === "error" && <p className="mt-2 text-center text-[12px]" style={{ color: "#e8837b" }}>{errMsg || "Couldn't join — try again."}</p>}
               <p className="mt-4 text-center text-[10.5px] text-white/35">Guests can talk, video, and share screen. You won't have access to anything else in the workspace.</p>

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { sign } from "hono/jwt";
@@ -194,6 +194,7 @@ function shape(id: string, d: EventData, dir: Map<string, { name?: string; email
     id, title: d.title, description: d.description ?? "", start_at: d.start_at, end_at: d.end_at,
     timezone: d.timezone ?? "UTC", location: d.location ?? "", status: d.status ?? "scheduled",
     call_url: d.call_url ?? null, call_room_id: d.call_room_id ?? null,
+    guest_waiting_room: (d as { guest_waiting_room?: boolean }).guest_waiting_room ?? false,
     organizer: person(d.organizer_id), attendees: (d.attendee_ids ?? []).map(person),
     recurrence: d.recurrence ?? null,
     recurrence_summary: d.recurrence ? recurrenceSummary(d.recurrence) : null,
@@ -505,6 +506,61 @@ router.post("/events/:id/revoke-guest-links", async (c) => {
   if (error) return c.json({ error: "Could not revoke guest links." }, 500);
   return c.json({ ok: true, revoked: true, epoch: nextEpoch });
 });
+
+// ── Guest waiting room (Phase 2A) — ORGANIZER/ADMIN only. Waiting requests live as generic nodes
+// (object_type "call_waiting_request"), so there is NO schema/migration. ──
+const WAITING_OBJECT = "call_waiting_request";
+const WAITING_TTL_MS = 30 * 60_000;
+
+// POST /events/:id/waiting-room { enabled } — toggle whether external guests must be admitted by the host.
+router.post("/events/:id/waiting-room", zValidator("json", z.object({ enabled: z.boolean() })), async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const ev = await getEvent(ws, c.req.param("id"));
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canManage(ev.data, me, c.get("role"))) return c.json({ error: "Only the organizer or an admin can change the waiting room." }, 403);
+  const { enabled } = c.req.valid("json");
+  const { error } = await supabase.from("nodes")
+    .update({ data: { ...ev.data, guest_waiting_room: enabled } })
+    .eq("workspace_id", ws).eq("object_type", "calendar_event").eq("id", baseId(ev.id));
+  if (error) return c.json({ error: "Could not update the waiting room." }, 500);
+  return c.json({ ok: true, enabled });
+});
+
+// GET /events/:id/waiting — the host's live list of guests waiting to be admitted (name + request id only).
+router.get("/events/:id/waiting", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const ev = await getEvent(ws, c.req.param("id"));
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canManage(ev.data, me, c.get("role"))) return c.json({ error: "Only the organizer or an admin can see waiting guests." }, 403);
+  const eventId = c.req.param("id");
+  const { data } = await supabase.from("nodes")
+    .select("id,data").eq("workspace_id", ws).eq("object_type", WAITING_OBJECT).eq("data->>event_id", eventId).eq("data->>status", "waiting");
+  const now = Date.now();
+  const waiting = (data ?? [])
+    .map((n) => n.data as { request_id: string; guest_name: string; created_at: string })
+    .filter((d) => now - new Date(d.created_at).getTime() <= WAITING_TTL_MS)   // hide stale requests
+    .map((d) => ({ request_id: d.request_id, guest_name: d.guest_name, created_at: d.created_at }))
+    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+  return c.json({ waiting });
+});
+
+// POST /events/:id/waiting/:rid/admit|deny — the host's decision (workspace + event scoped).
+async function decideWaiting(c: Context<{ Variables: Variables }>, decision: "admitted" | "denied") {
+  const ws = c.get("workspaceId"); const me = c.get("userId");
+  const eventId = c.req.param("id") ?? ""; const rid = c.req.param("rid") ?? "";
+  const ev = await getEvent(ws, eventId);
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canManage(ev.data, me, c.get("role"))) return c.json({ error: "Only the organizer or an admin can admit or deny guests." }, 403);
+  const { data: node } = await supabase.from("nodes")
+    .select("id,data").eq("workspace_id", ws).eq("object_type", WAITING_OBJECT)
+    .eq("data->>request_id", rid).eq("data->>event_id", eventId).maybeSingle();
+  if (!node) return c.json({ error: "That waiting request is no longer available." }, 404);
+  const { error } = await supabase.from("nodes").update({ data: { ...(node.data as object), status: decision } }).eq("id", node.id).eq("workspace_id", ws).eq("object_type", WAITING_OBJECT);
+  if (error) return c.json({ error: "Could not update the request." }, 500);
+  return c.json({ ok: true, status: decision });
+}
+router.post("/events/:id/waiting/:rid/admit", (c) => decideWaiting(c, "admitted"));
+router.post("/events/:id/waiting/:rid/deny", (c) => decideWaiting(c, "denied"));
 
 // POST /calendar/draft-agenda — AI agenda draft. Returns TEXT only; never creates/sends an event.
 router.post("/draft-agenda", zValidator("json", z.object({ title: z.string().max(200).optional(), prompt: z.string().min(1).max(1000) })), async (c) => {
