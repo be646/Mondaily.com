@@ -15,6 +15,7 @@ const read = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.met
 const calendar = read("../routes/calendar.ts");
 const calls = read("../routes/calls.ts");
 const guest = read("../routes/guest-calls.ts");
+const memory = read("../jobs/meeting-memory.ts");
 const calendarUi = read("../../../../apps/app/src/routes/dashboard/calendar.tsx");
 const callRoomUi = read("../../../../apps/app/src/routes/dashboard/call-room.tsx");
 const callDetailUi = read("../../../../apps/app/src/routes/dashboard/call-detail.tsx");
@@ -71,6 +72,31 @@ describe("backend — meeting_type stored in event data (no schema), default gen
     expect(guest).toMatch(/meeting_type_label: guestSafeMeetingLabel\(normalizeMeetingType\(r\.data\.meeting_type\)\)/);
     // the raw meeting_type value is never placed in a guest JSON response.
     expect(guest).not.toMatch(/meeting_type: r\.data\.meeting_type|meeting_type: normalizeMeetingType\(r\.data\.meeting_type\)/);
+  });
+});
+
+describe("Phase 1.1 — Meeting Memory propagates the event's meeting_type onto the call record", () => {
+  it("copies the originating event's meeting_type into the call record node data (normalized)", () => {
+    expect(memory).toMatch(/import \{ normalizeMeetingType \} from "@mondaily\/shared\/meeting-types"/);
+    expect(memory).toMatch(/const meeting_type = await resolveEventMeetingType\(ws, isUpload \? null : session\.room\)/);
+    expect(memory).toMatch(/meeting_type,/);   // added to baseData (the persisted node data)
+  });
+  it("resolver: native `…__meeting__<eventId>` → the event's type; no room/match/upload → general", () => {
+    expect(memory).toMatch(/async function resolveEventMeetingType\(ws: string, room: string \| null\)/);
+    expect(memory).toMatch(/if \(!room\) return "general"/);
+    expect(memory).toMatch(/const m = room\.match\(\/__meeting__\(\.\+\)\$\/\)/);
+    expect(memory).toMatch(/if \(!m\) return "general"/);   // direct/non-meeting rooms → general
+    expect(memory).toMatch(/\.eq\("object_type", "calendar_event"\)\.eq\("id", m\[1\]\)/);   // real linked event only
+    expect(memory).toMatch(/return normalizeMeetingType\(\(data\?\.data as \{ meeting_type\?: string \} \| null\)\?\.meeting_type\)/);
+  });
+  it("upload path passes null (standalone recordings stay general) — no fabricated event link", () => {
+    expect(memory).toMatch(/isUpload \? null : session\.room/);
+  });
+  it("does NOT change prompts / summaries / STT — meeting_type is metadata only, never fed to AI", () => {
+    // meeting_type is never passed into the gateway or the meeting-intel extraction.
+    expect(memory).not.toMatch(/aiGateway[\s\S]{0,120}meeting_type/);
+    expect(memory).not.toMatch(/extractMeetingIntel\([^)]*meeting_type/);
+    expect(memory).not.toMatch(/aiGatewayToolUse\([^)]*meeting_type/);
   });
 });
 

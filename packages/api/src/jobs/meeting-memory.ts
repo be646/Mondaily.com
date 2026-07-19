@@ -1,4 +1,5 @@
 import { supabase } from "@mondaily/db/client";
+import { normalizeMeetingType } from "@mondaily/shared/meeting-types";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { transcribeAudio, transcriptionEnabled, type TranscriptLine } from "../lib/livekit";
 import { startJob, completeJob, failJob, step, type AgentStep } from "../lib/agent-logger";
@@ -18,6 +19,20 @@ import { maybeAutoApprove } from "../lib/autonomy";
  * Every stage is logged as canonical proof-of-work on agent_jobs so the Control Room shows exactly
  * what happened, when, and against which real audio file.
  */
+
+/**
+ * Resolve the originating event's meeting_type for a call session. Native meeting rooms are shaped
+ * `…__meeting__<eventId>`; when that calendar_event exists we copy its type (normalized). Uploads /
+ * direct calls (room null or no match, or event gone) → general. Read-only metadata lookup.
+ */
+async function resolveEventMeetingType(ws: string, room: string | null): Promise<string> {
+  if (!room) return "general";
+  const m = room.match(/__meeting__(.+)$/);
+  if (!m) return "general";
+  const { data } = await supabase.from("nodes")
+    .select("data").eq("workspace_id", ws).eq("object_type", "calendar_event").eq("id", m[1]).maybeSingle();
+  return normalizeMeetingType((data?.data as { meeting_type?: string } | null)?.meeting_type);
+}
 
 interface SessionRow {
   id: string; workspace_id: string; room: string; initiator_id: string; invitee_id: string;
@@ -178,8 +193,13 @@ export async function ingestRecording(sessionId: string): Promise<{ ok: boolean;
     // Uploaded recordings: name the record after the file (never the raw path), and NEVER put the
     // storage path in client-visible `audio_url` — playback goes through the signed-URL endpoint.
     const uploadName = (session.origin_filename ?? "").replace(/\.[^.]+$/, "").trim();
+    // Meeting Types 1.1: propagate the ORIGINATING event's meeting_type onto the call record. Native
+    // meeting rooms are `…__meeting__<eventId>`; when that event exists we copy its type, else general.
+    // Uploads / direct calls have no linked event → general. Pure metadata copy — no AI/summary change.
+    const meeting_type = await resolveEventMeetingType(ws, isUpload ? null : session.room);
     const baseData = {
       contact_name: isUpload ? (uploadName || "Uploaded recording") : other,
+      meeting_type,
       occurred_at: startedAt, duration_seconds: session.duration_sec ?? durationSeconds,
       direction: "outbound", status: "processing",
       // Never expose the raw storage/egress location to the client — playback (upload OR native)
