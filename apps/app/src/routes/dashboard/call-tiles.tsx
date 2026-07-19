@@ -1,6 +1,42 @@
 import { useEffect, useRef, useState } from "react";
 import type { Participant, Track as TrackNS } from "livekit-client";
-import { Mic, MicOff, MonitorUp } from "lucide-react";
+import { Mic, MicOff, MonitorUp, Captions } from "lucide-react";
+import type { CaptionPacket } from "@mondaily/shared/captions";
+
+/**
+ * Live captions panel (Phase 1) — HONEST states only. Live captions need a sovereign streaming/chunk STT
+ * endpoint that doesn't exist yet, so `available` is false and we say so plainly. When it lands (Phase 2)
+ * the same panel renders real, room-scoped, ephemeral caption lines (speaker label + partial/final text).
+ * It NEVER fabricates captions and NEVER persists them.
+ */
+export function CaptionsPanel({ available, captions, onClose }: { available: boolean; captions: CaptionPacket[]; onClose?: () => void }) {
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [captions.length]);
+  return (
+    <div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}>
+      <div className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+        <span className="flex items-center gap-1.5 text-[12px] font-semibold text-white"><Captions size={13} /> Live captions</span>
+        {onClose && <button onClick={onClose} className="text-white/50 hover:text-white text-[13px]">✕</button>}
+      </div>
+      <div className="flex-1 space-y-2 overflow-y-auto px-3 py-2">
+        {!available ? (
+          <div className="py-6 text-center">
+            <p className="text-[12px] font-medium text-white/70">Live captions unavailable</p>
+            <p className="mt-1 text-[11px] text-white/40">Live captions need a streaming speech service, which isn’t enabled yet. The full transcript is available after the call.</p>
+          </div>
+        ) : captions.length === 0 ? (
+          <p className="pt-6 text-center text-[11px] text-white/40">Waiting for speech…</p>
+        ) : captions.map((c) => (
+          <div key={c.id}>
+            <span className="text-[10px] font-medium text-white/45">{c.name}</span>
+            <p className="text-[12.5px] leading-snug text-white/90" style={{ opacity: c.final ? 1 : 0.6, fontStyle: c.final ? "normal" : "italic" }}>{c.text}</p>
+          </div>
+        ))}
+        <div ref={endRef} />
+      </div>
+    </div>
+  );
+}
 
 /**
  * Shared, presentational call-UI primitives used by BOTH the in-app call room (call-room.tsx) and the

@@ -2,14 +2,15 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Room, Participant, Track as TrackNS } from "livekit-client";
-import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Brain, Sparkles, FileText, ListChecks, Link2, UserPlus, UserX, Check, X, MessageSquare, Maximize2, LayoutGrid, Send } from "lucide-react";
+import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Brain, Sparkles, FileText, ListChecks, Link2, UserPlus, UserX, Check, X, MessageSquare, Maximize2, LayoutGrid, Send, Captions } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { FieldSelect } from "../../components/ui/controls";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { CallDetailPage } from "./call-detail";
-import { ParticipantTile, ScreenTile, ToolBtn, initialsOf } from "./call-tiles";
+import { ParticipantTile, ScreenTile, ToolBtn, initialsOf, CaptionsPanel } from "./call-tiles";
 import { MEETING_TYPE_META, type MeetingType } from "@mondaily/shared/meeting-types";
+import { parseCaptionPacket, type CaptionPacket } from "@mondaily/shared/captions";
 
 interface Member { id: string; name?: string; email: string }
 
@@ -29,7 +30,7 @@ interface Person { user_id: string; name: string; email: string | null }
 interface CalEvent {
   id: string; title: string; description: string; start_at: string; end_at: string; timezone: string;
   location: string; status: string; call_url: string | null; organizer: Person; attendees: Person[]; calls_enabled: boolean;
-  meeting_type?: MeetingType;
+  meeting_type?: MeetingType; live_captions_available?: boolean;
 }
 type LKModule = typeof import("livekit-client");
 
@@ -229,6 +230,8 @@ function CallRoom({ event }: { event: CalEvent }) {
   const [showChat, setShowChat] = useState(false);
   const [chat, setChat] = useState<{ id: string; from: string; text: string; mine: boolean }[]>([]);
   const [unread, setUnread] = useState(0);
+  const [captions, setCaptions] = useState<CaptionPacket[]>([]);
+  const [showCaptions, setShowCaptions] = useState(false);
 
   function sendData(obj: Record<string, unknown>) {
     const r = roomRef.current; if (!r) return;
@@ -323,6 +326,8 @@ function CallRoom({ event }: { event: CalEvent }) {
         .on(RoomEvent.Reconnecting, () => setReconnecting(true))
         .on(RoomEvent.Reconnected, () => setReconnecting(false))
         .on(RoomEvent.DataReceived, (payload: Uint8Array, participant?: Participant) => {
+          const cap = parseCaptionPacket(payload);
+          if (cap) { setCaptions(cs => [...cs.filter(x => x.id !== cap.id), cap].slice(-60)); return; }
           try {
             const msg = JSON.parse(new TextDecoder().decode(payload)) as { t?: string; text?: string; raised?: boolean };
             const from = participant?.name || participant?.identity || "Member";
@@ -454,6 +459,7 @@ function CallRoom({ event }: { event: CalEvent }) {
               return <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">{everyone.map(({ p, isLocal }) => tile(p, isLocal))}</div>;
             })()}
           </div>
+          {showCaptions && <CaptionsPanel available={!!event.live_captions_available} captions={captions} onClose={() => setShowCaptions(false)} />}
           {showChat && <ChatPanel messages={chat} onSend={sendChat} onClose={() => setShowChat(false)} youLabel={t("cal.you")} />}
         </div>
 
@@ -486,6 +492,7 @@ function CallRoom({ event }: { event: CalEvent }) {
             <ToolBtn on={!showChat} neutral onClick={() => { setShowChat(s => !s); setUnread(0); }} label="Chat" onIcon={<MessageSquare size={18} className="text-white" />} offIcon={<MessageSquare size={18} className="text-white" />} />
             {unread > 0 && !showChat && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#d1524a] px-1 text-[9px] font-bold text-white">{unread}</span>}
           </div>
+          <ToolBtn on={!showCaptions} neutral onClick={() => setShowCaptions(s => !s)} label="Live captions" onIcon={<Captions size={18} className="text-white" />} offIcon={<Captions size={18} className="text-white" />} />
           <ToolBtn on neutral onClick={() => setViewMode(v => v === "grid" ? "speaker" : "grid")} label={viewMode === "grid" ? "Speaker view" : "Grid view"} onIcon={viewMode === "grid" ? <Maximize2 size={18} className="text-white" /> : <LayoutGrid size={18} className="text-white" />} offIcon={<LayoutGrid size={18} className="text-white" />} />
           {/* Leave = disconnect yourself (call keeps running). Host also gets End-for-everyone. */}
           <button onClick={leave} aria-label={t("cal.leave")} title={t("cal.leave")}

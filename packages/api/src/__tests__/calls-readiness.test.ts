@@ -63,7 +63,7 @@ describe("call-room chunk split — guest-call must not statically import call-r
   it("guest-call imports shared tiles from call-tiles, NOT from call-room (keeps call-room lazy-splittable)", () => {
     // The static edge guest-call → call-room was forcing call-room into guest-call's chunk and defeating
     // its lazy() split in App.tsx. Guests now pull the presentational tiles from the small shared file.
-    expect(guestCall).toMatch(/import \{ ParticipantTile, ScreenTile, ToolBtn \} from "\.\/dashboard\/call-tiles"/);
+    expect(guestCall).toMatch(/import \{ ParticipantTile, ScreenTile, ToolBtn[\w,\s]*\} from "\.\/dashboard\/call-tiles"/);
     expect(guestCall).not.toMatch(/from "\.\/dashboard\/call-room"/);
   });
   it("call-room stays lazy-loaded in App.tsx (its own chunk)", () => {

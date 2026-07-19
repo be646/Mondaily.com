@@ -13,7 +13,8 @@
     "./markdown-stream": "./src/markdown-stream.ts",
     "./agents": "./src/agents.ts",
     "./dates": "./src/dates.ts",
-    "./meeting-types": "./src/meeting-types.ts"
+    "./meeting-types": "./src/meeting-types.ts",
+    "./captions": "./src/captions.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

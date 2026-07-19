@@ -4,7 +4,7 @@ import { sign, verify } from "hono/jwt";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { supabase } from "@mondaily/db/client";
-import { recordingEnabled } from "../lib/livekit";
+import { recordingEnabled, liveCaptionsAvailable } from "../lib/livekit";
 import { rateLimit } from "../middleware/rate-limit";
 import { guestSafeMeetingLabel, normalizeMeetingType } from "@mondaily/shared/meeting-types";
 
@@ -107,6 +107,7 @@ router.post("/meta", rateLimit({ max: 20, windowMs: 60_000 }), zValidator("json"
     calls_enabled,
     recording_may_occur,
     waiting_room: !!r.data?.guest_waiting_room,   // guest must be admitted by the host before getting a token
+    live_captions_available: liveCaptionsAvailable(),   // false until a streaming/chunk STT endpoint exists
     // If the token is otherwise valid but calls aren't wired, report not_configured.
     status: (r.status === "ok" && !calls_enabled) ? ("not_configured" as GuestStatus) : r.status,
   };

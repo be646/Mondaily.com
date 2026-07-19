@@ -60,6 +60,14 @@ export async function livekitSelfTest(): Promise<{ ok: boolean; token_minted: bo
 /** Transcription requires the self-hosted STT appliance. */
 export const transcriptionEnabled = (): boolean => !!(process.env.SOVEREIGN_STT_URL || "").trim();
 
+/**
+ * LIVE captions need a STREAMING or short-CHUNK sovereign STT endpoint — the batch `/transcribe` behind
+ * SOVEREIGN_STT_URL is full-file only and can't drive live captions. Until one of these is configured the
+ * UI must honestly say live captions are unavailable (Phase 1 = always false; Phase 2 flips it on).
+ */
+export const liveCaptionsAvailable = (): boolean =>
+  !!((process.env.SOVEREIGN_STT_STREAM_URL || "").trim() || (process.env.SOVEREIGN_STT_CHUNK_URL || "").trim());
+
 const sttBase = () => (process.env.SOVEREIGN_STT_URL || "").replace(/\/$/, "");
 
 /** Deterministic, tenant-namespaced egress output path (so files can never collide across rooms). */

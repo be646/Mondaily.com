@@ -1,15 +1,16 @@
 import { useEffect, useReducer, useRef, useState } from "react";
 import type { Room, Participant } from "livekit-client";
-import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, MonitorUp, ShieldAlert, CalendarClock, Check } from "lucide-react";
+import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, MonitorUp, ShieldAlert, CalendarClock, Check, Captions } from "lucide-react";
+import { parseCaptionPacket, type CaptionPacket } from "@mondaily/shared/captions";
 import { BASE_URL } from "../lib/api-client";
 import { LogoMark } from "@/components/logo";
-import { ParticipantTile, ScreenTile, ToolBtn } from "./dashboard/call-tiles";
+import { ParticipantTile, ScreenTile, ToolBtn, CaptionsPanel } from "./dashboard/call-tiles";
 
 // SAFE pre-join metadata (whitelist from POST /public/calls/meta). No workspace internals.
 interface GuestMeta {
   event_title: string | null; start_time: string | null;
   host_display_name: string | null; workspace_display_name: string | null;
-  recording_may_occur: boolean; calls_enabled: boolean; waiting_room: boolean;
+  recording_may_occur: boolean; calls_enabled: boolean; waiting_room: boolean; live_captions_available?: boolean;
   meeting_type_label?: string;   // guest-SAFE label only (sensitive types collapse to "Meeting")
   status: "ok" | "expired" | "revoked" | "cancelled" | "ended" | "not_configured";
 }
@@ -44,6 +45,8 @@ export function GuestCallPage() {
   const [metaLoading, setMetaLoading] = useState(true);
   const [consent, setConsent] = useState(false);
   const [speaking, setSpeaking] = useState<Set<string>>(new Set());
+  const [captions, setCaptions] = useState<CaptionPacket[]>([]);
+  const [showCaptions, setShowCaptions] = useState(false);
   const [, bump] = useReducer((x: number) => x + 1, 0);
   const roomRef = useRef<Room | null>(null);
   const lkRef = useRef<LKModule | null>(null);
@@ -138,6 +141,7 @@ export function GuestCallPage() {
         .on(RoomEvent.TrackMuted, bump).on(RoomEvent.TrackUnmuted, bump)
         .on(RoomEvent.LocalTrackPublished, bump).on(RoomEvent.LocalTrackUnpublished, bump)
         .on(RoomEvent.ActiveSpeakersChanged, (s: Participant[]) => setSpeaking(new Set(s.map(x => x.identity))))
+        .on(RoomEvent.DataReceived, (payload: Uint8Array) => { const cap = parseCaptionPacket(payload); if (cap) setCaptions(cs => [...cs.filter(x => x.id !== cap.id), cap].slice(-60)); })
         .on(RoomEvent.Reconnecting, () => setReconnecting(true)).on(RoomEvent.Reconnected, () => setReconnecting(false))
         .on(RoomEvent.Disconnected, () => setPhase("ended"));
       await room.connect(data.url, data.token);
@@ -180,20 +184,24 @@ export function GuestCallPage() {
           </div>
           {(phase === "connecting" || reconnecting) && <span className="flex items-center gap-2 text-[12px] text-white/70"><Loader2 size={13} className="animate-spin" /> {reconnecting ? "Reconnecting…" : "Connecting…"}</span>}
         </div>
-        <div className="flex-1 space-y-2 overflow-y-auto px-3 pb-2">
-          {lk && screenSharer && <ScreenTile p={screenSharer.p} source={lk.Track.Source.ScreenShare} />}
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {lk && everyone.map(({ p, isLocal }) => (
-              <ParticipantTile key={p.sid || p.identity} p={p} source={lk.Track.Source.Camera} isLocal={isLocal}
-                speaking={speaking.has(p.identity)} youLabel="You"
-                muted={isLocal ? !micOn : !!p.getTrackPublication(lk.Track.Source.Microphone)?.isMuted} />
-            ))}
+        <div className="flex flex-1 gap-2 overflow-hidden px-3 pb-2">
+          <div className="flex-1 space-y-2 overflow-y-auto">
+            {lk && screenSharer && <ScreenTile p={screenSharer.p} source={lk.Track.Source.ScreenShare} />}
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {lk && everyone.map(({ p, isLocal }) => (
+                <ParticipantTile key={p.sid || p.identity} p={p} source={lk.Track.Source.Camera} isLocal={isLocal}
+                  speaking={speaking.has(p.identity)} youLabel="You"
+                  muted={isLocal ? !micOn : !!p.getTrackPublication(lk.Track.Source.Microphone)?.isMuted} />
+              ))}
+            </div>
           </div>
+          {showCaptions && <CaptionsPanel available={!!meta?.live_captions_available} captions={captions} onClose={() => setShowCaptions(false)} />}
         </div>
         <div className="flex items-center justify-center gap-3 py-4">
           <ToolBtn on={micOn} onClick={toggleMic} label="Microphone" onIcon={<Mic size={18} className="text-white" />} offIcon={<MicOff size={18} className="text-white" />} />
           <ToolBtn on={camOn} onClick={toggleCam} label="Camera" onIcon={<Video size={18} className="text-white" />} offIcon={<VideoOff size={18} className="text-white" />} />
           <ToolBtn on={!sharing} neutral onClick={toggleShare} label={sharing ? "Stop sharing" : "Share screen"} onIcon={<MonitorUp size={18} className={sharing ? "text-[color:var(--section-accent)]" : "text-white"} />} offIcon={<MonitorUp size={18} className="text-white" />} />
+          <ToolBtn on={!showCaptions} neutral onClick={() => setShowCaptions(s => !s)} label="Live captions" onIcon={<Captions size={18} className="text-white" />} offIcon={<Captions size={18} className="text-white" />} />
           <button onClick={leave} title="Leave" className="flex h-11 items-center gap-2 rounded-full bg-[#d1524a] px-5"><PhoneOff size={18} className="text-white" /><span className="text-[13px] font-medium text-white">Leave</span></button>
         </div>
       </Shell>

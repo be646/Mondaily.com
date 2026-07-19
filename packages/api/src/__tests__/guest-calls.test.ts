@@ -60,7 +60,7 @@ describe("guest metadata — strict whitelist, no workspace internals or secrets
     expect(route).not.toMatch(/c\.json\([^\n]*(?:LIVEKIT_API_SECRET|AUTH_JWT_SECRET|SUPABASE_SERVICE_KEY)/);
   });
   it("recording_may_occur reflects the real recording capability (recordingEnabled)", () => {
-    expect(route).toMatch(/import \{ recordingEnabled \} from "\.\.\/lib\/livekit"/);
+    expect(route).toMatch(/import \{ recordingEnabled[\w,\s]*\} from "\.\.\/lib\/livekit"/);
     expect(route).toMatch(/const recording_may_occur = recordingEnabled\(\)/);
   });
 });
