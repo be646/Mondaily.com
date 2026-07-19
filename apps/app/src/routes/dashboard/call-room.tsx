@@ -249,7 +249,7 @@ function CallRoom({ event }: { event: CalEvent }) {
       if (!lk || !r) return null;
       return r.localParticipant.getTrackPublication(lk.Track.Source.Microphone)?.track?.mediaStreamTrack ?? null;
     },
-    sendChunk: async (pcm, seq) => {
+    sendChunk: async (pcm, seq, signal) => {
       const fd = new FormData();
       fd.append("audio", pcm, "chunk.pcm");
       fd.append("format", "pcm_s16le");
@@ -257,7 +257,7 @@ function CallRoom({ event }: { event: CalEvent }) {
       fd.append("session", `${event.id}:${roomRef.current?.localParticipant.identity ?? ""}`);
       fd.append("seq", String(seq));
       try {
-        const res = await apiFetch(`${BASE_URL}/api/v1/live-calls/caption-chunk`, { method: "POST", body: fd });
+        const res = await apiFetch(`${BASE_URL}/api/v1/live-calls/caption-chunk`, { method: "POST", body: fd, signal });
         const body = await res.json().catch(() => ({} as Record<string, unknown>));
         return { ok: res.ok, status: res.status, text: typeof body.text === "string" ? body.text : "", noSpeech: body.no_speech === true, language: typeof body.language === "string" ? body.language : null };
       } catch { return { ok: false, status: 0, text: "", noSpeech: false, language: null }; }

@@ -170,7 +170,7 @@ export function GuestCallPage() {
       if (!lk || !r) return null;
       return r.localParticipant.getTrackPublication(lk.Track.Source.Microphone)?.track?.mediaStreamTrack ?? null;
     },
-    sendChunk: async (pcm, seq) => {
+    sendChunk: async (pcm, seq, signal) => {
       const fd = new FormData();
       fd.append("token", token);
       fd.append("consent", "true");
@@ -180,7 +180,7 @@ export function GuestCallPage() {
       fd.append("session", roomRef.current?.localParticipant.identity ?? "guest");
       fd.append("seq", String(seq));
       try {
-        const res = await fetch(`${BASE_URL}/api/v1/public/calls/caption-chunk`, { method: "POST", body: fd });
+        const res = await fetch(`${BASE_URL}/api/v1/public/calls/caption-chunk`, { method: "POST", body: fd, signal });
         const body = await res.json().catch(() => ({} as Record<string, unknown>));
         return { ok: res.ok, status: res.status, text: typeof body.text === "string" ? body.text : "", noSpeech: body.no_speech === true, language: typeof body.language === "string" ? body.language : null };
       } catch { return { ok: false, status: 0, text: "", noSpeech: false, language: null }; }

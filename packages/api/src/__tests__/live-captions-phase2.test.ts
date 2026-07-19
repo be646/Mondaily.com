@@ -168,10 +168,28 @@ describe("Phase 2 frontend safety + capture path", () => {
     expect(hook).toMatch(/backoffUntil = Date\.now\(\) \+ backoffMs/);
     expect(hook).toMatch(/status === 401 \|\| res\.status === 403[\s\S]{0,80}onStop/);
   });
-  it("tears down capture (interval/context/nodes) on cleanup", () => {
+  it("connects the processor through a MUTED gain to destination (pulled everywhere, no echo)", () => {
+    expect(hook).toMatch(/createGain\(\)/);
+    expect(hook).toMatch(/mute\.gain\.value = 0/);
+    expect(hook).toMatch(/mute\.connect\(ctx\.destination\)/);
+    expect(hook).toMatch(/wl\.connect\(mute\)/);   // AudioWorklet routed onward (the fix)
+    expect(hook).toMatch(/sp\.connect\(mute\)/);   // ScriptProcessor fallback likewise
+    // never wires the mic straight to the speakers (that would echo)
+    expect(hook).not.toMatch(/source\.connect\(ctx\.destination\)/);
+  });
+  it("truly aborts the in-flight request on teardown and forwards the signal", () => {
+    expect(hook).toMatch(/inflight = new AbortController\(\)/);
+    expect(hook).toMatch(/sendChunk\(new Blob\(\[buf\]\), mySeq, inflight\.signal\)/);
+    expect(hook).toMatch(/inflight\?\.abort\(\)/);
+    // callers forward the signal to the network call
+    expect(callRoom).toMatch(/caption-chunk`, \{ method: "POST", body: fd, signal \}/);
+    expect(guest).toMatch(/caption-chunk`, \{ method: "POST", body: fd, signal \}/);
+  });
+  it("tears down capture (interval/context/nodes/gain) on cleanup", () => {
     expect(hook).toMatch(/clearInterval\(flushTimer\)/);
     expect(hook).toMatch(/ctx\?\.close\(\)/);
     expect(hook).toMatch(/node\?\.disconnect\(\)/);
+    expect(hook).toMatch(/mute\?\.disconnect\(\)/);
   });
   it("capture is active only when available + CC on + mic on + live", () => {
     expect(callRoom).toMatch(/active:\s*!!event\.live_captions_available && showCaptions && micOn && phase === "live"/);

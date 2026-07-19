@@ -35,8 +35,9 @@ interface Opts {
   active: boolean;
   /** Returns the local mic MediaStreamTrack, or null if not yet published. */
   getMicTrack: () => MediaStreamTrack | null;
-  /** POST one PCM chunk to the correct endpoint; resolve the mapped result (never throws for the hook). */
-  sendChunk: (pcm: Blob, seq: number) => Promise<CaptionSendResult>;
+  /** POST one PCM chunk to the correct endpoint; resolve the mapped result (never throws for the hook).
+   *  `signal` aborts the request on teardown — the caller must forward it to fetch/apiFetch. */
+  sendChunk: (pcm: Blob, seq: number, signal: AbortSignal) => Promise<CaptionSendResult>;
   /** Publish a caption for non-empty transcript text (caller builds + broadcasts the CaptionPacket). */
   onCaption: (text: string, language: string | null, seq: number) => void;
   /** Called when captions must stop for a non-transient reason (e.g. auth) so the caller can flip CC off. */
@@ -85,6 +86,8 @@ export function useCaptionCapture(opts: Opts): void {
     let ctx: AudioContext | null = null;
     let source: MediaStreamAudioSourceNode | null = null;
     let node: AudioWorkletNode | ScriptProcessorNode | null = null;
+    let mute: GainNode | null = null;                       // silent sink so the processor is pulled, no echo
+    let inflight: AbortController | null = null;            // aborts the current chunk request on teardown
     let flushTimer: ReturnType<typeof setInterval> | null = null;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let frames: Float32Array[] = [];
@@ -106,8 +109,9 @@ export function useCaptionCapture(opts: Opts): void {
       if (rms < RMS_SILENCE) return;                       // client-side silence gate — send nothing
       sending = true;
       const mySeq = ++seq;
+      inflight = new AbortController();
       try {
-        const res = await ref.current.sendChunk(new Blob([buf]), mySeq);
+        const res = await ref.current.sendChunk(new Blob([buf]), mySeq, inflight.signal);
         if (cancelled) return;
         if (res.ok) {
           backoffMs = BACKOFF_BASE_MS; backoffUntil = 0;
@@ -133,6 +137,12 @@ export function useCaptionCapture(opts: Opts): void {
       try {
         ctx = new AudioContext();
         source = ctx.createMediaStreamSource(new MediaStream([track]));
+        // A muted (gain 0) sink to the destination. Both processors must be connected THROUGH to the
+        // graph's destination or some browsers (e.g. Safari) won't pull them — capturing silence. The
+        // processors emit no audio of their own, and gain 0 guarantees ZERO mic echo regardless.
+        mute = ctx.createGain();
+        mute.gain.value = 0;
+        mute.connect(ctx.destination);
         if (ctx.audioWorklet) {
           const url = URL.createObjectURL(new Blob([WORKLET_SRC], { type: "application/javascript" }));
           try { await ctx.audioWorklet.addModule(url); } finally { URL.revokeObjectURL(url); }
@@ -140,13 +150,14 @@ export function useCaptionCapture(opts: Opts): void {
           const wl = new AudioWorkletNode(ctx, "pcm-collector");
           wl.port.onmessage = (e) => collect(e.data as Float32Array);
           source.connect(wl);
+          wl.connect(mute);            // pull the worklet via the muted sink (no echo)
           node = wl;
         } else {
           // Fallback for browsers without AudioWorklet — ScriptProcessor on the main thread.
           const sp = ctx.createScriptProcessor(4096, 1, 1);
           sp.onaudioprocess = (e) => collect(new Float32Array(e.inputBuffer.getChannelData(0)));
           source.connect(sp);
-          sp.connect(ctx.destination);   // required to pump ScriptProcessor
+          sp.connect(mute);            // pump ScriptProcessor via the muted sink (no echo)
           node = sp;
         }
         flushTimer = setInterval(() => { void flush(); }, CHUNK_SECONDS * 1000);
@@ -161,8 +172,10 @@ export function useCaptionCapture(opts: Opts): void {
       cancelled = true;
       if (flushTimer) clearInterval(flushTimer);
       if (retryTimer) clearTimeout(retryTimer);
+      try { inflight?.abort(); } catch { /* ignore */ }
       try { node?.disconnect(); } catch { /* ignore */ }
       try { source?.disconnect(); } catch { /* ignore */ }
+      try { mute?.disconnect(); } catch { /* ignore */ }
       try { void ctx?.close(); } catch { /* ignore */ }
       frames = [];
     };
