@@ -751,6 +751,18 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
   const [agendaDraft, setAgendaDraft] = useState("");
   const saveAgenda = useMutation({ mutationFn: () => apiClient.patch(`/calendar/events/${id}`, { description: agendaDraft }), onSuccess: () => { setEditAgenda(false); qc.invalidateQueries({ queryKey: ["calendar-event", id] }); qc.invalidateQueries({ queryKey: ["calendar-events"] }); } });
   const createTask = useMutation({ mutationFn: (title: string) => apiClient.post("/tasks", { title }), onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar-followups", id] }) });
+  // Guest links (organizer/admin only) — mint a shareable external link + revoke all outstanding ones.
+  // Reuses the existing endpoints; the guest link is a signed, expiring, room-scoped token (no account).
+  const [guestCopied, setGuestCopied] = useState(false);
+  const [guestRevoked, setGuestRevoked] = useState(false);
+  const guestLink = useMutation({
+    mutationFn: () => apiClient.post<{ url?: string; error?: string }>(`/calendar/events/${id}/guest-link`, {}),
+    onSuccess: (r) => { if (r.url) { navigator.clipboard.writeText(r.url).catch(() => {}); setGuestCopied(true); setTimeout(() => setGuestCopied(false), 2500); } },
+  });
+  const revokeGuest = useMutation({
+    mutationFn: () => apiClient.post<{ ok?: boolean }>(`/calendar/events/${id}/revoke-guest-links`, {}),
+    onSuccess: () => { setGuestRevoked(true); setTimeout(() => setGuestRevoked(false), 2500); },
+  });
   const e = detail.data;
   const isOrganizer = e?.organizer.user_id === me.userId;
   const followTotal = followQ.data ? followQ.data.overdue.length + followQ.data.due_today.length + followQ.data.related.length : 0;
@@ -811,6 +823,24 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               );
             })()}
             {e.call_url && e.calls_enabled && <button onClick={() => navigate(`/calls/${e.id}`)} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}><Video size={13} /> {t("cal.join_call")}</button>}
+            {/* External guest links — organizer/admin only, for people without a Mondaily account. */}
+            {isOrganizer && e.call_url && e.calls_enabled && e.status !== "cancelled" && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button onClick={() => guestLink.mutate()} disabled={guestLink.isPending}
+                  className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-60"
+                  style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                  {guestLink.isPending ? <Loader2 size={12} className="animate-spin" /> : guestCopied ? <Check size={12} style={{ color: "#5f8a6a" }} /> : <Link2 size={12} />}
+                  {guestCopied ? "Guest link copied" : "Copy guest link"}
+                </button>
+                <button onClick={() => revokeGuest.mutate()} disabled={revokeGuest.isPending}
+                  className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors disabled:opacity-60"
+                  style={{ borderColor: "var(--border-soft)", color: guestRevoked ? "#5f8a6a" : "var(--text-faint)" }}>
+                  {revokeGuest.isPending ? <Loader2 size={12} className="animate-spin" /> : guestRevoked ? <Check size={12} /> : <X size={12} />}
+                  {guestRevoked ? "Links revoked" : "Revoke links"}
+                </button>
+                <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>Anyone with the link can join · expires in 24h · no account</span>
+              </div>
+            )}
             {e.location && <div className="flex items-center gap-2" style={{ color: "var(--text-secondary)" }}><MapPin size={13} style={{ color: "var(--text-faint)" }} /> {e.location}</div>}
 
             {/* Co-pilot readiness — real signals derived from this meeting's own fields (never fabricated). */}
