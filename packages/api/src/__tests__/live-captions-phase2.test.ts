@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { liveCaptionsAllowed, captionChunk } from "../lib/livekit";
+import { liveCaptionsAllowed, liveCaptionChunksAvailable, liveCaptionsAvailable, captionChunk } from "../lib/livekit";
 
 const ROOT = join(__dirname, "..", "..", "..", "..");
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
@@ -21,6 +21,18 @@ describe("liveCaptionsAllowed — env + workspace canary gate", () => {
 
   it("false when no chunk/stream STT endpoint is configured (prod stays off)", () => {
     expect(liveCaptionsAllowed("ws_1")).toBe(false);
+  });
+  it("STREAM_URL alone does NOT enable the chunk proxy (gate can't drift from captionChunk)", () => {
+    process.env.SOVEREIGN_STT_STREAM_URL = "wss://stt.example/stream";
+    // generic capability is true, but the chunk-specific gate + allow gate stay false
+    expect(liveCaptionsAvailable()).toBe(true);
+    expect(liveCaptionChunksAvailable()).toBe(false);
+    expect(liveCaptionsAllowed("ws_1")).toBe(false);
+  });
+  it("CHUNK_URL is what makes the chunk proxy available", () => {
+    process.env.SOVEREIGN_STT_CHUNK_URL = "https://stt.example";
+    expect(liveCaptionChunksAvailable()).toBe(true);
+    expect(liveCaptionsAllowed("ws_1")).toBe(true);
   });
   it("true for any workspace when configured and no allowlist set (staging env)", () => {
     process.env.SOVEREIGN_STT_CHUNK_URL = "https://stt.example";
@@ -111,6 +123,16 @@ describe("Phase 2 API — endpoints are gated, private, and leak nothing", () =>
     expect(s).toMatch(/Authorization: `Bearer \$\{process\.env\.SOVEREIGN_STT_KEY\}`/);
     // response never carries the key/url — only text/no_speech/language/confidence
     expect(s).not.toMatch(/return[^;]*SOVEREIGN_STT_KEY/);
+  });
+
+  it("liveCaptionsAllowed gates on the CHUNK endpoint, not the generic (no drift)", () => {
+    const s = read(LIVEKIT);
+    // the canary gate must short-circuit on chunk-specific availability, never the stream-or-chunk generic
+    expect(s).toMatch(/liveCaptionsAllowed[\s\S]{0,200}liveCaptionChunksAvailable\(\)/);
+    expect(s).toMatch(/liveCaptionChunksAvailable = \(\): boolean => !!\(process\.env\.SOVEREIGN_STT_CHUNK_URL/);
+    // event view + guest meta both surface via liveCaptionsAllowed (chunk-gated)
+    expect(read("packages/api/src/routes/calendar.ts")).toMatch(/live_captions_available: liveCaptionsAllowed\(ws\)/);
+    expect(read(GUEST_CALLS)).toMatch(/live_captions_available: liveCaptionsAllowed\(r\.claims\?\.ws\)/);
   });
 
   it("the caption path persists nothing (no DB writes) and stores no audio", () => {

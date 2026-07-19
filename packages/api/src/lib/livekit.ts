@@ -65,18 +65,32 @@ export const transcriptionEnabled = (): boolean => !!(process.env.SOVEREIGN_STT_
  * SOVEREIGN_STT_URL is full-file only and can't drive live captions. Until one of these is configured the
  * UI must honestly say live captions are unavailable (Phase 1 = always false; Phase 2 flips it on).
  */
+/**
+ * GENERIC live-caption capability — true if ANY live-caption STT endpoint is configured (a future
+ * streaming endpoint OR the chunk endpoint). Kept for forward-compat / diagnostics. Do NOT use this to
+ * gate the Phase 2 chunk proxy: captionChunk() only calls SOVEREIGN_STT_CHUNK_URL, so gating on this
+ * would let the UI claim captions while /caption-chunk 503s when only STREAM_URL is set. Use
+ * liveCaptionChunksAvailable() / liveCaptionsAllowed() for the chunk path.
+ */
 export const liveCaptionsAvailable = (): boolean =>
   !!((process.env.SOVEREIGN_STT_STREAM_URL || "").trim() || (process.env.SOVEREIGN_STT_CHUNK_URL || "").trim());
 
 /**
- * Phase 2 canary gate. Live captions are enabled for a workspace only when (a) a live/chunk STT endpoint
- * is configured AND (b) either LIVE_CAPTIONS_WORKSPACES is unset (env-gated only — fine in a staging env
- * that has no real tenants) OR it lists this workspace id. This keeps captions off for everyone until an
- * operator opts a specific workspace in. Production has no SOVEREIGN_STT_CHUNK_URL, so this is always
- * false there — the UI stays honestly "unavailable".
+ * CHUNK-SPECIFIC capability — the exact endpoint captionChunk() calls. This is the source of truth for
+ * Phase 2 so the availability gate can never drift from what the proxy actually reaches. Stream support
+ * is future-only and intentionally does NOT satisfy this.
+ */
+export const liveCaptionChunksAvailable = (): boolean => !!(process.env.SOVEREIGN_STT_CHUNK_URL || "").trim();
+
+/**
+ * Phase 2 canary gate. Live captions are enabled for a workspace only when (a) the CHUNK STT endpoint is
+ * configured (`liveCaptionChunksAvailable()` — never the future stream URL) AND (b) either
+ * LIVE_CAPTIONS_WORKSPACES is unset (env-gated only — fine in a staging env with no real tenants) OR it
+ * lists this workspace id. Keeps captions off for everyone until an operator opts a workspace in.
+ * Production has no SOVEREIGN_STT_CHUNK_URL, so this is always false there — UI stays "unavailable".
  */
 export const liveCaptionsAllowed = (workspaceId: string | null | undefined): boolean => {
-  if (!liveCaptionsAvailable()) return false;
+  if (!liveCaptionChunksAvailable()) return false;
   const allow = (process.env.LIVE_CAPTIONS_WORKSPACES || "").split(",").map((s) => s.trim()).filter(Boolean);
   if (allow.length === 0) return true;
   return !!workspaceId && allow.includes(workspaceId);
