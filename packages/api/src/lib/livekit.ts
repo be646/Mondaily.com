@@ -34,6 +34,29 @@ export const liveKitEnabled = (): boolean => {
 /** Recording requires LiveKit + egress storage wired server-side, confirmed by the operator flag. */
 export const recordingEnabled = (): boolean => liveKitEnabled() && process.env.LIVEKIT_RECORDING_ENABLED === "1";
 
+/**
+ * NON-DESTRUCTIVE readiness self-test: proves the configured LIVEKIT_API_KEY/SECRET can actually sign a
+ * join token. It ONLY mints a short-lived (60s) token for a synthetic self-test room and discards it —
+ * no network call to LiveKit, no room created, no participant, NO recording/egress. Returns booleans
+ * only; never returns the token, key, or secret. Fails closed when LiveKit env is absent.
+ */
+export async function livekitSelfTest(): Promise<{ ok: boolean; token_minted: boolean; reason?: string }> {
+  if (!liveKitEnabled()) return { ok: false, token_minted: false, reason: "livekit_not_configured" };
+  try {
+    const { key, secret } = env();
+    const now = Math.floor(Date.now() / 1000);
+    // A minimal join grant to a throwaway room — proves the HS256 secret signs. Never sent anywhere.
+    const token = await sign(
+      { iss: key, sub: "readiness-selftest", nbf: now, iat: now, exp: now + 60, video: { room: "readiness-selftest", roomJoin: true } },
+      secret as string,
+      "HS256",
+    );
+    return { ok: !!token, token_minted: !!token };
+  } catch {
+    return { ok: false, token_minted: false, reason: "token_sign_failed" };
+  }
+}
+
 /** Transcription requires the self-hosted STT appliance. */
 export const transcriptionEnabled = (): boolean => !!(process.env.SOVEREIGN_STT_URL || "").trim();
 

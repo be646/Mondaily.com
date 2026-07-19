@@ -2,13 +2,19 @@ import { Hono } from "hono";
 import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
-import { liveKitEnabled, recordingEnabled, transcriptionEnabled } from "../lib/livekit";
+import { liveKitEnabled, recordingEnabled, transcriptionEnabled, livekitSelfTest } from "../lib/livekit";
 import { isEmbeddingsEnabled } from "../lib/embeddings";
+import { sendTransactionalEmail } from "../lib/mail";
 import { RECORDINGS_BUCKET } from "../jobs/meeting-memory";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 const router = new Hono<{ Variables: Variables }>();
 router.use("*", requireAuth, requireAdminRole);
+
+// In-memory per-user cooldown for the mail self-test (best-effort spam guard; resets on cold start).
+// Never blocks product mail — only this admin verification tool.
+const MAIL_TEST_COOLDOWN_MS = 60_000;
+const lastMailTest = new Map<string, number>();
 
 // A tiny presence check — TRUE only when the env var is set to a non-empty value. NEVER returns or logs
 // the value itself, so no secret can leak through this endpoint.
@@ -92,6 +98,55 @@ router.get("/readiness", async (c) => {
     },
     group,
   });
+});
+
+/**
+ * POST /api/v1/admin/readiness/mail-test — send ONE labeled test email to the CALLER'S OWN address.
+ *
+ * Safety: the recipient is resolved server-side from the caller's workspace_members row — there is NO
+ * recipient input, so it can never mail an arbitrary/other user. Fails closed if mail env is absent
+ * (sendTransactionalEmail returns false, never throws). A 60s per-user cooldown guards against spam.
+ * This does NOT touch onboarding/support/activation mail — it only calls the shared transactional send.
+ */
+router.post("/readiness/mail-test", async (c) => {
+  const userId = c.get("userId");
+  const ws = c.get("workspaceId");
+
+  const now = Date.now();
+  const prev = lastMailTest.get(userId) ?? 0;
+  if (now - prev < MAIL_TEST_COOLDOWN_MS) {
+    return c.json({ ok: false, reason: "cooldown", retry_in_ms: MAIL_TEST_COOLDOWN_MS - (now - prev) }, 429);
+  }
+
+  // Canonical recipient — the authenticated admin's own email in THIS workspace. Never from the body.
+  const { data: member } = await supabase
+    .from("workspace_members").select("email, name")
+    .eq("user_id", userId).eq("workspace_id", ws).maybeSingle();
+  const email = (member?.email as string | undefined)?.trim();
+  if (!email) return c.json({ ok: false, reason: "no_admin_email" }, 400);
+
+  lastMailTest.set(userId, now);
+  const sent = await sendTransactionalEmail({
+    subject: "Mondaily production mail test",
+    to: [{ email, name: (member?.name as string | undefined) ?? undefined }],
+    body: `<p>This is a <strong>production mail test</strong> triggered by a workspace admin from the Mondaily readiness page.</p>
+<p>If you received this, transactional email delivery is working. No action is needed — you can ignore this message.</p>
+<p style="color:#888;font-size:12px">Sent to the admin who ran the test; this is not sent to any other user.</p>`,
+  });
+  return sent
+    ? c.json({ ok: true, sent_to_self: true })
+    : c.json({ ok: false, reason: "mail_not_configured_or_send_failed" });
+});
+
+/**
+ * POST /api/v1/admin/readiness/livekit-test — non-destructive LiveKit token-mint self-test.
+ * Mints and immediately discards a 60s synthetic-room join token to prove the API key/secret sign.
+ * NO room is created, NO participant joins, NO recording/egress starts. Returns booleans only — never
+ * the token, key, or secret. Fails closed when LiveKit env is absent.
+ */
+router.post("/readiness/livekit-test", async (c) => {
+  const r = await livekitSelfTest();
+  return c.json(r);
 });
 
 export { router as adminReadinessRouter };

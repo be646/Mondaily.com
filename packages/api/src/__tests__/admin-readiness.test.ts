@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 const read = (rel: string) => readFileSync(fileURLToPath(new URL(rel, import.meta.url)), "utf8");
 const route = read("../routes/admin-readiness.ts");
 const app = read("../app.ts");
+const livekit = read("../lib/livekit.ts");
 const ui = read("../../../../apps/app/src/routes/dashboard/settings/ai-control-room.tsx");
 
 describe("admin readiness — gated, read-only, no secrets", () => {
@@ -28,7 +29,7 @@ describe("admin readiness — gated, read-only, no secrets", () => {
     expect(route).toMatch(/deploy_commit: process\.env\.VERCEL_GIT_COMMIT_SHA/);
   });
   it("reuses the real feature gates (can't drift from actual behavior)", () => {
-    expect(route).toMatch(/import \{ liveKitEnabled, recordingEnabled, transcriptionEnabled \} from "\.\.\/lib\/livekit"/);
+    expect(route).toMatch(/import \{ liveKitEnabled, recordingEnabled, transcriptionEnabled, livekitSelfTest \} from "\.\.\/lib\/livekit"/);
     expect(route).toMatch(/import \{ isEmbeddingsEnabled \} from "\.\.\/lib\/embeddings"/);
     expect(route).toMatch(/const livekit_configured = liveKitEnabled\(\)/);
     expect(route).toMatch(/const stt_configured = transcriptionEnabled\(\)/);
@@ -55,6 +56,55 @@ describe("admin readiness — gated, read-only, no secrets", () => {
   });
 });
 
+describe("mail self-test — admin-only, own-address-only, fail-safe, no spam", () => {
+  it("is a POST under the admin-gated router (inherits requireAuth + requireAdminRole)", () => {
+    expect(route).toMatch(/router\.post\("\/readiness\/mail-test"/);
+  });
+  it("sends ONLY to the caller's own workspace email — never an arbitrary recipient from the body", () => {
+    // Recipient resolved server-side from workspace_members by userId+workspaceId; no body.to / req input.
+    expect(route).toMatch(/\.from\("workspace_members"\)\.select\("email, name"\)/);
+    expect(route).toMatch(/\.eq\("user_id", userId\)\.eq\("workspace_id", ws\)/);
+    expect(route).toMatch(/to: \[\{ email, name:/);
+    // The handler never reads a recipient from the request body.
+    expect(route).not.toMatch(/req\.json[\s\S]*mail-test/);
+    expect(route).not.toMatch(/body\.(to|email|recipient)/);
+  });
+  it("is fail-safe — reuses sendTransactionalEmail (returns false, never throws) + honest reason", () => {
+    expect(route).toMatch(/import \{ sendTransactionalEmail \} from "\.\.\/lib\/mail"/);
+    expect(route).toMatch(/const sent = await sendTransactionalEmail\(\{/);
+    expect(route).toMatch(/reason: "mail_not_configured_or_send_failed"/);
+    expect(route).toMatch(/subject: "Mondaily production mail test"/);
+  });
+  it("has a per-user cooldown so it can't be used to spam", () => {
+    expect(route).toMatch(/const MAIL_TEST_COOLDOWN_MS = 60_000/);
+    expect(route).toMatch(/if \(now - prev < MAIL_TEST_COOLDOWN_MS\)/);
+    expect(route).toMatch(/reason: "cooldown"/);
+  });
+});
+
+describe("livekit self-test — non-destructive, no egress, no secrets", () => {
+  it("is a POST under the admin-gated router and delegates to livekitSelfTest()", () => {
+    expect(route).toMatch(/router\.post\("\/readiness\/livekit-test"/);
+    expect(route).toMatch(/const r = await livekitSelfTest\(\)/);
+  });
+  it("only mints+discards a short-lived join token — NO room create, NO recording/egress", () => {
+    expect(livekit).toMatch(/export async function livekitSelfTest\(\)/);
+    expect(livekit).toMatch(/exp: now \+ 60/);              // short-lived
+    // Must not start egress / recording / hit the LiveKit network in the self-test.
+    const fn = livekit.slice(livekit.indexOf("export async function livekitSelfTest"), livekit.indexOf("export async function livekitSelfTest") + 700);
+    expect(fn).not.toMatch(/startRoomEgress|StartRoomCompositeEgress|fetch\(|roomRecord/);
+    expect(fn).toMatch(/if \(!liveKitEnabled\(\)\) return \{ ok: false, token_minted: false/);  // fail closed
+  });
+  it("returns booleans only — never the token, key, or secret", () => {
+    // Response is { ok, token_minted, reason? } — the token variable is never placed in the return.
+    expect(route).toMatch(/return c\.json\(r\)/);
+    const fn = livekit.slice(livekit.indexOf("export async function livekitSelfTest"), livekit.indexOf("export async function livekitSelfTest") + 700);
+    expect(fn).toMatch(/token_minted: !!token/);
+    expect(fn).not.toMatch(/return \{[^}]*token:[^}]*\}/);   // never returns the raw token
+    expect(fn).not.toMatch(/secret:|key:/);                 // never returns key/secret
+  });
+});
+
 describe("readiness UI — renders every subsystem row, no env values, calls readiness page intact", () => {
   it("fetches the admin readiness endpoint and renders a Production readiness section", () => {
     expect(ui).toMatch(/apiClient\.get<ReadinessResp>\("\/admin\/readiness"\)/);
@@ -73,5 +123,18 @@ describe("readiness UI — renders every subsystem row, no env values, calls rea
     expect(ui).toMatch(/before customers/);
     // The UI never reads process.env or renders a secret-shaped token.
     expect(ui).not.toMatch(/process\.env|sk_live|whsec_|SUPABASE_SERVICE_KEY|API_KEY\b/);
+  });
+  it("renders the two admin self-test actions with Passed/Failed/Not-run states", () => {
+    expect(ui).toMatch(/function VerifyAction/);
+    expect(ui).toMatch(/"Passed"/);
+    expect(ui).toMatch(/"Failed"/);
+    expect(ui).toMatch(/"Not run"/);
+    // mail verify → the own-address mail-test endpoint; calls verify → the livekit-test endpoint.
+    expect(ui).toMatch(/label="Verify mail \(to me\)"/);
+    expect(ui).toMatch(/"\/admin\/readiness\/mail-test"/);
+    expect(ui).toMatch(/label="Verify LiveKit"/);
+    expect(ui).toMatch(/"\/admin\/readiness\/livekit-test"/);
+    // No Stripe-payment or realtime-fix button was added.
+    expect(ui).not.toMatch(/Verify Stripe|Test payment|Fix realtime/i);
   });
 });

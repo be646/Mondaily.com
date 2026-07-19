@@ -421,6 +421,28 @@ const STATUS_META: Record<string, { color: string; label: string }> = {
   missing: { color: "#d1524a", label: "Missing" },
   unknown: { color: "var(--text-faint)", label: "Unknown" },
 };
+// A small admin-only "Verify" action + inline result (Passed / Failed / Not run). Runs a safe,
+// non-destructive self-test endpoint; shows the honest outcome without exposing any secret.
+function VerifyAction({ label, run }: { label: string; run: () => Promise<{ ok: boolean; reason?: string }> }) {
+  const m = useMutation({ mutationFn: run });
+  const state = m.isPending ? "running" : m.data ? (m.data.ok ? "passed" : "failed") : "idle";
+  const color = state === "passed" ? "#2f9e6b" : state === "failed" ? "#d1524a" : "var(--text-faint)";
+  const text = state === "running" ? "Running…" : state === "passed" ? "Passed" : state === "failed" ? "Failed" : "Not run";
+  return (
+    <div className="mt-1 flex items-center gap-2">
+      <button onClick={() => m.mutate()} disabled={m.isPending}
+        className="inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[10px] font-medium disabled:opacity-50"
+        style={{ borderColor: "var(--border-strong)", color: "var(--text-secondary)" }}>
+        {m.isPending ? <Loader2 size={10} className="animate-spin" /> : null}{label}
+      </button>
+      <span className="text-[10px] font-semibold" style={{ color }}>{text}</span>
+      {state === "failed" && m.data?.reason && (
+        <span className="text-[9.5px]" style={{ color: "var(--text-faint)" }}>({m.data.reason})</span>
+      )}
+    </div>
+  );
+}
+
 function ProdReadinessSection() {
   const q = useQuery<ReadinessResp>({ queryKey: ["admin-readiness"], queryFn: () => apiClient.get<ReadinessResp>("/admin/readiness"), retry: false, staleTime: 60_000 });
   const g = q.data?.group ?? {};
@@ -452,6 +474,14 @@ function ProdReadinessSection() {
                     <p className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>Without it: {r.failClosed}</p>
                     {r.key === "realtime" && st === "partial" && note && (
                       <p className="mt-0.5 text-[10.5px]" style={{ color: "#c6892e" }}>{note}</p>
+                    )}
+                    {/* Admin-only safe self-tests. Mail sends one message to your own address; LiveKit only
+                        mints+discards a token. Neither touches product mail, calls, recording, or payments. */}
+                    {r.key === "mail" && (
+                      <VerifyAction label="Verify mail (to me)" run={() => apiClient.post<{ ok: boolean; reason?: string }>("/admin/readiness/mail-test", {})} />
+                    )}
+                    {r.key === "calls" && (
+                      <VerifyAction label="Verify LiveKit" run={() => apiClient.post<{ ok: boolean; reason?: string }>("/admin/readiness/livekit-test", {})} />
                     )}
                   </div>
                 </div>
