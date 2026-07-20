@@ -171,16 +171,10 @@ export function GuestCallPage() {
       return r.localParticipant.getTrackPublication(lk.Track.Source.Microphone)?.track?.mediaStreamTrack ?? null;
     },
     sendChunk: async (pcm, seq, signal) => {
-      const fd = new FormData();
-      fd.append("token", token);
-      fd.append("consent", "true");
-      fd.append("audio", pcm, "chunk.pcm");
-      fd.append("format", "pcm_s16le");
-      fd.append("sample_rate", String(16000));
-      fd.append("session", roomRef.current?.localParticipant.identity ?? "guest");
-      fd.append("seq", String(seq));
+      // Raw PCM body + query metadata; guest token in a header (never multipart, never in the URL).
+      const qs = new URLSearchParams({ consent: "true", format: "pcm_s16le", sample_rate: "16000", session: roomRef.current?.localParticipant.identity ?? "guest", seq: String(seq) });
       try {
-        const res = await fetch(`${BASE_URL}/api/v1/public/calls/caption-chunk`, { method: "POST", body: fd, signal });
+        const res = await fetch(`${BASE_URL}/api/v1/public/calls/caption-chunk?${qs.toString()}`, { method: "POST", body: pcm, headers: { "Content-Type": "application/octet-stream", "X-Guest-Token": token }, signal });
         const body = await res.json().catch(() => ({} as Record<string, unknown>));
         return { ok: res.ok, status: res.status, text: typeof body.text === "string" ? body.text : "", noSpeech: body.no_speech === true, language: typeof body.language === "string" ? body.language : null };
       } catch { return { ok: false, status: 0, text: "", noSpeech: false, language: null }; }

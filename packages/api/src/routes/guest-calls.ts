@@ -228,36 +228,37 @@ router.post("/token", rateLimit({ max: 15, windowMs: 60_000 }), zValidator("json
 
 /**
  * POST /public/calls/caption-chunk — guest twin of the member caption proxy (Live Captions Phase 2,
- * staging/canary). Multipart: token, consent, audio, format, sample_rate, session, seq, language?. Stays
- * on /public/calls/* so guests never touch an authenticated workspace API. Requires a VALID guest token
- * (same signature+meeting checks as /token) AND explicit consent (live captions send the guest's mic to
- * the sovereign STT). Canary-gated by the token's workspace. Forwards to the appliance with the
- * server-side key, returns { text, no_speech } only — no audio stored, no transcript persisted, no
- * invented text. Rate-limited like the other public routes.
+ * staging/canary). RAW application/octet-stream body (PCM) + query (?consent&format&sample_rate&session&seq&language)
+ * + the guest token in the X-Guest-Token header. Raw body (not multipart): multipart parseBody() throws in
+ * the Vercel Node adapter, whereas arrayBuffer() reads reliably. Stays on /public/calls/* so guests never
+ * touch an authenticated workspace API. Requires a VALID guest token (same checks as /token) AND explicit
+ * consent (live captions send the guest's mic to the sovereign STT). Canary-gated by the token's workspace.
+ * Forwards to the appliance with the server-side key, returns { text, no_speech } only — no audio stored,
+ * no transcript persisted, no invented text. Rate-limited like the other public routes.
  */
 router.post("/caption-chunk", rateLimit({ max: 300, windowMs: 60_000 }), async (c) => {
   if (!callsEnabled()) return c.json({ error: "unavailable" }, 503);
-  const body = await c.req.parseBody();
-  const token = String(body["token"] ?? "");
+  const token = c.req.header("X-Guest-Token") ?? "";
   if (!token) return c.json({ error: "token_required" }, 400);
 
   const r = await resolveGuest(token);
   if (r.status !== "ok") return c.json({ error: "invalid_or_expired" }, 401);
   if (!liveCaptionsAllowed(r.claims?.ws)) return c.json({ error: "live_captions_unavailable" }, 503);
   // Explicit consent required — captions are a live audio egress of the guest's own mic.
-  if (String(body["consent"] ?? "") !== "true") return c.json({ error: "consent_required" }, 400);
+  if (c.req.query("consent") !== "true") return c.json({ error: "consent_required" }, 400);
 
-  const audio = body["audio"];
-  if (!(audio instanceof File)) return c.json({ error: "audio_required" }, 400);
-  if (audio.size > CAPTION_CHUNK_MAX_BYTES) return c.json({ error: "payload_too_large" }, 413);
+  const audio = await c.req.arrayBuffer();
+  if (!audio || audio.byteLength === 0) return c.json({ error: "audio_required" }, 400);
+  if (audio.byteLength > CAPTION_CHUNK_MAX_BYTES) return c.json({ error: "payload_too_large" }, 413);
 
+  const q = c.req.query();
   const out = await captionChunk({
-    audio: await audio.arrayBuffer(),
-    format: String(body["format"] ?? ""),
-    sampleRate: Number(body["sample_rate"] ?? 0),
-    session: String(body["session"] ?? ""),
-    seq: Number(body["seq"] ?? 0),
-    language: body["language"] ? String(body["language"]) : undefined,
+    audio,
+    format: q.format ?? "pcm_s16le",
+    sampleRate: Number(q.sample_rate ?? 0),
+    session: q.session ?? "",
+    seq: Number(q.seq ?? 0),
+    language: q.language || undefined,
   });
   if (!out.ok) return c.json({ text: "", no_speech: false, error: out.status === 413 ? "payload_too_large" : "stt_unavailable" }, out.status === 413 ? 413 : 502);
   return c.json({ text: out.text, no_speech: out.no_speech, language: out.language, confidence: out.confidence });

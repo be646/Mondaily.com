@@ -197,29 +197,30 @@ router.get("/rooms/:id/recording/status", async (c) => {
 
 /**
  * POST /live-calls/caption-chunk — Live Captions Phase 2 (staging/canary). Accepts ONE short local-mic
- * audio chunk (multipart: audio, format, sample_rate, session, seq, language?) from an authenticated
- * member and proxies it to the sovereign STT appliance, returning { text, no_speech } only. The caller
- * publishes the CaptionPacket over the LiveKit data channel itself — this endpoint neither stores audio
- * nor persists the transcript, and adds the SOVEREIGN_STT_KEY server-side so it never reaches the browser.
- * FAIL-CLOSED: 503 when live captions aren't configured/allowed for this workspace (canary gate). Never
- * returns invented text — on any STT failure the body carries empty text so the client shows nothing.
+ * audio chunk as a RAW application/octet-stream body (PCM), with metadata in the query string
+ * (?format&sample_rate&session&seq&language) from an authenticated member, and proxies it to the
+ * sovereign STT appliance, returning { text, no_speech } only. Raw body (not multipart): multipart
+ * parseBody() throws in the Vercel Node adapter, whereas arrayBuffer() reads reliably like the JSON
+ * bodies used everywhere else. The caller publishes the CaptionPacket itself — this endpoint neither
+ * stores audio nor persists the transcript, and adds SOVEREIGN_STT_KEY server-side (never to the browser).
+ * FAIL-CLOSED: 503 when captions aren't configured/allowed for this workspace; never invents text.
  */
 router.post("/caption-chunk", rateLimit({ max: 300, windowMs: 60_000 }), async (c) => {
   const ws = c.get("workspaceId");
   if (!liveCaptionsAllowed(ws)) return c.json({ error: "live_captions_unavailable" }, 503);
 
-  const body = await c.req.parseBody();
-  const audio = body["audio"];
-  if (!(audio instanceof File)) return c.json({ error: "audio_required" }, 400);
-  if (audio.size > CAPTION_CHUNK_MAX_BYTES) return c.json({ error: "payload_too_large" }, 413);
+  const audio = await c.req.arrayBuffer();
+  if (!audio || audio.byteLength === 0) return c.json({ error: "audio_required" }, 400);
+  if (audio.byteLength > CAPTION_CHUNK_MAX_BYTES) return c.json({ error: "payload_too_large" }, 413);
 
+  const q = c.req.query();
   const r = await captionChunk({
-    audio: await audio.arrayBuffer(),
-    format: String(body["format"] ?? ""),
-    sampleRate: Number(body["sample_rate"] ?? 0),
-    session: String(body["session"] ?? ""),
-    seq: Number(body["seq"] ?? 0),
-    language: body["language"] ? String(body["language"]) : undefined,
+    audio,
+    format: q.format ?? "pcm_s16le",
+    sampleRate: Number(q.sample_rate ?? 0),
+    session: q.session ?? "",
+    seq: Number(q.seq ?? 0),
+    language: q.language || undefined,
   });
   // Fail-closed: no fabricated text. 413 passes through; other failures are transient → 502 so the client backs off.
   if (!r.ok) return c.json({ text: "", no_speech: false, error: r.status === 413 ? "payload_too_large" : "stt_unavailable" }, r.status === 413 ? 413 : 502);

@@ -118,6 +118,16 @@ describe("Phase 2 API — endpoints are gated, private, and leak nothing", () =>
     expect(s).toMatch(/rateLimit\(/);
   });
 
+  it("caption endpoints read a raw body (arrayBuffer), not multipart parseBody (throws in Vercel Node)", () => {
+    for (const f of [LIVE_CALLS, GUEST_CALLS]) {
+      const s = read(f);
+      expect(s).toMatch(/c\.req\.arrayBuffer\(\)/);
+      expect(s).not.toMatch(/\.parseBody\(/);   // the call, not the explanatory comment
+    }
+    // guest token arrives via header, never multipart/body
+    expect(read(GUEST_CALLS)).toMatch(/c\.req\.header\("X-Guest-Token"\)/);
+  });
+
   it("the STT bearer key is added server-side only and never returned to the caller", () => {
     const s = read(LIVEKIT);
     expect(s).toMatch(/Authorization: `Bearer \$\{process\.env\.SOVEREIGN_STT_KEY\}`/);
@@ -181,9 +191,9 @@ describe("Phase 2 frontend safety + capture path", () => {
     expect(hook).toMatch(/inflight = new AbortController\(\)/);
     expect(hook).toMatch(/sendChunk\(new Blob\(\[buf\]\), mySeq, inflight\.signal\)/);
     expect(hook).toMatch(/inflight\?\.abort\(\)/);
-    // callers forward the signal to the network call
-    expect(callRoom).toMatch(/caption-chunk`, \{ method: "POST", body: fd, signal \}/);
-    expect(guest).toMatch(/caption-chunk`, \{ method: "POST", body: fd, signal \}/);
+    // callers POST the raw PCM as the body and forward the abort signal to the network call
+    expect(callRoom).toMatch(/method: "POST", body: pcm,[\s\S]{0,160}signal/);
+    expect(guest).toMatch(/method: "POST", body: pcm,[\s\S]{0,200}signal/);
   });
   it("tears down capture (interval/context/nodes/gain) on cleanup", () => {
     expect(hook).toMatch(/clearInterval\(flushTimer\)/);
@@ -195,10 +205,10 @@ describe("Phase 2 frontend safety + capture path", () => {
     expect(callRoom).toMatch(/active:\s*!!event\.live_captions_available && showCaptions && micOn && phase === "live"/);
     expect(guest).toMatch(/active:\s*!!meta\?\.live_captions_available && showCaptions && micOn && phase === "live"/);
   });
-  it("member posts to the authenticated endpoint; guest posts to public with token + consent", () => {
-    expect(callRoom).toMatch(/apiFetch\(`\$\{BASE_URL\}\/api\/v1\/live-calls\/caption-chunk`/);
-    expect(guest).toMatch(/\/api\/v1\/public\/calls\/caption-chunk/);
-    expect(guest).toMatch(/fd\.append\("token", token\)/);
-    expect(guest).toMatch(/fd\.append\("consent", "true"\)/);
+  it("member posts to the authenticated endpoint; guest posts to public with token header + consent", () => {
+    expect(callRoom).toMatch(/apiFetch\(`\$\{BASE_URL\}\/api\/v1\/live-calls\/caption-chunk\?/);
+    expect(guest).toMatch(/\/api\/v1\/public\/calls\/caption-chunk\?/);
+    expect(guest).toMatch(/"X-Guest-Token": token/);   // guest token via header, not multipart/URL
+    expect(guest).toMatch(/consent: "true"/);          // explicit consent in the query
   });
 });

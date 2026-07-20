@@ -250,14 +250,11 @@ function CallRoom({ event }: { event: CalEvent }) {
       return r.localParticipant.getTrackPublication(lk.Track.Source.Microphone)?.track?.mediaStreamTrack ?? null;
     },
     sendChunk: async (pcm, seq, signal) => {
-      const fd = new FormData();
-      fd.append("audio", pcm, "chunk.pcm");
-      fd.append("format", "pcm_s16le");
-      fd.append("sample_rate", String(16000));
-      fd.append("session", `${event.id}:${roomRef.current?.localParticipant.identity ?? ""}`);
-      fd.append("seq", String(seq));
+      // Raw PCM body + metadata in the query string (the API reads arrayBuffer; multipart throws in the
+      // Vercel Node adapter). Bearer/appliance URL stay server-side.
+      const qs = new URLSearchParams({ format: "pcm_s16le", sample_rate: "16000", session: `${event.id}:${roomRef.current?.localParticipant.identity ?? ""}`, seq: String(seq) });
       try {
-        const res = await apiFetch(`${BASE_URL}/api/v1/live-calls/caption-chunk`, { method: "POST", body: fd, signal });
+        const res = await apiFetch(`${BASE_URL}/api/v1/live-calls/caption-chunk?${qs.toString()}`, { method: "POST", body: pcm, headers: { "Content-Type": "application/octet-stream" }, signal });
         const body = await res.json().catch(() => ({} as Record<string, unknown>));
         return { ok: res.ok, status: res.status, text: typeof body.text === "string" ? body.text : "", noSpeech: body.no_speech === true, language: typeof body.language === "string" ? body.language : null };
       } catch { return { ok: false, status: 0, text: "", noSpeech: false, language: null }; }
