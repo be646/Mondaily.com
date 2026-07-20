@@ -17,6 +17,7 @@ export interface CaptionPacket {
   text: string;           // the caption text
   final: boolean;         // false = interim/partial (may be revised), true = finalized line
   ts: number;             // epoch ms, for ordering
+  lang?: string;          // Phase A: detected source language (BCP-47-ish, e.g. "en"); optional + backwards-compatible
 }
 
 /**
@@ -42,6 +43,9 @@ export function parseCaptionPacket(raw: unknown): CaptionPacket | null {
   if (!text) return null;
   const name = (typeof o.name === "string" ? o.name : "").trim().slice(0, 80) || "Speaker";
   const ts = typeof o.ts === "number" && Number.isFinite(o.ts) ? o.ts : 0;
+  // Optional detected language — accepted only when a short non-empty string; absent/invalid → omitted,
+  // so older packets (no `lang`) parse exactly as before (backwards-compatible).
+  const lang = (typeof o.lang === "string" && o.lang.trim()) ? o.lang.trim().slice(0, 16) : undefined;
   return {
     t: CAPTION_PACKET_TYPE,
     id: o.id.slice(0, 80),
@@ -50,5 +54,6 @@ export function parseCaptionPacket(raw: unknown): CaptionPacket | null {
     text,
     final: o.final === true,
     ts,
+    ...(lang ? { lang } : {}),
   };
 }

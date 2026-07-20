@@ -261,8 +261,8 @@ function CallRoom({ event }: { event: CalEvent }) {
     },
     onCaption: (text, language, seq) => {
       const lp = roomRef.current?.localParticipant; if (!lp) return;
-      const pkt: CaptionPacket = { t: "caption", id: `${lp.identity}-${seq}`, participantId: lp.identity, name: lp.name || "You", text, final: true, ts: Date.now() };
-      setCaptions(cs => [...cs.filter(x => x.id !== pkt.id), pkt].slice(-60));   // sender renders own caption (own publishData isn't echoed back)
+      const pkt: CaptionPacket = { t: "caption", id: `${lp.identity}-${seq}`, participantId: lp.identity, name: lp.name || "You", text, final: true, ts: Date.now(), ...(language ? { lang: language } : {}) };
+      setCaptions(cs => [...cs.filter(x => x.id !== pkt.id), pkt].slice(-400));   // sender renders own caption (own publishData isn't echoed back); keep enough for the transcript timeline
       sendData(pkt as unknown as Record<string, unknown>);
     },
     onStop: () => setShowCaptions(false),

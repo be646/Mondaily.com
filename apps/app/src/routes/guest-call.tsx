@@ -181,8 +181,8 @@ export function GuestCallPage() {
     },
     onCaption: (text, language, seq) => {
       const lp = roomRef.current?.localParticipant; if (!lp) return;
-      const pkt = { t: "caption" as const, id: `${lp.identity}-${seq}`, participantId: lp.identity, name: lp.name || name || "Guest", text, final: true, ts: Date.now() };
-      setCaptions(cs => [...cs.filter(x => x.id !== pkt.id), pkt].slice(-60));
+      const pkt = { t: "caption" as const, id: `${lp.identity}-${seq}`, participantId: lp.identity, name: lp.name || name || "Guest", text, final: true, ts: Date.now(), ...(language ? { lang: language } : {}) };
+      setCaptions(cs => [...cs.filter(x => x.id !== pkt.id), pkt].slice(-400));   // keep enough history for the transcript timeline
       try { lp.publishData(new TextEncoder().encode(JSON.stringify(pkt)), { reliable: true }); } catch { /* ignore */ }
     },
     onStop: () => setShowCaptions(false),

@@ -165,6 +165,18 @@ describe("Phase 2 frontend safety + capture path", () => {
   it("no browser Web Speech API / no third-party STT in the caption path", () => {
     expect(files).not.toMatch(/webkitSpeechRecognition|[^a-zA-Z]SpeechRecognition|deepgram|assemblyai|api\.openai|whisper\.(ai|api)/i);
   });
+
+  it("Phase A: transcript timeline is FINAL-only, honest empty state, no persistence/translation/network", () => {
+    const tiles = read(`${APP}/routes/dashboard/call-tiles.tsx`);
+    expect(tiles).toMatch(/captions\.filter\(\(c\) => c\.final\)/);         // timeline built from finals only
+    expect(tiles).toMatch(/Transcript appears here as people speak\./);      // honest empty state
+    // Phase A adds NO translation / persistence / new network in the caption UI path
+    expect(files).not.toMatch(/aiGateway|caption-translate|transcript-line/i); // no Phase B/C endpoints
+    expect(files).not.toMatch(/googleapis|translate\.google|deepl/i);          // no third-party translation
+    // detected language rides the packet in BOTH rooms (backwards-compatible optional field)
+    expect(callRoom).toMatch(/language \? \{ lang: language \}/);
+    expect(guest).toMatch(/language \? \{ lang: language \}/);
+  });
   it("captures LOCAL mic only (no mixed room / remote audio)", () => {
     expect(hook).toMatch(/getMicTrack/);
     expect(hook).toMatch(/createMediaStreamSource/);

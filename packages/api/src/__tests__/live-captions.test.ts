@@ -46,6 +46,18 @@ describe("caption packet parser", () => {
     expect(p?.text.length).toBe(2000);
     expect(parseCaptionPacket({ ...valid, ts: "nope" })?.ts).toBe(0);
   });
+
+  it("Phase A: optional lang — preserved when valid, absent/invalid → omitted (backwards-compatible)", () => {
+    expect(parseCaptionPacket({ ...valid, lang: "en" })?.lang).toBe("en");
+    expect(parseCaptionPacket({ ...valid, lang: "  pl  " })?.lang).toBe("pl");      // trimmed
+    expect(parseCaptionPacket({ ...valid, lang: "x".repeat(50) })?.lang?.length).toBe(16); // clamped
+    // absent lang → field omitted entirely (old packets parse exactly as before)
+    expect("lang" in (parseCaptionPacket(valid) as object)).toBe(false);
+    // invalid lang → omitted, packet still valid
+    expect(parseCaptionPacket({ ...valid, lang: 42 })?.lang).toBeUndefined();
+    expect(parseCaptionPacket({ ...valid, lang: "" })?.lang).toBeUndefined();
+    expect(parseCaptionPacket({ ...valid, lang: 42 })?.text).toBe("hello world");   // rest intact
+  });
 });
 
 describe("liveCaptionsAvailable capability gate", () => {

@@ -3,33 +3,65 @@ import type { Participant, Track as TrackNS } from "livekit-client";
 import { Mic, MicOff, MonitorUp, Captions } from "lucide-react";
 import type { CaptionPacket } from "@mondaily/shared/captions";
 
+const clockOf = (ts: number): string => {
+  if (!ts) return "";
+  try { return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }); }
+  catch { return ""; }
+};
+
 /**
- * Live captions panel (Phase 1) — HONEST states only. Live captions need a sovereign streaming/chunk STT
- * endpoint that doesn't exist yet, so `available` is false and we say so plainly. When it lands (Phase 2)
- * the same panel renders real, room-scoped, ephemeral caption lines (speaker label + partial/final text).
- * It NEVER fabricates captions and NEVER persists them.
+ * Live captions panel — HONEST states only, NEVER fabricates captions, NEVER persists them.
+ * Two views over the SAME ephemeral room-scoped packets:
+ *   • "Live"       — the rolling caption experience (interim + final lines, newest at the bottom).
+ *   • "Transcript" — Phase A: an accumulating, ordered timeline built from FINAL packets only
+ *                    (speaker · clock time · original text · detected-language chip). Still ephemeral —
+ *                    no persistence, no translation, no network. The saved transcript comes in Phase B.
  */
 export function CaptionsPanel({ available, captions, onClose }: { available: boolean; captions: CaptionPacket[]; onClose?: () => void }) {
+  const [view, setView] = useState<"live" | "transcript">("live");
   const endRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [captions.length]);
+  // Transcript = FINAL packets only, de-duplicated by id, ordered oldest→newest by timestamp.
+  const timeline = [...new Map(captions.filter((c) => c.final).map((c) => [c.id, c])).values()].sort((a, b) => a.ts - b.ts);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [captions.length, view]);
   return (
     <div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}>
       <div className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
         <span className="flex items-center gap-1.5 text-[12px] font-semibold text-white"><Captions size={13} /> Live captions</span>
         {onClose && <button onClick={onClose} className="text-white/50 hover:text-white text-[13px]">✕</button>}
       </div>
+      {available && (
+        <div className="flex gap-1 border-b px-2 py-1.5" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+          {(["live", "transcript"] as const).map((v) => (
+            <button key={v} onClick={() => setView(v)} className="rounded-md px-2 py-0.5 text-[11px] font-medium capitalize"
+              style={{ background: view === v ? "rgba(255,255,255,0.12)" : "transparent", color: view === v ? "#fff" : "rgba(255,255,255,0.5)" }}>{v}</button>
+          ))}
+        </div>
+      )}
       <div className="flex-1 space-y-2 overflow-y-auto px-3 py-2">
         {!available ? (
           <div className="py-6 text-center">
             <p className="text-[12px] font-medium text-white/70">Live captions unavailable</p>
             <p className="mt-1 text-[11px] text-white/40">Live captions need a streaming speech service, which isn’t enabled yet. The full transcript is available after the call.</p>
           </div>
-        ) : captions.length === 0 ? (
-          <p className="pt-6 text-center text-[11px] text-white/40">Waiting for speech…</p>
-        ) : captions.map((c) => (
+        ) : view === "live" ? (
+          captions.length === 0 ? (
+            <p className="pt-6 text-center text-[11px] text-white/40">Waiting for speech…</p>
+          ) : captions.map((c) => (
+            <div key={c.id}>
+              <span className="text-[10px] font-medium text-white/45">{c.name}</span>
+              <p className="text-[12.5px] leading-snug text-white/90" style={{ opacity: c.final ? 1 : 0.6, fontStyle: c.final ? "normal" : "italic" }}>{c.text}</p>
+            </div>
+          ))
+        ) : timeline.length === 0 ? (
+          <p className="pt-6 text-center text-[11px] text-white/40">Transcript appears here as people speak.</p>
+        ) : timeline.map((c) => (
           <div key={c.id}>
-            <span className="text-[10px] font-medium text-white/45">{c.name}</span>
-            <p className="text-[12.5px] leading-snug text-white/90" style={{ opacity: c.final ? 1 : 0.6, fontStyle: c.final ? "normal" : "italic" }}>{c.text}</p>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-medium text-white/45">{c.name}</span>
+              {c.ts ? <span className="text-[9px] tabular-nums text-white/30">{clockOf(c.ts)}</span> : null}
+              {c.lang ? <span className="rounded-sm bg-white/10 px-1 text-[8px] uppercase tracking-wide text-white/50">{c.lang}</span> : null}
+            </div>
+            <p className="text-[12.5px] leading-snug text-white/90">{c.text}</p>
           </div>
         ))}
         <div ref={endRef} />
