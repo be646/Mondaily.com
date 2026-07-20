@@ -136,7 +136,11 @@ export async function captionChunk(input: {
       body: fd,
       signal: ctrl.signal,
     });
-    if (!res.ok) return fail(res.status);
+    if (!res.ok) {
+      // TEMP DIAG (no secret values): reveals whether the bearer is present at runtime + appliance status.
+      console.error(`[captionChunk][diag] applianceStatus=${res.status} base=${base} keyLen=${(process.env.SOVEREIGN_STT_KEY || "").length} keyChunkUrlLen=${(process.env.SOVEREIGN_STT_CHUNK_URL || "").length}`);
+      return fail(res.status);
+    }
     const j = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     return {
       ok: true, status: 200,
