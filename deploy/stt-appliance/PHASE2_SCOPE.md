@@ -5,6 +5,9 @@
 > a separate, explicitly-approved task. Nothing here touches Meeting Memory, the post-call transcript
 > pipeline, prompts, billing, records, private inference, or production Vercel env.
 >
+> Next on the calls roadmap (audit-only spec): live readable transcript + multilingual translation +
+> saved transcript → [`LIVE_TRANSCRIPT_TRANSLATION_SPEC.md`](./LIVE_TRANSCRIPT_TRANSLATION_SPEC.md).
+>
 > Prereqs already met: Phase 1 scaffold live (`d132175f`), appliance `/caption/chunk` implemented and
 > **Tier-A Docker-validated** on real Linux. Companions:
 > [`LIVE_CAPTIONS_STT_CONTRACT.md`](./LIVE_CAPTIONS_STT_CONTRACT.md),
