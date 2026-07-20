@@ -18,7 +18,7 @@ import { useEffect, useRef } from "react";
 
 const TARGET_SR = 16000;
 const CHUNK_SECONDS = 2.5;
-const RMS_SILENCE = 0.008;     // below this the chunk is treated as silence — not sent, not published
+const PEAK_SILENCE = 0.006;    // peak amplitude below this = silence/ambient — not sent (appliance VAD is the final arbiter)
 const BACKOFF_BASE_MS = 3000;
 const BACKOFF_MAX_MS = 30000;
 
@@ -55,7 +55,7 @@ class PCMCollector extends AudioWorkletProcessor {
 registerProcessor('pcm-collector', PCMCollector);
 `;
 
-function floatTo16kPCM(frames: Float32Array[], srcRate: number): { buf: ArrayBuffer; rms: number } {
+function floatTo16kPCM(frames: Float32Array[], srcRate: number): { buf: ArrayBuffer; peak: number } {
   let total = 0;
   for (const f of frames) total += f.length;
   const merged = new Float32Array(total);
@@ -65,14 +65,18 @@ function floatTo16kPCM(frames: Float32Array[], srcRate: number): { buf: ArrayBuf
   const ratio = srcRate / TARGET_SR;
   const outLen = Math.max(1, Math.floor(merged.length / ratio));
   const out = new Int16Array(outLen);
-  let sumSq = 0;
+  let peak = 0;
   for (let i = 0; i < outLen; i++) {
     const s = merged[Math.floor(i * ratio)] || 0;
     const c = s < -1 ? -1 : s > 1 ? 1 : s;
-    sumSq += c * c;
+    const a = c < 0 ? -c : c;
+    if (a > peak) peak = a;
     out[i] = c < 0 ? c * 0x8000 : c * 0x7fff;
   }
-  return { buf: out.buffer, rms: Math.sqrt(sumSq / outLen) };
+  // PEAK, not mean-RMS: real speech has pauses, so a full-chunk *mean* RMS sits far below the peak and
+  // was misclassifying normal speech as silence (captions never fired). Peak cleanly separates voiced
+  // speech (peaks well above the floor) from true silence/ambient; the appliance VAD is the final arbiter.
+  return { buf: out.buffer, peak };
 }
 
 export function useCaptionCapture(opts: Opts): void {
@@ -105,8 +109,8 @@ export function useCaptionCapture(opts: Opts): void {
       if (!ctx || frameSamples === 0) return;
       const srcRate = ctx.sampleRate;
       const batch = frames; frames = []; frameSamples = 0;
-      const { buf, rms } = floatTo16kPCM(batch, srcRate);
-      if (rms < RMS_SILENCE) return;                       // client-side silence gate — send nothing
+      const { buf, peak } = floatTo16kPCM(batch, srcRate);
+      if (peak < PEAK_SILENCE) return;                     // client-side silence gate (peak) — send nothing
       sending = true;
       const mySeq = ++seq;
       inflight = new AbortController();
