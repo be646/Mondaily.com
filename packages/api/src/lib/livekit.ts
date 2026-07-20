@@ -129,18 +129,17 @@ export async function captionChunk(input: {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10_000);
   try {
+    // The live-caption appliance is a SEPARATE box from the batch-STT box, so it uses its OWN bearer
+    // (SOVEREIGN_STT_CHUNK_KEY). Falls back to SOVEREIGN_STT_KEY only for back-compat. Stays server-side.
+    const chunkKey = (process.env.SOVEREIGN_STT_CHUNK_KEY || process.env.SOVEREIGN_STT_KEY || "").trim();
     const res = await fetch(`${base}/caption/chunk`, {
       method: "POST",
-      // Do NOT set Content-Type — fetch sets the multipart boundary. Bearer stays server-side.
-      headers: { ...(process.env.SOVEREIGN_STT_KEY ? { Authorization: `Bearer ${process.env.SOVEREIGN_STT_KEY}` } : {}) },
+      // Do NOT set Content-Type — fetch sets the multipart boundary.
+      headers: { ...(chunkKey ? { Authorization: `Bearer ${chunkKey}` } : {}) },
       body: fd,
       signal: ctrl.signal,
     });
-    if (!res.ok) {
-      // TEMP DIAG (no secret values): reveals whether the bearer is present at runtime + appliance status.
-      console.error(`[captionChunk][diag] applianceStatus=${res.status} base=${base} keyLen=${(process.env.SOVEREIGN_STT_KEY || "").length} keyChunkUrlLen=${(process.env.SOVEREIGN_STT_CHUNK_URL || "").length}`);
-      return fail(res.status);
-    }
+    if (!res.ok) return fail(res.status);
     const j = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     return {
       ok: true, status: 200,
