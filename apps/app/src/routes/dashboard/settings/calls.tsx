@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { Phone, Video, UploadCloud, Mic, Sparkles, Lock, Webhook, Check, AlertTriangle, MinusCircle, ArrowRight, LifeBuoy } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
-import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { PageSkeleton } from "../../../components/ui/page-state";
+import { CommandPageHeader } from "../../../components/ui/controls";
 import { SettingsSection } from "../../../components/ui/controls";
 
 type RowStatus = "ready" | "available" | "partially_configured" | "missing_config" | "unavailable" | "not_enabled" | "not_configured";
@@ -41,7 +42,7 @@ export function CallsSettings() {
   if (q.isLoading) return <PageSkeleton rows={7} />;
   if (q.isError) return (
     <div className="space-y-5">
-      <PageHeader title="Calls & Recording" description="Configuration status for calls, recording, transcription, and summaries." />
+      <CommandPageHeader icon={Video} callsign="CALLS" title="Calls & Recording" subtitle="Configuration status for calls, recording, transcription, and summaries." />
       <p className="text-sm" style={{ color: "var(--text-muted)" }}>Only workspace owners and admins can view call readiness.</p>
     </div>
   );

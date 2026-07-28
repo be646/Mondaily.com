@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { apiClient, apiFetch, getAuthHeaders } from "../../../lib/api-client";
-import { EmptyState, PageHeader, ConsoleSkeleton } from "../../../components/ui/page-state";
+import { EmptyState, ConsoleSkeleton } from "../../../components/ui/page-state";
+import { CommandPageHeader } from "../../../components/ui/controls";
 import { FieldSelect } from "../../../components/ui/controls";
 import { useWorkspaceSuggestions } from "../../../hooks/useWorkspaceSuggestions";
 
@@ -365,7 +366,7 @@ export function ObjectsSettings() {
 
   return (
     <div>
-      <PageHeader title="Objects & attributes" description="Define the record schemas Mondaily agents can read and update." />
+      <CommandPageHeader icon={Database} callsign="OBJECTS" title="Objects & attributes" subtitle="Define the record schemas Mondaily agents can read and update." />
 
       {/* AI Generate CTA */}
       <div className="mb-4 flex items-center gap-3 rounded-sm border border-[var(--border-strong)] bg-[var(--surface-hover)] px-4 py-3">

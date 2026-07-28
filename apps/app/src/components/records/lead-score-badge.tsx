@@ -8,8 +8,8 @@ interface Props {
 }
 
 function scoreColor(score: number) {
-  if (score >= 70) return { text: "text-[#2f9e6b]", bg: "bg-[#2f9e6b]/10 border-[#2f9e6b]/20", bar: "bg-[#2f9e6b]" };
-  if (score >= 40) return { text: "text-[#c6892e]", bg: "bg-[#c6892e]/10 border-[#c6892e]/20", bar: "bg-[#c6892e]" };
+  if (score >= 70) return { text: "text-status-ok", bg: "bg-status-ok/10 border-status-ok/20", bar: "bg-status-ok" };
+  if (score >= 40) return { text: "text-status-warn", bg: "bg-status-warn/10 border-status-warn/20", bar: "bg-status-warn" };
   return { text: "text-stone-500", bg: "bg-[var(--surface-hover)] border-[var(--border-soft)]", bar: "bg-stone-600" };
 }
 
@@ -85,8 +85,8 @@ export function LeadScoreBadge({ score, size = "sm", signals }: Props) {
               <span style={{ color: "var(--text-muted)" }}>{f.label}</span>
               <span className="inline-flex items-center gap-1 font-medium" style={{ color: "var(--text-secondary)" }}>
                 {f.value}
-                {f.tone === "up" && <span className="text-[#2f9e6b]">↑</span>}
-                {f.tone === "down" && <span className="text-[#d1524a]">↓</span>}
+                {f.tone === "up" && <span className="text-status-ok">↑</span>}
+                {f.tone === "down" && <span className="text-status-error">↓</span>}
               </span>
             </div>
           ))}

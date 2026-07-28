@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Download, LockKeyhole, Plus, Shield, Smartphone, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
-import { EmptyState, PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
+import { CommandPageHeader } from "../../../components/ui/controls";
 import { FieldSelect } from "../../../components/ui/controls";
 
 interface Session { id: string; device: string; browser?: string; location: string; ip?: string; last_active?: string; current: boolean }
@@ -102,7 +103,7 @@ export function SecuritySettings() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Security" description="Authentication, active sessions, recipient protection, and audit controls." />
+      <CommandPageHeader icon={Shield} callsign="SECURITY" title="Security" subtitle="Authentication, active sessions, recipient protection, and audit controls." />
 
       {/* ── SSO ── */}
       <section className="settings-section">

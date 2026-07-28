@@ -284,7 +284,9 @@ describe("Calls — call room token (server-side, fail-closed, workspace-scoped)
     expect(fn.indexOf("callsEnabled()")).toBeLessThan(fn.indexOf("mintCallToken("));
   });
   it("the public room uses the EVENT id while the internal room id stays server-side only", () => {
-    expect(src).toMatch(/const internalRoom = \(ws: string, eventId: string\) => `ws_\$\{ws\}__meeting__\$\{eventId\}`/);
+    // room name now comes from the shared canonical helper (so saved live transcript lines key to the
+    // exact room participants join — see packages/api/src/lib/rooms.ts + live-transcript.test.ts).
+    expect(src).toMatch(/const internalRoom = \(ws: string, eventId: string\) => meetingRoom\(ws, eventId\)/);
     // join room derives from the stored internal id (or is recomputed) — never the public /calls/:id path
     expect(fn).toMatch(/const room = ev\.data\.call_room_id \|\| internalRoom\(ws, ev\.id\)/);
     // the internal room namespace is never surfaced in the client call room

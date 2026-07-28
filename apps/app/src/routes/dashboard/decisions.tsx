@@ -11,7 +11,7 @@ import { agentByRaw } from "../../lib/agents";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useTableRealtime } from "../../hooks/useTableRealtime";
 
-const RISK_DOT: Record<Decision["risk_level"], string> = { high: "#d1524a", medium: "#c6892e", low: "#2f9e6b" };
+const RISK_DOT: Record<Decision["risk_level"], string> = { high: "var(--status-error)", medium: "var(--status-warn)", low: "var(--status-ok)" };
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 interface Member { user_id: string; name?: string | null; email?: string | null }
@@ -251,8 +251,8 @@ export function DecisionsPage() {
     : [
         { label: "live sync", kind: "monitoring" },
         { label: `${pendingItems.length} awaiting`, dot: false },
-        ...(highRisk > 0 ? [{ label: `${highRisk} high risk`, tone: "#d1524a" } as CommandStatusItem] : []),
-        ...(oldestDays >= 7 ? [{ label: `oldest ${oldestDays}d`, tone: "#c6892e" } as CommandStatusItem] : []),
+        ...(highRisk > 0 ? [{ label: `${highRisk} high risk`, tone: "var(--status-error)" } as CommandStatusItem] : []),
+        ...(oldestDays >= 7 ? [{ label: `oldest ${oldestDays}d`, tone: "var(--status-warn)" } as CommandStatusItem] : []),
       ];
 
   return (
@@ -294,8 +294,8 @@ export function DecisionsPage() {
               <label className="relative block">
                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: "var(--text-faint)" }} />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search queue…" aria-label="Search the decision queue"
-                  className="h-7 w-36 rounded-sm border bg-transparent pl-6.5 pr-2 text-[11.5px] outline-none focus:border-[var(--section-accent)] focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
-                  style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)", paddingLeft: "1.625rem" }} />
+                  className="key-input h-7 w-36 pr-2 text-[11.5px] focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
+                  style={{ paddingLeft: "1.625rem" }} />
               </label>
               <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={[agentFilter, typeFilter, riskFilter, assigneeFilter].filter(Boolean).length} />
               <button onClick={() => setSortRisk(s => !s)} disabled={lane === "approval" && !!triage} aria-pressed={sortRisk}
@@ -378,7 +378,7 @@ export function DecisionsPage() {
               <div className="flex-1" />
               <button onClick={bulkApproveSafe} disabled={bulkBusy || safeToApprove.length === 0}
                 className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 font-medium transition-colors disabled:opacity-50"
-                style={{ borderColor: "color-mix(in srgb, #2f9e6b 55%, transparent)", color: "#2f9e6b" }}>
+                style={{ borderColor: "color-mix(in srgb, var(--status-ok) 55%, transparent)", color: "var(--status-ok)" }}>
                 {bulkBusy ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />} {t("decisions.approve_safe")} ({safeToApprove.length})
               </button>
               <button onClick={bulkDismiss} disabled={bulkBusy}
@@ -416,7 +416,7 @@ export function DecisionsPage() {
                               <span className="inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-wide"
                                 title="AI suggestion — advisory only"
                                 style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-                                <span className="h-1 w-1 rounded-full" style={{ background: verdictBusy === d.id ? "var(--text-faint)" : verdicts.get(d.id) === "approve" ? "#2f9e6b" : verdicts.get(d.id) === "reject" ? "#d1524a" : "#c6892e" }} />
+                                <span className="h-1 w-1 rounded-full" style={{ background: verdictBusy === d.id ? "var(--text-faint)" : verdicts.get(d.id) === "approve" ? "var(--status-ok)" : verdicts.get(d.id) === "reject" ? "var(--status-error)" : "var(--status-warn)" }} />
                                 {verdictBusy === d.id ? "…" : verdicts.get(d.id) === "insufficient" || verdicts.get(d.id) === "error" ? "no data" : `ai ${verdicts.get(d.id)}`}
                               </span>
                             )}
@@ -424,7 +424,7 @@ export function DecisionsPage() {
                               <span className="inline-flex shrink-0 items-center gap-1 rounded-sm border px-1.5 py-px font-mono text-[8.5px] uppercase tracking-wide"
                                 style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}
                                 title={triage.get(d.id)!.reason}>
-                                <span className="h-1 w-1 rounded-full" style={{ background: triage.get(d.id)!.priority === "high" ? "#d1524a" : triage.get(d.id)!.priority === "low" ? "var(--text-faint)" : "#c6892e" }} />
+                                <span className="h-1 w-1 rounded-full" style={{ background: triage.get(d.id)!.priority === "high" ? "var(--status-error)" : triage.get(d.id)!.priority === "low" ? "var(--text-faint)" : "var(--status-warn)" }} />
                                 {triage.get(d.id)!.priority}
                               </span>
                             )}
@@ -437,7 +437,7 @@ export function DecisionsPage() {
                             {/* Behavior-changing markers only: approving this RUNS an action (real
                                 execution_preview flag), and snoozed rows say when they wake. */}
                             {laneDef.open && d.execution_preview?.side_effect && (
-                              <span className="inline-flex shrink-0 items-center gap-0.5 text-[9.5px] font-medium" title={d.execution_preview.text} style={{ color: "#c6892e" }}>
+                              <span className="inline-flex shrink-0 items-center gap-0.5 text-[9.5px] font-medium" title={d.execution_preview.text} style={{ color: "var(--status-warn)" }}>
                                 <Zap size={9} /> runs action
                               </span>
                             )}
@@ -469,8 +469,8 @@ export function DecisionsPage() {
                   <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--surface-card) 70%, transparent)" }}>
                     <div className="flex items-center gap-2.5 rounded-sm border px-5 py-3 text-[14px] font-semibold shadow-lg"
                       style={banner.kind === "approved"
-                        ? { borderColor: "#2f9e6b", color: "#2f9e6b", background: "color-mix(in srgb, #2f9e6b 12%, var(--surface-card))" }
-                        : { borderColor: banner.kind === "rejected" ? "#d1524a" : "var(--text-faint)", color: banner.kind === "rejected" ? "#d1524a" : "var(--text-muted)", background: "var(--surface-card)" }}>
+                        ? { borderColor: "var(--status-ok)", color: "var(--status-ok)", background: "color-mix(in srgb, var(--status-ok) 12%, var(--surface-card))" }
+                        : { borderColor: banner.kind === "rejected" ? "var(--status-error)" : "var(--text-faint)", color: banner.kind === "rejected" ? "var(--status-error)" : "var(--text-muted)", background: "var(--surface-card)" }}>
                       {banner.kind === "approved" ? <><CheckCircle2 size={18} /> Approved &amp; running</> : banner.kind === "rejected" ? <><XCircle size={18} /> Rejected</> : <><Clock size={18} /> Snoozed for 24h</>}
                     </div>
                   </div>
@@ -580,7 +580,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>On approval</span>
-            <span className="inline-flex items-center gap-1 font-medium" style={{ color: d.execution_preview?.side_effect ? "#c6892e" : "var(--text-secondary)" }}>
+            <span className="inline-flex items-center gap-1 font-medium" style={{ color: d.execution_preview?.side_effect ? "var(--status-warn)" : "var(--text-secondary)" }}>
               {d.execution_preview?.side_effect ? <><Zap size={10} /> runs an action</> : "advisory only"}
             </span>
           </span>
@@ -601,7 +601,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
               <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--section-accent)" }}>Agent reasoning</span>
               {reasoningConfidence && (
                 <span className="ml-auto rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
-                  style={{ background: `color-mix(in srgb, ${reasoningConfidence === "high" ? "#2f9e6b" : reasoningConfidence === "low" ? "#717784" : "#c6892e"} 15%, transparent)`, color: reasoningConfidence === "high" ? "#2f9e6b" : reasoningConfidence === "low" ? "#717784" : "#c6892e" }}>
+                  style={{ background: `color-mix(in srgb, ${reasoningConfidence === "high" ? "var(--status-ok)" : reasoningConfidence === "low" ? "var(--status-neutral)" : "var(--status-warn)"} 15%, transparent)`, color: reasoningConfidence === "high" ? "var(--status-ok)" : reasoningConfidence === "low" ? "var(--status-neutral)" : "var(--status-warn)" }}>
                   {reasoningConfidence} confidence
                 </span>
               )}
@@ -657,7 +657,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
                   </button>
                 </div>
               </div>
-              {saveEdit.isError && <p className="text-[10.5px]" style={{ color: "#d1524a" }}>Couldn't save the edit — try again.</p>}
+              {saveEdit.isError && <p className="text-[10.5px]" style={{ color: "var(--status-error)" }}>Couldn't save the edit — try again.</p>}
             </div>
           )}
           {target?.node_id && target?.object_type && (
@@ -668,14 +668,14 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           <div className="flex items-stretch gap-2">
             {currentState != null && (
               <>
-                <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", borderLeft: "2px solid #c6892e" }}>
+                <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", borderLeft: "2px solid var(--status-warn)" }}>
                   <div className="font-mono text-[8.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>Current</div>
                   <div className="mt-1 break-words text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{currentState}</div>
                 </div>
                 <div className="flex shrink-0 items-center"><ArrowRight size={18} style={{ color: "var(--text-faint)" }} /></div>
               </>
             )}
-            <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", borderLeft: "2px solid #2f9e6b" }}>
+            <div className="min-w-0 flex-1 rounded-sm border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", borderLeft: "2px solid var(--status-ok)" }}>
               <div className="font-mono text-[8.5px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}>{currentState != null ? "Proposed" : "Proposed — new record"}</div>
               <div className="mt-1 break-words text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{proposed}</div>
             </div>
@@ -694,7 +694,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
         {/* Impact — exactly what approving does (real, mirrors backend execution) */}
         {d.execution_preview && (
           <DossierSection icon={PlayCircle} title={`Impact${d.execution_preview.side_effect ? " · runs an action" : " · advisory"}`}>
-            <p className="text-[12px]" style={{ color: "var(--text-secondary)", borderLeft: `2px solid ${d.execution_preview.side_effect ? "#c6892e" : "var(--border-strong)"}`, paddingLeft: "0.625rem" }}>{d.execution_preview.text}</p>
+            <p className="text-[12px]" style={{ color: "var(--text-secondary)", borderLeft: `2px solid ${d.execution_preview.side_effect ? "var(--status-warn)" : "var(--border-strong)"}`, paddingLeft: "0.625rem" }}>{d.execution_preview.text}</p>
           </DossierSection>
         )}
 
@@ -746,16 +746,16 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
         <div className="border-t" style={{ borderColor: "var(--border-soft)" }}>
           {/* Reject-with-reason — the note lands in the decision's real comments audit before resolving */}
           {rejectOpen && (
-            <div className="flex items-end gap-2 border-b px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, #d1524a 4%, transparent)" }}>
+            <div className="flex items-end gap-2 border-b px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--status-error) 4%, transparent)" }}>
               <div className="min-w-0 flex-1">
-                <div className="mb-1 text-[10.5px] font-semibold" style={{ color: "#d1524a" }}>Why reject? (recorded in the audit trail)</div>
+                <div className="mb-1 text-[10.5px] font-semibold" style={{ color: "var(--status-error)" }}>Why reject? (recorded in the audit trail)</div>
                 <input autoFocus value={rejectNote} onChange={e => setRejectNote(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") { setRejectOpen(false); onResolve(d, "reject", rejectNote.trim() ? { note: rejectNote.trim() } : undefined); } if (e.key === "Escape") setRejectOpen(false); }}
                   placeholder="Optional — e.g. wrong recipient, stale data…"
                   className="w-full rounded-sm border bg-transparent px-2.5 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
               </div>
               <button onClick={() => { setRejectOpen(false); onResolve(d, "reject", rejectNote.trim() ? { note: rejectNote.trim() } : undefined); }}
-                className="shrink-0 rounded-sm border px-3 py-1.5 text-[12px] font-semibold" style={{ borderColor: "#d1524a", color: "#d1524a" }}>Reject</button>
+                className="shrink-0 rounded-sm border px-3 py-1.5 text-[12px] font-semibold" style={{ borderColor: "var(--status-error)", color: "var(--status-error)" }}>Reject</button>
               <button onClick={() => setRejectOpen(false)} className="btn-icon h-8 w-8 shrink-0"><XCircle size={14} /></button>
             </div>
           )}
@@ -778,12 +778,12 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           </div>
           <div className="flex items-center gap-2 p-3">
             <button onClick={() => onResolve(d, "approve")} disabled={busy} aria-label="Approve and run this decision" className="flex flex-1 items-center justify-center gap-2 rounded-sm border px-4 py-2.5 text-[13px] font-semibold transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
-              style={{ borderColor: "color-mix(in srgb, #2f9e6b 55%, transparent)", background: "color-mix(in srgb, #2f9e6b 14%, transparent)", color: "#2f9e6b" }}>
+              style={{ borderColor: "color-mix(in srgb, var(--status-ok) 55%, transparent)", background: "color-mix(in srgb, var(--status-ok) 14%, transparent)", color: "var(--status-ok)" }}>
               {busy && acting?.action === "approve" ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} Approve &amp; run
             </button>
             <button onClick={() => setRejectOpen(o => !o)} disabled={busy} aria-label="Reject this decision" className="flex items-center gap-2 rounded-sm border px-4 py-2.5 text-[13px] font-medium transition-colors disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
               style={{ borderColor: "var(--border-strong)", background: "var(--surface-selected)", color: "var(--text-secondary)" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = "#d1524a"; e.currentTarget.style.color = "#d1524a"; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--status-error)"; e.currentTarget.style.color = "var(--status-error)"; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-strong)"; e.currentTarget.style.color = "var(--text-secondary)"; }}>
               {busy && acting?.action === "reject" ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} Reject
             </button>
@@ -796,7 +796,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
           </div>
         </div>
       ) : (
-        <div className="border-t p-3 text-center text-[12px] capitalize" style={{ borderColor: "var(--border-soft)", color: d.status === "approved" || d.status === "completed" ? "#2f9e6b" : "#d1524a" }}>
+        <div className="border-t p-3 text-center text-[12px] capitalize" style={{ borderColor: "var(--border-soft)", color: d.status === "approved" || d.status === "completed" ? "var(--status-ok)" : "var(--status-error)" }}>
           {d.status} · resolved {relTime(d.resolved_at)} ago
         </div>
       )}
@@ -926,7 +926,7 @@ function DecisionVerdict({ decision }: { decision: Decision }) {
     }>(`/decisions/${decision.id}/verdict`, {}),
   });
   const v = verdict.data;
-  const TONE: Record<string, string> = { approve: "#2f9e6b", reject: "#d1524a", investigate: "#c6892e" };
+  const TONE: Record<string, string> = { approve: "var(--status-ok)", reject: "var(--status-error)", investigate: "var(--status-warn)" };
   return (
     // Shared DossierSection — same flat surface as Proposed change / Impact / Evidence / Audit.
     <DossierSection
@@ -957,14 +957,14 @@ function DecisionVerdict({ decision }: { decision: Decision }) {
           {v.rationale && <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{v.rationale}</p>}
           {(v.risks ?? []).length > 0 && (
             <div>
-              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#d1524a" }}>Risks of approving</div>
-              <ul className="space-y-1">{v.risks!.map((r, i) => <li key={i} className="flex gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "#d1524a" }} />{r}</li>)}</ul>
+              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--status-error)" }}>Risks of approving</div>
+              <ul className="space-y-1">{v.risks!.map((r, i) => <li key={i} className="flex gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "var(--status-error)" }} />{r}</li>)}</ul>
             </div>
           )}
           {(v.checks ?? []).length > 0 && (
             <div>
-              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#c6892e" }}>Verify before acting</div>
-              <ul className="space-y-1">{v.checks!.map((r, i) => <li key={i} className="flex gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "#c6892e" }} />{r}</li>)}</ul>
+              <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--status-warn)" }}>Verify before acting</div>
+              <ul className="space-y-1">{v.checks!.map((r, i) => <li key={i} className="flex gap-1.5 text-[12px]" style={{ color: "var(--text-secondary)" }}><span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "var(--status-warn)" }} />{r}</li>)}</ul>
             </div>
           )}
           <p className="text-[10px]" style={{ color: "var(--text-faint)" }}>Advisory only — nothing runs until you act below.</p>

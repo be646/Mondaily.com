@@ -1671,12 +1671,12 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
           <p className="mt-1 text-xs text-stone-700">Click "Link record" to associate companies, people, or deals.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] divide-y divide-[var(--border-soft)]">
           {related.map(r => {
             const n = rname(r);
             return (
               <Link key={r.id} to={`/objects/${r.object_type}/${r.id}`}
-                className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3 hover:border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors group">
+                className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-[var(--surface-hover)] group">
                 <div className={`h-8 w-8 rounded-sm border bg-gradient-to-br flex items-center justify-center text-xs font-bold shrink-0 ${avatarColor(n)}`}>{initials(n)}</div>
                 <div className="min-w-0 flex-1"><p className="text-sm font-medium text-[var(--text-primary)] truncate">{n}</p><p className="text-xs text-stone-600 capitalize">{r.object_type}</p></div>
                 <ChevronLeft size={13} className="text-stone-700 group-hover:text-stone-400 rotate-180 transition-colors shrink-0"/>
@@ -1851,11 +1851,11 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
     <div className="flex h-full min-h-0 flex-col">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 border-b border-[var(--border-soft)] px-6 py-3 shrink-0">
-        <Link to={`/objects/${objectType}`} className="flex items-center gap-1 text-xs text-stone-500 hover:text-[var(--text-primary)] transition-colors">
-          <ChevronLeft size={13}/>{objectType}
+        <Link to={`/objects/${objectType}`} className="flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+          <ChevronLeft size={13}/>{objectType.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
         </Link>
-        <span className="text-xs text-stone-700">/</span>
-        <span className="text-xs text-stone-400 truncate">{name}</span>
+        <span className="text-xs text-[var(--text-faint)]">/</span>
+        <span className="text-xs font-medium text-[var(--text-secondary)] truncate">{name}</span>
         {patch.isPending && <span className="ml-auto text-xs text-stone-600 animate-pulse">Saving…</span>}
       </div>
 
@@ -2058,7 +2058,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 <button key={t} onClick={() => setTab(t)}
                   className={`px-3.5 py-2.5 text-xs font-medium transition-colors relative whitespace-nowrap shrink-0 ${tab === t ? "text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}>
                   {label}
-                  {tab === t && <span className="absolute bottom-0 left-0 right-0 h-px bg-stone-500"/>}
+                  {tab === t && <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ background: "var(--section-accent)" }}/>}
                 </button>
               );
             })}

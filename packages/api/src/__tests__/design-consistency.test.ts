@@ -206,10 +206,13 @@ describe("one Mondaily design language (consolidation pass)", () => {
     expect(stylesCss).not.toMatch(/--theme-spread:\s*0*\.[1-9]/); // no non-zero spread survives
     expect(stylesCss).toMatch(/--theme-spread:\s*0\b/);
   });
-  it("shared agent status dots/badges use the matte palette (no bright #d97706/#dc2626/#06b6d4)", () => {
+  it("shared agent status dots/badges use the matte palette (via semantic status tokens, no bright #d97706/#dc2626/#06b6d4)", () => {
     expect(stylesCss).not.toMatch(/agent-dot\[data-status="needs_approval"\]\s*\{\s*background:\s*#d97706/);
-    expect(stylesCss).toContain('.agent-dot[data-status="issue"]          { background: #d1524a; }');
-    expect(stylesCss).toContain('.agent-dot[data-status="needs_approval"] { background: #c6892e; }');
+    // Now driven by the semantic status tokens (styles.css --status-*), still the same matte values.
+    expect(stylesCss).toContain('.agent-dot[data-status="issue"]          { background: var(--status-error); }');
+    expect(stylesCss).toContain('.agent-dot[data-status="needs_approval"] { background: var(--status-warn); }');
+    expect(stylesCss).toMatch(/--status-error:\s*#d1524a/);
+    expect(stylesCss).toMatch(/--status-warn:\s*#c6892e/);
   });
   it("AIHealthScore uses matte semantic tones", () => {
     expect(aiIntelligence).toContain('score >= 70 ? "#2f9e6b" : score >= 40 ? "#c6892e" : "#d1524a"');
@@ -271,7 +274,7 @@ describe("structural adoption pass 2 (headers / settings frames / accent life)",
   });
   it("Settings pages share the PageHeader pattern (members + AI Control Room migrated off raw h1)", () => {
     for (const src of [settingsMembers, settingsAiControlRoom]) {
-      expect(src).toMatch(/<PageHeader\b/);
+      expect(src).toMatch(/<CommandPageHeader\b/);   // migrated to the premium header in Pass 11J
       expect(src).not.toMatch(/<h1\b/);
     }
     // Members keeps invite / role / module-access / remove behaviour.
@@ -283,7 +286,7 @@ describe("structural adoption pass 2 (headers / settings frames / accent life)",
     expect(stylesCss).toMatch(/\.settings-section\s*\{[^}]*background:\s*transparent/);
   });
   it("Account page is fully on the shared Settings system (PageHeader + SettingsSection, no raw h1 / .settings-section / decorative gradient)", () => {
-    expect(settingsAccount).toMatch(/<PageHeader\b/);
+    expect(settingsAccount).toMatch(/<CommandPageHeader\b/);   // migrated to the premium header in Pass 11J
     expect(settingsAccount).not.toMatch(/<h1\b/);
     expect((settingsAccount.match(/<SettingsSection\b/g) ?? []).length).toBeGreaterThanOrEqual(8);
     expect(settingsAccount).not.toContain("settings-section");        // old CSS-class blocks gone
@@ -621,7 +624,7 @@ describe("Calendar + Inbox AI-native polish", () => {
     expect(calendar).toMatch(/<CommandPageHeader/);
     expect(calendar).not.toMatch(/<h1\b/);
     // Meeting Agent status is on-demand/available/monitoring — never a fake "running".
-    expect(calendar).toContain('kind: "monitoring"');
+    expect(calendar).toMatch(/rightSummary=\{`\$\{t\("cal\.meeting_agent"\)\} · \$\{t\("cal\.agent_available"\)\} · \$\{t\("cal\.agent_monitoring"\)\}`\}/);
     for (const h of ["prepare.mutate", "saveAgenda", "respond.mutate", "addCall.mutate", "createTask.mutate", "openCreate", "/prepare"]) {
       expect(calendar).toContain(h);
     }
@@ -854,9 +857,10 @@ describe("Credit Notes — polished finance operations page", () => {
   it("status filter uses the shared FinanceListToolbar (visible active tab lives in the one toolbar component)", () => {
     expect(creditNotes).toMatch(/<FinanceListToolbar /);
   });
-  it("amounts read as finance numerals: right-aligned + tabular-nums", () => {
-    expect(creditNotes).toMatch(/text-right text-\[13px\] font-semibold tabular-nums/);
-    expect(creditNotes).toMatch(/text-right text-\[11px\] font-medium[^>]*>Amount/);
+  it("amounts read as finance numerals: right-aligned + tabular-nums (via the shared DataTable column)", () => {
+    // The amount column now lives in the DataTable column model: align:"right" drives the header +
+    // cell right-alignment, cellClassName keeps the tabular-nums finance numerals. Same rendered result.
+    expect(creditNotes).toMatch(/key: "amount", header: "Amount", align: "right", cellClassName: "text-row font-semibold tabular-nums/);
   });
   it("loading/error/empty use the shared primitives; empty distinguishes filtered vs truly empty", () => {
     expect(creditNotes).toContain("<DelayedLoading");
@@ -908,7 +912,7 @@ describe("Team Oversight — member dossier composition + honest activity langua
     expect(teamOversight).not.toContain("live · real activity");
     expect(teamOversight).not.toContain("live now");
     // 'active session' wording is gated on the REAL has_session flag; otherwise real last-active age.
-    expect(teamOversight).toMatch(/op\.has_session \? <span style=\{\{ color: "#2f9e6b" \}\}> · active session<\/span> : <span> · \{ago\(op\.last_active_at\)\}<\/span>/);
+    expect(teamOversight).toMatch(/op\.has_session \? <span style=\{\{ color: "var\(--status-ok\)" \}\}> · active session<\/span> : <span> · \{ago\(op\.last_active_at\)\}<\/span>/);
   });
   it("expanded-panel behavior preserved: message, call gating, print, tabs, insight, efficiency", () => {
     for (const h of [

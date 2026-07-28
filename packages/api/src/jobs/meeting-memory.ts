@@ -58,7 +58,7 @@ async function memberNames(ws: string): Promise<Map<string, string>> {
 }
 
 /** Compose a one-paragraph overview from the real transcript via the sovereign AI gateway. */
-async function summarizeTranscript(ws: string, userId: string, lines: TranscriptLine[]): Promise<string> {
+export async function summarizeTranscript(ws: string, userId: string, lines: TranscriptLine[]): Promise<string> {
   const transcript = lines.map((l) => `${l.speaker}: ${l.text}`).join("\n").slice(0, 24_000);
   const res = await aiGateway({
     system: "You summarize a call transcript for a busy operator. Write a tight, factual 3-5 sentence overview: who spoke, what was decided, and any clear next step. Use ONLY what the transcript states — never infer or embellish. If the transcript is too thin to summarize, say so plainly.",
@@ -72,7 +72,7 @@ async function summarizeTranscript(ws: string, userId: string, lines: Transcript
 }
 
 interface SummarySection { key: string; label: string; points: string[] }
-interface MeetingIntel { overview: string; key_topics: string[]; action_items: { text: string; owner?: string }[]; decisions: string[]; next_steps: string[]; summary_sections: SummarySection[] }
+export interface MeetingIntel { overview: string; key_topics: string[]; action_items: { text: string; owner?: string }[]; decisions: string[]; next_steps: string[]; summary_sections: SummarySection[] }
 
 /**
  * The AI MEETING AGENT: from the real transcript, extract a factual overview PLUS structured outcomes
@@ -84,7 +84,7 @@ interface MeetingIntel { overview: string; key_topics: string[]; action_items: {
  * overview/topics/actions/decisions prompt is identical for every type; only the type guidance is
  * appended. Sections with no evidence are omitted — never invented.
  */
-async function extractMeetingIntel(ws: string, userId: string, lines: TranscriptLine[], meetingType: MeetingType): Promise<MeetingIntel> {
+export async function extractMeetingIntel(ws: string, userId: string, lines: TranscriptLine[], meetingType: MeetingType): Promise<MeetingIntel> {
   const empty: MeetingIntel = { overview: "", key_topics: [], action_items: [], decisions: [], next_steps: [], summary_sections: [] };
   const transcript = lines.map((l) => `${l.speaker}: ${l.text}`).join("\n").slice(0, 24_000);
   const guidance = summarySectionsGuidance(meetingType);   // "" for general → prompt/behaviour unchanged

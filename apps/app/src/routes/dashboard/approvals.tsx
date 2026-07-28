@@ -64,8 +64,8 @@ function ApprovalTrail({ approvals }: { approvals?: ApprovalEntry[] }) {
             <span className="text-[var(--text-faint)]">{entry.user_id.slice(0, 8)}</span>
             {" "}
             <span className={
-              entry.action === "verified" ? "text-[#717784]" :
-              entry.action === "executed" ? "text-[#2f9e6b]" :
+              entry.action === "verified" ? "text-status-neutral" :
+              entry.action === "executed" ? "text-status-ok" :
               entry.action === "rejected" ? "text-stone-400" :
               "text-stone-500"
             }>{entry.action}</span>
@@ -109,12 +109,12 @@ function CreditNoteCard({ cn, tab, onTransition, busy }: {
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           {cn.status === "pending_review" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#c6892e]/10 border border-[#c6892e]/25 px-2.5 py-0.5 text-[10px] font-medium text-[#c6892e]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-status-warn/10 border border-status-warn/25 px-2.5 py-0.5 text-[10px] font-medium text-status-warn">
               <Clock size={9}/> Needs Review
             </span>
           )}
           {cn.status === "verified" && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#717784]/10 border border-[#717784]/25 px-2.5 py-0.5 text-[10px] font-medium text-[#717784]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-status-neutral/10 border border-status-neutral/25 px-2.5 py-0.5 text-[10px] font-medium text-status-neutral">
               <CheckCircle2 size={9}/> Verified
             </span>
           )}
@@ -274,18 +274,18 @@ export function ApprovalsPage() {
         {/* Summary row */}
         <div className="telemetry-strip mb-4">
           <div>
-            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-[#c6892e]"/><span className="text-[11px] text-[var(--text-muted)]">Needs review</span></div>
-            <div className="text-[17px] font-semibold text-[#c6892e]">{formatMoney(totalPending, display)}</div>
+            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-status-warn"/><span className="text-[11px] text-[var(--text-muted)]">Needs review</span></div>
+            <div className="text-[17px] font-semibold text-status-warn">{formatMoney(totalPending, display)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{pending.length} note{pending.length !== 1 ? "s" : ""}</div>
           </div>
           <div>
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#717784]"/><span className="text-[11px] text-[var(--text-muted)]">Verified, not executed</span></div>
-            <div className="text-[17px] font-semibold text-[#717784]">{formatMoney(totalVerified, display)}</div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-neutral"/><span className="text-[11px] text-[var(--text-muted)]">Verified, not executed</span></div>
+            <div className="text-[17px] font-semibold text-status-neutral">{formatMoney(totalVerified, display)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{verified.length} note{verified.length !== 1 ? "s" : ""}</div>
           </div>
           <div>
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#2f9e6b]"/><span className="text-[11px] text-[var(--text-muted)]">Executed this period</span></div>
-            <div className="text-[17px] font-semibold text-[#2f9e6b]">{formatMoney(totalExecuted, display)}</div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-ok"/><span className="text-[11px] text-[var(--text-muted)]">Executed this period</span></div>
+            <div className="text-[17px] font-semibold text-status-ok">{formatMoney(totalExecuted, display)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{executed.length} note{executed.length !== 1 ? "s" : ""}</div>
           </div>
         </div>

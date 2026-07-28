@@ -53,14 +53,14 @@ type ActivityItem = {
 
 // Per-step status dot tone — mirrors the run tones (green ok, amber warn, rose error, muted info).
 function stepTone(status?: string): string {
-  return status === "ok" ? "#2f9e6b" : status === "warn" ? "#c6892e" : status === "error" ? "#d1524a" : "var(--text-muted)";
+  return status === "ok" ? "var(--status-ok)" : status === "warn" ? "var(--status-warn)" : status === "error" ? "var(--status-error)" : "var(--text-muted)";
 }
 
 const agentOf = (raw: string) => { const a = agentByRaw(raw); return { label: a.name, Icon: a.Icon }; };
 
 // Timeline run status → tone (derived from the DB status, never invented).
 function runTone(status: string): string {
-  return status === "completed" ? "#2f9e6b" : status === "failed" ? "#d1524a" : status === "running" ? "#c6892e" : "var(--text-muted)";
+  return status === "completed" ? "var(--status-ok)" : status === "failed" ? "var(--status-error)" : status === "running" ? "var(--status-warn)" : "var(--text-muted)";
 }
 function runLabel(status: string): string {
   return status === "completed" ? "Success" : status === "failed" ? "Failed" : status === "running" ? "Running" : status;
@@ -94,7 +94,7 @@ function highlightJson(json: string): ReactNode[] {
       out.push(<span key={key++} style={{ color: m[2] ? "var(--text-primary)" : "var(--text-secondary)" }}>{m[1]}</span>);
       if (m[2]) out.push(m[2]);
     } else if (m[3] !== undefined) {
-      out.push(<span key={key++} style={{ color: "#c6892e" }}>{m[3]}</span>);
+      out.push(<span key={key++} style={{ color: "var(--status-warn)" }}>{m[3]}</span>);
     } else if (m[4] !== undefined) {
       out.push(<span key={key++} style={{ color: "var(--section-accent)" }}>{m[4]}</span>);
     }
@@ -220,7 +220,7 @@ export function AgentActivityPage() {
       <MetricGrid className="mb-4" cols={4} items={STATS.map(s => ({
         label: s.label,
         value: s.value,
-        tone: s.alert ? "#d1524a" : s.accent ? "var(--section-accent)" : undefined,
+        tone: s.alert ? "var(--status-error)" : s.accent ? "var(--section-accent)" : undefined,
       }))} />
 
       {/* 30-day operations — real agent runs, failures, decisions produced, and AI tokens spent
@@ -228,7 +228,7 @@ export function AgentActivityPage() {
       {analyticsQ.data && analyticsQ.data.totals.runs + analyticsQ.data.totals.produced > 0 && (
         <MetricGrid className="mb-8" cols={4} items={[
           { label: "Agent runs · 30d", value: analyticsQ.data.totals.runs.toLocaleString() },
-          { label: "Failed runs · 30d", value: analyticsQ.data.totals.failures.toLocaleString(), tone: analyticsQ.data.totals.failures > 0 ? "#d1524a" : undefined },
+          { label: "Failed runs · 30d", value: analyticsQ.data.totals.failures.toLocaleString(), tone: analyticsQ.data.totals.failures > 0 ? "var(--status-error)" : undefined },
           { label: "Decisions produced · 30d", value: analyticsQ.data.totals.produced.toLocaleString(), tone: "var(--section-accent)" },
           { label: "AI tokens · 30d", value: analyticsQ.data.totals.tokens >= 1000 ? `${Math.round(analyticsQ.data.totals.tokens / 1000).toLocaleString()}k` : analyticsQ.data.totals.tokens.toLocaleString() },
         ]} />
@@ -254,13 +254,13 @@ export function AgentActivityPage() {
               <tbody>
                 {scorecardQ.data!.agents.map(a => {
                   const rate = a.approval_rate;
-                  const tone = rate == null ? "var(--text-faint)" : rate >= 80 ? "#2f9e6b" : rate >= 50 ? "#c6892e" : "#d1524a";
+                  const tone = rate == null ? "var(--text-faint)" : rate >= 80 ? "var(--status-ok)" : rate >= 50 ? "var(--status-warn)" : "var(--status-error)";
                   return (
                     <tr key={a.agent} className="border-b last:border-0" style={{ borderColor: "var(--border-soft)" }}>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <span className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>{agentByRaw(a.agent).name}</span>
-                          {a.autonomy_ready && <span className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide" style={{ background: "color-mix(in srgb, #2f9e6b 14%, transparent)", color: "#2f9e6b" }} title="High approval rate over a meaningful sample — a safe candidate to let self-approve">autonomy-ready</span>}
+                          {a.autonomy_ready && <span className="rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide" style={{ background: "color-mix(in srgb, var(--status-ok) 14%, transparent)", color: "var(--status-ok)" }} title="High approval rate over a meaningful sample — a safe candidate to let self-approve">autonomy-ready</span>}
                         </div>
                       </td>
                       <td className="px-4 py-2.5 text-right text-[12px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{a.raised}</td>
@@ -273,7 +273,7 @@ export function AgentActivityPage() {
                         </div>
                       </td>
                       <td className="px-4 py-2.5 text-right text-[12px] tabular-nums" style={{ color: a.auto_approved ? "var(--section-accent)" : "var(--text-faint)" }}>{a.auto_approved || "—"}</td>
-                      <td className="px-4 py-2.5 text-right text-[12px] tabular-nums" style={{ color: a.pending ? "#c6892e" : "var(--text-faint)" }}>{a.pending || "—"}</td>
+                      <td className="px-4 py-2.5 text-right text-[12px] tabular-nums" style={{ color: a.pending ? "var(--status-warn)" : "var(--text-faint)" }}>{a.pending || "—"}</td>
                     </tr>
                   );
                 })}
@@ -290,8 +290,8 @@ export function AgentActivityPage() {
         const learned = (learnedQ.data?.preferences ?? []).filter(p => p.verdict === "favored" || p.verdict === "disfavored");
         if (learned.length === 0) return null;
         const V: Record<string, { label: string; tone: string }> = {
-          favored: { label: "You approve", tone: "#2f9e6b" },
-          disfavored: { label: "You reject", tone: "#d1524a" },
+          favored: { label: "You approve", tone: "var(--status-ok)" },
+          disfavored: { label: "You reject", tone: "var(--status-error)" },
         };
         return (
           <section className="mb-8">
@@ -377,7 +377,7 @@ export function AgentActivityPage() {
                 return (
                   <div key={g.key}>
                     <div className="mb-1.5 flex items-center gap-2">
-                      <span className="text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: g.key === "attention" ? "#d1524a" : "var(--text-muted)" }}>{g.label}</span>
+                      <span className="text-[10.5px] font-semibold uppercase tracking-wider" style={{ color: g.key === "attention" ? "var(--status-error)" : "var(--text-muted)" }}>{g.label}</span>
                       <span className="text-[10.5px] tabular-nums" style={{ color: "var(--text-faint)" }}>{members.length}</span>
                       <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>· {g.hint}</span>
                       {g.quiet && (
@@ -460,7 +460,7 @@ export function AgentActivityPage() {
                         <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>
                           <span className="font-medium" style={{ color: "var(--text-primary)" }}>{label.replace(" Agent", "")}</span>
                           <span className="mx-1.5" style={{ color: "var(--text-faint)" }}>·</span>
-                          <span style={{ color: a.status === "failed" ? "#d1524a" : "var(--text-secondary)" }}>{a.error || a.summary}</span>
+                          <span style={{ color: a.status === "failed" ? "var(--status-error)" : "var(--text-secondary)" }}>{a.error || a.summary}</span>
                         </span>
                       </span>
                       <span className="mt-px hidden shrink-0 text-[10.5px] font-medium sm:inline" style={{ color: tone }}>{runLabel(a.status)}</span>
@@ -521,8 +521,8 @@ export function AgentActivityPage() {
                         </div>
 
                         {a.error && (
-                          <div className="rounded-sm border-l-2 py-2 pl-3 pr-2" style={{ borderColor: "#d1524a", background: "color-mix(in srgb, #d1524a 6%, transparent)" }}>
-                            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#d1524a" }}>Error</div>
+                          <div className="rounded-sm border-l-2 py-2 pl-3 pr-2" style={{ borderColor: "var(--status-error)", background: "color-mix(in srgb, var(--status-error) 6%, transparent)" }}>
+                            <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--status-error)" }}>Error</div>
                             <div className="mt-0.5 break-words text-[11.5px]" style={{ color: "var(--text-secondary)" }}>{a.error}</div>
                           </div>
                         )}

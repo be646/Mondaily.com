@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, ExternalLink, KeyRound, Link2, Plus, Radio, RotateCw, Trash2, X } from "lucide-react";
+import { Check, Copy, ExternalLink, KeyRound, Link2, Plug, Plus, Radio, RotateCw, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
-import { EmptyState, PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
+import { CommandPageHeader } from "../../../components/ui/controls";
 
 interface IntegrationProfile { account: string; connected_at?: string; scopes?: string[] }
 interface IntegrationData {
@@ -102,7 +103,7 @@ export function IntegrationsSettings() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Integrations & API" description="Connect business systems and manage programmatic access." />
+      <CommandPageHeader icon={Plug} callsign="INTEGRATIONS" title="Integrations & API" subtitle="Connect business systems and manage programmatic access." />
 
       {/* ── Integrations ── */}
       <section className="settings-section">

@@ -21,6 +21,7 @@ interface MemoryRow {
   occurred_at: string; participant_count: number; has_agenda: boolean;
   transcript_status: TranscriptStatus; summary_status: SummaryStatus; can_summarize: boolean;
   action_item_count: number; href: string;
+  transcript_kind?: "live" | "recording";
 }
 type Tab = "all" | "meetings" | "calls" | "needs_summary" | "action_items";
 
@@ -87,9 +88,9 @@ export function CallsPage() {
 
       {/* Control bar: tabs + search (flat, monochrome). */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="inline-flex flex-wrap rounded-md border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+        <div className="inline-flex flex-wrap rounded-lg border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
           {tabs.map(t => (
-            <button key={t.k} onClick={() => setTab(t.k)} className="rounded-[3px] px-2.5 py-1 text-[12px] font-medium transition-colors"
+            <button key={t.k} onClick={() => setTab(t.k)} className="rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors"
               style={tab === t.k ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
               {t.label}{counts[t.k] > 0 && <span className="ml-1 tabular-nums" style={{ color: "var(--text-faint)" }}>{counts[t.k]}</span>}
             </button>
@@ -98,7 +99,7 @@ export function CallsPage() {
         <label className="relative block sm:w-64">
           <Search className="absolute left-2.5 top-2 text-[var(--text-faint)]" size={14} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search title, people, transcript…"
-            className="h-8 w-full rounded-sm border bg-transparent pl-8 pr-3 text-[13px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+            className="key-input h-8 w-full pl-8 pr-3 text-[13px]" />
         </label>
       </div>
 
@@ -120,7 +121,7 @@ export function CallsPage() {
           ] : undefined}
         />
       ) : (
-        <div className="overflow-hidden rounded-md border" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
           {rows.map((m, i) => (
             <Link key={`${m.source}-${m.id}`} to={m.href}
               className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-[var(--surface-hover)]"
@@ -135,10 +136,13 @@ export function CallsPage() {
                   <span>{fmtWhen(m.occurred_at)}</span>
                   {m.company_name && <span className="truncate">{m.company_name}</span>}
                   <span className="flex items-center gap-1"><Users size={10} /> {m.participant_count}</span>
-                  <span className="flex items-center gap-1" title="Transcript"><Dot color={m.transcript_status === "available" ? MUTED.green : MUTED.faint} /><FileText size={10} /> {m.transcript_status === "available" ? "Transcript" : "No transcript"}</span>
-                  <span className="flex items-center gap-1" title="AI summary"><Dot color={m.summary_status === "generated" ? MUTED.green : m.summary_status === "pending" ? MUTED.amber : MUTED.faint} /><Sparkles size={10} /> {m.summary_status === "generated" ? "Summary" : m.summary_status === "pending" ? "Summary pending" : "No summary"}</span>
-                  {m.action_item_count > 0 && <span className="flex items-center gap-1"><ListChecks size={10} /> {m.action_item_count}</span>}
                 </div>
+              </div>
+              {/* Right-aligned meeting-intelligence status cluster — transcript / summary / action items. */}
+              <div className="hidden shrink-0 items-center gap-3 text-[11px] sm:flex" style={{ color: "var(--text-faint)" }}>
+                <span className="flex items-center gap-1" title={m.transcript_kind === "live" ? "Saved live-caption transcript" : "Transcript"}><Dot color={m.transcript_status === "available" ? MUTED.green : MUTED.faint} /><FileText size={10} /> {m.transcript_status === "available" ? (m.transcript_kind === "live" ? "Live transcript" : "Transcript") : "No transcript"}</span>
+                <span className="flex items-center gap-1" title="AI summary"><Dot color={m.summary_status === "generated" ? MUTED.green : m.summary_status === "pending" ? MUTED.amber : MUTED.faint} /><Sparkles size={10} /> {m.summary_status === "generated" ? "Summary" : m.summary_status === "pending" ? "Summary pending" : "No summary"}</span>
+                {m.action_item_count > 0 && <span className="flex items-center gap-1"><ListChecks size={10} /> {m.action_item_count}</span>}
               </div>
             </Link>
           ))}

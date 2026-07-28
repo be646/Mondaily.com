@@ -71,7 +71,8 @@ export function useAgentData() {
     staleTime: 60_000,
   });
   const notificationsQ = useQuery({
-    queryKey: ["agent-dock", "notifications"],
+    // Shared key with Home's identical /notifications?limit=50 fetch — one request, not two.
+    queryKey: ["notifications", "recent-50"],
     queryFn: () => apiClient.get<NotificationLite[]>("/notifications?limit=50"),
     staleTime: 60_000,
   });

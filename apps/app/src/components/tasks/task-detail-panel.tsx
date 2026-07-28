@@ -87,12 +87,12 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
         <Avatar name={comment.user_name} size={6}/>
       </div>
       <div className={`flex flex-col gap-1 max-w-[78%] ${isMe ? "items-end" : "items-start"}`}>
-        {!isMe && <span className="text-[11px] ml-1" style={{ color: "var(--text-muted)" }}>{comment.user_name}</span>}
+        {!isMe && <span className="text-label ml-1" style={{ color: "var(--text-muted)" }}>{comment.user_name}</span>}
 
         <div className={`relative rounded-sm px-3.5 py-2.5 text-sm leading-relaxed border ${isMe ? "rounded-tr-sm" : "rounded-tl-sm"}`}
           style={{ background: isMe ? "var(--surface-hover)" : "var(--surface-card)", borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
           <p className="whitespace-pre-wrap">{renderContent(comment.content)}</p>
-          <span className="text-[10px] mt-0.5 block text-right" style={{ color: "var(--text-faint)" }}>{relTime(comment.created_at)}</span>
+          <span className="text-caption mt-0.5 block text-right" style={{ color: "var(--text-faint)" }}>{relTime(comment.created_at)}</span>
 
           {/* Emoji trigger */}
           <button onClick={() => setShowEmojis(o => !o)}
@@ -137,7 +137,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
                   {v.user_name.charAt(0).toUpperCase()}
                 </div>
               ))}
-              {seenByOthers.length > 3 && <span className="text-[10px] ml-1" style={{ color: "var(--text-faint)" }}>+{seenByOthers.length - 3}</span>}
+              {seenByOthers.length > 3 && <span className="text-caption ml-1" style={{ color: "var(--text-faint)" }}>+{seenByOthers.length - 3}</span>}
             </div>
           </div>
         )}
@@ -362,7 +362,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                     style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
                     <Link2 size={10} className="text-stone-500 dark:text-stone-400"/>
                     {String(linkedNode.data?.name ?? linkedNode.data?.title ?? "Linked object")}
-                    <span className="text-[9px] uppercase" style={{ color: "var(--text-faint)" }}>{linkedNode.object_type}</span>
+                    <span className="text-caption uppercase" style={{ color: "var(--text-faint)" }}>{linkedNode.object_type}</span>
                     <ExternalLink size={9} style={{ color: "var(--text-faint)" }}/>
                   </a>
                 ) : linkedNodeQ.isLoading ? (
@@ -393,7 +393,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
 
               {/* Notes — first-class, not a hidden one-liner */}
               <div className="mt-3 rounded-lg border px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Notes</p>
+                <p className="mb-1 text-caption font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Notes</p>
                 {editingNotes ? (
                   <textarea autoFocus value={notesVal} onChange={e => setNotesVal(e.target.value)}
                     onBlur={() => { updateTask.mutate({ notes: notesVal }); setEditingNotes(false); }}
@@ -410,7 +410,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
               {/* AI summary — real LLM call against this task's actual content */}
               <div className="mt-3 rounded-lg border px-3 py-2.5" style={{ borderColor: "rgba(124,58,237,0.20)", background: "rgba(124,58,237,0.04)" }}>
                 <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-stone-600 dark:text-stone-400">
+                  <span className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-widest text-stone-600 dark:text-stone-400">
                     <LogoMark size={10}/> AI summary
                   </span>
                   <AIButton size="sm" variant="subtle" onClick={runAiSummary} loading={aiSummaryLoading}>
@@ -476,8 +476,8 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 <button onClick={() => setActiveTab("review")}
                   className="h-6 rounded-sm border px-2.5 text-[11px] font-medium transition-colors"
                   style={
-                    task.review_result === "approved"          ? { borderColor: "rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.1)", color: "#2f9e6b" } :
-                    task.review_result === "changes_requested" ? { borderColor: "rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.1)", color: "#c6892e" } :
+                    task.review_result === "approved"          ? { borderColor: "rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.1)", color: "var(--status-ok)" } :
+                    task.review_result === "changes_requested" ? { borderColor: "rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.1)", color: "var(--status-warn)" } :
                     localStatus === "review"                   ? { borderColor: "rgba(234,179,8,0.3)", background: "rgba(234,179,8,0.1)", color: "#ca8a04" } :
                     { borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-muted)" }
                   }>
@@ -510,7 +510,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                       ))}
                       {others.length > 5 && <div className="-ml-1 h-4 w-4 rounded-full border flex items-center justify-center text-[8px]" style={{ background: "var(--surface-hover)", borderColor: "var(--surface-modal)", color: "var(--text-secondary)" }}>+{others.length-5}</div>}
                     </div>
-                    <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Seen by {others.length === 1 ? (others[0]?.user_name ?? "") : `${others.length} people`}</span>
+                    <span className="text-label" style={{ color: "var(--text-faint)" }}>Seen by {others.length === 1 ? (others[0]?.user_name ?? "") : `${others.length} people`}</span>
                   </div>
                 );
               })()}
@@ -558,7 +558,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                       return (
                         <div key={(item.data as any).id ?? i} className="flex items-center gap-2 py-0.5">
                           <div className="h-px flex-1" style={{ background: "var(--border-soft)" }}/>
-                          <span className="text-[10px] shrink-0" style={{ color: "var(--text-faint)" }}>
+                          <span className="text-caption shrink-0" style={{ color: "var(--text-faint)" }}>
                             <span style={{ color: "var(--text-muted)" }}>{(item.data as any).user_name}</span> {(item.data as any).action} · {relTime((item.data as any).created_at)}
                           </span>
                           <div className="h-px flex-1" style={{ background: "var(--border-soft)" }}/>
@@ -622,12 +622,12 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <div key={item.id} className="flex items-start gap-3 group rounded-sm px-3 py-2.5 transition-colors border border-transparent surface-hover">
                     <button onClick={() => toggleCheckItem.mutate({ itemId: item.id, completed: !item.completed })}
                       className="mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors"
-                      style={item.completed ? { borderColor: "#2f9e6b", background: "#2f9e6b" } : { borderColor: "var(--border-strong)" }}>
+                      style={item.completed ? { borderColor: "var(--status-ok)", background: "var(--status-ok)" } : { borderColor: "var(--border-strong)" }}>
                       {item.completed && <Check size={9} className="text-[var(--text-primary)]"/>}
                     </button>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm" style={{ color: item.completed ? "var(--text-faint)" : "var(--text-secondary)", textDecoration: item.completed ? "line-through" : undefined }}>{item.text}</p>
-                      <p className="text-[10px] mt-0.5" style={{ color: "var(--text-faint)" }}>{item.added_by_name} · {new Date(item.created_at).toLocaleDateString()}</p>
+                      <p className="text-caption mt-0.5" style={{ color: "var(--text-faint)" }}>{item.added_by_name} · {new Date(item.created_at).toLocaleDateString()}</p>
                     </div>
                     <button onClick={() => deleteCheckItem.mutate(item.id)}
                       className="opacity-0 group-hover:opacity-100 shrink-0 transition-all hover:text-stone-600 dark:hover:text-stone-400"
@@ -656,14 +656,14 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
             <div className="px-4 py-4 space-y-4">
               {assignees.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-faint)" }}>Assigned</p>
+                  <p className="text-caption font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-faint)" }}>Assigned</p>
                   <div className="space-y-1.5">
                     {assignees.map(a => (
                       <div key={a.user_id} className="surface-card flex items-center gap-3 rounded-sm px-3 py-2.5">
                         <Avatar name={a.name || a.email}/>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm truncate" style={{ color: "var(--text-primary)" }}>{a.name || a.email}</p>
-                          <p className="text-[11px] capitalize" style={{ color: "var(--text-muted)" }}>{a.permission}</p>
+                          <p className="text-label capitalize" style={{ color: "var(--text-muted)" }}>{a.permission}</p>
                         </div>
                         {isOwner && (
                           <button onClick={() => removeAssignee.mutate(a.user_id)}
@@ -676,7 +676,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
               )}
               {unassignedMembers.length > 0 && (
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-faint)" }}>Add collaborator</p>
+                  <p className="text-caption font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--text-faint)" }}>Add collaborator</p>
                   <div className="space-y-1">
                     {unassignedMembers.map(m => (
                       <div key={m.user_id} className="flex items-center gap-3 rounded-sm px-3 py-2 transition-colors surface-hover">
@@ -736,7 +736,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                       )}
                       <a href={a.file_url} target="_blank" rel="noopener noreferrer"
                         className="text-sm text-[#717784] hover:underline truncate block transition-colors">{a.file_name}</a>
-                      <p className="text-[11px] mt-0.5" style={{ color: "var(--text-faint)" }}>{a.user_name} · {a.file_size > 0 ? `${(a.file_size/1024).toFixed(1)} KB` : "link"}</p>
+                      <p className="text-label mt-0.5" style={{ color: "var(--text-faint)" }}>{a.user_name} · {a.file_size > 0 ? `${(a.file_size/1024).toFixed(1)} KB` : "link"}</p>
                     </div>
                     <button onClick={() => apiClient.delete(`/tasks/${task.id}/attachments/${a.id}`).then(() => attachmentsQ.refetch())}
                       className="opacity-0 group-hover:opacity-100 transition-all shrink-0 hover:text-stone-600 dark:hover:text-stone-400"

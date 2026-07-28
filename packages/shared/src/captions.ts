@@ -57,3 +57,47 @@ export function parseCaptionPacket(raw: unknown): CaptionPacket | null {
     ...(lang ? { lang } : {}),
   };
 }
+
+/**
+ * Phase B — SAVED live transcript. A finalized caption line that is persisted (during the call) so
+ * Meeting Memory keeps a transcript even if recording/transcription is never enabled or fails. This is
+ * still sovereign + honest: only FINAL lines, never interim; text/speaker are taken verbatim (no model
+ * rewrite, no invented speaker); no translation happens here (Phase C).
+ */
+export const LIVE_TRANSCRIPT_SOURCE = "live_caption" as const;
+
+/** A sanitized, ready-to-persist transcript line. `line_id` is the idempotency key. */
+export interface SanitizedLiveTranscriptLine {
+  line_id: string;              // idempotency key — the CaptionPacket.id (`${participantId}-${seq}`)
+  participant_id: string | null;
+  speaker_name: string;
+  text: string;
+  lang: string | null;
+  ts: number;                   // epoch ms
+}
+
+/**
+ * Validate + normalize one caller-supplied line before it is stored. Returns null (dropped) for anything
+ * that must never become a transcript line:
+ *   • interim/partial lines (`final === false`) — only finalized captions are saved,
+ *   • missing/blank id (no idempotency key),
+ *   • empty/whitespace-only text (no fake/hollow lines).
+ * Everything is length-clamped; the speaker name falls back to "Speaker" but is never invented from thin air.
+ * NEVER throws.
+ */
+export function sanitizeLiveTranscriptLine(raw: unknown): SanitizedLiveTranscriptLine | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  if (o.final === false) return null;                                   // interim lines are never persisted
+  if (typeof o.id !== "string" || !o.id.trim()) return null;           // idempotency key required
+  if (typeof o.text !== "string") return null;
+  const text = o.text.trim().slice(0, 2000);
+  if (!text) return null;                                               // no empty/fabricated lines
+  const line_id = o.id.trim().slice(0, 200);
+  const participant_id = (typeof o.participantId === "string" && o.participantId.trim())
+    ? o.participantId.trim().slice(0, 120) : null;
+  const speaker_name = (typeof o.name === "string" ? o.name : "").trim().slice(0, 120) || "Speaker";
+  const lang = (typeof o.lang === "string" && o.lang.trim()) ? o.lang.trim().slice(0, 16) : null;
+  const ts = typeof o.ts === "number" && Number.isFinite(o.ts) && o.ts > 0 ? Math.floor(o.ts) : 0;
+  return { line_id, participant_id, speaker_name, text, lang, ts };
+}

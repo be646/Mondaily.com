@@ -174,7 +174,7 @@ export function MessagesPage() {
             <div className="flex-1 overflow-y-auto">
               {(inboxQ.data?.groups ?? []).length > 0 && (
                 <div className="divide-y border-b" style={{ borderColor: "var(--border-soft)" }}>
-                  <div className="flex items-center gap-1.5 px-3 pb-1 pt-2.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
+                  <div className="flex items-center gap-1.5 px-3 pb-1 pt-2.5 text-caption font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
                     <UsersRound size={11} /> Groups
                     <span className="ml-auto tabular-nums" style={{ color: "var(--text-faint)" }}>{(inboxQ.data?.groups ?? []).length}</span>
                   </div>
@@ -198,7 +198,7 @@ export function MessagesPage() {
               {/* Only label the direct list when groups are also present, so a groups-less inbox
                   stays clean — clear separation between team groups and 1:1s. */}
               {(inboxQ.data?.groups ?? []).length > 0 && inbox.length > 0 && (
-                <div className="flex items-center gap-1.5 px-3 pb-1 pt-2.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
+                <div className="flex items-center gap-1.5 px-3 pb-1 pt-2.5 text-caption font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>
                   <MessagesSquare size={11} /> Direct messages
                   <span className="ml-auto tabular-nums" style={{ color: "var(--text-faint)" }}>{inbox.length}</span>
                 </div>
@@ -377,7 +377,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
             {(i === 0 || dayLabel(messages[i - 1]!.created_at) !== dayLabel(m.created_at)) && (
               <div className="my-3 flex items-center gap-3">
                 <span className="h-px flex-1" style={{ background: "var(--border-soft)" }} />
-                <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{dayLabel(m.created_at)}</span>
+                <span className="text-caption font-medium uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{dayLabel(m.created_at)}</span>
                 <span className="h-px flex-1" style={{ background: "var(--border-soft)" }} />
               </div>
             )}
@@ -588,7 +588,7 @@ function GroupThread({ groupId, live, onSent, onLeft, onBack }: { groupId: strin
             {(i === 0 || dayLabel(messages[i - 1]!.created_at) !== dayLabel(m.created_at)) && (
               <div className="my-3 flex items-center gap-3">
                 <span className="h-px flex-1" style={{ background: "var(--border-soft)" }} />
-                <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{dayLabel(m.created_at)}</span>
+                <span className="text-caption font-medium uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{dayLabel(m.created_at)}</span>
                 <span className="h-px flex-1" style={{ background: "var(--border-soft)" }} />
               </div>
             )}
@@ -600,7 +600,7 @@ function GroupThread({ groupId, live, onSent, onLeft, onBack }: { groupId: strin
               )}
               <div className="max-w-[78%] rounded-sm px-3.5 py-2" style={{ background: m.mine ? "var(--section-accent)" : "var(--surface-hover)", color: m.mine ? "#fff" : "var(--text-primary)" }}>
                 {!m.mine && (i === 0 || messages[i - 1]!.sender_id !== m.sender_id) && (
-                  <p className="mb-0.5 text-[10.5px] font-semibold" style={{ color: "var(--section-accent)" }}>{m.sender_name}</p>
+                  <p className="mb-0.5 text-label font-semibold" style={{ color: "var(--section-accent)" }}>{m.sender_name}</p>
                 )}
                 {m.body !== "(attachment)" && <p className="whitespace-pre-wrap break-words text-[12.5px] leading-snug">{m.body}</p>}
                 {(m.attachments ?? []).length > 0 && (
@@ -617,7 +617,7 @@ function GroupThread({ groupId, live, onSent, onLeft, onBack }: { groupId: strin
                     ))}
                   </div>
                 )}
-                <p className="mt-1 text-[10px]" style={{ color: m.mine ? "rgba(255,255,255,0.72)" : "var(--text-faint)" }}>{timeOnly(m.created_at)}</p>
+                <p className="mt-1 text-caption" style={{ color: m.mine ? "rgba(255,255,255,0.72)" : "var(--text-faint)" }}>{timeOnly(m.created_at)}</p>
               </div>
             </div>
           </div>

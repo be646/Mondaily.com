@@ -43,7 +43,9 @@ export function AIButton({
   type?: "button" | "submit";
 }) {
   const base = variant === "solid" ? "btn-ai" : "btn-suggested";
-  const sizeCls = size === "sm" ? "!px-2.5 !py-1 !text-[11px]" : "";
+  // Pass 4A: sm text uses the shared scale (text-label = 11px); padding stays overridden. No !important
+  // on font-size — .btn-ai/.btn-suggested set no font-size, so text-label applies cleanly.
+  const sizeCls = size === "sm" ? "!px-2.5 !py-1 text-label" : "";
   const markSize = size === "sm" ? 12 : 14;
   return (
     <button

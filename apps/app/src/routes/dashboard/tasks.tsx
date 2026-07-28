@@ -9,8 +9,9 @@ import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { useIsViewer } from "../../hooks/useModules";
 import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { apiClient } from "../../lib/api-client";
-import { FieldSelect, FilterButton, FilterStrip } from "../../components/ui/controls";
+import { FieldSelect, FilterButton, FilterStrip, CommandPageHeader } from "../../components/ui/controls";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
+import { DataTable, type DataTableColumn } from "../../components/ui/data-table";
 import { useLanguage } from "../../hooks/useLanguage";
 import { isOverdue as isPastDue } from "@mondaily/shared/dates";
 
@@ -205,11 +206,11 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-wrap gap-1">
             {task.priority && task.priority !== "low" && (
-              <span className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority}</span>
+              <span className={`rounded-full border px-1.5 py-px text-caption font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority}</span>
             )}
-            {isOverdue && <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-[10px] text-stone-400">Overdue</span>}
+            {isOverdue && <span className="rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-caption text-stone-400">Overdue</span>}
             {flagged && (
-              <span className="flex items-center gap-1 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-[10px] font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
+              <span className="flex items-center gap-1 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-caption font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
                 <LogoMark size={9}/>AI flagged
               </span>
             )}
@@ -226,7 +227,7 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
         </div>
 
         {(assigneeName || task.due_date) && (
-          <div className="mt-2 flex items-center gap-2 text-[10px] text-[var(--text-secondary)]">
+          <div className="mt-2 flex items-center gap-2 text-caption text-[var(--text-secondary)]">
             {assigneeName && <span className="flex items-center gap-0.5"><User size={9}/>{assigneeName.split(" ")[0]}</span>}
             {task.due_date && <span className={`flex items-center gap-0.5 ${isOverdue ? "text-stone-400" : ""}`}><Clock size={9}/>{fmtDate(task.due_date)}</span>}
           </div>
@@ -249,7 +250,7 @@ function BoardColumn({ col, tasks, onDetail, onEdit, onDelete, onToggle, current
       <div className="flex items-center gap-2 mb-3 px-1">
         <span className={`h-2 w-2 rounded-full shrink-0 ${col.dotColor}`}/>
         <span className="text-sm font-medium text-[var(--text-faint)]">{col.label}</span>
-        <span className="ml-auto rounded-full bg-[var(--surface-hover)] px-2 py-px text-[10px] text-[var(--text-muted)]">{tasks.length}</span>
+        <span className="ml-auto rounded-full bg-[var(--surface-hover)] px-2 py-px text-caption text-[var(--text-muted)]">{tasks.length}</span>
       </div>
       <div ref={setNodeRef}
         className={`flex-1 min-h-[120px] rounded-sm border-2 border-dashed p-2 space-y-2 transition-colors ${isOver ? "border-stone-500/30 bg-stone-600/[.03]" : "border-[var(--border-soft)] bg-[var(--surface-hover)]"}`}>
@@ -351,8 +352,8 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
                     <p className="text-sm text-[var(--text-primary)]">{t.title}</p>
                     {t.notes && <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">{t.notes}</p>}
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] font-medium capitalize ${PCOL[t.priority] ?? "text-[var(--text-faint)]"}`}>{t.priority}</span>
-                      {t.due_days && <span className="text-[10px] text-[var(--text-faint)]">due in {t.due_days}d</span>}
+                      <span className={`text-caption font-medium capitalize ${PCOL[t.priority] ?? "text-[var(--text-faint)]"}`}>{t.priority}</span>
+                      {t.due_days && <span className="text-caption text-[var(--text-faint)]">due in {t.due_days}d</span>}
                     </div>
                   </div>
                 </button>
@@ -540,37 +541,92 @@ export function TasksPage() {
   // Shared dropdown closer
   const closeDropdowns = () => { setLabelOpen(false); setPriorityOpen(false); setSortOpen(false); };
 
+  // Sheet-view column model for the shared DataTable. Every cell (completion toggle, title→detail,
+  // status/priority/assignee/due/created/labels, edit/delete) stays page-owned; the shell only renders
+  // the table shell. Created + Labels hide below md via hideBelow. Deep-link anchor + highlight wired on
+  // the <DataTable> itself (rowId / rowStyle). No selection, no sortable headers (sort is the toolbar).
+  const sheetColumns: DataTableColumn<Task>[] = [
+    { key: "__complete", header: "", cellClassName: "w-8", cell: (task) => (
+        <button onClick={() => handleToggle(task)}
+          className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-[#2f9e6b] bg-[#2f9e6b]" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}`}>
+          {task.completed && <Check size={9} className="text-[var(--text-primary)]" />}
+        </button>
+      ) },
+    { key: "task", header: "Task", cellClassName: "max-w-[240px]", cell: (task) => (
+        <>
+          <button onClick={() => setDetailTask(task)} className={`text-left hover:underline font-medium truncate block w-full ${task.completed ? "text-[var(--text-faint)] line-through" : "text-[#111827] dark:text-stone-100"}`}>{task.title}</button>
+          {task.notes && <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">{task.notes}</p>}
+        </>
+      ) },
+    { key: "status", header: "Status", cellClassName: "whitespace-nowrap", cell: (task) => {
+        const sm = STATUS_META[task.status ?? "todo"] ?? STATUS_META["todo"]!;
+        return <span className="flex items-center gap-1 text-label text-[var(--text-muted)]"><span className={`h-1.5 w-1.5 rounded-full shrink-0 ${sm.dot}`} />{sm.label}</span>;
+      } },
+    { key: "priority", header: "Priority", cellClassName: "whitespace-nowrap", cell: (task) => (
+        task.priority ? <span className={`rounded-full border px-1.5 py-px text-caption font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}</span> : null
+      ) },
+    { key: "assignee", header: "Assignee", cellClassName: "whitespace-nowrap text-label text-[var(--text-muted)]", cell: (task) => {
+        const assigneeName = getMemberName(task);
+        return assigneeName ? <span className="flex items-center gap-1"><User size={11} />{assigneeName}</span> : <span className="text-[var(--text-faint)]">—</span>;
+      } },
+    { key: "due", header: "Due Date", cellClassName: "whitespace-nowrap text-label tabular-nums", cell: (task) => {
+        const isOverdue = !task.completed && isPastDue(task.due_date);
+        return task.due_date ? <span className={isOverdue ? "text-stone-600 dark:text-stone-400" : "text-[var(--text-muted)]"}>{fmtDate(task.due_date)}</span> : <span className="text-[var(--text-faint)]">—</span>;
+      } },
+    { key: "created", header: "Created", hideBelow: "md", cellClassName: "whitespace-nowrap text-label text-[var(--text-muted)] tabular-nums", cell: (task) => task.created_at ? fmtDate(task.created_at) : "—" },
+    { key: "labels", header: "Labels", hideBelow: "md", cell: (task) => (
+        <div className="flex flex-wrap gap-1">
+          {(task.labels ?? []).filter(l => LABEL_COLORS[l]).map(l => (
+            <span key={l} className={`rounded-full border px-1.5 py-px text-caption font-medium ${LABEL_COLORS[l]}`}>{l}</span>
+          ))}
+        </div>
+      ) },
+    { key: "__actions", header: "", cellClassName: "whitespace-nowrap", cell: (task) => (
+        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          <button onClick={() => setEditTask(task)} className="rounded-md p-1 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={12} /></button>
+          {(task.assignee_id === currentUserId || !task.assignee_id) && (
+            <button onClick={() => setConfirmDeleteId(task.id)} className="rounded-md p-1 text-[var(--text-faint)] hover:text-stone-600 hover:bg-stone-50 dark:hover:text-stone-400 dark:hover:bg-stone-400/10 transition-colors"><Trash2 size={12} /></button>
+          )}
+        </div>
+      ) },
+  ];
+
   return (
     <div className={`mx-auto px-6 py-8 ${viewMode === "list" ? "max-w-3xl" : "max-w-full"}`}>
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-        <p className="text-sm text-[var(--text-muted)]">Work assigned to you and your team.</p>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* View toggle */}
-          <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
-            {([["list","List",<List size={12}/>],["board","Board",<Columns3 size={12}/>],["sheet","Sheet",<Sheet size={12}/>]] as const).map(([mode, label, icon]) => (
-              <button key={mode} onClick={() => setViewMode(mode as any)} title={label}
-                className={`flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
-                {icon}{label}
-              </button>
-            ))}
+      <CommandPageHeader
+        icon={List}
+        callsign="TASKS"
+        title="Tasks"
+        subtitle="Work assigned to you and your team."
+        primaryAction={
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* View toggle */}
+            <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
+              {([["list","List",<List size={12}/>],["board","Board",<Columns3 size={12}/>],["sheet","Sheet",<Sheet size={12}/>]] as const).map(([mode, label, icon]) => (
+                <button key={mode} onClick={() => setViewMode(mode as any)} title={label}
+                  className={`flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
+                  {icon}{label}
+                </button>
+              ))}
+            </div>
+            {!isViewer && (
+              <>
+                <button onClick={() => setShowAISuggest(true)}
+                  className="flex items-center gap-1.5 rounded-sm border border-stone-300 bg-stone-100 px-3 py-1.5 text-xs text-[var(--section-accent)] hover:bg-stone-200 dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
+                  <AIMark size={12}/> Suggest
+                </button>
+                <button onClick={() => setShowCreate(true)}
+                  className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
+                  <Plus size={13}/> {t("tasks.new")}
+                </button>
+              </>
+            )}
+            {isViewer && <span className="text-label text-[var(--text-muted)]">Read-only access</span>}
           </div>
-          {!isViewer && (
-            <>
-              <button onClick={() => setShowAISuggest(true)}
-                className="flex items-center gap-1.5 rounded-sm border border-stone-300 bg-stone-100 px-3 py-1.5 text-xs text-[var(--section-accent)] hover:bg-stone-200 dark:border-stone-500/25 dark:bg-stone-500/[.07] dark:text-stone-400 dark:hover:bg-stone-500/[.13] transition-colors">
-                <AIMark size={12}/> Suggest
-              </button>
-              <button onClick={() => setShowCreate(true)}
-                className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] dark:hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
-                <Plus size={13}/> {t("tasks.new")}
-              </button>
-            </>
-          )}
-          {isViewer && <span className="text-[11px] text-[var(--text-muted)]">Read-only access</span>}
-        </div>
-      </div>
+        }
+      />
 
       {/* ── Filter bar ── */}
       <div className="mb-5 flex items-center gap-1.5 flex-wrap">
@@ -585,7 +641,7 @@ export function TasksPage() {
             <button key={f.key} onClick={() => setFilter(f.key)}
               className={`flex items-center gap-1 rounded-sm px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
               {f.label}
-              {f.badge && filter !== f.key && <span className="rounded-full bg-stone-100 px-1 py-px text-[10px] text-stone-700 dark:bg-stone-500/20 dark:text-stone-400">{f.badge}</span>}
+              {f.badge && filter !== f.key && <span className="rounded-full bg-stone-100 px-1 py-px text-caption text-stone-700 dark:bg-stone-500/20 dark:text-stone-400">{f.badge}</span>}
             </button>
           ))}
         </div>
@@ -657,14 +713,14 @@ export function TasksPage() {
         query.isLoading ? <PageSkeleton label="Loading tasks…"/> : query.isError ? <ErrorState error={query.error as Error} onRetry={() => query.refetch()}/> : tasks.length === 0 ? (
           <EmptyState icon={Check} title={t("tasks.empty")} description={t("tasks.caught_up")}/>
         ) : (
-          <div className="space-y-1.5">
+          <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] divide-y divide-[var(--border-soft)]">
             {tasks.map(task => {
               const expanded = expandedId === task.id;
               const isOverdue = !task.completed && isPastDue(task.due_date);
               const assigneeName = getMemberName(task);
               const sm = STATUS_META[task.status ?? "todo"] ?? STATUS_META["todo"]!;
               return (
-                <div key={task.id} id={`task-${task.id}`} className={`rounded-sm border transition-all ${highlightId === task.id ? "ring-2 ring-offset-1" : ""} ${isOverdue ? "border-stone-200 bg-stone-50/60 dark:border-stone-500/20 dark:bg-stone-500/[.03]" : "border-[var(--border-soft)] bg-[var(--surface-card)] hover:border-[var(--border-soft)]"}`} style={highlightId === task.id ? { boxShadow: "0 0 0 2px var(--section-accent)", borderColor: "var(--section-accent)" } : undefined}>
+                <div key={task.id} id={`task-${task.id}`} className={`transition-colors ${highlightId === task.id ? "relative z-10 ring-2 ring-offset-1" : ""} ${isOverdue ? "bg-stone-50/60 dark:bg-stone-500/[.03]" : "hover:bg-[var(--surface-hover)]"}`} style={highlightId === task.id ? { boxShadow: "0 0 0 2px var(--section-accent)", borderColor: "var(--section-accent)" } : undefined}>
                   <div className="flex items-center gap-3 px-4 py-3">
                     {/* Checkbox */}
                     <button onClick={() => handleToggle(task)}
@@ -681,22 +737,22 @@ export function TasksPage() {
                     {/* Inline meta */}
                     <div className="hidden sm:flex items-center gap-2 shrink-0">
                       {task.priority && task.priority !== "low" && (
-                        <span className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority}</span>
+                        <span className={`rounded-full border px-1.5 py-px text-caption font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority}</span>
                       )}
-                      <span className={`flex items-center gap-1 rounded-full border px-1.5 py-px text-[10px] font-medium border-[var(--border-soft)] text-[var(--text-muted)]`}>
+                      <span className={`flex items-center gap-1 rounded-full border px-1.5 py-px text-caption font-medium border-[var(--border-soft)] text-[var(--text-muted)]`}>
                         <span className={`h-1 w-1 rounded-full ${sm.dot}`}/>{sm.label}
                       </span>
                       {flaggedTaskIds.has(task.id) && (
-                        <span className="flex items-center gap-1 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-[10px] font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
+                        <span className="flex items-center gap-1 rounded-full border border-stone-500/30 bg-stone-600/10 px-1.5 py-px text-caption font-medium text-stone-500 dark:text-stone-400" title="Operations Agent queued a recommendation for this task">
                           <LogoMark size={9}/>AI flagged
                         </span>
                       )}
                       {task.due_date && (
-                        <span className={`flex items-center gap-0.5 text-[11px] ${isOverdue ? "text-stone-600 dark:text-stone-400" : "text-[var(--text-muted)]"}`}>
+                        <span className={`flex items-center gap-0.5 text-label ${isOverdue ? "text-stone-600 dark:text-stone-400" : "text-[var(--text-muted)]"}`}>
                           <Clock size={10}/>{fmtDate(task.due_date)}
                         </span>
                       )}
-                      {assigneeName && <span className="flex items-center gap-0.5 text-[11px] text-[var(--text-muted)]"><User size={10}/>{assigneeName.split(" ")[0]}</span>}
+                      {assigneeName && <span className="flex items-center gap-0.5 text-label text-[var(--text-muted)]"><User size={10}/>{assigneeName.split(" ")[0]}</span>}
                     </div>
 
                     {/* Actions */}
@@ -730,7 +786,7 @@ export function TasksPage() {
                       {task.labels && task.labels.filter(l => LABEL_COLORS[l]).length > 0 && (
                         <div className="flex flex-wrap gap-1">
                           {task.labels.filter(l => LABEL_COLORS[l]).map(l => (
-                            <span key={l} className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>
+                            <span key={l} className={`rounded-full border px-2 py-0.5 text-caption font-medium ${LABEL_COLORS[l]}`}>{l}</span>
                           ))}
                         </div>
                       )}
@@ -774,70 +830,18 @@ export function TasksPage() {
                 <Check size={11}/>{showDone ? "Hiding completed" : "Show completed"}
               </button>
             </div>
+            {/* Presentational shell only — every cell (completion toggle, title→detail, actions) and
+                the deep-link anchor (rowId=`task-{id}`) + highlight (rowStyle when highlightId matches)
+                stay page-owned. Sort/filter remain the toolbar's; no selection, no sortable headers. */}
             <div className="overflow-auto rounded-sm border border-[var(--border-soft)]">
-              <table className="minimal-table min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-[var(--border-soft)] bg-[#f9fafb] dark:bg-[var(--surface-hover)]">
-                    {["", "Task", "Status", "Priority", "Assignee", "Due Date", "Created", "Labels"].map(h => (
-                      <th key={h} className={`whitespace-nowrap px-4 py-2.5 text-left text-[10px] font-semibold tracking-widest uppercase text-[var(--text-muted)] ${h === "Created" || h === "Labels" ? "hidden md:table-cell" : ""}`}>{h}</th>
-                    ))}
-                    <th className="px-4 py-2.5"/>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-stone-100 dark:divide-white/[.04]">
-                  {(showDone ? allTasks : tasks).map(task => {
-                    const isOverdue = !task.completed && isPastDue(task.due_date);
-                    const assigneeName = getMemberName(task);
-                    const sm = STATUS_META[task.status ?? "todo"] ?? STATUS_META["todo"]!;
-                    return (
-                      <tr key={task.id} id={`task-${task.id}`} className="group bg-white hover:bg-[#f9fafb] dark:bg-transparent dark:hover:bg-[var(--surface-hover)] transition-colors" style={highlightId === task.id ? { boxShadow: "inset 2px 0 0 0 var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 7%, transparent)" } : undefined}>
-                        <td className="px-4 py-3 w-8">
-                          <button onClick={() => handleToggle(task)}
-                            className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${task.completed ? "border-[#2f9e6b] bg-[#2f9e6b]" : "border-[var(--border-soft)] hover:border-[var(--border-soft)]"}`}>
-                            {task.completed && <Check size={9} className="text-[var(--text-primary)]"/>}
-                          </button>
-                        </td>
-                        <td className="px-4 py-3 max-w-[240px]">
-                          <button onClick={() => setDetailTask(task)} className={`text-left hover:underline font-medium truncate block w-full ${task.completed ? "text-[var(--text-faint)] line-through" : "text-[#111827] dark:text-stone-100"}`}>{task.title}</button>
-                          {task.notes && <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">{task.notes}</p>}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <span className="flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
-                            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${sm.dot}`}/>{sm.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          {task.priority && <span className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[task.priority]}`}>{task.priority.charAt(0).toUpperCase()+task.priority.slice(1)}</span>}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-xs text-[var(--text-muted)]">
-                          {assigneeName ? <span className="flex items-center gap-1"><User size={11}/>{assigneeName}</span> : <span className="text-[var(--text-faint)]">—</span>}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-xs tabular-nums">
-                          {task.due_date ? <span className={isOverdue ? "text-stone-600 dark:text-stone-400" : "text-[var(--text-muted)]"}>{fmtDate(task.due_date)}</span> : <span className="text-[var(--text-faint)]">—</span>}
-                        </td>
-                        <td className="hidden md:table-cell px-4 py-3 whitespace-nowrap text-xs text-[var(--text-muted)] tabular-nums">
-                          {task.created_at ? fmtDate(task.created_at) : "—"}
-                        </td>
-                        <td className="hidden md:table-cell px-4 py-3">
-                          <div className="flex flex-wrap gap-1">
-                            {(task.labels ?? []).filter(l => LABEL_COLORS[l]).map(l => (
-                              <span key={l} className={`rounded-full border px-1.5 py-px text-[10px] font-medium ${LABEL_COLORS[l]}`}>{l}</span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => setEditTask(task)} className="rounded-md p-1 text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"><Pencil size={12}/></button>
-                            {(task.assignee_id === currentUserId || !task.assignee_id) && (
-                              <button onClick={() => setConfirmDeleteId(task.id)} className="rounded-md p-1 text-[var(--text-faint)] hover:text-stone-600 hover:bg-stone-50 dark:hover:text-stone-400 dark:hover:bg-stone-400/10 transition-colors"><Trash2 size={12}/></button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <DataTable<Task>
+                className="min-w-full text-sm"
+                columns={sheetColumns}
+                rows={showDone ? allTasks : tasks}
+                rowKey={(task) => task.id}
+                rowId={(task) => `task-${task.id}`}
+                rowStyle={(task) => highlightId === task.id ? { boxShadow: "inset 2px 0 0 0 var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 7%, transparent)" } : undefined}
+              />
             </div>
           </>
         )
@@ -850,18 +854,18 @@ export function TasksPage() {
             className="flex items-center gap-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-secondary)] transition-colors mb-3">
             <ChevronDown size={13} className={`transition-transform ${showDone ? "" : "-rotate-90"}`}/>
             Completed
-            <span className="rounded-full bg-[var(--surface-hover)] px-2 py-0.5 text-[10px] text-[var(--text-muted)]">{doneTasks.length}</span>
+            <span className="rounded-full bg-[var(--surface-hover)] px-2 py-0.5 text-caption text-[var(--text-muted)]">{doneTasks.length}</span>
           </button>
           {showDone && (
-            <div className="space-y-1 opacity-50">
+            <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] divide-y divide-[var(--border-soft)] opacity-50">
               {doneTasks.map(task => (
-                <div key={task.id} className="rounded-sm border border-[var(--border-soft)] p-3 flex items-center gap-3">
+                <div key={task.id} className="px-4 py-3 flex items-center gap-3 transition-colors hover:bg-[var(--surface-hover)]">
                   <button onClick={() => handleToggle(task)}
                     className="h-4 w-4 shrink-0 rounded border border-[#2f9e6b]/50 bg-[#2f9e6b]/20 flex items-center justify-center">
                     <Check size={9} className="text-[#2f9e6b]"/>
                   </button>
                   <button onClick={() => setDetailTask(task)} className="flex-1 text-sm text-[var(--text-muted)] line-through text-left hover:text-[var(--text-faint)] truncate transition-colors">{task.title}</button>
-                  <span className="text-[10px] text-[var(--text-faint)] shrink-0">{task.status === "done" ? "Done" : "Completed"}</span>
+                  <span className="text-caption text-[var(--text-faint)] shrink-0">{task.status === "done" ? "Done" : "Completed"}</span>
                 </div>
               ))}
             </div>

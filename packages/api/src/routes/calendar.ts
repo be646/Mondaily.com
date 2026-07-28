@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { Hono, type Context } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
@@ -12,6 +12,8 @@ import { resolveProfile } from "@mondaily/shared/profile";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
 import { isOverdue } from "@mondaily/shared/dates";
 import { endRoom, removeParticipant, liveCaptionsAllowed } from "../lib/livekit";
+import { meetingRoom } from "../lib/rooms";
+import { extractMeetingIntel, summarizeTranscript } from "../jobs/meeting-memory";
 import { MEETING_TYPES, normalizeMeetingType } from "@mondaily/shared/meeting-types";
 
 /**
@@ -148,7 +150,7 @@ const appUrl = () => (process.env.APP_URL ?? "https://app.mondaily.com").replace
  * workspace-namespaced `call_room_id` stays internal (used to isolate the underlying real-time room
  * per tenant). No external/third-party meeting provider is ever involved.
  */
-const internalRoom = (ws: string, eventId: string) => `ws_${ws}__meeting__${eventId}`;   // never surfaced to users
+const internalRoom = (ws: string, eventId: string) => meetingRoom(ws, eventId);   // canonical; never surfaced to users
 function makeCallLink(ws: string, eventId: string): { call_room_id: string; call_url: string } | null {
   if (!callsEnabled()) return null;
   return { call_room_id: internalRoom(ws, eventId), call_url: `${appUrl()}/calls/${eventId}` };   // Mondaily-owned path link
@@ -720,6 +722,159 @@ router.post("/events/:id/prepare", async (c) => {
       ai_available: true,
     });
   } catch { return c.json({ event: shaped, sources, agenda_summary: null, talking_points: [], follow_ups: [], ai_available: false }); }
+});
+
+// ── Persisted transcript intelligence ──────────────────────────────────────────────────────────────
+// Generated intelligence is saved onto the event node's `data` (no new table). Keyed by the exact event
+// id so a recurring series' occurrences never clobber each other. A stable fingerprint of the ORIGINAL
+// transcript lets the UI flag when the transcript has changed since intelligence was generated.
+const INTEL_KEY = "transcript_intel";   // ev.data[INTEL_KEY] = { [eventId]: StoredTranscriptIntel }
+export interface StoredTranscriptIntel {
+  source: "saved_live_transcript";
+  lines_used: number;
+  ts_range: { start: number; end: number };
+  fingerprint: string;                 // stable hash of the original transcript (ts+speaker+text)
+  generated_at: string;                // ISO
+  generated_by: string;                // user id who ran it
+  provider: string | null; model: string | null; feature: string;
+  overview: string;
+  key_topics: string[];
+  action_items: { text: string; owner?: string }[];
+  decisions: string[];
+  next_steps: string[];
+  follow_up_draft: { subject: string; body: string } | null;
+  recipients: { name: string; email?: string }[];
+}
+/** Deterministic fingerprint of the ORIGINAL transcript (order + speaker + text). Additions or edits
+ *  change it, so the UI can honestly flag saved intelligence as stale. Never hashes translations. */
+export function transcriptFingerprint(lines: { speaker_name: string; text: string; ts: number }[]): string {
+  const basis = lines.map((l) => `${l.ts}|${l.speaker_name ?? ""}|${l.text ?? ""}`).join("\n");
+  return createHash("sha256").update(basis).digest("hex").slice(0, 32);
+}
+const readIntelMap = (d: EventData): Record<string, StoredTranscriptIntel> => {
+  const m = (d as unknown as Record<string, unknown>)[INTEL_KEY];
+  return m && typeof m === "object" ? (m as Record<string, StoredTranscriptIntel>) : {};
+};
+
+// GET /calendar/events/:id/transcript-intel — return SAVED intelligence for this meeting WITHOUT any
+// model call. Recomputes the current transcript fingerprint (a DB read only) to honestly flag staleness.
+// Participant/admin + workspace scoped. Never fabricates; returns saved:null when nothing was generated.
+router.get("/events/:id/transcript-intel", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId"); const role = c.get("role");
+  const id = c.req.param("id");
+  const ev = await getEvent(ws, id);
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canView(ev.data, me) && !isWorkspaceAdmin(role)) return c.json({ error: "Not allowed." }, 403);
+
+  const saved = readIntelMap(ev.data)[id] ?? null;
+  if (!saved) return c.json({ ok: true, saved: null, stale: false });   // nothing generated yet — no model call
+
+  // Fingerprint the CURRENT original transcript to detect drift since generation. DB read only, no AI.
+  const { data: rows } = await supabase.from("call_transcript_lines")
+    .select("speaker_name, text, ts").eq("workspace_id", ws).eq("room", meetingRoom(ws, id))
+    .order("ts", { ascending: true }).limit(5000);
+  const lines = (rows ?? []) as { speaker_name: string; text: string; ts: number }[];
+  const currentFp = lines.length ? transcriptFingerprint(lines) : null;
+  const stale = currentFp !== null && currentFp !== saved.fingerprint;
+  return c.json({ ok: true, saved, stale, current_lines: lines.length });
+});
+
+// POST /calendar/events/:id/summarize-transcript — Meeting Memory intelligence FROM the saved live
+// transcript. Grounded strictly in the ORIGINAL transcript text (translated overlays are NOT read).
+// REVIEW-FIRST: it only READS + returns candidates (overview, action items, decision candidates, a
+// follow-up email DRAFT) — it creates NO tasks, NO decisions, and sends NO email. Participant/admin scoped.
+// Honest failures: too little transcript → "insufficient_transcript"; no AI → "ai_unavailable"; a model
+// miss → "summary_failed". Never fabricates.
+router.post("/events/:id/summarize-transcript", async (c) => {
+  const ws = c.get("workspaceId"); const me = c.get("userId"); const role = c.get("role");
+  const id = c.req.param("id");
+  const ev = await getEvent(ws, id);
+  if (!ev) return c.json({ error: "Event not found." }, 404);
+  if (!canView(ev.data, me) && !isWorkspaceAdmin(role)) return c.json({ error: "Not allowed." }, 403);
+
+  // ORIGINAL saved live-caption lines only (never the caption_translations overlay).
+  const { data: rows } = await supabase.from("call_transcript_lines")
+    .select("speaker_name, text, ts").eq("workspace_id", ws).eq("room", meetingRoom(ws, id))
+    .order("ts", { ascending: true }).limit(5000);
+  const lines = (rows ?? []) as { speaker_name: string; text: string; ts: number }[];
+  const totalChars = lines.reduce((n, l) => n + String(l.text ?? "").length, 0);
+  if (lines.length < 3 || totalChars < 200) return c.json({ ok: false, reason: "insufficient_transcript", lines_used: lines.length });
+
+  const env = gatewayEnv();
+  if (!env.baseURL || !env.apiKey) return c.json({ ok: false, reason: "ai_unavailable", lines_used: lines.length });
+
+  const tl = lines.map((l) => ({ speaker: l.speaker_name || "Speaker", text: String(l.text ?? "") }));
+  const intel = await extractMeetingIntel(ws, me, tl, "general");
+  let overview = intel.overview;
+  if (!overview) { try { overview = await summarizeTranscript(ws, me, tl); } catch { overview = ""; } }
+  if (!overview) return c.json({ ok: false, reason: "summary_failed", lines_used: lines.length });   // no fake summary
+
+  // Follow-up EMAIL DRAFT — grounded in the transcript, returned for review only (never sent).
+  let follow_up_draft: { subject: string; body: string } | null = null;
+  let provider: string | null = null, model: string | null = null;
+  try {
+    const transcript = tl.map((l) => `${l.speaker}: ${l.text}`).join("\n").slice(0, 20_000);
+    const res = await aiGateway({
+      system: `You draft a short, professional follow-up email after a meeting, grounded ONLY in the transcript. Respond as strict JSON {"subject": string, "body": string}. Be concise; reference only what was actually discussed; never invent commitments, names, dates, or recipients. No preamble.`,
+      prompt: `Meeting: ${ev.data.title}\nTranscript:\n${transcript}`,
+      maxTokens: 500, workspaceId: ws, userId: me, feature: "meeting_followup_draft", taskClass: "meeting",
+    });
+    if (res.provider !== "none") { provider = res.provider; model = res.model; }
+    const txt = (res.text ?? "").trim();
+    if (txt && res.provider !== "none") {
+      const p = JSON.parse(txt.replace(/^```json?\s*|\s*```$/g, "")) as { subject?: string; body?: string };
+      const subject = String(p.subject ?? "").trim(), body = String(p.body ?? "").trim();
+      if (subject || body) follow_up_draft = { subject, body };
+    }
+  } catch { follow_up_draft = null; }
+
+  // Real recipients only — attendees who have an email on file. Never invented.
+  const dir = await members(ws);
+  const recipientIds = [ev.data.organizer_id, ...(ev.data.attendee_ids ?? [])].filter((v): v is string => !!v);
+  const recipients = [...new Set(recipientIds)]
+    .map((uid) => dir.get(uid)).filter(Boolean)
+    .map((m) => ({ name: (m as { name?: string; email?: string }).name || (m as { email?: string }).email || "Member", email: (m as { email?: string }).email }))
+    .filter((r) => r.email);
+
+  // Persist onto the meeting node so it renders later without regenerating. Keyed per event id (so a
+  // recurring occurrence never clobbers a sibling). Fingerprint is over the ORIGINAL transcript only.
+  const stored: StoredTranscriptIntel = {
+    source: "saved_live_transcript",
+    lines_used: lines.length,
+    ts_range: { start: lines[0]?.ts ?? 0, end: lines[lines.length - 1]?.ts ?? 0 },
+    fingerprint: transcriptFingerprint(lines),
+    generated_at: new Date().toISOString(),
+    generated_by: me,
+    provider, model, feature: "meeting_memory_intel",
+    overview,
+    key_topics: intel.key_topics,
+    action_items: intel.action_items,
+    decisions: intel.decisions,
+    next_steps: intel.next_steps,
+    follow_up_draft,
+    recipients,
+  };
+  const nextData = { ...ev.data, [INTEL_KEY]: { ...readIntelMap(ev.data), [id]: stored } };
+  // Best-effort persist — a save failure must not lose the freshly generated result for this response.
+  await supabase.from("nodes").update({ data: nextData })
+    .eq("workspace_id", ws).eq("id", baseId(id)).eq("object_type", "calendar_event");
+
+  return c.json({
+    ok: true,
+    source: "live_transcript",
+    saved: true,
+    stale: false,                       // just generated against the current transcript
+    generated_at: stored.generated_at,
+    lines_used: stored.lines_used,
+    ts_range: stored.ts_range,
+    overview,
+    key_topics: intel.key_topics,
+    action_items: intel.action_items,   // [{ text, owner? }] — review-first candidates (no task created)
+    decisions: intel.decisions,         // string[] — candidates only (no decision created)
+    next_steps: intel.next_steps,
+    follow_up_draft,                    // { subject, body } | null — DRAFT only, never sent
+    recipients,                         // real attendee emails only (may be empty)
+  });
 });
 
 // GET /calendar/events/:id/followups — REAL open tasks grouped for this meeting's review panel:

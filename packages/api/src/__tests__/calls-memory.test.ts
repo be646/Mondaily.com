@@ -42,6 +42,20 @@ describe("Meeting Memory — honest status derivation (no fabricated transcript/
     expect(noAgenda.can_summarize).toBe(false);                 // nothing to summarize → refuse
   });
 
+  it("reflects PERSISTED transcript intelligence — saved intel → summary 'generated' + real action-item count", () => {
+    // AI insights were generated from the saved live transcript and persisted under data.transcript_intel[id].
+    const withIntel = eventMemory("e3", {
+      title: "Roadmap sync", start_at: "2026-07-01T09:00:00Z",
+      transcript_intel: { e3: { action_items: [{ text: "Book review" }, { text: "Send pricing" }] } },
+    }, new Date());
+    expect(withIntel.summary_status).toBe("generated");         // honest: real saved intel, not agenda-pending
+    expect(withIntel.action_item_count).toBe(2);
+    // intel keyed under a DIFFERENT event id must NOT leak into this row
+    const otherKey = eventMemory("e4", { title: "Other", start_at: "2026-07-01T09:00:00Z", transcript_intel: { e3: { action_items: [{ text: "x" }] } } }, new Date());
+    expect(otherKey.summary_status).toBe("none");
+    expect(otherKey.action_item_count).toBe(0);
+  });
+
   it("only PAST/completed events are memories — future & cancelled are excluded", () => {
     const now = new Date("2026-07-06T12:00:00Z");
     expect(isPastEvent({ start_at: "2026-07-01T09:00:00Z", end_at: "2026-07-01T10:00:00Z" }, now)).toBe(true);   // past

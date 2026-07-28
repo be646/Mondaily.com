@@ -12,9 +12,9 @@ export interface PipelineHealth {
 }
 
 const BANDS = {
-  healthy: { label: "Healthy", text: "text-[#2f9e6b]", bg: "bg-[#2f9e6b]/10 border-[#2f9e6b]/20", bar: "bg-[#2f9e6b]" },
-  watch:   { label: "Watch",   text: "text-[#c6892e]", bg: "bg-[#c6892e]/10 border-[#c6892e]/20", bar: "bg-[#c6892e]" },
-  at_risk: { label: "At risk", text: "text-[#d1524a]", bg: "bg-[#d1524a]/10 border-[#d1524a]/20", bar: "bg-[#d1524a]" },
+  healthy: { label: "Healthy", text: "text-status-ok", bg: "bg-status-ok/10 border-status-ok/20", bar: "bg-status-ok" },
+  watch:   { label: "Watch",   text: "text-status-warn", bg: "bg-status-warn/10 border-status-warn/20", bar: "bg-status-warn" },
+  at_risk: { label: "At risk", text: "text-status-error", bg: "bg-status-error/10 border-status-error/20", bar: "bg-status-error" },
 } as const;
 
 function money(n: number | null | undefined): string | null {
@@ -73,7 +73,7 @@ export function PipelineHealthBadge({ health }: { health?: PipelineHealth | null
             <span style={{ color: "var(--text-muted)" }}>Idle</span>
             <span className="inline-flex items-center gap-1 font-medium" style={{ color: "var(--text-secondary)" }}>
               {health.days_idle === 0 ? "today" : `${health.days_idle}d`}
-              {health.days_idle > 30 && <span className="text-[#d1524a]">↓</span>}
+              {health.days_idle > 30 && <span className="text-status-error">↓</span>}
             </span>
           </div>
         )}

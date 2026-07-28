@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { FieldSelect, FilterButton, FilterStrip } from "../../../components/ui/controls";
+import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
 import { FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { PeriodSelector } from "../../../components/ui/period-selector";
 import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
@@ -120,23 +121,23 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
         <div className="p-5 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Description</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Description</label>
               <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="e.g. Flight to London" className="key-input w-full text-sm"/>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Amount</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Amount</label>
               <input value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00" type="number" min="0" step="0.01" className="key-input w-full text-sm"/>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Currency</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Currency</label>
               <FieldSelect value={form.currency} onChange={v => setForm(f => ({ ...f, currency: v }))} ariaLabel="Currency"
                 options={currencyOptions(currencies)} />
             </div>
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Category</label>
+                <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Category</label>
                 <AIButton variant="subtle" size="sm" loading={suggesting} disabled={!form.description.trim()}
                   title="Suggest a category from the description" onClick={suggestCategory}>
                   Suggest
@@ -144,20 +145,20 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
               </div>
               <FieldSelect value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} ariaLabel="Category"
                 options={CATEGORIES.map(c => ({ value: c.key, label: c.label }))} />
-              {suggestNote && <p className="mt-1 text-[10px] text-[var(--text-faint)]">{suggestNote}</p>}
+              {suggestNote && <p className="mt-1 text-caption text-[var(--text-faint)]">{suggestNote}</p>}
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Date</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Date</label>
               <input value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                 type="date" className="key-input w-full text-sm"/>
             </div>
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Vendor (optional)</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Vendor (optional)</label>
               <input value={form.vendor} onChange={e => setForm(f => ({ ...f, vendor: e.target.value }))}
                 placeholder="e.g. British Airways" className="key-input w-full text-sm"/>
             </div>
           </div>
-          {error && <p className="text-[11px] text-[var(--text-faint)] bg-stone-400/10 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-label text-[var(--text-faint)] bg-stone-400/10 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
@@ -170,6 +171,36 @@ function LogExpenseModal({ onClose, onCreate }: { onClose: () => void; onCreate:
     </div>
   );
 }
+
+// Column model for the shared DataTable. Every cell renderer — the DECORATIVE category label
+// (its own identity colour, NOT a status token), the status pill, money (fmt) and the date —
+// stays HERE, so the shell knows no finance logic. Amount still reads e.amount_cents as before.
+const EXPENSE_COLUMNS: DataTableColumn<Expense>[] = [
+  { key: "date", header: "Date", cellClassName: "text-label text-[var(--text-secondary)]",
+    cell: (e) => new Date(e.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) },
+  { key: "description", header: "Description", cellClassName: "text-body font-medium text-[var(--text-primary)]", cell: (e) => e.description },
+  { key: "vendor", header: "Vendor", cellClassName: "text-label text-[var(--text-muted)]", cell: (e) => e.vendor ?? "—" },
+  { key: "category", header: "Category", cell: (e) => {
+      const catCfg = CATEGORY_CONFIG[e.category] ?? CATEGORY_CONFIG["other"]!;
+      const CatIcon = catCfg.icon;
+      // catCfg.color is a decorative category-identity colour — intentionally NOT a status token.
+      return (
+        <span className={`inline-flex items-center gap-1.5 text-caption font-medium ${catCfg.color}`}>
+          <CatIcon size={10} />{catCfg.label}
+        </span>
+      );
+    } },
+  { key: "amount", header: "Amount", cellClassName: "text-row font-semibold text-[var(--text-primary)]", cell: (e) => fmt(e.amount_cents, e.currency) },
+  { key: "status", header: "Status", cell: (e) => {
+      const stsCfg = STATUS_CONFIG[e.status] ?? STATUS_CONFIG["draft"]!;
+      const StsIcon = stsCfg.icon;
+      return (
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-caption font-medium ${stsCfg.color}`}>
+          <StsIcon size={10} />{stsCfg.label}
+        </span>
+      );
+    } },
+];
 
 export function ExpensesPage() {
   const qc = useQueryClient();
@@ -216,7 +247,7 @@ export function ExpensesPage() {
             <>
             <PeriodSelector value={period} onChange={setPeriod} />
             <button onClick={() => setShowNew(true)}
-              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
+              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-body font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
               <Plus size={13}/> Log Expense
             </button>
             </>
@@ -225,19 +256,19 @@ export function ExpensesPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-[#717784]"/><span className="text-[11px] text-[var(--text-muted)]">Submitted</span></div>
-            <div className="text-[17px] font-semibold text-[#717784]">{approx(submittedSum.missing)}{formatMoney(totalSubmitted, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{expenses.filter(e => e.status === "submitted").length} pending approval · as of now</div>
+            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-[#717784]"/><span className="text-label text-[var(--text-muted)]">Submitted</span></div>
+            <div className="text-stat font-semibold text-[#717784]">{approx(submittedSum.missing)}{formatMoney(totalSubmitted, currency)}</div>
+            <div className="text-caption text-[var(--text-secondary)] mt-0.5">{expenses.filter(e => e.status === "submitted").length} pending approval · as of now</div>
           </div>
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#2f9e6b]"/><span className="text-[11px] text-[var(--text-muted)]">Approved</span></div>
-            <div className="text-[17px] font-semibold text-[#2f9e6b]">{approx(approvedSum.missing)}{formatMoney(totalApproved, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">approved · {periodScope}</div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#2f9e6b]"/><span className="text-label text-[var(--text-muted)]">Approved</span></div>
+            <div className="text-stat font-semibold text-[#2f9e6b]">{approx(approvedSum.missing)}{formatMoney(totalApproved, currency)}</div>
+            <div className="text-caption text-[var(--text-secondary)] mt-0.5">approved · {periodScope}</div>
           </div>
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Receipt size={11} className="text-[var(--text-muted)]"/><span className="text-[11px] text-[var(--text-muted)]">Total logged</span></div>
-            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{approx(loggedSum.missing)}{formatMoney(totalInPeriod, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">excl. rejected · {periodScope}{loggedSum.missing > 0 ? ` · ${loggedSum.missing} unconverted` : ""}</div>
+            <div className="flex items-center gap-1.5 mb-1"><Receipt size={11} className="text-[var(--text-muted)]"/><span className="text-label text-[var(--text-muted)]">Total logged</span></div>
+            <div className="text-stat font-semibold text-[var(--text-primary)]">{approx(loggedSum.missing)}{formatMoney(totalInPeriod, currency)}</div>
+            <div className="text-caption text-[var(--text-secondary)] mt-0.5">excl. rejected · {periodScope}{loggedSum.missing > 0 ? ` · ${loggedSum.missing} unconverted` : ""}</div>
           </div>
         </div>
 
@@ -246,7 +277,7 @@ export function ExpensesPage() {
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
             <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-faint)]"/>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search expenses…" className="key-input h-8 w-full pl-8 pr-3 text-[12px]"/>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search expenses…" className="key-input h-8 w-full pl-8 pr-3"/>
           </div>
           <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={categoryFilter ? 1 : 0} />
         </div>
@@ -262,53 +293,24 @@ export function ExpensesPage() {
 
       <div className="flex-1 overflow-auto">
         {isLoading ? (
-          <div className="flex h-40 items-center justify-center text-[12px] text-[var(--text-secondary)]">Loading…</div>
+          <div className="flex h-40 items-center justify-center text-body text-[var(--text-secondary)]">Loading…</div>
         ) : isError ? (
-          <div className="flex h-40 flex-col items-center justify-center gap-2 text-[12px] text-[var(--text-muted)]">Couldn't load expenses. <button onClick={() => refetch()} className="underline">Retry</button></div>
+          <div className="flex h-40 flex-col items-center justify-center gap-2 text-body text-[var(--text-muted)]">Couldn't load expenses. <button onClick={() => refetch()} className="underline">Retry</button></div>
         ) : expenses.length === 0 ? (
           <div className="flex h-60 flex-col items-center justify-center gap-3">
             <Receipt size={32} className="text-[var(--text-secondary)]"/>
-            <div className="text-[13px] text-[var(--text-muted)]">No expenses {categoryFilter ? `in category "${categoryFilter}"` : "yet"}</div>
-            <button onClick={() => setShowNew(true)} className="text-[12px] text-[var(--text-faint)] hover:text-[var(--text-faint)] transition-colors">Log your first expense</button>
+            <div className="text-row text-[var(--text-muted)]">No expenses {categoryFilter ? `in category "${categoryFilter}"` : "yet"}</div>
+            <button onClick={() => setShowNew(true)} className="text-body text-[var(--text-faint)] hover:text-[var(--text-faint)] transition-colors">Log your first expense</button>
           </div>
         ) : (
-          <table className="minimal-table">
-            <thead>
-              <tr className="border-b border-[var(--border-soft)]">
-                {["Date", "Description", "Vendor", "Category", "Amount", "Status"].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-[var(--text-secondary)]">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {expenses.map(e => {
-                const catCfg = CATEGORY_CONFIG[e.category] ?? CATEGORY_CONFIG["other"]!;
-                const CatIcon = catCfg.icon;
-                const stsCfg = STATUS_CONFIG[e.status] ?? STATUS_CONFIG["draft"]!;
-                const StsIcon = stsCfg.icon;
-                return (
-                  <tr key={e.id} className="border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors">
-                    <td className="px-4 py-3 text-[11px] text-[var(--text-secondary)]">
-                      {new Date(e.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                    </td>
-                    <td className="px-4 py-3 text-[12px] font-medium text-[var(--text-primary)]">{e.description}</td>
-                    <td className="px-4 py-3 text-[11px] text-[var(--text-muted)]">{e.vendor ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 text-[10px] font-medium ${catCfg.color}`}>
-                        <CatIcon size={10}/>{catCfg.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[13px] font-semibold text-[var(--text-primary)]">{fmt(e.amount_cents, e.currency)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${stsCfg.color}`}>
-                        <StsIcon size={10}/>{stsCfg.label}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          // Presentational shell only — cell rendering, the decorative category label, the status
+          // pill, money value and date are all still owned by this page (above), unchanged. Rows are
+          // intentionally non-navigating (matches the prior behaviour); no row click was added.
+          <DataTable<Expense>
+            columns={EXPENSE_COLUMNS}
+            rows={expenses}
+            rowKey={(e) => e.id}
+          />
         )}
       </div>
 

@@ -84,7 +84,7 @@ describe("Calendar premium repair — integrated empty state + active, honest Me
   });
 
   it("no fake live/AI claims on Calendar — only the honest monitoring status", () => {
-    expect(cal).toContain('kind: "monitoring"');
+    expect(cal).toMatch(/rightSummary=\{`\$\{t\("cal\.meeting_agent"\)\} · \$\{t\("cal\.agent_available"\)\} · \$\{t\("cal\.agent_monitoring"\)\}`\}/);
     expect(cal).not.toMatch(/\b(live now|running now|AI is (thinking|working|live))\b/i);
   });
 

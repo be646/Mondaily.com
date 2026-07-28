@@ -10,6 +10,7 @@ import {
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PageSkeleton } from "../../../components/ui/page-state";
+import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
 import { apiClient } from "../../../lib/api-client";
 import { ProspectingModal } from "../../../components/ai/prospecting-modal";
 import { AIInspector } from "../../../components/ai/ai-inspector";
@@ -203,7 +204,51 @@ export function ListPage() {
   function toggleSelect(id: string) { setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; }); }
   const allShownSelected = sortedRecords.length > 0 && sortedRecords.every(r => selected.has(r.id));
   function removeSelected() { selected.forEach(id => removeEntry.mutate(id)); setSelected(new Set()); }
-  const sortArrow = (col: string) => sortCol === col ? (sortDir === "asc" ? " ↑" : " ↓") : "";
+  // Column model for the shared DataTable. Every cell (object links, provenance icons, lead-score
+  // badge, remove button) + the 8-column cap + sort keys stay page-owned; the shell only renders
+  // the table shell, the selection checkboxes and the sort arrows. Keys mirror the old sort columns
+  // (__id / <data col> / lead_score / __updated); the trailing __remove column is not sortable.
+  const listColumns: DataTableColumn<NodeRecord>[] = useMemo(() => [
+    { key: "__id", header: "ID", sortable: true, cellClassName: "whitespace-nowrap", cell: (record) => (
+        <Link to={`/objects/${record.object_type}/${record.id}`} title={record.id}
+          className="font-mono text-[11px] text-stone-400 transition-colors hover:text-stone-600 dark:hover:text-stone-300">
+          {record.id.slice(0, 8)}
+        </Link>
+      ) },
+    ...columns.map((c, i): DataTableColumn<NodeRecord> => ({
+      key: c,
+      header: c.replaceAll("_", " "),
+      sortable: true,
+      cellClassName: "max-w-[240px] truncate text-stone-700 dark:text-stone-300",
+      cell: (record) => {
+        const prov = recordProvenance(record);
+        if (c === "lead_score") return record.lead_score != null ? <LeadScoreBadge score={record.lead_score} size="sm" /> : null;
+        if (i === 0) return (
+          <span className="inline-flex min-w-0 items-center gap-1.5">
+            <Link to={`/objects/${record.object_type}/${record.id}`}
+              className="truncate font-medium text-stone-950 transition-colors hover:text-stone-600 dark:text-stone-50 dark:hover:text-stone-300">
+              {display(record.data[c])}
+            </Link>
+            {prov && prov.kind === "web" && (
+              <span title={prov.url ? `Found on the web — ${prov.url}` : "Discovered from the web"} className="shrink-0" style={{ color: "var(--text-faint)" }}><Globe size={11} /></span>
+            )}
+            {prov && prov.kind === "ai" && (
+              <span title="Added by an AI agent" className="shrink-0" style={{ color: "var(--text-faint)" }}><LogoMark size={10} /></span>
+            )}
+          </span>
+        );
+        return display(record.data[c]);
+      },
+    })),
+    { key: "__updated", header: "Updated", sortable: true, cellClassName: "text-[11px] tabular-nums text-stone-400 dark:text-stone-600", cell: (record) => fmtDate(record.updated_at) },
+    { key: "__remove", header: "", cellClassName: "w-8 px-2", cell: (record) => (
+        <button onClick={() => removeEntry.mutate(record.id)} title="Remove from list"
+          className="grid h-6 w-6 place-items-center rounded opacity-0 transition-all group-hover:opacity-100 hover:bg-stone-100 dark:hover:bg-stone-900"
+          style={{ color: "var(--text-faint)" }}>
+          <X size={12} />
+        </button>
+      ) },
+  ], [columns, removeEntry]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────────
   function exportCsv() {
@@ -582,83 +627,23 @@ export function ListPage() {
                 <button onClick={() => setSelected(new Set())} className="text-[11px]" style={{ color: "var(--text-faint)" }}>Clear</button>
               </div>
             )}
+            {/* Presentational shell only — the selection Set, the sorted `rows`, the sort direction,
+                every cell renderer and the remove action are all still owned by this page (above). */}
             <div className="list-sheet minimal-sheet overflow-auto">
-            <table className="minimal-table min-w-full text-left text-[12px]">
-              <thead>
-                <tr>
-                  <th className="w-8 px-2">
-                    <input type="checkbox" checked={allShownSelected} onChange={() => setSelected(allShownSelected ? new Set() : new Set(sortedRecords.map(r => r.id)))} className="cursor-pointer align-middle"/>
-                  </th>
-                  <th className="cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("__id")}>ID{sortArrow("__id")}</th>
-                  {columns.map(c => (
-                    <th key={c} className="cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort(c)}>
-                      {c.replaceAll("_", " ")}{sortArrow(c)}
-                    </th>
-                  ))}
-                  <th className="cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort("__updated")}>Updated{sortArrow("__updated")}</th>
-                  <th className="w-8" />
-                </tr>
-              </thead>
-              <tbody>
-                {sortedRecords.map(record => {
-                  const prov = recordProvenance(record);
-                  return (
-                  <tr key={record.id} className={`group transition-colors ${selected.has(record.id) ? "bg-stone-50 dark:bg-[var(--surface-hover)]" : ""}`}>
-                    <td className="w-8 px-2">
-                      <input type="checkbox" checked={selected.has(record.id)} onChange={() => toggleSelect(record.id)} className="cursor-pointer align-middle"/>
-                    </td>
-                    {/* Unique ID — links to the record's profile page */}
-                    <td className="whitespace-nowrap">
-                      <Link
-                        to={`/objects/${record.object_type}/${record.id}`}
-                        title={record.id}
-                        className="font-mono text-[11px] text-stone-400 transition-colors hover:text-stone-600 dark:hover:text-stone-300"
-                      >
-                        {record.id.slice(0, 8)}
-                      </Link>
-                    </td>
-                    {columns.map((c, i) => (
-                      <td key={c} className="max-w-[240px] truncate text-stone-700 dark:text-stone-300">
-                        {c === "lead_score"
-                          ? (record.lead_score != null ? <LeadScoreBadge score={record.lead_score} size="sm"/> : null)
-                          : i === 0
-                          ? (
-                            <span className="inline-flex min-w-0 items-center gap-1.5">
-                              <Link
-                                to={`/objects/${record.object_type}/${record.id}`}
-                                className="truncate font-medium text-stone-950 transition-colors hover:text-stone-600 dark:text-stone-50 dark:hover:text-stone-300"
-                              >
-                                {display(record.data[c])}
-                              </Link>
-                              {prov && prov.kind === "web" && (
-                                <span title={prov.url ? `Found on the web — ${prov.url}` : "Discovered from the web"} className="shrink-0" style={{ color: "var(--text-faint)" }}><Globe size={11}/></span>
-                              )}
-                              {prov && prov.kind === "ai" && (
-                                <span title="Added by an AI agent" className="shrink-0" style={{ color: "var(--text-faint)" }}><LogoMark size={10}/></span>
-                              )}
-                            </span>
-                          )
-                          : display(record.data[c])}
-                      </td>
-                    ))}
-                    <td className="text-[11px] tabular-nums text-stone-400 dark:text-stone-600">
-                      {fmtDate(record.updated_at)}
-                    </td>
-                    <td className="w-8 px-2">
-                      <button
-                        onClick={() => removeEntry.mutate(record.id)}
-                        title="Remove from list"
-                        className="grid h-6 w-6 place-items-center rounded opacity-0 transition-all group-hover:opacity-100 hover:bg-stone-100 dark:hover:bg-stone-900"
-                        style={{ color: "var(--text-faint)" }}
-                      >
-                        <X size={12} />
-                      </button>
-                    </td>
-                  </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+              <DataTable<NodeRecord>
+                className="min-w-full text-left text-[12px]"
+                columns={listColumns}
+                rows={sortedRecords}
+                rowKey={(r) => r.id}
+                selection={{
+                  selectedKeys: selected,
+                  onToggle: (r) => toggleSelect(r.id),
+                  onToggleAll: () => setSelected(allShownSelected ? new Set() : new Set(sortedRecords.map(r => r.id))),
+                  allSelected: allShownSelected,
+                  someSelected: selected.size > 0 && !allShownSelected,
+                }}
+                sort={{ key: sortCol ?? "", dir: sortDir, onSort: toggleSort }}
+              />
             </div>
           </>
         )}

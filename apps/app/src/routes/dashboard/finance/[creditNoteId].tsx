@@ -32,10 +32,10 @@ interface CreditNote {
 
 const STATUS_CONFIG: Record<CreditStatus, { label: string; color: string; dot: string; icon: React.ElementType }> = {
   draft:            { label: "Draft",          color: "text-stone-400",   dot: "bg-stone-400",   icon: ReceiptText   },
-  pending_review:   { label: "Pending Review", color: "text-[#c6892e]",   dot: "bg-[#c6892e]",   icon: Clock         },
-  verified:         { label: "Verified",       color: "text-[#717784]",   dot: "bg-[#717784]",   icon: CheckCircle2  },
-  rejected:         { label: "Rejected",       color: "text-[#d1524a]",   dot: "bg-[#d1524a]",   icon: XCircle       },
-  executed:         { label: "Executed",       color: "text-[#2f9e6b]",   dot: "bg-[#2f9e6b]",   icon: CheckCircle2  },
+  pending_review:   { label: "Pending Review", color: "text-status-warn",   dot: "bg-status-warn",   icon: Clock         },
+  verified:         { label: "Verified",       color: "text-status-neutral",   dot: "bg-status-neutral",   icon: CheckCircle2  },
+  rejected:         { label: "Rejected",       color: "text-status-error",   dot: "bg-status-error",   icon: XCircle       },
+  executed:         { label: "Executed",       color: "text-status-ok",   dot: "bg-status-ok",   icon: CheckCircle2  },
   void:             { label: "Void",           color: "text-stone-600",   dot: "bg-stone-600",   icon: XCircle       },
 };
 
@@ -49,12 +49,12 @@ const REASON_LABELS: Record<CreditReason, string> = {
 // State machine — mirrors the backend's VALID_TRANSITIONS. Only the moves the API
 // accepts are offered, so no button ever produces a 422/400.
 const VOID_ACTION = { to: "void" as const, label: "Void", style: "text-[var(--text-muted)] bg-[var(--surface-hover)] border-[var(--border-soft)] hover:bg-[var(--surface-hover)]" };
-const REJECT_ACTION = { to: "rejected" as const, label: "Reject", style: "text-[#d1524a] bg-[#d1524a]/10 border-[#d1524a]/25 hover:bg-[#d1524a]/20" };
+const REJECT_ACTION = { to: "rejected" as const, label: "Reject", style: "text-status-error bg-status-error/10 border-status-error/25 hover:bg-status-error/20" };
 const TRANSITIONS: Record<CreditStatus, { to: CreditStatus; label: string; style: string }[]> = {
-  draft:          [{ to: "pending_review", label: "Submit for review", style: "text-[#c6892e] bg-[#c6892e]/10 border-[#c6892e]/25 hover:bg-[#c6892e]/20" }, VOID_ACTION],
-  pending_review: [{ to: "verified", label: "Approve", style: "text-[#717784] bg-[#717784]/10 border-[#717784]/25 hover:bg-[#717784]/20" }, REJECT_ACTION, VOID_ACTION],
-  verified:       [{ to: "executed", label: "Execute credit", style: "text-[#2f9e6b] bg-[#2f9e6b]/10 border-[#2f9e6b]/25 hover:bg-[#2f9e6b]/20" }, REJECT_ACTION, VOID_ACTION],
-  rejected:       [{ to: "pending_review", label: "Re-open for review", style: "text-[#c6892e] bg-[#c6892e]/10 border-[#c6892e]/25 hover:bg-[#c6892e]/20" }, VOID_ACTION],
+  draft:          [{ to: "pending_review", label: "Submit for review", style: "text-status-warn bg-status-warn/10 border-status-warn/25 hover:bg-status-warn/20" }, VOID_ACTION],
+  pending_review: [{ to: "verified", label: "Approve", style: "text-status-neutral bg-status-neutral/10 border-status-neutral/25 hover:bg-status-neutral/20" }, REJECT_ACTION, VOID_ACTION],
+  verified:       [{ to: "executed", label: "Execute credit", style: "text-status-ok bg-status-ok/10 border-status-ok/25 hover:bg-status-ok/20" }, REJECT_ACTION, VOID_ACTION],
+  rejected:       [{ to: "pending_review", label: "Re-open for review", style: "text-status-warn bg-status-warn/10 border-status-warn/25 hover:bg-status-warn/20" }, VOID_ACTION],
   executed:       [],
   void:           [],
 };
@@ -126,8 +126,8 @@ export function CreditNoteDetailPage() {
     } finally { setLinkingInvoice(false); }
   }
 
-  if (isLoading) return <div className="flex h-full items-center justify-center text-[12px] text-[var(--text-secondary)]">Loading…</div>;
-  if (isError || !cn) return <div className="flex h-full items-center justify-center text-[12px] text-[var(--text-faint)]">Credit note not found.</div>;
+  if (isLoading) return <div className="flex h-full items-center justify-center text-body text-[var(--text-secondary)]">Loading…</div>;
+  if (isError || !cn) return <div className="flex h-full items-center justify-center text-body text-[var(--text-faint)]">Credit note not found.</div>;
 
   const cfg = STATUS_CONFIG[cn.status] ?? STATUS_CONFIG.draft;
   const Icon = cfg.icon;
@@ -138,13 +138,13 @@ export function CreditNoteDetailPage() {
     <div className="flex h-full flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-[var(--border-soft)] px-6 py-3 shrink-0">
-        <Link to="/finance/credit-notes" className="flex items-center gap-1 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+        <Link to="/finance/credit-notes" className="flex items-center gap-1 text-body text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
           <ChevronLeft size={13}/> Credit Notes
         </Link>
         <span className="text-[var(--text-secondary)]">/</span>
-        <span className="text-[12px] text-[var(--text-faint)]">{cn.client_name ?? cn.id.slice(0, 8)}</span>
+        <span className="text-body text-[var(--text-faint)]">{cn.client_name ?? cn.id.slice(0, 8)}</span>
         <div className="ml-auto flex items-center gap-2">
-          {patchMutation.isPending && <span className="text-[11px] text-[var(--text-secondary)] animate-pulse">Saving…</span>}
+          {patchMutation.isPending && <span className="text-label text-[var(--text-secondary)] animate-pulse">Saving…</span>}
         </div>
       </div>
 
@@ -158,15 +158,15 @@ export function CreditNoteDetailPage() {
                 <ReceiptText size={18} className="text-[var(--text-faint)]"/>
               </div>
               <div>
-                <div className="text-[18px] font-bold text-[var(--text-primary)]">{fmt(cn.amount_cents, cn.currency)}</div>
-                <div className="text-[11px] text-[var(--text-muted)]">{cn.client_name ?? "No client"}</div>
+                <div className="text-stat font-bold text-[var(--text-primary)]">{fmt(cn.amount_cents, cn.currency)}</div>
+                <div className="text-label text-[var(--text-muted)]">{cn.client_name ?? "No client"}</div>
               </div>
             </div>
 
             {/* Status pill */}
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-1.5">Status</p>
-              <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-medium ${cfg.color} border-current/20 bg-current/5`}>
+              <p className="text-caption font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-1.5">Status</p>
+              <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-label font-medium ${cfg.color} border-current/20 bg-current/5`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`}/>
                 <Icon size={11}/>{cfg.label}
               </div>
@@ -174,19 +174,19 @@ export function CreditNoteDetailPage() {
 
             {/* Reason */}
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-1">Reason</p>
-              <span className="text-[12px] text-[var(--text-faint)]">{REASON_LABELS[cn.credit_reason]}</span>
+              <p className="text-caption font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-1">Reason</p>
+              <span className="text-body text-[var(--text-faint)]">{REASON_LABELS[cn.credit_reason]}</span>
             </div>
 
             {/* Dates */}
             <div className="space-y-2">
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-0.5">Created</p>
-                <span className="text-[11px] text-[var(--text-muted)]">{relativeTime(cn.created_at)}</span>
+                <p className="text-caption font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-0.5">Created</p>
+                <span className="text-label text-[var(--text-muted)]">{relativeTime(cn.created_at)}</span>
               </div>
               <div>
-                <p className="text-[9px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-0.5">Last updated</p>
-                <span className="text-[11px] text-[var(--text-muted)]">{relativeTime(cn.updated_at)}</span>
+                <p className="text-caption font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-0.5">Last updated</p>
+                <span className="text-label text-[var(--text-muted)]">{relativeTime(cn.updated_at)}</span>
               </div>
             </div>
           </div>
@@ -194,10 +194,10 @@ export function CreditNoteDetailPage() {
           {/* Links */}
           <div className="p-4 space-y-4 border-b border-[var(--border-soft)]">
             <div>
-              <p className="text-[9px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Linked invoice</p>
+              <p className="text-caption font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Linked invoice</p>
               {linkedInvoice ? (
                 <Link to={`/finance/invoices/${linkedInvoice.id}`}
-                  className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-2 text-[12px] text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:border-[var(--border-soft)] transition-colors">
+                  className="flex items-center gap-2 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-2 text-body text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:border-[var(--border-soft)] transition-colors">
                   <FileText size={11} className="text-[var(--text-secondary)] shrink-0"/>
                   <span className="truncate">{linkedInvoice.number} · {linkedInvoice.client_name}</span>
                 </Link>
@@ -211,7 +211,7 @@ export function CreditNoteDetailPage() {
                     options={invoices.map(i => ({ value: i.id, label: `${i.number} · ${i.client_name}` }))}
                   />
                   <button onClick={applyToInvoice} disabled={!linkInvoiceId || linkingInvoice}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5 text-[11px] text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40">
+                    className="flex w-full items-center justify-center gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1.5 text-label text-[var(--text-faint)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40">
                     <Link2 size={10}/>{linkingInvoice ? "Linking…" : "Apply to invoice"}
                   </button>
                 </div>
@@ -222,17 +222,17 @@ export function CreditNoteDetailPage() {
           {/* State machine actions */}
           {transitions.length > 0 && (
             <div className="p-4 space-y-2">
-              <p className="text-[9px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Actions</p>
+              <p className="text-caption font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Actions</p>
               {transitions.map(t => (
                 <button key={t.to}
                   onClick={() => { setTransitioning(t.to); patchMutation.mutate({ status: t.to }); }}
                   disabled={patchMutation.isPending}
-                  className={`w-full rounded-lg border px-3 py-2 text-[12px] font-medium transition-colors disabled:opacity-40 ${t.style}`}>
+                  className={`w-full rounded-lg border px-3 py-2 text-body font-medium transition-colors disabled:opacity-40 ${t.style}`}>
                   {transitioning === t.to && patchMutation.isPending ? "Processing…" : t.label}
                 </button>
               ))}
               {transitionError && (
-                <div className="flex items-start gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600/[.06] px-3 py-2 text-[11px] text-[var(--text-faint)]">
+                <div className="flex items-start gap-1.5 rounded-lg border border-stone-500/30 bg-stone-600/[.06] px-3 py-2 text-label text-[var(--text-faint)]">
                   <AlertTriangle size={11} className="shrink-0 mt-0.5"/>
                   {transitionError}
                 </div>
@@ -241,7 +241,7 @@ export function CreditNoteDetailPage() {
           )}
           {cn.status === "executed" && (
             <div className="p-4">
-              <div className="flex items-center gap-2 rounded-lg border border-[#2f9e6b]/25 bg-[#2f9e6b]/[.06] px-3 py-2.5 text-[11px] text-[#2f9e6b]">
+              <div className="flex items-center gap-2 rounded-lg border border-status-ok/25 bg-status-ok/[.06] px-3 py-2.5 text-label text-status-ok">
                 <CheckCircle2 size={13} className="shrink-0"/><span>This credit note has been executed and is final.</span>
               </div>
             </div>
@@ -254,22 +254,22 @@ export function CreditNoteDetailPage() {
           <div className="rounded-sm border border-stone-500/30 bg-stone-600/[.04] p-4">
             <div className="flex items-center gap-2 mb-2">
               <LogoMark size={12} className="text-[var(--text-faint)]"/>
-              <span className="text-[11px] font-semibold text-[var(--text-faint)] uppercase tracking-wider">AI Summary</span>
+              <span className="text-label font-semibold text-[var(--text-faint)] uppercase tracking-wider">AI Summary</span>
               <AIButton variant="subtle" size="sm" className="ml-auto" loading={summarize.isPending} onClick={() => summarize.mutate()}>
                 {cn.ai_summary ? "Regenerate" : "Generate"}
               </AIButton>
             </div>
             {cn.ai_summary ? (
-              <p className="text-[13px] text-[var(--text-faint)] leading-relaxed">{cn.ai_summary}</p>
+              <p className="text-row text-[var(--text-faint)] leading-relaxed">{cn.ai_summary}</p>
             ) : (
-              <p className="text-[12px] text-[var(--text-secondary)]">No summary yet — generate a grounded one-line recap from this note's amount, reason, and status.</p>
+              <p className="text-body text-[var(--text-secondary)]">No summary yet — generate a grounded one-line recap from this note's amount, reason, and status.</p>
             )}
-            {summaryError && <p className="mt-2 text-[11px] text-[#d1524a]">{summaryError}</p>}
+            {summaryError && <p className="mt-2 text-label text-status-error">{summaryError}</p>}
           </div>
 
           {/* Notes */}
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-3">Notes</p>
+            <p className="text-label font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-3">Notes</p>
             <NoteEditor
               initialValue={cn.notes ?? ""}
               onSave={v => patchMutation.mutate({ notes: v })}
@@ -279,7 +279,7 @@ export function CreditNoteDetailPage() {
           {/* Edit amount/reason for draft */}
           {cn.status === "draft" && (
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-3">Edit details</p>
+              <p className="text-label font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-3">Edit details</p>
               <DraftEditor creditNote={cn} onSave={body => patchMutation.mutate(body)}/>
             </div>
           )}
@@ -298,7 +298,7 @@ function NoteEditor({ initialValue, onSave }: { initialValue: string; onSave: (v
       onBlur={() => { if (val !== initialValue) onSave(val); }}
       placeholder="Add internal notes here…"
       rows={5}
-      className="w-full resize-none rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 text-[13px] text-[var(--text-faint)] placeholder-stone-700 outline-none focus:border-[var(--border-soft)] leading-relaxed transition-colors"
+      className="w-full resize-none rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3 text-row text-[var(--text-faint)] placeholder-stone-700 outline-none focus:border-[var(--border-soft)] leading-relaxed transition-colors"
     />
   );
 }
@@ -318,15 +318,15 @@ function DraftEditor({ creditNote: cn, onSave }: { creditNote: CreditNote; onSav
     <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Client name</label>
-          <input value={clientName} onChange={e => setClientName(e.target.value)} onBlur={() => save()} className="key-input w-full text-sm"/>
+          <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Client name</label>
+          <input value={clientName} onChange={e => setClientName(e.target.value)} onBlur={() => save()} className="key-input w-full"/>
         </div>
         <div>
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Amount ({cn.currency})</label>
-          <input value={amount} onChange={e => setAmount(e.target.value)} onBlur={() => save()} type="number" min="0" step="0.01" className="key-input w-full text-sm"/>
+          <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Amount ({cn.currency})</label>
+          <input value={amount} onChange={e => setAmount(e.target.value)} onBlur={() => save()} type="number" min="0" step="0.01" className="key-input w-full"/>
         </div>
         <div className="col-span-2">
-          <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Credit reason</label>
+          <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Credit reason</label>
           <FieldSelect
             value={reason}
             onChange={v => { setReason(v as CreditReason); save(v as CreditReason); }}

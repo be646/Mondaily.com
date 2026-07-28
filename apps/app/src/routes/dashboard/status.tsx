@@ -3,7 +3,8 @@ import { AlertTriangle, CheckCircle2, CircleSlash, HelpCircle, Network } from "l
 import { LogoMark } from "@/components/logo";
 import { apiClient } from "../../lib/api-client";
 import { assertAgentCoverage } from "@mondaily/shared/agents";
-import { PageHeader, PageSkeleton } from "../../components/ui/page-state";
+import { PageSkeleton } from "../../components/ui/page-state";
+import { CommandPageHeader } from "../../components/ui/controls";
 
 /**
  * Workspace Status — the honest "what's real today" page. Live System
@@ -22,10 +23,10 @@ interface Migration { id: string; label: string; applied: boolean; required: boo
 interface StatusResponse { checked_at: string; checks: Check[]; migrations: Migration[]; }
 
 const STATE_META: Record<CheckState, { label: string; color: string; icon: React.ElementType }> = {
-  operational:  { label: "Operational",   color: "#2f9e6b", icon: CheckCircle2 },
-  needs_setup:  { label: "Needs setup",   color: "#c6892e", icon: AlertTriangle },
+  operational:  { label: "Operational",   color: "var(--status-ok)", icon: CheckCircle2 },
+  needs_setup:  { label: "Needs setup",   color: "var(--status-warn)", icon: AlertTriangle },
   disabled:     { label: "Disabled",      color: "var(--text-faint)", icon: CircleSlash },
-  error:        { label: "Error",         color: "#d1524a", icon: AlertTriangle },
+  error:        { label: "Error",         color: "var(--status-error)", icon: AlertTriangle },
   not_checked:  { label: "Not checked yet", color: "var(--text-faint)", icon: HelpCircle },
 };
 
@@ -55,9 +56,9 @@ const CHECK_GROUPS: { title: string; ids: string[] }[] = [
 // frontend wiring), audited as part of this change. ──────────────────────
 type FeatureStatus = "live" | "partial" | "needs_configuration" | "planned" | "not_built";
 const FEATURE_STATUS_META: Record<FeatureStatus, { label: string; color: string }> = {
-  live:                 { label: "Live",                 color: "#2f9e6b" },
-  partial:               { label: "Partial",              color: "#717784" },
-  needs_configuration:    { label: "Needs configuration",  color: "#c6892e" },
+  live:                 { label: "Live",                 color: "var(--status-ok)" },
+  partial:               { label: "Partial",              color: "var(--status-neutral)" },
+  needs_configuration:    { label: "Needs configuration",  color: "var(--status-warn)" },
   planned:                { label: "Planned",              color: "var(--section-accent)" },
   not_built:              { label: "Not built",            color: "var(--text-faint)" },
 };
@@ -97,8 +98,8 @@ interface ProjectLogEntry {
 interface ProjectLogResponse { available: boolean; reason?: string; updates: ProjectLogEntry[]; roadmap: ProjectLogEntry[]; }
 
 const ROADMAP_TIERS: { key: string; label: string; tone: string }[] = [
-  { key: "must_fix", label: "Must fix before clients", tone: "#d1524a" },
-  { key: "should_improve", label: "Should improve", tone: "#c6892e" },
+  { key: "must_fix", label: "Must fix before clients", tone: "var(--status-error)" },
+  { key: "should_improve", label: "Should improve", tone: "var(--status-warn)" },
   { key: "future", label: "Future AI-native upgrades", tone: "var(--section-accent)" },
 ];
 
@@ -153,7 +154,7 @@ export function StatusPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      <PageHeader title="Workspace Readiness" description="What's real today, what changed recently, and what's next — every row audited against the live code." />
+      <CommandPageHeader icon={CheckCircle2} callsign="READINESS" title="Workspace Readiness" subtitle="What's real today, what changed recently, and what's next — every row audited against the live code." />
 
       {/* ── 1. Live System Status ── */}
       <section className="mb-10">
@@ -290,17 +291,17 @@ export function StatusPage() {
         ) : (
           <div className="surface-card rounded-sm">
             {data!.migrations.map(m => (
-              <div key={m.id} className="stream-row" style={{ borderLeft: `2px solid ${m.applied ? "#2f9e6b" : "#d1524a"}` }}>
-                {m.applied ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" style={{ color: "#2f9e6b" }}/> : <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "#d1524a" }}/>}
+              <div key={m.id} className="stream-row" style={{ borderLeft: `2px solid ${m.applied ? "var(--status-ok)" : "var(--status-error)"}` }}>
+                {m.applied ? <CheckCircle2 size={14} className="mt-0.5 shrink-0" style={{ color: "var(--status-ok)" }}/> : <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: "var(--status-error)" }}/>}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{m.label}</p>
-                    <span className="shrink-0 text-[10.5px] font-medium" style={{ color: m.applied ? "#2f9e6b" : "#d1524a" }}>{m.applied ? "Applied" : "Not applied"}</span>
+                    <span className="shrink-0 text-[10.5px] font-medium" style={{ color: m.applied ? "var(--status-ok)" : "var(--status-error)" }}>{m.applied ? "Applied" : "Not applied"}</span>
                   </div>
                   <p className="mt-0.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>{m.required ? "Required. " : "Optional. "}If missing: {m.breaks_if_missing}</p>
                   {!m.applied && (
                     <p className="mt-1.5 flex items-start gap-1.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>
-                      <span className="mt-px shrink-0 font-semibold" style={{ color: "#d1524a" }}>Do this:</span>
+                      <span className="mt-px shrink-0 font-semibold" style={{ color: "var(--status-error)" }}>Do this:</span>
                       <span>Open Supabase → SQL editor and run migration <code>{m.id}</code> from <code>packages/db/migrations</code>.</span>
                     </p>
                   )}
@@ -326,9 +327,9 @@ export function StatusPage() {
                 <div className="flex gap-2"><dt className="shrink-0 font-medium" style={{ color: "var(--text-faint)" }}>Writes:</dt><dd style={{ color: "var(--text-secondary)" }}>{a.canWrite}</dd></div>
               </dl>
               <div className="mt-2.5 flex flex-wrap gap-1.5">
-                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: a.autonomous ? "rgba(16,185,129,0.1)" : "var(--surface-hover)", color: a.autonomous ? "#2f9e6b" : "var(--text-faint)" }}>{a.autonomous ? "Runs autonomously" : "Manual trigger only"}</span>
-                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: a.requiresApproval ? "rgba(217,119,6,0.1)" : "var(--surface-hover)", color: a.requiresApproval ? "#c6892e" : "var(--text-faint)" }}>{a.requiresApproval ? "Requires approval" : "No approval needed"}</span>
-                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: a.sourcesEvidence ? "rgba(59,130,246,0.1)" : "var(--surface-hover)", color: a.sourcesEvidence ? "#717784" : "var(--text-faint)" }}>{a.sourcesEvidence ? "Source-backed" : "No evidence trail"}</span>
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: a.autonomous ? "rgba(16,185,129,0.1)" : "var(--surface-hover)", color: a.autonomous ? "var(--status-ok)" : "var(--text-faint)" }}>{a.autonomous ? "Runs autonomously" : "Manual trigger only"}</span>
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: a.requiresApproval ? "rgba(217,119,6,0.1)" : "var(--surface-hover)", color: a.requiresApproval ? "var(--status-warn)" : "var(--text-faint)" }}>{a.requiresApproval ? "Requires approval" : "No approval needed"}</span>
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-medium" style={{ background: a.sourcesEvidence ? "rgba(59,130,246,0.1)" : "var(--surface-hover)", color: a.sourcesEvidence ? "var(--status-neutral)" : "var(--text-faint)" }}>{a.sourcesEvidence ? "Source-backed" : "No evidence trail"}</span>
               </div>
               <p className="mt-2 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Limitation: {a.limitations}</p>
             </div>
@@ -358,9 +359,9 @@ export function StatusPage() {
                     return (
                       <li key={item.id} className="flex items-start gap-1.5 text-[11.5px]">
                         {done
-                          ? <CheckCircle2 size={12} className="mt-0.5 shrink-0" style={{ color: "#2f9e6b" }}/>
+                          ? <CheckCircle2 size={12} className="mt-0.5 shrink-0" style={{ color: "var(--status-ok)" }}/>
                           : item.status === "in_progress"
-                            ? <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: "#c6892e" }}/>
+                            ? <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: "var(--status-warn)" }}/>
                             : <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full" style={{ background: "var(--text-faint)" }}/>}
                         <div className="min-w-0">
                           <span style={{ color: done ? "var(--text-faint)" : "var(--text-primary)", textDecoration: done ? "line-through" : "none" }}>{item.title}</span>

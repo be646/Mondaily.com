@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { LifeBuoy, X, MessageSquare, Send, Plus } from "lucide-react";
 import { apiClient } from "../../../lib/api-client";
-import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { PageSkeleton } from "../../../components/ui/page-state";
+import { CommandPageHeader } from "../../../components/ui/controls";
 import { useLanguage } from "../../../hooks/useLanguage";
 import { useModules } from "../../../hooks/useModules";
 import { useHelp } from "../../../components/help/help-panel";
@@ -47,13 +48,13 @@ export function SupportSettings() {
 
   return (
     <div className="max-w-3xl">
-      <div className="flex items-start justify-between gap-4">
-        <PageHeader title={title} description={description} />
-        <button onClick={() => help.open()} className="mt-1 flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
-          style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
-          <Plus size={13} /> {t("support.new_request")}
-        </button>
-      </div>
+      <CommandPageHeader icon={LifeBuoy} callsign="SUPPORT" title={title} subtitle={description}
+        secondaryActions={
+          <button onClick={() => help.open()} className="mt-1 flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
+            style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>
+            <Plus size={13} /> {t("support.new_request")}
+          </button>
+        } />
       {tickets.length === 0 ? (
         <div className="mt-6 flex flex-col items-center gap-2 rounded-sm border py-12 text-center" style={{ borderColor: "var(--border-soft)" }}>
           <LifeBuoy size={22} style={{ color: "var(--text-faint)" }} />

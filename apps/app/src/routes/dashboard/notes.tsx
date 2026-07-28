@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { MenuSelect } from "../../components/ui/controls";
+import { MenuSelect, CommandPageHeader } from "../../components/ui/controls";
 import { NoteEditor } from "../../components/notes/note-editor";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
@@ -539,34 +539,35 @@ export function NotesPage() {
     <div className={`mx-auto px-6 py-8 ${view === "list" ? "max-w-6xl" : "max-w-full"}`}>
 
       {/* ── Header ── */}
-      <div className="mb-3 flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>Notes</h1>
-          <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-            Notes linked to your contacts, companies, and deals.
-            {(notesQ.data ?? []).length > 0 && (
-              <span className="ml-2 text-[var(--text-secondary)]">{(notesQ.data ?? []).length - aiCount} human · {aiCount} AI</span>
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+      <CommandPageHeader
+        icon={FileText}
+        callsign="NOTES"
+        title="Notes"
+        subtitle="Notes linked to your contacts, companies, and deals."
+        status={(notesQ.data ?? []).length > 0
+          ? [{ label: `${(notesQ.data ?? []).length - aiCount} human`, dot: false }, { label: `${aiCount} AI`, dot: false }]
+          : []}
+        primaryAction={
           <button onClick={() => setModalOpen(true)}
             className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] hover:border-[var(--section-accent)]">
             <Plus size={13} /> New Note
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* ── Filter bar ── */}
       <div className="mb-5 flex items-center gap-2 flex-wrap">
-        <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
+        <div className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
           {([
             { key: "all",  label: "All"  },
             { key: "mine", label: "Mine" },
             { key: "ai",   label: "AI"   },
           ] as const).map(({ key, label }) => (
             <button key={key} onClick={() => setFilter(key)}
-              className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${filter === key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
+              className="rounded-md px-3 py-1 text-[11.5px] font-medium transition-colors"
+              style={filter === key
+                ? { background: "var(--surface-card)", color: "var(--text-primary)", boxShadow: "0 1px 2px rgba(0,0,0,0.18)" }
+                : { color: "var(--text-muted)" }}>
               {label}
             </button>
           ))}
@@ -578,7 +579,7 @@ export function NotesPage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={12} />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search notes…"
-            className="h-8 w-48 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-8 pr-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none focus:border-[var(--border-soft)] transition-colors" />
+            className="key-input h-8 w-48 pl-8 pr-3 text-[12px]" />
         </label>
 
         <MenuSelect value={sort} onChange={v => setSort((v || "newest") as typeof sort)} maxWidth={130}

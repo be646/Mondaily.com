@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { LifeBuoy, Loader2, X, Send, ShieldAlert } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
-import { MenuSelect } from "../../components/ui/controls";
+import { MenuSelect, CommandPageHeader } from "../../components/ui/controls";
 
 /**
  * MONDAILY PLATFORM SUPPORT — the internal dashboard where ticket status/review/close actually
@@ -54,16 +54,17 @@ export function PlatformSupportPage() {
   const tickets = list.data?.tickets ?? [];
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <div className="mb-4">
-        <h1 className="flex items-center gap-2 text-[19px] font-semibold" style={{ color: "var(--text-primary)" }}><LifeBuoy size={17} style={{ color: "var(--text-muted)" }} /> Platform support</h1>
-        <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>All workspaces' tickets — status changes and Mondaily replies happen here, never inside a customer workspace.</p>
-      </div>
-
-      <div className="mb-3 flex items-center gap-3 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
-        <MenuSelect label="Status" value={statusFilter} onChange={setStatusFilter} maxWidth={180}
-          options={STATUSES.map(s => ({ value: s, label: label(s), dot: STATUS_TONE[s] }))} />
-        <span className="text-[11.5px] tabular-nums" style={{ color: "var(--text-faint)" }}>{tickets.length} ticket(s)</span>
-      </div>
+      <CommandPageHeader
+        icon={LifeBuoy}
+        callsign="SUPPORT"
+        title="Platform support"
+        subtitle="All workspaces' tickets — status changes and Mondaily replies happen here, never inside a customer workspace."
+        rightSummary={`${tickets.length} ticket(s)`}
+        secondaryActions={
+          <MenuSelect label="Status" value={statusFilter} onChange={setStatusFilter} maxWidth={180}
+            options={STATUSES.map(s => ({ value: s, label: label(s), dot: STATUS_TONE[s] }))} />
+        }
+      />
 
       {list.isLoading ? (
         <div className="flex items-center gap-2 rounded-sm border px-4 py-10 text-[13px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}><Loader2 size={14} className="animate-spin" /> Loading…</div>

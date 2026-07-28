@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
 import { FieldSelect } from "../../../components/ui/controls";
+import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
 import { FinanceListToolbar, FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { EmptyState, ErrorState, ConsoleSkeleton, DelayedLoading } from "../../../components/ui/page-state";
 import {
@@ -32,10 +33,10 @@ interface CreditNote {
 
 const STATUS_CONFIG: Record<CreditStatus, { label: string; color: string; icon: React.ElementType }> = {
   draft:          { label: "Draft",          color: "text-stone-400 bg-stone-400/10",   icon: ReceiptText   },
-  pending_review: { label: "Pending Review", color: "text-[#c6892e] bg-[#c6892e]/10",   icon: Clock         },
-  verified:       { label: "Verified",       color: "text-[#717784] bg-[#717784]/10",   icon: CheckCircle2  },
-  rejected:       { label: "Rejected",       color: "text-[#d1524a] bg-[#d1524a]/10",   icon: XCircle       },
-  executed:       { label: "Executed",       color: "text-[#2f9e6b] bg-[#2f9e6b]/10",   icon: CheckCircle2  },
+  pending_review: { label: "Pending Review", color: "text-status-warn bg-status-warn/10",   icon: Clock         },
+  verified:       { label: "Verified",       color: "text-status-neutral bg-status-neutral/10",   icon: CheckCircle2  },
+  rejected:       { label: "Rejected",       color: "text-status-error bg-status-error/10",   icon: XCircle       },
+  executed:       { label: "Executed",       color: "text-status-ok bg-status-ok/10",   icon: CheckCircle2  },
   void:           { label: "Void",           color: "text-stone-600 bg-stone-600/10",   icon: XCircle       },
 };
 
@@ -109,38 +110,38 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
         <div className="p-5 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Client name</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Client name</label>
               <input value={form.client_name} onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))}
                 placeholder="Acme Corp" className="key-input w-full text-sm"/>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Amount</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Amount</label>
               <input value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00" type="number" min="0" step="0.01" className="key-input w-full text-sm"/>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Currency</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Currency</label>
               <FieldSelect value={form.currency} onChange={v => setForm(f => ({ ...f, currency: v }))} ariaLabel="Currency"
                 options={currencyOptions(currencies)} />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Reason</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Reason</label>
               <FieldSelect value={form.credit_reason} onChange={v => setForm(f => ({ ...f, credit_reason: v as CreditReason }))} ariaLabel="Reason"
                 options={Object.entries(REASON_LABELS).map(([k, v]) => ({ value: k, label: v as string }))} />
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Initial status</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Initial status</label>
               <FieldSelect value={form.status} onChange={v => setForm(f => ({ ...f, status: v as CreditStatus }))} ariaLabel="Initial status"
                 options={[{ value: "draft", label: "Draft" }, { value: "pending_review", label: "Submit for review" }]} />
             </div>
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Notes</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Notes</label>
               <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2} placeholder="Reason details…"
                 className="key-input w-full text-sm resize-none"/>
             </div>
           </div>
-          {error && <p className="text-[11px] rounded-sm px-3 py-2" style={{ color: "#d1524a", background: "color-mix(in srgb, #d1524a 10%, transparent)" }}>{error}</p>}
+          {error && <p className="text-label rounded-sm px-3 py-2" style={{ color: "#d1524a", background: "color-mix(in srgb, #d1524a 10%, transparent)" }}>{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
@@ -155,6 +156,40 @@ function NewCreditNoteModal({ onClose, onCreate }: { onClose: () => void; onCrea
 }
 
 // ─── Main page ────────────────────────────────────────────────────────────────
+const cnDateGB = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+// Column model for the shared DataTable. Every cell renderer — the reason pill, status badge,
+// AI-summary block, money formatting (fmt, unchanged) and date — stays HERE, so the shell knows
+// no finance logic. Only the table markup moved; amount still reads cn.amount_cents as before.
+const CREDIT_NOTE_COLUMNS: DataTableColumn<CreditNote>[] = [
+  { key: "client", header: "Client", cell: (cn) => (
+      <div className="text-body font-medium text-[var(--text-primary)]">{cn.client_name ?? "—"}</div>
+    ) },
+  { key: "reason", header: "Reason", cell: (cn) => (
+      <span className="text-label text-[var(--text-faint)] rounded-full bg-[var(--surface-hover)] px-2 py-0.5">{REASON_LABELS[cn.credit_reason]}</span>
+    ) },
+  { key: "status", header: "Status", cell: (cn) => {
+      const cfg = STATUS_CONFIG[cn.status] ?? STATUS_CONFIG.draft;
+      const Icon = cfg.icon;
+      return (
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-caption font-medium ${cfg.color}`}>
+          <Icon size={10} />{cfg.label}
+        </span>
+      );
+    } },
+  { key: "ai_summary", header: "AI Summary", cellClassName: "max-w-[220px]", cell: (cn) => (
+      cn.ai_summary ? (
+        <div className="flex items-start gap-1.5">
+          <LogoMark size={10} className="text-[var(--text-faint)] mt-0.5 shrink-0" />
+          <span className="text-label text-[var(--text-muted)] truncate">{cn.ai_summary}</span>
+        </div>
+      ) : <span className="text-label text-[var(--text-secondary)]">—</span>
+    ) },
+  { key: "amount", header: "Amount", align: "right", cellClassName: "text-row font-semibold tabular-nums text-[var(--text-primary)]", cell: (cn) => fmt(cn.amount_cents, cn.currency) },
+  { key: "created", header: "Created", cellClassName: "text-label text-[var(--text-secondary)]", cell: (cn) => cnDateGB(cn.created_at) },
+  { key: "chevron", header: "", cell: () => <ChevronRight size={13} className="text-[var(--text-secondary)] transition-colors" /> },
+];
+
 export function CreditNotesPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -187,7 +222,7 @@ export function CreditNotesPage() {
         <FinanceHeader icon={ReceiptText} callsign="CREDITS" title="Credit Notes" subtitle="Manage refunds, billing corrections and goodwill credits"
           action={
             <button onClick={() => setShowNew(true)}
-              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
+              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-body font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
               <Plus size={13}/> New Credit Note
             </button>
           }
@@ -198,19 +233,19 @@ export function CreditNotesPage() {
         {creditNotes.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
             <div className="telemetry-strip">
-              <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-[#c6892e]"/><span className="text-[11px] text-[var(--text-muted)]">Pending review</span></div>
-              <div className="text-[17px] font-semibold" style={{ color: totalPending > 0 ? "#c6892e" : "var(--text-primary)" }}>{formatMoney(totalPending, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{creditNotes.filter(n => n.status === "pending_review").length} awaiting review</div>
+              <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-status-warn"/><span className="text-label text-[var(--text-muted)]">Pending review</span></div>
+              <div className="text-stat font-semibold" style={{ color: totalPending > 0 ? "#c6892e" : "var(--text-primary)" }}>{formatMoney(totalPending, currency)}</div>
+              <div className="mt-0.5 text-caption text-[var(--text-faint)]">{creditNotes.filter(n => n.status === "pending_review").length} awaiting review</div>
             </div>
             <div className="telemetry-strip">
-              <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#2f9e6b]"/><span className="text-[11px] text-[var(--text-muted)]">Executed</span></div>
-              <div className="text-[17px] font-semibold" style={{ color: totalExecuted > 0 ? "#2f9e6b" : "var(--text-primary)" }}>{formatMoney(totalExecuted, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{creditNotes.filter(n => n.status === "executed").length} credit issued</div>
+              <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-ok"/><span className="text-label text-[var(--text-muted)]">Executed</span></div>
+              <div className="text-stat font-semibold" style={{ color: totalExecuted > 0 ? "#2f9e6b" : "var(--text-primary)" }}>{formatMoney(totalExecuted, currency)}</div>
+              <div className="mt-0.5 text-caption text-[var(--text-faint)]">{creditNotes.filter(n => n.status === "executed").length} credit issued</div>
             </div>
             <div className="telemetry-strip">
-              <div className="flex items-center gap-1.5 mb-1"><ReceiptText size={11} className="text-[var(--text-muted)]"/><span className="text-[11px] text-[var(--text-muted)]">All notes</span></div>
-              <div className="text-[17px] font-semibold text-[var(--text-primary)]">{creditNotes.length}</div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{mixedCurrency ? `shown in ${display}` : "all statuses"}</div>
+              <div className="flex items-center gap-1.5 mb-1"><ReceiptText size={11} className="text-[var(--text-muted)]"/><span className="text-label text-[var(--text-muted)]">All notes</span></div>
+              <div className="text-stat font-semibold text-[var(--text-primary)]">{creditNotes.length}</div>
+              <div className="mt-0.5 text-caption text-[var(--text-faint)]">{mixedCurrency ? `shown in ${display}` : "all statuses"}</div>
             </div>
           </div>
         )}
@@ -236,61 +271,19 @@ export function CreditNotesPage() {
                 ? "Clear the search or switch back to All to see every credit note."
                 : "Refunds, billing corrections, and goodwill credits are tracked here through review and execution."}
               action={!statusFilter && !search ? (
-                <button onClick={() => setShowNew(true)} className="btn-primary text-[12px] font-semibold"><Plus size={13} /> New credit note</button>
+                <button onClick={() => setShowNew(true)} className="btn-primary font-semibold"><Plus size={13} /> New credit note</button>
               ) : undefined}
             />
           </div>
         ) : (
-          <table className="minimal-table">
-            <thead>
-              <tr className="border-b border-[var(--border-soft)]">
-                {(["Client", "Reason", "Status", "AI Summary"] as const).map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-[var(--text-secondary)]">{h}</th>
-                ))}
-                <th className="px-4 py-2.5 text-right text-[11px] font-medium text-[var(--text-secondary)]">Amount</th>
-                <th className="px-4 py-2.5 text-left text-[11px] font-medium text-[var(--text-secondary)]">Created</th>
-                <th className="px-4 py-2.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {creditNotes.map(cn => {
-                const cfg = STATUS_CONFIG[cn.status] ?? STATUS_CONFIG.draft;
-                const Icon = cfg.icon;
-                return (
-                  <tr key={cn.id}
-                    className="border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
-                    onClick={() => navigate(`/finance/credit-notes/${cn.id}`)}>
-                    <td className="px-4 py-3">
-                      <div className="text-[12.5px] font-medium text-[var(--text-primary)]">{cn.client_name ?? "—"}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[11px] text-[var(--text-faint)] rounded-full bg-[var(--surface-hover)] px-2 py-0.5">{REASON_LABELS[cn.credit_reason]}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${cfg.color}`}>
-                        <Icon size={10}/>{cfg.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 max-w-[220px]">
-                      {cn.ai_summary ? (
-                        <div className="flex items-start gap-1.5">
-                          <LogoMark size={10} className="text-[var(--text-faint)] mt-0.5 shrink-0"/>
-                          <span className="text-[11px] text-[var(--text-muted)] truncate">{cn.ai_summary}</span>
-                        </div>
-                      ) : <span className="text-[11px] text-[var(--text-secondary)]">—</span>}
-                    </td>
-                    <td className="px-4 py-3 text-right text-[13px] font-semibold tabular-nums text-[var(--text-primary)]">{fmt(cn.amount_cents, cn.currency)}</td>
-                    <td className="px-4 py-3 text-[11px] text-[var(--text-secondary)]">
-                      {new Date(cn.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                    </td>
-                    <td className="px-4 py-3">
-                      <ChevronRight size={13} className="text-[var(--text-secondary)] transition-colors"/>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          // Presentational shell only — cell rendering, the status badge, the money value and the
+          // row → detail navigation are all still owned by this page (below), unchanged.
+          <DataTable<CreditNote>
+            columns={CREDIT_NOTE_COLUMNS}
+            rows={creditNotes}
+            rowKey={(cn) => cn.id}
+            onRowClick={(cn) => navigate(`/finance/credit-notes/${cn.id}`)}
+          />
         )}
       </div>
 

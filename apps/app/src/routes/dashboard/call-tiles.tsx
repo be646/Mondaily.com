@@ -1,7 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Participant, Track as TrackNS } from "livekit-client";
-import { Mic, MicOff, MonitorUp, Captions } from "lucide-react";
+import { Mic, MicOff, MonitorUp, Captions, Languages } from "lucide-react";
 import type { CaptionPacket } from "@mondaily/shared/captions";
+import { SUPPORTED_LANGUAGES } from "@mondaily/shared/i18n";
+
+/**
+ * Phase C.1 — per-viewer translation of the Transcript tab. `onTranslate` is supplied ONLY by the authenticated
+ * member call room (never the guest page), so translation stays member-only. It sends the ALREADY-FETCHED
+ * original lines to the sovereign gateway and returns per-line results; the original transcript is never
+ * mutated and is always shown alongside. Returns results aligned to the input `items` by id.
+ */
+export type TranslateResult = { id: string; state: "translated" | "original" | "unavailable"; translated?: string };
+export type TranslateFn = (items: { id: string; text: string; source_lang?: string }[], target: string) => Promise<TranslateResult[]>;
 
 const clockOf = (ts: number): string => {
   if (!ts) return "";
@@ -17,12 +27,66 @@ const clockOf = (ts: number): string => {
  *                    (speaker · clock time · original text · detected-language chip). Still ephemeral —
  *                    no persistence, no translation, no network. The saved transcript comes in Phase B.
  */
-export function CaptionsPanel({ available, captions, onClose }: { available: boolean; captions: CaptionPacket[]; onClose?: () => void }) {
+export function CaptionsPanel({ available, captions, onClose, onTranslate, preferenceKey }: { available: boolean; captions: CaptionPacket[]; onClose?: () => void; onTranslate?: TranslateFn; preferenceKey?: string }) {
   const [view, setView] = useState<"live" | "transcript">("live");
+  // Phase C.4 — restore the viewer's LAST chosen caption language (per-viewer, client-side only). Validated
+  // against the known languages so junk/removed codes fall back to "off" (Original). Default is always "off".
+  const [target, setTargetState] = useState<string>(() => {
+    try {
+      const saved = preferenceKey ? localStorage.getItem(preferenceKey) : null;
+      if (saved === "off" || (saved && SUPPORTED_LANGUAGES.some((l) => l.code === saved))) return saved;
+    } catch { /* storage blocked → default */ }
+    return "off";
+  });
+  // Persist on change (viewer-only; never leaves the browser, never touches transcript/STT/AI).
+  const setTarget = (v: string) => { setTargetState(v); try { if (preferenceKey) localStorage.setItem(preferenceKey, v); } catch { /* ignore */ } };
+  // Per-(line,target) translation state, keyed `${id}:${target}` so switching languages reuses prior results.
+  const [tmap, setTmap] = useState<Map<string, TranslateResult>>(new Map());
   const endRef = useRef<HTMLDivElement>(null);
   // Transcript = FINAL packets only, de-duplicated by id, ordered oldest→newest by timestamp.
-  const timeline = [...new Map(captions.filter((c) => c.final).map((c) => [c.id, c])).values()].sort((a, b) => a.ts - b.ts);
+  const timeline = useMemo(() => [...new Map(captions.filter((c) => c.final).map((c) => [c.id, c])).values()].sort((a, b) => a.ts - b.ts), [captions]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [captions.length, view]);
+
+  // Phase C.1/C.2 — debounced, batched translation of FINAL lines into the chosen target. Drives off
+  // `timeline` (finals only) so it serves BOTH the Transcript and Live tabs from one cache (`tmap`) — the
+  // active tab is irrelevant. Only lines whose source language differs from the target and that don't already
+  // have a result are sent (req 13/15). The caption array is read-only here; results live in `tmap`, never
+  // mutating the lines, and translation is always async so it can never block the live caption render.
+  useEffect(() => {
+    if (!onTranslate || target === "off") return;
+    const pending = timeline.filter((c) => c.lang !== target && !tmap.has(`${c.id}:${target}`)).slice(0, 50);
+    if (pending.length === 0) return;
+    const timer = setTimeout(async () => {
+      const items = pending.map((c) => ({ id: c.id, text: c.text, source_lang: c.lang }));
+      let res: TranslateResult[] = [];
+      try { res = await onTranslate(items, target); }
+      catch { res = items.map((it) => ({ id: it.id, state: "unavailable" as const })); }
+      setTmap((prev) => {
+        const next = new Map(prev);
+        for (const r of res) next.set(`${r.id}:${target}`, r);
+        // any line we asked for but got no row back → unavailable (honest, never left spinning forever)
+        for (const it of items) if (!next.has(`${it.id}:${target}`)) next.set(`${it.id}:${target}`, { id: it.id, state: "unavailable" });
+        return next;
+      });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [onTranslate, target, timeline, tmap]);
+
+  const languages = SUPPORTED_LANGUAGES;
+  const codeName = (code?: string) => languages.find((l) => l.code === code)?.name ?? (code ? code.toUpperCase() : "");
+
+  // Shared per-line translation state for BOTH tabs. Only FINAL lines translate (interim captions change, so
+  // they always render as the original); same-language lines never translate (req 15). `tr` is the cached
+  // result from the debounced effect above — undefined while pending.
+  const translationFor = (c: CaptionPacket) => {
+    const translating = target !== "off" && !!onTranslate && !!c.final;
+    const sameLang = !!c.lang && c.lang === target;
+    const tr = translating && !sameLang ? tmap.get(`${c.id}:${target}`) : undefined;
+    const showTranslated = tr?.state === "translated" && !!tr.translated;
+    const pending = translating && !sameLang && !tr;
+    return { tr, showTranslated, pending };
+  };
+
   return (
     <div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-xl border" style={{ borderColor: "rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)" }}>
       <div className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
@@ -30,11 +94,24 @@ export function CaptionsPanel({ available, captions, onClose }: { available: boo
         {onClose && <button onClick={onClose} className="text-white/50 hover:text-white text-[13px]">✕</button>}
       </div>
       {available && (
-        <div className="flex gap-1 border-b px-2 py-1.5" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-          {(["live", "transcript"] as const).map((v) => (
-            <button key={v} onClick={() => setView(v)} className="rounded-md px-2 py-0.5 text-[11px] font-medium capitalize"
-              style={{ background: view === v ? "rgba(255,255,255,0.12)" : "transparent", color: view === v ? "#fff" : "rgba(255,255,255,0.5)" }}>{v}</button>
-          ))}
+        <div className="flex items-center justify-between gap-2 border-b px-2 py-1.5" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+          <div className="flex gap-1">
+            {(["live", "transcript"] as const).map((v) => (
+              <button key={v} onClick={() => setView(v)} className="rounded-md px-2 py-0.5 text-[11px] font-medium capitalize"
+                style={{ background: view === v ? "rgba(255,255,255,0.12)" : "transparent", color: view === v ? "#fff" : "rgba(255,255,255,0.5)" }}>{v}</button>
+            ))}
+          </div>
+          {/* Translation selector — member-only (onTranslate present); affects BOTH the Live and Transcript tabs. */}
+          {onTranslate && (
+            <label className="flex items-center gap-1 text-[10px] text-white/50" title="Translate captions for you only">
+              <Languages size={11} />
+              <select value={target} onChange={(e) => setTarget(e.target.value)}
+                className="rounded-md bg-white/10 px-1 py-0.5 text-[10px] text-white outline-none" style={{ maxWidth: 96 }}>
+                <option value="off" className="text-black">Original</option>
+                {languages.map((l) => <option key={l.code} value={l.code} className="text-black">{l.name}</option>)}
+              </select>
+            </label>
+          )}
         </div>
       )}
       <div className="flex-1 space-y-2 overflow-y-auto px-3 py-2">
@@ -46,29 +123,68 @@ export function CaptionsPanel({ available, captions, onClose }: { available: boo
         ) : view === "live" ? (
           captions.length === 0 ? (
             <p className="pt-6 text-center text-[11px] text-white/40">Waiting for speech…</p>
-          ) : captions.map((c) => (
-            <div key={c.id}>
-              <span className="text-[10px] font-medium text-white/45">{c.name}</span>
-              <p className="text-[12.5px] leading-snug text-white/90" style={{ opacity: c.final ? 1 : 0.6, fontStyle: c.final ? "normal" : "italic" }}>{c.text}</p>
-            </div>
-          ))
+          ) : captions.map((c) => {
+            // Phase C.2 — the ORIGINAL caption always renders immediately (interim italic/dim, final solid);
+            // a translation, when ready, is layered on top with the original kept beneath. Interim lines never
+            // translate, so live captions are never blocked or delayed by translation.
+            const { tr, showTranslated, pending } = translationFor(c);
+            return (
+              <div key={c.id}>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-medium text-white/45">{c.name}</span>
+                  {c.lang ? <span className="rounded-sm bg-white/10 px-1 text-[8px] uppercase tracking-wide text-white/50">{c.lang}</span> : null}
+                  {showTranslated ? <span className="rounded-sm bg-emerald-400/15 px-1 text-[8px] uppercase tracking-wide text-emerald-300/80">→ {target}</span> : null}
+                </div>
+                {showTranslated ? (
+                  <>
+                    <p className="text-[12.5px] leading-snug text-white/90">{tr!.translated}</p>
+                    <p className="mt-0.5 text-[11px] leading-snug text-white/40">{c.text}<span className="ml-1 text-[9px] text-white/30">· original{c.lang ? ` (${codeName(c.lang)})` : ""}</span></p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-[12.5px] leading-snug text-white/90" style={{ opacity: c.final ? 1 : 0.6, fontStyle: c.final ? "normal" : "italic" }}>{c.text}</p>
+                    {pending ? <p className="mt-0.5 text-[10px] italic text-white/35">translating…</p>
+                      : tr?.state === "unavailable" ? <p className="mt-0.5 text-[10px] text-white/35">translation unavailable — showing original</p>
+                      : null}
+                  </>
+                )}
+              </div>
+            );
+          })
         ) : timeline.length === 0 ? (
           <p className="pt-6 text-center text-[11px] text-white/40">Transcript appears here as people speak.</p>
-        ) : timeline.map((c) => (
-          <div key={c.id}>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-medium text-white/45">{c.name}</span>
-              {c.ts ? <span className="text-[9px] tabular-nums text-white/30">{clockOf(c.ts)}</span> : null}
-              {c.lang ? <span className="rounded-sm bg-white/10 px-1 text-[8px] uppercase tracking-wide text-white/50">{c.lang}</span> : null}
+        ) : timeline.map((c) => {
+          const { tr, showTranslated, pending } = translationFor(c);
+          return (
+            <div key={c.id}>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-medium text-white/45">{c.name}</span>
+                {c.ts ? <span className="text-[9px] tabular-nums text-white/30">{clockOf(c.ts)}</span> : null}
+                {c.lang ? <span className="rounded-sm bg-white/10 px-1 text-[8px] uppercase tracking-wide text-white/50">{c.lang}</span> : null}
+                {showTranslated ? <span className="rounded-sm bg-emerald-400/15 px-1 text-[8px] uppercase tracking-wide text-emerald-300/80">→ {target}</span> : null}
+              </div>
+              {showTranslated ? (
+                <>
+                  <p className="text-[12.5px] leading-snug text-white/90">{tr!.translated}</p>
+                  {/* Original is always kept and visible beneath the translation (never overwritten). */}
+                  <p className="mt-0.5 text-[11px] leading-snug text-white/40">{c.text}<span className="ml-1 text-[9px] text-white/30">· original{c.lang ? ` (${codeName(c.lang)})` : ""}</span></p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[12.5px] leading-snug text-white/90">{c.text}</p>
+                  {pending ? <p className="mt-0.5 text-[10px] italic text-white/35">translating…</p>
+                    : tr?.state === "unavailable" ? <p className="mt-0.5 text-[10px] text-white/35">translation unavailable — showing original</p>
+                    : null}
+                </>
+              )}
             </div>
-            <p className="text-[12.5px] leading-snug text-white/90">{c.text}</p>
-          </div>
-        ))}
+          );
+        })}
         <div ref={endRef} />
       </div>
       {available && (
         <div className="border-t px-3 py-1.5 text-[10px] leading-snug text-white/40" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-          Transcribes only your microphone while captions are on. Not saved.
+          Transcribes only your microphone while captions are on. Not saved.{onTranslate && target !== "off" ? " Translation is for you only." : ""}
         </div>
       )}
     </div>

@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowUp, Check, ChevronDown, ExternalLink, Globe2, Loader2, MessageSquare,
   Plus, Radar, Sparkles, Star, ThumbsDown, ThumbsUp, Minus, Users, Trash2, Bell, Send, Copy,
-  CheckSquare, ShieldCheck, ArrowRight,
+  CheckSquare, ShieldCheck, ArrowRight, Tag, MapPin, Mail, Phone, User,
 } from "lucide-react";
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
 import { MenuSelect, ActionMenu, CommandPageHeader, ProofOfWorkStrip } from "../../components/ui/controls";
@@ -580,12 +580,12 @@ function TurnView({ turn, lists, onRun }: { turn: Turn; lists: ListRow[]; onRun:
               <ResultsToolbar sortBy={sortBy} setSortBy={setSortBy} onlyContact={onlyContact} setOnlyContact={setOnlyContact}
                 shownCount={shown.length} total={turn.results.length} onExport={() => exportLeadsCsv(shown.map((e) => e.r), turn.query)} reviews={reviews} />
             )}
-            <div className="space-y-2">
+            <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] divide-y divide-[var(--border-soft)]">
               {shown.map(({ r, i }) => {
                 const k = keyOf(r, i);
                 // Anchor each card to its citation number so a Sources-rail pill can jump to it.
                 return (
-                  <div key={k} id={citeId(turn.id, i + 1)} className="scroll-mt-20 rounded-sm">
+                  <div key={k} id={citeId(turn.id, i + 1)} className="scroll-mt-20">
                     {reviews
                       ? <ReviewCard r={r} n={i + 1} />
                       : <LeadCard r={r} n={i + 1} query={turn.query} lists={lists}
@@ -757,7 +757,7 @@ function SentimentSummary({ results }: { results: ResultRow[] }) {
 function ReviewCard({ r, n }: { r: ResultRow; n?: number }) {
   const s = r.sentiment ? SENTIMENT[r.sentiment] : null;
   return (
-    <div className="rounded-sm border px-3.5 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="px-3.5 py-3 transition-colors hover:bg-[var(--surface-hover)]">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2 text-[11.5px]" style={{ color: "var(--text-faint)" }}>
           {n != null && <span className="shrink-0 font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{n}</span>}
@@ -922,32 +922,46 @@ function DossierPanel({ d }: { d: Dossier }) {
   if (!anything) {
     return <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>Read {d.scanned} page(s) — no contact details, category, or reviews found. Missing: {d.missing.join(", ")}.</p>;
   }
+  const hasMeta = d.category || d.location || d.reviews;
+  const hasContact = d.emails.length > 0 || d.phones.length > 0;
   return (
-    <div className="mt-2 space-y-2 rounded-sm border px-3 py-2.5 text-[11.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
-      {d.graph_match && (
-        <div className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ background: "var(--surface-card)", color: "var(--text-muted)" }}>
-          <Check size={10} /> Already in your graph as “{d.graph_match.name}”
+    <div className="mt-2 overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] divide-y divide-[var(--border-soft)] text-[11.5px]">
+      {(d.graph_match || d.summary) && (
+        <div className="px-3 py-2">
+          {d.graph_match && (
+            <div className="mb-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>
+              <Check size={10} /> Already in your graph as “{d.graph_match.name}”
+            </div>
+          )}
+          {d.summary && <p style={{ color: "var(--text-secondary)" }}>{d.summary.value}<ViaChip via={d.summary.via} source={d.summary.source} /></p>}
         </div>
       )}
-      {d.summary && <p style={{ color: "var(--text-secondary)" }}>{d.summary.value}<ViaChip via={d.summary.via} source={d.summary.source} /></p>}
-      <div className="flex flex-wrap gap-x-4 gap-y-1" style={{ color: "var(--text-muted)" }}>
-        {d.category && <span>🏷 <span style={{ color: "var(--text-secondary)" }}>{d.category.value}</span><ViaChip via={d.category.via} source={d.category.source} /></span>}
-        {d.location && <span>📍 <span style={{ color: "var(--text-secondary)" }}>{d.location.value}</span><ViaChip via={d.location.via} source={d.location.source} /></span>}
-        {d.reviews && <span>⭐ <span style={{ color: "var(--text-secondary)" }}>{d.reviews.rating}{d.reviews.count != null ? ` (${d.reviews.count})` : ""}</span><ViaChip via="places" source={d.reviews.source} /></span>}
-      </div>
-      {d.emails.map((e) => <div key={e.value} style={{ color: "var(--text-muted)" }}>✉ <span style={{ color: "var(--text-secondary)" }}>{e.value}</span><ViaChip via={e.via} source={e.source} /></div>)}
-      {d.phones.map((p) => <div key={p.value} style={{ color: "var(--text-muted)" }}>☎ <span style={{ color: "var(--text-secondary)" }}>{p.value}</span><ViaChip via={p.via} source={p.source} /></div>)}
+      {hasMeta && (
+        <div className="flex flex-wrap gap-x-4 gap-y-1 px-3 py-2" style={{ color: "var(--text-muted)" }}>
+          {d.category && <span className="inline-flex items-center gap-1"><Tag size={12} className="shrink-0" style={{ color: "var(--text-faint)" }} /><span style={{ color: "var(--text-secondary)" }}>{d.category.value}</span><ViaChip via={d.category.via} source={d.category.source} /></span>}
+          {d.location && <span className="inline-flex items-center gap-1"><MapPin size={12} className="shrink-0" style={{ color: "var(--text-faint)" }} /><span style={{ color: "var(--text-secondary)" }}>{d.location.value}</span><ViaChip via={d.location.via} source={d.location.source} /></span>}
+          {d.reviews && <span className="inline-flex items-center gap-1"><Star size={12} className="shrink-0" style={{ color: "var(--text-faint)" }} /><span style={{ color: "var(--text-secondary)" }}>{d.reviews.rating}{d.reviews.count != null ? ` (${d.reviews.count})` : ""}</span><ViaChip via="places" source={d.reviews.source} /></span>}
+        </div>
+      )}
+      {hasContact && (
+        <div className="space-y-1 px-3 py-2">
+          {d.emails.map((e) => <div key={e.value} className="flex items-center gap-1" style={{ color: "var(--text-muted)" }}><Mail size={12} className="shrink-0" style={{ color: "var(--text-faint)" }} /><span style={{ color: "var(--text-secondary)" }}>{e.value}</span><ViaChip via={e.via} source={e.source} /></div>)}
+          {d.phones.map((p) => <div key={p.value} className="flex items-center gap-1" style={{ color: "var(--text-muted)" }}><Phone size={12} className="shrink-0" style={{ color: "var(--text-faint)" }} /><span style={{ color: "var(--text-secondary)" }}>{p.value}</span><ViaChip via={p.via} source={p.source} /></div>)}
+        </div>
+      )}
       {d.people.length > 0 && (
-        <div style={{ color: "var(--text-muted)" }}>
-          {d.people.map((p, i) => <div key={i}>👤 <span style={{ color: "var(--text-secondary)" }}>{p.name}{p.role ? ` (${p.role})` : ""}{p.email ? ` · ${p.email}` : ""}</span><ViaChip via={p.via} source={p.source} /></div>)}
+        <div className="space-y-1 px-3 py-2" style={{ color: "var(--text-muted)" }}>
+          {d.people.map((p, i) => <div key={i} className="flex items-center gap-1"><User size={12} className="shrink-0" style={{ color: "var(--text-faint)" }} /><span style={{ color: "var(--text-secondary)" }}>{p.name}{p.role ? ` (${p.role})` : ""}{p.email ? ` · ${p.email}` : ""}</span><ViaChip via={p.via} source={p.source} /></div>)}
         </div>
       )}
-      {d.sources.length > 0 && (
-        <div className="pt-1 text-[10px]" style={{ color: "var(--text-faint)" }}>
-          Web evidence: {d.sources.map((s, i) => <a key={i} href={s.url} target="_blank" rel="noreferrer" className="mr-2 hover:underline" style={{ color: "var(--section-accent)" }}>{hostOf(s.url)}</a>)}
+      {(d.sources.length > 0 || d.missing.length > 0) && (
+        <div className="space-y-1 px-3 py-2 text-[10px]" style={{ color: "var(--text-faint)" }}>
+          {d.sources.length > 0 && (
+            <div>Web evidence: {d.sources.map((s, i) => <a key={i} href={s.url} target="_blank" rel="noreferrer" className="mr-2 hover:underline" style={{ color: "var(--section-accent)" }}>{hostOf(s.url)}</a>)}</div>
+          )}
+          {d.missing.length > 0 && <div>Not found: {d.missing.join(", ")}</div>}
         </div>
       )}
-      {d.missing.length > 0 && <div className="text-[10px]" style={{ color: "var(--text-faint)" }}>Not found: {d.missing.join(", ")}</div>}
     </div>
   );
 }
@@ -1196,7 +1210,7 @@ function LeadCard({ r, n, query, lists, selected, onToggle, bulkStatus, onDetail
   const name = r.author_name && r.author_name !== "Anonymous" ? r.author_name : hostOf(r.source_url);
   const st: LeadStatus = { ...(bulkStatus ?? {}), saved: (bulkStatus?.saved ?? Boolean(savedId)), existed: (bulkStatus?.existed ?? existed) };
   return (
-    <div className="rounded-sm border px-3.5 py-3" style={{ borderColor: selected ? "var(--section-accent)" : "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="px-3.5 py-3 transition-colors hover:bg-[var(--surface-hover)]" style={selected ? { borderLeft: "3px solid var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 6%, transparent)" } : undefined}>
       <div className="flex items-start justify-between gap-3">
         {onToggle && (
           <input type="checkbox" checked={Boolean(selected)} onChange={onToggle} className="mt-1 h-3.5 w-3.5 shrink-0 accent-[var(--section-accent)]" aria-label="Select lead" />
@@ -1363,12 +1377,12 @@ function SavedLeads({ lists }: { lists: ListRow[] }) {
   ) : rows.length === 0 ? (
     <EmptyState icon={Users} title="No saved leads yet" description={"Run a search and “Save as lead” to build your list here."} />
   ) : (
-    <div className="space-y-2">
+    <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] divide-y divide-[var(--border-soft)]">
       {rows.map((r) => {
           const d = r.data ?? {};
           const name = String(d.name ?? d.company ?? d.title ?? "Untitled");
           return (
-            <div key={r.id} className="flex items-start justify-between gap-3 rounded-sm border px-3.5 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div key={r.id} className="flex items-start justify-between gap-3 px-3.5 py-3 transition-colors hover:bg-[var(--surface-hover)]">
               <div className="min-w-0">
                 <div className="text-[11px]" style={{ color: "var(--text-faint)" }}>{hostOf(String(d.source_url ?? d.website ?? "")) || "no source"}</div>
                 <Link to={`/objects/${r.object_type}/${r.id}`} className="mt-0.5 inline-block max-w-full truncate text-[14px] font-semibold hover:underline" style={{ color: "var(--section-accent)" }}>{name}</Link>

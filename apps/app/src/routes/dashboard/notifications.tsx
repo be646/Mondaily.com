@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, Check, CheckCheck, Trash2, ShieldAlert, ArrowUpRight } from "lucide-react";
+import { CommandPageHeader } from "../../components/ui/controls";
 import { apiClient } from "../../lib/api-client";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useNavigate } from "react-router-dom";
@@ -61,13 +62,14 @@ export function NotificationsPage() {
     <div className="min-h-full bg-[var(--surface-page)] text-[var(--text-faint)]">
       <div className="mx-auto max-w-3xl px-6 py-8">
         {/* Header */}
-        <div className="mb-6 flex items-end justify-between gap-4">
-          <div>
-            <p className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--section-accent)" }}>// SIGNAL FEED</p>
-            <h1 className="mt-1 text-xl font-semibold text-[var(--text-primary)]">{t("nav.notifications")}</h1>
-            <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">{unread > 0 ? `${unread} unread · live` : `${t("notifications.caught_up")} · live`}</p>
-          </div>
-          {unread > 0 && (
+        <CommandPageHeader
+          icon={Bell}
+          callsign="SIGNAL FEED"
+          title={t("nav.notifications")}
+          status={[unread > 0
+            ? { label: `${unread} unread`, kind: "monitoring" as const }
+            : { label: t("notifications.caught_up"), kind: "complete" as const }]}
+          primaryAction={unread > 0 ? (
             <button
               onClick={() => markAll.mutate()}
               disabled={markAll.isPending}
@@ -75,8 +77,8 @@ export function NotificationsPage() {
             >
               <CheckCheck size={13} /> {t("notifications.mark_all")}
             </button>
-          )}
-        </div>
+          ) : undefined}
+        />
 
         {/* Filter bar */}
         <div className="mb-5 flex flex-wrap items-center gap-2">

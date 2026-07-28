@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Plus, DollarSign, User, ChevronRight, ChevronDown, X, Check } from "lucide-react";
+import { Plus, DollarSign, User, ChevronRight, ChevronDown, X, Check, GitBranch } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
+import { CommandPageHeader } from "../../components/ui/controls";
 import { useCurrency, convertAmount, CURRENCY_SYMBOL } from "../../hooks/useCurrency";
 
 interface DealRecord {
@@ -457,22 +458,24 @@ export function PipelinePage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-stone-800/50 px-6 py-3 shrink-0">
-        <div>
-          <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)] select-none">Pipeline</span>
-          <p className="mt-0.5 text-[11px] text-[var(--text-secondary)]">
-            {deals.length} deal{deals.length !== 1 ? "s" : ""}
-            {wonValue > 0 && <> · <span className="text-[#2f9e6b]">{fmtDisplay(wonValue, curSym)} won</span></>}
-            {totalValue > 0 && <> · <span className="text-[var(--text-muted)]">{fmtDisplay(totalValue, curSym)} pipeline</span></>}
-          </p>
-        </div>
-        <button
-          onClick={() => setCreateForStage(stages[0] ?? "Lead")}
-          className="flex items-center gap-1.5 rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] transition-all hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"
-        >
-          <Plus size={11}/> New deal
-        </button>
+      {/* Header — shared CommandPageHeader chrome (icon + // kicker + title + live deal stats).
+          Single soul-rule divider (CommandPageHeader renders it) — no extra border-b. */}
+      <div className="px-6 py-3 shrink-0">
+        <CommandPageHeader
+          className="mb-0"
+          icon={GitBranch}
+          callsign="PIPELINE"
+          title="Pipeline"
+          subtitle={`${deals.length} deal${deals.length !== 1 ? "s" : ""}${wonValue > 0 ? ` · ${fmtDisplay(wonValue, curSym)} won` : ""}${totalValue > 0 ? ` · ${fmtDisplay(totalValue, curSym)} pipeline` : ""}`}
+          primaryAction={
+            <button
+              onClick={() => setCreateForStage(stages[0] ?? "Lead")}
+              className="flex items-center gap-1.5 rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--text-primary)] transition-all hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]"
+            >
+              <Plus size={11}/> New deal
+            </button>
+          }
+        />
       </div>
 
       {/* Kanban board — on phones each column is ~85vw with scroll-snap (swipe one at a time);

@@ -14,6 +14,7 @@ import { apiClient, apiFetch, getAuthHeaders } from "../../../../lib/api-client"
 import { enrichCompany, enrichPerson } from "../../../../lib/ai-enrichment";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PeriodSelector } from "../../../../components/ui/period-selector";
+import { CommandPageHeader, ActionMenu } from "../../../../components/ui/controls";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel } from "../../../../lib/period";
 
 // ─── Toggle pill ──────────────────────────────────────────────────────────────
@@ -798,62 +799,54 @@ export function ObjectIndexPage() {
 
       {/* Page header — title + view toggle + actions. On the shared variable/matte system (was
           hardcoded stone / bg-white, which was inconsistent and theme-fragile). */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b px-6 py-2.5 shrink-0" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="flex items-center gap-3">
-          <span className="text-[12px] font-semibold uppercase tracking-[0.12em] select-none" style={{ color: "var(--text-muted)" }}>
-            {objectType.replace(/[-_]/g, " ")}
-          </span>
-          {/* View toggle */}
-          <div className="flex items-center gap-0.5 rounded-sm border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
-            <button onClick={() => setView("table")} title="Table view"
-              className="flex items-center gap-1.5 rounded-[3px] px-2 py-1 text-[11px] font-medium transition-colors"
-              style={view === "table" ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
-              <LayoutList size={11}/> Table
-            </button>
-            <button onClick={() => setView("board")} title="Board view"
-              className="flex items-center gap-1.5 rounded-[3px] px-2 py-1 text-[11px] font-medium transition-colors"
-              style={view === "board" ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
-              <Kanban size={11}/> Board
-            </button>
-          </div>
-          {/* Period lens — new records this window + period-over-period delta (flow). */}
-          <PeriodSelector value={period} onChange={setPeriod} />
-          {period !== "all" && allRecords.length > 0 && (
-            <span className="hidden items-center gap-1 text-[11px] sm:inline-flex" style={{ color: "var(--text-muted)" }}>
-              <span style={{ color: "var(--section-accent)" }}>{newThisPeriod.length} new</span>
-              <span style={{ color: "var(--text-faint)" }}>{periodLabel(period).toLowerCase()}</span>
-              {newDelta != null && (
-                <span style={{ color: newDelta >= 0 ? "#2f9e6b" : "#d1524a" }}>{newDelta >= 0 ? "↑" : "↓"}{Math.abs(newDelta)}%</span>
+      <div className="px-6 py-3 shrink-0">
+        <CommandPageHeader
+          className="mb-0"
+          icon={LayoutList}
+          callsign="RECORDS"
+          title={objectType.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+          secondaryActions={
+            <>
+              {/* View toggle */}
+              <div className="flex items-center gap-0.5 rounded-sm border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+                <button onClick={() => setView("table")} title="Table view"
+                  className="flex items-center gap-1.5 rounded-[3px] px-2 py-1 text-[11px] font-medium transition-colors"
+                  style={view === "table" ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
+                  <LayoutList size={11}/> Table
+                </button>
+                <button onClick={() => setView("board")} title="Board view"
+                  className="flex items-center gap-1.5 rounded-[3px] px-2 py-1 text-[11px] font-medium transition-colors"
+                  style={view === "board" ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
+                  <Kanban size={11}/> Board
+                </button>
+              </div>
+              {/* Period lens — new records this window + period-over-period delta (flow). */}
+              <PeriodSelector value={period} onChange={setPeriod} />
+              {period !== "all" && allRecords.length > 0 && (
+                <span className="hidden items-center gap-1 text-[11px] sm:inline-flex" style={{ color: "var(--text-muted)" }}>
+                  <span style={{ color: "var(--section-accent)" }}>{newThisPeriod.length} new</span>
+                  <span style={{ color: "var(--text-faint)" }}>{periodLabel(period).toLowerCase()}</span>
+                  {newDelta != null && (
+                    <span style={{ color: newDelta >= 0 ? "#2f9e6b" : "#d1524a" }}>{newDelta >= 0 ? "↑" : "↓"}{Math.abs(newDelta)}%</span>
+                  )}
+                </span>
               )}
-            </span>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <button onClick={() => setShowDeleteSheet(true)} title="Delete this sheet"
-            className="inline-flex items-center gap-1.5 rounded-sm border px-2 py-1.5 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-            <Trash2 size={11}/>
-          </button>
-          <button onClick={() => setShowAIFill(true)}
-            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-            <span style={{ color: "var(--section-accent)" }}><AIMark size={11}/></span> Fill
-          </button>
-          <button onClick={() => setDedupOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-            <ScanSearch size={11}/> Clean &amp; Lists
-          </button>
-          <button onClick={() => setSegmentOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-            <Filter size={11}/> Segment
-          </button>
-          <button onClick={() => setImportOpen(p => !p)}
-            className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
-            style={importOpen ? { borderColor: "var(--section-accent)", background: "var(--section-accent-soft)", color: "var(--text-primary)" } : { borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-            <Plus size={11}/> Import CSV
-          </button>
-          <button onClick={() => setShowCreate(true)} className="btn-primary text-[11px]">
-            <Plus size={11}/> New record
-          </button>
-        </div>
+              {/* Utility actions collapsed into one menu — no wall of buttons (handlers unchanged). */}
+              <ActionMenu triggerLabel="Manage" ariaLabel="Sheet actions" items={[
+                { key: "fill", label: "Fill with AI", icon: Sparkles, onClick: () => setShowAIFill(true) },
+                { key: "clean", label: "Clean & Lists", icon: ScanSearch, onClick: () => setDedupOpen(true) },
+                { key: "segment", label: "Segment", icon: Filter, onClick: () => setSegmentOpen(true) },
+                { key: "import", label: importOpen ? "Hide CSV importer" : "Import CSV", icon: UploadCloud, onClick: () => setImportOpen(p => !p) },
+                { key: "delete", label: "Delete sheet", icon: Trash2, onClick: () => setShowDeleteSheet(true) },
+              ]} />
+            </>
+          }
+          primaryAction={
+            <button onClick={() => setShowCreate(true)} className="btn-primary text-[11px]">
+              <Plus size={11}/> New record
+            </button>
+          }
+        />
       </div>
 
       {/* Enrichment banners */}

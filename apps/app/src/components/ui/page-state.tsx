@@ -47,7 +47,7 @@ export function RouteThinking() {
         <span className="absolute inset-0 rounded-full" style={{ background: "var(--section-accent-soft)" }} />
         <LogoMark size={20} className="relative animate-pulse" style={{ color: "var(--section-accent)" }} />
       </span>
-      <span className="text-[12.5px] font-medium tabular-nums" style={{ color: "var(--text-muted)" }}>{stages[i]}</span>
+      <span className="text-body font-medium tabular-nums" style={{ color: "var(--text-muted)" }}>{stages[i]}</span>
     </div>
   );
 }
@@ -55,7 +55,7 @@ export function RouteThinking() {
 export function ConsoleSkeleton({ rows = 7, cols = 4 }: { rows?: number; cols?: number }) {
   return (
     <div role="status" aria-label="Loading" className="overflow-hidden rounded-sm border font-mono" style={{ borderColor: "var(--border-soft)" }}>
-      <div className="flex items-center gap-2 px-4 py-2.5 text-[9px] uppercase tracking-widest" style={{ borderBottom: "1px solid var(--border-soft)", color: "var(--text-faint)" }}>
+      <div className="flex items-center gap-2 px-4 py-2.5 text-caption uppercase tracking-widest" style={{ borderBottom: "1px solid var(--border-soft)", color: "var(--text-faint)" }}>
         <span className="h-2.5 w-2.5 rounded-sm" style={{ background: "color-mix(in srgb, var(--accent) 40%, transparent)" }} />
         loading stream…
       </div>
@@ -189,8 +189,8 @@ export function EmptyState({
             >
               <s.icon size={15} className="mt-0.5 shrink-0" style={{ color: s.disabled ? "var(--text-faint)" : "var(--section-accent)" }} />
               <span className="min-w-0 flex-1">
-                <span className="block text-[12.5px] font-medium" style={{ color: s.disabled ? "var(--text-muted)" : "var(--text-primary)" }}>{s.label}</span>
-                {s.hint && <span className="mt-0.5 block text-[11.5px] leading-snug" style={{ color: "var(--text-muted)" }}>{s.hint}</span>}
+                <span className="block text-body font-medium" style={{ color: s.disabled ? "var(--text-muted)" : "var(--text-primary)" }}>{s.label}</span>
+                {s.hint && <span className="mt-0.5 block text-label leading-snug" style={{ color: "var(--text-muted)" }}>{s.hint}</span>}
               </span>
             </button>
           ))}

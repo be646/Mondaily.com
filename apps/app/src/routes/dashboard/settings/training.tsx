@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Database, Download, ShieldCheck, Trash2 } from "lucide-react";
+import { Brain, Database, Download, ShieldCheck, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { apiClient } from "../../../lib/api-client";
-import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { PageSkeleton } from "../../../components/ui/page-state";
+import { CommandPageHeader } from "../../../components/ui/controls";
 
 interface TrainingPolicy {
   enabled: boolean;
@@ -62,9 +63,11 @@ export function TrainingSettings() {
 
   return (
     <div className="space-y-5">
-      <PageHeader
+      <CommandPageHeader
+        icon={Brain}
+        callsign="TRAINING"
         title="Training data"
-        description="Workspace-controlled AI training capture. Off by default. Only your own approvals/edits are ever captured, and prompts are PII-redacted before storage."
+        subtitle="Workspace-controlled AI training capture. Off by default. Only your own approvals/edits are ever captured, and prompts are PII-redacted before storage."
       />
 
       {/* ── Opt-in ── */}

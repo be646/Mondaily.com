@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
-import { Check, Copy, Trash2, UserPlus, Cpu, Clock, SlidersHorizontal } from "lucide-react";
+import { Check, Copy, Trash2, UserPlus, Cpu, Clock, SlidersHorizontal, Users } from "lucide-react";
 import { Fragment, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 import { FieldSelect } from "../../../components/ui/controls";
-import { PageHeader } from "../../../components/ui/page-state";
+import { CommandPageHeader } from "../../../components/ui/controls";
 
 /**
  * Team Operators — the single home for everyone in the workspace: role, finance access, AI compute
@@ -114,7 +114,7 @@ export function MembersSettings() {
         </div>
       )}
       {/* Shared PageHeader — same page-header pattern as every other settings page. */}
-      <PageHeader title="Members & Roles" description={`${members.length} operator${members.length === 1 ? "" : "s"} · roles, per-module access, and AI compute.`} />
+      <CommandPageHeader icon={Users} callsign="MEMBERS" title="Members & Roles" subtitle={`${members.length} operator${members.length === 1 ? "" : "s"} · roles, per-module access, and AI compute.`} />
 
       {/* How access works — role sets the baseline, per-module access refines it. Clarifies the two
           distinct controls (revoke a single module vs remove the operator entirely). */}

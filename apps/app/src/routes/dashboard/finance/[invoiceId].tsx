@@ -366,14 +366,14 @@ export function InvoiceDetailPage() {
   const isEditable = !invoice || ["draft", "sent"].includes(invoice.status);
 
   if (isLoading) {
-    return <div className="flex h-full items-center justify-center text-[12px] text-[var(--text-secondary)]">Loading…</div>;
+    return <div className="flex h-full items-center justify-center text-body text-[var(--text-secondary)]">Loading…</div>;
   }
 
   if (!invoice) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
-        <div className="text-[13px] text-[var(--text-muted)]">Invoice not found</div>
-        <Link to="/finance/invoices" className="text-[12px] text-[var(--text-faint)] hover:text-[var(--text-faint)]">← Back to invoices</Link>
+        <div className="text-row text-[var(--text-muted)]">Invoice not found</div>
+        <Link to="/finance/invoices" className="text-body text-[var(--text-faint)] hover:text-[var(--text-faint)]">← Back to invoices</Link>
       </div>
     );
   }
@@ -463,7 +463,7 @@ export function InvoiceDetailPage() {
           <FinanceAgentStrip invoiceId={invoiceId}/>
 
           {invoice.status === "overdue" && (
-            <div className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600/5 px-4 py-3 text-[12px] text-[var(--text-faint)]">
+            <div className="flex items-center gap-2 rounded-sm border border-stone-500/30 bg-stone-600/5 px-4 py-3 text-body text-[var(--text-faint)]">
               <AlertTriangle size={13}/>
               This invoice is overdue. Consider sending a payment reminder.
             </div>
@@ -472,9 +472,9 @@ export function InvoiceDetailPage() {
           {/* Client + meta */}
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
-              <div className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider">Bill To</div>
+              <div className="text-label font-medium text-[var(--text-muted)] uppercase tracking-wider">Bill To</div>
               <div>
-                <label className="text-[11px] text-[var(--text-secondary)]">Client name *</label>
+                <label className="text-label text-[var(--text-secondary)]">Client name *</label>
                 <input
                   value={clientName}
                   onChange={e => { setClientName(e.target.value); setDirty(true); }}
@@ -484,7 +484,7 @@ export function InvoiceDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-[11px] text-[var(--text-secondary)]">Email</label>
+                <label className="text-label text-[var(--text-secondary)]">Email</label>
                 <input
                   value={clientEmail}
                   onChange={e => { setClientEmail(e.target.value); setDirty(true); }}
@@ -495,7 +495,7 @@ export function InvoiceDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-[11px] text-[var(--text-secondary)]">Address</label>
+                <label className="text-label text-[var(--text-secondary)]">Address</label>
                 <textarea
                   value={clientAddress}
                   onChange={e => { setClientAddress(e.target.value); setDirty(true); }}
@@ -508,13 +508,13 @@ export function InvoiceDetailPage() {
             </div>
 
             <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4 space-y-3">
-              <div className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider">Details</div>
+              <div className="text-label font-medium text-[var(--text-muted)] uppercase tracking-wider">Details</div>
               <div>
-                <label className="text-[11px] text-[var(--text-secondary)]">Invoice number</label>
+                <label className="text-label text-[var(--text-secondary)]">Invoice number</label>
                 <input value={invoice.number} disabled className="key-input mt-1 w-full text-[13px] opacity-50"/>
               </div>
               <div>
-                <label className="text-[11px] text-[var(--text-secondary)]">Due date</label>
+                <label className="text-label text-[var(--text-secondary)]">Due date</label>
                 <input
                   value={dueDate}
                   onChange={e => { setDueDate(e.target.value); setDirty(true); }}
@@ -524,7 +524,7 @@ export function InvoiceDetailPage() {
                 />
               </div>
               <div>
-                <label className="text-[11px] text-[var(--text-secondary)]">Currency</label>
+                <label className="text-label text-[var(--text-secondary)]">Currency</label>
                 <FieldSelect
                   value={currency}
                   onChange={v => { setCurrency(v); setDirty(true); }}
@@ -540,7 +540,7 @@ export function InvoiceDetailPage() {
           {/* Line items */}
           <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
             <div className="border-b border-[var(--border-soft)] px-4 py-3 flex items-center justify-between">
-              <span className="text-[12px] font-medium text-[var(--text-primary)]">Line Items</span>
+              <span className="text-body font-medium text-[var(--text-primary)]">Line Items</span>
               {isEditable && (
                 <button onClick={addItem} className="flex items-center gap-1 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">
                   <Plus size={11}/> Add item
@@ -551,11 +551,11 @@ export function InvoiceDetailPage() {
             <table className="minimal-table">
               <thead>
                 <tr className="border-b border-[var(--border-soft)]">
-                  <th className="px-4 py-2 text-left text-[11px] font-medium text-[var(--text-secondary)]">Description</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-[var(--text-secondary)] w-16">Qty</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-[var(--text-secondary)] w-28">Unit Price</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-[var(--text-secondary)] w-20">Tax %</th>
-                  <th className="px-4 py-2 text-right text-[11px] font-medium text-[var(--text-secondary)] w-28">Total</th>
+                  <th className="px-4 py-2 text-left text-label font-medium text-[var(--text-secondary)]">Description</th>
+                  <th className="px-4 py-2 text-right text-label font-medium text-[var(--text-secondary)] w-16">Qty</th>
+                  <th className="px-4 py-2 text-right text-label font-medium text-[var(--text-secondary)] w-28">Unit Price</th>
+                  <th className="px-4 py-2 text-right text-label font-medium text-[var(--text-secondary)] w-20">Tax %</th>
+                  <th className="px-4 py-2 text-right text-label font-medium text-[var(--text-secondary)] w-28">Total</th>
                   {isEditable && <th className="w-10"/>}
                 </tr>
               </thead>
@@ -630,11 +630,11 @@ export function InvoiceDetailPage() {
             {/* Totals */}
             <div className="flex justify-end border-t border-[var(--border-soft)] px-4 py-3">
               <div className="w-64 space-y-1.5">
-                <div className="flex justify-between text-[12px] text-[var(--text-muted)]">
+                <div className="flex justify-between text-body text-[var(--text-muted)]">
                   <span>Subtotal</span>
                   <span>{formatCurrency(subtotal, currency)}</span>
                 </div>
-                <div className="flex justify-between text-[12px] text-[var(--text-muted)]">
+                <div className="flex justify-between text-body text-[var(--text-muted)]">
                   <span>Tax</span>
                   <span>{formatCurrency(tax_total, currency)}</span>
                 </div>
@@ -652,13 +652,13 @@ export function InvoiceDetailPage() {
                   return (
                     <>
                       {creditsAmt > 0 && (
-                        <div className="flex justify-between text-[12px] text-[var(--text-faint)]">
+                        <div className="flex justify-between text-body text-[var(--text-faint)]">
                           <span>Credits applied</span>
                           <span>−{formatCurrency(creditsAmt, currency)}</span>
                         </div>
                       )}
                       {paymentsAmt > 0 && (
-                        <div className="flex justify-between text-[12px] text-[#2f9e6b]">
+                        <div className="flex justify-between text-body text-[#2f9e6b]">
                           <span>Payments</span>
                           <span>−{formatCurrency(paymentsAmt, currency)}</span>
                         </div>
@@ -679,7 +679,7 @@ export function InvoiceDetailPage() {
 
           {/* Notes */}
           <div>
-            <label className="text-[11px] text-[var(--text-secondary)]">Notes / Payment instructions</label>
+            <label className="text-label text-[var(--text-secondary)]">Notes / Payment instructions</label>
             <textarea
               value={notes}
               onChange={e => { setNotes(e.target.value); setDirty(true); }}

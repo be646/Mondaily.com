@@ -2,7 +2,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Room, Participant, Track as TrackNS } from "livekit-client";
-import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, VideoOff as NoCall, MonitorUp, Settings2, Brain, Sparkles, FileText, ListChecks, Link2, UserPlus, UserX, Check, X, MessageSquare, Maximize2, LayoutGrid, Send, Captions } from "lucide-react";
+import { Loader2, Mic, MicOff, Video, VideoOff, PhoneOff, Users, CalendarDays, ArrowLeft, ShieldAlert, ShieldCheck, VideoOff as NoCall, MonitorUp, Settings2, Brain, Sparkles, FileText, ListChecks, Link2, UserPlus, UserX, Check, X, MessageSquare, Maximize2, LayoutGrid, Send, Captions, RefreshCw, Clipboard, History } from "lucide-react";
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
 import { useCaptionCapture } from "./use-caption-capture";
 import { FieldSelect } from "../../components/ui/controls";
@@ -62,10 +62,65 @@ interface PrepResult { agenda_summary: string | null; talking_points: string[]; 
  * generated ONLY from the agenda (via /prepare) and otherwise says "Not enough recorded content yet".
  * Agenda, attendees, related records and follow-up creation are real. No fabricated transcript/summary.
  */
+interface EventTranscriptLine { line_id: string; speaker_name: string; text: string; lang?: string | null; ts: number }
+interface TranscriptInsights {
+  ok: boolean; reason?: string; source?: string; lines_used?: number; ts_range?: { start: number; end: number };
+  saved?: boolean; stale?: boolean; generated_at?: string;
+  overview?: string; key_topics?: string[]; action_items?: { text: string; owner?: string }[]; decisions?: string[]; next_steps?: string[];
+  follow_up_draft?: { subject: string; body: string } | null; recipients?: { name: string; email?: string }[];
+}
+// Persisted intelligence saved on the meeting node — rendered on reopen WITHOUT a model call.
+interface StoredIntel {
+  source: string; lines_used: number; ts_range: { start: number; end: number };
+  generated_at: string; generated_by: string; provider: string | null; model: string | null; feature: string;
+  overview: string; key_topics: string[]; action_items: { text: string; owner?: string }[]; decisions: string[];
+  next_steps: string[]; follow_up_draft: { subject: string; body: string } | null; recipients: { name: string; email?: string }[];
+}
 function MeetingMemoryDetail({ event: e }: { event: CalEvent }) {
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
   const hasAgenda = !!(e.description ?? "").trim();
+  // Post-call transcript UX — the saved LIVE transcript for this meeting (read-only; workspace + participant
+  // scoped server-side). No recording pipeline here, so the source is always "live captions". Never fake.
+  const transcriptQ = useQuery<{ lines: EventTranscriptLine[]; count: number; provenance: string }>({
+    queryKey: ["event-transcript", e.id],
+    queryFn: () => apiClient.get(`/live-calls/transcript?event_id=${e.id}`),
+    retry: false,
+  });
+  const transcriptLines = transcriptQ.data?.lines ?? [];
+  const hasTranscript = transcriptLines.length > 0;
+  const clockOf = (ts: number) => { try { return ts ? new Date(ts).toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" }) : ""; } catch { return ""; } };
+  // Post-call AI intelligence FROM the saved transcript. REVIEW-FIRST + read-only server-side: it returns
+  // candidates only (never creates tasks/decisions or sends email). Action items become tasks only when the
+  // user clicks; decisions are shown as candidates; the follow-up email is a copyable draft.
+  const qc = useQueryClient();
+  // Persisted intelligence — rendered on reopen with NO model call; `stale` flags transcript drift.
+  const intelQ = useQuery<{ ok: boolean; saved: StoredIntel | null; stale: boolean }>({
+    queryKey: ["event-transcript-intel", e.id],
+    queryFn: () => apiClient.get(`/calendar/events/${e.id}/transcript-intel`),
+    retry: false,
+  });
+  const summarize = useMutation<TranscriptInsights>({
+    mutationFn: () => apiClient.post(`/calendar/events/${e.id}/summarize-transcript`, {}),
+    onSuccess: () => { setTaskDone(new Set()); void qc.invalidateQueries({ queryKey: ["event-transcript-intel", e.id] }); },
+  });
+  const saved = intelQ.data?.saved ?? null;
+  // Fresh regenerate result wins; otherwise show the persisted result. Both share the render shape.
+  const insights: TranscriptInsights | undefined = summarize.data
+    ?? (saved ? { ...saved, ok: true, source: "live_transcript" } : undefined);
+  const hasResult = !!(insights && insights.ok);
+  const generatedAt = summarize.data?.generated_at ?? saved?.generated_at;
+  const isStale = summarize.data ? false : (intelQ.data?.stale ?? false);
+  const [taskDone, setTaskDone] = useState<Set<number>>(new Set());
+  const [draftCopied, setDraftCopied] = useState(false);
+  async function createTaskFor(i: number, title: string) {
+    try { await apiClient.post("/tasks", { title }); setTaskDone((s) => new Set(s).add(i)); } catch { /* surfaced by disabled state staying off */ }
+  }
+  const INSUFFICIENT: Record<string, string> = {
+    insufficient_transcript: "Not enough transcript to summarize.",
+    ai_unavailable: "AI summary isn’t available right now.",
+    summary_failed: "No summary was produced from this transcript.",
+  };
   const prepare = useMutation<PrepResult>({ mutationFn: () => apiClient.post(`/calendar/events/${e.id}/prepare`, {}) });
   const createTask = useMutation({ mutationFn: (title: string) => apiClient.post("/tasks", { title }) });
   const when = (() => { try { return new Date(e.start_at).toLocaleString(lang, { weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return e.start_at; } })();
@@ -86,22 +141,139 @@ function MeetingMemoryDetail({ event: e }: { event: CalEvent }) {
           <p className="mt-0.5 text-[12px]" style={{ color: "var(--text-muted)" }}>{when}</p>
           {/* Honest status row — no recording captured yet. */}
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px]" style={{ color: "var(--text-faint)" }}>
-            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--text-faint)" }} /><FileText size={11} /> Transcript unavailable</span>
-            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: prepare.data?.agenda_summary ? "#5f8a6a" : hasAgenda ? "#a2854f" : "var(--text-faint)" }} /><Sparkles size={11} /> {prepare.data?.agenda_summary ? "Summary generated" : hasAgenda ? "Summary pending" : "No summary"}</span>
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: hasTranscript ? "#5f8a6a" : "var(--text-faint)" }} /><FileText size={11} /> {hasTranscript ? "Live transcript" : "Transcript unavailable"}</span>
+            {/* AI status — reflects the real saved transcript insights first, then the agenda summary. */}
+            <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full" style={{ background: (hasResult || prepare.data?.agenda_summary) ? "#5f8a6a" : (hasTranscript || hasAgenda) ? "#a2854f" : "var(--text-faint)" }} /><Sparkles size={11} /> {hasResult ? "AI insights saved" : prepare.data?.agenda_summary ? "Summary generated" : hasTranscript ? "Insights not generated" : hasAgenda ? "Summary pending" : "No summary"}</span>
           </div>
         </div>
 
-        {/* AI summary — generated from the agenda only, and only when there is content. */}
-        <Section label="AI summary">
+        {/* Transcript — the saved LIVE-caption transcript, canonical + read-only. Never fabricated; honest
+            loading/empty states. Shown high so it's readable without hunting through the page. */}
+        <Section label="Transcript">
+          {transcriptQ.isLoading ? (
+            <p className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--text-faint)" }}><Loader2 size={12} className="animate-spin" /> Loading transcript…</p>
+          ) : transcriptQ.isError ? (
+            <button onClick={() => transcriptQ.refetch()} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><Loader2 size={12} className={transcriptQ.isFetching ? "animate-spin" : "hidden"} /> Couldn’t load the transcript — retry</button>
+          ) : hasTranscript ? (
+            <>
+              <p className="mb-2 inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><FileText size={10} /> Live transcript — saved during the call · {transcriptLines.length} {transcriptLines.length === 1 ? "line" : "lines"}</p>
+              <div className="space-y-1.5">
+                {transcriptLines.map((line) => (
+                  <div key={line.line_id} className="flex gap-2.5">
+                    <span className="shrink-0 font-mono text-[10px] leading-6" style={{ color: "var(--text-faint)" }}>{clockOf(line.ts)}</span>
+                    <div className="min-w-0 flex-1">
+                      <span className="mr-1.5 text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>{line.speaker_name}{line.lang ? <span className="ml-1 rounded-sm px-1 text-[8px] uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>{line.lang}</span> : null}</span>
+                      <span className="text-[12.5px] leading-6" style={{ color: "var(--text-secondary)" }}>{line.text}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>No transcript for this meeting. Turn on live captions during a call to capture one here.</p>
+          )}
+        </Section>
+
+        {/* AI insights FROM the saved transcript — on-demand, review-first, grounded in the original text only.
+            Not shown as "already done": the user runs it, and nothing is created/sent without their action. */}
+        {hasTranscript && (
+          <Section label="AI insights">
+            {intelQ.isLoading && !summarize.data ? (
+              <p className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--text-faint)" }}><Loader2 size={12} className="animate-spin" /> Loading saved insights…</p>
+            ) : summarize.isPending ? (
+              <p className="flex items-center gap-1.5 text-[12px]" style={{ color: "var(--text-faint)" }}><Loader2 size={12} className="animate-spin" /> Analyzing the saved transcript…</p>
+            ) : summarize.isError ? (
+              <button onClick={() => summarize.mutate()} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><RefreshCw size={12} /> Couldn’t generate — retry</button>
+            ) : insights && !insights.ok ? (
+              <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>{INSUFFICIENT[insights.reason ?? ""] ?? "Couldn’t summarize this transcript."}</p>
+            ) : !hasResult ? (
+              <button onClick={() => summarize.mutate()} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                <Sparkles size={12} /> Generate insights from transcript
+              </button>
+            ) : insights && insights.ok ? (
+              <div className="space-y-3">
+                {/* Provenance — honest source, count, range, that only the original transcript was used,
+                    when it was generated, plus an honest "transcript changed" flag + a Regenerate action. */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                    <ShieldCheck size={10} /> Saved from live transcript · {insights.lines_used} lines{insights.ts_range?.start ? ` · ${clockOf(insights.ts_range.start)}–${clockOf(insights.ts_range.end)}` : ""} · original only{generatedAt ? ` · ${new Date(generatedAt).toLocaleString(lang, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}` : ""}
+                  </p>
+                  {isStale ? (
+                    <span className="inline-flex items-center gap-1 rounded-sm border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "#a2854f", color: "#a2854f" }}><History size={10} /> Transcript changed since this was generated</span>
+                  ) : null}
+                  <button onClick={() => summarize.mutate()} className="ml-auto inline-flex items-center gap-1 rounded-sm border px-2 py-0.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><RefreshCw size={11} /> Regenerate</button>
+                </div>
+                {insights.overview ? (
+                  <div>
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Summary</p>
+                    <p className="text-[12.5px] leading-6" style={{ color: "var(--text-secondary)" }}>{insights.overview}</p>
+                  </div>
+                ) : null}
+                {(insights.key_topics ?? []).length ? (
+                  <div>
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Key topics</p>
+                    <div className="flex flex-wrap gap-1.5">{insights.key_topics!.map((k, i) => <span key={i} className="rounded-sm border px-1.5 py-0.5 text-[11px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{k}</span>)}</div>
+                  </div>
+                ) : null}
+
+                {(insights.action_items ?? []).length ? (
+                  <div>
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Suggested action items · review first</p>
+                    <div className="space-y-1">
+                      {insights.action_items!.map((a, i) => (
+                        <div key={i} className="flex items-center justify-between gap-2 rounded-sm border px-2 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
+                          <span className="min-w-0 text-[12.5px]" style={{ color: "var(--text-secondary)" }}>{a.text}{a.owner ? <span className="ml-1 text-[11px]" style={{ color: "var(--text-faint)" }}>· {a.owner}</span> : null}</span>
+                          {taskDone.has(i) ? (
+                            <span className="inline-flex shrink-0 items-center gap-1 text-[11px]" style={{ color: "#5f8a6a" }}><Check size={11} /> Task created</span>
+                          ) : (
+                            <button onClick={() => createTaskFor(i, a.owner ? `${a.text} — ${a.owner}` : a.text)} className="inline-flex shrink-0 items-center gap-1 rounded-sm border px-2 py-0.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><ListChecks size={11} /> Create task</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                {(insights.decisions ?? []).length ? (
+                  <div>
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Decision candidates · review only</p>
+                    <ul className="space-y-1">{insights.decisions!.map((d, i) => (
+                      <li key={i} className="flex items-start gap-1.5 rounded-sm border px-2 py-1.5 text-[12.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+                        <span className="mt-0.5 shrink-0 rounded-sm px-1 text-[8px] uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>candidate</span>{d}
+                      </li>
+                    ))}</ul>
+                  </div>
+                ) : null}
+
+                {insights.follow_up_draft ? (
+                  <div>
+                    <div className="mb-1 flex items-center justify-between">
+                      <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Follow-up email · draft (not sent)</p>
+                      <button onClick={() => { const d = insights.follow_up_draft!; navigator.clipboard.writeText(`Subject: ${d.subject}\n\n${d.body}`); setDraftCopied(true); }} className="inline-flex items-center gap-1 text-[11px]" style={{ color: "var(--text-secondary)" }}><Clipboard size={11} /> {draftCopied ? "Copied" : "Copy"}</button>
+                    </div>
+                    <div className="rounded-sm border px-2.5 py-2" style={{ borderColor: "var(--border-soft)" }}>
+                      {insights.follow_up_draft.subject ? <p className="mb-1 text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>{insights.follow_up_draft.subject}</p> : null}
+                      <p className="whitespace-pre-wrap text-[12.5px] leading-6" style={{ color: "var(--text-secondary)" }}>{insights.follow_up_draft.body}</p>
+                    </div>
+                    {(insights.recipients ?? []).length ? <p className="mt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>Recipients: {insights.recipients!.map((r) => r.name).join(", ")}</p> : null}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </Section>
+        )}
+
+        {/* Agenda summary — generated from the agenda only (distinct from the transcript AI insights above). */}
+        <Section label="Agenda summary">
           {!hasAgenda ? (
-            <p className="text-[12.5px]" style={{ color: "var(--text-faint)" }}>Not enough recorded content yet. Add an agenda in Calendar, or capture notes, to summarize this meeting.</p>
+            <p className="text-[12.5px]" style={{ color: "var(--text-faint)" }}>No agenda to summarize. Add an agenda in Calendar to generate a pre-meeting summary{hasTranscript ? " — or use AI insights above, generated from the saved transcript." : "."}</p>
           ) : prepare.data ? (
             prepare.data.agenda_summary
               ? <p className="text-[12.5px]" style={{ color: "var(--text-secondary)" }}>{prepare.data.agenda_summary}</p>
               : <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>{prepare.data.ai_available ? "No summary was produced." : "AI summary isn't available right now."}</p>
           ) : (
             <button onClick={() => prepare.mutate()} disabled={prepare.isPending} className="inline-flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-              {prepare.isPending ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} Generate summary
+              {prepare.isPending ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} Generate agenda summary
             </button>
           )}
           {prepare.data && prepare.data.follow_ups.length > 0 && (
@@ -264,6 +436,13 @@ function CallRoom({ event }: { event: CalEvent }) {
       const pkt: CaptionPacket = { t: "caption", id: `${lp.identity}-${seq}`, participantId: lp.identity, name: lp.name || "You", text, final: true, ts: Date.now(), ...(language ? { lang: language } : {}) };
       setCaptions(cs => [...cs.filter(x => x.id !== pkt.id), pkt].slice(-400));   // sender renders own caption (own publishData isn't echoed back); keep enough for the transcript timeline
       sendData(pkt as unknown as Record<string, unknown>);
+      // Phase B — persist this FINAL line so Meeting Memory keeps a transcript even if recording fails.
+      // Best-effort + fire-and-forget: a save error never disrupts the live caption experience. Idempotent
+      // server-side (unique line id), so re-sends are safe. Only finals reach here.
+      void apiFetch(`${BASE_URL}/api/v1/live-calls/transcript`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_id: event.id, lines: [{ id: pkt.id, participantId: pkt.participantId, name: pkt.name, text: pkt.text, ts: pkt.ts, final: true, ...(pkt.lang ? { lang: pkt.lang } : {}) }] }),
+      }).catch(() => {});
     },
     onStop: () => setShowCaptions(false),
   });
@@ -490,7 +669,25 @@ function CallRoom({ event }: { event: CalEvent }) {
               return <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">{everyone.map(({ p, isLocal }) => tile(p, isLocal))}</div>;
             })()}
           </div>
-          {showCaptions && <CaptionsPanel available={!!event.live_captions_available} captions={captions} onClose={() => setShowCaptions(false)} />}
+          {showCaptions && <CaptionsPanel available={!!event.live_captions_available} captions={captions} onClose={() => setShowCaptions(false)}
+            preferenceKey={`mondaily_caption_lang:${(() => { try { return localStorage.getItem("mondaily_workspace_id") || "ws"; } catch { return "ws"; } })()}`}
+            onTranslate={async (items, target) => {
+              // Phase C.1 — member-only translated transcript overlay. Sends the ALREADY-FETCHED original lines
+              // to the sovereign gateway; never mutates the transcript. Results are aligned to input order.
+              try {
+                const res = await apiFetch(`${BASE_URL}/api/v1/live-calls/translate`, {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ target, lines: items.map((it) => ({ text: it.text, source_lang: it.source_lang })) }),
+                });
+                const body = await res.json().catch(() => ({ results: [] as unknown[] }));
+                const results = Array.isArray(body.results) ? body.results : [];
+                return items.map((it, i) => {
+                  const r = (results[i] ?? {}) as { state?: string; translated?: string };
+                  const state = r.state === "translated" ? "translated" : r.state === "original" ? "original" : "unavailable";
+                  return { id: it.id, state, translated: r.translated };
+                });
+              } catch { return items.map((it) => ({ id: it.id, state: "unavailable" as const })); }
+            }} />}
           {showChat && <ChatPanel messages={chat} onSend={sendChat} onClose={() => setShowChat(false)} youLabel={t("cal.you")} />}
         </div>
 

@@ -37,8 +37,10 @@ describe("Tasks mobile", () => {
     expect(tasks).toMatch(/opacity-100 sm:opacity-0 sm:group-hover:opacity-100/);
   });
   it("secondary columns (Created/Labels) hide below md to reduce crush", () => {
-    expect(tasks).toMatch(/h === "Created" \|\| h === "Labels" \? "hidden md:table-cell"/);
-    expect((tasks.match(/hidden md:table-cell px-4 py-3/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    // The sheet now renders through the shared DataTable; Created + Labels use the shell's
+    // responsive `hideBelow: "md"` (which emits `hidden md:table-cell`), replacing the old inline markup.
+    expect(tasks).toMatch(/key: "created", header: "Created", hideBelow: "md"/);
+    expect(tasks).toMatch(/key: "labels", header: "Labels", hideBelow: "md"/);
   });
 });
 

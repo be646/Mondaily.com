@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { CreditCard, Download, Zap, Users, Wallet, RefreshCw, HelpCircle } from "lucide-react";
 import { useHelp } from "../../../components/help/help-panel";
 import { apiClient } from "../../../lib/api-client";
-import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { PageSkeleton } from "../../../components/ui/page-state";
+import { CommandPageHeader } from "../../../components/ui/controls";
 import { PLANS, PLAN_BY_ID, normalizePlan } from "../../../lib/plans";
 import { BILLING_CURRENCIES, PRICING_SYMBOL, priceInCurrency, billingCurrencyForLocale, showsCurrencySwitcher, type BillingCurrency } from "@mondaily/shared/pricing";
 import { Check } from "lucide-react";
@@ -221,14 +222,14 @@ export function BillingSettings() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-start justify-between gap-3">
-        <PageHeader title="Billing" description="Manage your plan, payment details, and invoice history." />
-        <button onClick={() => help.open("I have a question about my plan and AI credits.")}
-          className="mt-1 flex shrink-0 items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[12px] transition-colors hover:border-[color:var(--section-accent)]"
-          style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
-          <HelpCircle size={13} /> Get help
-        </button>
-      </div>
+      <CommandPageHeader icon={CreditCard} callsign="BILLING" title="Billing" subtitle="Manage your plan, payment details, and invoice history."
+        secondaryActions={
+          <button onClick={() => help.open("I have a question about my plan and AI credits.")}
+            className="mt-1 flex shrink-0 items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[12px] transition-colors hover:border-[color:var(--section-accent)]"
+            style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            <HelpCircle size={13} /> Get help
+          </button>
+        } />
 
       {/* Trial banner — driven by the real end date, not a plan string */}
       {trialActive && (

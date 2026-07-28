@@ -262,6 +262,8 @@ export function CalendarPage() {
     : view === "month"
     ? anchor.toLocaleDateString(lang, { month: "long", year: "numeric" })
     : anchor.toLocaleDateString(lang, { weekday: "long", month: "long", day: "numeric" });
+  const viewCount = view === "today" ? dayCount : view === "week" ? weekCount : view === "month" ? monthCount : events.length;
+  const viewSummary = `${viewCount} ${viewCount === 1 ? "meeting" : "meetings"}`;
 
   const groups = useMemo(() => {
     const map = new Map<string, CalEvent[]>();
@@ -279,8 +281,8 @@ export function CalendarPage() {
   const openEvent = (id: string) => setParams({ event: id }, { replace: true });
   const Row = ({ e, active }: { e: CalEvent; active?: boolean }) => (
     <button onClick={() => openEvent(e.id)}
-      className="flex w-full items-center gap-3 rounded-sm border px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
-      style={{ borderColor: "var(--border-soft)", borderLeft: `3px solid ${meetingTone(e).edge}`, background: active ? "var(--surface-selected)" : "var(--surface-card)" }}>
+      className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]"
+      style={{ borderLeft: `3px solid ${meetingTone(e).edge}`, background: active ? "var(--surface-selected)" : "transparent" }}>
       <div className="w-14 shrink-0 text-[12px] tabular-nums" style={{ color: "var(--text-secondary)" }}>{fmtTime(e.start_at, lang)}</div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{e.title}</div>
@@ -313,46 +315,47 @@ export function CalendarPage() {
   const selected = focusId;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      {/* Shared command header — same pattern as the rest of the app. Meeting Agent status stays
-          honest: on-demand / available / monitoring only (never a fake "running"). */}
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+      {/* Compact page identity. Date navigation and view filters live in the smart rail below, so the
+          headline stays calm while the working controls remain aligned and easy to scan. */}
       <CommandPageHeader
         icon={CalendarClock}
         callsign="MEETINGS"
         title={t("cal.title")}
-        status={[{ label: `${t("cal.meeting_agent")} · ${t("cal.agent_available")} · ${t("cal.agent_monitoring")}`, kind: "monitoring" }]}
-      />
-
-      {/* Today intelligence strip — real data only, no fabricated scores/conflicts. */}
-      <TodayStrip onOpen={openEvent} selectedId={selected} events={events.filter(e => isSameDay(new Date(e.start_at), now))} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} />
-
-      {/* One clean control bar: Today · ‹ › · range · Day/Week/Upcoming · New meeting. */}
-      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="flex items-center gap-2">
-          <button onClick={goToday} disabled={isAnchorToday && view !== "upcoming"} className="flex h-7 items-center rounded-sm border px-2.5 text-[12px] font-medium transition-colors disabled:opacity-40" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{t("cal.today")}</button>
-          {view !== "upcoming" && (
-            <div className="flex items-center gap-0.5">
-              <button onClick={() => shift(-1)} aria-label={t("cal.prev")} className="btn-icon h-7 w-7"><ChevronLeft size={15} /></button>
-              <button onClick={() => shift(1)} aria-label={t("cal.next")} className="btn-icon h-7 w-7"><ChevronRight size={15} /></button>
-              <span className="ml-1 text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{rangeLabel}</span>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="inline-flex h-7 items-center rounded-sm border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
-            {tabs.map(tab => (
-              <button key={tab.k} onClick={() => setView(tab.k)}
-                className="flex h-full items-center rounded-[3px] px-2.5 text-[12px] font-medium transition-colors"
-                style={view === tab.k ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
-                {tab.label}
-              </button>
-            ))}
-          </div>
+        subtitle={`${viewSummary} · ${rangeLabel}`}
+        rightSummary={`${t("cal.meeting_agent")} · ${t("cal.agent_available")} · ${t("cal.agent_monitoring")}`}
+        className="mb-2"
+        primaryAction={
           <button onClick={openCreate} className="flex h-7 shrink-0 items-center gap-1.5 rounded-sm border px-3 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
             <Plus size={13} /> {t("cal.new_meeting")}
           </button>
+        }
+      />
+
+      <div className="mb-3 flex flex-col gap-2 rounded-sm border px-2 py-2 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <button onClick={goToday} disabled={isAnchorToday && view !== "upcoming"} className="flex h-7 items-center rounded-sm border px-2.5 text-[12px] font-medium transition-colors disabled:opacity-40" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{t("cal.today")}</button>
+          {view !== "upcoming" && (
+            <div className="flex min-w-0 items-center gap-0.5">
+              <button onClick={() => shift(-1)} aria-label={t("cal.prev")} className="btn-icon h-7 w-7"><ChevronLeft size={15} /></button>
+              <button onClick={() => shift(1)} aria-label={t("cal.next")} className="btn-icon h-7 w-7"><ChevronRight size={15} /></button>
+              <span className="ml-1 truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{rangeLabel}</span>
+            </div>
+          )}
+        </div>
+        <div className="inline-flex h-7 shrink-0 items-center rounded-lg border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+          {tabs.map(tab => (
+            <button key={tab.k} onClick={() => setView(tab.k)}
+              className="flex h-full items-center rounded-md px-2.5 text-[12px] font-medium transition-colors"
+              style={view === tab.k ? { background: "var(--surface-card)", color: "var(--text-primary)", boxShadow: "0 1px 2px rgba(0,0,0,0.18)" } : { color: "var(--text-muted)" }}>
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* Today intelligence strip — real data only, no fabricated scores/conflicts. */}
+      <TodayStrip onOpen={openEvent} selectedId={selected} events={events.filter(e => isSameDay(new Date(e.start_at), now))} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} />
 
       {/* Command-center split: agenda/timeline on the left, a persistent Meeting Brief on the right (lg+). */}
       <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -386,8 +389,8 @@ export function CalendarPage() {
             <div className="space-y-5">
               {groups.map(([key, evs]) => (
                 <div key={key}>
-                  <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{dayLabel(key)}</p>
-                  <div className="space-y-2">{evs.map(e => <Row key={e.id} e={e} active={e.id === selected} />)}</div>
+                  <p className="mb-2 text-caption font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{dayLabel(key)}</p>
+                  <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] divide-y divide-[var(--border-soft)]">{evs.map(e => <Row key={e.id} e={e} active={e.id === selected} />)}</div>
                 </div>
               ))}
             </div>
@@ -396,7 +399,7 @@ export function CalendarPage() {
 
         {/* Persistent Meeting Brief (desktop). Mobile uses the drawer below. */}
         <aside className="hidden lg:block">
-          <div className="sticky top-6 flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
+          <div className="sticky top-6 flex max-h-[calc(100vh-6rem)] flex-col overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", borderTop: "2px solid var(--section-accent)", boxShadow: "0 1px 3px rgba(0,0,0,0.14)" }}>
             {focusId ? <MeetingBriefBody id={focusId} /> : <TodayBriefingPanel onOpen={openEvent} onFollowups={() => navigateTo("/tasks")} />}
           </div>
         </aside>
@@ -437,7 +440,7 @@ function MonthGrid({ days, monthOf, events, selected, today, onOpen, onPickDay, 
       {/* weekday header */}
       <div className="grid grid-cols-7 border-b" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
         {weekdays.map((d, i) => (
-          <div key={i} className="px-2 py-1.5 text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
+          <div key={i} className="px-2 py-1.5 text-caption font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>
             {d.toLocaleDateString(lang, { weekday: "short" })}
           </div>
         ))}
@@ -514,7 +517,7 @@ function GridEmpty({ hint, onCreate, onDraft, onFollowups, t }: { hint: string; 
     <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
       <div className="pointer-events-auto flex max-w-sm flex-col items-center gap-3 text-center">
         <span className="flex h-11 w-11 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)" }}><CalendarDays size={15} style={{ color: "var(--section-accent)" }} /></span>
-        <p className="text-[13px] font-medium" style={{ color: "var(--text-secondary)" }}>{hint}</p>
+        <p className="text-row font-medium" style={{ color: "var(--text-secondary)" }}>{hint}</p>
         <div className="flex flex-wrap justify-center gap-1.5">
           {steps.map((s, i) => (
             <button key={i} onClick={s.run} title={s.hint}
@@ -548,12 +551,12 @@ function TodayBriefingPanel({ onOpen, onFollowups }: { onOpen: (id: string) => v
     return [...m.values()];
   })();
   const SectionHead = ({ children }: { children: React.ReactNode }) => (
-    <p className="px-4 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{children}</p>
+    <p className="px-4 pb-1 pt-3 text-caption font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{children}</p>
   );
   return (
     <>
       <div className="border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-hover) 45%, transparent)" }}>
-        <span className="flex items-center gap-1.5 text-[10.5px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}><CalendarClock size={11} style={{ color: "var(--text-faint)" }} /> {t("cal.meeting_agent")}</span>
+        <span className="flex items-center gap-1.5 text-caption font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}><CalendarClock size={11} style={{ color: "var(--text-faint)" }} /> {t("cal.meeting_agent")}</span>
         <span className="mt-1 block text-[14.5px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{t("cal.today_briefing")}</span>
       </div>
       {!b ? <div className="p-5"><Loader2 size={16} className="animate-spin" /></div> : (
@@ -561,7 +564,7 @@ function TodayBriefingPanel({ onOpen, onFollowups }: { onOpen: (id: string) => v
           {/* Proof-of-work — what the Meeting Agent checked across today's real schedule. Every number is
               a real derived count from the brief; zeros read as "clear", never a fabricated status. */}
           <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1.5 border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
-            <span className="flex items-center gap-1 font-mono text-[9px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}><Sparkles size={10} style={{ color: "var(--section-accent)" }} /> Checked</span>
+            <span className="flex items-center gap-1 font-mono text-caption font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--text-faint)" }}><Sparkles size={10} style={{ color: "var(--section-accent)" }} /> Checked</span>
             {([
               { n: b.count, label: t("cal.meetings_today") },
               { n: b.no_agenda.length, label: t("cal.needs_agenda"), warn: b.no_agenda.length > 0 },
@@ -581,12 +584,12 @@ function TodayBriefingPanel({ onOpen, onFollowups }: { onOpen: (id: string) => v
               <span className="block min-w-0 truncate text-[13px] font-medium" style={{ color: "var(--text-primary)" }}>{b.next.title}</span>
               <span className="flex shrink-0 items-center gap-1 text-[12px] tabular-nums" style={{ color: "var(--text-muted)" }}>{fmtTime(b.next.start_at, lang)} <ArrowRight size={12} style={{ color: "var(--text-faint)" }} /></span>
             </button>
-          ) : <div className="px-4 py-2 text-[12px]" style={{ color: "var(--text-muted)" }}>{t("cal.all_clear")}</div>}
+          ) : <div className="px-4 py-2 text-body" style={{ color: "var(--text-muted)" }}>{t("cal.all_clear")}</div>}
 
           {/* Needs attention — clickable rows that open the meeting to fix agenda / call link */}
           <SectionHead>{t("cal.needs_attention")}</SectionHead>
           {attention.length === 0 ? (
-            <div className="px-4 py-2 text-[12px]" style={{ color: "var(--text-faint)" }}>{t("cal.st_none_found")}</div>
+            <div className="px-4 py-2 text-body" style={{ color: "var(--text-faint)" }}>{t("cal.st_none_found")}</div>
           ) : attention.map(a => (
             <button key={a.id} onClick={() => onOpen(a.id)} className="flex w-full items-center justify-between gap-2 px-4 py-1.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
               <span className="min-w-0 truncate text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{a.title}</span>
@@ -644,8 +647,8 @@ function TodayStrip({ onOpen, selectedId, events, onCreate, onDraft, onFollowups
   const Stat = ({ icon, n, label, tone }: { icon: React.ReactNode; n: number; label: string; tone?: string }) => (
     <div className="flex items-center gap-1.5">
       <span style={{ color: tone ?? "var(--text-faint)" }}>{icon}</span>
-      <span className="text-[13px] font-semibold tabular-nums" style={{ color: tone ?? "var(--text-primary)" }}>{n}</span>
-      <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{label}</span>
+      <span className="text-row font-semibold tabular-nums" style={{ color: tone ?? "var(--text-primary)" }}>{n}</span>
+      <span className="text-body" style={{ color: "var(--text-muted)" }}>{label}</span>
     </div>
   );
   const Ic = ({ on, warn, children }: { on: boolean; warn?: boolean; children: React.ReactNode }) => (
@@ -653,10 +656,10 @@ function TodayStrip({ onOpen, selectedId, events, onCreate, onDraft, onFollowups
   );
 
   return (
-    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+    <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", borderTop: "2px solid var(--section-accent)" }}>
       {/* Header: Meeting Agent brief + live counts (recessed band → reads as a distinct brief, not a flat banner) */}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5" style={{ background: "color-mix(in srgb, var(--surface-hover) 45%, transparent)" }}>
-        <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}><CalendarClock size={12} style={{ color: "var(--text-faint)" }} /> {t("cal.brief_heading")}</span>
+        <span className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}><CalendarClock size={12} style={{ color: "var(--text-faint)" }} /> {t("cal.brief_heading")}</span>
         <Stat icon={<CalendarDays size={14} />} n={b.count} label={t("cal.meetings_today")} />
         {b.conflicts.length > 0 && <Stat icon={<AlertTriangle size={14} />} n={b.conflicts.length} label={t("cal.overlaps")} tone={AMBER} />}
         {b.no_agenda.length > 0 && <Stat icon={<FileText size={14} />} n={b.no_agenda.length} label={t("cal.needs_agenda")} />}
@@ -784,7 +787,7 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
         {/* AI Meeting Brief header — clearly framed, with Meeting Agent attribution (recessed band, matching the Today briefing + strip). */}
         <div className="border-b px-5 py-3.5" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--surface-hover) 45%, transparent)" }}>
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}><Wand2 size={11} style={{ color: "var(--text-faint)" }} /> {t("cal.ai_meeting_brief")}</span>
+            <span className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}><Wand2 size={11} style={{ color: "var(--text-faint)" }} /> {t("cal.ai_meeting_brief")}</span>
             {onClose && <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>}
           </div>
           <span className="mt-1 block truncate text-[14.5px] font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>{e?.title ?? "…"}</span>
@@ -794,7 +797,7 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
           <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4 text-[13px]">
             <div style={{ color: "var(--text-secondary)" }}>
               {(() => { try { return new Date(e.start_at).toLocaleString(lang, { weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return e.start_at; } })()} – {fmtTime(e.end_at, lang)}
-              {e.timezone && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}> · {e.timezone}</span>}
+              {e.timezone && <span className="text-label" style={{ color: "var(--text-faint)" }}> · {e.timezone}</span>}
             </div>
             {e.recurrence_summary && <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: "var(--text-muted)" }}><Repeat size={12} style={{ color: "var(--text-faint)" }} /> {e.recurrence_summary}</div>}
             {e.status === "cancelled" && <span className="inline-block rounded-sm px-2 py-0.5 text-[11px] font-medium" style={{ background: "rgba(168,106,114,0.14)", color: "#a86a72" }}>{t("cal.cancelled")}</span>}
@@ -820,7 +823,7 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               ];
               if (!isOrganizer) return (
                 <div>
-                  <p className="mb-1 text-[11px]" style={{ color: "var(--text-muted)" }}>{t("cal.your_response")}</p>
+                  <p className="mb-1 text-label" style={{ color: "var(--text-muted)" }}>{t("cal.your_response")}</p>
                   <div className="flex gap-1.5">
                     {RSVP.map(r => {
                       const active = mine === r.key;
@@ -900,7 +903,7 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
             {/* Agenda — read-only with an inline Add/edit action (organizer). */}
             <div>
               <div className="mb-1 flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.agenda")}</span>
+                <span className="text-caption font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.agenda")}</span>
                 {isOrganizer && e.status !== "cancelled" && !editAgenda && <button onClick={() => { setAgendaDraft(e.description ?? ""); setEditAgenda(true); }} className="text-[11px] font-medium" style={{ color: "var(--text-secondary)" }}>{t("cal.edit_agenda")}</button>}
               </div>
               {editAgenda ? (
@@ -914,14 +917,14 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
               ) : e.description ? (
                 <div className="whitespace-pre-wrap border-l-2 pl-3 text-[12.5px]" style={{ borderColor: meetingTone(e).edge, color: "var(--text-secondary)" }}>{e.description}</div>
               ) : (
-                <p className="text-[12px]" style={{ color: "var(--text-faint)" }}>{t("cal.st_missing")}</p>
+                <p className="text-body" style={{ color: "var(--text-faint)" }}>{t("cal.st_missing")}</p>
               )}
             </div>
 
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.attendees")}</p>
+              <p className="mb-1.5 text-caption font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.attendees")}</p>
               <div className="space-y-1">
-                <div style={{ color: "var(--text-primary)" }}>{e.organizer.name} <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>· organizer</span></div>
+                <div style={{ color: "var(--text-primary)" }}>{e.organizer.name} <span className="text-label" style={{ color: "var(--text-faint)" }}>· organizer</span></div>
                 {e.attendees.map(a => <div key={a.user_id} style={{ color: "var(--text-secondary)" }}>{a.name}</div>)}
               </div>
             </div>
@@ -943,11 +946,11 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm" style={{ background: "var(--section-accent-soft)" }}>{prepare.isPending ? <Loader2 size={13} className="animate-spin" style={{ color: "var(--section-accent)" }} /> : <Sparkles size={13} style={{ color: "var(--section-accent)" }} />}</span>
                   <span className="min-w-0">
                     <span className="block text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{prepare.isPending ? t("cal.preparing") : t("cal.prepare")}</span>
-                    <span className="mt-0.5 block text-[11px] leading-snug" style={{ color: "var(--text-muted)" }}>{t("cal.prepare_hint")}</span>
+                    <span className="mt-0.5 block text-label leading-snug" style={{ color: "var(--text-muted)" }}>{t("cal.prepare_hint")}</span>
                   </span>
                 </button>
               ) : null}
-              {prepare.isError && <p className="mt-2 text-[11px]" style={{ color: "var(--text-faint)" }}>{t("cal.ai_unavailable")}</p>}
+              {prepare.isError && <p className="mt-2 text-label" style={{ color: "var(--text-faint)" }}>{t("cal.ai_unavailable")}</p>}
             </div>
 
             {/* Organized follow-ups — REAL open tasks, grouped; suggested is a clearly-marked draft. */}
@@ -964,7 +967,7 @@ function MeetingBriefBody({ id, onClose }: { id: string; onClose?: () => void })
 
             {/* After-meeting — Create follow-up task is REAL (only ship what works; no dead placeholders). */}
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.after_meeting")}</p>
+              <p className="mb-1.5 text-caption font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{t("cal.after_meeting")}</p>
               <button onClick={() => createTask.mutate(`Follow up on ${e.title}`)} disabled={createTask.isPending} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
                 {createTask.isPending ? <Loader2 size={12} className="animate-spin" /> : <ListChecks size={12} />} {t("cal.create_task")}
               </button>
@@ -1000,11 +1003,11 @@ function CoPilot({ signals, action, label, nextLabel }: { signals: Signal[]; act
     <div className="rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
       <div className="flex items-center gap-1.5 border-b px-3 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
         <span className="flex h-3.5 w-3.5 items-center justify-center rounded-sm" style={{ background: "var(--surface-hover)" }}><Wand2 size={9} style={{ color: "var(--text-secondary)" }} /></span>
-        <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</span>
+        <span className="text-caption font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</span>
       </div>
       {signals.map((s, i) => (
         <div key={s.key} className="flex items-center justify-between px-3 py-1.5" style={i > 0 ? { borderTop: "1px solid var(--border-soft)" } : undefined}>
-          <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{s.label}</span>
+          <span className="text-body" style={{ color: "var(--text-muted)" }}>{s.label}</span>
           <span className="flex items-center gap-1.5 text-[11.5px] font-medium" style={{ color: s.tone }}>
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.dot }} />{s.value}
           </span>
@@ -1012,7 +1015,7 @@ function CoPilot({ signals, action, label, nextLabel }: { signals: Signal[]; act
       ))}
       {action && (
         <button onClick={action.run} className="flex w-full items-center justify-between border-t px-3 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)" }}>
-          <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{nextLabel}</span>
+          <span className="text-caption font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{nextLabel}</span>
           <span className="flex items-center gap-1 text-[11.5px] font-medium" style={{ color: "var(--text-secondary)" }}>{action.label} <ArrowRight size={12} style={{ color: "var(--text-faint)" }} /></span>
         </button>
       )}
@@ -1023,7 +1026,7 @@ function CoPilot({ signals, action, label, nextLabel }: { signals: Signal[]; act
 function PrepView({ r, onOpenRecord }: { r: PrepResult; onOpenRecord: (objectType: string, nodeId: string) => void }) {
   const { t } = useLanguage();
   const Section = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <div className="mt-3"><p className="mb-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</p>{children}</div>
+    <div className="mt-3"><p className="mb-1 text-caption font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</p>{children}</div>
   );
   return (
     <div className="mt-1">
@@ -1036,7 +1039,7 @@ function PrepView({ r, onOpenRecord }: { r: PrepResult; onOpenRecord: (objectTyp
       <Section label={t("cal.related_records")}>
         {r.sources.length === 0 ? (
           // No matched records → be explicit the suggestions rely only on the meeting details (no fabrication).
-          <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>{t("cal.based_on_details")}</p>
+          <p className="text-label" style={{ color: "var(--text-faint)" }}>{t("cal.based_on_details")}</p>
         ) : (
           <>
             <div className="space-y-1">
@@ -1063,7 +1066,7 @@ function FollowUpGroups({ f, onOpenTask, onCreateSuggested, creating }: { f: Fol
   const ROSE = "#a86a72", AMBER = "#a2854f";
   const Group = ({ label, tasks, dot }: { label: string; tasks: FollowTaskLite[]; dot?: string }) => tasks.length === 0 ? null : (
     <div className="mb-2 last:mb-0">
-      <p className="mb-1 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{dot && <span className="h-1.5 w-1.5 rounded-full" style={{ background: dot }} />}{label} · {tasks.length}</p>
+      <p className="mb-1 flex items-center gap-1.5 text-caption font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{dot && <span className="h-1.5 w-1.5 rounded-full" style={{ background: dot }} />}{label} · {tasks.length}</p>
       <div className="space-y-0.5">
         {tasks.slice(0, 4).map(tk => (
           <button key={tk.id} onClick={onOpenTask} className="block w-full truncate rounded-sm px-2 py-1 text-left text-[12px] transition-colors hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-secondary)" }}>{tk.title}</button>
@@ -1074,14 +1077,14 @@ function FollowUpGroups({ f, onOpenTask, onCreateSuggested, creating }: { f: Fol
   const empty = f.overdue.length + f.due_today.length + f.related.length === 0;
   return (
     <div>
-      {empty && <p className="mb-2 text-[11px]" style={{ color: "var(--text-faint)" }}>{t("cal.st_none_found")}</p>}
+      {empty && <p className="mb-2 text-label" style={{ color: "var(--text-faint)" }}>{t("cal.st_none_found")}</p>}
       <Group label={t("cal.overdue")} tasks={f.overdue} dot={ROSE} />
       <Group label={t("cal.due_today")} tasks={f.due_today} dot={AMBER} />
       <Group label={t("cal.related_meeting")} tasks={f.related} />
       {/* Suggested next follow-up — a DRAFT template, clearly tagged; created only on click. */}
       <div className="mt-1 flex items-center justify-between rounded-sm border px-2 py-1.5" style={{ borderColor: "var(--border-soft)", borderStyle: "dashed" }}>
         <span className="min-w-0 flex-1">
-          <span className="mr-1.5 rounded-sm px-1 py-px text-[9px] font-medium uppercase" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>{t("cal.draft_tag")}</span>
+          <span className="mr-1.5 rounded-sm px-1 py-px text-caption font-medium uppercase" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>{t("cal.draft_tag")}</span>
           <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>{f.suggested.title}</span>
         </span>
         <button onClick={onCreateSuggested} disabled={creating} className="ml-2 shrink-0 rounded-sm border px-2 py-0.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{creating ? "…" : t("cal.create_task")}</button>
@@ -1164,7 +1167,7 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
                   </button>
                 );
               })}
-              {others.length === 0 && <span className="px-2 py-1.5 text-[12px]" style={{ color: "var(--text-faint)" }}>{t("state.empty")}</span>}
+              {others.length === 0 && <span className="px-2 py-1.5 text-body" style={{ color: "var(--text-faint)" }}>{t("state.empty")}</span>}
             </div>
           </div>
           {/* Meeting type — classification only (drives type-specific AI later; nothing AI runs on it yet). */}

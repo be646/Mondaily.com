@@ -55,6 +55,29 @@
   --section-accent-line:  hsl(var(--accent-h) var(--accent-s) var(--accent-l) / 0.24);
   --section-accent-text:  hsl(var(--accent-h) calc(var(--accent-s) + 6%) calc(var(--accent-l) + 14%));
 
+  /* ── Semantic status tokens ───────────────────────────────────────────────
+     ONE source of truth for the matte status palette (agent state, proof-of-work,
+     deltas, health signals). Aliased to the existing hex so this is pixel-neutral
+     today; a later pass can tune them per theme WITHOUT touching call sites.
+       ok   = success / complete / healthy      (was #2f9e6b)
+       warn = waiting / needs-approval / caution (was #c6892e)
+       error= failed / issue / overdue           (was #d1524a)
+       neutral = draft-ready / idle slate        (was #717784)
+       info = advisory (defaults to the muted text token; no new colour) */
+  --status-ok:      #2f9e6b;
+  --status-warn:    #c6892e;
+  --status-error:   #d1524a;
+  --status-neutral: #717784;
+  --status-info:    var(--text-muted);
+  /* RGB channel triples of the SAME matte values — consumed by the Tailwind `status.*`
+     colours (rgb(var(--…) / <alpha-value>)) so `bg-status-ok/10` etc. support opacity
+     modifiers that a hex var() can't. Kept in sync with the hex tokens above. */
+  --status-ok-rgb:      47 158 107;   /* #2f9e6b */
+  --status-warn-rgb:    198 137 46;   /* #c6892e */
+  --status-error-rgb:   209 82 74;    /* #d1524a */
+  --status-neutral-rgb: 113 119 132;  /* #717784 */
+  --status-info-rgb:    136 136 132;  /* matte muted grey */
+
   /* legacy aliases — kept so existing var() usages don't break */
   --md-bg:          var(--surface-page);
   --md-bg-panel:    var(--surface-card);
@@ -210,9 +233,9 @@ html[data-btnstyle="accent"] { --btn-solid-bg: var(--accent); --btn-solid-fg: #f
 .agent-dot { position: relative; display: inline-flex; height: 0.5rem; width: 0.5rem; border-radius: 9999px; flex-shrink: 0; }
 .agent-dot[data-status="idle"]           { background: var(--text-faint); }
 .agent-dot[data-status="working"]        { background: var(--accent); }
-.agent-dot[data-status="needs_approval"] { background: #c6892e; }
-.agent-dot[data-status="issue"]          { background: #d1524a; }
-.agent-dot[data-status="draft_ready"]    { background: #717784; }
+.agent-dot[data-status="needs_approval"] { background: var(--status-warn); }
+.agent-dot[data-status="issue"]          { background: var(--status-error); }
+.agent-dot[data-status="draft_ready"]    { background: var(--status-neutral); }
 .agent-dot[data-status="working"]::before {
   content: "";
   position: absolute; inset: -3px;
@@ -239,9 +262,9 @@ html[data-btnstyle="accent"] { --btn-solid-bg: var(--accent); --btn-solid-fg: #f
 }
 .agent-badge[data-status="idle"]           { color: var(--text-muted); background: var(--surface-hover); }
 .agent-badge[data-status="working"]        { color: var(--accent); background: rgba(138,133,125,0.14); }
-.agent-badge[data-status="needs_approval"] { color: #c6892e; background: rgba(198, 137, 46,0.12); }
-.agent-badge[data-status="issue"]          { color: #d1524a; background: rgba(209, 82, 74,0.12); }
-.agent-badge[data-status="draft_ready"]    { color: #717784; background: rgba(113,119,132,0.12); }
+.agent-badge[data-status="needs_approval"] { color: var(--status-warn); background: rgba(198, 137, 46,0.12); }
+.agent-badge[data-status="issue"]          { color: var(--status-error); background: rgba(209, 82, 74,0.12); }
+.agent-badge[data-status="draft_ready"]    { color: var(--status-neutral); background: rgba(113,119,132,0.12); }
 html.dark .agent-badge[data-status="needs_approval"], html[data-theme="dark"] .agent-badge[data-status="needs_approval"] { color: #b3a06a; }
 html.dark .agent-badge[data-status="issue"], html[data-theme="dark"] .agent-badge[data-status="issue"] { color: #bd8f95; }
 html.dark .agent-badge[data-status="draft_ready"], html[data-theme="dark"] .agent-badge[data-status="draft_ready"] { color: #9aa0ac; }
@@ -310,9 +333,16 @@ body {
 }
 .minimal-table td {
   color: var(--text-secondary);
-  font-size: 0.875rem;
   line-height: 1.45;
 }
+/* Cell font-size DEFAULT only — expressed through :where() so its specificity is (0,0,1),
+   which LOSES to any page-owned type-scale class (.text-row/.text-label/… = 0,1,0) or explicit
+   text-[Npx] utility on the cell, while un-classed cells still fall back to 0.875rem. The old
+   `.minimal-table td { font-size }` was (0,1,1) and silently beat every cell class, forcing 14px
+   and making cell typography inert (fixed in Pass 3P). NB Tailwind v3 flattens @layer wrappers to
+   unlayered CSS, so specificity — not layer order — is what governs here; :where() is the fix.
+   Only font-size is demoted; padding/border/colour/line-height keep their (0,1,1) rule above. */
+:where(.minimal-table) td { font-size: 0.875rem; }
 .minimal-table tr:hover td {
   background: var(--surface-hover);
 }
@@ -510,6 +540,9 @@ html[data-theme="dark"] .minimal-sparkline {
   line-height: 1.5;
 }
 .ai-composer-input::placeholder { color: var(--text-faint); }
+/* Control-typography floor (Pass 4A). .ai-composer-input is UNLAYERED, so a plain rule would beat
+   call-site utilities; :where() drops specificity to (0,0,0) so any call-site text-* still wins. */
+:where(.ai-composer-input) { font-size: var(--fs-body); }
 
 /* Mode pill — a Claude model-picker-style toggle chip: soft rounded, quiet when
    off, accent-filled when on. */
@@ -709,7 +742,10 @@ html[data-theme="dark"] .minimal-sparkline {
   position: relative;
   overflow: hidden;
 }
-.chat-input-orbit::before {
+/* The composer stays visually still. A perpetual light-sweep across the primary
+   input reads as a gimmick and fights the carved-hairline language, so the scan
+   only runs while the agent is actually working (.chat-input-orbit[data-busy="true"]). */
+.chat-input-orbit[data-busy="true"]::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -753,16 +789,18 @@ html[data-theme="dark"] .minimal-sparkline {
 .ask-input-shell {
   background: var(--surface-page);
 }
+/* AI composer — carved hairline, not an elevated pill: 12px radius, page-matching
+   surface, no resting shadow. Focus reads as a precise accent ring, not a bloom. */
 .ask-input {
   background: var(--surface-card);
   border: 1px solid var(--border-soft);
-  border-radius: 1.25rem;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  border-radius: 0.75rem;
+  box-shadow: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .ask-input:focus-within {
-  border-color: var(--border-strong);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.10);
+  border-color: var(--section-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--section-accent) 12%, transparent);
 }
 .ask-suggestion-row {
   display: flex;
@@ -1182,7 +1220,8 @@ html[data-theme="dark"] .minimal-sparkline {
   /* PRIMARY = clearly accent-tinted so the main action stands out (alive, not candy). Distinct from
      the quiet transparent secondary. Squared to match the app. */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-sm px-3.5 py-2 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-sm px-3.5 py-2 font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100;
+    font-size: var(--fs-body); /* control-typography floor (Pass 4A) — @layer components, so call-site text-* utilities still win */
     background: color-mix(in srgb, var(--section-accent) 14%, transparent);
     border: 1px solid var(--section-accent-line);
     color: var(--section-accent-text);
@@ -1200,7 +1239,8 @@ html[data-theme="dark"] .minimal-sparkline {
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-sm px-3.5 py-2 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-sm px-3.5 py-2 font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
+    font-size: var(--fs-body); /* control-typography floor (Pass 4A) — call-site text-* utilities still win */
     background: transparent;
     border: 1px solid var(--border-soft);
     color: var(--text-secondary);
@@ -1212,7 +1252,8 @@ html[data-theme="dark"] .minimal-sparkline {
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
+    font-size: var(--fs-body); /* control-typography floor (Pass 4A) — call-site text-* utilities still win */
     color: var(--text-muted);
   }
   .btn-ghost:hover:not(:disabled) {
@@ -1304,6 +1345,8 @@ html[data-theme="dark"] .minimal-sparkline {
   }
 
   .btn-icon {
+    /* Pass 4A: intentionally NO font-size — .btn-icon is icon-only (fixed h/w box centring a
+       lucide icon; no visible text at any call site), so a control-typography floor doesn't apply. */
     @apply inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-40;
     color: var(--text-muted);
   }
@@ -1317,6 +1360,7 @@ html[data-theme="dark"] .minimal-sparkline {
 @layer components {
   .key-input {
     @apply rounded-sm outline-none transition-all; /* razor-sharp console corners */
+    font-size: var(--fs-body); /* control-typography floor (Pass 4A) — @layer components, so call-site text-* utilities still win */
     background: var(--surface-input);
     border: 1px solid var(--border-soft);
     color: var(--text-primary);
@@ -1425,6 +1469,45 @@ html[data-theme="dark"] .minimal-sparkline {
   .text-xs, .text-\[10px\], .text-\[11px\], .text-\[12px\] {
     letter-spacing: 0.01em;
   }
+}
+
+/* ── Type scale ────────────────────────────────────────────────────────────
+   The ONE shared type scale for Mondaily. These semantic classes replace the
+   ~22 arbitrary text-[Npx] sizes going forward.
+
+   POLICY (locked in Pass 3N after the Quotes pilot): a type-scale class controls
+   ONLY size / line-height / letter-spacing. FONT WEIGHT IS NOT BAKED IN — it
+   stays page/component-owned via explicit `font-medium`/`font-semibold`/… next
+   to the class. This makes every class a weight-safe drop-in replacement for an
+   arbitrary text-[Npx]: a rename that never silently bolds text. (Earlier drafts
+   baked 500/600 into label/row/title/display — removed here; they had 0 usages,
+   so this is a pure no-op.)
+     caption 10px  — timestamps, tiny meta, unit labels
+     label   11px  — field/section labels, chips, status text
+     body  12.5px  — default reading text in dense surfaces
+     row     13px  — list/table row titles, primary inline text
+     stat    17px  — KPI / metric numbers (telemetry strips; pair with font-semibold + tabular-nums)
+     title   16px  — page/section headings (matches CommandPageHeader h1)
+     display 20px  — hero / greeting headings
+   Tokens are exposed as CSS variables too, so non-class contexts can read them. */
+:root {
+  --fs-caption: 10px;   --lh-caption: 1.35;
+  --fs-label:   11px;   --lh-label:   1.35;
+  --fs-body:    12.5px; --lh-body:    1.5;
+  --fs-row:     13px;   --lh-row:     1.4;
+  --fs-stat:    17px;   --lh-stat:    1.15;
+  --fs-title:   16px;   --lh-title:   1.25;
+  --fs-display: 20px;   --lh-display: 1.1;
+}
+@layer components {
+  /* Size / line-height / letter-spacing ONLY — no font-weight (see POLICY above). */
+  .text-caption { font-size: var(--fs-caption); line-height: var(--lh-caption); letter-spacing: 0.01em; }
+  .text-label   { font-size: var(--fs-label);   line-height: var(--lh-label);   letter-spacing: 0.01em; }
+  .text-body    { font-size: var(--fs-body);    line-height: var(--lh-body); }
+  .text-row     { font-size: var(--fs-row);     line-height: var(--lh-row); }
+  .text-stat    { font-size: var(--fs-stat);    line-height: var(--lh-stat);    letter-spacing: -0.01em; }
+  .text-title   { font-size: var(--fs-title);   line-height: var(--lh-title);   letter-spacing: -0.01em; }
+  .text-display { font-size: var(--fs-display); line-height: var(--lh-display); letter-spacing: -0.02em; }
 }
 
 /* ── Toggle switch ────────────────────────────────────────────────────────── */

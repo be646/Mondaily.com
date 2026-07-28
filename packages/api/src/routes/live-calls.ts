@@ -6,6 +6,10 @@ import { supabase } from "@mondaily/db/client";
 import { requireAuth } from "../middleware/auth";
 import { rateLimit } from "../middleware/rate-limit";
 import { recordingEnabled, transcriptionEnabled, startRoomEgress, stopRoomEgress, liveCaptionsAllowed, captionChunk, CAPTION_CHUNK_MAX_BYTES } from "../lib/livekit";
+import { meetingRoom } from "../lib/rooms";
+import { liveTranscriptProvenance } from "../lib/live-transcript";
+import { sanitizeLiveTranscriptLine, LIVE_TRANSCRIPT_SOURCE, type SanitizedLiveTranscriptLine } from "@mondaily/shared/captions";
+import { translateLines } from "../lib/translation";
 
 /**
  * Live calls — member-to-member audio/video over a self-hosted LiveKit server (sovereign:
@@ -225,6 +229,137 @@ router.post("/caption-chunk", rateLimit({ max: 300, windowMs: 60_000 }), async (
   // Fail-closed: no fabricated text. 413 passes through; other failures are transient → 502 so the client backs off.
   if (!r.ok) return c.json({ text: "", no_speech: false, error: r.status === 413 ? "payload_too_large" : "stt_unavailable" }, r.status === 413 ? 413 : 502);
   return c.json({ text: r.text, no_speech: r.no_speech, language: r.language, confidence: r.confidence });
+});
+
+/**
+ * POST /live-calls/transcript — Live Multilingual Meeting Intelligence Phase B: SAVE the finalized
+ * live-caption lines DURING the call, so Meeting Memory keeps a transcript even if recording is never
+ * opted-in, is still processing, or fails. Members only (guest save is deferred to Phase B.1). The room
+ * is SERVER-DERIVED from the event/session (never trusted from the client), so a caller can only ever
+ * write into their own workspace's room. Idempotent: unique (workspace_id, room, line_id) + ignore
+ * duplicates ⇒ a resent packet never creates a duplicate line. FAIL-CLOSED behind the same canary gate as
+ * captions; NO translation (Phase C), NO recording changes, NO fabricated/interim text.
+ */
+router.post("/transcript", rateLimit({ max: 120, windowMs: 60_000 }), zValidator("json", z.object({
+  event_id: z.string().min(1).max(200).optional(),
+  session_id: z.string().uuid().optional(),
+  lines: z.array(z.object({
+    id: z.string().min(1),
+    participantId: z.string().optional(),
+    name: z.string().optional(),
+    text: z.string(),
+    ts: z.number().optional(),
+    lang: z.string().optional(),
+    final: z.boolean().optional(),
+  })).min(1).max(50),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  // Consent + workspace gate: captions are opt-in (turning CC on) and behave exactly like caption-chunk.
+  if (!liveCaptionsAllowed(ws)) return c.json({ error: "live_captions_unavailable" }, 503);
+  const body = c.req.valid("json");
+
+  // Resolve the room this transcript belongs to — ALWAYS server-derived so the client can't target
+  // another tenant's room. Meeting calls: room = meetingRoom(ws, eventId). Direct calls: from the
+  // call_sessions row, validated to this workspace + participant.
+  let room: string;
+  let eventId: string | null = null;
+  let callSessionId: string | null = null;
+  if (body.session_id) {
+    const { data: s } = await supabase.from("call_sessions")
+      .select("id, room, initiator_id, invitee_id").eq("workspace_id", ws).eq("id", body.session_id).maybeSingle();
+    if (!s) return c.json({ error: "session_not_found" }, 404);
+    if (me !== s.initiator_id && me !== s.invitee_id) return c.json({ error: "not_a_participant" }, 403);
+    room = s.room; callSessionId = s.id;
+  } else if (body.event_id) {
+    eventId = body.event_id;
+    room = meetingRoom(ws, body.event_id);
+  } else {
+    return c.json({ error: "event_id_or_session_id_required" }, 400);
+  }
+
+  // Sanitize: only FINAL, non-empty lines survive (interim/fabricated dropped by the shared sanitizer).
+  const clean = body.lines.map(sanitizeLiveTranscriptLine).filter((l): l is SanitizedLiveTranscriptLine => l !== null);
+  if (clean.length === 0) return c.json({ ok: true, saved: 0 });   // nothing persistable — honest no-op
+
+  const rows = clean.map((l) => ({
+    workspace_id: ws, room, event_id: eventId, call_session_id: callSessionId,
+    line_id: l.line_id, participant_id: l.participant_id, speaker_name: l.speaker_name,
+    text: l.text, lang: l.lang, ts: l.ts, source: LIVE_TRANSCRIPT_SOURCE,
+  }));
+  const { error } = await supabase.from("call_transcript_lines")
+    .upsert(rows, { onConflict: "workspace_id,room,line_id", ignoreDuplicates: true });
+  if (error) return c.json({ error: "save_failed" }, 500);
+  return c.json({ ok: true, saved: clean.length });
+});
+
+/**
+ * GET /live-calls/transcript?event_id=…|session_id=… — read the saved live transcript for a call, ordered
+ * oldest→newest, with HONEST provenance (live_only | recording_pending | recording_available |
+ * recording_failed_live_fallback) so the UI never silently mixes it with a recording transcript. Workspace
+ * + participant scoped. This is the Meeting Memory / call-detail read path for live transcripts.
+ */
+router.get("/transcript", async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const eventId = (c.req.query("event_id") || "").trim();
+  const sessionId = (c.req.query("session_id") || "").trim();
+
+  let room: string;
+  let session: { record: boolean | null; recording_status: string | null; transcript_status: string | null; memory_node_id: string | null } | null = null;
+  if (sessionId) {
+    const { data: s } = await supabase.from("call_sessions")
+      .select("id, room, initiator_id, invitee_id, record, recording_status, transcript_status, memory_node_id")
+      .eq("workspace_id", ws).eq("id", sessionId).maybeSingle();
+    if (!s) return c.json({ error: "session_not_found" }, 404);
+    if (me !== s.initiator_id && me !== s.invitee_id) return c.json({ error: "not_a_participant" }, 403);
+    room = s.room;
+    session = { record: s.record, recording_status: s.recording_status, transcript_status: s.transcript_status, memory_node_id: s.memory_node_id };
+  } else if (eventId) {
+    // Meeting call: verify the caller is organizer/attendee of the event before exposing its transcript.
+    const { data: ev } = await supabase.from("nodes").select("data")
+      .eq("workspace_id", ws).eq("object_type", "calendar_event").eq("id", eventId).maybeSingle();
+    if (!ev) return c.json({ error: "event_not_found" }, 404);
+    const d = (ev.data ?? {}) as { organizer_id?: string; attendee_ids?: string[] };
+    if (d.organizer_id !== me && !(d.attendee_ids ?? []).includes(me)) return c.json({ error: "forbidden" }, 403);
+    room = meetingRoom(ws, eventId);
+  } else {
+    return c.json({ error: "event_id_or_session_id_required" }, 400);
+  }
+
+  const { data: lines } = await supabase.from("call_transcript_lines")
+    .select("line_id, participant_id, speaker_name, text, lang, ts, source")
+    .eq("workspace_id", ws).eq("room", room).order("ts", { ascending: true }).limit(5000);
+
+  return c.json({
+    lines: lines ?? [],
+    count: (lines ?? []).length,
+    provenance: liveTranscriptProvenance(session),
+    source: LIVE_TRANSCRIPT_SOURCE,
+  });
+});
+
+/**
+ * POST /live-calls/translate — Live Multilingual Meeting Intelligence Phase C.1: translate transcript lines
+ * into ONE target language for the CALLER only (a per-viewer read-time overlay). Sovereign: translation runs
+ * ONLY through aiGateway (metered feature "live_translation"); NO browser/third-party translator, NO STT or
+ * recording changes. Workspace-scoped + auth-required. It NEVER reads or writes call_transcript_lines — the
+ * caller passes the already-fetched original text; the original transcript is never mutated. Cached +
+ * idempotent by (workspace_id, text_hash, source_lang, target_lang). Same-language lines are passed through
+ * with no AI call; failures return state "unavailable" (the UI shows the original) — never fabricated text.
+ */
+router.post("/translate", rateLimit({ max: 120, windowMs: 60_000 }), zValidator("json", z.object({
+  target: z.string().min(2).max(16),
+  lines: z.array(z.object({
+    text: z.string(),
+    source_lang: z.string().max(16).optional(),
+  })).min(1).max(50),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const { target, lines } = c.req.valid("json");
+  const out = await translateLines(ws, me, target, lines);
+  return c.json(out);
 });
 
 /** GET /live-calls/incoming — ringing calls addressed to the caller in the last 60s. */

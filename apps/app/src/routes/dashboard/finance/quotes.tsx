@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FieldSelect } from "../../../components/ui/controls";
+import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
 import { FinanceListToolbar, FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { AIButton } from "../../../components/ui/ai-button";
 import { apiClient } from "../../../lib/api-client";
@@ -16,7 +17,9 @@ interface Quote {
   id: string;
   number: string;
   client_name: string;
-  amount_cents: number;
+  // The API returns the quote total in MAJOR units as `total` (with subtotal/tax_total).
+  // (Older code read a non-existent `amount_cents`, which rendered £NaN.)
+  total: number;
   currency: string;
   status: QuoteStatus;
   expires_at?: string;
@@ -26,9 +29,9 @@ interface Quote {
 
 const STATUS_CONFIG: Record<QuoteStatus, { label: string; color: string; icon: React.ElementType }> = {
   draft:    { label: "Draft",    color: "text-stone-400 bg-stone-400/10",     icon: ReceiptText   },
-  sent:     { label: "Sent",     color: "text-[#717784] bg-[#717784]/10",     icon: Send          },
-  accepted: { label: "Accepted", color: "text-[#2f9e6b] bg-[#2f9e6b]/10", icon: CheckCircle2 },
-  declined: { label: "Declined", color: "text-[#d1524a] bg-[#d1524a]/10",       icon: XCircle       },
+  sent:     { label: "Sent",     color: "text-status-neutral bg-status-neutral/10",     icon: Send          },
+  accepted: { label: "Accepted", color: "text-status-ok bg-status-ok/10", icon: CheckCircle2 },
+  declined: { label: "Declined", color: "text-status-error bg-status-error/10",       icon: XCircle       },
   expired:  { label: "Expired",  color: "text-stone-600 bg-stone-600/10",     icon: Clock         },
 };
 
@@ -41,8 +44,8 @@ const FILTERS = [
   { key: "expired",  label: "Expired"  },
 ];
 
-function fmt(cents: number, currency: string) {
-  return (cents / 100).toLocaleString("en-GB", { style: "currency", currency, minimumFractionDigits: 2 });
+function fmt(amount: number, currency: string) {
+  return (amount ?? 0).toLocaleString("en-GB", { style: "currency", currency, minimumFractionDigits: 2 });
 }
 
 function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: () => void }) {
@@ -110,7 +113,7 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
       <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-[#717784]/10 flex items-center justify-center"><ReceiptText size={12} className="text-[#717784]"/></div>
+            <div className="h-6 w-6 rounded-lg bg-status-neutral/10 flex items-center justify-center"><ReceiptText size={12} className="text-status-neutral"/></div>
             <span className="text-sm font-semibold text-[var(--text-primary)]">New Quote</span>
           </div>
           <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors text-lg leading-none">×</button>
@@ -122,39 +125,39 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
               <input value={brief} onChange={e => setBrief(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); aiDraft(); } }}
                 placeholder="Describe the deal — e.g. Annual Design Ops bundle for Acme, 3 seats…"
-                className="key-input h-8 flex-1 text-[12px]"/>
+                className="key-input h-8 flex-1"/>
               <AIButton variant="subtle" size="sm" loading={drafting} disabled={!brief.trim()} onClick={aiDraft}>Draft</AIButton>
             </div>
-            {draftNote && <p className="mt-1.5 text-[10px] text-[var(--text-faint)]">{draftNote}</p>}
+            {draftNote && <p className="mt-1.5 text-caption text-[var(--text-faint)]">{draftNote}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Client name</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Client name</label>
               <input value={form.client_name} onChange={e => setForm(f => ({ ...f, client_name: e.target.value }))}
                 placeholder="Acme Corp" className="key-input w-full text-sm"/>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Amount</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Amount</label>
               <input value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
                 placeholder="0.00" type="number" min="0" step="0.01" className="key-input w-full text-sm"/>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Currency</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Currency</label>
               <FieldSelect value={form.currency} onChange={v => setForm(f => ({ ...f, currency: v }))} ariaLabel="Currency"
                 options={currencyOptions(currencies)} />
             </div>
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Expires</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Expires</label>
               <input value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
                 type="date" className="key-input w-full text-sm"/>
             </div>
             <div className="col-span-2">
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Notes</label>
+              <label className="block text-caption font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-1">Notes</label>
               <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2} placeholder="Additional details…" className="key-input w-full text-sm resize-none"/>
             </div>
           </div>
-          {error && <p className="text-[11px] text-[var(--text-faint)] bg-stone-400/10 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-label text-[var(--text-faint)] bg-stone-400/10 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex justify-end gap-2 pt-1">
             <button onClick={onClose} className="px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">Cancel</button>
             <button onClick={submit} disabled={loading}
@@ -167,6 +170,27 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
     </div>
   );
 }
+
+const dateGB = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+
+// Column model for the shared DataTable. Cell rendering + money formatting + the status badge
+// stay HERE (the shared shell knows no finance logic); only the table markup moved.
+const QUOTE_COLUMNS: DataTableColumn<Quote>[] = [
+  { key: "number",  header: "Number", cellClassName: "text-body font-mono text-[var(--text-faint)]",    cell: (q) => q.number },
+  { key: "client",  header: "Client", cellClassName: "text-body font-medium text-[var(--text-primary)]", cell: (q) => q.client_name },
+  { key: "amount",  header: "Amount", cellClassName: "text-row font-semibold text-[var(--text-primary)]", cell: (q) => fmt(q.total, q.currency) },
+  { key: "status",  header: "Status", cell: (q) => {
+      const cfg = STATUS_CONFIG[q.status] ?? STATUS_CONFIG.draft;
+      const Icon = cfg.icon;
+      return (
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-caption font-medium ${cfg.color}`}>
+          <Icon size={10} />{cfg.label}
+        </span>
+      );
+    } },
+  { key: "expires", header: "Expires", cellClassName: "text-label text-[var(--text-secondary)]", cell: (q) => q.expires_at ? dateGB(q.expires_at) : "—" },
+  { key: "created", header: "Created", cellClassName: "text-label text-[var(--text-secondary)]", cell: (q) => dateGB(q.created_at) },
+];
 
 export function QuotesPage() {
   const qc = useQueryClient();
@@ -186,7 +210,7 @@ export function QuotesPage() {
 
   const { display, sumInDisplay } = useCurrency();
   const currency = display;
-  const q$ = (q: Quote) => ({ amount: q.amount_cents / 100, currency: q.currency });
+  const q$ = (q: Quote) => ({ amount: q.total ?? 0, currency: q.currency });
   const totalAccepted = sumInDisplay(quotes.filter(q => q.status === "accepted").map(q$)).value;
   const totalPending  = sumInDisplay(quotes.filter(q => q.status === "sent").map(q$)).value;
 
@@ -196,7 +220,7 @@ export function QuotesPage() {
         <FinanceHeader icon={ReceiptText} callsign="QUOTES" title="Quotes" subtitle="Manage proposals and client quotes"
           action={
             <button onClick={() => setShowNew(true)}
-              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
+              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-body font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
               <Plus size={13}/> New Quote
             </button>
           }
@@ -204,19 +228,19 @@ export function QuotesPage() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Send size={11} className="text-[#717784]"/><span className="text-[11px] text-[var(--text-muted)]">Sent</span></div>
-            <div className="text-[17px] font-semibold text-[#717784]">{formatMoney(totalPending, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{quotes.filter(q => q.status === "sent").length} quotes awaiting response</div>
+            <div className="flex items-center gap-1.5 mb-1"><Send size={11} className="text-status-neutral"/><span className="text-label text-[var(--text-muted)]">Sent</span></div>
+            <div className="text-stat font-semibold text-status-neutral">{formatMoney(totalPending, currency)}</div>
+            <div className="text-caption text-[var(--text-secondary)] mt-0.5">{quotes.filter(q => q.status === "sent").length} quotes awaiting response</div>
           </div>
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#2f9e6b]"/><span className="text-[11px] text-[var(--text-muted)]">Accepted</span></div>
-            <div className="text-[17px] font-semibold text-[#2f9e6b]">{formatMoney(totalAccepted, currency)}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">{quotes.filter(q => q.status === "accepted").length} accepted</div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-ok"/><span className="text-label text-[var(--text-muted)]">Accepted</span></div>
+            <div className="text-stat font-semibold text-status-ok">{formatMoney(totalAccepted, currency)}</div>
+            <div className="text-caption text-[var(--text-secondary)] mt-0.5">{quotes.filter(q => q.status === "accepted").length} accepted</div>
           </div>
           <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><ReceiptText size={11} className="text-[var(--text-muted)]"/><span className="text-[11px] text-[var(--text-muted)]">Total quotes</span></div>
-            <div className="text-[17px] font-semibold text-[var(--text-primary)]">{quotes.length}</div>
-            <div className="text-[10px] text-[var(--text-secondary)] mt-0.5">all statuses</div>
+            <div className="flex items-center gap-1.5 mb-1"><ReceiptText size={11} className="text-[var(--text-muted)]"/><span className="text-label text-[var(--text-muted)]">Total quotes</span></div>
+            <div className="text-stat font-semibold text-[var(--text-primary)]">{quotes.length}</div>
+            <div className="text-caption text-[var(--text-secondary)] mt-0.5">all statuses</div>
           </div>
         </div>
 
@@ -226,52 +250,26 @@ export function QuotesPage() {
       </div>
 
       <div className="flex-1 overflow-auto">
-        {isLoading ? (
-          <div className="flex h-40 items-center justify-center text-[12px] text-[var(--text-secondary)]">Loading…</div>
-        ) : isError ? (
-          <div className="flex h-40 flex-col items-center justify-center gap-2 text-[12px] text-[var(--text-muted)]">Couldn't load quotes. <button onClick={() => refetch()} className="underline">Retry</button></div>
-        ) : quotes.length === 0 ? (
-          <div className="flex h-60 flex-col items-center justify-center gap-3">
-            <ReceiptText size={32} className="text-[var(--text-secondary)]"/>
-            <div className="text-[13px] text-[var(--text-muted)]">No quotes {statusFilter ? `with status "${statusFilter}"` : "yet"}</div>
-            <button onClick={() => setShowNew(true)} className="text-[12px] text-[var(--text-faint)] hover:text-[var(--text-faint)] transition-colors">Create your first quote</button>
-          </div>
-        ) : (
-          <table className="minimal-table">
-            <thead>
-              <tr className="border-b border-[var(--border-soft)]">
-                {["Number", "Client", "Amount", "Status", "Expires", "Created"].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-[var(--text-secondary)]">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {quotes.map(q => {
-                const cfg = STATUS_CONFIG[q.status] ?? STATUS_CONFIG.draft;
-                const Icon = cfg.icon;
-                return (
-                  <tr key={q.id}
-                    className="border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors">
-                    <td className="px-4 py-3 text-[12px] font-mono text-[var(--text-faint)]">{q.number}</td>
-                    <td className="px-4 py-3 text-[12px] font-medium text-[var(--text-primary)]">{q.client_name}</td>
-                    <td className="px-4 py-3 text-[13px] font-semibold text-[var(--text-primary)]">{fmt(q.amount_cents, q.currency)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${cfg.color}`}>
-                        <Icon size={10}/>{cfg.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[11px] text-[var(--text-secondary)]">
-                      {q.expires_at ? new Date(q.expires_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
-                    </td>
-                    <td className="px-4 py-3 text-[11px] text-[var(--text-secondary)]">
-                      {new Date(q.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+        {/* Presentational shell only — every cell below is still rendered by this page, so all
+            formatting, the status badge, and the money value are unchanged. Rows are intentionally
+            non-navigating (matches the prior behaviour); no row click was added. */}
+        <DataTable<Quote>
+          columns={QUOTE_COLUMNS}
+          rows={quotes}
+          rowKey={(q) => q.id}
+          state={{
+            isLoading, isError, onRetry: () => refetch(),
+            loadingLabel: "Loading…",
+            errorLabel: "Couldn’t load quotes.",
+            empty: (
+              <div className="flex h-60 flex-col items-center justify-center gap-3">
+                <ReceiptText size={32} className="text-[var(--text-secondary)]"/>
+                <div className="text-row text-[var(--text-muted)]">No quotes {statusFilter ? `with status "${statusFilter}"` : "yet"}</div>
+                <button onClick={() => setShowNew(true)} className="text-body text-[var(--text-faint)] hover:text-[var(--text-faint)] transition-colors">Create your first quote</button>
+              </div>
+            ),
+          }}
+        />
       </div>
 
       {showNew && (

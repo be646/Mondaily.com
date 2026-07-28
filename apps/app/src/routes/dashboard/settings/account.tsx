@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, Check, KeyRound, LogOut, Loader2, Trash2 } from "lucide-react";
+import { Camera, Check, KeyRound, LogOut, Loader2, Trash2, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
 import { downscaleImageToDataUrl } from "../../../lib/image-resize";
-import { PageHeader, PageSkeleton } from "../../../components/ui/page-state";
+import { PageSkeleton } from "../../../components/ui/page-state";
+import { CommandPageHeader } from "../../../components/ui/controls";
 import { useCurrentUser } from "../../../hooks/useCurrentUser";
 import { useSovereignAuthOptional } from "../../../components/auth/sovereign-auth-context";
 import { THEMES, type ThemeId, applyTheme as applyAppTheme, normalizeTheme } from "../../../lib/theme";
@@ -225,7 +226,7 @@ export function AccountSettings() {
   return (
     <div className="space-y-5">
       {/* Shared PageHeader — same page-header pattern as every other settings page. */}
-      <PageHeader title="Account" description="Your profile, AI personalization, preferences, and personal security." />
+      <CommandPageHeader icon={User} callsign="ACCOUNT" title="Account" subtitle="Your profile, AI personalization, preferences, and personal security." />
 
       {/* ── Identity card — flat, premium; no decorative gradient/orb (per one-accent, no-candy rule). ── */}
       <div className="rounded-sm border p-6"

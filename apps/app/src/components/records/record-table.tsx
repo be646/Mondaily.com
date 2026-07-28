@@ -2400,10 +2400,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   if (query.isLoading) return <div className="mt-4"><PageSkeleton /></div>;
   if (query.isError)   return <div className="mt-4"><ErrorState error={query.error as Error} onRetry={() => query.refetch()} /></div>;
   if (!records.length) return (
-    <div className="mt-4 mx-6 flex min-h-64 flex-col items-center justify-center rounded-sm border border-stone-800/40 bg-[var(--surface-hover)] px-6 text-center">
-      <Database className="mb-3 text-stone-700" size={26}/>
-      <h2 className="text-sm font-medium text-stone-300">No {objectType} yet</h2>
-      <p className="mt-1 max-w-sm text-sm text-stone-600">Create a record to get started.</p>
+    <div className="mt-4 mx-6 flex min-h-64 flex-col items-center justify-center rounded-sm border border-dashed px-6 text-center" style={{ borderColor: "var(--border-soft)" }}>
+      <Database className="mb-3" size={26} style={{ color: "var(--text-faint)" }}/>
+      <h2 className="text-sm font-medium text-[var(--text-secondary)]">No {objectType} yet</h2>
+      <p className="mt-1 max-w-sm text-sm text-[var(--text-faint)]">Create a record to get started.</p>
     </div>
   );
 

@@ -5,6 +5,7 @@ import { Bot, ChevronDown, ChevronLeft, ChevronUp, Link2, Mail, MousePointerClic
 import { useEffect, useMemo, useState } from "react";
 import { apiClient, BASE_URL } from "../../lib/api-client";
 import { PageSkeleton, EmptyState } from "../../components/ui/page-state";
+import { CommandPageHeader } from "../../components/ui/controls";
 import { AIButton } from "../../components/ui/ai-button";
 
 type EmailFilter = "all" | "inbox" | "sent" | "unread";
@@ -277,17 +278,24 @@ export function EmailsPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="border-b px-4 py-3 sm:px-6 flex items-center gap-4" style={{ borderColor: "var(--border-soft)" }}>
-        <p className="text-sm flex-1" style={{ color: "var(--text-muted)" }}>Synced Gmail and Outlook conversations.</p>
-        <div className="flex gap-1">
-          <button onClick={() => setTab("inbox")} className="btn-tab" data-active={tab === "inbox"}>
-            <Mail size={12}/> Inbox
-          </button>
-          <button onClick={() => setTab("tracking")} className="btn-tab" data-active={tab === "tracking"}>
-            <Eye size={12}/> Tracking
-          </button>
-        </div>
-      </header>
+      <div className="shrink-0 px-4 pt-4 sm:px-6">
+        <CommandPageHeader
+          icon={Mail}
+          callsign="INBOX"
+          title="Email & calendar"
+          subtitle="Synced Gmail and Outlook conversations."
+          secondaryActions={
+            <div className="flex gap-1">
+              <button onClick={() => setTab("inbox")} className="btn-tab" data-active={tab === "inbox"}>
+                <Mail size={12}/> Inbox
+              </button>
+              <button onClick={() => setTab("tracking")} className="btn-tab" data-active={tab === "tracking"}>
+                <Eye size={12}/> Tracking
+              </button>
+            </div>
+          }
+        />
+      </div>
       {tab === "tracking" ? (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="border-b px-4 py-2" style={{ borderColor: "var(--border-soft)" }}>

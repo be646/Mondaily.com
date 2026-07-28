@@ -7,6 +7,8 @@ import { supabase } from "@mondaily/db/client";
 import { recordingEnabled, liveCaptionsAllowed, captionChunk, CAPTION_CHUNK_MAX_BYTES } from "../lib/livekit";
 import { rateLimit } from "../middleware/rate-limit";
 import { guestSafeMeetingLabel, normalizeMeetingType } from "@mondaily/shared/meeting-types";
+import { sanitizeLiveTranscriptLine, LIVE_TRANSCRIPT_SOURCE, type SanitizedLiveTranscriptLine } from "@mondaily/shared/captions";
+import { translateLines } from "../lib/translation";
 
 /**
  * Waiting-room state (Phase 2A) is stored as generic `nodes` rows (object_type "call_waiting_request")
@@ -262,6 +264,92 @@ router.post("/caption-chunk", rateLimit({ max: 300, windowMs: 60_000 }), async (
   });
   if (!out.ok) return c.json({ text: "", no_speech: false, error: out.status === 413 ? "payload_too_large" : "stt_unavailable" }, out.status === 413 ? 413 : 502);
   return c.json({ text: out.text, no_speech: out.no_speech, language: out.language, confidence: out.confidence });
+});
+
+/**
+ * POST /public/calls/transcript — Phase B.1: SAVE a guest's finalized live-caption lines (guest twin of the
+ * member /live-calls/transcript). WRITE-ONLY: there is deliberately NO guest read endpoint — a guest can
+ * contribute to the transcript but can never read anyone else's, and gets no workspace data. Guest token in
+ * the X-Guest-Token header, explicit `?consent=true`, canary-gated, rate-limited (mirrors caption-chunk).
+ *
+ * SECURITY: workspace_id, room, and event_id come ONLY from the signed token claims (never the body), so a
+ * guest can only ever write into the exact room its link is scoped to. Each line's identity must be a real
+ * guest identity (`guest_…`, the LiveKit sub minted at join) — non-guest ids (e.g. member `user_…`) are
+ * dropped, so a guest can never poison/overwrite a member's transcript line. Idempotent via the same unique
+ * (workspace_id, room, line_id); the guest-namespaced line_id (`${guestIdentity}-${seq}`) can't collide with
+ * a member's. FINAL lines only (interim dropped by the shared sanitizer). No translation, no STT changes.
+ */
+router.post("/transcript", rateLimit({ max: 120, windowMs: 60_000 }), zValidator("json", z.object({
+  lines: z.array(z.object({
+    id: z.string().min(1),
+    participantId: z.string().optional(),
+    name: z.string().optional(),
+    text: z.string(),
+    ts: z.number().optional(),
+    lang: z.string().optional(),
+    final: z.boolean().optional(),
+  })).min(1).max(50),
+})), async (c) => {
+  if (!callsEnabled()) return c.json({ error: "unavailable" }, 503);
+  const token = c.req.header("X-Guest-Token") ?? "";
+  if (!token) return c.json({ error: "token_required" }, 400);
+
+  const r = await resolveGuest(token);
+  if (r.status !== "ok") return c.json({ error: "invalid_or_expired" }, 401);
+  if (!liveCaptionsAllowed(r.claims?.ws)) return c.json({ error: "live_captions_unavailable" }, 503);
+  if (c.req.query("consent") !== "true") return c.json({ error: "consent_required" }, 400);
+
+  // Everything that scopes the write is SERVER-DERIVED from the signed token — never from the body.
+  const ws = r.claims!.ws!;
+  const room = r.claims!.room!;
+  const eventId = r.claims!.ev ?? null;
+
+  const clean = c.req.valid("json").lines
+    .map(sanitizeLiveTranscriptLine)
+    .filter((l): l is SanitizedLiveTranscriptLine => l !== null)
+    // Guest lines must carry a real guest identity — this keeps guests inside their own id namespace and
+    // structurally prevents them from writing (or overwriting) a member's `user_…` line.
+    .filter((l) => (l.participant_id ?? "").startsWith("guest_") && l.line_id.startsWith("guest_"));
+  if (clean.length === 0) return c.json({ ok: true, saved: 0 });
+
+  const rows = clean.map((l) => ({
+    workspace_id: ws, room, event_id: eventId, call_session_id: null,
+    line_id: l.line_id, participant_id: l.participant_id, speaker_name: l.speaker_name,
+    text: l.text, lang: l.lang, ts: l.ts, source: LIVE_TRANSCRIPT_SOURCE,
+  }));
+  const { error } = await supabase.from("call_transcript_lines")
+    .upsert(rows, { onConflict: "workspace_id,room,line_id", ignoreDuplicates: true });
+  if (error) return c.json({ error: "save_failed" }, 500);
+  return c.json({ ok: true, saved: clean.length });
+});
+
+/**
+ * POST /public/calls/translate — Phase C.3: translate a guest's OWN caption lines into their chosen language
+ * (per-viewer overlay). Guest twin of the member /live-calls/translate — reuses the exact sovereign engine +
+ * caption_translations cache. X-Guest-Token + `?consent=true`, rate-limited. The workspace comes ONLY from the
+ * signed token claims (never the body); the body carries only the text the guest already sees + a target. It
+ * returns translations ONLY: translateLines never reads/writes call_transcript_lines and exposes no member or
+ * workspace data. Same-language passes through with no AI; failures return "unavailable" (original shown),
+ * never fabricated. No STT/recording changes.
+ */
+router.post("/translate", rateLimit({ max: 120, windowMs: 60_000 }), zValidator("json", z.object({
+  target: z.string().min(2).max(16),
+  lines: z.array(z.object({
+    text: z.string(),
+    source_lang: z.string().max(16).optional(),
+  })).min(1).max(50),
+})), async (c) => {
+  if (!callsEnabled()) return c.json({ error: "unavailable" }, 503);
+  const token = c.req.header("X-Guest-Token") ?? "";
+  if (!token) return c.json({ error: "token_required" }, 400);
+  const r = await resolveGuest(token);
+  if (r.status !== "ok") return c.json({ error: "invalid_or_expired" }, 401);
+  if (c.req.query("consent") !== "true") return c.json({ error: "consent_required" }, 400);
+
+  const ws = r.claims!.ws!;                                   // SERVER-DERIVED from the signed token — never the body
+  const { target, lines } = c.req.valid("json");
+  const out = await translateLines(ws, `guest:${r.claims!.jti ?? "anon"}`, target, lines);
+  return c.json(out);
 });
 
 export { router as guestCallsRouter };

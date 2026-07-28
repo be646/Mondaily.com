@@ -7,6 +7,7 @@ import { useCurrency } from "../../../hooks/useCurrency";
 import { FinanceAgentStrip } from "../../../components/ai/finance-agent-strip";
 import { Plus, FileText, Clock, CheckCircle, AlertTriangle, XCircle, Send, DollarSign } from "lucide-react";
 import { FinanceListToolbar, FinanceHeader } from "../../../components/finance/finance-toolbar";
+import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
 import { PeriodSelector } from "../../../components/ui/period-selector";
 import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
 
@@ -50,6 +51,36 @@ const FILTERS: { key: string; label: string }[] = [
   { key: "sent", label: "Sent" },
   { key: "paid", label: "Paid" },
   { key: "overdue", label: "Overdue" },
+];
+
+// Column model for the shared DataTable. Every cell renderer — status badge, money (formatCurrency),
+// dates (formatDate) and the "Open →" link — stays HERE, so the shell knows no finance logic. Amount
+// still reads inv.total (major units) exactly as before. Only the table markup moved.
+const INVOICE_COLUMNS: DataTableColumn<Invoice>[] = [
+  { key: "number", header: "Invoice", cellClassName: "text-body font-medium text-[var(--text-primary)]", cell: (inv) => inv.number },
+  { key: "client", header: "Client", cell: (inv) => (
+      <>
+        <div className="text-body text-[var(--text-primary)]">{inv.client_name}</div>
+        {inv.client_email && <div className="text-label text-[var(--text-secondary)]">{inv.client_email}</div>}
+      </>
+    ) },
+  { key: "amount", header: "Amount", cellClassName: "text-row font-semibold text-[var(--text-primary)]", cell: (inv) => formatCurrency(inv.total, inv.currency) },
+  { key: "status", header: "Status", cell: (inv) => {
+      const cfg = STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.draft;
+      const Icon = cfg.icon;
+      return (
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-caption font-medium ${cfg.color}`}>
+          <Icon size={10} />{cfg.label}
+        </span>
+      );
+    } },
+  { key: "due_date", header: "Due Date", cellClassName: "text-label text-[var(--text-faint)]", cell: (inv) => formatDate(inv.due_date) },
+  { key: "open", header: "", cell: (inv) => (
+      <Link to={`/finance/invoices/${inv.id}`} onClick={(e) => e.stopPropagation()}
+        className="text-label text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors">
+        Open →
+      </Link>
+    ) },
 ];
 
 export function InvoicesPage() {
@@ -113,7 +144,7 @@ export function InvoicesPage() {
               <button
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending}
-                className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-body font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-50"
               >
                 <Plus size={13}/> New Invoice
               </button>
@@ -128,18 +159,18 @@ export function InvoicesPage() {
           <div className="telemetry-strip">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign size={12} className="text-[var(--text-muted)]"/>
-              <span className="text-[11px] text-[var(--text-muted)]">Outstanding</span>
+              <span className="text-label text-[var(--text-muted)]">Outstanding</span>
             </div>
-            <div className="font-mono text-[18px] font-semibold tabular-nums text-[var(--text-primary)]">{formatCurrency(totalOwed, display)}</div>
-            <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">unpaid · as of today</div>
+            <div className="font-mono text-stat font-semibold tabular-nums text-[var(--text-primary)]">{formatCurrency(totalOwed, display)}</div>
+            <div className="mt-0.5 text-caption text-[var(--text-faint)]">unpaid · as of today</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-2 mb-1">
               <CheckCircle size={12} className="text-[#2f9e6b]"/>
-              <span className="text-[11px] text-[var(--text-muted)]">Collected</span>
+              <span className="text-label text-[var(--text-muted)]">Collected</span>
             </div>
-            <div className="font-mono text-[18px] font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{formatCurrency(totalPaid, display)}</div>
-            <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{collectedScope}</div>
+            <div className="font-mono text-stat font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{formatCurrency(totalPaid, display)}</div>
+            <div className="mt-0.5 text-caption text-[var(--text-faint)]">{collectedScope}</div>
           </div>
         </div>
 
@@ -151,69 +182,31 @@ export function InvoicesPage() {
       {/* Table */}
       <div className="flex-1 overflow-auto">
         {isLoading ? (
-          <div className="flex h-40 items-center justify-center text-[12px] text-[var(--text-secondary)]">Loading…</div>
+          <div className="flex h-40 items-center justify-center text-body text-[var(--text-secondary)]">Loading…</div>
         ) : isError ? (
-          <div className="flex h-40 flex-col items-center justify-center gap-2 text-[12px] text-[var(--text-muted)]">Couldn't load invoices. <button onClick={() => refetch()} className="underline">Retry</button></div>
+          <div className="flex h-40 flex-col items-center justify-center gap-2 text-body text-[var(--text-muted)]">Couldn't load invoices. <button onClick={() => refetch()} className="underline">Retry</button></div>
         ) : invoices.length === 0 ? (
           <div className="flex h-60 flex-col items-center justify-center gap-3">
             <FileText size={32} className="text-[var(--text-secondary)]"/>
-            <div className="text-[13px] text-[var(--text-muted)]">No invoices yet</div>
+            <div className="text-row text-[var(--text-muted)]">No invoices yet</div>
             <button
               onClick={() => createMutation.mutate()}
-              className="text-[12px] text-[var(--text-faint)] hover:text-[var(--text-faint)] transition-colors"
+              className="text-body text-[var(--text-faint)] hover:text-[var(--text-faint)] transition-colors"
             >
               Create your first invoice
             </button>
           </div>
         ) : (
-          <table className="minimal-table font-mono">
-            <thead>
-              <tr className="border-b border-[var(--border-soft)]">
-                {["Invoice", "Client", "Amount", "Status", "Due Date", ""].map(h => (
-                  <th key={h} className="px-4 py-2.5 text-left text-[11px] font-medium text-[var(--text-secondary)]">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map(inv => {
-                const cfg = STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.draft;
-                const Icon = cfg.icon;
-                return (
-                  <tr
-                    key={inv.id}
-                    className="border-b border-[var(--border-soft)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
-                    onClick={() => navigate(`/finance/invoices/${inv.id}`)}
-                  >
-                    <td className="px-4 py-3 text-[12px] font-medium text-[var(--text-primary)]">{inv.number}</td>
-                    <td className="px-4 py-3">
-                      <div className="text-[12px] text-[var(--text-primary)]">{inv.client_name}</div>
-                      {inv.client_email && <div className="text-[11px] text-[var(--text-secondary)]">{inv.client_email}</div>}
-                    </td>
-                    <td className="px-4 py-3 text-[12px] font-semibold text-[var(--text-primary)]">
-                      {formatCurrency(inv.total, inv.currency)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${cfg.color}`}>
-                        <Icon size={10}/>{cfg.label}
-                      </span>
-                    </td>
-                    <td className={`px-4 py-3 text-[12px] ${inv.status === "overdue" ? "text-[var(--text-faint)]" : "text-[var(--text-faint)]"}`}>
-                      {formatDate(inv.due_date)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        to={`/finance/invoices/${inv.id}`}
-                        onClick={e => e.stopPropagation()}
-                        className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-faint)] transition-colors"
-                      >
-                        Open →
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          // Presentational shell only — cell rendering, status badge, money value, dates, the "Open →"
+          // link and the row → detail navigation are all still owned by this page (above), unchanged.
+          // `font-mono` preserves the ledger-style numerals; row click navigates exactly as before.
+          <DataTable<Invoice>
+            className="font-mono"
+            columns={INVOICE_COLUMNS}
+            rows={invoices}
+            rowKey={(inv) => inv.id}
+            onRowClick={(inv) => navigate(`/finance/invoices/${inv.id}`)}
+          />
         )}
       </div>
     </div>

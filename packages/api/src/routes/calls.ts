@@ -10,6 +10,8 @@ import { ingestRecording, RECORDINGS_BUCKET } from "../jobs/meeting-memory";
 import { normalizeMeetingType } from "@mondaily/shared/meeting-types";
 import { liveKitEnabled, recordingEnabled, transcriptionEnabled } from "../lib/livekit";
 import { requireAdminRole } from "../middleware/rbac";
+import { liveTranscriptProvenance } from "../lib/live-transcript";
+import { meetingRoom } from "../lib/rooms";
 
 type Variables = { userId: string; workspaceId: string; role: string };
 type CallNode = {
@@ -119,6 +121,8 @@ export interface MemoryRow {
   occurred_at: string; participant_count: number; has_agenda: boolean;
   transcript_status: TranscriptStatus; summary_status: SummaryStatus; can_summarize: boolean;
   action_item_count: number; href: string;
+  // Which kind of transcript this row has (honest signal for the list; undefined = none).
+  transcript_kind?: "live" | "recording";
 }
 
 /** Pure: a call record → a memory row. Honest statuses derived only from real stored fields. */
@@ -134,23 +138,29 @@ export function callMemory(n: ReturnType<typeof normalizeCall>): MemoryRow {
     can_summarize: hasTranscript,
     action_item_count: Array.isArray(n.action_items) ? n.action_items.length : 0,
     href: `/calls/${n.id}`,
+    transcript_kind: hasTranscript ? "recording" : undefined,
   };
 }
 
-interface CalEventData { title?: string; start_at?: string; end_at?: string; description?: string; status?: string; organizer_id?: string; attendee_ids?: string[] }
+interface StoredIntel { action_items?: unknown[] }
+interface CalEventData { title?: string; start_at?: string; end_at?: string; description?: string; status?: string; organizer_id?: string; attendee_ids?: string[]; transcript_intel?: Record<string, StoredIntel> }
 /** A past/completed calendar event → a memory row. No recording exists yet, so transcript is always
- *  "unavailable" and summary is "pending" (has agenda) or "none" — never fabricated. */
+ *  "unavailable" and summary is "pending" (has agenda) or "none" — never fabricated. If AI intelligence
+ *  was already generated from the saved live transcript (persisted in data.transcript_intel[id]), the row
+ *  honestly reflects that: summary = "generated" and the real saved action-item count. */
 export function eventMemory(id: string, d: CalEventData, now: Date): MemoryRow {
   const hasAgenda = !!(d.description ?? "").trim();
+  const intel = d.transcript_intel?.[id];
+  const savedActions = Array.isArray(intel?.action_items) ? intel!.action_items!.length : 0;
   return {
     id, source: "calendar", title: d.title || "Untitled meeting",
     occurred_at: d.start_at || now.toISOString(),
     participant_count: (d.attendee_ids?.length ?? 0) + 1,
     has_agenda: hasAgenda,
     transcript_status: "unavailable",
-    summary_status: hasAgenda ? "pending" : "none",   // can be summarized from the agenda; not yet done
+    summary_status: intel ? "generated" : hasAgenda ? "pending" : "none",   // real saved intel > agenda-only pending
     can_summarize: hasAgenda,
-    action_item_count: 0,
+    action_item_count: savedActions,
     href: `/calls/${id}`,
   };
 }
@@ -178,14 +188,21 @@ router.get("/memory", zValidator("query", z.object({ search: z.string().default(
       ...n.participants.map((p) => (p as { name?: string })?.name ?? ""),
       ...n.transcript.map((l) => (l as { text?: string })?.text ?? "")].join(" ").toLowerCase(),
   }));
+  // Which past MEETINGS have a saved live transcript? One workspace-scoped query → a set of event ids, so a
+  // meeting that only had live captions is honestly shown as "Transcript" (and opens to it) instead of "No
+  // transcript". Read-only; never touches the transcript rows.
+  const { data: txEvents } = await supabase.from("call_transcript_lines")
+    .select("event_id").eq("workspace_id", ws).not("event_id", "is", null).limit(20000);
+  const eventsWithLiveTranscript = new Set((txEvents ?? []).map((r) => r.event_id as string).filter(Boolean));
   const canView = (d: CalEventData) => d.organizer_id === me || (d.attendee_ids ?? []).includes(me);
   const eventItems = (eventsRes.data ?? [])
     .map((n) => ({ id: n.id as string, d: (n.data ?? {}) as CalEventData }))
     .filter((e) => canView(e.d) && isPastEvent(e.d, now))            // participant-only, past meetings only
-    .map((e) => ({
-      row: eventMemory(e.id, e.d, now),
-      corpus: [e.d.title, e.d.description, ...(e.d.attendee_ids ?? []).map((u) => dir.get(u) ?? "")].join(" ").toLowerCase(),
-    }));
+    .map((e) => {
+      const row = eventMemory(e.id, e.d, now);
+      if (eventsWithLiveTranscript.has(e.id)) { row.transcript_status = "available"; row.transcript_kind = "live"; }
+      return { row, corpus: [e.d.title, e.d.description, ...(e.d.attendee_ids ?? []).map((u) => dir.get(u) ?? "")].join(" ").toLowerCase() };
+    });
 
   const search = c.req.valid("query").search.trim().toLowerCase();
   const memories = [...eventItems, ...callItems]
@@ -234,9 +251,73 @@ router.get("/readiness", requireAdminRole, async (c) => {
   });
 });
 
+// Post-call transcript read. Returns the RECORDING transcript (canonical) plus any saved LIVE transcript,
+// with honest `transcript_sources` + provenance so the UI can label live / recording / both / none and show
+// a processing state. Read-only: never mutates transcript rows, never exposes STT keys. Also serves a
+// completed MEETING/EVENT that only has a saved live transcript (no call node yet) — participant-scoped.
 router.get("/:id", async (c) => {
-  const node = await getCall(c.get("workspaceId"), c.req.param("id"));
-  return node ? c.json(normalizeCall(node)) : c.json({ error: "Call not found" }, 404);
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const id = c.req.param("id");
+  const node = await getCall(ws, id);
+  if (node) {
+    const normalized = normalizeCall(node);
+    const hasRecordingTranscript = normalized.transcript.length > 0;
+    // Fetch the saved live transcript for the linked session (if any). Surfaces the live fallback, the
+    // "recording + live both" case, and the honest processing state.
+    let live: Array<Record<string, unknown>> = [];
+    let session: { record: boolean | null; recording_status: string | null; transcript_status: string | null; memory_node_id: string | null } | null = null;
+    const sessId = (node.data as { call_session_id?: string } | null)?.call_session_id;
+    if (sessId) {
+      const { data: s } = await supabase.from("call_sessions")
+        .select("room, record, recording_status, transcript_status, memory_node_id")
+        .eq("workspace_id", ws).eq("id", sessId).maybeSingle();
+      if (s) {
+        session = { record: s.record, recording_status: s.recording_status, transcript_status: s.transcript_status, memory_node_id: s.memory_node_id };
+        if (s.room) {
+          const { data: lines } = await supabase.from("call_transcript_lines")
+            .select("line_id, speaker_name, text, lang, ts").eq("workspace_id", ws).eq("room", s.room)
+            .order("ts", { ascending: true }).limit(5000);
+          live = lines ?? [];
+        }
+      }
+    }
+    const pending = ["pending", "processing", "queued"];
+    const recording_processing = !hasRecordingTranscript && !!session?.record
+      && (pending.includes(String(session?.transcript_status)) || session?.recording_status === "recording" || session?.recording_status === "processing");
+    return c.json({
+      ...normalized,
+      live_transcript: live,
+      transcript_sources: { recording: hasRecordingTranscript, live: live.length > 0 },
+      transcript_provenance: liveTranscriptProvenance(session),
+      recording_processing,
+    });
+  }
+
+  // No call node — maybe a completed calendar MEETING that saved a live transcript. Participant-scoped.
+  const { data: ev } = await supabase.from("nodes").select("id,data")
+    .eq("workspace_id", ws).eq("object_type", "calendar_event").eq("id", id).maybeSingle();
+  if (!ev) return c.json({ error: "Call not found" }, 404);
+  const d = (ev.data ?? {}) as { title?: string; start_at?: string; organizer_id?: string; attendee_ids?: string[] };
+  if (d.organizer_id !== me && !(d.attendee_ids ?? []).includes(me)) return c.json({ error: "Call not found" }, 404);
+  const { data: lines } = await supabase.from("call_transcript_lines")
+    .select("line_id, speaker_name, text, lang, ts").eq("workspace_id", ws).eq("room", meetingRoom(ws, id))
+    .order("ts", { ascending: true }).limit(5000);
+  if (!lines || lines.length === 0) return c.json({ error: "Call not found" }, 404);   // no transcript → nothing to show here
+  const dir = await memberNames(ws);
+  const participants = [d.organizer_id, ...(d.attendee_ids ?? [])].filter(Boolean)
+    .map((uid) => ({ name: dir.get(String(uid)) || "Member" }));
+  return c.json({
+    id, is_event: true, meeting_type: "general",
+    contact_name: d.title || "Meeting", occurred_at: d.start_at || new Date().toISOString(),
+    duration_seconds: 0, direction: "outbound", status: "processed",
+    ai_summary: "", overview: "", key_topics: [], action_items: [], buyer_signals: [], next_steps: [],
+    participants, linked_records: [], transcript: [],
+    live_transcript: lines,
+    transcript_sources: { recording: false, live: true },
+    transcript_provenance: "live_only",
+    recording_processing: false,
+  });
 });
 
 router.post("/:id/link", zValidator("json", z.object({ node_id: z.string().uuid() })), async (c) => {

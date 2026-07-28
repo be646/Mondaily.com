@@ -1,7 +1,7 @@
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Flag, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText, Paperclip, X, Search, Square, RotateCcw, Copy, Check, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText, Paperclip, X, Search, Square, RotateCcw, Copy, Check, ThumbsUp, ThumbsDown } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
@@ -206,6 +206,10 @@ export function HomePage() {
     }, 18);
   }, []);
 
+  // Stop the typewriter when Home unmounts — otherwise navigating away mid-answer
+  // leaks an 18ms interval that keeps calling setState on a dead component.
+  useEffect(() => () => { if (streamRef.current) clearInterval(streamRef.current); }, []);
+
   // ── Attachments: pinned records + client-read text files fed to the chat as
   //    context (no storage — record data comes from /search, file text via FileReader). ──
   type AttachItem =
@@ -348,7 +352,9 @@ export function HomePage() {
     }
   }
   const notificationsQuery = useQuery({
-    queryKey: ["notifications", "risk"],
+    // Same key+URL as the agent dock's fetch so React Query dedupes it into ONE
+    // request instead of two identical /notifications?limit=50 round-trips.
+    queryKey: ["notifications", "recent-50"],
     queryFn: () => apiClient.get<{ id: string; type: string; is_read: boolean; title: string; body?: string; created_at?: string }[]>("/notifications?limit=50"),
     staleTime: 60_000,
   });
@@ -442,6 +448,9 @@ export function HomePage() {
   }, []);
 
   const send = () => {
+    // Guard while a reply is generating: doSend() bails on `loading`, so clearing
+    // here first would silently destroy the typed text and any pinned attachments.
+    if (loading) return;
     const t = input.trim();
     if (!t && attachments.length === 0) return;
     setInput("");
@@ -600,37 +609,52 @@ export function HomePage() {
               <Link to="/notifications"><Inbox size={13}/><strong>{unreadCount}</strong>unread</Link>
             </div>
 
-            {(overdueCount > 0 || urgentCount > 0 || unreadRiskCount > 0 || riskBanner) && (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 lg:justify-end">
-                {overdueCount > 0 && (
-                  <Link to="/tasks" state={{ filter: "overdue" }} className="attention-chip">
-                    <Clock size={11}/>
-                    {overdueCount} overdue assigned to you
-                  </Link>
-                )}
-                {urgentCount > 0 && (
-                  <Link to="/tasks" state={{ filter: "mine", priority: "urgent" }} className="attention-chip">
-                    <Flag size={11}/>
-                    {urgentCount} urgent
-                  </Link>
-                )}
-                {(unreadRiskCount > 0 || (riskBanner !== null && riskBanner > 0)) && (
-                  <Link to="/notifications" className="attention-chip">
-                    <BellDot size={11}/>
-                    {unreadRiskCount || riskBanner} AI risk alert{((unreadRiskCount || riskBanner) ?? 0) > 1 ? "s" : ""}
-                  </Link>
-                )}
-              </div>
-            )}
+            {/* Overdue / urgent / AI-risk relocated into the console status rail below, so no signal
+                is duplicated: the persistent telemetry strip above owns the global counters (open
+                tasks + unread); the rail owns live status + actionable "Right now" signals. */}
           </div>
         </div>
+        {/* Consolidated status rail — one hairline console strip under the header: live graph/source
+            status + the synthesized "Right now" signals, so the operator lands oriented from a single
+            row instead of scattered centered clusters. Data/links unchanged; only relocated here. */}
+        {!isChatting && (() => {
+          const now = Date.now();
+          const pending = decisionsQuery.data?.length ?? 0;
+          const overdue = (tasksQuery.data ?? []).filter(t => !t.completed && isPastDue(t.due_date)).length;
+          const risk = unreadRiskCount || (riskBanner ?? 0);
+          const starts: number[] = [];
+          for (const m of meetings.data ?? []) { const t = new Date(m.start_time).getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
+          for (const e of nativeMeetingsQ.data?.events ?? []) { const t = new Date(e.start_at).getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
+          for (const e of (calendarQ.data?.events ?? []) as { start?: string; start_at?: string }[]) { const t = new Date(e.start ?? e.start_at ?? "").getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
+          const nextStart = starts.length ? Math.min(...starts) : null;
+          // Unread is intentionally NOT here — it lives once in the persistent top-right telemetry strip.
+          const seg: { label: string; to: string; tone: string; state?: Record<string, unknown> }[] = [];
+          if (pending) seg.push({ label: `${pending} need${pending === 1 ? "s" : ""} approval`, to: "/decisions", tone: "var(--section-accent)" });
+          if (overdue) seg.push({ label: `${overdue} overdue`, to: "/tasks", state: { filter: "overdue" }, tone: "var(--status-error)" });
+          if (urgentCount > 0) seg.push({ label: `${urgentCount} urgent`, to: "/tasks", state: { filter: "mine", priority: "urgent" }, tone: "var(--status-warn)" });
+          if (risk > 0) seg.push({ label: `${risk} AI risk alert${risk > 1 ? "s" : ""}`, to: "/notifications", tone: "var(--status-warn)" });
+          if (nextStart) seg.push({ label: `Next meeting ${new Date(nextStart).toLocaleTimeString(loc.lang, { hour: "2-digit", minute: "2-digit" })}`, to: "/calendar", tone: "var(--text-secondary)" });
+          return (
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t pt-2.5" style={{ borderColor: "var(--border-soft)" }}>
+              <span className="status-line"><span className="live-dot" style={{ background: graphSynced ? "var(--section-accent)" : "var(--status-warn)" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
+              <span className="status-line"><span className="live-dot" style={{ background: sourcesChecked ? "var(--section-accent)" : "var(--status-warn)" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
+              {seg.length > 0 && <span className="hidden h-3 w-px sm:inline-block" style={{ background: "var(--border-soft)" }} />}
+              {seg.length > 0 && <span className="text-caption font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Right now</span>}
+              {seg.map((s, i) => (
+                <Link key={i} to={s.to} state={s.state} className="inline-flex items-center gap-1.5 text-[11.5px] font-medium transition-colors hover:opacity-80" style={{ color: s.tone }}>
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.tone }} />{s.label}
+                </Link>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {showWorkspaceRecovery && populatedWorkspace && (
-        <div className="mb-4 rounded-sm px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4" style={{ background: "color-mix(in srgb, #c6892e 8%, var(--surface-card))", border: "1px solid color-mix(in srgb, #c6892e 25%, var(--border-soft))" }}>
+        <div className="mb-4 rounded-sm px-4 py-3 sm:flex sm:items-center sm:justify-between sm:gap-4" style={{ background: "color-mix(in srgb, var(--status-warn) 8%, var(--surface-card))", border: "1px solid color-mix(in srgb, var(--status-warn) 25%, var(--border-soft))" }}>
           <div>
-            <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>You may be viewing an empty workspace.</p>
-            <p className="mt-0.5 text-xs" style={{ color: "var(--text-muted)" }}>
+            <p className="text-body font-medium" style={{ color: "var(--text-primary)" }}>You may be viewing an empty workspace.</p>
+            <p className="mt-0.5 text-body" style={{ color: "var(--text-muted)" }}>
               {populatedWorkspace.name} has {populatedWorkspace.counts.tasks} tasks, {populatedWorkspace.counts.lists} lists, and {populatedWorkspace.counts.nodes} records.
             </p>
           </div>
@@ -654,43 +678,12 @@ export function HomePage() {
           <div className="mx-auto mb-6 flex max-w-2xl flex-col items-center text-center">
             <h2 className="text-[26px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {firstName}</h2>
             <p className="mt-1.5 text-[15px]" style={{ color: "var(--text-muted)" }}>What do you want to get done today?</p>
-            <div className="mt-3 flex items-center gap-4">
-              <span className="status-line"><span className="live-dot" style={{ background: graphSynced ? "var(--section-accent)" : "#c6892e" }}/>Graph {graphSynced ? "synced" : "syncing"}</span>
-              <span className="status-line"><span className="live-dot" style={{ background: sourcesChecked ? "var(--section-accent)" : "#c6892e" }}/>Sources {sourcesChecked ? "checked" : "checking…"}</span>
-            </div>
           </div>
         )}
 
-        {/* "Right now" — a synthesized status band from data already loaded (no AI, no extra fetch):
-            what needs approval, what's overdue, your next meeting, unread. Each real segment links to
-            its surface, so you land already oriented instead of scrolling to assemble the picture. */}
-        {!isChatting && (() => {
-          const now = Date.now();
-          const pending = decisionsQuery.data?.length ?? 0;
-          const overdue = (tasksQuery.data ?? []).filter(t => !t.completed && isPastDue(t.due_date)).length;
-          const unread = (notificationsQuery.data ?? []).filter(n => !n.is_read).length;
-          const starts: number[] = [];
-          for (const m of meetings.data ?? []) { const t = new Date(m.start_time).getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
-          for (const e of nativeMeetingsQ.data?.events ?? []) { const t = new Date(e.start_at).getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
-          for (const e of (calendarQ.data?.events ?? []) as { start?: string; start_at?: string }[]) { const t = new Date(e.start ?? e.start_at ?? "").getTime(); if (Number.isFinite(t) && t >= now) starts.push(t); }
-          const nextStart = starts.length ? Math.min(...starts) : null;
-          const seg: { label: string; to: string; tone: string }[] = [];
-          if (pending) seg.push({ label: `${pending} need${pending === 1 ? "s" : ""} approval`, to: "/decisions", tone: "var(--section-accent)" });
-          if (overdue) seg.push({ label: `${overdue} overdue`, to: "/tasks", tone: "#d1524a" });
-          if (nextStart) seg.push({ label: `Next meeting ${new Date(nextStart).toLocaleTimeString(loc.lang, { hour: "2-digit", minute: "2-digit" })}`, to: "/calendar", tone: "var(--text-secondary)" });
-          if (seg.length === 0) return null;   // genuinely nothing pressing → keep the hero calm
-          return (
-            <div className="mx-auto mb-6 flex max-w-2xl flex-wrap items-center justify-center gap-x-2 gap-y-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Right now</span>
-              {seg.map((s, i) => (
-                <Link key={i} to={s.to} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: s.tone }}>
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.tone }} />{s.label}
-                </Link>
-              ))}
-              {unread > 0 && <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>· {unread} unread</span>}
-            </div>
-          );
-        })()}
+        {/* "Right now" signals relocated into the consolidated console status rail in the
+            command-room header above (Graph/Sources + needs-approval/overdue/next-meeting/unread),
+            so the hero stays a clean command area and the operator lands oriented from one strip. */}
 
         {/* AI Chief-of-Staff rail: the single "what needs you most" reasoned readout.
             Reasons over the whole pending queue and surfaces the top-3 with a one-line
@@ -700,7 +693,7 @@ export function HomePage() {
           <div className="mx-auto mb-6 w-full max-w-2xl">
             <div className="mb-2 flex items-center gap-2">
               <Brain size={13} style={{ color: "var(--section-accent)" }} />
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>What needs you most</span>
+              <span className="text-caption font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>What needs you most</span>
               {chiefQuery.data && chiefQuery.data.count > chiefQuery.data.priorities.length && (
                 <Link to="/decisions" className="text-[10px] font-medium hover:underline" style={{ color: "var(--text-faint)" }}>+{chiefQuery.data.count - chiefQuery.data.priorities.length} more</Link>
               )}
@@ -716,10 +709,10 @@ export function HomePage() {
                   <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold" style={{ background: "var(--section-accent-soft, var(--surface-hover))", color: "var(--section-accent)" }}>{i + 1}</span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
-                      <span className="truncate text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{p.title}</span>
+                      <span className="truncate text-row font-semibold" style={{ color: "var(--text-primary)" }}>{p.title}</span>
                       <ArrowUpRight size={13} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-60" style={{ color: "var(--section-accent)" }} />
                     </span>
-                    <span className="mt-0.5 block text-[11.5px] leading-snug" style={{ color: "var(--text-secondary)" }}>{p.why}</span>
+                    <span className="mt-0.5 block text-label leading-snug" style={{ color: "var(--text-secondary)" }}>{p.why}</span>
                     <span className="mt-1 flex items-center gap-1 text-[11px] font-medium" style={{ color: "var(--section-accent)" }}><Zap size={10} />{p.action}</span>
                   </span>
                 </Link>
@@ -886,7 +879,7 @@ export function HomePage() {
           {promptPickerOpen && (
             <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-sm border shadow-[0_8px_24px_rgba(15,23,42,0.08)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
               <div className="border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
-                <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{loc.t("home.quick_prompts")}</p>
+                <p className="text-caption font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{loc.t("home.quick_prompts")}</p>
               </div>
               <div className="p-1.5 grid grid-cols-1 gap-px">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
@@ -897,7 +890,7 @@ export function HomePage() {
                     </span>
                     <span>
                       <span className="block text-sm transition-colors" style={{ color: "var(--text-primary)" }}>{label}</span>
-                      <span className="block text-[11px]" style={{ color: "var(--text-muted)" }}>{description}</span>
+                      <span className="block text-label" style={{ color: "var(--text-muted)" }}>{description}</span>
                     </span>
                   </button>
                 ))}
@@ -919,10 +912,10 @@ export function HomePage() {
               </div>
               <div className="max-h-56 overflow-y-auto p-1.5">
                 {attachResults.length === 0 ? (
-                  <p className="px-2 py-2 text-[12px]" style={{ color: "var(--text-faint)" }}>{attachQuery.trim().length < 2 ? "Type to search records, or attach a text file." : "No matches."}</p>
+                  <p className="px-2 py-2 text-body" style={{ color: "var(--text-faint)" }}>{attachQuery.trim().length < 2 ? "Type to search records, or attach a text file." : "No matches."}</p>
                 ) : attachResults.map(r => (
                   <button key={r.id} onClick={() => addRecord(r)} className="flex w-full items-center gap-2 rounded-sm px-2.5 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]">
-                    <span className="rounded px-1.5 py-px text-[9px] font-medium uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>{r.object_type}</span>
+                    <span className="rounded px-1.5 py-px text-caption font-medium uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }}>{r.object_type}</span>
                     <span className="truncate text-sm" style={{ color: "var(--text-primary)" }}>{recordTitle(r)}</span>
                   </button>
                 ))}
@@ -942,7 +935,7 @@ export function HomePage() {
           )}
           <input ref={fileInputRef} type="file" accept=".txt,.md,.csv,.json,.log,.tsv,text/plain" onChange={onFilePick} className="hidden"/>
 
-          <div className="ask-input chat-input-bar chat-input-orbit flex items-end gap-2 rounded-sm px-2.5 py-2 transition-all sm:px-3"
+          <div data-busy={loading} className="ask-input chat-input-bar chat-input-orbit flex items-end gap-2 px-2.5 py-2 transition-all sm:px-3"
             style={isChatting ? { backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 -2px 24px -6px rgba(15,23,42,0.12), 0 8px 24px -8px rgba(15,23,42,0.14)" } : undefined}>
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${promptPickerOpen ? "bg-[var(--surface-selected)] text-[var(--text-primary)]" : "hover:bg-[var(--surface-hover)]"}`}
@@ -976,7 +969,7 @@ export function HomePage() {
               </button>
             )}
             {/* Send while idle; Stop (square) while generating */}
-            <button onClick={loading ? stop : send} disabled={!loading && !input.trim()}
+            <button onClick={loading ? stop : send} disabled={!loading && !input.trim() && attachments.length === 0}
               title={loading ? "Stop generating" : "Send"}
               className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full transition-all duration-150 disabled:cursor-not-allowed"
               style={loading
@@ -992,7 +985,7 @@ export function HomePage() {
         {/* Recent threads — directly under the input box, centered */}
         {!isChatting && recentThreads.length > 0 && (
           <div className="mx-auto mt-3 flex max-w-3xl flex-wrap items-center justify-center gap-2">
-            <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>Recent:</span>
+            <span className="text-label" style={{ color: "var(--text-faint)" }}>Recent:</span>
             {recentThreads.map(t => (
               <Link key={t.id} to={`/ask/${t.id}`} className="truncate max-w-[180px] text-[11px] transition-colors hover:text-stone-900 dark:hover:text-stone-100" style={{ color: "var(--text-muted)" }}>{t.title}</Link>
             ))}
@@ -1008,7 +1001,7 @@ export function HomePage() {
 
         {/* Smart starter cards — spaced below the input + recent */}
         {!isChatting && (
-          <div className="mx-auto mt-7 grid max-w-2xl grid-cols-1 gap-2.5 sm:grid-cols-2">
+          <div className="mx-auto mt-7 max-w-2xl overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] divide-y divide-[var(--border-soft)]">
             {[
               {
                 Icon: ListChecks,
@@ -1036,15 +1029,13 @@ export function HomePage() {
               },
             ].map(s => (
               <button key={s.label} onClick={() => ("to" in s && s.to ? navigate(s.to) : sendSuggestion(applyTerms(s.prompt, wsProfile)))}
-                className="group flex items-start gap-3 rounded-sm border px-4 py-3 text-left transition-colors"
-                style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--section-accent)"; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "var(--border-soft)"; }}>
+                className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--surface-hover)]">
                 <s.Icon size={18} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }}/>
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</span>
                   <span className="block text-[12.5px]" style={{ color: "var(--text-muted)" }}>{s.sub}</span>
                 </span>
+                <ArrowUpRight size={14} className="mt-0.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-50" style={{ color: "var(--section-accent)" }}/>
               </button>
             ))}
           </div>
@@ -1119,17 +1110,17 @@ export function HomePage() {
               <div className="py-4"><PageSkeleton rows={4} label="Loading tasks…"/></div>
             ) : tasksQuery.isError ? (
               <div className="py-4">
-                <div className="rounded-sm px-4 py-5 text-center" style={{ background: "color-mix(in srgb, #c6892e 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, #c6892e 24%, var(--border-soft))" }}>
-                  <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Could not load tasks</p>
-                  <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>{(tasksQuery.error as Error)?.message || "The tasks API did not return data."}</p>
+                <div className="rounded-sm px-4 py-5 text-center" style={{ background: "color-mix(in srgb, var(--status-warn) 7%, var(--surface-card))", border: "1px solid color-mix(in srgb, var(--status-warn) 24%, var(--border-soft))" }}>
+                  <p className="text-body font-medium" style={{ color: "var(--text-primary)" }}>Could not load tasks</p>
+                  <p className="mt-1 text-body" style={{ color: "var(--text-muted)" }}>{(tasksQuery.error as Error)?.message || "The tasks API did not return data."}</p>
                   <button onClick={() => tasksQuery.refetch()} className="btn-suggested mt-3 !px-2.5 !py-1 !text-[11px]">Retry</button>
                 </div>
               </div>
             ) : activeTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-1.5 py-14 text-center px-4">
                 <LogoMark size={16} className="mb-2" style={{ color: "var(--text-faint)" }}/>
-                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No open tasks.</p>
-                <p className="mt-0.5 text-xs" style={{ color: "var(--text-faint)" }}>Ask AI to create tasks from your work.</p>
+                <p className="text-body" style={{ color: "var(--text-secondary)" }}>No open tasks.</p>
+                <p className="mt-0.5 text-body" style={{ color: "var(--text-faint)" }}>Ask AI to create tasks from your work.</p>
               </div>
             ) : (
               <ul className="flow-list">
@@ -1149,10 +1140,10 @@ export function HomePage() {
                       <span className="flex-1 min-w-0 truncate text-sm transition-colors" style={{ color: "var(--text-secondary)" }}>{item.title}</span>
                       <div className="flex items-center gap-2 shrink-0">
                         {item.priority && item.priority !== "low" && (
-                          <span className={`rounded-full px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[item.priority]}`}>{item.priority}</span>
+                          <span className={`rounded-full px-1.5 py-px text-[10px] font-medium ${PRIORITY_STYLE[item.priority] ?? PRIORITY_STYLE.medium}`}>{item.priority}</span>
                         )}
                         {item.due_date && (
-                          <span className="flex items-center gap-0.5 text-[11px]" style={{ color: isOverdue ? "#c6892e" : "var(--text-faint)" }}>
+                          <span className="flex items-center gap-0.5 text-[11px]" style={{ color: isOverdue ? "var(--status-warn)" : "var(--text-faint)" }}>
                             <Clock size={9}/>
                             {new Date(item.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </span>
@@ -1203,7 +1194,7 @@ export function HomePage() {
           const calConnected = cal?.connected;
           // Merge connected-calendar events with any workspace-created meetings, sorted by start.
           const calEvents = (cal?.events ?? []).map(e => ({ id: e.id, title: e.title, when: e.allDay ? "All day" : new Date(e.start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), sub: e.location || (e.attendees ? `${e.attendees} attendee${e.attendees === 1 ? "" : "s"}` : ""), url: e.meetingUrl, start: e.start }));
-          const wsEvents = (meetings.data ?? []).map(m => ({ id: `ws-${m.id}`, title: m.title, when: m.start_time, sub: "", url: undefined as string | undefined, start: m.start_time }));
+          const wsEvents = (meetings.data ?? []).map(m => ({ id: `ws-${m.id}`, title: m.title, when: new Date(m.start_time).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), sub: "", url: undefined as string | undefined, start: m.start_time }));
           // Native Mondaily meetings — link to the in-app meeting room.
           const nativeEvents = (nativeMeetingsQ.data?.events ?? []).map(e => ({ id: `native-${e.id}`, title: e.title, when: new Date(e.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), sub: e.location || (e.attendees?.length ? `${e.attendees.length} attendee${e.attendees.length === 1 ? "" : "s"}` : "Mondaily"), url: `/calls/${e.id}`, start: e.start_at }));
           const allEvents = [...calEvents, ...wsEvents, ...nativeEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
@@ -1216,11 +1207,11 @@ export function HomePage() {
                   <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Meetings</span>
                   {calConnected && cal?.provider && (
                     <span className="flow-micro-badge" title={cal.email}>
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#2f9e6b" }}/> {cal.provider === "microsoft" ? "Outlook" : "Google"}
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--status-ok)" }}/> {cal.provider === "microsoft" ? "Outlook" : "Google"}
                     </span>
                   )}
                 </div>
-                <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>{loc.t("home.today")}</span>
+                <span className="text-label" style={{ color: "var(--text-faint)" }}>{loc.t("home.today")}</span>
               </div>
               <div className="flex-1">
                 {loading ? (
@@ -1232,9 +1223,9 @@ export function HomePage() {
                         <>
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm" style={{ color: "var(--text-secondary)" }}>{m.title}</p>
-                            {m.sub && <p className="mt-0.5 truncate text-[11px]" style={{ color: "var(--text-faint)" }}>{m.sub}</p>}
+                            {m.sub && <p className="mt-0.5 truncate text-label" style={{ color: "var(--text-faint)" }}>{m.sub}</p>}
                           </div>
-                          <span className="shrink-0 text-[11px] tabular-nums" style={{ color: "var(--text-muted)" }}>{m.when}</span>
+                          <span className="shrink-0 text-label tabular-nums" style={{ color: "var(--text-muted)" }}>{m.when}</span>
                         </>
                       );
                       return m.url ? (
@@ -1249,8 +1240,8 @@ export function HomePage() {
                     <div className="flex h-10 w-10 items-center justify-center rounded-sm mb-3" style={{ background: "var(--surface-hover)", border: "1px solid var(--border-soft)" }}>
                       <Calendar size={16} style={{ color: "var(--text-faint)" }}/>
                     </div>
-                    <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>No meetings today</p>
-                    <p className="mt-1 text-[11px]" style={{ color: "var(--text-faint)" }}>Your {cal?.provider === "microsoft" ? "Outlook" : "Google"} calendar is connected and clear.</p>
+                    <p className="text-body font-medium" style={{ color: "var(--text-secondary)" }}>No meetings today</p>
+                    <p className="mt-1 text-label" style={{ color: "var(--text-faint)" }}>Your {cal?.provider === "microsoft" ? "Outlook" : "Google"} calendar is connected and clear.</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-9 text-center px-5">
@@ -1258,7 +1249,7 @@ export function HomePage() {
                       <Calendar size={16} style={{ color: "var(--text-faint)" }}/>
                     </div>
                     <p className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>Connect your calendar</p>
-                    <p className="mt-1 mb-3 text-[11px] max-w-[240px]" style={{ color: "var(--text-faint)" }}>Sync Google or Outlook to see your day here — read-only, connected directly, no third-party broker.</p>
+                    <p className="mt-1 mb-3 text-label max-w-[240px]" style={{ color: "var(--text-faint)" }}>Sync Google or Outlook to see your day here — read-only, connected directly, no third-party broker.</p>
                     <div className="flex gap-2">
                       <button onClick={() => connectCalendar("google")} disabled={!!connectingCal} className="btn-secondary !px-3 !py-1.5 !text-[11px]">
                         {connectingCal === "google" ? <Loader2 size={11} className="inline animate-spin"/> : "Connect Google"}
@@ -1267,7 +1258,7 @@ export function HomePage() {
                         {connectingCal === "microsoft" ? <Loader2 size={11} className="inline animate-spin"/> : "Connect Outlook"}
                       </button>
                     </div>
-                    {cal?.needs_reauth && <p className="mt-2 text-[10.5px]" style={{ color: "#c6892e" }}>Reconnect needed — your calendar token expired.</p>}
+                    {cal?.needs_reauth && <p className="mt-2 text-label" style={{ color: "var(--status-warn)" }}>Reconnect needed — your calendar token expired.</p>}
                   </div>
                 )}
               </div>
@@ -1304,7 +1295,7 @@ export function HomePage() {
                       AI Signal
                     </span>
                   </div>
-                  {scanTimestamp && <p className="mt-px text-[10px]" style={{ color: "var(--text-faint)" }}>{scanTimestamp}</p>}
+                  {scanTimestamp && <p className="mt-px text-caption" style={{ color: "var(--text-faint)" }}>{scanTimestamp}</p>}
                 </div>
               </div>
               <div className="flex items-center gap-2">

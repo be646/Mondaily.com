@@ -184,6 +184,12 @@ export function GuestCallPage() {
       const pkt = { t: "caption" as const, id: `${lp.identity}-${seq}`, participantId: lp.identity, name: lp.name || name || "Guest", text, final: true, ts: Date.now(), ...(language ? { lang: language } : {}) };
       setCaptions(cs => [...cs.filter(x => x.id !== pkt.id), pkt].slice(-400));   // keep enough history for the transcript timeline
       try { lp.publishData(new TextEncoder().encode(JSON.stringify(pkt)), { reliable: true }); } catch { /* ignore */ }
+      // Phase B.1 — persist this FINAL guest line (write-only; token + consent scoped server-side).
+      // Fire-and-forget: a save failure never disrupts the guest's live captions. Idempotent server-side.
+      void fetch(`${BASE_URL}/api/v1/public/calls/transcript?consent=true`, {
+        method: "POST", headers: { "Content-Type": "application/json", "X-Guest-Token": token },
+        body: JSON.stringify({ lines: [{ id: pkt.id, participantId: pkt.participantId, name: pkt.name, text: pkt.text, ts: pkt.ts, final: true, ...(pkt.lang ? { lang: pkt.lang } : {}) }] }),
+      }).catch(() => {});
     },
     onStop: () => setShowCaptions(false),
   });
@@ -225,7 +231,25 @@ export function GuestCallPage() {
               ))}
             </div>
           </div>
-          {showCaptions && <CaptionsPanel available={!!meta?.live_captions_available} captions={captions} onClose={() => setShowCaptions(false)} />}
+          {showCaptions && <CaptionsPanel available={!!meta?.live_captions_available} captions={captions} onClose={() => setShowCaptions(false)}
+            preferenceKey="mondaily_caption_lang_guest"
+            onTranslate={async (items, target) => {
+              // Phase C.3 — per-viewer guest translation. Sends only the guest's OWN caption text + a target to
+              // the public token+consent-gated endpoint; never mutates the transcript, never reads member data.
+              try {
+                const res = await fetch(`${BASE_URL}/api/v1/public/calls/translate?consent=true`, {
+                  method: "POST", headers: { "Content-Type": "application/json", "X-Guest-Token": token },
+                  body: JSON.stringify({ target, lines: items.map((it) => ({ text: it.text, source_lang: it.source_lang })) }),
+                });
+                const body = await res.json().catch(() => ({ results: [] as unknown[] }));
+                const results = Array.isArray(body.results) ? body.results : [];
+                return items.map((it, i) => {
+                  const rr = (results[i] ?? {}) as { state?: string; translated?: string };
+                  const state = rr.state === "translated" ? "translated" : rr.state === "original" ? "original" : "unavailable";
+                  return { id: it.id, state, translated: rr.translated };
+                });
+              } catch { return items.map((it) => ({ id: it.id, state: "unavailable" as const })); }
+            }} />}
         </div>
         <div className="flex items-center justify-center gap-3 py-4">
           <ToolBtn on={micOn} onClick={toggleMic} label="Microphone" onIcon={<Mic size={18} className="text-white" />} offIcon={<MicOff size={18} className="text-white" />} />

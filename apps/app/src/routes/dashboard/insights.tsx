@@ -25,7 +25,7 @@ function Delta({ pct, goodUp = true }: { pct: number | null; goodUp?: boolean })
   if (pct == null) return null;
   const positive = pct >= 0;
   const good = positive === goodUp;
-  const color = pct === 0 ? "var(--text-faint)" : good ? "#2f9e6b" : "#d1524a";
+  const color = pct === 0 ? "var(--text-faint)" : good ? "var(--status-ok)" : "var(--status-error)";
   const abs = Math.abs(pct);
   return <span className="text-[10px] font-semibold tabular-nums" style={{ color }}>{positive ? "▲" : "▼"} {abs > 999 ? ">999" : abs}%</span>;
 }
@@ -126,20 +126,20 @@ export function InsightsPage() {
           {/* Finance */}
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Finance · {scope}</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-            <KpiCard icon={TrendingUp} tone="#2f9e6b" label="Revenue" value={cur(revenue)} sub={`collected · ${scope}`} delta={revDelta} onClick={() => navigate("/finance/reports")} />
-            <KpiCard icon={Clock} tone="#c6892e" label="Outstanding" value={cur(outstanding)} sub="unpaid · as of today" onClick={() => navigate("/finance/invoices")} />
+            <KpiCard icon={TrendingUp} tone="var(--status-ok)" label="Revenue" value={cur(revenue)} sub={`collected · ${scope}`} delta={revDelta} onClick={() => navigate("/finance/reports")} />
+            <KpiCard icon={Clock} tone="var(--status-warn)" label="Outstanding" value={cur(outstanding)} sub="unpaid · as of today" onClick={() => navigate("/finance/invoices")} />
             <KpiCard icon={DollarSign} tone="var(--text-faint)" label="Net" value={cur(net)} sub="after credits & expenses" delta={netDelta} onClick={() => navigate("/finance/reports")} />
           </div>
 
           {/* Pipeline + agents */}
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Pipeline &amp; agents · {scope}</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-            <KpiCard icon={GitBranch} tone="#717784" label="Open pipeline" value={cur(pipelineValue)} sub="open deals · as of today" onClick={() => navigate("/pipeline")} />
-            <KpiCard icon={Trophy} tone="#2f9e6b" label="Deals won" value={cur(dealsWon)} sub={`${newDeals} new · ${scope}`} delta={wonDelta} onClick={() => navigate("/pipeline")} />
+            <KpiCard icon={GitBranch} tone="var(--status-neutral)" label="Open pipeline" value={cur(pipelineValue)} sub="open deals · as of today" onClick={() => navigate("/pipeline")} />
+            <KpiCard icon={Trophy} tone="var(--status-ok)" label="Deals won" value={cur(dealsWon)} sub={`${newDeals} new · ${scope}`} delta={wonDelta} onClick={() => navigate("/pipeline")} />
             {aiCredits != null ? (
               <KpiCard icon={Sparkles} tone="var(--section-accent)" label="AI credits used" value={aiCredits.toLocaleString()} sub={`${activeMembers ?? "—"} members · ${scope}`} onClick={() => navigate("/team/oversight")} />
             ) : (
-              <KpiCard icon={GitBranch} tone="#717784" label="New deals" value={String(newDeals)} sub={scope} delta={newDealsDelta} onClick={() => navigate("/pipeline")} />
+              <KpiCard icon={GitBranch} tone="var(--status-neutral)" label="New deals" value={String(newDeals)} sub={scope} delta={newDealsDelta} onClick={() => navigate("/pipeline")} />
             )}
           </div>
 
