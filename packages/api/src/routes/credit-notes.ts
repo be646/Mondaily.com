@@ -387,7 +387,12 @@ router.delete("/:id", async (c) => {
   if (!["draft", "void"].includes(status)) {
     return c.json({ error: "Only draft or void credit notes can be deleted." }, 422);
   }
-  await supabase.from("nodes").delete().eq("id", c.req.param("id"));
+  // getCreditNote above already scopes to the workspace; the extra filters keep this safe
+  // even if that guard is ever refactored away.
+  await supabase.from("nodes").delete()
+    .eq("id", c.req.param("id"))
+    .eq("workspace_id", workspaceId)
+    .eq("object_type", "credit_note");
   return c.json({ ok: true });
 });
 

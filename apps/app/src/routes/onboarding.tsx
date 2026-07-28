@@ -12,10 +12,12 @@ const TIMEZONES = [
 ];
 
 const AVAILABLE_MODULES = [
-  { id: "crm",         name: "CRM",              description: "Contacts, companies, deals and pipelines" },
+  // Canonical label from the module registry (packages/api/src/lib/modules.ts) — this product
+  // is never called a "CRM". The id stays "crm" because existing workspaces store that key.
+  { id: "crm",         name: "Graph",            description: "Contacts, companies, deals and pipelines" },
   { id: "finance",     name: "Finance & Billing", description: "Invoices, credit notes, expenses and revenue reporting" },
-  { id: "investments", name: "Investments",       description: "Portfolio tracking and investor relations" },
-  { id: "hr",          name: "HR",                description: "Team management and people ops" },
+  { id: "investments", name: "Quantitative Asset Systems", description: "Asset portfolios, rounds and returns" },
+  { id: "hr",          name: "Autonomous Workforce", description: "Headcount, contracts and operational intelligence" },
 ];
 
 function Label({ children }: { children: React.ReactNode }) {

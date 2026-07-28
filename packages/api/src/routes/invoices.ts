@@ -36,9 +36,15 @@ const invoiceBodySchema = z.object({
 });
 
 function calcTotals(lineItems: z.infer<typeof lineItemSchema>[]) {
-  const subtotal = lineItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-  const tax_total = lineItems.reduce((s, i) => s + i.quantity * i.unit_price * (i.tax_rate / 100), 0);
-  return { subtotal, tax_total, total: subtotal + tax_total };
+  // Round to 2dp, matching quotes.ts. Without this, accumulated float error was STORED on the
+  // invoice (3 x 33.33 @20% -> total 119.98800000000001), so: a quote converted to an invoice
+  // then silently changed total on the next PATCH, and payment auto-close compared a paid
+  // 0.30 against a stored 0.30000000000000004 and left the invoice permanently unpaid with a
+  // sub-cent "Remaining" that rendered as 0.00.
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  const subtotal = round2(lineItems.reduce((s, i) => s + i.quantity * i.unit_price, 0));
+  const tax_total = round2(lineItems.reduce((s, i) => s + i.quantity * i.unit_price * (i.tax_rate / 100), 0));
+  return { subtotal, tax_total, total: round2(subtotal + tax_total) };
 }
 
 async function nextInvoiceNumber(workspaceId: string): Promise<string> {

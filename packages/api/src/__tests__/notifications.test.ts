@@ -266,6 +266,33 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect(strip).toMatch(/queryKey: \["decisions", "pending"\]/);
   });
 
+  it("invoice totals are rounded to 2dp, exactly like quotes", () => {
+    const inv = readFileSync(fileURLToPath(new URL("../routes/invoices.ts", import.meta.url)), "utf8");
+    const quo = readFileSync(fileURLToPath(new URL("../routes/quotes.ts", import.meta.url)), "utf8");
+    for (const src of [inv, quo]) {
+      expect(src).toMatch(/const round2 = \(n: number\) => Math\.round\(n \* 100\) \/ 100;/);
+      expect(src).toMatch(/total: round2\(subtotal \+ tax_total\)/);
+    }
+    // the unrounded form that stored 119.98800000000001 is gone
+    expect(inv).not.toMatch(/return \{ subtotal, tax_total, total: subtotal \+ tax_total \};/);
+  });
+
+  it("credit-note hard delete is workspace-scoped (defence in depth)", () => {
+    const cn = readFileSync(fileURLToPath(new URL("../routes/credit-notes.ts", import.meta.url)), "utf8");
+    expect(cn).toMatch(/from\("nodes"\)\.delete\(\)\s*\n\s*\.eq\("id", c\.req\.param\("id"\)\)\s*\n\s*\.eq\("workspace_id", workspaceId\)/);
+  });
+
+  it("the product is never called a CRM in user-visible copy", () => {
+    const onboarding = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/onboarding.tsx", import.meta.url)), "utf8");
+    // module labels must match the canonical registry, not a parallel taxonomy
+    expect(onboarding).toMatch(/name: "Graph"/);
+    expect(onboarding).toMatch(/name: "Quantitative Asset Systems"/);
+    expect(onboarding).toMatch(/name: "Autonomous Workforce"/);
+    expect(onboarding).not.toMatch(/name: "CRM"/);
+    expect(onboarding).not.toMatch(/name: "Investments"/);
+    expect(onboarding).not.toMatch(/name: "HR"/);
+  });
+
   it("zero-valued counts never render as a literal 0", () => {
     expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
     expect(tasksPage).toMatch(/\{!!t\.due_days &&/);
