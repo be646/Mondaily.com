@@ -1547,6 +1547,33 @@ describe("Home audit — Attio-style composer + real bug fixes (Pass HOME1)", ()
     expect(dock).not.toMatch(/queryKey: \["agent-dock", "notifications"\]/);
   });
 
+  it("regenerate re-sends the TRIMMED transcript (no duplicated turns)", () => {
+    const engine = read("apps/app/src/components/ai/use-ask-engine.ts");
+    // doSend reads live messages through a ref, not a stale closure
+    expect(engine).toMatch(/const messagesRef = useRef<ChatMessage\[\]>\(messages\);/);
+    expect(engine).toMatch(/const current = messagesRef\.current;/);
+    expect(engine).toMatch(/const withUser = \[\.\.\.current, userMsg\];/);
+    // regenerate trims, syncs the ref, and sends directly — no 0ms tick race
+    expect(engine).toMatch(/messagesRef\.current = trimmed;/);
+    expect(engine).toMatch(/void doSend\(lastUserTextRef\.current\);/);
+    expect(engine).not.toMatch(/setTimeout\(\(\) => doSend\(text\), 0\)/);
+  });
+
+  it("voice dictation appends to typed text instead of overwriting it", () => {
+    const voice = read("apps/app/src/components/ai/use-voice.ts");
+    expect(voice).toMatch(/onText\(prev => \{ base = prev; return prev; \}\);/);
+    expect(voice).toMatch(/const prefix = base\.trim\(\) \? `\$\{base\.trimEnd\(\)\} ` : "";/);
+    expect(voice).toMatch(/onText\(prefix \+ \(finalText \+ interim\)\.trim\(\)\)/);
+    expect(voice).not.toMatch(/onText\(\(finalText \+ interim\)\.trim\(\)\)/);
+  });
+
+  it("failed Home queries degrade honestly instead of vanishing", () => {
+    for (const q of ["chiefQuery.isError", "membersQuery.isError", "workspacesQuery.isError"]) {
+      expect(home).toContain(q);
+    }
+    expect(home).toMatch(/Could not load \{missing\.length === 1/);
+  });
+
   it("never says CRM anywhere on Home", () => {
     expect(home).not.toMatch(/\bCRM\b/);
   });

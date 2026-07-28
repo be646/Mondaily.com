@@ -61,6 +61,11 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     : undefined;
 
   const [messages, setMessages] = useState<ChatMessage[]>(initial?.messages ?? []);
+  /** Always the CURRENT messages. doSend used to read the `messages` closure, so a caller that
+   *  trimmed the transcript and re-sent on the next tick (regenerate) still sent the pre-trim
+   *  array — the popped turns came back duplicated. Reading through a ref removes that race. */
+  const messagesRef = useRef<ChatMessage[]>(messages);
+  messagesRef.current = messages;
   const [currentThreadId, setCurrentThreadId] = useState<string | null>(initial?.id ?? null);
   const [loading, setLoading] = useState(false);
   // Live abort handle for the in-flight request (for Stop) + last user prompt (for Regenerate).
@@ -94,9 +99,10 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
     }
     // History captured BEFORE the new message is appended — this is what
     // gives the backend real memory of the thread on every surface.
-    const history = messages.map(m => ({ role: m.role, content: m.content }));
+    const current = messagesRef.current;
+    const history = current.map(m => ({ role: m.role, content: m.content }));
     const userMsg: ChatMessage = { role: "user", content: text };
-    const withUser = [...messages, userMsg];
+    const withUser = [...current, userMsg];
     setMessages(withUser);
     addMessageToThread(tid, userMsg);
     setLoading(true);
@@ -285,15 +291,15 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
    *  user message (so it isn't duplicated in the thread). */
   const regenerate = useCallback(() => {
     if (loading || !lastUserTextRef.current) return;
-    setMessages(prev => {
-      const next = [...prev];
-      if (next[next.length - 1]?.role === "assistant") next.pop();
-      if (next[next.length - 1]?.role === "user") next.pop();
-      return next;
-    });
-    // Re-send on the next tick so the trimmed messages state is in effect.
-    const text = lastUserTextRef.current;
-    setTimeout(() => doSend(text), 0);
+    // Trim the last exchange, then hand doSend the trimmed transcript directly via the
+    // ref. Previously this re-sent on a 0ms timeout hoping React had committed first;
+    // it hadn't, so the popped turns were re-sent and reappeared duplicated.
+    const trimmed = [...messagesRef.current];
+    if (trimmed[trimmed.length - 1]?.role === "assistant") trimmed.pop();
+    if (trimmed[trimmed.length - 1]?.role === "user") trimmed.pop();
+    messagesRef.current = trimmed;
+    setMessages(trimmed);
+    void doSend(lastUserTextRef.current);
   }, [loading, doSend]);
 
   return {

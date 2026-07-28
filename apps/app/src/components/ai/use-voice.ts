@@ -16,7 +16,10 @@ type SpeechRecognitionLike = {
   stop: () => void;
 };
 
-export function useVoiceDictation(onText: (text: string) => void) {
+/** `onText` is a React state setter, so dictation can read the text already in the box
+ *  (via the updater form) and APPEND to it. It used to overwrite the whole input, which
+ *  silently destroyed whatever the user had typed before hitting the mic. */
+export function useVoiceDictation(onText: (value: string | ((prev: string) => string)) => void) {
   const [listening, setListening] = useState(false);
   const recRef = useRef<SpeechRecognitionLike | null>(null);
   const w = typeof window !== "undefined" ? (window as unknown as Record<string, unknown>) : undefined;
@@ -31,6 +34,11 @@ export function useVoiceDictation(onText: (text: string) => void) {
     rec.interimResults = true;
     rec.continuous = false;
     let finalText = "";
+    // Snapshot whatever is already typed, so the transcript is appended to it rather
+    // than replacing it. Read via the updater form without mutating the value.
+    let base = "";
+    onText(prev => { base = prev; return prev; });
+    const prefix = base.trim() ? `${base.trimEnd()} ` : "";
     rec.onresult = (e) => {
       let interim = "";
       for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -39,7 +47,7 @@ export function useVoiceDictation(onText: (text: string) => void) {
         const t = res[0]?.transcript ?? "";
         if (res.isFinal) finalText += t; else interim += t;
       }
-      onText((finalText + interim).trim());
+      onText(prefix + (finalText + interim).trim());
     };
     rec.onend = () => { setListening(false); recRef.current = null; };
     rec.onerror = () => { setListening(false); recRef.current = null; };

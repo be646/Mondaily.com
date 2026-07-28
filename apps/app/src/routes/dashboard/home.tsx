@@ -669,11 +669,23 @@ export function HomePage() {
 
       {/* ── Ask Mondaily — frameless console: suggestions/messages plus the
           actual input bar. No outer card around the whole area. ── */}
-      {(notificationsQuery.isError || decisionsQuery.isError) && (
-        <div className="mb-4 rounded-sm border border-[#c6892e]/25 bg-[#c6892e]/[.07] px-4 py-3 text-sm text-[#c6892e]">
-          Could not load activity. Some agent and decision signals may be missing.
-        </div>
-      )}
+      {/* Honest degradation. These panels used to vanish silently when their query failed —
+          the priorities rail simply wasn't there, assignee names just disappeared — which
+          looks like "nothing to do" rather than "we couldn't load it". Name what's missing. */}
+      {(() => {
+        const missing = [
+          (notificationsQuery.isError || decisionsQuery.isError) && "agent and decision signals",
+          chiefQuery.isError && "what needs you most",
+          membersQuery.isError && "assignee names",
+          workspacesQuery.isError && "workspace checks",
+        ].filter(Boolean) as string[];
+        if (missing.length === 0) return null;
+        return (
+          <div className="mb-4 rounded-sm border border-[#c6892e]/25 bg-[#c6892e]/[.07] px-4 py-3 text-sm text-[#c6892e]">
+            Could not load {missing.length === 1 ? missing[0] : `${missing.slice(0, -1).join(", ")} and ${missing[missing.length - 1]}`}. What you see below may be incomplete.
+          </div>
+        );
+      })()}
 
       <section ref={askSectionRef} className="home-section relative mx-auto mt-6 max-w-4xl sm:mt-8">
         <div className={`relative w-full min-w-0 ${isChatting ? "flex flex-col overflow-hidden" : ""}`} style={isChatting ? { height: "min(70vh, 640px)" } : undefined}>
