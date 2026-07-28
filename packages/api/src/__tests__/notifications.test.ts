@@ -219,6 +219,23 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect(tasksPage).toMatch(/invalidateQueries\(\{ queryKey: \["tasks"\] \}\)/);
   });
 
+  it("task creation records created_by so the `mine` filter can find it", () => {
+    const tasksRoute = readFileSync(fileURLToPath(new URL("../routes/tasks.ts", import.meta.url)), "utf8");
+    // the filter has always matched assignee OR author...
+    expect(tasksRoute).toMatch(/filter === "mine"\) query = query\.or\(`assignee_id\.eq\.\$\{userId\},created_by\.eq\.\$\{userId\}`\)/);
+    // ...but the insert never wrote the author until now
+    expect(tasksRoute).toMatch(/created_by: userId,/);
+  });
+
+  it("board and sheet views surface load errors instead of an empty state", () => {
+    const m = tasksPage.match(/query\.isError \? \(\s*<ErrorState/g) ?? [];
+    expect(m.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("Enter-to-create respects the same pending guard as the button", () => {
+    expect(tasksPage).toMatch(/if \(e\.key === "Enter" && title\.trim\(\) && !create\.isPending\) create\.mutate\(\);/);
+  });
+
   it("zero-valued counts never render as a literal 0", () => {
     expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
     expect(tasksPage).toMatch(/\{!!t\.due_days &&/);

@@ -55,6 +55,10 @@ tasks.post("/", async (c) => {
       priority: body.priority || "medium",
       status: body.status || "todo",
       notes: body.notes || null,
+      // The `mine` filter above matches assignee_id OR created_by, but this was never
+      // written — so a task you created for someone else had created_by = null and
+      // vanished from "Mine". Record the real author.
+      created_by: userId,
     })
     .select()
     .single();

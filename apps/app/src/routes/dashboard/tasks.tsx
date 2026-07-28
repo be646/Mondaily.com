@@ -103,7 +103,7 @@ function CreateTaskModal({ onClose, members, currentUserId, userName }: { onClos
     <ModalShell title="New Task" onClose={onClose}>
       <div className="space-y-3">
         <input autoFocus value={title} onChange={e => setTitle(e.target.value)}
-          onKeyDown={e => e.key === "Enter" && title.trim() && create.mutate()}
+          onKeyDown={e => { if (e.key === "Enter" && title.trim() && !create.isPending) create.mutate(); }}
           placeholder="Task title…" className={INPUT}/>
         <input type="datetime-local" value={dueDate} onChange={e => setDueDate(e.target.value)}
           className={`${INPUT} dark:[color-scheme:dark]`}/>
@@ -802,7 +802,9 @@ export function TasksPage() {
 
       {/* ── BOARD VIEW ── */}
       {viewMode === "board" && (
-        query.isLoading ? <PageSkeleton label="Loading tasks…"/> : (
+        query.isLoading ? <PageSkeleton label="Loading tasks…"/> : query.isError ? (
+          <ErrorState error={query.error as Error} onRetry={() => query.refetch()}/>
+        ) : (
           <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <div className="flex gap-4 overflow-x-auto pb-4">
               {BOARD_COLS.map(col => {
@@ -820,7 +822,9 @@ export function TasksPage() {
 
       {/* ── SHEET VIEW ── */}
       {viewMode === "sheet" && (
-        query.isLoading ? <PageSkeleton label="Loading tasks…"/> : allTasks.length === 0 ? (
+        query.isLoading ? <PageSkeleton label="Loading tasks…"/> : query.isError ? (
+          <ErrorState error={query.error as Error} onRetry={() => query.refetch()}/>
+        ) : allTasks.length === 0 ? (
           <EmptyState icon={Check} title={t("tasks.empty")} description={t("tasks.caught_up")}/>
         ) : (
           <>
