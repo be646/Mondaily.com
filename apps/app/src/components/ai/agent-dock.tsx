@@ -53,13 +53,23 @@ interface AgentRegistryEntry {
 
 const RELATIONSHIP_TYPES = ["deal", "contact", "company", "person"];
 
-export function useAgentData() {
+/** `enabled: false` defers every request until the caller opts in — used by surfaces
+ *  that render below the fold, so a heavy /nodes scan stays off the critical path.
+ *
+ *  `pulse` gates the two EXPENSIVE queries (/tasks?filter=all and /nodes?limit=500,
+ *  the latter ~3s) plus the notifications feed. They only ever feed the returned
+ *  `pulse` object — `constellation` comes purely from /agents. Nearly every caller
+ *  reads only `constellation`, so this defaults OFF and the one Workspace-Graph-Pulse
+ *  consumer opts in with `{ pulse: true }`. Read `pulse` without opting in and its
+ *  counts are zero. */
+export function useAgentData({ enabled = true, pulse: wantPulse = false }: { enabled?: boolean; pulse?: boolean } = {}) {
   const { hasFinance } = useModules();
 
   const registryQ = useQuery({
     queryKey: ["agent-registry"],
     queryFn: () => apiClient.get<{ agents: AgentRegistryEntry[] }>("/agents"),
     staleTime: 60_000,
+    enabled,
   });
 
   // Workspace Graph Pulse needs raw totals (open tasks, relationship/record/
@@ -69,17 +79,20 @@ export function useAgentData() {
     queryKey: ["agent-dock", "tasks"],
     queryFn: () => apiClient.get<TaskLite[]>("/tasks?filter=all"),
     staleTime: 60_000,
+    enabled: enabled && wantPulse,
   });
   const notificationsQ = useQuery({
     // Shared key with Home's identical /notifications?limit=50 fetch — one request, not two.
     queryKey: ["notifications", "recent-50"],
     queryFn: () => apiClient.get<NotificationLite[]>("/notifications?limit=50"),
     staleTime: 60_000,
+    enabled: enabled && wantPulse,
   });
   const nodesQ = useQuery({
     queryKey: ["agent-dock", "nodes"],
     queryFn: () => apiClient.get<NodeLite[]>("/nodes?limit=500"),
     staleTime: 60_000,
+    enabled: enabled && wantPulse,
   });
 
   const tasks = tasksQ.data ?? [];

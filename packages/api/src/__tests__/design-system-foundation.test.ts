@@ -1563,6 +1563,26 @@ describe("Home audit — Attio-style composer + real bug fixes (Pass HOME1)", ()
     expect(home).toMatch(/if \(alreadyRenderedLive\) \{ setStreamingMsgIdx\(null\); return; \}/);
   });
 
+  it("expensive agent-dock queries are opt-in, not fired for every consumer", () => {
+    const dock = read("apps/app/src/components/ai/agent-dock.tsx");
+    const cc = read("apps/app/src/components/ai/command-center.tsx");
+    const constellation = read("apps/app/src/components/ai/agent-constellation.tsx");
+    // heavy queries default OFF and are gated on the pulse opt-in
+    expect(dock).toMatch(/pulse: wantPulse = false/);
+    expect((dock.match(/enabled: enabled && wantPulse/g) ?? []).length).toBe(3);
+    // /agents (which feeds `constellation`) stays ungated by pulse
+    expect(dock).toMatch(/queryFn: \(\) => apiClient\.get<\{ agents: AgentRegistryEntry\[\] \}>\("\/agents"\),\s*\n\s*staleTime: 60_000,\s*\n\s*enabled,/);
+    // exactly one consumer opts into the heavy counts
+    expect(cc).toMatch(/useAgentData\(\{ pulse: true, enabled: inView \}\)/);
+    // below-the-fold panel defers until near-viewport
+    expect(constellation).toMatch(/useAgentData\(\{ enabled: inView \}\)/);
+    expect(constellation).toMatch(/if \(!inView \|\| isLoading\)/);
+    expect(constellation).toMatch(/rootMargin: "400px"/);
+    // the pulse panel (heaviest data on the page) defers too
+    expect(cc).toMatch(/useAgentData\(\{ pulse: true, enabled: inView \}\)/);
+    expect(cc).toMatch(/\{!inView \|\| pulse\.isLoading \? \(/);
+  });
+
   it("task-widget AI reply is actually rendered, not computed and discarded", () => {
     expect(home).toMatch(/\{taskWidgetReply && \(/);
     expect(home).toMatch(/\{taskWidgetReply\}<\/p>/);

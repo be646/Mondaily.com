@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ShieldAlert, CheckSquare, Activity, ArrowUpRight, Sparkles, FileText,
@@ -326,13 +326,31 @@ const PULSE_CATEGORIES: { key: "tasksOpen" | "tasksOverdue" | "relationships" | 
  * never reads like "zero risk."
  */
 export function WorkspaceGraphPulse() {
-  const { pulse } = useAgentData();
+  // Below the fold, and the heaviest data on the page (a 500-record graph scan).
+  // Defer both it and the trends query until the panel is near the viewport so
+  // they stay off the initial load; the skeleton below is unchanged.
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = hostRef.current;
+    if (!el || inView) return;
+    if (typeof IntersectionObserver === "undefined") { setInView(true); return; }
+    const io = new IntersectionObserver(
+      entries => { if (entries.some(e => e.isIntersecting)) { setInView(true); io.disconnect(); } },
+      { rootMargin: "400px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [inView]);
+
+  const { pulse } = useAgentData({ pulse: true, enabled: inView }); // the only consumer that needs the heavy graph/task counts
   // REAL 14-day trends (daily creation counts from actual created_at data) — replaces the old
   // decorative "curve rising to current level" with genuine history per tile where one exists.
   const trendsQ = useQuery({
     queryKey: ["pulse-trends"],
     queryFn: () => apiClient.get<{ days: string[]; series: Record<string, number[]> }>("/activities/trends"),
     staleTime: 120_000,
+    enabled: inView,
   });
   const series = trendsQ.data?.series ?? {};
   // Workspace-wide health ratio — share of all active tasks (not just
@@ -352,7 +370,7 @@ export function WorkspaceGraphPulse() {
   };
 
   return (
-    <section className="mb-8">
+    <section className="mb-8" ref={hostRef}>
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <GitBranch size={13} style={{ color: "var(--text-muted)" }}/>
@@ -360,7 +378,7 @@ export function WorkspaceGraphPulse() {
         </div>
         <span className="text-[11px]" style={{ color: "var(--text-faint)" }}>real-time, not historical</span>
       </div>
-      {pulse.isLoading ? (
+      {!inView || pulse.isLoading ? (
         <div className="skeleton-shimmer h-[140px] rounded-sm"/>
       ) : pulse.isError ? (
         <div className="surface-card rounded-sm px-4 py-8 text-center">

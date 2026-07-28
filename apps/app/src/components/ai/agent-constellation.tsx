@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -225,7 +225,26 @@ export function AgentCard({ agent, selected, onSelect, footer, className }: {
  * and not a scrolling row. Falls back to a vertical agent rail on mobile,
  * where a radial layout has no room to breathe. */
 export function AgentConstellationPanel() {
-  const { constellation, isLoading, isError } = useAgentData();
+  // This panel sits below the fold. Fetching its data (which includes a 500-record
+  // graph scan) on page load put ~4 requests on the critical path for something the
+  // user hasn't scrolled to yet — so we wait until it's near the viewport. The
+  // skeleton below is exactly what used to show while loading, so nothing changes
+  // visually; the requests just start later.
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = hostRef.current;
+    if (!el || inView) return;
+    if (typeof IntersectionObserver === "undefined") { setInView(true); return; }
+    const io = new IntersectionObserver(
+      entries => { if (entries.some(e => e.isIntersecting)) { setInView(true); io.disconnect(); } },
+      { rootMargin: "400px" }, // start fetching just before it scrolls into view
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [inView]);
+
+  const { constellation, isLoading, isError } = useAgentData({ enabled: inView });
   const [selected, setSelected] = useState<string | null>(null);
   const active = constellation.find(a => a.id === selected)
     ?? constellation.find(a => a.state === "issue")
@@ -233,9 +252,10 @@ export function AgentConstellationPanel() {
     ?? constellation.find(a => a.state === "active")
     ?? constellation[0];
 
-  if (isLoading) {
+  // Not scrolled to yet (or still loading) — same skeleton either way.
+  if (!inView || isLoading) {
     return (
-      <section className="mb-8">
+      <section className="mb-8" ref={hostRef}>
         <div className="skeleton-shimmer h-72 rounded-sm"/>
       </section>
     );
