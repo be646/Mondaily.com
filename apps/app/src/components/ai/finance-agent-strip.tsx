@@ -18,7 +18,8 @@ interface Decision {
 export function FinanceAgentStrip({ invoiceId }: { invoiceId?: string }) {
   const qc = useQueryClient();
   const { data, isError } = useQuery({
-    queryKey: ["decisions", "pending", "finance"],
+    // Shared key with the Decision Queue + Tasks page — one request, not three.
+    queryKey: ["decisions", "pending"],
     queryFn: () => apiClient.get<Decision[]>("/decisions?status=pending"),
     staleTime: 30_000,
     retry: false,

@@ -249,6 +249,23 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect(panel).toMatch(/setUploadError/);
   });
 
+  it("due dates round-trip through local time without drifting", () => {
+    expect(tasksPage).toMatch(/const toLocalInputValue = /);
+    expect(tasksPage).toMatch(/d\.getTime\(\) - d\.getTimezoneOffset\(\) \* 60000/);
+    expect(tasksPage).toMatch(/due_date: fromLocalInputValue\(dueDate\)/);
+    // the old UTC-into-datetime-local bug and the naive ":00" write are gone
+    expect(tasksPage).not.toMatch(/new Date\(task\.due_date\)\.toISOString\(\)\.slice\(0,16\)/);
+    expect(tasksPage).not.toMatch(/dueDate \+ ":00"/);
+  });
+
+  it("pending decisions are fetched once, not under three separate keys", () => {
+    const strip = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/components/ai/finance-agent-strip.tsx", import.meta.url)), "utf8");
+    expect(tasksPage).not.toMatch(/\["decisions", "pending", "task"\]/);
+    expect(strip).not.toMatch(/\["decisions", "pending", "finance"\]/);
+    expect(tasksPage).toMatch(/queryKey: \["decisions", "pending"\]/);
+    expect(strip).toMatch(/queryKey: \["decisions", "pending"\]/);
+  });
+
   it("zero-valued counts never render as a literal 0", () => {
     expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
     expect(tasksPage).toMatch(/\{!!t\.due_days &&/);

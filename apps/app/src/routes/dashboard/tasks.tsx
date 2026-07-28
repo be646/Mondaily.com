@@ -15,6 +15,23 @@ import { DataTable, type DataTableColumn } from "../../components/ui/data-table"
 import { useLanguage } from "../../hooks/useLanguage";
 import { isOverdue as isPastDue } from "@mondaily/shared/dates";
 
+
+/** <input type="datetime-local"> reads/writes LOCAL wall-clock time, but due_date is stored as
+ *  UTC. Converting with toISOString() put a UTC value straight into the input, so every Edit
+ *  displayed the time shifted by the viewer's offset — and saving persisted that shift. Create
+ *  and Edit also sent two different formats to the same column. These normalise both ends. */
+const toLocalInputValue = (iso?: string | null) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+const fromLocalInputValue = (v: string) => {
+  if (!v) return null;
+  const d = new Date(v);                    // parsed as local time
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+};
+
 interface Member { id: string; user_id: string; email: string; name: string; }
 interface Task {
   id: string; title: string; completed: boolean;
@@ -94,7 +111,7 @@ function CreateTaskModal({ onClose, members, currentUserId, userName }: { onClos
   const create = useMutation({
     mutationFn: () => {
       const member = members.find(m => m.user_id === assigneeId);
-      return apiClient.post("/tasks", { title, due_date: dueDate ? dueDate + ":00" : undefined, priority, status, notes: notes || undefined, assignee_id: assigneeId || undefined, assignee_email: member?.email || undefined, _user_name: userName });
+      return apiClient.post("/tasks", { title, due_date: fromLocalInputValue(dueDate) ?? undefined, priority, status, notes: notes || undefined, assignee_id: assigneeId || undefined, assignee_email: member?.email || undefined, _user_name: userName });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tasks"] }); onClose(); }
   });
@@ -131,7 +148,7 @@ function CreateTaskModal({ onClose, members, currentUserId, userName }: { onClos
 // ── Edit Task modal ───────────────────────────────────────────────────────────
 function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; onClose: () => void; members: Member[]; currentUserId: string }) {
   const [title, setTitle] = useState(task.title);
-  const [dueDate, setDueDate] = useState(task.due_date ? new Date(task.due_date).toISOString().slice(0,16) : "");
+  const [dueDate, setDueDate] = useState(toLocalInputValue(task.due_date));
   const [priority, setPriority] = useState<"low"|"medium"|"high"|"urgent">(task.priority || "medium");
   const [status, setStatus] = useState<"todo"|"in_progress"|"review"|"done">(task.status || "todo");
   const [notes, setNotes] = useState(task.notes || "");
@@ -143,7 +160,7 @@ function EditTaskModal({ task, onClose, members, currentUserId }: { task: Task; 
   const update = useMutation({
     mutationFn: () => {
       const member = members.find(m => m.user_id === assigneeId);
-      return apiClient.patch(`/tasks/${task.id}`, { title, due_date: dueDate || null, priority, status, notes: notes || null, assignee_id: assigneeId || null, assignee_email: member?.email || null });
+      return apiClient.patch(`/tasks/${task.id}`, { title, due_date: fromLocalInputValue(dueDate), priority, status, notes: notes || null, assignee_id: assigneeId || null, assignee_email: member?.email || null });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["tasks"] }); onClose(); }
   });
@@ -457,7 +474,9 @@ export function TasksPage() {
   // recommendation (queued by the overdue-task-decisions job). Fails quiet
   // if the decision_queue migration isn't applied yet — never blocks the list.
   const decisionsQuery = useQuery({
-    queryKey: ["decisions", "pending", "task"],
+    // Same URL as the Decision Queue + finance strip — one shared key so React Query
+    // dedupes it into a single request instead of three identical round-trips.
+    queryKey: ["decisions", "pending"],
     queryFn: () => apiClient.get<{ source_id: string | null }[]>("/decisions?status=pending"),
     staleTime: 30_000,
     retry: false,
