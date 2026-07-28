@@ -35,3 +35,9 @@ begin
     update task_attachments set size = coalesce(size, file_size) where size is null;
   end if;
 end $$;
+
+-- CONFIRMED production shape (2026-07-29), a hybrid of two generations:
+--   id, task_id, user_id, user_name, file_name, file_url, file_type, file_size, created_at,
+--   name, url, size, mime_type, uploaded_by, workspace_id
+-- The legacy columns (user_id in particular) are NOT NULL, so the API writes BOTH sets.
+-- Verified end to end afterwards: upload 201, signed download returned the exact bytes.

@@ -242,10 +242,15 @@ router.post("/:id/attachments", async (c) => {
   const workspaceId = c.get("workspaceId");
   const taskId = c.req.param("id");
   await assertTaskOwnership(taskId, workspaceId);
-  const body = await c.req.json() as { name: string; url: string; mime_type?: string; size?: number };
+  const body = await c.req.json() as { name: string; url: string; mime_type?: string; size?: number; user_name?: string };
   const { data, error } = await supabase
     .from("task_attachments")
-    .insert({ task_id: taskId, workspace_id: workspaceId, name: body.name, url: body.url, mime_type: body.mime_type, size: body.size, uploaded_by: c.get("userId") })
+    .insert({
+      task_id: taskId, workspace_id: workspaceId,
+      name: body.name, url: body.url, mime_type: body.mime_type, size: body.size, uploaded_by: c.get("userId"),
+      user_id: c.get("userId"), user_name: body.user_name ?? "Someone",
+      file_name: body.name, file_url: body.url, file_type: body.mime_type, file_size: body.size,
+    })
     .select().single();
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data, 201);
@@ -265,6 +270,7 @@ router.post("/:id/upload", async (c) => {
 
   const form = await c.req.formData().catch(() => null);
   const file = form?.get("file");
+  const uploaderName = String(form?.get("user_name") ?? "") || "Someone";
   if (!form || !(file instanceof File)) return c.json({ error: "No file provided." }, 400);
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (bytes.length === 0) return c.json({ error: "That file is empty." }, 400);
@@ -279,9 +285,15 @@ router.post("/:id/upload", async (c) => {
 
   const { data, error } = await supabase
     .from("task_attachments")
-    // Requires 20260728_reconcile_task_attachments.sql — production drifted from 0014 and was
-    // missing `name`/`mime_type`, which made every attachment write 500.
-    .insert({ task_id: taskId, workspace_id: workspaceId, name: safeName, url: path, mime_type: contentType, size: bytes.length, uploaded_by: userId })
+    // Production's task_attachments is a HYBRID: legacy NOT NULL columns (user_id, user_name,
+    // file_name, file_url, file_type, file_size) alongside the canonical ones 0014 declares.
+    // Write BOTH so the row satisfies the old constraints and reads correctly through the new API.
+    .insert({
+      task_id: taskId, workspace_id: workspaceId,
+      name: safeName, url: path, mime_type: contentType, size: bytes.length, uploaded_by: userId,
+      user_id: userId, user_name: uploaderName,
+      file_name: safeName, file_url: path, file_type: contentType, file_size: bytes.length,
+    })
     .select().single();
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data, 201);
