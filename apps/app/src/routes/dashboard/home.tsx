@@ -96,7 +96,7 @@ function inlineFormat(text: string): React.ReactNode {
   });
 }
 
-const QUICK_PROMPTS = [
+const QUICK_PROMPTS: { icon: React.ElementType; label: string; description: string; prompt: string; promptKey?: string }[] = [
   {
     icon: BellDot,
     label: "Daily brief",
@@ -107,7 +107,18 @@ const QUICK_PROMPTS = [
     icon: TrendingUp,
     label: "What needs attention?",
     description: "Stalled deals, assets, relationships",
+    // The backend generates this same prompt from the workspace profile (and localizes
+    // it). `promptKey` lets the rendered prompt prefer that version — the literal below
+    // is only the fallback when /workspace/suggestions hasn't answered.
+    promptKey: "attention",
     prompt: "Review the workspace graph. Which deals, assets, or relationships are stalled, overdue for follow-up, or close to closing? Rank them by urgency and tell me exactly what action to take on each one.",
+  },
+  {
+    icon: ListChecks,
+    label: "Decisions waiting on me",
+    description: "What the agents queued for approval",
+    promptKey: "decisions",
+    prompt: "What decisions are waiting on me? Summarize each with the context I need to decide, and recommend an action.",
   },
   {
     icon: Brain,
@@ -162,6 +173,12 @@ export function HomePage() {
   const { hasFinance } = useModules();
   const { data: wsSuggestions } = useWorkspaceSuggestions();  // profile-aware prompts + terms
   const wsProfile = wsSuggestions?.profile ?? EMPTY_PROFILE;
+  // The backend already builds profile-aware, LOCALIZED Home prompts (GET
+  // /workspace/suggestions -> home[]). They were fetched and thrown away, so a
+  // non-English or non-default-industry workspace still saw hardcoded English
+  // copy. Prefer the server's wording, fall back to the literal in QUICK_PROMPTS.
+  const serverPrompt = (key?: string, fallback?: string) =>
+    (key ? wsSuggestions?.home?.find(h => h.key === key)?.prompt : undefined) ?? fallback ?? "";
   const loc = useLanguage();   // locale-aware date formatting (+ keeps <html dir> synced app-wide)
   const qc = useQueryClient();
   const askSectionRef = useRef<HTMLDivElement>(null);
@@ -897,8 +914,8 @@ export function HomePage() {
                 <p className="text-caption font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{loc.t("home.quick_prompts")}</p>
               </div>
               <div className="p-1.5 grid grid-cols-1 gap-px">
-                {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt }) => (
-                  <button key={label} onClick={() => firePrompt(prompt)}
+                {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt, promptKey }) => (
+                  <button key={label} onClick={() => firePrompt(serverPrompt(promptKey, prompt))}
                     className="group flex items-center gap-3 rounded-sm px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-[var(--surface-hover)] transition-colors group-hover:bg-[var(--surface-selected)]">
                       <Icon size={13} className="text-stone-500 dark:text-stone-400"/>

@@ -1574,6 +1574,15 @@ describe("Home audit — Attio-style composer + real bug fixes (Pass HOME1)", ()
     expect(home).toMatch(/Could not load \{missing\.length === 1/);
   });
 
+  it("profile-aware server prompts are used, not fetched and discarded", () => {
+    // Home now reads /workspace/suggestions -> home[] instead of only .profile
+    expect(home).toMatch(/wsSuggestions\?\.home\?\.find\(h => h\.key === key\)\?\.prompt/);
+    expect(home).toMatch(/firePrompt\(serverPrompt\(promptKey, prompt\)\)/);
+    // both server keys are reachable from the UI
+    expect(home).toMatch(/promptKey: "attention"/);
+    expect(home).toMatch(/promptKey: "decisions"/);
+  });
+
   it("never says CRM anywhere on Home", () => {
     expect(home).not.toMatch(/\bCRM\b/);
   });
