@@ -9,6 +9,10 @@
 -- the UI swallowed it — attaching a file to a task silently did nothing, for everyone.
 --
 -- Additive and idempotent: adds only what's missing, touches no existing data.
+-- Structural columns are missing too: production rejected writes to `workspace_id`
+-- (and `name`, `mime_type`) even though 0014 declares them.
+alter table task_attachments add column if not exists workspace_id uuid;
+alter table task_attachments add column if not exists task_id      uuid;
 alter table task_attachments add column if not exists name        text;
 alter table task_attachments add column if not exists url         text;
 alter table task_attachments add column if not exists size        bigint;
