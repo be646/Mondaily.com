@@ -1550,6 +1550,24 @@ describe("Home audit — Attio-style composer + real bug fixes (Pass HOME1)", ()
   it("never says CRM anywhere on Home", () => {
     expect(home).not.toMatch(/\bCRM\b/);
   });
+
+  it("SSE-rendered answers are not re-animated (no collapse-and-retype)", () => {
+    const engine = read("apps/app/src/components/ai/use-ask-engine.ts");
+    // engine tells the surface whether tokens already animated live
+    expect(engine).toMatch(/onAssistantMessage\?: \(index: number, fullText: string, alreadyRenderedLive\?: boolean\) => void/);
+    expect(engine).toMatch(/opts\.onAssistantMessage\?\.\(aiIdx, reply, tokens > 0\)/);
+    expect(engine).toMatch(/opts\.onAssistantMessage\?\.\(aiIdx, partial, true\)/);
+    // non-streaming fallback still gets the typewriter
+    expect(engine).toMatch(/opts\.onAssistantMessage\?\.\(aiIdx, reply, false\)/);
+    // Home honours the flag instead of retyping
+    expect(home).toMatch(/if \(alreadyRenderedLive\) \{ setStreamingMsgIdx\(null\); return; \}/);
+  });
+
+  it("task-widget AI reply is actually rendered, not computed and discarded", () => {
+    expect(home).toMatch(/\{taskWidgetReply && \(/);
+    expect(home).toMatch(/\{taskWidgetReply\}<\/p>/);
+    expect(home).toMatch(/onClick=\{\(\) => setTaskWidgetReply\(null\)\}/);
+  });
 });
 
 describe("Records experience premium polish (Pass CHR2)", () => {

@@ -189,8 +189,11 @@ export function HomePage() {
   const newTaskRef = useRef<HTMLInputElement>(null); // kept for compat
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  const startStreaming = useCallback((msgIdx: number, fullText: string) => {
+  const startStreaming = useCallback((msgIdx: number, fullText: string, alreadyRenderedLive?: boolean) => {
     if (streamRef.current) clearInterval(streamRef.current);
+    // SSE already animated these tokens on screen. Re-typing them makes the finished
+    // answer visibly collapse to empty and retype itself, so just leave it rendered.
+    if (alreadyRenderedLive) { setStreamingMsgIdx(null); return; }
     setStreamingMsgIdx(msgIdx);
     setStreamedUpTo(0);
     let pos = 0;
@@ -1185,6 +1188,18 @@ export function HomePage() {
                 </>
               )}
             </div>
+            {/* The agent's answer. It was previously computed (and charged for) but never
+                rendered, so asking here looked like it did nothing. */}
+            {taskWidgetReply && (
+              <div className="mt-2 flex items-start gap-2 rounded-sm border px-3 py-2" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+                <LogoMark size={11} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }}/>
+                <p className="flex-1 whitespace-pre-wrap text-[12px] leading-relaxed" style={{ color: "var(--text-secondary)" }}>{taskWidgetReply}</p>
+                <button onClick={() => setTaskWidgetReply(null)} title="Dismiss"
+                  className="shrink-0 transition-colors" style={{ color: "var(--text-faint)" }}>
+                  <X size={11}/>
+                </button>
+              </div>
+            )}
           </div>
         </section>
 

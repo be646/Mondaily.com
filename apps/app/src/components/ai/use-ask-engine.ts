@@ -49,8 +49,10 @@ export interface UseAskEngineOptions {
   context?: AskPageContext;
   /** Existing thread to resume, if any (e.g. /ask/:threadId). */
   initialThreadId?: string | null;
-  /** Called right after an assistant reply lands, with its index and full text — lets a surface drive its own streaming/typewriter animation. */
-  onAssistantMessage?: (index: number, fullText: string) => void;
+  /** Called right after an assistant reply lands, with its index and full text — lets a surface drive its own streaming/typewriter animation.
+   *  `alreadyRenderedLive` is true when SSE tokens already animated on screen; a surface must NOT
+   *  re-animate those (doing so visibly collapses the finished answer and retypes it). */
+  onAssistantMessage?: (index: number, fullText: string, alreadyRenderedLive?: boolean) => void;
 }
 
 export function useAskEngine(opts: UseAskEngineOptions = {}) {
@@ -194,7 +196,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
       setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(savedSources), tokens: finalUsage?.total_tokens ?? estimateTokens(reply), usage: finalUsage, tokensExact: finalUsage != null, memory: finalMemory } }));
       if (finalSuggestions.length) setSuggestions(finalSuggestions);
       setStreamStatus(null);
-      opts.onAssistantMessage?.(aiIdx, reply);
+      opts.onAssistantMessage?.(aiIdx, reply, tokens > 0);
     } catch (err: any) {
       clearTimers();
       // If the stream already produced meaningful text before stalling/aborting,
@@ -204,7 +206,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
         setMessages([...withUser, { role: "assistant", content: partial }]);
         addMessageToThread(tid, { role: "assistant", content: partial, sources: liveSources });
         setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(liveSources), tokens: estimateTokens(partial) } }));
-        opts.onAssistantMessage?.(aiIdx, partial);
+        opts.onAssistantMessage?.(aiIdx, partial, true); // this text already appeared live
         setLoading(false);
         setStreamStatus(null);
         return;
@@ -225,7 +227,7 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
         addMessageToThread(tid, { role: "assistant", content: reply, sources: data.sources, memory: data.memory });
         setMessageMeta(prev => ({ ...prev, [aiIdx]: { agent: inferAgentHandoff(text), sources: mapBackendSources(data.sources), tokens: data.usage?.total_tokens ?? estimateTokens(reply), usage: data.usage, tokensExact: data.usage != null, memory: data.memory } }));
         if (data.suggestions?.length) setSuggestions(data.suggestions);
-        opts.onAssistantMessage?.(aiIdx, reply);
+        opts.onAssistantMessage?.(aiIdx, reply, false); // non-streaming fallback — nothing animated yet
       } catch (err2: any) {
         const errMsg: ChatMessage = { role: "assistant", content: friendlyAskError(err2) };
         setMessages([...withUser, errMsg]);
