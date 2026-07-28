@@ -168,73 +168,10 @@ tasks.delete("/:id", async (c) => {
   return c.body(null, 204);
 });
 
-// PATCH /:id/review-action - approve or request changes
-tasks.patch("/:id/review-action", async (c) => {
-  const workspaceId = c.get("workspaceId");
-  const userId = c.get("userId");
-  const { action, reviewer_name, owner_id, note } = await c.req.json() as { action: "approved" | "changes_requested"; reviewer_name: string; owner_id: string; note?: string };
-
-  const updates: Record<string, any> = {
-    review_result: action,
-    reviewer_id: userId,
-    reviewer_name,
-    reviewed_at: new Date().toISOString(),
-  };
-
-  if (action === "approved") {
-    // Approval completes the task — move it to done (not back into the review column) and mirror
-    // the completed/timestamp fields so it doesn't linger as open/overdue.
-    updates.status = "done";
-    updates.completed = true;
-    updates.completed_at = new Date().toISOString();
-    updates.labels = [];
-  } else {
-    updates.status = "in_progress";
-    updates.labels = [];
-    updates.reviewer_id = null;
-    updates.reviewer_name = null;
-    updates.review_result = null;
-  }
-
-  const { data, error } = await supabase
-    .from("tasks").update(updates)
-    .eq("id", c.req.param("id"))
-    .eq("workspace_id", workspaceId)
-    .select().single();
-
-  if (error) return c.json({ error: error.message }, 500);
-
-  // Auto-comment on the task
-  const commentText = action === "approved"
-    ? `✅ Task approved by ${reviewer_name}.`
-    : `🔄 Changes requested by ${reviewer_name}:\n\n${note || "Please review and update the task before resubmitting."}`;
-
-  await supabase.from("task_comments").insert({
-    task_id: c.req.param("id"),
-    workspace_id: workspaceId,
-    user_id: userId,
-    user_name: reviewer_name,
-    body: commentText
-  });
-
-  // Notify task owner
-  const msg = action === "approved"
-    ? `${reviewer_name} approved your task`
-    : `${reviewer_name} requested changes on your task`;
-
-  await supabase.from("notifications").insert({
-    workspace_id: workspaceId,
-    user_id: owner_id,
-    title: action === "approved" ? "Task Approved ✅" : "Changes Requested 🔄",
-    body: msg,
-    type: "review",
-    task_id: c.req.param("id"),
-    is_read: false
-  });
-
-  return c.json(data);
-});
-
+// NOTE: a dead `PATCH /:id/review-action` used to live here. Nothing in the app ever
+// called it, and its approve branch set status="done" + completed=true — the OPPOSITE
+// of the live review flow (task-reviews.ts), which sets status="in_progress". Removed
+// so the two can never diverge or be wired up by mistake.
 // POST /tasks/check-overdue - called on page load to notify overdue assignees
 tasks.post("/check-overdue", async (c) => {
   const workspaceId = c.get("workspaceId");
