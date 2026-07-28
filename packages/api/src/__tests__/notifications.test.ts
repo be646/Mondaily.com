@@ -236,6 +236,19 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect(tasksPage).toMatch(/if \(e\.key === "Enter" && title\.trim\(\) && !create\.isPending\) create\.mutate\(\);/);
   });
 
+  it("task file upload actually exists and is workspace-scoped + signed", () => {
+    expect(details).toMatch(/router\.post\("\/:id\/upload"/);
+    expect(details).toMatch(/TASK_ATTACH_BUCKET = "task-attachments"/);
+    expect(details).toMatch(/router\.get\("\/:id\/attachments\/:attachmentId\/download"/);
+    expect(details).toMatch(/createSignedUrl\(path, 120\)/);
+  });
+
+  it("attachments use the real column names and surface upload failures", () => {
+    expect(panel).toMatch(/interface Attachment \{ id: string; name: string; url: string; size: number;/);
+    expect(panel).not.toMatch(/a\.file_url|a\.file_name|a\.file_size/);
+    expect(panel).toMatch(/setUploadError/);
+  });
+
   it("zero-valued counts never render as a literal 0", () => {
     expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
     expect(tasksPage).toMatch(/\{!!t\.due_days &&/);

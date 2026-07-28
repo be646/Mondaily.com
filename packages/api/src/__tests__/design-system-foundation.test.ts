@@ -736,7 +736,9 @@ describe("tasks/task-detail-panel read-only meta uses text-caption/text-label (P
     expect(P).toMatch(/className="text-label ml-1" style=\{\{ color: "var\(--text-muted\)" \}\}>\{comment\.user_name\}/);                                 // 90 (cond !isMe)
     expect(P).toMatch(/className="text-label" style=\{\{ color: "var\(--text-faint\)" \}\}>Seen by \{others\.length/);                                    // 513 (space kept)
     expect(P).toMatch(/className="text-label capitalize" style=\{\{ color: "var\(--text-muted\)" \}\}>\{a\.permission\}/);                                // 666
-    expect(P).toMatch(/className="text-label mt-0\.5" style=\{\{ color: "var\(--text-faint\)" \}\}>\{a\.user_name\} · \{a\.file_size/);                    // 739 (· space kept)
+    // Fields renamed to the real columns (name/url/size/uploaded_by) when the attachment
+    // contract was repaired — the typography scale is what this guard is about.
+    expect(P).toMatch(/className="text-label mt-0\.5" style=\{\{ color: "var\(--text-faint\)" \}\}>\{uploaderName\(a\.uploaded_by\)\}/);
   });
   it("7B eyebrows still text-caption uppercase", () => {
     expect((P.match(/text-caption[^"]*uppercase|uppercase[^"]*text-caption/g) ?? []).length).toBeGreaterThanOrEqual(5);

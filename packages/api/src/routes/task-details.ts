@@ -227,6 +227,8 @@ router.post("/:id/comments/:commentId/reactions", async (c) => {
 });
 
 // ── Attachments ──────────────────────────────────────────
+const TASK_ATTACH_BUCKET = "task-attachments";
+const TASK_ATTACH_MAX_BYTES = 10 * 1024 * 1024;
 router.get("/:id/attachments", async (c) => {
   const taskId = c.req.param("id");
   await assertTaskOwnership(taskId, c.get("workspaceId"));
@@ -247,6 +249,63 @@ router.post("/:id/attachments", async (c) => {
     .select().single();
   if (error) return c.json({ error: error.message }, 500);
   return c.json(data, 201);
+});
+
+/**
+ * POST /tasks/:id/upload — real file upload. The UI has always posted multipart here, but the
+ * route did not exist: the fetch 404'd into an empty catch, so attaching a file spun and then
+ * silently did nothing. Stores the bytes in a PRIVATE bucket under the workspace prefix and
+ * records the row; the file is served later through a short-lived signed URL, never publicly.
+ */
+router.post("/:id/upload", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const userId = c.get("userId");
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, workspaceId);
+
+  const form = await c.req.formData().catch(() => null);
+  const file = form?.get("file");
+  if (!form || !(file instanceof File)) return c.json({ error: "No file provided." }, 400);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  if (bytes.length === 0) return c.json({ error: "That file is empty." }, 400);
+  if (bytes.length > TASK_ATTACH_MAX_BYTES) return c.json({ error: `"${file.name}" is over the 10 MB limit.` }, 413);
+
+  const safeName = (file.name || "file").replace(/[^\w.\- ]+/g, "_").slice(0, 120);
+  const path = `${workspaceId}/${taskId}/${Date.now()}-${safeName}`;
+  const contentType = file.type || "application/octet-stream";
+  const { error: upErr } = await supabase.storage.from(TASK_ATTACH_BUCKET)
+    .upload(path, bytes, { contentType, upsert: false });
+  if (upErr) return c.json({ error: `Couldn't store "${safeName}" — ${upErr.message}` }, 500);
+
+  const { data, error } = await supabase
+    .from("task_attachments")
+    // Requires 20260728_reconcile_task_attachments.sql — production drifted from 0014 and was
+    // missing `name`/`mime_type`, which made every attachment write 500.
+    .insert({ task_id: taskId, workspace_id: workspaceId, name: safeName, url: path, mime_type: contentType, size: bytes.length, uploaded_by: userId })
+    .select().single();
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json(data, 201);
+});
+
+/**
+ * GET /tasks/:id/attachments/:attachmentId/download — short-lived signed URL. The stored `url` is a
+ * bucket PATH, not a public link, and it must sit under this workspace's prefix.
+ */
+router.get("/:id/attachments/:attachmentId/download", async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const taskId = c.req.param("id");
+  await assertTaskOwnership(taskId, workspaceId);
+  const { data: row } = await supabase
+    .from("task_attachments").select("url")
+    .eq("id", c.req.param("attachmentId")).eq("task_id", taskId).eq("workspace_id", workspaceId)
+    .maybeSingle();
+  const path = row?.url as string | undefined;
+  if (!path) return c.json({ error: "Attachment not found." }, 404);
+  if (/^https?:\/\//i.test(path)) return c.json({ url: path });   // legacy rows stored a real URL
+  if (!path.startsWith(`${workspaceId}/`)) return c.json({ error: "Not allowed." }, 403);
+  const { data, error } = await supabase.storage.from(TASK_ATTACH_BUCKET).createSignedUrl(path, 120);
+  if (error || !data?.signedUrl) return c.json({ error: "Attachment not found." }, 404);
+  return c.json({ url: data.signedUrl });
 });
 
 router.delete("/:id/attachments/:attachmentId", async (c) => {

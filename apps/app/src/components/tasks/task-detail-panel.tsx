@@ -20,7 +20,7 @@ interface Task {
 }
 interface ChecklistItem { id: string; text: string; completed: boolean; added_by_name: string; created_at: string; }
 interface Comment { id: string; body: string; user_name: string; user_id: string; created_at: string; }
-interface Attachment { id: string; file_name: string; file_url: string; file_size: number; user_name: string; }
+interface Attachment { id: string; name: string; url: string; size: number; mime_type?: string; uploaded_by?: string; }
 interface Assignee { id: string; user_id: string; name: string; email: string; permission: string; }
 interface Reaction { id: string; emoji: string; user_id: string; user_name: string; }
 interface TaskView { user_id: string; user_name: string; viewed_at: string; }
@@ -172,6 +172,21 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const [newCheckItem, setNewCheckItem] = useState("");
   const [newComment, setNewComment] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  /** Stored `url` is a private bucket path, so fetch a short-lived signed URL to open it.
+   *  Legacy rows that hold a real link are returned unchanged by the API. */
+  const openAttachment = async (a: Attachment) => {
+    try {
+      const { url } = await apiClient.get<{ url: string }>(`/tasks/${task.id}/attachments/${a.id}/download`);
+      if (url) window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      setUploadError(e instanceof Error ? e.message : "Could not open that file.");
+    }
+  };
+  /** uploaded_by is a user id — resolve it to a real name instead of printing the id. */
+  const uploaderName = (id?: string) =>
+    (id && members.find(m => m.user_id === id)?.name) || "Someone";
   const [localLabels, setLocalLabels] = useState<string[]>(task.labels || []);
   const [localStatus, setLocalStatus] = useState(task.status || "todo");
   const [localPriority, setLocalPriority] = useState(task.priority || "medium");
@@ -290,8 +305,15 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
       const { "Content-Type": _ct, ...uploadHeaders } = authHeaders;
       const fd = new FormData(); fd.append("file", file); fd.append("user_name", userName);
       const res = await apiFetch(`${apiUrl}/api/v1/tasks/${task.id}/upload`, { method: "POST", headers: uploadHeaders, body: fd });
-      if (res.ok) attachmentsQ.refetch();
-    } catch {} setUploading(false);
+      if (res.ok) { setUploadError(null); attachmentsQ.refetch(); }
+      else {
+        // This used to be an empty catch: a failed upload just stopped the spinner and
+        // looked like nothing happened. Show what the server actually said.
+        const msg = await res.json().then((j: { error?: string }) => j?.error).catch(() => null);
+        setUploadError(msg || `Upload failed (${res.status}).`);
+      }
+    } catch (e) { setUploadError(e instanceof Error ? e.message : "Upload failed."); }
+    setUploading(false);
   };
 
   // Real LLM call — summarizes and suggests a next action from the task's
@@ -729,14 +751,9 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                   <div key={a.id} className="surface-card flex items-center gap-3 rounded-sm px-3 py-2.5 group">
                     <Paperclip size={13} className="shrink-0" style={{ color: "var(--text-muted)" }}/>
                     <div className="flex-1 min-w-0">
-                      {/\.(jpg|jpeg|png|gif|webp)$/i.test(a.file_name) && (
-                        <a href={a.file_url} target="_blank" rel="noopener noreferrer">
-                          <img src={a.file_url} alt={a.file_name} className="rounded-lg max-h-32 object-cover mb-1"/>
-                        </a>
-                      )}
-                      <a href={a.file_url} target="_blank" rel="noopener noreferrer"
-                        className="text-sm text-[#717784] hover:underline truncate block transition-colors">{a.file_name}</a>
-                      <p className="text-label mt-0.5" style={{ color: "var(--text-faint)" }}>{a.user_name} · {a.file_size > 0 ? `${(a.file_size/1024).toFixed(1)} KB` : "link"}</p>
+                      <button onClick={() => openAttachment(a)}
+                        className="text-sm text-[#717784] hover:underline truncate block text-left transition-colors">{a.name}</button>
+                      <p className="text-label mt-0.5" style={{ color: "var(--text-faint)" }}>{uploaderName(a.uploaded_by)}{a.size > 0 ? ` · ${(a.size/1024).toFixed(1)} KB` : ""}</p>
                     </div>
                     <button onClick={() => apiClient.delete(`/tasks/${task.id}/attachments/${a.id}`).then(() => attachmentsQ.refetch())}
                       className="opacity-0 group-hover:opacity-100 transition-all shrink-0 hover:text-stone-600 dark:hover:text-stone-400"
@@ -750,6 +767,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                 style={uploading ? { borderColor: "var(--border-soft)", opacity: 0.5 } : { borderColor: "var(--border-strong)" }}>
                 <Paperclip size={18} className="mb-2" style={{ color: "var(--text-faint)" }}/>
                 <p className="text-sm mb-1" style={{ color: "var(--text-muted)" }}>{uploading ? "Uploading…" : "Upload a file"}</p>
+                {uploadError && <p className="text-label mt-1 text-center" style={{ color: "#d1524a" }}>{uploadError}</p>}
                 <p className="text-xs" style={{ color: "var(--text-faint)" }}>Click to choose · images, PDFs, docs</p>
                 <input type="file" className="hidden" disabled={uploading} onChange={e => { const f = e.target.files?.[0]; if (f) uploadFile(f); e.target.value = ""; }}/>
               </label>
