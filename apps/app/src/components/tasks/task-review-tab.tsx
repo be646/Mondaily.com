@@ -7,12 +7,21 @@ import { apiClient } from "../../lib/api-client";
 interface Member { id: string; user_id: string; email: string; name: string; }
 interface Task { id: string; title: string; assignee_id?: string; reviewer_id?: string; reviewer_name?: string; review_result?: string; status?: string; }
 interface TaskReview {
-  id: string; round: number; sent_by_name: string; sent_at: string;
+  id: string; round: number; sent_by_name: string; sent_at?: string; created_at?: string;
   context: string; reviewer_id: string; reviewer_name: string;
   action?: string; action_note?: string; action_at?: string; status: string;
 }
 
 type Screen = "idle" | "send" | "action" | "reassign";
+
+/** The row's timestamp column is `created_at`; older code read a `sent_at` that isn't
+ *  always present, which rendered a literal "Invalid Date" on every review card. */
+function reviewWhen(r: { sent_at?: string; created_at?: string }): string {
+  const raw = r.sent_at ?? r.created_at;
+  const d = raw ? new Date(raw) : null;
+  if (!d || Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
 
 function Avatar({ name, size = 7 }: { name: string; size?: number }) {
   const colors = ["bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#717784]/20 text-[#717784]","bg-[#2f9e6b]/20 text-[#2f9e6b]","bg-stone-500/20 text-stone-600 dark:text-stone-400","bg-[#c6892e]/20 text-[#c6892e]"];
@@ -41,7 +50,7 @@ function ReviewHistoryItem({ review }: { review: TaskReview }) {
         <Avatar name={review.sent_by_name} size={6}/>
         <div>
           <p className="text-xs" style={{ color: "var(--text-muted)" }}>Sent by <span style={{ color: "var(--text-primary)" }}>{review.sent_by_name}</span></p>
-          <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>{new Date(review.sent_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+          <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>{reviewWhen(review)}</p>
         </div>
       </div>
 
@@ -262,7 +271,7 @@ export function TaskReviewTab({ task, members, onUpdate }: {
             <Avatar name={pendingReview.sent_by_name} size={6}/>
             <div>
               <p className="text-xs" style={{ color: "var(--text-muted)" }}>Sent by <span style={{ color: "var(--text-primary)" }}>{pendingReview.sent_by_name}</span></p>
-              <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>{new Date(pendingReview.sent_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+              <p className="text-[11px]" style={{ color: "var(--text-faint)" }}>{reviewWhen(pendingReview)}</p>
             </div>
           </div>
 

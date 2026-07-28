@@ -180,3 +180,47 @@ describe("GET /notifications honours ?limit", () => {
     expect(src).toMatch(/Number\.isFinite\(requested\) \? .* : 100/);
   });
 });
+
+/**
+ * Tasks surface — field-contract bugs found in the Tasks audit. These were real
+ * crashes/500s in production, so they get guards.
+ */
+describe("Tasks field contracts (audit fixes)", () => {
+  const panel = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/components/tasks/task-detail-panel.tsx", import.meta.url)), "utf8");
+  const details = readFileSync(fileURLToPath(new URL("../routes/task-details.ts", import.meta.url)), "utf8");
+  const reviewTab = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/components/tasks/task-review-tab.tsx", import.meta.url)), "utf8");
+  const tasksPage = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/tasks.tsx", import.meta.url)), "utf8");
+
+  it("comments use the `body` column end to end (posting used to 500, reading used to crash)", () => {
+    expect(panel).toMatch(/interface Comment \{ id: string; body: string;/);
+    expect(panel).toMatch(/\/comments`, \{ body: newComment, user_name: userName \}/);
+    expect(panel).toMatch(/renderContent\(comment\.body\)/);
+    expect(panel).not.toMatch(/comment\.content/);
+    expect(details).toMatch(/payload\.body \?\? payload\.content \?\? ""/);
+    expect(details).toMatch(/Comment body is required/);
+    expect(details).not.toMatch(/body\.body\.slice/);
+  });
+
+  it("task views return a resolved user_name and never throw on a missing one", () => {
+    expect(details).toMatch(/from\("workspace_members"\)\.select\("user_id, name, email"\)/);
+    expect(details).toMatch(/user_name: names\.get\(r\.user_id\) \|\| ""/);
+    expect(panel).not.toMatch(/\{v\.user_name\.charAt/);
+    expect(panel).toMatch(/\(v\.user_name \|\| "\?"\)\.charAt/);
+  });
+
+  it("review timestamps fall back to created_at instead of rendering Invalid Date", () => {
+    expect(reviewTab).toMatch(/function reviewWhen/);
+    expect(reviewTab).toMatch(/r\.sent_at \?\? r\.created_at/);
+    expect(reviewTab).not.toMatch(/new Date\(review\.sent_at\)/);
+  });
+
+  it("detail-panel edits invalidate a key that actually matches the list", () => {
+    expect(tasksPage).toMatch(/const listKey = \["tasks", filter, labelFilter, priorityFilter, sortBy, sortDir\]/);
+    expect(tasksPage).toMatch(/invalidateQueries\(\{ queryKey: \["tasks"\] \}\)/);
+  });
+
+  it("zero-valued counts never render as a literal 0", () => {
+    expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
+    expect(tasksPage).toMatch(/\{!!t\.due_days &&/);
+  });
+});

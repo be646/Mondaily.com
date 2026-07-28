@@ -19,7 +19,7 @@ interface Task {
   record_id?: string; due_date?: string;
 }
 interface ChecklistItem { id: string; text: string; completed: boolean; added_by_name: string; created_at: string; }
-interface Comment { id: string; content: string; user_name: string; user_id: string; created_at: string; }
+interface Comment { id: string; body: string; user_name: string; user_id: string; created_at: string; }
 interface Attachment { id: string; file_name: string; file_url: string; file_size: number; user_name: string; }
 interface Assignee { id: string; user_id: string; name: string; email: string; permission: string; }
 interface Reaction { id: string; emoji: string; user_id: string; user_name: string; }
@@ -76,8 +76,8 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
 
   const seenByOthers = isLast && isMe ? views.filter(v => v.user_id !== userId) : [];
 
-  const renderContent = (text: string) =>
-    text.split(/(@\w[\w\s]*)/g).map((part, i) =>
+  const renderContent = (text: string | undefined) =>
+    (text ?? "").split(/(@\w[\w\s]*)/g).map((part, i) =>
       part.startsWith("@") ? <span key={i} className="font-medium text-stone-600 dark:text-stone-400">{part}</span> : <span key={i}>{part}</span>
     );
 
@@ -91,7 +91,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
 
         <div className={`relative rounded-sm px-3.5 py-2.5 text-sm leading-relaxed border ${isMe ? "rounded-tr-sm" : "rounded-tl-sm"}`}
           style={{ background: isMe ? "var(--surface-hover)" : "var(--surface-card)", borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
-          <p className="whitespace-pre-wrap">{renderContent(comment.content)}</p>
+          <p className="whitespace-pre-wrap">{renderContent(comment.body)}</p>
           <span className="text-caption mt-0.5 block text-right" style={{ color: "var(--text-faint)" }}>{relTime(comment.created_at)}</span>
 
           {/* Emoji trigger */}
@@ -134,7 +134,7 @@ function CommentBubble({ comment, taskId, userId, userName, isLast, views }: {
                 <div key={v.user_id} title={v.user_name}
                   className={`h-3.5 w-3.5 rounded-full border flex items-center justify-center text-[8px] ${i > 0 ? "-ml-1" : ""}`}
                   style={{ background: "var(--surface-hover)", borderColor: "var(--surface-modal)", color: "var(--text-secondary)" }}>
-                  {v.user_name.charAt(0).toUpperCase()}
+                  {(v.user_name || "?").charAt(0).toUpperCase()}
                 </div>
               ))}
               {seenByOthers.length > 3 && <span className="text-caption ml-1" style={{ color: "var(--text-faint)" }}>+{seenByOthers.length - 3}</span>}
@@ -245,7 +245,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
   const addCheckItem    = useMutation({ mutationFn: () => apiClient.post(`/tasks/${task.id}/checklist`, { text: newCheckItem, added_by_name: userName }), onSuccess: () => { setNewCheckItem(""); checklistQ.refetch(); activityQ.refetch(); } });
   const toggleCheckItem = useMutation({ mutationFn: ({ itemId, completed }: { itemId: string; completed: boolean }) => apiClient.patch(`/tasks/${task.id}/checklist/${itemId}`, { completed, _user_name: userName }), onSuccess: () => { checklistQ.refetch(); activityQ.refetch(); } });
   const deleteCheckItem = useMutation({ mutationFn: (id: string) => apiClient.delete(`/tasks/${task.id}/checklist/${id}`), onSuccess: () => checklistQ.refetch() });
-  const addComment      = useMutation({ mutationFn: () => apiClient.post(`/tasks/${task.id}/comments`, { content: newComment, user_name: userName }), onSuccess: () => { setNewComment(""); commentsQ.refetch(); activityQ.refetch(); } });
+  const addComment      = useMutation({ mutationFn: () => apiClient.post(`/tasks/${task.id}/comments`, { body: newComment, user_name: userName }), onSuccess: () => { setNewComment(""); commentsQ.refetch(); activityQ.refetch(); } });
 
   const checklist   = checklistQ.data ?? [];
   const comments    = commentsQ.data ?? [];
@@ -302,7 +302,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
     setAiSummary(null);
     try {
       const checklistText = checklist.length ? `Checklist: ${checklist.map(c => `${c.completed ? "[x]" : "[ ]"} ${c.text}`).join("; ")}` : "";
-      const commentsText = comments.length ? `Recent comments: ${comments.slice(-5).map(c => `${c.user_name}: ${c.content}`).join(" | ")}` : "";
+      const commentsText = comments.length ? `Recent comments: ${comments.slice(-5).map(c => `${c.user_name}: ${c.body}`).join(" | ")}` : "";
       const prompt = `Summarize this task in 2-3 sentences and suggest one concrete next action. Task: "${task.title}". Notes: ${task.notes || "none"}. ${checklistText} ${commentsText}`;
       const data = await apiClient.post<{ reply?: string }>("/ask", { message: prompt });
       setAiSummary(data.reply || "No summary returned.");
@@ -505,7 +505,7 @@ export function TaskDetailPanel({ task, members, onClose, onUpdate }: {
                         <div key={v.user_id} title={v.user_name}
                           className={`h-4 w-4 rounded-full border flex items-center justify-center text-[8px] font-medium ${i > 0 ? "-ml-1" : ""}`}
                           style={{ background: "var(--surface-hover)", borderColor: "var(--surface-modal)", color: "var(--text-secondary)" }}>
-                          {v.user_name.charAt(0).toUpperCase()}
+                          {(v.user_name || "?").charAt(0).toUpperCase()}
                         </div>
                       ))}
                       {others.length > 5 && <div className="-ml-1 h-4 w-4 rounded-full border flex items-center justify-center text-[8px]" style={{ background: "var(--surface-hover)", borderColor: "var(--surface-modal)", color: "var(--text-secondary)" }}>+{others.length-5}</div>}

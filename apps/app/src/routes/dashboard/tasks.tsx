@@ -353,7 +353,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
                     {t.notes && <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">{t.notes}</p>}
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`text-caption font-medium capitalize ${PCOL[t.priority] ?? "text-[var(--text-faint)]"}`}>{t.priority}</span>
-                      {t.due_days && <span className="text-caption text-[var(--text-faint)]">due in {t.due_days}d</span>}
+                      {!!t.due_days && <span className="text-caption text-[var(--text-faint)]">due in {t.due_days}d</span>}
                     </div>
                   </div>
                 </button>
@@ -641,7 +641,7 @@ export function TasksPage() {
             <button key={f.key} onClick={() => setFilter(f.key)}
               className={`flex items-center gap-1 rounded-sm px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
               {f.label}
-              {f.badge && filter !== f.key && <span className="rounded-full bg-stone-100 px-1 py-px text-caption text-stone-700 dark:bg-stone-500/20 dark:text-stone-400">{f.badge}</span>}
+              {!!f.badge && filter !== f.key && <span className="rounded-full bg-stone-100 px-1 py-px text-caption text-stone-700 dark:bg-stone-500/20 dark:text-stone-400">{f.badge}</span>}
             </button>
           ))}
         </div>
@@ -893,7 +893,17 @@ export function TasksPage() {
       {detailTask && (
         <TaskDetailPanel task={detailTask} members={members}
           onClose={() => setDetailTask(null)}
-          onUpdate={() => { qc.invalidateQueries({ queryKey: ["tasks", filter, labelFilter, sortBy] }).then(() => { const allT = qc.getQueryData<any[]>(["tasks", filter, labelFilter, sortBy]) || []; const updated = allT.find((t: any) => t.id === detailTask?.id); if (updated) setDetailTask(updated); }); }}
+          onUpdate={() => {
+            // The list key is ["tasks", filter, label, priority, sort, dir]. This used to
+            // invalidate (and read back) ["tasks", filter, label, sort] — a key that never
+            // matches, so the list stayed stale and the open panel kept the pre-edit task.
+            const listKey = ["tasks", filter, labelFilter, priorityFilter, sortBy, sortDir];
+            qc.invalidateQueries({ queryKey: ["tasks"] }).then(() => {
+              const allT = qc.getQueryData<Task[]>(listKey) ?? [];
+              const updated = allT.find(t => t.id === detailTask?.id);
+              if (updated) setDetailTask(updated);
+            });
+          }}
         />
       )}
       {editTask && <EditTaskModal task={editTask} onClose={() => setEditTask(null)} members={members} currentUserId={currentUserId}/>}

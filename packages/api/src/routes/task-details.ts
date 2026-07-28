@@ -142,10 +142,14 @@ router.post("/:id/comments", async (c) => {
   const userId = c.get("userId");
   const taskId = c.req.param("id");
   await assertTaskOwnership(taskId, workspaceId);
-  const body = await c.req.json() as { body: string; user_name: string };
+  // Accept `body` (the column name, what the UI sends) and tolerate a legacy `content`
+  // payload. `body` is NOT NULL, so reject an empty comment with 400 rather than a 500.
+  const payload = await c.req.json() as { body?: string; content?: string; user_name?: string };
+  const text = (payload.body ?? payload.content ?? "").trim();
+  if (!text) return c.json({ error: "Comment body is required." }, 400);
   const { data, error } = await supabase
     .from("task_comments")
-    .insert({ task_id: taskId, workspace_id: workspaceId, user_id: userId, user_name: body.user_name, body: body.body })
+    .insert({ task_id: taskId, workspace_id: workspaceId, user_id: userId, user_name: payload.user_name, body: text })
     .select().single();
   if (error) return c.json({ error: error.message }, 500);
 
@@ -157,7 +161,7 @@ router.post("/:id/comments", async (c) => {
       user_id: task.assignee_id,
       message: `New comment on "${task.title}"`,
       title: `New comment on "${task.title}"`,
-      body: `${body.user_name}: ${body.body.slice(0, 80)}`,
+      body: `${payload.user_name ?? "Someone"}: ${text.slice(0, 80)}`,
       type: "comment",
       task_id: taskId,
       is_read: false,
@@ -273,7 +277,18 @@ router.get("/:id/views", async (c) => {
   const { data } = await supabase
     .from("task_views").select("user_id, viewed_at")
     .eq("task_id", taskId).order("viewed_at", { ascending: false });
-  return c.json(data ?? []);
+  const rows = data ?? [];
+  // task_views stores only user_id, but the "seen by" avatars need a name. Resolve it from
+  // the workspace roster (the UI used to read a user_name that was never returned and threw).
+  const ids = [...new Set(rows.map(r => r.user_id).filter(Boolean))];
+  const names = new Map<string, string>();
+  if (ids.length) {
+    const { data: members } = await supabase
+      .from("workspace_members").select("user_id, name, email")
+      .eq("workspace_id", c.get("workspaceId")).in("user_id", ids);
+    for (const m of members ?? []) names.set(m.user_id, m.name || m.email || "");
+  }
+  return c.json(rows.map(r => ({ ...r, user_name: names.get(r.user_id) || "" })));
 });
 
 // ── Activity ─────────────────────────────────────────────
