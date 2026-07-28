@@ -47,6 +47,22 @@ function calcTotals(lineItems: z.infer<typeof lineItemSchema>[]) {
   return { subtotal, tax_total, total: round2(subtotal + tax_total) };
 }
 
+// ─── State machine ────────────────────────────────────────────────────────────
+// PATCH previously accepted any status and blindly merged the body, so an invoice could be
+// marked `paid` with zero payments recorded (inflating the Collected KPI and /rollup), moved
+// back from `paid` to `draft`, or have the line items of an already-sent document rewritten —
+// silently changing the total on a document the client already has.
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  draft:     ["sent", "cancelled"],
+  sent:      ["viewed", "paid", "overdue", "cancelled"],
+  viewed:    ["paid", "overdue", "cancelled"],
+  overdue:   ["paid", "cancelled"],
+  paid:      [],          // terminal
+  cancelled: [],          // terminal
+};
+/** Money (line items / currency) is only editable while the document is still a draft. */
+const MONEY_LOCKED_AFTER = new Set(["sent", "viewed", "paid", "overdue", "cancelled"]);
+
 async function nextInvoiceNumber(workspaceId: string): Promise<string> {
   // Highest existing number + 1 (not count+1, which collides after a deletion).
   const { data } = await supabase
@@ -203,6 +219,31 @@ router.patch("/:id", zValidator("json", invoiceBodySchema.partial()), async (c) 
 
   const body = c.req.valid("json");
   const current = existing.data as Record<string, unknown>;
+  const currentStatus = String(current.status ?? "draft");
+
+  // Guard the status transition.
+  if (body.status && body.status !== currentStatus) {
+    const allowed = VALID_TRANSITIONS[currentStatus] ?? [];
+    if (!allowed.includes(body.status)) {
+      return c.json({ error: `Cannot move an invoice from ${currentStatus} to ${body.status}.` }, 422);
+    }
+    // Marking paid by hand must reflect real money: require payments covering the total.
+    if (body.status === "paid") {
+      const payments = Array.isArray(current.payments) ? (current.payments as Array<Record<string, unknown>>) : [];
+      const paid = Math.round(payments.reduce((sum, p) => sum + Number(p.amount ?? 0), 0) * 100) / 100;
+      const owed = Number(current.total ?? 0);
+      if (paid + 0.005 < owed) {
+        return c.json({ error: `Cannot mark paid: ${paid} of ${owed} recorded. Record the payment first.` }, 422);
+      }
+    }
+  }
+
+  // Money is frozen once the document has left draft.
+  const editsMoney = body.line_items !== undefined || body.currency !== undefined;
+  if (editsMoney && MONEY_LOCKED_AFTER.has(currentStatus)) {
+    return c.json({ error: `Line items and currency cannot change on a ${currentStatus} invoice.` }, 422);
+  }
+
   const lineItems = (body.line_items ?? current.line_items) as z.infer<typeof lineItemSchema>[];
   const { subtotal, tax_total, total } = calcTotals(lineItems);
 

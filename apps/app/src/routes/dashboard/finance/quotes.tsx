@@ -211,8 +211,14 @@ export function QuotesPage() {
   const { display, sumInDisplay } = useCurrency();
   const currency = display;
   const q$ = (q: Quote) => ({ amount: q.total ?? 0, currency: q.currency });
-  const totalAccepted = sumInDisplay(quotes.filter(q => q.status === "accepted").map(q$)).value;
-  const totalPending  = sumInDisplay(quotes.filter(q => q.status === "sent").map(q$)).value;
+  const acceptedSum = sumInDisplay(quotes.filter(q => q.status === "accepted").map(q$));
+  const pendingSum  = sumInDisplay(quotes.filter(q => q.status === "sent").map(q$));
+  const totalAccepted = acceptedSum.value;
+  const totalPending  = pendingSum.value;
+  // Retain `missing`: unlike currencies with no FX rate are summed at FACE VALUE, so the
+  // figure must not be presented as exact.
+  const approx = (n: number) => (n > 0 ? "~" : "");
+
 
   return (
     <div className="flex h-full flex-col">
@@ -229,12 +235,12 @@ export function QuotesPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><Send size={11} className="text-status-neutral"/><span className="text-label text-[var(--text-muted)]">Sent</span></div>
-            <div className="text-stat font-semibold text-status-neutral">{formatMoney(totalPending, currency)}</div>
+            <div className="text-stat font-semibold text-status-neutral">{approx(pendingSum.missing)}{formatMoney(totalPending, currency)}</div>
             <div className="text-caption text-[var(--text-secondary)] mt-0.5">{quotes.filter(q => q.status === "sent").length} quotes awaiting response</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-ok"/><span className="text-label text-[var(--text-muted)]">Accepted</span></div>
-            <div className="text-stat font-semibold text-status-ok">{formatMoney(totalAccepted, currency)}</div>
+            <div className="text-stat font-semibold text-status-ok">{approx(acceptedSum.missing)}{formatMoney(totalAccepted, currency)}</div>
             <div className="text-caption text-[var(--text-secondary)] mt-0.5">{quotes.filter(q => q.status === "accepted").length} accepted</div>
           </div>
           <div className="telemetry-strip">

@@ -293,6 +293,40 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect(onboarding).not.toMatch(/name: "HR"/);
   });
 
+  it("invoice status transitions are guarded and money freezes after draft", () => {
+    const inv = readFileSync(fileURLToPath(new URL("../routes/invoices.ts", import.meta.url)), "utf8");
+    expect(inv).toMatch(/const VALID_TRANSITIONS: Record<string, string\[\]> = \{/);
+    expect(inv).toMatch(/paid:\s+\[\],\s+\/\/ terminal/);
+    expect(inv).toMatch(/Cannot move an invoice from \$\{currentStatus\} to \$\{body\.status\}/);
+    // cannot mark paid without recorded payments covering the total
+    expect(inv).toMatch(/Cannot mark paid: \$\{paid\} of \$\{owed\} recorded/);
+    // line items / currency frozen once sent
+    expect(inv).toMatch(/MONEY_LOCKED_AFTER/);
+    expect(inv).toMatch(/Line items and currency cannot change on a \$\{currentStatus\} invoice/);
+  });
+
+  it("cross-currency sums are shown as approximate, never exact", () => {
+    const base = "../../../../apps/app/src/routes/dashboard/";
+    for (const f of ["finance/invoices.tsx", "finance/quotes.tsx", "finance/credit-notes.tsx", "approvals.tsx"]) {
+      const src = readFileSync(fileURLToPath(new URL(base + f, import.meta.url)), "utf8");
+      expect(src, f).toMatch(/const approx = \(n: number\) => \(n > 0 \? "~" : ""\);/);
+      expect(src, f).toMatch(/approx\(\w+Sum\.missing\)/);
+    }
+  });
+
+  it("expenses search is actually applied server-side", () => {
+    const exp = readFileSync(fileURLToPath(new URL("../routes/expenses.ts", import.meta.url)), "utf8");
+    expect(exp).toMatch(/const search = \(c\.req\.query\("search"\) \?\? ""\)\.trim\(\)\.toLowerCase\(\);/);
+    expect(exp).toMatch(/String\(d\.merchant \?\? ""\)\.toLowerCase\(\)\.includes\(search\)/);
+  });
+
+  it("a failed approvals fetch is not shown as an empty queue", () => {
+    const ap = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/approvals.tsx", import.meta.url)), "utf8");
+    expect(ap).toMatch(/isLoading, isError, refetch/);
+    expect(ap).toMatch(/Could not load the approval queue/);
+    expect(ap).toMatch(/\{!isLoading && !isError && shown\.length === 0 && \(/);
+  });
+
   it("zero-valued counts never render as a literal 0", () => {
     expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
     expect(tasksPage).toMatch(/\{!!t\.due_days &&/);

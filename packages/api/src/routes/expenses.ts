@@ -30,6 +30,9 @@ router.get("/", async (c) => {
   const category = c.req.query("category");
   const status = c.req.query("status");
   const linkedRecordId = c.req.query("linked_record_id");
+  // The UI has always sent ?search; this route ignored it, so typing returned unfiltered rows
+  // with no sign that filtering had failed. Matches the invoices/quotes/credit-notes routes.
+  const search = (c.req.query("search") ?? "").trim().toLowerCase();
 
   let query = supabase
     .from("nodes")
@@ -46,7 +49,17 @@ router.get("/", async (c) => {
   const { data, error } = await query;
   if (error) return c.json({ error: error.message }, 500);
 
-  return c.json((data ?? []).map(row => ({ id: row.id, ...row.data, created_at: row.created_at, updated_at: row.updated_at, created_by: row.created_by })));
+  const rows = (data ?? []).filter(row => {
+    if (!search) return true;
+    const d = row.data as Record<string, unknown>;
+    return (
+      String(d.merchant ?? "").toLowerCase().includes(search) ||
+      String(d.description ?? "").toLowerCase().includes(search) ||
+      String(d.category ?? "").toLowerCase().includes(search)
+    );
+  });
+
+  return c.json(rows.map(row => ({ id: row.id, ...row.data, created_at: row.created_at, updated_at: row.updated_at, created_by: row.created_by })));
 });
 
 router.get("/:id", async (c) => {

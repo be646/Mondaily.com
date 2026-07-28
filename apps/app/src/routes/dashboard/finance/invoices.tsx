@@ -129,8 +129,15 @@ export function InvoicesPage() {
   const [period, setPeriod] = usePeriod("mondaily_invoices_period", "all");
   const range = periodRange(period);
   const inv$ = (i: Invoice) => ({ amount: i.total, currency: i.currency });
-  const totalOwed = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$)).value;
-  const totalPaid = sumInDisplay(invoices.filter(i => i.status === "paid" && (period === "all" || inRange(i.paid_at ?? i.created_at, range))).map(inv$)).value;
+  // Keep `missing`: when an FX rate is absent, sumInDisplay adds unlike currencies at FACE
+  // VALUE. Presenting that as an exact figure under one symbol is a wrong number, so the
+  // card is marked approximate (same treatment expenses already uses).
+  const owedSum = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$));
+  const paidSum = sumInDisplay(invoices.filter(i => i.status === "paid" && (period === "all" || inRange(i.paid_at ?? i.created_at, range))).map(inv$));
+  const totalOwed = owedSum.value;
+  const totalPaid = paidSum.value;
+  const approx = (n: number) => (n > 0 ? "~" : "");
+  const unconverted = (n: number) => (n > 0 ? ` · ${n} unconverted` : "");
   const collectedScope = period === "all" ? "all time" : period === "today" ? "today" : `this ${periodLabel(period).toLowerCase()}`;
 
   return (
@@ -161,16 +168,16 @@ export function InvoicesPage() {
               <DollarSign size={12} className="text-[var(--text-muted)]"/>
               <span className="text-label text-[var(--text-muted)]">Outstanding</span>
             </div>
-            <div className="font-mono text-stat font-semibold tabular-nums text-[var(--text-primary)]">{formatCurrency(totalOwed, display)}</div>
-            <div className="mt-0.5 text-caption text-[var(--text-faint)]">unpaid · as of today</div>
+            <div className="font-mono text-stat font-semibold tabular-nums text-[var(--text-primary)]">{approx(owedSum.missing)}{formatCurrency(totalOwed, display)}</div>
+            <div className="mt-0.5 text-caption text-[var(--text-faint)]">unpaid · as of today{unconverted(owedSum.missing)}</div>
           </div>
           <div className="telemetry-strip">
             <div className="flex items-center gap-2 mb-1">
               <CheckCircle size={12} className="text-[#2f9e6b]"/>
               <span className="text-label text-[var(--text-muted)]">Collected</span>
             </div>
-            <div className="font-mono text-stat font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{formatCurrency(totalPaid, display)}</div>
-            <div className="mt-0.5 text-caption text-[var(--text-faint)]">{collectedScope}</div>
+            <div className="font-mono text-stat font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{approx(paidSum.missing)}{formatCurrency(totalPaid, display)}</div>
+            <div className="mt-0.5 text-caption text-[var(--text-faint)]">{collectedScope}{unconverted(paidSum.missing)}</div>
           </div>
         </div>
 

@@ -7,8 +7,7 @@ import { FinanceHeader } from "../../components/finance/finance-toolbar";
 import { useCurrency, formatMoney } from "../../hooks/useCurrency";
 import {
   ShieldCheck, Clock, CheckCircle2, XCircle,
-  ReceiptText, ChevronRight, AlertTriangle, UserCircle2,
-} from "lucide-react";
+  ReceiptText, ChevronRight, AlertTriangle, UserCircle2, ShieldAlert } from "lucide-react";
 
 type CreditStatus = "draft" | "pending_review" | "verified" | "rejected" | "executed" | "void";
 type CreditReason = "refund" | "billing_error" | "goodwill" | "contract_discount";
@@ -233,7 +232,7 @@ export function ApprovalsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [tab, setTab] = useState<TabKey>("pending_review");
 
-  const { data: allNotes = [], isLoading } = useQuery<CreditNote[]>({
+  const { data: allNotes = [], isLoading, isError, refetch } = useQuery<CreditNote[]>({
     queryKey: ["approvals"],
     queryFn: () => apiClient.get<CreditNote[]>("/credit-notes"),
     refetchInterval: 30_000,
@@ -261,9 +260,16 @@ export function ApprovalsPage() {
   // instead of being mislabeled with the first note's currency (matches the Credit Notes page).
   const { display, sumInDisplay } = useCurrency();
   const cn$ = (n: CreditNote) => ({ amount: n.amount_cents / 100, currency: n.currency });
-  const totalPending  = sumInDisplay(pending.map(cn$)).value;
-  const totalVerified = sumInDisplay(verified.map(cn$)).value;
-  const totalExecuted = sumInDisplay(executed.map(cn$)).value;
+  const pendingSum  = sumInDisplay(pending.map(cn$));
+  const verifiedSum = sumInDisplay(verified.map(cn$));
+  const executedSum = sumInDisplay(executed.map(cn$));
+  const totalPending  = pendingSum.value;
+  const totalVerified = verifiedSum.value;
+  const totalExecuted = executedSum.value;
+  // Retain `missing`: unlike currencies with no FX rate are summed at FACE VALUE, so the
+  // figure must not be presented as exact.
+  const approx = (n: number) => (n > 0 ? "~" : "");
+
 
   return (
     <div className="flex h-full flex-col bg-[var(--surface-card)] text-[var(--text-primary)]">
@@ -275,17 +281,17 @@ export function ApprovalsPage() {
         <div className="telemetry-strip mb-4">
           <div>
             <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-status-warn"/><span className="text-[11px] text-[var(--text-muted)]">Needs review</span></div>
-            <div className="text-[17px] font-semibold text-status-warn">{formatMoney(totalPending, display)}</div>
+            <div className="text-[17px] font-semibold text-status-warn">{approx(pendingSum.missing)}{formatMoney(totalPending, display)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{pending.length} note{pending.length !== 1 ? "s" : ""}</div>
           </div>
           <div>
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-neutral"/><span className="text-[11px] text-[var(--text-muted)]">Verified, not executed</span></div>
-            <div className="text-[17px] font-semibold text-status-neutral">{formatMoney(totalVerified, display)}</div>
+            <div className="text-[17px] font-semibold text-status-neutral">{approx(verifiedSum.missing)}{formatMoney(totalVerified, display)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{verified.length} note{verified.length !== 1 ? "s" : ""}</div>
           </div>
           <div>
             <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-ok"/><span className="text-[11px] text-[var(--text-muted)]">Executed this period</span></div>
-            <div className="text-[17px] font-semibold text-status-ok">{formatMoney(totalExecuted, display)}</div>
+            <div className="text-[17px] font-semibold text-status-ok">{approx(executedSum.missing)}{formatMoney(totalExecuted, display)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{executed.length} note{executed.length !== 1 ? "s" : ""}</div>
           </div>
         </div>
@@ -313,7 +319,17 @@ export function ApprovalsPage() {
       {/* Cards */}
       <div className="flex-1 overflow-auto p-6 pt-3">
         {isLoading && <div className="flex h-40 items-center justify-center text-[12px] text-[var(--text-muted)]">Loading…</div>}
-        {!isLoading && shown.length === 0 && (
+        {/* A failed fetch used to fall through to "Nothing in this queue" — an approval queue
+            that failed to load looked identical to an empty one. Say what actually happened. */}
+        {!isLoading && isError && (
+          <div className="flex h-56 flex-col items-center justify-center gap-3">
+            <ShieldAlert size={32} style={{ color: "#c6892e" }}/>
+            <div className="text-[13px] text-[var(--text-primary)]">Could not load the approval queue</div>
+            <div className="text-[12px] text-[var(--text-muted)]">This is a load failure, not an empty queue.</div>
+            <button onClick={() => refetch()} className="text-[12px] text-[var(--text-faint)] hover:text-[var(--text-muted)] transition-colors">Try again</button>
+          </div>
+        )}
+        {!isLoading && !isError && shown.length === 0 && (
           <div className="flex h-56 flex-col items-center justify-center gap-3">
             <Clock size={32} className="text-[var(--text-faint)]"/>
             <div className="text-[13px] text-[var(--text-muted)]">Nothing in this queue</div>

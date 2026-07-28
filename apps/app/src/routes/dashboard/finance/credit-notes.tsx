@@ -211,8 +211,14 @@ export function CreditNotesPage() {
   // Totals normalized to the caller's display currency (major units), so mixed-currency
   // credit notes sum honestly instead of being mislabeled with the first note's currency.
   const cn$ = (n: CreditNote) => ({ amount: n.amount_cents / 100, currency: n.currency });
-  const totalPending  = sumInDisplay(creditNotes.filter(n => n.status === "pending_review").map(cn$)).value;
-  const totalExecuted = sumInDisplay(creditNotes.filter(n => n.status === "executed").map(cn$)).value;
+  const pendingSum  = sumInDisplay(creditNotes.filter(n => n.status === "pending_review").map(cn$));
+  const executedSum = sumInDisplay(creditNotes.filter(n => n.status === "executed").map(cn$));
+  const totalPending  = pendingSum.value;
+  const totalExecuted = executedSum.value;
+  // Retain `missing`: unlike currencies with no FX rate are summed at FACE VALUE, so the
+  // figure must not be presented as exact.
+  const approx = (n: number) => (n > 0 ? "~" : "");
+
   const currency      = display;
   const mixedCurrency = new Set(creditNotes.map(n => n.currency)).size > 1;
 
@@ -234,12 +240,12 @@ export function CreditNotesPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
             <div className="telemetry-strip">
               <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-status-warn"/><span className="text-label text-[var(--text-muted)]">Pending review</span></div>
-              <div className="text-stat font-semibold" style={{ color: totalPending > 0 ? "#c6892e" : "var(--text-primary)" }}>{formatMoney(totalPending, currency)}</div>
+              <div className="text-stat font-semibold" style={{ color: totalPending > 0 ? "#c6892e" : "var(--text-primary)" }}>{approx(pendingSum.missing)}{formatMoney(totalPending, currency)}</div>
               <div className="mt-0.5 text-caption text-[var(--text-faint)]">{creditNotes.filter(n => n.status === "pending_review").length} awaiting review</div>
             </div>
             <div className="telemetry-strip">
               <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-ok"/><span className="text-label text-[var(--text-muted)]">Executed</span></div>
-              <div className="text-stat font-semibold" style={{ color: totalExecuted > 0 ? "#2f9e6b" : "var(--text-primary)" }}>{formatMoney(totalExecuted, currency)}</div>
+              <div className="text-stat font-semibold" style={{ color: totalExecuted > 0 ? "#2f9e6b" : "var(--text-primary)" }}>{approx(executedSum.missing)}{formatMoney(totalExecuted, currency)}</div>
               <div className="mt-0.5 text-caption text-[var(--text-faint)]">{creditNotes.filter(n => n.status === "executed").length} credit issued</div>
             </div>
             <div className="telemetry-strip">
