@@ -157,3 +157,26 @@ describe("workspace isolation — notifications route stays scoped", () => {
     expect(eqGuards + insertGuards).toBeGreaterThanOrEqual(ops); // no op without a workspace scope
   });
 });
+
+/**
+ * The list route used to hardcode .limit(100) while callers (Home, the agent dock)
+ * asked for ?limit=50 — the parameter was silently ignored.
+ */
+describe("GET /notifications honours ?limit", () => {
+  const src = readFileSync(
+    fileURLToPath(new URL("../routes/notifications.ts", import.meta.url)),
+    "utf8",
+  );
+
+  it("reads the limit query param instead of hardcoding a page size", () => {
+    expect(src).toMatch(/c\.req\.query\("limit"\)/);
+    expect(src).toMatch(/\.limit\(limit\)/);
+    expect(src).not.toMatch(/\.limit\(100\)/);
+  });
+
+  it("clamps the value so a bad limit can't become an unbounded scan", () => {
+    expect(src).toMatch(/Math\.min\(Math\.max\(requested, 1\), 200\)/);
+    // callers that omit it keep the previous default
+    expect(src).toMatch(/Number\.isFinite\(requested\) \? .* : 100/);
+  });
+});

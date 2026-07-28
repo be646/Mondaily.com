@@ -12,13 +12,18 @@ router.use("*", requireAuth);
 router.get("/", async (c) => {
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
+  // Callers ask for a page size (Home/agent dock request ?limit=50); it was ignored and
+  // every caller got 100 rows. Honour it, clamped to a sane range so a bad value can't
+  // turn this into an unbounded scan. Default stays 100 — unchanged for callers that omit it.
+  const requested = Number.parseInt(c.req.query("limit") ?? "", 10);
+  const limit = Number.isFinite(requested) ? Math.min(Math.max(requested, 1), 200) : 100;
   const { data, error } = await supabase
     .from("notifications")
     .select("*")
     .eq("workspace_id", workspaceId)
     .or(`user_id.eq.${userId},user_id.is.null`)
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(limit);
   if (error) return c.json({ error: error.message }, 500);
   const rows = (data ?? []).map((n) => ({
     ...n,
