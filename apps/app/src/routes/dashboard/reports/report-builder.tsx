@@ -15,7 +15,7 @@ type ReportType = "insight" | "funnel" | "time_in_stage" | "historical" | "forec
 type ChartType = "line" | "bar" | "donut" | "number";
 interface ReportConfig { object_type: string; metric: string; field?: string; group_by: string; chart_type: ChartType; compare: boolean; stage_field: string; stages: string[]; record_id?: string; range: string; horizon?: number }
 interface Report { id: string; name: string; type: ReportType; config: ReportConfig }
-interface RunData { data: (Point & { average_days?: number; dropoff?: number; forecast?: boolean })[]; total?: number; change?: number; chart_type?: ChartType; forecast_from?: number; slope?: number }
+interface RunData { data: (Point & { average_days?: number; dropoff?: number; forecast?: boolean })[]; total?: number; change?: number | null; chart_type?: ChartType; forecast_from?: number; slope?: number }
 interface ObjectType { slug: string; name_plural: string }
 
 const defaults: ReportConfig = { object_type: "", metric: "count", group_by: "month", chart_type: "line", compare: false, stage_field: "stage", stages: ["Lead", "Qualified", "Proposal", "Negotiation", "Closed won"], range: "90d" };
@@ -305,10 +305,15 @@ function ReportChart({ type, result, config }: { type: ReportType; result?: RunD
     <div className="grid h-80 place-items-center text-center">
       <div>
         <p className="text-6xl font-semibold text-[var(--text-primary)]">{result?.total ?? 0}</p>
-        {config.compare && (
-          <p className={`mt-3 text-sm ${(result?.change ?? 0) >= 0 ? "text-[#2f9e6b]" : "text-[var(--text-faint)]"}`}>
-            {(result?.change ?? 0) >= 0 ? "+" : ""}{result?.change ?? 0}% vs previous period
+        {/* Only render a comparison the server actually computed. This used to print a
+            hard-coded "+0% vs previous period" in green on every report. */}
+        {config.compare && typeof result?.change === "number" && (
+          <p className={`mt-3 text-sm ${result.change >= 0 ? "text-[#2f9e6b]" : "text-[var(--text-faint)]"}`}>
+            {result.change >= 0 ? "+" : ""}{result.change}% vs previous period
           </p>
+        )}
+        {config.compare && typeof result?.change !== "number" && (
+          <p className="mt-3 text-sm text-[var(--text-faint)]">Period comparison isn’t available for this report yet.</p>
         )}
       </div>
     </div>

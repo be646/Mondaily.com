@@ -40,6 +40,11 @@ router.get("/inbox", async (c) => {
       .from("internal_messages")
       .select("id, thread_key, sender_id, recipient_id, body, read_at, created_at")
       .eq("workspace_id", ws)
+      // DM inbox only. Group messages share this table with group_id set and recipient_id NULL,
+      // and your OWN group messages match sender_id.eq.me — so without this filter every group
+      // you had posted in also appeared in Direct messages as a phantom "Member" thread that
+      // blanked the pane when clicked.
+      .is("group_id", null)
       .or(`sender_id.eq.${me},recipient_id.eq.${me}`)
       .order("created_at", { ascending: false })
       .limit(500),
@@ -231,6 +236,9 @@ router.get("/search", async (c) => {
     .from("internal_messages")
     .select("id, thread_key, sender_id, recipient_id, body, created_at")
     .eq("workspace_id", ws)
+    // DM search only — see the inbox query. Without this, your own group messages surfaced as
+    // hits with a null other_id that cleared the URL when clicked.
+    .is("group_id", null)
     .or(`sender_id.eq.${me},recipient_id.eq.${me}`)
     .ilike("body", `%${safe}%`)
     .order("created_at", { ascending: false })

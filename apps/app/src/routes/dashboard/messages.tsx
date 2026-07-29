@@ -9,6 +9,22 @@ import { CommandPageHeader } from "../../components/ui/controls";
 import { EmptyState, ErrorState } from "../../components/ui/page-state";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 
+
+/** Base64-encode a File without blowing the call stack.
+ *  `btoa(String.fromCharCode(...new Uint8Array(buf)))` passes ONE ARGUMENT PER BYTE, so engines
+ *  threw RangeError: Maximum call stack size exceeded at roughly 100 KB — every attachment above
+ *  that failed, and the catch reported a generic "Upload failed" while the UI advertised 10 MB.
+ *  Chunked so size no longer matters. */
+async function fileToBase64(f: File): Promise<string> {
+  const bytes = new Uint8Array(await f.arrayBuffer());
+  const CHUNK = 0x8000;
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
 /**
  * Mondaily Inbox — internal, workspace-scoped member-to-member messaging.
  * Real data only: /messages/inbox (conversation list + unread) and /messages/thread/:id
@@ -300,7 +316,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
       const payload = await Promise.all(files.map(async (f) => ({
         name: f.name,
         content_type: f.type || "application/octet-stream",
-        content_base64: btoa(String.fromCharCode(...new Uint8Array(await f.arrayBuffer()))),
+        content_base64: await fileToBase64(f),
       })));
       const r = await apiClient.post<{ attachments: MsgAttachment[] }>("/messages/attachments", { files: payload });
       setPending((p) => [...p, ...r.attachments]);
@@ -537,7 +553,7 @@ function GroupThread({ groupId, live, onSent, onLeft, onBack }: { groupId: strin
       const payload = await Promise.all(files.map(async (f) => ({
         name: f.name,
         content_type: f.type || "application/octet-stream",
-        content_base64: btoa(String.fromCharCode(...new Uint8Array(await f.arrayBuffer()))),
+        content_base64: await fileToBase64(f),
       })));
       const r = await apiClient.post<{ attachments: MsgAttachment[] }>("/messages/attachments", { files: payload });
       setPending((p) => [...p, ...r.attachments]);

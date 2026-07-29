@@ -152,7 +152,9 @@ export function DecisionsPage() {
 
   const selected = items.find(d => d.id === selectedId) ?? null;
 
+  const [resolveError, setResolveError] = useState<{ id: string; message: string } | null>(null);
   async function resolve(d: Decision, action: "approve" | "reject" | "snooze", opts?: { until?: string; note?: string }) {
+    setResolveError(null);
     if (acting) return;
     const idx = visible.findIndex(x => x.id === d.id);
     const next = visible[idx + 1]?.id ?? visible[idx - 1]?.id ?? null;
@@ -164,7 +166,15 @@ export function DecisionsPage() {
       await act.mutateAsync({ id: d.id, action, body: opts?.until ? { until: opts.until } : {} });
       setBanner({ kind: action === "approve" ? "approved" : action === "reject" ? "rejected" : "snoozed" });
       await sleep(600);
-    } finally { setBanner(null); setActing(null); select(next); invalidate(); }
+      // Only advance on SUCCESS. There was no catch, so a 4xx/5xx still fell through to the
+      // finally: the row silently vanished from the pane as if resolved, the decision stayed
+      // pending, and (because callers invoke this un-awaited) it became an unhandled rejection.
+      setBanner(null); setActing(null); select(next); invalidate();
+    } catch (e) {
+      setBanner(null); setActing(null);
+      setResolveError({ id: d.id, message: e instanceof Error ? e.message : `Couldn't ${action} this decision.` });
+      invalidate();
+    }
   }
 
   // Bulk approve is limited to SAFE (advisory, no side-effect) decisions — side-effecting ones

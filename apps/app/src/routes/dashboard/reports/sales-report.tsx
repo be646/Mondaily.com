@@ -42,8 +42,12 @@ function detectNameCol(records: NodeRecord[]): string {
 // ─── Stage classification ──────────────────────────────────────────────────────
 const WON_KEYWORDS  = ["won","closed won","win","closed","completed","converted","success","done","delivered","paid","approved","active"];
 const LOST_KEYWORDS = ["lost","closed lost","rejected","declined","dead","churned","cancelled","failed","expired"];
-function isWon(stage: string)  { return WON_KEYWORDS.some(k  => stage.toLowerCase().includes(k)); }
+// LOST is checked FIRST and wins. The bare "closed" in WON_KEYWORDS matches "Closed Lost", so
+// isWon("Closed Lost") and isLost("Closed Lost") were BOTH true: lost deals had their value added
+// to Won Value, and a workspace with 0 won / 5 lost reported a 50% completion rate. The wrong
+// wonValue also fed the AI forecast prompt and the printed PDF.
 function isLost(stage: string) { return LOST_KEYWORDS.some(k => stage.toLowerCase().includes(k)); }
+function isWon(stage: string)  { return !isLost(stage) && WON_KEYWORDS.some(k => stage.toLowerCase().includes(k)); }
 function isOpen(stage: string) { return !isWon(stage) && !isLost(stage); }
 
 // Phase 3f — reconstruct the stage-derived KPIs from ONE grouped server aggregate (group_by=stageCol).
@@ -147,7 +151,10 @@ function bucketLabel(date: Date, p: Period): string {
 
 function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: string | null, period: Period, customRange?: { start: Date; end: Date }, toDisplay?: ValueReader) {
   const start = customRange ? customRange.start : (period === "custom" ? new Date(0) : periodStart(period));
-  const buckets: Map<string, { revenue: number; count: number }> = new Map();
+  // Buckets keep the earliest timestamp seen so the series can be ordered chronologically.
+  // Sorting by the LABEL (localeCompare) put a year in the order Apr, Aug, Dec, Feb, Jan… and
+  // a month in the order "Mar 12" before "Mar 3" — a rising series could render as falling.
+  const buckets: Map<string, { revenue: number; count: number; at: number }> = new Map();
   for (const r of records) {
     const raw = r.updated_at ?? r.created_at ?? (r.data as Record<string,unknown>).created_at ?? (r.data as Record<string,unknown>).updated_at;
     if (!raw) continue;
@@ -158,12 +165,13 @@ function buildTrend(records: NodeRecord[], valueCol: string | null, stageCol: st
     const rawVal = valueCol ? Number(r.data[valueCol] ?? 0) : 0;
     const val   = toDisplay ? toDisplay(isNaN(rawVal) ? 0 : rawVal, (r.data.currency as string | undefined) ?? null) : rawVal;
     const label = bucketLabel(d, period);
-    const existing = buckets.get(label) ?? { revenue: 0, count: 0 };
+    const existing = buckets.get(label) ?? { revenue: 0, count: 0, at: d.getTime() };
+    existing.at = Math.min(existing.at, d.getTime());
     if (!stageCol || isWon(stage)) { existing.revenue += isNaN(val) ? 0 : val; existing.count += 1; }
     buckets.set(label, existing);
   }
   return Array.from(buckets.entries())
-    .sort(([a],[b]) => a.localeCompare(b))
+    .sort(([, a], [, b]) => a.at - b.at)
     .map(([label,{revenue,count}]) => ({ label, revenue, count }));
 }
 
@@ -215,7 +223,9 @@ function DeltaBadge({ delta }: { delta: number | null | undefined }) {
 }
 
 function GoalBar({ value, goal, sym = "$" }: { value: number; goal: number; sym?: string }) {
-  const pct = Math.min(100, Math.round(value / goal * 100));
+  // goal can be 0 (read from a KPI card, not just the guarded saveGoal): 0/0 -> NaN -> "NaN% of
+  // goal" and style width:"NaN%"; x/0 -> Infinity -> 100%.
+  const pct = goal > 0 ? Math.min(100, Math.round((value / goal) * 100)) : 0;
   return (
     <div className="mt-2">
       <div className="flex justify-between text-[10px] text-[var(--text-secondary)] mb-1">

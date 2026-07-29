@@ -310,7 +310,9 @@ router.get("/goals", async (c) => {
     e.total++;
     const st = String(s.status);
     if (st === "rejected") e.rejected++;
-    else if (st === "pending") e.pending++;
+    // `snoozed` is still OUTSTANDING work. It used to fall into the else branch and count as
+    // done, so snoozing every step of a goal reported that goal 100% complete.
+    else if (st === "pending" || st === "snoozed") e.pending++;
     else e.done++; // approved / executed / completed
     agg.set(k, e);
   }
@@ -373,6 +375,11 @@ router.patch("/:id", zValidator("json", createSchema.partial()), async (c) => {
     .update(body)
     .eq("workspace_id", c.get("workspaceId"))
     .eq("id", c.req.param("id"))
+    // Only resolve something still OPEN. Without this the single-item routes were not
+    // idempotent (the bulk routes always guarded): a second approve re-ran the side effect,
+    // and a snooze could pull an already-approved-and-executed decision back into the queue,
+    // overwriting resolved_at/resolved_by. Terminal states are now terminal.
+    .in("status", ["pending", "snoozed"])
     .select()
     .single();
   if (error) return c.json({ error: error.message }, 400);
@@ -578,7 +585,13 @@ router.post("/:id/approve", async (c) => {
     .eq("workspace_id", c.get("workspaceId"))
     .eq("id", c.req.param("id"))
     .maybeSingle();
-  if (decision) await executeApprovedAction(c.get("workspaceId"), decision).catch((e) => console.error("[bg-task] swallowed error:", e));
+  // Guard the SIDE EFFECT too, not just the row update: re-approving used to re-send the
+  // invoice chase email, re-create the prospect record and re-increment chase_count.
+  if (!decision) return c.json({ error: "Not found" }, 404);
+  if (!["pending", "snoozed"].includes(String(decision.status ?? ""))) {
+    return c.json({ ok: true, already: decision.status });
+  }
+  await executeApprovedAction(c.get("workspaceId"), decision).catch((e) => console.error("[bg-task] swallowed error:", e));
   return resolve(c, "approved", {}, "APPROVED");
 });
 router.post("/:id/reject", async (c) => resolve(c, "rejected", {}, "REJECTED"));

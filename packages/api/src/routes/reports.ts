@@ -53,7 +53,7 @@ export async function runReportData(
   workspaceId: string,
   reportId: string,
   input: { type?: string; config?: Record<string, unknown> } = {}
-): Promise<{ error: string } | { data: { label: string; value: number; previous?: number; dropoff?: number; average_days?: number; forecast?: boolean }[]; total?: number; change?: number; chart_type: string; forecast_from?: number; slope?: number }> {
+): Promise<{ error: string } | { data: { label: string; value: number; previous?: number; dropoff?: number; average_days?: number; forecast?: boolean }[]; total?: number; change?: number | null; chart_type: string; forecast_from?: number; slope?: number }> {
   const { data: reportNode } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).eq("object_type", "report").eq("id", reportId).maybeSingle();
   if (!reportNode) return { error: "Report not found" };
   const stored = reportNode.data as { type?: string; config?: Record<string, unknown> };
@@ -179,10 +179,12 @@ export async function runReportData(
       value: Math.max(0, Number((intercept + slope * (n + k)).toFixed(2))),
       forecast: true,
     }));
-    return { data: [...data, ...projected], total, change: 0, chart_type: "line", forecast_from: data.length, slope: Number(slope.toFixed(3)) };
+    // change is NOT computed here (config.compare is never read and no prior-period query
+    // runs), so report null rather than a fabricated 0 that the UI rendered as "+0%" in green.
+    return { data: [...data, ...projected], total, change: null, chart_type: "line", forecast_from: data.length, slope: Number(slope.toFixed(3)) };
   }
 
-  return { data, total, change: 0, chart_type: String(config.chart_type ?? "line") };
+  return { data, total, change: null, chart_type: String(config.chart_type ?? "line") };
 }
 
 router.post("/:id/run", async (c) => {

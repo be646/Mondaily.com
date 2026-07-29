@@ -960,7 +960,10 @@ describe("Decisions cockpit v2 — approved recommendations (all real data, no f
   it("selection mirrors to ?id= with a loop guard, and resolve advances via select()", () => {
     expect(decisions).toMatch(/setSearchParams\(id \? \{ id \} : \{\}, \{ replace: true \}\)/);
     expect(decisions).toMatch(/focusId && focusId !== selectedId/);
-    expect(decisions).toMatch(/finally \{ setBanner\(null\); setActing\(null\); select\(next\); invalidate\(\); \}/);
+    // The advance now happens only on SUCCESS — this used to sit in a `finally`, so a failed
+    // approve/reject still advanced and the row silently vanished as if it had resolved.
+    expect(decisions).toMatch(/setBanner\(null\); setActing\(null\); select\(next\); invalidate\(\);/);
+    expect(decisions).toMatch(/setResolveError\(\{ id: d\.id, message:/);
   });
   it("risk-first sort defers to an active AI triage ranking", () => {
     expect(decisions).toMatch(/lane === "approval" && triage\)/);

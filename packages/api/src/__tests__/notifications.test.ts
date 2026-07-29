@@ -410,6 +410,51 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect(calls).toMatch(/queryKey: \["meeting-memory", debouncedSearch\]/);
   });
 
+  it("Reports: Closed Lost is never counted as won", () => {
+    const sr = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/reports/sales-report.tsx", import.meta.url)), "utf8");
+    // lost is evaluated first and vetoes won — the bare "closed" keyword matched "Closed Lost"
+    expect(sr).toMatch(/function isWon\(stage: string\)\s+\{ return !isLost\(stage\) && WON_KEYWORDS/);
+    expect(sr).not.toMatch(/function isWon\(stage: string\)\s+\{ return WON_KEYWORDS\.some/);
+  });
+
+  it("Reports: trend series is ordered chronologically, not alphabetically", () => {
+    const sr = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/reports/sales-report.tsx", import.meta.url)), "utf8");
+    expect(sr).toMatch(/\.sort\(\(\[, a\], \[, b\]\) => a\.at - b\.at\)/);
+    expect(sr).not.toMatch(/\.sort\(\(\[a\],\[b\]\) => a\.localeCompare\(b\)\)/);
+    // goal bar can no longer divide by zero
+    expect(sr).toMatch(/goal > 0 \? Math\.min\(100, Math\.round\(\(value \/ goal\) \* 100\)\) : 0/);
+  });
+
+  it("Reports: period comparison is never fabricated", () => {
+    const api = readFileSync(fileURLToPath(new URL("../routes/reports.ts", import.meta.url)), "utf8");
+    const ui = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/reports/report-builder.tsx", import.meta.url)), "utf8");
+    expect(api).not.toMatch(/change: 0,/);
+    expect(ui).toMatch(/typeof result\?\.change === "number"/);
+    expect(ui).toMatch(/Period comparison isn’t available/);
+  });
+
+  it("Decisions: meeting actions declare their side effect and resolves are idempotent", () => {
+    const acts = readFileSync(fileURLToPath(new URL("../lib/decision-actions.ts", import.meta.url)), "utf8");
+    const dec = readFileSync(fileURLToPath(new URL("../routes/decisions.ts", import.meta.url)), "utf8");
+    // meeting_action really creates a task — it must not be previewed as advisory/bulk-safe
+    expect(acts).toMatch(/if \(st === "meeting_action"\) \{/);
+    expect(acts).toMatch(/Create a task for this meeting action item[\s\S]*?side_effect: true/);
+    // terminal states are terminal, and the side effect is guarded too
+    expect(dec).toMatch(/\.in\("status", \["pending", "snoozed"\]\)/);
+    expect(dec).toMatch(/return c\.json\(\{ ok: true, already: decision\.status \}\);/);
+    // snoozed is outstanding work, not done
+    expect(dec).toMatch(/else if \(st === "pending" \|\| st === "snoozed"\) e\.pending\+\+;/);
+  });
+
+  it("Messages: attachments encode without blowing the stack, DMs exclude group rows", () => {
+    const ui = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/messages.tsx", import.meta.url)), "utf8");
+    const api = readFileSync(fileURLToPath(new URL("../routes/messages.ts", import.meta.url)), "utf8");
+    expect(ui).toMatch(/async function fileToBase64/);
+    // the stack-blowing call is gone from real code (the phrase survives in the doc comment)
+    expect(ui).not.toMatch(/content_base64: btoa\(String\.fromCharCode/);
+    expect((api.match(/\.is\("group_id", null\)/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
+
   it("zero-valued counts never render as a literal 0", () => {
     expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
     expect(tasksPage).toMatch(/\{!!t\.due_days &&/);

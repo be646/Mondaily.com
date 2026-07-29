@@ -31,5 +31,12 @@ export function describeExecution(d: {
   if (agent === "workflow") {
     return { text: "Send the workflow email to the linked record's contact (or create a send-it task if there's no clear recipient).", side_effect: true };
   }
+  // Meeting action items really DO create a task (see executeApprovedAction's meeting_action
+  // branch). This used to fall through to "advisory only / side_effect: false", so the cockpit
+  // told the user no automated action would run AND "Approve all safe" mass-created tasks —
+  // exactly what that gate exists to prevent.
+  if (st === "meeting_action") {
+    return { text: "Create a task for this meeting action item, assigned to the meeting's owner and linked to the call.", side_effect: true };
+  }
   return { text: "Advisory only — approving records your decision; no automated action runs.", side_effect: false };
 }
