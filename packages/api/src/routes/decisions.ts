@@ -529,6 +529,30 @@ export async function executeApprovedAction(workspaceId: string, decision: any):
   if (decision.agent_name === "discovery" && decision.source_type === "discovered_lead") {
     const lead = ((decision.evidence ?? [])[0] as { lead?: Record<string, any> } | undefined)?.lead;
     if (!lead?.name && !lead?.email) return;
+
+    // ── DEDUP BEFORE CREATE ──
+    // This path created a person node unconditionally. The Discovery monitor cron re-runs every 4
+    // hours (vercel.json: "0 */4 * * *"), rediscovers the SAME leads, and with autonomy enabled the
+    // resulting decisions auto-approve — so each run minted another copy. Measured on the owner
+    // workspace: 588 `person` records for 136 distinct entities, 452 of them duplicates, with the
+    // worst offenders appearing exactly 18 times on a clean 4-hour cadence.
+    //
+    // source_url is the lead's identity (the page it came from); email is the fallback for leads
+    // without one. Name alone is NOT used — different businesses legitimately share a name.
+    const dedupKey = lead.source_url ? "source_url" : lead.email ? "email" : null;
+    const dedupVal = lead.source_url ?? lead.email;
+    if (dedupKey && dedupVal) {
+      const { data: existing } = await supabase
+        .from("nodes").select("id")
+        .eq("workspace_id", workspaceId).eq("object_type", "person")
+        .eq(`data->>${dedupKey}`, String(dedupVal))
+        .limit(1);
+      if (existing && existing.length > 0) {
+        console.info(`[discovery] lead already exists (${dedupKey}=${dedupVal}) — skipping duplicate create`);
+        return;
+      }
+    }
+
     const node = await ubc.createNode({
       workspace_id: workspaceId,
       vertical: "sales",
