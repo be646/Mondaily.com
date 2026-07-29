@@ -7,21 +7,30 @@ import { isEmbeddingsEnabled } from "../lib/embeddings";
 import { requireAdminRole } from "../middleware/rbac";
 
 /**
- * DATA CLEANING — cross-type overlap analysis, and the one repair it justified.
+ * DATA CLEANING — overlap analysis, and the two repairs it justified.
  *
- * NOTHING HERE DELETES A RECORD OR EDITS RECORD CONTENT. The scans are pure reads. The single
- * mutating endpoint (/merge-types) changes `object_type` and nothing else — no field is combined,
- * no value is chosen between, no row is removed — which is what makes it reversible.
+ * The scans (/types, /overlap, /duplicates) are PURE READS. Two endpoints mutate, both admin-only
+ * and both dry-run by default:
  *
- * That restraint is deliberate. Merging business records is irreversible, and this session's
- * recurring failure was tools that were correct about the rows they fetched and wrong about what
- * those rows REPRESENTED. A cleaner acting on that judgement is the worst version of it. So the
- * analysis reports with evidence and a human decides.
+ *   /merge-types    — changes `object_type` and nothing else. No field combined, no value chosen
+ *                     between, no row removed. Reversible by running it back the other way.
+ *   /dedupe-records — DELETES redundant rows. Irreversible. Guarded accordingly: identity requires
+ *                     source_url AND name, groups with attachments are refused rather than merged,
+ *                     and the full payload of every deleted row lands in the audit trail before
+ *                     anything is removed.
  *
- * It also earned its scope empirically: the first scan showed person(588)/people(138) share 2
- * records and company/companies, tasks/task, expenses/expense and contacts/contact-leads share
- * NONE. There was no record-level duplication to merge — only duplicate type NAMES — so a
- * record-merge engine was never built.
+ * Each earned its scope empirically rather than by assumption, and the order matters. The first
+ * scan showed person(588)/people(138) share 2 records and company/companies, tasks/task,
+ * expenses/expense and contacts/contact-leads share NONE — duplicate type NAMES, not duplicate
+ * records, so /merge-types was enough and no record-merge engine was built. Only the later
+ * within-type scan found the actual damage: 588 `person` rows for 137 entities, from a Discovery
+ * monitor re-creating the same leads every 4 hours (fixed in routes/decisions.ts). That is what
+ * /dedupe-records exists for.
+ *
+ * The restraint is deliberate. This session's recurring failure was tools that were correct about
+ * the rows they fetched and wrong about what those rows REPRESENTED — including, at one point, this
+ * file's own "strong key" classification, which treated a shared source_url as a shared identity
+ * until the data showed one law firm's website hosting both the firm and a lawyer at it.
  *
  * The existing DedupPanel compares records WITHIN one object type by exact match after
  * normalisation. It cannot see near-duplicate TYPES — `person` vs `people`, `contacts` vs
@@ -324,5 +333,209 @@ router.post("/merge-types", requireAdminRole, zValidator("json", z.object({
 function errOf(e: unknown): string | null {
   return e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : null;
 }
+
+// ── Record-level de-duplication ────────────────────────────────────────────────────────────────
+
+type NodeRow = {
+  id: string; data: Record<string, unknown> | null; created_at: string;
+  enriched_at: string | null; ai_summary: string | null; created_by: string | null;
+};
+
+/** Normalised name, so "Skin&Beauty" and "Skin & Beauty" collide but distinct entities do not. */
+export function normName(x: unknown): string {
+  return String(x ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/**
+ * The identity key for a discovered record: source_url AND normalised name, together.
+ *
+ * source_url ALONE is not an identity, and the data proved it. `lawwarsaw.com` carries both
+ * "Lemon, Keirn & Rovenstine, LLC" (the firm) and "W. Douglas Lemon" (a lawyer at it) — two real
+ * entities behind one website. Keying on the URL alone would have deleted one of them. A URL
+ * identifies a SITE; a site can host several entities.
+ *
+ * Returns null when either half is missing or too short to be meaningful — such a record is left
+ * alone rather than guessed at.
+ */
+export function identityKey(data: Record<string, unknown> | null): string | null {
+  const url = String((data ?? {}).source_url ?? "").trim();
+  const name = normName((data ?? {}).name ?? (data ?? {}).Name);
+  if (!url || name.length < 3) return null;
+  return `${url}||${name}`;
+}
+
+/** How much is actually on this record? Used to pick the survivor. */
+export function richness(n: NodeRow): number {
+  const d = n.data ?? {};
+  return Object.entries(d).filter(([, v]) => v != null && v !== "" &&
+    !(Array.isArray(v) && v.length === 0) &&
+    !(typeof v === "object" && !Array.isArray(v) && Object.keys(v as object).length === 0)).length;
+}
+
+/**
+ * Pick the copy to KEEP. Richest wins, because enrichment landed on later copies — in this
+ * workspace the oldest copy was also the richest in only 11 of 71 groups, so "keep the oldest"
+ * would have thrown away enrichment on 60 entities. Ties break toward enriched, then toward the
+ * oldest id-stable record so the choice is deterministic and re-runnable.
+ */
+export function pickSurvivor(group: NodeRow[]): NodeRow {
+  return group.slice().sort((a, b) =>
+    richness(b) - richness(a) ||
+    Number(!!b.enriched_at) - Number(!!a.enriched_at) ||
+    Number(!!b.ai_summary) - Number(!!a.ai_summary) ||
+    a.created_at.localeCompare(b.created_at) ||
+    a.id.localeCompare(b.id))[0]!;
+}
+
+/**
+ * POST /clean/dedupe-records — collapse duplicate records within one object type.
+ *
+ * The only endpoint here that removes rows, and the guards reflect that:
+ *
+ *  - admin only, and `dry_run` defaults TRUE (a missing field is the safe form)
+ *  - identity is source_url + name, never source_url alone (see identityKey)
+ *  - a group is REFUSED, not deleted, if any copy has notes, tasks, or graph edges attached.
+ *    Attachment means someone or something built on that specific row, and there is no merge
+ *    capability to carry it across. Refusing is the honest outcome.
+ *  - the full payload of every deleted row is written into the audit activity, so the operation is
+ *    recoverable from the audit trail rather than merely logged
+ *  - counts DISTINCT ids throughout — a record can appear in more than one grouping
+ */
+router.post("/dedupe-records", requireAdminRole, zValidator("json", z.object({
+  object_type: z.string().min(1),
+  dry_run: z.boolean().optional(),
+  max_delete: z.number().int().min(1).max(5000).optional(),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const { object_type, max_delete = 5000 } = c.req.valid("json");
+  const dryRun = c.req.valid("json").dry_run !== false;   // explicit false required to delete
+
+  // Paged read. An unbounded select truncates at PostgREST's row cap and would silently dedupe only
+  // the first page while reporting a total — the exact class of bug this tool exists to clean up.
+  const rows: NodeRow[] = [];
+  const PAGE = 1000;
+  for (let from = 0; from < 100_000; from += PAGE) {
+    const { data, error } = await supabase.from("nodes")
+      .select("id, data, created_at, enriched_at, ai_summary, created_by")
+      .eq("workspace_id", ws).eq("object_type", object_type)
+      .order("id", { ascending: true }).range(from, from + PAGE - 1);
+    if (error) return c.json({ error: error.message }, 500);
+    const page = (data ?? []) as NodeRow[];
+    rows.push(...page);
+    if (page.length < PAGE) break;
+  }
+  if (rows.length === 0) return c.json({ error: `No records have object_type "${object_type}".` }, 400);
+
+  const groups = new Map<string, NodeRow[]>();
+  let unkeyed = 0;
+  for (const n of rows) {
+    const k = identityKey(n.data);
+    if (!k) { unkeyed++; continue; }
+    const g = groups.get(k); if (g) g.push(n); else groups.set(k, [n]);
+  }
+  const dupGroups = [...groups.entries()].filter(([, v]) => v.length > 1);
+
+  // Which candidate rows carry attachments? Batched by id, three surfaces, one pass each.
+  const candidates = dupGroups.flatMap(([, g]) => g.map(n => n.id));
+  const attached = new Set<string>();
+  for (let i = 0; i < candidates.length; i += 200) {
+    const slice = candidates.slice(i, i + 200);
+    const [notes, tasks, edgesFrom, edgesTo] = await Promise.all([
+      supabase.from("activities").select("node_id").eq("workspace_id", ws)
+        .in("action", ["note", "note_edited"]).in("node_id", slice),
+      supabase.from("tasks").select("record_id").eq("workspace_id", ws).in("record_id", slice),
+      supabase.from("edges").select("from_node_id").eq("workspace_id", ws).in("from_node_id", slice),
+      supabase.from("edges").select("to_node_id").eq("workspace_id", ws).in("to_node_id", slice),
+    ]);
+    // A failed probe must NOT read as "nothing attached" — that would licence a wrong deletion.
+    for (const r of [notes, tasks, edgesFrom, edgesTo]) {
+      if (r.error) return c.json({
+        error: `Attachment check failed: ${r.error.message}`,
+        hint: "Refusing to continue — a failed check here cannot be treated as 'no attachments'.",
+      }, 500);
+    }
+    for (const r of notes.data ?? []) attached.add(String((r as { node_id: string }).node_id));
+    for (const r of tasks.data ?? []) attached.add(String((r as { record_id: string }).record_id));
+    for (const r of edgesFrom.data ?? []) attached.add(String((r as { from_node_id: string }).from_node_id));
+    for (const r of edgesTo.data ?? []) attached.add(String((r as { to_node_id: string }).to_node_id));
+  }
+
+  const plan: { key: string; name: string; copies: number; keep: string; delete_ids: string[] }[] = [];
+  const blocked: { key: string; name: string; copies: number; attached_ids: string[]; why: string }[] = [];
+  for (const [key, g] of dupGroups) {
+    const name = String((g[0]!.data ?? {}).name ?? "Untitled");
+    const survivor = pickSurvivor(g);
+    const doomed = g.filter(n => n.id !== survivor.id);
+    const withAttachments = doomed.filter(n => attached.has(n.id));
+    if (withAttachments.length) {
+      blocked.push({ key, name, copies: g.length, attached_ids: withAttachments.map(n => n.id),
+        why: "a copy that would be removed has notes, tasks or graph edges attached — no merge capability exists to carry them over" });
+      continue;
+    }
+    plan.push({ key, name, copies: g.length, keep: survivor.id, delete_ids: doomed.map(n => n.id) });
+  }
+
+  const deleteIds = [...new Set(plan.flatMap(p => p.delete_ids))];
+  const summary = {
+    total_records: rows.length,
+    unkeyed_records_left_alone: unkeyed,
+    duplicate_groups: dupGroups.length,
+    groups_to_collapse: plan.length,
+    groups_blocked_by_attachments: blocked.length,
+    records_to_delete: deleteIds.length,
+    would_remain: rows.length - deleteIds.length,
+  };
+
+  if (dryRun) {
+    return c.json({
+      dry_run: true, object_type, summary,
+      plan: plan.map(p => ({ name: p.name, copies: p.copies, keep: p.keep, delete: p.delete_ids.length })),
+      blocked,
+      survivor_rule: "richest payload wins; ties break toward enriched, then the oldest record",
+      identity_rule: "source_url + normalised name. Never source_url alone — one website can host two real entities.",
+      irreversible: "Executing DELETES rows. The full payload of each deleted row is written to the audit trail, but the rows themselves do not come back.",
+      confirm_with: { object_type, dry_run: false },
+    });
+  }
+
+  if (deleteIds.length > max_delete) {
+    return c.json({ error: `Plan would delete ${deleteIds.length} records, above max_delete=${max_delete}.`,
+      hint: "Raise max_delete deliberately after reviewing the dry run." }, 400);
+  }
+
+  // Snapshot BEFORE deleting, so the audit row is a recovery artifact and not just a count.
+  const byId = new Map(rows.map(n => [n.id, n]));
+  const snapshot = deleteIds.map(id => {
+    const n = byId.get(id)!;
+    return { id, created_at: n.created_at, created_by: n.created_by, data: n.data };
+  });
+  const { error: auditErr } = await supabase.from("activities").insert({
+    workspace_id: ws, actor_type: "human", actor_id: c.get("userId"), action: "updated",
+    diff: {
+      data_cleaning: "dedupe_records", object_type,
+      groups_collapsed: plan.length, records_deleted: deleteIds.length,
+      survivors: plan.map(p => ({ keep: p.keep, name: p.name, replaced: p.delete_ids.length })),
+      deleted_records: snapshot,
+    },
+  });
+  // If the recovery artifact cannot be written, do not delete. Losing the rows AND the record of
+  // what they were is strictly worse than not cleaning.
+  if (auditErr) return c.json({ error: `Could not write the audit snapshot: ${auditErr.message}`,
+    hint: "Nothing was deleted. The snapshot is the only recovery path, so it must land first." }, 500);
+
+  let deleted = 0;
+  for (let i = 0; i < deleteIds.length; i += 200) {
+    const slice = deleteIds.slice(i, i + 200);
+    const { error } = await supabase.from("nodes").delete().eq("workspace_id", ws).in("id", slice);
+    if (error) return c.json({ error: error.message, deleted, partial: true,
+      hint: "The audit snapshot covers every id that was planned, including any not yet deleted." }, 500);
+    deleted += slice.length;
+  }
+
+  return c.json({ ok: true, object_type, summary: { ...summary, records_deleted: deleted },
+    blocked,
+    recovery: "The deleted payloads are in the audit activity for this operation (diff.deleted_records).",
+  });
+});
 
 export { router as cleanRouter };

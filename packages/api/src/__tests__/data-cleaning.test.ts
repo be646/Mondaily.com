@@ -11,22 +11,33 @@ const sql = readFileSync(join(SRC, "../../db/migrations/20260729_cross_type_dupl
  * by exact match, so it cannot see near-duplicate TYPES (person/people, contacts/contact-leads),
  * which is where this workspace's real ambiguity lives.
  */
-describe("cleaning never destroys data", () => {
-  it("deletes nothing, ever", () => {
-    // The scans are pure reads; the one mutating endpoint changes object_type and nothing else.
-    expect(clean).not.toMatch(/\.delete\(/);
-    expect(clean).toMatch(/read_only: true/);          // the overlap scan still says so
+describe("cleaning never destroys data unasked", () => {
+  it("deletion lives ONLY in /dedupe-records — the scans stay pure reads", () => {
+    // This guard used to assert `not.toMatch(/\.delete\(/)` across the whole file. /dedupe-records
+    // deliberately broke that, so the invariant is now scoped rather than dropped: every delete
+    // must sit inside that one handler, and the read endpoints must remain incapable of one.
+    const dedupeStart = clean.indexOf('router.post("/dedupe-records"');
+    expect(dedupeStart).toBeGreaterThan(0);
+    const beforeDedupe = clean.slice(0, dedupeStart);
+    expect(beforeDedupe).not.toMatch(/\.delete\(/);
+    expect(clean).toMatch(/read_only: true/);          // the scans still say so
     // every SQL function is STABLE (read-only)
     const volatile = sql.match(/language sql (?!stable)/g) ?? [];
     expect(volatile).toHaveLength(0);
   });
 
-  it("the only mutation moves object_type — never record content", () => {
+  it("merge-types moves object_type — never record content", () => {
     // A type rename is reversible precisely because no field is combined and no value is chosen
     // between. The moment it touched `data`, it would stop being reversible.
-    const merge = clean.slice(clean.indexOf('router.post("/merge-types"'));
+    // Bounded slice: unbounded, this now runs on into /dedupe-records and would stop measuring
+    // /merge-types at all.
+    const start = clean.indexOf('router.post("/merge-types"');
+    const end = clean.indexOf("// ── Record-level de-duplication");
+    expect(end).toBeGreaterThan(start);
+    const merge = clean.slice(start, end);
     const updates = merge.match(/\.update\(\{[^}]*\}\)/g) ?? [];
     expect(updates).toEqual(['.update({ object_type: to })']);
+    expect(merge).not.toMatch(/\.delete\(/);
   });
 
   it("requires an admin and an explicit opt-out of dry-run", () => {
