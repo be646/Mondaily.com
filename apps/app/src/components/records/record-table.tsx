@@ -985,7 +985,10 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
 
-  const { data: objectDefs = [] } = useQuery<{ id: string; slug: string; label: string }[]>({
+  // `label` does not exist on object_definitions — the table stores name_singular / name_plural.
+  // Declaring it here made `obj.label` typecheck while being undefined at runtime for all 15 object
+  // types, so the relation picker silently fell back to raw slugs ("discovered-leads", "people").
+  const { data: objectDefs = [] } = useQuery<{ id: string; slug: string; name_singular?: string; name_plural?: string }[]>({
     queryKey: ["object-defs"],
     queryFn: () => apiClient.get("/objects"),
     staleTime: 60_000,
@@ -1065,7 +1068,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
               <button key={obj.slug} onClick={() => setRelatedTarget(obj.slug)}
                 className={`flex items-center gap-2 rounded-sm px-2.5 py-1.5 text-xs transition-colors ${relatedTarget === obj.slug ? "bg-[#717784]/12 text-[#717784] border border-[#717784]/30" : "text-stone-400 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] border border-transparent"}`}>
                 <Link2 size={11} className={relatedTarget === obj.slug ? "text-[#717784]" : "text-stone-600"}/>
-                {obj.label || obj.slug}
+                {obj.name_plural || obj.name_singular || obj.slug}
                 {relatedTarget === obj.slug && <Check size={10} className="ml-auto text-[#717784]"/>}
               </button>
             ))}
@@ -1562,7 +1565,10 @@ function RelationCell({ value, relatedObjectType, onSave }: {
     ? (value as RelationValue)
     : null;
 
-  const { data: objectDefs = [] } = useQuery<{ id: string; slug: string; label: string }[]>({
+  // `label` does not exist on object_definitions — the table stores name_singular / name_plural.
+  // Declaring it here made `obj.label` typecheck while being undefined at runtime for all 15 object
+  // types, so the relation picker silently fell back to raw slugs ("discovered-leads", "people").
+  const { data: objectDefs = [] } = useQuery<{ id: string; slug: string; name_singular?: string; name_plural?: string }[]>({
     queryKey: ["object-defs"],
     queryFn: () => apiClient.get("/objects"),
     staleTime: 60_000,

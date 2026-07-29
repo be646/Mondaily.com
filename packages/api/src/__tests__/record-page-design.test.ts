@@ -259,3 +259,24 @@ describe("home composer", () => {
     expect(home).not.toMatch(/boxShadow: "0 -2px 24px -6px/);
   });
 });
+
+/**
+ * object_definitions has no `label` column — it stores name_singular / name_plural. Typing the query
+ * result with `label: string` made `obj.label` compile while being undefined at runtime for all 15
+ * object types, so the relation picker fell back to raw slugs ("discovered-leads" instead of
+ * "Discovered leads"). A type that lies about the API is why this survived a typecheck.
+ */
+describe("object definitions are read by their real field names", () => {
+  it("no object-def query claims a `label` field", () => {
+    for (const m of table.matchAll(/useQuery<\{[^}]*\}\[\]>\(\{\s*\n?\s*queryKey: \["object-defs"\]/g)) {
+      expect(m[0], "object-defs query still declares a field the API does not return")
+        .not.toMatch(/\blabel\b/);
+    }
+  });
+
+  it("the relation picker renders a human name, falling back to the slug", () => {
+    expect(table).toMatch(/\{obj\.name_plural \|\| obj\.name_singular \|\| obj\.slug\}/);
+    // the broken read is gone
+    expect(table).not.toMatch(/\{obj\.label \|\| obj\.slug\}/);
+  });
+});
