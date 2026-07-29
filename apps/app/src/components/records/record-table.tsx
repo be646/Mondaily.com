@@ -2148,6 +2148,13 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     flashTimer.current = setTimeout(() => setFlash(null), 4000);
   }
 
+  // The Sum/Avg footer and the group calc bar are SERVER aggregates under their own query keys, so
+  // an optimistic setQueryData on ["records"] left them showing pre-edit numbers — on money columns.
+  function invalidateAggregates() {
+    qc.invalidateQueries({ queryKey: ["records-agg"] });
+    qc.invalidateQueries({ queryKey: ["records-group-agg"] });
+  }
+
   function deleteRow(record: NodeRecord) {
     // Clear any existing undo toast first
     if (undoToast) {
@@ -2158,9 +2165,12 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     qc.setQueryData<NodeRecord[]>(["records", objectType], old => (old ?? []).filter(r => r.id !== record.id));
     // Show undo toast for 6 seconds before actually deleting
     const timer = setTimeout(() => {
-      apiClient.delete(`/nodes/${record.id}`).catch(() => {
-        qc.invalidateQueries({ queryKey: ["records", objectType] });
-      });
+      apiClient.delete(`/nodes/${record.id}`)
+        .then(invalidateAggregates)
+        .catch(() => {
+          qc.invalidateQueries({ queryKey: ["records", objectType] });
+          invalidateAggregates();
+        });
       setUndoToast(null);
     }, 6000);
     setUndoToast({ record, timer });
@@ -2178,9 +2188,17 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     qc.setQueryData<NodeRecord[]>(["records", objectType], old =>
       (old ?? []).map(r => r.id === record.id ? { ...r, data: newData } : r)
     );
-    apiClient.patch(`/nodes/${record.id}`, { data: newData }).catch(() => {
-      qc.invalidateQueries({ queryKey: ["records", objectType] });
-    });
+    apiClient.patch(`/nodes/${record.id}`, { data: newData })
+      .then(invalidateAggregates)
+      .catch((e) => {
+        // The optimistic value used to just snap back with no message — a viewer-role user (blocked
+        // by denyViewerWrites) watched their edit appear and silently vanish.
+        qc.invalidateQueries({ queryKey: ["records", objectType] });
+        invalidateAggregates();
+        setFlash({ kind: "warn", msg: e instanceof Error ? e.message : "Couldn't save that change." });
+        if (flashTimer.current) clearTimeout(flashTimer.current);
+        flashTimer.current = setTimeout(() => setFlash(null), 4000);
+      });
   }
 
   function renderCell(col: string, record: NodeRecord) {

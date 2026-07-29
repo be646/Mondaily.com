@@ -111,7 +111,9 @@ router.post("/:id/enrich", async (c) => {
   if (!list) return c.json({ error: "List not found" }, 404);
 
   const ENRICHABLE = ["contact", "person", "people", "lead", "company", "account", "organization"];
-  if (!ENRICHABLE.some(t => list.object_type.toLowerCase().includes(t))) {
+  // POST /:id/entries already guards a falsy object_type; this path did not, so a list with a null
+  // object_type 500'd here instead of returning the same clear message.
+  if (!list.object_type || !ENRICHABLE.some(t => String(list.object_type).toLowerCase().includes(t))) {
     return c.json({ error: "This list type is not enrichable" }, 400);
   }
 

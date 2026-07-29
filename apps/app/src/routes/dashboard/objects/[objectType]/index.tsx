@@ -677,7 +677,12 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
       const def = defs?.find(d => d.slug === objectType);
       if (!def) throw new Error("Object definition not found");
       await apiClient.delete(`/settings/objects/${def.id}`);
-      queryClient.invalidateQueries({ queryKey: ["sidebar-objects"] });
+      // GET /objects is cached under THREE keys across the app (objects-schema here, sidebar-objects
+      // for the nav, object-defs inside record-table). Invalidating only one left the other two
+      // serving the deleted type.
+      for (const key of ["sidebar-objects", "objects-schema", "object-defs"]) {
+        queryClient.invalidateQueries({ queryKey: [key] });
+      }
       queryClient.invalidateQueries({ queryKey: ["records", objectType] });
       onDeleted();
     } catch (e: any) { setError(e.message || "Failed to delete"); setDeleting(false); }
@@ -769,6 +774,15 @@ export function ObjectIndexPage() {
 
   const enrichedIds = Object.entries(enriching).filter(([, v]) => v.done).map(([id]) => id);
 
+  // Every interval/timeout this callback creates, so unmount can cancel them. Without this,
+  // navigating away mid-enrichment left a 3s poller hitting GET /nodes/:id forever and calling
+  // setEnriching on an unmounted tree.
+  const enrichTimers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  useEffect(() => () => {
+    for (const t of enrichTimers.current) clearTimeout(t as never);
+    enrichTimers.current.clear();
+  }, []);
+
   const handleEnrichStart = useCallback((recordId: string, name: string) => {
     setEnriching(prev => ({ ...prev, [recordId]: { name, done: false } }));
     // Poll backend until enrichment_status === "done" (Inngest handles the actual enrichment)
@@ -786,11 +800,14 @@ export function ObjectIndexPage() {
         setEnriching(prev => { const n = { ...prev }; delete n[recordId]; return n; });
       }
     }, 3000);
+    enrichTimers.current.add(interval as never);
     // Stop polling after 60 seconds max
-    setTimeout(() => {
+    const stop = setTimeout(() => {
       clearInterval(interval);
+      enrichTimers.current.delete(interval as never);
       setEnriching(prev => { const n = { ...prev }; delete n[recordId]; return n; });
     }, 60000);
+    enrichTimers.current.add(stop);
   }, [objectType, queryClient]);
 
   return (

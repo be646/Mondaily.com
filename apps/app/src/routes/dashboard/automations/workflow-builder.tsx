@@ -393,6 +393,8 @@ export function WorkflowBuilderPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
+  // Set when the existing workflow could not be fetched — saving is blocked while this is set.
+  const [loadError, setLoadError] = useState("");
   const [currentId, setCurrentId] = useState<string | undefined>(id === "new" ? undefined : id);
   const [triggerType, setTriggerType] = useState("record_created");
   const [showRuns, setShowRuns] = useState(false);
@@ -421,10 +423,22 @@ export function WorkflowBuilderPage() {
       if (trigger) setTriggerType(trigger.type);
     }
       })
-      .catch((e) => console.error("[bg-task] swallowed error:", e));
+      .catch((e) => {
+        // Swallowing this was DESTRUCTIVE: the builder rendered with an empty name/nodes, and
+        // saveWorkflow then PATCHes { name, status, nodes } — which the API writes as the WHOLE
+        // data object — wiping the real workflow definition. Record the failure and block saving.
+        console.error("[workflow-builder] load failed:", e);
+        setLoadError(e instanceof Error ? e.message : "Could not load this workflow.");
+      });
   }, [id]);
 
   async function saveWorkflow() {
+    // Never overwrite a definition we failed to read — that turns a transient GET failure into
+    // permanent data loss.
+    if (loadError) {
+      setSaveError("This workflow didn't load, so saving would overwrite it with an empty one. Reload the page first.");
+      return;
+    }
     setSaving(true); setSaveError("");
     try {
       const targetId = currentId ?? "new";
@@ -519,8 +533,13 @@ export function WorkflowBuilderPage() {
           {saving ? <Loader2 size={12} className="animate-spin"/> : <Save size={12}/>}
           {saved ? "Saved!" : saving ? "Saving…" : "Save"}
         </button>
+        {loadError && (
+          <span role="alert" className="max-w-xs text-[11px] text-[var(--status-danger-fg)]">
+            This workflow didn&rsquo;t load — reload before editing, or you&rsquo;ll overwrite it.
+          </span>
+        )}
         {saveError && (
-          <span className="max-w-xs text-[11px] text-[#c6892e]">
+          <span role="alert" className="max-w-xs text-[11px] text-[#c6892e]">
             {saveError} {/upgrade|plan includes/i.test(saveError) && <a href="/settings/billing" className="underline">Upgrade</a>}
           </span>
         )}

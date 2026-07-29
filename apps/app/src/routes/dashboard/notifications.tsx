@@ -101,6 +101,14 @@ export function NotificationsPage() {
           <div className="space-y-2">
             {[...Array(5)].map((_, i) => <div key={i} className="h-16 animate-pulse rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)]" />)}
           </div>
+        ) : query.isError ? (
+          // A failed fetch used to fall through to the empty state, telling the user they had no
+          // notifications when the request had simply failed.
+          <div role="alert" className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] py-16 text-center">
+            <Bell size={28} className="mx-auto mb-3 text-[var(--text-secondary)]" />
+            <p className="text-sm text-[var(--text-faint)]">Couldn&rsquo;t load notifications</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)]">This is a loading problem, not an empty inbox. It retries automatically.</p>
+          </div>
         ) : visible.length === 0 ? (
           <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] py-16 text-center">
             <Bell size={28} className="mx-auto mb-3 text-[var(--text-secondary)]" />

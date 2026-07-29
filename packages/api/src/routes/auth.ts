@@ -76,18 +76,24 @@ async function issueSession(c: Parameters<typeof setCookie>[0], userId: string, 
 async function memberByEmail(email: string): Promise<{ user_id: string; name: string | null; workspace_id: string | null } | null> {
   const { data } = await supabase
     .from("workspace_members").select("user_id, name, email, workspace_id")
-    .ilike("email", email).limit(1).maybeSingle();
+    // eq on a normalized address, NOT ilike: `%` and `_` are ILIKE wildcards and are legal in an
+    // email local-part, so `%@corp.com` matched as a PATTERN — an account-existence oracle and the
+    // wrong comparison for an auth path.
+    .eq("email", email.trim().toLowerCase()).limit(1).maybeSingle();
   return data ? { user_id: data.user_id as string, name: (data.name as string) ?? null, workspace_id: (data.workspace_id as string) ?? null } : null;
 }
 async function credByEmail(email: string) {
-  const { data } = await supabase.from("auth_credentials").select("*").ilike("email", email).maybeSingle();
+  const { data } = await supabase.from("auth_credentials").select("*").eq("email", email.trim().toLowerCase()).maybeSingle();
   return data;
 }
 // Session profile: a default workspace (so the SPA can set X-Workspace-Id) plus the cached
 // display name + avatar (the /settings/members fields), so profile components render natively.
 async function sessionProfile(userId: string): Promise<{ workspaceId: string | null; name: string | null; imageUrl: string | null; emailVerified: boolean }> {
   const [{ data }, { data: cred }] = await Promise.all([
-    supabase.from("workspace_members").select("workspace_id, name, avatar_url").eq("user_id", userId).limit(1).maybeSingle(),
+    // Deterministic: without an order, Postgres may return a different row per login, so a
+    // multi-workspace user booted into an arbitrary workspace that changed between sessions.
+    supabase.from("workspace_members").select("workspace_id, name, avatar_url").eq("user_id", userId)
+      .order("created_at", { ascending: true }).limit(1).maybeSingle(),
     // email_verified may not exist pre-migration → default to true so no banner shows (graceful).
     supabase.from("auth_credentials").select("email_verified").eq("user_id", userId).maybeSingle(),
   ]);

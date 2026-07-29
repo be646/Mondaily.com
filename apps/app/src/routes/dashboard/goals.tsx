@@ -59,7 +59,11 @@ export function GoalsPage() {
       });
       setDispatched(res.dispatched);
       qc.invalidateQueries({ queryKey: ["goals-progress"] });
-    } catch { setDispatched(0); }
+    } catch (e) {
+      // Was `setDispatched(0)`, which rendered the GREEN success panel reading
+      // "Dispatched 0 steps to the decision queue" — a fabricated success for a failed call.
+      setError(e instanceof Error ? e.message : "Could not dispatch this plan. Nothing was created.");
+    }
     finally { setDispatching(false); }
   }
 
@@ -130,6 +134,11 @@ export function GoalsPage() {
       )}
 
       {/* Active goals — real progress from each goal's linked step-decisions (done / total). */}
+      {goalsQ.isError && (
+        <div role="alert" className="mt-6 rounded-sm border border-[var(--border-soft)] px-4 py-3 text-[12px] text-[var(--text-secondary)]">
+          Couldn&rsquo;t load your goals. They may still exist — this is a loading problem, not an empty list.
+        </div>
+      )}
       {(goalsQ.data?.goals.length ?? 0) > 0 && (
         <div className="mt-10">
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Your goals · progress</p>

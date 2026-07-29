@@ -225,8 +225,8 @@ export function AutomationsPage() {
     return new Date(s).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
   }
 
-  const Section = ({ title, icon: Icon, items, newHref, newLabel, onNew }: {
-    title: string; icon: any; items: Automation[]; newHref?: string; newLabel: string; onNew?: () => void;
+  const Section = ({ title, icon: Icon, items, newHref, newLabel, onNew, failed }: {
+    title: string; icon: any; items: Automation[]; newHref?: string; newLabel: string; onNew?: () => void; failed?: boolean;
   }) => (
     <div className="mb-8">
       <div className="mb-3 flex items-center justify-between">
@@ -253,7 +253,14 @@ export function AutomationsPage() {
         )}
       </div>
 
-      {items.length === 0 ? (
+      {failed ? (
+        // A failed fetch used to fall through to the empty state, telling the user they had no
+        // automations when the request had simply failed — and inviting them to build a duplicate.
+        <div role="alert" className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-8 text-center">
+          <p className="text-[13px] text-[var(--text-faint)]">Couldn&rsquo;t load {title.toLowerCase()}</p>
+          <p className="mt-1 text-[11.5px] text-[var(--text-secondary)]">This is a loading problem, not an empty list — don&rsquo;t re-create anything yet.</p>
+        </div>
+      ) : items.length === 0 ? (
         <EmptyState
           icon={Icon}
           title={`No ${title.toLowerCase()} yet`}
@@ -379,6 +386,7 @@ export function AutomationsPage() {
             title="Email Sequences"
             icon={Mail}
             items={sequences}
+            failed={seqQuery.isError}
             newLabel="New sequence"
             onNew={() => createSequence.mutate()}
           />
@@ -386,6 +394,7 @@ export function AutomationsPage() {
             title="Workflows"
             icon={GitBranch}
             items={workflows}
+            failed={seqQuery.isError}
             newLabel="New workflow"
             onNew={() => createWorkflow.mutate()}
           />
