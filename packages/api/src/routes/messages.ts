@@ -398,7 +398,10 @@ router.post("/attachments/upload-url", zValidator("json", z.object({
  */
 async function verifiedAttachments(
   atts: MessageAttachment[],
-): Promise<{ ok: true; atts: MessageAttachment[] } | { ok: false; error: string }> {
+): Promise<{ error: string | null; atts: MessageAttachment[] }> {
+  // Deliberately NOT a discriminated union: narrowing on an `ok` literal compiled locally but not
+  // under the build's TypeScript version, which failed the deploy. A nullable `error` needs no
+  // narrowing at all.
   const out: MessageAttachment[] = [];
   for (const a of atts) {
     const slash = a.path.lastIndexOf("/");
@@ -406,13 +409,13 @@ async function verifiedAttachments(
     const file = a.path.slice(slash + 1);
     const { data: found } = await supabase.storage.from(MSG_ATTACH_BUCKET).list(dir, { search: file, limit: 100 });
     const obj = (found ?? []).find((o) => o.name === file);
-    if (!obj) return { ok: false, error: `"${a.name}" was never uploaded.` };
+    if (!obj) return { error: `"${a.name}" was never uploaded.`, atts: [] };
     const meta = (obj as { metadata?: { size?: number; mimetype?: string } }).metadata ?? {};
     const realSize = Number(meta.size ?? 0);
-    if (realSize > MSG_ATTACH_MAX_BYTES) return { ok: false, error: `"${a.name}" is over the 10 MB limit.` };
+    if (realSize > MSG_ATTACH_MAX_BYTES) return { error: `"${a.name}" is over the 10 MB limit.`, atts: [] };
     out.push({ ...a, size: realSize, content_type: meta.mimetype || a.content_type || "application/octet-stream" });
   }
-  return { ok: true, atts: out };
+  return { error: null, atts: out };
 }
 
 /**
@@ -490,7 +493,7 @@ router.post("/", zValidator("json", z.object({
   if ((attachments ?? []).length !== claimed.length) return c.json({ error: "Invalid attachment reference." }, 400);
   // Trust the stored object, not the client's declared size/type.
   const verified = await verifiedAttachments(claimed);
-  if (!verified.ok) return c.json({ error: verified.error }, 400);
+  if (verified.error) return c.json({ error: verified.error }, 400);
   const atts = verified.atts;
 
   // ── Group branch — membership-guarded; notifies the other members ──
