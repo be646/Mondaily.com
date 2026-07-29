@@ -623,6 +623,7 @@ async function executeTool(
         let rows = (data ?? []) as Array<{ id: string; title: string; priority?: string; status?: string; due_date?: string | null; completed?: boolean }>;
         if (filter !== "all" && filter !== "review") rows = rows.filter(t => !isDone(t));
         if (filter === "overdue") rows = rows.filter(t => isOverdue(t.due_date));
+        const matched = rows.length;              // after filtering, BEFORE the display slice
         rows = rows.slice(0, 20);
 
         if (!rows.length) {
@@ -636,7 +637,11 @@ async function executeTool(
         const list = rows.map((t) =>
           `- [${t.id}] ${t.title} | priority: ${t.priority || "medium"} | status: ${t.status || "todo"}${t.due_date ? ` | due: ${new Date(t.due_date).toLocaleDateString()}` : ""}`
         ).join("\n");
-        return `Found ${rows.length} ${filter === "overdue" ? "overdue" : "open"} task(s):\n${list}`;
+        const kind = filter === "overdue" ? "overdue" : "open";
+        // The fetch itself is capped at 60, so `matched` can also be a floor rather than a total.
+        return matched > rows.length
+          ? `Showing ${rows.length} of ${matched}${matched >= 60 ? "+" : ""} ${kind} task(s):\n${list}`
+          : `Found ${rows.length} ${kind} task(s):\n${list}`;
       }
 
       case "create_task": {
@@ -723,7 +728,9 @@ async function executeTool(
             sources.push({ type: "record", title: (r.data as any).name || "Untitled", node_id: r.id, object_type: r.object_type, match_reason: `email matches "${input.query}"` });
           }
           const list = d2.map((r: any) => `- [${r.id}] ${r.data.name || "Untitled"} (${r.object_type})${r.data.email ? ` | ${r.data.email}` : ""}`).join("\n");
-          return `Found ${d2.length} record(s):\n${list}`;
+          return d2.length >= 8
+            ? `Top ${d2.length} matches for "${input.query}" (there may be more):\n${list}`
+            : `Found ${d2.length} record(s):\n${list}`;
         }
         if (!data?.length) return `No records found matching "${input.query}".`;
         for (const r of data) {
@@ -732,7 +739,10 @@ async function executeTool(
         const list = data.map((r: any) =>
           `- [${r.id}] ${r.data.name || "Untitled"} (${r.object_type})${r.data.email ? ` | ${r.data.email}` : ""}${r.data.company ? ` | ${r.data.company}` : ""}`
         ).join("\n");
-        return `Found ${data.length} record(s):\n${list}`;
+        // The query is capped, so a full page means "at least this many", not "exactly this many".
+        return data.length >= 8
+          ? `Top ${data.length} matches for "${input.query}" (there may be more):\n${list}`
+          : `Found ${data.length} record(s):\n${list}`;
       }
 
       case "create_record": {
@@ -782,6 +792,12 @@ async function executeTool(
       }
 
       case "list_records": {
+        // The TRUE total, so the tool can distinguish "these are all of them" from "here is a
+        // page". `${object_type} (${data.length})` reads to the model as the complete count, so
+        // "how many contacts do I have?" answered "10" on a workspace with hundreds.
+        const { count: totalCount } = await supabase
+          .from("nodes").select("id", { count: "exact", head: true })
+          .eq("workspace_id", workspaceId).eq("object_type", input.object_type);
         const { data, error } = await supabase
           .from("nodes")
           .select("id, data, updated_at")
@@ -797,7 +813,11 @@ async function executeTool(
         const list = data.map((r: any) =>
           `- [${r.id}] ${r.data.name || "Untitled"}${r.data.email ? ` | ${r.data.email}` : ""}${r.data.company ? ` | ${r.data.company}` : ""}${r.data.stage ? ` | stage: ${r.data.stage}` : ""}`
         ).join("\n");
-        return `${input.object_type} (${data.length}):\n${list}`;
+        const shown = data.length;
+        const header = typeof totalCount === "number" && totalCount > shown
+          ? `${input.object_type} — showing ${shown} of ${totalCount} total (most recently updated first; ask for more if you need them):`
+          : `${input.object_type} (${shown}):`;
+        return `${header}\n${list}`;
       }
 
       case "list_notifications": {

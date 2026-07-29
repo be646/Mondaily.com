@@ -177,6 +177,16 @@ describe("Ask never answers from model priors", () => {
     expect(gw).toMatch(/const FRIENDLY = "I ran the lookups but couldn't put an answer together/);
   });
 
+  it("list tools distinguish a page from a total", () => {
+    // `${object_type} (${data.length})` and `Found N record(s)` read to the model as THE COUNT, so
+    // "how many contacts do I have?" answered 10 on a workspace with hundreds — the tools cap at
+    // 10 / 8 / 20 and said nothing about it.
+    expect(ask).toMatch(/showing \$\{shown\} of \$\{totalCount\} total/);   // list_records: real count
+    expect(ask).toMatch(/count: "exact", head: true/);
+    expect(ask).toMatch(/Showing \$\{rows\.length\} of \$\{matched\}/);      // list_tasks
+    expect(ask).toMatch(/Top \$\{data\.length\} matches for/);                 // search_records
+  });
+
   it("finance totals are per-currency, never a mixed face-value sum", () => {
     // Measured in production: EUR 9,814.16 + USD 92,686.84 + GBP 0 was reported by Ask as
     // "£102,501 paid" — three currencies added at face value and labelled as pounds, while the real
