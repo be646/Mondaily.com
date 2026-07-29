@@ -131,6 +131,57 @@ export async function ledgerBreakdown(workspaceId: string): Promise<LedgerBreakd
   return { enrolled: entries > 0, granted, purchased, used };
 }
 
+/** Calendar-month key (UTC) — the period the included allowance is scoped to. Matches the
+ *  `reset_at` the UI shows, so the promise and the mechanism can never drift apart. */
+export function periodKey(d = new Date()): string {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+const periodMarker = (d?: Date) => `period reset ${periodKey(d)}`;
+
+/**
+ * MONTHLY ALLOWANCE — applied lazily on read, never by a scheduled job.
+ *
+ * The catalog sells "N credits / month" and /credits/balance returns a `reset_at`, but nothing ever
+ * reset anything: a Scout who spent their 100k never got more, and an ANNUAL subscriber received one
+ * grant per YEAR (activateTier fires per invoice) against a per-month promise.
+ *
+ * Two buckets, both already present in the ledger — no schema change, no reinterpretation of history:
+ *   grant    → the included/promotional allowance. Resets to the tier allotment each month.
+ *   purchase → credits the customer paid for. NEVER expires, always carries over.
+ * Usage consumes the grant bucket first (included_remaining = granted − used, floored at 0), so
+ * purchased credits are only touched once the monthly allowance is exhausted.
+ *
+ * Deliberately NOT a cron: a scheduled job that mutates every wallet monthly can fail silently,
+ * double-run, or drift — which is exactly the class of bug that minted 48.9M in duplicate credits
+ * here. Doing it on read makes it self-healing, and idempotent via a per-period marker row that a
+ * partial unique index enforces even under concurrent requests.
+ *
+ * Writes at most ONE row per workspace per month (amount 0 when nothing needs adjusting — the row
+ * still matters as the marker that stops recomputation mid-month).
+ */
+export async function ensurePeriodAllowance(workspaceId: string): Promise<void> {
+  const marker = periodMarker();
+  const { data: already, error: probeErr } = await supabase
+    .from("ai_credits_ledger").select("id")
+    .eq("workspace_id", workspaceId).eq("transaction_type", "grant").eq("description", marker).limit(1);
+  if (probeErr) return;                       // never block a read on ledger trouble
+  if (already && already.length > 0) return;  // this period is already settled
+
+  const b = await ledgerBreakdown(workspaceId);
+  if (!b.enrolled) return;                    // read paths must never enroll a workspace
+
+  const ent = await getEntitlement(workspaceId);
+  const allotment = grantAmountFor(ent.tier);
+  // What's left of the included bucket right now. Usage beyond `granted` has already eaten into
+  // purchases, so it must not make this negative.
+  const includedRemaining = Math.max(0, b.granted - b.used);
+  // Negative when unused allowance is being expired (no rollover); positive when topping up.
+  const delta = Math.round(allotment - includedRemaining);
+  await supabase.from("ai_credits_ledger")
+    .insert({ workspace_id: workspaceId, amount: delta, transaction_type: "grant", description: marker })
+    .then(() => {}, () => {});   // a concurrent request won the unique index — that's success
+}
+
 export interface BurstStatus { limited: boolean; used: number; cap: number; resetsAt: string | null }
 
 /** Sum usage in the trailing window; report whether the burst cap is hit and when it frees up.
@@ -217,6 +268,10 @@ export async function assertCreditsOk(workspaceId?: string): Promise<void> {
   if (!workspaceId) return;
   // Product-owner override: owner workspaces get unmetered AI (no payment). Gated to exact emails.
   if (await isOwnerWorkspace(workspaceId)) return;
+  // Settle the month's allowance here too, not just on /credits/balance: a workspace that uses AI
+  // without ever loading the billing UI must still get its monthly credits. Cheap — one indexed
+  // lookup that short-circuits for the rest of the month once the period's marker row exists.
+  await ensurePeriodAllowance(workspaceId);
   const { balance, enrolled } = await creditStatus(workspaceId);
   if (!enrolled) return;
   if (balance <= 0) {

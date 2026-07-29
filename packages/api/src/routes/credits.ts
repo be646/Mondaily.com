@@ -3,7 +3,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { createCreditPackCheckout } from "../lib/credit-pack";
-import { burstStatus, reconcileIncludedCredits, ledgerBreakdown } from "../lib/credits";
+import { burstStatus, reconcileIncludedCredits, ledgerBreakdown, ensurePeriodAllowance } from "../lib/credits";
 import { getEntitlement, resolveEntitlement } from "../lib/entitlements";
 import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER, computePackCredits, monthlyCreditsFor, type BillingInterval } from "@mondaily/shared/pricing";
 
@@ -17,9 +17,9 @@ function nextResetIso(): string {
 }
 
 // GET /credits/balance — THE wallet state for the sidebar bar + billing summary. NEVER negative.
-// Same shape drives both surfaces, so they can't disagree. Self-heals the wallet on read: if the
-// account is entitled to more included credits than the ledger has actually granted (the legacy
-// under-grant bug), it tops up the shortfall before computing the balance it returns.
+// Same shape drives both surfaces, so they can't disagree. Applies the month's included allowance
+// on read (ensurePeriodAllowance) so `reset_at` is true by construction rather than a promise some
+// scheduled job has to keep.
 router.get("/balance", async (c) => {
   const ws = c.get("workspaceId");
   const { data: wsRow } = await supabase.from("workspaces").select("plan, settings").eq("id", ws).maybeSingle();
@@ -27,13 +27,11 @@ router.get("/balance", async (c) => {
   const ent = await getEntitlement(ws);   // resolved tier (paid / trial / free)
   const tier = ent.tier;
 
-  // Server-side aggregate. Summing the ledger in JS returned a truncated, nondeterministic total
-  // once the workspace outgrew PostgREST's row cap, so the displayed balance stopped moving with
-  // real spend — see ledgerBreakdown.
-  let { enrolled, granted, purchased, used } = await ledgerBreakdown(ws);
-  // Self-heal: make included monthly credits ACTUALLY usable before we report the balance.
-  const added = await reconcileIncludedCredits(ws, { grantedSoFar: granted, enrolled });
-  if (added > 0) ({ enrolled, granted, purchased, used } = await ledgerBreakdown(ws));
+  // Apply this month's included allowance before reporting. Supersedes the old cumulative
+  // reconcile on this path: that compared TOTAL grants to the allotment, so once a workspace had
+  // ever been granted its allotment it could never receive another month's worth.
+  await ensurePeriodAllowance(ws);
+  const { enrolled, granted, purchased, used } = await ledgerBreakdown(ws);
 
   const included = ent.includedMonthlyCredits;         // catalog allotment for the resolved tier
   const rawBalance = granted + purchased - used;        // grants + purchases − usage

@@ -86,3 +86,70 @@ describe("entitlement is resolved through one function", () => {
     expect(src).toMatch(/stored_tier_would_be/);
   });
 });
+
+/**
+ * Monthly included allowance. The catalog sells "N credits / month" and /credits/balance returns a
+ * `reset_at`, but nothing ever reset anything — a Scout who spent their 100k never got more, and an
+ * ANNUAL subscriber got one grant per YEAR (activateTier fires per invoice) against a per-month
+ * promise. Model: `grant` = included/promotional (resets monthly), `purchase` = paid (never expires),
+ * usage consumes grants first.
+ */
+describe("monthly included allowance", () => {
+  const credits = read("lib/credits.ts");
+
+  it("is applied lazily on read, not by a cron", () => {
+    expect(credits).toMatch(/export async function ensurePeriodAllowance/);
+    // A scheduled job that mutates every wallet monthly can fail silently, double-run or drift —
+    // the exact failure mode that minted 48,915,590 in duplicate credits on this table.
+    const vercelJson = readFileSync(join(SRC, "../vercel.json"), "utf8");
+    expect(vercelJson).not.toMatch(/credit|allowance|wallet/i);
+  });
+
+  it("is idempotent per period via a marker row", () => {
+    // Check-then-insert; without the marker it would re-apply on every single read.
+    expect(credits).toMatch(/period reset \$\{periodKey/);
+    expect(credits).toMatch(/\.eq\("description", marker\)/);
+    // The row is written even when delta is 0 — it is the marker that stops recomputation
+    // mid-month, so it must NOT be skipped for being a no-op.
+    expect(credits).not.toMatch(/if \(delta === 0\) return/);
+  });
+
+  it("expires unused included credits but never purchased ones", () => {
+    // delta is allotment − includedRemaining, so it goes NEGATIVE to claw back unused allowance
+    // (no rollover). It is computed only from `granted`/`used`, never from `purchased`.
+    expect(credits).toMatch(/const includedRemaining = Math\.max\(0, b\.granted - b\.used\)/);
+    expect(credits).toMatch(/const delta = Math\.round\(allotment - includedRemaining\)/);
+    // grantCredits() ignores non-positive amounts, so the reset must insert directly.
+    expect(credits).toMatch(/transaction_type: "grant", description: marker/);
+  });
+
+  it("never enrolls a workspace just by reading it", () => {
+    const fn = credits.slice(credits.indexOf("export async function ensurePeriodAllowance"));
+    expect(fn).toMatch(/if \(!b\.enrolled\) return;/);
+  });
+
+  it("concurrent requests cannot double-apply", () => {
+    // Idempotency is enforced in the DB, because check-then-act is a race between requests.
+    const sql = readFileSync(join(SRC, "../../db/migrations/20260729_monthly_allowance.sql"), "utf8");
+    expect(sql).toMatch(/CREATE UNIQUE INDEX IF NOT EXISTS ai_credits_ledger_period_reset_uniq/);
+    expect(sql).toMatch(/WHERE transaction_type = 'grant' AND description LIKE 'period reset %'/);
+  });
+
+  it("applies on AI usage too, not only when the billing UI is opened", () => {
+    // A workspace that never loads /credits/balance must still receive its monthly credits.
+    const gate = credits.slice(credits.indexOf("export async function assertCreditsOk"));
+    expect(gate).toMatch(/await ensurePeriodAllowance\(workspaceId\)/);
+  });
+
+  it("the balance route no longer uses the cumulative reconcile on the read path", () => {
+    // reconcileIncludedCredits compares TOTAL grants to the allotment, so once a workspace had ever
+    // been granted its allotment it could never receive another month's worth.
+    const route = read("routes/credits.ts");
+    // Scoped to the /balance handler: the manual admin POST /credits/reconcile still uses it
+    // deliberately, as an operator backstop.
+    const balanceHandler = route.slice(route.indexOf('router.get("/balance"'), route.indexOf('router.get("/packs"'));
+    expect(balanceHandler).toMatch(/await ensurePeriodAllowance\(ws\)/);
+    expect(balanceHandler).not.toMatch(/reconcileIncludedCredits/);
+    expect(route).toMatch(/router\.post\("\/reconcile", requireAdminRole/);
+  });
+});

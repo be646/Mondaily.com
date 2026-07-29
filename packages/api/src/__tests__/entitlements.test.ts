@@ -76,9 +76,13 @@ describe("reconciliation makes included credits usable (source-read guards)", ()
     expect(fn).toMatch(/grantCredits\(workspaceId, shortfall, "grant"/);
     expect(fn).not.toMatch(/transaction_type.*(purchase|usage)/);
   });
-  it("balance endpoint self-heals on read (calls reconcile before reporting)", () => {
+  it("balance endpoint self-heals on read (applies the period allowance before reporting)", () => {
     const route = readFileSync(fileURLToPath(new URL("../routes/credits.ts", import.meta.url)), "utf8");
-    expect(route).toMatch(/reconcileIncludedCredits\(ws/);
+    // Was reconcileIncludedCredits(ws). That compared TOTAL grant rows to the allotment, so a
+    // workspace that had ever been granted its allotment could never receive another month's worth —
+    // the "N credits / month" promise was really one-time. ensurePeriodAllowance settles the CURRENT
+    // calendar month instead, which is the same self-healing-on-read intent, done per period.
+    expect(route).toMatch(/ensurePeriodAllowance\(ws\)/);
     expect(route).toMatch(/remaining_credits/);
     expect(route).toMatch(/included_monthly_credits/);
   });
