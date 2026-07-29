@@ -596,9 +596,12 @@ describe("dashboard/home read-only meta/labels use text-label (Pass 5D)", () => 
     expect(H).toMatch(/hidden sm:flex items-center gap-0\.5 text-\[11px\]/);                       // responsive meta (1161, out of scope)
     expect(H).toMatch(/truncate max-w-\[180px\] text-\[11px\]/);                                   // Ask-history link
   });
-  it("hero stays text-[26px], composer stays text-[15px]", () => {
-    expect(H).toMatch(/text-\[26px\] font-semibold leading-tight/);
-    expect((H.match(/text-\[15px\]/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  it("hero + composer type stay put (this pass must not move them)", () => {
+    // Was text-[26px]. The hero was deliberately retuned to 22px in the Attio-reference pass, when
+    // it was explicitly in scope; these guards exist to stop an unrelated typography pass moving it
+    // by accident, so they track the current value rather than a frozen one.
+    expect(H).toMatch(/text-\[22px\] font-semibold leading-tight/);
+    expect(H).toMatch(/text-\[15px\] leading-6 outline-none/);   // the composer textarea itself
   });
   it("behavior anchors unchanged", () => {
     expect(H).toMatch(/useAskEngine/);
@@ -627,9 +630,12 @@ describe("dashboard/home secondary status messages use text-body (Pass 5F)", () 
     expect(H).toMatch(/text-sm text-\[#c6892e\]/);                                  // warning banner
     expect(H).toMatch(/text-sm font-medium" style=\{\{ color: "var\(--text-secondary\)" \}\}>Connect your calendar/);
   });
-  it("hero stays text-[26px], composer stays text-[15px]", () => {
-    expect(H).toMatch(/text-\[26px\] font-semibold leading-tight/);
-    expect((H.match(/text-\[15px\]/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  it("hero + composer type stay put (this pass must not move them)", () => {
+    // Was text-[26px]. The hero was deliberately retuned to 22px in the Attio-reference pass, when
+    // it was explicitly in scope; these guards exist to stop an unrelated typography pass moving it
+    // by accident, so they track the current value rather than a frozen one.
+    expect(H).toMatch(/text-\[22px\] font-semibold leading-tight/);
+    expect(H).toMatch(/text-\[15px\] leading-6 outline-none/);   // the composer textarea itself
   });
   it("behavior anchors unchanged", () => {
     expect(H).toMatch(/useAskEngine/);
@@ -660,9 +666,12 @@ describe("dashboard/home read-only supporting copy fully migrated (Pass 5H)", ()
     expect(H).toMatch(/text-sm font-medium" style=\{\{ color: "var\(--text-primary\)" \}\}>Meetings/); // card title
     expect(H).toMatch(/text-\[11px\] font-medium" style=\{\{ color: "var\(--section-accent\)/);        // Zap chip
   });
-  it("hero stays text-[26px], composer stays text-[15px]", () => {
-    expect(H).toMatch(/text-\[26px\] font-semibold leading-tight/);
-    expect((H.match(/text-\[15px\]/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  it("hero + composer type stay put (this pass must not move them)", () => {
+    // Was text-[26px]. The hero was deliberately retuned to 22px in the Attio-reference pass, when
+    // it was explicitly in scope; these guards exist to stop an unrelated typography pass moving it
+    // by accident, so they track the current value rather than a frozen one.
+    expect(H).toMatch(/text-\[22px\] font-semibold leading-tight/);
+    expect(H).toMatch(/text-\[15px\] leading-6 outline-none/);   // the composer textarea itself
   });
   it("behavior anchors unchanged", () => {
     expect(H).toMatch(/useAskEngine/);
@@ -1003,9 +1012,11 @@ describe("dashboard/home eyebrow labels use the shared scale (Pass 5B)", () => {
   it("no uppercase eyebrow still uses the old text-[9px]/text-[10px]", () => {
     expect(H).not.toMatch(/text-\[(9|10)px\][^>]*uppercase/);
   });
-  it("forbidden zones untouched — hero greeting stays text-[26px], composer textarea stays text-[15px]", () => {
-    expect(H).toMatch(/text-\[26px\] font-semibold leading-tight/);
-    expect((H.match(/text-\[15px\]/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  it("forbidden zones untouched — hero greeting + composer textarea type", () => {
+    // Hero was text-[26px]; retuned to 22px in the Attio-reference pass where it was in scope.
+    // This guard's job is stopping an unrelated pass moving it, so it tracks the current value.
+    expect(H).toMatch(/text-\[22px\] font-semibold leading-tight/);
+    expect(H).toMatch(/text-\[15px\] leading-6 outline-none/);   // the composer textarea itself
   });
   it("behavior anchors unchanged (Ask engine, greeting, metrics, composer handler)", () => {
     expect(H).toMatch(/useAskEngine/);
@@ -1460,7 +1471,7 @@ describe("Home command-center console status rail (Pass R2)", () => {
     expect(H).toMatch(/What do you want to get done today\?/);
     expect(H).toMatch(/home-control-room/);
     // P2 command menu still framed divide-y
-    expect(H).toMatch(/mx-auto mt-7 max-w-2xl overflow-hidden rounded-sm border border-\[var\(--border-soft\)\] bg-\[var\(--surface-card\)\] divide-y/);
+    expect(H).toMatch(/mx-auto mt-7 max-w-2xl overflow-hidden rounded-sm border border-\[var\(--border-soft\)\] divide-y/);
   });
 
   it("preserves all handlers, prompts, telemetry, and command-center panels", () => {
@@ -1475,7 +1486,7 @@ describe("Home quick-actions unified into a hairline command menu (Pass P2)", ()
   const H = read("apps/app/src/routes/dashboard/home.tsx");
 
   it("quick-actions live in one framed divide-y surface, not a boxed grid", () => {
-    expect(H).toMatch(/mx-auto mt-7 max-w-2xl overflow-hidden rounded-sm border border-\[var\(--border-soft\)\] bg-\[var\(--surface-card\)\] divide-y divide-\[var\(--border-soft\)\]/);
+    expect(H).toMatch(/mx-auto mt-7 max-w-2xl overflow-hidden rounded-sm border border-\[var\(--border-soft\)\] divide-y divide-\[var\(--border-soft\)\]/);
     // old 2x2 boxed grid treatment is gone
     expect(H).not.toMatch(/mt-7 grid max-w-2xl grid-cols-1 gap-2\.5 sm:grid-cols-2/);
   });

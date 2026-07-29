@@ -708,8 +708,8 @@ export function HomePage() {
         <div className={`relative w-full min-w-0 ${isChatting ? "flex flex-col overflow-hidden" : ""}`} style={isChatting ? { height: "min(70vh, 640px)" } : undefined}>
         {!isChatting && (
           <div className="mx-auto mb-6 flex max-w-2xl flex-col items-center text-center">
-            <h2 className="text-[26px] font-semibold leading-tight" style={{ color: "var(--text-primary)" }}>{greeting}, {firstName}</h2>
-            <p className="mt-1.5 text-[15px]" style={{ color: "var(--text-muted)" }}>What do you want to get done today?</p>
+            <h2 className="text-[22px] font-semibold leading-tight tracking-[-0.01em]" style={{ color: "var(--text-primary)" }}>{greeting}, {firstName}</h2>
+            <p className="mt-1 text-body" style={{ color: "var(--text-faint)" }}>What do you want to get done today?</p>
           </div>
         )}
 
@@ -1041,7 +1041,7 @@ export function HomePage() {
 
         {/* Smart starter cards — spaced below the input + recent */}
         {!isChatting && (
-          <div className="mx-auto mt-7 max-w-2xl overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] divide-y divide-[var(--border-soft)]">
+          <div className="mx-auto mt-7 max-w-2xl overflow-hidden rounded-sm border border-[var(--border-soft)] divide-y divide-[var(--border-soft)]">
             {[
               {
                 Icon: ListChecks,
@@ -1097,7 +1097,7 @@ export function HomePage() {
       <section className="home-section home-operating-picture">
         <div className="mb-4 flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--section-accent)" }} />
-          <p className="home-section-kicker !mb-0">Live operations</p>
+          <p className="home-section-title !mb-0">Live operations</p>
         </div>
         {/* Agents lead — the AI command center is the centerpiece, with the
             workspace pulse as supporting context below it. */}
@@ -1113,7 +1113,7 @@ export function HomePage() {
       <section className="home-section">
         <div className="today-flow-header flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="home-section-kicker">Today's work</p>
+            <p className="home-section-title">Today&rsquo;s work</p>
           </div>
           <div className="today-scope-switch" role="group" aria-label="Task scope">
             {(["mine", "all"] as const).map(scope => (
