@@ -357,6 +357,38 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect(ap).toMatch(/Executed \(all time\)/);
   });
 
+  it("Calls: recordings are playable and uploads do not navigate to a dead page", () => {
+    const base = "../../../../apps/app/src/routes/dashboard/";
+    const detail = readFileSync(fileURLToPath(new URL(base + "call-detail.tsx", import.meta.url)), "utf8");
+    const list = readFileSync(fileURLToPath(new URL(base + "calls.tsx", import.meta.url)), "utf8");
+    // player gates on audioSrc (signed URL), not the always-undefined audio_url
+    expect(detail).toMatch(/\{audioSrc \? <>/);
+    expect(detail).not.toMatch(/\{call\.audio_url \? <>/);
+    // a 0 duration is not dressed up as "1 min"
+    expect(detail).not.toMatch(/Math\.max\(1, Math\.round\(call\.duration_seconds/);
+    // promotion refreshes the surfaces it really writes to
+    expect(detail).toMatch(/invalidateQueries\(\{ queryKey: \["tasks"\] \}\)/);
+    expect(detail).toMatch(/invalidateQueries\(\{ queryKey: \["decisions"\] \}\)/);
+    // upload no longer navigates to /calls/<sessionId>, which always 404'd
+    expect(list).not.toMatch(/navigate\(`\/calls\/\$\{id\}`\)/);
+    expect(list).toMatch(/setJustUploaded\(true\)/);
+    // failed fetch is an error, not "No meeting memories yet"
+    expect(list).toMatch(/query\.isError \? \(/);
+  });
+
+  it("Calls: video tiles do not re-attach on every LiveKit event", () => {
+    const tiles = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/call-tiles.tsx", import.meta.url)), "utf8");
+    expect(tiles).toMatch(/\}, \[p, source, trackSid, trackMuted\]\);/);
+    expect(tiles).toMatch(/\}, \[p, source, screenSid\]\);/);
+  });
+
+  it("Calls: creating a task from insights surfaces failures", () => {
+    const room = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/call-room.tsx", import.meta.url)), "utf8");
+    expect(room).toMatch(/setTaskError\(err instanceof Error \? err\.message/);
+    // the silent catch is gone (the phrase survives only inside the explanatory comment)
+    expect(room).not.toMatch(/\} catch \{ \/\* surfaced by disabled state staying off \*\/ \}/);
+  });
+
   it("zero-valued counts never render as a literal 0", () => {
     expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
     expect(tasksPage).toMatch(/\{!!t\.due_days &&/);

@@ -220,6 +220,13 @@ export function ParticipantTile({ p, source, isLocal, speaking, youLabel, muted,
   const name = p.name || p.identity || "Member";
   const isGuest = (p.identity || "").startsWith("guest_");
 
+  // Deps matter here: call-room bumps state on EVERY LiveKit event (mute, subscribe,
+  // participant join…). With no dependency array this effect detached and re-attached every
+  // video element on every one of those events — visible flicker/black frames mid-call.
+  // Re-attach only when the actual track or its muted state changes.
+  const pubForDeps = p.getTrackPublication(source);
+  const trackSid = pubForDeps?.trackSid;
+  const trackMuted = pubForDeps?.isMuted;
   useEffect(() => {
     const pub = p.getTrackPublication(source);
     const track = pub?.track;
@@ -227,7 +234,7 @@ export function ParticipantTile({ p, source, isLocal, speaking, youLabel, muted,
     if (live && ref.current) { track!.attach(ref.current); setHasVideo(true); }
     else { setHasVideo(false); }
     return () => { try { if (track && ref.current) track.detach(ref.current); } catch { /* ignore */ } };
-  });
+  }, [p, source, trackSid, trackMuted]);
 
   return (
     <div className="relative aspect-video w-full overflow-hidden rounded-xl" style={{ background: "#17171b", outline: speaking ? "2px solid var(--section-accent)" : "1px solid rgba(255,255,255,0.06)", outlineOffset: -1 }}>
@@ -253,11 +260,12 @@ export function ParticipantTile({ p, source, isLocal, speaking, youLabel, muted,
 /** Prominent stage for an active screen share. */
 export function ScreenTile({ p, source }: { p: Participant; source: TrackNS.Source }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const screenSid = p.getTrackPublication(source)?.trackSid;
   useEffect(() => {
     const track = p.getTrackPublication(source)?.track;
     if (track && ref.current) track.attach(ref.current);
     return () => { try { if (track && ref.current) track.detach(ref.current); } catch { /* ignore */ } };
-  });
+  }, [p, source, screenSid]);
   return (
     <div className="relative overflow-hidden rounded-xl bg-black" style={{ aspectRatio: "16 / 9" }}>
       <video ref={ref} autoPlay playsInline className="h-full w-full object-contain" />

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, Check, ChevronLeft, Clipboard, Clock3, Pause, Play, Search, Volume2, X, UploadCloud, Printer, RefreshCw, Loader2, ListChecks, ShieldCheck } from "lucide-react";
 import { LogoMark } from "@/components/logo";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -140,6 +140,7 @@ export function CallDetailPage() {
   const query = useQuery({ queryKey: ["call", id], queryFn: () => apiClient.get<CallDetail>(`/calls/${id}`) });
   const call = query.data;
   // Uploaded recordings play through a short-lived signed URL (never a raw path / public URL).
+  const qc = useQueryClient();
   const recUrlQ = useQuery({
     queryKey: ["recording-url", id],
     queryFn: () => apiClient.get<{ url: string }>(`/calls/${id}/recording-url`).then(r => r.url).catch(() => null),
@@ -168,6 +169,10 @@ export function CallDetailPage() {
     try {
       await apiClient.post(`/calls/${id}/action-items/${index}/promote`, { target });
       await query.refetch();
+      // Promotion inserts a real tasks/decision_queue row — refresh those surfaces too,
+      // otherwise Tasks and the Decision Queue show stale data until a hard reload.
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["decisions"] });
     } catch (e) {
       setPromoteError({ index, reason: (e as Error)?.message ?? "Couldn't create it — try again." });
     } finally {
@@ -231,7 +236,7 @@ export function CallDetailPage() {
               <span className="shrink-0 rounded-sm border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{MEETING_TYPE_META[call.meeting_type].label}</span>
             )}
           </h1>
-          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{new Date(call.occurred_at).toLocaleString()} · {Math.max(1, Math.round(call.duration_seconds / 60))} min</p>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{new Date(call.occurred_at).toLocaleString()}{call.duration_seconds > 0 ? ` · ${Math.round(call.duration_seconds / 60)} min` : ""}</p>
           {call.source === "upload_recording" && (
             <p className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--text-faint)]">
               <UploadCloud size={11} /> Uploaded recording{call.origin_filename ? ` · ${call.origin_filename}` : ""} · consent attested
@@ -254,7 +259,7 @@ export function CallDetailPage() {
           <div className="grid grid-cols-2 gap-3 rounded-sm border border-[var(--border-soft)] p-4 text-sm">
             <div><p className="text-xs text-[var(--text-secondary)]">Date</p><p className="mt-1">{new Date(call.occurred_at).toLocaleDateString()}</p></div>
             <div><p className="text-xs text-[var(--text-secondary)]">Time</p><p className="mt-1">{new Date(call.occurred_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p></div>
-            <div><p className="text-xs text-[var(--text-secondary)]">Duration</p><p className="mt-1">{Math.max(1, Math.round(call.duration_seconds / 60))} minutes</p></div>
+            <div><p className="text-xs text-[var(--text-secondary)]">Duration</p><p className="mt-1">{call.duration_seconds > 0 ? `${Math.round(call.duration_seconds / 60)} minutes` : "Not recorded"}</p></div>
             <div><p className="text-xs text-[var(--text-secondary)]">Direction</p><p className="mt-1 capitalize">{call.direction}</p></div>
           </div>
           <h2 className="mb-3 mt-6 text-xs font-semibold uppercase text-[var(--text-muted)]">Participants</h2>
@@ -303,7 +308,11 @@ export function CallDetailPage() {
         <section className="min-w-0 p-4 sm:p-6">
           {!call.is_event && (
           <div className="rounded-lg border border-[var(--border-soft)] p-4">
-            {call.audio_url ? <>
+            {/* Gate on audioSrc, not call.audio_url: uploaded/egress recordings have
+                audio_url undefined and has_recording true, so the signed URL from
+                /calls/:id/recording-url was fetched and then never rendered — the player
+                said "unavailable" and that endpoint was unreachable from the UI. */}
+            {audioSrc ? <>
               <div ref={containerRef} />
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <button disabled={!ready} onClick={() => waveRef.current?.playPause()} className="grid h-9 w-9 place-items-center rounded-full border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] text-[var(--section-accent-text)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-40">{playing ? <Pause size={15} /> : <Play size={15} />}</button>

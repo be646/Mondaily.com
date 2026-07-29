@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
 import { UploadRecordingModal } from "../../components/calls/upload-recording-modal";
 import { CommandPageHeader } from "../../components/ui/controls";
-import { EmptyState, DelayedLoading, PageSkeleton } from "../../components/ui/page-state";
+import { EmptyState, DelayedLoading, PageSkeleton, ErrorState } from "../../components/ui/page-state";
 
 /**
  * Meeting Memory — Mondaily's after-the-fact call/meeting intelligence. Calendar owns planning + live
@@ -41,6 +41,7 @@ export function CallsPage() {
     queryFn: () => apiClient.get<{ memories: MemoryRow[] }>(`/calls/memory?search=${encodeURIComponent(search)}`),
   });
   const all = query.data?.memories ?? [];
+  const [justUploaded, setJustUploaded] = useState(false);
 
   const counts = useMemo(() => ({
     all: all.length,
@@ -84,7 +85,16 @@ export function CallsPage() {
       />
 
       {uploadOpen && <UploadRecordingModal onClose={() => setUploadOpen(false)}
-        onDone={(id) => { setUploadOpen(false); qc.invalidateQueries({ queryKey: ["meeting-memory"] }); navigate(`/calls/${id}`); }} />}
+        onDone={() => {
+          // The upload returns a call_sessions id, but the Meeting-Memory record is a
+          // separate `nodes` row created asynchronously by the transcription job — and
+          // /calls/upload/complete answers 202 "queued". Navigating to /calls/<sessionId>
+          // therefore always landed on "Couldn't load this call". Stay on the list, say
+          // it's processing, and let the invalidation surface it when it lands.
+          setUploadOpen(false);
+          qc.invalidateQueries({ queryKey: ["meeting-memory"] });
+          setJustUploaded(true);
+        }} />}
 
       {/* Control bar: tabs + search (flat, monochrome). */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
@@ -103,8 +113,20 @@ export function CallsPage() {
         </label>
       </div>
 
+      {/* A queued upload has no record yet — say so instead of leaving the user on an
+          unchanged list wondering whether it worked. */}
+      {justUploaded && (
+        <div className="mb-3 rounded-sm border px-4 py-3 text-[13px]" style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)", color: "var(--text-secondary)" }}>
+          Recording uploaded — transcription is running. It will appear here when it finishes.
+        </div>
+      )}
+
       {query.isLoading ? (
         <DelayedLoading onRetry={() => query.refetch()}><PageSkeleton rows={5} label="Loading meeting memory…" /></DelayedLoading>
+      ) : query.isError ? (
+        /* A failed fetch used to fall through to "No meeting memories yet" — a load failure
+           looked identical to an empty workspace, complete with onboarding steps. */
+        <ErrorState error={query.error as Error} onRetry={() => query.refetch()} />
       ) : rows.length === 0 ? (
         // Guided empty state — every step is a real action; readiness lives in Settings → Calls
         // (booleans only). Nothing here pretends a transcript or meeting exists.

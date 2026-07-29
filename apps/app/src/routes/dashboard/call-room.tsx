@@ -113,8 +113,19 @@ function MeetingMemoryDetail({ event: e }: { event: CalEvent }) {
   const isStale = summarize.data ? false : (intelQ.data?.stale ?? false);
   const [taskDone, setTaskDone] = useState<Set<number>>(new Set());
   const [draftCopied, setDraftCopied] = useState(false);
+  // The old comment claimed failures were "surfaced by disabled state staying off" — there is
+  // no disabled state on that button, so a 500/403 left it looking untouched with no feedback
+  // and no task created. Surface the real error and refresh Tasks on success.
+  const [taskError, setTaskError] = useState<string | null>(null);
   async function createTaskFor(i: number, title: string) {
-    try { await apiClient.post("/tasks", { title }); setTaskDone((s) => new Set(s).add(i)); } catch { /* surfaced by disabled state staying off */ }
+    setTaskError(null);
+    try {
+      await apiClient.post("/tasks", { title });
+      setTaskDone((s) => new Set(s).add(i));
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+    } catch (err) {
+      setTaskError(err instanceof Error ? err.message : "Couldn't create that task.");
+    }
   }
   const INSUFFICIENT: Record<string, string> = {
     insufficient_transcript: "Not enough transcript to summarize.",
@@ -230,6 +241,9 @@ function MeetingMemoryDetail({ event: e }: { event: CalEvent }) {
                           )}
                         </div>
                       ))}
+                      {taskError && (
+                        <p className="mt-1 text-[11px]" style={{ color: "#d1524a" }}>{taskError}</p>
+                      )}
                     </div>
                   </div>
                 ) : null}
