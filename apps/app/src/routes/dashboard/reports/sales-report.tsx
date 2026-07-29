@@ -250,7 +250,7 @@ function KpiCard({ label, value, sub, tone, trend, delta, goal, goalValue, onSet
     <div className={`relative overflow-hidden rounded-sm border print:border-[var(--border-soft)] ${primary ? "p-4" : "p-3.5"}`}
       style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", borderLeft: `2px solid ${tone}` }}>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: tone }}>{label}</p>
+        <p className="text-body" style={{ color: tone }}>{label}</p>
         {onSetGoal && (
           <button onClick={onSetGoal} title="Set goal" className="opacity-30 hover:opacity-60 transition-opacity print:hidden" style={{ color: tone }}>
             <Target size={12}/>
@@ -309,17 +309,17 @@ function DrillPanel({ record, nameCol, onClose }: { record: NodeRecord; nameCol:
         <div className="space-y-3">
           {fields.map(([key, val]) => (
             <div key={key} className="flex items-start gap-3">
-              <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-[var(--text-secondary)] pt-0.5">{key}</span>
+              <span className="min-w-[120px] text-body text-[var(--text-secondary)] pt-0.5">{key}</span>
               <span className="text-sm text-[var(--text-faint)] break-all">{String(val)}</span>
             </div>
           ))}
           <div className="pt-3 border-t border-[var(--border-soft)]">
             <div className="flex items-start gap-3">
-              <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-[var(--text-secondary)] pt-0.5">Created</span>
+              <span className="min-w-[120px] text-body text-[var(--text-secondary)] pt-0.5">Created</span>
               <span className="text-sm text-[var(--text-faint)]">{record.created_at ? new Date(record.created_at).toLocaleString() : "—"}</span>
             </div>
             <div className="flex items-start gap-3 mt-2">
-              <span className="min-w-[120px] text-[11px] font-medium uppercase tracking-wide text-[var(--text-secondary)] pt-0.5">Updated</span>
+              <span className="min-w-[120px] text-body text-[var(--text-secondary)] pt-0.5">Updated</span>
               <span className="text-sm text-[var(--text-faint)]">{record.updated_at ? new Date(record.updated_at).toLocaleString() : "—"}</span>
             </div>
           </div>
@@ -489,7 +489,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           <div className="border-t border-[var(--border-soft)] px-5 py-4">
             <div className="flex items-end justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Projected {hasValue ? "revenue" : "completions"}</p>
+                <p className="text-body text-[var(--text-muted)]">Projected {hasValue ? "revenue" : "completions"}</p>
                 <p className="text-2xl font-bold text-[var(--text-primary)] leading-tight mt-0.5">{hasValue ? fmtMoney(result.projectedValue, sym) : fmtNum(result.projectedValue)}</p>
               </div>
               <span className={`shrink-0 inline-flex rounded-full border px-2.5 py-0.5 text-[10px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence] ?? CONFIDENCE_STYLE.medium}`}>{result.confidence} confidence</span>
@@ -513,7 +513,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
         <AIModal title="AI Forecast" onClose={() => setModalOpen(false)} onPrint={printForecast}>
           {/* Projected value hero */}
           <div className="px-6 py-6 border-b border-[var(--border-soft)]">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-1">Projected {hasValue ? "Revenue" : "Completions"}</p>
+            <p className="text-body text-[var(--text-muted)] mb-1">Projected {hasValue ? "Revenue" : "Completions"}</p>
             <p className="text-4xl font-bold text-[var(--text-primary)] mb-2">{hasValue ? fmtMoney(result.projectedValue, sym) : fmtNum(result.projectedValue)}</p>
             <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${CONFIDENCE_STYLE[result.confidence] ?? CONFIDENCE_STYLE.medium}`}>
               {result.confidence} confidence
@@ -521,12 +521,12 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           </div>
           {/* Headline */}
           <div className="px-6 py-4 border-b border-[var(--border-soft)]">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-1.5">Headline</p>
+            <p className="text-body text-[var(--text-secondary)] mb-1.5">Headline</p>
             <p className="text-sm text-[var(--text-faint)] italic leading-relaxed">{result.headline}</p>
           </div>
           {/* Narrative */}
           <div className="px-6 py-4 border-b border-[var(--border-soft)]">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-1.5">Analysis</p>
+            <p className="text-body text-[var(--text-secondary)] mb-1.5">Analysis</p>
             <p className="text-sm text-[var(--text-faint)] leading-relaxed">{result.narrative}</p>
           </div>
           {/* Risk */}
@@ -534,7 +534,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
             <div className="mx-6 my-4 flex items-start gap-3 rounded-sm border border-[#c6892e]/25 bg-[#c6892e]/[.06] px-4 py-3">
               <AlertCircle size={14} className="text-[#c6892e] shrink-0 mt-0.5"/>
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#c6892e] mb-0.5">Risk</p>
+                <p className="text-body text-[#c6892e] mb-0.5">Risk</p>
                 <p className="text-sm text-[#c6892e]/80 leading-relaxed">{result.risks}</p>
               </div>
             </div>
@@ -542,7 +542,7 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
           {/* Actions */}
           {result.actions && result.actions.length > 0 && (
             <div className="px-6 py-4 border-t border-[var(--border-soft)]">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-3">What to do now</p>
+              <p className="text-body text-[var(--text-secondary)] mb-3">What to do now</p>
               <div className="space-y-2">
                 {result.actions.map((a, i) => (
                   <div key={i} className="flex items-start gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-3">
@@ -713,7 +713,7 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
                       <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${m.dot}`}/>
-                      <span className={`text-[10px] font-semibold uppercase tracking-widest ${m.text}`}>{m.label}</span>
+                      <span className={`text-body ${m.text}`}>{m.label}</span>
                     </div>
                     {ins.trend === "up"   && <TrendingUp  size={12} className="text-[#2f9e6b] shrink-0"/>}
                     {ins.trend === "down" && <TrendingDown size={12} className="text-stone-400 shrink-0"/>}
@@ -846,7 +846,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
 
           {/* Create form */}
           <div className="px-5 py-4 space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">New schedule</p>
+            <p className="text-body text-[var(--text-secondary)]">New schedule</p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {(["daily","weekly","monthly"] as const).map(f => (
@@ -1535,7 +1535,7 @@ export function SalesReportPage() {
                 const active = !!activeFilters[col];
                 return (
                   <div key={col} className="flex flex-col gap-1 min-w-0">
-                    <label className="text-[10px] font-medium uppercase tracking-widest text-[var(--text-secondary)] truncate">{col.replace(/_/g," ")}</label>
+                    <label className="text-body text-[var(--text-secondary)] truncate">{col.replace(/_/g," ")}</label>
                     <FieldSelect
                       value={activeFilters[col] ?? ""}
                       onChange={v => setActiveFilters(f => ({ ...f, [col]: v }))}
@@ -1763,18 +1763,11 @@ export function SalesReportPage() {
               // client page). Values are already in the display currency.
               const maxVal = hasValue ? Math.max(...topRows.map(r => r.val), 1) : 1;
               const total = hasValue ? topRows.reduce((s, r) => s + r.val, 0) : 0;
-              const ROW_COLORS = [
-                { bar: "from-stone-500 to-stone-400", badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
-                { bar: "from-[#717784] to-[#7d8a96]",     badge: "bg-[#717784]/15 text-[#717784] border-[#717784]/25" },
-                { bar: "from-[#2f9e6b] to-[#2f9e6b]",  badge: "bg-[#2f9e6b]/15 text-[#2f9e6b] border-[#2f9e6b]/25" },
-                { bar: "from-[#c6892e] to-[#c6892e]",  badge: "bg-[#c6892e]/15 text-[#c6892e] border-[#c6892e]/25" },
-                { bar: "from-[#d1524a] to-[#d1524a]",     badge: "bg-[#d1524a]/15 text-[#d1524a] border-[#d1524a]/25" },
-                { bar: "from-stone-500 to-[#717784]",   badge: "bg-stone-500/15 text-stone-300 border-stone-500/20" },
-                { bar: "from-[#7d8a96] to-[#2f9e6b]",  badge: "bg-[#7d8a96]/15 text-[#7d8a96] border-[#7d8a96]/25" },
-                { bar: "from-[#8a8071] to-[#c6892e]",  badge: "bg-[#8a8071]/15 text-[#8a8071] border-[#8a8071]/25" },
-                { bar: "from-[#7d8a96] to-[#717784]",      badge: "bg-[var(--section-accent)]/15 text-[var(--section-accent)] border-[var(--section-accent)]/20" },
-                { bar: "from-[#717784] to-stone-400",badge: "bg-[#717784]/15 text-[#717784] border-[#717784]/25" },
-              ];
+              // One accent for every row. The previous 10-colour rotating palette encoded RANK
+              // POSITION in hue — information already carried by the ordering and the bar length —
+              // and reused the green/amber/red STATUS tokens for it, so a top-5 list looked like
+              // five different health states.
+              const ROW_ACCENT = { badge: "bg-[var(--section-accent)]/12 text-[var(--section-accent-text)] border-[var(--section-accent-line)]" };
               return (
                 <div className="mb-6 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden print:border-[var(--border-soft)] print:bg-white">
                   {/* Header */}
@@ -1789,9 +1782,9 @@ export function SalesReportPage() {
                   {/* Column labels */}
                   <div className="grid px-5 py-2 border-b border-[var(--border-soft)]" style={{ gridTemplateColumns: hasValue ? "2rem 1fr auto auto" : "2rem 1fr auto" }}>
                     <span/>
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Name</span>
-                    {hasStage && <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mr-4">{stageCol?.replace(/_/g," ")}</span>}
-                    {hasValue && <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] text-right">{valueCol?.replace(/_/g," ")}</span>}
+                    <span className="text-body text-[var(--text-secondary)]">Name</span>
+                    {hasStage && <span className="text-body text-[var(--text-secondary)] mr-4">{stageCol?.replace(/_/g," ")}</span>}
+                    {hasValue && <span className="text-body text-[var(--text-secondary)] text-right">{valueCol?.replace(/_/g," ")}</span>}
                   </div>
                   {/* Rows */}
                   <div className="divide-y divide-white/[.03]">
@@ -1802,7 +1795,7 @@ export function SalesReportPage() {
                       const pct     = hasValue && !isNaN(val) ? Math.max(4, Math.round((val / maxVal) * 100)) : 0;
                       const won     = hasStage && isWon(stage);
                       const lost    = hasStage && isLost(stage);
-                      const color   = ROW_COLORS[i % ROW_COLORS.length]!;
+                      const color   = ROW_ACCENT;
                       const rankColors = ["text-[#c6892e]","text-stone-400","text-[#8a8071]"];
                       const drillable = !!r;
                       return (
@@ -1831,8 +1824,8 @@ export function SalesReportPage() {
                               {hasValue && (
                                 <div className="h-1.5 w-full rounded-full bg-[var(--surface-hover)] overflow-hidden">
                                   <div
-                                    className={`h-full rounded-full bg-gradient-to-r ${color.bar} transition-all duration-500`}
-                                    style={{ width: `${pct}%` }}
+                                    className="h-full rounded-full transition-all duration-500"
+                                    style={{ width: `${pct}%`, background: "var(--section-accent)" }}
                                   />
                                 </div>
                               )}
