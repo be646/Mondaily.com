@@ -455,6 +455,24 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect((api.match(/\.is\("group_id", null\)/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 
+  it("Decisions: snoozed items wake, and the snooze banner reflects the chosen preset", () => {
+    const api = readFileSync(fileURLToPath(new URL("../routes/decisions.ts", import.meta.url)), "utf8");
+    const ui = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/decisions.tsx", import.meta.url)), "utf8");
+    // snoozed_until was written and read by nothing — elapsed snoozes now wake on read
+    expect(api).toMatch(/\.eq\("status", "snoozed"\)\s*\n\s*\.lte\("snoozed_until", new Date\(\)\.toISOString\(\)\)/);
+    expect(ui).toMatch(/snoozeLabel\?: string/);
+    expect(ui).not.toMatch(/Snoozed for 24h/);
+  });
+
+  it("Insights: money KPIs convert currency and flag what could not be converted", () => {
+    const ins = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/insights.tsx", import.meta.url)), "utf8");
+    // deal values used to be reduce()'d raw with no conversion, then stamped with one symbol
+    expect(ins).toMatch(/const deal\$ = \(d: DealNode\) =>/);
+    expect(ins).toMatch(/const pipelineSum = sumInDisplay\(/);
+    expect(ins).not.toMatch(/\.reduce\(\(s, d\) => s \+ dealVal\(d\), 0\)/);
+    expect(ins).toMatch(/const approx = \(n: number\) => \(n > 0 \? "~" : ""\);/);
+  });
+
   it("zero-valued counts never render as a literal 0", () => {
     expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
     expect(tasksPage).toMatch(/\{!!t\.due_days &&/);

@@ -70,7 +70,7 @@ export function DecisionsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const [acting, setActing] = useState<{ id: string; action: string } | null>(null);
-  const [banner, setBanner] = useState<{ kind: "approved" | "rejected" | "snoozed" } | null>(null);
+  const [banner, setBanner] = useState<{ kind: "approved" | "rejected" | "snoozed"; label?: string } | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   // Text search over the loaded queue (title/summary/agent) — client-side, the rows are already here.
   const [search, setSearch] = useState("");
@@ -153,7 +153,7 @@ export function DecisionsPage() {
   const selected = items.find(d => d.id === selectedId) ?? null;
 
   const [resolveError, setResolveError] = useState<{ id: string; message: string } | null>(null);
-  async function resolve(d: Decision, action: "approve" | "reject" | "snooze", opts?: { until?: string; note?: string }) {
+  async function resolve(d: Decision, action: "approve" | "reject" | "snooze", opts?: { until?: string; note?: string; snoozeLabel?: string }) {
     setResolveError(null);
     if (acting) return;
     const idx = visible.findIndex(x => x.id === d.id);
@@ -164,7 +164,9 @@ export function DecisionsPage() {
       // permanent audit of why a human said no.
       if (opts?.note) await apiClient.post(`/decisions/${d.id}/comments`, { body: `Rejected: ${opts.note}` }).catch(() => {});
       await act.mutateAsync({ id: d.id, action, body: opts?.until ? { until: opts.until } : {} });
-      setBanner({ kind: action === "approve" ? "approved" : action === "reject" ? "rejected" : "snoozed" });
+      // Carry the preset the user actually picked — this banner used to say "24h" even when
+      // they chose 1 hour or 1 week.
+      setBanner({ kind: action === "approve" ? "approved" : action === "reject" ? "rejected" : "snoozed", label: opts?.snoozeLabel });
       await sleep(600);
       // Only advance on SUCCESS. There was no catch, so a 4xx/5xx still fell through to the
       // finally: the row silently vanished from the pane as if resolved, the decision stayed
@@ -481,7 +483,7 @@ export function DecisionsPage() {
                       style={banner.kind === "approved"
                         ? { borderColor: "var(--status-ok)", color: "var(--status-ok)", background: "color-mix(in srgb, var(--status-ok) 12%, var(--surface-card))" }
                         : { borderColor: banner.kind === "rejected" ? "var(--status-error)" : "var(--text-faint)", color: banner.kind === "rejected" ? "var(--status-error)" : "var(--text-muted)", background: "var(--surface-card)" }}>
-                      {banner.kind === "approved" ? <><CheckCircle2 size={18} /> Approved &amp; running</> : banner.kind === "rejected" ? <><XCircle size={18} /> Rejected</> : <><Clock size={18} /> Snoozed for 24h</>}
+                      {banner.kind === "approved" ? <><CheckCircle2 size={18} /> Approved &amp; running</> : banner.kind === "rejected" ? <><XCircle size={18} /> Rejected</> : <><Clock size={18} /> Snoozed{banner.label ? ` for ${banner.label}` : ""}</>}
                     </div>
                   </div>
                 )}
@@ -513,7 +515,7 @@ function FilterSelect<T extends string>({ label, value, options, onChange, dot }
   );
 }
 
-function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decision; lane: { key: LaneKey; open: boolean }; acting: { id: string; action: string } | null; onResolve: (d: Decision, a: "approve" | "reject" | "snooze", opts?: { until?: string; note?: string }) => void; members: Member[]; onChanged: () => void }) {
+function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decision; lane: { key: LaneKey; open: boolean }; acting: { id: string; action: string } | null; onResolve: (d: Decision, a: "approve" | "reject" | "snooze", opts?: { until?: string; note?: string; snoozeLabel?: string }) => void; members: Member[]; onChanged: () => void }) {
   const a = agentByRaw(d.agent_name);
   // The reasoning agents attach a rationale (+ confidence) as a "rationale" evidence row — surface it
   // as a distinct callout, and keep it out of the generic sources list.
@@ -774,7 +776,7 @@ function Dossier({ d, lane, acting, onResolve, members, onChanged }: { d: Decisi
             <div className="flex flex-wrap items-center gap-1.5 border-b px-3 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
               <span className="text-[10.5px] font-semibold" style={{ color: "var(--text-muted)" }}>Snooze for</span>
               {SNOOZE_PRESETS.map(pr => (
-                <button key={pr.hours} onClick={() => { setSnoozeOpen(false); onResolve(d, "snooze", { until: new Date(Date.now() + pr.hours * 3_600_000).toISOString() }); }}
+                <button key={pr.hours} onClick={() => { setSnoozeOpen(false); onResolve(d, "snooze", { until: new Date(Date.now() + pr.hours * 3_600_000).toISOString(), snoozeLabel: pr.label }); }}
                   className="rounded-sm border px-2.5 py-1 text-[11.5px] font-medium transition-colors hover:border-[var(--section-accent)]"
                   style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{pr.label}</button>
               ))}

@@ -148,7 +148,7 @@ describe("Decisions 2.0 round 2 — cockpit functions stay honest", () => {
   const page = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/decisions.tsx", import.meta.url)), "utf8");
 
   it("snooze presets send REAL until timestamps to the existing endpoint", () => {
-    expect(page).toMatch(/onResolve\(d, "snooze", \{ until: new Date\(Date\.now\(\) \+ pr\.hours \* 3_600_000\)\.toISOString\(\) \}\)/);
+    expect(page).toMatch(/onResolve\(d, "snooze", \{ until: new Date\(Date\.now\(\) \+ pr\.hours \* 3_600_000\)\.toISOString\(\), snoozeLabel: pr\.label \}\)/);
   });
   it("a rejection note lands in the decision's real comments audit before resolving", () => {
     expect(page).toMatch(/apiClient\.post\(`\/decisions\/\$\{d\.id\}\/comments`, \{ body: `Rejected: \$\{opts\.note\}` \}\)/);

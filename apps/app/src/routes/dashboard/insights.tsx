@@ -82,14 +82,27 @@ export function InsightsPage() {
 
   const revenue = revenueIn(range);
   const net = netIn(range);
-  const outstanding = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$)).value;
+  const outstandingSum = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$));
+  const outstanding = outstandingSum.value;
+  // sumInDisplay adds unlike currencies at FACE VALUE when a rate is missing and reports it via
+  // `missing`. Every caller here discarded it, so mixed-currency KPIs were shown as exact.
+  const revenueSum = sumInDisplay(invoices.filter(i => i.status === "paid" && inRange(i.paid_at ?? i.created_at, range)).map(inv$));
 
   // Pipeline (as-of open value) + deals won (flow, by updated_at as the close proxy) + new deals (flow)
-  const dealVal = (d: DealNode) => num(d.data.deal_value);
-  const pipelineValue = deals.filter(d => isOpenStage(String(d.data.deal_stage ?? "Lead"))).reduce((s, d) => s + dealVal(d), 0);
-  const wonIn = (r: DateRange) => deals.filter(d => isWon(String(d.data.deal_stage ?? "")) && inRange(d.updated_at, r)).reduce((s, d) => s + dealVal(d), 0);
+  // Deal values carry their own currency. These used to `reduce` the raw numbers with NO
+  // conversion and then render through cur() — so a workspace with EUR and USD deals got one
+  // symbol stamped on a raw EUR+USD sum. Route them through sumInDisplay like every other
+  // money figure, and keep the `missing` flag so an unconvertible mix isn't shown as exact.
+  const deal$ = (d: DealNode) => ({ amount: num(d.data.deal_value), currency: String(d.data.currency ?? "") || display });
+  const pipelineSum = sumInDisplay(deals.filter(d => isOpenStage(String(d.data.deal_stage ?? "Lead"))).map(deal$));
+  const pipelineValue = pipelineSum.value;
+  const wonSum = (r: DateRange) => sumInDisplay(deals.filter(d => isWon(String(d.data.deal_stage ?? "")) && inRange(d.updated_at, r)).map(deal$));
+  const wonIn = (r: DateRange) => wonSum(r).value;
   const newDealsIn = (r: DateRange) => deals.filter(d => inRange(d.created_at, r)).length;
   const dealsWon = wonIn(range);
+  const unconverted = revenueSum.missing + outstandingSum.missing + pipelineSum.missing + wonSum(range).missing;
+  const approx = (n: number) => (n > 0 ? "~" : "");
+
   const newDeals = newDealsIn(range);
 
   const aiCredits = oversightQ.data?.totals?.tokens ?? null;
@@ -126,16 +139,16 @@ export function InsightsPage() {
           {/* Finance */}
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Finance · {scope}</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-            <KpiCard icon={TrendingUp} tone="var(--status-ok)" label="Revenue" value={cur(revenue)} sub={`collected · ${scope}`} delta={revDelta} onClick={() => navigate("/finance/reports")} />
-            <KpiCard icon={Clock} tone="var(--status-warn)" label="Outstanding" value={cur(outstanding)} sub="unpaid · as of today" onClick={() => navigate("/finance/invoices")} />
-            <KpiCard icon={DollarSign} tone="var(--text-faint)" label="Net" value={cur(net)} sub="after credits & expenses" delta={netDelta} onClick={() => navigate("/finance/reports")} />
+            <KpiCard icon={TrendingUp} tone="var(--status-ok)" label="Revenue" value={`${approx(revenueSum.missing)}${cur(revenue)}`} sub={`collected · ${scope}${revenueSum.missing > 0 ? ` · ${revenueSum.missing} unconverted` : ""}`} delta={revDelta} onClick={() => navigate("/finance/reports")} />
+            <KpiCard icon={Clock} tone="var(--status-warn)" label="Outstanding" value={`${approx(outstandingSum.missing)}${cur(outstanding)}`} sub={`unpaid · as of today${outstandingSum.missing > 0 ? ` · ${outstandingSum.missing} unconverted` : ""}`} onClick={() => navigate("/finance/invoices")} />
+            <KpiCard icon={DollarSign} tone="var(--text-faint)" label="Net" value={`${approx(unconverted)}${cur(net)}`} sub="after credits & expenses" delta={netDelta} onClick={() => navigate("/finance/reports")} />
           </div>
 
           {/* Pipeline + agents */}
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Pipeline &amp; agents · {scope}</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-            <KpiCard icon={GitBranch} tone="var(--status-neutral)" label="Open pipeline" value={cur(pipelineValue)} sub="open deals · as of today" onClick={() => navigate("/pipeline")} />
-            <KpiCard icon={Trophy} tone="var(--status-ok)" label="Deals won" value={cur(dealsWon)} sub={`${newDeals} new · ${scope}`} delta={wonDelta} onClick={() => navigate("/pipeline")} />
+            <KpiCard icon={GitBranch} tone="var(--status-neutral)" label="Open pipeline" value={`${approx(pipelineSum.missing)}${cur(pipelineValue)}`} sub={`open deals · as of today${pipelineSum.missing > 0 ? ` · ${pipelineSum.missing} unconverted` : ""}`} onClick={() => navigate("/pipeline")} />
+            <KpiCard icon={Trophy} tone="var(--status-ok)" label="Deals won" value={`${approx(wonSum(range).missing)}${cur(dealsWon)}`} sub={`${newDeals} new · ${scope}`} delta={wonDelta} onClick={() => navigate("/pipeline")} />
             {aiCredits != null ? (
               <KpiCard icon={Sparkles} tone="var(--section-accent)" label="AI credits used" value={aiCredits.toLocaleString()} sub={`${activeMembers ?? "—"} members · ${scope}`} onClick={() => navigate("/team/oversight")} />
             ) : (

@@ -59,6 +59,17 @@ router.get("/", async (c) => {
   const status = c.req.query("status");
   const view = c.req.query("view");
 
+  // Wake elapsed snoozes. `snoozed_until` was written by the snooze routes and then read by
+  // NOTHING on the server — no cron, no job — so a snoozed decision sat in "Needs more
+  // context" forever, permanently showing "wakes soon" once the timestamp passed. Doing it
+  // here makes it self-healing on read: no scheduler to deploy, no drift if one stops.
+  await supabase
+    .from("decision_queue")
+    .update({ status: "pending", snoozed_until: null })
+    .eq("workspace_id", workspaceId)
+    .eq("status", "snoozed")
+    .lte("snoozed_until", new Date().toISOString());
+
   // Cockpit view: open lanes (pending + snoozed) in full, plus a bounded window of recently
   // resolved decisions (approved/rejected/completed) so the "recent activity" lanes stay light.
   if (view === "cockpit") {
