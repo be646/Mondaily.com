@@ -792,6 +792,25 @@ async function executeTool(
       }
 
       case "list_records": {
+        // DISAMBIGUATE first. This workspace has both `contacts` (14) and `contact-leads` (117);
+        // asked "how many contact leads do I have", the model queried `contacts`, the tool answered
+        // "contacts (14)", and the model relabelled that as "Total contact leads: 14". The tool
+        // cannot know which was meant — but it must not let a near-miss pass silently, because the
+        // count it returns is correct for a DIFFERENT object than the one the user named.
+        const { data: allTypes } = await supabase
+          .from("nodes").select("object_type").eq("workspace_id", workspaceId).limit(1000);
+        const known = [...new Set((allTypes ?? []).map(r => String(r.object_type)))];
+        const asked = String(input.object_type);
+        if (known.length && !known.includes(asked)) {
+          const norm = (x: string) => x.toLowerCase().replace(/[-_\s]/g, "");
+          const near = known.filter(k => norm(k).includes(norm(asked)) || norm(asked).includes(norm(k)));
+          if (near.length) {
+            return `There is no object type called "${asked}" in this workspace. Did you mean: ${near.join(", ")}? `
+              + `These are DISTINCT types with different records — ask again naming one exactly, and do not treat them as the same thing.`;
+          }
+          return `There is no object type called "${asked}" in this workspace. Available types: ${known.join(", ")}.`;
+        }
+
         // The TRUE total, so the tool can distinguish "these are all of them" from "here is a
         // page". `${object_type} (${data.length})` reads to the model as the complete count, so
         // "how many contacts do I have?" answered "10" on a workspace with hundreds.

@@ -187,6 +187,15 @@ describe("Ask never answers from model priors", () => {
     expect(ask).toMatch(/Top \$\{data\.length\} matches for/);                 // search_records
   });
 
+  it("a near-miss object type is refused, not silently answered", () => {
+    // Measured live: the workspace has BOTH `contacts` (14) and `contact-leads` (117). Asked "how
+    // many contact leads do I have", the model queried `contacts`, the tool answered "contacts
+    // (14)", and the model relabelled that as "Total contact leads: 14" — a correct count for the
+    // wrong object, presented as the answer.
+    expect(ask).toMatch(/There is no object type called/);
+    expect(ask).toMatch(/These are DISTINCT types with different records/);
+  });
+
   it("finance totals are per-currency, never a mixed face-value sum", () => {
     // Measured in production: EUR 9,814.16 + USD 92,686.84 + GBP 0 was reported by Ask as
     // "£102,501 paid" — three currencies added at face value and labelled as pounds, while the real
