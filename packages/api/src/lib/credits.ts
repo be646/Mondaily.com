@@ -30,8 +30,14 @@ export class CreditsExhaustedError extends Error {
  *  (target - current), so calling twice is a no-op and it never stacks. */
 export async function grantTierCredits(workspaceId: string, tier: string, description: string): Promise<void> {
   const target = grantAmountFor(normalizeTierId(tier));
-  const { balance } = await creditStatus(workspaceId);
-  const delta = target - balance;
+  // Compare against GRANT rows only — never the wallet balance.
+  //
+  // Balance is grants + purchases − usage, so measuring against it made purchased credits pay for
+  // the plan's included allotment: buy a 400k pack, then subscribe to Operator (1M included), and
+  // the top-up computed 1M − 500k = 500k, quietly consuming the 400k the customer paid cash for.
+  // It also re-granted spent credits, since usage pushes the balance back down.
+  const { granted } = await ledgerBreakdown(workspaceId);
+  const delta = target - granted;
   if (delta > 0) await grantCredits(workspaceId, delta, "grant", description);
 }
 

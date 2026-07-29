@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import { requireAuth, requireJwt } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { ensureWorkspaceForUser } from "../lib/bootstrap";
-import { grantCredits, creditStatus } from "../lib/credits";
-import { grantAmountFor, normalizeTierId, PLAN_TIERS, PLAN_ORDER } from "@mondaily/shared/pricing";
+import { reconcileIncludedCredits } from "../lib/credits";
+import { PLAN_TIERS, PLAN_ORDER } from "@mondaily/shared/pricing";
 import { aiGatewayToolUse } from "../lib/ai-gateway";
 import { recordCreditUsage } from "../lib/credits";
 import { resolveProfile, mergeProfile, type WorkspaceProfile } from "@mondaily/shared/profile";
@@ -200,11 +200,27 @@ router.post("/complete", requireAuth, async (c) => {
   //    they pay we provision the free Scout baseline and record `pending_plan` so billing can
   //    prompt them to activate. This is the fix for "I picked Command and got it free".
   const requiresPayment = chosen === "command" || chosen === "sovereign";
-  const effectiveTier = requiresPayment ? "scout" : chosen;   // what they're actually entitled to now
-  const isTrial = effectiveTier === "operator";                // trial ONLY for Operator
+
+  const { data: preRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const preSettings = (preRow?.settings ?? {}) as Record<string, unknown>;
+  // A workspace already paying for a plan must not be re-tiered by someone re-running the wizard:
+  // this route preserves billing_status/stripe_subscription_id but rewrites account_tier, so a
+  // member POSTing an empty body would drop a paying Command workspace to Scout while billing
+  // stayed "active" — the entitlement resolver would then honour the downgraded tier.
+  if (preSettings.stripe_subscription_id && preSettings.billing_status === "active") {
+    return c.json({ error: "This workspace has an active subscription. Change the plan from Billing settings." }, 409);
+  }
+  // The trial is once per workspace. `trial_used` was written here but never READ, so re-running
+  // onboarding minted a fresh 14-day Operator trial every time — an unlimited free-trial loop.
+  const trialAlreadyUsed = Boolean(preSettings.trial_used);
+
+  // Operator is only free FOR THE DURATION OF THE TRIAL. Once the trial is spent it must fall back
+  // to Scout + pending_plan — granting "operator" with no trial_ends_at would read as an explicit
+  // paid tier to resolveEntitlement and hand out Operator free, permanently.
+  const trialExhausted = chosen === "operator" && trialAlreadyUsed;
+  const effectiveTier = requiresPayment || trialExhausted ? "scout" : chosen;
+  const isTrial = effectiveTier === "operator";                // trial ONLY for Operator, ONCE
   const trialEndsAt = isTrial ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() : null;
-  // Monthly credit allotment — keyed on the ENTITLED tier, from the shared catalog.
-  const target = grantAmountFor(normalizeTierId(effectiveTier));
 
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).single();
   const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
@@ -251,13 +267,14 @@ router.post("/complete", requireAuth, async (c) => {
     void sendPendingPlanEmail(ws, userId, chosen as "command" | "sovereign").catch(() => {});
   }
 
-  // Bring credits up to EXACTLY the entitled tier's allotment — grant only the shortfall, so we
-  // never stack on the register-time baseline and re-running onboarding is idempotent.
-  const { balance } = await creditStatus(ws);
-  const delta = target - balance;
-  if (delta > 0) {
-    await grantCredits(ws, delta, "grant", `${effectiveTier} plan credits`);
-  }
+  // Bring credits up to EXACTLY the entitled tier's allotment.
+  //
+  // This MUST compare against the sum of GRANT rows, not the wallet balance. Balance is
+  // grants + purchases − usage, so it falls as credits are spent: comparing to it made the route a
+  // replayable faucet (grant 1M → spend it → balance ≈ 0 → re-grant 1M, forever, with no payment).
+  // reconcileIncludedCredits sums grant rows only, so it is genuinely idempotent, and it also
+  // refuses to double-count purchased credits toward the included allotment.
+  await reconcileIncludedCredits(ws, { enrollIfEmpty: true });
   const plan = effectiveTier;
 
   // Seed a few starter tasks (only if the workspace has none yet).

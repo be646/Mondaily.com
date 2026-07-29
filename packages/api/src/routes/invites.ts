@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { requireAuth, requireJwt } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { sendWorkspaceEmail } from "../lib/mail";
+import { seatUsage, seatLimitMessage } from "../lib/seats";
 
 // The invite-accept SPA route is /invite/:token (path param) — build links to match.
 const inviteUrl = (token: string) =>
@@ -44,6 +45,9 @@ router.post("/", requireAuth, zValidator("json", inviteSchema), async (c) => {
   if (!["admin","owner"].includes(callerRole)) return c.json({ error: "Forbidden" }, 403);
   const body = c.req.valid("json");
   const workspaceId = c.get("workspaceId");
+  // Seat cap — the plan's seat count was advertised everywhere but enforced nowhere.
+  const seats = await seatUsage(workspaceId);
+  if (seats.remaining <= 0) return c.json({ error: seatLimitMessage(seats), seat_limit: seats.limit, seats_used: seats.used }, 402);
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   const cols = "id,email,role,finance_role,token,expires_at,created_at";
 
@@ -101,6 +105,8 @@ router.post("/", requireAuth, zValidator("json", inviteSchema), async (c) => {
 router.post("/link", requireAuth, async (c) => {
   const callerRole = c.get("role");
   if (!["admin", "owner"].includes(callerRole)) return c.json({ error: "Forbidden" }, 403);
+  const linkSeats = await seatUsage(c.get("workspaceId"));
+  if (linkSeats.remaining <= 0) return c.json({ error: seatLimitMessage(linkSeats), seat_limit: linkSeats.limit, seats_used: linkSeats.used }, 402);
   const { data, error } = await supabase
     .from("workspace_invites")
     .insert({
@@ -166,6 +172,19 @@ router.post("/accept", requireJwt, async (c) => {
   if (existing && (RANK[existing.role as string] ?? 0) >= (RANK[invite.role as string] ?? 0)) {
     await supabase.from("workspace_invites").update({ accepted_at: new Date().toISOString() }).eq("id", invite.id);
     return c.json({ workspace_id: invite.workspace_id, role: existing.role, already_member: true });
+  }
+
+  // Seat cap, enforced at the point a seat is actually consumed. This is the real chokepoint: a
+  // shareable link is ONE invite row that can be redeemed an unlimited number of times, so checking
+  // only at send time would let a single link fill a 1-seat workspace with any number of people.
+  // Counted against accepted members only — the invite being redeemed is about to stop being pending,
+  // and `existing` members returned above already short-circuit before reaching here.
+  const acceptSeats = await seatUsage(invite.workspace_id);
+  if (acceptSeats.members >= acceptSeats.limit) {
+    return c.json({
+      error: "This workspace has no seats available. Ask an admin to upgrade the plan or free up a seat.",
+      seat_limit: acceptSeats.limit,
+    }, 402);
   }
 
   // Add to workspace_members

@@ -18,7 +18,12 @@ const billingApi = read("packages/api/src/routes/billing.ts");
 describe("backend: paid plans are pending, never free-granted", () => {
   it("Command/Sovereign require payment → entitled tier stays scout, pending_plan recorded", () => {
     expect(onboardingApi).toMatch(/const requiresPayment = chosen === "command" \|\| chosen === "sovereign"/);
-    expect(onboardingApi).toMatch(/const effectiveTier = requiresPayment \? "scout" : chosen/);
+    // requiresPayment still forces Scout. `|| trialExhausted` was added alongside it: a second
+    // reason to fall back, for someone re-running onboarding after their one Operator trial is
+    // spent. Granting "operator" with no trial_ends_at would read as an explicit PAID tier to
+    // resolveEntitlement and hand out Operator free, permanently.
+    expect(onboardingApi).toMatch(/const effectiveTier = requiresPayment \|\| trialExhausted \? "scout" : chosen/);
+    expect(onboardingApi).toMatch(/const trialExhausted = chosen === "operator" && trialAlreadyUsed/);
     expect(onboardingApi).toMatch(/requiresPayment \? \{ pending_plan: chosen, pending_plan_set_at: new Date\(\)\.toISOString\(\) \} : \{\}/);
   });
   it("trial (Operator) is separate from paid-pending; account_tier never 'command' until paid", () => {

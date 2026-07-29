@@ -1,4 +1,5 @@
 import { supabase } from "@mondaily/db/client";
+import { getEntitlement } from "./entitlements";
 import { CREDIT_PACKS, computePackCredits, normalizeTierId, type BillingInterval } from "@mondaily/shared/pricing";
 
 /**
@@ -35,7 +36,10 @@ export async function maybeAutoRefill(workspaceId: string): Promise<void> {
 
     const threshold = Number(ar.threshold ?? 5000);
     const amountUsd = Number(ar.amount_usd ?? 10);
-    const tier = normalizeTierId((settings as { account_tier?: string }).account_tier);
+    // Resolved entitlement drives the pack bonus. Reading raw account_tier handed an expired-trial
+    // workspace an Operator-sized bonus it is no longer entitled to (nothing clears account_tier on
+    // expiry), and under-paid workspaces whose tier lives only in the `plan` column.
+    const tier = (await getEntitlement(workspaceId)).tier;
     const interval: BillingInterval = (settings as { billing_interval?: string }).billing_interval === "year" ? "year" : "month";
     const refillCredits = computePackCredits(packForAmount(amountUsd), tier, interval).final_credits;
 

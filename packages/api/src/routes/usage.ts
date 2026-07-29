@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { supabase } from "@mondaily/db/client";
 import { ledgerBreakdown } from "../lib/credits";
+import { getEntitlement } from "../lib/entitlements";
 import { requireAuth } from "../middleware/auth";
 
 /**
@@ -85,9 +86,10 @@ router.get("/summary", async (c) => {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
 
-  const [{ data: usage }, wallet, { data: wsRow }] = await Promise.all([
+  const [{ data: usage }, wallet, ent, { data: wsRow }] = await Promise.all([
     supabase.from("ai_usage").select("*").eq("workspace_id", ws).gte("created_at", monthStart),
     ledgerBreakdown(ws),   // server-side aggregate; a JS sum truncates past the row cap
+    getEntitlement(ws),    // THE resolved tier — never re-derived from settings here
     supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle(),
   ]);
 
@@ -113,6 +115,7 @@ router.get("/summary", async (c) => {
     if (r.provider != null) providers.add(String(r.provider));
   }
 
+  const entitlementTier = ent.tier;
   const enrolled = wallet.enrolled;
   const granted = wallet.granted + wallet.purchased;   // everything added to the wallet
   const used = wallet.used;
@@ -132,7 +135,10 @@ router.get("/summary", async (c) => {
     },
     wallet: {
       enrolled,
-      tier: (settings.account_tier as string) ?? (settings.track as string) ?? "scout",
+      // Resolved entitlement, NOT `account_tier ?? track`: that raw fallback is the original
+      // cross-surface divergence bug. An expired trial keeps account_tier "operator"/track
+      // "business", so this page claimed a tier the entitlement resolver (and the sidebar) denied.
+      tier: entitlementTier,
       granted,
       used,
       balance: enrolled ? granted - used : null,
