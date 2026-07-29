@@ -264,7 +264,7 @@ function ExecutiveOverview({ objects, stats }: { objects: ObjectType[]; stats: R
 
   const Cell = ({ label, children }: { label: string; children: ReactNode }) => (
     <div className="min-w-0 px-4 py-3">
-      <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{label}</p>
+      <p className="text-body" style={{ color: "var(--text-faint)" }}>{label}</p>
       <div className="mt-1 text-[12px]" style={{ color: "var(--text-secondary)" }}>{children}</div>
     </div>
   );
@@ -447,7 +447,7 @@ export function ReportsPage() {
             <div className="space-y-6">
               {REPORT_GROUPS.filter(g => objects.some(o => groupOf(o) === g.key)).map(group => (
                 <div key={group.key}>
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{group.label}</p>
+                  <p className="mb-2 text-body" style={{ color: "var(--text-faint)" }}>{group.label}</p>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {objects.filter(o => groupOf(o) === group.key).map(obj => (
                       <ReportObjectCard key={obj.slug} obj={obj} onStat={reportStat} />

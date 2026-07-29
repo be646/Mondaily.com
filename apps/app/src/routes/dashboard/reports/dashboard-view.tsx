@@ -287,17 +287,17 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
     <div className="space-y-3 p-4">
       <p className="text-[11px] text-[var(--text-muted)]">Build a chart from any object — re-runs live every dashboard load.</p>
       <label className="block">
-        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Widget name</span>
+        <span className="mb-1 block text-body text-[var(--text-secondary)]">Widget name</span>
         <input value={name} onChange={e => setName(e.target.value)} className="w-full rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-stone-500/50"/>
       </label>
       <label className="block">
-        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Object</span>
+        <span className="mb-1 block text-body text-[var(--text-secondary)]">Object</span>
         <FieldSelect value={slug} onChange={v => setSlug(v)} ariaLabel="Object"
           options={objects.map(o => ({ value: o.slug, label: o.name_plural }))} />
       </label>
       <div className="grid grid-cols-2 gap-3">
         <label className="block">
-          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Metric</span>
+          <span className="mb-1 block text-body text-[var(--text-secondary)]">Metric</span>
           <FieldSelect value={metric} onChange={v => setMetric(v as "count"|"sum"|"average")} ariaLabel="Metric"
             options={[
               { value: "count", label: "Count of records" },
@@ -306,7 +306,7 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
             ]} />
         </label>
         <label className="block">
-          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Group by</span>
+          <span className="mb-1 block text-body text-[var(--text-secondary)]">Group by</span>
           <FieldSelect value={groupBy} onChange={v => setGroupBy(v as "day"|"week"|"month"|"quarter")} ariaLabel="Group by"
             options={[
               { value: "day", label: "Day" },
@@ -318,12 +318,12 @@ function CustomChartTab({ objects, onAdd, onClose }: { objects: ObjectType[]; on
       </div>
       {metric !== "count" && (
         <label className="block">
-          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Numeric field name</span>
+          <span className="mb-1 block text-body text-[var(--text-secondary)]">Numeric field name</span>
           <input value={field} onChange={e => setField(e.target.value)} placeholder="e.g. value, amount, revenue" className="w-full rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-stone-500/50"/>
         </label>
       )}
       <label className="block">
-        <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-[var(--text-secondary)]">Chart type</span>
+        <span className="mb-1 block text-body text-[var(--text-secondary)]">Chart type</span>
         <div className="flex gap-2">
           {(["bar","line"] as const).map(t => (
             <button key={t} onClick={() => setChartType(t)}
@@ -348,9 +348,9 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
 }) {
   const [tab, setTab] = useState<"live"|"report"|"custom">("live");
   const TABS = [
-    { id: "live"   as const, label: "Live Object",  icon: <Zap size={11}/>,         accent: "border-[#2f9e6b]" },
-    { id: "report" as const, label: "Saved Report", icon: <FileBarChart size={11}/>, accent: "border-stone-500"     },
-    { id: "custom" as const, label: "Custom Chart", icon: <Settings2 size={11}/>,    accent: "border-[#717784]"    },
+    { id: "live"   as const, label: "Live Object",  icon: <Zap size={11}/> },
+    { id: "report" as const, label: "Saved Report", icon: <FileBarChart size={11}/> },
+    { id: "custom" as const, label: "Custom Chart", icon: <Settings2 size={11}/> },
   ];
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
@@ -362,7 +362,7 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
         <div className="flex border-b border-[var(--border-soft)]">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium transition-colors ${tab === t.id ? `border-b-2 text-[var(--text-primary)] ${t.accent}` : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
+              className={`flex flex-1 items-center justify-center gap-1.5 py-2.5 text-[11px] font-medium transition-colors ${tab === t.id ? "border-b-2 border-[var(--section-accent)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
               {t.icon} {t.label}
             </button>
           ))}
