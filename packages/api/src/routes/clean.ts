@@ -5,6 +5,7 @@ import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { isEmbeddingsEnabled } from "../lib/embeddings";
 import { requireAdminRole } from "../middleware/rbac";
+import { flattenEnrichment, ALLOWED_ENRICHMENT_KEYS } from "../lib/enrichment-fields";
 
 /**
  * DATA CLEANING — overlap analysis, and the two repairs it justified.
@@ -342,6 +343,159 @@ router.post("/merge-types", requireAdminRole, zValidator("json", z.object({
 function errOf(e: unknown): string | null {
   return e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : null;
 }
+
+// ── Repairing records written before the enrichment allowlist existed ──────────────────────────
+
+/**
+ * The enrichment schema's `description` strings. When the model keyed its response by description
+ * instead of property name, these landed on records AS FIELD NAMES — so a record grew a column
+ * called "Verified role/profile facts from the web". Fixed forward in lib/enrichment-fields.ts;
+ * these are the strings needed to recognise the damage already written.
+ */
+const SCHEMA_DESCRIPTIONS = [
+  "Verified role/profile facts from the web",
+  "Contact details that LITERALLY appear in the web context, each with its source. Omit any you cannot find verbatim — never guess an email/phone pattern.",
+  "Source-backed signals (role change, hiring, funding, expansion). Empty if none found.",
+  "Source-backed signals (funding, hiring, expansion, layoffs). Empty if none found.",
+  "Estimated, derived only from the signals above",
+  "Verified firmographics from the web",
+  "e.g. IC / manager / director / VP / C-level",
+  "1-2 sentence professional bio",
+  "URL where the email/phone was found",
+  "low | medium | high",
+];
+
+/**
+ * Is this key one of ours-gone-wrong, rather than something a person created?
+ *
+ * MATTERS A LOT. Column names in this product are free text (see the Add-column input in
+ * record-table.tsx), so a user can legitimately create "Job Title" or "Deal Notes". A rule like
+ * "delete any key containing a space" would therefore delete real user data. So the test is
+ * membership of the known description list, or a prefix of one — the observed damage included
+ * truncations like "Source-backed signals" and "Contact details that LITERALLY appear in the web
+ * context". A prefix must be at least 20 characters to count, so no short human label can match.
+ */
+export function isSchemaDescriptionKey(key: string): boolean {
+  const k = key.trim();
+  if (!k) return false;
+  return SCHEMA_DESCRIPTIONS.some(d => d === k || (k.length >= 20 && d.startsWith(k)));
+}
+
+/**
+ * POST /clean/repair-keys — remove schema-description field names, PRESERVING what they contain.
+ *
+ * A blanket delete was the obvious move and it was wrong: of 44 such keys in this workspace, 40 held
+ * `{}` / `[]` but 4 held real enrichment — one carried `{"company":"Notion","summary":"…"}`. Deleting
+ * those would have destroyed data while claiming to clean it.
+ *
+ * So each value is run through the SAME flattener the enrichment job uses, lifting any recognised
+ * field to its proper name, and an existing real value is never overwritten. Only then is the prose
+ * key removed. Admin-only, dry-run by default, and every change is reported per record.
+ */
+router.post("/repair-keys", requireAdminRole, zValidator("json", z.object({
+  object_type: z.string().min(1).optional(),   // omit to sweep every type
+  dry_run: z.boolean().optional(),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const { object_type } = c.req.valid("json");
+  const dryRun = c.req.valid("json").dry_run !== false;
+
+  const rows: { id: string; object_type: string; data: Record<string, unknown> | null }[] = [];
+  const PAGE = 1000;
+  for (let from = 0; from < 100_000; from += PAGE) {
+    let q = supabase.from("nodes").select("id, object_type, data").eq("workspace_id", ws);
+    if (object_type) q = q.eq("object_type", object_type);
+    const { data, error } = await q.order("id", { ascending: true }).range(from, from + PAGE - 1);
+    if (error) return c.json({ error: error.message }, 500);
+    const page = (data ?? []) as typeof rows;
+    rows.push(...page);
+    if (page.length < PAGE) break;
+  }
+
+  const changes: {
+    id: string; object_type: string; name: string;
+    removed_keys: string[]; lifted: Record<string, unknown>; discarded_empty: string[];
+  }[] = [];
+
+  for (const n of rows) {
+    const data = n.data ?? {};
+    const badKeys = Object.keys(data).filter(isSchemaDescriptionKey);
+    if (!badKeys.length) continue;
+
+    const lifted: Record<string, unknown> = {};
+    const discardedEmpty: string[] = [];
+    for (const k of badKeys) {
+      const v = data[k];
+      // The value may be a whole enrichment group ({professional_background:{…}}) or already flat
+      // ({company:"Notion"}). flattenEnrichment handles both, and drops anything off-schema.
+      const salvage = v && typeof v === "object" && !Array.isArray(v)
+        ? flattenEnrichment(v as Record<string, unknown>)
+        : {};
+      const useful = Object.entries(salvage).filter(([sk, sv]) =>
+        sv != null && sv !== "" && ALLOWED_ENRICHMENT_KEYS.has(sk) &&
+        (data[sk] == null || data[sk] === ""));      // NEVER overwrite a real existing value
+      if (useful.length) for (const [sk, sv] of useful) lifted[sk] = sv;
+      else discardedEmpty.push(k);
+    }
+    changes.push({
+      id: n.id, object_type: n.object_type,
+      name: String(data.name ?? data.Name ?? "Untitled").slice(0, 60),
+      removed_keys: badKeys, lifted, discarded_empty: discardedEmpty,
+    });
+  }
+
+  const summary = {
+    records_scanned: rows.length,
+    records_affected: changes.length,
+    prose_keys_to_remove: changes.reduce((a, ch) => a + ch.removed_keys.length, 0),
+    records_where_data_is_recovered: changes.filter(ch => Object.keys(ch.lifted).length > 0).length,
+    fields_recovered: changes.reduce((a, ch) => a + Object.keys(ch.lifted).length, 0),
+  };
+
+  if (dryRun) {
+    return c.json({
+      dry_run: true, object_type: object_type ?? "(all types)", summary,
+      changes: changes.map(ch => ({ id: ch.id, object_type: ch.object_type, name: ch.name,
+        removes: ch.removed_keys.map(k => k.slice(0, 60)), recovers: ch.lifted })),
+      safety: "Keys are matched against the known enrichment schema descriptions, never by 'contains a space' — column names are free text, so that rule would delete real user fields.",
+      confirm_with: { ...(object_type ? { object_type } : {}), dry_run: false },
+    });
+  }
+
+  if (!changes.length) return c.json({ ok: true, summary, note: "Nothing to repair." });
+
+  // Audit FIRST, and abort if it cannot be written — same rule as /dedupe-records. Lifting recovers
+  // the fields the flattener recognises, but anything off-schema inside a removed key is genuinely
+  // discarded, so the audit stores each removed key's ORIGINAL VALUE. Without that this is a lossy
+  // edit with no record of what was lost.
+  const originalById = new Map(rows.map(r => [r.id, r.data ?? {}]));
+  const { error: auditErr } = await supabase.from("activities").insert(changes.map(ch => ({
+    node_id: ch.id, workspace_id: ws, actor_type: "human", actor_id: c.get("userId"),
+    action: "updated",
+    diff: {
+      data_cleaning: "repair_keys",
+      recovered_fields: ch.lifted,
+      removed: Object.fromEntries(ch.removed_keys.map(k => [k, originalById.get(ch.id)![k]])),
+    },
+  })));
+  if (auditErr) return c.json({
+    error: `Could not write the audit snapshot: ${auditErr.message}`,
+    hint: "Nothing was changed. The snapshot records what each removed key contained, so it must land first.",
+  }, 500);
+
+  let updated = 0;
+  for (const ch of changes) {
+    const next: Record<string, unknown> = { ...originalById.get(ch.id)!, ...ch.lifted };
+    for (const k of ch.removed_keys) delete next[k];
+    const { error } = await supabase.from("nodes").update({ data: next })
+      .eq("workspace_id", ws).eq("id", ch.id);
+    if (error) return c.json({ error: error.message, updated, partial: true,
+      hint: "The audit snapshot covers every planned record, including any not yet updated." }, 500);
+    updated++;
+  }
+
+  return c.json({ ok: true, summary: { ...summary, records_updated: updated } });
+});
 
 // ── Record-level de-duplication ────────────────────────────────────────────────────────────────
 

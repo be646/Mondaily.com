@@ -32,7 +32,10 @@ describe("cleaning never destroys data unasked", () => {
     // Bounded slice: unbounded, this now runs on into /dedupe-records and would stop measuring
     // /merge-types at all.
     const start = clean.indexOf('router.post("/merge-types"');
-    const end = clean.indexOf("// ── Record-level de-duplication");
+    // End at whatever section comes NEXT, not at a named later one — this guard broke when
+    // /repair-keys was added between merge-types and the dedupe section, silently widening the
+    // slice to cover an endpoint it was never measuring.
+    const end = clean.indexOf("\n// ── ", start);
     expect(end).toBeGreaterThan(start);
     const merge = clean.slice(start, end);
     const updates = merge.match(/\.update\(\{[^}]*\}\)/g) ?? [];

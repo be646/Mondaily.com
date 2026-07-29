@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { flattenEnrichment } from "../jobs/enrich-record";
+import { flattenEnrichment } from "../lib/enrichment-fields";
 
 /**
  * Behavioural, not textual. Found in production: 28 `person` records had grown columns named after

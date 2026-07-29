@@ -127,8 +127,12 @@ describe("the guards that make an irreversible delete acceptable", () => {
     // therefore failed on `insert(auditRows)` while the code was correct.
     for (const m of clean.matchAll(/from\("activities"\)\s*\.insert\((\w+)?/g)) {
       const varName = m[1];
+      // The declaration may carry a type annotation (`const changes: {...}[] = []`), so match the
+      // name followed by either `=` or `:` rather than assuming bare assignment — the first version
+      // found nothing for annotated declarations and reported a false failure.
+      const declMatch = varName ? new RegExp(`const ${varName}\\s*[:=]`).exec(clean) : null;
       const region = varName
-        ? clean.slice(clean.indexOf(`const ${varName} =`), m.index! + 60)
+        ? clean.slice(declMatch ? declMatch.index : 0, m.index! + 60)
         : clean.slice(m.index!, m.index! + 400);
       expect(region.length, `could not resolve payload for insert at ${m.index}`).toBeGreaterThan(60);
       expect(region, `activities insert at ${m.index} has no node_id`).toMatch(/node_id/);
