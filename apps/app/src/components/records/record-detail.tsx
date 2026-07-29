@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { LogoMark } from "@/components/logo";
-import { Link } from "react-router-dom";
+import { Tabs } from "@/components/ui/tabs";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  ChevronLeft, Check, Building2, Users, Wifi, Calendar,
+  ChevronLeft, ChevronUp, Check, Building2, Users, Wifi, Calendar,
   DollarSign, Users2, Mail, Phone, Tag, Clock, Plus,
   ChevronDown, MapPin, TrendingUp, Square,
   CheckSquare, FileText, X, Link2, Search, UserCheck,
@@ -11,6 +12,7 @@ import {
   CreditCard, Star, List, Trash2, Pencil, PhoneCall,
   MessageSquare, Video, AlignLeft,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { detectStageFromActivity } from "../../lib/ai-enrichment";
 import { PageSkeleton, ErrorState } from "../ui/page-state";
@@ -74,17 +76,22 @@ const STAGE_DOT: Record<string, string> = {
   "Lead": "bg-stone-400", "Qualified": "bg-[#717784]", "In Progress": "bg-stone-400",
   "Proposal": "bg-[#c6892e]", "Negotiation": "bg-[#c6892e]",
 };
+const TAB_ICONS: Record<string, LucideIcon> = {
+  Overview: AlignLeft, People: Users, Deals: Briefcase, Company: Building2, Contact: UserCheck,
+  "Contact Log": PhoneCall, Finance: DollarSign, Notes: FileText, Tasks: CheckSquare,
+};
+
 function getTabsForType(type: string): string[] {
   const t = type.toLowerCase();
-  if (t === "companies" || t.includes("compan")) return ["Overview","People","Deals","Contact Log","Finance","Notes","Tasks","Files"];
-  if (t === "people" || t.includes("person") || t.includes("contact")) return ["Overview","Company","Deals","Emails","Contact Log","Finance","Notes","Tasks"];
+  if (t === "companies" || t.includes("compan")) return ["Overview","People","Deals","Contact Log","Finance","Notes","Tasks"];
+  if (t === "people" || t.includes("person") || t.includes("contact")) return ["Overview","Company","Deals","Contact Log","Finance","Notes","Tasks"];
   if (t === "deals" || t.includes("deal")) return ["Overview","Contact","Company","Contact Log","Finance","Notes","Tasks"];
   if (t.includes("invest")) return ["Overview","Notes","Tasks"];
-  if (t.includes("tax") || t.includes("cost")) return ["Overview","Notes","Files"];
+  if (t.includes("tax") || t.includes("cost")) return ["Overview","Notes"];
   if (t === "tasks" || t.includes("task")) return ["Overview","Notes"];
-  if (t.includes("visit") || t.includes("payment")) return ["Overview","Notes","Files"];
-  if (t.includes("expense")) return ["Overview","Notes","Files"];
-  return ["Overview","Notes","Tasks","Files"];
+  if (t.includes("visit") || t.includes("payment")) return ["Overview","Notes"];
+  if (t.includes("expense")) return ["Overview","Notes"];
+  return ["Overview","Notes","Tasks"];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -159,7 +166,7 @@ function AvatarSection({ name, logoUrl, onSave, wrapClass = "mx-auto" }: { name:
 
       {open && (
         <div ref={popRef} className="dropdown-panel absolute left-1/2 top-full mt-2 w-64 p-3 z-50 -translate-x-1/2">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-stone-600 mb-2">Logo / Avatar</p>
+          <p className="text-body text-[var(--text-secondary)] mb-2">Logo / Avatar</p>
 
           <input
             type="text"
@@ -313,7 +320,7 @@ export function CategoryPills({ categories, onUpdate }: { categories: Category[]
           </div>
           {/* Create custom category */}
           <div className="border-t border-[var(--border-soft)] mt-1 pt-2">
-            <p className="text-[9px] font-semibold uppercase tracking-wider text-stone-600 px-1 mb-1.5">Create custom</p>
+            <p className="text-body text-[var(--text-secondary)] px-1 mb-1.5">Create custom</p>
             <div className="flex items-center gap-1.5">
               <input
                 ref={customRef}
@@ -351,8 +358,8 @@ function InlineField({ label, value, onSave, numeric = false }: { label: string;
     if (draft !== fmt(value)) { onSave(draft); setSaved(true); setTimeout(() => setSaved(false), 1800); }
   }
   return (
-    <div className="group grid grid-cols-[100px_1fr] items-start gap-2 py-2 border-b border-[var(--border-soft)] last:border-0">
-      <span className="text-[10px] font-medium uppercase tracking-wide text-stone-600 pt-0.5 select-none truncate">{label}</span>
+    <div className="group grid grid-cols-[120px_1fr] items-start gap-3 border-b border-[var(--border-soft)] py-2 last:border-0">
+      <span className="truncate select-none pt-0.5 text-body capitalize text-[var(--text-secondary)]">{label}</span>
       <div className="min-w-0 flex items-center gap-1">
         {editing ? (
           <input
@@ -398,11 +405,11 @@ function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, num
     if (onSave && draft !== fmt(value)) { onSave(draft); setSaved(true); setTimeout(() => setSaved(false), 1800); }
   }
   return (
-    <div className={`rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-3.5 transition-colors ${onSave ? "hover:border-stone-700/70 cursor-pointer" : ""}`}>
-      <div className="flex items-center justify-between mb-2">
+    <div className={`rounded-sm border border-[var(--border-soft)] p-3.5 transition-colors ${onSave ? "cursor-pointer hover:border-[var(--section-accent-line)]" : ""}`}>
+      <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Icon size={12} className={ACCENT_MAP[accent]}/>
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-600">{label}</span>
+          <span className="text-body capitalize text-[var(--text-secondary)]">{label}</span>
         </div>
         {saved && <Check size={10} className="text-[#2f9e6b]"/>}
       </div>
@@ -420,7 +427,9 @@ function HighlightCard({ icon: Icon, label, value, accent = "slate", onSave, num
           className={`text-left text-sm font-semibold text-[var(--text-primary)] truncate w-full ${onSave ? "hover:text-stone-300 transition-colors" : "cursor-default"}`}
           title={onSave ? "Click to edit" : undefined}
         >
-          {fmt(value)}
+          {fmt(value) === "\u2014"
+            ? <span className="font-normal text-[var(--text-faint)]">Not set</span>
+            : fmt(value)}
         </button>
       )}
     </div>
@@ -437,7 +446,7 @@ function DealProgressBar({ stage, onSave }: { stage: string; onSave: (v: string)
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-1.5">
           <Tag size={12} className="text-stone-400"/>
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-600">Deal Pipeline</span>
+          <span className="text-body text-[var(--text-secondary)]">Deal Pipeline</span>
         </div>
         <div className="flex gap-1.5">
           <button onClick={() => onSave("Closed Won")} className={`px-2.5 py-0.5 rounded text-[10px] font-semibold border transition-colors ${isWon ? "bg-[#2f9e6b]/15 text-[#2f9e6b] border-[#2f9e6b]/30" : "text-stone-600 border-[var(--border-soft)] hover:text-[#2f9e6b] hover:border-[#2f9e6b]/25"}`}>Won</button>
@@ -494,7 +503,7 @@ function AssigneesSection({ assignedTo, onAssign }: { assignedTo: string | null;
 
   return (
     <div className="px-4 py-3 border-b border-[var(--border-soft)]">
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-stone-600">Assigned to</p>
+      <p className="mb-2 text-body text-[var(--text-secondary)]">Assigned to</p>
       <div ref={ref} className="relative">
         <button
           onClick={() => setOpen(o => !o)}
@@ -569,8 +578,8 @@ function MemberPickerField({ label, currentName, members, onSelect }: {
   }, []);
 
   return (
-    <div ref={ref} className="mb-3 relative">
-      <p className="mb-1 text-[10px] text-stone-600 capitalize">{label}</p>
+    <div ref={ref} className="relative grid grid-cols-[120px_1fr] items-start gap-3 border-b border-[var(--border-soft)] py-2 last:border-0">
+      <span className="truncate select-none pt-1.5 text-body capitalize text-[var(--text-secondary)]">{label}</span>
       <button onClick={() => setOpen(o => !o)}
         className="flex w-full items-center gap-2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs hover:bg-[var(--surface-hover)] transition-colors">
         {currentName
@@ -580,7 +589,7 @@ function MemberPickerField({ label, currentName, members, onSelect }: {
         <ChevronDown size={10} className="ml-auto text-stone-600 shrink-0"/>
       </button>
       {open && (
-        <div className="dropdown-panel absolute left-0 right-0 top-full mt-1 z-50 max-h-44 overflow-y-auto">
+        <div className="dropdown-panel absolute left-[132px] right-0 top-full z-50 mt-1 max-h-44 overflow-y-auto">
           <button onClick={() => { onSelect(""); setOpen(false); }} className="dropdown-item w-full">
             <UserCheck size={12} className="text-stone-600"/>Unassigned
           </button>
@@ -742,7 +751,7 @@ function VisitPaymentHighlights({ data, onSave }: { data: Record<string,unknown>
 }
 
 // ─── Inline notes panel (embedded in Overview) ────────────────────────────────
-function InlineNotesPanel({ recordId, vertical }: { recordId: string; vertical: string }) {
+function InlineNotesPanel({ recordId, vertical, onViewAll }: { recordId: string; vertical: string; onViewAll?: () => void }) {
   const qc = useQueryClient();
   const { data: notes = [], isLoading } = useQuery({
     queryKey: ["notes", recordId],
@@ -763,7 +772,11 @@ function InlineNotesPanel({ recordId, vertical }: { recordId: string; vertical: 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Notes</p>
+        <p className="text-body text-[var(--text-secondary)]">Notes</p>
+        <div className="flex items-center gap-2">
+        {onViewAll && (
+          <button onClick={onViewAll} className="text-body text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">View all</button>
+        )}
         <button
           onClick={() => createNote.mutate()}
           disabled={createNote.isPending}
@@ -771,6 +784,7 @@ function InlineNotesPanel({ recordId, vertical }: { recordId: string; vertical: 
         >
           <Plus size={10}/> New note
         </button>
+        </div>
       </div>
       {isLoading ? (
         <div className="h-12 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>
@@ -808,7 +822,7 @@ function InlineNotesPanel({ recordId, vertical }: { recordId: string; vertical: 
 }
 
 // ─── Inline tasks panel (embedded in Overview) ────────────────────────────────
-function InlineTasksPanel({ recordId, vertical }: { recordId: string; vertical: string }) {
+function InlineTasksPanel({ recordId, vertical, onViewAll }: { recordId: string; vertical: string; onViewAll?: () => void }) {
   const qc = useQueryClient();
   const [newTitle, setNewTitle] = useState("");
   const [adding, setAdding]     = useState(false);
@@ -842,15 +856,20 @@ function InlineTasksPanel({ recordId, vertical }: { recordId: string; vertical: 
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">
+        <p className="text-body text-[var(--text-secondary)]">
           Tasks {todo.length > 0 && <span className="ml-1 rounded-full bg-stone-500/20 text-stone-300 px-1.5 py-0.5 text-[9px] font-bold">{todo.length}</span>}
         </p>
+        <div className="flex items-center gap-2">
+        {onViewAll && (
+          <button onClick={onViewAll} className="text-body text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">View all</button>
+        )}
         <button
           onClick={() => setAdding(true)}
           className="flex items-center gap-1 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-stone-500 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
         >
           <Plus size={10}/> Add task
         </button>
+        </div>
       </div>
 
       {adding && (
@@ -994,7 +1013,7 @@ function NotesTab({ recordId, vertical }: { recordId: string; vertical: string }
   return (
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Notes</p>
+        <p className="text-body text-[var(--text-secondary)]">Notes</p>
         <button onClick={() => createNote.mutate()} disabled={createNote.isPending} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-50">
           <Plus size={12}/> New note
         </button>
@@ -1073,7 +1092,7 @@ function TasksTab({ recordId, vertical }: { recordId: string; vertical: string }
   return (
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Tasks</p>
+        <p className="text-body text-[var(--text-secondary)]">Tasks</p>
         <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
           <Plus size={12}/> Add task
         </button>
@@ -1152,7 +1171,7 @@ function DescriptionField({ value, onSave }: { value: string; onSave: (v: string
     <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
       <div className="flex items-center gap-1.5 mb-2">
         <AlignLeft size={11} className="text-stone-600"/>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Description</p>
+        <p className="text-body text-[var(--text-secondary)]">Description</p>
       </div>
       <textarea
         ref={taRef}
@@ -1218,7 +1237,7 @@ function ContactLogTab({ recordId, vertical }: { recordId: string; vertical: str
   return (
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Contact Log</p>
+        <p className="text-body text-[var(--text-secondary)]">Contact Log</p>
         <button onClick={() => setAdding(o => !o)} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
           <Plus size={12}/> Log contact
         </button>
@@ -1426,7 +1445,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
           { label: "Expenses", value: fmtCcy(totalExpenses, defaultCurrency), accent: "text-stone-400" },
         ].map(card => (
           <div key={card.label} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-1.5">{card.label}</p>
+            <p className="text-body text-[var(--text-secondary)] mb-1.5">{card.label}</p>
             <p className={`text-lg font-bold ${card.accent}`}>{card.value}</p>
           </div>
         ))}
@@ -1435,7 +1454,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
       {/* Invoices */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">Invoices</p>
+          <p className="text-body text-[var(--text-secondary)]">Invoices</p>
           <button
             onClick={() => setShowNewInvoice(o => !o)}
             className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors"
@@ -1534,7 +1553,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
 
       {/* Credit Notes */}
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600 mb-3">Credit Notes</p>
+        <p className="text-body text-[var(--text-secondary)] mb-3">Credit Notes</p>
         {cnLoading ? (
           <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-10 rounded-sm bg-[var(--surface-hover)] animate-pulse"/>)}</div>
         ) : creditNotes.length === 0 ? (
@@ -1562,7 +1581,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
       {/* Quotes */}
       {quotes.length > 0 && (
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600 mb-3">Quotes</p>
+          <p className="text-body text-[var(--text-secondary)] mb-3">Quotes</p>
           <div className="space-y-2">
             {quotes.map(q => (
               <div key={q.id} className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5">
@@ -1580,7 +1599,7 @@ function FinanceTab({ recordId, recordName, vertical }: { recordId: string; reco
       {/* Expenses */}
       {expenses.length > 0 && (
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600 mb-3">Expenses</p>
+          <p className="text-body text-[var(--text-secondary)] mb-3">Expenses</p>
           <div className="space-y-2">
             {expenses.map(e => (
               <div key={e.id} className="flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2.5">
@@ -1638,7 +1657,7 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
   return (
     <div className="space-y-4 max-w-2xl">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-stone-600">{tabLabel}</p>
+        <p className="text-body text-[var(--text-secondary)]">{tabLabel}</p>
         <div ref={searchRef} className="relative">
           <button onClick={() => setSearchOpen(o => !o)} className="flex items-center gap-1.5 rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 hover:text-[var(--text-primary)] hover:bg-[var(--surface-hover)] transition-colors">
             <Link2 size={12}/> Link record
@@ -1692,7 +1711,27 @@ function RelatedTab({ recordId, tabLabel }: { recordId: string; tabLabel: string
 // ─── Main component ───────────────────────────────────────────────────────────
 export function RecordDetail({ recordId, objectType }: { recordId: string; objectType: string }) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [tab, setTab]           = useState<string>("Overview");
+  // Overview always mounts InlineNotesPanel/InlineTasksPanel, so these two queries are already in
+  // flight for every record view. Observing the SAME keys here is deduped by React Query — it adds
+  // no request, it just lets the tab bar read what the panels fetched.
+  const { data: tabNotes } = useQuery({
+    queryKey: ["notes", recordId], enabled: false, queryFn: async () => [] as unknown[],
+  });
+  const { data: tabTasks } = useQuery({
+    queryKey: ["tasks", recordId], enabled: false, queryFn: async () => [] as unknown[],
+  });
+  // Sibling records for the prev/next strip, read from the list page's cache. `enabled: false`
+  // means this NEVER fetches — on a deep link the cache is cold, siblings is empty, and the strip
+  // simply doesn't render rather than showing a made-up position.
+  const { data: siblings = [] } = useQuery<{ id: string }[]>({
+    queryKey: ["records", objectType], enabled: false, queryFn: async () => [],
+  });
+  const siblingIndex = siblings.findIndex(r => r.id === recordId);
+
+  const noteCount = Array.isArray(tabNotes) ? tabNotes.length : undefined;
+  const taskCount = Array.isArray(tabTasks) ? tabTasks.length : undefined;
   const [listOpen, setListOpen] = useState(false);
   const [tagOpen, setTagOpen]   = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
@@ -1849,14 +1888,31 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 border-b border-[var(--border-soft)] px-6 py-3 shrink-0">
-        <Link to={`/objects/${objectType}`} className="flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+      {/* Record navigation — breadcrumb + position in the list + prev/next */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-[var(--border-soft)] px-6 py-3">
+        <Link to={`/objects/${objectType}`} className="flex items-center gap-1 text-body text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]">
           <ChevronLeft size={13}/>{objectType.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
         </Link>
-        <span className="text-xs text-[var(--text-faint)]">/</span>
-        <span className="text-xs font-medium text-[var(--text-secondary)] truncate">{name}</span>
-        {patch.isPending && <span className="ml-auto text-xs text-stone-600 animate-pulse">Saving…</span>}
+        <span className="text-body text-[var(--text-faint)]">/</span>
+        <span className="truncate text-body font-medium text-[var(--text-secondary)]">{name}</span>
+        {siblingIndex >= 0 && siblings.length > 1 && (
+          <div className="ml-3 flex items-center gap-1">
+            <button
+              onClick={() => { const prev = siblings[siblingIndex - 1]; if (prev) navigate(`/objects/${objectType}/${prev.id}`); }}
+              disabled={siblingIndex === 0}
+              aria-label="Previous record"
+              className="rounded-sm border border-[var(--border-soft)] p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-30"
+            ><ChevronUp size={12}/></button>
+            <button
+              onClick={() => { const next = siblings[siblingIndex + 1]; if (next) navigate(`/objects/${objectType}/${next.id}`); }}
+              disabled={siblingIndex === siblings.length - 1}
+              aria-label="Next record"
+              className="rounded-sm border border-[var(--border-soft)] p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] disabled:opacity-30"
+            ><ChevronDown size={12}/></button>
+            <span className="ml-1 text-body text-[var(--text-faint)]">{siblingIndex + 1} of {siblings.length}</span>
+          </div>
+        )}
+        {patch.isPending && <span className="ml-auto animate-pulse text-body text-[var(--text-faint)]">Saving…</span>}
       </div>
 
       {autoMsg && (
@@ -1868,7 +1924,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* ── Left panel ── */}
-        <aside className="flex w-[260px] shrink-0 flex-col border-r border-[var(--border-soft)] overflow-y-auto">
+        <aside className="flex w-[370px] shrink-0 flex-col border-r border-[var(--border-soft)] overflow-y-auto">
 
           {/* ── Header block ── */}
           <div className="px-4 pt-5 pb-4 border-b border-[var(--border-soft)] space-y-3">
@@ -1877,7 +1933,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
             <div className="flex items-center gap-3">
               <AvatarSection name={name} logoUrl={logoUrl} onSave={saveLogo} wrapClass="shrink-0"/>
               <div className="flex-1 min-w-0">
-                <h1 className="text-[13px] font-bold text-[var(--text-primary)] tracking-wide leading-snug uppercase truncate">{name}</h1>
+                <h1 className="truncate text-[20px] font-semibold leading-tight text-[var(--text-primary)]">{name}</h1>
                 <p className="text-[11px] text-stone-500 truncate mt-0.5">
                   {fmt((data.domain ?? data.website ?? "") as string) !== "—"
                     ? fmt((data.domain ?? data.website ?? "") as string)
@@ -1905,6 +1961,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 and the enrichment job, with honest empty states when they
                 haven't run for this record yet. */}
             <div className="space-y-2">
+              <p className="text-label text-[var(--text-secondary)]">Intelligence</p>
               <AIAgentOwnerChip objectType={record.object_type}/>
               <AIInsightBadge summary={record.ai_summary}/>
               <AIHealthScore
@@ -1959,7 +2016,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
             {/* Assignee — single inline row */}
             <div>
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-stone-600">Assigned to</p>
+              <p className="mb-1 text-body text-[var(--text-secondary)]">Assigned to</p>
               <MemberPickerField
                 label=""
                 currentName={(() => {
@@ -1976,14 +2033,14 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
             {/* Tags — inline chips, click opens picker */}
             <div>
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-stone-600">Tags</p>
+              <p className="mb-1 text-body text-[var(--text-secondary)]">Tags</p>
               <TagBadges nodeId={recordId} onOpenPicker={() => setTagOpen(true)}/>
             </div>
 
             {/* Categories — only relevant for Company / People */}
             {(isCompany || isPeople) && (
               <div>
-                <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-stone-600">Industry</p>
+                <p className="mb-1.5 text-body text-[var(--text-secondary)]">Industry</p>
                 <CategoryPills categories={categories} onUpdate={saveCategories}/>
               </div>
             )}
@@ -1991,7 +2048,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
           {/* ── Record Details ── */}
           <div className="flex-1 overflow-auto px-4 py-3">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-stone-700">Record Details</p>
+            <p className="mb-2 text-body text-[var(--text-secondary)]">Record details</p>
             {leftFields.map(([key, val]) => {
               const customDef = customCols.find(c => c.key === key);
               const customType = customDef?.type;
@@ -2000,11 +2057,11 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 const defaults = customType === "stage" ? DEFAULT_STAGE_OPTIONS : DEFAULT_STATUS_OPTIONS;
                 const shown = String(val ?? "");
                 return (
-                  <div key={key} className="mb-3">
-                    <p className="mb-1 text-[10px] text-stone-600 capitalize">{key.replace(/_/g, " ")}</p>
+                  <div key={key} className="grid grid-cols-[120px_1fr] items-start gap-3 border-b border-[var(--border-soft)] py-2 last:border-0">
+                    <span className="truncate select-none pt-1 text-body capitalize text-[var(--text-secondary)]">{key.replace(/_/g, " ")}</span>
                     {shown
                       ? <StagePill value={shown} options={defaults} onSelect={v => save(key, v)}/>
-                      : <button onClick={() => save(key, defaults[0]!)} className="text-[11px] text-stone-600 hover:text-stone-400 transition-colors">— set {customType}</button>
+                      : <button onClick={() => save(key, defaults[0]!)} className="text-left text-body text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]">Set a value…</button>
                     }
                   </div>
                 );
@@ -2012,11 +2069,11 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
               if (isStageKey(key)) {
                 const shown = String(val ?? "");
                 return (
-                  <div key={key} className="mb-3">
-                    <p className="mb-1 text-[10px] text-stone-600 capitalize">{key.replace(/_/g, " ")}</p>
+                  <div key={key} className="grid grid-cols-[120px_1fr] items-start gap-3 border-b border-[var(--border-soft)] py-2 last:border-0">
+                    <span className="truncate select-none pt-1 text-body capitalize text-[var(--text-secondary)]">{key.replace(/_/g, " ")}</span>
                     {shown
                       ? <StagePill value={shown} options={DEFAULT_STAGE_OPTIONS} onSelect={v => save(key, v)}/>
-                      : <button onClick={() => save(key, DEFAULT_STAGE_OPTIONS[0]!)} className="text-[11px] text-stone-600 hover:text-stone-400 transition-colors">— set stage</button>
+                      : <button onClick={() => save(key, DEFAULT_STAGE_OPTIONS[0]!)} className="text-left text-body text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]">Set a value…</button>
                     }
                   </div>
                 );
@@ -2024,11 +2081,11 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
               if (isStatusKey(key)) {
                 const shown = String(val ?? "");
                 return (
-                  <div key={key} className="mb-3">
-                    <p className="mb-1 text-[10px] text-stone-600 capitalize">{key.replace(/_/g, " ")}</p>
+                  <div key={key} className="grid grid-cols-[120px_1fr] items-start gap-3 border-b border-[var(--border-soft)] py-2 last:border-0">
+                    <span className="truncate select-none pt-1 text-body capitalize text-[var(--text-secondary)]">{key.replace(/_/g, " ")}</span>
                     {shown
                       ? <StagePill value={shown} options={DEFAULT_STATUS_OPTIONS} onSelect={v => save(key, v)}/>
-                      : <button onClick={() => save(key, DEFAULT_STATUS_OPTIONS[0]!)} className="text-[11px] text-stone-600 hover:text-stone-400 transition-colors">— set status</button>
+                      : <button onClick={() => save(key, DEFAULT_STATUS_OPTIONS[0]!)} className="text-left text-body text-[var(--text-faint)] transition-colors hover:text-[var(--text-primary)]">Set a value…</button>
                     }
                   </div>
                 );
@@ -2045,24 +2102,27 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
               }
               return <InlineField key={key} label={key.replace(/_/g, " ")} value={val} numeric={typeof val === "number"} onSave={v => save(key, v)}/>;
             })}
-            {leftFields.length === 0 && <p className="text-xs text-stone-600 py-2">No attributes yet</p>}
+            {leftFields.length === 0 && <p className="py-2 text-body text-[var(--text-faint)]">No attributes on this record yet.</p>}
           </div>
         </aside>
 
         {/* ── Right panel ── */}
         <main className="flex flex-1 min-w-0 flex-col overflow-hidden">
-          <div className="flex border-b border-[var(--border-soft)] shrink-0 overflow-x-auto">
-            {tabs.map(t => {
-              const label = t === "Company" ? companyTabLabel : t;
-              return (
-                <button key={t} onClick={() => setTab(t)}
-                  className={`px-3.5 py-2.5 text-xs font-medium transition-colors relative whitespace-nowrap shrink-0 ${tab === t ? "text-[var(--text-primary)]" : "text-stone-500 hover:text-stone-300"}`}>
-                  {label}
-                  {tab === t && <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full" style={{ background: "var(--section-accent)" }}/>}
-                </button>
-              );
-            })}
-          </div>
+          <Tabs
+            active={tab}
+            onChange={setTab}
+            items={tabs.map(t => ({
+              id: t,
+              label: t === "Company" ? companyTabLabel : t,
+              icon: TAB_ICONS[t],
+              // Counts ONLY where the data is already loaded. Overview always mounts the notes and
+              // tasks panels, so those two queries are in cache for free; every other tab would
+              // need its own fetch, and an eager count query per tab is a bigger change than a
+              // layout pass should smuggle in. `undefined` renders no badge, which is honestly
+              // different from a known zero.
+              count: t === "Notes" ? noteCount : t === "Tasks" ? taskCount : undefined,
+            }))}
+          />
 
           <div className="flex-1 overflow-auto p-6">
 
@@ -2075,7 +2135,7 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
                 {/* Key fields — the type-specific highlights, lifted above the AI interpretation so the
                     important recorded values are visible first, not buried below analysis. */}
                 <div>
-                  <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-stone-600">Key fields</p>
+                  <p className="mb-3 text-body text-[var(--text-secondary)]">Key fields</p>
                   {isCompany     && <CompanyHighlights      data={data} onSave={save}/>}
                   {isPeople      && <PeopleHighlights       data={data} onSave={save}/>}
                   {isDeals       && <DealHighlights         data={data} onSave={save}/>}
@@ -2117,17 +2177,17 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
 
                 {/* Notes + Tasks side-by-side */}
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
-                    <InlineNotesPanel recordId={recordId} vertical={record.vertical}/>
+                  <div className="rounded-sm border border-[var(--border-soft)] p-4">
+                    <InlineNotesPanel recordId={recordId} vertical={record.vertical} onViewAll={tabs.includes("Notes") ? () => setTab("Notes") : undefined}/>
                   </div>
-                  <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-4">
-                    <InlineTasksPanel recordId={recordId} vertical={record.vertical}/>
+                  <div className="rounded-sm border border-[var(--border-soft)] p-4">
+                    <InlineTasksPanel recordId={recordId} vertical={record.vertical} onViewAll={tabs.includes("Tasks") ? () => setTab("Tasks") : undefined}/>
                   </div>
                 </div>
 
                 {/* Activity feed */}
                 <div>
-                  <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-stone-600">Activity</p>
+                  <p className="mb-4 text-body text-[var(--text-secondary)]">Activity</p>
                   <ActivityFeed activities={record.activities} createdAt={record.updated_at}/>
                 </div>
               </div>
@@ -2137,20 +2197,6 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
             {tab === "Tasks"       && <TasksTab       recordId={recordId} vertical={record.vertical}/>}
             {tab === "Contact Log" && <ContactLogTab  recordId={recordId} vertical={record.vertical}/>}
             {tab === "Finance"     && <FinanceTab     recordId={recordId} recordName={name} vertical={record.vertical}/>}
-            {tab === "Files"   && (
-              <div className="flex min-h-48 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
-                <FileText size={20} className="mb-2 text-stone-700"/>
-                <p className="text-sm font-medium text-stone-400">Files</p>
-                <p className="mt-1 text-xs text-stone-600">No files attached to this record yet.</p>
-              </div>
-            )}
-            {tab === "Emails"  && (
-              <div className="flex min-h-48 flex-col items-center justify-center rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] text-center">
-                <Mail size={20} className="mb-2 text-stone-700"/>
-                <p className="text-sm font-medium text-stone-400">Emails</p>
-                <p className="mt-1 text-xs text-stone-600">No emails linked yet.</p>
-              </div>
-            )}
             {/* Related / Company / People / Deals / Contact tabs all use RelatedTab */}
             {(tab === "Company" || tab === "People" || tab === "Deals" || tab === "Contact") && (
               <RelatedTab recordId={recordId} tabLabel={

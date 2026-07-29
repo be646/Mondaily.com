@@ -1654,13 +1654,21 @@ describe("Records experience premium polish (Pass CHR2)", () => {
   });
 
   it("Detail tab active indicator uses the section accent (2px), not flat gray", () => {
-    expect(detail).toMatch(/\{tab === t && <span className="absolute bottom-0 left-0 right-0 h-0\.5 rounded-full" style=\{\{ background: "var\(--section-accent\)" \}\}\/>\}/);
+    // The bar moved into the shared <Tabs> (components/ui/tabs.tsx) in Pass R1 — every tab bar was
+    // hand-rolled, so the chrome drifted per page. The INTENT is unchanged and now asserted where
+    // the markup actually lives.
+    const tabs = read("apps/app/src/components/ui/tabs.tsx");
+    expect(tabs).toMatch(/h-0\.5/);
+    expect(tabs).toMatch(/background: "var\(--section-accent\)"/);
+    expect(detail).toMatch(/<Tabs\b/);
     expect(detail).not.toMatch(/h-px bg-stone-500/);
   });
 
   it("Detail breadcrumb: title-cased object type + strengthened record name (tokenized)", () => {
     expect(detail).toMatch(/<ChevronLeft size=\{13\}\/>\{objectType\.replace\(\/\[-_\]\/g, " "\)\.replace\(\/\\b\\w\/g, \(c\) => c\.toUpperCase\(\)\)\}/);
-    expect(detail).toMatch(/<span className="text-xs font-medium text-\[var\(--text-secondary\)\] truncate">\{name\}<\/span>/);
+    // text-xs -> text-body in Pass R1 (the locked type scale); still tokenised, still the
+    // strengthened secondary treatment the original guard was protecting.
+    expect(detail).toMatch(/<span className="truncate text-body font-medium text-\[var\(--text-secondary\)\]">\{name\}<\/span>/);
     expect(detail).not.toMatch(/<span className="text-xs text-stone-400 truncate">\{name\}<\/span>/);
   });
 

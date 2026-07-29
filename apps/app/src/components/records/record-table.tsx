@@ -70,9 +70,13 @@ function display(value: unknown): string {
 
 // ─── Inline editable cell ─────────────────────────────────────────────────────
 function EditableCell({
-  raw, onSave, className = "", numeric = false,
+  raw, onSave, className = "", numeric = false, openTo,
 }: {
   raw: unknown; onSave: (v: string) => void; className?: string; numeric?: boolean;
+  /** When set, the cell is the record's IDENTITY: a single click opens it and editing needs a
+   *  double-click. Clicking a name used to start renaming it, so the primary action (open) was
+   *  hidden behind a hover-only chevron while the destructive-ish one (rename) was the default. */
+  openTo?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft]     = useState("");
@@ -105,12 +109,24 @@ function EditableCell({
           if (e.key === "Escape") setEditing(false);
           e.stopPropagation();
         }}
-        className={`w-full min-w-0 btn-solid text-[12px] text-[var(--text-primary)] outline-none rounded px-1 py-0.5 border border-stone-600/60 -mx-1 ${numeric ? "text-right font-mono" : ""} ${className}`}
+        className={`-mx-1 w-full min-w-0 rounded-sm border border-[var(--section-accent-line)] bg-[var(--surface-card)] px-1 py-0.5 text-[12px] text-[var(--text-primary)] outline-none ${numeric ? "text-right font-mono" : ""} ${className}`}
       />
     );
   }
 
   const shown = display(raw);
+  if (openTo) {
+    return (
+      <Link
+        to={openTo}
+        onDoubleClick={e => { e.preventDefault(); startEdit(); }}
+        title="Click to open · double-click to rename"
+        className={`block truncate text-[12px] hover:underline ${shown === "—" ? "text-stone-700 hover:text-stone-500" : ""} ${className}`}
+      >
+        {shown}
+      </Link>
+    );
+  }
   return (
     <span
       onClick={startEdit}
@@ -2388,6 +2404,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         <EditableCell
           raw={val}
           onSave={v => saveCell(record, col, v)}
+          openTo={`/objects/${objectType}/${record.id}`}
           className="flex-1 font-medium text-[var(--text-primary)] truncate"
         />
         {isEnriched && (
@@ -2431,7 +2448,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         key={record.id}
         className={`group transition-colors ${selected.has(record.id) ? "bg-stone-50 dark:bg-stone-500/[.05]" : rowIdx % 2 === 1 ? "bg-stone-50/60 dark:bg-[var(--surface-hover)]" : "bg-white dark:bg-transparent"} hover:bg-stone-50 dark:hover:bg-[var(--surface-hover)] ${rowAccent(record)}`}
       >
-        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-2.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]"}`}>
+        <td className={`w-8 min-w-[32px] max-w-[32px] px-2 py-1.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-0 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]"}`}>
           <div
             onClick={() => toggleSelectRow(record.id)}
             className={`h-4 w-4 rounded-md border-2 flex items-center justify-center cursor-pointer transition-all ${selected.has(record.id) ? "bg-stone-500 border-stone-500" : "border-stone-300 opacity-0 group-hover:opacity-100 hover:border-stone-400 dark:border-[var(--border-soft)] dark:hover:border-[var(--border-soft)]"}`}
@@ -2440,14 +2457,14 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           </div>
         </td>
         {hasRecordIdCol && (
-          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]"}`}>
+          <td className={`w-20 min-w-[80px] max-w-[80px] px-3 py-1.5 border-b border-b-[#edf0f5] dark:border-b-white/[.04] sticky left-8 z-10 ${selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]"}`}>
             <RecordIdCell id={record.id}/>
           </td>
         )}
         {orderedColumns.map((col, colIdx) => (
           <td
             key={col}
-            className={`px-4 py-2.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[#edf0f5] dark:border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}
+            className={`px-4 py-1.5 text-stone-900 dark:text-[var(--text-secondary)] border-b border-b-[#edf0f5] dark:border-b-white/[.04] overflow-hidden max-w-[240px] ${isNumeric(col) ? "text-right tabular-nums font-mono text-stone-500 dark:text-[var(--text-secondary)]" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-10 border-r border-r-[var(--border-soft)] font-medium text-stone-900 dark:text-[var(--text-secondary)] ` + (selected.has(record.id) ? "bg-stone-50 group-hover:bg-stone-100 dark:bg-[#130d0d] dark:group-hover:bg-[#170f0f]" : "bg-white group-hover:bg-[#f8fbff] dark:bg-[var(--surface-page)] dark:group-hover:bg-[var(--surface-card)]") : ""}`}
             onMouseEnter={(e) => {
               const td = e.currentTarget;
               if (td.scrollWidth > td.clientWidth + 2) {
@@ -3087,7 +3104,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   <th
                     key={col}
                     style={w ? { width: w, minWidth: w, maxWidth: w } : undefined}
-                    className={`relative px-4 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : ""}`}
+                    className={`relative px-4 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] select-none ${colIdx === 0 ? `sticky ${nameLeft} z-30 border-r border-r-[var(--border-soft)]` : ""}`}
                     onDragOver={e => { e.preventDefault(); }}
                     onDrop={() => {
                       const from = dragColRef.current;
@@ -3225,7 +3242,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {orderedColumns.map((col, colIdx) => (
                 <td
                   key={col}
-                  className={`px-3 py-3 bg-stone-50 dark:bg-[var(--surface-card)] border-t border-t-zinc-200 dark:border-t-zinc-800/60 text-[12px] text-stone-900 dark:text-inherit ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-50 shadow-[2px_0_8px_rgba(15,23,42,0.06)] dark:shadow-[2px_0_8px_rgba(0,0,0,0.4)]` : "border-r border-r-zinc-200 dark:border-r-zinc-800/15"}`}
+                  className={`px-3 py-3 bg-stone-50 dark:bg-[var(--surface-card)] border-t border-t-zinc-200 dark:border-t-zinc-800/60 text-[12px] text-stone-900 dark:text-inherit ${isNumeric(col) ? "text-right" : ""} ${colIdx === 0 ? `sticky ${nameLeft} z-50 border-r border-r-[var(--border-soft)]` : "border-r border-r-zinc-200 dark:border-r-zinc-800/15"}`}
                 >
                   <div
                     ref={el => { if (el) calcWrapRefs.current.set(col, el); else calcWrapRefs.current.delete(col); }}

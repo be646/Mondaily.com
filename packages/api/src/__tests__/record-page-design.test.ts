@@ -1,0 +1,110 @@
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const APP = join(__dirname, "../../../../apps/app/src");
+const app = (p: string) => readFileSync(join(APP, p), "utf8");
+
+const detail = app("components/records/record-detail.tsx");
+const table = app("components/records/record-table.tsx");
+const tabs = app("components/ui/tabs.tsx");
+
+/**
+ * Pass R1 — record pages. Guards the design contract, not the pixels: each assertion below
+ * corresponds to something the page actually got wrong, so a regression is legible.
+ */
+describe("Tabs is the one tab implementation", () => {
+  it("renders a count whenever one is given — including zero", () => {
+    // Hiding a zero makes the chrome REFLOW as data arrives and throws away the most useful thing
+    // a tab says. The count-at-zero policy previously contradicted itself three ways across pages.
+    expect(tabs).toMatch(/typeof t\.count === "number" && <CountBadge/);
+    expect(tabs).not.toMatch(/count\s*>\s*0\s*&&/);
+    // An unknown count must render NO badge — honestly different from a known zero.
+    expect(tabs).toMatch(/Omit when the count is genuinely unknown/);
+  });
+
+  it("record detail uses it rather than a hand-rolled bar", () => {
+    expect(detail).toMatch(/import \{ Tabs \} from "@\/components\/ui\/tabs"/);
+    expect(detail).toMatch(/<Tabs\b/);
+    // the old bespoke bar is gone
+    expect(detail).not.toMatch(/tabs\.map\(t => \{[\s\S]{0,200}<button key=\{t\} onClick=\{\(\) => setTab\(t\)\}/);
+  });
+
+  it("counts come only from data already in cache — no new per-tab queries", () => {
+    // Both count reads are `enabled: false`, so they observe what the Overview panels fetched and
+    // never issue a request of their own. An eager count query per tab is a data change, not a
+    // layout change, and must not ride along in a design pass.
+    const notes = detail.slice(detail.indexOf('queryKey: ["notes", recordId], enabled: false'));
+    expect(notes.length).toBeGreaterThan(0);
+    expect(detail).toMatch(/queryKey: \["tasks", recordId\], enabled: false/);
+    expect(detail).toMatch(/queryKey: \["records", objectType\], enabled: false/);
+  });
+});
+
+describe("record detail structure", () => {
+  it("has a 370px identity column with a label/value attribute grid", () => {
+    expect(detail).toMatch(/w-\[370px\]/);
+    // every attribute row type shares one grid: stage, status, custom, owner, plain field
+    const rows = detail.match(/grid-cols-\[120px_1fr\]/g) ?? [];
+    expect(rows.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("shows the record name as identity, not a field label", () => {
+    // was text-[13px] font-bold uppercase — every record read like a header cell
+    expect(detail).toMatch(/text-\[20px\] font-semibold[^"]*">\{name\}<\/h1>/);
+    expect(detail).not.toMatch(/uppercase truncate">\{name\}<\/h1>/);
+  });
+
+  it("invites a value instead of showing a broken-looking dash", () => {
+    expect(detail).toMatch(/Set a value…/);
+    expect(detail).not.toMatch(/— set (stage|status|\{customType\})/);
+    // Highlight cards state the absence in words so the grid never collapses
+    expect(detail).toMatch(/Not set<\/span>/);
+  });
+
+  it("section headers are quiet — content outranks its label", () => {
+    // 20 headers were 9-11px semibold uppercase letterspaced. The one survivor is a progress-bar
+    // stage label inside DealProgressBar, which is a data label in a viz, not a section header.
+    const shouty = detail.match(/text-\[(9|10|11)px\] font-semibold uppercase tracking-wid/g) ?? [];
+    expect(shouty).toHaveLength(0);
+  });
+
+  it("related sections offer a route to their full list", () => {
+    expect(detail).toMatch(/onViewAll/);
+    expect(detail).toMatch(/View all<\/button>/);
+  });
+
+  it("has no tab whose body is a hardcoded empty state", () => {
+    // Files/Emails rendered "No files attached to this record yet." unconditionally — a claim
+    // about data, not an empty state. A tab may only exist if it has a data source.
+    expect(detail).not.toMatch(/No files attached to this record yet/);
+    expect(detail).not.toMatch(/No emails linked yet/);
+  });
+
+  it("record navigation degrades honestly when the list cache is cold", () => {
+    // On a deep link `siblings` is empty and the strip does not render, rather than inventing
+    // a position like "1 of 1".
+    expect(detail).toMatch(/siblingIndex >= 0 && siblings\.length > 1/);
+  });
+});
+
+describe("record table", () => {
+  it("opens the record on click; renaming is deliberate", () => {
+    // Clicking a name started a rename, so the primary action was hidden behind a hover-only
+    // chevron while the destructive-ish one was the default.
+    expect(table).toMatch(/openTo=\{`\/objects\/\$\{objectType\}\/\$\{record\.id\}`\}/);
+    expect(table).toMatch(/onDoubleClick=\{e => \{ e\.preventDefault\(\); startEdit\(\); \}\}/);
+    // the hover chevron stays for discoverability
+    expect(table).toMatch(/<ChevronRight size=\{11\}\/>/);
+  });
+
+  it("does not style a text input as a solid button", () => {
+    // The edit input carried `btn-solid`, so an editing cell rendered as a filled solid button.
+    const input = table.slice(table.indexOf("if (editing) {"), table.indexOf("const shown = display(raw);"));
+    expect(input).not.toMatch(/btn-solid/);
+  });
+
+  it("separates sticky columns with a hairline, not a drop shadow", () => {
+    expect(table).not.toMatch(/shadow-\[2px_0_8px/);
+  });
+});
