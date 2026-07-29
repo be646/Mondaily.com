@@ -92,6 +92,13 @@ async function sendViaSovereignRelay(workspaceId: string, msg: OutboundMessage):
   const url = process.env.SOVEREIGN_MAIL_SEND_URL;
   const secret = process.env.SOVEREIGN_MAIL_SECRET;
   if (!url || !secret) return false;
+  // BOUNDED. This fetch had no timeout, so a SEND_URL pointing at an unreachable host stalled every
+  // outbound email on TCP connect (tens of seconds) before falling through to Gmail/transactional —
+  // long enough to blow the serverless function limit and turn a working send into a failure. Found
+  // exactly that way: the appliance's :8095 is not reachable from the public internet, so the tier
+  // chain was "intact" while being unusable. A degraded appliance must cost ~5s, not the request.
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5_000);
   try {
     const from = inboundAddressFor(workspaceId) ?? CORPORATE_FROM;
     const body = JSON.stringify({ from, to: msg.to.map((t) => t.email), subject: msg.subject, html: msg.body });
@@ -99,10 +106,17 @@ async function sendViaSovereignRelay(workspaceId: string, msg: OutboundMessage):
       method: "POST",
       headers: { "Content-Type": "application/json", "x-mondaily-mail-signature": createHmac("sha256", secret).update(body).digest("hex") },
       body,
+      signal: ctrl.signal,
     });
+    if (!res.ok) console.warn(`[mail] sovereign relay HTTP ${res.status} — falling through`);
     return res.ok;
-  } catch {
+  } catch (e) {
+    // Say so. A silent false here is indistinguishable from "not configured", which is how an
+    // unreachable relay stayed invisible.
+    console.warn("[mail] sovereign relay unreachable — falling through:", e instanceof Error ? e.message : String(e));
     return false;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

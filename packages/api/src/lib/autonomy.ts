@@ -160,10 +160,53 @@ type DecisionRow = {
  * autonomy is manual, the risk band is out of range, or the row is missing an id/risk_level.
  * Fully audited: writes an `activities` row (action=decision_auto_approved, actor_type=agent).
  */
+/**
+ * CIRCUIT BREAKER for unattended execution.
+ *
+ * Autonomy is the point of the product — the failure mode is not "an agent decided", it is an agent
+ * deciding the SAME thing forever with nobody watching. The 4-hourly Discovery monitor auto-approved
+ * ~450 lead creations over two weeks; a human clicking approve 450 times would have made the same
+ * mess, so the fix is not a queue. It is a ceiling, plus telling the operator it was hit.
+ *
+ * Rolling 1-hour window, counted from decision_queue itself (resolved_by='autonomy'), so it needs no
+ * new table and survives cold starts — an in-memory counter resets on every serverless invocation
+ * and would never fire.
+ */
+export const AUTONOMY_HOURLY_CAP = 50;
+
+export async function autonomyUsageLastHour(workspaceId: string): Promise<number> {
+  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count } = await supabase.from("decision_queue")
+    .select("id", { count: "exact", head: true })
+    .eq("workspace_id", workspaceId).eq("resolved_by", "autonomy").gte("resolved_at", since);
+  return count ?? 0;
+}
+
 export async function maybeAutoApprove(workspaceId: string, decision: DecisionRow | null | undefined): Promise<boolean> {
   if (!decision?.id) return false;
   const level = await readAutonomy(workspaceId);
   if (!autoApproves(level, String(decision.risk_level ?? "low"))) return false;
+
+  // Ceiling check BEFORE executing. Over the cap the decision simply stays pending for a human —
+  // nothing is lost, and the runaway stops instead of continuing quietly.
+  const used = await autonomyUsageLastHour(workspaceId);
+  if (used >= AUTONOMY_HOURLY_CAP) {
+    console.warn(`[autonomy] hourly cap reached (${used}/${AUTONOMY_HOURLY_CAP}) for workspace ${workspaceId} — leaving "${decision.title}" pending`);
+    // Notify ONCE per breach window, not once per blocked decision — a runaway would otherwise
+    // replace 450 silent writes with 450 notifications, which is not an improvement.
+    if (used === AUTONOMY_HOURLY_CAP) {
+      const { createNotification } = await import("./notify");
+      await createNotification({
+        workspace_id: workspaceId,
+        type: "agent",
+        title: "⚠ Agent activity limit reached",
+        body: `Agents auto-approved ${used} decisions in the last hour, hitting the safety limit. Further decisions are waiting for your review instead of running automatically.`,
+        metadata: { autonomy_level: level, cap: AUTONOMY_HOURLY_CAP, used },
+        source: { source_agent: String(decision.agent_name ?? "agent") },
+      }).catch(() => false);
+    }
+    return false;
+  }
 
   // executeApprovedAction lives in routes/decisions.ts alongside the HTTP handlers; import it
   // lazily to avoid a static import cycle (routes → lib → routes).
@@ -176,11 +219,23 @@ export async function maybeAutoApprove(workspaceId: string, decision: DecisionRo
     .update({ status: "approved", resolved_at: new Date().toISOString(), resolved_by: "autonomy" })
     .eq("workspace_id", workspaceId).eq("id", decision.id);
 
-  await supabase.from("activities").insert({
-    node_id: decision.source_id ?? null, workspace_id: workspaceId, actor_type: "agent",
-    actor_id: String(decision.agent_name ?? "agent"), action: "decision_auto_approved",
-    diff: { decision_id: decision.id, title: decision.title, risk: decision.risk_level, autonomy: level },
-  }).then(() => {}, () => {});
+  // `activities.node_id` is NOT NULL. Discovery inserts its decisions with source_id = null, so for
+  // every one of those ~450 auto-approvals this row was REJECTED — and the error was swallowed by
+  // `.then(() => {}, () => {})`. The audit trail that was supposed to make unattended work visible
+  // recorded nothing, which is a large part of why the runaway went unnoticed for two weeks.
+  // Anchor to a real node when there is one; otherwise say so rather than writing a doomed row.
+  if (decision.source_id) {
+    const { error } = await supabase.from("activities").insert({
+      node_id: decision.source_id, workspace_id: workspaceId, actor_type: "agent",
+      actor_id: String(decision.agent_name ?? "agent"), action: "decision_auto_approved",
+      diff: { decision_id: decision.id, title: decision.title, risk: decision.risk_level, autonomy: level },
+    });
+    if (error) console.warn("[autonomy] audit row failed:", error.message);
+  } else {
+    // No node to hang it on — the decision_queue row itself is the record (status=approved,
+    // resolved_by=autonomy, resolved_at), which is queryable and is what the cap counts.
+    console.info(`[autonomy] auto-approved "${decision.title}" (${decision.agent_name}) — no source node, audited on decision_queue only`);
+  }
 
   return true;
 }
