@@ -1,7 +1,7 @@
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText, Paperclip, X, Search, Square, RotateCcw, Copy, Check, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Calendar, CheckSquare, Send, Loader2, User, Clock, ArrowUpRight, ArrowUp, Plus, Zap, MailCheck, Brain, TrendingUp, ListChecks, BellDot, CornerDownLeft, Printer, Mic, GitBranch, Inbox, FileText, Paperclip, X, Search, Square, RotateCcw, Copy, Check, ThumbsUp, ThumbsDown, ChevronDown } from "lucide-react";
 import { LogoMark } from "../../components/logo";
 import { NeedsYouPanel, WorkspaceGraphPulse } from "../../components/ai/command-center";
 import { AgentConstellationPanel } from "../../components/ai/agent-constellation";
@@ -236,6 +236,20 @@ export function HomePage() {
     | { kind: "record"; id: string; object_type: string; title: string; data: unknown }
     | { kind: "file"; id: string; title: string; text: string };
   const [attachments, setAttachments] = useState<AttachItem[]>([]);
+  // Ask MODE, shared with Settings via the same localStorage key the engine reads, so the two can
+  // never disagree. Sovereign product: a mode is how much WORK to do, not whose model to use.
+  const [askMode, setAskMode] = useState<"auto" | "fast" | "smart">(() => {
+    try { return (JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}").model) || "auto"; }
+    catch { return "auto"; }
+  });
+  const [modeOpen, setModeOpen] = useState(false);
+  function pickMode(m: "auto" | "fast" | "smart") {
+    setAskMode(m); setModeOpen(false);
+    try {
+      const cur = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}");
+      localStorage.setItem("mondaily_ask_settings", JSON.stringify({ ...cur, model: m }));
+    } catch { /* a mode preference is not worth failing a send over */ }
+  }
   const [attachOpen, setAttachOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
@@ -997,6 +1011,31 @@ export function HomePage() {
               <Paperclip size={17}/>
             </button>
               <span className="ml-auto" />
+              <div className="relative shrink-0">
+                <button onClick={() => setModeOpen(o => !o)} title="How much work Mondaily should do"
+                  className="flex h-7 items-center gap-1 rounded-sm px-2 text-body capitalize transition-colors hover:bg-[var(--surface-hover)]"
+                  style={{ color: "var(--text-secondary)" }}>
+                  {askMode}<ChevronDown size={11}/>
+                </button>
+                {modeOpen && (
+                  <div className="absolute bottom-full right-0 z-50 mb-1.5 w-56 overflow-hidden rounded-sm border" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+                    {([
+                      { id: "auto"  as const, label: "Auto",  hint: "Picks depth from the question" },
+                      { id: "fast"  as const, label: "Fast",  hint: "One pass — for quick lookups" },
+                      { id: "smart" as const, label: "Smart", hint: "More tool rounds and reasoning" },
+                    ]).map(m => (
+                      <button key={m.id} onClick={() => pickMode(m.id)}
+                        className="flex w-full items-start gap-2 px-3 py-2 text-left transition-colors hover:bg-[var(--surface-hover)]">
+                        <Check size={12} className="mt-0.5 shrink-0" style={{ color: askMode === m.id ? "var(--section-accent)" : "transparent" }}/>
+                        <span className="min-w-0">
+                          <span className="block text-body" style={{ color: "var(--text-primary)" }}>{m.label}</span>
+                          <span className="block text-body" style={{ color: "var(--text-faint)" }}>{m.hint}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             {isChatting && (
               <button onClick={newChat} className="shrink-0 text-xs transition-colors mr-0.5" style={{ color: "var(--text-faint)" }}>Clear</button>
             )}

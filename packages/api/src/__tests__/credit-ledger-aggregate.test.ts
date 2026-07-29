@@ -264,3 +264,35 @@ describe("Ask pre-flight is not needlessly slow", () => {
     expect(gw).toMatch(/if \(round > 0 && budgetLeft\(\) < 12_000\)/);
   });
 });
+
+describe("Ask modes are real", () => {
+  const ask = readFileSync(join(SRC, "routes/ask.ts"), "utf8");
+  const home = readFileSync(join(SRC, "../../../apps/app/src/routes/dashboard/home.tsx"), "utf8");
+
+  it("the three modes differ in actual work, not just in name", () => {
+    // The selector shipped long ago and did NOTHING: /ask mapped auto|fast|smart to one identical
+    // model spec, and /ask/stream validated the field then ignored it entirely.
+    expect(ask).toMatch(/export function modeConfig/);
+    expect(ask).toMatch(/case "fast":\s*return \{ taskClass: "fast",\s*maxRounds: 2/);
+    expect(ask).toMatch(/case "smart": return \{ taskClass: "reasoning", maxRounds: 6/);
+    // and the budgets actually reach the gateway
+    const wired = ask.match(/maxRounds: askMode\.maxRounds/g) ?? [];
+    expect(wired.length).toBe(2);   // /ask and /ask/stream
+  });
+
+  it("the streaming route no longer discards the mode", () => {
+    expect(ask).toMatch(/const \{ message, web_search, history, context, model: modelPref \}/);
+  });
+
+  it("modes route through the existing TaskClass router, not a parallel model list", () => {
+    // Sovereign product — a mode cannot mean "use someone else's model". lib/ai-router already
+    // supports per-class overrides via AI_MODEL_<CLASS>.
+    expect(ask).toMatch(/modelForClass\(askMode\.taskClass\)/);
+  });
+
+  it("the composer control writes the same key the engine reads", () => {
+    // Otherwise the composer and Settings would drift into two different preferences.
+    expect(home).toMatch(/mondaily_ask_settings/);
+    expect(home).toMatch(/JSON\.stringify\(\{ \.\.\.cur, model: m \}\)/);
+  });
+});

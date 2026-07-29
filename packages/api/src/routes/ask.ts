@@ -4,6 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
 import { verifyAiCredits } from "../lib/credits";
+import { modelForClass, type TaskClass } from "../lib/ai-router";
 import { supabase } from "@mondaily/db/client";
 import { resolveProfile, profileContextBlock } from "@mondaily/shared/profile";
 import { languageInstruction, normalizeLang } from "@mondaily/shared/i18n";
@@ -1595,6 +1596,29 @@ export async function workspaceProfileBlock(workspaceId: string | undefined, use
   } catch { return ""; }
 }
 
+
+/**
+ * Ask MODES. The selector has existed in settings for a while and did nothing: /ask mapped
+ * "auto" | "fast" | "smart" to one identical model spec, and /ask/stream validated the field then
+ * ignored it entirely.
+ *
+ * Mondaily is sovereign — there is no menu of third-party models to pick from, so a mode cannot
+ * mean "use someone else's model". It means how much WORK to do: which TaskClass to route to (the
+ * router in lib/ai-router already supports per-class model overrides via AI_MODEL_<CLASS>), how
+ * many tool rounds to allow, and how much room to think.
+ */
+export type AskMode = "auto" | "fast" | "smart";
+
+export function modeConfig(mode?: AskMode): { taskClass?: TaskClass; maxRounds: number; maxTokens: number; label: AskMode } {
+  switch (mode) {
+    // One pass, tight budget — for "what's my total", not "analyse my pipeline".
+    case "fast":  return { taskClass: "fast",      maxRounds: 2, maxTokens: 1536, label: "fast" };
+    // Full tool loop and room to reason.
+    case "smart": return { taskClass: "reasoning", maxRounds: 6, maxTokens: 3072, label: "smart" };
+    // Let routeAgentModel classify the question, as today.
+    default:      return { taskClass: undefined,   maxRounds: 5, maxTokens: 2048, label: "auto" };
+  }
+}
 /**
  * Phase 2B — Ask memory injection (behind the workspace memory flag; OFF by default).
  * Runs source-backed recall, takes AT MOST the top 3 candidates that carry a source ref, and
@@ -1701,16 +1725,8 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
 
   // AI_AGENT_MODEL env var overrides user preference (swap provider without code change).
   // When not set, honour the user's fast/smart/auto preference mapped to Claude models.
-  const agentModelSpec = process.env.AI_AGENT_MODEL ?? (() => {
-    // Cerebras-powered defaults via the openai-compat streaming gateway.
-    // No proprietary Anthropic/OpenAI model is referenced at the source layer.
-    const map: Record<string, string> = {
-      fast: "openai-compat/gpt-oss-120b",
-      smart: "openai-compat/gpt-oss-120b",
-      auto: "openai-compat/gpt-oss-120b",
-    };
-    return map[modelPref ?? "auto"] ?? "openai-compat/gpt-oss-120b";
-  })();
+  const askMode = modeConfig(modelPref as AskMode | undefined);
+  const agentModelSpec = modelForClass(askMode.taskClass) ?? process.env.AI_AGENT_MODEL ?? "openai-compat/gpt-oss-120b";
 
   // Model ID string for usage tracking (strip provider prefix)
   const model = agentModelSpec.includes("/") ? agentModelSpec.split("/").slice(1).join("/") : agentModelSpec;
@@ -1744,7 +1760,8 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
       system: systemPrompt,
       tools: selectTools(message, history),
       messages,
-      maxTokens: 2048,
+      maxTokens: askMode.maxTokens,
+      maxRounds: askMode.maxRounds,
       model: agentModelSpec,
       workspaceId,
       userId,
@@ -1848,8 +1865,11 @@ router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object
   history: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() })).optional(),
   context: z.record(z.any()).optional(),
 })), async (c) => {
-  const { message, web_search, history, context } = c.req.valid("json");
-  const agentModelSpec = process.env.AI_AGENT_MODEL ?? "openai-compat/gpt-oss-120b";
+  const { message, web_search, history, context, model: modelPref } = c.req.valid("json");
+  // The mode was validated and then thrown away here — every streamed request used the env default
+  // regardless of what the user picked.
+  const askMode = modeConfig(modelPref as AskMode | undefined);
+  const agentModelSpec = modelForClass(askMode.taskClass) ?? process.env.AI_AGENT_MODEL ?? "openai-compat/gpt-oss-120b";
   const model = agentModelSpec.includes("/") ? agentModelSpec.split("/").slice(1).join("/") : agentModelSpec;
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
@@ -1892,7 +1912,8 @@ router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object
         system: systemPrompt,
         tools: selectTools(message, history),
         messages,
-        maxTokens: 2048,
+        maxTokens: askMode.maxTokens,
+      maxRounds: askMode.maxRounds,
         model: agentModelSpec,
         workspaceId,
         userId,
