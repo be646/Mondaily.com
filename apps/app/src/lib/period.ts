@@ -70,7 +70,14 @@ export function previousRange(p: Period, ref: Date = new Date()): DateRange | nu
 
 export function inRange(dateISO: string | null | undefined, range: DateRange): boolean {
   if (!dateISO) return false;
-  const t = Date.parse(dateISO);
+  // A date-only value ("2026-07-29") is parsed by Date.parse as UTC midnight, but it MEANS that
+  // calendar day where the user is. Ranges are built from local day boundaries, so west of UTC a
+  // row dated the first day of the period sorted before range.start and was silently dropped —
+  // understating expenses and therefore overstating Net. Expenses store both shapes (the API
+  // defaults to date-only, the UI sends a full ISO instant), so normalise here rather than at one
+  // writer. Appending T00:00:00 with no Z parses as LOCAL midnight.
+  const raw = dateISO.trim();
+  const t = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T00:00:00`).getTime() : Date.parse(raw);
   if (Number.isNaN(t)) return false;
   return t >= range.start.getTime() && t <= range.end.getTime();
 }

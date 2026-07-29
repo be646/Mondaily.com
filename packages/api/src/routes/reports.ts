@@ -53,7 +53,7 @@ export async function runReportData(
   workspaceId: string,
   reportId: string,
   input: { type?: string; config?: Record<string, unknown> } = {}
-): Promise<{ error: string } | { data: { label: string; value: number; previous?: number; dropoff?: number; average_days?: number; forecast?: boolean }[]; total?: number; change?: number | null; chart_type: string; forecast_from?: number; slope?: number }> {
+): Promise<{ error: string } | { data: { label: string; value: number; previous?: number; dropoff?: number | null; average_days?: number; forecast?: boolean }[]; total?: number; change?: number | null; chart_type: string; forecast_from?: number; slope?: number }> {
   const { data: reportNode } = await supabase.from("nodes").select("data").eq("workspace_id", workspaceId).eq("object_type", "report").eq("id", reportId).maybeSingle();
   if (!reportNode) return { error: "Report not found" };
   const stored = reportNode.data as { type?: string; config?: Record<string, unknown> };
@@ -78,13 +78,59 @@ export async function runReportData(
   }
   if (!nodes.length && error) return { error: error.message };
 
+  // Honour config.range. The builder offers "Last 30 days / 90 days / 1 year" and stores it, but
+  // nothing here ever read it — every report aggregated the whole table all-time while the UI
+  // said "Last 30 days". Filter on created_at (the same field every branch below buckets by).
+  const RANGE_DAYS: Record<string, number> = { "30d": 30, "90d": 90, "1y": 365 };
+  const rangeDays = RANGE_DAYS[String(config.range ?? "")];
+  if (rangeDays) {
+    const cutoff = Date.now() - rangeDays * 86_400_000;
+    nodes = nodes.filter((n) => {
+      const t = Date.parse(String(n.created_at ?? ""));
+      return Number.isNaN(t) ? true : t >= cutoff;   // keep rows with no usable date rather than silently dropping them
+    });
+  }
+
   if (type === "funnel") {
     const stages: string[] = Array.isArray(config.stages) ? config.stages.map(String) : [];
     const stageField = String(config.stage_field ?? "stage");
+    // A funnel must count records that EVER REACHED each stage, not records currently sitting in
+    // it. The old version compared current-stage snapshots — a deal that advanced past Lead is no
+    // longer in Lead, so "drop-off" was not a conversion rate at all, and Math.max(0, …) quietly
+    // reported 0% whenever a later stage held more records than an earlier one. Stage history
+    // comes from the same activity diffs the time_in_stage branch uses.
+    const nodeIds = (nodes ?? []).map((n) => n.id);
+    const everReached = new Map<string, Set<string>>();
+    for (const n of nodes ?? []) {
+      const cur = String(n.data?.[stageField] ?? "").toLowerCase();
+      if (cur) everReached.set(n.id, new Set([cur]));
+    }
+    if (nodeIds.length) {
+      const { data: acts } = await supabase
+        .from("activities").select("node_id,diff")
+        .eq("workspace_id", workspaceId).in("node_id", nodeIds);
+      for (const a of acts ?? []) {
+        const diff = a.diff as Record<string, unknown> | null;
+        const v = diff?.[stageField] ?? (diff?.data as Record<string, unknown> | undefined)?.[stageField];
+        const key = String(v ?? "").toLowerCase();
+        if (!key) continue;
+        const set = everReached.get(a.node_id as string) ?? new Set<string>();
+        set.add(key);
+        everReached.set(a.node_id as string, set);
+      }
+    }
+    const reachedCount = (stage: string) =>
+      [...everReached.values()].filter((set) => set.has(stage.toLowerCase())).length;
+
     const values = stages.map((stage, index) => {
-      const value = (nodes ?? []).filter((node) => String(node.data?.[stageField] ?? "").toLowerCase() === stage.toLowerCase()).length;
-      const previous = index === 0 ? value : (nodes ?? []).filter((node) => String(node.data?.[stageField] ?? "").toLowerCase() === stages[index - 1]?.toLowerCase()).length;
-      return { label: stage, value, dropoff: previous ? Math.max(0, Math.round((1 - value / previous) * 100)) : 0, average_days: 0 };
+      const value = reachedCount(stage);
+      const previous = index === 0 ? null : reachedCount(String(stages[index - 1] ?? ""));
+      // null (not 0) when there is no comparable base or the data can't support the figure —
+      // the chart renders nothing rather than an invented "0%".
+      const dropoff = previous && previous > 0 && value <= previous
+        ? Math.round((1 - value / previous) * 100)
+        : null;
+      return { label: stage, value, dropoff, average_days: 0 };
     });
     return { data: values, chart_type: "funnel" };
   }

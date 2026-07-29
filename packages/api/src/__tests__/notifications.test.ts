@@ -493,6 +493,24 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect(api).toMatch(/added \$\{names\.join\(", "\)\} to the group\./);
   });
 
+  it("date-only values are compared in local time, not UTC midnight", () => {
+    const period = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/lib/period.ts", import.meta.url)), "utf8");
+    expect(period).toMatch(/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$/);
+    expect(period).toMatch(/new Date\(`\$\{raw\}T00:00:00`\)\.getTime\(\)/);
+  });
+
+  it("Reports: config.range is applied, and the funnel measures real conversion", () => {
+    const rep = readFileSync(fileURLToPath(new URL("../routes/reports.ts", import.meta.url)), "utf8");
+    // range was offered in the builder, stored, and never read
+    expect(rep).toMatch(/const RANGE_DAYS: Record<string, number> = \{ "30d": 30, "90d": 90, "1y": 365 \}/);
+    expect(rep).toMatch(/const rangeDays = RANGE_DAYS\[String\(config\.range \?\? ""\)\]/);
+    // funnel counts records that EVER REACHED a stage, not a current-state snapshot
+    expect(rep).toMatch(/const everReached = new Map<string, Set<string>>\(\);/);
+    expect(rep).toMatch(/const reachedCount = \(stage: string\) =>/);
+    // no invented 0% drop-off
+    expect(rep).not.toMatch(/Math\.max\(0, Math\.round\(\(1 - value \/ previous\) \* 100\)\)/);
+  });
+
   it("zero-valued counts never render as a literal 0", () => {
     expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
     expect(tasksPage).toMatch(/\{!!t\.due_days &&/);

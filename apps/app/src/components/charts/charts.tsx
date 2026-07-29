@@ -161,7 +161,7 @@ export function DonutChart({ data, height = 300 }: { data: Point[]; height?: num
 }
 
 // ── Funnel chart (stages + drop-off) ────────────────────────────────────────
-export function FunnelChart({ data, height = 300 }: { data: (Point & { dropoff?: number })[]; height?: number }) {
+export function FunnelChart({ data, height = 300 }: { data: (Point & { dropoff?: number | null })[]; height?: number }) {
   if (!data.length) return <EmptyChart />;
   const max = Math.max(...data.map(d => d.value), 1);
   return (
@@ -188,7 +188,7 @@ export function FunnelChart({ data, height = 300 }: { data: (Point & { dropoff?:
 
 /** Auto-pick the right chart for the data shape + requested chart type. */
 export function AutoChart({ chartType, data, height, forecastFrom }: {
-  chartType?: string; data: (Point & { dropoff?: number })[]; height?: number; forecastFrom?: number;
+  chartType?: string; data: (Point & { dropoff?: number | null })[]; height?: number; forecastFrom?: number;
 }) {
   if (!data?.length) return <EmptyChart />;
   switch (chartType) {
