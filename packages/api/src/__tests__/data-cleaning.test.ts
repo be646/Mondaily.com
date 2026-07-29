@@ -11,16 +11,44 @@ const sql = readFileSync(join(SRC, "../../db/migrations/20260729_cross_type_dupl
  * by exact match, so it cannot see near-duplicate TYPES (person/people, contacts/contact-leads),
  * which is where this workspace's real ambiguity lives.
  */
-describe("cleaning is read-only", () => {
-  it("performs no mutation of any kind", () => {
-    // Merging business records is destructive and irreversible. This session's recurring failure was
-    // tools correct about the rows they fetched and wrong about what those rows represented — a
-    // cleaner acting on that judgement is the worst version of it. It reports; a human decides.
-    expect(clean).not.toMatch(/\.(delete|update|upsert|insert)\(/);
-    expect(clean).toMatch(/read_only: true/);
-    // and the SQL side is STABLE (read-only) throughout
+describe("cleaning never destroys data", () => {
+  it("deletes nothing, ever", () => {
+    // The scans are pure reads; the one mutating endpoint changes object_type and nothing else.
+    expect(clean).not.toMatch(/\.delete\(/);
+    expect(clean).toMatch(/read_only: true/);          // the overlap scan still says so
+    // every SQL function is STABLE (read-only)
     const volatile = sql.match(/language sql (?!stable)/g) ?? [];
     expect(volatile).toHaveLength(0);
+  });
+
+  it("the only mutation moves object_type — never record content", () => {
+    // A type rename is reversible precisely because no field is combined and no value is chosen
+    // between. The moment it touched `data`, it would stop being reversible.
+    const merge = clean.slice(clean.indexOf('router.post("/merge-types"'));
+    const updates = merge.match(/\.update\(\{[^}]*\}\)/g) ?? [];
+    expect(updates).toEqual(['.update({ object_type: to })']);
+  });
+
+  it("requires an admin and an explicit opt-out of dry-run", () => {
+    expect(clean).toMatch(/router\.post\("\/merge-types", requireAdminRole/);
+    // `dry_run !== false` means the destructive form must be ASKED for; a missing field is safe.
+    expect(clean).toMatch(/dry_run !== false/);
+  });
+
+  it("refuses when the two types actually share records", () => {
+    // Then it IS a record merge — duplicates would land inside one type — and this is the wrong
+    // tool. Measured: the confusable pairs here share 0-2 records, which is why a rename suffices.
+    expect(clean).toMatch(/would create duplicates inside/);
+    expect(clean).toMatch(/status.*409|\}, 409\)/);
+  });
+
+  it("moves records in pages and reports what it did", () => {
+    // An unbounded UPDATE is capped like every other unbounded statement here: it would move SOME
+    // records and report success — the worst possible outcome for a schema change.
+    const merge = clean.slice(clean.indexOf('router.post("/merge-types"'));
+    expect(merge).toMatch(/\.limit\(500\)/);
+    expect(merge).toMatch(/records_moved: moved/);
+    expect(merge).toMatch(/reverse_with/);
   });
 });
 

@@ -4,15 +4,24 @@ import { zValidator } from "@hono/zod-validator";
 import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { isEmbeddingsEnabled } from "../lib/embeddings";
+import { requireAdminRole } from "../middleware/rbac";
 
 /**
- * DATA CLEANING — cross-type overlap analysis.
+ * DATA CLEANING — cross-type overlap analysis, and the one repair it justified.
  *
- * READ-ONLY BY DESIGN. Nothing in this file merges, deletes, or edits a record. Merging business
- * records is destructive and irreversible, and this session established the failure mode that makes
- * that dangerous: tools which are correct about the rows they fetched and wrong about what those
- * rows represent. A cleaner acting on that judgement is the worst possible version of it. So this
- * reports, with evidence, and a human decides.
+ * NOTHING HERE DELETES A RECORD OR EDITS RECORD CONTENT. The scans are pure reads. The single
+ * mutating endpoint (/merge-types) changes `object_type` and nothing else — no field is combined,
+ * no value is chosen between, no row is removed — which is what makes it reversible.
+ *
+ * That restraint is deliberate. Merging business records is irreversible, and this session's
+ * recurring failure was tools that were correct about the rows they fetched and wrong about what
+ * those rows REPRESENTED. A cleaner acting on that judgement is the worst version of it. So the
+ * analysis reports with evidence and a human decides.
+ *
+ * It also earned its scope empirically: the first scan showed person(588)/people(138) share 2
+ * records and company/companies, tasks/task, expenses/expense and contacts/contact-leads share
+ * NONE. There was no record-level duplication to merge — only duplicate type NAMES — so a
+ * record-merge engine was never built.
  *
  * The existing DedupPanel compares records WITHIN one object type by exact match after
  * normalisation. It cannot see near-duplicate TYPES — `person` vs `people`, `contacts` vs
@@ -175,5 +184,95 @@ router.post("/overlap", zValidator("json", z.object({
     read_only: true,
   });
 });
+
+/**
+ * POST /clean/merge-types — move every record of `from` onto `to`.
+ *
+ * This is the ONLY mutating endpoint here, and it exists because the overlap scan showed the real
+ * problem is not duplicate RECORDS but duplicate TYPE NAMES: person(588)/people(138) share 2
+ * records, company/companies and tasks/task share none. There is nothing to merge at the record
+ * level — the records just live under two names for one concept.
+ *
+ * So this changes `object_type` and touches NO record content. Nothing is deleted, no fields are
+ * combined, no values are chosen between. That is what makes it reversible: running it back the
+ * other way restores the previous state exactly.
+ *
+ * Safety:
+ *  - admin only
+ *  - dry_run defaults TRUE, so the destructive form must be asked for explicitly
+ *  - refuses when the two types share records, because then it IS a record merge and this is the
+ *    wrong tool
+ *  - writes an activity row naming both types and the count, so the operation is auditable and the
+ *    inverse is obvious
+ */
+router.post("/merge-types", requireAdminRole, zValidator("json", z.object({
+  from: z.string().min(1),
+  to: z.string().min(1),
+  dry_run: z.boolean().optional(),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const { from, to } = c.req.valid("json");
+  const dryRun = c.req.valid("json").dry_run !== false;   // explicit false required to mutate
+  if (from === to) return c.json({ error: "`from` and `to` are the same type." }, 400);
+
+  const countOf = async (t: string) => {
+    const { count } = await supabase.from("nodes").select("id", { count: "exact", head: true })
+      .eq("workspace_id", ws).eq("object_type", t);
+    return count ?? 0;
+  };
+  const [fromCount, toCount] = await Promise.all([countOf(from), countOf(to)]);
+  if (fromCount === 0) return c.json({ error: `No records have object_type "${from}".` }, 400);
+
+  // If the two types share records, moving them creates real duplicates inside one type. That needs
+  // a record-level merge with a human choosing survivors — not this.
+  const { data: shared } = await supabase.rpc("cross_type_key_overlap", { ws, type_a: from, type_b: to, max_pairs: 5 });
+  const sharedPairs = (shared ?? []) as unknown[];
+  if (sharedPairs.length > 0) {
+    return c.json({
+      error: `"${from}" and "${to}" share records, so moving them would create duplicates inside "${to}".`,
+      shared_pairs: sharedPairs.length,
+      hint: "Resolve the shared records first — this endpoint only renames a type, it never merges record content.",
+    }, 409);
+  }
+
+  if (dryRun) {
+    return c.json({
+      dry_run: true, from, to,
+      records_that_would_move: fromCount,
+      records_already_in_target: toCount,
+      resulting_total: fromCount + toCount,
+      reversible: `POST again with from="${to}", to="${from}" — but that would move all ${fromCount + toCount}, not just these.`,
+      note: "Only object_type changes. No record content is read, combined, or deleted.",
+      confirm_with: { from, to, dry_run: false },
+    });
+  }
+
+  // Paged update: a single unbounded update is capped like every other unbounded statement here,
+  // which would move SOME records and report success — the worst outcome for a schema change.
+  let moved = 0;
+  for (let guard = 0; guard < 200; guard++) {
+    const { data: batch, error: selErr } = await supabase.from("nodes").select("id")
+      .eq("workspace_id", ws).eq("object_type", from).limit(500);
+    if (selErr) return c.json({ error: selErr.message, moved }, 500);
+    const ids = (batch ?? []).map(r => (r as { id: string }).id);
+    if (!ids.length) break;
+    const { error: updErr } = await supabase.from("nodes").update({ object_type: to }).in("id", ids);
+    if (errOf(updErr)) return c.json({ error: errOf(updErr), moved, partial: true }, 500);
+    moved += ids.length;
+  }
+
+  await supabase.from("activities").insert({
+    workspace_id: ws, actor_type: "human", actor_id: c.get("userId"), action: "updated",
+    diff: { data_cleaning: "merge_types", from, to, records_moved: moved },
+  }).then(() => {}, () => {});
+
+  return c.json({ ok: true, from, to, records_moved: moved, now_in_target: moved + toCount,
+    reverse_with: { from: to, to: from, dry_run: false },
+    caveat: `Reversing moves ALL ${moved + toCount} records in "${to}", including the ${toCount} that were already there.` });
+});
+
+function errOf(e: unknown): string | null {
+  return e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : null;
+}
 
 export { router as cleanRouter };
