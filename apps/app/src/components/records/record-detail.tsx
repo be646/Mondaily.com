@@ -24,7 +24,7 @@ import { ActivityTimeline } from "./activity-timeline";
 import { LeadScoreBadge } from "./lead-score-badge";
 import { PipelineHealthBadge, type PipelineHealth } from "./pipeline-health-badge";
 import { useAskContextStore } from "../../lib/ask-context-store";
-import { AIAgentOwnerChip, AIInsightBadge, AIHealthScore, AISignalList } from "../ai/ai-intelligence";
+import { AIAgentOwnerChip, AIInsightBadge, AIHealthScore, AISignalList, OWNER_BY_OBJECT_TYPE } from "../ai/ai-intelligence";
 import { AIInspector } from "../ai/ai-inspector";
 import { GraphContextButton } from "../graph/graph-context-drawer";
 
@@ -1960,17 +1960,44 @@ export function RecordDetail({ recordId, objectType }: { recordId: string; objec
             {/* AI Intelligence layer — real fields written by relationship-health.ts
                 and the enrichment job, with honest empty states when they
                 haven't run for this record yet. */}
-            <div className="space-y-2">
-              <p className="text-label text-[var(--text-secondary)]">Intelligence</p>
-              <AIAgentOwnerChip objectType={record.object_type}/>
-              <AIInsightBadge summary={record.ai_summary}/>
-              <AIHealthScore
-                score={(record as unknown as Record<string, unknown>).relationship_health as number | undefined ?? null}
-                label="Relationship health"
-                updatedAt={(record as unknown as Record<string, unknown>).health_updated_at as string | undefined}
-              />
-              <AISignalList signals={(record as unknown as Record<string, unknown>).health_signals as Record<string, number> | undefined}/>
-            </div>
+            {/* Intelligence — ONE card.
+                These four components each render their own negative empty state, so a record with
+                no agent activity showed four separate ways of saying "nothing yet", stacked, in the
+                narrowest column on the page. Now: render only the parts that actually have
+                something to say, and when none of them do, say it once. */}
+            {(() => {
+              const rec = record as unknown as Record<string, unknown>;
+              const health = (rec.relationship_health as number | undefined) ?? null;
+              const signals = rec.health_signals as Record<string, number> | undefined;
+              const hasOwner   = Boolean(OWNER_BY_OBJECT_TYPE[record.object_type.toLowerCase()]);
+              const hasSummary = Boolean(record.ai_summary);
+              const hasHealth  = health != null;
+              const hasSignals = Boolean(signals && Object.keys(signals).length);
+              const anything = hasOwner || hasSummary || hasHealth || hasSignals;
+              return (
+                <div className="space-y-2 rounded-sm border border-[var(--border-soft)] p-3">
+                  <p className="text-body text-[var(--text-secondary)]">Intelligence</p>
+                  {!anything ? (
+                    <p className="text-body text-[var(--text-faint)]">
+                      No agent has looked at this record yet. Findings appear here once one runs.
+                    </p>
+                  ) : (
+                    <>
+                      {hasOwner   && <AIAgentOwnerChip objectType={record.object_type}/>}
+                      {hasSummary && <AIInsightBadge summary={record.ai_summary}/>}
+                      {hasHealth  && (
+                        <AIHealthScore
+                          score={health}
+                          label="Relationship health"
+                          updatedAt={rec.health_updated_at as string | undefined}
+                        />
+                      )}
+                      {hasSignals && <AISignalList signals={signals}/>}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Action row: Email + Add to list */}
             <div className="grid grid-cols-2 gap-2">

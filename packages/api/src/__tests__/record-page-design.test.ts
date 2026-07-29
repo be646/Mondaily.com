@@ -81,6 +81,26 @@ describe("record detail structure", () => {
     expect(detail).not.toMatch(/No emails linked yet/);
   });
 
+  it("the intelligence block says 'nothing yet' ONCE, not four times", () => {
+    // AIAgentOwnerChip / AIInsightBadge / AIHealthScore / AISignalList each render their own
+    // negative empty state, so a record with no agent activity stacked four separate ways of
+    // saying nothing in the narrowest column on the page.
+    expect(detail).toMatch(/const anything = hasOwner \|\| hasSummary \|\| hasHealth \|\| hasSignals/);
+    expect(detail).toMatch(/No agent has looked at this record yet/);
+    // each part renders only when it has something to say
+    for (const g of ["hasOwner   &&", "hasSummary &&", "hasHealth  &&", "hasSignals &&"]) {
+      expect(detail).toContain(g);
+    }
+  });
+
+  it("the identity column has no filled cards left", () => {
+    // Everything else moved to hairlines in R1; these two kept a background and stood out.
+    const health = app("components/ai/ai-intelligence.tsx");
+    expect(health).not.toMatch(/<div className="rounded-sm p-3" style=\{\{ background: "var\(--surface-hover\)" \}\}>/);
+    const lead = app("components/records/lead-score-badge.tsx");
+    expect(lead).toMatch(/rounded-sm border \$\{colors\.edge\}/);
+  });
+
   it("record navigation degrades honestly when the list cache is cold", () => {
     // On a deep link `siblings` is empty and the strip does not render, rather than inventing
     // a position like "1 of 1".

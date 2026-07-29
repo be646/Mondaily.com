@@ -8,9 +8,11 @@ interface Props {
 }
 
 function scoreColor(score: number) {
-  if (score >= 70) return { text: "text-status-ok", bg: "bg-status-ok/10 border-status-ok/20", bar: "bg-status-ok" };
-  if (score >= 40) return { text: "text-status-warn", bg: "bg-status-warn/10 border-status-warn/20", bar: "bg-status-warn" };
-  return { text: "text-stone-500", bg: "bg-[var(--surface-hover)] border-[var(--border-soft)]", bar: "bg-stone-600" };
+  // `bg` = the pill tint (a chip needs a fill to read as one). `edge` = border only, for the card
+  // variant, which sits on the page like every other card in the identity column.
+  if (score >= 70) return { text: "text-status-ok", bg: "bg-status-ok/10 border-status-ok/20", edge: "border-status-ok/20", bar: "bg-status-ok" };
+  if (score >= 40) return { text: "text-status-warn", bg: "bg-status-warn/10 border-status-warn/20", edge: "border-status-warn/20", bar: "bg-status-warn" };
+  return { text: "text-stone-500", bg: "bg-[var(--surface-hover)] border-[var(--border-soft)]", edge: "border-[var(--border-soft)]", bar: "bg-stone-600" };
 }
 
 function scoreLabel(score: number) {
@@ -64,7 +66,7 @@ export function LeadScoreBadge({ score, size = "sm", signals }: Props) {
   const factors = signals ? factorsFrom(signals) : [];
 
   return (
-    <div className={`rounded-sm border ${colors.bg} px-4 py-3`}>
+    <div className={`rounded-sm border ${colors.edge} px-4 py-3`}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
           <TrendingUp size={13} className={colors.text} />
