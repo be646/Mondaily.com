@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, Check, ChevronLeft, Clipboard, Clock3, Pause, Play, Search, Volume2, X, UploadCloud, Printer, RefreshCw, Loader2, ListChecks, ShieldCheck } from "lucide-react";
+import { Bot, Check, ChevronLeft, Clipboard, Clock3, Pause, Play, Search, Volume2, X, Printer, RefreshCw, Loader2, ListChecks, ShieldCheck, PhoneCall } from "lucide-react";
+import { CommandPageHeader } from "@/components/ui/controls";
 import { LogoMark } from "@/components/logo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -228,32 +229,41 @@ export function CallDetailPage() {
 
   return (
     <div className="relative min-h-full">
-      <header className="flex flex-wrap items-center gap-3 border-b border-[var(--border-soft)] px-4 py-4 sm:px-6">
-        <Link to="/calls" title="Back to calls" className="grid h-8 w-8 place-items-center rounded hover:bg-[var(--surface-hover)]"><ChevronLeft size={17} /></Link>
-        <div className="min-w-0 flex-1">
-          <h1 className="flex items-center gap-2 truncate text-lg font-semibold">{call.contact_name}
-            {call.meeting_type && call.meeting_type !== "general" && (
-              <span className="shrink-0 rounded-sm border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{MEETING_TYPE_META[call.meeting_type].label}</span>
-            )}
-          </h1>
-          <p className="mt-0.5 text-xs text-[var(--text-muted)]">{new Date(call.occurred_at).toLocaleString()}{call.duration_seconds > 0 ? ` · ${Math.round(call.duration_seconds / 60)} min` : ""}</p>
-          {call.source === "upload_recording" && (
-            <p className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--text-faint)]">
-              <UploadCloud size={11} /> Uploaded recording{call.origin_filename ? ` · ${call.origin_filename}` : ""} · consent attested
-            </p>
-          )}
-          {call.source === "meeting_recording" && (
-            <p className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--text-faint)]">
-              <Volume2 size={11} /> Native Mondaily call recording · participants were notified in-call
-            </p>
-          )}
-        </div>
-        <button onClick={() => window.print()} title="Print / export" className="hidden h-9 items-center gap-1.5 rounded-sm border px-3 text-[13px] font-medium sm:flex" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><Printer size={13} /> Print</button>
-        {call.status === "failed" && (
-          <button onClick={() => reprocess.mutate()} disabled={reprocess.isPending} title="Retry transcription/summary" className="flex h-9 items-center gap-1.5 rounded-sm border px-3 text-[13px] font-medium disabled:opacity-60" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{reprocess.isPending ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Reprocess</button>
-        )}
-        <button onClick={() => setAnalysisOpen(true)} className="flex h-9 items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 text-sm font-medium text-[var(--section-accent-text)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors"><LogoMark size={14} /> Run analysis</button>
-      </header>
+      {/* Was a bespoke header with a THREE-BUTTON WALL (Print / Reprocess / Run analysis), all
+          weighted identically so nothing read as the main action. Now the app-standard header with
+          one saturated primary; the provenance lines (uploaded recording / native call) become
+          status chips instead of stacked paragraphs. */}
+      <div className="px-4 pt-4 sm:px-6">
+        <CommandPageHeader
+          icon={PhoneCall}
+          callsign="COMMS"
+          title={call.contact_name}
+          subtitle={`${new Date(call.occurred_at).toLocaleString()}${call.duration_seconds > 0 ? ` · ${Math.round(call.duration_seconds / 60)} min` : ""}`}
+          status={[
+            ...(call.meeting_type && call.meeting_type !== "general"
+              ? [{ label: MEETING_TYPE_META[call.meeting_type].label, dot: false as const }]
+              : []),
+            ...(call.source === "upload_recording"
+              ? [{ label: `Uploaded recording${call.origin_filename ? ` · ${call.origin_filename}` : ""} · consent attested`, kind: "monitoring" as const }]
+              : []),
+            ...(call.source === "meeting_recording"
+              ? [{ label: "Native Mondaily call recording · participants were notified in-call", kind: "monitoring" as const }]
+              : []),
+          ]}
+          secondaryActions={
+            <>
+              <Link to="/calls" title="Back to calls" className="grid h-8 w-8 place-items-center rounded-sm text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"><ChevronLeft size={15} /></Link>
+              <button onClick={() => window.print()} title="Print / export" className="hidden h-8 items-center gap-1.5 rounded-sm border px-3 text-body font-medium sm:flex" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><Printer size={13} /> Print</button>
+              {call.status === "failed" && (
+                <button onClick={() => reprocess.mutate()} disabled={reprocess.isPending} title="Retry transcription/summary" className="flex h-8 items-center gap-1.5 rounded-sm border px-3 text-body font-medium disabled:opacity-60" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{reprocess.isPending ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Reprocess</button>
+              )}
+            </>
+          }
+          primaryAction={
+            <button onClick={() => setAnalysisOpen(true)} className="btn-solid flex h-8 items-center gap-2 px-3 text-body font-medium"><LogoMark size={14} /> Run analysis</button>
+          }
+        />
+      </div>
       <div className="grid min-h-[calc(100vh-74px)] lg:grid-cols-[minmax(320px,0.8fr)_minmax(480px,1.2fr)]">
         <section className="border-b border-[var(--border-soft)] p-4 sm:p-6 lg:border-b-0 lg:border-r">
           <div className="grid grid-cols-2 gap-3 rounded-sm border border-[var(--border-soft)] p-4 text-sm">
@@ -265,14 +275,14 @@ export function CallDetailPage() {
           <h2 className="mb-3 mt-6 text-xs font-semibold uppercase text-[var(--text-muted)]">Participants</h2>
           <div className="overflow-hidden rounded-sm border border-[var(--border-soft)] divide-y divide-[var(--border-soft)]">{(call.participants ?? []).map((person) => person.id ? <Link key={person.id} to={`/objects/${person.object_type || "people"}/${person.id}`} className="flex items-center gap-3 px-3 py-2.5 hover:bg-[var(--surface-hover)]"><div className="grid h-8 w-8 place-items-center rounded-full bg-[var(--surface-hover)] text-xs">{person.name.slice(0, 2).toUpperCase()}</div><div><p className="text-sm">{person.name}</p><p className="text-xs text-[var(--text-secondary)]">{person.email}</p></div></Link> : <div key={person.email || person.name} className="flex items-center gap-3 px-3 py-2.5"><div className="grid h-8 w-8 place-items-center rounded-full bg-[var(--surface-hover)] text-xs">{person.name.slice(0, 2).toUpperCase()}</div><div><p className="text-sm">{person.name}</p><p className="text-xs text-[var(--text-secondary)]">{person.email}</p></div></div>)}</div>
           {(call.linked_records ?? []).length ? <div className="mt-3 flex flex-wrap gap-2">{(call.linked_records ?? []).map((record) => <Link key={record.id} to={`/objects/${record.object_type}/${record.id}`} className="rounded-full border border-[var(--border-soft)] px-2.5 py-1 text-xs text-[var(--text-faint)]">{record.name}</Link>)}</div> : null}
-          <SummarySection title="Overview"><p className="text-sm leading-6 text-[var(--text-secondary)]">{call.overview || call.ai_summary || "No summary generated yet."}</p></SummarySection>
+          <SummarySection title="Overview">{(call.overview || call.ai_summary) ? <p className="text-sm leading-6 text-[var(--text-secondary)]">{call.overview || call.ai_summary}</p> : <NotYet>No summary yet — run analysis to generate one from the transcript.</NotYet>}</SummarySection>
           {/* Type-aware sections — only rendered when the transcript produced them (never fabricated). */}
           {(call.summary_sections ?? []).filter(s => s && Array.isArray(s.points) && s.points.length > 0).map((s) => (
             <SummarySection key={s.key} title={s.label || s.key}>
               <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{s.points.map((p, i) => <li key={i}>• {String(p)}</li>)}</ul>
             </SummarySection>
           ))}
-          <SummarySection title="Key topics">{(call.key_topics ?? []).length ? <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{(call.key_topics ?? []).map((topic) => <li key={topic}>• {topic}</li>)}</ul> : <p className="text-sm text-[var(--text-muted)]">No key topics extracted.</p>}</SummarySection>
+          <SummarySection title="Key topics">{(call.key_topics ?? []).length ? <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{(call.key_topics ?? []).map((topic) => <li key={topic}>• {topic}</li>)}</ul> : <NotYet>No key topics yet — these come from the transcript once analysis runs.</NotYet>}</SummarySection>
           <SummarySection title="Action items">{(call.action_items ?? []).length ? <div className="space-y-1.5">{(call.action_items ?? []).map((item, index) => {
             const promo = call.action_item_promotions?.[String(index)];
             const busy = promoting?.index === index;
@@ -301,13 +311,13 @@ export function CallDetailPage() {
                 </div>
               </div>
             );
-          })}</div> : <p className="text-sm text-[var(--text-muted)]">No action items identified.</p>}</SummarySection>
+          })}</div> : <NotYet>No action items yet — analysis extracts these from what was agreed.</NotYet>}</SummarySection>
           <SummarySection title="Buyer signals"><div className="space-y-2">{(call.buyer_signals ?? []).map((signal) => <div key={signal.text} className={`rounded-sm border px-3 py-2 text-sm ${signal.type === "positive" ? "border-[#2f9e6b]/20 bg-[#2f9e6b]/5 text-[#2f9e6b]" : "border-stone-500/30 bg-stone-600/5 text-stone-300"}`}>{signal.text}</div>)}</div></SummarySection>
-          <SummarySection title="Next steps">{(call.next_steps ?? []).length ? <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{(call.next_steps ?? []).map((step) => <li key={step}>• {step}</li>)}</ul> : <p className="text-sm text-[var(--text-muted)]">No next steps recommended.</p>}</SummarySection>
+          <SummarySection title="Next steps">{(call.next_steps ?? []).length ? <ul className="space-y-2 text-sm text-[var(--text-secondary)]">{(call.next_steps ?? []).map((step) => <li key={step}>• {step}</li>)}</ul> : <NotYet>No next steps yet — analysis suggests these from the conversation.</NotYet>}</SummarySection>
         </section>
         <section className="min-w-0 p-4 sm:p-6">
           {!call.is_event && (
-          <div className="rounded-lg border border-[var(--border-soft)] p-4">
+          <div className="rounded-sm border border-[var(--border-soft)] p-4">
             {/* Gate on audioSrc, not call.audio_url: uploaded/egress recordings have
                 audio_url undefined and has_recording true, so the signed URL from
                 /calls/:id/recording-url was fetched and then never rendered — the player
@@ -339,11 +349,11 @@ export function CallDetailPage() {
           {/* Canonical transcript = the RECORDING transcript when present; otherwise the saved LIVE transcript.
               The two are never merged; the header chip above says which source is shown. */}
           {visibleTranscript.length ? (
-            <div className="space-y-1">{visibleTranscript.map((line, index) => <div key={`${line.start_time}-${index}`} className="group flex gap-3 rounded-lg p-3 hover:bg-[var(--surface-hover)]"><button onClick={() => waveRef.current?.setTime(line.start_time)} className="shrink-0 font-mono text-xs text-[var(--text-faint)]">{formatTime(line.start_time)}</button><div className="min-w-0 flex-1"><p className="mb-1 text-xs font-semibold text-[var(--text-muted)]">{line.speaker}</p><p className="text-sm leading-6 text-[var(--text-secondary)]"><HighlightedText text={line.text} query={transcriptSearch} /></p></div><button title="Copy transcript paragraph" onClick={() => navigator.clipboard.writeText(line.text)} className="grid h-7 w-7 shrink-0 place-items-center rounded text-[var(--text-secondary)] opacity-0 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] group-hover:opacity-100"><Clipboard size={12} /></button></div>)}</div>
+            <div className="space-y-1">{visibleTranscript.map((line, index) => <div key={`${line.start_time}-${index}`} className="group flex gap-3 rounded-sm p-3 hover:bg-[var(--surface-hover)]"><button onClick={() => waveRef.current?.setTime(line.start_time)} className="shrink-0 font-mono text-xs text-[var(--text-faint)]">{formatTime(line.start_time)}</button><div className="min-w-0 flex-1"><p className="mb-1 text-xs font-semibold text-[var(--text-muted)]">{line.speaker}</p><p className="text-sm leading-6 text-[var(--text-secondary)]"><HighlightedText text={line.text} query={transcriptSearch} /></p></div><button title="Copy transcript paragraph" onClick={() => navigator.clipboard.writeText(line.text)} className="grid h-7 w-7 shrink-0 place-items-center rounded text-[var(--text-secondary)] opacity-0 hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] group-hover:opacity-100"><Clipboard size={12} /></button></div>)}</div>
           ) : call.live_transcript?.length ? (
             <div className="space-y-1">
               {call.live_transcript.map((line) => (
-                <div key={line.line_id} className="group flex gap-3 rounded-lg p-3 hover:bg-[var(--surface-hover)]">
+                <div key={line.line_id} className="group flex gap-3 rounded-sm p-3 hover:bg-[var(--surface-hover)]">
                   <span className="shrink-0 font-mono text-xs text-[var(--text-faint)]">{line.ts ? new Date(line.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</span>
                   <div className="min-w-0 flex-1">
                     <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-[var(--text-muted)]">{line.speaker_name}{line.lang ? <span className="rounded-sm bg-[var(--surface-hover)] px-1 text-[9px] uppercase tracking-wide text-[var(--text-faint)]">{line.lang}</span> : null}</p>
@@ -354,19 +364,25 @@ export function CallDetailPage() {
               ))}
             </div>
           ) : call.recording_processing ? (
-            <div className="flex items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--border-soft)] p-8 text-sm text-[var(--text-muted)]">
+            <div className="flex items-center justify-center gap-2 rounded-sm border border-dashed border-[var(--border-soft)] p-8 text-sm text-[var(--text-muted)]">
               <Loader2 size={14} className="animate-spin" /> Transcription in progress — this call was recorded and its transcript is still being generated.
             </div>
           ) : (
-            <p className="rounded-lg border border-dashed border-[var(--border-soft)] p-8 text-center text-sm leading-6 text-[var(--text-muted)]">No transcript for this call.<br /><span className="text-[var(--text-faint)]">Turn on live captions during a call, or record it, to capture a transcript here.</span></p>
+            <p className="rounded-sm border border-dashed border-[var(--border-soft)] p-8 text-center text-sm leading-6 text-[var(--text-muted)]">No transcript for this call.<br /><span className="text-[var(--text-faint)]">Turn on live captions during a call, or record it, to capture a transcript here.</span></p>
           )}
         </section>
       </div>
-      {analysisOpen ? <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setAnalysisOpen(false)}><aside onClick={(event) => event.stopPropagation()} className="ml-auto flex h-full w-full max-w-md flex-col border-l border-[var(--border-soft)] bg-[var(--surface-card)]"><div className="flex items-center justify-between border-b border-[var(--border-soft)] p-5"><div><h2 className="font-medium">AI insight templates</h2><p className="mt-1 text-xs text-[var(--text-muted)]">Run focused analysis on this transcript.</p></div><button onClick={() => setAnalysisOpen(false)} className="grid h-8 w-8 place-items-center rounded hover:bg-[var(--surface-hover)]"><X size={16} /></button></div><div className="min-h-0 flex-1 space-y-3 overflow-auto p-4">{templates.map(([templateId, label]) => <article key={templateId} className="rounded-lg border border-[var(--border-soft)] p-4"><button onClick={() => runAnalysis(templateId)} disabled={analyzing} className="flex w-full items-center gap-3 text-left"><div className="grid h-8 w-8 place-items-center rounded bg-stone-500/10 text-stone-400"><Bot size={14} /></div><span className="flex-1 text-sm font-medium">{label}</span><LogoMark size={14} className="text-[var(--text-faint)]" /></button>{analysisResults[templateId] !== undefined ? <div className="mt-4 whitespace-pre-wrap border-t border-[var(--border-soft)] pt-4 text-sm leading-6 text-[var(--text-secondary)]">{analysisResults[templateId]}{analyzing && activeTemplate === templateId ? <span className="ml-1 inline-block h-3 w-1 animate-pulse bg-[var(--text-faint)]" /> : null}</div> : null}</article>)}</div></aside></div> : null}
+      {analysisOpen ? <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setAnalysisOpen(false)}><aside onClick={(event) => event.stopPropagation()} className="ml-auto flex h-full w-full max-w-md flex-col border-l border-[var(--border-soft)] bg-[var(--surface-card)]"><div className="flex items-center justify-between border-b border-[var(--border-soft)] p-5"><div><h2 className="font-medium">AI insight templates</h2><p className="mt-1 text-xs text-[var(--text-muted)]">Run focused analysis on this transcript.</p></div><button onClick={() => setAnalysisOpen(false)} className="grid h-8 w-8 place-items-center rounded hover:bg-[var(--surface-hover)]"><X size={16} /></button></div><div className="min-h-0 flex-1 space-y-3 overflow-auto p-4">{templates.map(([templateId, label]) => <article key={templateId} className="rounded-sm border border-[var(--border-soft)] p-4"><button onClick={() => runAnalysis(templateId)} disabled={analyzing} className="flex w-full items-center gap-3 text-left"><div className="grid h-8 w-8 place-items-center rounded bg-stone-500/10 text-stone-400"><Bot size={14} /></div><span className="flex-1 text-sm font-medium">{label}</span><LogoMark size={14} className="text-[var(--text-faint)]" /></button>{analysisResults[templateId] !== undefined ? <div className="mt-4 whitespace-pre-wrap border-t border-[var(--border-soft)] pt-4 text-sm leading-6 text-[var(--text-secondary)]">{analysisResults[templateId]}{analyzing && activeTemplate === templateId ? <span className="ml-1 inline-block h-3 w-1 animate-pulse bg-[var(--text-faint)]" /> : null}</div> : null}</article>)}</div></aside></div> : null}
     </div>
   );
 }
 
+/** One empty line for the summary sections. These were five different bare strings; an
+ *  un-analysed call needs to read as "hasn't run yet", not as an absence of content. */
+function NotYet({ children }: { children: React.ReactNode }) {
+  return <p className="rounded-sm border border-dashed border-[var(--border-soft)] px-3 py-4 text-body text-[var(--text-faint)]">{children}</p>;
+}
+
 function SummarySection({ title, children }: { title: string; children: React.ReactNode }) {
-  return <section className="mt-7"><h2 className="mb-3 text-xs font-semibold uppercase text-[var(--text-muted)]">{title}</h2>{children}</section>;
+  return <section className="mt-7"><h2 className="mb-3 text-body text-[var(--text-secondary)]">{title}</h2>{children}</section>;
 }

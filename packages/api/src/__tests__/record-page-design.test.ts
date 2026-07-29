@@ -176,3 +176,32 @@ describe("every section has its own identity", () => {
     expect(sections).toMatch(/"\/messages", "THREAD"/);
   });
 });
+
+describe("call detail — chrome only, transcript untouched", () => {
+  const cd = app("routes/dashboard/call-detail.tsx");
+
+  it("uses the standard header with ONE saturated action", () => {
+    // Was a bespoke header with Print / Reprocess / Run analysis all weighted identically, so
+    // nothing read as the main action.
+    expect(cd).toMatch(/<CommandPageHeader/);
+    expect(cd).toMatch(/callsign="COMMS"/);
+    const solid = cd.match(/btn-solid/g) ?? [];
+    expect(solid).toHaveLength(1);
+  });
+
+  it("states WHY a section is empty rather than that it is empty", () => {
+    // five bare strings ("No key topics extracted.") -> one shared component that says the
+    // analysis has not run, which is the actual situation.
+    expect(cd).toMatch(/function NotYet/);
+    expect(cd).not.toMatch(/No key topics extracted\./);
+    expect(cd).not.toMatch(/No action items identified\./);
+    expect(cd).not.toMatch(/No next steps recommended\./);
+  });
+
+  it("keeps the transcript / audio pipeline intact", () => {
+    // FORBIDDEN zone: this pass may restyle it and nothing more.
+    for (const anchor of ["audioSrc", "transcriptSource(call)", "waveRef.current?.setTime", "reprocess.mutate()", "visibleTranscript"]) {
+      expect(cd, `${anchor} must survive a visual pass`).toContain(anchor);
+    }
+  });
+});
