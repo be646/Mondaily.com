@@ -838,8 +838,17 @@ async function executeTool(
         // with 117 records. The tool never sees the user's phrasing, so it cannot know which was
         // meant; what it CAN do is refuse to answer as if the choice were unambiguous.
         const norm2 = (x: string) => x.toLowerCase().replace(/[-_\s]/g, "");
+        // Stem so singular/plural pairs collide: person/people, company/companies, entry/entries.
+        const stem = (x: string) => {
+          const n = norm2(x);
+          for (const [from, to] of [["people", "person"], ["ies", "y"], ["ses", "s"], ["s", ""]] as const) {
+            if (n.endsWith(from)) return n.slice(0, n.length - from.length) + to;
+          }
+          return n;
+        };
         const confusable = known.filter(k => k !== asked
-          && (norm2(k).includes(norm2(asked)) || norm2(asked).includes(norm2(k))));
+          && (norm2(k).includes(norm2(asked)) || norm2(asked).includes(norm2(k))
+              || stem(k) === stem(asked)));
         let siblingNote = "";
         if (confusable.length) {
           const counts = await Promise.all(confusable.map(async k => {

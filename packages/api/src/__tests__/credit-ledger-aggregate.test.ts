@@ -203,6 +203,10 @@ describe("Ask never answers from model priors", () => {
     // "contacts, companies, deals, or any custom object slug", so guessing `contacts` for
     // "contact leads" was reasonable. The system context now lists the real slugs with counts.
     expect(ask).toMatch(/OBJECT TYPES THAT EXIST IN THIS WORKSPACE/);
+    // Singular/plural is the commonest confusion and shares no substring: this workspace has BOTH
+    // `person` (568) and `people` (138) as real, distinct types. Substring matching missed them.
+    expect(ask).toMatch(/\["people", "person"\]/);
+    expect(ask).toMatch(/stem\(k\) === stem\(asked\)/);
     expect(ask).toMatch(/Use these EXACT slugs when calling tools/);
   });
 
