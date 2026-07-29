@@ -97,6 +97,29 @@ describe("cross-type overlap", () => {
   });
 });
 
+describe("within-type duplicate scan", () => {
+  it("separates identity keys from mere resemblance", () => {
+    // source_url and email identify an entity. A name does NOT — two different businesses can share
+    // one — so it is reported separately and never presented as actionable on its own.
+    expect(sql).toMatch(/function within_type_duplicate_groups/);
+    expect(clean).toMatch(/strong_groups:/);
+    expect(clean).toMatch(/weak_groups:/);
+    expect(clean).toMatch(/two businesses can share a name/);
+  });
+
+  it("counts distinct redundant records, not group memberships", () => {
+    // One record can appear in several groups (same email AND same name); summing group sizes
+    // double-counts and overstates how much there is to clean.
+    expect(clean).toMatch(/const redundant = new Set<string>\(\)/);
+    expect(clean).toMatch(/redundant_records_by_strong_key: redundant\.size/);
+  });
+
+  it("is read-only like the rest of the analysis", () => {
+    const scan = clean.slice(clean.indexOf('router.post("/duplicates"'), clean.indexOf('router.post("/merge-types"'));
+    expect(scan).not.toMatch(/\.(delete|update|insert|upsert)\(/);
+  });
+});
+
 describe("discovery cannot re-create the same lead", () => {
   const decisions = readFileSync(join(SRC, "routes/decisions.ts"), "utf8");
 

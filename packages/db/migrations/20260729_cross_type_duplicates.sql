@@ -73,3 +73,38 @@ language sql stable as $$
   group by n.object_type
   order by count(*) desc
 $$;
+
+-- ── 4. WITHIN-type duplicate groups ────────────────────────────────────────────────────────────
+-- The cross-type scan above answered "do these two types overlap?" and the answer was mostly no.
+-- The actual damage was inside a single type: 588 `person` records for 136 distinct entities, from
+-- a Discovery monitor that re-created the same leads every 4 hours. This groups records of ONE type
+-- that share an identity key, so the duplicates are visible and countable.
+--
+-- Keyed on source_url / email / phone / name, in that order of confidence. name is included because
+-- the observed duplicates share it, but it is reported as the WEAKEST signal — two different
+-- businesses can share a name and must never be merged on that alone.
+create or replace function within_type_duplicate_groups(
+  ws uuid, target_type text, max_groups int default 200
+)
+returns table (match_key text, match_value text, copies bigint, node_ids uuid[])
+language sql stable as $$
+  with norm as (
+    select n.id,
+      nullif(trim(coalesce(n.data->>'source_url', '')), '')                                        as source_url,
+      nullif(lower(trim(coalesce(n.data->>'email', n.data->>'Email', ''))), '')                     as email,
+      nullif(regexp_replace(coalesce(n.data->>'phone', n.data->>'Phone', ''), '[^0-9]', '', 'g'), '') as phone,
+      nullif(lower(regexp_replace(coalesce(n.data->>'name', n.data->>'Name', ''), '[^a-z0-9]', '', 'gi')), '') as name
+    from nodes n
+    where n.workspace_id = ws and n.object_type = target_type
+  ),
+  grouped as (
+    select 'source_url'::text as k, source_url as v, count(*) c, array_agg(id) ids from norm where source_url is not null group by source_url
+    union all
+    select 'email',      email, count(*), array_agg(id) from norm where email is not null group by email
+    union all
+    select 'phone',      phone, count(*), array_agg(id) from norm where phone is not null and length(phone) >= 7 group by phone
+    union all
+    select 'name',       name,  count(*), array_agg(id) from norm where name  is not null and length(name)  >= 4 group by name
+  )
+  select k, v, c, ids from grouped where c > 1 order by c desc limit max_groups
+$$;

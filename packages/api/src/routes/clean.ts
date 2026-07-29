@@ -186,6 +186,56 @@ router.post("/overlap", zValidator("json", z.object({
 });
 
 /**
+ * POST /clean/duplicates — duplicate groups WITHIN one object type.
+ *
+ * The cross-type scan asked "do these two types overlap?" and mostly answered no. The real damage
+ * was inside a single type: 588 `person` records for 136 distinct entities, created by a Discovery
+ * monitor that re-ran every 4 hours with no existence check (fixed in routes/decisions.ts).
+ *
+ * Read-only. Groups are ordered by confidence — source_url and email identify an entity; name does
+ * NOT, and is reported separately so it is never actioned as if it did.
+ */
+router.post("/duplicates", zValidator("json", z.object({
+  object_type: z.string().min(1),
+  max_groups: z.number().int().min(1).max(500).optional(),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const { object_type, max_groups = 200 } = c.req.valid("json");
+
+  const { data, error } = await supabase.rpc("within_type_duplicate_groups", {
+    ws, target_type: object_type, max_groups,
+  });
+  if (error) return c.json({ error: `Duplicate scan failed: ${error.message}`, hint: "Has the cross-type-duplicates migration been applied?" }, 500);
+
+  const groups = (data ?? []) as { match_key: string; match_value: string; copies: number; node_ids: string[] }[];
+  const { count: total } = await supabase.from("nodes").select("id", { count: "exact", head: true })
+    .eq("workspace_id", ws).eq("object_type", object_type);
+
+  // A record can appear in several groups (same email AND same name). Count DISTINCT redundant
+  // records, or the headline double-counts and overstates how much there is to clean.
+  const strong = groups.filter(g => g.match_key === "source_url" || g.match_key === "email");
+  const weak   = groups.filter(g => g.match_key === "name" || g.match_key === "phone");
+  const redundant = new Set<string>();
+  for (const g of strong) g.node_ids.slice(1).forEach(id => redundant.add(id));
+
+  return c.json({
+    object_type,
+    total_records: total ?? 0,
+    strong_groups: strong.map(g => ({ matched_on: g.match_key, value: g.match_value, copies: Number(g.copies), node_ids: g.node_ids })),
+    weak_groups:   weak.map(g   => ({ matched_on: g.match_key, value: g.match_value, copies: Number(g.copies), node_ids: g.node_ids })),
+    summary: {
+      redundant_records_by_strong_key: redundant.size,
+      would_remain: (total ?? 0) - redundant.size,
+      strong_group_count: strong.length,
+      weak_group_count: weak.length,
+      truncated: groups.length >= max_groups,
+    },
+    guidance: "strong_groups (source_url/email) identify the same entity. weak_groups (name/phone) are candidates only — two businesses can share a name, so these need a human before any action.",
+    read_only: true,
+  });
+});
+
+/**
  * POST /clean/merge-types — move every record of `from` onto `to`.
  *
  * This is the ONLY mutating endpoint here, and it exists because the overlap scan showed the real
