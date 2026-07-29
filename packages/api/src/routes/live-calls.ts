@@ -138,6 +138,13 @@ router.post("/rooms/:id/end", zValidator("json", z.object({ status: z.enum(["end
     .eq("workspace_id", ws).eq("id", c.req.param("id")).maybeSingle();
   if (!session) return c.json({ error: "Call not found." }, 404);
   if (me !== session.initiator_id && me !== session.invitee_id) return c.json({ error: "You are not part of this call." }, 403);
+  // Terminal states are terminal: without this, an already-ended call could be re-ended (or
+  // flipped to declined/missed) by any participant, rewriting status and ended_at — and
+  // re-triggering the egress stop below.
+  const TERMINAL = new Set(["ended", "declined", "missed"]);
+  if (TERMINAL.has(String(session.status ?? ""))) {
+    return c.json({ ok: true, already: session.status });
+  }
   await supabase.from("call_sessions").update({ status: c.req.valid("json").status, ended_at: new Date().toISOString() }).eq("id", session.id);
   // Stop the recording if one is running — egress finalizes the file and fires the egress_ended
   // webhook, which is what kicks transcription. LiveKit also auto-stops on empty room, so this is

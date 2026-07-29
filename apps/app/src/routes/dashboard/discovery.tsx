@@ -235,6 +235,10 @@ export function DiscoveryPage() {
     setTurns((t) => [...t, { id: uid(), query, deep, steps: [], results: [], status: "coach", coach: { message, suggestions } }]);
   }
 
+  // Live SSE reader, aborted on unmount / when a new sweep starts.
+  const streamAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => streamAbortRef.current?.abort(), []);
+
   async function runSearch(q: string) {
     const query = q.trim();
     if (!query || busy) return;
@@ -246,10 +250,16 @@ export function DiscoveryPage() {
     const patch = (fn: (t: Turn) => Turn) => setTurns((ts) => ts.map((t) => (t.id === id ? fn(t) : t)));
 
     try {
+      // Abort on unmount: without this the reader kept pumping after navigation, calling
+      // setTurns on an unmounted tree and holding the connection open until the server finished.
+      const controller = new AbortController();
+      streamAbortRef.current?.abort();
+      streamAbortRef.current = controller;
       const res = await apiFetch(`${BASE_URL}/api/v1/discovery/search/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query, deep, exhaustive }),
+        signal: controller.signal,
       });
       if (!res.ok || !res.body) throw new Error(`Search failed (${res.status})`);
 
@@ -653,9 +663,16 @@ function NextMoves({ turn, onRun }: { turn: Turn; onRun: (q: string, force?: boo
  *  This is how you get alerted to fresh buyer-intent posts ("looking for a lawyer in Warsaw"). */
 function WatchButton({ query }: { query: string }) {
   const [state, setState] = useState<"idle" | "saving" | "done" | "error">("idle");
+  const qc = useQueryClient();
   const save = async () => {
     setState("saving");
-    try { await apiClient.post("/discovery/monitors", { query }); setState("done"); }
+    try {
+      await apiClient.post("/discovery/monitors", { query });
+      setState("done");
+      // Without this the Saved tab kept showing "No watched searches yet" even though the
+      // button said "Watching".
+      qc.invalidateQueries({ queryKey: ["discovery-monitors"] });
+    }
     catch { setState("error"); }
   };
   if (state === "done") return <p className="mt-2 inline-flex items-center gap-1.5 text-[11.5px]" style={{ color: "#2f9e6b" }}><Check size={12} /> Watching — you'll be notified of new results</p>;

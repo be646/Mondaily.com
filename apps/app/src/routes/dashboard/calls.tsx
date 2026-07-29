@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarClock, Phone, Search, FileText, Sparkles, ListChecks, Users, Brain, UploadCloud } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
 import { UploadRecordingModal } from "../../components/calls/upload-recording-modal";
@@ -36,9 +36,17 @@ export function CallsPage() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const qc = useQueryClient();
   const navigate = useNavigate();
+  // Debounce the search: /calls/memory does 3 DB round-trips plus a transcript-line scan per
+  // request, and the key included the raw input — typing "acme" fired four of them.
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 250);
+    return () => clearTimeout(t);
+  }, [search]);
   const query = useQuery({
-    queryKey: ["meeting-memory", search],
-    queryFn: () => apiClient.get<{ memories: MemoryRow[] }>(`/calls/memory?search=${encodeURIComponent(search)}`),
+    queryKey: ["meeting-memory", debouncedSearch],
+    queryFn: () => apiClient.get<{ memories: MemoryRow[] }>(`/calls/memory?search=${encodeURIComponent(debouncedSearch)}`),
+    placeholderData: (prev) => prev,   // keep the last list on screen while the next one loads
   });
   const all = query.data?.memories ?? [];
   const [justUploaded, setJustUploaded] = useState(false);

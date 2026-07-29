@@ -389,6 +389,27 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect(room).not.toMatch(/\} catch \{ \/\* surfaced by disabled state staying off \*\/ \}/);
   });
 
+  it("Discovery: SSE aborts on unmount, exhaustive is honoured, monitors refresh", () => {
+    const disc = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/discovery.tsx", import.meta.url)), "utf8");
+    const api = readFileSync(fileURLToPath(new URL("../routes/discovery.ts", import.meta.url)), "utf8");
+    expect(disc).toMatch(/const streamAbortRef = useRef<AbortController \| null>\(null\);/);
+    expect(disc).toMatch(/useEffect\(\(\) => \(\) => streamAbortRef\.current\?\.abort\(\), \[\]\);/);
+    expect(disc).toMatch(/signal: controller\.signal/);
+    expect(disc).toMatch(/qc\.invalidateQueries\(\{ queryKey: \["discovery-monitors"\] \}\);/);
+    // /search accepted `exhaustive` and dropped it
+    expect(api).toMatch(/const \{ query, deep, exhaustive \} = c\.req\.valid\("json"\);/);
+    expect(api).toMatch(/classifyQuery\(c\.get\("workspaceId"\), query, deep, exhaustive\)/);
+  });
+
+  it("Calls: ending a call is terminal, and memory search is debounced", () => {
+    const lc = readFileSync(fileURLToPath(new URL("../routes/live-calls.ts", import.meta.url)), "utf8");
+    expect(lc).toMatch(/const TERMINAL = new Set\(\["ended", "declined", "missed"\]\);/);
+    expect(lc).toMatch(/return c\.json\(\{ ok: true, already: session\.status \}\);/);
+    const calls = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/calls.tsx", import.meta.url)), "utf8");
+    expect(calls).toMatch(/setDebouncedSearch\(search\), 250/);
+    expect(calls).toMatch(/queryKey: \["meeting-memory", debouncedSearch\]/);
+  });
+
   it("zero-valued counts never render as a literal 0", () => {
     expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
     expect(tasksPage).toMatch(/\{!!t\.due_days &&/);

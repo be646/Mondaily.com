@@ -185,8 +185,10 @@ router.post("/coach", zValidator("json", z.object({ query: z.string().min(1).max
 });
 
 router.post("/search", zValidator("json", searchSchema), async (c) => {
-  const { query, deep } = c.req.valid("json");
-  const params = await classifyQuery(c.get("workspaceId"), query, deep);
+  // `exhaustive` is part of searchSchema and is honoured by /search/stream, but this route
+  // destructured only { query, deep } — so the flag was accepted and silently ignored.
+  const { query, deep, exhaustive } = c.req.valid("json");
+  const params = await classifyQuery(c.get("workspaceId"), query, deep, exhaustive);
   inngest.send({ name: "app/social.discovery.trigger", data: params }).catch(() => {});
   try {
     const result = await runSocialDiscovery(params);
