@@ -181,12 +181,12 @@ export function AutomationsPage() {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       unsubscribe: true,
     }),
-    onSuccess: (seq) => navigate(`/automations/sequences/${seq.id}`),
+    onSuccess: (seq) => { qc.invalidateQueries({ queryKey: ["automations", "sequences"] }); navigate(`/automations/sequences/${seq.id}`); },
   });
 
   const createWorkflow = useMutation({
     mutationFn: () => apiClient.patch<{ id: string }>("/workflows/new", { name: "New Workflow", status: "draft", nodes: [] }),
-    onSuccess: (wf) => navigate(`/automations/workflows/${wf.id}`),
+    onSuccess: (wf) => { qc.invalidateQueries({ queryKey: ["automations", "sequences"] }); navigate(`/automations/workflows/${wf.id}`); },
   });
 
   const deleteItem = useMutation({
@@ -199,18 +199,18 @@ export function AutomationsPage() {
     mutationFn: async ({ item, type }: { item: Automation; type: "sequence"|"workflow" }) => {
       const name = `${item.name} (copy)`;
       if (type === "workflow") {
-        return apiClient.patch<{ id: string }>("/workflows/new", { name, status: "draft", nodes: (item.data as any)?.nodes ?? [] });
+        return apiClient.patch<{ id: string }>("/workflows/new", { name, status: "draft", nodes: (item as any).nodes ?? [] });
       }
       return apiClient.patch<{ id: string }>("/sequences/new", {
         name,
-        stop_on_reply: (item.data as any)?.stop_on_reply ?? true,
-        sending_days: (item.data as any)?.sending_days ?? ["Mon","Tue","Wed","Thu","Fri"],
-        send_start: (item.data as any)?.send_start ?? "09:00",
-        send_end: (item.data as any)?.send_end ?? "17:00",
-        daily_limit: (item.data as any)?.daily_limit ?? 50,
-        timezone: (item.data as any)?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
-        unsubscribe: (item.data as any)?.unsubscribe ?? true,
-        steps: (item.data as any)?.steps ?? [],
+        stop_on_reply: (item as any).stop_on_reply ?? true,
+        sending_days: (item as any).sending_days ?? ["Mon","Tue","Wed","Thu","Fri"],
+        send_start: (item as any).send_start ?? "09:00",
+        send_end: (item as any).send_end ?? "17:00",
+        daily_limit: (item as any).daily_limit ?? 50,
+        timezone: (item as any).timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+        unsubscribe: (item as any).unsubscribe ?? true,
+        steps: (item as any).steps ?? [],
       });
     },
     onSuccess: (res, { type }) => {

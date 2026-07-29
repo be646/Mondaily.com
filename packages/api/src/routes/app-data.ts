@@ -941,10 +941,61 @@ router.get("/settings/email", async (c) => {
     .limit(1)
     .maybeSingle();
   const gmailEmail = (conn as { email?: string } | null)?.email;
-  return c.json({ providers: [
-    { id: "gmail", name: "Gmail", connected: Boolean(gmailEmail) || Boolean(integrations.gmail), email: gmailEmail },
-    { id: "outlook", name: "Outlook", connected: Boolean(integrations.outlook) },
-  ] });
+  // Stored preferences. These were never read back, so the UI always rendered its own defaults and
+  // any saved choice appeared to vanish on reload — the read half of "email settings don't stick".
+  const prefs = (settings.email_prefs ?? {}) as Record<string, unknown>;
+  const perProvider = (prefs.providers ?? {}) as Record<string, Record<string, unknown>>;
+  const withPrefs = (id: string, base: Record<string, unknown>) => ({ ...base, ...(perProvider[id] ?? {}) });
+  return c.json({
+    providers: [
+      withPrefs("gmail", { id: "gmail", name: "Gmail", connected: Boolean(gmailEmail) || Boolean(integrations.gmail), email: gmailEmail }),
+      withPrefs("outlook", { id: "outlook", name: "Outlook", connected: Boolean(integrations.outlook) }),
+    ],
+    auto_create_contacts: Boolean(prefs.auto_create_contacts),
+    meeting_prep: Boolean(prefs.meeting_prep),
+    ...(typeof prefs.default_from === "string" ? { default_from: prefs.default_from } : {}),
+  });
+});
+
+// PATCH /settings/email — persist the email preferences.
+//
+// The SPA has always PATCHed here (settings/email.tsx), but only a GET was ever defined: every save
+// 404'd, and the mutation has no error branch, so the UI showed the change and silently discarded it.
+// Only PREFERENCES are writable — `connected`/`email` are derived from email_connections and the
+// integrations map, so they are deliberately ignored here and can't be spoofed by the client.
+router.patch("/settings/email", zValidator("json", z.object({
+  providers: z.array(z.object({
+    id: z.string(),
+    sync_scope: z.enum(["all", "inbox", "starred"]).optional(),
+    sharing: z.enum(["private", "subject", "full"]).optional(),
+    signature: z.string().max(20_000).optional(),
+  })).max(20).optional(),
+  auto_create_contacts: z.boolean().optional(),
+  meeting_prep: z.boolean().optional(),
+  default_from: z.string().email().optional(),
+}).passthrough()), async (c) => {
+  const workspaceId = c.get("workspaceId");
+  const body = c.req.valid("json");
+  const settings = await workspaceSettings(workspaceId);
+  const prev = (settings.email_prefs ?? {}) as Record<string, unknown>;
+  const prevProviders = (prev.providers ?? {}) as Record<string, Record<string, unknown>>;
+
+  const providers = { ...prevProviders };
+  for (const p of body.providers ?? []) {
+    const { id, ...rest } = p;
+    const kept = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined));
+    if (Object.keys(kept).length) providers[id] = { ...(providers[id] ?? {}), ...kept };
+  }
+
+  const email_prefs: Record<string, unknown> = { ...prev, providers };
+  if (body.auto_create_contacts !== undefined) email_prefs.auto_create_contacts = body.auto_create_contacts;
+  if (body.meeting_prep !== undefined) email_prefs.meeting_prep = body.meeting_prep;
+  if (body.default_from !== undefined) email_prefs.default_from = body.default_from;
+
+  const { error } = await supabase.from("workspaces")
+    .update({ settings: { ...settings, email_prefs } }).eq("id", workspaceId);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({ ok: true, email_prefs });
 });
 router.get("/billing", async (c) => {
   const workspaceId = c.get("workspaceId");

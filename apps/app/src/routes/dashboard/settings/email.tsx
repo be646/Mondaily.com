@@ -49,9 +49,13 @@ export function EmailSettings() {
     setSignatureAccount(providers.find((provider) => provider.connected)?.id ?? "");
   }, [query.data]);
 
+  // A failed save used to be invisible: the endpoint 404'd and there was no error branch, so the UI
+  // kept showing the edited values and discarded them on the next reload.
+  const [saveError, setSaveError] = useState<string | null>(null);
   const save = useMutation({
     mutationFn: () => apiClient.patch("/settings/email", data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["email-settings"] })
+    onSuccess: () => { setSaveError(null); qc.invalidateQueries({ queryKey: ["email-settings"] }); },
+    onError: (e: unknown) => setSaveError((e as { message?: string })?.message || "Could not save email settings."),
   });
 
   async function connect(provider: string) {
@@ -100,7 +104,11 @@ export function EmailSettings() {
         {calendars.length ? <div className="mb-5 space-y-2">{calendars.map((calendar) => <label key={calendar.id} className="flex items-center justify-between rounded-sm bg-[var(--surface-hover)] p-3"><div><p className="text-sm">{calendar.name}</p><p className="text-xs text-[var(--text-muted)]">{calendar.provider}</p></div><input type="checkbox" checked={calendar.enabled} onChange={(event) => setData({ ...data, calendars: calendars.map((item) => item.id === calendar.id ? { ...item, enabled: event.target.checked } : item) })} /></label>)}</div> : <p className="mb-5 text-sm text-[var(--text-muted)]">Connect an email account to discover calendars.</p>}
         <div className="space-y-3"><Toggle label="Auto-create contacts from meeting attendees" checked={data.auto_create_contacts ?? true} change={(checked) => setData({ ...data, auto_create_contacts: checked })} /><Toggle label="Show meeting prep suggestions" checked={data.meeting_prep ?? true} change={(checked) => setData({ ...data, meeting_prep: checked })} /></div>
       </section>
-      <div className="mt-5 flex justify-end"><button onClick={() => save.mutate()} className="flex items-center gap-2 rounded-sm bg-[var(--section-accent-soft)] px-4 py-2 text-sm"><Save size={14} /> Save email settings</button></div>
+      <div className="mt-5 flex items-center justify-end gap-3">
+        {saveError && <span role="alert" className="text-[12px] text-[var(--status-danger-fg)]">{saveError}</span>}
+        {save.isSuccess && !saveError && <span className="text-[12px] text-[var(--text-secondary)]">Saved</span>}
+        <button onClick={() => save.mutate()} disabled={save.isPending} className="flex items-center gap-2 rounded-sm bg-[var(--section-accent-soft)] px-4 py-2 text-sm disabled:opacity-50"><Save size={14} /> {save.isPending ? "Saving…" : "Save email settings"}</button>
+      </div>
     </div>
   );
 }
