@@ -127,6 +127,15 @@ describe("record table", () => {
   it("separates sticky columns with a hairline, not a drop shadow", () => {
     expect(table).not.toMatch(/shadow-\[2px_0_8px/);
   });
+
+  it("column headers are sentence case, not shouted", () => {
+    // NAME / EMAIL / JOB TITLE -> Name / Email / Job title. first-letter:uppercase on the lowercase
+    // key gives SENTENCE case; `capitalize` would give title case ("Job Title"), which reads busier
+    // at this row density and is not what the reference does.
+    expect(table).toMatch(/first-letter:uppercase">\{col\.replaceAll\("_", " "\)\}/);
+    // and no shouty labels left anywhere in the table chrome
+    expect(table).not.toMatch(/uppercase tracking-(wide|wider|widest)/);
+  });
 });
 
 /**

@@ -697,7 +697,7 @@ function ViewSettingsDropdown({ columns, hidden, onToggle, onClose, triggerRef }
   return (
     <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="left" className="w-56">
       <div className="px-3 py-2 border-b border-[var(--border-soft)]">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">Visible columns</p>
+        <p className="text-body text-[var(--text-secondary)]">Visible columns</p>
       </div>
       <div className="py-1 max-h-64 overflow-auto">
         {columns.map(col => {
@@ -745,7 +745,7 @@ function SortPanel({ columns, rules, onChange, onClose, triggerRef }: {
   return (
     <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-64">
       <div className="px-3 pt-3 pb-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-2">Sort by</p>
+        <p className="text-body text-[var(--text-secondary)] mb-2">Sort by</p>
         {rules.length === 0 && (
           <p className="text-xs text-stone-700 pb-1">No sorts applied</p>
         )}
@@ -823,7 +823,7 @@ function ExportDropdown({ records, columns, objectType, onClose, triggerRef }: {
   return (
     <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-44">
       <div className="px-3 py-2 border-b border-[var(--border-soft)]">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">Import / Export</p>
+        <p className="text-body text-[var(--text-secondary)]">Import / Export</p>
       </div>
       <button onClick={exportCSV} className="dropdown-item w-full gap-2">
         <Download size={12} className="text-stone-400"/>
@@ -889,7 +889,7 @@ function OwnerCell({ value, members, onSelect }: {
       {open && (
         <PortalDropdown triggerRef={ref} onClose={() => setOpen(false)} align="left" className="w-48">
           <div className="px-3 py-2 border-b border-[var(--border-soft)]">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600">Assign to</p>
+            <p className="text-body text-[var(--text-secondary)]">Assign to</p>
           </div>
           {members.length === 0 && <p className="px-3 py-2 text-xs text-stone-600">No members yet</p>}
           {members.filter(m => {
@@ -1026,7 +1026,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
   return (
     <PortalDropdown triggerRef={triggerRef} onClose={onClose} align="right" className="w-64">
       <div className="px-3 pt-3 pb-2 border-b border-[var(--border-soft)]">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-600 mb-2">Add column</p>
+        <p className="text-body text-[var(--text-secondary)] mb-2">Add column</p>
         <input
           ref={inputRef}
           value={name}
@@ -1059,7 +1059,7 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
       )}
       {type === "relation" && (
         <div className="px-3 py-2 border-t border-[var(--border-soft)]">
-          <p className="text-[10px] font-semibold text-stone-600 mb-1.5 uppercase tracking-wider">Link to object</p>
+          <p className="mb-1.5 text-body text-[var(--text-secondary)]">Link to object</p>
           <div className="flex flex-col gap-1">
             {objectDefs.map(obj => (
               <button key={obj.slug} onClick={() => setRelatedTarget(obj.slug)}
@@ -1666,7 +1666,7 @@ function FilterColDropdown({ col, vals, activeValue, isStage, onSelect }: {
         className={`flex items-center gap-1.5 rounded-sm border px-2.5 py-1 text-xs transition-colors whitespace-nowrap ${activeValue ? "border-stone-500/30 bg-stone-600/10 text-stone-300" : "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-secondary)] hover:text-[var(--text-secondary)] hover:border-[var(--border-soft)]"}`}
       >
         {s && <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`}/>}
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-stone-500 mr-0.5">{col.replaceAll("_", " ")}</span>
+        <span className="mr-0.5 text-[11.5px] font-medium text-[var(--text-secondary)] first-letter:uppercase">{col.replaceAll("_", " ")}</span>
         {activeValue ? <span>{activeValue}</span> : <ChevronDown size={10} className="opacity-40"/>}
         {activeValue && <X size={9} className="ml-0.5 opacity-60" onClick={e => { e.stopPropagation(); onSelect(activeValue); }}/>}
       </button>
@@ -2572,7 +2572,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       {/* ── Columns inline bar ── */}
       {openPanel === "view" && (
         <div className="flex items-center gap-1.5 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] shrink-0 mr-2">Columns</span>
+          <span className="text-body text-[var(--text-secondary)] shrink-0 mr-2">Columns</span>
           {allColumnsWithCustom.map(col => {
             const visible = !hiddenCols.has(col);
             return (
@@ -2594,7 +2594,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       {/* ── Sort inline bar ── */}
       {openPanel === "sort" && (
         <div className="flex items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] shrink-0">Sort by</span>
+          <span className="text-body text-[var(--text-secondary)] shrink-0">Sort by</span>
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           {sortRules.length === 0 && (
             <span className="text-[11px] text-[var(--text-secondary)]">No sorts — add one below</span>
@@ -2627,7 +2627,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       {/* ── Group inline bar ── */}
       {openPanel === "groupby" && (
         <div className="flex items-center gap-1.5 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] shrink-0 mr-1">Group by</span>
+          <span className="text-body text-[var(--text-secondary)] shrink-0 mr-1">Group by</span>
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           <button onClick={() => { setGroupBy(null); }}
             className={`flex items-center gap-1.5 rounded-sm px-2.5 py-1 text-[11px] transition-colors shrink-0 border ${!groupByCol ? "border-[var(--border-soft)] bg-[var(--surface-hover)] text-[var(--text-primary)]" : "border-[var(--border-soft)] text-stone-400 hover:text-stone-100 hover:border-[var(--border-soft)]"}`}>
@@ -2647,7 +2647,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       {/* ── Export inline bar ── */}
       {openPanel === "export" && (
         <div className="flex items-center gap-3 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] shrink-0">Export</span>
+          <span className="text-body text-[var(--text-secondary)] shrink-0">Export</span>
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           <button onClick={() => {
             const rows = [columns.join(","), ...sorted.map(r => columns.map(c => JSON.stringify(r.data[c] ?? "")).join(","))].join("\n");
@@ -2664,7 +2664,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       {/* ── Saved views inline bar ── */}
       {openPanel === "views" && (
         <div className="flex items-center gap-2 px-6 py-2 border-b border-[var(--border-soft)] bg-[var(--surface-hover)] shrink-0 overflow-x-auto">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] shrink-0">Saved</span>
+          <span className="text-body text-[var(--text-secondary)] shrink-0">Saved</span>
           <div className="h-3 w-px bg-[var(--surface-hover)] shrink-0"/>
           {savedViews.length === 0 && <span className="text-[11px] text-[var(--text-secondary)]">No saved views yet</span>}
           {savedViews.map(v => (
@@ -2765,7 +2765,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 const hasDate  = dateFrom || dateTo;
                 return (
                   <div key={col} className="flex items-center gap-1.5 shrink-0">
-                    <span className={`text-[10px] font-semibold uppercase tracking-widest shrink-0 ${hasDate ? "text-stone-300" : "text-stone-600"}`}>{col.replaceAll("_"," ")}</span>
+                    <span className={`shrink-0 text-body first-letter:uppercase ${hasDate ? "text-[var(--text-primary)]" : "text-[var(--text-faint)]"}`}>{col.replaceAll("_"," ")}</span>
                     <input type="date" value={dateFrom}
                       onChange={e => setQuickFilters(prev => { const o = prev.filter(f => f.col !== col+"__from"); return e.target.value ? [...o,{col:col+"__from",value:e.target.value}] : o; })}
                       className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2 py-1 text-[10px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"
@@ -2850,7 +2850,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 <div className="fixed inset-0 z-40" onClick={() => setListPickerOpen(false)} />
                 <div className="absolute left-0 top-full z-50 mt-1 w-48 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
                   <div className="px-3 py-2 border-b border-[var(--border-soft)]">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Add {selected.size} to list</p>
+                    <p className="text-body text-[var(--text-secondary)]">Add {selected.size} to list</p>
                   </div>
                   <div className="p-1">
                     {(listsQuery.data ?? []).length === 0 && (
@@ -2892,7 +2892,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 <div className="fixed inset-0 z-40" onClick={() => { setAssignPickerOpen(false); setAssignSearch(""); }} />
                 <div className="absolute left-0 top-full z-50 mt-1 w-52 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
                   <div className="px-3 py-2 border-b border-[var(--border-soft)]">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] mb-2">Assign {selected.size} records</p>
+                    <p className="text-body text-[var(--text-secondary)] mb-2">Assign {selected.size} records</p>
                     <div className="relative">
                       <Search size={10} className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"/>
                       <input
@@ -2961,7 +2961,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                   <div className="fixed inset-0 z-40" onClick={() => setBulkEditField(null)}/>
                   <div className="absolute left-0 top-full z-50 mt-1 w-60 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
                     <div className="px-3 py-2 border-b border-[var(--border-soft)] flex items-center gap-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)] flex-1">Edit {selected.size} records</p>
+                      <p className="text-body text-[var(--text-secondary)] flex-1">Edit {selected.size} records</p>
                     </div>
                     {/* Column tabs */}
                     {bulkEditCols.length > 1 && (
@@ -3219,7 +3219,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                               <span title={srv ? "Group subtotal (full table)" : "Group subtotal (this view)"}
                                 className="ml-auto inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-sm border px-1.5 py-0.5 text-[10px] font-mono tabular-nums"
                                 style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
-                                <span className="uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{colLabel(groupCalcCol)} · {groupCalcOp}</span>{str}
+                                <span className="first-letter:uppercase" style={{ color: "var(--text-faint)" }}>{colLabel(groupCalcCol)} · {groupCalcOp}</span>{str}
                               </span>
                             );
                           })()}
@@ -3323,7 +3323,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
           className="fixed z-[9999] rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] py-1 shadow-xl min-w-[160px]"
           style={{ left: colCtxMenu.x, top: colCtxMenu.y }}
         >
-          <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-stone-600 border-b border-[var(--border-soft)] mb-1">
+          <div className="px-3 py-1.5 text-body text-[var(--text-secondary)] border-b border-[var(--border-soft)] mb-1">
             {colCtxMenu.col.replaceAll("_", " ")}
           </div>
           <button
