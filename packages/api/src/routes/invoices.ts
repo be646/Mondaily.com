@@ -320,7 +320,11 @@ router.post("/:id/payments", zValidator("json", z.object({
   const totalPaid = updatedPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
   const invoiceTotal = Number(current.total ?? 0) || 0;
   const statusUpdates: Record<string, unknown> = {};
-  if (invoiceTotal > 0 && totalPaid >= invoiceTotal && current.status !== "paid") {
+  // Auto-close must respect the SAME state machine PATCH enforces — this route writes the row
+  // directly, so without this check recording a payment on a terminal (cancelled/paid) invoice would
+  // resurrect it to "paid", a transition the API otherwise forbids.
+  const canAutoClose = (VALID_TRANSITIONS[String(current.status)] ?? []).includes("paid");
+  if (invoiceTotal > 0 && totalPaid >= invoiceTotal && current.status !== "paid" && canAutoClose) {
     statusUpdates.status = "paid";
     statusUpdates.paid_at = new Date().toISOString();
   }

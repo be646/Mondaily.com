@@ -29,6 +29,9 @@ router.use("*", denyViewerWrites); // viewers are read-only
  * show "source-backed" rather than a number when it's null.
  */
 
+/** The only states a decision can still be resolved FROM. approved/rejected/completed are terminal. */
+const OPEN_STATUSES = ["pending", "snoozed"];
+
 const evidenceItem = z.object({
   type: z.string(),
   title: z.string(),
@@ -63,12 +66,16 @@ router.get("/", async (c) => {
   // NOTHING on the server — no cron, no job — so a snoozed decision sat in "Needs more
   // context" forever, permanently showing "wakes soon" once the timestamp passed. Doing it
   // here makes it self-healing on read: no scheduler to deploy, no drift if one stops.
-  await supabase
-    .from("decision_queue")
-    .update({ status: "pending", snoozed_until: null })
-    .eq("workspace_id", workspaceId)
-    .eq("status", "snoozed")
-    .lte("snoozed_until", new Date().toISOString());
+  // Skipped when the caller asked only for a terminal lane (?status=approved/rejected/completed):
+  // waking snoozes can't change that result, and this is a WRITE on a read path.
+  if (!status || OPEN_STATUSES.includes(status)) {
+    await supabase
+      .from("decision_queue")
+      .update({ status: "pending", snoozed_until: null })
+      .eq("workspace_id", workspaceId)
+      .eq("status", "snoozed")
+      .lte("snoozed_until", new Date().toISOString());
+  }
 
   // Cockpit view: open lanes (pending + snoozed) in full, plus a bounded window of recently
   // resolved decisions (approved/rejected/completed) so the "recent activity" lanes stay light.
@@ -412,9 +419,15 @@ async function resolve(c: any, status: "approved" | "rejected" | "snoozed" | "co
     })
     .eq("workspace_id", c.get("workspaceId"))
     .eq("id", c.req.param("id"))
+    // Terminal decisions stay terminal. The guard belongs HERE, not on individual handlers: it was
+    // originally added to /approve only, so /reject and /snooze could still overwrite an
+    // already-executed decision — and snoozing one pulled it back into the pending queue.
+    .in("status", OPEN_STATUSES)
     .select()
-    .single();
+    .maybeSingle();
   if (error) return c.json({ error: error.message }, 400);
+  // No row matched → already resolved (or gone). Idempotent success, never a phantom write.
+  if (!data) return c.json({ ok: true, already_resolved: true });
   // Training ledger — capture the human's verdict on this agent recommendation.
   // Fire-and-forget: self-contained + error-swallowing, so it adds no latency to
   // (and can never block) the user's action.
@@ -623,12 +636,14 @@ router.post("/bulk", zValidator("json", z.object({
   const status = action === "approve" ? "approved" : action === "reject" ? "rejected" : "snoozed";
   const extra = action === "snooze" ? { snoozed_until: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() } : {};
   if (action === "approve") {
-    const { data: decisions } = await supabase.from("decision_queue").select("*").eq("workspace_id", ws).in("id", ids).eq("status", "pending");
+    const { data: decisions } = await supabase.from("decision_queue").select("*").eq("workspace_id", ws).in("id", ids).in("status", OPEN_STATUSES);
     for (const d of decisions ?? []) await executeApprovedAction(ws, d).catch((e) => console.error("[bulk-approve] swallowed:", e));
   }
   const { data, error } = await supabase.from("decision_queue")
     .update({ status, resolved_at: new Date().toISOString(), resolved_by: c.get("userId"), ...extra })
-    .eq("workspace_id", ws).in("id", ids).eq("status", "pending").select("id");
+    // Same open-set as the single-item routes: filtering to "pending" alone silently skipped
+    // snoozed rows, so a bulk action reported a lower count than the user actually selected.
+    .eq("workspace_id", ws).in("id", ids).in("status", OPEN_STATUSES).select("id");
   if (error) return c.json({ error: error.message }, 400);
   return c.json({ ok: true, count: data?.length ?? 0 });
 });

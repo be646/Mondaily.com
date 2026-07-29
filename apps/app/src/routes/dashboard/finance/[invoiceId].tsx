@@ -324,13 +324,22 @@ export function InvoiceDetailPage() {
     setDirty(false);
   }, [invoice]);
 
+  // Server-side rejections (money lock, invalid status transition, unpaid balance) must be visible.
+  // Without this the mutation failed silently and the button simply did nothing.
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const updateMutation = useMutation({
     mutationFn: (body: Partial<Invoice>) =>
       apiClient.patch<Invoice>(`/invoices/${invoiceId}`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["invoice", invoiceId] });
       qc.invalidateQueries({ queryKey: ["invoices"] });
+      setSaveError(null);
       setDirty(false);
+    },
+    onError: (e: unknown) => {
+      const msg = (e as { message?: string })?.message;
+      setSaveError(msg && msg.trim() ? msg : "Could not save this invoice. Please try again.");
     },
   });
 
@@ -343,14 +352,17 @@ export function InvoiceDetailPage() {
   });
 
   function save(extra?: Partial<Invoice>) {
+    // Money is frozen server-side once the invoice leaves draft. Sending `currency`/`line_items`
+    // unchanged still counts as "editing money" there, so including them unconditionally made every
+    // save on a sent/viewed/overdue invoice — including "Mark as Paid" — fail with a 422.
+    const moneyEditable = !invoice || invoice.status === "draft";
     updateMutation.mutate({
       client_name: clientName,
       client_email: clientEmail || undefined,
       client_address: clientAddress || undefined,
       due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
       notes: notes || undefined,
-      currency,
-      line_items: items,
+      ...(moneyEditable ? { currency, line_items: items } : {}),
       ...extra,
     });
   }
@@ -372,6 +384,10 @@ export function InvoiceDetailPage() {
 
   const { subtotal, tax_total, total } = calcTotals(items);
   const isEditable = !invoice || ["draft", "sent"].includes(invoice.status);
+  // Narrower than isEditable ON PURPOSE: the server freezes line items + currency once the invoice
+  // leaves draft (MONEY_LOCKED_AFTER), while client details and notes stay editable on a sent one.
+  // Mirroring that split here means the inputs match what the API will actually accept.
+  const moneyEditable = !invoice || invoice.status === "draft";
 
   if (isLoading) {
     return <div className="flex h-full items-center justify-center text-body text-[var(--text-secondary)]">Loading…</div>;
@@ -399,6 +415,11 @@ export function InvoiceDetailPage() {
             {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
           </span>
           {dirty && <span className="text-[11px] text-[var(--text-secondary)] italic">Unsaved changes</span>}
+          {saveError && (
+            <span role="alert" className="flex items-center gap-1 text-[11px] text-[var(--status-danger-fg)]">
+              <AlertTriangle size={11}/> {saveError}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -536,7 +557,7 @@ export function InvoiceDetailPage() {
                 <FieldSelect
                   value={currency}
                   onChange={v => { setCurrency(v); setDirty(true); }}
-                  disabled={!isEditable}
+                  disabled={!moneyEditable}
                   ariaLabel="Currency"
                   className="mt-1"
                   options={currencyOptions(currencies)}
@@ -549,7 +570,7 @@ export function InvoiceDetailPage() {
           <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] overflow-hidden">
             <div className="border-b border-[var(--border-soft)] px-4 py-3 flex items-center justify-between">
               <span className="text-body font-medium text-[var(--text-primary)]">Line Items</span>
-              {isEditable && (
+              {moneyEditable && (
                 <button onClick={addItem} className="flex items-center gap-1 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-faint)] transition-colors">
                   <Plus size={11}/> Add item
                 </button>
@@ -564,7 +585,7 @@ export function InvoiceDetailPage() {
                   <th className="px-4 py-2 text-right text-label font-medium text-[var(--text-secondary)] w-28">Unit Price</th>
                   <th className="px-4 py-2 text-right text-label font-medium text-[var(--text-secondary)] w-20">Tax %</th>
                   <th className="px-4 py-2 text-right text-label font-medium text-[var(--text-secondary)] w-28">Total</th>
-                  {isEditable && <th className="w-10"/>}
+                  {moneyEditable && <th className="w-10"/>}
                 </tr>
               </thead>
               <tbody>
@@ -576,7 +597,7 @@ export function InvoiceDetailPage() {
                         <input
                           value={item.description}
                           onChange={e => updateItem(i, "description", e.target.value)}
-                          disabled={!isEditable}
+                          disabled={!moneyEditable}
                           placeholder="Description"
                           className="key-input w-full text-[12px]"
                         />
@@ -585,7 +606,7 @@ export function InvoiceDetailPage() {
                         <input
                           value={item.quantity}
                           onChange={e => updateItem(i, "quantity", parseFloat(e.target.value) || 0)}
-                          disabled={!isEditable}
+                          disabled={!moneyEditable}
                           type="number"
                           min="0"
                           step="1"
@@ -596,7 +617,7 @@ export function InvoiceDetailPage() {
                         <input
                           value={item.unit_price}
                           onChange={e => updateItem(i, "unit_price", parseFloat(e.target.value) || 0)}
-                          disabled={!isEditable}
+                          disabled={!moneyEditable}
                           type="number"
                           min="0"
                           step="0.01"
@@ -607,7 +628,7 @@ export function InvoiceDetailPage() {
                         <input
                           value={item.tax_rate}
                           onChange={e => updateItem(i, "tax_rate", parseFloat(e.target.value) || 0)}
-                          disabled={!isEditable}
+                          disabled={!moneyEditable}
                           type="number"
                           min="0"
                           max="100"
@@ -618,7 +639,7 @@ export function InvoiceDetailPage() {
                       <td className="px-4 py-2 text-right text-[12px] font-medium text-[var(--text-primary)]">
                         {formatCurrency(lineTotal, currency)}
                       </td>
-                      {isEditable && (
+                      {moneyEditable && (
                         <td className="px-2 py-2 text-center">
                           <button
                             onClick={() => removeItem(i)}
