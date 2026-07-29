@@ -24,6 +24,7 @@ import { liveCallsRouter } from "./routes/live-calls";
 import { realtimeRouter } from "./routes/realtime";
 import { authRouter } from "./routes/auth";
 import { creditsRouter } from "./routes/credits";
+import { cleanRouter } from "./routes/clean";
 import { supportRouter } from "./routes/support";
 import { platformSupportRouter } from "./routes/platform-support";
 import { webhooksRouter } from "./routes/webhooks";
@@ -105,6 +106,7 @@ app.route("/api/v1/activities", activitiesRouter);
 app.route("/api/v1/realtime", realtimeRouter);
 app.route("/api/v1/auth", authRouter);   // Sovereign Auth — the sole auth runtime (Clerk fully removed)
 app.route("/api/v1/credits", creditsRouter);
+app.route("/api/v1/clean", cleanRouter);
 app.route("/api/v1/webhooks", webhooksRouter);
 app.route("/api/v1/billing", billingRouter);
 app.route("/api/v1/invites", invitesRouter);
