@@ -832,11 +832,30 @@ async function executeTool(
         const list = data.map((r: any) =>
           `- [${r.id}] ${r.data.name || "Untitled"}${r.data.email ? ` | ${r.data.email}` : ""}${r.data.company ? ` | ${r.data.company}` : ""}${r.data.stage ? ` | stage: ${r.data.stage}` : ""}`
         ).join("\n");
+        // PROACTIVE disambiguation. The earlier check only fires when the requested type does not
+        // exist — but the real failure was the model asking for `contacts`, which DOES exist, when
+        // the user said "contact leads" and the workspace also has a distinct `contact-leads` type
+        // with 117 records. The tool never sees the user's phrasing, so it cannot know which was
+        // meant; what it CAN do is refuse to answer as if the choice were unambiguous.
+        const norm2 = (x: string) => x.toLowerCase().replace(/[-_\s]/g, "");
+        const confusable = known.filter(k => k !== asked
+          && (norm2(k).includes(norm2(asked)) || norm2(asked).includes(norm2(k))));
+        let siblingNote = "";
+        if (confusable.length) {
+          const counts = await Promise.all(confusable.map(async k => {
+            const { count } = await supabase.from("nodes").select("id", { count: "exact", head: true })
+              .eq("workspace_id", workspaceId).eq("object_type", k);
+            return `${k} (${count ?? 0})`;
+          }));
+          siblingNote = `\n\nNOTE: "${asked}" is not the only similarly-named type here — this workspace also has ${counts.join(", ")}, `
+            + `which are SEPARATE objects with different records. If the question referred to one of those, answer about that one instead, and say which you used.`;
+        }
+
         const shown = data.length;
         const header = typeof totalCount === "number" && totalCount > shown
           ? `${input.object_type} — showing ${shown} of ${totalCount} total (most recently updated first; ask for more if you need them):`
           : `${input.object_type} (${shown}):`;
-        return `${header}\n${list}`;
+        return `${header}\n${list}${siblingNote}`;
       }
 
       case "list_notifications": {

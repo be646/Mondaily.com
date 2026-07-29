@@ -194,6 +194,11 @@ describe("Ask never answers from model priors", () => {
     // wrong object, presented as the answer.
     expect(ask).toMatch(/There is no object type called/);
     expect(ask).toMatch(/These are DISTINCT types with different records/);
+    // The unknown-type check alone was NOT enough: the model asked for `contacts`, which exists, so
+    // nothing fired and it answered 14 for a question about contact-leads (117). The tool never
+    // sees the user's wording, so it must volunteer confusable siblings whenever they exist.
+    expect(ask).toMatch(/const confusable = known\.filter/);
+    expect(ask).toMatch(/which are SEPARATE objects with different records/);
   });
 
   it("finance totals are per-currency, never a mixed face-value sum", () => {
