@@ -388,6 +388,10 @@ export function InvoiceDetailPage() {
   // leaves draft (MONEY_LOCKED_AFTER), while client details and notes stay editable on a sent one.
   // Mirroring that split here means the inputs match what the API will actually accept.
   const moneyEditable = !invoice || invoice.status === "draft";
+  // Same idea for the payment-coverage rule: don't offer an action the API is going to reject.
+  const paymentsCoverTotal =
+    !!invoice && invoice.total > 0 &&
+    (invoice.payments ?? []).reduce((s, p) => s + (Number(p.amount) || 0), 0) >= invoice.total;
 
   if (isLoading) {
     return <div className="flex h-full items-center justify-center text-body text-[var(--text-secondary)]">Loading…</div>;
@@ -444,7 +448,11 @@ export function InvoiceDetailPage() {
           {["sent", "viewed", "overdue"].includes(invoice.status) && (
             <button
               onClick={() => save({ status: "paid" })}
-              disabled={updateMutation.isPending}
+              // The server refuses to mark an invoice paid until recorded payments cover the total
+              // ("Cannot mark paid: 0 of 50 recorded"), so without this the button was a dead end:
+              // always enabled, always rejected. Disabled with the reason instead of failing on click.
+              disabled={updateMutation.isPending || !paymentsCoverTotal}
+              title={paymentsCoverTotal ? undefined : "Record a payment covering the invoice total first"}
               className="flex items-center gap-1.5 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-[12px] font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] hover:border-[var(--section-accent)] transition-colors disabled:opacity-50"
             >
               <CheckCircle size={12}/> Mark as Paid
