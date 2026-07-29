@@ -320,12 +320,21 @@ router.post("/merge-types", requireAdminRole, zValidator("json", z.object({
     moved += ids.length;
   }
 
-  await supabase.from("activities").insert({
+  // `activities.node_id` is NOT NULL, and this insert used to omit it AND swallow the error with
+  // `.then(() => {}, () => {})` — so the audit silently never landed and the response still claimed
+  // success. A rename is not node-specific, so it is anchored to one moved record purely to satisfy
+  // the constraint, and whether the audit actually wrote is now REPORTED rather than assumed.
+  const { data: anchor } = await supabase.from("nodes").select("id")
+    .eq("workspace_id", ws).eq("object_type", to).limit(1).maybeSingle();
+  const { error: auditErr } = await supabase.from("activities").insert({
+    node_id: (anchor as { id: string } | null)?.id ?? null,
     workspace_id: ws, actor_type: "human", actor_id: c.get("userId"), action: "updated",
     diff: { data_cleaning: "merge_types", from, to, records_moved: moved },
-  }).then(() => {}, () => {});
+  });
 
   return c.json({ ok: true, from, to, records_moved: moved, now_in_target: moved + toCount,
+    audit_written: !auditErr,
+    ...(auditErr ? { audit_error: auditErr.message } : {}),
     reverse_with: { from: to, to: from, dry_run: false },
     caveat: `Reversing moves ALL ${moved + toCount} records in "${to}", including the ${toCount} that were already there.` });
 });
@@ -509,15 +518,24 @@ router.post("/dedupe-records", requireAdminRole, zValidator("json", z.object({
     const n = byId.get(id)!;
     return { id, created_at: n.created_at, created_by: n.created_by, data: n.data };
   });
-  const { error: auditErr } = await supabase.from("activities").insert({
+  // ONE audit row per collapsed group, anchored to the SURVIVOR via node_id.
+  //
+  // `activities.node_id` is NOT NULL — a single workspace-wide row omitting it fails outright, which
+  // is how the first attempt at this was caught (by its own guard, before deleting anything). But
+  // per-survivor is also the better shape: each surviving record's own timeline now carries the
+  // copies it absorbed, so the recovery data sits where someone looking at that record would find
+  // it, rather than in one anonymous blob.
+  const snapById = new Map(snapshot.map(s => [s.id, s]));
+  const auditRows = plan.map(p => ({
+    node_id: p.keep,
     workspace_id: ws, actor_type: "human", actor_id: c.get("userId"), action: "updated",
     diff: {
-      data_cleaning: "dedupe_records", object_type,
-      groups_collapsed: plan.length, records_deleted: deleteIds.length,
-      survivors: plan.map(p => ({ keep: p.keep, name: p.name, replaced: p.delete_ids.length })),
-      deleted_records: snapshot,
+      data_cleaning: "dedupe_records", object_type, name: p.name,
+      copies_absorbed: p.delete_ids.length, identity_key: p.key,
+      deleted_records: p.delete_ids.map(id => snapById.get(id)).filter(Boolean),
     },
-  });
+  }));
+  const { error: auditErr } = await supabase.from("activities").insert(auditRows);
   // If the recovery artifact cannot be written, do not delete. Losing the rows AND the record of
   // what they were is strictly worse than not cleaning.
   if (auditErr) return c.json({ error: `Could not write the audit snapshot: ${auditErr.message}`,

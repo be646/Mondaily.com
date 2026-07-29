@@ -118,6 +118,37 @@ describe("the guards that make an irreversible delete acceptable", () => {
     expect(h).toMatch(/cannot be treated as 'no attachments'/);
   });
 
+  it("every activities insert supplies node_id — the column is NOT NULL", () => {
+    // Caught in production: both audit inserts here omitted node_id. /dedupe-records failed loudly
+    // (its own guard aborted before deleting anything) but /merge-types had swallowed the error with
+    // `.then(() => {}, () => {})` and reported success with no audit row written at all.
+    // The payload may be an inline literal OR a variable built earlier, so resolve the argument
+    // instead of just reading forward — the first version of this guard only looked ahead and
+    // therefore failed on `insert(auditRows)` while the code was correct.
+    for (const m of clean.matchAll(/from\("activities"\)\s*\.insert\((\w+)?/g)) {
+      const varName = m[1];
+      const region = varName
+        ? clean.slice(clean.indexOf(`const ${varName} =`), m.index! + 60)
+        : clean.slice(m.index!, m.index! + 400);
+      expect(region.length, `could not resolve payload for insert at ${m.index}`).toBeGreaterThan(60);
+      expect(region, `activities insert at ${m.index} has no node_id`).toMatch(/node_id/);
+    }
+    // and no audit write may be fire-and-forget
+    expect(clean).not.toMatch(/from\("activities"\)[\s\S]{0,300}\.then\(\(\) => \{\}, \(\) => \{\}\)/);
+  });
+
+  it("reports whether the merge-types audit actually landed", () => {
+    expect(clean).toMatch(/audit_written: !auditErr/);
+  });
+
+  it("anchors each dedupe snapshot to the surviving record", () => {
+    // So the copies a record absorbed appear on THAT record's timeline, where someone looking at it
+    // would actually find them.
+    const h = clean.slice(clean.indexOf('router.post("/dedupe-records"'));
+    expect(h).toMatch(/node_id: p\.keep/);
+    expect(h).toMatch(/copies_absorbed/);
+  });
+
   it("writes the recovery snapshot BEFORE deleting, and aborts if it fails", () => {
     const h = clean.slice(clean.indexOf('router.post("/dedupe-records"'));
     expect(h.indexOf("deleted_records")).toBeLessThan(h.indexOf(".delete()"));
