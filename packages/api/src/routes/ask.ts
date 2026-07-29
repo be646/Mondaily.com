@@ -1557,7 +1557,32 @@ export async function workspaceProfileBlock(workspaceId: string | undefined, use
       : undefined;
     const lang = normalizeLang(userLang || profile.language);
     const block = profileContextBlock(profile);
-    return `${block ? `\n\n${block}` : ""}${languageInstruction(lang)}`;
+
+    // THE workspace's real object types, with counts.
+    //
+    // Without this the model guesses a slug from the tool description ("contacts, companies, deals,
+    // or any custom object slug"). Asked "how many contact leads do I have", it guessed `contacts`
+    // — which exists with 14 records — while the workspace's actual `contact-leads` type holds 117.
+    // It answered 14 and every layer below it was individually correct. The model cannot pick the
+    // right object if it has never been told which objects exist.
+    let typesBlock = "";
+    try {
+      const { data: rows } = await supabase
+        .from("nodes").select("object_type").eq("workspace_id", workspaceId).limit(5000);
+      const counts = new Map<string, number>();
+      for (const r of rows ?? []) {
+        const t = String((r as { object_type?: string }).object_type ?? "");
+        if (t) counts.set(t, (counts.get(t) ?? 0) + 1);
+      }
+      if (counts.size) {
+        const listed = [...counts].sort((a, b) => b[1] - a[1]).map(([t, n]) => `${t} (${n}+)`).join(", ");
+        typesBlock = `\n\nOBJECT TYPES THAT EXIST IN THIS WORKSPACE: ${listed}.`
+          + ` Use these EXACT slugs when calling tools. Several are similarly named and are NOT interchangeable`
+          + ` — pick the one the question actually refers to, and if two could fit, say which you used.`;
+      }
+    } catch { /* profile block is best-effort; never block a question on it */ }
+
+    return `${block ? `\n\n${block}` : ""}${typesBlock}${languageInstruction(lang)}`;
   } catch { return ""; }
 }
 

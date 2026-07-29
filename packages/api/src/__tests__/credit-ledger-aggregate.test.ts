@@ -199,6 +199,11 @@ describe("Ask never answers from model priors", () => {
     // sees the user's wording, so it must volunteer confusable siblings whenever they exist.
     expect(ask).toMatch(/const confusable = known\.filter/);
     expect(ask).toMatch(/which are SEPARATE objects with different records/);
+    // ROOT fix: the model was never TOLD which object types exist — the tool description says
+    // "contacts, companies, deals, or any custom object slug", so guessing `contacts` for
+    // "contact leads" was reasonable. The system context now lists the real slugs with counts.
+    expect(ask).toMatch(/OBJECT TYPES THAT EXIST IN THIS WORKSPACE/);
+    expect(ask).toMatch(/Use these EXACT slugs when calling tools/);
   });
 
   it("finance totals are per-currency, never a mixed face-value sum", () => {
