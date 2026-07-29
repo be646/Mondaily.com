@@ -133,8 +133,16 @@ describe("record table", () => {
     // key gives SENTENCE case; `capitalize` would give title case ("Job Title"), which reads busier
     // at this row density and is not what the reference does.
     expect(table).toMatch(/first-letter:uppercase">\{col\.replaceAll\("_", " "\)\}/);
-    // and no shouty labels left anywhere in the table chrome
-    expect(table).not.toMatch(/uppercase tracking-(wide|wider|widest)/);
+    // ORDER-INDEPENDENT. The first version of this guard only matched "uppercase tracking-*" and
+    // PASSED while three column headers carried "tracking-widest uppercase" — the reversed token
+    // order — so the headers were still shouting with a green test. Match the utilities
+    // independently within one className instead of assuming Tailwind's ordering.
+    for (const m of table.matchAll(/className=\{?"([^"]*)"/g)) {
+      const cls = m[1] ?? "";
+      if (/\buppercase\b/.test(cls) && /\btracking-(wide|wider|widest)\b/.test(cls)) {
+        throw new Error(`shouty label left in record-table: "${cls}"`);
+      }
+    }
   });
 });
 

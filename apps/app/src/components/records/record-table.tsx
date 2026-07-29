@@ -3095,7 +3095,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               {/* Record ID locked column — only when added via Add Column */}
               {hasRecordIdCol && (
                 <th className="w-20 min-w-[80px] max-w-[80px] px-3 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06] sticky left-8 z-30">
-                  <span className="text-[10px] font-semibold tracking-widest uppercase text-stone-500 dark:text-[var(--text-secondary)]">ID</span>
+                  <span className="text-[11.5px] font-medium text-[var(--text-secondary)] first-letter:uppercase">ID</span>
                 </th>
               )}
               {orderedColumns.map((col, colIdx) => {
@@ -3136,7 +3136,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                       <button onClick={() => handleHeaderSort(col)}
                         className={`flex items-center gap-1.5 text-[#64748b] hover:text-[#111827] dark:text-stone-400 dark:hover:text-stone-100 transition-colors min-w-0 flex-1 ${isNumeric(col) ? "ml-auto" : ""}`}>
                         {getColumnIcon(col)}
-                        <span className="text-[10px] font-semibold tracking-widest uppercase whitespace-nowrap">{col.replaceAll("_", " ")}</span>
+                        <span className="whitespace-nowrap text-[11.5px] font-medium text-[var(--text-secondary)] first-letter:uppercase">{col.replaceAll("_", " ")}</span>
                         {colMeta[col]?.required && <span className="text-stone-400/70 text-[10px] leading-none">*</span>}
                         <SortIcon col={col}/>
                       </button>
@@ -3154,7 +3154,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
               <th className="px-4 py-2.5 bg-[#f8fafc] dark:bg-[var(--surface-page)] border-b border-b-[#e5e7eb] dark:border-b-white/[.06]">
                 <button onClick={() => handleHeaderSort("__updated_at")} className="flex items-center gap-1.5 text-[#64748b] hover:text-[#111827] dark:text-stone-400 dark:hover:text-stone-100 transition-colors">
                   <Calendar size={11}/>
-                  <span className="text-[10px] font-semibold tracking-widest uppercase">Updated</span>
+                  <span className="text-[11.5px] font-medium text-[var(--text-secondary)]">Updated</span>
                   <SortIcon col="__updated_at"/>
                 </button>
               </th>
@@ -3258,7 +3258,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                     {calculations[col] ? (
                       <button onClick={() => setOpenCalcCol(col === openCalcCol ? null : col)} aria-label={`Change ${calculations[col]} total for ${colLabel(col)}`}
                         className="flex items-center gap-1.5 text-[11px] text-stone-400 hover:text-[var(--text-primary)] transition-colors tabular-nums font-mono rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]">
-                        <span className="text-stone-600 uppercase text-[10px] tracking-wide mr-0.5">{calculations[col]}</span>
+                        <span className="mr-0.5 text-body first-letter:uppercase text-[var(--text-faint)]">{calculations[col]}</span>
                         {(() => {
                           const clientStr = calcResultTyped(calculations[col], col, sorted, effectiveType(col), { display: wsDisplay, rates: fxRates, base: wsBase });
                           // Which active filters can the server reproduce EXACTLY? Only plain equality
