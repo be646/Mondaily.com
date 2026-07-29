@@ -79,7 +79,7 @@ export function CallHost() {
     <>
       {active && <CallOverlay call={active} onClose={() => setActive(null)} />}
       {incoming && !active && (
-        <div className="fixed bottom-6 right-6 z-[55] w-72 rounded-lg border p-4 shadow-2xl" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }} role="dialog" aria-label="Incoming call">
+        <div className="fixed bottom-6 right-6 z-[55] w-72 rounded-lg border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }} role="dialog" aria-label="Incoming call">
           <div className="flex items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-semibold" style={{ background: "var(--surface-hover)", color: "var(--text-secondary)" }}>
               {incoming.caller_name?.trim()?.[0]?.toUpperCase() ?? "?"}

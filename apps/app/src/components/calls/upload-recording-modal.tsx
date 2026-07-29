@@ -49,7 +49,7 @@ export function UploadRecordingModal({ onClose, onDone }: { onClose: () => void;
   return (
     <>
       <div className="fixed inset-0 z-[200] bg-black/40" onClick={busy ? undefined : onClose} />
-      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-sm border shadow-lg"
+      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-sm border"
         style={{ background: "var(--surface-modal)", borderColor: "var(--border-strong)" }}>
         <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
           <span className="flex items-center gap-1.5 text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}><UploadCloud size={14} /> Import recording</span>

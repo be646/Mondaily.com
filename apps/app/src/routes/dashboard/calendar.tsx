@@ -714,7 +714,7 @@ function EventDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   return (
     <>
       <div className="fixed inset-0 z-[200] bg-black/30 backdrop-blur-[1px]" onClick={onClose} />
-      <aside className="fixed right-0 top-0 z-[201] flex h-full w-full max-w-md flex-col border-l shadow-2xl" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }} dir="auto">
+      <aside className="fixed right-0 top-0 z-[201] flex h-full w-full max-w-md flex-col border-l" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }} dir="auto">
         <MeetingBriefBody id={id} onClose={onClose} />
       </aside>
     </>
@@ -1135,7 +1135,7 @@ function CreateModal({ callsEnabled, initialStart, initialEnd, onClose, onCreate
   return (
     <>
       <div className="fixed inset-0 z-[200] bg-black/40" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-sm border shadow-lg" style={{ background: "var(--surface-modal)", borderColor: "var(--border-strong)" }}>
+      <div className="fixed left-1/2 top-1/2 z-[201] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-sm border" style={{ background: "var(--surface-modal)", borderColor: "var(--border-strong)" }}>
         <div className="flex items-center justify-between border-b px-5 py-3" style={{ borderColor: "var(--border-soft)" }}>
           <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>{t("cal.new_meeting")}</span>
           <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15} /></button>

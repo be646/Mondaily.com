@@ -248,7 +248,7 @@ function CreateRecordModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all duration-200 ${tab === "ai" && aiRecords.length ? "w-[min(680px,92vw)]" : "w-[min(440px,92vw)]"}`}>
+      <div className={`fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] transition-all duration-200 ${tab === "ai" && aiRecords.length ? "w-[min(680px,92vw)]" : "w-[min(440px,92vw)]"}`}>
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-3.5">

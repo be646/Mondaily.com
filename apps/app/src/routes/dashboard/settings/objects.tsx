@@ -172,7 +172,7 @@ function AIGeneratePanel({ objects, onCreated, onClose }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[2px] p-6">
-      <div className="w-full max-w-xl rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="w-full max-w-xl rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
           <div className="flex items-center gap-2.5">
@@ -522,7 +522,7 @@ export function ObjectsSettings() {
       {objectOpen && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-[2px] p-6">
           <form onSubmit={e => { e.preventDefault(); if (customObject.singular.trim()) createObject.mutate(); }}
-            className="w-full max-w-lg rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+            className="w-full max-w-lg rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-medium">Create custom object</h2>
               <button type="button" onClick={() => setObjectOpen(false)}><X size={16}/></button>

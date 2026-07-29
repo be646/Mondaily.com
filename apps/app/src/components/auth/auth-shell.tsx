@@ -10,7 +10,7 @@ export function AuthShell({ kicker, title, subtitle, children, footer }: {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-950 px-4 font-mono text-zinc-300">
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: "easeOut" }}
-        className="w-full max-w-[400px] overflow-hidden rounded-sm border border-zinc-800 bg-zinc-900/40 shadow-2xl">
+        className="w-full max-w-[400px] overflow-hidden rounded-sm border border-zinc-800 bg-zinc-900/40">
         <div className="border-b border-zinc-800 px-6 py-3.5">
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: SAGE, boxShadow: `0 0 8px ${SAGE}` }} />

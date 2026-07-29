@@ -53,7 +53,7 @@ function ModalShell({ onClose, children }: { onClose: () => void; children: Reac
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="surface-modal fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-sm px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.22)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="surface-modal fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-sm px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.22)] dark:">
         {children}
       </div>
     </>
@@ -396,7 +396,7 @@ export function ListPage() {
           {assignOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setAssignOpen(false)} />
-              <div className="surface-modal absolute left-0 top-full z-30 mt-1 w-64 rounded-sm p-3 shadow-[0_16px_40px_rgba(0,0,0,0.22)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.7)]">
+              <div className="surface-modal absolute left-0 top-full z-30 mt-1 w-64 rounded-sm p-3 shadow-[0_16px_40px_rgba(0,0,0,0.22)] dark:">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Assign to</p>
                 {membersQuery.isLoading ? (
                   <div className="flex justify-center py-4"><Loader2 size={14} className="animate-spin" style={{ color: "var(--text-faint)" }} /></div>
@@ -465,7 +465,7 @@ export function ListPage() {
           {shareOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setShareOpen(false)} />
-              <div className="surface-modal absolute left-0 top-full z-30 mt-1 w-64 rounded-sm p-3 shadow-[0_16px_40px_rgba(0,0,0,0.22)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.7)]">
+              <div className="surface-modal absolute left-0 top-full z-30 mt-1 w-64 rounded-sm p-3 shadow-[0_16px_40px_rgba(0,0,0,0.22)] dark:">
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Visibility</p>
                 <div className="flex gap-1 mb-2">
                   {(["workspace", "shared", "private"] as const).map(v => (
@@ -810,7 +810,7 @@ export function ListPage() {
       {deleteConfirm && (
         <>
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={() => setDeleteConfirm(false)}/>
-          <div className="surface-modal fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-sm px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.22)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="surface-modal fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-sm px-5 py-5 shadow-[0_24px_64px_rgba(0,0,0,0.22)] dark:">
             <h2 className="mb-2 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Delete "{list.data.name}"?</h2>
             <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>The records themselves will not be deleted — only this list.</p>
             <div className="mt-5 flex justify-end gap-2">
@@ -834,7 +834,7 @@ export function ListPage() {
       {/* ── Enroll in Sequence ── */}
       {enrollOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl flex flex-col max-h-[80vh]">
+          <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] flex flex-col max-h-[80vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-soft)]">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#2f9e6b]/10 border border-[#2f9e6b]/25">

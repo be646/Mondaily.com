@@ -856,7 +856,7 @@ export function HomePage() {
                                 Actions <span style={{ fontSize: 9, opacity: 0.7 }}>▾</span>
                               </button>
                               {actionsOpen && (
-                                <div className="absolute bottom-full left-0 z-40 mb-1.5 w-48 overflow-hidden rounded-sm border shadow-[0_8px_24px_rgba(15,23,42,0.1)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+                                <div className="absolute bottom-full left-0 z-40 mb-1.5 w-48 overflow-hidden rounded-sm border" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
                                   {([
                                     { key: "related", label: "Show related" },
                                     { key: "explain", label: "Explain reasoning" },
@@ -1322,7 +1322,7 @@ export function HomePage() {
       {/* Scan report modal */}
       {(scanReport || scanLoading) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 dark:bg-black/60 backdrop-blur-sm" onClick={() => { if (!scanLoading) setScanReport(null); }}>
-          <div className="relative flex max-h-[80vh] w-full max-w-lg flex-col rounded-sm border shadow-lg" style={{ background: "var(--surface-modal)", borderColor: "var(--border-soft)" }} onClick={e => e.stopPropagation()}>
+          <div className="relative flex max-h-[80vh] w-full max-w-lg flex-col rounded-sm border" style={{ background: "var(--surface-modal)", borderColor: "var(--border-soft)" }} onClick={e => e.stopPropagation()}>
             <div className="flex shrink-0 items-center justify-between border-b px-5 py-4" style={{ borderColor: "var(--border-soft)" }}>
               <div className="flex items-center gap-2">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full" style={{ background: "var(--surface-hover)" }}>

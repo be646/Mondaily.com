@@ -217,7 +217,7 @@ export function GettingStarted() {
                   {/* Tooltip — pops left (FAB is on the right edge) */}
                   {hovered && !checked && (
                     <div className="absolute right-full top-0 z-[210] mr-2.5 w-56 pointer-events-none">
-                      <div className="rounded-sm border border-stone-200 bg-white px-3 py-3 shadow-lg dark:border-stone-800 dark:bg-black">
+                      <div className="rounded-sm border border-stone-200 bg-white px-3 py-3 dark:border-stone-800 dark:bg-black">
                         <div className="text-[12px] font-semibold text-[#111827] dark:text-[var(--text-primary)] mb-1.5">{item.label}</div>
                         <div className="text-[11px] text-stone-500 dark:text-[var(--text-secondary)] leading-relaxed">{item.hint}</div>
                         <div className="mt-2.5 text-[10px] font-semibold text-stone-950 dark:text-stone-50">→ Go there</div>
@@ -692,7 +692,7 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
       {newWorkspaceOpen && (
         <>
           <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-[2px]" onClick={() => setNewWorkspaceOpen(false)}/>
-          <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-stone-200 bg-white p-6 shadow-[0_24px_48px_rgba(15,23,42,0.18)] dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)] dark:shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-stone-200 bg-white p-6 shadow-[0_24px_48px_rgba(15,23,42,0.18)] dark:border-[var(--border-soft)] dark:bg-[var(--surface-card)] dark:">
             <div className="mb-1 flex items-center justify-between">
               <span className="text-sm font-semibold text-[#111827] dark:text-[var(--text-primary)]">Create workspace</span>
               <button onClick={() => setNewWorkspaceOpen(false)} className="rounded-md p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-900 dark:text-stone-500 dark:hover:bg-[var(--surface-hover)] dark:hover:text-[var(--text-primary)] transition-colors">

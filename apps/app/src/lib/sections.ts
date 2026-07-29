@@ -20,6 +20,8 @@ export const SECTION_HUE: [string, number][] = [
   ["/calls",           -80], // amber-rose
   ["/emails",          -45], // warm
   ["/tasks",            95], // cool teal-blue
+  ["/calendar",        -60], // amber / time
+  ["/messages",         -20], // warm rose (shares the comms family with /emails)
 ];
 
 export function sectionHue(pathname: string): number {
@@ -35,6 +37,7 @@ export const SECTION_CALLSIGN: [string, string][] = [
   ["/notes", "DRAFT"], ["/ask", "MONDAILY"], ["/search", "GRAPH"],
   ["/calls", "COMMS"], ["/emails", "RELAY"], ["/tasks", "QUEUE"],
   ["/objects", "RECORDS"], ["/lists", "SEGMENTS"], ["/home", "DECK"],
+  ["/calendar", "SCHEDULE"], ["/messages", "THREAD"],
 ];
 
 export function sectionCallsign(pathname: string): string {

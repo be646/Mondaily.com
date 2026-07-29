@@ -141,7 +141,7 @@ export function CommandPalette() {
   return (
     <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[15vh] px-4" onClick={() => setOpen(false)}>
       <div
-        className="w-full max-w-lg rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl overflow-hidden"
+        className="w-full max-w-lg rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Input */}

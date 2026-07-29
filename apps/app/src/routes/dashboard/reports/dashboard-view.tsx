@@ -354,7 +354,7 @@ function AddWidgetModal({ objects, reports, onAdd, onClose }: {
   ];
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className="w-full max-w-md overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+      <div className="w-full max-w-md overflow-hidden rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]">
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">Add widget</h2>
           <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"><X size={15}/></button>
@@ -559,7 +559,7 @@ export function DashboardViewPage() {
       {/* Delete confirm */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-sm border border-stone-500/20 bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+          <div className="w-full max-w-sm rounded-sm border border-stone-500/20 bg-[var(--surface-card)] p-5">
             <h2 className="mb-2 text-sm font-semibold text-[var(--text-primary)]">Delete dashboard?</h2>
             <p className="mb-5 text-xs text-[var(--text-faint)]">This will permanently delete <strong className="text-[var(--text-primary)]">{dashboard.name || "this dashboard"}</strong> and all its widgets. This cannot be undone.</p>
             <div className="flex gap-2">

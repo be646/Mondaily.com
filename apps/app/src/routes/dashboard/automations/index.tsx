@@ -61,7 +61,7 @@ function AISequenceModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-2xl" : "max-w-lg"}`}>
+      <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] transition-all ${preview ? "max-w-2xl" : "max-w-lg"}`}>
         <div className="flex items-center justify-between p-5 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
             <LogoMark size={15} className="text-[var(--text-faint)]"/>

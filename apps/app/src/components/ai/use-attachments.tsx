@@ -72,7 +72,7 @@ export function AttachPicker({ attach }: { attach: AttachApi }) {
   return (
     <>
       {attach.open && (
-        <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-sm border shadow-[0_8px_24px_rgba(15,23,42,0.1)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+        <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-sm border" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
           <div className="flex items-center gap-2 border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
             <Search size={13} style={{ color: "var(--text-faint)" }}/>
             <input autoFocus value={attach.query} onChange={e => attach.setQuery(e.target.value)}

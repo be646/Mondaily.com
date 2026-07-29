@@ -221,7 +221,7 @@ function NodePicker({ onPick, onClose }: {
   return (
     <>
       <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px]" onClick={onClose}/>
-      <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] overflow-hidden">
+      <div className="fixed left-1/2 top-1/2 z-50 w-80 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden">
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-4 py-3">
           <p className="text-xs font-semibold text-[var(--text-primary)]">Add step</p>
           <button onClick={onClose} className="text-[var(--text-secondary)] hover:text-[var(--text-faint)]"><X size={14}/></button>
@@ -302,7 +302,7 @@ function AIWorkflowModal({ onClose, onApply }: {
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
-      <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] transition-all ${preview ? "max-w-lg" : "max-w-md"}`}>
+      <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] transition-all ${preview ? "max-w-lg" : "max-w-md"}`}>
         <div className="flex items-center justify-between p-5 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
             <LogoMark size={15} className="text-[var(--text-faint)]"/>

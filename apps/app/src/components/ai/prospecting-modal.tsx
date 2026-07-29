@@ -116,7 +116,7 @@ export function ProspectingModal({
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_64px_rgba(0,0,0,0.7)] px-5 py-5 max-h-[85vh] overflow-y-auto">
+      <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-xl -translate-x-1/2 -translate-y-1/2 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-5 py-5 max-h-[85vh] overflow-y-auto">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Globe size={14} className="text-stone-400" />

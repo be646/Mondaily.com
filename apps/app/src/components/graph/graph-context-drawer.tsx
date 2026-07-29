@@ -106,7 +106,7 @@ export function GraphContextDrawer({ ctx, activities: passedActivities, onClose 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-label="Graph context">
       <div className="flex-1 bg-black/40 backdrop-blur-[1px]" onClick={onClose} />
-      <div className="flex h-full w-full max-w-md flex-col border-l shadow-2xl" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+      <div className="flex h-full w-full max-w-md flex-col border-l" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
         {/* 1. Header */}
         <div className="flex items-start justify-between gap-3 border-b px-4 py-3.5" style={{ borderColor: "var(--border-soft)" }}>
           <div className="min-w-0">

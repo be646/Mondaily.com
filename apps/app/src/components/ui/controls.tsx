@@ -391,14 +391,17 @@ interface CommandPageHeaderProps {
   icon?: LucideIcon;
   callsign?: string;                 // rendered as `// CALLSIGN`
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   status?: CommandStatusItem[];      // honest status chips (state, counts) — no fake "live"
   primaryAction?: ReactNode;
   secondaryActions?: ReactNode;      // usually an ActionMenu ("Assist"/"More")
   rightSummary?: ReactNode;          // small muted text/metrics on the right
   className?: string;
+  /** Set false when the header sits inside a pinned band that already draws a rule — otherwise
+   *  the page gets two dividers. This is the only thing FinanceHeader existed to vary. */
+  divider?: boolean;
 }
-export function CommandPageHeader({ icon: Icon, callsign, title, subtitle, status, primaryAction, secondaryActions, rightSummary, className }: CommandPageHeaderProps) {
+export function CommandPageHeader({ icon: Icon, callsign, title, subtitle, status, primaryAction, secondaryActions, rightSummary, className, divider = true }: CommandPageHeaderProps) {
   return (
     <div className={cx("mb-4", className)}>
       <div className="flex items-start justify-between gap-3">
@@ -426,7 +429,7 @@ export function CommandPageHeader({ icon: Icon, callsign, title, subtitle, statu
           ))}
         </div>
       )}
-      <div className="soul-rule mt-3" />
+      {divider && <div className="soul-rule mt-3" />}
     </div>
   );
 }

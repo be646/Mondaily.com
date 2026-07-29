@@ -87,7 +87,7 @@ const STATE_COLOR: Record<string, string> = {
 function ResumePill({ state, onOpen }: { state: string; onOpen: () => void }) {
   return (
     <button onClick={onOpen} aria-label="Resume Help"
-      className="fixed bottom-4 right-4 z-[190] flex items-center gap-2 rounded-sm border px-3.5 py-2 shadow-lg transition-transform hover:-translate-y-0.5"
+      className="fixed bottom-4 right-4 z-[190] flex items-center gap-2 rounded-sm border px-3.5 py-2 transition-transform hover:-translate-y-0.5"
       style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
       <Terminal size={13} style={{ color: "var(--section-accent)" }} />
       <span className="text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>Help</span>
@@ -220,7 +220,7 @@ function HelpPanel({ prefill }: { prefill: string }) {
   return (
     <>
       <div className="fixed inset-0 z-[200] bg-black/30 backdrop-blur-[1px]" onClick={close} />
-      <aside className="fixed right-0 top-0 z-[201] flex h-full w-full max-w-md flex-col border-l shadow-lg" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }} dir="auto">
+      <aside className="fixed right-0 top-0 z-[201] flex h-full w-full max-w-md flex-col border-l" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }} dir="auto">
         {/* Persistent case header */}
         <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
           <div className="flex min-w-0 items-center gap-2">

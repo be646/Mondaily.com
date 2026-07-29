@@ -107,7 +107,7 @@ function PlatformTicketPanel({ id, onClose, onChanged }: { id: string; onClose: 
   return (
     <>
       <div className="fixed inset-0 z-[200] bg-black/30" onClick={onClose} />
-      <aside className="fixed right-0 top-0 z-[201] flex h-full w-full max-w-lg flex-col border-l shadow-lg" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
+      <aside className="fixed right-0 top-0 z-[201] flex h-full w-full max-w-lg flex-col border-l" style={{ background: "var(--surface-page)", borderColor: "var(--border-soft)" }}>
         <div className="flex items-center justify-between border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
           <div className="min-w-0">
             <span className="block truncate text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>{d?.subject ?? "…"}</span>

@@ -479,7 +479,7 @@ export function DecisionsPage() {
                 )}
                 {banner && (
                   <div className="absolute inset-0 z-10 flex items-center justify-center backdrop-blur-sm" style={{ background: "color-mix(in srgb, var(--surface-card) 70%, transparent)" }}>
-                    <div className="flex items-center gap-2.5 rounded-sm border px-5 py-3 text-[14px] font-semibold shadow-lg"
+                    <div className="flex items-center gap-2.5 rounded-sm border px-5 py-3 text-[14px] font-semibold"
                       style={banner.kind === "approved"
                         ? { borderColor: "var(--status-ok)", color: "var(--status-ok)", background: "color-mix(in srgb, var(--status-ok) 12%, var(--surface-card))" }
                         : { borderColor: banner.kind === "rejected" ? "var(--status-error)" : "var(--text-faint)", color: banner.kind === "rejected" ? "var(--status-error)" : "var(--text-muted)", background: "var(--surface-card)" }}>

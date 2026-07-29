@@ -1,5 +1,7 @@
 import { Search } from "lucide-react";
-import type { ReactNode, ElementType } from "react";
+import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
+import { CommandPageHeader } from "@/components/ui/controls";
 
 /**
  * FinanceHeader — the app-standard page header (icon chip + `// CALLSIGN` kicker + title + subtitle
@@ -7,28 +9,25 @@ import type { ReactNode, ElementType } from "react";
  * of the app (Decisions/Discovery/Team). Kept as a light component (no soul-rule) so it drops into
  * the finance pages' pinned header band without a double divider.
  */
-export function FinanceHeader({ icon: Icon, callsign, title, subtitle, action }: {
-  icon: ElementType;
+export function FinanceHeader({ icon, callsign, title, subtitle, action }: {
+  icon: LucideIcon;
   callsign: string;
   title: string;
   subtitle?: ReactNode;
   action?: ReactNode;
 }) {
+  // Thin alias over CommandPageHeader. This was a byte-identical COPY of that component minus the
+  // divider, so the two drifted independently and the app had two page-header implementations.
+  // `divider={false}` is the only difference the finance pages ever needed.
   return (
-    <div className="mb-4 flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-sm"
-            style={{ color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}>
-            <Icon size={13} />
-          </span>
-          <span className="soul-kicker">// {callsign}</span>
-        </div>
-        <h1 className="mt-1.5 text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-xs text-[var(--text-muted)]">{subtitle}</p>}
-      </div>
-      {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
-    </div>
+    <CommandPageHeader
+      icon={icon}
+      callsign={callsign}
+      title={title}
+      subtitle={subtitle}
+      primaryAction={action}
+      divider={false}
+    />
   );
 }
 

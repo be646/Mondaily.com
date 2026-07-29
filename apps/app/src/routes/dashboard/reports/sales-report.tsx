@@ -340,7 +340,7 @@ function AIModal({ title, onClose, onPrint, children }: { title: string; onClose
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"/>
       <div
-        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-[0_24px_80px_rgba(0,0,0,0.7)] overflow-hidden"
+        className="relative w-full max-w-2xl max-h-[85vh] flex flex-col rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Modal header */}
@@ -1577,7 +1577,7 @@ export function SalesReportPage() {
             {/* Goal dialog */}
             {editingGoal && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-                <div className="w-72 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.7)]">
+                <div className="w-72 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-5">
                   <h3 className="mb-3 text-sm font-semibold text-[var(--text-primary)]">Set a goal for {vocab.kpi1Label}</h3>
                   <input
                     autoFocus

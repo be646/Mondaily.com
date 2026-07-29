@@ -85,7 +85,7 @@ const BTN_PRIMARY = "btn-primary flex-1 h-10 text-sm";
 function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
-      <div className="surface-modal w-full max-w-md rounded-sm shadow-2xl overflow-hidden">
+      <div className="surface-modal w-full max-w-md rounded-sm overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: "var(--border-soft)" }}>
           <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{title}</h2>
           <button onClick={onClose} className="btn-icon h-7 w-7"><X size={15}/></button>
@@ -205,7 +205,7 @@ function DraggableCard({ task, onDetail, onEdit, onDelete, onToggle, currentUser
 
   return (
     <div ref={setNodeRef} style={style} {...attributes}
-      className={`rounded-sm border p-3 transition-all ${isDragging ? "shadow-2xl opacity-80 border-stone-500/40 bg-[var(--surface-card)] dark:bg-[#1a1d24]" : "border-[var(--border-soft)] bg-[var(--surface-card)] hover:border-[var(--border-soft)]"}`}>
+      className={`rounded-sm border p-3 transition-all ${isDragging ? " opacity-80 border-stone-500/40 bg-[var(--surface-card)] dark:bg-[#1a1d24]" : "border-[var(--border-soft)] bg-[var(--surface-card)] hover:border-[var(--border-soft)]"}`}>
       {/* Drag handle covers the background only */}
       <div {...listeners} className="absolute inset-0 rounded-sm cursor-grab active:cursor-grabbing" style={{ zIndex: 0 }}/>
       <div className="relative" style={{ zIndex: 1 }}>
@@ -324,7 +324,7 @@ function AISuggestModal({ onClose, members, currentUserId }: { onClose: () => vo
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
-      <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl overflow-hidden transition-all ${suggestions.length ? "max-w-2xl" : "max-w-md"}`}>
+      <div className={`w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] overflow-hidden transition-all ${suggestions.length ? "max-w-2xl" : "max-w-md"}`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
             <LogoMark size={14} className="text-[var(--text-secondary)]"/>
@@ -899,7 +899,7 @@ export function TasksPage() {
       {/* ── Delete confirm ── */}
       {confirmDeleteId && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 dark:bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-sm rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-6 shadow-2xl">
+          <div className="w-full max-w-sm rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-stone-50 dark:bg-stone-500/10 mb-4">
               <Trash2 size={16} className="text-stone-600 dark:text-stone-400"/>
             </div>

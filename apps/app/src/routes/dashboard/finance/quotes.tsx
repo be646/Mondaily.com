@@ -110,7 +110,7 @@ function NewQuoteModal({ onClose, onCreate }: { onClose: () => void; onCreate: (
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-soft)]">
           <div className="flex items-center gap-2">
             <div className="h-6 w-6 rounded-lg bg-status-neutral/10 flex items-center justify-center"><ReceiptText size={12} className="text-status-neutral"/></div>

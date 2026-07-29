@@ -50,7 +50,7 @@ function CellTipPortal({ text, x, y }: { text: string; x: number; y: number }) {
       style={{ left: x + 14, top: y + 14 }}
     >
       <div
-        className="max-w-sm rounded-sm px-3 py-2 text-[12px] text-[var(--text-secondary)] leading-relaxed shadow-[0_8px_32px_rgba(0,0,0,0.7)]"
+        className="max-w-sm rounded-sm px-3 py-2 text-[12px] text-[var(--text-secondary)] leading-relaxed"
         style={{ background: "rgba(13,15,19,0.96)", border: "1px solid rgba(255,255,255,0.09)", backdropFilter: "blur(10px)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}
       >
         {text}
@@ -1611,7 +1611,7 @@ function RelationCell({ value, relatedObjectType, onSave }: {
       </button>
       {open && createPortal(
         <div ref={ref} style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 9999 }}
-          className="w-56 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl py-1">
+          className="w-56 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] py-1">
           <div className="px-2 pb-1 pt-1">
             <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
               placeholder={`Search ${targetSlug || "records"}…`}
@@ -3296,7 +3296,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     {cellTip && <CellTipPortal text={cellTip.text} x={cellTip.x} y={cellTip.y}/>}
 
     {undoToast && (
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-4 py-3 shadow-2xl">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-4 py-3">
         <span className="text-sm text-[var(--text-secondary)]">Record deleted</span>
         <button
           onClick={undoDelete}
@@ -3309,7 +3309,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     )}
 
     {flash && (
-      <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-sm border bg-[var(--surface-card)] px-4 py-3 shadow-2xl"
+      <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-sm border bg-[var(--surface-card)] px-4 py-3"
         style={{ borderColor: flash.kind === "warn" ? "color-mix(in srgb, #c6892e 40%, transparent)" : "var(--border-soft)" }}>
         <span className="text-sm" style={{ color: flash.kind === "warn" ? "#c6892e" : "var(--text-secondary)" }}>{flash.msg}</span>
       </div>

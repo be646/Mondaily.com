@@ -206,7 +206,7 @@ function NoteCard({
                 <span className={`h-2.5 w-2.5 rounded-full ${scheme.dot}`} />
               </button>
               {colorOpen && (
-                <div className="absolute right-0 top-8 z-30 flex gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-2 shadow-2xl">
+                <div className="absolute right-0 top-8 z-30 flex gap-1.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-2">
                   {COLOR_KEYS.map(c => (
                     <button
                       key={c}
@@ -436,7 +436,7 @@ function TimelineView({ notes, colors, pinned, userId, isAdmin, onColorChange, o
 function ModalShell({ title, subtitle, onClose, children }: { title: string; subtitle?: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl overflow-auto rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] shadow-2xl max-h-[90vh]">
+      <div className="w-full max-w-2xl overflow-auto rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] max-h-[90vh]">
         <div className="flex items-center justify-between border-b border-[var(--border-soft)] px-5 py-4">
           <div>
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">{title}</h2>
@@ -676,7 +676,7 @@ export function NotesPage() {
                 placeholder="Link to a contact, company, deal…"
                 className="h-10 w-full rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] pl-9 pr-3 text-sm text-[var(--text-primary)] placeholder-[var(--text-secondary)] outline-none focus:border-[var(--border-soft)] transition-colors" />
               {recordSearch && !linkedRecord && (
-                <div className="absolute z-10 mt-1 max-h-52 w-full overflow-auto rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-1 shadow-2xl">
+                <div className="absolute z-10 mt-1 max-h-52 w-full overflow-auto rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-1">
                   {recordOptions.length === 0 ? (
                     <p className="px-3 py-4 text-center text-xs text-[var(--text-secondary)]">No records found</p>
                   ) : recordOptions.map(r => (

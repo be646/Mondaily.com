@@ -128,3 +128,51 @@ describe("record table", () => {
     expect(table).not.toMatch(/shadow-\[2px_0_8px/);
   });
 });
+
+/**
+ * Phase 2 — adoption sweep. The design system was already ~80% right; what was missing was
+ * adoption. These guard the shared primitives against re-forking.
+ */
+describe("one page-header component", () => {
+  it("FinanceHeader is an alias, not a second implementation", () => {
+    // It was a byte-identical COPY of CommandPageHeader minus the divider, so the two could drift
+    // independently — and the app had two page headers with no way to tell which was canonical.
+    const finance = app("components/finance/finance-toolbar.tsx");
+    expect(finance).toMatch(/<CommandPageHeader/);
+    expect(finance).toMatch(/divider=\{false\}/);
+    // no duplicated markup left
+    expect(finance).not.toMatch(/soul-kicker/);
+    expect(finance).not.toMatch(/text-\[16px\] font-semibold tracking-tight/);
+  });
+});
+
+describe("separation is hairlines, not shadows", () => {
+  const FORBIDDEN_SHADOWS = /shadow-2xl|shadow-lg|shadow-\[0_\d+px_\d+px_rgba\(0,0,0,0\.7\)\]/;
+
+  it("no drop shadows on the surfaces this pass covered", () => {
+    // 66 shadow utilities across 45 files. 28 of the 29 shadow-2xl sites already had a border and
+    // the 29th used .surface-modal (which sets one), so every shadow was pure redundancy.
+    for (const f of [
+      "routes/dashboard/tasks.tsx",
+      "routes/dashboard/notes.tsx",
+      "components/records/record-table.tsx",
+      "components/records/record-detail.tsx",
+      "components/ui/command-palette.tsx",
+    ]) {
+      expect(app(f), `${f} should separate with a hairline`).not.toMatch(FORBIDDEN_SHADOWS);
+    }
+  });
+});
+
+describe("every section has its own identity", () => {
+  it("calendar and messages are in both section maps", () => {
+    // Both were missing, so they fell back to hue 0 and the callsign "MONDAILY" — the only two
+    // sections in the app with no identity of their own.
+    const sections = app("lib/sections.ts");
+    for (const route of ["/calendar", "/messages"]) {
+      expect(sections.match(new RegExp(`"${route}"`, "g")) ?? [], `${route} in hue + callsign`).toHaveLength(2);
+    }
+    expect(sections).toMatch(/"\/calendar", "SCHEDULE"/);
+    expect(sections).toMatch(/"\/messages", "THREAD"/);
+  });
+});

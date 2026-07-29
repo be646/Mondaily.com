@@ -1131,7 +1131,7 @@ function LeadDrawer({ r, query, lists, members, status, onStatus, onClose }: {
   return (
     <>
       <div className="fixed inset-0 z-40" style={{ background: "rgba(0,0,0,0.35)" }} onClick={onClose} />
-      <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l shadow-2xl" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
+      <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l" style={{ borderColor: "var(--border-soft)", background: "var(--surface-page)" }}>
         <div className="flex items-start justify-between gap-2 border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
           <div className="min-w-0">
             <div className="text-[11px]" style={{ color: "var(--text-faint)" }}>{hostOf(r.source_url) || r.platform}{r.region ? ` · ${r.region}` : ""}</div>
@@ -1272,7 +1272,7 @@ function LeadCard({ r, n, query, lists, selected, onToggle, bulkStatus, onDetail
             {listOpen && (
               <>
                 <button className="fixed inset-0 z-20 cursor-default" onClick={() => setListOpen(false)} aria-label="Close" />
-                <div className="absolute left-0 z-30 mt-1 w-56 overflow-hidden rounded-sm border shadow-lg" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+                <div className="absolute left-0 z-30 mt-1 w-56 overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
                   {lists.length === 0 ? <div className="px-3 py-2.5 text-[12px]" style={{ color: "var(--text-faint)" }}>No lists yet.</div>
                     : lists.map((l) => (
                       <button key={l.id} onClick={() => addToList.mutate(l.id)} className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12px] hover:bg-[var(--surface-hover)]" style={{ color: "var(--text-secondary)" }}>
