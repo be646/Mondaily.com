@@ -112,14 +112,20 @@ export function useAskEngine(opts: UseAskEngineOptions = {}) {
 
     let model = "auto";
     let web_search = false;
+    // tone/scope were stored by Settings and never sent — the controls looked functional and did
+    // nothing, exactly like the mode selector before it was wired up.
+    let tone: string | undefined;
+    let scope: string | undefined;
     try {
       const s = JSON.parse(localStorage.getItem("mondaily_ask_settings") || "{}");
       model = s.model ?? "auto";
       web_search = s.webSearch === "allow";
+      tone = s.tone;
+      scope = s.scope;
     } catch {}
     const headers = await getAuthHeaders();
     const apiUrl = import.meta.env.VITE_API_URL || "";
-    const body = JSON.stringify({ message: text, model, web_search, history, thread_id: tid, context: opts.context });
+    const body = JSON.stringify({ message: text, model, web_search, tone, scope, history, thread_id: tid, context: opts.context });
     const aiIdx = withUser.length; // index the assistant message will occupy
     // Hoisted so the catch can salvage partial output if the stream stalls.
     let streamed = "";

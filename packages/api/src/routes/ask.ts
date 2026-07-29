@@ -1607,6 +1607,21 @@ export async function workspaceProfileBlock(workspaceId: string | undefined, use
  * router in lib/ai-router already supports per-class model overrides via AI_MODEL_<CLASS>), how
  * many tool rounds to allow, and how much room to think.
  */
+/**
+ * TONE and SCOPE, from the user's Ask settings. Both were stored by the settings page and never
+ * sent, so the controls looked functional and changed nothing — the same defect the mode selector
+ * had. These are appended to the system prompt because they describe how to ANSWER, not what to
+ * fetch: grounding rules are never relaxed by either of them.
+ */
+function preferenceBlock(tone?: string, scope?: string): string {
+  const parts: string[] = [];
+  if (tone === "concise")  parts.push("Answer in as few words as the question allows. Lead with the number or the fact. Skip preamble.");
+  if (tone === "detailed") parts.push("Give a thorough answer: show the breakdown behind any figure and note what you checked.");
+  // "workspace" is the stricter setting, so it is the one worth stating explicitly.
+  if (scope === "workspace") parts.push("Use ONLY this workspace's data. Do not draw on general knowledge for factual claims, and say so if the workspace cannot answer the question.");
+  return parts.length ? `\n\n${parts.join(" ")}` : "";
+}
+
 export type AskMode = "auto" | "fast" | "smart";
 
 export function modeConfig(mode?: AskMode): { taskClass?: TaskClass; maxRounds: number; maxTokens: number; label: AskMode } {
@@ -1691,6 +1706,8 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
   message: z.string().min(1),
   thread_id: z.string().optional(),
   model: z.enum(["auto", "fast", "smart"]).optional(),
+  tone: z.enum(["concise", "balanced", "detailed"]).optional(),
+  scope: z.enum(["workspace", "both"]).optional(),
   web_search: z.boolean().optional(),
   // Prior turns of this conversation, sent by the frontend so the AI can
   // resolve "this", "that answer", follow-up actions, etc. Without this the
@@ -1721,7 +1738,7 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
     scope_label: z.string().optional()
   }).optional()
 })), async (c) => {
-  const { message, model: modelPref, web_search, history, context } = c.req.valid("json");
+  const { message, model: modelPref, web_search, history, context, tone, scope } = c.req.valid("json");
 
   // AI_AGENT_MODEL env var overrides user preference (swap provider without code change).
   // When not set, honour the user's fast/smart/auto preference mapped to Claude models.
@@ -1747,7 +1764,7 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
       buildAskMemory(workspaceId, userId, message),
     ]);
 
-    const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + contextNote + memory.block;
+    const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + contextNote + memory.block + preferenceBlock(tone, scope);
 
     // Prepend prior conversation turns (capped) so the model has real memory
     // of this thread instead of treating every message as the first one.
@@ -1861,11 +1878,13 @@ router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object
   message: z.string().min(1),
   thread_id: z.string().optional(),
   model: z.enum(["auto", "fast", "smart"]).optional(),
+  tone: z.enum(["concise", "balanced", "detailed"]).optional(),
+  scope: z.enum(["workspace", "both"]).optional(),
   web_search: z.boolean().optional(),
   history: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() })).optional(),
   context: z.record(z.any()).optional(),
 })), async (c) => {
-  const { message, web_search, history, context, model: modelPref } = c.req.valid("json");
+  const { message, web_search, history, context, model: modelPref, tone, scope } = c.req.valid("json");
   // The mode was validated and then thrown away here — every streamed request used the env default
   // regardless of what the user picked.
   const askMode = modeConfig(modelPref as AskMode | undefined);
@@ -1903,7 +1922,7 @@ router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object
         // Phase 2B: source-backed memory (OFF by default). Empty ⇒ identical to today.
         buildAskMemory(workspaceId, userId, message),
       ]);
-      const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + buildContextNote(context as Record<string, any> | undefined) + memory.block;
+      const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + buildContextNote(context as Record<string, any> | undefined) + memory.block + preferenceBlock(tone, scope);
       const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content }));
       const messages: any[] = [...priorTurns, { role: "user", content: message }];
       const sources: SourceMeta[] = [];

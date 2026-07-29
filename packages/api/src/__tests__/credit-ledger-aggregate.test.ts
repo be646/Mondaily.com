@@ -281,13 +281,25 @@ describe("Ask modes are real", () => {
   });
 
   it("the streaming route no longer discards the mode", () => {
-    expect(ask).toMatch(/const \{ message, web_search, history, context, model: modelPref \}/);
+    expect(ask).toMatch(/model: modelPref, tone, scope \} = c\.req\.valid\("json"\)/);
   });
 
   it("modes route through the existing TaskClass router, not a parallel model list", () => {
     // Sovereign product — a mode cannot mean "use someone else's model". lib/ai-router already
     // supports per-class overrides via AI_MODEL_<CLASS>.
     expect(ask).toMatch(/modelForClass\(askMode\.taskClass\)/);
+  });
+
+  it("tone and scope reach the model too", () => {
+    // Both were stored by Settings and never sent — controls that looked functional and did
+    // nothing, the same defect the mode selector had.
+    const engine = readFileSync(join(SRC, "../../../apps/app/src/components/ai/use-ask-engine.ts"), "utf8");
+    expect(engine).toMatch(/tone, scope, history/);          // actually in the request body
+    expect(ask).toMatch(/function preferenceBlock/);
+    const wired = ask.match(/preferenceBlock\(tone, scope\)/g) ?? [];
+    expect(wired.length).toBe(2);                            // /ask and /ask/stream
+    // scope=workspace must TIGHTEN grounding, never relax it
+    expect(ask).toMatch(/Use ONLY this workspace's data/);
   });
 
   it("the composer control writes the same key the engine reads", () => {
