@@ -229,3 +229,33 @@ describe("call detail — chrome only, transcript untouched", () => {
     }
   });
 });
+
+describe("home composer", () => {
+  const home = app("routes/dashboard/home.tsx");
+
+  it("is a column: question on top, controls in a bar inside it", () => {
+    // Was one horizontal row, so the input competed for width with five buttons and a one-line box
+    // invited a search query rather than a question.
+    expect(home).toMatch(/ask-input chat-input-bar chat-input-orbit flex flex-col/);
+    expect(home).toMatch(/control bar, inside the composer/);
+    expect(home).toMatch(/minHeight: 52/);
+  });
+
+  it("keeps every control — nothing was removed, only regrouped", () => {
+    for (const anchor of [
+      "setPromptPickerOpen(o => !o)",   // +  quick prompts
+      "setAttachOpen(o => !o)",         // 📎 attach record/file
+      "voice.toggle",                   // mic dictation
+      "onClick={newChat}",              // Clear
+      "onClick={loading ? stop : send}",// send / stop
+      "@-mention → record picker",      // @ picker behaviour
+    ]) {
+      expect(home, `${anchor} must survive the composer restyle`).toContain(anchor);
+    }
+  });
+
+  it("no resting shadow on the composer", () => {
+    // the chatting state carried a hand-rolled two-layer drop shadow
+    expect(home).not.toMatch(/boxShadow: "0 -2px 24px -6px/);
+  });
+});

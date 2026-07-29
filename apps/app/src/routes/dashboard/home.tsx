@@ -967,8 +967,25 @@ export function HomePage() {
           )}
           <input ref={fileInputRef} type="file" accept=".txt,.md,.csv,.json,.log,.tsv,text/plain" onChange={onFilePick} className="hidden"/>
 
-          <div data-busy={loading} className="ask-input chat-input-bar chat-input-orbit flex items-end gap-2 px-2.5 py-2 transition-all sm:px-3"
-            style={isChatting ? { backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", boxShadow: "0 -2px 24px -6px rgba(15,23,42,0.12), 0 8px 24px -8px rgba(15,23,42,0.14)" } : undefined}>
+          {/* Composer as a COLUMN: the question gets the full width on top, and the controls sit in
+              a bar inside the bottom border. It was one horizontal row, so the input competed for
+              width with five buttons and a one-line box invited a search query rather than a
+              question. Same controls, same handlers, same order — regrouped. */}
+          <div data-busy={loading} className="ask-input chat-input-bar chat-input-orbit flex flex-col gap-1 px-2.5 py-2 transition-all sm:px-3"
+            style={isChatting ? { backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" } : undefined}>
+            <textarea ref={inputRef} value={input} rows={1}
+              onChange={e => {
+                setInput(e.target.value);
+                if (e.target.value.endsWith("@")) setAttachOpen(true); // @-mention → record picker
+                // Auto-expand up to a max height, then scroll inside.
+                const el = e.target; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+              }}
+              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+              placeholder={isChatting ? "Continue the conversation… (Shift+Enter for new line)" : "What do you want to know?"}
+              className="w-full resize-none bg-transparent px-1 pt-1.5 text-[15px] leading-6 outline-none"
+              style={{ color: "var(--text-primary)", minHeight: 52, maxHeight: 160 }}/>
+            {/* ── control bar, inside the composer ── */}
+            <div className="flex items-center gap-1">
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${promptPickerOpen ? "bg-[var(--surface-selected)] text-[var(--text-primary)]" : "hover:bg-[var(--surface-hover)]"}`}
               style={promptPickerOpen ? undefined : { color: "var(--text-muted)" }}>
@@ -979,17 +996,7 @@ export function HomePage() {
               style={attachOpen ? undefined : { color: "var(--text-muted)" }}>
               <Paperclip size={17}/>
             </button>
-            <textarea ref={inputRef} value={input} rows={1}
-              onChange={e => {
-                setInput(e.target.value);
-                if (e.target.value.endsWith("@")) setAttachOpen(true); // @-mention → record picker
-                // Auto-expand up to a max height, then scroll inside.
-                const el = e.target; el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
-              }}
-              onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-              placeholder={isChatting ? "Continue the conversation… (Shift+Enter for new line)" : "What do you want to know?"}
-              className="flex-1 resize-none self-center bg-transparent px-1 py-1 text-[15px] leading-6 outline-none"
-              style={{ color: "var(--text-primary)", maxHeight: 160 }}/>
+              <span className="ml-auto" />
             {isChatting && (
               <button onClick={newChat} className="shrink-0 text-xs transition-colors mr-0.5" style={{ color: "var(--text-faint)" }}>Clear</button>
             )}
@@ -1011,6 +1018,7 @@ export function HomePage() {
                   : { background: "var(--surface-hover)", color: "var(--text-faint)" }}>
               {loading ? <Square size={13} strokeWidth={3} fill="currentColor"/> : <ArrowUp size={17} strokeWidth={2.5}/>}
             </button>
+            </div>
           </div>
         </div>
 
