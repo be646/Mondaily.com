@@ -909,11 +909,11 @@ export function HomePage() {
         {/* Input — pinned at the bottom of the chat column while chatting */}
         <div className={`relative mx-auto w-full max-w-3xl ${isChatting ? "mt-3 shrink-0" : ""}`} ref={pickerRef}>
           {promptPickerOpen && (
-            <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-sm border shadow-[0_8px_24px_rgba(15,23,42,0.08)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+            <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-sm border" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
               <div className="border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
                 <p className="text-caption font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{loc.t("home.quick_prompts")}</p>
               </div>
-              <div className="p-1.5 grid grid-cols-1 gap-px">
+              <div className="grid max-h-[50vh] grid-cols-1 gap-px overflow-y-auto p-1.5">
                 {QUICK_PROMPTS.map(({ icon: Icon, label, description, prompt, promptKey }) => (
                   <button key={label} onClick={() => firePrompt(serverPrompt(promptKey, prompt))}
                     className="group flex items-center gap-3 rounded-sm px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
@@ -932,7 +932,7 @@ export function HomePage() {
 
           {/* Attach picker — records (live search) + text files (read client-side) */}
           {attachOpen && (
-            <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-sm border shadow-[0_8px_24px_rgba(15,23,42,0.08)]" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+            <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-sm border" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
               <div className="flex items-center gap-2 border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
                 <Search size={13} style={{ color: "var(--text-faint)" }}/>
                 <input autoFocus value={attachQuery} onChange={e => setAttachQuery(e.target.value)}
