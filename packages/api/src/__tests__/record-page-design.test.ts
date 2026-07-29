@@ -18,7 +18,11 @@ describe("Tabs is the one tab implementation", () => {
     // Hiding a zero makes the chrome REFLOW as data arrives and throws away the most useful thing
     // a tab says. The count-at-zero policy previously contradicted itself three ways across pages.
     expect(tabs).toMatch(/typeof t\.count === "number" && <CountBadge/);
-    expect(tabs).not.toMatch(/count\s*>\s*0\s*&&/);
+    // Positive form on purpose. A negative like /count\s*>\s*0\s*&&/ encodes ONE spelling of the
+    // bug and `count !== undefined && count > 0` walks straight past it — the same flaw that let
+    // the column-header guard pass over shouting headers.
+    const badge = tabs.slice(tabs.indexOf("function CountBadge"), tabs.indexOf("export function Tabs"));
+    expect(badge).not.toMatch(/return null/);
     // An unknown count must render NO badge — honestly different from a known zero.
     expect(tabs).toMatch(/Omit when the count is genuinely unknown/);
   });
@@ -52,7 +56,10 @@ describe("record detail structure", () => {
   it("shows the record name as identity, not a field label", () => {
     // was text-[13px] font-bold uppercase — every record read like a header cell
     expect(detail).toMatch(/text-\[20px\] font-semibold[^"]*">\{name\}<\/h1>/);
-    expect(detail).not.toMatch(/uppercase truncate">\{name\}<\/h1>/);
+    // Order-independent: assert no uppercase utility on the h1 at all, however the classes are
+    // ordered, rather than matching one arrangement.
+    const h1 = detail.match(/<h1 className="([^"]*)">\{name\}<\/h1>/)?.[1] ?? "";
+    expect(h1).not.toMatch(/\buppercase\b/);
   });
 
   it("invites a value instead of showing a broken-looking dash", () => {
