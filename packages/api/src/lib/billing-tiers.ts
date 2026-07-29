@@ -9,6 +9,30 @@ export function normalizeTier(raw: string | undefined): string {
   return normalizeTierId(raw);
 }
 
+/**
+ * Resolve a tier from the Stripe PRICE the customer is actually being billed for.
+ *
+ * The subscription webhook derived the tier from `sub.metadata.plan`, which is written once at
+ * creation and never updated. Two real failures: (a) a customer upgrades Operator → Command in the
+ * Stripe customer portal — the price changes, the metadata does not, and we re-activate them on
+ * Operator while they pay for Command; (b) any subscription created outside our own two code paths
+ * carries no metadata at all, and normalizeTier(undefined) → "scout", DOWNGRADING a paying customer
+ * to the free tier while billing_status stays "active".
+ *
+ * The price id is the authoritative statement of what they pay for, so it wins. Built by reversing
+ * the same STRIPE_PRICE_<PLAN>_<INTERVAL> env convention that billing.ts uses to create the checkout.
+ */
+export function tierFromPriceId(priceId: string | undefined | null): string | null {
+  if (!priceId) return null;
+  for (const plan of ["operator", "command", "sovereign"]) {
+    for (const interval of ["month", "year"]) {
+      const configured = process.env[`STRIPE_PRICE_${plan.toUpperCase()}_${interval.toUpperCase()}`];
+      if (configured && configured === priceId) return plan;
+    }
+  }
+  return null;   // unknown price — caller falls back to metadata rather than guessing
+}
+
 /** Flip a workspace to a real, PAID tier after a Stripe subscription is actually confirmed active —
  *  writes settings.account_tier (the source of truth the rest of the app reads), clears any
  *  pending_plan (the "chosen but unpaid" flag from onboarding), stamps subscription bookkeeping, and

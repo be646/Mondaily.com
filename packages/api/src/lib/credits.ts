@@ -272,8 +272,18 @@ export async function assertCreditsOk(workspaceId?: string): Promise<void> {
   // without ever loading the billing UI must still get its monthly credits. Cheap — one indexed
   // lookup that short-circuits for the rest of the month once the period's marker row exists.
   await ensurePeriodAllowance(workspaceId);
-  const { balance, enrolled } = await creditStatus(workspaceId);
-  if (!enrolled) return;
+  let { balance, enrolled } = await creditStatus(workspaceId);
+  if (!enrolled) {
+    // Enroll on first AI use rather than waiving metering. "Not enrolled" means zero ledger rows,
+    // which happens whenever a workspace is created without finishing onboarding (POST /workspaces
+    // and the bootstrap path both create no rows) — and the early return here handed those
+    // workspaces UNLIMITED FREE AI, permanently, with usage not even recorded. Anyone could mint
+    // them at will. Enrolling grants the tier's real included allotment, so this cannot lock anyone
+    // out: they get exactly what their plan says, then metering applies like everyone else.
+    await reconcileIncludedCredits(workspaceId, { enrollIfEmpty: true });
+    ({ balance, enrolled } = await creditStatus(workspaceId));
+    if (!enrolled) return;   // ledger unavailable — fail OPEN rather than block on infrastructure
+  }
   if (balance <= 0) {
     throw new CreditsExhaustedError("credits", null, "AI credits exhausted. Upgrade your plan or add a credit pack to keep using AI.");
   }

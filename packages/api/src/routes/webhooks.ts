@@ -4,7 +4,7 @@ import { supabase } from "@mondaily/db/client";
 import { inngest } from "../lib/inngest";
 import { createNotification } from "../lib/notify";
 import { grantTierCredits } from "../lib/credits";
-import { activateTier, downgradeToScout, normalizeTier } from "../lib/billing-tiers";
+import { activateTier, downgradeToScout, normalizeTier, tierFromPriceId } from "../lib/billing-tiers";
 import { verifyLiveKitWebhook, parseEgressWebhook } from "../lib/livekit";
 import { ingestRecording } from "../jobs/meeting-memory";
 
@@ -210,7 +210,17 @@ router.post("/stripe", async (c) => {
           metadata: { billing_status: "cancelled", cta: "/settings/billing" },
         }).catch(() => {});
       } else {
-        await activateTier(workspaceId, normalizeTier(planMeta), sub.id as string | undefined);
+        // The PRICE is what the customer actually pays for; metadata.plan is written once at
+        // creation and goes stale on any portal-side plan change. Fall back to metadata only when
+        // the price isn't one we recognise, and refuse to silently downgrade a live subscription to
+        // Scout just because neither source identified a paid tier.
+        const priceId = (sub.items as { data?: { price?: { id?: string } }[] } | undefined)?.data?.[0]?.price?.id;
+        const resolved = tierFromPriceId(priceId) ?? (planMeta ? normalizeTier(planMeta) : null);
+        if (resolved && resolved !== "scout") {
+          await activateTier(workspaceId, resolved, sub.id as string | undefined);
+        } else {
+          console.warn("[stripe] active subscription with unresolvable tier — leaving entitlement untouched", { workspaceId, priceId, planMeta });
+        }
       }
     }
   }

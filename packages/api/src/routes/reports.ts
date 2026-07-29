@@ -49,6 +49,54 @@ router.post("/:id", zValidator("json", reportInput.extend({ id: z.string().optio
  * this report" computes the exact same numbers the report page shows
  * instead of a second, possibly-divergent implementation.
  */
+/**
+ * Bounded, PAGED reads for report inputs.
+ *
+ * Both the node scan and the activity lookups were unbounded `.select()` calls. Past PostgREST's
+ * max-rows cap that silently returns a SUBSET — for the funnel that means `everReached` undercounts
+ * which records reached a stage, so the report shows an invented drop-off with no indication that
+ * anything was missing. (Same failure mode as the credit-ledger totals; see lib/credits.)
+ *
+ * `.in("node_id", ids)` was also passed every node id at once, which blows the request URL length on
+ * a large workspace — so it is chunked here as well.
+ */
+const PAGE = 1000;
+const SCAN_CAP = 50_000;   // hard ceiling so one report can never scan an unbounded table
+
+async function pagedSelect<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>): Promise<{ rows: T[]; truncated: boolean }> {
+  const rows: T[] = [];
+  for (let from = 0; from < SCAN_CAP; from += PAGE) {
+    const { data, error } = await build(from, from + PAGE - 1);
+    if (error) break;
+    const batch = data ?? [];
+    rows.push(...batch);
+    if (batch.length < PAGE) return { rows, truncated: false };
+  }
+  return { rows, truncated: true };
+}
+
+/** Activities for a set of nodes — chunked over node ids AND paged within each chunk. */
+async function activitiesForNodes(
+  workspaceId: string,
+  nodeIds: string[],
+  columns: string,
+): Promise<{ rows: Record<string, unknown>[]; truncated: boolean }> {
+  const CHUNK = 200;                       // keeps the `in()` list well inside URL limits
+  const rows: Record<string, unknown>[] = [];
+  let truncated = false;
+  for (let i = 0; i < nodeIds.length; i += CHUNK) {
+    const ids = nodeIds.slice(i, i + CHUNK);
+    const res = await pagedSelect<Record<string, unknown>>((from, to) =>
+      supabase.from("activities").select(columns)
+        .eq("workspace_id", workspaceId).in("node_id", ids)
+        .order("created_at", { ascending: true })
+        .range(from, to) as unknown as PromiseLike<{ data: Record<string, unknown>[] | null; error: unknown }>);
+    rows.push(...res.rows);
+    truncated = truncated || res.truncated;
+  }
+  return { rows, truncated };
+}
+
 export async function runReportData(
   workspaceId: string,
   reportId: string,
@@ -69,14 +117,15 @@ export async function runReportData(
   ]));
   type ReportNode = { id: string; data: Record<string, any> | null; created_at: string; updated_at: string };
   let nodes: ReportNode[] = [];
-  let error: { message: string } | null = null;
   for (const v of variants) {
-    const r = await supabase.from("nodes").select("id,data,created_at,updated_at").eq("workspace_id", workspaceId).eq("object_type", v).order("created_at", { ascending: true });
-    if (r.error) { error = r.error; continue; }
-    nodes = (r.data ?? []) as ReportNode[];
+    const r = await pagedSelect<ReportNode>((from, to) =>
+      supabase.from("nodes").select("id,data,created_at,updated_at")
+        .eq("workspace_id", workspaceId).eq("object_type", v)
+        .order("created_at", { ascending: true })
+        .range(from, to) as unknown as PromiseLike<{ data: ReportNode[] | null; error: unknown }>);
+    nodes = r.rows;
     if (nodes.length) break; // found real data for this variant
   }
-  if (!nodes.length && error) return { error: error.message };
 
   // Honour config.range. The builder offers "Last 30 days / 90 days / 1 year" and stores it, but
   // nothing here ever read it — every report aggregated the whole table all-time while the UI
@@ -106,10 +155,8 @@ export async function runReportData(
       if (cur) everReached.set(n.id, new Set([cur]));
     }
     if (nodeIds.length) {
-      const { data: acts } = await supabase
-        .from("activities").select("node_id,diff")
-        .eq("workspace_id", workspaceId).in("node_id", nodeIds);
-      for (const a of acts ?? []) {
+      const { rows: acts } = await activitiesForNodes(workspaceId, nodeIds, "node_id,diff");
+      for (const a of acts) {
         const diff = a.diff as Record<string, unknown> | null;
         const v = diff?.[stageField] ?? (diff?.data as Record<string, unknown> | undefined)?.[stageField];
         const key = String(v ?? "").toLowerCase();
@@ -130,7 +177,8 @@ export async function runReportData(
       const dropoff = previous && previous > 0 && value <= previous
         ? Math.round((1 - value / previous) * 100)
         : null;
-      return { label: stage, value, dropoff, average_days: 0 };
+      // average_days omitted: it was hardcoded 0 and shipped as if it were a real metric.
+      return { label: stage, value, dropoff };
     });
     return { data: values, chart_type: "funnel" };
   }
@@ -143,13 +191,8 @@ export async function runReportData(
     // history for the record (e.g. it was created directly into its current stage).
     const enteredAt = new Map<string, number>(); // node_id → ms timestamp it entered current stage
     if (nodeIds.length) {
-      const { data: acts } = await supabase
-        .from("activities")
-        .select("node_id,created_at,diff")
-        .eq("workspace_id", workspaceId)
-        .in("node_id", nodeIds)
-        .order("created_at", { ascending: true });
-      for (const a of acts ?? []) {
+      const { rows: acts } = await activitiesForNodes(workspaceId, nodeIds, "node_id,created_at,diff");
+      for (const a of acts) {
         const diff = a.diff as Record<string, unknown> | null;
         const changed = diff && (stageField in diff || (diff.data as Record<string, unknown> | undefined)?.[stageField] !== undefined);
         if (changed) enteredAt.set(a.node_id as string, new Date(a.created_at as string).getTime());
@@ -167,10 +210,16 @@ export async function runReportData(
   }
   if (type === "historical") {
     const field = String(config.field ?? "value");
-    let activityQuery = supabase.from("activities").select("created_at,diff,node_id").eq("workspace_id", workspaceId).order("created_at", { ascending: true });
-    if (config.record_id) activityQuery = activityQuery.eq("node_id", String(config.record_id));
-    const { data: activities } = await activityQuery;
-    const data = (activities ?? []).flatMap((activity) => {
+    // This branch never touched `nodes`, so the range filter above did not apply to it: a
+    // "Last 30 days" historical report still aggregated all-time, over an unbounded activity scan.
+    const { rows: activities } = await pagedSelect<{ created_at: string; diff: unknown; node_id: string }>((from, to) => {
+      let q = supabase.from("activities").select("created_at,diff,node_id")
+        .eq("workspace_id", workspaceId).order("created_at", { ascending: true });
+      if (config.record_id) q = q.eq("node_id", String(config.record_id));
+      if (rangeDays) q = q.gte("created_at", new Date(Date.now() - rangeDays * 86_400_000).toISOString());
+      return q.range(from, to) as unknown as PromiseLike<{ data: { created_at: string; diff: unknown; node_id: string }[] | null; error: unknown }>;
+    });
+    const data = activities.flatMap((activity) => {
       const diff = activity.diff as Record<string, unknown> | null;
       const raw = diff?.[field] ?? (diff?.data as Record<string, unknown> | undefined)?.[field];
       const value = Number(raw);

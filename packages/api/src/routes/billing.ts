@@ -108,6 +108,10 @@ router.post("/checkout", async (c) => {
 // POST /credits-checkout → { url } — buy a one-time credit pack AND save the card off-session so
 // the auto-refill engine can charge it later. Shared logic in lib/credit-pack.ts.
 router.post("/credits-checkout", async (c) => {
+  // Spends money against the workspace's saved card — same bar as every other billing route
+  // (/checkout, /setup-intent, /subscribe, /confirm-subscription all gate on this and this one
+  // did not, so any member could initiate a charge).
+  if (!isWorkspaceAdmin(c.get("role"))) return c.json({ error: "Only owners and admins can buy credits." }, 403);
   const body = (await c.req.json().catch(() => ({}))) as { pack_id?: string };
   const packId = body.pack_id ?? "standard";
   const r = await createCreditPackCheckout(c.get("workspaceId"), c.get("userId"), packId);
@@ -119,6 +123,7 @@ router.post("/credits-checkout", async (c) => {
 // or any Stripe/subscription bookkeeping — it just removes the "you chose X, pay to activate" nudge.
 // The user stays on exactly the tier they're already entitled to (Scout for an unpaid pending plan).
 router.post("/dismiss-pending", async (c) => {
+  if (!isWorkspaceAdmin(c.get("role"))) return c.json({ error: "Only owners and admins can change the plan." }, 403);
   const workspaceId = c.get("workspaceId");
   const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).single();
   const settings = { ...((wsRow?.settings ?? {}) as Record<string, unknown>) };
