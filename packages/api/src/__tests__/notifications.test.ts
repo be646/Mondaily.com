@@ -449,9 +449,10 @@ describe("Tasks field contracts (audit fixes)", () => {
   it("Messages: attachments encode without blowing the stack, DMs exclude group rows", () => {
     const ui = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/messages.tsx", import.meta.url)), "utf8");
     const api = readFileSync(fileURLToPath(new URL("../routes/messages.ts", import.meta.url)), "utf8");
-    expect(ui).toMatch(/async function fileToBase64/);
-    // the stack-blowing call is gone from real code (the phrase survives in the doc comment)
+    // fileToBase64 has been superseded entirely by direct-to-storage signed uploads
+    // (see the "upload direct to storage" test), so the base64 path is gone from this surface.
     expect(ui).not.toMatch(/content_base64: btoa\(String\.fromCharCode/);
+    expect(ui).toMatch(/async function uploadAttachments/);
     expect((api.match(/\.is\("group_id", null\)/g) ?? []).length).toBeGreaterThanOrEqual(2);
   });
 
@@ -471,6 +472,25 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect(ins).toMatch(/const pipelineSum = sumInDisplay\(/);
     expect(ins).not.toMatch(/\.reduce\(\(s, d\) => s \+ dealVal\(d\), 0\)/);
     expect(ins).toMatch(/const approx = \(n: number\) => \(n > 0 \? "~" : ""\);/);
+  });
+
+  it("Messages: attachments upload direct to storage, not through a JSON body", () => {
+    const api = readFileSync(fileURLToPath(new URL("../routes/messages.ts", import.meta.url)), "utf8");
+    const ui = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/messages.tsx", import.meta.url)), "utf8");
+    expect(api).toMatch(/router\.post\("\/attachments\/upload-url"/);
+    expect(api).toMatch(/createSignedUploadUrl\(path\)/);
+    // paths stay inside the caller's own tenant prefix
+    expect(api).toMatch(/const path = `\$\{ws\}\/\$\{me\}\/\$\{Date\.now\(\)\}-\$\{i\}-\$\{safeName\}`/);
+    expect(ui).toMatch(/async function uploadAttachments/);
+    expect(ui).toMatch(/method: "PUT"/);
+    expect(ui).not.toMatch(/content_base64: await fileToBase64/);
+  });
+
+  it("Messages: group adds are capped and announced, never silent", () => {
+    const api = readFileSync(fileURLToPath(new URL("../routes/messages.ts", import.meta.url)), "utf8");
+    expect(api).toMatch(/const GROUP_MAX_MEMBERS = 100;/);
+    expect(api).toMatch(/A group can have at most \$\{GROUP_MAX_MEMBERS\} members\./);
+    expect(api).toMatch(/added \$\{names\.join\(", "\)\} to the group\./);
   });
 
   it("zero-valued counts never render as a literal 0", () => {

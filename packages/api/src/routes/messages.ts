@@ -196,7 +196,17 @@ router.get("/group/:id", async (c) => {
   });
 });
 
-/** POST /messages/group/:id/members — any member can add workspace members to the group. */
+const GROUP_MAX_MEMBERS = 100;
+
+/**
+ * POST /messages/group/:id/members — any member can add workspace members to the group.
+ *
+ * Adding is deliberately open (not creator-only) so a group doesn't become unmanageable when its
+ * creator leaves. But it grants the new member the ENTIRE backlog and every attachment ever
+ * posted, and it used to happen silently with no cap. Two guards: a hard ceiling on group size,
+ * and a visible system message so an addition is always on the record for everyone — including
+ * the person who just gained access.
+ */
 router.post("/group/:id/members", zValidator("json", z.object({ user_ids: z.array(z.string().min(1)).min(1).max(50) })), async (c) => {
   const ws = c.get("workspaceId");
   const me = c.get("userId");
@@ -205,8 +215,27 @@ router.post("/group/:id/members", zValidator("json", z.object({ user_ids: z.arra
   const dir = await members(ws);
   const valid = c.req.valid("json").user_ids.filter((id) => dir.has(id));
   if (!valid.length) return c.json({ error: "No valid workspace members selected." }, 400);
+  const { count: existing } = await supabase
+    .from("chat_group_members").select("user_id", { count: "exact", head: true })
+    .eq("group_id", groupId).eq("workspace_id", ws);
+  if ((existing ?? 0) + valid.length > GROUP_MAX_MEMBERS) {
+    return c.json({ error: `A group can have at most ${GROUP_MAX_MEMBERS} members.` }, 422);
+  }
+
   const rows = valid.map((uid) => ({ group_id: groupId, workspace_id: ws, user_id: uid, added_by: me }));
   await supabase.from("chat_group_members").upsert(rows, { onConflict: "group_id,user_id" });
+
+  // Announce it in the thread — the addition is never silent, and the new member can see how
+  // they got access to the history they can now read.
+  const adder = dir.get(me);
+  const names = valid.map((id) => dir.get(id)?.name || dir.get(id)?.email || "a member");
+  await supabase.from("internal_messages").insert({
+    workspace_id: ws,
+    group_id: groupId,
+    sender_id: me,
+    body: `${adder?.name || adder?.email || "A member"} added ${names.join(", ")} to the group.`,
+  }).then(() => {}, () => {});
+
   return c.json({ added: valid.length });
 });
 
@@ -325,6 +354,38 @@ const attachmentMeta = z.object({
   size: z.number().int().positive(),
 });
 export type MessageAttachment = z.infer<typeof attachmentMeta>;
+
+/**
+ * POST /messages/attachments/upload-url — signed DIRECT-to-storage upload URLs.
+ *
+ * The base64 route below sends file bytes inside a JSON body, which is ~33% larger than the file
+ * and, at the advertised 5 x 10 MB, produces a ~67 MB request — far beyond the platform's body
+ * cap, so large attachments failed as a generic "Upload failed" no matter what the UI promised.
+ * Here the client PUTs each file straight to storage and the API only ever handles metadata, so
+ * the request-size ceiling stops applying. Same tenant rule as the base64 route: paths are minted
+ * under `<workspaceId>/<userId>/…` only, and the send endpoint accepts nothing else. Mirrors the
+ * proven signed-upload flow in calls.ts.
+ */
+router.post("/attachments/upload-url", zValidator("json", z.object({
+  files: z.array(z.object({
+    name: z.string().min(1).max(200),
+    content_type: z.string().max(120).default("application/octet-stream"),
+    size: z.number().int().positive(),
+  })).min(1).max(MSG_ATTACH_MAX_FILES),
+})), async (c) => {
+  const ws = c.get("workspaceId");
+  const me = c.get("userId");
+  const out: (MessageAttachment & { upload_url: string; token: string })[] = [];
+  for (const [i, f] of c.req.valid("json").files.entries()) {
+    if (f.size > MSG_ATTACH_MAX_BYTES) return c.json({ error: `"${f.name}" is over the 10 MB limit.` }, 413);
+    const safeName = f.name.replace(/[^\w.\- ]+/g, "_").slice(0, 120);
+    const path = `${ws}/${me}/${Date.now()}-${i}-${safeName}`;
+    const { data: signed, error } = await supabase.storage.from(MSG_ATTACH_BUCKET).createSignedUploadUrl(path);
+    if (error || !signed) return c.json({ error: `Couldn't prepare an upload for "${f.name}" — ${error?.message ?? "storage unavailable"}` }, 503);
+    out.push({ path, name: f.name, content_type: f.content_type || "application/octet-stream", size: f.size, upload_url: signed.signedUrl, token: signed.token });
+  }
+  return c.json({ attachments: out }, 201);
+});
 
 /**
  * POST /messages/attachments — upload files (base64) to the private bucket BEFORE sending.

@@ -10,19 +10,28 @@ import { EmptyState, ErrorState } from "../../components/ui/page-state";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
 
 
-/** Base64-encode a File without blowing the call stack.
- *  `btoa(String.fromCharCode(...new Uint8Array(buf)))` passes ONE ARGUMENT PER BYTE, so engines
- *  threw RangeError: Maximum call stack size exceeded at roughly 100 KB — every attachment above
- *  that failed, and the catch reported a generic "Upload failed" while the UI advertised 10 MB.
- *  Chunked so size no longer matters. */
-async function fileToBase64(f: File): Promise<string> {
-  const bytes = new Uint8Array(await f.arrayBuffer());
-  const CHUNK = 0x8000;
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += CHUNK) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(binary);
+
+/** Upload attachments DIRECTLY to storage using short-lived signed URLs.
+ *  The old path base64'd the bytes into a JSON body — ~33% larger than the file, so 5 x 10 MB
+ *  became a ~67 MB request that the platform's body cap rejected before the handler ever ran,
+ *  surfacing as a generic "Upload failed". The API now only handles metadata. */
+async function uploadAttachments(files: File[]): Promise<MsgAttachment[]> {
+  const prepared = await apiClient.post<{ attachments: (MsgAttachment & { upload_url: string })[] }>(
+    "/messages/attachments/upload-url",
+    { files: files.map((f) => ({ name: f.name, content_type: f.type || "application/octet-stream", size: f.size })) },
+  );
+  await Promise.all(prepared.attachments.map(async (a, i) => {
+    const file = files[i];
+    if (!file) return;
+    const res = await fetch(a.upload_url, {
+      method: "PUT",
+      headers: { "Content-Type": a.content_type },
+      body: file,
+    });
+    if (!res.ok) throw new Error(`Couldn't upload "${file.name}" (${res.status}).`);
+  }));
+  // Strip the signed URL — only the metadata travels on with the message.
+  return prepared.attachments.map(({ path, name, content_type, size }) => ({ path, name, content_type, size }));
 }
 
 /**
@@ -313,13 +322,8 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
     if (tooBig) { setAttachError(`"${tooBig.name}" is over the 10 MB limit.`); return; }
     setUploading(true);
     try {
-      const payload = await Promise.all(files.map(async (f) => ({
-        name: f.name,
-        content_type: f.type || "application/octet-stream",
-        content_base64: await fileToBase64(f),
-      })));
-      const r = await apiClient.post<{ attachments: MsgAttachment[] }>("/messages/attachments", { files: payload });
-      setPending((p) => [...p, ...r.attachments]);
+      const uploaded = await uploadAttachments(files);
+      setPending((p) => [...p, ...uploaded]);
     } catch (e) {
       try { setAttachError(JSON.parse((e as Error).message)?.error ?? "Upload failed — try again."); }
       catch { setAttachError("Upload failed — try again."); }
@@ -550,13 +554,8 @@ function GroupThread({ groupId, live, onSent, onLeft, onBack }: { groupId: strin
     if (tooBig) { setAttachError(`"${tooBig.name}" is over the 10 MB limit.`); return; }
     setUploading(true);
     try {
-      const payload = await Promise.all(files.map(async (f) => ({
-        name: f.name,
-        content_type: f.type || "application/octet-stream",
-        content_base64: await fileToBase64(f),
-      })));
-      const r = await apiClient.post<{ attachments: MsgAttachment[] }>("/messages/attachments", { files: payload });
-      setPending((p) => [...p, ...r.attachments]);
+      const uploaded = await uploadAttachments(files);
+      setPending((p) => [...p, ...uploaded]);
     } catch (e) {
       try { setAttachError(JSON.parse((e as Error).message)?.error ?? "Upload failed — try again."); }
       catch { setAttachError("Upload failed — try again."); }
