@@ -20,6 +20,9 @@ interface Invoice {
   client_email?: string;
   total: number;
   currency: string;
+  /** Present on the wire (the API spreads the whole data blob) but was never used, so
+   *  Outstanding counted the GROSS total of a partly-paid invoice. */
+  payments?: { amount: number }[];
   status: InvoiceStatus;
   due_date?: string;
   sent_at?: string;
@@ -37,7 +40,14 @@ const STATUS_CONFIG: Record<InvoiceStatus, { label: string; color: string; icon:
 };
 
 function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency, minimumFractionDigits: 2 }).format(amount);
+  // A blank/invalid code makes Intl throw RangeError and takes down the whole table render.
+  // currency lives in free-form JSONB and the create modals default it to "", so this is
+  // reachable. Degrade to "12.34 XXX" like lib/currency-format.formatMoney does.
+  try {
+    return new Intl.NumberFormat("en-GB", { style: "currency", currency, minimumFractionDigits: 2 }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)}${currency ? ` ${currency}` : ""}`;
+  }
 }
 
 function formatDate(dateStr?: string) {
@@ -129,10 +139,16 @@ export function InvoicesPage() {
   const [period, setPeriod] = usePeriod("mondaily_invoices_period", "all");
   const range = periodRange(period);
   const inv$ = (i: Invoice) => ({ amount: i.total, currency: i.currency });
+  // Outstanding must net off what has already been received; an invoice with 9,000 of 10,000
+  // paid was contributing the full 10,000.
+  const owed$ = (i: Invoice) => {
+    const paid = (i.payments ?? []).reduce((s, p) => s + Number(p.amount ?? 0), 0);
+    return { amount: Math.max(0, Math.round((i.total - paid) * 100) / 100), currency: i.currency };
+  };
   // Keep `missing`: when an FX rate is absent, sumInDisplay adds unlike currencies at FACE
   // VALUE. Presenting that as an exact figure under one symbol is a wrong number, so the
   // card is marked approximate (same treatment expenses already uses).
-  const owedSum = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(inv$));
+  const owedSum = sumInDisplay(invoices.filter(i => ["sent", "viewed", "overdue"].includes(i.status)).map(owed$));
   const paidSum = sumInDisplay(invoices.filter(i => i.status === "paid" && (period === "all" || inRange(i.paid_at ?? i.created_at, range))).map(inv$));
   const totalOwed = owedSum.value;
   const totalPaid = paidSum.value;

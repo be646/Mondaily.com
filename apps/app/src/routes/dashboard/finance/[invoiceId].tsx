@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../lib/api-client";
 import { useCurrency, currencyOptions } from "../../../hooks/useCurrency";
+import { convertAmount } from "../../../lib/currency-format";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { FinanceAgentStrip } from "../../../components/ai/finance-agent-strip";
 import { AIInspector } from "../../../components/ai/ai-inspector";
@@ -211,7 +212,14 @@ const STATUS_COLORS: Record<InvoiceStatus, string> = {
 };
 
 function formatCurrency(amount: number, currency: string) {
-  return new Intl.NumberFormat("en-GB", { style: "currency", currency, minimumFractionDigits: 2 }).format(amount);
+  // A blank/invalid code makes Intl throw RangeError and takes down the whole table render.
+  // currency lives in free-form JSONB and the create modals default it to "", so this is
+  // reachable. Degrade to "12.34 XXX" like lib/currency-format.formatMoney does.
+  try {
+    return new Intl.NumberFormat("en-GB", { style: "currency", currency, minimumFractionDigits: 2 }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)}${currency ? ` ${currency}` : ""}`;
+  }
 }
 
 function calcTotals(items: LineItem[]) {
@@ -299,7 +307,7 @@ export function InvoiceDetailPage() {
   const [clientAddress, setClientAddress] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
-  const { currencies } = useCurrency();
+  const { currencies, rates } = useCurrency();
   const [currency, setCurrency] = useState("GBP");
   const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: 1, unit_price: 0, tax_rate: 20 }]);
   const [dirty, setDirty] = useState(false);
@@ -643,9 +651,18 @@ export function InvoiceDetailPage() {
                   <span>{formatCurrency(total, currency)}</span>
                 </div>
                 {(() => {
+                  // Credit notes carry their OWN currency; this used to add a EUR credit
+                  // straight onto a GBP invoice and label the result with the invoice symbol.
+                  // Convert into the invoice currency and flag anything we couldn't convert
+                  // instead of quietly producing a wrong "Net owed".
+                  let unconverted = 0;
                   const creditsAmt = creditNotes
                     .filter(cn => cn.status === "executed")
-                    .reduce((s, cn) => s + cn.amount_cents / 100, 0);
+                    .reduce((s, cn) => {
+                      const v = convertAmount(cn.amount_cents / 100, cn.currency || currency, currency, rates);
+                      if (v == null) { unconverted += 1; return s; }
+                      return s + v;
+                    }, 0);
                   const paymentsAmt = (invoice?.payments ?? []).reduce((s, p) => s + p.amount, 0);
                   const netOwed = total - creditsAmt - paymentsAmt;
                   if (creditsAmt === 0 && paymentsAmt === 0) return null;
@@ -653,7 +670,7 @@ export function InvoiceDetailPage() {
                     <>
                       {creditsAmt > 0 && (
                         <div className="flex justify-between text-body text-[var(--text-faint)]">
-                          <span>Credits applied</span>
+                          <span>Credits applied{unconverted > 0 ? ` · ${unconverted} in another currency not included` : ""}</span>
                           <span>−{formatCurrency(creditsAmt, currency)}</span>
                         </div>
                       )}

@@ -327,6 +327,36 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect(ap).toMatch(/\{!isLoading && !isError && shown\.length === 0 && \(/);
   });
 
+  it("currency formatting cannot crash the page on a blank code", () => {
+    const base = "../../../../apps/app/src/routes/dashboard/finance/";
+    for (const f of ["invoices.tsx", "[invoiceId].tsx"]) {
+      const src = readFileSync(fileURLToPath(new URL(base + f, import.meta.url)), "utf8");
+      expect(src, f).toMatch(/try \{\s*\n\s*return new Intl\.NumberFormat/);
+      expect(src, f).toMatch(/\} catch \{/);
+    }
+  });
+
+  it("invoice-detail credit notes are converted, not summed across currencies", () => {
+    const d = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/finance/[invoiceId].tsx", import.meta.url)), "utf8");
+    expect(d).toMatch(/convertAmount\(cn\.amount_cents \/ 100, cn\.currency \|\| currency, currency, rates\)/);
+    expect(d).toMatch(/in another currency not included/);
+    // the naive cross-currency sum is gone
+    expect(d).not.toMatch(/reduce\(\(s, cn\) => s \+ cn\.amount_cents \/ 100, 0\)/);
+  });
+
+  it("Outstanding nets off recorded payments", () => {
+    const inv = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/finance/invoices.tsx", import.meta.url)), "utf8");
+    expect(inv).toMatch(/const owed\$ = \(i: Invoice\) =>/);
+    expect(inv).toMatch(/Math\.max\(0, Math\.round\(\(i\.total - paid\) \* 100\) \/ 100\)/);
+    expect(inv).toMatch(/\.includes\(i\.status\)\)\.map\(owed\$\)\)/);
+  });
+
+  it("the approvals executed card is not mislabelled as period-scoped", () => {
+    const ap = readFileSync(fileURLToPath(new URL("../../../../apps/app/src/routes/dashboard/approvals.tsx", import.meta.url)), "utf8");
+    expect(ap).not.toMatch(/Executed this period/);
+    expect(ap).toMatch(/Executed \(all time\)/);
+  });
+
   it("zero-valued counts never render as a literal 0", () => {
     expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
     expect(tasksPage).toMatch(/\{!!t\.due_days &&/);

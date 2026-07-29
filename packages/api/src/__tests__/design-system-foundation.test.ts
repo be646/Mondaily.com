@@ -518,7 +518,10 @@ describe("finance/[invoiceId] totals body rows use the shared scale, heroes stay
       /−\{formatCurrency\(creditsAmt, currency\)\}/, /−\{formatCurrency\(paymentsAmt, currency\)\}/,
       /formatCurrency\(Math\.max\(0, netOwed\), currency\)/,
       /const netOwed = total - creditsAmt - paymentsAmt/,
-      /\.filter\(cn => cn\.status === "executed"\)/, /\.reduce\(\(s, cn\) => s \+ cn\.amount_cents \/ 100, 0\)/,
+      /\.filter\(cn => cn\.status === "executed"\)/,
+      // The reducer now CONVERTS each credit into the invoice currency (it used to sum
+      // amount_cents across different currencies and label the result with the invoice symbol).
+      /convertAmount\(cn\.amount_cents \/ 100, cn\.currency \|\| currency, currency, rates\)/,
       /\.reduce\(\(s, p\) => s \+ p\.amount, 0\)/,
     ]) expect(INV).toMatch(e);
   });

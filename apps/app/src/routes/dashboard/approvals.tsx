@@ -290,7 +290,7 @@ export function ApprovalsPage() {
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{verified.length} note{verified.length !== 1 ? "s" : ""}</div>
           </div>
           <div>
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-ok"/><span className="text-[11px] text-[var(--text-muted)]">Executed this period</span></div>
+            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-ok"/><span className="text-[11px] text-[var(--text-muted)]">Executed (all time)</span></div>
             <div className="text-[17px] font-semibold text-status-ok">{approx(executedSum.missing)}{formatMoney(totalExecuted, display)}</div>
             <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{executed.length} note{executed.length !== 1 ? "s" : ""}</div>
           </div>
