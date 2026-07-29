@@ -115,7 +115,12 @@ describe("Phase 2A — admin gating + pure-read (recall library itself unchanged
   // buildAskMemory (empty ⇒ Ask identical to today). The Phase-2B wiring/gating is covered by
   // ask-memory-2b.test.ts. The recall LIBRARY remains a pure, flag-gated read (asserted below).
   it("Ask uses recall only through the flag-gated buildAskMemory (not a raw always-on call)", () => {
-    expect(askSrc).toMatch(/const memory = await buildAskMemory\(workspaceId, userId, message\)/);
+    // Shape changed in the speed pass: the three independent pre-flight reads (web search,
+    // workspace profile, memory recall) now run in one Promise.all instead of in sequence. The
+    // point of this guard — recall reaches Ask ONLY through the flag-gated helper, never as a raw
+    // always-on call — is unchanged, so it asserts the call rather than its await position.
+    expect(askSrc).toMatch(/buildAskMemory\(workspaceId, userId, message\)/);
+    expect(askSrc).toMatch(/const \[webContext, profileBlock, memory\] = await Promise\.all\(/);
   });
 
   it("the recall + toggle endpoints are admin-gated", () => {

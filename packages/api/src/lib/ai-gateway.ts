@@ -759,6 +759,13 @@ async function runOpenAICompatAgentStream(
   // drops preserve partial text below, and an empty result drops to the
   // non-streaming recovery + friendly fallback in aiGatewayAgentStream.
   // maxRetries:1 — fail fast on 429 (a hung Retry-After backoff was the "loads forever" bug).
+  // BUDGETED against the client's hard abort (120s in use-ask-engine). 5 rounds x 55s x 2 attempts
+  // is ~550s of server work for a request the browser gave up on after two minutes — and every one
+  // of those inferences is metered. Track the wall clock and stop offering rounds we cannot finish
+  // before the caller is gone.
+  const ROUND_BUDGET_MS = 110_000;
+  const startedAt = Date.now();
+  const budgetLeft = () => ROUND_BUDGET_MS - (Date.now() - startedAt);
   const client = new OpenAI({ baseURL, apiKey, timeout: 55000, maxRetries: 1 });
 
   const openaiTools: OpenAI.Chat.ChatCompletionTool[] = req.tools.map(t => ({
@@ -779,6 +786,11 @@ async function runOpenAICompatAgentStream(
   const usage: TokenUsage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
 
   for (let round = 0; round < maxRounds; round++) {
+    // Another round needs a realistic chance of completing within what the caller will still wait.
+    if (round > 0 && budgetLeft() < 12_000) {
+      console.warn(`[gateway] stopping after round ${round}: ${Math.round(budgetLeft() / 1000)}s left of the client's window`);
+      break;
+    }
     rounds = round + 1;
     let content = "";
     let reasoningChunks = 0;

@@ -1719,15 +1719,17 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
   const userId = c.get("userId");
 
   try {
-    let webContext = "";
-    if (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true") {
-      webContext = await searchWeb(message);
-    }
-
+    // These three are INDEPENDENT — a web search, the workspace profile, and memory recall share
+    // no data — but ran one after another, so their latencies added up before the model was even
+    // called. Web search alone is a SearXNG round-trip plus page scrapes. Run them together.
     const contextNote = buildContextNote(context);
-    const profileBlock = await workspaceProfileBlock(workspaceId, userId);
-    // Phase 2B: source-backed memory (OFF by default). Empty ⇒ identical to today.
-    const memory = await buildAskMemory(workspaceId, userId, message);
+    const [webContext, profileBlock, memory] = await Promise.all([
+      (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true")
+        ? searchWeb(message) : Promise.resolve(""),
+      workspaceProfileBlock(workspaceId, userId),
+      // Phase 2B: source-backed memory (OFF by default). Empty ⇒ identical to today.
+      buildAskMemory(workspaceId, userId, message),
+    ]);
 
     const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + contextNote + memory.block;
 
@@ -1872,11 +1874,15 @@ router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object
       return writeChain;
     };
     try {
-      let webContext = "";
-      if (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true") webContext = await searchWeb(message);
-      const profileBlock = await workspaceProfileBlock(workspaceId, userId);
-      // Phase 2B: source-backed memory (OFF by default). Empty ⇒ identical to today.
-      const memory = await buildAskMemory(workspaceId, userId, message);
+      // Independent pre-flight work, run together rather than in sequence — this is the latency
+      // the user waits through before the FIRST TOKEN appears.
+      const [webContext, profileBlock, memory] = await Promise.all([
+        (web_search === true || process.env.WEB_SEARCH_DEFAULT === "true")
+          ? searchWeb(message) : Promise.resolve(""),
+        workspaceProfileBlock(workspaceId, userId),
+        // Phase 2B: source-backed memory (OFF by default). Empty ⇒ identical to today.
+        buildAskMemory(workspaceId, userId, message),
+      ]);
       const systemPrompt = SYSTEM_PROMPT + profileBlock + (webContext ? `\n\nWeb context:\n${webContext}` : "") + buildContextNote(context as Record<string, any> | undefined) + memory.block;
       const priorTurns = (history ?? []).slice(-HISTORY_TURN_LIMIT).map(h => ({ role: h.role, content: h.content }));
       const messages: any[] = [...priorTurns, { role: "user", content: message }];

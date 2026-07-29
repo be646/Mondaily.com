@@ -233,3 +233,34 @@ describe("Ask never answers from model priors", () => {
     expect(ask).not.toMatch(/\.eq\("object_type", "invoice"\);\s*\n\s*if \(invErr\)/);
   });
 });
+
+describe("Ask pre-flight is not needlessly slow", () => {
+  const ask = readFileSync(join(SRC, "routes/ask.ts"), "utf8");
+  const gw = readFileSync(join(SRC, "lib/ai-gateway.ts"), "utf8");
+  const credits = readFileSync(join(SRC, "lib/credits.ts"), "utf8");
+
+  it("independent pre-flight work runs concurrently", () => {
+    // web search + workspace profile + memory recall share no data but ran in sequence, so their
+    // latencies added up before the model was called at all. Both handlers now Promise.all them.
+    const parallel = ask.match(/const \[webContext, profileBlock, memory\] = await Promise\.all\(/g) ?? [];
+    expect(parallel.length).toBe(2);   // the /ask and /ask/stream handlers
+    expect(ask).not.toMatch(/webContext = await searchWeb\(message\);\s*\n\s*\}\s*\n\s*const contextNote/);
+  });
+
+  it("the credit gate is not paid for twice per request", () => {
+    // verifyAiCredits (middleware) and the gateway entry both call assertCreditsOk, ~4 queries each.
+    // Only a PASS is cached, and only for seconds — a refusal must always be recomputed.
+    expect(credits).toMatch(/const creditPassUntil = new Map<string, number>\(\)/);
+    expect(credits).toMatch(/CREDIT_PASS_TTL_MS/);
+    // the cache is set at the END, after every check has passed
+    const fn = credits.slice(credits.indexOf("export async function assertCreditsOk"));
+    expect(fn.indexOf("creditPassUntil.set")).toBeGreaterThan(fn.indexOf("burst.limited"));
+  });
+
+  it("server rounds are budgeted against the client's abort", () => {
+    // 5 rounds x 55s x 2 attempts is ~550s of METERED work for a request the browser abandoned
+    // after 120s.
+    expect(gw).toMatch(/const ROUND_BUDGET_MS = 110_000/);
+    expect(gw).toMatch(/if \(round > 0 && budgetLeft\(\) < 12_000\)/);
+  });
+});

@@ -264,8 +264,23 @@ export function recordCreditUsage(workspaceId: string | undefined, tokens: numbe
  * rolling burst cap. Used by the route middleware (clean 402/429) AND the AI-gateway pre-flight (so
  * Discovery, agents, reports, and decision reasoning all fail closed too — not just /ask).
  */
+/**
+ * Very short-lived pass cache. One /ask request calls this at least TWICE — once in the
+ * verifyAiCredits middleware and again on gateway entry — and each call is ~4 queries
+ * (owner lookup, period allowance, ledger status, burst window). That is ~8 round-trips of pure
+ * duplication in the latency the user waits through before the first token.
+ *
+ * Only a PASS is cached, and only for a few seconds: a refusal must always be recomputed, and the
+ * window is far too short to matter against a wallet that is also floored at the ledger. The burst
+ * cap, not this check, is what paces sustained usage.
+ */
+const creditPassUntil = new Map<string, number>();
+const CREDIT_PASS_TTL_MS = 3_000;
+
 export async function assertCreditsOk(workspaceId?: string): Promise<void> {
   if (!workspaceId) return;
+  const passUntil = creditPassUntil.get(workspaceId);
+  if (passUntil !== undefined && passUntil > Date.now()) return;
   // Product-owner override: owner workspaces get unmetered AI (no payment). Gated to exact emails.
   if (await isOwnerWorkspace(workspaceId)) return;
   // Settle the month's allowance here too, not just on /credits/balance: a workspace that uses AI
@@ -291,6 +306,7 @@ export async function assertCreditsOk(workspaceId?: string): Promise<void> {
   if (burst.limited) {
     throw new CreditsExhaustedError("burst", burst.resetsAt, `You've hit your short-term usage limit. It resets ${burst.resetsAt ? "around " + new Date(burst.resetsAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "shortly"}.`);
   }
+  creditPassUntil.set(workspaceId, Date.now() + CREDIT_PASS_TTL_MS);
 }
 
 /** Route middleware — mount AFTER requireAuth on AI-consuming routes. Fails closed with a clear
