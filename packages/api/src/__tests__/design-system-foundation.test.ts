@@ -659,7 +659,11 @@ describe("dashboard/home read-only supporting copy fully migrated (Pass 5H)", ()
     expect(H).toMatch(/className="mt-2 text-label" style=\{\{ color: "var\(--status-warn\)" \}\}>Reconnect needed/);                       // 1270 → text-label (cond)
   });
   it("controls/pills/chips/card-titles/chat prose remain untouched", () => {
-    expect((H.match(/text-\[12\.5px\]/g) ?? []).length).toBeGreaterThanOrEqual(6);   // suggested-action pills
+    // Was >= 6. One of them — the suggestion row's sub-label — legitimately moved to the shared
+    // body scale in the Attio-reference pass. Counting occurrences cannot say WHICH element it
+    // found, so this only ever proved "some 12.5px text still exists"; the anchors below are what
+    // actually protect the controls/pills/chips this test is named for.
+    expect((H.match(/text-\[12\.5px\]/g) ?? []).length).toBeGreaterThanOrEqual(5);   // suggested-action pills
     expect((H.match(/!text-\[11px\]/g) ?? []).length).toBeGreaterThanOrEqual(3);     // btn overrides
     expect(H).toMatch(/ask-user-bubble/);
     expect(H).toMatch(/ask-assistant-line/);
@@ -1471,7 +1475,7 @@ describe("Home command-center console status rail (Pass R2)", () => {
     expect(H).toMatch(/What do you want to get done today\?/);
     expect(H).toMatch(/home-control-room/);
     // P2 command menu still framed divide-y
-    expect(H).toMatch(/mx-auto mt-7 max-w-2xl overflow-hidden rounded-sm border border-\[var\(--border-soft\)\] divide-y/);
+    expect(H).toMatch(/mx-auto mt-6 max-w-2xl divide-y divide-\[var\(--border-soft\)\] border-t/);
   });
 
   it("preserves all handlers, prompts, telemetry, and command-center panels", () => {
@@ -1486,13 +1490,13 @@ describe("Home quick-actions unified into a hairline command menu (Pass P2)", ()
   const H = read("apps/app/src/routes/dashboard/home.tsx");
 
   it("quick-actions live in one framed divide-y surface, not a boxed grid", () => {
-    expect(H).toMatch(/mx-auto mt-7 max-w-2xl overflow-hidden rounded-sm border border-\[var\(--border-soft\)\] divide-y divide-\[var\(--border-soft\)\]/);
+    expect(H).toMatch(/mx-auto mt-6 max-w-2xl divide-y divide-\[var\(--border-soft\)\] border-t border-\[var\(--border-soft\)\]/);
     // old 2x2 boxed grid treatment is gone
     expect(H).not.toMatch(/mt-7 grid max-w-2xl grid-cols-1 gap-2\.5 sm:grid-cols-2/);
   });
 
   it("each action is a de-boxed hover row (no per-card border box)", () => {
-    expect(H).toMatch(/className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-\[var\(--surface-hover\)\]"/);
+    expect(H).toMatch(/className="group flex w-full items-center gap-3 px-2 py-2\.5 text-left transition-colors hover:bg-\[var\(--surface-hover\)\]"/);
     // old per-button boxed treatment + hover-border JS is gone
     expect(H).not.toMatch(/className="group flex items-start gap-3 rounded-sm border px-4 py-3 text-left transition-colors"/);
     expect(H).not.toMatch(/onMouseEnter=\{e => \{ \(e\.currentTarget as HTMLElement\)\.style\.borderColor = "var\(--section-accent\)"/);

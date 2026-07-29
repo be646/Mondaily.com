@@ -559,6 +559,34 @@ function validateToolCall(name: string, input: Record<string, any>): string | nu
   return null;
 }
 
+
+/**
+ * PAGED node read for tools that TOTAL things. An unbounded `.select()` is capped by PostgREST
+ * (~1000 rows) with no error, so a finance summary on a large workspace silently understated every
+ * figure while the tool output labelled them "real data". Same failure that made the credit wallet
+ * report noise (see lib/credits.ledgerBreakdown).
+ *
+ * Returns `truncated` so the caller can SAY it hit the ceiling instead of implying a complete total.
+ */
+async function pagedNodes(
+  workspaceId: string, vertical: string, objectType: string,
+  tweak?: (q: any) => any,
+): Promise<{ rows: { id: string; data: any }[]; truncated: boolean }> {
+  const PAGE = 1000, CAP = 20_000;
+  const rows: { id: string; data: any }[] = [];
+  for (let from = 0; from < CAP; from += PAGE) {
+    let q = supabase.from("nodes").select("id,data")
+      .eq("workspace_id", workspaceId).eq("vertical", vertical).eq("object_type", objectType)
+      .order("id", { ascending: true }).range(from, from + PAGE - 1);
+    if (tweak) q = tweak(q);
+    const { data, error } = await q;
+    if (error) throw new Error(error.message);
+    const batch = data ?? [];
+    rows.push(...(batch as { id: string; data: any }[]));
+    if (batch.length < PAGE) return { rows, truncated: false };
+  }
+  return { rows, truncated: true };
+}
 async function executeTool(
   name: string,
   input: Record<string, any>,
@@ -1098,14 +1126,10 @@ async function executeTool(
       }
 
       case "list_finance_summary": {
-        const { data: invoices, error: invErr } = await supabase
-          .from("nodes")
-          .select("id,data")
-          .eq("workspace_id", workspaceId)
-          .eq("vertical", "finance")
-          .eq("object_type", "invoice");
-        if (invErr) return `Error fetching finance summary: ${invErr.message}`;
-        const rows = (invoices ?? []).map(r => r.data as any);
+        let invPage;
+        try { invPage = await pagedNodes(workspaceId, "finance", "invoice"); }
+        catch (e) { return `Error fetching finance summary: ${(e as Error).message}`; }
+        const rows = invPage.rows.map(r => r.data as any);
         const byStatus = (status: string) => rows.filter(d => (d.status ?? "draft") === status);
         const sum = (list: any[]) => list.reduce((s, d) => s + Number(d.total ?? 0), 0);
         const overdue = byStatus("overdue");
@@ -1113,21 +1137,21 @@ async function executeTool(
         const sent = byStatus("sent");
         const paid = byStatus("paid");
 
-        const { data: creditNotes } = await supabase
-          .from("nodes")
-          .select("id,data")
-          .eq("workspace_id", workspaceId)
-          .eq("vertical", "finance")
-          .eq("object_type", "credit_note")
-          .neq("data->>status", "void");
-        const outstandingCreditNotes = (creditNotes ?? []).filter(r => (r.data as any).status !== "executed");
+        const cnPage = await pagedNodes(workspaceId, "finance", "credit_note", q => q.neq("data->>status", "void"))
+          .catch(() => ({ rows: [] as { id: string; data: any }[], truncated: false }));
+        const creditNotes = cnPage.rows;
+        const outstandingCreditNotes = creditNotes.filter(r => (r.data as any).status !== "executed");
 
         if (overdue.length) {
           sources.push({ type: "finance", title: `${overdue.length} overdue invoice(s)`, match_reason: `total ${sum(overdue).toFixed(2)}` });
         }
         if (rows.length === 0) return "No invoices exist in this workspace yet.";
         return [
-          `Finance summary (real data, ${rows.length} invoice(s) total):`,
+          // If the scan hit its ceiling, SAY so — the model reads "N total" as the complete
+          // picture and will state the sums as fact.
+          invPage.truncated
+            ? `Finance summary (real data, first ${rows.length} invoices only — the workspace has more, so these totals are a LOWER BOUND, not the full picture):`
+            : `Finance summary (real data, ${rows.length} invoice(s) total):`,
           `- Overdue: ${overdue.length} invoice(s), total ${sum(overdue).toFixed(2)}`,
           `- Draft: ${draft.length} invoice(s), total ${sum(draft).toFixed(2)}`,
           `- Sent (awaiting payment): ${sent.length} invoice(s), total ${sum(sent).toFixed(2)}`,
@@ -1633,17 +1657,17 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
 
     let reply = agentReply;
 
-    // Agent returned empty — try a simple direct call with no tools
+    // Agent returned empty.
+    //
+    // This USED to re-ask the model with only the system prompt and the question — no tools, no
+    // tool results, no workspace data — and return whatever came back. That answer is built purely
+    // on the model's own priors while being presented identically to a grounded one, which is the
+    // single worst failure this product can have: a confident, plausible, unsourced answer about
+    // the user's own business. The gateway already re-synthesises over accumulated tool results
+    // (lib/ai-gateway) when it can; if we still have nothing after that, we have nothing to say.
     if (!reply) {
-      console.log(`[ask] agent empty — trying direct aiGateway fallback`);
-      const fallback = await aiGateway({
-        system: "You are Mondaily AI, a helpful business workspace assistant. Answer concisely. If the workspace appears empty, say so and suggest the user adds contacts, deals, or tasks to get started.",
-        prompt: message,
-        maxTokens: 400,
-        workspaceId, userId, feature: "chat",
-      }).catch(() => ({ text: "" }));
-      reply = fallback.text;
-      console.log(`[ask] direct fallback replyLen=${reply.length}`);
+      console.warn("[ask] agent produced no reply — refusing to answer from model priors");
+      reply = "I couldn't complete that just now — the reasoning step came back empty, so I'd rather say nothing than answer without checking your workspace. Try rephrasing, or ask again in a moment.";
     }
 
     if (!reply) reply = "Your workspace looks empty. Add some contacts, deals, or tasks and I can start helping you manage them.";

@@ -909,7 +909,7 @@ export function HomePage() {
         {/* Input — pinned at the bottom of the chat column while chatting */}
         <div className={`relative mx-auto w-full max-w-3xl ${isChatting ? "mt-3 shrink-0" : ""}`} ref={pickerRef}>
           {promptPickerOpen && (
-            <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-sm border" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+            <div className="absolute top-full left-0 z-50 mt-2 w-full overflow-hidden rounded-sm border" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
               <div className="border-b px-4 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
                 <p className="text-caption font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>{loc.t("home.quick_prompts")}</p>
               </div>
@@ -932,7 +932,7 @@ export function HomePage() {
 
           {/* Attach picker — records (live search) + text files (read client-side) */}
           {attachOpen && (
-            <div className="absolute bottom-full left-0 z-50 mb-2 w-full overflow-hidden rounded-sm border" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
+            <div className="absolute top-full left-0 z-50 mt-2 w-full overflow-hidden rounded-sm border" style={{ background: "var(--surface-card)", borderColor: "var(--border-soft)" }}>
               <div className="flex items-center gap-2 border-b px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
                 <Search size={13} style={{ color: "var(--text-faint)" }}/>
                 <input autoFocus value={attachQuery} onChange={e => setAttachQuery(e.target.value)}
@@ -952,17 +952,6 @@ export function HomePage() {
                   </button>
                 ))}
               </div>
-            </div>
-          )}
-          {attachments.length > 0 && (
-            <div className="mb-2 flex flex-wrap gap-1.5">
-              {attachments.map(a => (
-                <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
-                  {a.kind === "file" ? <FileText size={11} style={{ color: "var(--section-accent)" }}/> : <Inbox size={11} style={{ color: "var(--section-accent)" }}/>}
-                  <span className="max-w-[180px] truncate">{a.title}</span>
-                  <button onClick={() => setAttachments(list => list.filter(x => x.id !== a.id))} title="Remove" style={{ color: "var(--text-faint)" }}><X size={11}/></button>
-                </span>
-              ))}
             </div>
           )}
           <input ref={fileInputRef} type="file" accept=".txt,.md,.csv,.json,.log,.tsv,text/plain" onChange={onFilePick} className="hidden"/>
@@ -985,7 +974,18 @@ export function HomePage() {
               className="w-full resize-none bg-transparent px-1 pt-1.5 text-[15px] leading-6 outline-none"
               style={{ color: "var(--text-primary)", minHeight: 52, maxHeight: 160 }}/>
             {/* ── control bar, inside the composer ── */}
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1">
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {attachments.map(a => (
+                <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11.5px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)", color: "var(--text-secondary)" }}>
+                  {a.kind === "file" ? <FileText size={11} style={{ color: "var(--section-accent)" }}/> : <Inbox size={11} style={{ color: "var(--section-accent)" }}/>}
+                  <span className="max-w-[180px] truncate">{a.title}</span>
+                  <button onClick={() => setAttachments(list => list.filter(x => x.id !== a.id))} title="Remove" style={{ color: "var(--text-faint)" }}><X size={11}/></button>
+                </span>
+              ))}
+            </div>
+          )}
             <button onClick={() => setPromptPickerOpen(o => !o)} title="Quick prompts"
               className={`shrink-0 flex h-8 w-8 items-center justify-center rounded-full transition-colors ${promptPickerOpen ? "bg-[var(--surface-selected)] text-[var(--text-primary)]" : "hover:bg-[var(--surface-hover)]"}`}
               style={promptPickerOpen ? undefined : { color: "var(--text-muted)" }}>
@@ -1041,7 +1041,7 @@ export function HomePage() {
 
         {/* Smart starter cards — spaced below the input + recent */}
         {!isChatting && (
-          <div className="mx-auto mt-7 max-w-2xl overflow-hidden rounded-sm border border-[var(--border-soft)] divide-y divide-[var(--border-soft)]">
+          <div className="mx-auto mt-6 max-w-2xl divide-y divide-[var(--border-soft)] border-t border-[var(--border-soft)]">
             {[
               {
                 Icon: ListChecks,
@@ -1069,13 +1069,13 @@ export function HomePage() {
               },
             ].map(s => (
               <button key={s.label} onClick={() => ("to" in s && s.to ? navigate(s.to) : sendSuggestion(applyTerms(s.prompt, wsProfile)))}
-                className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--surface-hover)]">
-                <s.Icon size={18} className="mt-0.5 shrink-0" style={{ color: "var(--section-accent)" }}/>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium" style={{ color: "var(--text-primary)" }}>{s.label}</span>
-                  <span className="block text-[12.5px]" style={{ color: "var(--text-muted)" }}>{s.sub}</span>
+                className="group flex w-full items-center gap-3 px-2 py-2.5 text-left transition-colors hover:bg-[var(--surface-hover)]">
+                <s.Icon size={14} className="shrink-0" style={{ color: "var(--text-faint)" }}/>
+                <span className="min-w-0 flex-1 truncate">
+                  <span className="text-body" style={{ color: "var(--text-primary)" }}>{s.label}</span>
+                  <span className="ml-2 text-body" style={{ color: "var(--text-faint)" }}>{s.sub}</span>
                 </span>
-                <ArrowUpRight size={14} className="mt-0.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-50" style={{ color: "var(--section-accent)" }}/>
+                <ArrowUpRight size={13} className="shrink-0 opacity-0 transition-opacity group-hover:opacity-60" style={{ color: "var(--text-faint)" }}/>
               </button>
             ))}
           </div>

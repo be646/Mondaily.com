@@ -153,3 +153,39 @@ describe("monthly included allowance", () => {
     expect(route).toMatch(/router\.post\("\/reconcile", requireAdminRole/);
   });
 });
+
+/**
+ * Ask AI honesty. The product's core promise is that answers come from the user's real workspace.
+ * Each guard below corresponds to a path that could return a confident answer built on nothing.
+ */
+describe("Ask never answers from model priors", () => {
+  const ask = readFileSync(join(SRC, "routes/ask.ts"), "utf8");
+  const gw = readFileSync(join(SRC, "lib/ai-gateway.ts"), "utf8");
+
+  it("an empty agent reply does not trigger an ungrounded re-ask", () => {
+    // Was: aiGateway({ system: "…helpful business workspace assistant", prompt: message }) — no
+    // tools, no tool results, no workspace data, rendered identically to a grounded answer.
+    expect(ask).not.toMatch(/helpful business workspace assistant/);
+    expect(ask).toMatch(/refusing to answer from model priors/);
+  });
+
+  it("the empty-reply guard does not claim work was done", () => {
+    // Match the ASSIGNMENT, not any occurrence — the comment explaining the fix necessarily quotes
+    // the old string, and a bare substring check fails on the explanation of its own fix. (Third
+    // time this session; the lesson is to anchor on code shape, not prose.)
+    expect(gw).not.toMatch(/const FRIENDLY = "Done — I've processed/);
+    expect(gw).toMatch(/const FRIENDLY = "I ran the lookups but couldn't put an answer together/);
+  });
+
+  it("finance totals are paged, and say so when they hit the ceiling", () => {
+    // An unbounded select is capped at ~1000 rows with no error, so every figure was silently
+    // understated while the output called itself "real data" — the same truncation that made the
+    // credit wallet report noise.
+    expect(ask).toMatch(/async function pagedNodes/);
+    expect(ask).toMatch(/pagedNodes\(workspaceId, "finance", "invoice"\)/);
+    expect(ask).toMatch(/pagedNodes\(workspaceId, "finance", "credit_note"/);
+    expect(ask).toMatch(/LOWER BOUND, not the full picture/);
+    // no unbounded invoice scan left
+    expect(ask).not.toMatch(/\.eq\("object_type", "invoice"\);\s*\n\s*if \(invErr\)/);
+  });
+});

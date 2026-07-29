@@ -717,10 +717,11 @@ export async function aiGatewayAgentStream(
         await onEvent({ type: "token", text: fb.reply });
         return { ...fb, usage: r.usage ?? fb.usage };
       }
-      // Last-resort guard: the model ran tools but produced no prose AND the
-      // recovery also came back blank. Inject a friendly message so the frontend
-      // never renders an empty bubble.
-      const FRIENDLY = "Done — I've processed that above. Let me know if you'd like any adjustments.";
+      // Last-resort guard: the model ran tools but produced no prose AND the recovery also came
+      // back blank. Something still has to render, but it must not CLAIM the work succeeded —
+      // "Done — I've processed that above" asserts a completed action when we have no idea whether
+      // anything happened, and the user has no way to tell it apart from a real confirmation.
+      const FRIENDLY = "I ran the lookups but couldn't put an answer together — nothing was changed. Ask again and I'll retry.";
       await onEvent({ type: "token", text: FRIENDLY });
       return { ...r, reply: FRIENDLY };
     }
