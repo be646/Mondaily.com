@@ -83,7 +83,20 @@ export function buildLeadDecision(o: LeadDecisionInput): Record<string, unknown>
     title: (o.title && o.title.trim()) || `Review lead: ${o.name}`,
     summary: o.summary ?? null,
     recommended_action: o.recommended_action ?? "Save this lead to the graph and follow up",
-    risk_level: o.risk_level ?? "low",
+    // MEDIUM, not low. Approving this decision CREATES A PERMANENT RECORD in the customer graph.
+    //
+    // It was "low", so at autonomy=assisted it self-approved and executed. Over two weeks the
+    // 4-hourly Discovery monitor rediscovered the same leads and created them again each run:
+    // 588 `person` records for 137 real entities, ~450 unattended writes, worst offenders at 19
+    // copies. The dedup check in routes/decisions.ts stops the duplication, but it does not change
+    // who decided — and "low risk" was never true of an irreversible write to the graph.
+    //
+    // For comparison, workflow-engine tags a generic action MEDIUM and only reserves HIGH for
+    // delete/charge/invoice. Creating a record was rated BELOW a generic workflow step.
+    //
+    // Effect: manual is unchanged; `assisted` now queues these for a human (the fix); `autonomous`
+    // still auto-approves, because that level is an explicit choice to let agents write unattended.
+    risk_level: o.risk_level ?? "medium",
     evidence: [{
       type: "discovered_lead",
       title: o.name,

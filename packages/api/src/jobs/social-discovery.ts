@@ -677,7 +677,10 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
             title,
             summary,
             recommended_action: action,
-            risk_level: "low",
+            // MEDIUM — approving this creates a permanent record in the graph. See the rationale on
+            // buildLeadDecision in lib/discovery-pipeline.ts; both discovery paths must agree, or
+            // whichever one stayed "low" would quietly keep the old auto-creating behaviour.
+            risk_level: "medium",
             evidence: [{
               type: "discovered_lead",
               title: r.author_name || "Lead",

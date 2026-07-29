@@ -158,3 +158,29 @@ describe("discovery cannot re-create the same lead", () => {
     expect(branch).not.toMatch(/dedupKey = "name"/);
   });
 });
+
+/**
+ * The other half of the duplicate-records root cause. routes/decisions.ts stopped the DUPLICATION;
+ * this is about who decided at all. ~450 records were created unattended because a decision that
+ * writes permanently to the graph was rated "low" risk, and `assisted` autonomy auto-approves low.
+ */
+describe("creating a graph record is not a low-risk decision", () => {
+  const pipeline = readFileSync(join(SRC, "lib/discovery-pipeline.ts"), "utf8");
+  const social = readFileSync(join(SRC, "jobs/social-discovery.ts"), "utf8");
+
+  it("both discovery paths queue lead decisions as at least medium", () => {
+    // BOTH, deliberately: whichever one stayed "low" would silently keep auto-creating.
+    expect(pipeline).toMatch(/risk_level: o\.risk_level \?\? "medium"/);
+    expect(pipeline).not.toMatch(/risk_level: o\.risk_level \?\? "low"/);
+    const insert = social.slice(social.indexOf('source_type: "discovered_lead"'));
+    expect(insert.slice(0, 600)).toMatch(/risk_level: "medium"/);
+  });
+
+  it("autonomy still refuses HIGH outright and manual remains the default", () => {
+    // The tier change only moves discovery from the assisted bucket to the autonomous one; it must
+    // not weaken the surrounding policy.
+    const autonomy = readFileSync(join(SRC, "lib/autonomy.ts"), "utf8");
+    expect(autonomy).toMatch(/if \(risk === "high"\) return false;/);
+    expect(autonomy).toMatch(/return v === "assisted" \|\| v === "autonomous" \? v : "manual";/);
+  });
+});

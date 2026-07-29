@@ -49,7 +49,10 @@ describe("buildLeadDecision — discovered-lead decision payload", () => {
     expect(d.source_type).toBe("discovered_lead");
     expect(d.source_id).toBe("n1");
     expect(d.title).toBe("Review lead: Acme");
-    expect(d.risk_level).toBe("low");
+    // Deliberately changed from "low" (2026-07-30). Approving this decision creates a permanent
+    // record in the graph, and at autonomy=assisted "low" meant it self-approved — which is how
+    // ~450 records were written unattended. See buildLeadDecision for the full rationale.
+    expect(d.risk_level).toBe("medium");
     const ev = (d.evidence as Array<Record<string, any>>)[0];
     expect(ev.type).toBe("discovered_lead");
     expect(ev.lead.email).toBe("a@acme.com");
