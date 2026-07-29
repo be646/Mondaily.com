@@ -137,7 +137,7 @@ function MeetingMemoryDetail({ event: e }: { event: CalEvent }) {
   const when = (() => { try { return new Date(e.start_at).toLocaleString(lang, { weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" }); } catch { return e.start_at; } })();
   const Section = ({ label, children }: { label: string; children: React.ReactNode }) => (
     <div className="border-t px-5 py-4" style={{ borderColor: "var(--border-soft)" }}>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{label}</p>
+      <p className="mb-2 text-body" style={{ color: "var(--text-muted)" }}>{label}</p>
       {children}
     </div>
   );
@@ -216,20 +216,20 @@ function MeetingMemoryDetail({ event: e }: { event: CalEvent }) {
                 </div>
                 {insights.overview ? (
                   <div>
-                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Summary</p>
+                    <p className="mb-1 text-body" style={{ color: "var(--text-faint)" }}>Summary</p>
                     <p className="text-[12.5px] leading-6" style={{ color: "var(--text-secondary)" }}>{insights.overview}</p>
                   </div>
                 ) : null}
                 {(insights.key_topics ?? []).length ? (
                   <div>
-                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Key topics</p>
+                    <p className="mb-1 text-body" style={{ color: "var(--text-faint)" }}>Key topics</p>
                     <div className="flex flex-wrap gap-1.5">{insights.key_topics!.map((k, i) => <span key={i} className="rounded-sm border px-1.5 py-0.5 text-[11px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>{k}</span>)}</div>
                   </div>
                 ) : null}
 
                 {(insights.action_items ?? []).length ? (
                   <div>
-                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Suggested action items · review first</p>
+                    <p className="mb-1 text-body" style={{ color: "var(--text-faint)" }}>Suggested action items · review first</p>
                     <div className="space-y-1">
                       {insights.action_items!.map((a, i) => (
                         <div key={i} className="flex items-center justify-between gap-2 rounded-sm border px-2 py-1.5" style={{ borderColor: "var(--border-soft)" }}>
@@ -250,7 +250,7 @@ function MeetingMemoryDetail({ event: e }: { event: CalEvent }) {
 
                 {(insights.decisions ?? []).length ? (
                   <div>
-                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Decision candidates · review only</p>
+                    <p className="mb-1 text-body" style={{ color: "var(--text-faint)" }}>Decision candidates · review only</p>
                     <ul className="space-y-1">{insights.decisions!.map((d, i) => (
                       <li key={i} className="flex items-start gap-1.5 rounded-sm border px-2 py-1.5 text-[12.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
                         <span className="mt-0.5 shrink-0 rounded-sm px-1 text-[8px] uppercase tracking-wide" style={{ background: "var(--surface-hover)", color: "var(--text-faint)" }}>candidate</span>{d}
@@ -262,7 +262,7 @@ function MeetingMemoryDetail({ event: e }: { event: CalEvent }) {
                 {insights.follow_up_draft ? (
                   <div>
                     <div className="mb-1 flex items-center justify-between">
-                      <p className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Follow-up email · draft (not sent)</p>
+                      <p className="text-body" style={{ color: "var(--text-faint)" }}>Follow-up email · draft (not sent)</p>
                       <button onClick={() => { const d = insights.follow_up_draft!; navigator.clipboard.writeText(`Subject: ${d.subject}\n\n${d.body}`); setDraftCopied(true); }} className="inline-flex items-center gap-1 text-[11px]" style={{ color: "var(--text-secondary)" }}><Clipboard size={11} /> {draftCopied ? "Copied" : "Copy"}</button>
                     </div>
                     <div className="rounded-sm border px-2.5 py-2" style={{ borderColor: "var(--border-soft)" }}>
@@ -292,7 +292,7 @@ function MeetingMemoryDetail({ event: e }: { event: CalEvent }) {
           )}
           {prepare.data && prepare.data.follow_ups.length > 0 && (
             <div className="mt-3">
-              <p className="mb-1 text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Suggested follow-ups</p>
+              <p className="mb-1 text-body" style={{ color: "var(--text-faint)" }}>Suggested follow-ups</p>
               <ul className="list-disc space-y-0.5 pl-4 text-[12.5px]" style={{ color: "var(--text-secondary)" }}>{prepare.data.follow_ups.map((f, i) => <li key={i}>{f}</li>)}</ul>
             </div>
           )}
