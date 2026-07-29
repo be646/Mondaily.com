@@ -6,6 +6,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireAdminRole, isWorkspaceAdmin } from "../middleware/rbac";
 import { aiGateway, gatewayEnv } from "../lib/ai-gateway";
 import { getEntitlement } from "../lib/entitlements";
+import { ledgerBreakdown } from "../lib/credits";
 import { createNotification } from "../lib/notify";
 import { selectHelpDocs, helpDocsBlock } from "../lib/help-docs";
 import { resolveProfile, profileContextBlock } from "@mondaily/shared/profile";
@@ -52,7 +53,7 @@ async function buildSupportContext(workspaceId: string, userId: string) {
   const env = gatewayEnv();
   const [wsRow, ledgerRes, contactsRes, membersRes, ticketRes, meRes] = await Promise.all([
     supabase.from("workspaces").select("name, plan, settings, onboarded").eq("id", workspaceId).maybeSingle(),
-    supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", workspaceId),
+    ledgerBreakdown(workspaceId),   // server-side aggregate; a JS sum truncates past the row cap
     supabase.from("nodes").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId).in("object_type", ["person", "company"]),
     supabase.from("workspace_members").select("id", { count: "exact", head: true }).eq("workspace_id", workspaceId),
     supabase.from("nodes").select("data, created_at").eq("workspace_id", workspaceId).eq("object_type", "support_ticket").order("created_at", { ascending: false }).limit(5),
@@ -73,12 +74,9 @@ async function buildSupportContext(workspaceId: string, userId: string) {
   };
 
   // Wallet — READ-ONLY aggregation of the ledger (identical math to /credits/balance display).
-  const rows = ledgerRes.data ?? [];
-  const granted = rows.filter(r => r.transaction_type === "grant").reduce((s, r) => s + Number(r.amount), 0);
-  const purchased = rows.filter(r => r.transaction_type === "purchase").reduce((s, r) => s + Number(r.amount), 0);
-  const usedNeg = rows.filter(r => r.transaction_type === "usage").reduce((s, r) => s + Number(r.amount), 0);
+  const { granted, purchased, used } = ledgerRes;
   const included = ent.includedMonthlyCredits;
-  const remaining = Math.max(0, granted + purchased + usedNeg);
+  const remaining = Math.max(0, granted + purchased - used);
 
   const integrations = (settings.integrations ?? {}) as Record<string, boolean>;
   const modules = (settings.modules as string[] | undefined) ?? [];
@@ -93,7 +91,7 @@ async function buildSupportContext(workspaceId: string, userId: string) {
   return {
     language, profile, identity,
     entitlement: { tier: ent.tier, source: ent.source, trial_ends_at: ent.trialEndsAt, seats: ent.seats },
-    wallet: { included_monthly_credits: included ?? monthlyCreditsFor(ent.tier), remaining, purchased, used: Math.abs(usedNeg), enrolled: rows.length > 0 },
+    wallet: { included_monthly_credits: included ?? monthlyCreditsFor(ent.tier), remaining, purchased, used, enrolled: ledgerRes.enrolled },
     readiness: {
       onboarded: Boolean(wsRow.data?.onboarded),
       contacts: contactsRes.count ?? 0,

@@ -65,17 +65,64 @@ export async function reconcileIncludedCredits(
   let granted = opts.grantedSoFar;
   let enrolled = opts.enrolled;
   if (granted === undefined || enrolled === undefined) {
-    const { data: rows } = await supabase
-      .from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", workspaceId);
-    const list = rows ?? [];
-    enrolled = list.length > 0;
-    granted = list.filter(r => r.transaction_type === "grant").reduce((s, r) => s + Number(r.amount), 0);
+    // Must be the exact grant total: a truncated sum would understate it and mint a bogus top-up
+    // grant on every read, inflating the wallet without anyone buying anything.
+    const b = await ledgerBreakdown(workspaceId);
+    enrolled = b.enrolled;
+    granted = b.granted;
   }
   if (!enrolled && !opts.enrollIfEmpty) return 0; // read paths never enroll a workspace by looking at it
   const shortfall = target - (granted ?? 0);
   if (shortfall <= 0) return 0;                  // already at/above entitlement — idempotent no-op
   await grantCredits(workspaceId, shortfall, "grant", `reconcile: included-credits top-up to ${ent.tier} entitlement`);
   return shortfall;
+}
+
+export interface LedgerBreakdown { enrolled: boolean; granted: number; purchased: number; used: number }
+
+/**
+ * THE one way to total the wallet. Never sum the ledger in JavaScript.
+ *
+ * A plain `.select("amount, transaction_type").eq("workspace_id", ws)` has no limit and no order, so
+ * once a workspace exceeds PostgREST's max-rows cap it returns an ARBITRARY SUBSET — the totals then
+ * vary between two identical reads (measured: `used` swinging 134,984 credits with no spend between
+ * calls) and stop tracking real usage. Prefer the server-side aggregate; fall back to an explicitly
+ * PAGED read so this is still exact on a deployment where the migration hasn't been applied yet.
+ */
+export async function ledgerBreakdown(workspaceId: string): Promise<LedgerBreakdown> {
+  const { data, error } = await supabase.rpc("ai_credit_breakdown", { ws: workspaceId });
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!error && row) {
+    const entries = Number((row as { entries?: number }).entries ?? 0);
+    return {
+      enrolled: entries > 0,
+      granted: Number((row as { granted?: number }).granted ?? 0),
+      purchased: Number((row as { purchased?: number }).purchased ?? 0),
+      used: Number((row as { used?: number }).used ?? 0),
+    };
+  }
+  // Fallback: page through every row explicitly rather than trusting an unbounded select.
+  const PAGE = 1000;
+  let from = 0, granted = 0, purchased = 0, used = 0, entries = 0;
+  for (;;) {
+    const { data: page, error: pageErr } = await supabase
+      .from("ai_credits_ledger").select("amount, transaction_type")
+      .eq("workspace_id", workspaceId)
+      .order("id", { ascending: true })          // stable order → pages can't overlap or skip
+      .range(from, from + PAGE - 1);
+    if (pageErr) return { enrolled: false, granted: 0, purchased: 0, used: 0 };  // never gate on a read failure
+    const list = page ?? [];
+    for (const r of list) {
+      const amt = Number(r.amount) || 0;
+      if (r.transaction_type === "grant") granted += amt;
+      else if (r.transaction_type === "purchase") purchased += amt;
+      else if (r.transaction_type === "usage") used += Math.abs(amt);
+    }
+    entries += list.length;
+    if (list.length < PAGE) break;
+    from += PAGE;
+  }
+  return { enrolled: entries > 0, granted, purchased, used };
 }
 
 export interface BurstStatus { limited: boolean; used: number; cap: number; resetsAt: string | null }
@@ -86,13 +133,25 @@ export interface BurstStatus { limited: boolean; used: number; cap: number; rese
 export async function burstStatus(workspaceId: string): Promise<BurstStatus> {
   const cap = burstCapFor(normalizeTierId(await resolveTier(workspaceId)));
   const since = new Date(Date.now() - BURST_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+  // Server-side aggregate — a busy workspace can exceed the row cap inside one burst window, and a
+  // truncated sum would silently UNDER-count usage and let the cap be overrun (see ledgerBreakdown).
+  const { data: agg, error: aggErr } = await supabase.rpc("ai_credit_usage_since", { ws: workspaceId, since });
+  const aggRow = Array.isArray(agg) ? agg[0] : agg;
+  if (!aggErr && aggRow) {
+    const used = Number((aggRow as { used?: number }).used ?? 0);
+    const oldestAt = (aggRow as { oldest?: string | null }).oldest ?? null;
+    if (used === 0 || !oldestAt) return { limited: false, used: 0, cap, resetsAt: null };
+    const resetsAt = new Date(new Date(oldestAt).getTime() + BURST_WINDOW_HOURS * 60 * 60 * 1000).toISOString();
+    return { limited: used >= cap, used, cap, resetsAt };
+  }
   const { data, error } = await supabase
     .from("ai_credits_ledger")
     .select("amount, created_at")
     .eq("workspace_id", workspaceId)
     .eq("transaction_type", "usage")
     .gte("created_at", since)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .limit(10000);
   if (error || !data || data.length === 0) return { limited: false, used: 0, cap, resetsAt: null };
   const used = data.reduce((s, r) => s + Math.abs(Number(r.amount) || 0), 0);
   const oldest = new Date(data[0]!.created_at as string).getTime();

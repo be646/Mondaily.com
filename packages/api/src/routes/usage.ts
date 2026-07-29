@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { supabase } from "@mondaily/db/client";
+import { ledgerBreakdown } from "../lib/credits";
 import { requireAuth } from "../middleware/auth";
 
 /**
@@ -84,9 +85,9 @@ router.get("/summary", async (c) => {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
 
-  const [{ data: usage }, { data: ledger }, { data: wsRow }] = await Promise.all([
+  const [{ data: usage }, wallet, { data: wsRow }] = await Promise.all([
     supabase.from("ai_usage").select("*").eq("workspace_id", ws).gte("created_at", monthStart),
-    supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws),
+    ledgerBreakdown(ws),   // server-side aggregate; a JS sum truncates past the row cap
     supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle(),
   ]);
 
@@ -112,10 +113,9 @@ router.get("/summary", async (c) => {
     if (r.provider != null) providers.add(String(r.provider));
   }
 
-  const list = ledger ?? [];
-  const enrolled = list.length > 0;
-  const granted = list.filter(r => r.transaction_type !== "usage").reduce((s, r) => s + Number(r.amount), 0);
-  const used = Math.abs(list.filter(r => r.transaction_type === "usage").reduce((s, r) => s + Number(r.amount), 0));
+  const enrolled = wallet.enrolled;
+  const granted = wallet.granted + wallet.purchased;   // everything added to the wallet
+  const used = wallet.used;
   const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
 
   return c.json({

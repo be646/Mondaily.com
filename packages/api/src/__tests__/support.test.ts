@@ -51,8 +51,12 @@ describe("support agent — never fakes refunds or account actions", () => {
 });
 
 describe("support agent — billing/wallet is READ-ONLY", () => {
-  it("reads the wallet via SELECT only", () => {
-    expect(src).toMatch(/from\("ai_credits_ledger"\)\.select/);
+  it("reads the wallet through the read-only aggregate, never a write", () => {
+    // Previously asserted a literal `.select` on the ledger. The wallet total now goes through the
+    // shared server-side aggregate (a JS sum silently truncated past PostgREST's row cap and made
+    // the reported balance nondeterministic) — still a pure read, which is what this guards.
+    expect(src).toMatch(/ledgerBreakdown\(workspaceId\)/);
+    expect(src).not.toMatch(/from\("ai_credits_ledger"\)[\s\S]{0,40}\.(insert|update|delete)/);
   });
   it("reads entitlement via the shared resolver (no re-derivation, no writes)", () => {
     expect(src).toMatch(/getEntitlement\(workspaceId\)/);

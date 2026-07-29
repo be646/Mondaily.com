@@ -3,7 +3,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { createCreditPackCheckout } from "../lib/credit-pack";
-import { burstStatus, reconcileIncludedCredits } from "../lib/credits";
+import { burstStatus, reconcileIncludedCredits, ledgerBreakdown } from "../lib/credits";
 import { getEntitlement, resolveEntitlement } from "../lib/entitlements";
 import { PLAN_TIERS, CREDIT_PACKS, CREDIT_PACK_ORDER, computePackCredits, monthlyCreditsFor, type BillingInterval } from "@mondaily/shared/pricing";
 
@@ -27,26 +27,16 @@ router.get("/balance", async (c) => {
   const ent = await getEntitlement(ws);   // resolved tier (paid / trial / free)
   const tier = ent.tier;
 
-  const readLedger = async () => {
-    const { data: rows } = await supabase
-      .from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws);
-    const list = rows ?? [];
-    return {
-      enrolled: list.length > 0,
-      granted: list.filter(r => r.transaction_type === "grant").reduce((s, r) => s + Number(r.amount), 0),
-      purchased: list.filter(r => r.transaction_type === "purchase").reduce((s, r) => s + Number(r.amount), 0),
-      usedNeg: list.filter(r => r.transaction_type === "usage").reduce((s, r) => s + Number(r.amount), 0), // ≤ 0
-    };
-  };
-
-  let { enrolled, granted, purchased, usedNeg } = await readLedger();
+  // Server-side aggregate. Summing the ledger in JS returned a truncated, nondeterministic total
+  // once the workspace outgrew PostgREST's row cap, so the displayed balance stopped moving with
+  // real spend — see ledgerBreakdown.
+  let { enrolled, granted, purchased, used } = await ledgerBreakdown(ws);
   // Self-heal: make included monthly credits ACTUALLY usable before we report the balance.
   const added = await reconcileIncludedCredits(ws, { grantedSoFar: granted, enrolled });
-  if (added > 0) ({ enrolled, granted, purchased, usedNeg } = await readLedger());
+  if (added > 0) ({ enrolled, granted, purchased, used } = await ledgerBreakdown(ws));
 
   const included = ent.includedMonthlyCredits;         // catalog allotment for the resolved tier
-  const used = Math.abs(usedNeg);
-  const rawBalance = granted + purchased + usedNeg;      // grants + purchases − usage
+  const rawBalance = granted + purchased - used;        // grants + purchases − usage
   const remaining = Math.max(0, rawBalance);            // floor — users never see a negative balance
   // Denominator for the meter: included monthly + anything they purchased on top. Floored at
   // `remaining` so the bar is NEVER < the number it contains (guards the "984k / 550k" impossibility
@@ -114,20 +104,20 @@ router.post("/reconcile", requireAdminRole, async (c) => {
 // so a "credits granted but tier still Scout" disconnect is diagnosable without guessing.
 router.get("/diagnostics", requireAdminRole, async (c) => {
   const ws = c.get("workspaceId");
-  const [{ data: wsRow }, { data: rows }] = await Promise.all([
+  const [{ data: wsRow }, breakdown] = await Promise.all([
     supabase.from("workspaces").select("plan, settings").eq("id", ws).maybeSingle(),
-    supabase.from("ai_credits_ledger").select("amount, transaction_type").eq("workspace_id", ws),
+    ledgerBreakdown(ws),
   ]);
   const settings = (wsRow?.settings ?? {}) as Record<string, unknown>;
   const planColumn = (wsRow as { plan?: string } | null)?.plan ?? null;
-  const list = rows ?? [];
-  const included = list.filter(r => r.transaction_type === "grant").reduce((s, r) => s + Number(r.amount), 0);
-  const purchased = list.filter(r => r.transaction_type === "purchase").reduce((s, r) => s + Number(r.amount), 0);
-  const used = Math.abs(list.filter(r => r.transaction_type === "usage").reduce((s, r) => s + Number(r.amount), 0));
+  const { granted: included, purchased, used, enrolled } = breakdown;
   const rawBalance = included + purchased - used;
   const remaining = Math.max(0, rawBalance);
 
-  const ent = resolveEntitlement(settings, planColumn);
+  // Must be getEntitlement, not a second derivation: resolveEntitlement() alone skips the
+  // product-owner override, so this route reported "scout" for a workspace every other surface
+  // (and enforcement itself) resolves to "sovereign" — the debugging tool contradicted the product.
+  const ent = await getEntitlement(ws);
   const tier = ent.tier;
   const target = monthlyCreditsFor(tier);                 // included monthly for the RESOLVED tier
   const capacity = Math.max(remaining, (target ?? included) + purchased);
@@ -137,7 +127,9 @@ router.get("/diagnostics", requireAdminRole, async (c) => {
 
   // Human-readable reason the resolver landed on this tier.
   let why: string;
-  if (settings.billing_status === "cancelled") why = "billing_status is 'cancelled' → Scout";
+  if (ent.source === "paid" && !settings.stripe_subscription_id && tier === "sovereign")
+    why = "product-owner allowlist → Sovereign (unmetered, no payment)";
+  else if (settings.billing_status === "cancelled") why = "billing_status is 'cancelled' → Scout";
   else if (settings.billing_status === "active" && settings.stripe_subscription_id) why = `active paid subscription → ${tier}`;
   else if (trialEndsAt && trialActive) why = "trial_ends_at is in the future → Operator (trial)";
   else if (trialEndsAt && !trialActive) why = "trial_ends_at is in the PAST → Scout (expired trial)";
@@ -148,7 +140,7 @@ router.get("/diagnostics", requireAdminRole, async (c) => {
   const grantSuggestsOperator = included >= 1_000_000;
   const tierCreditMismatch = grantSuggestsOperator && tier === "scout";
 
-  const burst = list.length > 0 ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
+  const burst = enrolled ? await burstStatus(ws) : { limited: false, used: 0, cap: 0, resetsAt: null };
   return c.json({
     workspace_id: ws,
     // ── raw stored fields ──
@@ -162,6 +154,9 @@ router.get("/diagnostics", requireAdminRole, async (c) => {
     settings_pending_plan: (settings.pending_plan as string) ?? null,
     // ── resolved entitlement ──
     resolved_tier: tier,
+    // What the STORED fields alone would resolve to, ignoring the owner allowlist. Kept beside the
+    // effective tier so an override is visible rather than looking like a contradiction.
+    stored_tier_would_be: resolveEntitlement(settings, planColumn).tier,
     resolved_source: ent.source,
     resolved_why: why,
     trial_active: trialActive,
