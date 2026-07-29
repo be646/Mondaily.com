@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { verifyAiCredits } from "../lib/credits";
 import { supabase } from "@mondaily/db/client";
 import { aiGatewayToolUse, type GatewayToolRequest } from "../lib/ai-gateway";
 import { sovereignWebContext } from "../lib/sovereign-search";
@@ -16,11 +17,14 @@ const router = new Hono<{ Variables: { userId: string; workspaceId: string; role
  * Model is determined by AI_PROVIDER_MODEL env var (gateway owns routing).
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function callGatewayTool(body: any): Promise<any> {
+async function callGatewayTool(body: any, ctx?: { workspaceId?: string; userId?: string; feature?: string }): Promise<any> {
   const tool = body.tools?.[0];
   const lastMsg = body.messages?.[body.messages.length - 1];
   if (!tool || !lastMsg) throw new Error("Invalid AI request body");
 
+  // workspaceId is what makes this METERED. Without it the gateway skips assertCreditsOk (no
+  // credit gate) AND skips recordAiUsage (no token accounting) — so all 14 endpoints here were
+  // free, ungated AI that never appeared in the wallet or the usage page.
   const input = await aiGatewayToolUse({
     prompt: lastMsg.content as string,
     toolName: tool.name as string,
@@ -28,13 +32,16 @@ async function callGatewayTool(body: any): Promise<any> {
     toolSchema: tool.input_schema as GatewayToolRequest["toolSchema"],
     maxTokens: body.max_tokens as number,
     ...(body.system ? { system: body.system as string } : {}),
+    ...(ctx?.workspaceId ? { workspaceId: ctx.workspaceId } : {}),
+    ...(ctx?.userId ? { userId: ctx.userId } : {}),
+    feature: ctx?.feature ?? "generate",
   });
 
   return { content: [{ type: "tool_use", name: tool.name, input }] };
 }
 
 // ─── Schema generation via tool_use (guarantees valid JSON) ───────────────────
-router.post("/schema", requireAuth, zValidator("json", z.object({ prompt: z.string().min(1) })), async (c) => {
+router.post("/schema", requireAuth, verifyAiCredits, zValidator("json", z.object({ prompt: z.string().min(1) })), async (c) => {
   const { prompt } = c.req.valid("json");
   try {
     const data = await callGatewayTool({
@@ -90,7 +97,7 @@ router.post("/schema", requireAuth, zValidator("json", z.object({ prompt: z.stri
         role: "user",
         content: `Design the object schema for: "${prompt}". Return domain-specific columns only — no generic social/contact fields unless the domain is about people. Put the primary label column first.`
       }]
-    });
+    }, { workspaceId: c.get("workspaceId"), userId: c.get("userId") });
 
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
     if (!toolUse?.input) return c.json({ error: "No schema generated" }, 500);
@@ -101,7 +108,7 @@ router.post("/schema", requireAuth, zValidator("json", z.object({ prompt: z.stri
 });
 
 // ─── NLP command parsing ──────────────────────────────────────────────────────
-router.post("/nlp", requireAuth, zValidator("json", z.object({
+router.post("/nlp", requireAuth, verifyAiCredits, zValidator("json", z.object({
   query: z.string().min(1),
   columns: z.array(z.string()),
 })), async (c) => {
@@ -139,7 +146,7 @@ router.post("/nlp", requireAuth, zValidator("json", z.object({
 });
 
 // ─── Company enrichment via the sovereign SearXNG appliance + sovereign AI gateway ────────────
-router.post("/enrich/company", requireAuth, zValidator("json", z.object({ name: z.string() })), async (c) => {
+router.post("/enrich/company", requireAuth, verifyAiCredits, zValidator("json", z.object({ name: z.string() })), async (c) => {
   const { name } = c.req.valid("json");
   // Sovereign web context: our own SearXNG + scraper appliance (no Tavily).
   const webContext = await sovereignWebContext(`${name} company funding employees ARR revenue headquarters`);
@@ -173,7 +180,7 @@ router.post("/enrich/company", requireAuth, zValidator("json", z.object({ name: 
 });
 
 // ─── Person enrichment ────────────────────────────────────────────────────────
-router.post("/enrich/person", requireAuth, zValidator("json", z.object({ email: z.string() })), async (c) => {
+router.post("/enrich/person", requireAuth, verifyAiCredits, zValidator("json", z.object({ email: z.string() })), async (c) => {
   const { email } = c.req.valid("json");
   const domain = email.split("@")[1] ?? "";
   const webContext = domain ? await sovereignWebContext(`${email} ${domain} linkedin job title company`) : "";
@@ -209,7 +216,7 @@ router.post("/enrich/person", requireAuth, zValidator("json", z.object({ email: 
 // each with a source_url. If the web yields nothing, it returns an empty set with a reason (it must
 // never invent placeholder people/values). Records are tagged with the source so the UI can mark
 // them as agent-discovered.
-router.post("/records", requireAuth, zValidator("json", z.object({
+router.post("/records", requireAuth, verifyAiCredits, zValidator("json", z.object({
   objectType: z.string().min(1),
   columns: z.array(z.string()).min(1),
   prompt: z.string().min(1),
@@ -264,7 +271,7 @@ router.post("/records", requireAuth, zValidator("json", z.object({
 });
 
 // ─── AI task suggestions ──────────────────────────────────────────────────────
-router.post("/tasks", requireAuth, zValidator("json", z.object({
+router.post("/tasks", requireAuth, verifyAiCredits, zValidator("json", z.object({
   prompt: z.string().min(1),
   count: z.number().int().min(1).max(20).default(5),
   members: z.array(z.object({ email: z.string(), name: z.string() })).optional(),
@@ -307,7 +314,7 @@ router.post("/tasks", requireAuth, zValidator("json", z.object({
         role: "user",
         content: `Suggest ${count} actionable tasks based on this context: "${prompt}"${recordContext ? `\n\nRelated records:\n${recordContext}` : ""}${memberList ? `\n\nTeam members: ${memberList}` : ""}\n\nMake tasks specific, actionable, and realistic. Set priority based on urgency. Set due_days (days from today) based on realistic timelines.`
       }]
-    });
+    }, { workspaceId: c.get("workspaceId"), userId: c.get("userId") });
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
     return c.json({ tasks: toolUse?.input?.tasks ?? [] });
   } catch (e: any) {
@@ -316,7 +323,7 @@ router.post("/tasks", requireAuth, zValidator("json", z.object({
 });
 
 // ─── AI insights ──────────────────────────────────────────────────────────────
-router.post("/insights", requireAuth, zValidator("json", z.object({
+router.post("/insights", requireAuth, verifyAiCredits, zValidator("json", z.object({
   objectType: z.string().min(1),
   records: z.array(z.record(z.unknown())),
 })), async (c) => {
@@ -359,9 +366,9 @@ router.post("/insights", requireAuth, zValidator("json", z.object({
       tool_choice: { type: "tool", name: "generate_insights" },
       messages: [{
         role: "user",
-        content: `Analyze these ${records.length} REAL ${objectType} records and generate 4-6 business insights. ABSOLUTE RULE: only state numbers you actually compute from the records below — never estimate, round-invent, or extrapolate a figure that isn't grounded in this exact sample. If the sample is too thin for a reliable stat (e.g. under 5 records), say so in the insight rather than presenting a guess as fact.\n\nSample records (${sample ? records.length : 0} of ${records.length} shown):\n${sample}\n\nFocus on: totals, averages, distributions, patterns, anomalies, opportunities, and risks — computed from the data above only. Be specific with real numbers.\n\nFor each insight, also provide a concrete, specific action the user should take right now based on that finding. Actions must start with a verb and be immediately actionable, not generic advice.`
+        content: `Analyze the ${Math.min(records.length, 50)} ${objectType} records below${records.length > 50 ? ` — a SAMPLE of ${records.length} total, so any count or total you state is from the sample and must be described that way` : ""} and generate 4-6 business insights. ABSOLUTE RULE: only state numbers you actually compute from the records below — never estimate, round-invent, or extrapolate a figure that isn't grounded in this exact sample. If the sample is too thin for a reliable stat (e.g. under 5 records), say so in the insight rather than presenting a guess as fact.\n\nSample records (${sample ? records.length : 0} of ${records.length} shown):\n${sample}\n\nFocus on: totals, averages, distributions, patterns, anomalies, opportunities, and risks — computed from the data above only. Be specific with real numbers.\n\nFor each insight, also provide a concrete, specific action the user should take right now based on that finding. Actions must start with a verb and be immediately actionable, not generic advice.`
       }]
-    });
+    }, { workspaceId: c.get("workspaceId"), userId: c.get("userId") });
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
     return c.json({ insights: toolUse?.input?.insights ?? [] });
   } catch (e: any) {
@@ -370,7 +377,7 @@ router.post("/insights", requireAuth, zValidator("json", z.object({
 });
 
 // ─── AI sequence generator ────────────────────────────────────────────────────
-router.post("/sequence", requireAuth, zValidator("json", z.object({
+router.post("/sequence", requireAuth, verifyAiCredits, zValidator("json", z.object({
   prompt: z.string().min(1),
   steps: z.number().int().min(2).max(8).default(4),
 })), async (c) => {
@@ -411,7 +418,7 @@ router.post("/sequence", requireAuth, zValidator("json", z.object({
         role: "user",
         content: `Create a ${steps}-step email outreach sequence for: "${prompt}"\n\nGuidelines:\n- Step 1: delay_value=0 (send immediately), send_as="new"\n- Subsequent steps: reply to the thread (send_as="reply"), space them 2-5 days apart\n- Write conversational, personalized emails using {first_name} and {company} tokens\n- Keep emails short (3-5 sentences). Each email should have a clear purpose and single CTA\n- Last step should be a "closing the loop" breakup email`
       }]
-    });
+    }, { workspaceId: c.get("workspaceId"), userId: c.get("userId") });
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
     if (!toolUse?.input) return c.json({ error: "No sequence generated" }, 500);
     return c.json(toolUse.input);
@@ -421,7 +428,7 @@ router.post("/sequence", requireAuth, zValidator("json", z.object({
 });
 
 // ─── AI list name + object type picker ───────────────────────────────────────
-router.post("/list-name", requireAuth, zValidator("json", z.object({
+router.post("/list-name", requireAuth, verifyAiCredits, zValidator("json", z.object({
   prompt: z.string().min(1),
   objectTypes: z.array(z.string()),
 })), async (c) => {
@@ -446,7 +453,7 @@ router.post("/list-name", requireAuth, zValidator("json", z.object({
         role: "user",
         content: `Generate a short list name and pick the best object type for: "${prompt}"\n\nAvailable object types: ${objectTypes.join(", ")}`
       }]
-    });
+    }, { workspaceId: c.get("workspaceId"), userId: c.get("userId") });
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
     return c.json(toolUse?.input ?? { name: "New List", object_type: objectTypes[0] ?? "companies" });
   } catch {
@@ -455,7 +462,7 @@ router.post("/list-name", requireAuth, zValidator("json", z.object({
 });
 
 // ─── AI list-entry selector ───────────────────────────────────────────────────
-router.post("/list-entries", requireAuth, zValidator("json", z.object({
+router.post("/list-entries", requireAuth, verifyAiCredits, zValidator("json", z.object({
   prompt: z.string().min(1),
   objectType: z.string().min(1),
   records: z.array(z.object({ id: z.string(), data: z.record(z.unknown()) })),
@@ -487,7 +494,7 @@ router.post("/list-entries", requireAuth, zValidator("json", z.object({
         role: "user",
         content: `You are selecting ${objectType} records that match this description: "${prompt}"\n\nAvailable records:\n${recordSummary}\n\nSelect the IDs that best match. If none match, return an empty array. Be generous — if a record is a reasonable match, include it.`
       }]
-    });
+    }, { workspaceId: c.get("workspaceId"), userId: c.get("userId") });
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
     return c.json({ selectedIds: toolUse?.input?.selectedIds ?? [], reason: toolUse?.input?.reason ?? "" });
   } catch (e: any) {
@@ -496,7 +503,7 @@ router.post("/list-entries", requireAuth, zValidator("json", z.object({
 });
 
 // ─── AI workflow generator ────────────────────────────────────────────────────
-router.post("/workflow", requireAuth, zValidator("json", z.object({
+router.post("/workflow", requireAuth, verifyAiCredits, zValidator("json", z.object({
   prompt: z.string().min(1),
 })), async (c) => {
   const { prompt } = c.req.valid("json");
@@ -569,7 +576,7 @@ router.post("/workflow", requireAuth, zValidator("json", z.object({
         role: "user",
         content: `Design a workflow automation for: "${prompt}"\n\nRules:\n- First node must be a trigger (kind=trigger)\n- Then optional conditions (kind=condition)\n- Then actions (kind=action) — at least one action\n- Pick the most appropriate types from the available options\n- Use clear, descriptive labels\n- CRITICAL: fill each node's "config" with the concrete parameters implied by the request so the workflow runs without manual editing. E.g. "when a deal is Won" → trigger record_updated {object_type:"deal"} + condition field_equals {field:"stage", value:"Won", operator:"equals"}; "notify the team" → send_notification {message:"..."}; "deals over $50k" → field_gt {field:"amount", value:"50000", operator:"gt"}.\n- Ground every value in the user's request; never invent field values that weren't asked for.\n\nExample: Deal stage changed → Field equals "Won" → Send email, Create task`
       }]
-    });
+    }, { workspaceId: c.get("workspaceId"), userId: c.get("userId") });
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
     if (!toolUse?.input) return c.json({ error: "No workflow generated" }, 500);
 
@@ -594,7 +601,7 @@ router.post("/workflow", requireAuth, zValidator("json", z.object({
 });
 
 // ─── AI revenue / pipeline forecast ──────────────────────────────────────────
-router.post("/forecast", requireAuth, zValidator("json", z.object({
+router.post("/forecast", requireAuth, verifyAiCredits, zValidator("json", z.object({
   objectType:  z.string().min(1),
   valueCol:    z.string().nullable(),
   stageCol:    z.string().nullable(),
@@ -691,7 +698,7 @@ invent "N deals in stage X" or similar specifics you were not actually given. Co
       }],
       tool_choice: { type: "tool", name: "generate_forecast" },
       messages: [{ role: "user", content: prompt }]
-    });
+    }, { workspaceId: c.get("workspaceId"), userId: c.get("userId") });
 
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
     if (!toolUse?.input) return c.json({ error: "No forecast generated" }, 500);
@@ -702,7 +709,7 @@ invent "N deals in stage X" or similar specifics you were not actually given. Co
 });
 
 // ─── AI Risk Alerts ───────────────────────────────────────────────────────────
-router.post("/risk-alerts", requireAuth, async (c) => {
+router.post("/risk-alerts", requireAuth, verifyAiCredits, async (c) => {
   const workspaceId = c.get("workspaceId");
   const userId = c.get("userId");
   const now = new Date();
@@ -788,7 +795,7 @@ router.post("/risk-alerts", requireAuth, async (c) => {
         role: "user",
         content: `Analyze this workspace data and identify 0-4 genuine business risks worth alerting on. Only flag real problems — if everything looks healthy, return 0 alerts.\n\nWorkspace snapshot:\n${context}\n\nToday: ${now.toDateString()}\n\nFocus on: overdue tasks, stale high-value deals, urgent items piling up, or patterns suggesting something important is being missed. Skip minor issues. Be specific with numbers.`
       }]
-    });
+    }, { workspaceId: c.get("workspaceId"), userId: c.get("userId") });
 
     const toolUse = data.content?.find((b: any) => b.type === "tool_use");
     const alerts: Array<{ title: string; body: string; severity: string }> = toolUse?.input?.alerts ?? [];

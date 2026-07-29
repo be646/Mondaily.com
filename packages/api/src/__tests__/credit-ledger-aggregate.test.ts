@@ -308,3 +308,32 @@ describe("Ask modes are real", () => {
     expect(home).toMatch(/JSON\.stringify\(\{ \.\.\.cur, model: m \}\)/);
   });
 });
+
+describe("generate.ts is metered and honest about its sample", () => {
+  const gen = readFileSync(join(SRC, "routes/generate.ts"), "utf8");
+
+  it("every AI call carries a workspaceId", () => {
+    // callGatewayTool passed none, so the gateway skipped assertCreditsOk AND recordAiUsage:
+    // 14 endpoints of free, ungated AI that never appeared in the wallet or the usage page.
+    expect(gen).toMatch(/ctx\?\.workspaceId \? \{ workspaceId: ctx\.workspaceId \}/);
+    // Counted, not pattern-matched: EVERY call site must pass context, so the two counts must be
+    // equal. A `[\s\S]*?` negative here spans across a metered call into a later one and passes
+    // regardless — the same over-loose shape that let earlier guards go green over real bugs.
+    const calls = gen.match(/await callGatewayTool\(/g) ?? [];
+    const wired = gen.match(/workspaceId: c\.get\("workspaceId"\), userId: c\.get\("userId"\) \}\)/g) ?? [];
+    expect(calls.length).toBeGreaterThan(0);
+    expect(wired.length).toBe(calls.length);
+  });
+
+  it("routes return a clean 402 rather than a thrown gateway error", () => {
+    const gated = gen.match(/requireAuth, verifyAiCredits,/g) ?? [];
+    expect(gated.length).toBeGreaterThanOrEqual(13);
+  });
+
+  it("/insights does not call a 50-record sample the full set", () => {
+    // Prompt said "these ${records.length} REAL records" while only 50 were sent, so the model
+    // computed on the sample and stated it as covering everything.
+    expect(gen).not.toMatch(/Analyze these \$\{records\.length\} REAL/);
+    expect(gen).toMatch(/a SAMPLE of \$\{records\.length\} total/);
+  });
+});
