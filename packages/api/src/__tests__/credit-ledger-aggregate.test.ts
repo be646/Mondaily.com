@@ -177,6 +177,17 @@ describe("Ask never answers from model priors", () => {
     expect(gw).toMatch(/const FRIENDLY = "I ran the lookups but couldn't put an answer together/);
   });
 
+  it("finance totals are per-currency, never a mixed face-value sum", () => {
+    // Measured in production: EUR 9,814.16 + USD 92,686.84 + GBP 0 was reported by Ask as
+    // "£102,501 paid" — three currencies added at face value and labelled as pounds, while the real
+    // GBP total was zero. The old sum() returned a bare number with no currency code, so the model
+    // attached whichever symbol the conversation implied.
+    expect(ask).toMatch(/const byCur = new Map<string, number>\(\)/);
+    expect(ask).toMatch(/\$\{v\.toFixed\(2\)\} \$\{c\}/);
+    // no call site may re-format the (now string) total as a bare number
+    expect(ask).not.toMatch(/sum\((overdue|draft|sent|paid)\)\.toFixed/);
+  });
+
   it("finance totals are paged, and say so when they hit the ceiling", () => {
     // An unbounded select is capped at ~1000 rows with no error, so every figure was silently
     // understated while the output called itself "real data" — the same truncation that made the

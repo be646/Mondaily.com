@@ -1131,7 +1131,21 @@ async function executeTool(
         catch (e) { return `Error fetching finance summary: ${(e as Error).message}`; }
         const rows = invPage.rows.map(r => r.data as any);
         const byStatus = (status: string) => rows.filter(d => (d.status ?? "draft") === status);
-        const sum = (list: any[]) => list.reduce((s, d) => s + Number(d.total ?? 0), 0);
+        // Totals MUST be per-currency. The old `sum` added every invoice's `total` regardless of
+        // currency and emitted a bare number with no code, so the model attached whichever symbol
+        // the conversation suggested: a workspace holding EUR 9,814.16 + USD 92,686.84 + GBP 0 was
+        // reported as "£102,501 paid" — the face-value sum of three currencies, labelled as pounds,
+        // when the real GBP figure is zero. Grouping is the honest fix: no FX rate is invented, and
+        // a mixed-currency workspace reads as mixed.
+        const sum = (list: any[]) => {
+          const byCur = new Map<string, number>();
+          for (const d of list) {
+            const cur = String(d.currency ?? "").toUpperCase() || "UNSPECIFIED";
+            byCur.set(cur, (byCur.get(cur) ?? 0) + (Number(d.total) || 0));
+          }
+          if (byCur.size === 0) return "0";
+          return [...byCur].map(([c, v]) => `${v.toFixed(2)} ${c}`).join(" + ");
+        };
         const overdue = byStatus("overdue");
         const draft = byStatus("draft");
         const sent = byStatus("sent");
@@ -1143,7 +1157,7 @@ async function executeTool(
         const outstandingCreditNotes = creditNotes.filter(r => (r.data as any).status !== "executed");
 
         if (overdue.length) {
-          sources.push({ type: "finance", title: `${overdue.length} overdue invoice(s)`, match_reason: `total ${sum(overdue).toFixed(2)}` });
+          sources.push({ type: "finance", title: `${overdue.length} overdue invoice(s)`, match_reason: `total ${sum(overdue)}` });
         }
         if (rows.length === 0) return "No invoices exist in this workspace yet.";
         return [
@@ -1152,10 +1166,10 @@ async function executeTool(
           invPage.truncated
             ? `Finance summary (real data, first ${rows.length} invoices only — the workspace has more, so these totals are a LOWER BOUND, not the full picture):`
             : `Finance summary (real data, ${rows.length} invoice(s) total):`,
-          `- Overdue: ${overdue.length} invoice(s), total ${sum(overdue).toFixed(2)}`,
-          `- Draft: ${draft.length} invoice(s), total ${sum(draft).toFixed(2)}`,
-          `- Sent (awaiting payment): ${sent.length} invoice(s), total ${sum(sent).toFixed(2)}`,
-          `- Paid: ${paid.length} invoice(s), total ${sum(paid).toFixed(2)}`,
+          `- Overdue: ${overdue.length} invoice(s), total ${sum(overdue)}`,
+          `- Draft: ${draft.length} invoice(s), total ${sum(draft)}`,
+          `- Sent (awaiting payment): ${sent.length} invoice(s), total ${sum(sent)}`,
+          `- Paid: ${paid.length} invoice(s), total ${sum(paid)}`,
           `- Outstanding credit notes: ${outstandingCreditNotes.length}`,
         ].join("\n");
       }
