@@ -133,3 +133,15 @@ describe("billing actions are admin-gated and tiers come from the price", () => 
     expect(src).toMatch(/await reconcileIncludedCredits\(workspaceId, \{ enrollIfEmpty: true \}\)/);
   });
 });
+
+describe("pricing is never restated outside the shared catalog", () => {
+  it("the dead onboarding plan picker with invented prices is gone", () => {
+    // step-plan.tsx hardcoded starter/pro/business/enterprise at $0/$49/$89 with invented limits
+    // ("500 contacts", "Ask Mondaily AI (100/mo)"), against a real catalog of
+    // scout/operator/command/sovereign at $0/$29/$79 — prices $20/mo too high under plan names that
+    // do not exist. It also GET-ed /billing/checkout, which is POST-only. Unreferenced, but a live
+    // footgun the moment anyone routed to it.
+    const path = join(APP, "routes/onboarding/step-plan.tsx");
+    expect(() => readFileSync(path, "utf8")).toThrow();
+  });
+});

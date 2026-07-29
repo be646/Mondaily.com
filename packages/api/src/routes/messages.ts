@@ -387,6 +387,34 @@ router.post("/attachments/upload-url", zValidator("json", z.object({
   return c.json({ attachments: out }, 201);
 });
 
+
+/**
+ * Verify attachments against the objects ACTUALLY in storage.
+ *
+ * `size` and `content_type` arrive from the client and were stored + rendered as fact, while
+ * createSignedUploadUrl enforces no size limit of its own — so a caller could declare `size: 1`,
+ * PUT an arbitrarily large object, and have the UI display whatever they claimed. Reads the real
+ * metadata and substitutes it, rejecting anything missing or over the cap.
+ */
+async function verifiedAttachments(
+  atts: MessageAttachment[],
+): Promise<{ ok: true; atts: MessageAttachment[] } | { ok: false; error: string }> {
+  const out: MessageAttachment[] = [];
+  for (const a of atts) {
+    const slash = a.path.lastIndexOf("/");
+    const dir = a.path.slice(0, slash);
+    const file = a.path.slice(slash + 1);
+    const { data: found } = await supabase.storage.from(MSG_ATTACH_BUCKET).list(dir, { search: file, limit: 100 });
+    const obj = (found ?? []).find((o) => o.name === file);
+    if (!obj) return { ok: false, error: `"${a.name}" was never uploaded.` };
+    const meta = (obj as { metadata?: { size?: number; mimetype?: string } }).metadata ?? {};
+    const realSize = Number(meta.size ?? 0);
+    if (realSize > MSG_ATTACH_MAX_BYTES) return { ok: false, error: `"${a.name}" is over the 10 MB limit.` };
+    out.push({ ...a, size: realSize, content_type: meta.mimetype || a.content_type || "application/octet-stream" });
+  }
+  return { ok: true, atts: out };
+}
+
 /**
  * POST /messages/attachments — upload files (base64) to the private bucket BEFORE sending.
  * Objects are keyed under `<workspaceId>/<userId>/…`, so a caller can only ever create paths in
@@ -458,8 +486,12 @@ router.post("/", zValidator("json", z.object({
   const { recipient_id, group_id, body, attachments } = c.req.valid("json");
 
   // Attachment paths must come from the CALLER'S OWN upload prefix (shared by both branches).
-  const atts = (attachments ?? []).filter((a) => a.path.startsWith(`${ws}/${me}/`));
-  if ((attachments ?? []).length !== atts.length) return c.json({ error: "Invalid attachment reference." }, 400);
+  const claimed = (attachments ?? []).filter((a) => a.path.startsWith(`${ws}/${me}/`));
+  if ((attachments ?? []).length !== claimed.length) return c.json({ error: "Invalid attachment reference." }, 400);
+  // Trust the stored object, not the client's declared size/type.
+  const verified = await verifiedAttachments(claimed);
+  if (!verified.ok) return c.json({ error: verified.error }, 400);
+  const atts = verified.atts;
 
   // ── Group branch — membership-guarded; notifies the other members ──
   if (group_id) {
