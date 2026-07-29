@@ -16,6 +16,7 @@ import hmac
 import os
 import smtplib
 from email.message import EmailMessage
+from email.utils import formatdate, make_msgid
 from hashlib import sha256
 
 from fastapi import FastAPI, Header, HTTPException, Request
@@ -57,6 +58,17 @@ async def send(request: Request, x_mondaily_mail_signature: str = Header(default
     msg["From"] = p["from"]
     msg["To"] = ", ".join(to)
     msg["Subject"] = p.get("subject", "")
+    # RFC 5322 requires Date and Message-ID. Without them Gmail REJECTS outright:
+    #   550-5.7.1 Messages missing a valid Message-ID header are not accepted
+    # so every outbound message bounced. The Message-ID domain must be our sending domain so it
+    # aligns with the From: domain and DKIM/DMARC.
+    sender_domain = p["from"].rsplit("@", 1)[-1].strip(">").strip()
+    msg["Date"] = formatdate(localtime=True)
+    msg["Message-ID"] = make_msgid(domain=sender_domain or None)
+    # Lets the recipient's client thread replies correctly when the caller supplies them.
+    if p.get("in_reply_to"):
+        msg["In-Reply-To"] = p["in_reply_to"]
+        msg["References"] = p.get("references") or p["in_reply_to"]
     html = p.get("html", "")
     msg.set_content("This message requires an HTML-capable client.")
     if html:

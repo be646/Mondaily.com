@@ -47,3 +47,42 @@ prefix, so one tenant can never read another's files.
 - The sender's `/send` is HMAC-verified too — keep it on a private network or behind TLS.
 - Recipient routing only accepts `ws-<id>@<your-domain>`, so a spoofed `To:` can't target another
   workspace (envelope RCPT TO is authoritative, checked server-side).
+
+## Host requirements for deliverability (learned the hard way)
+
+The appliance relays through the host's Postfix. Four things must be true or mail is silently
+rejected / unsigned. Each of these actually bit us in production on 2026-07-29:
+
+1. **Postfix must call OpenDKIM.** `smtpd_milters`/`non_smtpd_milters` are empty by default, so
+   OpenDKIM can be running and correctly keyed while *nothing is ever signed*:
+   ```
+   postconf -e 'smtpd_milters = inet:127.0.0.1:8891'
+   postconf -e 'non_smtpd_milters = inet:127.0.0.1:8891'
+   ```
+
+2. **OpenDKIM must trust the container's subnet.** Without `InternalHosts`, only 127.0.0.1 counts as
+   internal and it refuses to sign, logging
+   `external host [172.19.0.2] attempted to send as <domain>`:
+   ```
+   printf '127.0.0.1\n::1\nlocalhost\n172.16.0.0/12\n' > /etc/opendkim/TrustedHosts
+   # then add InternalHosts + ExternalIgnoreList pointing at that file in /etc/opendkim.conf
+   ```
+
+3. **Force IPv4** unless IPv6 rDNS *and* an `ip6:` SPF term are both in place. With
+   `inet_protocols = all` Postfix prefers IPv6, and Gmail rejects IPv6 senders lacking valid PTR:
+   ```
+   postconf -e 'inet_protocols = ipv4'
+   ```
+
+4. **Postfix must accept relay from the containers** — `mynetworks` is loopback-only by default, and
+   the firewall must allow the relay port from the docker bridge only (never publicly):
+   ```
+   postconf -e 'mynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128 172.16.0.0/12'
+   ufw allow from 172.16.0.0/12 to any port 2525 proto tcp
+   ```
+
+The sender is fronted by TLS (Caddy → `127.0.0.1:8095`) and must NOT be published on `0.0.0.0`:
+it gets probed for `/.env` and `/.git/config` within hours of being exposed.
+
+Verify with: `opendkim-testkey -d <domain> -s mail -vvv` (expect `key OK`; "key not secure" just
+means no DNSSEC), then send a message and confirm a `DKIM-Signature:` header is present.
