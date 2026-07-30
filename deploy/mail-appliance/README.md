@@ -28,8 +28,11 @@ the existing sender, so nothing breaks until you deploy this.
 ## API env (Vercel) to activate
 - `SOVEREIGN_MAIL_SECRET` — same shared secret as above (gates inbound 401 + signs outbound)
 - `SOVEREIGN_MAIL_DOMAIN` — e.g. `inbound.mondaily.com` (mints each workspace's `ws-<id>@…` address)
-- `SOVEREIGN_MAIL_SEND_URL` — e.g. `https://mail.your-host:8095` (outbound relay; omit to keep the
-  current sender)
+- `SOVEREIGN_MAIL_SEND_URL` — e.g. `https://mail.yourdomain` (outbound relay; omit to keep the
+  current sender). **No port and no path** — the API appends `/send` itself. Point it at the Caddy
+  vhost in `./Caddyfile`, never at `http://<ip>:8095`: the sender binds to 127.0.0.1 only, and an
+  unreachable URL here used to stall every outbound send before falling back (now bounded to 5s in
+  `lib/mail.ts`, and logged as "sovereign relay unreachable").
 
 Until these are set the app's existing inbox keeps working (Gmail / local cache) and this appliance
 simply isn't used — sovereign email activates the moment the envs + MX are in place.

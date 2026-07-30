@@ -1,0 +1,45 @@
+# TLS edge for the mail SENDER — same pattern as the embed/search appliances, but on a real
+# hostname so Caddy provisions a certificate automatically.
+#
+# WHY THIS EXISTS: the sender used to be published on 0.0.0.0:8095, i.e. plain HTTP straight onto the
+# internet. Verified from outside the box, :8095 was in fact unreachable (Hetzner's cloud firewall),
+# so `SOVEREIGN_MAIL_SEND_URL=http://<ip>:8095` silently never worked — every outbound send waited
+# out a TCP connect and fell back to Gmail. Opening 8095 would have "fixed" that by exposing an
+# HMAC-only HTTP endpoint that, per this appliance's own README, gets probed for /.env and
+# /.git/config within hours. TLS on 443 is the right answer, and 443 is already open on this host
+# (stt.mondaily.com serves from it).
+#
+# The sender must be bound to 127.0.0.1 in docker-compose so this proxy is the ONLY way in.
+#
+# Install (as root on the mail host):
+#   1. DNS: A  mail.mondaily.com  ->  <this host's IPv4>
+#   2. cp Caddyfile /etc/caddy/mondaily-mail.Caddyfile   (or append this block to /etc/caddy/Caddyfile)
+#   3. caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy
+#   4. curl https://mail.mondaily.com/health     # expect the sender's health payload
+#   5. Vercel (API project): SOVEREIGN_MAIL_SEND_URL = https://mail.mondaily.com   — no port, no path
+#      (the API appends /send itself), then redeploy.
+
+mail.mondaily.com {
+	# Only the two endpoints the API actually calls. Everything else is 404 rather than a 502 that
+	# tells a scanner something is listening.
+	@allowed path /send /health
+	handle @allowed {
+		reverse_proxy 127.0.0.1:8095
+	}
+	handle {
+		respond "not found" 404
+	}
+
+	# An outbound mail body can carry a large HTML part; keep a ceiling so one request cannot
+	# exhaust the box.
+	request_body {
+		max_size 25MB
+	}
+
+	encode gzip
+
+	log {
+		output file /var/log/caddy/mondaily-mail.log
+		# The HMAC signature travels in a request header — do NOT log headers here.
+	}
+}

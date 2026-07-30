@@ -20,7 +20,12 @@ services:
     container_name: mondaily-mail-sender
     command: uvicorn sender:app --host 0.0.0.0 --port 8095
     ports:
-      - "8095:8095"
+      # LOOPBACK ONLY. This said "8095:8095", which publishes on 0.0.0.0 — directly contradicting
+      # this appliance's own README ("must NOT be published on 0.0.0.0: it gets probed for /.env and
+      # /.git/config within hours"). TLS termination belongs to Caddy (see ./Caddyfile), which
+      # proxies to 127.0.0.1:8095, so the sender is reachable only through https://mail.<domain>.
+      # --host 0.0.0.0 stays: that is the port INSIDE the container, which the bind still confines.
+      - "127.0.0.1:8095:8095"
     environment:
       - SOVEREIGN_MAIL_SECRET=${SOVEREIGN_MAIL_SECRET:?set a shared secret}
       - SMTP_RELAY_HOST=${SMTP_RELAY_HOST:-localhost}
