@@ -26,7 +26,12 @@ interface Console {
   };
   people: { owner: string; closed_count: number; closed_value: number; created_count: number; created_value: number; open_value: number }[];
   members: { user_id: string; name: string | null; email: string | null; role: string }[];
-  agents: { rows: { agent: string; auto: number; human: number; pending: number }[]; autonomy_level: string; breaker: { used_last_hour: number; cap: number } };
+  agents: {
+    rows: { agent: string; auto: number; human: number; pending: number }[];
+    autonomy_level: string;
+    breaker: { used_last_hour: number; cap: number };
+    spend_30d: { feature: string; total_tokens: number; calls: number }[];
+  };
   actions: {
     unassigned_deals: { id: string; name: string; value: number; stage: string }[];
     pending_decisions: { count: number; top: { id: string; title: string; risk: string; agent: string }[] };
@@ -213,6 +218,47 @@ function ActionsSection({ actions, members, cur }: { actions: Console["actions"]
   );
 }
 
+/**
+ * The autonomy dial, writable — manual / assisted / autonomous, via the SAME endpoint the
+ * decisions page uses (PATCH /decisions/autonomy, admin-gated server-side as of this change: the
+ * dial decides whether agents write unattended, and it was open to any member). "Autonomous" gets
+ * a confirm, because it is explicit consent to unattended writes.
+ */
+function AutonomyDial({ level, breaker }: { level: string; breaker: { used_last_hour: number; cap: number } }) {
+  const qc = useQueryClient();
+  const set = useMutation({
+    mutationFn: (l: string) => apiClient.patch("/decisions/autonomy", { level: l }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["owner-console"] }),
+  });
+  const levels: { key: string; label: string }[] = [
+    { key: "manual", label: "Manual" }, { key: "assisted", label: "Assisted" }, { key: "autonomous", label: "Autonomous" },
+  ];
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
+      <span className="flex items-center gap-1.5">
+        <span className="text-[10.5px] text-[var(--text-muted)]">Autonomy</span>
+        <span className="inline-flex overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+          {levels.map(l => (
+            <button key={l.key} disabled={set.isPending || l.key === level}
+              onClick={() => {
+                if (l.key === "autonomous" && !window.confirm("Autonomous lets agents execute low- AND medium-risk decisions with nobody watching — including creating records. The 50/hour safety limit stays on. Continue?")) return;
+                set.mutate(l.key);
+              }}
+              className="px-2 py-0.5 text-[10.5px] transition-colors disabled:cursor-default"
+              style={l.key === level
+                ? { background: "var(--section-accent)", color: "var(--surface-page)", fontWeight: 600 }
+                : { color: "var(--text-muted)" }}>
+              {l.label}
+            </button>
+          ))}
+        </span>
+        {set.isError && <span className="text-[10px]" style={{ color: "#d1524a" }}>couldn't change</span>}
+      </span>
+      <span className="text-[10.5px] tabular-nums text-[var(--text-muted)]">Safety limit: {breaker.used_last_hour}/{breaker.cap} auto-approvals this hour</span>
+    </div>
+  );
+}
+
 const cell = "px-3 py-2 text-[12px]";
 const th = "px-3 py-1.5 text-left text-[10.5px] font-medium text-[var(--text-muted)] first-letter:uppercase";
 
@@ -322,10 +368,19 @@ export function OwnerConsolePage() {
             ))}
           </tbody>
         </table>
-        <div className="flex items-center justify-between border-t px-3 py-2 text-[10.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
-          <span>Autonomy: <strong className="capitalize text-[var(--text-primary)]">{data.agents.autonomy_level}</strong></span>
-          <span className="tabular-nums">Safety limit: {data.agents.breaker.used_last_hour}/{data.agents.breaker.cap} auto-approvals this hour</span>
-        </div>
+        <AutonomyDial level={data.agents.autonomy_level} breaker={data.agents.breaker} />
+        {data.agents.spend_30d.length > 0 && (
+          <div className="border-t px-3 py-2" style={{ borderColor: "var(--border-soft)" }}>
+            <p className="mb-1 text-[9.5px] font-semibold uppercase tracking-widest text-[var(--text-faint)]">AI spend — 30 days, real tokens</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+              {data.agents.spend_30d.map(sp => (
+                <span key={sp.feature} className="text-[10.5px] tabular-nums" style={{ color: "var(--text-muted)" }}>
+                  <span className="capitalize">{sp.feature.replace(/[_-]/g, " ")}</span>: <strong style={{ color: "var(--text-secondary)" }}>{sp.total_tokens >= 1_000_000 ? `${(sp.total_tokens / 1_000_000).toFixed(1)}M` : sp.total_tokens >= 1000 ? `${Math.round(sp.total_tokens / 1000)}k` : sp.total_tokens}</strong> tok · {sp.calls} calls
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pipeline health — the money going cold */}

@@ -124,3 +124,24 @@ describe("assignments & actions — verbs without new capabilities", () => {
     expect(page).not.toMatch(/apiClient\.patch\(`\/nodes/);   // the wholesale-replace trap stays out
   });
 });
+
+describe("agent controls — the dial is gated, the spend is real and paged", () => {
+  const decisionsSrc = readFileSync(join(__dirname, "../routes/decisions.ts"), "utf8");
+  const ownerSrc2 = readFileSync(join(__dirname, "../routes/owner.ts"), "utf8");
+  const page2 = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/owner-console.tsx"), "utf8");
+
+  it("PATCH /decisions/autonomy is admin-only — it decides whether agents write unattended", () => {
+    // Found while wiring the dial: only requireAuth gated it, so ANY member could flip the
+    // workspace to autonomous.
+    expect(decisionsSrc).toMatch(/router\.patch\("\/autonomy", requireAdminRole/);
+  });
+
+  it("AI spend aggregates ai_usage with PAGED reads", () => {
+    expect(ownerSrc2).toMatch(/from\("ai_usage"\)[\s\S]{0,200}\.range\(from, from \+ PAGE - 1\)/);
+  });
+
+  it("switching to autonomous requires an explicit confirm", () => {
+    expect(page2).toMatch(/l\.key === "autonomous" && !window\.confirm/);
+    expect(page2).toMatch(/apiClient\.patch\("\/decisions\/autonomy"/);
+  });
+});

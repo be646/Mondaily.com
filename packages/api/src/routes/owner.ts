@@ -42,13 +42,36 @@ export function stalledDeals(rows: NodeRow[], now = Date.now()): { count: number
   return { count: stalled.length, value: stalled.reduce((s, r) => s + dealValue(r.data), 0), top };
 }
 
+/** AI spend per feature over a window — PAGED, because a busy workspace exceeds the row cap. */
+async function aiSpendByFeature(ws: string, days: number): Promise<{ feature: string; total_tokens: number; calls: number }[]> {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const by = new Map<string, { total_tokens: number; calls: number }>();
+  const PAGE = 1000;
+  for (let from = 0; from < 100_000; from += PAGE) {
+    const { data, error } = await supabase.from("ai_usage")
+      .select("feature, total_tokens").eq("workspace_id", ws).gte("created_at", since)
+      .order("id", { ascending: true }).range(from, from + PAGE - 1);
+    if (error) break;   // spend is informational — a read error degrades to what was aggregated so far
+    const rows = data ?? [];
+    for (const r of rows) {
+      const f = String((r as { feature?: string }).feature ?? "other");
+      const b = by.get(f) ?? { total_tokens: 0, calls: 0 };
+      b.total_tokens += Number((r as { total_tokens?: number }).total_tokens ?? 0);
+      b.calls++;
+      by.set(f, b);
+    }
+    if (rows.length < PAGE) break;
+  }
+  return [...by].map(([feature, b]) => ({ feature, ...b })).sort((a, b) => b.total_tokens - a.total_tokens).slice(0, 10);
+}
+
 router.get("/console", requireAdminRole, async (c) => {
   const ws = c.get("workspaceId");
   const mtd = monthToDate();
   const prev = prevMonthSamePoint();
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
 
-  const [invoices, deals, conv, members, decisions7d, pendingR, level, hourUsed, recentActs] = await Promise.all([
+  const [invoices, deals, conv, members, decisions7d, pendingR, level, hourUsed, recentActs, aiSpend] = await Promise.all([
     pagedNodes(ws, { eq: "invoice" }),
     pagedNodes(ws, { ilike: "%deal%" }),
     makeBaseConverter(ws),
@@ -58,6 +81,7 @@ router.get("/console", requireAdminRole, async (c) => {
     readAutonomy(ws),
     autonomyUsageLastHour(ws),
     supabase.from("activities").select("action, actor_id, diff, created_at").eq("workspace_id", ws).order("created_at", { ascending: false }).limit(200),
+    aiSpendByFeature(ws, 30),
   ]);
   const { base, toBase } = conv;
   const r2 = (x: number) => Math.round(x * 100) / 100;
@@ -141,6 +165,9 @@ router.get("/console", requireAdminRole, async (c) => {
       rows: agents,
       autonomy_level: level,
       breaker: { used_last_hour: hourUsed, cap: AUTONOMY_HOURLY_CAP },
+      // Real tokens from ai_usage (30d), grouped by feature — the closest honest proxy for
+      // per-agent cost until jobs tag a dedicated agent column.
+      spend_30d: aiSpend,
     },
     actions: {
       unassigned_deals: unassigned.map(d => ({ ...d, value: r2(d.value) })),

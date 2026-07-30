@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { requireAdminRole } from "../middleware/rbac";
 import { denyViewerWrites } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import * as ubc from "@mondaily/db/ubc";
@@ -131,7 +132,9 @@ router.patch("/reasoning", zValidator("json", z.object({ enabled: z.boolean() })
   if (error) return c.json({ error: error.message }, 400);
   return c.json({ enabled });
 });
-router.patch("/autonomy", zValidator("json", z.object({ level: z.enum(["manual", "assisted", "autonomous"]) })), async (c) => {
+// requireAdminRole: the autonomy dial decides whether agents WRITE UNATTENDED. It was open to any
+// member (only requireAuth at router level) — found while putting the dial on the Owner Console.
+router.patch("/autonomy", requireAdminRole, zValidator("json", z.object({ level: z.enum(["manual", "assisted", "autonomous"]) })), async (c) => {
   const workspaceId = c.get("workspaceId");
   const { level } = c.req.valid("json");
   const { data } = await supabase.from("workspaces").select("settings").eq("id", workspaceId).maybeSingle();
