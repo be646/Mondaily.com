@@ -297,7 +297,7 @@ router.get("/runs", async (c) => {
 // stored — nothing invented. Returns the new node id so the client can add it to a list next.
 const saveSchema = z.object({
   name: z.string().min(1).max(200),
-  object_type: z.string().max(40).default("company"),
+  object_type: z.string().max(40).default("companies"),   // the registry/sheet type — "company" (singular) was an orphan vocabulary nothing reads
   source_url: z.string().max(600).optional(),
   discovery_query: z.string().max(300).optional(),
   email: z.string().max(200).optional(),
