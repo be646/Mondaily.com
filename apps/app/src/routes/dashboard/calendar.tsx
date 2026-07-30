@@ -327,7 +327,7 @@ export function CalendarPage() {
         rightSummary={`${t("cal.meeting_agent")} · ${t("cal.agent_available")} · ${t("cal.agent_monitoring")}`}
         className="mb-2"
         primaryAction={
-          <button onClick={openCreate} className="flex h-7 shrink-0 items-center gap-1.5 rounded-sm border px-3 text-[12px] font-semibold transition-colors" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>
+          <button onClick={openCreate} className="btn-primary h-7 shrink-0 px-3 text-[12px] font-semibold">
             <Plus size={13} /> {t("cal.new_meeting")}
           </button>
         }
@@ -335,7 +335,7 @@ export function CalendarPage() {
 
       <div className="mb-3 flex flex-col gap-2 rounded-sm border px-2 py-2 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
         <div className="flex min-w-0 items-center gap-1.5">
-          <button onClick={goToday} disabled={isAnchorToday && view !== "upcoming"} className="flex h-7 items-center rounded-sm border px-2.5 text-[12px] font-medium transition-colors disabled:opacity-40" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>{t("cal.today")}</button>
+          <button onClick={goToday} disabled={isAnchorToday && view !== "upcoming"} className="btn-secondary h-7 px-2.5 text-[12px] font-medium">{t("cal.today")}</button>
           {view !== "upcoming" && (
             <div className="flex min-w-0 items-center gap-0.5">
               <button onClick={() => shift(-1)} aria-label={t("cal.prev")} className="btn-icon h-7 w-7"><ChevronLeft size={15} /></button>

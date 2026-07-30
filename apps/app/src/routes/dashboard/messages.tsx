@@ -456,7 +456,7 @@ function Thread({ otherId, live, onSent, onArchived, onBack }: { otherId: string
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); aiDraft(); } }}
               placeholder={draft.trim() ? "How should I rewrite it?" : "What do you want to say?"}
               className="flex-1 rounded-sm border bg-transparent px-2.5 py-1.5 text-[12.5px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
-            <button onClick={aiDraft} disabled={!aiPrompt.trim() || aiBusy} className="rounded-sm border px-3 py-1.5 text-[12px] font-semibold disabled:opacity-50" style={{ borderColor: "var(--border-strong)", background: "var(--surface-card-2)", color: "var(--text-primary)" }}>{aiBusy ? <Loader2 size={13} className="animate-spin" /> : "Draft"}</button>
+            <button onClick={aiDraft} disabled={!aiPrompt.trim() || aiBusy} className="btn-primary px-3 py-1.5 text-[12px] font-semibold">{aiBusy ? <Loader2 size={13} className="animate-spin" /> : "Draft"}</button>
             <button onClick={() => { setAiOpen(false); setAiError(""); }} className="btn-icon h-8 w-8"><X size={14} /></button>
           </div>
           {aiError && <p className="mt-1 text-[11px]" style={{ color: "#d1524a" }}>{aiError}</p>}

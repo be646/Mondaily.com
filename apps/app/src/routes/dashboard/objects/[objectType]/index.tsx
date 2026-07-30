@@ -325,10 +325,10 @@ function CreateRecordModal({
                 Create more
               </label>
               <div className="flex items-center gap-2">
-                <button onClick={onClose} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 transition-all hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+                <button onClick={onClose} className="btn-secondary px-3 py-1.5 text-xs">
                   Cancel
                 </button>
-                <button onClick={save} disabled={saving} className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--text-primary)] transition-all hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] disabled:opacity-50">
+                <button onClick={save} disabled={saving} className="btn-primary gap-2 px-3 py-1.5 text-xs font-semibold">
                   {saving ? "Creating…" : "Create record"}
                   <kbd className="rounded border border-stone-500/30 bg-stone-600/40 px-1.5 py-0.5 text-[10px] font-normal text-[#d1524a]/70">⌘↵</kbd>
                 </button>
@@ -380,7 +380,7 @@ function CreateRecordModal({
                 {aiError && <p className="text-xs text-stone-400">{aiError}</p>}
               </div>
               <div className="flex items-center justify-between border-t border-[var(--border-soft)] px-5 py-3.5">
-                <button onClick={onClose} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-3 py-1.5 text-xs text-stone-400 transition-all hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]">
+                <button onClick={onClose} className="btn-secondary px-3 py-1.5 text-xs">
                   Cancel
                 </button>
                 <button
@@ -600,7 +600,7 @@ function AIFillModal({
             </div>
 
             <div className="flex items-center justify-between border-t border-[var(--border-soft)] px-6 py-4">
-              <button onClick={onClose} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2 text-xs text-stone-400 hover:text-[var(--text-primary)] transition-all">
+              <button onClick={onClose} className="btn-secondary px-4 py-2 text-xs">
                 Cancel
               </button>
               <button onClick={generate} disabled={loading || !prompt.trim()}
@@ -715,7 +715,7 @@ function DeleteSheetModal({ objectType, onClose, onDeleted }: {
           </div>
           {error && <p className="mb-3 text-xs text-stone-400">{error}</p>}
           <div className="flex items-center gap-2 justify-end">
-            <button onClick={onClose} className="rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] px-4 py-2 text-xs text-stone-400 hover:text-[var(--text-primary)] transition-all">
+            <button onClick={onClose} className="btn-secondary px-4 py-2 text-xs">
               Cancel
             </button>
             <button onClick={confirm} disabled={deleting}

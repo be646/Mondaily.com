@@ -876,7 +876,7 @@ function DecisionComments({ decision }: { decision: Decision }) {
       )}
       <form onSubmit={(e) => { e.preventDefault(); if (text.trim()) add.mutate(text.trim()); }} className="flex gap-2">
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Add a comment…" className="key-input h-8 flex-1 px-2.5 text-[12px]" />
-        <button type="submit" disabled={add.isPending || !text.trim()} className="flex items-center gap-1 rounded-sm border px-2.5 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+        <button type="submit" disabled={add.isPending || !text.trim()} className="btn-secondary gap-1 px-2.5 text-[11px] font-medium">
           {add.isPending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
         </button>
       </form>
@@ -894,7 +894,7 @@ function DecisionAsk({ decision }: { decision: Decision }) {
       <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold" style={{ color: "var(--text-secondary)" }}><Sparkles size={12} style={{ color: "var(--section-accent)" }} /> Ask about this decision</div>
       <form onSubmit={(e) => { e.preventDefault(); if (q.trim()) ask.mutate(q.trim()); }} className="flex gap-2">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask anything about this decision…" className="key-input h-8 flex-1 px-2.5 text-[12px]" />
-        <button type="submit" disabled={ask.isPending || !q.trim()} className="flex items-center gap-1 rounded-sm border px-2.5 text-[11px] font-medium transition-colors disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+        <button type="submit" disabled={ask.isPending || !q.trim()} className="btn-secondary gap-1 px-2.5 text-[11px] font-medium">
           {ask.isPending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
         </button>
       </form>

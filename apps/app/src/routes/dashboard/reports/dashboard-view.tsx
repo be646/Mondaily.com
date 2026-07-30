@@ -583,7 +583,7 @@ export function DashboardViewPage() {
       {widgets.length === 0 ? (
         <EmptyState icon={BarChart2} title="No widgets yet"
           description='Click "Add widget" — pick a Live Object for instant KPIs, a Saved Report, or build a Custom Chart.'
-          action={<button onClick={() => setAdding(true)} className="rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-2 text-sm text-[var(--section-accent-text)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">Add first widget</button>}
+          action={<button onClick={() => setAdding(true)} className="btn-primary px-3 py-2 text-sm">Add first widget</button>}
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">

@@ -143,7 +143,7 @@ function ResultsToolbar({ sortBy, setSortBy, onlyContact, setOnlyContact, shownC
             <Check size={11} /> Has contact
           </button>
         )}
-        <button onClick={onExport} title="Export these results to CSV" className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+        <button onClick={onExport} title="Export these results to CSV" className="btn-secondary gap-1 px-2 py-1 font-medium">
           <ArrowUp size={11} className="rotate-45" /> CSV
         </button>
       </span>
@@ -352,7 +352,7 @@ export function DiscoveryPage() {
               </button>
             )}
             {view === "chat" && turns.length > 0 && (
-              <button onClick={clearHistory} title="Clear search history" className="inline-flex items-center gap-1 rounded-sm border px-2.5 py-1.5 text-[11.5px] font-medium transition-colors hover:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>
+              <button onClick={clearHistory} title="Clear search history" className="btn-secondary gap-1 px-2.5 py-1.5 text-[11.5px] font-medium">
                 <Trash2 size={12} /> Clear
               </button>
             )}
@@ -381,7 +381,7 @@ export function DiscoveryPage() {
             placeholder="e.g. Independent aesthetic clinics in Poland with 5-30 staff and an active social presence"
             className="w-full resize-none rounded-sm border bg-transparent px-2.5 py-2 text-[13px] outline-none focus:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
           <div className="mt-2 flex items-center gap-2">
-            <button onClick={() => saveIcp.mutate()} disabled={saveIcp.isPending} className="inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-[12px] font-medium text-white disabled:opacity-50" style={{ background: "var(--section-accent)" }}>
+            <button onClick={() => saveIcp.mutate()} disabled={saveIcp.isPending} className="btn-primary gap-1.5 px-3 py-1.5 text-[12px] font-medium">
               {saveIcp.isPending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Save
             </button>
             <button onClick={() => setIcpOpen(false)} className="text-[12px]" style={{ color: "var(--text-muted)" }}>Cancel</button>

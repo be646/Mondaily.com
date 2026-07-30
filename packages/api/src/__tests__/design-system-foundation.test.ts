@@ -1904,7 +1904,9 @@ describe("Calendar compact headline + smart control rail (Pass CAL-R)", () => {
     expect(C).toMatch(/<SegmentedControl/);
     expect(C).not.toMatch(/view === tab\.k \? \{ background: "var\(--surface-card\)"/);
     // New meeting is the header primary action
-    expect(C).toMatch(/onClick=\{openCreate\} className="flex h-7 shrink-0 items-center gap-1\.5 rounded-sm border px-3 text-\[12px\] font-semibold/);
+    // New meeting is the rail's primary action — now the CANONICAL btn-primary (Pass BTN-1)
+    // instead of the hand-rolled recipe this guard used to pin.
+    expect(C).toMatch(/onClick=\{openCreate\} className="btn-primary h-7 shrink-0 px-3 text-\[12px\] font-semibold"/);
     // the old bloated/separate toolbar variants are gone
     expect(C).not.toMatch(/secondaryActions=\{/);
     expect(C).not.toMatch(/mt-5 flex flex-wrap items-center justify-between gap-2 border-b pb-3/);
@@ -2234,5 +2236,31 @@ describe("shared page-state safe read-only typography (Pass 10B)", () => {
     // EmptyState action rendering intact
     expect(PS).toMatch(/\{s\.label\}/);
     expect(PS).toMatch(/\{s\.hint\}/);
+  });
+});
+
+describe("button chrome ratchet (Pass BTN-1, 2026-07-30)", () => {
+  // The census that quantified "every page looks like a different app": 79 distinct button recipes,
+  // 56 hand-rolling their own borders/colors. The canonical vocabulary (.btn-primary/-secondary/
+  // -ghost/-icon/-solid/-ai) already existed — the debt was adoption. This ratchet lets the
+  // hand-rolled count only FALL: a new page hand-rolling a chrome button pushes it past the
+  // ceiling and fails here, pointing at the btn-* classes instead.
+  it("hand-rolled chrome buttons never exceed the swept baseline; canonical adoption never regresses", () => {
+    const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
+    const root = join(__dirname, "../../../../apps/app/src/routes/dashboard");
+    const files: string[] = [];
+    const walk = (d: string) => { for (const n of readdirSync(d)) { const p = join(d, n); if (statSync(p).isDirectory()) walk(p); else if (n.endsWith(".tsx")) files.push(p); } };
+    walk(root);
+    let handRolled = 0, canonical = 0;
+    for (const f of files) {
+      const s = readFileSync(f, "utf8");
+      for (const m of s.matchAll(/<button[^>]*?className=\{?["`]([^"`]+)/g)) {
+        const cls = m[1]!;
+        if (/\bbtn-\w+/.test(cls)) canonical++;
+        else if (cls.includes("border") && /rounded/.test(cls)) handRolled++;
+      }
+    }
+    expect(handRolled, `hand-rolled chrome buttons grew to ${handRolled} — use the .btn-* classes`).toBeLessThanOrEqual(52);
+    expect(canonical, `canonical .btn-* adoption regressed to ${canonical}`).toBeGreaterThanOrEqual(35);
   });
 });

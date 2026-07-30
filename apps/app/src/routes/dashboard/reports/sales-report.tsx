@@ -469,11 +469,11 @@ ${result.actions && result.actions.length > 0 ? `<div class="section" style="mar
             </div>
           ) : result ? (
             <div className="flex items-center gap-1.5 shrink-0">
-              <button onClick={() => setModalOpen(true)} title="Full analysis" className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">Expand</button>
-              <button onClick={runForecast} title="Regenerate" className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
+              <button onClick={() => setModalOpen(true)} title="Full analysis" className="btn-secondary px-2.5 py-1.5 text-xs">Expand</button>
+              <button onClick={runForecast} title="Regenerate" className="btn-secondary px-2.5 py-1.5 text-xs">↺</button>
             </div>
           ) : (
-            <button onClick={runForecast} className="shrink-0 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
+            <button onClick={runForecast} className="btn-primary shrink-0 px-3.5 py-1.5 text-xs font-semibold">
               Generate
             </button>
           )}
@@ -662,11 +662,11 @@ h1{font-size:22px;font-weight:700;margin-bottom:4px}.meta{font-size:12px;color:#
             </div>
           ) : insights ? (
             <div className="flex items-center gap-1.5 shrink-0">
-              {insights.length > 2 && <button onClick={() => setModalOpen(true)} className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">Expand</button>}
-              <button onClick={run} title="Regenerate" className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">↺</button>
+              {insights.length > 2 && <button onClick={() => setModalOpen(true)} className="btn-secondary px-2.5 py-1.5 text-xs">Expand</button>}
+              <button onClick={run} title="Regenerate" className="btn-secondary px-2.5 py-1.5 text-xs">↺</button>
             </div>
           ) : (
-            <button onClick={run} className="shrink-0 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3.5 py-1.5 text-xs font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
+            <button onClick={run} className="btn-primary shrink-0 px-3.5 py-1.5 text-xs font-semibold">
               Analyse
             </button>
           )}
@@ -888,7 +888,7 @@ function DigestPanel({ objectType, objects }: { objectType: string; objects: Arr
                   placeholder="email@example.com"
                   className="flex-1 h-8 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] px-2 text-xs text-[var(--text-faint)] placeholder-[var(--text-secondary)] focus:outline-none focus:border-stone-500/40"
                 />
-                <button onClick={addEmail} className="h-8 w-8 flex items-center justify-center rounded-sm border border-[var(--border-soft)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+                <button onClick={addEmail} className="btn-icon h-8 w-8">
                   <Plus size={12}/>
                 </button>
               </div>
@@ -1591,9 +1591,9 @@ export function SalesReportPage() {
                     className="key-input w-full mb-3"
                   />
                   <div className="flex gap-2">
-                    <button onClick={saveGoal} className="flex-1 rounded-md border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] py-2 text-xs font-medium text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)]">Set goal</button>
-                    <button onClick={() => setEditingGoal(false)} className="rounded-md border border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-faint)] hover:text-[var(--text-primary)]">Cancel</button>
-                    {goal && <button onClick={() => { setGoal(null); setEditingGoal(false); }} className="rounded-md border border-[var(--border-soft)] px-3 py-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-faint)]">Clear</button>}
+                    <button onClick={saveGoal} className="btn-primary flex-1 py-2 text-xs font-medium">Set goal</button>
+                    <button onClick={() => setEditingGoal(false)} className="btn-secondary px-3 py-2 text-xs">Cancel</button>
+                    {goal && <button onClick={() => { setGoal(null); setEditingGoal(false); }} className="btn-secondary px-3 py-2 text-xs">Clear</button>}
                   </div>
                 </div>
               </div>
