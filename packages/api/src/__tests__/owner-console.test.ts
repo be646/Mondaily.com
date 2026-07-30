@@ -52,3 +52,13 @@ describe("the console borrows the money model, gated, bounded", () => {
     expect(owner).toMatch(/autonomyUsageLastHour/);
   });
 });
+
+describe("the console page reads fields that exist", () => {
+  it("reads the readiness payload's `group` key — singular, as the API returns it", () => {
+    const page = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/owner-console.tsx"), "utf8");
+    const api = readFileSync(join(__dirname, "../routes/admin-readiness.ts"), "utf8");
+    expect(api).toMatch(/^    group,$/m);                       // what the API actually sends
+    expect(page).toMatch(/readiness\.data\?\.group \?\? \{\}/); // what the page reads
+    expect(page).not.toMatch(/readiness\.data\?\.groups/);      // the typo that hid the System section
+  });
+});

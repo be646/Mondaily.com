@@ -54,7 +54,7 @@ export function OwnerConsolePage() {
   const { data, isLoading, isError, refetch } = useQuery<Console>({
     queryKey: ["owner-console"], queryFn: () => apiClient.get("/owner/console"), staleTime: 60_000,
   });
-  const readiness = useQuery<{ groups?: Record<string, string> }>({
+  const readiness = useQuery<{ group?: Record<string, string> }>({
     queryKey: ["admin-readiness"], queryFn: () => apiClient.get("/admin/readiness"), staleTime: 300_000, retry: false,
   });
 
@@ -70,7 +70,10 @@ export function OwnerConsolePage() {
     { label: "Forecast", value: cur(m.forecast.value), delta: undefined as number | null | undefined, sub: `weighted, over ${m.forecast.open_count} open (${cur(m.forecast.open_value)})` },
   ];
   const overdueTotal = m.overdue.total > 0;
-  const groups = readiness.data?.groups ?? {};
+  // The readiness payload key is `group`, SINGULAR — verified against the live response, because
+  // typing the wrong key here compiles fine and just silently hides the whole System section
+  // (the same failure shape as the relation picker reading obj.label that never existed).
+  const groups = readiness.data?.group ?? {};
   const READY_TONE: Record<string, string> = { ready: "#2f9e6b", partial: "#c6892e", missing: "#d1524a" };
 
   return (
