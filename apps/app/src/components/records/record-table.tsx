@@ -8,11 +8,13 @@ import {
   Rows3, BookmarkCheck, LayoutGrid, Percent, Link2,
   Briefcase, DollarSign, Heart, BookOpen, ShoppingCart, Cpu, Shield,
   Store, Factory, Home, Truck, Tv, Scale, Zap, Megaphone, Receipt,
+  Sigma,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
+import { evaluateFormula } from "@mondaily/shared/formula";
 import { formatMoney, convertAmount, useCurrency } from "../../hooks/useCurrency";
 import { countryFacts, fmtPopulation } from "../../lib/countries";
 import { parseNLPCommand } from "../../lib/ai-enrichment";
@@ -942,6 +944,7 @@ const COLUMN_TYPE_PRESETS = [
   { type: "checkbox",  label: "Checkbox",   hint: "Yes/no — e.g. paid, done (totals count checked)", icon: ToggleLeft, color: "text-[#2f9e6b]" },
   { type: "date",      label: "Date",       hint: "Date or deadline",                          icon: Calendar,     color: "text-[#d1524a]"    },
   { type: "relation",  label: "Relation",   hint: "Link to a record in another object",        icon: Link2,        color: "text-[#717784]"    },
+  { type: "formula",   label: "Formula",    hint: "Computed from other fields — e.g. {price} * {qty}", icon: Sigma, color: "text-[#8b7ec8]" },
   { type: "finance_billed",      label: "Finance · Billed",      hint: "Total invoiced to this client (computed, base currency)", icon: Receipt, color: "text-[#2f9e6b]" },
   { type: "finance_outstanding", label: "Finance · Outstanding", hint: "Unpaid invoices for this client (computed, base currency)", icon: Receipt, color: "text-[#c6892e]" },
 ] as const;
@@ -965,6 +968,7 @@ const PRESET_DEFAULTS: Record<ColPresetType, string> = {
   checkbox:  "Paid",
   date:      "",
   relation:  "Linked Record",
+  formula:             "Computed",
   finance_billed:      "Billed",
   finance_outstanding: "Outstanding",
 };
@@ -983,6 +987,8 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
   const [type, setType] = useState<ColPresetType>("text");
   const [hovered, setHovered] = useState<ColPresetType | null>(null);
   const [relatedTarget, setRelatedTarget] = useState("");
+  const [formulaSrc, setFormulaSrc] = useState("");
+  const [formulaResult, setFormulaResult] = useState<"auto" | "currency" | "percent">("auto");
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
 
@@ -1020,7 +1026,11 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
 
   function submit() {
     const slug = (name.trim() || PRESET_DEFAULTS[type] || type).toLowerCase().replace(/\s+/g, "_");
-    const meta = type === "relation" && relatedTarget ? { relatedObjectType: relatedTarget } : undefined;
+    const meta: Record<string, string> | undefined =
+      type === "relation" && relatedTarget ? { relatedObjectType: relatedTarget }
+      : type === "formula" ? { formula: formulaSrc, result: formulaResult }
+      : undefined;
+    if (type === "formula" && !formulaSrc.trim()) return; // a formula column needs a formula
     onAdd(slug, type, meta);
     onClose();
   }
@@ -1059,6 +1069,26 @@ function AddColumnDropdown({ onAdd, onClose, triggerRef, existingCols, existingC
       {activePreset && (
         <div className="px-3 py-2 border-t border-[var(--border-soft)] text-[10px] text-stone-600">
           {activePreset.hint}
+        </div>
+      )}
+      {type === "formula" && (
+        <div className="px-3 py-2 border-t border-[var(--border-soft)]">
+          <p className="mb-1.5 text-body text-[var(--text-secondary)]">Formula</p>
+          <textarea value={formulaSrc} onChange={e => setFormulaSrc(e.target.value)} rows={2}
+            placeholder={"{price} * {qty}  ·  IF({paid}, 0, {total})  ·  DAYS({due date}, TODAY())"}
+            className="w-full resize-none rounded-md border border-[var(--border-soft)] bg-[var(--surface-hover)] px-2.5 py-1.5 font-mono text-[11px] text-[var(--text-primary)] outline-none focus:border-stone-500/30"/>
+          <div className="mt-1.5 flex items-center gap-1">
+            {(["auto", "currency", "percent"] as const).map(r => (
+              <button key={r} onClick={() => setFormulaResult(r)}
+                className="rounded-md px-2 py-0.5 text-[10.5px] font-medium capitalize transition-colors"
+                style={formulaResult === r
+                  ? { background: "color-mix(in srgb, var(--text-primary) 5%, transparent)", color: "var(--text-primary)" }
+                  : { color: "var(--text-muted)" }}>
+                {r}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-[10px] text-[var(--text-secondary)]">Fields as {"{name}"} · IF, ROUND, ABS, MIN, MAX, SUM, DAYS, TODAY, CONCAT, LEN · read-only, computed per row</p>
         </div>
       )}
       {type === "relation" && (
@@ -2297,6 +2327,19 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
         />
       );
     }
+    // Formula column — computed per row by the shared safe evaluator, read-only, honest #ERR.
+    if (customDef?.type === "formula") {
+      const res = evaluateFormula(customDef.meta?.formula ?? "", record.data as Record<string, unknown>);
+      if (!res.ok) return <div className="px-2 py-1.5 text-right text-[11px]" style={{ color: "var(--status-error)" }} title={res.error}>#ERR</div>;
+      const v = res.value;
+      const rk = customDef.meta?.result;
+      const text = v == null ? "—"
+        : typeof v === "boolean" ? (v ? "✓" : "✗")
+        : typeof v === "number" ? (rk === "currency" ? formatMoney(v, wsDisplay) : rk === "percent" ? `${v}%` : String(Math.round(v * 100) / 100))
+        : String(v);
+      return <div className="px-2 py-1.5 text-right text-[12px] tabular-nums" style={{ color: "var(--text-primary)" }} title={customDef.meta?.formula}>{text}</div>;
+    }
+
     // Record ID column — show the short ID, locked
     if (customDef?.type === "record_id") {
       return <RecordIdCell id={record.id}/>;

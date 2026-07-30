@@ -14,7 +14,8 @@
     "./agents": "./src/agents.ts",
     "./dates": "./src/dates.ts",
     "./meeting-types": "./src/meeting-types.ts",
-    "./captions": "./src/captions.ts"
+    "./captions": "./src/captions.ts",
+    "./formula": "./src/formula.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

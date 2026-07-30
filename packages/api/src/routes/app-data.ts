@@ -723,7 +723,7 @@ function pluralize(word: string): string {
 // back to name-inference — country cells rendering through the generic (number-formatting) path.
 // Same silent-degradation class as the AI-builder currency/percentage fix (5dd41e1d).
 const ATTR_TYPES = ["text", "number", "date", "datetime", "select", "multi_select", "relation", "currency", "percentage", "url", "email", "phone", "checkbox", "long_text",
-  "status", "stage", "assignee", "owner", "tag", "category", "country", "record_id", "finance_billed", "finance_outstanding"] as const;
+  "status", "stage", "assignee", "owner", "tag", "category", "country", "record_id", "finance_billed", "finance_outstanding", "formula"] as const;
 router.post("/settings/objects", zValidator("json", z.object({
   name: z.string().min(1),                 // singular (kept for back-compat with older callers)
   singular: z.string().min(1).optional(),
