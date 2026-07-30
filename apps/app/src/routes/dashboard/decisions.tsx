@@ -282,7 +282,9 @@ export function DecisionsPage() {
               risk-first sort, and the advisory AI-tools menu on the right. Three zones before the
               work area (header → controls → work), not a stack of bars. Every option stays
               reachable; per-row Approve/Reject/Snooze stay visible below. */}
-          <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b pb-2" style={{ borderColor: "var(--border-soft)" }}>
+          {/* ONE row on desktop — tabs left, controls right, never stacked (the wrapped two-line
+              band read as "one up and one down"). Wrap is allowed only below md for phones. */}
+          <div className="mb-1 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b pb-2 md:flex-nowrap" style={{ borderColor: "var(--border-soft)" }}>
             <div className="flex flex-wrap gap-1">
               {LANES.map(l => {
                 const on = lane === l.key; const n = laneCount(l.key);
@@ -296,24 +298,22 @@ export function DecisionsPage() {
                 );
               })}
             </div>
-            <div className="ml-auto flex flex-wrap items-center gap-1.5">
-              {/* Honest queue signals — the same real numbers the old header row carried. */}
-              <span className="mr-1 hidden items-center gap-2.5 font-mono text-[10px] uppercase tracking-wider lg:flex"
-                title="j/k navigate · a approve · r reject · s snooze"
+            <div className="ml-auto flex shrink-0 flex-wrap items-center gap-1.5 md:flex-nowrap">
+              {/* Honest queue signals, compacted to fit the single row: the live-sync dot carries
+                  its label in the tooltip; counts stay visible. Same real numbers as before. */}
+              <span className="mr-1 hidden items-center gap-2.5 whitespace-nowrap font-mono text-[10px] uppercase tracking-wider lg:flex"
+                title="Live sync · j/k navigate · a approve · r reject · s snooze"
                 style={{ color: "var(--text-faint)" }}>
                 {queueStatus.map((s, i) => (
-                  <span key={i} className="flex items-center gap-1" style={s.tone ? { color: s.tone } : undefined}>
-                    {(s.kind === "monitoring" || s.kind === "complete") && (
-                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.kind === "complete" ? "var(--status-ok)" : "var(--section-accent)" }} />
-                    )}
-                    {s.label}
-                  </span>
+                  (s.kind === "monitoring" || s.kind === "complete")
+                    ? <span key={i} className="h-1.5 w-1.5 rounded-full" style={{ background: s.kind === "complete" ? "var(--status-ok)" : "var(--section-accent)" }} />
+                    : <span key={i} className="flex items-center gap-1" style={s.tone ? { color: s.tone } : undefined}>{s.label}</span>
                 ))}
               </span>
               <label className="relative block">
                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: "var(--text-faint)" }} />
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search queue…" aria-label="Search the decision queue"
-                  className="key-input h-7 w-36 pr-2 text-[11.5px] focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…" aria-label="Search the decision queue"
+                  className="key-input h-7 w-28 pr-2 text-[11.5px] transition-[width] focus:w-40 focus-visible:ring-2 focus-visible:ring-[var(--section-accent)]"
                   style={{ paddingLeft: "1.625rem" }} />
               </label>
               <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={[agentFilter, typeFilter, riskFilter, assigneeFilter].filter(Boolean).length} />
