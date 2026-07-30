@@ -763,6 +763,19 @@ router.post("/settings/objects/:id/attributes", zValidator("json", z.object({
   const { data, error } = await supabase.from("object_definitions").update({ attributes }).eq("workspace_id", c.get("workspaceId")).eq("id", c.req.param("id")).select().single();
   return error ? c.json({ error: error.message }, 400) : c.json(data, 201);
 });
+// Attributes could be ADDED but never removed — the schema only ever grew, and a mistyped column
+// was permanent. Removes the definition only; record data under that key is untouched (deleting
+// values is a data operation, not a schema one, and belongs to the cleaning tools).
+router.delete("/settings/objects/:id/attributes/:attrId", async (c) => {
+  const ws = c.get("workspaceId");
+  const { data: object } = await supabase.from("object_definitions").select("attributes").eq("workspace_id", ws).eq("id", c.req.param("id")).single();
+  if (!object) return c.json({ error: "Object not found" }, 404);
+  const before = Array.isArray(object.attributes) ? object.attributes : [];
+  const attributes = before.filter((a: { id?: string }) => a?.id !== c.req.param("attrId"));
+  if (attributes.length === before.length) return c.json({ error: "Attribute not found" }, 404);
+  const { error } = await supabase.from("object_definitions").update({ attributes }).eq("workspace_id", ws).eq("id", c.req.param("id"));
+  return error ? c.json({ error: error.message }, 400) : c.json({ ok: true });
+});
 router.delete("/settings/objects/:id", async (c) => {
   const id = c.req.param("id");
   const wid = c.get("workspaceId");

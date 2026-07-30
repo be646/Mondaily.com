@@ -51,3 +51,14 @@ describe("column types persist to the server, not one browser", () => {
     expect(table).toMatch(/return serverAttrType\.get\(col\);/);
   });
 });
+
+describe("attributes can be removed, not only added", () => {
+  it("DELETE /settings/objects/:id/attributes/:attrId exists and touches only the schema", () => {
+    // The schema previously only ever GREW — a mistyped column was permanent.
+    expect(api).toMatch(/router\.delete\("\/settings\/objects\/:id\/attributes\/:attrId"/);
+    // record data under the key is untouched: removing values is data cleaning, not schema editing
+    const handler = api.slice(api.indexOf('router.delete("/settings/objects/:id/attributes/:attrId"'), api.indexOf('router.delete("/settings/objects/:id",'));
+    expect(handler).not.toMatch(/from\("nodes"\)/);
+    expect(handler).toMatch(/404/);   // removing a non-existent attribute says so
+  });
+});
