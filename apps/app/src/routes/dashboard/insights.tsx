@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { TrendingUp, Clock, DollarSign, GitBranch, Trophy, Sparkles, Users, LayoutGrid } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
+import { KPITile } from "../../components/ui/kpi";
 import { PeriodSelector } from "../../components/ui/period-selector";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange } from "../../lib/period";
 import { useCurrency, formatMoney } from "../../hooks/useCurrency";
@@ -38,15 +39,9 @@ function KpiCard({ icon: Icon, tone, label, value, sub, delta, goodUp, onClick }
     <button onClick={onClick} disabled={!onClick}
       className={`block rounded-sm border px-4 py-3 text-left transition-colors ${onClick ? "hover:border-[var(--border-strong)]" : "cursor-default"}`}
       style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-      <div className="flex items-center gap-1.5 mb-2">
-        <Icon size={11} style={{ color: tone }} />
-        <span className="text-[11px] text-[var(--text-muted)]">{label}</span>
-      </div>
-      <div className="flex items-baseline gap-2">
-        <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{value}</div>
-        <Delta pct={delta ?? null} goodUp={goodUp} />
-      </div>
-      {sub && <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{sub}</div>}
+      {/* Shared KPITile body — same recipe as the finance strips; the card adds click + delta. */}
+      <KPITile icon={Icon as never} iconColor={tone} label={label} value={value} sub={sub}
+        delta={<Delta pct={delta ?? null} goodUp={goodUp} />} />
     </button>
   );
 }

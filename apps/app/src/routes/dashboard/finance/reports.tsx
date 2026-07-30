@@ -5,6 +5,7 @@ import { useAskContextStore } from "../../../lib/ask-context-store";
 import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
 import { FieldSelect } from "../../../components/ui/controls";
 import { PeriodSelector } from "../../../components/ui/period-selector";
+import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange, type CustomRange } from "../../../lib/period";
 import {
@@ -303,60 +304,23 @@ export function FinanceReportsPage() {
           )}
 
           {/* Summary cards */}
-          <div className="telemetry-strip">
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <TrendingUp size={11} className="text-[#2f9e6b]"/>
-                <span className="text-[11px] text-[var(--text-muted)]">Revenue</span>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(totalRevenue, currency)}</div>
-                <Delta pct={revDelta}/>
-              </div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">collected · {periodScope}</div>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <Clock size={11} className="text-[#c6892e]"/>
-                <span className="text-[11px] text-[var(--text-muted)]">Outstanding</span>
-              </div>
-              <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(outstanding, currency)}</div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">unpaid · as of today</div>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <MinusCircle size={11} className="text-[var(--text-faint)]"/>
-                <span className="text-[11px] text-[var(--text-muted)]">Credits Issued</span>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(creditsIssued, currency)}</div>
-                <Delta pct={creditsDelta} goodUp={false}/>
-              </div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">executed · {periodScope}</div>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <MinusCircle size={11} className="text-[#c6892e]"/>
-                <span className="text-[11px] text-[var(--text-muted)]">Expenses</span>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <div className="text-[20px] font-semibold tracking-tight text-[var(--text-primary)]">{fmt(totalExpenses, currency)}</div>
-                <Delta pct={expDelta} goodUp={false}/>
-              </div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">approved · {periodScope}</div>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <DollarSign size={11} className="text-[var(--text-faint)]"/>
-                <span className="text-[11px] text-[var(--text-muted)]">Net</span>
-              </div>
-              <div className="flex items-baseline gap-2">
-                <div className={`text-[20px] font-semibold tracking-tight ${netRevenue >= 0 ? "text-[var(--text-primary)]" : "text-[#c6892e]"}`}>{fmt(netRevenue, currency)}</div>
-                <Delta pct={netDelta}/>
-              </div>
-              <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">after credits &amp; expenses</div>
-            </div>
-          </div>
+          <KPIGrid>
+            <KPITile icon={TrendingUp} iconColor="#2f9e6b" label="Revenue"
+              value={fmt(totalRevenue, currency)} delta={<Delta pct={revDelta}/>}
+              sub={<>collected · {periodScope}</>} />
+            <KPITile icon={Clock} iconColor="#c6892e" label="Outstanding"
+              value={fmt(outstanding, currency)} sub="unpaid · as of today" />
+            <KPITile icon={MinusCircle} iconColor="var(--text-faint)" label="Credits Issued"
+              value={fmt(creditsIssued, currency)} delta={<Delta pct={creditsDelta} goodUp={false}/>}
+              sub={<>executed · {periodScope}</>} />
+            <KPITile icon={MinusCircle} iconColor="#c6892e" label="Expenses"
+              value={fmt(totalExpenses, currency)} delta={<Delta pct={expDelta} goodUp={false}/>}
+              sub={<>approved · {periodScope}</>} />
+            <KPITile icon={DollarSign} iconColor="var(--text-faint)" label="Net"
+              valueColor={netRevenue >= 0 ? undefined : "#c6892e"}
+              value={fmt(netRevenue, currency)} delta={<Delta pct={netDelta}/>}
+              sub={<>after credits &amp; expenses</>} />
+          </KPIGrid>
 
           {/* Revenue by month chart */}
           <div className="rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)] p-4">

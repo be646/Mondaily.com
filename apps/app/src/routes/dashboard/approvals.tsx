@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../lib/api-client";
 import { FinanceHeader } from "../../components/finance/finance-toolbar";
 import { useCurrency, formatMoney } from "../../hooks/useCurrency";
+import { KPIGrid, KPITile } from "../../components/ui/kpi";
 import {
   ShieldCheck, Clock, CheckCircle2, XCircle,
   ReceiptText, ChevronRight, AlertTriangle, UserCircle2, ShieldAlert } from "lucide-react";
@@ -278,23 +279,17 @@ export function ApprovalsPage() {
         <FinanceHeader icon={ShieldCheck} callsign="APPROVALS" title="Approval Dashboard" subtitle="Review and authorise credit notes across the workspace" />
 
         {/* Summary row */}
-        <div className="telemetry-strip mb-4">
-          <div>
-            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-status-warn"/><span className="text-[11px] text-[var(--text-muted)]">Needs review</span></div>
-            <div className="text-[17px] font-semibold text-status-warn">{approx(pendingSum.missing)}{formatMoney(totalPending, display)}</div>
-            <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{pending.length} note{pending.length !== 1 ? "s" : ""}</div>
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-neutral"/><span className="text-[11px] text-[var(--text-muted)]">Verified, not executed</span></div>
-            <div className="text-[17px] font-semibold text-status-neutral">{approx(verifiedSum.missing)}{formatMoney(totalVerified, display)}</div>
-            <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{verified.length} note{verified.length !== 1 ? "s" : ""}</div>
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-ok"/><span className="text-[11px] text-[var(--text-muted)]">Executed (all time)</span></div>
-            <div className="text-[17px] font-semibold text-status-ok">{approx(executedSum.missing)}{formatMoney(totalExecuted, display)}</div>
-            <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{executed.length} note{executed.length !== 1 ? "s" : ""}</div>
-          </div>
-        </div>
+        <KPIGrid className="mb-4">
+          <KPITile icon={Clock} iconColor="var(--status-warn)" valueColor="var(--status-warn)" label="Needs review"
+            value={<>{approx(pendingSum.missing)}{formatMoney(totalPending, display)}</>}
+            sub={<>{pending.length} note{pending.length !== 1 ? "s" : ""}</>} />
+          <KPITile icon={CheckCircle2} iconColor="var(--status-neutral)" valueColor="var(--status-neutral)" label="Verified, not executed"
+            value={<>{approx(verifiedSum.missing)}{formatMoney(totalVerified, display)}</>}
+            sub={<>{verified.length} note{verified.length !== 1 ? "s" : ""}</>} />
+          <KPITile icon={CheckCircle2} iconColor="var(--status-ok)" valueColor="var(--status-ok)" label="Executed (all time)"
+            value={<>{approx(executedSum.missing)}{formatMoney(totalExecuted, display)}</>}
+            sub={<>{executed.length} note{executed.length !== 1 ? "s" : ""}</>} />
+        </KPIGrid>
 
         {/* Tab strip */}
         <div className="-mb-4 flex items-center gap-1 border-b border-[var(--border-soft)]">
