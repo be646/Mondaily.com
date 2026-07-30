@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, ShieldCheck, Clock, Receipt, CheckSquare, TrendingUp, GitBranch, Trophy, ArrowRight, RefreshCw } from "lucide-react";
+import { Sparkles, ShieldCheck, Receipt, CheckSquare, Trophy, ArrowRight, RefreshCw } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { PageSkeleton, ErrorState } from "../../components/ui/page-state";
@@ -10,8 +10,29 @@ interface Brief {
   base: string;
   needs_you: { pending: number; high_risk: number; overdue_tasks: number; overdue_invoices: { count: number; total: number } };
   handled: { auto_approved_today: number };
+  money?: {
+    closed_won: { value: number; count: number; delta: number | null };
+    cash: { collected: number; invoiced: number; delta: number | null };
+    pipeline_created: { value: number; count: number; delta: number | null };
+    forecast: { value: number; open_count: number; open_value: number };
+    closers: { owner: string; count: number; value: number }[];
+    overdue_aging: { bucket: string; count: number; total: number }[];
+  };
   pulse: { revenue_month: number; outstanding: number; open_pipeline: number; new_deals_week: number };
   top_decisions: { id: string; title: string; risk: string; agent: string }[];
+}
+
+/** Month-over-month delta pill — same-point comparison, so mid-month never reads as a collapse. */
+function DeltaPill({ delta }: { delta: number | null | undefined }) {
+  if (delta === undefined) return null;   // metric has no comparison by design (forecast)
+  if (delta === null) return <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>first month</span>;
+  const up = delta >= 0;
+  return (
+    <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums"
+      style={{ color: up ? "#2f9e6b" : "#d1524a", background: up ? "rgba(47,158,107,.1)" : "rgba(209,82,74,.1)" }}>
+      {up ? "▲" : "▼"} {Math.abs(delta)}%
+    </span>
+  );
 }
 
 const RISK_TONE: Record<string, string> = { high: "#d1524a", medium: "#c6892e", low: "#717784" };
@@ -40,11 +61,14 @@ export function BriefingPage() {
     ny.overdue_tasks > 0 ? { icon: CheckSquare, tone: "#c6892e", label: `${ny.overdue_tasks} overdue task${ny.overdue_tasks === 1 ? "" : "s"}`, sub: "past their due date", to: "/tasks" } : null,
   ].filter(Boolean) as { icon: React.ElementType; tone: string; label: string; sub: string; to: string }[];
 
-  const pulse = [
-    { icon: TrendingUp, tone: "#2f9e6b", label: "Revenue", value: cur(data.pulse.revenue_month), sub: "collected this month" },
-    { icon: Clock, tone: "#c6892e", label: "Outstanding", value: cur(data.pulse.outstanding), sub: "unpaid, as of today" },
-    { icon: GitBranch, tone: "#717784", label: "Open pipeline", value: cur(data.pulse.open_pipeline), sub: `${data.pulse.new_deals_week} new this week` },
-  ];
+  // The four numbers the page exists for — month-to-date, each vs the same point last month.
+  const m = data.money;
+  const lead: { label: string; value: string; delta: number | null | undefined; sub: string }[] = m ? [
+    { label: "Closed won", value: cur(m.closed_won.value), delta: m.closed_won.delta, sub: `${m.closed_won.count} deal${m.closed_won.count === 1 ? "" : "s"} this month` },
+    { label: "Cash collected", value: cur(m.cash.collected), delta: m.cash.delta, sub: `${cur(m.cash.invoiced)} invoiced · ${cur(data.pulse.outstanding)} outstanding` },
+    { label: "Pipeline created", value: cur(m.pipeline_created.value), delta: m.pipeline_created.delta, sub: `${m.pipeline_created.count} new deal${m.pipeline_created.count === 1 ? "" : "s"}` },
+    { label: "Forecast", value: cur(m.forecast.value), delta: undefined as number | null | undefined, sub: `weighted, over ${m.forecast.open_count} open (${cur(m.forecast.open_value)})` },
+  ] : [];
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -56,6 +80,39 @@ export function BriefingPage() {
         status={[{ label: "real data only", kind: "complete" }]}
         primaryAction={<button onClick={() => refetch()} disabled={isFetching} className="inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[11.5px] transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-60" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}><RefreshCw size={11} className={isFetching ? "animate-spin" : ""} /> {isFetching ? "Refreshing…" : "Refresh"}</button>}
       />
+
+      {/* THE MONEY ROW — the four numbers this page exists for. Big numerals, same-point
+          month-over-month deltas, everything else on the page ranks below this. */}
+      {lead.length > 0 && (
+        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {lead.map(t => (
+            <div key={t.label} className="rounded-sm border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] text-[var(--text-muted)]">{t.label}</span>
+                <DeltaPill delta={t.delta} />
+              </div>
+              <div className="mt-1 text-[24px] font-semibold tracking-tight tabular-nums text-[var(--text-primary)]">{t.value}</div>
+              <div className="mt-0.5 truncate text-[10.5px] text-[var(--text-faint)]">{t.sub}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Who closed — the table an owner actually reads. Only renders when someone did. */}
+      {(m?.closers.length ?? 0) > 0 && (
+        <div className="mb-6 overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+          <div className="flex items-center gap-2 border-b px-4 py-2" style={{ borderColor: "var(--border-soft)" }}>
+            <Trophy size={12} style={{ color: "#c6892e" }} />
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Who closed this month</span>
+          </div>
+          {m!.closers.map(cl => (
+            <div key={cl.owner} className="flex items-center justify-between border-b px-4 py-2 text-[12.5px] last:border-0" style={{ borderColor: "var(--border-soft)" }}>
+              <span style={{ color: "var(--text-primary)" }}>{cl.owner}</span>
+              <span className="tabular-nums" style={{ color: "var(--text-muted)" }}>{cl.count} deal{cl.count === 1 ? "" : "s"} · <strong style={{ color: "var(--text-primary)" }}>{cur(cl.value)}</strong></span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Chief of Staff — the meta-agent's top-3 priorities, reasoned across every agent's queue. */}
       {(cos.data?.priorities?.length ?? 0) > 0 && (
@@ -123,17 +180,8 @@ export function BriefingPage() {
         </>
       )}
 
-      {/* Pulse */}
-      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">Workspace pulse</p>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {pulse.map(p => (
-          <div key={p.label} className="rounded-sm border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-            <div className="mb-1.5 flex items-center gap-1.5"><p.icon size={12} style={{ color: p.tone }} /><span className="text-[11px] text-[var(--text-muted)]">{p.label}</span></div>
-            <div className="text-[18px] font-semibold tracking-tight text-[var(--text-primary)]">{p.value}</div>
-            <div className="mt-0.5 text-[10px] text-[var(--text-faint)]">{p.sub}</div>
-          </div>
-        ))}
-      </div>
+      {/* The old "Workspace pulse" tiles are gone — the money row at the top supersedes them
+          (revenue → Cash collected, outstanding → its sub-line, open pipeline → Forecast). */}
     </div>
   );
 }

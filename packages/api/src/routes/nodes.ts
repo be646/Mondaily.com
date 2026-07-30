@@ -127,6 +127,27 @@ router.patch("/:id", requireAuth, denyViewerWrites, zValidator("json", z.object(
   const nodeId = c.req.param("id");
   // Capture the previous stage BEFORE updating so we can detect a deal stage move.
   const { data: prev } = await supabase.from("nodes").select("object_type, data").eq("id", nodeId).eq("workspace_id", workspaceId).single();
+
+  // Stamp `won_at` the moment a deal moves INTO a won stage. Measured in production: zero of 44
+  // deals carry any close date, so "closed this month" could only ever approximate via updated_at —
+  // which moves on every edit. This makes the metric exact for every future close while the money
+  // model (lib/money) falls back to updated_at for legacy rows and labels the difference.
+  // Only on the transition, so re-saving an already-won deal never refreshes its close date.
+  if (updates.data && String(prev?.object_type ?? "").toLowerCase().includes("deal")) {
+    const prevData = (prev?.data as Record<string, unknown>) ?? {};
+    const nextData = updates.data as Record<string, unknown>;
+    const before = dealStageOf(prevData);
+    const after = dealStageOf({ ...prevData, ...nextData });
+    if (/won/i.test(after) && !/won/i.test(before) && !nextData.won_at) {
+      nextData.won_at = new Date().toISOString();
+    } else if (prevData.won_at && !nextData.won_at) {
+      // updateNode REPLACES data wholesale, so a client that fetched the record before the stamp
+      // existed and edits any other field would silently erase it. A server-stamped fact must
+      // survive client round-trips the client doesn't know about.
+      nextData.won_at = prevData.won_at;
+    }
+  }
+
   const node = await ubc.updateNode(nodeId, workspaceId, updates);
   await ubc.logActivity(node.id!, workspaceId, "human", c.get("userId"), "updated", updates);
 

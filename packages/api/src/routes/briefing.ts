@@ -3,33 +3,38 @@ import { requireAuth } from "../middleware/auth";
 import { supabase } from "@mondaily/db/client";
 import { makeBaseConverter } from "../lib/currency-store";
 import { overdueCutoffISO } from "@mondaily/shared/dates";
+import {
+  pagedNodes, monthToDate, prevMonthSamePoint, deltaPct,
+  closedWonIn, pipelineCreatedIn, openPipeline, weightedForecast, closersIn, invoiceMetrics,
+} from "../lib/money";
 
 /**
- * GET /api/v1/briefing — the "chief of staff" morning brief. Composes what needs you, what the
- * agents handled autonomously, and the workspace pulse — ALL from real data, deterministic (no AI,
- * no fabrication). One fetch powers the Briefing surface.
+ * GET /api/v1/briefing — the owner's morning brief. Deterministic, no AI, all real data.
+ *
+ * Rebuilt on lib/money so the numbers here are THE numbers — same definitions the Owner Console
+ * and reports use. The old version had volume KPIs with no deltas and an UNBOUNDED invoice read
+ * (silently truncated at the row cap, understating revenue for any workspace past ~1000 invoices).
+ *
+ * Leads with the four numbers an owner actually opens the page for, each with a same-point
+ * prior-month comparison (Jul 1–15 vs Jun 1–15, so mid-month never reads as a collapse):
+ * closed won, cash collected vs invoiced, pipeline created, weighted forecast. Then WHO closed.
  */
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
 router.use("*", requireAuth);
 
-const num = (v: unknown): number => {
-  if (typeof v === "number") return v;
-  const n = parseFloat(String(v ?? "").replace(/[^0-9.-]/g, ""));
-  return Number.isFinite(n) ? n : 0;
-};
-
 router.get("/", async (c) => {
   const ws = c.get("workspaceId");
   const startOfToday = new Date(); startOfToday.setHours(0, 0, 0, 0);
-  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
-  const weekAgo = new Date(Date.now() - 7 * 86_400_000).getTime();
+  const weekAgo = Date.now() - 7 * 86_400_000;
+  const mtd = monthToDate();
+  const prev = prevMonthSamePoint();
 
-  const [pendingR, autoR, overdueTasksR, financeR, dealsR, conv] = await Promise.all([
+  const [pendingR, autoR, overdueTasksR, invoices, deals, conv] = await Promise.all([
     supabase.from("decision_queue").select("id,title,risk_level,agent_name").eq("workspace_id", ws).eq("status", "pending").order("created_at", { ascending: true }).limit(500),
     supabase.from("decision_queue").select("id").eq("workspace_id", ws).eq("resolved_by", "autonomy").gte("resolved_at", startOfToday.toISOString()).limit(500),
     supabase.from("tasks").select("id").eq("workspace_id", ws).eq("completed", false).lt("due_date", overdueCutoffISO()).limit(500),
-    supabase.from("nodes").select("data").eq("workspace_id", ws).eq("vertical", "finance").eq("object_type", "invoice"),
-    supabase.from("nodes").select("data,created_at").eq("workspace_id", ws).ilike("object_type", "%deal%").limit(2000),
+    pagedNodes(ws, { eq: "invoice" }),
+    pagedNodes(ws, { ilike: "%deal%" }),
     makeBaseConverter(ws),
   ]);
   const { base, toBase } = conv;
@@ -40,23 +45,16 @@ router.get("/", async (c) => {
   const topDecisions = [...pend].sort((a, b) => rank(String(a.risk_level)) - rank(String(b.risk_level)))
     .slice(0, 4).map(d => ({ id: d.id, title: d.title, risk: d.risk_level, agent: d.agent_name }));
 
-  const OUT = new Set(["sent", "viewed", "overdue"]);
-  let overdueCount = 0, overdueTotal = 0, revenueMonth = 0, outstanding = 0;
-  for (const row of financeR.data ?? []) {
-    const d = (row.data ?? {}) as Record<string, unknown>;
-    const amt = toBase(Number(d.total ?? 0), String(d.currency ?? base));
-    const st = String(d.status ?? "draft");
-    if (st === "overdue") { overdueCount++; overdueTotal += amt; }
-    if (OUT.has(st)) outstanding += amt;
-    if (st === "paid") {
-      const paid = (d.paid_at ?? d.created_at) as string | undefined;
-      if (paid && Date.parse(paid) >= monthStart.getTime()) revenueMonth += amt;
-    }
-  }
+  // ── the money block: month-to-date, each with the same-point prior comparison ──
+  const inv = invoiceMetrics(invoices, toBase, base, mtd);
+  const invPrev = invoiceMetrics(invoices, toBase, base, prev);
+  const won = closedWonIn(deals, mtd);
+  const wonPrev = closedWonIn(deals, prev);
+  const created = pipelineCreatedIn(deals, mtd);
+  const createdPrev = pipelineCreatedIn(deals, prev);
+  const open = openPipeline(deals);
+  const r2 = (x: number) => Math.round(x * 100) / 100;
 
-  const deals = dealsR.data ?? [];
-  const openPipeline = deals.filter(d => !/won|lost|closed/i.test(String((d.data as Record<string, unknown>).deal_stage ?? "")))
-    .reduce((s, d) => s + num((d.data as Record<string, unknown>).deal_value), 0);
   const newDealsWeek = deals.filter(d => Date.parse(d.created_at) >= weekAgo).length;
 
   return c.json({
@@ -65,13 +63,23 @@ router.get("/", async (c) => {
       pending: pend.length,
       high_risk: highRisk,
       overdue_tasks: (overdueTasksR.data ?? []).length,
-      overdue_invoices: { count: overdueCount, total: Math.round(overdueTotal * 100) / 100 },
+      overdue_invoices: { count: inv.overdue.count, total: inv.overdue.total },
     },
     handled: { auto_approved_today: (autoR.data ?? []).length },
+    // The four lead numbers. `delta` is % vs the same point last month, null when last month was 0.
+    money: {
+      closed_won: { value: r2(won.value), count: won.count, delta: deltaPct(won.value, wonPrev.value) },
+      cash: { collected: inv.collected, invoiced: inv.invoiced, delta: deltaPct(inv.collected, invPrev.collected) },
+      pipeline_created: { value: r2(created.value), count: created.count, delta: deltaPct(created.value, createdPrev.value) },
+      forecast: { value: r2(weightedForecast(deals)), open_count: open.count, open_value: r2(open.value) },
+      closers: closersIn(deals, mtd).slice(0, 5).map(x => ({ ...x, value: r2(x.value) })),
+      overdue_aging: inv.overdue.aging,
+    },
+    // Kept for compatibility with older clients; the money block supersedes it.
     pulse: {
-      revenue_month: Math.round(revenueMonth * 100) / 100,
-      outstanding: Math.round(outstanding * 100) / 100,
-      open_pipeline: Math.round(openPipeline * 100) / 100,
+      revenue_month: inv.collected,
+      outstanding: inv.outstanding,
+      open_pipeline: r2(open.value),
       new_deals_week: newDealsWeek,
     },
     top_decisions: topDecisions,
