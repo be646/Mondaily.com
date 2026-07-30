@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Crown, ShieldCheck, Users, Zap, AlertTriangle, Activity, Target, X, Plus, CheckSquare } from "lucide-react";
+import { Crown, ShieldCheck, Users, Zap, AlertTriangle, Activity, Target, X, Plus, CheckSquare, Sparkles } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { PageSkeleton, ErrorState } from "../../components/ui/page-state";
@@ -259,6 +259,41 @@ function AutonomyDial({ level, breaker }: { level: string; breaker: { used_last_
   );
 }
 
+/**
+ * The Owner Memo — on demand (a button, never auto-fired: it spends tokens), written by the
+ * gateway from the console's own payload. CODE COUNTS, AI NARRATES: the server hands the model
+ * the same numbers this page renders and instructs it to use nothing else; when the gateway is
+ * down the deterministic template memo arrives instead, flagged honestly.
+ */
+function MemoSection() {
+  const memo = useMutation<{ memo: string; ai: boolean; generated_at: string }>({
+    mutationFn: () => apiClient.post("/owner/memo", {}),
+  });
+  return (
+    <div className="mt-4 overflow-hidden rounded-sm border" style={{ borderColor: "var(--section-accent-line)", background: "var(--section-accent-soft)" }}>
+      <div className="flex items-center justify-between px-4 py-2" style={{ borderBottom: memo.data ? "1px solid var(--section-accent-line)" : "none" }}>
+        <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--section-accent)" }}>
+          <Sparkles size={11} /> Owner memo
+          {memo.data && !memo.data.ai && <span className="normal-case tracking-normal font-normal text-[var(--text-faint)]">— template (AI unavailable)</span>}
+        </span>
+        <button onClick={() => memo.mutate()} disabled={memo.isPending}
+          className="rounded-sm border px-2 py-0.5 text-[10.5px] transition-colors hover:border-[color:var(--section-accent)] disabled:opacity-60"
+          style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          {memo.isPending ? "Writing…" : memo.data ? "Rewrite" : "Write memo"}
+        </button>
+      </div>
+      {memo.data && (
+        <div className="space-y-2 px-4 py-3">
+          {memo.data.memo.split(/\n+/).filter(Boolean).map((para, i) => (
+            <p key={i} className="text-[12.5px] leading-relaxed" style={{ color: "var(--text-primary)" }}>{para}</p>
+          ))}
+        </div>
+      )}
+      {memo.isError && <div className="px-4 py-3 text-[11.5px]" style={{ color: "#d1524a" }}>Couldn't write the memo — try again.</div>}
+    </div>
+  );
+}
+
 const cell = "px-3 py-2 text-[12px]";
 const th = "px-3 py-1.5 text-left text-[10.5px] font-medium text-[var(--text-muted)] first-letter:uppercase";
 
@@ -310,6 +345,8 @@ export function OwnerConsolePage() {
           </div>
         ))}
       </div>
+
+      <MemoSection />
 
       {/* Overdue AR — only when there is any; an empty aging table is noise */}
       {overdueTotal && (

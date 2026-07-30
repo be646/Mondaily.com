@@ -3,6 +3,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { makeBaseConverter } from "../lib/currency-store";
+import { aiGatewayComplete } from "../lib/ai-gateway";
 import { AUTONOMY_HOURLY_CAP, autonomyUsageLastHour, readAutonomy } from "../lib/autonomy";
 import {
   pagedNodes, monthToDate, prevMonthSamePoint, deltaPct,
@@ -65,8 +66,11 @@ async function aiSpendByFeature(ws: string, days: number): Promise<{ feature: st
   return [...by].map(([feature, b]) => ({ feature, ...b })).sort((a, b) => b.total_tokens - a.total_tokens).slice(0, 10);
 }
 
-router.get("/console", requireAdminRole, async (c) => {
-  const ws = c.get("workspaceId");
+/**
+ * The console payload builder — shared by GET /console and the Owner Memo, so the memo is
+ * grounded in EXACTLY what the console shows and can never narrate different numbers.
+ */
+async function buildConsolePayload(ws: string) {
   const mtd = monthToDate();
   const prev = prevMonthSamePoint();
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
@@ -150,7 +154,7 @@ router.get("/console", requireAdminRole, async (c) => {
         : `Data cleaning: ${String((a.diff as Record<string, unknown>)?.data_cleaning)}`,
     }));
 
-  return c.json({
+  return {
     base,
     money: {
       closed_won: { value: r2(won.value), count: won.count, delta: deltaPct(won.value, wonPrev.value) },
@@ -185,7 +189,72 @@ router.get("/console", requireAdminRole, async (c) => {
       on_hold: { count: onHold.length, value: r2(onHold.reduce((s, r) => s + dealValue(r.data), 0)) },
     },
     audit,
-  });
+  };
+}
+
+router.get("/console", requireAdminRole, async (c) => {
+  return c.json(await buildConsolePayload(c.get("workspaceId")));
+});
+
+/**
+ * Deterministic memo — the fallback when the gateway is down or unconfigured, and the PROOF that
+ * every sentence the AI writes could have been written without it. Same payload, plain templates.
+ */
+export function deterministicMemo(p: Awaited<ReturnType<typeof buildConsolePayload>>): string {
+  const cur = (v: number) => `${v.toLocaleString()} ${p.base}`;
+  const m = p.money;
+  const lines: string[] = [];
+  lines.push(`Closed won this month: ${cur(m.closed_won.value)} across ${m.closed_won.count} deal(s)${m.closed_won.delta !== null ? ` (${m.closed_won.delta >= 0 ? "+" : ""}${m.closed_won.delta}% vs the same point last month)` : ""}.`);
+  lines.push(`Cash collected: ${cur(m.cash.collected)}${m.cash.delta !== null ? ` (${m.cash.delta >= 0 ? "+" : ""}${m.cash.delta}%)` : ""}; ${cur(m.cash.invoiced)} invoiced, ${cur(m.cash.outstanding)} outstanding.`);
+  lines.push(`Pipeline: ${cur(m.pipeline_created.value)} created this month; weighted forecast ${cur(m.forecast.value)} over ${m.forecast.open_count} open deals worth ${cur(m.forecast.open_value)}.`);
+  if (m.overdue.count > 0) lines.push(`Overdue AR: ${m.overdue.count} invoice(s), ${cur(m.overdue.total)}.`);
+  const top = p.people[0];
+  if (top) lines.push(`${top.owner} leads the team: ${cur(top.closed_value)} closed, ${cur(top.open_value)} open pipeline.`);
+  if (p.pipeline_health.stalled.count > 0) lines.push(`${p.pipeline_health.stalled.count} open deal(s) worth ${cur(p.pipeline_health.stalled.value)} untouched for 30+ days — the largest is ${p.pipeline_health.stalled.top[0]?.name ?? "unknown"}.`);
+  const autoTotal = p.agents.rows.reduce((s2, a) => s2 + a.auto, 0);
+  if (autoTotal > 0) lines.push(`Agents auto-approved ${autoTotal} decision(s) this week at autonomy level "${p.agents.autonomy_level}".`);
+  if (p.actions.pending_decisions.count > 0) lines.push(`${p.actions.pending_decisions.count} decision(s) are waiting for a human.`);
+  if (p.actions.unassigned_deals.length > 0) lines.push(`${p.actions.unassigned_deals.length} open deal(s) have no owner.`);
+  return lines.join("\n");
+}
+
+/**
+ * POST /owner/memo — the Owner Memo. CODE COUNTS, AI NARRATES.
+ *
+ * The model receives the console payload — the numbers the console itself renders, from the same
+ * builder — and writes prose. It is instructed to use ONLY those figures, and the grounding is
+ * structural, not just prompted: the payload is the only context it gets, so there is nothing else
+ * to leak in. If the gateway is down/unconfigured, the deterministic template memo ships instead,
+ * flagged ai:false — degraded wording, identical facts.
+ *
+ * POST (not GET) because it spends tokens; the console has a button, nothing auto-fires.
+ */
+router.post("/memo", requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const payload = await buildConsolePayload(ws);
+  const fallback = deterministicMemo(payload);
+
+  try {
+    const text = await aiGatewayComplete({
+      system: [
+        "You write a concise operating memo for the OWNER of this workspace, from the JSON metrics provided.",
+        "HARD RULES:",
+        "- Use ONLY numbers present in the JSON. Never compute, extrapolate, or invent a figure. If a number is not in the JSON, do not mention it.",
+        "- Money values are in the `base` currency; write them like '48,000 PLN'.",
+        "- 3 short paragraphs, no headings, no bullet lists: (1) money this month and how it compares, (2) people and pipeline — who is closing, what is stalling, (3) agents and what needs the owner today.",
+        "- Plain, direct, no praise, no filler, no advice beyond what the numbers state.",
+      ].join("\n"),
+      prompt: JSON.stringify(payload),
+      maxTokens: 600,
+      workspaceId: ws, userId: c.get("userId"), feature: "owner_memo",
+    });
+    const memo = String(text ?? "").trim();
+    if (!memo) throw new Error("empty completion");
+    return c.json({ memo, ai: true, generated_at: new Date().toISOString() });
+  } catch (e) {
+    console.warn("[owner/memo] gateway unavailable — deterministic memo served:", e instanceof Error ? e.message : String(e));
+    return c.json({ memo: fallback, ai: false, generated_at: new Date().toISOString() });
+  }
 });
 
 /**

@@ -145,3 +145,33 @@ describe("agent controls — the dial is gated, the spend is real and paged", ()
     expect(page2).toMatch(/apiClient\.patch\("\/decisions\/autonomy"/);
   });
 });
+
+describe("the owner memo — code counts, AI narrates", () => {
+  const src = readFileSync(join(__dirname, "../routes/owner.ts"), "utf8");
+  const page3 = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/owner-console.tsx"), "utf8");
+
+  it("is grounded in the console's own payload builder — same numbers, structurally", () => {
+    const memo = src.slice(src.indexOf('router.post("/memo"'));
+    expect(memo).toMatch(/await buildConsolePayload\(ws\)/);
+    expect(memo).toMatch(/prompt: JSON\.stringify\(payload\)/);   // the payload IS the only context
+    expect(src).toMatch(/router\.post\("\/memo", requireAdminRole/);
+  });
+
+  it("forbids the model from computing — only numbers in the JSON", () => {
+    expect(src).toMatch(/Never compute, extrapolate, or invent a figure/);
+  });
+
+  it("degrades to the deterministic memo, flagged honestly", () => {
+    expect(src).toMatch(/export function deterministicMemo/);
+    expect(src).toMatch(/return c\.json\(\{ memo: fallback, ai: false/);
+  });
+
+  it("is metered and attributed", () => {
+    expect(src).toMatch(/feature: "owner_memo"/);
+  });
+
+  it("is a POST behind a button — never auto-fired on page load", () => {
+    expect(page3).toMatch(/useMutation<\{ memo: string; ai: boolean/);
+    expect(page3).not.toMatch(/useQuery[^)]*owner\/memo/);
+  });
+});
