@@ -4,7 +4,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { liveKitEnabled, recordingEnabled, transcriptionEnabled, livekitSelfTest } from "../lib/livekit";
 import { isEmbeddingsEnabled } from "../lib/embeddings";
-import { sendTransactionalEmail } from "../lib/mail";
+import { sendTransactionalEmail, sovereignRelayStatus } from "../lib/mail";
 import { RECORDINGS_BUCKET } from "../jobs/meeting-memory";
 
 type Variables = { userId: string; workspaceId: string; role: string };
@@ -24,10 +24,15 @@ const has = (name: string) => !!(process.env[name] || "").trim();
  * GET /api/v1/admin/readiness — owner/admin-only, READ-ONLY production config inspector.
  *
  * Returns booleans + coarse per-capability status ONLY. It performs NO side effects: it never calls
- * paid AI, Stripe, mail send, LiveKit, STT, search, scrape, or GPU. The single I/O it does is a
- * best-effort Supabase `getBucket` (read metadata) to tell whether the private recordings bucket exists
- * — wrapped so it can never throw and downgrades to `checkable:false` on any error. Reuses the exact
- * same gating helpers the features themselves use, so this can't drift from real behavior.
+ * paid AI, Stripe, mail SEND, LiveKit, STT, search, scrape, or GPU. Reuses the exact same gating
+ * helpers the features themselves use, so this can't drift from real behavior.
+ *
+ * It makes exactly TWO read-only probes, each wrapped so it can never throw and each downgrading to
+ * `checkable:false` on error:
+ *   - Supabase `getBucket` — does the private recordings bucket exist and is it private?
+ *   - `GET {SOVEREIGN_MAIL_SEND_URL}/health` — is the mail appliance actually reachable? No HMAC, no
+ *     secret, no message. Added because env-presence alone reported a healthy relay for a day while
+ *     the appliance was unreachable and every send was silently falling back.
  */
 router.get("/readiness", async (c) => {
   // ── individual config presence (booleans only) ──
@@ -59,10 +64,27 @@ router.get("/readiness", async (c) => {
     recording_bucket_ready = !!data && data.public === false; // must exist AND be private
   } catch { recording_bucket_checkable = false; }
 
+  // ── sovereign mail relay: is it actually THERE, not merely configured? ──
+  //
+  // `sovereign_mail_configured` above only proves two env vars are non-empty. For a full day that
+  // read "true" while SOVEREIGN_MAIL_SEND_URL pointed at a host unreachable from the public internet
+  // — the dashboard asserted a working relay while every outbound send silently fell back to Gmail.
+  // Env presence is a claim; reachability is evidence.
+  //
+  // The probe itself lives in lib/mail (GET /health, no HMAC, no secret, no message, 3s ceiling,
+  // never throws) so this route keeps reading env only through `has()` and holds no fetch of its
+  // own — both properties this endpoint's guards enforce.
+  const relay = await sovereignRelayStatus();
+  const sovereign_mail_reachable = relay.reachable;
+  const sovereign_mail_checkable = relay.checkable;
+
   // ── grouped, coarse status for the UI (ready | partial | missing | unknown) ──
   const group = {
     billing: stripe_configured ? (stripe_webhook_configured && stripe_prices_configured ? "ready" : "partial") : "missing",
-    mail: transactional_mail_configured ? "ready" : "missing",
+    // A configured-but-unreachable sovereign relay is PARTIAL, not ready: mail still goes out via
+    // the fallback, but the sovereign path the operator thinks they enabled is dead.
+    mail: sovereign_mail_configured && !sovereign_mail_reachable ? "partial"
+      : transactional_mail_configured || sovereign_mail_reachable ? "ready" : "missing",
     ai: ai_gateway_configured ? "ready" : "missing",
     calls: livekit_configured ? (native_recording_enabled && recording_bucket_ready ? "ready" : "partial") : "missing",
     meeting_memory: stt_configured ? (ai_gateway_configured ? "ready" : "partial") : "missing",
@@ -84,6 +106,10 @@ router.get("/readiness", async (c) => {
       stripe_prices_configured,
       transactional_mail_configured,
       sovereign_mail_configured,
+      // Configured says the envs are set; reachable says the appliance answered. They diverge
+      // exactly when something is wrong, which is the case worth surfacing.
+      sovereign_mail_reachable,
+      sovereign_mail_checkable,
       livekit_configured,
       native_recording_enabled,
       recording_bucket_ready,

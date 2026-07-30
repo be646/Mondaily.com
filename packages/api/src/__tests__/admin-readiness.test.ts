@@ -81,7 +81,9 @@ describe("mail self-test — admin-only, own-address-only, fail-safe, no spam", 
     expect(route).not.toMatch(/body\.(to|email|recipient)/);
   });
   it("is fail-safe — reuses sendTransactionalEmail (returns false, never throws) + honest reason", () => {
-    expect(route).toMatch(/import \{ sendTransactionalEmail \} from "\.\.\/lib\/mail"/);
+    // Named-import list, not an exact line: the file legitimately also imports sovereignRelayStatus
+    // from the same module. What matters is that the send path reuses the shared fail-safe helper.
+    expect(route).toMatch(/import \{[^}]*\bsendTransactionalEmail\b[^}]*\} from "\.\.\/lib\/mail"/);
     expect(route).toMatch(/const sent = await sendTransactionalEmail\(\{/);
     expect(route).toMatch(/reason: "mail_not_configured_or_send_failed"/);
     expect(route).toMatch(/subject: "Mondaily production mail test"/);

@@ -89,3 +89,64 @@ describe("the sovereign mail relay is bounded", () => {
     expect(mail).toMatch(/if \(await sendViaSovereignRelay\(workspaceId, msg\)\) return true;\s*\n\s*if \(await sendViaGoogle/);
   });
 });
+
+/**
+ * Readiness must report EVIDENCE, not claims. `sovereign_mail_configured` (env presence) read true
+ * for a day while SOVEREIGN_MAIL_SEND_URL pointed at an unreachable host and every send fell back
+ * to Gmail. A status page that can't tell those apart is a guess.
+ */
+describe("readiness probes the mail relay instead of trusting env presence", () => {
+  const readiness = readFileSync(join(SRC, "routes/admin-readiness.ts"), "utf8");
+
+  it("reports reachability separately from configuration", () => {
+    // Must be in the RESPONSE, not merely computed. Matching the whole file passed even with the
+    // field deleted from the payload, because the local variable still existed — presence of a name
+    // somewhere is not evidence that a caller can see it.
+    const payload = readiness.slice(readiness.indexOf("sovereign_mail_configured,"));
+    expect(payload).toMatch(/^\s*sovereign_mail_reachable,$/m);
+    expect(payload).toMatch(/^\s*sovereign_mail_checkable,$/m);
+    // configured must NOT be redefined as reachable — the two must stay distinguishable
+    expect(readiness).toMatch(/const sovereign_mail_configured = has\("SOVEREIGN_MAIL_SEND_URL"\) && has\("SOVEREIGN_MAIL_SECRET"\)/);
+  });
+
+  it("grades a configured-but-dead relay as partial, not ready", () => {
+    expect(readiness).toMatch(/sovereign_mail_configured && !sovereign_mail_reachable \? "partial"/);
+  });
+
+  it("keeps the probe OUT of the readiness route", () => {
+    // That route is guarded against reading env VALUES and against calling fetch at all — both
+    // guards caught the first version of this change, correctly. The probe belongs beside the sender.
+    expect(readiness).not.toMatch(/fetch\(/);
+    expect(readiness).not.toMatch(/process\.env\.SOVEREIGN_MAIL/);
+    expect(readiness).toMatch(/sovereignRelayStatus\(\)/);
+  });
+});
+
+describe("the relay liveness probe", () => {
+  it("is GET /health only — never sends mail and never signs anything", () => {
+    const fn = mail.slice(mail.indexOf("export async function sovereignRelayStatus"));
+    expect(fn).toMatch(/"\/health"/);
+    expect(fn).not.toMatch(/\/send/);
+    expect(fn).not.toMatch(/createHmac|signature/);
+    expect(fn).not.toMatch(/method: "POST"/);
+  });
+
+  it("is bounded, passes the signal, and cannot throw", () => {
+    const fn = mail.slice(mail.indexOf("export async function sovereignRelayStatus"));
+    expect(fn).toMatch(/AbortController/);
+    // The signal must actually be PASSED to fetch — asserting only that a controller exists passed
+    // with `signal:` deleted, i.e. a timeout that does nothing.
+    // `[^)]*` broke on the nested `url.replace(/\/$/, "")` inside the call — match up to the options
+    // object across anything instead of assuming no parentheses appear first.
+    expect(fn).toMatch(/fetch\([\s\S]*?signal: ctrl\.signal/);
+    expect(fn).toMatch(/clearTimeout\(timer\)/);
+    expect(fn).toMatch(/catch \{/);
+  });
+
+  it("does not claim certainty when the probe failed", () => {
+    // A network blip and a dead appliance are indistinguishable from here; reporting checkable:true
+    // would repeat the original mistake in the other direction.
+    const fn = mail.slice(mail.indexOf("export async function sovereignRelayStatus"));
+    expect(fn).toMatch(/return \{ configured: true, reachable: false, checkable: false \}/);
+  });
+});

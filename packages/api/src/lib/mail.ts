@@ -129,3 +129,39 @@ export async function sendWorkspaceEmail(workspaceId: string, msg: OutboundMessa
   if (await sendViaGoogle(workspaceId, msg)) return true;
   return sendViaTransactional(msg);
 }
+
+/**
+ * Is the sovereign mail appliance actually THERE? A read-only liveness probe for the readiness
+ * inspector — `GET /health`, no HMAC, no secret, no message, never throws.
+ *
+ * Lives here rather than in routes/admin-readiness because that endpoint is guarded (correctly)
+ * against reading env VALUES and against calling `fetch` at all — and because a probe of the relay
+ * belongs beside the code that sends through it, so the two cannot drift apart.
+ *
+ * Returns:
+ *   configured   — both envs are set (a claim)
+ *   reachable    — the appliance answered 2xx (evidence)
+ *   checkable    — false when we could not find out (unset, or the probe errored/timed out)
+ *
+ * `configured && !reachable` is the state that reported a healthy relay for a day while every
+ * outbound send silently fell back to Gmail.
+ */
+export async function sovereignRelayStatus(): Promise<{ configured: boolean; reachable: boolean; checkable: boolean }> {
+  const url = (process.env.SOVEREIGN_MAIL_SEND_URL ?? "").trim();
+  const secret = (process.env.SOVEREIGN_MAIL_SECRET ?? "").trim();
+  const configured = !!url && !!secret;
+  if (!configured) return { configured: false, reachable: false, checkable: false };
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 3_000);
+  try {
+    const res = await fetch(url.replace(/\/$/, "") + "/health", { signal: ctrl.signal });
+    return { configured: true, reachable: res.ok, checkable: true };
+  } catch {
+    // Unreachable is a real answer, but we mark it un-checkable too: a network blip and a dead
+    // appliance look identical from here, and claiming certainty would repeat the original mistake.
+    return { configured: true, reachable: false, checkable: false };
+  } finally {
+    clearTimeout(timer);
+  }
+}
