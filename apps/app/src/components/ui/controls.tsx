@@ -420,7 +420,15 @@ export function CommandPageHeader({ icon: Icon, callsign, title, subtitle, statu
   // page — goals, insights, finance, calendar, inbox — read as "Mondaily" in the tab and window
   // switcher. No cleanup on unmount: the next page's header (or the layout's route fallback)
   // always writes the next title, and restoring "Mondaily" in between would just flicker.
-  useEffect(() => { document.title = `${title} · Mondaily`; }, [title]);
+  //
+  // The claim flag exists because effect ORDER runs child-before-parent: this header fires first,
+  // then the layout's route fallback would overwrite it ("Meeting with Anna" → "Calls"). Verified
+  // live, not assumed — the first version relied on ordering and lost every specific title. The
+  // fallback checks the claim and stands down for pages that titled themselves.
+  useEffect(() => {
+    document.title = `${title} · Mondaily`;
+    (window as unknown as { __mdTitledPath?: string }).__mdTitledPath = window.location.pathname;
+  }, [title]);
 
   const kicker = callsign && !redundantCallsign(callsign, title) ? callsign : undefined;
   const iconChip = Icon && (

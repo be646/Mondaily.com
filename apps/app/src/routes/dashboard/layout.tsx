@@ -138,11 +138,13 @@ export function DashboardLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   useLanguage();   // keep <html lang/dir> in sync with the effective language (RTL foundation)
 
-  // Route-level fallback for the browser tab title. Nothing anywhere set document.title, so every
-  // page read "Mondaily" in the tab and window switcher. This fires on navigation; a page that
-  // renders CommandPageHeader then overwrites it with its more specific title (the header mounts
-  // after this effect runs), so the fallback only ever shows for pages without one.
+  // Route-level FALLBACK for the browser tab title. Child effects run before parent effects, so a
+  // page's CommandPageHeader has already titled the tab (and claimed the path) by the time this
+  // fires — overwriting it here would replace "Meeting with Anna" with "Calls", which is exactly
+  // what the first version did. Only pages that did NOT title themselves get the route label.
   useEffect(() => {
+    const claimed = (window as unknown as { __mdTitledPath?: string }).__mdTitledPath;
+    if (claimed === location.pathname) return;   // a page header owns this page's title
     const { label } = getPageMeta(location.pathname);
     // Object pages derive their label from the slug ("discovered leads") — sentence-case it.
     const nice = label.charAt(0).toUpperCase() + label.slice(1);

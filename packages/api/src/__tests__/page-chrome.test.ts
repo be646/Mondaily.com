@@ -24,6 +24,14 @@ describe("the browser tab says where you are", () => {
     expect(layout).toMatch(/\}, \[location\.pathname\]\);/);
   });
 
+  it("the fallback stands down when a page header titled itself", () => {
+    // Child effects run before parent effects, so the header fires FIRST and the layout would
+    // overwrite it — "Meeting with Anna" became "Calls". Verified live before this claim flag
+    // existed. Both halves must exist: the header claims, the layout checks.
+    expect(controls).toMatch(/__mdTitledPath = window\.location\.pathname/);
+    expect(layout).toMatch(/if \(claimed === location\.pathname\) return;/);
+  });
+
   it("the route map covers the pages the complaint named", () => {
     // goals, insights, finance pages, calendar, inbox(messages), canvas — the exact list reported
     // as showing "Mondaily".
