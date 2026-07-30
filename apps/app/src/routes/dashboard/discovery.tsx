@@ -266,10 +266,19 @@ export function DiscoveryPage() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      // STALL WATCHDOG. A dropped stream ends the read loop and is handled below — but a HUNG one
+      // (connection open, server stuck, nothing arriving) leaves reader.read() pending forever and
+      // the page spinning with no way out. That was the reported "sometimes it just stops": the
+      // sweep emits progress every few seconds when alive, so 60s of silence means dead, and the
+      // abort turns it into an honest, retryable error instead of an eternal spinner.
+      let watchdog = setTimeout(() => controller.abort(new Error("The search stalled — no progress for 60s. The appliance may be under load; try again.")), 60_000);
+      const feed = () => { clearTimeout(watchdog); watchdog = setTimeout(() => controller.abort(new Error("The search stalled — no progress for 60s. The appliance may be under load; try again.")), 60_000); };
       // Parse the SSE stream: frames are separated by a blank line; each `data:` line is JSON.
+      try {
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
+        feed();
         buffer += decoder.decode(value, { stream: true });
         const frames = buffer.split("\n\n");
         buffer = frames.pop() ?? "";
@@ -308,10 +317,14 @@ export function DiscoveryPage() {
           }
         }
       }
+      } finally { clearTimeout(watchdog); }
       // Stream ended without a done frame (e.g. dropped) → mark done so the UI isn't stuck.
       patch((t) => (t.status === "streaming" ? { ...t, status: "done" } : t));
     } catch (e) {
-      patch((t) => ({ ...t, status: "error", error: e instanceof Error ? e.message : "Search failed" }));
+      // An aborted read surfaces as an opaque AbortError — prefer the watchdog's reason when set.
+      const reason = (streamAbortRef.current?.signal as AbortSignal & { reason?: unknown })?.reason;
+      const msg = reason instanceof Error ? reason.message : e instanceof Error ? e.message : "Search failed";
+      patch((t) => ({ ...t, status: "error", error: msg }));
     } finally {
       setBusy(false);
     }

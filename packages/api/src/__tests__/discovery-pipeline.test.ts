@@ -70,7 +70,9 @@ describe("workspace isolation + wiring (source-read guards)", () => {
   const src = readFileSync(fileURLToPath(new URL("../routes/discovery.ts", import.meta.url)), "utf8");
   it("/save dedupes against the workspace's graph before creating", () => {
     expect(src).toMatch(/const key = graphDedupeKey\(b\.name, website, b\.source_url\)/);
-    expect(src).toMatch(/from\("nodes"\)\.select\("id, data"\)\.eq\("workspace_id", workspaceId\)\.eq\("object_type", b\.object_type\)/);
+    // The read moved to pagedIdData (the .limit(5000) form truncated at the server row cap and
+    // re-created records it could not see). The INTENT stands: workspace-scoped, type-scoped.
+    expect(src).toMatch(/pagedIdData\(workspaceId, \(q: any\) => q\.eq\("object_type", b\.object_type\)\)/);
     expect(src).toMatch(/existed: true/);
   });
   it("/save sets a real owner (param or the saver)", () => {

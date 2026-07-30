@@ -6,6 +6,28 @@ import { requireAuth, requireJwt } from "../middleware/auth";
 import { inngest } from "../lib/inngest";
 import { sovereignHeaders } from "../lib/sovereign-search";
 import { runSocialDiscovery, type DiscoveryParams } from "../jobs/social-discovery";
+import { startJob, completeJob, failJob, step } from "../lib/agent-logger";
+
+/**
+ * Paged id+data reader for the dedupe scans. These used `.limit(5000)`, but PostgREST caps a
+ * single response at ~1000 rows regardless — so past the cap the dedupe checked a TRUNCATED
+ * slice and re-created records it could not see. The same silent-truncation class as the credit
+ * wallet and the old /briefing invoice read.
+ */
+async function pagedIdData(ws: string, refine?: (q: ReturnType<typeof supabase.from>["select"] extends never ? never : any) => any): Promise<{ id: string; data: Record<string, unknown> | null }[]> {
+  const rows: { id: string; data: Record<string, unknown> | null }[] = [];
+  const PAGE = 1000;
+  for (let from = 0; from < 100_000; from += PAGE) {
+    let q: any = supabase.from("nodes").select("id, data").eq("workspace_id", ws);
+    if (refine) q = refine(q);
+    const { data, error } = await q.order("id", { ascending: true }).range(from, from + PAGE - 1);
+    if (error) break;   // dedupe degrades to what was read — same failure mode as before, never worse
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < PAGE) break;
+  }
+  return rows;
+}
 import { objectTypeToVertical } from "./prospecting";
 import { denyViewerWrites } from "../middleware/rbac";
 import { placesDiagnostic, placesDetails } from "../lib/places";
@@ -215,11 +237,58 @@ router.post("/search/stream", zValidator("json", searchSchema), async (c) => {
         ? `reviews about "${params.targetSubject}"`
         : `leads: ${params.sector ?? query}${params.region ? ` in ${params.region}` : ""}`;
       await send({ type: "progress", stage: "classify", message: `Searching for ${label}` });
-      const result = await runSocialDiscovery(params, (ev) => send(ev));
-      await send({ type: "done", ok: true, classified: params, ...result });
+      // Every interactive sweep is a REAL RUN and gets recorded like one. Before this, only the
+      // cron monitors left any trace — an interactive search that died left nothing, which is why
+      // "sometimes it stops working" was undiagnosable and the history was a flat list of nothing.
+      const t0 = Date.now();
+      const jobId = await startJob({
+        workspace_id: workspaceId, agent_name: "discovery",
+        trigger_type: "manual", input: { query, deep, exhaustive, classified: params },
+      }).catch(() => "");
+      try {
+        const result = await runSocialDiscovery(params, (ev) => send(ev));
+        const diag = (result as { diag?: Record<string, unknown> }).diag ?? {};
+        if (jobId) await completeJob(jobId, { ...diag, discovered: (result as { discovered?: number }).discovered ?? 0, duration_ms: Date.now() - t0 }, [
+          step(`Searched ${Number(diag.queries ?? 0)} angles → ${Number(diag.hits ?? 0)} hits, ${Number(diag.extracted ?? 0)} extracted, ${Number(diag.matched ?? 0)} matched`, { status: "ok" }),
+        ]).catch(() => {});
+        await send({ type: "done", ok: true, classified: params, ...result });
+      } catch (inner) {
+        if (jobId) await failJob(jobId, inner instanceof Error ? inner.message : "sweep failed").catch(() => {});
+        throw inner;
+      }
     } catch (e) {
       await send({ type: "error", error: e instanceof Error ? e.message : "Sweep failed" });
     }
+  });
+});
+
+/**
+ * GET /discovery/runs — run history, from agent_jobs. Each row is one sweep: what was asked, what
+ * happened per stage, how long it took, and how it ended — not a flat list of leads with no
+ * provenance. The interactive path records itself above; cron monitor runs land here too.
+ */
+router.get("/runs", async (c) => {
+  const ws = c.get("workspaceId");
+  const limit = Math.min(100, Math.max(1, Math.round(Number(c.req.query("limit") ?? 30))));
+  const { data, error } = await supabase.from("agent_jobs")
+    .select("id, status, trigger_type, input, output, error, started_at, completed_at")
+    .eq("workspace_id", ws).eq("agent_name", "discovery")
+    .order("started_at", { ascending: false }).limit(limit);
+  if (error) return c.json({ error: error.message }, 500);
+  return c.json({
+    runs: (data ?? []).map(j => {
+      const input = (j.input ?? {}) as Record<string, unknown>;
+      const out = (j.output ?? {}) as Record<string, unknown>;
+      return {
+        id: j.id, status: j.status, trigger: j.trigger_type,
+        query: String(input.query ?? (input as { classified?: { targetSubject?: string } }).classified?.targetSubject ?? ""),
+        started_at: j.started_at, completed_at: j.completed_at,
+        duration_ms: Number(out.duration_ms ?? 0) || (j.completed_at && j.started_at ? Date.parse(j.completed_at) - Date.parse(j.started_at) : null),
+        discovered: Number(out.discovered ?? 0),
+        stages: { queries: Number(out.queries ?? 0), hits: Number(out.hits ?? 0), extracted: Number(out.extracted ?? 0), matched: Number(out.matched ?? 0) },
+        error: j.error ?? null,
+      };
+    }),
   });
 });
 
@@ -252,8 +321,8 @@ router.post("/save", denyViewerWrites, zValidator("json", saveSchema), async (c)
   // type, return it instead of creating a duplicate (the golden pipeline never double-saves).
   const key = graphDedupeKey(b.name, website, b.source_url);
   if (key) {
-    const { data: existing } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).eq("object_type", b.object_type).limit(5000);
-    const match = (existing ?? []).find((n) => {
+    const existing = await pagedIdData(workspaceId, (q: any) => q.eq("object_type", b.object_type));
+    const match = existing.find((n) => {
       const d = (n.data ?? {}) as Record<string, string | undefined>;
       return graphDedupeKey(d.name, d.website, d.source_url) === key;
     });
@@ -378,7 +447,7 @@ router.post("/enrich", denyViewerWrites, zValidator("json", z.object({
   let graphMatch: { node_id: string; name: string } | null = null;
   const key = graphDedupeKey(name ?? domain, undefined, url);
   if (key) {
-    const { data: nodes } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).limit(5000);
+    const nodes = await pagedIdData(workspaceId);
     const m = (nodes ?? []).find((n) => { const d = (n.data ?? {}) as Record<string, string | undefined>; return graphDedupeKey(d.name, d.website, d.source_url) === key; });
     if (m) graphMatch = { node_id: m.id as string, name: (((m.data ?? {}) as Record<string, string>).name) || (name ?? "record") };
   }
@@ -434,7 +503,7 @@ router.post("/save-batch", denyViewerWrites, zValidator("json", z.object({
 
   // Map each existing graph key → its node id, so we can REPORT "already in graph as node X".
   const objectTypes = [...new Set(leads.map((l) => l.object_type))];
-  const { data: existingNodes } = await supabase.from("nodes").select("id, data").eq("workspace_id", workspaceId).in("object_type", objectTypes).limit(5000);
+  const existingNodes = await pagedIdData(workspaceId, (q: any) => q.in("object_type", objectTypes));
   const existingByKey = new Map<string, string>();
   for (const n of existingNodes ?? []) {
     const d = (n.data ?? {}) as Record<string, string | undefined>;
