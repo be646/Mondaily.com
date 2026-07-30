@@ -1665,7 +1665,8 @@ describe("Records experience premium polish (Pass CHR2)", () => {
 
   it("no double divider — CommandPageHeader wrappers rely on the single soul-rule (border-b dropped)", () => {
     // pipeline header wrapper no longer stacks a border-b under the soul-rule
-    expect(pipeline).toMatch(/<div className="px-6 pt-1 pb-0 shrink-0">\s*\n\s*<CommandPageHeader/  // pt tightened 2026-07-30 (dead-space fix));
+    // pt tightened 2026-07-30 (dead-space fix, applied to pipeline too)
+    expect(pipeline).toMatch(/<div className="px-6 pt-1 pb-0 shrink-0">\s*\n\s*<CommandPageHeader/);
     expect(pipeline).not.toMatch(/border-b border-\[var\(--border-soft\)\] px-6 py-3 shrink-0">\s*\n\s*<CommandPageHeader/);
     // objects sheet header wrapper likewise
     // pt tightened 2026-07-30 (dead-space fix)
@@ -1734,7 +1735,7 @@ describe("App-wide chrome pass — pages migrated to CommandPageHeader standard 
     expect(objects).toMatch(/onClick=\{\(\) => setShowCreate\(true\)\} className="btn-primary/);
     // Re-pointed 2026-07-30: the view toggle became the shared SegmentedControl (icons kept).
     expect(objects).toMatch(/setView\(k as "table" \| "board"\)/);
-    expect(objects).toMatch(/setView\("board"\)/);
+    expect(objects).toMatch(/SegmentedControl/); // board toggle via shared segments since 2026-07-30
     expect(objects).toMatch(/<PeriodSelector value=\{period\} onChange=\{setPeriod\} \/>/);
     // old flat toolbar wall (loose bordered utility buttons) is gone
     expect(objects).not.toMatch(/<button onClick=\{\(\) => setDedupOpen\(true\)\}\s*\n\s*className="inline-flex items-center gap-1\.5 rounded-sm border/);

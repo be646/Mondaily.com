@@ -460,7 +460,7 @@ export function PipelinePage() {
     <div className="flex h-full min-h-0 flex-col">
       {/* Header — shared CommandPageHeader chrome (icon + // kicker + title + live deal stats).
           Single soul-rule divider (CommandPageHeader renders it) — no extra border-b. */}
-      <div className="px-6 py-3 shrink-0">
+      <div className="px-6 pt-1 pb-0 shrink-0">
         <CommandPageHeader
           variant="bar"
           className="mb-0"
