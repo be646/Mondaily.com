@@ -14,6 +14,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useMemo, useCallback } fr
 import { createPortal } from "react-dom";
 import { apiClient, apiFetch, getAuthHeaders } from "../../lib/api-client";
 import { formatMoney, convertAmount, useCurrency } from "../../hooks/useCurrency";
+import { countryFacts, fmtPopulation } from "../../lib/countries";
 import { parseNLPCommand } from "../../lib/ai-enrichment";
 import { ErrorState, PageSkeleton } from "../ui/page-state";
 import { FieldSelect } from "../ui/controls";
@@ -1203,12 +1204,20 @@ function CountryCell({ value, onSelect }: { value: string; onSelect: (v: string)
           </div>
           <div className="max-h-48 overflow-y-auto py-1">
             {value && <button onClick={() => { onSelect(""); setOpen(false); setSearch(""); }} className="dropdown-item w-full text-stone-500 text-xs">Clear</button>}
-            {filtered.slice(0, 80).map(c => (
-              <button key={c} onClick={() => { onSelect(c); setOpen(false); setSearch(""); }}
-                className={`dropdown-item w-full text-xs ${c === value ? "dropdown-item-active" : ""}`}>
-                {c}{c === value && <Check size={10} className="ml-auto text-stone-400 shrink-0"/>}
-              </button>
-            ))}
+            {filtered.slice(0, 80).map(c => {
+              // Owner-supplied 2026 reference data — shown at the moment of choice (market size is
+              // WHY someone picks a country), never stored on the record. The field stays a name.
+              const facts = countryFacts(c);
+              return (
+                <button key={c} onClick={() => { onSelect(c); setOpen(false); setSearch(""); }}
+                  title={facts ? `${facts.name} — ${facts.population.toLocaleString()} people · ${facts.landKm2.toLocaleString()} km² · ${facts.density.toLocaleString()}/km²` : undefined}
+                  className={`dropdown-item w-full text-xs ${c === value ? "dropdown-item-active" : ""}`}>
+                  <span className="min-w-0 flex-1 truncate text-left">{c}</span>
+                  {facts && <span className="ml-2 shrink-0 tabular-nums text-[10px] text-stone-500">{fmtPopulation(facts.population)}</span>}
+                  {c === value && <Check size={10} className="ml-1 text-stone-400 shrink-0"/>}
+                </button>
+              );
+            })}
             {filtered.length > 80 && <p className="px-3 py-1 text-[10px] text-stone-700">Type to narrow…</p>}
           </div>
         </PortalDropdown>
