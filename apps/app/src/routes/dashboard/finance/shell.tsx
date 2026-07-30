@@ -40,12 +40,18 @@ export function FinanceShell() {
 
   return (
     <div>
-      <div className="px-4 pt-3 sm:px-6">
+      {/* Bar 2 of the two-bar idiom: the strip IS the page header row. Each page's title is
+          redundant with its active tab, so FinanceHeader folds away and portals the page's
+          primary action into the slot on the right — one hairline row, not three stacked bars. */}
+      <div className="flex items-stretch px-4 sm:px-6">
         <Tabs
+          className="min-w-0"
           items={TABS.map(t => ({ id: t.key, label: t.label, count: countOf(t.type) }))}
           active={active}
           onChange={(id) => { const t = TABS.find(x => x.key === id); if (t) navigate(t.path); }}
         />
+        {/* Same border-b as Tabs, so the hairline runs unbroken under tabs AND actions. */}
+        <div id="finance-shell-actions" className="flex min-w-0 flex-1 items-center justify-end gap-2 border-b border-[var(--border-soft)] pl-3"/>
       </div>
       <Outlet />
     </div>

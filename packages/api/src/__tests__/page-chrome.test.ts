@@ -91,6 +91,24 @@ describe("the slim two-bar idiom (Pass BAR-1)", () => {
     expect(slot).not.toMatch(/rounded-full border/);
   });
 
+  it("the finance shell strip is bar 2: header folds in, action portals to the strip", () => {
+    // Inside the shell the page title duplicates the active tab, so FinanceHeader renders no
+    // header block — it stamps document.title and portals the page action into
+    // #finance-shell-actions. The slot shares Tabs' border-b so the hairline runs unbroken.
+    const shell = app("routes/dashboard/finance/shell.tsx");
+    expect(shell).toMatch(/id="finance-shell-actions"/);
+    expect(shell).toMatch(/border-b border-\[var\(--border-soft\)\]/);
+    const ft = app("components/finance/finance-toolbar.tsx");
+    expect(ft).toMatch(/createPortal\(action \?\? null, slot\)/);
+    expect(ft).toMatch(/document\.title = `\$\{title\} · Mondaily`/);
+    expect(ft).toMatch(/__mdTitledPath/);
+    // the strip actions are canonical solid primaries, not hand-rolled accent tints
+    for (const f of ["invoices", "quotes", "credit-notes", "expenses"]) {
+      const s = app(`routes/dashboard/finance/${f}.tsx`);
+      expect(s, `${f} primary not canonical`).toMatch(/btn-primary h-7 shrink-0/);
+    }
+  });
+
   it("the first adopter group runs the bar with content pulled up", () => {
     // Group 1 (Decisions/Goals/Inbox) verified live 2026-07-30; group 2 (Discovery/Calls/Activity)
     // follows the same contract. Discovery's wrapper differs (flex column shell), so its padding

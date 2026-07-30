@@ -1,4 +1,6 @@
 import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { SegmentedControl } from "@/components/ui/segmented";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -17,9 +19,24 @@ export function FinanceHeader({ icon, callsign, title, subtitle, action }: {
   subtitle?: ReactNode;
   action?: ReactNode;
 }) {
-  // Thin alias over CommandPageHeader. This was a byte-identical COPY of that component minus the
-  // divider, so the two drifted independently and the app had two page-header implementations.
-  // `divider={false}` is the only difference the finance pages ever needed.
+  // FOLDED INTO THE SHELL STRIP (bar 2). Inside the finance shell the page title is redundant —
+  // the active tab already says "Invoices" — so this renders no header block at all: it stamps
+  // document.title and portals the page's primary action into the strip's right-hand slot
+  // (#finance-shell-actions). The slot is looked up AFTER mount because the shell's DOM commits
+  // in the same pass as the page's first render. Outside the shell (no slot found — safety for
+  // any future standalone use) it falls back to the standard header bar unchanged.
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [noShell, setNoShell] = useState(false);
+  useEffect(() => {
+    const el = document.getElementById("finance-shell-actions");
+    if (el) setSlot(el); else setNoShell(true);
+  }, []);
+  useEffect(() => {
+    document.title = `${title} · Mondaily`;
+    (window as unknown as { __mdTitledPath?: string }).__mdTitledPath = window.location.pathname;
+  }, [title]);
+  if (slot) return createPortal(action ?? null, slot);
+  if (!noShell) return null;  // first paint, slot not resolved yet — render nothing, no flash
   return (
     <CommandPageHeader
       icon={icon}

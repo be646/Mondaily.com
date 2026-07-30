@@ -167,7 +167,7 @@ export function InvoicesPage() {
               <button
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending}
-                className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-body font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors disabled:opacity-50"
+                className="btn-primary h-7 shrink-0 gap-2 px-3 text-body font-semibold disabled:opacity-50"
               >
                 <Plus size={13}/> New Invoice
               </button>

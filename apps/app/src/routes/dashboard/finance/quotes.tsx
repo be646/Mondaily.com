@@ -235,7 +235,7 @@ export function QuotesPage() {
         <FinanceHeader icon={ReceiptText} callsign="QUOTES" title="Quotes" subtitle="Manage proposals and client quotes"
           action={
             <button onClick={() => setShowNew(true)}
-              className="flex items-center gap-2 rounded-sm border border-[var(--section-accent-line)] bg-[var(--section-accent-soft)] px-3 py-1.5 text-body font-semibold text-[var(--text-primary)] hover:bg-[color-mix(in_srgb,var(--section-accent)_22%,transparent)] transition-colors">
+              className="btn-primary h-7 shrink-0 gap-2 px-3 text-body font-semibold">
               <Plus size={13}/> New Quote
             </button>
           }
