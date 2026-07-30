@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Crown, ShieldCheck, Users, Zap, AlertTriangle, Activity, Target, X, Plus } from "lucide-react";
+import { Crown, ShieldCheck, Users, Zap, AlertTriangle, Activity, Target, X, Plus, CheckSquare } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { PageSkeleton, ErrorState } from "../../components/ui/page-state";
@@ -27,6 +27,10 @@ interface Console {
   people: { owner: string; closed_count: number; closed_value: number; created_count: number; created_value: number; open_value: number }[];
   members: { user_id: string; name: string | null; email: string | null; role: string }[];
   agents: { rows: { agent: string; auto: number; human: number; pending: number }[]; autonomy_level: string; breaker: { used_last_hour: number; cap: number } };
+  actions: {
+    unassigned_deals: { id: string; name: string; value: number; stage: string }[];
+    pending_decisions: { count: number; top: { id: string; title: string; risk: string; agent: string }[] };
+  };
   pipeline_health: {
     stalled: { count: number; value: number; top: { name: string; value: number; stage: string; days_stale: number }[] };
     on_hold: { count: number; value: number };
@@ -152,6 +156,63 @@ function GoalsSection({ members, cur }: { members: Console["members"]; cur: (v: 
   );
 }
 
+/**
+ * Assignments & Actions — the cross-app pending-work queue, each row carrying its verb.
+ * Approve/Reject call the SAME decision endpoints the Decisions page uses; Assign goes through
+ * /owner/assign-deal, which merges server-side (a raw PATCH /nodes would replace `data` wholesale
+ * and destroy the deal). Nothing here is a new capability — only existing verbs, surfaced.
+ */
+function ActionsSection({ actions, members, cur }: { actions: Console["actions"]; members: Console["members"]; cur: (v: number) => string }) {
+  const qc = useQueryClient();
+  const refresh = () => { qc.invalidateQueries({ queryKey: ["owner-console"] }); qc.invalidateQueries({ queryKey: ["decisions"] }); };
+  const decide = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: "approve" | "reject" }) => apiClient.post(`/decisions/${id}/${action}`, {}),
+    onSuccess: refresh,
+  });
+  const assign = useMutation({
+    mutationFn: ({ id, owner }: { id: string; owner: string }) => apiClient.post("/owner/assign-deal", { node_id: id, owner }),
+    onSuccess: refresh,
+  });
+  const RISK: Record<string, string> = { high: "#d1524a", medium: "#c6892e", low: "#717784" };
+  const hasWork = actions.pending_decisions.count > 0 || actions.unassigned_deals.length > 0;
+
+  return (
+    <>
+      <SectionLabel icon={CheckSquare}>Assignments & actions{actions.pending_decisions.count > 0 ? ` — ${actions.pending_decisions.count} pending` : ""}</SectionLabel>
+      <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+        {!hasWork && <div className="px-4 py-3 text-[12px] text-[var(--text-muted)]">Nothing waiting — decisions are resolved and every open deal has an owner.</div>}
+
+        {actions.pending_decisions.top.map(d => (
+          <div key={d.id} className="flex items-center gap-3 border-b px-4 py-2 last:border-0" style={{ borderColor: "var(--border-soft)" }}>
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: RISK[d.risk] ?? "#717784" }} />
+            <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--text-primary)]">{d.title}</span>
+            <span className="shrink-0 text-[10px] capitalize text-[var(--text-faint)]">{String(d.agent ?? "").replace(/_/g, " ")}</span>
+            <span className="flex shrink-0 gap-1">
+              <button onClick={() => decide.mutate({ id: d.id, action: "approve" })} disabled={decide.isPending}
+                className="rounded-sm border px-2 py-0.5 text-[10.5px] font-medium transition-colors hover:border-[#2f9e6b] disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "#2f9e6b" }}>Approve</button>
+              <button onClick={() => decide.mutate({ id: d.id, action: "reject" })} disabled={decide.isPending}
+                className="rounded-sm border px-2 py-0.5 text-[10.5px] transition-colors hover:border-[#d1524a] disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)" }}>Reject</button>
+            </span>
+          </div>
+        ))}
+
+        {actions.unassigned_deals.map(d => (
+          <div key={d.id} className="flex items-center gap-3 border-b px-4 py-2 last:border-0" style={{ borderColor: "var(--border-soft)", background: "color-mix(in srgb, var(--section-accent) 3%, transparent)" }}>
+            <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--text-primary)]">{d.name} <span className="text-[var(--text-faint)]">· {d.stage || "no stage"} · unassigned</span></span>
+            <span className="shrink-0 text-[11.5px] tabular-nums font-medium text-[var(--text-primary)]">{cur(d.value)}</span>
+            <select defaultValue="" disabled={assign.isPending}
+              onChange={e => { if (e.target.value) assign.mutate({ id: d.id, owner: e.target.value }); }}
+              className="shrink-0 rounded-sm border bg-transparent px-1.5 py-0.5 text-[10.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+              <option value="" disabled>Assign to…</option>
+              {members.filter(mb => mb.name).map(mb => <option key={mb.user_id} value={mb.name!}>{mb.name}</option>)}
+            </select>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 const cell = "px-3 py-2 text-[12px]";
 const th = "px-3 py-1.5 text-left text-[10.5px] font-medium text-[var(--text-muted)] first-letter:uppercase";
 
@@ -217,6 +278,8 @@ export function OwnerConsolePage() {
       )}
 
       <GoalsSection members={data.members} cur={cur} />
+
+      <ActionsSection actions={data.actions} members={data.members} cur={cur} />
 
       {/* People — money facts per member, no invented scores */}
       <SectionLabel icon={Users}>People — who is closing</SectionLabel>

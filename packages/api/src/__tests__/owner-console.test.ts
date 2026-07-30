@@ -42,10 +42,13 @@ describe("the console borrows the money model, gated, bounded", () => {
     }
     expect(owner).toMatch(/from "\.\.\/lib\/money"/);
   });
-  it("reads nodes only through pagedNodes", () => {
+  it("AGGREGATION reads nodes only through pagedNodes", () => {
     expect(owner).toMatch(/pagedNodes\(ws, \{ eq: "invoice" \}\)/);
     expect(owner).toMatch(/pagedNodes\(ws, \{ ilike: "%deal%" \}\)/);
-    expect(owner).not.toMatch(/from\("nodes"\)/);
+    // Scoped to the /console handler: assign-deal below it legitimately reads ONE node by id.
+    // The original whole-file version of this guard was right until that endpoint existed.
+    const consoleHandler = owner.slice(owner.indexOf('router.get("/console"'), owner.indexOf('router.post("/assign-deal"'));
+    expect(consoleHandler).not.toMatch(/from\("nodes"\)/);
   });
   it("surfaces the circuit breaker's live state", () => {
     expect(owner).toMatch(/AUTONOMY_HOURLY_CAP/);
@@ -91,5 +94,33 @@ describe("money goal metrics — the owner's targets speak the money model's lan
   it("pace is deterministic thresholds on a fully-elapsed rolling window", () => {
     expect(activities).toMatch(/>= 100 \? "ahead"/);
     expect(activities).toMatch(/>= 70 \? "on"/);
+  });
+});
+
+describe("assignments & actions — verbs without new capabilities", () => {
+  const ownerSrc = readFileSync(join(__dirname, "../routes/owner.ts"), "utf8");
+  const page = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/owner-console.tsx"), "utf8");
+
+  it("assign-deal merges server-side — a raw node PATCH would erase the deal", () => {
+    // updateNode/PATCH /nodes replaces `data` wholesale; assigning with a partial body through it
+    // destroys every other field. The endpoint must read-merge-write and touch only deal_owner.
+    expect(ownerSrc).toMatch(/const merged = \{ \.\.\.\(\(node\.data as Record<string, unknown>\) \?\? \{\}\), deal_owner: ownerName \}/);
+    expect(ownerSrc).toMatch(/router\.post\("\/assign-deal", requireAdminRole/);
+    // and it refuses non-deals, so the console can never rename a person's owner field by mistake
+    expect(ownerSrc).toMatch(/if \(!String\(node\.object_type \?\? ""\)\.toLowerCase\(\)\.includes\("deal"\)\)/);
+  });
+
+  it("assignment is audited on the deal's own timeline", () => {
+    expect(ownerSrc).toMatch(/diff: \{ assigned_owner: ownerName, via: "owner_console" \}/);
+  });
+
+  it("unassigned queue is OPEN deals only, ranked by value", () => {
+    expect(ownerSrc).toMatch(/isOpen\(dealStage\(r\.data\)\) && !dealOwner\(r\.data\)/);
+  });
+
+  it("the page reuses the decisions endpoints — no parallel approval path", () => {
+    expect(page).toMatch(/apiClient\.post\(`\/decisions\/\$\{id\}\/\$\{action\}`/);
+    expect(page).toMatch(/apiClient\.post\("\/owner\/assign-deal"/);
+    expect(page).not.toMatch(/apiClient\.patch\(`\/nodes/);   // the wholesale-replace trap stays out
   });
 });

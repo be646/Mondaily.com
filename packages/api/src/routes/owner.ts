@@ -48,13 +48,13 @@ router.get("/console", requireAdminRole, async (c) => {
   const prev = prevMonthSamePoint();
   const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString();
 
-  const [invoices, deals, conv, members, decisions7d, pending, level, hourUsed, recentActs] = await Promise.all([
+  const [invoices, deals, conv, members, decisions7d, pendingR, level, hourUsed, recentActs] = await Promise.all([
     pagedNodes(ws, { eq: "invoice" }),
     pagedNodes(ws, { ilike: "%deal%" }),
     makeBaseConverter(ws),
     supabase.from("workspace_members").select("user_id, name, email, role").eq("workspace_id", ws).limit(200),
     supabase.from("decision_queue").select("agent_name, status, resolved_by").eq("workspace_id", ws).gte("created_at", weekAgo).limit(1000),
-    supabase.from("decision_queue").select("id", { count: "exact", head: true }).eq("workspace_id", ws).eq("status", "pending"),
+    supabase.from("decision_queue").select("id,title,risk_level,agent_name").eq("workspace_id", ws).eq("status", "pending").order("created_at", { ascending: true }).limit(500),
     readAutonomy(ws),
     autonomyUsageLastHour(ws),
     supabase.from("activities").select("action, actor_id, diff, created_at").eq("workspace_id", ws).order("created_at", { ascending: false }).limit(200),
@@ -101,6 +101,16 @@ router.get("/console", requireAdminRole, async (c) => {
   }
   const agents = [...agentRows].map(([agent, b]) => ({ agent, ...b })).sort((a, b) => (b.auto + b.human + b.pending) - (a.auto + a.human + a.pending));
 
+  // ── 4b. Actions — the cross-app pending-work queue, each row carrying its verb ──
+  // Unassigned OPEN deals ranked by value: ownership gaps are where money quietly stalls (the
+  // duplicate-records saga started as an ownership gap). Assign happens through /owner/assign-deal
+  // below — NEVER a raw PATCH /nodes, which replaces `data` wholesale and would destroy the deal.
+  const unassigned = deals
+    .filter(r => isOpen(dealStage(r.data)) && !dealOwner(r.data))
+    .map(r => ({ id: r.id, name: String((r.data ?? {}).name ?? "Untitled"), value: dealValue(r.data), stage: dealStage(r.data) }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
+
   // ── 4. Pipeline health — stalled + on-hold, the money going cold ──
   const stalled = stalledDeals(deals);
   const onHold = deals.filter(r => /hold/i.test(dealStage(r.data)));
@@ -132,12 +142,54 @@ router.get("/console", requireAdminRole, async (c) => {
       autonomy_level: level,
       breaker: { used_last_hour: hourUsed, cap: AUTONOMY_HOURLY_CAP },
     },
+    actions: {
+      unassigned_deals: unassigned.map(d => ({ ...d, value: r2(d.value) })),
+      pending_decisions: {
+        count: (pendingR.data ?? []).length,
+        // Highest-risk first — the ones a human must actually look at.
+        top: [...(pendingR.data ?? [])]
+          .sort((a, b) => (a.risk_level === "high" ? 0 : a.risk_level === "medium" ? 1 : 2) - (b.risk_level === "high" ? 0 : b.risk_level === "medium" ? 1 : 2))
+          .slice(0, 6)
+          .map(d => ({ id: d.id, title: d.title, risk: d.risk_level, agent: d.agent_name })),
+      },
+    },
     pipeline_health: {
       stalled,
       on_hold: { count: onHold.length, value: r2(onHold.reduce((s, r) => s + dealValue(r.data), 0)) },
     },
     audit,
   });
+});
+
+/**
+ * POST /owner/assign-deal — set a deal's owner, safely.
+ *
+ * Exists because PATCH /nodes/:id REPLACES `data` wholesale: assigning an owner through it with a
+ * partial body would silently erase every other field on the deal. This endpoint does the
+ * read-merge-write on the server, only touches deal_owner, verifies the node is actually a deal in
+ * this workspace, and writes an audit activity naming who assigned whom.
+ */
+router.post("/assign-deal", requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const body = await c.req.json().catch(() => ({})) as { node_id?: string; owner?: string };
+  const nodeId = String(body.node_id ?? "");
+  const ownerName = String(body.owner ?? "").trim().slice(0, 120);
+  if (!nodeId || !ownerName) return c.json({ error: "node_id and owner are required." }, 400);
+
+  const { data: node } = await supabase.from("nodes").select("id, object_type, data").eq("workspace_id", ws).eq("id", nodeId).maybeSingle();
+  if (!node) return c.json({ error: "Deal not found." }, 404);
+  if (!String(node.object_type ?? "").toLowerCase().includes("deal")) return c.json({ error: "Not a deal." }, 400);
+
+  const merged = { ...((node.data as Record<string, unknown>) ?? {}), deal_owner: ownerName };
+  const { error } = await supabase.from("nodes").update({ data: merged, updated_at: new Date().toISOString() }).eq("workspace_id", ws).eq("id", nodeId);
+  if (error) return c.json({ error: error.message }, 500);
+
+  const { error: auditErr } = await supabase.from("activities").insert({
+    node_id: nodeId, workspace_id: ws, actor_type: "human", actor_id: c.get("userId"), action: "updated",
+    diff: { assigned_owner: ownerName, via: "owner_console" },
+  });
+  if (auditErr) console.warn("[owner] assign audit failed:", auditErr.message);
+  return c.json({ ok: true, owner: ownerName });
 });
 
 export { router as ownerRouter };
