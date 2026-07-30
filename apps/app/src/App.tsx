@@ -63,6 +63,7 @@ const AskMondailySettings = lazy(() => import("./routes/dashboard/settings/ask-m
 const AIControlRoomSettings = lazy(() => import("./routes/dashboard/settings/ai-control-room").then(m => ({ default: m.AIControlRoomSettings })));
 const ListPage = lazy(() => import("./routes/dashboard/lists/[listId]").then(m => ({ default: m.ListPage })));
 const SearchPage = lazy(() => import("./routes/dashboard/search").then(m => ({ default: m.SearchPage })));
+const FinanceShell = lazy(() => import("./routes/dashboard/finance/shell").then(m => ({ default: m.FinanceShell })));
 const InvoicesPage = lazy(() => import("./routes/dashboard/finance/invoices").then(m => ({ default: m.InvoicesPage })));
 const InvoiceDetailPage = lazy(() => import("./routes/dashboard/finance/[invoiceId]").then(m => ({ default: m.InvoiceDetailPage })));
 const CreditNotesPage = lazy(() => import("./routes/dashboard/finance/credit-notes").then(m => ({ default: m.CreditNotesPage })));
@@ -173,14 +174,20 @@ export function App() {
         <Route path="canvas" element={<CanvasPage />} />
         <Route path="lists/:listId" element={<ListPage />} />
         <Route path="search" element={<SearchPage />} />
-        <Route path="finance/invoices" element={<InvoicesPage />} />
-        <Route path="finance/invoices/:invoiceId" element={<InvoiceDetailPage />} />
-        <Route path="finance/credit-notes" element={<CreditNotesPage />} />
-        <Route path="finance/credit-notes/:creditNoteId" element={<CreditNoteDetailPage />} />
-        <Route path="finance/reports" element={<FinanceReportsPage />} />
-        <Route path="finance/quotes" element={<QuotesPage />} />
-        <Route path="finance/expenses" element={<ExpensesPage />} />
-        <Route path="approvals" element={<ApprovalsPage />} />
+        {/* Finance — ONE tab shell over six surfaces. The pages are unchanged; the shell adds the
+            strip and the URL space. /approvals redirects in so old links keep working. */}
+        <Route path="finance" element={<FinanceShell />}>
+          <Route index element={<Navigate to="/finance/invoices" replace />} />
+          <Route path="invoices" element={<InvoicesPage />} />
+          <Route path="invoices/:invoiceId" element={<InvoiceDetailPage />} />
+          <Route path="credit-notes" element={<CreditNotesPage />} />
+          <Route path="credit-notes/:creditNoteId" element={<CreditNoteDetailPage />} />
+          <Route path="reports" element={<FinanceReportsPage />} />
+          <Route path="quotes" element={<QuotesPage />} />
+          <Route path="expenses" element={<ExpensesPage />} />
+          <Route path="approvals" element={<ApprovalsPage />} />
+        </Route>
+        <Route path="approvals" element={<Navigate to="/finance/approvals" replace />} />
         <Route path="decisions" element={<DecisionsPage />} />
         <Route path="discovery" element={<DiscoveryPage />} />
         {/* Mondaily-internal (PLATFORM_ADMIN_EMAILS): page self-gates via the capability probe; API is hard-gated. */}

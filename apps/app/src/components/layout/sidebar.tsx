@@ -56,15 +56,11 @@ const WORKSPACE_NAV: NavEntry[] = [
   { to: "/console", label: "Owner Console", icon: Crown },
 ];
 
-// ─── Finance — the one genuinely large set, so it stays a collapsible group.
-// Only rendered when the Finance module is on. (Reports lives in the primary nav.)
+// ─── Finance — merged into ONE entry: the /finance tab shell carries Invoices, Quotes,
+// Credit notes, Expenses, Reports and Approvals as tabs with live counts. Six sidebar links
+// became one; nothing was removed — the surfaces moved behind the strip.
 const FINANCE_NAV: NavEntry[] = [
-  { to: "/finance/invoices",     label: "Invoices",        icon: Receipt,       tint: "#a3946b" }, // gold
-  { to: "/finance/credit-notes", label: "Credit Notes",    icon: ReceiptText,   tint: "#9c8478" }, // clay
-  { to: "/finance/quotes",       label: "Quotes",          icon: FileSignature, tint: "#7f93b0" }, // slate
-  { to: "/finance/expenses",     label: "Expenses",        icon: Wallet,        tint: "#84a37f" }, // sage
-  { to: "/finance/reports",      label: "Finance Reports", icon: TrendingUp,    tint: "#6f9aa3" }, // cyan
-  { to: "/approvals",            label: "Approvals",       icon: ShieldCheck,   tint: "#8a86b8" }, // indigo
+  { to: "/finance/invoices", label: "Finance", icon: Receipt, tint: "#a3946b" },
 ];
 
 // ─── Getting Started checklist ────────────────────────────────────────────────
@@ -597,10 +593,8 @@ export function Sidebar({ onMobileClose }: { onMobileClose?: () => void } = {}) 
               </>
             )}
 
-          {/* Finance — the one large set, collapsible, only when the module is on */}
-          {!collapsed && hasFinance && (
-            <NavGroup label="Finance" items={FINANCE_NAV} unreadCount={unreadCount}/>
-          )}
+          {/* Finance — one entry; the /finance tab shell fans out to the six surfaces */}
+          {!collapsed && hasFinance && FINANCE_NAV.map(item => <NavItem key={item.to} {...item} collapsed={false}/>)}
 
           {/* Workspace — daily surfaces + Team Oversight */}
           {collapsed
