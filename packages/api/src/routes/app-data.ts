@@ -707,7 +707,13 @@ function pluralize(word: string): string {
   if (/(s|x|z|ch|sh)$/i.test(w)) return w + "es";
   return w + "s";
 }
-const ATTR_TYPES = ["text", "number", "date", "datetime", "select", "multi_select", "relation", "currency", "percentage", "url", "email", "phone", "checkbox", "long_text"] as const;
+// Full column-type vocabulary — INCLUDING the sheet's display presets (status/stage/assignee/
+// owner/tag/category/country/record_id/finance_*). These were missing, so adding e.g. a Country
+// column 400'd here, the type never persisted to object_definitions, and every other device fell
+// back to name-inference — country cells rendering through the generic (number-formatting) path.
+// Same silent-degradation class as the AI-builder currency/percentage fix (5dd41e1d).
+const ATTR_TYPES = ["text", "number", "date", "datetime", "select", "multi_select", "relation", "currency", "percentage", "url", "email", "phone", "checkbox", "long_text",
+  "status", "stage", "assignee", "owner", "tag", "category", "country", "record_id", "finance_billed", "finance_outstanding"] as const;
 router.post("/settings/objects", zValidator("json", z.object({
   name: z.string().min(1),                 // singular (kept for back-compat with older callers)
   singular: z.string().min(1).optional(),

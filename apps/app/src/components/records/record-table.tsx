@@ -1792,7 +1792,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   // carry a real type enum (currency/percentage/checkbox/date/…). We map each attribute → its data
   // key via the same normalization the create form uses (lower + spaces→underscore). An explicit
   // local preset (customCols) still overrides; name inference remains the final fallback.
-  const { data: objectDefsForTypes = [] } = useQuery<{ slug: string; attributes?: { name: string; type?: string; options?: string[] }[] }[]>({
+  const { data: objectDefsForTypes = [] } = useQuery<{ id: string; slug: string; attributes?: { name: string; type?: string; options?: string[] }[] }[]>({
     queryKey: ["object-defs"],
     queryFn: () => apiClient.get("/objects"),
     staleTime: 60_000,
@@ -3178,7 +3178,21 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                 </button>
                 {openPanel === "addcol" && (
                   <AddColumnDropdown
-                    onAdd={(key, type, meta) => { saveCustomCols([...customCols, { key, type, ...(meta ? { meta } : {}) }]); setOpenPanel(null); }}
+                    onAdd={(key, type, meta) => {
+                      saveCustomCols([...customCols, { key, type, ...(meta ? { meta } : {}) }]);
+                      // ALSO persist the type to object_definitions — the server type is what other
+                      // devices and teammates resolve through effectiveType(). localStorage alone made
+                      // every column type this-browser-only, which is how a Country column rendered
+                      // as generic (number-formatted) text everywhere else. Fire-and-forget: the local
+                      // preset already applies here; the server copy is for everyone else.
+                      const def = objectDefsForTypes.find(o => o.slug === objectType);
+                      if (def?.id && !serverAttrType.has(key)) {
+                        apiClient.post(`/settings/objects/${def.id}/attributes`, { name: key, type })
+                          .then(() => qc.invalidateQueries({ queryKey: ["object-defs"] }))
+                          .catch(err => console.warn("[columns] could not persist column type to the schema:", err));
+                      }
+                      setOpenPanel(null);
+                    }}
                     onClose={() => setOpenPanel(null)}
                     triggerRef={addColHeaderRef}
                     existingCols={allColumnsWithCustom}
