@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Circle, CalendarClock, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { FieldSelect, CommandPageHeader } from "../../components/ui/controls";
+import { SegmentedControl } from "../../components/ui/segmented";
 import { MEETING_TYPES, MEETING_TYPE_META, type MeetingType } from "@mondaily/shared/meeting-types";
 import { EmptyState as SharedEmptyState, ErrorState, DelayedLoading, PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
@@ -343,15 +344,14 @@ export function CalendarPage() {
             </div>
           )}
         </div>
-        <div className="inline-flex h-7 shrink-0 items-center rounded-lg border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
-          {tabs.map(tab => (
-            <button key={tab.k} onClick={() => setView(tab.k)}
-              className="flex h-full items-center rounded-md px-2.5 text-[12px] font-medium transition-colors"
-              style={view === tab.k ? { background: "var(--surface-card)", color: "var(--text-primary)", boxShadow: "0 1px 2px rgba(0,0,0,0.18)" } : { color: "var(--text-muted)" }}>
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {/* The shared SegmentedControl — second adopter after the finance status filter. This was
+            a hand-rolled copy of the identical pill pattern; same classes, one implementation. */}
+        <SegmentedControl
+          segments={tabs.map(tab => ({ key: tab.k, label: tab.label }))}
+          active={view}
+          onChange={(k) => setView(k as ViewMode)}
+          className="shrink-0"
+        />
       </div>
 
       {/* Today intelligence strip — real data only, no fabricated scores/conflicts. */}

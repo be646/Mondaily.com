@@ -1892,10 +1892,11 @@ describe("Calendar compact headline + smart control rail (Pass CAL-R)", () => {
     expect(C).toMatch(/onClick=\{\(\) => shift\(-1\)\}/);
     expect(C).toMatch(/onClick=\{\(\) => shift\(1\)\}/);
     expect(C).toMatch(/\{rangeLabel\}/);
-    // premium segmented filter (rounded-lg track, rounded-md buttons, active on surface-card + shadow)
-    expect(C).toMatch(/inline-flex h-7 shrink-0 items-center rounded-lg border p-0\.5/);
-    expect(C).toMatch(/flex h-full items-center rounded-md px-2\.5 text-\[12px\] font-medium transition-colors/);
-    expect(C).toMatch(/boxShadow: "0 1px 2px rgba\(0,0,0,0\.18\)"/);
+    // The premium segmented filter is now the SHARED SegmentedControl — same visual recipe
+    // (rounded-lg track, active on surface-card + shadow) but one implementation; the hand-rolled
+    // pill copy this guard used to pin is deliberately gone.
+    expect(C).toMatch(/<SegmentedControl/);
+    expect(C).not.toMatch(/view === tab\.k \? \{ background: "var\(--surface-card\)"/);
     // New meeting is the header primary action
     expect(C).toMatch(/onClick=\{openCreate\} className="flex h-7 shrink-0 items-center gap-1\.5 rounded-sm border px-3 text-\[12px\] font-semibold/);
     // the old bloated/separate toolbar variants are gone

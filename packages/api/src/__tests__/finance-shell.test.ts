@@ -116,3 +116,11 @@ describe("team oversight speaks the app's one label idiom", () => {
     // data labels inside tiles/chips (period sublabel, signal level) legitimately remain
   });
 });
+
+describe("calendar view switch is the shared control", () => {
+  const cal = app("routes/dashboard/calendar.tsx");
+  it("uses SegmentedControl — the hand-rolled pill copy is gone", () => {
+    expect(cal).toMatch(/<SegmentedControl/);
+    expect(cal).not.toMatch(/view === tab\.k \? \{ background: "var\(--surface-card\)"/);
+  });
+});
