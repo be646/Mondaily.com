@@ -153,7 +153,7 @@ export function StatusPage() {
   const logUnavailable = log && !log.available;
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-10">
+    <div className="mx-auto max-w-5xl px-6 pt-2 pb-10">
       <CommandPageHeader
         variant="bar" icon={CheckCircle2} callsign="READINESS" title="Workspace Readiness" subtitle="What's real today, what changed recently, and what's next — every row audited against the live code." />
 
