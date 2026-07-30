@@ -195,3 +195,41 @@ export async function sovereignRelayStatus(): Promise<{ configured: boolean; rea
     clearTimeout(timer);
   }
 }
+
+/**
+ * Recordings-bucket usage — the readiness inspector's storage probe. Lives beside the other
+ * appliance probes for the same reason sovereignRelayStatus does: readiness may not call fetch or
+ * read env values itself.
+ *
+ * Supabase exposes no total-usage API to the service client, so this WALKS the meeting-recordings
+ * bucket (the only uncapped-growth bucket — attachments are 10MB-capped) and sums file sizes, one
+ * folder level deep, bounded at 2000 objects. Past the bound it reports `partial: true` rather than
+ * pretending the sum is the total — an understated storage number is how limits sneak up.
+ */
+export async function recordingsStorageUsage(): Promise<{ bytes: number; files: number; partial: boolean; checkable: boolean }> {
+  try {
+    const BUCKET = "meeting-recordings";
+    const CAP = 2000;
+    let bytes = 0, files = 0, partial = false;
+    const { data: top, error } = await supabase.storage.from(BUCKET).list("", { limit: 1000 });
+    if (error) return { bytes: 0, files: 0, partial: false, checkable: false };
+    const folders: string[] = [];
+    for (const e of top ?? []) {
+      const size = (e.metadata as { size?: number } | null)?.size;
+      if (typeof size === "number") { bytes += size; files++; }
+      else folders.push(e.name);   // no metadata → a folder
+    }
+    for (const f of folders) {
+      if (files >= CAP) { partial = true; break; }
+      const { data: inner } = await supabase.storage.from(BUCKET).list(f, { limit: 1000 });
+      for (const e of inner ?? []) {
+        const size = (e.metadata as { size?: number } | null)?.size;
+        if (typeof size === "number") { bytes += size; files++; }
+      }
+      if ((inner ?? []).length === 1000) partial = true;   // folder itself truncated
+    }
+    return { bytes, files, partial, checkable: true };
+  } catch {
+    return { bytes: 0, files: 0, partial: false, checkable: false };
+  }
+}

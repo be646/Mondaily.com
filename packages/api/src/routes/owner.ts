@@ -218,40 +218,12 @@ export function deterministicMemo(p: Awaited<ReturnType<typeof buildConsolePaylo
   return lines.join("\n");
 }
 
-/** Every finite number in a payload, recursively — the set a grounded memo may draw from. */
-export function numbersIn(x: unknown, out: Set<number> = new Set()): Set<number> {
-  if (typeof x === "number" && Number.isFinite(x)) out.add(Math.abs(x));
-  else if (Array.isArray(x)) for (const v of x) numbersIn(v, out);
-  else if (x && typeof x === "object") for (const v of Object.values(x)) numbersIn(v, out);
-  return out;
-}
-
-/**
- * The grounding validator. The first live memo proved prompt rules alone don't hold: the model
- * converted 368,516 PLN to "85,393.7 EUR" by itself (computing was explicitly forbidden), wrote
- * EUR against a PLN workspace, and narrated a percentage delta as an amount. So the memo is now
- * CHECKED, not trusted: every number above 100 must exist in the payload (0.5% tolerance for the
- * model's rounding), and no foreign currency may appear. Any violation → the deterministic memo
- * ships instead. Numbers ≤100 are exempt: small counts and percentages are unverifiable noise, and
- * rejecting "3 paragraphs" would make the validator cry wolf.
- */
+// Grounding validation moved to lib/grounding — the ONE validator, shared with oversight insight.
+// Re-exported here so existing behavioural tests keep their import path.
+import { numbersIn as groundingNumbersIn, groundingViolations } from "../lib/grounding";
+export const numbersIn = groundingNumbersIn;
 export function memoViolations(memo: string, payload: unknown, base: string): string[] {
-  const violations: string[] = [];
-  const KNOWN = ["EUR", "USD", "GBP", "CHF", "PLN", "AED", "SAR"];
-  const foreign = KNOWN.filter(code => code !== base && new RegExp(`\\b${code}\\b`).test(memo));
-  for (const [sym, code] of [["€", "EUR"], ["$", "USD"], ["£", "GBP"]] as const) {
-    if (memo.includes(sym) && code !== base) foreign.push(code);
-  }
-  if (foreign.length) violations.push(`foreign currency: ${[...new Set(foreign)].join(", ")}`);
-
-  const allowed = numbersIn(payload);
-  for (const m of memo.matchAll(/\d[\d,. ]*\d|\d/g)) {
-    const n = parseFloat(m[0].replace(/[ ,]/g, ""));
-    if (!Number.isFinite(n) || n <= 100) continue;
-    const grounded = [...allowed].some(a => Math.abs(a - n) <= Math.max(0.5, a * 0.005));
-    if (!grounded) violations.push(`ungrounded number: ${m[0].trim()}`);
-  }
-  return violations;
+  return groundingViolations(memo, payload, { base });
 }
 
 /**

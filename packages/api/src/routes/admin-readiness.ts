@@ -4,7 +4,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { liveKitEnabled, recordingEnabled, transcriptionEnabled, livekitSelfTest } from "../lib/livekit";
 import { isEmbeddingsEnabled } from "../lib/embeddings";
-import { sendTransactionalEmail, sovereignRelayStatus } from "../lib/mail";
+import { sendTransactionalEmail, sovereignRelayStatus, recordingsStorageUsage } from "../lib/mail";
 import { RECORDINGS_BUCKET } from "../jobs/meeting-memory";
 
 type Variables = { userId: string; workspaceId: string; role: string };
@@ -75,6 +75,10 @@ router.get("/readiness", async (c) => {
   // never throws) so this route keeps reading env only through `has()` and holds no fetch of its
   // own — both properties this endpoint's guards enforce.
   const relay = await sovereignRelayStatus();
+  // Storage: the recordings bucket is the only uncapped-growth store (attachments are 10MB-capped).
+  // Reported as measured bytes, flagged partial when the walk hit its bound — never an undercount
+  // presented as a total. The 5GB free-plan scare of 2026-07-30 is why this row exists.
+  const storage = await recordingsStorageUsage();
   const sovereign_mail_reachable = relay.reachable;
   const sovereign_mail_checkable = relay.checkable;
 
@@ -110,6 +114,10 @@ router.get("/readiness", async (c) => {
       // exactly when something is wrong, which is the case worth surfacing.
       sovereign_mail_reachable,
       sovereign_mail_checkable,
+      recordings_storage_bytes: storage.bytes,
+      recordings_storage_files: storage.files,
+      recordings_storage_partial: storage.partial,
+      recordings_storage_checkable: storage.checkable,
       livekit_configured,
       native_recording_enabled,
       recording_bucket_ready,

@@ -5,6 +5,7 @@ import { supabase } from "@mondaily/db/client";
 import { verifiedPowUserIds } from "../lib/pow-claims";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { workQuality, aggregateDeals, dailyTrend, evaluationLabel, dealStageClass, avgTaskLeadDays, avgDecisionCycleHours, collaborationEdges, isGoalMetric, goalAttainmentPct, TEAM_ONLY_GOAL_METRICS, type DealNode, type TaskTiming, type DecisionTiming } from "../lib/oversight-metrics";
+import { groundingViolations } from "../lib/grounding";
 import { pagedNodes as pagedMoneyNodes, closedWonIn, invoiceMetrics, dealOwner as moneyDealOwner, isWon as moneyIsWon, dealStage as moneyDealStage, wonDate as moneyWonDate, dealValue as moneyDealValue } from "../lib/money";
 import { makeBaseConverter } from "../lib/currency-store";
 import { isOverdue } from "@mondaily/shared/dates";
@@ -385,7 +386,15 @@ router.post("/member-insight", requireAuth, requireAdminRole, async (c) => {
 
   try {
     const { text } = await aiGateway({ system, prompt: digest, maxTokens: 240, workspaceId: ws, userId: c.get("userId"), feature: "oversight_insight" });
-    const insight = (text || "").trim();
+    let insight = (text || "").trim();
+    // CHECKED, not trusted — same validator as the Owner Memo: every number above 100 in the prose
+    // must exist in the digest it was given. A member summary that invents a token count or task
+    // total is worse than no summary.
+    const violations = groundingViolations(insight, digest);
+    if (insight && violations.length) {
+      console.warn("[oversight_insight] rejected — not grounded:", violations.slice(0, 3));
+      insight = "";
+    }
     return c.json({ insight: insight || "I don't have enough tracked activity for this member yet.", sources, sufficient: true });
   } catch {
     return c.json({ insight: "The AI service is unavailable right now — please try again in a moment.", sources, sufficient: true });

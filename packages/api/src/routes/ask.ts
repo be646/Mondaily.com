@@ -1934,7 +1934,7 @@ router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object
       const messages: any[] = [...priorTurns, { role: "user", content: message }];
       const sources: SourceMeta[] = [];
 
-      const { reply: agentReply, usage } = await aiGatewayAgentStream({
+      const { reply: agentReply, usage, provider: streamProvider } = await aiGatewayAgentStream({
         system: systemPrompt,
         tools: selectTools(message, history),
         messages,
@@ -1977,7 +1977,10 @@ router.post("/stream", requireAuth, verifyAiCredits, zValidator("json", z.object
 
       // Usage telemetry recorded centrally inside the gateway (recordAiUsage).
 
-      await safeWrite({ type: "done", reply, suggestions, sources: dedupedSources, usage, memory: { used: memory.used, refs: memory.refs } });
+      // provider "none" = the gateway exhausted its retries and the reply is the graceful fallback,
+      // not an answer. The non-streaming path already carries this; the stream's done frame must
+      // too, or the chat UI shows an outage as a normal reply.
+      await safeWrite({ type: "done", reply, suggestions, sources: dedupedSources, usage, degraded: streamProvider === "none", memory: { used: memory.used, refs: memory.refs } });
       await writeChain;
     } catch (err: any) {
       console.error("[ask:stream] error:", err?.message ?? err);

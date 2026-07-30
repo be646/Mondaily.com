@@ -348,11 +348,17 @@ describe("decorative palettes were NOT migrated as status (semantic honesty)", (
   it("record-detail avatar/category palette + ask-mondaily ACCENTS + expense-category colours stay hex, no status utils", () => {
     for (const f of [
       "apps/app/src/components/records/record-detail.tsx",
-      "apps/app/src/components/ai/ask-mondaily.tsx",
       "apps/app/src/routes/dashboard/finance/expenses.tsx",
     ]) {
       expect(read(f)).not.toMatch(/-status-(ok|warn|error|neutral)\b/);
     }
+    // ask-mondaily now legitimately uses --status-warn for the DEGRADED badge — a real state,
+    // which is exactly what status tokens are for. The decorative ban is scoped to the ACCENTS
+    // palette, which must stay identity-keyed hex.
+    const chat = read("apps/app/src/components/ai/ask-mondaily.tsx");
+    const accentsStart = chat.indexOf("ACCENTS");
+    expect(accentsStart).toBeGreaterThanOrEqual(0);
+    expect(chat.slice(accentsStart, accentsStart + 800)).not.toMatch(/-status-(ok|warn|error|neutral)\b/);
   });
 });
 

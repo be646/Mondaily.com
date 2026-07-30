@@ -384,6 +384,13 @@ export function AskMondaily() {
                         answer directly beneath the sources and before the action buttons. Only shown
                         when source-backed remembered facts were actually injected (honest: absent
                         when none used). */}
+                    {/* Degraded = the gateway exhausted retries and this text is the graceful
+                        fallback, NOT an answer. Badging it keeps an outage from reading as a reply. */}
+                    {!isStreaming && meta?.degraded && (
+                      <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-sm border px-2 py-1 text-[10.5px]" style={{ borderColor: "rgb(var(--status-warn-rgb) / 0.35)", color: "var(--status-warn)" }}>
+                        AI service unavailable — this is a fallback notice, not an answer. Try again shortly.
+                      </div>
+                    )}
                     {!isStreaming && meta?.memory && meta.memory.used > 0 && (
                       <div className="mt-1.5 pl-4 text-[11px]" style={{ color: "var(--text-faint)" }}>
                         Used {meta.memory.used} remembered fact{meta.memory.used !== 1 ? "s" : ""}: {meta.memory.refs.map((r) => r.split(":").map((p, i) => i === 1 ? p.slice(0, 8) : p).join(":")).join(", ")}
