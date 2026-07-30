@@ -190,3 +190,39 @@ describe("chain-of-thought never ships as an answer", () => {
     expect(src2).toMatch(/maxTokens: 2500/);
   });
 });
+
+describe("the grounding validator — the memo is checked, not trusted", () => {
+  // The exact failure from the first live AI memo, as the regression fixture.
+  const payload = { base: "PLN", money: { cash: { collected: 368516.49, delta: 1350 } }, forecast: { value: 703545.9, open_value: 3156310 } };
+
+  it("catches the model converting currency by itself", async () => {
+    const { memoViolations } = await import("../routes/owner");
+    // 85,393.7 EUR = 368,516 PLN converted — the number exists nowhere in the payload.
+    const v = memoViolations("Cash collected this month was 85,393.7 EUR.", payload, "PLN");
+    expect(v.some(x => x.includes("foreign currency: EUR"))).toBe(true);
+    expect(v.some(x => x.includes("ungrounded number: 85,393.7"))).toBe(true);
+  });
+
+  it("passes a memo whose numbers all exist in the payload", async () => {
+    const { memoViolations } = await import("../routes/owner");
+    const v = memoViolations("Cash collected was 368,516.49 PLN (+1,350%); forecast 703,545.9 PLN over deals worth 3,156,310 PLN.", payload, "PLN");
+    expect(v).toEqual([]);
+  });
+
+  it("tolerates the model's rounding but not its inventions", async () => {
+    const { memoViolations } = await import("../routes/owner");
+    expect(memoViolations("about 368,516 PLN", payload, "PLN")).toEqual([]);        // 0.5% tolerance
+    expect(memoViolations("about 400,000 PLN", payload, "PLN")).not.toEqual([]);    // invented
+  });
+
+  it("ignores small numbers — counts and percentages are unverifiable noise", async () => {
+    const { memoViolations } = await import("../routes/owner");
+    expect(memoViolations("3 paragraphs, 29 deals, down 100%", payload, "PLN")).toEqual([]);
+  });
+
+  it("a rejected memo ships the deterministic fallback, flagged", () => {
+    const src3 = readFileSync(join(__dirname, "../routes/owner.ts"), "utf8");
+    expect(src3).toMatch(/const violations = memoViolations\(memo, payload, payload\.base\)/);
+    expect(src3).toMatch(/memo: fallback, ai: false, rejected: violations\.length/);
+  });
+});
