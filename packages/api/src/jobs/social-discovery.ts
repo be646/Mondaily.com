@@ -30,17 +30,21 @@ const SOVEREIGN_SEARCH_ENGINES = process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,
 
 type SearchResult = { hits: SearchHit[]; unreachable: boolean; rateLimited?: boolean };
 
-async function searxng(query: string): Promise<SearchResult> {
-  // Cache hit → skip the (rate-limited) engine entirely. 24h TTL.
-  const ck = cacheKey("search", `${SOVEREIGN_SEARCH_ENGINES}:${query}`);
+async function searxng(query: string, engines: string | null = SOVEREIGN_SEARCH_ENGINES): Promise<SearchResult> {
+  // Cache hit → skip the (rate-limited) engine entirely. 24h TTL. Keyed per engine set so an
+  // unpinned retry never reads the pinned set's cached emptiness.
+  const ck = cacheKey("search", `${engines ?? "ALL"}:${query}`);
   const cached = await cacheGet<SearchHit[]>(ck);
   if (cached) return { hits: cached, unreachable: false };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 12_000); // never let one slow query hang the whole sweep
   try {
-    // language=en-US pins the locale (the box's German IP otherwise geo-localizes results); engines
-    // pinned to the datacenter-reliable set so CAPTCHA'd engines can't zero out the response.
-    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&language=en-US&engines=${encodeURIComponent(SOVEREIGN_SEARCH_ENGINES)}`;
+    // language=en-US pins the locale (the box's German IP otherwise geo-localizes results). The
+    // engine pin (default qwant,yahoo) keeps CAPTCHA'd engines from zeroing the response — but the
+    // pinned engines themselves go cold on a datacenter IP, at which point SearXNG 200s with zero
+    // results and a sweep reads as "no search results". engines=null drops the pin for the
+    // full-set fallback pass.
+    const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&language=en-US${engines ? `&engines=${encodeURIComponent(engines)}` : ""}`;
     let res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() }, signal: ctrl.signal });
     if (res.status === 429) {
       // SearXNG's own bot limiter. ONE polite retry after a beat — a burst of 8 query angles can
@@ -199,8 +203,24 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
       console.error("[social-discovery] " + reason);
       return { status: "SKIPPED_INFRASTRUCTURE_TIMEOUT" as const, reason };
     }
-    const hits = sweep.flatMap((s) => s.hits);
-    if (hits.length === 0) return { discovered: 0, reason: "no search results", diag: { queries: queries.length, hits: 0, unique: 0, extracted: 0, matched: 0 } };
+    let hits = sweep.flatMap((s) => s.hits);
+    let engineFallback = false;
+    if (hits.length === 0) {
+      // Every pinned query came back EMPTY (HTTP 200, zero results) — the live run history showed
+      // exactly this: 8 angles, 0 hits, 6s, appliance "HEALTHY". qwant/yahoo go cold on a
+      // datacenter IP; before declaring the web empty, one pass over the strongest angles with the
+      // pin DROPPED, so SearXNG's full engine set gets a say.
+      engineFallback = true;
+      await emit({ type: "progress", stage: "search", message: "Primary engines returned nothing — retrying with the full engine set…" });
+      const retry: SearchResult[] = [];
+      const strongest = queries.slice(0, 6);
+      for (let i = 0; i < strongest.length; i += 2) {
+        retry.push(...await Promise.all(strongest.slice(i, i + 2).map((q) => searxng(q, null))));
+        if (i + 2 < strongest.length) await new Promise((r) => setTimeout(r, 1200));
+      }
+      hits = retry.flatMap((s) => s.hits);
+    }
+    if (hits.length === 0) return { discovered: 0, reason: "no search results (pinned and full engine sets both empty)", diag: { queries: queries.length, hits: 0, unique: 0, extracted: 0, matched: 0, engine_fallback: engineFallback } };
     await emit({ type: "progress", stage: "search", message: `Found ${hits.length} candidate pages — reading the most promising…` });
 
     const isReviews = searchType === "REVIEWS";

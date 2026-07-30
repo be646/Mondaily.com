@@ -115,7 +115,8 @@ describe("Discovery proof-of-work comes from real counters (source audit)", () =
     expect(worker).toContain("const usage = { tokens: usedTokens, ai_calls: aiCalls, pages_skipped: skipped }");
     expect(worker).toContain("const skipped = allPages.length - pages.length");
     // Zero-result honesty: an explicit reason, not an invented lead list.
-    expect(worker).toContain('reason: "no search results"');
+    // The reason got MORE honest (it now says both engine sets were tried before declaring empty).
+    expect(worker).toContain('reason: "no search results (pinned and full engine sets both empty)"');
   });
   it("appliance readiness surfaces report booleans/status only — never env values or the key", () => {
     const discovery = read("routes/discovery.ts");

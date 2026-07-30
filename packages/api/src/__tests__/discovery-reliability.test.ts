@@ -58,3 +58,20 @@ describe("a rate-limited engine is INFRA, not 'no results'", () => {
     expect(job).toMatch(/rate-limited this sweep — wait a minute and try again/);
   });
 });
+
+describe("cold pinned engines fall back to the full set before declaring the web empty", () => {
+  const job = readFileSync(join(__dirname, "../jobs/social-discovery.ts"), "utf8");
+  it("zero pinned hits triggers one unpinned pass over the strongest angles", () => {
+    // Verified live: 8 angles, 0 hits, HTTP 200 everywhere, appliance HEALTHY — qwant/yahoo simply
+    // returned nothing from the datacenter IP. That was the real "sometimes stops".
+    expect(job).toMatch(/searxng\(q, null\)/);
+    expect(job).toMatch(/Primary engines returned nothing — retrying with the full engine set/);
+  });
+  it("the unpinned retry never reads the pinned cache's emptiness", () => {
+    expect(job).toMatch(/cacheKey\("search", `\$\{engines \?\? "ALL"\}:\$\{query\}`\)/);
+  });
+  it("a double-empty result says both sets were tried", () => {
+    expect(job).toMatch(/pinned and full engine sets both empty/);
+    expect(job).toMatch(/engine_fallback: engineFallback/);
+  });
+});
