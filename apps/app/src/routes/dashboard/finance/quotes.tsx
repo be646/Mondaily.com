@@ -208,6 +208,15 @@ export function QuotesPage() {
     },
   });
 
+  // Unfiltered fetch just for the segment counts — the list above is server-filtered by status,
+  // so counting IT would show "Draft 0" the moment you filtered to Sent. Counts must describe the
+  // whole set or they lie.
+  const { data: allQuotes = [] } = useQuery<Quote[]>({
+    queryKey: ["quotes", "", ""],
+    queryFn: () => apiClient.get<Quote[]>("/quotes?"),
+    staleTime: 60_000,
+  });
+
   const { display, sumInDisplay } = useCurrency();
   const currency = display;
   const q$ = (q: Quote) => ({ amount: q.total ?? 0, currency: q.currency });
@@ -252,6 +261,7 @@ export function QuotesPage() {
 
         {/* Filters + search — shared finance toolbar (identical on every finance list page) */}
         <FinanceListToolbar tabs={FILTERS} activeTab={statusFilter} onTab={setStatusFilter}
+          counts={allQuotes.reduce<Record<string, number>>((acc, q) => { const k = String(q.status ?? "draft"); acc[k] = (acc[k] ?? 0) + 1; return acc; }, {})}
           search={search} onSearch={setSearch} placeholder="Search by client…" />
       </div>
 

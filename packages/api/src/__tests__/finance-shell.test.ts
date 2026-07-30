@@ -61,3 +61,39 @@ describe("the sheet has an always-visible search", () => {
     expect(table).toMatch(/!filterText\.trim\(\) && !filterQuery && !toolbarSearch\.trim\(\)/);
   });
 });
+
+describe("design pass A — one indicator vocabulary, one segmented control", () => {
+  const indicators = app("components/ui/indicators.tsx");
+  const segmented = app("components/ui/segmented.tsx");
+  const brief = app("routes/dashboard/briefing.tsx");
+  const consolePage = app("routes/dashboard/owner-console.tsx");
+  const financeToolbar = app("components/finance/finance-toolbar.tsx");
+  const quotes = app("routes/dashboard/finance/quotes.tsx");
+
+  it("DeltaPill and the tone maps exist ONCE, token-backed", () => {
+    expect(indicators).toMatch(/export function DeltaPill/);
+    expect(indicators).toMatch(/ok: "var\(--status-ok\)"/);
+    // the copies are gone — no page defines its own delta pill or risk hexes anymore
+    for (const page of [brief, consolePage]) {
+      expect(page).not.toMatch(/function Delta/);
+      expect(page).not.toMatch(/high: "#d1524a"/);
+    }
+    expect(brief).toMatch(/from "\.\.\/\.\.\/components\/ui\/indicators"/);
+    expect(consolePage).toMatch(/from "\.\.\/\.\.\/components\/ui\/indicators"/);
+  });
+
+  it("the segmented control exists once and the finance toolbar uses it", () => {
+    expect(segmented).toMatch(/export function SegmentedControl/);
+    expect(financeToolbar).toMatch(/<SegmentedControl/);
+    // the hand-rolled pill row inside the toolbar is gone
+    expect(financeToolbar).not.toMatch(/tabs\.map\(t => \{\s*\n\s*const active = activeTab === t\.key;/);
+  });
+
+  it("segment counts render at zero and describe the WHOLE set, not the filtered view", () => {
+    expect(segmented).toMatch(/typeof s\.count === "number" &&/);
+    // quotes counts come from an UNFILTERED fetch — counting the server-filtered list would show
+    // "Draft 0" the moment you filter to Sent
+    expect(quotes).toMatch(/queryKey: \["quotes", "", ""\]/);
+    expect(quotes).toMatch(/allQuotes\.reduce/);
+  });
+});

@@ -5,6 +5,7 @@ import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { PageSkeleton, ErrorState } from "../../components/ui/page-state";
 import { formatMoney } from "../../hooks/useCurrency";
+import { DeltaPill, RISK_TONE, TONE } from "../../components/ui/indicators";
 
 interface Brief {
   base: string;
@@ -22,20 +23,7 @@ interface Brief {
   top_decisions: { id: string; title: string; risk: string; agent: string }[];
 }
 
-/** Month-over-month delta pill — same-point comparison, so mid-month never reads as a collapse. */
-function DeltaPill({ delta }: { delta: number | null | undefined }) {
-  if (delta === undefined) return null;   // metric has no comparison by design (forecast)
-  if (delta === null) return <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>first month</span>;
-  const up = delta >= 0;
-  return (
-    <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums"
-      style={{ color: up ? "#2f9e6b" : "#d1524a", background: up ? "rgba(47,158,107,.1)" : "rgba(209,82,74,.1)" }}>
-      {up ? "▲" : "▼"} {Math.abs(delta)}%
-    </span>
-  );
-}
-
-const RISK_TONE: Record<string, string> = { high: "#d1524a", medium: "#c6892e", low: "#717784" };
+// DeltaPill + RISK_TONE moved to components/ui/indicators — one copy, token-backed, zero visual change.
 
 export function BriefingPage() {
   const navigate = useNavigate();
@@ -56,9 +44,9 @@ export function BriefingPage() {
 
   // "Needs you" action cards — only the ones that actually have something.
   const attention = [
-    ny.pending > 0 ? { icon: ShieldCheck, tone: ny.high_risk > 0 ? "#d1524a" : "#c6892e", label: `${ny.pending} decision${ny.pending === 1 ? "" : "s"} to review`, sub: ny.high_risk > 0 ? `${ny.high_risk} high-risk` : "awaiting your approval", to: "/decisions" } : null,
-    ny.overdue_invoices.count > 0 ? { icon: Receipt, tone: "#d1524a", label: `${ny.overdue_invoices.count} invoice${ny.overdue_invoices.count === 1 ? "" : "s"} overdue`, sub: cur(ny.overdue_invoices.total), to: "/finance/invoices" } : null,
-    ny.overdue_tasks > 0 ? { icon: CheckSquare, tone: "#c6892e", label: `${ny.overdue_tasks} overdue task${ny.overdue_tasks === 1 ? "" : "s"}`, sub: "past their due date", to: "/tasks" } : null,
+    ny.pending > 0 ? { icon: ShieldCheck, tone: ny.high_risk > 0 ? TONE.error : TONE.warn, label: `${ny.pending} decision${ny.pending === 1 ? "" : "s"} to review`, sub: ny.high_risk > 0 ? `${ny.high_risk} high-risk` : "awaiting your approval", to: "/decisions" } : null,
+    ny.overdue_invoices.count > 0 ? { icon: Receipt, tone: TONE.error, label: `${ny.overdue_invoices.count} invoice${ny.overdue_invoices.count === 1 ? "" : "s"} overdue`, sub: cur(ny.overdue_invoices.total), to: "/finance/invoices" } : null,
+    ny.overdue_tasks > 0 ? { icon: CheckSquare, tone: TONE.warn, label: `${ny.overdue_tasks} overdue task${ny.overdue_tasks === 1 ? "" : "s"}`, sub: "past their due date", to: "/tasks" } : null,
   ].filter(Boolean) as { icon: React.ElementType; tone: string; label: string; sub: string; to: string }[];
 
   // The four numbers the page exists for — month-to-date, each vs the same point last month.
@@ -171,7 +159,7 @@ export function BriefingPage() {
           <div className="mb-8 overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
             {data.top_decisions.map(d => (
               <button key={d.id} onClick={() => navigate(`/decisions?id=${d.id}`)} className="flex w-full items-center gap-3 border-b px-4 py-2.5 text-left transition-colors last:border-0 hover:bg-[var(--surface-hover)]" style={{ borderColor: "var(--border-soft)" }}>
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: RISK_TONE[d.risk] ?? "#717784" }} />
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: RISK_TONE[d.risk] ?? TONE.neutral }} />
                 <span className="flex-1 truncate text-[12.5px]" style={{ color: "var(--text-primary)" }}>{d.title}</span>
                 <span className="text-[10.5px] capitalize" style={{ color: "var(--text-faint)" }}>{String(d.agent).replace(/_/g, " ")}</span>
               </button>

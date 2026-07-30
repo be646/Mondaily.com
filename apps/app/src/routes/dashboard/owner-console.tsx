@@ -5,6 +5,7 @@ import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { PageSkeleton, ErrorState } from "../../components/ui/page-state";
 import { formatMoney } from "../../hooks/useCurrency";
+import { DeltaPill, RISK_TONE, PACE_TONE, READY_TONE } from "../../components/ui/indicators";
 
 /**
  * OWNER CONSOLE — the operating view. Design rules (deliberate, from the chrome contract):
@@ -43,11 +44,7 @@ interface Console {
   audit: { when: string; what: string }[];
 }
 
-function Delta({ d }: { d: number | null }) {
-  if (d === null) return <span className="text-[10px] text-[var(--text-faint)]">first month</span>;
-  const up = d >= 0;
-  return <span className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums" style={{ color: up ? "#2f9e6b" : "#d1524a", background: up ? "rgba(47,158,107,.1)" : "rgba(209,82,74,.1)" }}>{up ? "▲" : "▼"} {Math.abs(d)}%</span>;
-}
+// Delta pill + tone maps live in components/ui/indicators — the one copy.
 
 function SectionLabel({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
   return (
@@ -68,7 +65,7 @@ const METRIC_LABEL: Record<string, string> = {
   deals_won_value: "Closed-won value", revenue_collected: "Revenue collected",
 };
 const MONEY_METRICS = new Set(["deals_won_value", "revenue_collected"]);
-const PACE_TONE: Record<string, string> = { ahead: "#2f9e6b", on: "#717784", behind: "#d1524a" };
+
 
 /**
  * Goals & Targets — the owner SETS targets here; attainment and pace are computed server-side
@@ -178,7 +175,7 @@ function ActionsSection({ actions, members, cur }: { actions: Console["actions"]
     mutationFn: ({ id, owner }: { id: string; owner: string }) => apiClient.post("/owner/assign-deal", { node_id: id, owner }),
     onSuccess: refresh,
   });
-  const RISK: Record<string, string> = { high: "#d1524a", medium: "#c6892e", low: "#717784" };
+  const RISK = RISK_TONE;
   const hasWork = actions.pending_decisions.count > 0 || actions.unassigned_deals.length > 0;
 
   return (
@@ -321,7 +318,7 @@ export function OwnerConsolePage() {
   // typing the wrong key here compiles fine and just silently hides the whole System section
   // (the same failure shape as the relation picker reading obj.label that never existed).
   const groups = readiness.data?.group ?? {};
-  const READY_TONE: Record<string, string> = { ready: "#2f9e6b", partial: "#c6892e", missing: "#d1524a" };
+
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -338,7 +335,7 @@ export function OwnerConsolePage() {
           <div key={t.label} className="rounded-sm border px-4 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] text-[var(--text-muted)]">{t.label}</span>
-              {t.delta !== undefined && <Delta d={t.delta} />}
+              <DeltaPill delta={t.delta} />
             </div>
             <div className="mt-1 text-[26px] font-semibold tracking-tight tabular-nums text-[var(--text-primary)]">{t.value}</div>
             <div className="mt-0.5 truncate text-[10.5px] text-[var(--text-faint)]">{t.sub}</div>

@@ -1,4 +1,5 @@
 import { Search } from "lucide-react";
+import { SegmentedControl } from "@/components/ui/segmented";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { CommandPageHeader } from "@/components/ui/controls";
@@ -41,7 +42,7 @@ export function FinanceHeader({ icon, callsign, title, subtitle, action }: {
 export interface FinanceTab { key: string; label: string }
 
 export function FinanceListToolbar({
-  tabs, activeTab, onTab, search, onSearch, placeholder = "Search…",
+  tabs, activeTab, onTab, search, onSearch, placeholder = "Search…", counts,
 }: {
   tabs: FinanceTab[];
   activeTab: string;
@@ -49,24 +50,18 @@ export function FinanceListToolbar({
   search: string;
   onSearch: (value: string) => void;
   placeholder?: string;
+  /** Per-status counts. Rendered whenever given — including zero (on a filter, zero IS the answer). */
+  counts?: Record<string, number>;
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2.5">
-      <div className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border p-0.5"
-        style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
-        {tabs.map(t => {
-          const active = activeTab === t.key;
-          return (
-            <button key={t.key} onClick={() => onTab(t.key)}
-              className="rounded-md px-3 py-1 text-[11.5px] font-medium transition-colors"
-              style={active
-                ? { background: "var(--surface-card)", color: "var(--text-primary)", boxShadow: "0 1px 2px rgba(0,0,0,0.18)" }
-                : { color: "var(--text-muted)" }}>
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* The pill row is now THE shared SegmentedControl — same control the calendar view-switch
+          and period bars adopt next, instead of a dropdown here and a button wall there. */}
+      <SegmentedControl
+        segments={tabs.map(t => ({ key: t.key, label: t.label, count: counts ? (t.key === "" ? undefined : counts[t.key] ?? 0) : undefined }))}
+        active={activeTab}
+        onChange={onTab}
+      />
       <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
         <Search size={13} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-faint)]"/>
         <input
