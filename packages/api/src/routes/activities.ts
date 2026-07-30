@@ -4,7 +4,9 @@ import { requireAdminRole } from "../middleware/rbac";
 import { supabase } from "@mondaily/db/client";
 import { verifiedPowUserIds } from "../lib/pow-claims";
 import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
-import { workQuality, aggregateDeals, dailyTrend, evaluationLabel, dealStageClass, avgTaskLeadDays, avgDecisionCycleHours, collaborationEdges, isGoalMetric, goalAttainmentPct, type DealNode, type TaskTiming, type DecisionTiming } from "../lib/oversight-metrics";
+import { workQuality, aggregateDeals, dailyTrend, evaluationLabel, dealStageClass, avgTaskLeadDays, avgDecisionCycleHours, collaborationEdges, isGoalMetric, goalAttainmentPct, TEAM_ONLY_GOAL_METRICS, type DealNode, type TaskTiming, type DecisionTiming } from "../lib/oversight-metrics";
+import { pagedNodes as pagedMoneyNodes, closedWonIn, invoiceMetrics, dealOwner as moneyDealOwner, isWon as moneyIsWon, dealStage as moneyDealStage, wonDate as moneyWonDate, dealValue as moneyDealValue } from "../lib/money";
+import { makeBaseConverter } from "../lib/currency-store";
 import { isOverdue } from "@mondaily/shared/dates";
 
 const router = new Hono<{ Variables: { userId: string; workspaceId: string; role: string } }>();
@@ -663,6 +665,33 @@ async function goalActual(ws: string, metric: string, userId: string | null, win
     if (userId) q = q.eq("actor_id", userId);
     const { data } = await q; return new Set((data ?? []).map(r => String(r.node_id))).size;
   }
+  if (metric === "deals_won_value") {
+    // Money metric — computed through lib/money so it can never disagree with the console's money
+    // row. Member scope: deals carry an OWNER NAME (deal_owner/assigned_to), not a user id, so the
+    // member's display name is the honest join key; a member without a name matches nothing rather
+    // than everything.
+    const range = { start: Date.now() - windowDays * 86_400_000, end: Date.now() };
+    const rows = await pagedMoneyNodes(ws, { ilike: "%deal%" });
+    if (!userId) return Math.round(closedWonIn(rows, range).value * 100) / 100;
+    const { data: member } = await supabase.from("workspace_members").select("name").eq("workspace_id", ws).eq("user_id", userId).maybeSingle();
+    const name = String(member?.name ?? "").trim().toLowerCase();
+    if (!name) return 0;
+    let v = 0;
+    for (const r of rows) {
+      if (!moneyIsWon(moneyDealStage(r.data))) continue;
+      const t = Date.parse(moneyWonDate(r));
+      if (!(t >= range.start && t <= range.end)) continue;
+      if (moneyDealOwner(r.data).toLowerCase() !== name) continue;
+      v += moneyDealValue(r.data);
+    }
+    return Math.round(v * 100) / 100;
+  }
+  if (metric === "revenue_collected") {
+    // TEAM ONLY (enforced at create): invoices have no per-member attribution.
+    const range = { start: Date.now() - windowDays * 86_400_000, end: Date.now() };
+    const [rows, conv] = await Promise.all([pagedMoneyNodes(ws, { eq: "invoice" }), makeBaseConverter(ws)]);
+    return invoiceMetrics(rows, conv.toBase, conv.base, range).collected;
+  }
   if (metric === "deals_won") {
     const { data: members } = await supabase.from("workspace_members").select("user_id, name, email").eq("workspace_id", ws);
     const { data: deals } = await supabase.from("nodes").select("id, object_type, data, created_by").eq("workspace_id", ws).or("object_type.ilike.%deal%,object_type.ilike.%opportunit%").limit(10000);
@@ -686,6 +715,11 @@ router.get("/goals", requireAuth, requireAdminRole, async (c) => {
       id: g.id, scope: g.scope, target_user_id: g.target_user_id ?? null, metric: g.metric,
       target_value: Number(g.target_value), window_days: Number(g.window_days ?? 30), label: g.label ?? null,
       actual, attainment_pct: goalAttainmentPct(actual, Number(g.target_value)),
+      // Rolling windows are always fully elapsed, so attainment IS the pace — thresholds, not time
+      // proportion. Deterministic; no AI.
+      pace: goalAttainmentPct(actual, Number(g.target_value)) >= 100 ? "ahead"
+        : goalAttainmentPct(actual, Number(g.target_value)) >= 70 ? "on"
+        : "behind",
     };
   }));
   return c.json({ goals, available: true });
@@ -696,6 +730,9 @@ router.post("/goals", requireAuth, requireAdminRole, async (c) => {
   const body = await c.req.json().catch(() => ({})) as { scope?: string; target_user_id?: string | null; metric?: string; target_value?: number; window_days?: number; label?: string };
   const scope = body.scope === "team" ? "team" : "member";
   if (!isGoalMetric(body.metric)) return c.json({ error: "Unknown metric." }, 400);
+  if (scope === "member" && (TEAM_ONLY_GOAL_METRICS as readonly string[]).includes(String(body.metric))) {
+    return c.json({ error: "Revenue collected can't be attributed to one member — set it as a team goal." }, 400);
+  }
   const target = Number(body.target_value);
   if (!(target > 0)) return c.json({ error: "Target must be greater than zero." }, 400);
   if (scope === "member" && !body.target_user_id) return c.json({ error: "A member goal needs a member." }, 400);

@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { Crown, ShieldCheck, Users, Zap, AlertTriangle, Activity } from "lucide-react";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Crown, ShieldCheck, Users, Zap, AlertTriangle, Activity, Target, X, Plus } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { CommandPageHeader } from "../../components/ui/controls";
 import { PageSkeleton, ErrorState } from "../../components/ui/page-state";
@@ -24,7 +25,7 @@ interface Console {
     overdue: { count: number; total: number; aging: { bucket: string; count: number; total: number }[] };
   };
   people: { owner: string; closed_count: number; closed_value: number; created_count: number; created_value: number; open_value: number }[];
-  members: { name: string | null; email: string | null; role: string }[];
+  members: { user_id: string; name: string | null; email: string | null; role: string }[];
   agents: { rows: { agent: string; auto: number; human: number; pending: number }[]; autonomy_level: string; breaker: { used_last_hour: number; cap: number } };
   pipeline_health: {
     stalled: { count: number; value: number; top: { name: string; value: number; stage: string; days_stale: number }[] };
@@ -44,6 +45,110 @@ function SectionLabel({ icon: Icon, children }: { icon: React.ElementType; child
     <p className="mb-2 mt-8 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]">
       <Icon size={11} /> {children}
     </p>
+  );
+}
+
+interface Goal {
+  id: string; scope: string; target_user_id: string | null; metric: string;
+  target_value: number; window_days: number; label: string | null;
+  actual: number; attainment_pct: number; pace: "ahead" | "on" | "behind";
+}
+const METRIC_LABEL: Record<string, string> = {
+  tasks_completed: "Tasks completed", decisions_resolved: "Decisions resolved", deals_won: "Deals won",
+  records_touched: "Records touched", ai_credits: "AI credits",
+  deals_won_value: "Closed-won value", revenue_collected: "Revenue collected",
+};
+const MONEY_METRICS = new Set(["deals_won_value", "revenue_collected"]);
+const PACE_TONE: Record<string, string> = { ahead: "#2f9e6b", on: "#717784", behind: "#d1524a" };
+
+/**
+ * Goals & Targets — the owner SETS targets here; attainment and pace are computed server-side
+ * against the same lib/money definitions as the money row above, so a goal can never disagree
+ * with the number it sits next to. Rolling windows: attainment IS the pace (the window is always
+ * fully elapsed), so pace is thresholds, not time-proportion.
+ */
+function GoalsSection({ members, cur }: { members: Console["members"]; cur: (v: number) => string }) {
+  const qc = useQueryClient();
+  const goalsQ = useQuery<{ goals: Goal[]; available: boolean }>({
+    queryKey: ["owner-goals"], queryFn: () => apiClient.get("/activities/goals"), staleTime: 60_000, retry: false,
+  });
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ metric: "deals_won_value", scope: "team", target_user_id: "", target_value: "", window_days: "30", label: "" });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["owner-goals"] });
+  const create = useMutation({
+    mutationFn: () => apiClient.post("/activities/goals", {
+      metric: form.metric, scope: form.scope,
+      target_user_id: form.scope === "member" ? form.target_user_id : null,
+      target_value: Number(form.target_value), window_days: Number(form.window_days),
+      label: form.label || undefined,
+    }),
+    onSuccess: () => { setAdding(false); setForm(f => ({ ...f, target_value: "", label: "" })); invalidate(); },
+  });
+  const remove = useMutation({ mutationFn: (id: string) => apiClient.delete(`/activities/goals/${id}`), onSuccess: invalidate });
+  const teamOnly = form.metric === "revenue_collected";
+  const memberName = (uid: string | null) => members.find(m => m.user_id === uid)?.name ?? "member";
+
+  const goals = goalsQ.data?.goals ?? [];
+  return (
+    <>
+      <div className="mt-8 mb-2 flex items-center justify-between">
+        <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-secondary)]"><Target size={11} /> Goals & targets</p>
+        <button onClick={() => setAdding(a => !a)} className="inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-[10.5px] transition-colors hover:border-[var(--border-strong)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+          {adding ? <X size={10} /> : <Plus size={10} />} {adding ? "Cancel" : "Set target"}
+        </button>
+      </div>
+      <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)" }}>
+        {adding && (
+          <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+            <select value={form.metric} onChange={e => setForm(f => ({ ...f, metric: e.target.value, scope: e.target.value === "revenue_collected" ? "team" : f.scope }))} className="rounded-sm border bg-transparent px-2 py-1 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
+              {Object.entries(METRIC_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+            <select value={form.scope} onChange={e => setForm(f => ({ ...f, scope: e.target.value }))} disabled={teamOnly} className="rounded-sm border bg-transparent px-2 py-1 text-[11.5px] disabled:opacity-50" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
+              <option value="team">Whole team</option>
+              <option value="member">One member</option>
+            </select>
+            {form.scope === "member" && !teamOnly && (
+              <select value={form.target_user_id} onChange={e => setForm(f => ({ ...f, target_user_id: e.target.value }))} className="rounded-sm border bg-transparent px-2 py-1 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
+                <option value="">Pick a member…</option>
+                {members.map(m => <option key={m.user_id} value={m.user_id}>{m.name ?? m.email}</option>)}
+              </select>
+            )}
+            <input value={form.target_value} onChange={e => setForm(f => ({ ...f, target_value: e.target.value }))} placeholder="Target" inputMode="numeric" className="w-24 rounded-sm border bg-transparent px-2 py-1 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+            <select value={form.window_days} onChange={e => setForm(f => ({ ...f, window_days: e.target.value }))} className="rounded-sm border bg-transparent px-2 py-1 text-[11.5px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }}>
+              <option value="7">per 7 days</option><option value="30">per 30 days</option><option value="90">per 90 days</option>
+            </select>
+            <button onClick={() => create.mutate()} disabled={!(Number(form.target_value) > 0) || (form.scope === "member" && !form.target_user_id) || create.isPending}
+              className="rounded-sm px-2.5 py-1 text-[11.5px] font-medium disabled:opacity-50" style={{ background: "var(--section-accent)", color: "var(--surface-page)" }}>
+              {create.isPending ? "Saving…" : "Save"}
+            </button>
+            {create.isError && <span className="text-[10.5px]" style={{ color: "#d1524a" }}>{String((create.error as Error)?.message ?? "Couldn't save")}</span>}
+          </div>
+        )}
+        {goals.length === 0 && !adding && (
+          <div className="px-4 py-3 text-[12px] text-[var(--text-muted)]">No targets set. "Set target" — closed-won value per month is the one most owners start with.</div>
+        )}
+        {goals.map(g => (
+          <div key={g.id} className="border-b px-4 py-2.5 last:border-0" style={{ borderColor: "var(--border-soft)" }}>
+            <div className="flex items-center justify-between gap-3">
+              <span className="min-w-0 truncate text-[12.5px] font-medium text-[var(--text-primary)]">
+                {g.label || METRIC_LABEL[g.metric] || g.metric}
+                <span className="ml-1.5 font-normal text-[var(--text-faint)]">· {g.scope === "team" ? "team" : memberName(g.target_user_id)} · {g.window_days}d</span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2">
+                <span className="text-[11.5px] tabular-nums text-[var(--text-muted)]">
+                  {MONEY_METRICS.has(g.metric) ? cur(g.actual) : g.actual.toLocaleString()} / {MONEY_METRICS.has(g.metric) ? cur(g.target_value) : g.target_value.toLocaleString()}
+                </span>
+                <span className="rounded-full px-1.5 py-px text-[10px] font-semibold capitalize" style={{ color: PACE_TONE[g.pace], background: `color-mix(in srgb, ${PACE_TONE[g.pace]} 10%, transparent)` }}>{g.pace}</span>
+                <button onClick={() => remove.mutate(g.id)} title="Remove target" className="text-[var(--text-faint)] transition-colors hover:text-[#d1524a]"><X size={11} /></button>
+              </span>
+            </div>
+            <div className="mt-1.5 h-1 overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
+              <div className="h-full rounded-full" style={{ width: `${g.attainment_pct}%`, background: PACE_TONE[g.pace] }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 
@@ -110,6 +215,8 @@ export function OwnerConsolePage() {
           </div>
         </div>
       )}
+
+      <GoalsSection members={data.members} cur={cur} />
 
       {/* People — money facts per member, no invented scores */}
       <SectionLabel icon={Users}>People — who is closing</SectionLabel>

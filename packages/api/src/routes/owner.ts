@@ -126,7 +126,7 @@ router.get("/console", requireAdminRole, async (c) => {
       overdue: inv.overdue,
     },
     people,
-    members: (members.data ?? []).map(m => ({ name: m.name, email: m.email, role: m.role })),
+    members: (members.data ?? []).map(m => ({ user_id: m.user_id, name: m.name, email: m.email, role: m.role })),
     agents: {
       rows: agents,
       autonomy_level: level,

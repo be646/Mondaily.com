@@ -240,8 +240,16 @@ export function collaborationEdges(msgs: MsgEdge[]): { from: string; to: string;
     .sort((x, y) => y.count - x.count);
 }
 
-// The REAL metrics a goal can target — each maps 1:1 to an oversight-matrix per-member field.
-export const GOAL_METRICS = ["tasks_completed", "decisions_resolved", "deals_won", "records_touched", "ai_credits"] as const;
+// The REAL metrics a goal can target. The first five map 1:1 to oversight-matrix per-member counts;
+// the two MONEY metrics were added for the Owner Console and compute through lib/money — the same
+// definitions as the Brief and the console's money row, so a goal can never disagree with the
+// number it sits next to.
+//   deals_won_value   — value of deals closed-won in the window (member scope matches deal_owner
+//                       to the member's name; "won" and "when" use the same won_at/updated_at rule)
+//   revenue_collected — invoices PAID in the window, FX-converted to base. TEAM scope only:
+//                       invoices carry no per-member attribution, and inventing one would be the
+//                       kind of fabricated metric this whole file exists to avoid.
+export const GOAL_METRICS = ["tasks_completed", "decisions_resolved", "deals_won", "records_touched", "ai_credits", "deals_won_value", "revenue_collected"] as const;
 export type GoalMetric = typeof GOAL_METRICS[number];
 export const GOAL_METRIC_LABEL: Record<GoalMetric, string> = {
   tasks_completed: "Tasks completed",
@@ -249,7 +257,13 @@ export const GOAL_METRIC_LABEL: Record<GoalMetric, string> = {
   deals_won: "Deals won",
   records_touched: "Records touched",
   ai_credits: "AI credits",
+  deals_won_value: "Closed-won value",
+  revenue_collected: "Revenue collected",
 };
+/** Metrics whose actual is money (formatted in base currency) rather than a count. */
+export const MONEY_GOAL_METRICS: readonly GoalMetric[] = ["deals_won_value", "revenue_collected"];
+/** Metrics that cannot honestly be attributed to one member. */
+export const TEAM_ONLY_GOAL_METRICS: readonly GoalMetric[] = ["revenue_collected"];
 export function isGoalMetric(v: unknown): v is GoalMetric {
   return typeof v === "string" && (GOAL_METRICS as readonly string[]).includes(v);
 }

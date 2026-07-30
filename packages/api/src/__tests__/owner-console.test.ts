@@ -62,3 +62,34 @@ describe("the console page reads fields that exist", () => {
     expect(page).not.toMatch(/readiness\.data\?\.groups/);      // the typo that hid the System section
   });
 });
+
+describe("money goal metrics — the owner's targets speak the money model's language", () => {
+  const activities = readFileSync(join(__dirname, "../routes/activities.ts"), "utf8");
+  const metrics = readFileSync(join(__dirname, "../lib/oversight-metrics.ts"), "utf8");
+
+  it("deals_won_value and revenue_collected are registered goal metrics", () => {
+    expect(metrics).toMatch(/"deals_won_value", "revenue_collected"\] as const/);
+  });
+
+  it("both compute through lib/money, never re-derived", () => {
+    expect(activities).toMatch(/closedWonIn\(rows, range\)\.value/);
+    expect(activities).toMatch(/invoiceMetrics\(rows, conv\.toBase, conv\.base, range\)\.collected/);
+    expect(activities).toMatch(/pagedMoneyNodes/);   // paged reads, not a bounded select
+  });
+
+  it("revenue_collected refuses member scope — invoices carry no per-member attribution", () => {
+    expect(metrics).toMatch(/TEAM_ONLY_GOAL_METRICS: readonly GoalMetric\[\] = \["revenue_collected"\]/);
+    expect(activities).toMatch(/can't be attributed to one member/);
+  });
+
+  it("member deals_won_value joins on the member's NAME and matches nothing when unnamed", () => {
+    // deals carry owner NAMES, not user ids; an empty name must not match every deal.
+    expect(activities).toMatch(/if \(!name\) return 0;/);
+    expect(activities).toMatch(/moneyDealOwner\(r\.data\)\.toLowerCase\(\) !== name/);
+  });
+
+  it("pace is deterministic thresholds on a fully-elapsed rolling window", () => {
+    expect(activities).toMatch(/>= 100 \? "ahead"/);
+    expect(activities).toMatch(/>= 70 \? "on"/);
+  });
+});
