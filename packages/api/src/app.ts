@@ -10,6 +10,7 @@ import { runAllVertical } from "./jobs/vertical-agents";
 import { nodesRouter } from "./routes/nodes";
 import { searchRouter } from "./routes/search";
 import { briefingRouter } from "./routes/briefing";
+import { ownerRouter } from "./routes/owner";
 import { askRouter } from "./routes/ask";
 import { publicAskRouter } from "./routes/public-ask";
 import { guestCallsRouter } from "./routes/guest-calls";
@@ -91,6 +92,7 @@ app.route("/api/v1/nodes", nodesRouter);
 app.route("/api/v1/records", recordsRouter);
 app.route("/api/v1/search", searchRouter);
 app.route("/api/v1/briefing", briefingRouter);
+app.route("/api/v1/owner", ownerRouter);      // owner/admin console (requireAdminRole on the route)
 app.route("/api/v1/ask", askRouter);
 app.route("/api/v1/public/ask", publicAskRouter);
 app.route("/api/v1/public/calls", guestCallsRouter);   // PUBLIC guest-call redemption (no account)

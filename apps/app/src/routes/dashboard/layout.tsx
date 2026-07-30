@@ -49,6 +49,7 @@ function getPageMeta(pathname: string): PageMeta {
     ["/finance/reports",      { label: "Finance reports", Icon: BarChart2, color: "text-stone-500 dark:text-stone-400" }],
     ["/finance",       { label: "Finance",        Icon: FileText,    color: "text-stone-500 dark:text-stone-400" }],
     ["/approvals",     { label: "Approvals",      Icon: ShieldCheck, color: "text-stone-500 dark:text-stone-400" }],
+    ["/console",       { label: "Owner Console",  Icon: ShieldCheck, color: "text-stone-500 dark:text-stone-400" }],
     ["/status",        { label: "Readiness",      Icon: Activity,    color: "text-stone-500 dark:text-stone-400" }],
     ["/tasks",         { label: "Tasks",          Icon: CheckSquare, color: "text-stone-500 dark:text-stone-400" }],
     ["/notes",         { label: "Notes",          Icon: FileText,    color: "text-stone-500 dark:text-stone-400" }],

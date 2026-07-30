@@ -4,7 +4,7 @@ import {
   Settings, Zap, ChevronLeft, ChevronRight, ChevronDown, LogOut, Users,
   ChevronsUpDown, Plus, X, Receipt, TrendingUp,
   GitBranch, Activity, Layers, Check, ReceiptText, ShieldCheck,
-  FileSignature, Wallet, MessageCircle, Radar, Inbox, CalendarDays, LifeBuoy, LayoutGrid, Sparkles, Target,
+  FileSignature, Wallet, MessageCircle, Radar, Inbox, CalendarDays, LifeBuoy, LayoutGrid, Sparkles, Target, Crown,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -51,6 +51,9 @@ const WORKSPACE_NAV: NavEntry[] = [
   { to: "/calls",  label: "Calls",  icon: Phone },
   { to: "/canvas", label: "Canvas", icon: Layers },
   { to: "/team/oversight", label: "Team Oversight", icon: Users },
+  // Owner Console — the API route is requireAdminRole; a member who opens it gets the 403 error
+  // state, same policy as /admin readiness. Hiding it per-role client-side is cosmetics, not access.
+  { to: "/console", label: "Owner Console", icon: Crown },
 ];
 
 // ─── Finance — the one genuinely large set, so it stays a collapsible group.
