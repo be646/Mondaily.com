@@ -1748,7 +1748,8 @@ describe("App-wide chrome pass — pages migrated to CommandPageHeader standard 
   });
 
   it("Decisions search normalized to the shared key-input class", () => {
-    expect(decisions).toMatch(/<input value=\{search\} onChange=\{e => setSearch\(e\.target\.value\)\} placeholder="Search queue…"[\s\S]*?className="key-input h-7 w-36 pr-2 text-\[11\.5px\]/);
+    // Re-pointed 2026-07-30 (one-row band): w-36 → w-28 with focus:w-40; still the shared key-input.
+    expect(decisions).toMatch(/<input value=\{search\} onChange=\{e => setSearch\(e\.target\.value\)\} placeholder="Search…"[\s\S]*?className="key-input h-7 w-28 pr-2 text-\[11\.5px\]/);
     // old bespoke bordered input styling gone
     expect(decisions).not.toMatch(/className="h-7 w-36 rounded-sm border bg-transparent pl-6\.5 pr-2 text-\[11\.5px\] outline-none/);
   });

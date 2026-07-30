@@ -962,7 +962,9 @@ describe("Decisions cockpit v2 — approved recommendations (all real data, no f
   });
   it("queue search is client-side over loaded rows (title/summary/agent)", () => {
     expect(decisions).toMatch(/d\.title\.toLowerCase\(\)\.includes\(q\)/);
-    expect(decisions).toMatch(/placeholder="Search queue…"/);
+    // Re-pointed 2026-07-30: placeholder shortened to "Search…" when the band became one row;
+    // aria-label still names the queue.
+    expect(decisions).toMatch(/aria-label="Search the decision queue"/);
   });
   it("selection mirrors to ?id= with a loop guard, and resolve advances via select()", () => {
     expect(decisions).toMatch(/setSearchParams\(id \? \{ id \} : \{\}, \{ replace: true \}\)/);
