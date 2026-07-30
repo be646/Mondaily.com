@@ -132,7 +132,9 @@ describe("Phase 3b.1 — filtered server totals + group subtotals (still no sche
     expect(table).toMatch(/!f\.col\.endsWith\("__from"\) && !f\.col\.endsWith\("__to"\) && !\/owner\|assign\/i\.test\(f\.col\)/);
   });
   it("footer uses the server total (with filters) only when the WHOLE active filter set is representable", () => {
-    expect(table).toMatch(/const allRepresentable = !filterText\.trim\(\) && !filterQuery && reprFilters\.length === quickFilters\.length;\s*if \(!allRepresentable\) return <>\{clientStr\}<TotalNote text="this view" \/><\/>;/);
+    // Got STRICTER when the toolbar search was added: a text search is client-side, so it too must
+    // block the server total from claiming to represent the view.
+    expect(table).toMatch(/const allRepresentable = !filterText\.trim\(\) && !filterQuery && !toolbarSearch\.trim\(\) && reprFilters\.length === quickFilters\.length;\s*if \(!allRepresentable\) return <>\{clientStr\}<TotalNote text="this view" \/><\/>;/);
     expect(table).toMatch(/<ServerTotalValue[^]*?filters=\{reprFilters\}/);
     // the aggregate call forwards the validated equality filters
     expect(table).toMatch(/\.\.\.\(filters\?\.length \? \{ filters \} : \{\}\)/);

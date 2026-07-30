@@ -44,3 +44,20 @@ describe("the finance tab shell", () => {
     expect(sidebar).not.toMatch(/\{ to: "\/approvals",/);
   });
 });
+
+describe("the sheet has an always-visible search", () => {
+  const table = app("components/records/record-table.tsx");
+  it("left-anchored in the toolbar, wired into the same filter path as everything else", () => {
+    // The sheet had NO search box — filterQuery is a prop nobody feeds — so finding a record meant
+    // opening the Filter panel. The complaint was literally "search bar like attio".
+    expect(table).toMatch(/placeholder="Search records…"/);
+    expect(table).toMatch(/if \(toolbarSearch\.trim\(\)\) \{/);
+    // it participates in the memo deps, the N-of-M counter, and the no-results message
+    expect(table).toMatch(/\[records, filterText, filterQuery, toolbarSearch, quickFilters\]/);
+    expect(table).toMatch(/toolbarSearch \|\| filterText \|\| filterQuery/);
+  });
+  it("blocks server-side group representability like the other text filters", () => {
+    // A text search is client-side; pretending the grouped server view represents it would lie.
+    expect(table).toMatch(/!filterText\.trim\(\) && !filterQuery && !toolbarSearch\.trim\(\)/);
+  });
+});

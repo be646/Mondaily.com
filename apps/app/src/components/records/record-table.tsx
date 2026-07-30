@@ -1751,6 +1751,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
 
   // ── Filter ──
   const [filterText, setFilterText] = useState("");
+  // The always-visible toolbar search. The sheet had NO search box at all — filterQuery is a prop
+  // nobody feeds — so finding a record meant opening the Filter panel. Same all-fields substring
+  // semantics as the other two text filters.
+  const [toolbarSearch, setToolbarSearch] = useState("");
   // Quick filter chips: { col, value } pairs, AND-ed together
   const [quickFilters, setQuickFilters] = useState<{ col: string; value: string }[]>([]);
 
@@ -1914,6 +1918,10 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       const q2 = filterText.toLowerCase();
       base = base.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q2)));
     }
+    if (toolbarSearch.trim()) {
+      const q3 = toolbarSearch.toLowerCase();
+      base = base.filter(r => Object.values(r.data).some(v => String(v ?? "").toLowerCase().includes(q3)));
+    }
     if (quickFilters.length) {
       base = base.filter(r => quickFilters.every(f => {
         if (f.col.endsWith("__from")) {
@@ -1936,7 +1944,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
       }));
     }
     return base;
-  }, [records, filterText, filterQuery, quickFilters]);
+  }, [records, filterText, filterQuery, toolbarSearch, quickFilters]);
 
   const sorted = useMemo(() => {
     // Stacked sort rules take priority over quick sort
@@ -2048,7 +2056,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
   const groupCalcKind = groupCalcCol ? effectiveType(groupCalcCol) : undefined;
   // Only send filters when the whole active set is server-representable; otherwise disable the server
   // group query and fall back to the client per-group calc (honest, over the visible rows).
-  const groupFiltersRepresentable = !filterText.trim() && !filterQuery && serverFilters(quickFilters).length === quickFilters.length;
+  const groupFiltersRepresentable = !filterText.trim() && !filterQuery && !toolbarSearch.trim() && serverFilters(quickFilters).length === quickFilters.length;
   const groupAggQ = useQuery<{ groups?: { label: string; value: number; count: number; unconverted: number }[]; currency: string | null }>({
     queryKey: ["records-group-agg", objectType, groupByCol, groupCalcCol, groupCalcOp, groupCalcKind === "currency", JSON.stringify(groupFiltersRepresentable ? serverFilters(quickFilters) : "client")],
     queryFn: () => apiClient.post("/records/aggregate", { object_type: objectType, column: groupCalcCol, op: serverAggOp(groupCalcKind, groupCalcOp), group_by: groupByCol, currency: groupCalcKind === "currency", ...(serverFilters(quickFilters).length ? { filters: serverFilters(quickFilters) } : {}) }),
@@ -2521,7 +2529,20 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
     <section className="flex flex-col h-full bg-white dark:bg-transparent">
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-0.5 px-4 py-1.5 border-b border-[#eef2f7] dark:border-[var(--border-soft)] shrink-0">
-        {(filterText || filterQuery || quickSortCol || sortRules.length > 0) && (
+        {/* Search — always visible, left-anchored, quiet until focused. */}
+        <div className="mr-2 flex items-center gap-1.5">
+          <Search size={11} className="shrink-0 text-[var(--text-faint)]"/>
+          <input
+            value={toolbarSearch}
+            onChange={e => setToolbarSearch(e.target.value)}
+            placeholder="Search records…"
+            className="w-40 bg-transparent text-[11.5px] text-[var(--text-primary)] placeholder-[var(--text-faint)] outline-none focus:w-56 transition-all"
+          />
+          {toolbarSearch && (
+            <button onClick={() => setToolbarSearch("")} aria-label="Clear search" className="text-[var(--text-faint)] hover:text-[var(--text-primary)]"><X size={10}/></button>
+          )}
+        </div>
+        {(filterText || filterQuery || toolbarSearch || quickSortCol || sortRules.length > 0) && (
           <span className="text-[11px] text-[#9ca3af] dark:text-[var(--text-secondary)] tabular-nums mr-2">{sorted.length} of {records.length}</span>
         )}
         {nlpActive && (
@@ -3215,7 +3236,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
             {sorted.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + 3} className="px-4 py-14 text-center text-xs" style={{ color: "var(--text-muted)" }}>
-                  No results{(filterText || filterQuery) ? ` for "${filterText || filterQuery}"` : ""}
+                  No results{(toolbarSearch || filterText || filterQuery) ? ` for "${toolbarSearch || filterText || filterQuery}"` : ""}
                 </td>
               </tr>
             ) : (() => {
@@ -3298,7 +3319,7 @@ export function RecordTable({ objectType, enrichedIds = [], filterQuery = "", on
                           // honest client subtotal over the visible rows — LABELLED "this view" so it's
                           // never mistaken for the authoritative full-table server total.
                           const reprFilters = serverFilters(quickFilters);
-                          const allRepresentable = !filterText.trim() && !filterQuery && reprFilters.length === quickFilters.length;
+                          const allRepresentable = !filterText.trim() && !filterQuery && !toolbarSearch.trim() && reprFilters.length === quickFilters.length;
                           if (!allRepresentable) return <>{clientStr}<TotalNote text="this view" /></>;
                           return <ServerTotalValue objectType={objectType} col={col} op={calculations[col]} kind={effectiveType(col)} display={wsDisplay} fallback={clientStr} filters={reprFilters} />;
                         })()}
