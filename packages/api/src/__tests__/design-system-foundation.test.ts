@@ -1272,17 +1272,22 @@ describe("finance/invoices uses the shared DataTable", () => {
 
 describe("finance/invoices fully adopts the shared type scale (Pass 3R)", () => {
   const INV = read("apps/app/src/routes/dashboard/finance/invoices.tsx");
-  it("uses the shared scale classes (caption/label/body/row/stat)", () => {
-    for (const cls of ["text-caption", "text-label", "text-body", "text-row", "text-stat"]) {
+  it("uses the shared scale classes (caption/label/body/row)", () => {
+    // Re-pointed 2026-07-30 (Increment 1): the text-stat KPI numerals moved INTO the shared
+    // KPITile, so the page no longer carries the class directly — the KPI assertion below
+    // covers it via the component.
+    for (const cls of ["text-caption", "text-label", "text-body", "text-row"]) {
       expect(INV).toMatch(new RegExp(`\\b${cls}\\b`));
     }
   });
   it("no arbitrary text-[Npx] typography remains", () => {
     expect(INV).not.toMatch(/text-\[[0-9.]+px\]/);
   });
-  it("preserves the font-mono ledger styling (table shell + KPI numerals)", () => {
+  it("preserves the font-mono ledger styling (table shell + KPI numerals via KPITile)", () => {
     expect(INV).toMatch(/className="font-mono"/);                                  // DataTable shell
-    expect(INV).toMatch(/font-mono text-stat font-semibold tabular-nums/);         // KPI metrics
+    expect(INV).toMatch(/<KPITile/);                                               // KPI metrics
+    const KPI = read("apps/app/src/components/ui/kpi.tsx");
+    expect(KPI).toMatch(/font-mono text-stat font-semibold tabular-nums/);         // the recipe lives here now
   });
   it("preserves visual weight on migrated elements (explicit font-* kept)", () => {
     expect(INV).toMatch(/cellClassName: "text-body font-medium text-\[var\(--text-primary\)\]"/); // number

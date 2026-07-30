@@ -136,3 +136,29 @@ describe("the slim two-bar idiom (Pass BAR-1)", () => {
     expect(disc).toMatch(/pt-1 pb-1/);
   });
 });
+
+describe("content primitives (Increment 1 — Panel / Modal / KPI)", () => {
+  it("the three primitives exist with their core contracts", () => {
+    const panel = app("components/ui/panel.tsx");
+    expect(panel).toMatch(/border-b px-3\.5 py-2\.5/);           // fixed header density
+    const modal = app("components/ui/modal.tsx");
+    expect(modal).toMatch(/role="dialog" aria-modal="true"/);
+    expect(modal).toMatch(/e\.key === "Escape"/);
+    expect(modal).toMatch(/createPortal/);
+    const kpi = app("components/ui/kpi.tsx");
+    expect(kpi).toMatch(/telemetry-strip/);                       // formalizes, not forks, the strip
+    expect(kpi).toMatch(/font-mono text-stat font-semibold tabular-nums/);
+  });
+
+  it("Discovery adopted them: ICP editor is a Modal, watched searches a Panel", () => {
+    const d = app("routes/dashboard/discovery.tsx");
+    expect(d).toMatch(/<Modal\s*\n?\s*title="Your ideal customer"/);
+    expect(d).toMatch(/<Panel icon=\{Bell\} title="Watched searches"/);
+  });
+
+  it("Invoices runs ONE KPI strip via KPIGrid, not per-stat telemetry cards", () => {
+    const inv = app("routes/dashboard/finance/invoices.tsx");
+    expect(inv).toMatch(/<KPIGrid/);
+    expect(inv).not.toMatch(/className="telemetry-strip"/);
+  });
+});

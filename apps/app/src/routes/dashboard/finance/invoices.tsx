@@ -9,6 +9,7 @@ import { Plus, FileText, Clock, CheckCircle, AlertTriangle, XCircle, Send, Dolla
 import { FinanceListToolbar, FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
 import { PeriodSelector } from "../../../components/ui/period-selector";
+import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
 
 type InvoiceStatus = "draft" | "sent" | "viewed" | "paid" | "overdue" | "cancelled";
@@ -178,24 +179,16 @@ export function InvoicesPage() {
         <FinanceAgentStrip/>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="telemetry-strip">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign size={12} className="text-[var(--text-muted)]"/>
-              <span className="text-label text-[var(--text-muted)]">Outstanding</span>
-            </div>
-            <div className="font-mono text-stat font-semibold tabular-nums text-[var(--text-primary)]">{approx(owedSum.missing)}{formatCurrency(totalOwed, display)}</div>
-            <div className="mt-0.5 text-caption text-[var(--text-faint)]">unpaid · as of today{unconverted(owedSum.missing)}</div>
-          </div>
-          <div className="telemetry-strip">
-            <div className="flex items-center gap-2 mb-1">
-              <CheckCircle size={12} className="text-[#2f9e6b]"/>
-              <span className="text-label text-[var(--text-muted)]">Collected</span>
-            </div>
-            <div className="font-mono text-stat font-semibold tabular-nums" style={{ color: "var(--section-accent)" }}>{approx(paidSum.missing)}{formatCurrency(totalPaid, display)}</div>
-            <div className="mt-0.5 text-caption text-[var(--text-faint)]">{collectedScope}{unconverted(paidSum.missing)}</div>
-          </div>
-        </div>
+        {/* One KPI strip (shared KPIGrid/KPITile) — was two separate telemetry-strips in a grid,
+            a local drift from the Finance Reports single-strip idiom. */}
+        <KPIGrid className="mb-4">
+          <KPITile icon={DollarSign} label="Outstanding"
+            value={<>{approx(owedSum.missing)}{formatCurrency(totalOwed, display)}</>}
+            sub={<>unpaid · as of today{unconverted(owedSum.missing)}</>} />
+          <KPITile icon={CheckCircle} iconColor="#2f9e6b" label="Collected" accent
+            value={<>{approx(paidSum.missing)}{formatCurrency(totalPaid, display)}</>}
+            sub={<>{collectedScope}{unconverted(paidSum.missing)}</>} />
+        </KPIGrid>
 
         {/* Filters + search — shared finance toolbar (identical on every finance list page) */}
         <FinanceListToolbar tabs={FILTERS} activeTab={statusFilter} onTab={setStatusFilter}

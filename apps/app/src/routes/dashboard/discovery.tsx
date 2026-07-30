@@ -9,6 +9,8 @@ import {
 import { apiClient, apiFetch, BASE_URL } from "../../lib/api-client";
 import { MenuSelect, ActionMenu, CommandPageHeader, ProofOfWorkStrip } from "../../components/ui/controls";
 import { EmptyState, ErrorState, DelayedLoading, PageSkeletonCards } from "../../components/ui/page-state";
+import { Modal } from "../../components/ui/modal";
+import { Panel } from "../../components/ui/panel";
 import { SuggestionHints } from "../../components/ui/ai-button";
 import { useWorkspaceSuggestions } from "../../hooks/useWorkspaceSuggestions";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -374,20 +376,24 @@ export function DiscoveryPage() {
 
       {/* "How Discovery works" now renders only inside the first-run empty view (below the Try
           examples) — during and after real runs the per-turn proof strip carries the story. */}
+      {/* ICP editor is a Modal, not an inline card — it no longer pushes the composer down and the
+          page keeps one column of content (part of the Discovery declutter). */}
       {icpOpen && view === "chat" && (
-        <div className="mb-3 rounded-sm border px-3 py-3" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-          <p className="mb-1.5 text-[12px] font-medium" style={{ color: "var(--text-primary)" }}>Your ideal customer</p>
-          <p className="mb-2 text-[11px]" style={{ color: "var(--text-muted)" }}>One line describing who you sell to — leads matching it rank higher (Hot) and the coach tailors suggestions to it.</p>
-          <textarea value={icpText} onChange={(e) => setIcpText(e.target.value)} rows={2}
-            placeholder="e.g. Independent aesthetic clinics in Poland with 5-30 staff and an active social presence"
-            className="w-full resize-none rounded-sm border bg-transparent px-2.5 py-2 text-[13px] outline-none focus:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
-          <div className="mt-2 flex items-center gap-2">
+        <Modal
+          title="Your ideal customer"
+          subtitle="One line describing who you sell to — leads matching it rank higher (Hot) and the coach tailors suggestions to it."
+          onClose={() => setIcpOpen(false)}
+          footer={<>
+            <button onClick={() => setIcpOpen(false)} className="btn-secondary px-3 py-1.5 text-[12px] font-medium">Cancel</button>
             <button onClick={() => saveIcp.mutate()} disabled={saveIcp.isPending} className="btn-primary gap-1.5 px-3 py-1.5 text-[12px] font-medium">
               {saveIcp.isPending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Save
             </button>
-            <button onClick={() => setIcpOpen(false)} className="text-[12px]" style={{ color: "var(--text-muted)" }}>Cancel</button>
-          </div>
-        </div>
+          </>}
+        >
+          <textarea value={icpText} onChange={(e) => setIcpText(e.target.value)} rows={2} autoFocus
+            placeholder="e.g. Independent aesthetic clinics in Poland with 5-30 staff and an active social presence"
+            className="w-full resize-none rounded-sm border bg-transparent px-2.5 py-2 text-[13px] outline-none focus:border-[color:var(--section-accent)]" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
+        </Modal>
       )}
 
       {(degraded || statusQ.isError) && (
@@ -1347,13 +1353,8 @@ function MonitorsPanel() {
   const mons = monitorsQ.data ?? [];
   const rel = (iso?: string | null) => { if (!iso) return "not run yet"; const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000); if (s < 3600) return `${Math.max(1, Math.floor(s / 60))}m ago`; if (s < 86400) return `${Math.floor(s / 3600)}h ago`; return `${Math.floor(s / 86400)}d ago`; };
   return (
-    <div className="mb-4 rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-      <div className="flex items-center gap-1.5 border-b px-3.5 py-2.5" style={{ borderColor: "var(--border-soft)" }}>
-        <Bell size={13} style={{ color: "var(--section-accent)" }} />
-        <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>Watched searches</span>
-        {mons.length > 0 && <span className="text-[11px] tabular-nums" style={{ color: "var(--text-faint)" }}>{mons.length}</span>}
-        <span className="ml-auto text-[10.5px]" style={{ color: "var(--text-faint)" }}>re-run daily · alerts on new results</span>
-      </div>
+    <Panel icon={Bell} title="Watched searches" count={mons.length > 0 ? mons.length : undefined}
+      meta="re-run daily · alerts on new results" className="mb-4">
       {monitorsQ.isLoading ? (
         <div className="flex items-center gap-2 px-3.5 py-3 text-[12px]" style={{ color: "var(--text-muted)" }}><Loader2 size={12} className="animate-spin" /> Loading…</div>
       ) : mons.length === 0 ? (
@@ -1377,7 +1378,7 @@ function MonitorsPanel() {
           })}
         </div>
       )}
-    </div>
+    </Panel>
   );
 }
 
