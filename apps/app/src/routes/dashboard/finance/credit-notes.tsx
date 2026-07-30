@@ -7,6 +7,7 @@ import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCur
 import { FieldSelect } from "../../../components/ui/controls";
 import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
 import { FinanceListToolbar, FinanceHeader } from "../../../components/finance/finance-toolbar";
+import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { EmptyState, ErrorState, ConsoleSkeleton, DelayedLoading } from "../../../components/ui/page-state";
 import {
   Plus, ReceiptText, Clock, CheckCircle2,
@@ -237,23 +238,16 @@ export function CreditNotesPage() {
         {/* Key totals — the same telemetry-strip 3-card KPI used across the finance pages
             (Quotes / Expenses / Approvals), so credit notes no longer look like the odd one out. */}
         {creditNotes.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-            <div className="telemetry-strip">
-              <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-status-warn"/><span className="text-label text-[var(--text-muted)]">Pending review</span></div>
-              <div className="text-stat font-semibold" style={{ color: totalPending > 0 ? "#c6892e" : "var(--text-primary)" }}>{approx(pendingSum.missing)}{formatMoney(totalPending, currency)}</div>
-              <div className="mt-0.5 text-caption text-[var(--text-faint)]">{creditNotes.filter(n => n.status === "pending_review").length} awaiting review</div>
-            </div>
-            <div className="telemetry-strip">
-              <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-ok"/><span className="text-label text-[var(--text-muted)]">Executed</span></div>
-              <div className="text-stat font-semibold" style={{ color: totalExecuted > 0 ? "#2f9e6b" : "var(--text-primary)" }}>{approx(executedSum.missing)}{formatMoney(totalExecuted, currency)}</div>
-              <div className="mt-0.5 text-caption text-[var(--text-faint)]">{creditNotes.filter(n => n.status === "executed").length} credit issued</div>
-            </div>
-            <div className="telemetry-strip">
-              <div className="flex items-center gap-1.5 mb-1"><ReceiptText size={11} className="text-[var(--text-muted)]"/><span className="text-label text-[var(--text-muted)]">All notes</span></div>
-              <div className="text-stat font-semibold text-[var(--text-primary)]">{creditNotes.length}</div>
-              <div className="mt-0.5 text-caption text-[var(--text-faint)]">{mixedCurrency ? `shown in ${display}` : "all statuses"}</div>
-            </div>
-          </div>
+          <KPIGrid className="mb-4">
+            <KPITile icon={Clock} iconColor="var(--status-warn)" valueColor={totalPending > 0 ? "#c6892e" : undefined} label="Pending review"
+              value={<>{approx(pendingSum.missing)}{formatMoney(totalPending, currency)}</>}
+              sub={<>{creditNotes.filter(n => n.status === "pending_review").length} awaiting review</>} />
+            <KPITile icon={CheckCircle2} iconColor="var(--status-ok)" valueColor={totalExecuted > 0 ? "#2f9e6b" : undefined} label="Executed"
+              value={<>{approx(executedSum.missing)}{formatMoney(totalExecuted, currency)}</>}
+              sub={<>{creditNotes.filter(n => n.status === "executed").length} credit issued</>} />
+            <KPITile icon={ReceiptText} label="All notes" value={creditNotes.length}
+              sub={mixedCurrency ? `shown in ${display}` : "all statuses"} />
+          </KPIGrid>
         )}
 
         {/* Filters + search — shared finance toolbar (identical on every finance list page) */}

@@ -171,9 +171,24 @@ describe("content primitives (Increment 1 — Panel / Modal / KPI)", () => {
     expect(d).toMatch(/<Panel icon=\{Bell\} title="Watched searches"/);
   });
 
-  it("Invoices runs ONE KPI strip via KPIGrid, not per-stat telemetry cards", () => {
-    const inv = app("routes/dashboard/finance/invoices.tsx");
-    expect(inv).toMatch(/<KPIGrid/);
-    expect(inv).not.toMatch(/className="telemetry-strip"/);
+  it("every finance list page runs ONE KPI strip via KPIGrid, not per-stat telemetry cards", () => {
+    for (const f of ["invoices", "quotes", "credit-notes", "expenses"]) {
+      const s = app(`routes/dashboard/finance/${f}.tsx`);
+      expect(s, `${f} missing KPIGrid`).toMatch(/<KPIGrid/);
+      expect(s, `${f} still hand-rolls telemetry cards`).not.toMatch(/className="telemetry-strip"/);
+    }
+  });
+
+  it("billing toggles are hairline segments, not boxed pill tracks", () => {
+    const b = app("routes/dashboard/settings/billing.tsx");
+    expect(b).not.toMatch(/rounded-full border p-0\.5/);
+    expect(b).toMatch(/color-mix\(in srgb, var\(--text-primary\) 5%, transparent\)/);
+  });
+
+  it("PeriodSelector is hairline — no track border, no shadow, ink-wash active", () => {
+    const ps = app("components/ui/period-selector.tsx");
+    expect(ps).not.toMatch(/rounded-lg border p-0\.5/);
+    expect(ps).not.toMatch(/boxShadow/);
+    expect(ps).toMatch(/color-mix\(in srgb, var\(--text-primary\) 5%, transparent\)/);
   });
 });

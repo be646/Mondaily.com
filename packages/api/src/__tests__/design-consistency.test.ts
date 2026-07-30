@@ -679,9 +679,11 @@ describe("Settings-wide visual normalization", () => {
       expect(src, `${name} still uses a stone-* color`).not.toMatch(/\bstone-[0-9]/);
     }
   });
-  it("Settings buttons/frames are squared (no rounded-lg/md); dividers/frames are token-driven (no divide-white)", () => {
+  it("Settings chrome caps at rounded-md (6px doctrine, NAV-S); dividers/frames are token-driven (no divide-white)", () => {
+    // Re-pointed 2026-07-30: the app-wide button doctrine moved from squared to 6px (rounded-md);
+    // rounded-lg stays banned.
     for (const [name, src] of Object.entries(SETTINGS_SRC)) {
-      expect(src, `${name} has rounded-lg/md`).not.toMatch(/rounded-(lg|md)/);
+      expect(src, `${name} has rounded-lg`).not.toMatch(/rounded-lg/);
       expect(src, `${name} has divide-white`).not.toContain("divide-white");
     }
   });

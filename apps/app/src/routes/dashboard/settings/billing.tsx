@@ -362,12 +362,12 @@ export function BillingSettings() {
           <div className="flex items-center gap-2">
             {/* Billing-currency switcher — only when the local currency isn't already USD/EUR/GBP */}
             {showCurSwitch && (
-              <div className="inline-flex rounded-full border p-0.5 text-[11px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+              <div className="inline-flex items-center gap-0.5 text-[11px]">
                 {BILLING_CURRENCIES.map(cc => (
                   <button key={cc} onClick={() => setBillingCur(cc)}
-                    className="rounded-full px-2.5 py-1 font-medium transition-colors"
+                    className="rounded-md px-2.5 py-1 font-medium transition-colors"
                     style={billingCur === cc
-                      ? { background: "var(--surface-selected)", color: "var(--section-accent)" }
+                      ? { background: "color-mix(in srgb, var(--text-primary) 5%, transparent)", color: "var(--text-primary)" }
                       : { color: "var(--text-muted)" }}>
                     {PRICING_SYMBOL[cc]} {cc}
                   </button>
@@ -375,12 +375,12 @@ export function BillingSettings() {
               </div>
             )}
             {/* Monthly / Annual billing toggle */}
-            <div className="inline-flex rounded-full border p-0.5 text-[11px]" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
+            <div className="inline-flex items-center gap-0.5 text-[11px]">
               {(["month", "year"] as const).map(iv => (
                 <button key={iv} onClick={() => setInterval(iv)}
-                  className="rounded-full px-2.5 py-1 font-medium transition-colors"
+                  className="rounded-md px-2.5 py-1 font-medium transition-colors"
                   style={interval === iv
-                    ? { background: "var(--surface-selected)", color: "var(--section-accent)" }
+                    ? { background: "color-mix(in srgb, var(--text-primary) 5%, transparent)", color: "var(--text-primary)" }
                     : { color: "var(--text-muted)" }}>
                   {iv === "month" ? "Monthly" : <>Annual <span style={{ color: "var(--section-accent)" }}>−20%</span></>}
                 </button>

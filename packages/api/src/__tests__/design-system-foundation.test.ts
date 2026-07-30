@@ -236,7 +236,7 @@ describe("no consumer passes the new row hooks yet (unchanged) + Tasks untouched
 describe("finance/quotes fully adopts the shared type scale (Pass 3O)", () => {
   const Q = read("apps/app/src/routes/dashboard/finance/quotes.tsx");
   it("uses the shared scale classes it needs (caption/label/body/row/stat)", () => {
-    for (const c of ["text-caption", "text-label", "text-body", "text-row", "text-stat"]) {
+    for (const c of ["text-caption", "text-label", "text-body", "text-row"]) { // text-stat moved into KPITile 2026-07-30
       expect(Q).toMatch(new RegExp(`\\b${c}\\b`));
     }
   });
@@ -245,7 +245,7 @@ describe("finance/quotes fully adopts the shared type scale (Pass 3O)", () => {
   });
   it("weight preserved via explicit font-* (scale no longer bakes weight)", () => {
     expect(Q).toMatch(/cellClassName: "text-row font-semibold/);   // amount stays 600
-    expect(Q).toMatch(/text-stat font-semibold text-status-neutral/); // KPI numbers stay 600
+    expect(Q).toMatch(/<KPITile/); // KPI numbers live in the shared KPITile since 2026-07-30
     expect(Q).toMatch(/text-label text-\[var\(--text-secondary\)\]/); // date cells stay weight-400 (no font-* added)
   });
   it("behaviour/formatting untouched — amount field, status badge, telemetry, DataTable intact", () => {
@@ -1131,7 +1131,7 @@ describe("finance/credit-notes uses the shared DataTable", () => {
 describe("finance/credit-notes fully adopts the shared type scale (Pass 3Q)", () => {
   const CN = read("apps/app/src/routes/dashboard/finance/credit-notes.tsx");
   it("uses the shared scale classes (caption/label/body/row/stat)", () => {
-    for (const cls of ["text-caption", "text-label", "text-body", "text-row", "text-stat"]) {
+    for (const cls of ["text-caption", "text-label", "text-body", "text-row"]) { // text-stat moved into KPITile 2026-07-30
       expect(CN).toMatch(new RegExp(`\\b${cls}\\b`));
     }
   });
@@ -1142,7 +1142,7 @@ describe("finance/credit-notes fully adopts the shared type scale (Pass 3Q)", ()
     expect(CN).toMatch(/text-caption font-semibold uppercase/);              // form labels
     expect(CN).toMatch(/text-body font-medium text-\[var\(--text-primary\)\]/); // client name
     expect(CN).toMatch(/cellClassName: "text-row font-semibold tabular-nums/);  // amount cell
-    expect(CN).toMatch(/text-stat font-semibold/);                            // KPI numbers
+    expect(CN).toMatch(/<KPITile/);                                           // KPI numbers via shared tile (2026-07-30)
   });
   it("behavior intact — amount field, status config, DataTable + row navigation untouched", () => {
     expect(CN).toMatch(/fmt\(cn\.amount_cents, cn\.currency\)/);
@@ -1310,7 +1310,7 @@ describe("finance/invoices fully adopts the shared type scale (Pass 3R)", () => 
 describe("finance/expenses fully adopts the shared type scale (Pass 3S)", () => {
   const EXP = read("apps/app/src/routes/dashboard/finance/expenses.tsx");
   it("uses the shared scale classes (caption/label/body/row/stat)", () => {
-    for (const cls of ["text-caption", "text-label", "text-body", "text-row", "text-stat"]) {
+    for (const cls of ["text-caption", "text-label", "text-body", "text-row"]) { // text-stat moved into KPITile 2026-07-30
       expect(EXP).toMatch(new RegExp(`\\b${cls}\\b`));
     }
   });
@@ -1321,7 +1321,7 @@ describe("finance/expenses fully adopts the shared type scale (Pass 3S)", () => 
     expect(EXP).toMatch(/text-caption font-semibold uppercase/);                       // form labels
     expect(EXP).toMatch(/cellClassName: "text-body font-medium text-\[var\(--text-primary\)\]"/); // description
     expect(EXP).toMatch(/cellClassName: "text-row font-semibold text-\[var\(--text-primary\)\]"/); // amount
-    expect(EXP).toMatch(/text-stat font-semibold/);                                    // KPI numbers
+    expect(EXP).toMatch(/<KPITile/);                                                   // KPI numbers via shared tile (2026-07-30)
   });
   it("category colour stays DECORATIVE (catCfg.color), NOT converted to a status token", () => {
     expect(EXP).toMatch(/text-caption font-medium \$\{catCfg\.color\}/);   // category identity colour, not status.*

@@ -5,6 +5,7 @@ import { FieldSelect, FilterButton, FilterStrip } from "../../../components/ui/c
 import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
 import { FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { PeriodSelector } from "../../../components/ui/period-selector";
+import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { usePeriod, periodRange, inRange, periodLabel } from "../../../lib/period";
 import { AIButton } from "../../../components/ui/ai-button";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
@@ -254,23 +255,17 @@ export function ExpensesPage() {
           }
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-          <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Clock size={11} className="text-[#717784]"/><span className="text-label text-[var(--text-muted)]">Submitted</span></div>
-            <div className="text-stat font-semibold text-[#717784]">{approx(submittedSum.missing)}{formatMoney(totalSubmitted, currency)}</div>
-            <div className="text-caption text-[var(--text-secondary)] mt-0.5">{expenses.filter(e => e.status === "submitted").length} pending approval · as of now</div>
-          </div>
-          <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-[#2f9e6b]"/><span className="text-label text-[var(--text-muted)]">Approved</span></div>
-            <div className="text-stat font-semibold text-[#2f9e6b]">{approx(approvedSum.missing)}{formatMoney(totalApproved, currency)}</div>
-            <div className="text-caption text-[var(--text-secondary)] mt-0.5">approved · {periodScope}</div>
-          </div>
-          <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Receipt size={11} className="text-[var(--text-muted)]"/><span className="text-label text-[var(--text-muted)]">Total logged</span></div>
-            <div className="text-stat font-semibold text-[var(--text-primary)]">{approx(loggedSum.missing)}{formatMoney(totalInPeriod, currency)}</div>
-            <div className="text-caption text-[var(--text-secondary)] mt-0.5">excl. rejected · {periodScope}{loggedSum.missing > 0 ? ` · ${loggedSum.missing} unconverted` : ""}</div>
-          </div>
-        </div>
+        <KPIGrid className="mb-4">
+          <KPITile icon={Clock} iconColor="#717784" valueColor="#717784" label="Submitted"
+            value={<>{approx(submittedSum.missing)}{formatMoney(totalSubmitted, currency)}</>}
+            sub={<>{expenses.filter(e => e.status === "submitted").length} pending approval · as of now</>} />
+          <KPITile icon={CheckCircle2} iconColor="#2f9e6b" valueColor="#2f9e6b" label="Approved"
+            value={<>{approx(approvedSum.missing)}{formatMoney(totalApproved, currency)}</>}
+            sub={<>approved · {periodScope}</>} />
+          <KPITile icon={Receipt} label="Total logged"
+            value={<>{approx(loggedSum.missing)}{formatMoney(totalInPeriod, currency)}</>}
+            sub={<>excl. rejected · {periodScope}{loggedSum.missing > 0 ? ` · ${loggedSum.missing} unconverted` : ""}</>} />
+        </KPIGrid>
 
         {/* Toolbar — records-sheet filter pattern (same as Decisions/Tasks): a Filter button
             toggles a thin category strip below, replacing the old wall of category buttons. */}

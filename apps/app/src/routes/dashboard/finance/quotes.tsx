@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FieldSelect } from "../../../components/ui/controls";
 import { DataTable, type DataTableColumn } from "../../../components/ui/data-table";
 import { FinanceListToolbar, FinanceHeader } from "../../../components/finance/finance-toolbar";
+import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { AIButton } from "../../../components/ui/ai-button";
 import { apiClient } from "../../../lib/api-client";
 import { useCurrency, formatMoney, currencyOptions } from "../../../hooks/useCurrency";
@@ -241,23 +242,16 @@ export function QuotesPage() {
           }
         />
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-          <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><Send size={11} className="text-status-neutral"/><span className="text-label text-[var(--text-muted)]">Sent</span></div>
-            <div className="text-stat font-semibold text-status-neutral">{approx(pendingSum.missing)}{formatMoney(totalPending, currency)}</div>
-            <div className="text-caption text-[var(--text-secondary)] mt-0.5">{quotes.filter(q => q.status === "sent").length} quotes awaiting response</div>
-          </div>
-          <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><CheckCircle2 size={11} className="text-status-ok"/><span className="text-label text-[var(--text-muted)]">Accepted</span></div>
-            <div className="text-stat font-semibold text-status-ok">{approx(acceptedSum.missing)}{formatMoney(totalAccepted, currency)}</div>
-            <div className="text-caption text-[var(--text-secondary)] mt-0.5">{quotes.filter(q => q.status === "accepted").length} accepted</div>
-          </div>
-          <div className="telemetry-strip">
-            <div className="flex items-center gap-1.5 mb-1"><ReceiptText size={11} className="text-[var(--text-muted)]"/><span className="text-label text-[var(--text-muted)]">Total quotes</span></div>
-            <div className="text-stat font-semibold text-[var(--text-primary)]">{quotes.length}</div>
-            <div className="text-caption text-[var(--text-secondary)] mt-0.5">all statuses</div>
-          </div>
-        </div>
+        {/* One KPI strip (shared KPIGrid/KPITile) — was three separate telemetry cards. */}
+        <KPIGrid className="mb-4">
+          <KPITile icon={Send} iconColor="var(--status-neutral)" valueColor="var(--status-neutral)" label="Sent"
+            value={<>{approx(pendingSum.missing)}{formatMoney(totalPending, currency)}</>}
+            sub={<>{quotes.filter(q => q.status === "sent").length} quotes awaiting response</>} />
+          <KPITile icon={CheckCircle2} iconColor="var(--status-ok)" valueColor="var(--status-ok)" label="Accepted"
+            value={<>{approx(acceptedSum.missing)}{formatMoney(totalAccepted, currency)}</>}
+            sub={<>{quotes.filter(q => q.status === "accepted").length} accepted</>} />
+          <KPITile icon={ReceiptText} label="Total quotes" value={quotes.length} sub="all statuses" />
+        </KPIGrid>
 
         {/* Filters + search — shared finance toolbar (identical on every finance list page) */}
         <FinanceListToolbar tabs={FILTERS} activeTab={statusFilter} onTab={setStatusFilter}

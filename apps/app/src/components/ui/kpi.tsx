@@ -11,7 +11,7 @@ export function KPIGrid({ children, className = "" }: { children: ReactNode; cla
   return <div className={`telemetry-strip ${className}`}>{children}</div>;
 }
 
-export function KPITile({ icon: Icon, label, value, sub, accent, delta, iconColor }: {
+export function KPITile({ icon: Icon, label, value, sub, accent, delta, iconColor, valueColor }: {
   icon?: LucideIcon;
   label: string;
   /** Pre-formatted by the caller (currency/percent already applied) — honesty lives upstream. */
@@ -23,6 +23,8 @@ export function KPITile({ icon: Icon, label, value, sub, accent, delta, iconColo
   /** A DeltaPill or similar, rendered beside the value. */
   delta?: ReactNode;
   iconColor?: string;
+  /** Status-toned value (e.g. warn amber for pending, ok green for approved). Overrides accent. */
+  valueColor?: string;
 }) {
   return (
     <div>
@@ -31,7 +33,7 @@ export function KPITile({ icon: Icon, label, value, sub, accent, delta, iconColo
         <span className="text-label" style={{ color: "var(--text-muted)" }}>{label}</span>
       </div>
       <div className="flex items-baseline gap-2">
-        <span className="font-mono text-stat font-semibold tabular-nums" style={{ color: accent ? "var(--section-accent)" : "var(--text-primary)" }}>{value}</span>
+        <span className="font-mono text-stat font-semibold tabular-nums" style={{ color: valueColor ?? (accent ? "var(--section-accent)" : "var(--text-primary)") }}>{value}</span>
         {delta}
       </div>
       {sub && <div className="mt-0.5 text-caption" style={{ color: "var(--text-faint)" }}>{sub}</div>}
