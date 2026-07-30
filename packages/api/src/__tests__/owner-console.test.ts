@@ -175,3 +175,18 @@ describe("the owner memo — code counts, AI narrates", () => {
     expect(page3).not.toMatch(/useQuery[^)]*owner\/memo/);
   });
 });
+
+describe("chain-of-thought never ships as an answer", () => {
+  it("aiGatewayComplete returns empty on empty content — not the reasoning channel", () => {
+    // The first live memo shipped "We need to produce 3 short paragraphs…" — the model's raw
+    // thinking — because content was empty (token budget exhausted mid-thought) and the fallback
+    // returned `reasoning`. Empty is honest; every caller has a deterministic fallback.
+    const gw = readFileSync(join(__dirname, "../lib/ai-gateway.ts"), "utf8");
+    expect(gw).toMatch(/return m\?\.content\?\.trim\(\) \? m\.content : "";/);
+    expect(gw).not.toMatch(/m\?\.reasoning \?\? ""/);
+  });
+  it("the memo gives the reasoning model headroom to finish thinking", () => {
+    const src2 = readFileSync(join(__dirname, "../routes/owner.ts"), "utf8");
+    expect(src2).toMatch(/maxTokens: 2500/);
+  });
+});

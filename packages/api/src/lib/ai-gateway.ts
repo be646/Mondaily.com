@@ -441,7 +441,11 @@ export async function aiGatewayComplete(req: { prompt: string; system?: string; 
       if (total > 0) recordAiUsage(req.workspaceId, resolved.modelId, { prompt_tokens: u.prompt_tokens ?? 0, completion_tokens: u.completion_tokens ?? 0, total_tokens: total }, { userId: req.userId, feature: req.feature });
     }
     const m = completion.choices[0]?.message as { content?: string; reasoning?: string } | undefined;
-    return (m?.content && m.content.trim()) ? m.content : (m?.reasoning ?? "");
+    // NEVER fall back to `reasoning`: on a reasoning model (gpt-oss-120b), empty content means the
+    // token budget ran out mid-THOUGHT, and `reasoning` is raw chain-of-thought — the first live
+    // Owner Memo returned "We need to produce 3 short paragraphs…" verbatim to the owner. An empty
+    // string is honest; callers have deterministic fallbacks for exactly this.
+    return m?.content?.trim() ? m.content : "";
   } catch {
     return "";
   }

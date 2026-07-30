@@ -245,7 +245,10 @@ router.post("/memo", requireAdminRole, async (c) => {
         "- Plain, direct, no praise, no filler, no advice beyond what the numbers state.",
       ].join("\n"),
       prompt: JSON.stringify(payload),
-      maxTokens: 600,
+      // Reasoning-model headroom: gpt-oss-120b THINKS in tokens before it writes. 600 was
+      // exhausted mid-thought, content came back empty, and the old gateway fallback shipped the
+      // chain-of-thought as the memo.
+      maxTokens: 2500,
       workspaceId: ws, userId: c.get("userId"), feature: "owner_memo",
     });
     const memo = String(text ?? "").trim();
