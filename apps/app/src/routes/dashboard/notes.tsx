@@ -12,6 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { MenuSelect, CommandPageHeader } from "../../components/ui/controls";
+import { SegmentedControl } from "../../components/ui/segmented";
 import { NoteEditor } from "../../components/notes/note-editor";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
 import { apiClient } from "../../lib/api-client";
@@ -383,14 +384,11 @@ function TimelineView({ notes, colors, pinned, userId, isAdmin, onColorChange, o
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-xs text-[var(--text-muted)]">{sorted.length} notes across timeline</p>
-        <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
-          {(["week", "month", "quarter"] as const).map(z => (
-            <button key={z} onClick={() => setZoom(z)}
-              className={`rounded-lg px-3 py-1.5 text-xs capitalize transition-colors ${zoom === z ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
-              {z}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          segments={[{ key: "week", label: "Week" }, { key: "month", label: "Month" }, { key: "quarter", label: "Quarter" }]}
+          active={zoom}
+          onChange={(k) => setZoom(k as "week" | "month" | "quarter")}
+        />
       </div>
       <div className="overflow-x-auto rounded-sm border border-[var(--border-soft)] bg-[var(--surface-card)]">
         {BOARD_COLUMNS.map((col, laneIdx) => {
@@ -558,21 +556,11 @@ export function NotesPage() {
 
       {/* ── Filter bar ── */}
       <div className="mb-5 flex items-center gap-2 flex-wrap">
-        <div className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
-          {([
-            { key: "all",  label: "All"  },
-            { key: "mine", label: "Mine" },
-            { key: "ai",   label: "AI"   },
-          ] as const).map(({ key, label }) => (
-            <button key={key} onClick={() => setFilter(key)}
-              className="rounded-md px-3 py-1 text-[11.5px] font-medium transition-colors"
-              style={filter === key
-                ? { background: "var(--surface-card)", color: "var(--text-primary)", boxShadow: "0 1px 2px rgba(0,0,0,0.18)" }
-                : { color: "var(--text-muted)" }}>
-              {label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          segments={[{ key: "all", label: "All" }, { key: "mine", label: "Mine" }, { key: "ai", label: "AI" }]}
+          active={filter}
+          onChange={(k) => setFilter(k as "all" | "mine" | "ai")}
+        />
 
         <div className="h-4 w-px bg-[var(--surface-hover)]" />
 

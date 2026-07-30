@@ -410,7 +410,7 @@ export function ReportsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-2 pb-6 sm:px-6 sm:py-8">
+    <div className="mx-auto max-w-6xl px-4 pt-2 pb-6 sm:px-6 sm:pt-2 sm:pb-8">
       {/* Shared command header — same pattern as Decisions / Discovery / Agents. Honest state:
           reports recompute from live records; no fabricated "AI ran" claim. */}
       <CommandPageHeader

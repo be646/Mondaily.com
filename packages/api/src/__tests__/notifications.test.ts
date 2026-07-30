@@ -511,8 +511,11 @@ describe("Tasks field contracts (audit fixes)", () => {
     expect(rep).not.toMatch(/Math\.max\(0, Math\.round\(\(1 - value \/ previous\) \* 100\)\)/);
   });
 
-  it("zero-valued counts never render as a literal 0", () => {
-    expect(tasksPage).toMatch(/\{!!f\.badge && filter !== f\.key/);
+  it("counts follow the segment contract; due-days still hides zero", () => {
+    // Re-pointed 2026-07-30: the status filter is the shared SegmentedControl, whose contract
+    // RENDERS known counts including zero ("Overdue 0" is the answer, not noise). The due-days
+    // chip keeps hiding zero — "due in 0 days" would be nonsense.
+    expect(tasksPage).toMatch(/count: overdueTasks\.length/);
     expect(tasksPage).toMatch(/\{!!t\.due_days &&/);
   });
 });

@@ -11,6 +11,7 @@ import { TaskDetailPanel } from "../../components/tasks/task-detail-panel";
 import { apiClient } from "../../lib/api-client";
 import { FieldSelect, FilterButton, FilterStrip, CommandPageHeader } from "../../components/ui/controls";
 import { EmptyState, ErrorState, PageSkeleton } from "../../components/ui/page-state";
+import { SegmentedControl } from "../../components/ui/segmented";
 import { DataTable, type DataTableColumn } from "../../components/ui/data-table";
 import { useLanguage } from "../../hooks/useLanguage";
 import { isOverdue as isPastDue } from "@mondaily/shared/dates";
@@ -623,14 +624,11 @@ export function TasksPage() {
         primaryAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* View toggle */}
-            <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
-              {([["list","List",<List size={12}/>],["board","Board",<Columns3 size={12}/>],["sheet","Sheet",<Sheet size={12}/>]] as const).map(([mode, label, icon]) => (
-                <button key={mode} onClick={() => setViewMode(mode as any)} title={label}
-                  className={`flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-xs transition-colors ${viewMode === mode ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
-                  {icon}{label}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              segments={[{ key: "list", label: "List", icon: List }, { key: "board", label: "Board", icon: Columns3 }, { key: "sheet", label: "Sheet", icon: Sheet }]}
+              active={viewMode}
+              onChange={(k) => setViewMode(k as "list" | "board" | "sheet")}
+            />
             {!isViewer && (
               <>
                 <button onClick={() => setShowAISuggest(true)}
@@ -651,20 +649,16 @@ export function TasksPage() {
       {/* ── Filter bar ── */}
       <div className="mb-5 flex items-center gap-1.5 flex-wrap">
         {/* Status */}
-        <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
-          {([
+        <SegmentedControl
+          segments={[
             { key: "mine",    label: t("tasks.filter.mine") },
             { key: "all",     label: t("tasks.filter.all") },
-            { key: "overdue", label: t("tasks.filter.overdue"), badge: overdueTasks.length },
+            { key: "overdue", label: t("tasks.filter.overdue"), count: overdueTasks.length },
             { key: "review",  label: t("tasks.filter.review") },
-          ]).map(f => (
-            <button key={f.key} onClick={() => setFilter(f.key)}
-              className={`flex items-center gap-1 rounded-sm px-2.5 py-1 text-xs transition-colors ${filter === f.key ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"}`}>
-              {f.label}
-              {!!f.badge && filter !== f.key && <span className="rounded-full bg-stone-100 px-1 py-px text-caption text-stone-700 dark:bg-stone-500/20 dark:text-stone-400">{f.badge}</span>}
-            </button>
-          ))}
-        </div>
+          ]}
+          active={filter}
+          onChange={(k) => setFilter(k as typeof filter)}
+        />
 
         <div className="h-4 w-px bg-[var(--surface-hover)]"/>
 

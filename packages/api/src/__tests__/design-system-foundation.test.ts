@@ -1865,15 +1865,18 @@ describe("Discovery results feed unified into an answer document (Pass D2)", () 
 describe("Notes toolbar standardized to premium rhythm (Pass 11L)", () => {
   const N = read("apps/app/src/routes/dashboard/notes.tsx");
 
-  it("segmented track uses the premium rounded-lg + p-0.5 rhythm", () => {
-    expect(N).toMatch(/inline-flex flex-wrap items-center gap-0\.5 rounded-lg border border-\[var\(--border-soft\)\] bg-\[var\(--surface-hover\)\] p-0\.5/);
+  it("segmented controls use the shared hairline SegmentedControl (re-pointed 2026-07-30)", () => {
+    // The boxed rounded-lg track + shadowed active tab was superseded by the app-wide hairline
+    // doctrine — Notes now renders both its filter and zoom controls through SegmentedControl.
+    expect(N).toMatch(/<SegmentedControl/);
+    expect(N).not.toMatch(/rounded-lg border border-\[var\(--border-soft\)\] bg-\[var\(--surface-hover\)\] p-0\.5/);
   });
 
-  it("active tab is visible on --surface-card with a shadow, NOT on the --surface-hover track", () => {
-    expect(N).toMatch(/background: "var\(--surface-card\)", color: "var\(--text-primary\)", boxShadow: "0 1px 2px rgba\(0,0,0,0\.18\)"/);
+  it("no boxed track or shadowed active tab survives in Notes", () => {
+    expect(N).not.toMatch(/boxShadow: "0 1px 2px rgba\(0,0,0,0\.18\)"/);
     // the old invisible-active-pill form (active bg == track bg) is gone
     expect(N).not.toMatch(/filter === key \? "bg-\[var\(--surface-hover\)\] text-\[var\(--text-primary\)\]"/);
-    expect(N).toMatch(/rounded-md px-3 py-1 text-\[11\.5px\] font-medium transition-colors/);
+    // chip styling now lives inside SegmentedControl (guarded in segmented.tsx / page-chrome).
   });
 
   it("search field uses the shared key-input control", () => {
