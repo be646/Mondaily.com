@@ -53,7 +53,7 @@ export function NotificationsBell() {
     <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className="relative flex h-7 w-7 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-50"
+        className="relative flex h-7 w-7 items-center justify-center rounded-md text-stone-500 transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
         title="Notifications"
       >
         <Bell size={15}/>
