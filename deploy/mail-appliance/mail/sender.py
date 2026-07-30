@@ -31,6 +31,32 @@ STARTTLS = os.environ.get("SMTP_STARTTLS", "1" if RELAY_PORT != 25 else "0") == 
 app = FastAPI(title="mondaily-mail-sender")
 
 
+def html_to_text(html: str) -> str:
+    """
+    A readable text/plain twin of the HTML part.
+
+    Not a full renderer — deliberately. It needs to carry the same WORDS as the HTML so filters see a
+    consistent multipart/alternative, which is the point. Links are kept as "text (url)" so the plain
+    reader loses nothing, and block-level tags become newlines so paragraphs survive.
+    """
+    import re
+    from html import unescape
+
+    s = re.sub(r"(?is)<(script|style)\b.*?</\1>", "", html)          # drop non-content entirely
+    # "text (url)", NOT "text <url>": angle brackets get eaten by the tag-strip two lines down, which
+    # silently dropped every link. Caught by testing the real quote-email markup.
+    s = re.sub(r"(?i)<a\b[^>]*href=[\"']([^\"']+)[\"'][^>]*>(.*?)</a>", r"\2 (\1)", s)
+    s = re.sub(r"(?i)<br\s*/?>", "\n", s)
+    s = re.sub(r"(?i)</(p|div|tr|h[1-6]|li|table|blockquote)>", "\n", s)
+    s = re.sub(r"(?i)<li\b[^>]*>", "- ", s)
+    s = re.sub(r"(?s)<[^>]+>", "", s)                                 # remaining tags
+    s = unescape(s)
+    s = re.sub(r"[ \t ]+", " ", s)
+    s = re.sub(r"\n\s*\n\s*\n+", "\n\n", s)                           # collapse blank runs
+    s = "\n".join(line.strip() for line in s.splitlines())
+    return s.strip() or "(no text content)"
+
+
 @app.get("/health")
 def health():
     return {"ok": True, "relay": f"{RELAY_HOST}:{RELAY_PORT}"}
@@ -69,8 +95,17 @@ async def send(request: Request, x_mondaily_mail_signature: str = Header(default
     if p.get("in_reply_to"):
         msg["In-Reply-To"] = p["in_reply_to"]
         msg["References"] = p.get("references") or p["in_reply_to"]
+    # Reply-To so recipients answer a human/workspace address rather than the ws-<id> routing
+    # address, without breaking inbound routing (which keys on the envelope/To).
+    if p.get("reply_to"):
+        msg["Reply-To"] = p["reply_to"]
+
     html = p.get("html", "")
-    msg.set_content("This message requires an HTML-capable client.")
+    # A REAL text/plain alternative. This used to be the literal string "This message requires an
+    # HTML-capable client." next to a full HTML part — one of the strongest bulk-mail signals there
+    # is, because legitimate senders' text and HTML parts say the same thing and phishing/blast tools
+    # ship exactly this kind of stub. Gmail put the first sovereign send straight in spam.
+    msg.set_content(html_to_text(html) if html else (p.get("text") or ""))
     if html:
         msg.add_alternative(html, subtype="html")
 

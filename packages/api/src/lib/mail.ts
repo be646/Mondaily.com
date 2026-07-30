@@ -88,6 +88,31 @@ export async function sendTransactionalEmail(msg: OutboundMessage): Promise<bool
  * self-hosted — no third-party. Fail-closed: without SOVEREIGN_MAIL_SEND_URL + _SECRET this returns
  * false and we fall through to the next tier.
  */
+/**
+ * RFC 5322 display-name quoting. A workspace called `Acme, Inc.` contains a comma, which unquoted
+ * turns one From into two malformed addresses; embedded quotes and backslashes must be escaped.
+ */
+export function quotedDisplayName(name: string): string {
+  return `"${name.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+/** Workspace name for the From display name, cached — one extra read per send is not worth it. */
+const wsNameCache = new Map<string, { name: string; at: number }>();
+const WS_NAME_TTL_MS = 5 * 60 * 1000;
+
+async function workspaceDisplayName(workspaceId: string): Promise<string> {
+  const hit = wsNameCache.get(workspaceId);
+  if (hit && Date.now() - hit.at < WS_NAME_TTL_MS) return hit.name;
+  let name = "Mondaily";      // never blank: an empty display name is worse than a generic one
+  try {
+    const { data } = await supabase.from("workspaces").select("name").eq("id", workspaceId).maybeSingle();
+    const n = String((data as { name?: string } | null)?.name ?? "").trim();
+    if (n) name = n;
+  } catch { /* fall back to the default rather than failing a send over a display name */ }
+  wsNameCache.set(workspaceId, { name, at: Date.now() });
+  return name;
+}
+
 async function sendViaSovereignRelay(workspaceId: string, msg: OutboundMessage): Promise<boolean> {
   const url = process.env.SOVEREIGN_MAIL_SEND_URL;
   const secret = process.env.SOVEREIGN_MAIL_SECRET;
@@ -100,7 +125,12 @@ async function sendViaSovereignRelay(workspaceId: string, msg: OutboundMessage):
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 5_000);
   try {
-    const from = inboundAddressFor(workspaceId) ?? CORPORATE_FROM;
+    // A DISPLAY NAME on the From. The routing address is `ws-<uuid>@inbound.<domain>`, and sent bare
+    // it reads — to filters and to humans — like machine-generated throwaway mail: a 36-character
+    // hex local part with no name attached. Gmail put the first sovereign send straight in spam.
+    // The address itself must not change (inbound routing keys on it), so we only add the name.
+    const address = inboundAddressFor(workspaceId);
+    const from = address ? `${quotedDisplayName(await workspaceDisplayName(workspaceId))} <${address}>` : CORPORATE_FROM;
     const body = JSON.stringify({ from, to: msg.to.map((t) => t.email), subject: msg.subject, html: msg.body });
     const res = await fetch(url.replace(/\/$/, "") + "/send", {
       method: "POST",
