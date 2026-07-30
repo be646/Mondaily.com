@@ -78,7 +78,7 @@ describe("the slim two-bar idiom (Pass BAR-1)", () => {
     // Group 1 (Decisions/Goals/Inbox) verified live 2026-07-30; group 2 (Discovery/Calls/Activity)
     // follows the same contract. Discovery's wrapper differs (flex column shell), so its padding
     // assertion is its own.
-    for (const f of ["routes/dashboard/goals.tsx", "routes/dashboard/messages.tsx", "routes/dashboard/decisions.tsx", "routes/dashboard/calls.tsx", "routes/dashboard/activity.tsx"]) {
+    for (const f of ["routes/dashboard/goals.tsx", "routes/dashboard/messages.tsx", "routes/dashboard/decisions.tsx", "routes/dashboard/calls.tsx", "routes/dashboard/activity.tsx", "routes/dashboard/team-oversight.tsx", "routes/dashboard/calendar.tsx"]) {
       const s = readFileSync(join(APP, f), "utf8");
       expect(s, `${f} missing variant="bar"`).toMatch(/variant="bar"/);
       expect(s, `${f} still has tall top padding`).toMatch(/pt-2 pb-[68]/);

@@ -316,10 +316,11 @@ export function CalendarPage() {
   const selected = focusId;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 pt-2 pb-6 sm:px-6">
       {/* Compact page identity. Date navigation and view filters live in the smart rail below, so the
           headline stays calm while the working controls remain aligned and easy to scan. */}
       <CommandPageHeader
+        variant="bar"
         icon={CalendarClock}
         callsign="MEETINGS"
         title={t("cal.title")}

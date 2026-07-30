@@ -654,9 +654,10 @@ export function TeamOversightPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 pt-2 pb-8 sm:px-6">
       {/* Shared command header — same pattern as Decisions / Discovery / Home cockpit. */}
       <CommandPageHeader
+        variant="bar"
         icon={ShieldCheck}
         callsign="ORG"
         title="Team Intelligence"
