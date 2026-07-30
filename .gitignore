@@ -18,3 +18,4 @@ playwright-report/
 
 # local pnpm content-addressable store (generated)
 .pnpm-store/
+*.tsbuildinfo
