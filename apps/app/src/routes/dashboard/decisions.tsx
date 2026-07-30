@@ -268,9 +268,10 @@ export function DecisionsPage() {
       ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 pt-2 pb-6 sm:px-6">
       {/* One command header — icon, call-sign, title, honest queue status, keyboard hints. */}
       <CommandPageHeader
+        variant="bar"
         icon={ShieldAlert}
         callsign="GATE"
         title="Decisions"

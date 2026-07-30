@@ -18,11 +18,14 @@ export function SegmentedControl({ segments, active, onChange, className = "" }:
   onChange: (key: string) => void;
   className?: string;
 }) {
+  // HAIRLINES, NOT BOXES (measured, not guessed — 2026-07-30 against a reference dashboard):
+  // the modern segmented idiom has NO track border and NO lifted card. Segments are bare text
+  // buttons; the active one gets a faint ink wash (~4-5%) with a small radius. The boxy pill
+  // track this replaced was the "filters look like boxes" complaint. Mondaily tokens throughout.
   return (
     <div
       role="radiogroup"
-      className={`inline-flex flex-wrap items-center gap-0.5 rounded-lg border p-0.5 ${className}`}
-      style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}
+      className={`inline-flex flex-wrap items-center gap-0.5 ${className}`}
     >
       {segments.map(s => {
         const isActive = active === s.key;
@@ -32,9 +35,9 @@ export function SegmentedControl({ segments, active, onChange, className = "" }:
             role="radio"
             aria-checked={isActive}
             onClick={() => onChange(s.key)}
-            className="flex items-center gap-1 rounded-md px-3 py-1 text-[11.5px] font-medium transition-colors"
+            className="flex items-center gap-1 rounded-md px-2.5 py-1 text-[11.5px] font-medium transition-colors"
             style={isActive
-              ? { background: "var(--surface-card)", color: "var(--text-primary)", boxShadow: "0 1px 2px rgba(0,0,0,0.18)" }
+              ? { background: "color-mix(in srgb, var(--text-primary) 5%, transparent)", color: "var(--text-primary)" }
               : { color: "var(--text-muted)" }}
           >
             {s.label}

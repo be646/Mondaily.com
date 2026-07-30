@@ -400,6 +400,10 @@ interface CommandPageHeaderProps {
   /** Set false when the header sits inside a pinned band that already draws a rule — otherwise
    *  the page gets two dividers. This is the only thing FinanceHeader existed to vary. */
   divider?: boolean;
+  /** "bar" renders the measured slim idiom: ONE ~44px hairline-bounded row — icon + title +
+   *  subtitle inline, status chips and actions right — so content starts immediately below.
+   *  Default keeps the stacked block; pages adopt group by group. */
+  variant?: "block" | "bar";
 }
 /**
  * True when the call-sign only restates the title — "INBOX" over "Inbox", "TASKS" over "Tasks",
@@ -415,7 +419,7 @@ function redundantCallsign(callsign: string, title: string): boolean {
   return !!c && !!t && (t.includes(c) || c.includes(t));
 }
 
-export function CommandPageHeader({ icon: Icon, callsign, title, subtitle, status, primaryAction, secondaryActions, rightSummary, className, divider = true }: CommandPageHeaderProps) {
+export function CommandPageHeader({ icon: Icon, callsign, title, subtitle, status, primaryAction, secondaryActions, rightSummary, className, divider = true, variant = "block" }: CommandPageHeaderProps) {
   // The browser tab must say where you are. Nothing in the app ever set document.title, so every
   // page — goals, insights, finance, calendar, inbox — read as "Mondaily" in the tab and window
   // switcher. No cleanup on unmount: the next page's header (or the layout's route fallback)
@@ -434,6 +438,35 @@ export function CommandPageHeader({ icon: Icon, callsign, title, subtitle, statu
   const iconChip = Icon && (
     <span className="grid h-6 w-6 shrink-0 place-items-center rounded-sm" style={{ color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}><Icon size={13} /></span>
   );
+
+  if (variant === "bar") {
+    // The slim two-bar idiom: everything on one hairline-bounded row so the page starts
+    // immediately. Kicker survives as a quiet mono chip only when it carries information.
+    return (
+      <div className={cx("mb-3 flex h-11 items-center gap-2.5 border-b", className)} style={{ borderColor: "var(--border-soft)" }}>
+        {iconChip}
+        {kicker && <span className="soul-kicker shrink-0">// {kicker}</span>}
+        <h1 className="shrink-0 text-[13.5px] font-semibold tracking-tight text-[var(--text-primary)]">{title}</h1>
+        {subtitle && <span className="hidden min-w-0 truncate text-[11.5px] text-[var(--text-muted)] lg:inline">{subtitle}</span>}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {status && status.length > 0 && (
+            <span className="hidden items-center gap-x-3 font-mono text-[9.5px] uppercase tracking-wider sm:flex" style={{ color: "var(--text-faint)" }}>
+              {status.map((st, i) => st.node ? <span key={i} className="inline-flex items-center">{st.node}</span> : (
+                <span key={i} className="inline-flex items-center gap-1">
+                  {st.dot !== false && <span className="h-1.5 w-1.5 rounded-full" style={{ background: st.tone ?? STATUS_TONE[st.kind ?? "monitoring"] }} />}
+                  {st.label}
+                </span>
+              ))}
+            </span>
+          )}
+          {rightSummary && <span className="hidden text-[11px] text-[var(--text-faint)] xl:inline">{rightSummary}</span>}
+          {secondaryActions}
+          {primaryAction}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={cx("mb-4", className)}>
       <div className="flex items-start justify-between gap-3">

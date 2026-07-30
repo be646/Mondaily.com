@@ -107,9 +107,10 @@ export function MessagesPage() {
   const setActiveGroup = (id: string) => { setParams(id ? { g: id } : {}, { replace: true }); };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 pt-2 pb-8 sm:px-6">
       {/* Shared command header — same pattern as the rest of the app. New-message stays primary. */}
       <CommandPageHeader
+        variant="bar"
         icon={InboxIcon}
         callsign="INBOX"
         title={t("inbox.title")}

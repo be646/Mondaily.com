@@ -55,3 +55,30 @@ describe("a kicker never repeats the page name", () => {
     expect(controls).toMatch(/t\.includes\(c\) \|\| c\.includes\(t\)/);
   });
 });
+
+describe("the slim two-bar idiom (Pass BAR-1)", () => {
+  it("the segmented control is hairline, not a boxed track", () => {
+    // Measured against a reference dashboard, not guessed: no group border, no lifted card —
+    // bare text segments with a faint ink wash (~5%) on the active one. The boxy pill track was
+    // the "filters look like boxes" complaint.
+    const seg = readFileSync(join(APP, "components/ui/segmented.tsx"), "utf8");
+    expect(seg).not.toMatch(/rounded-lg border p-0\.5/);
+    expect(seg).not.toMatch(/boxShadow/);
+    expect(seg).toMatch(/color-mix\(in srgb, var\(--text-primary\) 5%, transparent\)/);
+  });
+
+  it("CommandPageHeader has the bar variant: one hairline row, ~44px, content starts below", () => {
+    expect(controls).toMatch(/variant\?: "block" \| "bar"/);
+    const bar = controls.slice(controls.indexOf('if (variant === "bar")'));
+    expect(bar).toMatch(/h-11 items-center/);
+    expect(bar).toMatch(/border-b/);
+  });
+
+  it("the first adopter group runs the bar with content pulled up", () => {
+    for (const f of ["routes/dashboard/goals.tsx", "routes/dashboard/messages.tsx", "routes/dashboard/decisions.tsx"]) {
+      const s = readFileSync(join(APP, f), "utf8");
+      expect(s, `${f} missing variant="bar"`).toMatch(/variant="bar"/);
+      expect(s, `${f} still has tall top padding`).toMatch(/pt-2 pb-[68]/);
+    }
+  });
+});
