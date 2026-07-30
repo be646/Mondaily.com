@@ -401,16 +401,51 @@ interface CommandPageHeaderProps {
    *  the page gets two dividers. This is the only thing FinanceHeader existed to vary. */
   divider?: boolean;
 }
+/**
+ * True when the call-sign only restates the title — "INBOX" over "Inbox", "TASKS" over "Tasks",
+ * "GOALS" over "Goal-directed agents". The sidebar and the browser tab already say where you are,
+ * so a kicker that repeats the name is pure chrome tax: it gets dropped and the title moves up a
+ * row. Call-signs that carry information the title doesn't ("GATE", "SWEEP", "RECALL") still
+ * render. Trailing-s is stripped before comparing so GOALS matches "Goal-directed".
+ */
+function redundantCallsign(callsign: string, title: string): boolean {
+  const norm = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const c = norm(callsign).replace(/s$/, "");
+  const t = norm(title);
+  return !!c && !!t && (t.includes(c) || c.includes(t));
+}
+
 export function CommandPageHeader({ icon: Icon, callsign, title, subtitle, status, primaryAction, secondaryActions, rightSummary, className, divider = true }: CommandPageHeaderProps) {
+  // The browser tab must say where you are. Nothing in the app ever set document.title, so every
+  // page — goals, insights, finance, calendar, inbox — read as "Mondaily" in the tab and window
+  // switcher. No cleanup on unmount: the next page's header (or the layout's route fallback)
+  // always writes the next title, and restoring "Mondaily" in between would just flicker.
+  useEffect(() => { document.title = `${title} · Mondaily`; }, [title]);
+
+  const kicker = callsign && !redundantCallsign(callsign, title) ? callsign : undefined;
+  const iconChip = Icon && (
+    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-sm" style={{ color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}><Icon size={13} /></span>
+  );
   return (
     <div className={cx("mb-4", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            {Icon && <span className="grid h-6 w-6 shrink-0 place-items-center rounded-sm" style={{ color: "var(--section-accent)", background: "color-mix(in srgb, var(--section-accent) 12%, transparent)" }}><Icon size={13} /></span>}
-            {callsign && <span className="soul-kicker">// {callsign}</span>}
-          </div>
-          <h1 className="mt-1.5 text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">{title}</h1>
+          {kicker ? (
+            <>
+              <div className="flex items-center gap-2">
+                {iconChip}
+                <span className="soul-kicker">// {kicker}</span>
+              </div>
+              <h1 className="mt-1.5 text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">{title}</h1>
+            </>
+          ) : (
+            // Kicker dropped → single compact row, icon beside the name. This is the "move
+            // everything up" the redundant kicker was costing.
+            <div className="flex items-center gap-2">
+              {iconChip}
+              <h1 className="text-[16px] font-semibold tracking-tight text-[var(--text-primary)]">{title}</h1>
+            </div>
+          )}
           {subtitle && <p className="mt-0.5 text-xs text-[var(--text-muted)]">{subtitle}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-2">

@@ -32,8 +32,24 @@ function getPageMeta(pathname: string): PageMeta {
     const icon: Record<string, LucideIcon> = { people: Users, companies: Building2, deals: TrendingUp };
     return { label, Icon: icon[seg] ?? List, color: "text-stone-500 dark:text-stone-400" };
   }
+  // Ordered: more specific prefixes must precede shorter ones (startsWith matching).
   const map: [string, PageMeta][] = [
     ["/home",          { label: "Home",          Icon: Home,        color: "text-stone-500 dark:text-stone-400" }],
+    ["/briefing",      { label: "Daily Brief",    Icon: FileText,    color: "text-stone-500 dark:text-stone-400" }],
+    ["/goals",         { label: "Goals",          Icon: TrendingUp,  color: "text-stone-500 dark:text-stone-400" }],
+    ["/insights",      { label: "Insights",       Icon: BarChart2,   color: "text-stone-500 dark:text-stone-400" }],
+    ["/calendar",      { label: "Calendar",       Icon: CheckSquare, color: "text-stone-500 dark:text-stone-400" }],
+    ["/messages",      { label: "Inbox",          Icon: MessageCircle, color: "text-stone-500 dark:text-stone-400" }],
+    ["/canvas",        { label: "Canvas",         Icon: List,        color: "text-stone-500 dark:text-stone-400" }],
+    ["/pipeline",      { label: "Pipeline",       Icon: TrendingUp,  color: "text-stone-500 dark:text-stone-400" }],
+    ["/finance/invoices",     { label: "Invoices",     Icon: FileText, color: "text-stone-500 dark:text-stone-400" }],
+    ["/finance/quotes",       { label: "Quotes",       Icon: FileText, color: "text-stone-500 dark:text-stone-400" }],
+    ["/finance/credit-notes", { label: "Credit notes", Icon: FileText, color: "text-stone-500 dark:text-stone-400" }],
+    ["/finance/expenses",     { label: "Expenses",     Icon: FileText, color: "text-stone-500 dark:text-stone-400" }],
+    ["/finance/reports",      { label: "Finance reports", Icon: BarChart2, color: "text-stone-500 dark:text-stone-400" }],
+    ["/finance",       { label: "Finance",        Icon: FileText,    color: "text-stone-500 dark:text-stone-400" }],
+    ["/approvals",     { label: "Approvals",      Icon: ShieldCheck, color: "text-stone-500 dark:text-stone-400" }],
+    ["/status",        { label: "Readiness",      Icon: Activity,    color: "text-stone-500 dark:text-stone-400" }],
     ["/tasks",         { label: "Tasks",          Icon: CheckSquare, color: "text-stone-500 dark:text-stone-400" }],
     ["/notes",         { label: "Notes",          Icon: FileText,    color: "text-stone-500 dark:text-stone-400" }],
     ["/notifications", { label: "Notifications",  Icon: Bell,        color: "text-stone-500 dark:text-stone-400" }],
@@ -121,6 +137,17 @@ export function DashboardLayout() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   useLanguage();   // keep <html lang/dir> in sync with the effective language (RTL foundation)
+
+  // Route-level fallback for the browser tab title. Nothing anywhere set document.title, so every
+  // page read "Mondaily" in the tab and window switcher. This fires on navigation; a page that
+  // renders CommandPageHeader then overwrites it with its more specific title (the header mounts
+  // after this effect runs), so the fallback only ever shows for pages without one.
+  useEffect(() => {
+    const { label } = getPageMeta(location.pathname);
+    // Object pages derive their label from the slug ("discovered leads") — sentence-case it.
+    const nice = label.charAt(0).toUpperCase() + label.slice(1);
+    document.title = nice === "Mondaily" ? "Mondaily" : `${nice} · Mondaily`;
+  }, [location.pathname]);
 
   const { data: wsSettings } = useQuery<{ onboarded?: boolean; member_count?: number }>({
     queryKey: ["workspace-settings"],
