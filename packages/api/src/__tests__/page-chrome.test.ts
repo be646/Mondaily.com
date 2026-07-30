@@ -126,7 +126,9 @@ describe("the slim two-bar idiom (Pass BAR-1)", () => {
     // Group 1 (Decisions/Goals/Inbox) verified live 2026-07-30; group 2 (Discovery/Calls/Activity)
     // follows the same contract. Discovery's wrapper differs (flex column shell), so its padding
     // assertion is its own.
-    for (const f of ["routes/dashboard/goals.tsx", "routes/dashboard/messages.tsx", "routes/dashboard/decisions.tsx", "routes/dashboard/calls.tsx", "routes/dashboard/activity.tsx", "routes/dashboard/team-oversight.tsx", "routes/dashboard/calendar.tsx"]) {
+    // Decisions left this list 2026-07-30: its header FOLDED into the lane band entirely
+    // (finance-shell treatment) — asserted separately below.
+    for (const f of ["routes/dashboard/goals.tsx", "routes/dashboard/messages.tsx", "routes/dashboard/calls.tsx", "routes/dashboard/activity.tsx", "routes/dashboard/team-oversight.tsx", "routes/dashboard/calendar.tsx"]) {
       const s = readFileSync(join(APP, f), "utf8");
       expect(s, `${f} missing variant="bar"`).toMatch(/variant="bar"/);
       expect(s, `${f} still has tall top padding`).toMatch(/pt-2 pb-[68]/);
@@ -134,6 +136,19 @@ describe("the slim two-bar idiom (Pass BAR-1)", () => {
     const disc = readFileSync(join(APP, "routes/dashboard/discovery.tsx"), "utf8");
     expect(disc).toMatch(/variant="bar"/);
     expect(disc).toMatch(/pt-1 pb-1/);
+  });
+});
+
+describe("Decisions header folds into the lane band (Increment 2)", () => {
+  it("no standalone page header remains; queue status renders in the band with real numbers", () => {
+    const d = app("routes/dashboard/decisions.tsx");
+    expect(d).not.toMatch(/<CommandPageHeader/);
+    // the honest signals survived the fold — same computed values, new position
+    expect(d).toMatch(/queueStatus\.map/);
+    expect(d).toMatch(/\$\{pendingItems\.length\} awaiting/);
+    expect(d).toMatch(/\$\{highRisk\} high risk/);
+    // keyboard hints kept (tooltip, not a chrome row)
+    expect(d).toMatch(/j\/k navigate · a approve · r reject · s snooze/);
   });
 });
 

@@ -236,11 +236,14 @@ describe("shared page-architecture primitives (structural consolidation)", () =>
       expect(controls).toMatch(new RegExp(`export function ${p}\\b`));
     }
   });
-  it("Decisions / Discovery / Team Oversight all use the shared CommandPageHeader", () => {
-    for (const src of [decisions, discovery, teamOversight]) {
+  it("Discovery / Team Oversight use the shared CommandPageHeader; Decisions folded its header", () => {
+    // Re-pointed 2026-07-30 (Increment 2): Decisions' header folded INTO the lane band (finance-
+    // shell treatment) — the page-chrome suite asserts the fold + surviving honest signals.
+    for (const src of [discovery, teamOversight]) {
       expect(src).toMatch(/import \{[^}]*CommandPageHeader/);
       expect(src).toMatch(/<CommandPageHeader/);
     }
+    expect(decisions).not.toMatch(/<CommandPageHeader/);
   });
   it("Discovery renders the shared ProofOfWorkStrip fed by REAL counters (no fabricated numbers)", () => {
     expect(discovery).toMatch(/<ProofOfWorkStrip/);
@@ -385,9 +388,10 @@ describe("priority pages preserve every existing action/handler", () => {
     expect(decisions).toMatch(/key: "agent", label: "Agent"/);
     expect(decisions).toMatch(/<ActionMenu triggerLabel=/);
     expect(decisions).not.toContain("function ActiveFilterChip");
-    // Queue intelligence folded into the CommandPageHeader honest status row (no separate stats box).
+    // Queue intelligence lives in the lane band since the header fold (Increment 2) — same real
+    // numbers, rendered via queueStatus.map in the band's right cluster.
     expect(decisions).toContain("const queueStatus: CommandStatusItem[]");
-    expect(decisions).toMatch(/status=\{queueStatus\}/);
+    expect(decisions).toMatch(/queueStatus\.map/);
     // Dossier is one coherent surface — every section is a DossierSection.
     for (const title of ['title="Proposed change"', 'title="Evidence"', 'title="Why your agent raised this"']) {
       expect(decisions).toContain(title);

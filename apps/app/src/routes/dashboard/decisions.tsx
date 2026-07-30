@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldAlert, Clock, CheckCircle2, XCircle, Inbox, ArrowRight, Loader2, Zap, ExternalLink, Sparkles, Send, ChevronDown, History, PlayCircle, UserPlus, MessageSquare, Search, Pencil, Link2 } from "lucide-react";
 import { apiClient } from "../../lib/api-client";
 import { PageSkeleton, DelayedLoading, EmptyState, ErrorState } from "../../components/ui/page-state";
-import { MenuSelect, ActionMenu, CommandPageHeader, DossierSection, FilterButton, FilterStrip, type ActionMenuItem, type CommandStatusItem, type FilterChip } from "../../components/ui/controls";
+import { MenuSelect, ActionMenu, DossierSection, FilterButton, FilterStrip, type ActionMenuItem, type CommandStatusItem, type FilterChip } from "../../components/ui/controls";
 import { SourceCard } from "../../components/ai/ask-shared";
 import { useCockpitDecisions, mapEvidence, type Decision } from "../../components/ai/decision-queue";
 import { agentByRaw } from "../../lib/agents";
@@ -269,17 +269,10 @@ export function DecisionsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-2 pb-6 sm:px-6">
-      {/* One command header — icon, call-sign, title, honest queue status, keyboard hints. */}
-      <CommandPageHeader
-        variant="bar"
-        icon={ShieldAlert}
-        callsign="GATE"
-        title="Decisions"
-        subtitle="Agents propose — you approve."
-        status={queueStatus}
-        rightSummary={<span title="j/k navigate · a approve · r reject · s snooze">keys j·k·a·r·s</span>}
-      />
-
+      {/* The lane band IS the page header (variant="bar" folded away, finance-shell treatment):
+          the sidebar + tab title already say "Decisions", so the old GATE header row only stacked
+          a third bar of chrome. The honest queue status moved into this band — same real numbers,
+          one less row. Keyboard hints live on the hint dot's tooltip. */}
       {isError ? (
         // Shared ErrorState with retry — same failure surface as Reports/Discovery/Team Oversight.
         <ErrorState error={new Error("Couldn't load the Decision Queue right now.")} onRetry={() => refetch()} />
@@ -304,6 +297,19 @@ export function DecisionsPage() {
               })}
             </div>
             <div className="ml-auto flex flex-wrap items-center gap-1.5">
+              {/* Honest queue signals — the same real numbers the old header row carried. */}
+              <span className="mr-1 hidden items-center gap-2.5 font-mono text-[10px] uppercase tracking-wider lg:flex"
+                title="j/k navigate · a approve · r reject · s snooze"
+                style={{ color: "var(--text-faint)" }}>
+                {queueStatus.map((s, i) => (
+                  <span key={i} className="flex items-center gap-1" style={s.tone ? { color: s.tone } : undefined}>
+                    {(s.kind === "monitoring" || s.kind === "complete") && (
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: s.kind === "complete" ? "var(--status-ok)" : "var(--section-accent)" }} />
+                    )}
+                    {s.label}
+                  </span>
+                ))}
+              </span>
               <label className="relative block">
                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: "var(--text-faint)" }} />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search queue…" aria-label="Search the decision queue"
