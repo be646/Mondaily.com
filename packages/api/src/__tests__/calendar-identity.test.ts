@@ -84,7 +84,8 @@ describe("Calendar premium repair — integrated empty state + active, honest Me
   });
 
   it("no fake live/AI claims on Calendar — only the honest monitoring status", () => {
-    expect(cal).toMatch(/rightSummary=\{`\$\{t\("cal\.meeting_agent"\)\} · \$\{t\("cal\.agent_available"\)\} · \$\{t\("cal\.agent_monitoring"\)\}`\}/);
+    // Re-pointed 2026-07-30 (header fold): the honest agent line lives in the nav bar now.
+    expect(cal).toMatch(/\{t\("cal\.meeting_agent"\)\} · \{t\("cal\.agent_available"\)\} · \{t\("cal\.agent_monitoring"\)\}/);
     expect(cal).not.toMatch(/\b(live now|running now|AI is (thinking|working|live))\b/i);
   });
 

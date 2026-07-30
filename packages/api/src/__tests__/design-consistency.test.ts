@@ -628,10 +628,11 @@ describe("Ask AI polish (honest + consistent)", () => {
 
 describe("Calendar + Inbox AI-native polish", () => {
   it("Calendar uses the shared CommandPageHeader with HONEST Meeting Agent status; keeps prepare/agenda/RSVP/call/followups", () => {
-    expect(calendar).toMatch(/<CommandPageHeader/);
+    // Re-pointed 2026-07-30 (header fold): Calendar's nav row IS the header now — no
+    // CommandPageHeader, no h1; the honest agent line renders in the bar.
+    expect(calendar).not.toMatch(/<CommandPageHeader/);
     expect(calendar).not.toMatch(/<h1\b/);
-    // Meeting Agent status is on-demand/available/monitoring — never a fake "running".
-    expect(calendar).toMatch(/rightSummary=\{`\$\{t\("cal\.meeting_agent"\)\} · \$\{t\("cal\.agent_available"\)\} · \$\{t\("cal\.agent_monitoring"\)\}`\}/);
+    expect(calendar).toMatch(/\{t\("cal\.meeting_agent"\)\} · \{t\("cal\.agent_available"\)\} · \{t\("cal\.agent_monitoring"\)\}/);
     for (const h of ["prepare.mutate", "saveAgenda", "respond.mutate", "addCall.mutate", "createTask.mutate", "openCreate", "/prepare"]) {
       expect(calendar).toContain(h);
     }

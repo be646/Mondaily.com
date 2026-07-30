@@ -807,7 +807,7 @@ describe("dashboard/calendar remaining uppercase eyebrows use text-caption (Pass
     expect(C).not.toMatch(/text-\[9px\][^"]*uppercase/);
   });
   it("all 15 uppercase eyebrows (8B+8D) are now text-caption", () => {
-    expect((C.match(/text-caption[^"]*uppercase/g) ?? []).length).toBe(15);
+    expect((C.match(/text-caption[^"]*uppercase/g) ?? []).length).toBe(16); // +1 2026-07-30: agent line in the nav bar
   });
   it("migrated eyebrows retain weight/copy; special ones keep mono/tracking/badge styling", () => {
     expect(C).toMatch(/text-caption font-semibold uppercase tracking-wide" style=\{\{ color: "var\(--text-muted\)" \}\}>\{dayLabel\(key\)\}/); // 389
@@ -849,7 +849,7 @@ describe("dashboard/calendar read-only 11px info/meta uses text-label (Pass 8F)"
     expect((C.match(/text-\[11px\][^>]*>\{t\("cal\.ai_unavailable"\)/g) ?? []).length).toBeGreaterThanOrEqual(1);   // 1032 still deferred
   });
   it("8B/8D eyebrows still text-caption (15) + mutations untouched", () => {
-    expect((C.match(/text-caption[^"]*uppercase/g) ?? []).length).toBe(15);
+    expect((C.match(/text-caption[^"]*uppercase/g) ?? []).length).toBe(16); // +1 2026-07-30: agent line in the nav bar
     expect(C).toMatch(/useMutation/);
     expect(C).toMatch(/onSlot/);
     expect(C).toMatch(/onOpen/);
@@ -878,7 +878,7 @@ describe("dashboard/calendar read-only 12px empty/meta uses text-body (Pass 8H)"
     expect(C).toMatch(/btn-secondary text-\[12px\]">\{t\("common\.cancel"\)/);           // Cancel button
   });
   it("8B/8D eyebrows still text-caption (15) + 8F items still text-label + mutations intact", () => {
-    expect((C.match(/text-caption[^"]*uppercase/g) ?? []).length).toBe(15);
+    expect((C.match(/text-caption[^"]*uppercase/g) ?? []).length).toBe(16); // +1 2026-07-30: agent line in the nav bar
     expect(C).toMatch(/\{e\.timezone && <span className="text-label"/);   // 8F sample
     expect(C).toMatch(/useMutation/);
     expect(C).toMatch(/onSlot/);
@@ -907,7 +907,7 @@ describe("dashboard/calendar safe read-only 13px items use text-row (Pass 8J)", 
     expect(C).toMatch(/text-\[13px\] font-semibold" style=\{\{ color: "var\(--text-primary\)" \}\}>\{t\("cal\.new_meeting"\)/); // 1137 drawer header
   });
   it("8B/8D eyebrows still text-caption (15) + mutations untouched", () => {
-    expect((C.match(/text-caption[^"]*uppercase/g) ?? []).length).toBe(15);
+    expect((C.match(/text-caption[^"]*uppercase/g) ?? []).length).toBe(16); // +1 2026-07-30: agent line in the nav bar
     expect(C).toMatch(/useMutation/);
     expect(C).toMatch(/onSlot/);
     expect(C).toMatch(/onOpen/);
@@ -1894,12 +1894,12 @@ describe("Calendar compact headline + smart control rail (Pass CAL-R)", () => {
   const C = read("apps/app/src/routes/dashboard/calendar.tsx");
 
   it("headline stays compact while date nav + view filter move to a slim rail", () => {
-    expect(C).toMatch(/primaryAction=\{/);
-    expect(C).toMatch(/subtitle=\{`\$\{viewSummary\} · \$\{rangeLabel\}`\}/);
-    expect(C).toMatch(/rightSummary=\{`\$\{t\("cal\.meeting_agent"\)\} · \$\{t\("cal\.agent_available"\)\} · \$\{t\("cal\.agent_monitoring"\)\}`\}/);
-    expect(C).toMatch(/className="mb-2"/);
-    // Today / prev / next / range live in the smart rail below the header
-    expect(C).toMatch(/mb-3 flex flex-col gap-2 rounded-sm border px-2 py-2 sm:flex-row sm:items-center sm:justify-between/);
+    // Re-pointed 2026-07-30 (header fold): ONE hairline nav bar owns Today/arrows/range,
+    // view switcher, agent line and the New-meeting primary — no boxed rail, no header row.
+    expect(C).toMatch(/border-b pb-2 md:flex-nowrap/);
+    expect(C).toMatch(/title=\{`\$\{viewSummary\} · \$\{rangeLabel\}`\}/);
+    expect(C).toMatch(/\{t\("cal\.meeting_agent"\)\} · \{t\("cal\.agent_available"\)\} · \{t\("cal\.agent_monitoring"\)\}/);
+    expect(C).toMatch(/btn-primary h-7 shrink-0 px-3 text-\[12px\] font-semibold/);
     expect(C).toMatch(/onClick=\{goToday\} disabled=\{isAnchorToday && view !== "upcoming"\}/);
     expect(C).toMatch(/onClick=\{\(\) => shift\(-1\)\}/);
     expect(C).toMatch(/onClick=\{\(\) => shift\(1\)\}/);
@@ -1931,7 +1931,7 @@ describe("Calendar compact headline + smart control rail (Pass CAL-R)", () => {
       expect(C).toMatch(new RegExp(a));
     }
     expect(C).toMatch(/const viewSummary = `\$\{viewCount\} \$\{viewCount === 1 \? "meeting" : "meetings"\}`/);
-    expect(C).toMatch(/rightSummary=\{`\$\{t\("cal\.meeting_agent"\)\} · \$\{t\("cal\.agent_available"\)\} · \$\{t\("cal\.agent_monitoring"\)\}`\}/);  // honest agent status retained
+    expect(C).toMatch(/\{t\("cal\.meeting_agent"\)\} · \{t\("cal\.agent_available"\)\} · \{t\("cal\.agent_monitoring"\)\}/);  // honest agent status retained (in the nav bar)
   });
 });
 
@@ -2007,8 +2007,10 @@ describe("Meeting Memory row hierarchy + consistency (Pass CLL4)", () => {
     expect(C).toMatch(/<div className="overflow-hidden rounded-sm border"/);
     expect(C).not.toMatch(/<div className="overflow-hidden rounded-md border"/);
     expect(C).toMatch(/className="key-input h-8 w-full pl-8 pr-3 text-\[13px\]"/);
-    expect(C).toMatch(/inline-flex flex-wrap rounded-lg border p-0\.5/);
-    expect(C).toMatch(/className="rounded-md px-2\.5 py-1 text-\[12px\] font-medium transition-colors"/);
+    // Re-pointed 2026-07-30: the boxed pill track became the shared hairline SegmentedControl
+    // (counts rendered including zero, per the segment contract).
+    expect(C).toMatch(/<SegmentedControl/);
+    expect(C).toMatch(/count: counts\[t\.k\]/);
   });
 
   it("preserves honest status logic, row link, header, import, and controls", () => {

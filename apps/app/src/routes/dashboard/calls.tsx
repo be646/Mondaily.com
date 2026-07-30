@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
 import { UploadRecordingModal } from "../../components/calls/upload-recording-modal";
 import { CommandPageHeader } from "../../components/ui/controls";
+import { SegmentedControl } from "../../components/ui/segmented";
 import { EmptyState, DelayedLoading, PageSkeleton, ErrorState } from "../../components/ui/page-state";
 
 /**
@@ -107,14 +108,13 @@ export function CallsPage() {
 
       {/* Control bar: tabs + search (flat, monochrome). */}
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
-        <div className="inline-flex flex-wrap rounded-lg border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
-          {tabs.map(t => (
-            <button key={t.k} onClick={() => setTab(t.k)} className="rounded-md px-2.5 py-1 text-[12px] font-medium transition-colors"
-              style={tab === t.k ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
-              {t.label}{counts[t.k] > 0 && <span className="ml-1 tabular-nums" style={{ color: "var(--text-faint)" }}>{counts[t.k]}</span>}
-            </button>
-          ))}
-        </div>
+        {/* Shared hairline SegmentedControl — was the last hand-rolled boxed pill track. Counts
+            follow the segment contract: rendered whenever known, INCLUDING zero. */}
+        <SegmentedControl
+          segments={tabs.map(t => ({ key: t.k, label: t.label, count: counts[t.k] }))}
+          active={tab}
+          onChange={(k) => setTab(k as Tab)}
+        />
         <label className="relative block sm:w-64">
           <Search className="absolute left-2.5 top-2 text-[var(--text-faint)]" size={14} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search title, people, transcript…"

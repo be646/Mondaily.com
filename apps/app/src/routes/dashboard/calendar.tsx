@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, Plus, X, Loader2, Video, MapPin, Users, Sparkles, Check, AlertTriangle, FileText, Link2, ArrowRight, Wand2, ListChecks, Circle, CalendarClock, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
-import { FieldSelect, CommandPageHeader } from "../../components/ui/controls";
+import { FieldSelect } from "../../components/ui/controls";
 import { SegmentedControl } from "../../components/ui/segmented";
 import { MEETING_TYPES, MEETING_TYPE_META, type MeetingType } from "@mondaily/shared/meeting-types";
 import { EmptyState as SharedEmptyState, ErrorState, DelayedLoading, PageSkeleton } from "../../components/ui/page-state";
@@ -317,25 +317,13 @@ export function CalendarPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-2 pb-6 sm:px-6">
-      {/* Compact page identity. Date navigation and view filters live in the smart rail below, so the
-          headline stays calm while the working controls remain aligned and easy to scan. */}
-      <CommandPageHeader
-        variant="bar"
-        icon={CalendarClock}
-        callsign="MEETINGS"
-        title={t("cal.title")}
-        subtitle={`${viewSummary} · ${rangeLabel}`}
-        rightSummary={`${t("cal.meeting_agent")} · ${t("cal.agent_available")} · ${t("cal.agent_monitoring")}`}
-        className="mb-2"
-        primaryAction={
-          <button onClick={openCreate} className="btn-primary h-7 shrink-0 px-3 text-[12px] font-semibold">
-            <Plus size={13} /> {t("cal.new_meeting")}
-          </button>
-        }
-      />
-
-      <div className="mb-3 flex flex-col gap-2 rounded-sm border px-2 py-2 sm:flex-row sm:items-center sm:justify-between" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-        <div className="flex min-w-0 items-center gap-1.5">
+      {/* The nav row IS the page header (Decisions/finance-shell treatment): the top bar + sidebar
+          already say "Calendar", so the old header row only stacked chrome. One hairline row —
+          Today / arrows / range left, view switcher + New meeting right. The meeting-count summary
+          the header carried lives on the range label's tooltip; agent attribution stays in the
+          Today-briefing rail where it's substantiated by real counts. */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1.5 border-b pb-2 md:flex-nowrap" style={{ borderColor: "var(--border-soft)" }}>
+        <div className="flex min-w-0 items-center gap-1.5" title={`${viewSummary} · ${rangeLabel}`}>
           <button onClick={goToday} disabled={isAnchorToday && view !== "upcoming"} className="btn-secondary h-7 px-2.5 text-[12px] font-medium">{t("cal.today")}</button>
           {view !== "upcoming" && (
             <div className="flex min-w-0 items-center gap-0.5">
@@ -345,18 +333,31 @@ export function CalendarPage() {
             </div>
           )}
         </div>
-        {/* The shared SegmentedControl — second adopter after the finance status filter. This was
-            a hand-rolled copy of the identical pill pattern; same classes, one implementation. */}
-        <SegmentedControl
-          segments={tabs.map(tab => ({ key: tab.k, label: tab.label }))}
-          active={view}
-          onChange={(k) => setView(k as ViewMode)}
-          className="shrink-0"
-        />
+        <div className="ml-auto flex shrink-0 items-center gap-2">
+          {/* Honest Meeting-Agent identity — the same attribution the old header carried, in the
+              band's quiet mono style. Available/on-demand only; never a fabricated running job. */}
+          <span className="hidden items-center gap-1.5 whitespace-nowrap font-mono text-caption uppercase tracking-wider xl:flex" style={{ color: "var(--text-faint)" }}>
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--section-accent)" }} />
+            {t("cal.meeting_agent")} · {t("cal.agent_available")} · {t("cal.agent_monitoring")}
+          </span>
+          <SegmentedControl
+            segments={tabs.map(tab => ({ key: tab.k, label: tab.label }))}
+            active={view}
+            onChange={(k) => setView(k as ViewMode)}
+            className="shrink-0"
+          />
+          <button onClick={openCreate} className="btn-primary h-7 shrink-0 px-3 text-[12px] font-semibold">
+            <Plus size={13} /> {t("cal.new_meeting")}
+          </button>
+        </div>
       </div>
 
-      {/* Today intelligence strip — real data only, no fabricated scores/conflicts. */}
-      <TodayStrip onOpen={openEvent} selectedId={selected} events={events.filter(e => isSameDay(new Date(e.start_at), now))} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} />
+      {/* Today intelligence strip — real data only. On lg+ the persistent Today-briefing rail shows
+          the SAME brief (counts, next up, suggestions), so the strip renders only below lg where the
+          rail is hidden — one source per screen, the feature itself unchanged. */}
+      <div className="lg:hidden">
+        <TodayStrip onOpen={openEvent} selectedId={selected} events={events.filter(e => isSameDay(new Date(e.start_at), now))} onCreate={openCreate} onDraft={openCreate} onFollowups={() => navigateTo("/tasks")} />
+      </div>
 
       {/* Command-center split: agenda/timeline on the left, a persistent Meeting Brief on the right (lg+). */}
       <div className="mt-4 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
