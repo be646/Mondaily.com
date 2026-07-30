@@ -74,6 +74,23 @@ describe("the slim two-bar idiom (Pass BAR-1)", () => {
     expect(bar).toMatch(/border-b/);
   });
 
+  it("the global top bar is bar 1: 48px, flat page surface, hairline, no boxy controls", () => {
+    // Measured spec: exactly 48px (h-12), NOT a lifted card (page surface, not surface-card),
+    // one hairline below, compact rounded-md controls. rounded-sm/rounded-lg chrome and the
+    // rounded-full agent pill were the "each page a different app" residue in the top bar.
+    const status = app("components/ai/agent-status.tsx");
+    const topbar = status.slice(status.indexOf("md-topbar"), status.lastIndexOf("Ask side panel"));
+    expect(topbar).toMatch(/h-12 items-center/);
+    expect(topbar).toMatch(/border-b border-\[var\(--border-soft\)\]/);
+    expect(topbar).toMatch(/bg-\[var\(--surface-page\)\]/);
+    expect(topbar).not.toMatch(/rounded-sm/);
+    expect(topbar).not.toMatch(/rounded-lg/);
+    // leftSlot chrome (search trigger, status link, agent chip) follows the same contract
+    const slot = layout.slice(layout.indexOf("<AgentStatusBar"), layout.indexOf("VerifyEmailBanner"));
+    expect(slot).not.toMatch(/rounded-lg/);
+    expect(slot).not.toMatch(/rounded-full border/);
+  });
+
   it("the first adopter group runs the bar with content pulled up", () => {
     // Group 1 (Decisions/Goals/Inbox) verified live 2026-07-30; group 2 (Discovery/Calls/Activity)
     // follows the same contract. Discovery's wrapper differs (flex column shell), so its padding

@@ -210,7 +210,7 @@ export function DashboardLayout() {
             {sectionAgent && (
               <span
                 title={`Operated by ${sectionAgent.name}`}
-                className="hidden items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-medium lg:inline-flex"
+                className="hidden items-center gap-1 rounded-md border px-2 py-0.5 text-[10.5px] font-medium lg:inline-flex"
                 style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)", background: "var(--section-accent-soft)" }}
               >
                 <sectionAgent.Icon size={11} />
@@ -220,7 +220,7 @@ export function DashboardLayout() {
             {/* Search trigger */}
             <button
               onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true }))}
-              className="hidden items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition-colors hover:bg-stone-100 hover:text-stone-950 dark:hover:bg-stone-900 dark:hover:text-stone-50 sm:flex"
+              className="hidden h-7 items-center gap-2 rounded-md border px-2.5 text-[12px] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] sm:flex"
               style={{ borderColor: "var(--border-soft)", color: "var(--text-muted)", background: "transparent" }}
             >
               <Search size={12}/>
@@ -231,7 +231,7 @@ export function DashboardLayout() {
             <Link
               to="/status"
               title="System status"
-              className="flex h-7 w-7 items-center justify-center rounded-lg transition-colors hover:bg-stone-100 dark:hover:bg-stone-900"
+              className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-[var(--surface-hover)]"
               style={{ color: "var(--text-faint)" }}
             >
               <Activity size={15}/>

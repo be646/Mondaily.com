@@ -402,7 +402,10 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
   return (
     <>
       {/* Top bar */}
-      <div className="md-topbar relative flex items-center justify-between border-b border-[var(--border-soft)] bg-[var(--surface-card)] px-4 py-1.5 shrink-0">
+      {/* Bar 1 of the two-bar idiom (measured 2026-07-30): exactly 48px, flat on the page surface
+          (no lifted card), one 1px hairline below, compact controls. The page-header bar (~44px)
+          sits directly beneath — together they read as one chrome unit, not stacked cards. */}
+      <div className="md-topbar relative flex h-12 items-center justify-between border-b border-[var(--border-soft)] bg-[var(--surface-page)] px-4 shrink-0">
         {/* Left slot — page icon, label, search trigger */}
         <div className="flex items-center gap-3 min-w-0">
           {leftSlot ?? <span className="text-xs text-[var(--text-faint)]">AI status: idle</span>}
@@ -413,7 +416,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           {showShare && (
             <button
               onClick={() => setShareOpen(true)}
-              className="flex items-center gap-1.5 rounded-sm border border-[var(--border-soft)] px-2.5 py-1.5 text-[11px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
+              className="flex h-7 items-center gap-1.5 rounded-md border border-[var(--border-soft)] px-2.5 text-[11px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)] transition-colors"
             >
               <Share2 size={12}/> Share
             </button>
@@ -425,7 +428,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex h-7 w-7 items-center justify-center rounded-sm text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-950 dark:text-stone-500 dark:hover:bg-stone-900 dark:hover:text-stone-50"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-stone-500 transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
             title={`Theme: ${THEMES[themeIdx]?.label ?? "Console"} · next: ${nextTheme.label}`}
             aria-label={`Switch theme (next: ${nextTheme.label})`}
           >
@@ -437,7 +440,7 @@ export function AgentStatusBar({ leftSlot }: { leftSlot?: React.ReactNode } = {}
           {/* Ask Mondaily toggle — compact command trigger */}
           <button
             onClick={() => setAskOpen(o => !o)}
-            className={`flex items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[11px] font-medium transition-all duration-200 ${
+            className={`flex h-7 items-center gap-1.5 rounded-md border px-3 text-[11px] font-medium transition-all duration-200 ${
               askOpen
                 ? "border-stone-200 bg-stone-50 text-stone-700 dark:border-stone-400/30 dark:bg-stone-500/10 dark:text-[var(--text-primary)]"
                 : "border-[var(--border-soft)] bg-transparent text-[var(--text-muted)] hover:border-stone-200 hover:bg-stone-50 dark:text-stone-400 dark:hover:border-stone-400/30 dark:hover:bg-stone-500/10 dark:hover:text-[var(--text-primary)]"
