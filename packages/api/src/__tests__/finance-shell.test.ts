@@ -124,3 +124,22 @@ describe("calendar view switch is the shared control", () => {
     expect(cal).not.toMatch(/view === tab\.k \? \{ background: "var\(--surface-card\)"/);
   });
 });
+
+describe("sales-report header — two calm rows, every control kept", () => {
+  const sr = app("routes/dashboard/reports/sales-report.tsx");
+  it("the period row is the SegmentedControl's third adopter — last hand-rolled copy gone", () => {
+    expect(sr).toMatch(/<SegmentedControl/);
+    expect(sr).not.toMatch(/period===p \? "bg-\[var\(--surface-hover\)\] text-\[var\(--text-primary\)\]"/);
+  });
+  it("every control from the old single row survives with its handler", () => {
+    // The previous attempt at this header broke JSX and was reverted; the contract of this
+    // restructure is layout-only. Each anchor is a real handler, not a style.
+    for (const anchor of [
+      "handleObjectChange", "setDisplay.mutate(v)", "setPeriod(k as Period)",
+      "setFilterOpen(o => !o)", "onClick={exportCSV}", "onClick={generateReport}",
+    ]) expect(sr, `${anchor} must survive the header split`).toContain(anchor);
+    // the honesty line about FX conversion stays, now token-toned instead of a raw hex
+    expect(sr).toMatch(/mixed currencies · at face value/);
+    expect(sr).toMatch(/var\(--status-warn\)/);
+  });
+});

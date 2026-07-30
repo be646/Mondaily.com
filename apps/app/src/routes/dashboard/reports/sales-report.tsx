@@ -12,6 +12,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { FieldSelect, FilterButton } from "../../../components/ui/controls";
+import { SegmentedControl } from "../../../components/ui/segmented";
 import { useCurrency, convertAmount, currencyOptions, CURRENCY_SYMBOL } from "../../../hooks/useCurrency";
 import { useRecordAggregate, type AggDateFilter, type AggFilter } from "../../../hooks/useRecordAggregate";
 
@@ -1396,39 +1397,41 @@ export function SalesReportPage() {
       </div>
 
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 print:max-w-none print:px-8">
-        {/* Screen header */}
-        {/* Header row */}
-        <div className="mb-4 flex items-center gap-3 print:hidden">
+        {/* Screen header — TWO calm rows, not one wall of ten controls.
+            Row 1 is identity (where am I, what am I looking at, how honest is the data);
+            row 2 is control (lens on the left, actions on the right). Every control and
+            handler from the old single row survives verbatim — this restructure is layout
+            only, which is what makes it safe on a money surface that broke once before. */}
+        <div className="mb-1.5 flex items-center gap-3 print:hidden">
           <Link to="/reports" className="flex items-center gap-1 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors shrink-0">
             <ArrowLeft size={12}/> Reports
           </Link>
           <span className="text-[var(--text-secondary)] text-xs shrink-0">/</span>
           <h1 className="text-sm font-semibold text-[var(--text-primary)] shrink-0">Live Report</h1>
           {objects.length > 0 && <ObjectPicker objects={objects} value={activeSlug} onChange={handleObjectChange}/>}
-          <span className="text-xs text-[var(--text-secondary)] hidden sm:inline" title="Data scope — computed live from your real records">
+          <span className="ml-auto text-xs text-[var(--text-secondary)] hidden sm:inline" title="Data scope — computed live from your real records">
             {records.length} records analysed{filteredRecords.length !== records.length && ` · ${filteredRecords.length} in filter`}
-            {hasValue && mixedCurrency && <> · <span title={hasRates ? `Converted to ${display} at ECB rate${ratesAsOf ? `, ${new Date(ratesAsOf).toLocaleDateString()}` : ""}` : "No FX rates loaded — mixed-currency values shown at face value"} style={{ color: unconverted > 0 || !hasRates ? "#c6892e" : "var(--text-muted)" }}>{!hasRates ? `mixed currencies · at face value` : unconverted > 0 ? `${unconverted} currency${unconverted === 1 ? "" : "ies"} not converted` : `converted to ${display}`}</span></>}
+            {hasValue && mixedCurrency && <> · <span title={hasRates ? `Converted to ${display} at ECB rate${ratesAsOf ? `, ${new Date(ratesAsOf).toLocaleDateString()}` : ""}` : "No FX rates loaded — mixed-currency values shown at face value"} style={{ color: unconverted > 0 || !hasRates ? "var(--status-warn)" : "var(--text-muted)" }}>{!hasRates ? `mixed currencies · at face value` : unconverted > 0 ? `${unconverted} currency${unconverted === 1 ? "" : "ies"} not converted` : `converted to ${display}`}</span></>}
           </span>
-          <div className="flex items-center gap-1.5 ml-auto shrink-0">
-            {/* Show-in currency — the money is converted into this display currency (money reports only). */}
-            {hasValue && (
-              <div className="flex items-center gap-1.5">
-                <span className="hidden text-[11px] text-[var(--text-muted)] sm:inline">Show in</span>
-                <div className="w-[74px]">
-                  <FieldSelect value={display} onChange={v => setDisplay.mutate(v)} ariaLabel="Display currency"
-                    options={currencyOptions(currencies)} />
-                </div>
+        </div>
+        <div className="mb-4 flex flex-wrap items-center gap-1.5 print:hidden">
+          {/* The lens: period + display currency. The period row is the SegmentedControl's third
+              adopter — this was the last hand-rolled copy of the pill pattern. */}
+          <SegmentedControl
+            segments={(["today","week","month","quarter","year","custom"] as Period[]).map(p => ({ key: p, label: PERIOD_LABELS[p] }))}
+            active={period}
+            onChange={(k) => setPeriod(k as Period)}
+          />
+          {hasValue && (
+            <div className="flex items-center gap-1.5">
+              <span className="hidden text-[11px] text-[var(--text-muted)] sm:inline">Show in</span>
+              <div className="w-[74px]">
+                <FieldSelect value={display} onChange={v => setDisplay.mutate(v)} ariaLabel="Display currency"
+                  options={currencyOptions(currencies)} />
               </div>
-            )}
-            {/* Period buttons */}
-            <div className="flex gap-0.5 rounded-sm border border-[var(--border-soft)] bg-[var(--surface-hover)] p-0.5">
-              {(["today","week","month","quarter","year","custom"] as Period[]).map(p => (
-                <button key={p} onClick={() => setPeriod(p)}
-                  className={`rounded-sm px-2.5 py-1 text-xs font-medium transition-colors ${period===p ? "bg-[var(--surface-hover)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-faint)]"}`}>
-                  {PERIOD_LABELS[p]}
-                </button>
-              ))}
             </div>
+          )}
+          <div className="ml-auto flex items-center gap-1.5 shrink-0">
             {hasFilters && (
               <FilterButton open={filterOpen} onToggle={() => setFilterOpen(o => !o)} activeCount={Object.values(activeFilters).filter(Boolean).length} />
             )}
