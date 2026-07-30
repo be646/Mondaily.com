@@ -536,10 +536,11 @@ export function NotesPage() {
   const aiCount = (notesQ.data ?? []).filter(n => n.actor_type === "ai_agent").length;
 
   return (
-    <div className={`mx-auto px-6 py-8 ${view === "list" ? "max-w-6xl" : "max-w-full"}`}>
+    <div className={`mx-auto px-6 pt-2 pb-8 ${view === "list" ? "max-w-6xl" : "max-w-full"}`}>
 
       {/* ── Header ── */}
       <CommandPageHeader
+        variant="bar"
         icon={FileText}
         callsign="NOTES"
         title="Notes"

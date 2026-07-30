@@ -345,9 +345,10 @@ export function AutomationsPage() {
   const enrolledTotal = items.reduce((s, i) => s + (((i as any).enrollments?.length as number) ?? 0), 0);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 pt-2 pb-8 sm:px-6">
       {/* Shared command header — same pattern as Decisions / Reports / Team / Home. */}
       <CommandPageHeader
+        variant="bar"
         icon={Zap}
         callsign="AUTOMATIONS"
         title="Automations"

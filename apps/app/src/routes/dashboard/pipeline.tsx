@@ -462,6 +462,7 @@ export function PipelinePage() {
           Single soul-rule divider (CommandPageHeader renders it) — no extra border-b. */}
       <div className="px-6 py-3 shrink-0">
         <CommandPageHeader
+          variant="bar"
           className="mb-0"
           icon={GitBranch}
           callsign="PIPELINE"

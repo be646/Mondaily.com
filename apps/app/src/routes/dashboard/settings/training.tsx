@@ -64,6 +64,7 @@ export function TrainingSettings() {
   return (
     <div className="space-y-5">
       <CommandPageHeader
+        variant="bar"
         icon={Brain}
         callsign="TRAINING"
         title="Training data"

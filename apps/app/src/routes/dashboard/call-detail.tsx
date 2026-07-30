@@ -235,6 +235,7 @@ export function CallDetailPage() {
           status chips instead of stacked paragraphs. */}
       <div className="px-4 pt-4 sm:px-6">
         <CommandPageHeader
+          variant="bar"
           icon={PhoneCall}
           callsign="COMMS"
           title={call.contact_name}

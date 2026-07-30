@@ -280,6 +280,7 @@ export function EmailsPage() {
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 px-4 pt-4 sm:px-6">
         <CommandPageHeader
+          variant="bar"
           icon={Mail}
           callsign="INBOX"
           title="Email & calendar"

@@ -103,7 +103,8 @@ export function IntegrationsSettings() {
 
   return (
     <div className="space-y-5">
-      <CommandPageHeader icon={Plug} callsign="INTEGRATIONS" title="Integrations & API" subtitle="Connect business systems and manage programmatic access." />
+      <CommandPageHeader
+        variant="bar" icon={Plug} callsign="INTEGRATIONS" title="Integrations & API" subtitle="Connect business systems and manage programmatic access." />
 
       {/* ── Integrations ── */}
       <section className="settings-section">

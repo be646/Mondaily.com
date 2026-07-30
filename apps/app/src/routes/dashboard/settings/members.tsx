@@ -114,7 +114,8 @@ export function MembersSettings() {
         </div>
       )}
       {/* Shared PageHeader — same page-header pattern as every other settings page. */}
-      <CommandPageHeader icon={Users} callsign="MEMBERS" title="Members & Roles" subtitle={`${members.length} operator${members.length === 1 ? "" : "s"} · roles, per-module access, and AI compute.`} />
+      <CommandPageHeader
+        variant="bar" icon={Users} callsign="MEMBERS" title="Members & Roles" subtitle={`${members.length} operator${members.length === 1 ? "" : "s"} · roles, per-module access, and AI compute.`} />
 
       {/* How access works — role sets the baseline, per-module access refines it. Clarifies the two
           distinct controls (revoke a single module vs remove the operator entirely). */}

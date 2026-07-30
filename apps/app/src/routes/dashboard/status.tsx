@@ -154,7 +154,8 @@ export function StatusPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      <CommandPageHeader icon={CheckCircle2} callsign="READINESS" title="Workspace Readiness" subtitle="What's real today, what changed recently, and what's next — every row audited against the live code." />
+      <CommandPageHeader
+        variant="bar" icon={CheckCircle2} callsign="READINESS" title="Workspace Readiness" subtitle="What's real today, what changed recently, and what's next — every row audited against the live code." />
 
       {/* ── 1. Live System Status ── */}
       <section className="mb-10">

@@ -611,10 +611,11 @@ export function TasksPage() {
   ];
 
   return (
-    <div className={`mx-auto px-6 py-8 ${viewMode === "list" ? "max-w-3xl" : "max-w-full"}`}>
+    <div className={`mx-auto px-6 pt-2 pb-8 ${viewMode === "list" ? "max-w-3xl" : "max-w-full"}`}>
 
       {/* ── Header ── */}
       <CommandPageHeader
+        variant="bar"
         icon={List}
         callsign="TASKS"
         title="Tasks"

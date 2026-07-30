@@ -1961,7 +1961,9 @@ describe("Emails two-row page chrome (Pass A3)", () => {
   const E = read("apps/app/src/routes/dashboard/emails.tsx");
 
   it("identity row uses CommandPageHeader; the bespoke banner is gone", () => {
-    expect(E).toMatch(/<CommandPageHeader\s*\n?\s*icon=\{Mail\}/);
+    // Re-pointed 2026-07-30: the header adopted the bar variant (two-bar idiom), which sits
+    // between the tag and the icon prop. Same invariant — Emails uses THE shared header with Mail.
+    expect(E).toMatch(/<CommandPageHeader\s*\n?(\s*variant="bar"\n)?\s*icon=\{Mail\}/);
     expect(E).toMatch(/callsign="INBOX"/);
     expect(E).toMatch(/title="Email & calendar"/);
     expect(E).toMatch(/subtitle="Synced Gmail and Outlook conversations\."/);

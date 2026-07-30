@@ -222,7 +222,8 @@ export function BillingSettings() {
 
   return (
     <div className="space-y-5">
-      <CommandPageHeader icon={CreditCard} callsign="BILLING" title="Billing" subtitle="Manage your plan, payment details, and invoice history."
+      <CommandPageHeader
+        variant="bar" icon={CreditCard} callsign="BILLING" title="Billing" subtitle="Manage your plan, payment details, and invoice history."
         secondaryActions={
           <button onClick={() => help.open("I have a question about my plan and AI credits.")}
             className="mt-1 flex shrink-0 items-center gap-1.5 rounded-sm border px-2.5 py-1.5 text-[12px] transition-colors hover:border-[color:var(--section-accent)]"

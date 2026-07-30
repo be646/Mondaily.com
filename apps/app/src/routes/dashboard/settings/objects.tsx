@@ -366,7 +366,8 @@ export function ObjectsSettings() {
 
   return (
     <div>
-      <CommandPageHeader icon={Database} callsign="OBJECTS" title="Objects & attributes" subtitle="Define the record schemas Mondaily agents can read and update." />
+      <CommandPageHeader
+        variant="bar" icon={Database} callsign="OBJECTS" title="Objects & attributes" subtitle="Define the record schemas Mondaily agents can read and update." />
 
       {/* AI Generate CTA */}
       <div className="mb-4 flex items-center gap-3 rounded-sm border border-[var(--border-strong)] bg-[var(--surface-hover)] px-4 py-3">

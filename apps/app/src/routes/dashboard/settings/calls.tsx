@@ -42,7 +42,8 @@ export function CallsSettings() {
   if (q.isLoading) return <PageSkeleton rows={7} />;
   if (q.isError) return (
     <div className="space-y-5">
-      <CommandPageHeader icon={Video} callsign="CALLS" title="Calls & Recording" subtitle="Configuration status for calls, recording, transcription, and summaries." />
+      <CommandPageHeader
+        variant="bar" icon={Video} callsign="CALLS" title="Calls & Recording" subtitle="Configuration status for calls, recording, transcription, and summaries." />
       <p className="text-sm" style={{ color: "var(--text-muted)" }}>Only workspace owners and admins can view call readiness.</p>
     </div>
   );

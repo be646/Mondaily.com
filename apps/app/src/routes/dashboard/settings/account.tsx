@@ -226,7 +226,8 @@ export function AccountSettings() {
   return (
     <div className="space-y-5">
       {/* Shared PageHeader — same page-header pattern as every other settings page. */}
-      <CommandPageHeader icon={User} callsign="ACCOUNT" title="Account" subtitle="Your profile, AI personalization, preferences, and personal security." />
+      <CommandPageHeader
+        variant="bar" icon={User} callsign="ACCOUNT" title="Account" subtitle="Your profile, AI personalization, preferences, and personal security." />
 
       {/* ── Identity card — flat, premium; no decorative gradient/orb (per one-accent, no-candy rule). ── */}
       <div className="rounded-sm border p-6"

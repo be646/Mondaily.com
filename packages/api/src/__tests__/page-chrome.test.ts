@@ -91,6 +91,19 @@ describe("the slim two-bar idiom (Pass BAR-1)", () => {
     expect(slot).not.toMatch(/rounded-full border/);
   });
 
+  it("EVERY route header runs the bar variant (ratchet — briefing is the one exemption)", () => {
+    // Full adoption 2026-07-30: settings batch + singles. Briefing keeps its warmer block header
+    // deliberately (a daily read, not a work surface). A new page using CommandPageHeader without
+    // variant="bar" reintroduces the tall block header this pass retired.
+    const { execSync } = require("node:child_process");
+    const out = execSync(`grep -rln "<CommandPageHeader" "${join(APP, "routes")}"`, { encoding: "utf8" });
+    for (const file of out.trim().split("\n")) {
+      if (file.endsWith("briefing.tsx")) continue;
+      const s = readFileSync(file, "utf8");
+      expect(s, `${file} uses the block header — adopt variant="bar"`).toMatch(/variant="bar"/);
+    }
+  });
+
   it("the finance shell strip is bar 2: header folds in, action portals to the strip", () => {
     // Inside the shell the page title duplicates the active tab, so FinanceHeader renders no
     // header block — it stamps document.title and portals the page action into

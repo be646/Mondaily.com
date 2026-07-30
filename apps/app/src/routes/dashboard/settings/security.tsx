@@ -103,7 +103,8 @@ export function SecuritySettings() {
 
   return (
     <div className="space-y-5">
-      <CommandPageHeader icon={Shield} callsign="SECURITY" title="Security" subtitle="Authentication, active sessions, recipient protection, and audit controls." />
+      <CommandPageHeader
+        variant="bar" icon={Shield} callsign="SECURITY" title="Security" subtitle="Authentication, active sessions, recipient protection, and audit controls." />
 
       {/* ── SSO ── */}
       <section className="settings-section">

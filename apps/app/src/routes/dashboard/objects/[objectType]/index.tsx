@@ -818,6 +818,7 @@ export function ObjectIndexPage() {
           hardcoded stone / bg-white, which was inconsistent and theme-fragile). */}
       <div className="px-6 py-3 shrink-0">
         <CommandPageHeader
+          variant="bar"
           className="mb-0"
           icon={LayoutList}
           callsign="RECORDS"

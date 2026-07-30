@@ -75,7 +75,8 @@ export function EmailSettings() {
   const calendars = data.calendars ?? connected.map((provider) => ({ id: `${provider.id}-calendar`, name: `${provider.name} calendar`, provider: provider.name, enabled: true }));
   return (
     <div>
-      <CommandPageHeader icon={Mail} callsign="EMAIL" title="Email & calendar" subtitle="Control inbox synchronization, sending, signatures, and meeting context." />
+      <CommandPageHeader
+        variant="bar" icon={Mail} callsign="EMAIL" title="Email & calendar" subtitle="Control inbox synchronization, sending, signatures, and meeting context." />
       <p className="mb-4 text-[12px] leading-relaxed text-[var(--text-muted)]">
         Google and Outlook are optional, client-authorized connectors. Email and calendar data is only
         accessed after you connect an account, remains workspace-scoped, is never used for AI training

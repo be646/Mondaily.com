@@ -321,8 +321,9 @@ export function OwnerConsolePage() {
 
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 pt-2 pb-8 sm:px-6">
       <CommandPageHeader
+        variant="bar"
         icon={Crown}
         callsign="CONSOLE"
         title="Owner Console"

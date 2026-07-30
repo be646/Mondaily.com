@@ -91,7 +91,8 @@ export function AIControlRoomSettings() {
     <div className="mx-auto max-w-3xl px-1 py-2">
       {/* Shared PageHeader — same page-header pattern as every other settings page. */}
       <div className="mb-6">
-        <CommandPageHeader icon={ShieldCheck} callsign="AI CONTROL ROOM" title="AI Control Room" subtitle="Sovereign-first AI architecture — configuration, agents, safety, and the audit trail. Real data only." />
+        <CommandPageHeader
+          variant="bar" icon={ShieldCheck} callsign="AI CONTROL ROOM" title="AI Control Room" subtitle="Sovereign-first AI architecture — configuration, agents, safety, and the audit trail. Real data only." />
       </div>
 
       {/* Sovereignty matrix — the honest at-a-glance posture. Layers are self-hosted/native where

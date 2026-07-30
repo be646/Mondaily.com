@@ -48,7 +48,8 @@ export function SupportSettings() {
 
   return (
     <div className="max-w-3xl">
-      <CommandPageHeader icon={LifeBuoy} callsign="SUPPORT" title={title} subtitle={description}
+      <CommandPageHeader
+        variant="bar" icon={LifeBuoy} callsign="SUPPORT" title={title} subtitle={description}
         secondaryActions={
           <button onClick={() => help.open()} className="mt-1 flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-[12px] font-medium transition-colors hover:border-[color:var(--section-accent)]"
             style={{ borderColor: "var(--border-soft)", color: "var(--section-accent)" }}>

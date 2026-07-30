@@ -60,9 +60,10 @@ export function NotificationsPage() {
 
   return (
     <div className="min-h-full bg-[var(--surface-page)] text-[var(--text-faint)]">
-      <div className="mx-auto max-w-3xl px-6 py-8">
+      <div className="mx-auto max-w-3xl px-6 pt-2 pb-8">
         {/* Header */}
         <CommandPageHeader
+          variant="bar"
           icon={Bell}
           callsign="SIGNAL FEED"
           title={t("nav.notifications")}
