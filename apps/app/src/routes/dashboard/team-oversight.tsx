@@ -209,7 +209,7 @@ function OverviewTiles({ trends, periodLabel }: { trends: NonNullable<MatrixResp
         return (
           <div key={t.label} className="flex flex-col px-4 py-3.5" style={{ background: "var(--surface-card)" }}>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t.label}</span>
+              <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>{t.label}</span>
               <span className="text-[9.5px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{periodLabel}</span>
             </div>
             <div className="mt-2 text-[23px] font-semibold leading-none tabular-nums" style={{ color: "var(--text-primary)" }}>{fmt(total)}</div>
@@ -228,7 +228,7 @@ function RosterTable({ operators, selectedId, onSelect, detailFor, compareBy }: 
   const maxTokens = Math.max(1, ...operators.map(o => o.tokens));
   return (
     <div className="overflow-hidden rounded-sm border" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
-      <div className={`hidden items-center gap-3 border-b px-4 py-2 text-[10px] font-semibold uppercase tracking-wide sm:grid ${ROSTER_COLS}`} style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
+      <div className={`hidden items-center gap-3 border-b px-4 py-2 text-[10.5px] font-medium sm:grid ${ROSTER_COLS}`} style={{ borderColor: "var(--border-soft)", color: "var(--text-faint)" }}>
         <span>Member</span>
         <span className="text-right">Trend</span>
         <span className="text-right">Tasks</span>
@@ -381,7 +381,7 @@ function TeamHealthHero({ operators, adv }: { operators: Operator[]; adv?: Advan
     return { now, prev };
   }, [adv]);
   const Stat = ({ label, value, tone }: { label: string; value: string; tone?: string }) => (
-    <div><div className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</div><div className="mt-0.5 text-[15px] font-semibold tabular-nums" style={{ color: tone ?? "var(--text-primary)" }}>{value}</div></div>
+    <div><div className="text-[10px] font-medium uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>{label}</div><div className="mt-0.5 text-[15px] font-semibold tabular-nums" style={{ color: tone ?? "var(--text-primary)" }}>{value}</div></div>
   );
   return (
     <div className="mb-4 rounded-sm border p-4" style={{ borderColor: "var(--border-soft)", background: "var(--surface-card)" }}>
@@ -405,7 +405,7 @@ function TeamHealthHero({ operators, adv }: { operators: Operator[]; adv?: Advan
       </div>
       {dist.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t pt-3" style={{ borderColor: "var(--border-soft)" }}>
-          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Evaluation</span>
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Evaluation</span>
           {dist.map(d => (
             <span key={d.label} className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10.5px] font-medium" style={{ color: EVAL_TONE[d.tone], background: `color-mix(in srgb, ${EVAL_TONE[d.tone]} 12%, transparent)` }}>
               {d.count} {d.label.toLowerCase()}
@@ -429,7 +429,7 @@ function VelocityStrip({ adv }: { adv: AdvancedResp }) {
     <div className="mb-6 grid grid-cols-1 gap-px overflow-hidden rounded-sm border sm:grid-cols-3" style={{ borderColor: "var(--border-soft)", background: "var(--border-soft)" }}>
       {tiles.map(t => (
         <div key={t.label} className="px-4 py-3" style={{ background: "var(--surface-card)" }}>
-          <div className="text-[10px] font-medium uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{t.label}</div>
+          <div className="text-[10px] font-medium uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>{t.label}</div>
           <div className="mt-1 text-[20px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{t.value}</div>
           <div className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-faint)" }}>{t.sub}</div>
         </div>
@@ -500,21 +500,21 @@ function GoalsPanel({ operators }: { operators: Operator[] }) {
           </p>
           {open && (
             <div className="flex flex-wrap items-end gap-2 border-b px-4 py-3" style={{ borderColor: "var(--border-soft)" }}>
-              <label className="flex flex-col gap-1"><span className="text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Scope</span>
+              <label className="flex flex-col gap-1"><span className="text-[10.5px] font-medium" style={{ color: "var(--text-muted)" }}>Scope</span>
                 <div className="w-28"><FieldSelect value={form.scope} onChange={v => setForm(f => ({ ...f, scope: v as "member" | "team" }))} ariaLabel="Scope" options={[{ value: "member", label: "Member" }, { value: "team", label: "Whole team" }]} /></div>
               </label>
               {form.scope === "member" && (
-                <label className="flex flex-col gap-1"><span className="text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Member</span>
+                <label className="flex flex-col gap-1"><span className="text-[10.5px] font-medium" style={{ color: "var(--text-muted)" }}>Member</span>
                   <div className="w-40"><FieldSelect value={form.target_user_id} onChange={v => setForm(f => ({ ...f, target_user_id: v }))} ariaLabel="Member" options={operators.map(o => ({ value: o.operator_id, label: o.name }))} /></div>
                 </label>
               )}
-              <label className="flex flex-col gap-1"><span className="text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Metric</span>
+              <label className="flex flex-col gap-1"><span className="text-[10.5px] font-medium" style={{ color: "var(--text-muted)" }}>Metric</span>
                 <div className="w-44"><FieldSelect value={form.metric} onChange={v => setForm(f => ({ ...f, metric: v as GoalMetric }))} ariaLabel="Metric" options={(Object.keys(GOAL_METRIC_LABEL) as GoalMetric[]).map(m => ({ value: m, label: GOAL_METRIC_LABEL[m] }))} /></div>
               </label>
-              <label className="flex flex-col gap-1"><span className="text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Target</span>
+              <label className="flex flex-col gap-1"><span className="text-[10.5px] font-medium" style={{ color: "var(--text-muted)" }}>Target</span>
                 <input value={form.target_value} onChange={e => setForm(f => ({ ...f, target_value: e.target.value.replace(/[^0-9]/g, "") }))} inputMode="numeric" placeholder="0" className="h-8 w-20 rounded-sm border bg-transparent px-2 text-[12.5px] outline-none" style={{ borderColor: "var(--border-soft)", color: "var(--text-primary)" }} />
               </label>
-              <label className="flex flex-col gap-1"><span className="text-[9.5px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>Window</span>
+              <label className="flex flex-col gap-1"><span className="text-[10.5px] font-medium" style={{ color: "var(--text-muted)" }}>Window</span>
                 <div className="w-24"><FieldSelect value={form.window_days} onChange={v => setForm(f => ({ ...f, window_days: v }))} ariaLabel="Window" options={[{ value: "7", label: "7 days" }, { value: "30", label: "30 days" }, { value: "90", label: "90 days" }]} /></div>
               </label>
               <button onClick={() => create.mutate()} disabled={!canSubmit || create.isPending} className="btn-primary h-8 px-3 text-[11.5px] font-semibold disabled:opacity-50">{create.isPending ? <Loader2 size={12} className="animate-spin" /> : "Set goal"}</button>
@@ -951,7 +951,7 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
               {e.coaching_message && (
                 <div className="rounded-sm border p-3" style={{ borderColor: "var(--section-accent-line)", background: "color-mix(in srgb, var(--section-accent) 4%, transparent)" }}>
                   <div className="mb-1 flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Coaching message for {op.name.split(" ")[0]}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Coaching message for {op.name.split(" ")[0]}</p>
                     <div className="flex gap-2.5">
                       <button onClick={() => { void navigator.clipboard?.writeText(e.coaching_message); setCopied(true); setTimeout(() => setCopied(false), 1500); }} className="text-[10.5px] font-medium" style={{ color: "var(--section-accent)" }}>{copied ? "Copied" : "Copy"}</button>
                       <button onClick={() => navigate(`/messages?to=${encodeURIComponent(op.operator_id)}`)} className="text-[10.5px] font-medium" style={{ color: "var(--section-accent)" }}>Message</button>
@@ -1031,7 +1031,7 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
             </div>
             {insightQ.data?.sources && insightQ.data.sources.length > 0 && (
               <div className="mt-2.5">
-                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>Sources · real activity</p>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Sources · real activity</p>
                 <div className="flex flex-wrap gap-1">
                   {insightQ.data.sources.slice(0, 6).map((s, i) => (
                     <span key={i} className="rounded px-1.5 py-px text-[10px]" style={{ background: "var(--surface-hover)", color: "var(--text-muted)" }} title={exactTime(s.timestamp)}>{s.title}</span>
@@ -1075,7 +1075,7 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
               if (rows.length === 0) return null;
               return (
                 <div key={group}>
-                  <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--text-faint)" }}>{group} · {rows.length}</div>
+                  <div className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>{group} · {rows.length}</div>
                   <div className="space-y-2">
                     {rows.slice(0, 20).map((a) => {
                       const link = a.object?.node_id && a.object?.type ? `/objects/${encodeURIComponent(a.object.type)}/${a.object.node_id}` : null;

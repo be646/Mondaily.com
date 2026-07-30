@@ -97,3 +97,22 @@ describe("design pass A — one indicator vocabulary, one segmented control", ()
     expect(quotes).toMatch(/allQuotes\.reduce/);
   });
 });
+
+describe("team oversight speaks the app's one label idiom", () => {
+  const page = app("routes/dashboard/team-oversight.tsx");
+  it("the roster header row is sentence-case, not shouted — records-table precedent", () => {
+    expect(page).not.toMatch(/uppercase tracking-wide sm:grid/);
+    expect(page).toMatch(/text-\[10\.5px\] font-medium sm:grid/);
+  });
+  it("form field labels are quiet labels, not micro-kickers", () => {
+    expect(page).not.toMatch(/text-\[9\.5px\] font-semibold uppercase[^>]*>Scope/);
+    expect(page).toMatch(/text-\[10\.5px\] font-medium" style=\{\{ color: "var\(--text-muted\)" \}\}>Scope/);
+  });
+  it("section kickers match the console idiom exactly — widest tracking, secondary color", () => {
+    // The audit originally called ALL 18 uppercase labels debt; the app's own living idiom
+    // (Owner Console SectionLabel) disagrees for section kickers. Normalized TO that idiom
+    // instead of away from it: no half-tracked, faint-colored variants left on section labels.
+    expect(page).not.toMatch(/font-semibold uppercase tracking-wider" style=\{\{ color: "var\(--text-faint\)"/);
+    // data labels inside tiles/chips (period sublabel, signal level) legitimately remain
+  });
+});
