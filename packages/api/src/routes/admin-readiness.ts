@@ -118,6 +118,7 @@ router.get("/readiness", async (c) => {
       recordings_storage_files: storage.files,
       recordings_storage_partial: storage.partial,
       recordings_storage_checkable: storage.checkable,
+      storage_buckets: storage.buckets,
       livekit_configured,
       native_recording_enabled,
       recording_bucket_ready,

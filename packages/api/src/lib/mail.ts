@@ -206,10 +206,9 @@ export async function sovereignRelayStatus(): Promise<{ configured: boolean; rea
  * folder level deep, bounded at 2000 objects. Past the bound it reports `partial: true` rather than
  * pretending the sum is the total — an understated storage number is how limits sneak up.
  */
-export async function recordingsStorageUsage(): Promise<{ bytes: number; files: number; partial: boolean; checkable: boolean }> {
+/** Walk ONE bucket to file depth (bounded BFS) and sum sizes. */
+async function bucketUsage(BUCKET: string, CAP = 2000): Promise<{ bytes: number; files: number; partial: boolean; checkable: boolean }> {
   try {
-    const BUCKET = "meeting-recordings";
-    const CAP = 2000;        // objects examined, total
     const MAX_DEPTH = 4;     // paths are ws/session/file (3 deep); one spare level of headroom
     let bytes = 0, files = 0, partial = false;
     // BFS over folder prefixes. The first version walked ONE level and read back 0 bytes with
@@ -234,5 +233,30 @@ export async function recordingsStorageUsage(): Promise<{ bytes: number; files: 
     return { bytes, files, partial, checkable: true };
   } catch {
     return { bytes: 0, files: 0, partial: false, checkable: false };
+  }
+}
+
+/**
+ * Usage across EVERY bucket. Exists because the recordings-only probe read a truthful zero while
+ * the dashboard warned ~7GB — the growth was somewhere else, and a storage row that watches one
+ * bucket answers the wrong question. Per-bucket breakdown so the readiness page can NAME the
+ * consumer, not just alarm.
+ */
+export async function recordingsStorageUsage(): Promise<{ bytes: number; files: number; partial: boolean; checkable: boolean; buckets: { name: string; bytes: number; files: number; partial: boolean }[] }> {
+  try {
+    const { data: bucketList, error } = await supabase.storage.listBuckets();
+    if (error) return { bytes: 0, files: 0, partial: false, checkable: false, buckets: [] };
+    let bytes = 0, files = 0, partial = false;
+    const buckets: { name: string; bytes: number; files: number; partial: boolean }[] = [];
+    for (const b of bucketList ?? []) {
+      const u = await bucketUsage(b.name);
+      if (!u.checkable) { partial = true; continue; }
+      bytes += u.bytes; files += u.files; partial = partial || u.partial;
+      buckets.push({ name: b.name, bytes: u.bytes, files: u.files, partial: u.partial });
+    }
+    buckets.sort((a, b2) => b2.bytes - a.bytes);
+    return { bytes, files, partial, checkable: true, buckets };
+  } catch {
+    return { bytes: 0, files: 0, partial: false, checkable: false, buckets: [] };
   }
 }
