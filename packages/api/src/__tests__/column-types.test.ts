@@ -62,3 +62,29 @@ describe("attributes can be removed, not only added", () => {
     expect(handler).toMatch(/404/);   // removing a non-existent attribute says so
   });
 });
+
+describe("the records sidebar is organized, not an insertion-order wall", () => {
+  const sidebar = readFileSync(join(__dirname, "../../../../apps/app/src/components/layout/sidebar-records.tsx"), "utf8");
+
+  it("GET /objects attaches real counts from the SQL aggregate, fail-soft", () => {
+    expect(api).toMatch(/supabase\.rpc\("object_type_counts", \{ ws: c\.get\("workspaceId"\) \}\)/);
+    expect(api).toMatch(/counts are an enhancement, not a dependency/);
+  });
+
+  it("sorts most-used first with a stable alphabetical tiebreak", () => {
+    expect(sidebar).toMatch(/\(b\.record_count \?\? 0\) - \(a\.record_count \?\? 0\) \|\| label\(a\)\.localeCompare\(label\(b\)\)/);
+  });
+
+  it("sentence-cases raw slugs — 'assets' renders as 'Assets'", () => {
+    expect(sidebar).toMatch(/raw\.charAt\(0\)\.toUpperCase\(\) \+ raw\.slice\(1\)/);
+  });
+
+  it("caps the list but never hides the page you are on", () => {
+    expect(sidebar).toMatch(/const hiddenActive = !showAll && activeObject && !visible\.includes\(activeObject\)/);
+    expect(sidebar).toMatch(/Show all \(\{hiddenCount\} more\)/);
+  });
+
+  it("renders a known count even at zero — the tabs contract", () => {
+    expect(sidebar).toMatch(/typeof obj\.record_count === "number" &&/);
+  });
+});

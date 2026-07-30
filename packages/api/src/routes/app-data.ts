@@ -273,6 +273,16 @@ async function bootstrapWorkspace(workspaceId: string, createdBy: string) {
 router.get("/objects", async (c) => {
   await bootstrapWorkspace(c.get("workspaceId"), c.get("userId"));
   const data = await rows("object_definitions", c.get("workspaceId"));
+  // Real per-type counts for the sidebar/pickers — the same SQL aggregate the cleaning tools use
+  // (exact, never a truncated JS count). Fail-soft: without the RPC everything still renders,
+  // just without counts, so this stays additive for older deployments.
+  try {
+    const { data: counts } = await supabase.rpc("object_type_counts", { ws: c.get("workspaceId") });
+    const byType = new Map<string, number>((counts ?? []).map((r: { object_type: string; n: number }) => [r.object_type, Number(r.n)]));
+    for (const def of data as { slug?: string; record_count?: number }[]) {
+      def.record_count = byType.get(String(def.slug)) ?? 0;
+    }
+  } catch { /* counts are an enhancement, not a dependency */ }
   return c.json(data);
 });
 
