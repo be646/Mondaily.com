@@ -73,10 +73,11 @@ export function CallsPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 pt-2 pb-8 sm:px-6">
       {/* Shared command header — same rhythm as Calendar/Decisions/Discovery. Honest status:
           real counts from the loaded memory list only; nothing implied to be running. */}
       <CommandPageHeader
+        variant="bar"
         icon={Brain}
         callsign="RECALL"
         title="Meeting Memory"

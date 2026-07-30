@@ -199,10 +199,11 @@ export function AgentActivityPage() {
   ];
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 pt-2 pb-8 sm:px-6">
       {/* ── 1. Shared command header — same pattern as Decisions. HONEST state (no fake 'Live'
              ping): 'working now' only when the backend reports agents actually active. ── */}
       <CommandPageHeader
+        variant="bar"
         icon={ShieldCheck}
         callsign="CONTROL ROOM"
         title="Agent Control Room"

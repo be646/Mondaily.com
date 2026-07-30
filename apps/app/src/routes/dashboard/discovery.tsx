@@ -334,8 +334,9 @@ export function DiscoveryPage() {
     <div className="mx-auto flex h-[calc(100vh-3.5rem)] max-w-4xl flex-col px-4 sm:px-6">
       {/* Shared command header — same pattern as Decisions / Team Oversight / Home cockpit.
           All controls + handlers preserved (ICP, clear, Discover/Saved view). */}
-      <div className="py-4">
+      <div className="pt-1 pb-1">
         <CommandPageHeader
+          variant="bar"
           icon={Radar}
           callsign="SWEEP"
           title={t("discovery.heading")}
