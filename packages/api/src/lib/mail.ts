@@ -209,24 +209,27 @@ export async function sovereignRelayStatus(): Promise<{ configured: boolean; rea
 export async function recordingsStorageUsage(): Promise<{ bytes: number; files: number; partial: boolean; checkable: boolean }> {
   try {
     const BUCKET = "meeting-recordings";
-    const CAP = 2000;
+    const CAP = 2000;        // objects examined, total
+    const MAX_DEPTH = 4;     // paths are ws/session/file (3 deep); one spare level of headroom
     let bytes = 0, files = 0, partial = false;
-    const { data: top, error } = await supabase.storage.from(BUCKET).list("", { limit: 1000 });
-    if (error) return { bytes: 0, files: 0, partial: false, checkable: false };
-    const folders: string[] = [];
-    for (const e of top ?? []) {
-      const size = (e.metadata as { size?: number } | null)?.size;
-      if (typeof size === "number") { bytes += size; files++; }
-      else folders.push(e.name);   // no metadata → a folder
-    }
-    for (const f of folders) {
+    // BFS over folder prefixes. The first version walked ONE level and read back 0 bytes with
+    // checkable:true while the dashboard said ~7GB — a probe confidently measuring the wrong thing,
+    // the exact false-confidence failure this codebase keeps hunting. Recording paths are
+    // `${ws}/${session.id}/${filename}`, so a fixed one-level walk saw only empty-looking folders.
+    const queue: { prefix: string; depth: number }[] = [{ prefix: "", depth: 0 }];
+    while (queue.length) {
+      const { prefix, depth } = queue.shift()!;
       if (files >= CAP) { partial = true; break; }
-      const { data: inner } = await supabase.storage.from(BUCKET).list(f, { limit: 1000 });
-      for (const e of inner ?? []) {
+      const { data, error } = await supabase.storage.from(BUCKET).list(prefix, { limit: 1000 });
+      if (error) { if (prefix === "") return { bytes: 0, files: 0, partial: false, checkable: false }; continue; }
+      const entries = data ?? [];
+      if (entries.length === 1000) partial = true;   // this listing itself truncated
+      for (const e of entries) {
         const size = (e.metadata as { size?: number } | null)?.size;
         if (typeof size === "number") { bytes += size; files++; }
+        else if (depth + 1 < MAX_DEPTH) queue.push({ prefix: prefix ? `${prefix}/${e.name}` : e.name, depth: depth + 1 });
+        else partial = true;   // deeper than we walk — say so rather than undercount silently
       }
-      if ((inner ?? []).length === 1000) partial = true;   // folder itself truncated
     }
     return { bytes, files, partial, checkable: true };
   } catch {
