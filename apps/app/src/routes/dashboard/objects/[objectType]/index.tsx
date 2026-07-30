@@ -1,5 +1,7 @@
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
+import { SegmentedControl } from "../../../../components/ui/segmented";
 import { AIMark } from "@/components/ui/ai-button";
 import { LogoMark } from "@/components/logo";
 import { Plus, X, Check, Loader2, ChevronDown, ChevronUp, Trash2, LayoutList, Kanban, ScanSearch, Filter, Sparkles, UploadCloud } from "lucide-react";
@@ -764,6 +766,9 @@ export function ObjectIndexPage() {
   // period-over-period delta. Generic across every object type. Created date = node created_at
   // (fallback data.created_at). "All" hides the flow chip (nothing to scope).
   const [period, setPeriod] = usePeriod(`mondaily_obj_${objectType}_period`, "month");
+  // Global top-bar slot for the period stat (looked up after mount — the layout owns the node).
+  const [statSlot, setStatSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => { setStatSlot(document.getElementById("mondaily-page-actions")); }, []);
   const allRecords = recordsQuery.data ?? [];
   const recCreatedAt = (r: { created_at?: string; data?: Record<string, unknown> }) => String(r.created_at ?? (r.data?.created_at as string | undefined) ?? "");
   const pRange = periodRange(period);
@@ -816,7 +821,7 @@ export function ObjectIndexPage() {
 
       {/* Page header — title + view toggle + actions. On the shared variable/matte system (was
           hardcoded stone / bg-white, which was inconsistent and theme-fragile). */}
-      <div className="px-6 py-3 shrink-0">
+      <div className="px-6 pt-1 pb-0 shrink-0">
         <CommandPageHeader
           variant="bar"
           className="mb-0"
@@ -825,29 +830,25 @@ export function ObjectIndexPage() {
           title={objectType.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
           secondaryActions={
             <>
-              {/* View toggle */}
-              <div className="flex items-center gap-0.5 rounded-sm border p-0.5" style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
-                <button onClick={() => setView("table")} title="Table view"
-                  className="flex items-center gap-1.5 rounded-[3px] px-2 py-1 text-[11px] font-medium transition-colors"
-                  style={view === "table" ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
-                  <LayoutList size={11}/> Table
-                </button>
-                <button onClick={() => setView("board")} title="Board view"
-                  className="flex items-center gap-1.5 rounded-[3px] px-2 py-1 text-[11px] font-medium transition-colors"
-                  style={view === "board" ? { background: "var(--surface-card)", color: "var(--text-primary)" } : { color: "var(--text-muted)" }}>
-                  <Kanban size={11}/> Board
-                </button>
-              </div>
+              {/* View toggle — shared hairline SegmentedControl (was a boxed track). */}
+              <SegmentedControl
+                segments={[{ key: "table", label: "Table", icon: LayoutList }, { key: "board", label: "Board", icon: Kanban }]}
+                active={view}
+                onChange={(k) => setView(k as "table" | "board")}
+              />
               {/* Period lens — new records this window + period-over-period delta (flow). */}
               <PeriodSelector value={period} onChange={setPeriod} />
-              {period !== "all" && allRecords.length > 0 && (
-                <span className="hidden items-center gap-1 text-[11px] sm:inline-flex" style={{ color: "var(--text-muted)" }}>
+              {/* The period stat lives in the GLOBAL top bar (via the page-actions portal) so the
+                  sheet header row stays a pure control row — same real numbers, more grid space. */}
+              {period !== "all" && allRecords.length > 0 && statSlot && createPortal(
+                <span className="hidden items-center gap-1 text-[11px] lg:inline-flex" style={{ color: "var(--text-muted)" }}>
                   <span style={{ color: "var(--section-accent)" }}>{newThisPeriod.length} new</span>
                   <span style={{ color: "var(--text-faint)" }}>{periodLabel(period).toLowerCase()}</span>
                   {newDelta != null && (
                     <span style={{ color: newDelta >= 0 ? "#2f9e6b" : "#d1524a" }}>{newDelta >= 0 ? "↑" : "↓"}{Math.abs(newDelta)}%</span>
                   )}
-                </span>
+                </span>,
+                statSlot,
               )}
               {/* Utility actions collapsed into one menu — no wall of buttons (handlers unchanged). */}
               <ActionMenu triggerLabel="Manage" ariaLabel="Sheet actions" items={[

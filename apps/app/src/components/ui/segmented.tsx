@@ -10,7 +10,9 @@
  * on a filter the zero is the useful fact ("Rejected 0" answers the question without a click) —
  * and omitted only when genuinely unknown.
  */
-export interface Segment { key: string; label: string; count?: number }
+import type { LucideIcon } from "lucide-react";
+
+export interface Segment { key: string; label: string; count?: number; icon?: LucideIcon }
 
 export function SegmentedControl({ segments, active, onChange, className = "" }: {
   segments: Segment[];
@@ -40,6 +42,7 @@ export function SegmentedControl({ segments, active, onChange, className = "" }:
               ? { background: "color-mix(in srgb, var(--text-primary) 5%, transparent)", color: "var(--text-primary)" }
               : { color: "var(--text-muted)" }}
           >
+            {s.icon && <s.icon size={11} className="shrink-0" />}
             {s.label}
             {typeof s.count === "number" && (
               <span className="tabular-nums text-[10px]" style={{ color: isActive ? "var(--text-muted)" : "var(--text-faint)" }}>

@@ -1665,10 +1665,11 @@ describe("Records experience premium polish (Pass CHR2)", () => {
 
   it("no double divider — CommandPageHeader wrappers rely on the single soul-rule (border-b dropped)", () => {
     // pipeline header wrapper no longer stacks a border-b under the soul-rule
-    expect(pipeline).toMatch(/<div className="px-6 py-3 shrink-0">\s*\n\s*<CommandPageHeader/);
+    expect(pipeline).toMatch(/<div className="px-6 pt-1 pb-0 shrink-0">\s*\n\s*<CommandPageHeader/  // pt tightened 2026-07-30 (dead-space fix));
     expect(pipeline).not.toMatch(/border-b border-\[var\(--border-soft\)\] px-6 py-3 shrink-0">\s*\n\s*<CommandPageHeader/);
     // objects sheet header wrapper likewise
-    expect(objects).toMatch(/<div className="px-6 py-3 shrink-0">\s*\n\s*<CommandPageHeader/);
+    // pt tightened 2026-07-30 (dead-space fix)
+    expect(objects).toMatch(/<div className="px-6 pt-1 pb-0 shrink-0">\s*\n\s*<CommandPageHeader/);
     expect(objects).not.toMatch(/border-b px-6 py-3 shrink-0" style=\{\{ borderColor: "var\(--border-soft\)" \}\}>\s*\n\s*<CommandPageHeader/);
   });
 
@@ -1731,7 +1732,8 @@ describe("App-wide chrome pass — pages migrated to CommandPageHeader standard 
     }
     // primary + view toggle + period lens all retained
     expect(objects).toMatch(/onClick=\{\(\) => setShowCreate\(true\)\} className="btn-primary/);
-    expect(objects).toMatch(/setView\("table"\)/);
+    // Re-pointed 2026-07-30: the view toggle became the shared SegmentedControl (icons kept).
+    expect(objects).toMatch(/setView\(k as "table" \| "board"\)/);
     expect(objects).toMatch(/setView\("board"\)/);
     expect(objects).toMatch(/<PeriodSelector value=\{period\} onChange=\{setPeriod\} \/>/);
     // old flat toolbar wall (loose bordered utility buttons) is gone

@@ -18,15 +18,16 @@ export function PeriodSelector({ value, onChange, custom, onCustom, className = 
   const chips = [...PERIODS, ...(onCustom ? [{ key: "custom" as Period, label: "Custom" }] : [])];
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`}>
-      <div className="inline-flex flex-wrap items-center gap-0.5 rounded-lg border p-0.5"
-        style={{ borderColor: "var(--border-soft)", background: "var(--surface-hover)" }}>
+      {/* HAIRLINES, NOT BOXES — same idiom as SegmentedControl (measured 2026-07-30): no track
+          border, no lifted card, no shadow. Active chip = faint ink wash + small radius. */}
+      <div className="inline-flex flex-wrap items-center gap-0.5">
         {chips.map(p => {
           const active = value === p.key;
           return (
             <button key={p.key} onClick={() => onChange(p.key)}
               className="rounded-md px-2.5 py-1 text-[11.5px] font-medium transition-colors"
               style={active
-                ? { background: "var(--surface-card)", color: "var(--text-primary)", boxShadow: "0 1px 2px rgba(0,0,0,0.18)" }
+                ? { background: "color-mix(in srgb, var(--text-primary) 5%, transparent)", color: "var(--text-primary)" }
                 : { color: "var(--text-muted)" }}>
               {p.label}
             </button>
