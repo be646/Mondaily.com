@@ -479,8 +479,11 @@ describe("debt-closure pass — Decisions dossier unification + colour system", 
     // Accent saturation raised for usable contrast (was 40% → 47%).
     expect(stylesCss).toMatch(/--accent-s: 47%/);
     expect(stylesCss).not.toMatch(/--accent-s: 40%/);
-    // btn-primary is now clearly accent-tinted (visible primary), not the transparent secondary look.
-    expect(stylesCss).toMatch(/\.btn-primary \{[^}]*background: color-mix\(in srgb, var\(--section-accent\) 14%/s);
+    // btn-primary graduated from accent-TINT to SOLID accent fill (Pass NAV-S, user-directed):
+    // one filled primary per screen, text inverted against the fill. The invariant is the same —
+    // the primary must be unmistakable next to the transparent secondary — it just got stronger.
+    expect(stylesCss).toMatch(/\.btn-primary \{[^}]*background: var\(--section-accent\);/s);
+    expect(stylesCss).toMatch(/\.btn-primary \{[^}]*color: var\(--surface-page\);/s);
     // No candy: still no rainbow section drift (theme-spread stays 0).
     expect(stylesCss).toMatch(/--theme-spread: 0\b/);
   });

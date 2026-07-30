@@ -1217,19 +1217,21 @@ html[data-theme="dark"] .minimal-sparkline {
    One set of classes for the whole app — replaces ad-hoc per-page button
    strings so primary/secondary/ghost/tab buttons feel like one system. ── */
 @layer components {
-  /* PRIMARY = clearly accent-tinted so the main action stands out (alive, not candy). Distinct from
-     the quiet transparent secondary. Squared to match the app. */
+  /* PRIMARY = SOLID accent fill (Pass NAV-S, measured family: one filled primary per screen,
+     compact, 6px radius). The old tinted wash read as part of the "too matte" complaint — a
+     primary should look pressable. Text inverts against the fill; hover deepens the fill rather
+     than adding glow. */
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-sm px-3.5 py-2 font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3.5 py-2 font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:active:scale-100;
     font-size: var(--fs-body); /* control-typography floor (Pass 4A) — @layer components, so call-site text-* utilities still win */
-    background: color-mix(in srgb, var(--section-accent) 14%, transparent);
-    border: 1px solid var(--section-accent-line);
-    color: var(--section-accent-text);
+    background: var(--section-accent);
+    border: 1px solid var(--section-accent);
+    color: var(--surface-page);
   }
   .btn-primary:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--section-accent) 22%, transparent);
-    border-color: var(--section-accent);
-    color: var(--section-accent-text);
+    background: color-mix(in srgb, var(--section-accent) 86%, black);
+    border-color: color-mix(in srgb, var(--section-accent) 86%, black);
+    color: var(--surface-page);
     box-shadow: none;
   }
   .btn-primary:disabled {
@@ -1239,7 +1241,7 @@ html[data-theme="dark"] .minimal-sparkline {
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-sm px-3.5 py-2 font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3.5 py-2 font-medium transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100;
     font-size: var(--fs-body); /* control-typography floor (Pass 4A) — call-site text-* utilities still win */
     background: transparent;
     border: 1px solid var(--border-soft);

@@ -28,12 +28,14 @@ describe("ActionMenu primitive — squared, accessible, closes safely", () => {
   it("closes on outside click and works on touch (click-driven)", () => {
     expect(controls).toMatch(/addEventListener\("mousedown", onDoc\)/);
   });
-  it("keeps the app's squared style (no bubbly radius)", () => {
+  it("keeps the app's control radius contract (6px, never bubbly)", () => {
     expect(controls).toMatch(/borderRadius: 4/);
-    // ActionMenu trigger uses rounded-sm (squared), not rounded-full
+    // Controls moved from rounded-sm to rounded-md (6px) in Pass NAV-S — the measured control
+    // family the whole app now follows. The invariant this guard protects is unchanged: no pills,
+    // no rounded-full chrome.
     const start = controls.indexOf("export function ActionMenu");
     const block = controls.slice(start, controls.indexOf("export function", start + 20));
-    expect(block).toMatch(/rounded-sm border/);
+    expect(block).toMatch(/rounded-(sm|md) border/);
     expect(block).not.toMatch(/rounded-full/);
   });
 });

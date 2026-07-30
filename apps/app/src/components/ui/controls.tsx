@@ -152,7 +152,7 @@ export function MenuSelect({ label, value, options, onChange, allLabel = "All", 
     <div ref={rootRef} className={cx("relative", width ? "block" : "inline-block", className)} style={width ? { width } : undefined} onKeyDown={onKeyDown}>
       <button type="button" onClick={() => (open ? setOpen(false) : openMenu())} disabled={disabled} title={title}
         aria-haspopup="listbox" aria-expanded={open}
-        className={cx("inline-flex h-7 items-center gap-1.5 rounded-sm border px-2 text-[11.5px] transition-colors hover:bg-[var(--surface-hover)] disabled:cursor-not-allowed disabled:opacity-50", width ? "w-full justify-between" : "")}
+        className={cx("inline-flex h-7 items-center gap-1.5 rounded-md border px-2 text-[11.5px] transition-colors hover:bg-[var(--surface-hover)] disabled:cursor-not-allowed disabled:opacity-50", width ? "w-full justify-between" : "")}
         style={{ borderColor: open ? "var(--border-strong)" : "var(--border-soft)", background: "var(--surface-input)", color: "var(--text-secondary)", maxWidth: width ?? maxWidth }}>
         {label && <span className="text-[10px] uppercase tracking-wide" style={{ color: "var(--text-faint)" }}>{label}</span>}
         <span className="truncate font-medium capitalize" style={{ color: value ? "var(--text-primary)" : "var(--text-muted)" }}>
@@ -233,7 +233,7 @@ export function ActionMenu({ items, triggerLabel, ariaLabel = "More actions", al
     <div ref={rootRef} className={cx("relative inline-block", className)} onKeyDown={onKeyDown}>
       <button type="button" onClick={() => (open ? setOpen(false) : (setHi(0), setOpen(true)))} disabled={disabled}
         aria-haspopup="menu" aria-expanded={open} aria-label={ariaLabel}
-        className="inline-flex h-7 items-center gap-1 rounded-sm border px-2 text-[11.5px] font-medium transition-colors hover:bg-[var(--surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex h-7 items-center gap-1 rounded-md border px-2 text-[11.5px] font-medium transition-colors hover:bg-[var(--surface-hover)] disabled:cursor-not-allowed disabled:opacity-50"
         style={{ borderColor: open ? "var(--border-strong)" : "var(--border-soft)", background: "var(--surface-input)", color: "var(--text-secondary)" }}>
         <MoreHorizontal size={13} className="shrink-0" />
         {triggerLabel && <span>{triggerLabel}</span>}
