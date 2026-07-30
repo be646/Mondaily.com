@@ -44,3 +44,17 @@ describe("a hung stream becomes an honest error, not an eternal spinner", () => 
     expect(page).toMatch(/reason instanceof Error \? reason\.message/);
   });
 });
+
+describe("a rate-limited engine is INFRA, not 'no results'", () => {
+  const job = readFileSync(join(__dirname, "../jobs/social-discovery.ts"), "utf8");
+  it("429 marks the sweep unreachable after one polite retry", () => {
+    // The run-history's FIRST live row caught this: 8 query angles, 0 hits, 5 seconds — while
+    // /discovery/status (a single request) said HEALTHY. The burst tripped SearXNG's limiter and
+    // every 429 was reported as a clean zero, indistinguishable from a genuinely dry query.
+    expect(job).toMatch(/res\.status >= 500 \|\| res\.status === 429, rateLimited: res\.status === 429/);
+    expect(job).toMatch(/if \(res\.status === 429\) \{/);        // the single retry
+  });
+  it("the user is told to wait, not that nothing exists", () => {
+    expect(job).toMatch(/rate-limited this sweep — wait a minute and try again/);
+  });
+});

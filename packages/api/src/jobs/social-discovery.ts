@@ -28,7 +28,7 @@ const SOVEREIGN_SEARCH_URL = process.env.SOVEREIGN_SEARCH_URL || (process.env.NO
 // result to 0 even when Qwant has 10. Overridable via env as more reliable engines are found.
 const SOVEREIGN_SEARCH_ENGINES = process.env.SOVEREIGN_SEARCH_ENGINES || "qwant,yahoo";
 
-type SearchResult = { hits: SearchHit[]; unreachable: boolean };
+type SearchResult = { hits: SearchHit[]; unreachable: boolean; rateLimited?: boolean };
 
 async function searxng(query: string): Promise<SearchResult> {
   // Cache hit → skip the (rate-limited) engine entirely. 24h TTL.
@@ -41,11 +41,20 @@ async function searxng(query: string): Promise<SearchResult> {
     // language=en-US pins the locale (the box's German IP otherwise geo-localizes results); engines
     // pinned to the datacenter-reliable set so CAPTCHA'd engines can't zero out the response.
     const url = `${SOVEREIGN_SEARCH_URL}?q=${encodeURIComponent(query)}&format=json&language=en-US&engines=${encodeURIComponent(SOVEREIGN_SEARCH_ENGINES)}`;
-    const res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() }, signal: ctrl.signal });
+    let res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() }, signal: ctrl.signal });
+    if (res.status === 429) {
+      // SearXNG's own bot limiter. ONE polite retry after a beat — a burst of 8 query angles can
+      // trip it even when the box is perfectly healthy, which is exactly why /discovery/status
+      // (a single request) said HEALTHY while sweeps "randomly" returned nothing.
+      await new Promise((r) => setTimeout(r, 2_500));
+      res = await fetch(url, { headers: { Accept: "application/json", ...sovereignHeaders() }, signal: ctrl.signal });
+    }
     if (!res.ok) {
-      // 5xx → the index itself is down/unreachable; treat as an infra timeout.
       console.error(`[social-discovery] searxng HTTP ${res.status}`);
-      return { hits: [], unreachable: res.status >= 500 };
+      // 429 previously fell into `unreachable: false` with zero hits — i.e. it was reported as
+      // "no search results". Eight rate-limited queries produced a clean-looking empty sweep,
+      // indistinguishable from a genuinely dry query. A refusal is INFRA, not an answer.
+      return { hits: [], unreachable: res.status >= 500 || res.status === 429, rateLimited: res.status === 429 };
     }
     // Same structural keys SearXNG returns under data.results.
     const data = (await res.json()) as { results?: { title?: string; content?: string; url?: string }[] };
@@ -183,8 +192,12 @@ export async function runSocialDiscovery(data: DiscoveryParams, onProgress?: Dis
     // Short-circuit on a connection drop / infra timeout rather than proceeding
     // with an empty payload.
     if (sweep.some((s) => s.unreachable)) {
-      console.error("[social-discovery] " + SEARCH_TIMEOUT_REASON);
-      return { status: "SKIPPED_INFRASTRUCTURE_TIMEOUT" as const, reason: SEARCH_TIMEOUT_REASON };
+      const rateLimited = sweep.some((s) => s.rateLimited);
+      const reason = rateLimited
+        ? "The search engine rate-limited this sweep — wait a minute and try again."
+        : SEARCH_TIMEOUT_REASON;
+      console.error("[social-discovery] " + reason);
+      return { status: "SKIPPED_INFRASTRUCTURE_TIMEOUT" as const, reason };
     }
     const hits = sweep.flatMap((s) => s.hits);
     if (hits.length === 0) return { discovered: 0, reason: "no search results", diag: { queries: queries.length, hits: 0, unique: 0, extracted: 0, matched: 0 } };
