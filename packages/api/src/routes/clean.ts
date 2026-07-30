@@ -157,7 +157,9 @@ router.post("/overlap", zValidator("json", z.object({
   const nameById = new Map<string, string>();
   if (ids.length) {
     for (let i = 0; i < ids.length; i += 200) {
-      const { data: rows } = await supabase.from("nodes").select("id, data").in("id", ids.slice(i, i + 200));
+      // ws-scoped even though the ids come from a workspace-scoped RPC — an unscoped read by id is
+      // exactly the shape the isolation scan exists to keep out of the codebase.
+      const { data: rows } = await supabase.from("nodes").select("id, data").eq("workspace_id", ws).in("id", ids.slice(i, i + 200));
       for (const r of rows ?? []) {
         const d = (r as { data?: Record<string, unknown> }).data ?? {};
         nameById.set(String((r as { id: string }).id), String(d.name ?? d.Name ?? d.full_name ?? d.company_name ?? "Untitled"));

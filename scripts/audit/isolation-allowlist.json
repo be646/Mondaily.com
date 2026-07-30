@@ -1,5 +1,5 @@
 {
-  "audited": "2026-07-09 + 2026-07-18 re-audit",
+  "audited": "2026-07-09 + 2026-07-18 re-audit + 2026-07-30 stabilization",
   "note": "Content-signature allowlist of manually-audited isolation false positives. A NEW or MODIFIED .from() on a workspace-scoped table will NOT match a signature and WILL flag. Multiset: each occurrence is listed once.",
   "entries": [
     {
@@ -226,6 +226,11 @@
       "file": "packages/api/src/jobs/workflow-engine.ts",
       "sig": "const { data: priorRuns } = await supabase.from(\"workflow_runs\").select(\"id,status\")",
       "reason": "per-workspace job loop: workflow_runs scoped to the workspace's workflow ids"
+    },
+    {
+      "file": "packages/api/src/routes/task-details.ts",
+      "sig": "await supabase.from(\"task_views\").upsert(",
+      "reason": "ownership-chain: assertTaskOwnership(taskId, workspaceId) runs on the line before; task_views is scoped through the verified parent task (2026-07-30 stabilization audit)"
     }
   ]
 }

@@ -522,8 +522,14 @@ export async function executeApprovedAction(workspaceId: string, decision: any):
     }).catch((e) => console.error("[bg-task] swallowed error:", e));
 
     if (evidenceItem?.destination_list_id) {
-      const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", evidenceItem.destination_list_id);
-      await supabase.from("list_entries").upsert({ list_id: evidenceItem.destination_list_id, node_id: node.id, position: (count ?? 0) + 1 });
+      // Verify the destination list belongs to THIS workspace before writing to it. The id comes
+      // from agent-written decision evidence; trusting it unverified would let a bad evidence row
+      // append records to another tenant's list.
+      const { data: ownedList } = await supabase.from("lists").select("id").eq("workspace_id", workspaceId).eq("id", evidenceItem.destination_list_id).maybeSingle();
+      if (ownedList) {
+        const { count } = await supabase.from("list_entries").select("*", { count: "exact", head: true }).eq("list_id", evidenceItem.destination_list_id);
+        await supabase.from("list_entries").upsert({ list_id: evidenceItem.destination_list_id, node_id: node.id, position: (count ?? 0) + 1 });
+      }
     }
     return;
   }
