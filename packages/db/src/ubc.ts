@@ -38,11 +38,20 @@ export async function getNode(id: string, workspaceId: string): Promise<(Node & 
   return { ...(data as Node & { updated_at: string }), activities };
 }
 
-export async function listNodes(workspaceId: string, options: { vertical?: string; object_type?: string; objectType?: string; limit?: number; cursor?: string } = {}): Promise<Node[]> {
-  let query = supabase.from("nodes").select("*").eq("workspace_id", workspaceId).order("updated_at", { ascending: false });
+export async function listNodes(workspaceId: string, options: { vertical?: string; object_type?: string; objectType?: string; limit?: number; offset?: number; cursor?: string } = {}): Promise<Node[]> {
+  // Secondary sort on id: range-pagination over updated_at ALONE skips/duplicates rows that share
+  // a timestamp (bulk imports and merges write many rows in the same instant), so pages were not
+  // deterministic even when offset worked.
+  let query = supabase.from("nodes").select("*").eq("workspace_id", workspaceId)
+    .order("updated_at", { ascending: false }).order("id", { ascending: true });
   if (options.vertical) query = query.eq("vertical", options.vertical);
   if (options.object_type || options.objectType) query = query.eq("object_type", options.object_type || options.objectType);
-  const { data, error } = await query.limit(options.limit || 50);
+  const limit = options.limit || 50;
+  // offset was accepted by callers and SILENTLY IGNORED — GET /nodes?offset=500 returned page one
+  // again, so every paginating consumer read duplicate data without knowing. Found live: paged
+  // counts came back as exact multiples of the page count.
+  const from = Math.max(0, options.offset ?? 0);
+  const { data, error } = await query.range(from, from + limit - 1);
   if (error) throw new Error(`listNodes failed: ${error.message}`);
   return (data || []) as Node[];
 }

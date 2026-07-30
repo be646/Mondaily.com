@@ -86,7 +86,10 @@ router.get("/:id", requireAuth, async (c) => {
 router.get("/", requireAuth, zValidator("query", z.object({
   vertical: z.string().optional(),
   object_type: z.string().optional(),
-  limit: z.coerce.number().default(50),
+  limit: z.coerce.number().min(1).max(1000).default(50),
+  // offset was missing from this schema entirely — zod STRIPPED it from the query, so clients that
+  // paginated received page one repeatedly and could not tell.
+  offset: z.coerce.number().min(0).default(0),
   cursor: z.string().optional()
 })), async (c) => {
   const query = c.req.valid("query");

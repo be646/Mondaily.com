@@ -1835,7 +1835,14 @@ router.post("/", requireAuth, verifyAiCredits, zValidator("json", z.object({
     // fire-and-forget) now that workspaceId/userId are passed through.
 
     // Disclose memory use honestly: only when facts were actually recalled + injected.
-    return c.json({ reply, suggestions, sources: dedupedSources, thread_id: null, usage, memory: { used: memory.used, refs: memory.refs } });
+    // HONEST DEGRADATION SIGNAL. provider === "none" means the gateway exhausted its retries and
+    // the reply is the graceful fallback text — NOT an answer. It used to ship as a plain 200
+    // identical to a real answer, so uptime monitors saw a healthy endpoint while every user was
+    // getting "I'm having trouble connecting". `degraded: true` + a 503-style header lets clients
+    // badge it and monitors alert on it, without breaking the chat UI (body shape unchanged).
+    const degraded = provider === "none";
+    if (degraded) c.header("X-Mondaily-Degraded", "ai-gateway");
+    return c.json({ reply, suggestions, sources: dedupedSources, thread_id: null, usage, degraded, memory: { used: memory.used, refs: memory.refs } });
   } catch (err: any) {
     console.error("[ask] unexpected error:", err?.message ?? err);
     return c.json({ reply: "I ran into an unexpected issue. Please try again.", suggestions: [], sources: [], thread_id: null });
