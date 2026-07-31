@@ -931,6 +931,42 @@ router.get("/settings/security", async (c) => {
     sessions,
   });
 });
+/**
+ * GET /settings/export — full workspace data export (admin-only, READ-ONLY, sovereignty).
+ * Returns one JSON bundle of the workspace's own data: records, tasks, decisions, goals,
+ * activities. Everything is workspace-scoped; per-table caps are DISCLOSED via truncated flags —
+ * an export never silently pretends to be complete. Messages/attachments are excluded here
+ * (they carry other members' DMs and signed-URL material) — noted in the manifest.
+ */
+router.get("/settings/export", async (c) => {
+  // GETs bypass the settings write-gate above, so this read is gated explicitly — an export IS
+  // the whole workspace, not a settings read.
+  if (!isWorkspaceAdmin(c.get("role"))) return c.json({ error: "Forbidden — owner or admin role required." }, 403);
+  const ws = c.get("workspaceId");
+  const CAP = 20000;
+  const grab = async (table: string, cols: string, order = "created_at") => {
+    const { data, error } = await supabase.from(table).select(cols).eq("workspace_id", ws).order(order, { ascending: false }).limit(CAP);
+    return { rows: data ?? [], truncated: (data?.length ?? 0) >= CAP, error: error ? "unavailable" : null };
+  };
+  const [nodes, tasks, decisions, goals, activities] = await Promise.all([
+    grab("nodes", "id, object_type, data, created_by, created_at, updated_at"),
+    grab("tasks", "id, title, description, assignee_id, due_date, completed, completed_at, created_at"),
+    grab("decision_queue", "id, title, summary, status, risk_level, resolved_by, resolved_at, created_at"),
+    grab("workspace_goals", "id, scope, target_user_id, metric, target_value, window_days, label, active, created_at"),
+    grab("activities", "id, actor_id, actor_type, action, node_id, created_at"),
+  ]);
+  return c.json({
+    manifest: {
+      workspace_id: ws,
+      exported_at: new Date().toISOString(),
+      per_table_cap: CAP,
+      excluded: ["internal_messages (other members' DMs)", "attachments (signed-URL material)", "auth tables (credential material)"],
+      tables: Object.fromEntries(Object.entries({ nodes, tasks, decisions, goals, activities }).map(([k, v]) => [k, { count: v.rows.length, truncated: v.truncated, error: v.error }])),
+    },
+    nodes: nodes.rows, tasks: tasks.rows, decisions: decisions.rows, goals: goals.rows, activities: activities.rows,
+  });
+});
+
 router.patch("/settings/security", async (c) => {
   const updates = await c.req.json<Record<string, unknown>>();
   await mergeWorkspaceSettings(c.get("workspaceId"), updates);

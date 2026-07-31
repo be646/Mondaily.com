@@ -202,3 +202,23 @@ describe("AI formula builder — proposes and PROVES, never saves", () => {
     expect(rt).toContain("nothing saves until you click Add");
   });
 });
+
+describe("workspace data export — admin-gated, workspace-scoped, honestly capped", () => {
+  it("the endpoint gates on admin, scopes every table to the workspace, and discloses caps + exclusions", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const a = readFileSync(join(__dirname, "../routes/app-data.ts"), "utf8");
+    const ex = a.slice(a.indexOf('router.get("/settings/export"'));
+    expect(ex).toContain("isWorkspaceAdmin(c.get(\"role\"))");
+    expect(ex).toMatch(/eq\("workspace_id", ws\)/);
+    expect(ex).toMatch(/truncated/);
+    expect(ex).toContain("internal_messages (other members' DMs)");
+    expect(ex).toContain("auth tables (credential material)");
+  });
+  it("no duplicate session routes were left in auth.ts (settings/security owns sessions)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const auth = readFileSync(join(__dirname, "../routes/auth.ts"), "utf8");
+    expect(auth).not.toContain('router.get("/sessions"');
+  });
+});

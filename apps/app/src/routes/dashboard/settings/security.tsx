@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, Download, LockKeyhole, Plus, Shield, Smartphone, X } from "lucide-react";
+import { Check, Copy, Download, LockKeyhole, Plus, Shield, Smartphone, X, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { apiClient } from "../../../lib/api-client";
 import { EmptyState, PageSkeleton } from "../../../components/ui/page-state";
@@ -58,6 +58,7 @@ export function SecuritySettings() {
   const [data, setData] = useState<SecurityData>({ saml_enabled: false, export_restricted: false, protected_recipients: [], sessions: [] });
   const [domain, setDomain] = useState("");
   const [copied, setCopied] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (query.data) setData({ ...query.data, access_controls: query.data.access_controls ?? defaultControls });
@@ -322,6 +323,38 @@ export function SecuritySettings() {
             <EmptyState icon={Shield} title="No audit events" description="Administrative actions will appear here." />
           </div>
         )}
+      </section>
+
+      {/* ── Workspace data export — sovereignty: your data leaves whenever YOU say so ── */}
+      <section className="settings-section">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Export workspace data</h2>
+            <p className="mt-1 max-w-xl text-[12px]" style={{ color: "var(--text-muted)" }}>
+              One JSON bundle of this workspace's records, tasks, decisions, goals and activity log — with a manifest
+              that discloses per-table caps and exclusions (DMs, attachments, credentials are never included).
+              Owner/admin only.
+            </p>
+          </div>
+          <button
+            onClick={async () => {
+              setExporting(true);
+              try {
+                const bundle = await apiClient.get<Record<string, unknown>>("/settings/export");
+                const url = URL.createObjectURL(new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" }));
+                const a = document.createElement("a");
+                a.href = url; a.download = `mondaily-export-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+                URL.revokeObjectURL(url);
+              } catch { setCopied("export-failed"); setTimeout(() => setCopied(""), 3000); }
+              finally { setExporting(false); }
+            }}
+            disabled={exporting}
+            className="btn-secondary h-8 shrink-0 gap-1.5 px-3 text-[12px] font-medium"
+          >
+            {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} {exporting ? "Preparing…" : "Download JSON"}
+          </button>
+        </div>
+        {copied === "export-failed" && <p className="mt-2 text-[11px]" style={{ color: "var(--status-error)" }}>Export failed — owner/admin role is required.</p>}
       </section>
     </div>
   );
