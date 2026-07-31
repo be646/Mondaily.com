@@ -106,7 +106,11 @@ function CreateRecordModal({
     const fromSchema = def?.attributes?.length
       ? ["name", ...def.attributes.map(a => norm(a.name)).filter(k => k !== "name")]
       : [];
-    const merged = [...new Set([...fromSchema, ...tableColumns])];
+    // Agent-written structured fields (object values, e.g. pipeline_health) are not hand-entered —
+    // they rendered as an "[object Object]" pill here.
+    const objectValued = new Set<string>();
+    for (const r of existingRows) for (const [k, v] of Object.entries(r.data)) if (v && typeof v === "object") objectValued.add(k);
+    const merged = [...new Set([...fromSchema, ...tableColumns])].filter(k => !objectValued.has(k));
     if (merged.length) return merged;
     const t = objectType.toLowerCase();
     if (t === "companies") return ["name","description","arr","funding_raised","employee_range","country"];
@@ -114,7 +118,7 @@ function CreateRecordModal({
     if (t === "deals")     return ["name","deal_stage","deal_value","deal_owner"];
     if (t.includes("employee") || t.includes("staff")) return ["name","email","role","department"];
     return ["name","email"];
-  }, [schemaQuery.data, objectType, tableColumns]);
+  }, [schemaQuery.data, objectType, tableColumns, existingRows]);
   const [tab, setTab] = useState<"manual"|"ai">("manual");
 
   // Read colMeta (defaults + required) from localStorage — same key as RecordTable
