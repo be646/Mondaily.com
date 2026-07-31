@@ -159,6 +159,9 @@ export function AIControlRoomSettings() {
           use, so it can't drift from real behavior. */}
       <ProdReadinessSection />
 
+      {/* Inference infrastructure — sovereign vLLM engine status, measured handshake, shadow verdicts. */}
+      <InferenceInfraSection />
+
       {/* Workspace memory (shadow) — Phase 2A. Default OFF. Turning it on ONLY unlocks this debug
           view; recall is NOT wired into Ask/agents, so no answer changes. Admin-only surface. */}
       <MemoryShadowSection />
@@ -393,6 +396,83 @@ function MemoryShadowSection() {
           )}
         </div>
       )}
+    </Section>
+  );
+}
+
+
+// ── Inference infrastructure — sovereign vLLM status + measured handshake + shadow verdicts ─────
+interface VllmProbe { configured: boolean; ok: boolean; host: string | null; models_ms: number | null; served_models: string[]; model_served: boolean | null; ttft_ms: number | null; error: string | null }
+interface ShadowAgg { enabled: boolean; reason?: string; total_runs?: number; classes?: { task_class: string; runs: number; error_rate_pct: number; avg_primary_ms: number | null; avg_shadow_ms: number | null; avg_similarity_pct: number | null }[] }
+function InferenceInfraSection() {
+  const readiness = useQuery<{ fields?: { inference_mode?: string; sovereign_vllm_configured?: boolean } }>({ queryKey: ["admin-readiness"], queryFn: () => apiClient.get("/admin/readiness"), retry: false, staleTime: 60_000 });
+  const shadow = useQuery<ShadowAgg>({ queryKey: ["inference-shadow"], queryFn: () => apiClient.get("/admin/readiness/inference-shadow"), retry: false, staleTime: 60_000 });
+  const [probe, setProbe] = useState<VllmProbe | null>(null);
+  const [probing, setProbing] = useState(false);
+  const mode = readiness.data?.fields?.inference_mode ?? "gateway";
+  const configured = readiness.data?.fields?.sovereign_vllm_configured ?? false;
+  if (readiness.isError) return null;   // non-admin — no fake panel
+  return (
+    <Section title="Inference infrastructure" hint="Which engine serves the AI gateway. Sovereign vLLM fails closed — it never silently falls back across the sovereignty boundary. Everything shown is measured, never assumed.">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 font-mono text-[11px]" style={{ color: "var(--text-secondary)" }}>
+          <span>mode: <span style={{ color: "var(--text-primary)" }}>{mode}</span></span>
+          <span>vllm: <span style={{ color: configured ? "var(--status-ok)" : "var(--text-faint)" }}>{configured ? "configured" : "not configured"}</span></span>
+          {mode === "gateway" && configured && <span style={{ color: "var(--text-faint)" }}>shadow-eval eligible</span>}
+          <button
+            onClick={async () => { setProbing(true); try { setProbe(await apiClient.post<VllmProbe>("/admin/readiness/vllm-test", {})); } catch { setProbe(null); } finally { setProbing(false); } }}
+            disabled={probing}
+            className="btn-secondary h-7 gap-1.5 px-2.5 font-mono text-[11px]">
+            {probing ? <Loader2 size={11} className="animate-spin" /> : null} {probing ? "measuring…" : "test handshake"}
+          </button>
+        </div>
+        {probe && (
+          <div className="rounded-md border px-3 py-2 font-mono text-[11px]" style={{ borderColor: "var(--border-soft)", color: "var(--text-secondary)" }}>
+            {probe.ok ? (
+              <>
+                <div style={{ color: "var(--status-ok)" }}>handshake ok · {probe.host}</div>
+                <div>models rt: {probe.models_ms}ms · 1-token completion: {probe.ttft_ms}ms</div>
+                <div>served: {probe.served_models.join(", ") || "—"}{probe.model_served === false ? <span style={{ color: "var(--status-warn)" }}>  · configured model NOT in served list</span> : null}</div>
+                <div className="mt-1" style={{ color: "var(--text-faint)" }}>measured values only — engine internals (e.g. PagedAttention state) are not reported by vLLM and are not shown.</div>
+              </>
+            ) : (
+              <div style={{ color: "var(--status-warn)" }}>handshake failed{probe.host ? ` · ${probe.host}` : ""} — {probe.error ?? "unreachable"}</div>
+            )}
+          </div>
+        )}
+        <div>
+          <p className="mb-1 text-[10px] font-semibold" style={{ color: "var(--text-faint)" }}>Shadow evaluation — per task class</p>
+          {!shadow.data ? <Loading /> : !shadow.data.enabled ? (
+            <p className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+              {shadow.data.reason === "migration_not_applied" ? "Shadow ledger table isn't migrated yet." : "Shadow evaluation is off."} It activates when the vLLM env vars and SOVEREIGN_VLLM_SHADOW_PCT are set — a sampled slice of real traffic is mirrored and compared (metadata only, never prompts, never credits).
+            </p>
+          ) : (shadow.data.total_runs ?? 0) === 0 ? (
+            <p className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>No shadow runs yet — set SOVEREIGN_VLLM_SHADOW_PCT &gt; 0 to start mirroring. Nothing is simulated.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full font-mono text-[11px]">
+                <thead><tr style={{ color: "var(--text-faint)" }}>
+                  <th className="pb-1 text-left font-medium">class</th><th className="pb-1 text-right font-medium">runs</th><th className="pb-1 text-right font-medium">err%</th>
+                  <th className="pb-1 text-right font-medium">primary ms</th><th className="pb-1 text-right font-medium">shadow ms</th><th className="pb-1 text-right font-medium">similarity</th>
+                </tr></thead>
+                <tbody className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+                  {shadow.data.classes?.map(cl => (
+                    <tr key={cl.task_class} style={{ color: "var(--text-secondary)", borderColor: "var(--border-soft)" }}>
+                      <td className="py-1">{cl.task_class}</td>
+                      <td className="py-1 text-right tabular-nums">{cl.runs}</td>
+                      <td className="py-1 text-right tabular-nums" style={{ color: cl.error_rate_pct > 5 ? "var(--status-warn)" : undefined }}>{cl.error_rate_pct}%</td>
+                      <td className="py-1 text-right tabular-nums">{cl.avg_primary_ms ?? "—"}</td>
+                      <td className="py-1 text-right tabular-nums">{cl.avg_shadow_ms ?? "—"}</td>
+                      <td className="py-1 text-right tabular-nums" style={{ color: (cl.avg_similarity_pct ?? 0) >= 70 ? "var(--status-ok)" : undefined }}>{cl.avg_similarity_pct != null ? `${cl.avg_similarity_pct}%` : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-1.5 text-[10px]" style={{ color: "var(--text-faint)" }}>Similarity is a word-overlap heuristic over discarded in-memory outputs — a screening signal, not a quality verdict. Promotion to sovereign mode is a deliberate env change, never automatic.</p>
+            </div>
+          )}
+        </div>
+      </div>
     </Section>
   );
 }

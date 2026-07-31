@@ -292,3 +292,17 @@ describe("shadow evaluation — off by default, metadata-only, never user-visibl
     expect(rd).toContain('reason: "migration_not_applied"');
   });
 });
+
+describe("Control Room inference panel — measured-only display, no fake states", () => {
+  it("hides for non-admins, discloses the heuristic, and never renders invented engine internals", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const cr = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/settings/ai-control-room.tsx"), "utf8");
+    expect(cr).toContain("if (readiness.isError) return null;   // non-admin — no fake panel");
+    expect(cr).toContain("are not reported by vLLM and are not shown");
+    expect(cr).toContain("a screening signal, not a quality verdict");
+    expect(cr).toContain("never automatic");
+    expect(cr).not.toMatch(/PAGED_ATTENTION: ACTIVE/);
+    expect(cr).toContain("Nothing is simulated.");
+  });
+});
