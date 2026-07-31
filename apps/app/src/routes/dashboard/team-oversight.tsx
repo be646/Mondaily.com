@@ -7,6 +7,7 @@ import { requestCall } from "../../lib/call-bus";
 import { FieldSelect, CommandPageHeader, MetricGrid, DossierSection, ActionMenu } from "../../components/ui/controls";
 import { ErrorState } from "../../components/ui/page-state";
 import { SuggestionHints } from "../../components/ui/ai-button";
+import { compareWindows } from "@mondaily/shared/baseline";
 import { PeriodSelector } from "../../components/ui/period-selector";
 import { usePeriod, type Period } from "../../lib/period";
 
@@ -345,20 +346,14 @@ function OversightAsk() {
 
 // A small up/down/flat trend chip from two real counts (this window vs. the previous equal window).
 function Trend({ now, prev }: { now: number; prev: number }) {
-  if (prev === 0 && now === 0) return <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>—</span>;
-  const delta = now - prev;
-  const up = delta > 0, flat = delta === 0;
-  const tone = flat ? "var(--text-faint)" : up ? "var(--status-ok)" : "var(--status-error)";
-  // HONEST-DELTA rule (2026-07-30): a percentage against a tiny baseline is real math but a
-  // misleading read ("↑473%" off 3 events). Below MIN_BASE previous events we show the raw
-  // counts ("12 vs 3") — or "new" when there is no baseline at all — never a percentage.
-  const MIN_BASE = 5;
-  const label = prev === 0 ? "new"
-    : prev < MIN_BASE ? `${now} vs ${prev}`
-    : flat ? "" : `${Math.abs(Math.round((delta / prev) * 100))}%`;
+  // Delegates to THE shared baseline engine — the honesty rules live in @mondaily/shared/baseline
+  // (both-zero dash, "new" at zero baseline, raw counts below MIN_BASE, capped %).
+  const c = compareWindows(now, prev);
+  if (c.kind === "none") return <span className="text-[10px]" style={{ color: "var(--text-faint)" }}>—</span>;
+  const tone = c.direction === 0 ? "var(--text-faint)" : c.direction > 0 ? "var(--status-ok)" : "var(--status-error)";
   return (
-    <span className="inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums" style={{ color: tone }} title={`${now} this period vs ${prev} previous`}>
-      {flat ? "→" : up ? "↑" : "↓"}{label}
+    <span className="inline-flex items-center gap-0.5 text-[10px] font-medium tabular-nums" style={{ color: tone }} title={c.detail}>
+      {c.direction === 0 ? "→" : c.direction > 0 ? "↑" : "↓"}{c.label}
     </span>
   );
 }

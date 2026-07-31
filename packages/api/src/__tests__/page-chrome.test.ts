@@ -236,13 +236,15 @@ describe("member report (Team Oversight) — real numbers, grounded AI, safe ema
 });
 
 describe("honest deltas — no percentage against a tiny baseline (Team Oversight)", () => {
-  it("Trend shows 'new' at zero baseline and raw counts below MIN_BASE, never a huge %", () => {
+  it("Trend + the finance memo delegate to the shared baseline engine (re-pointed same-day)", () => {
+    // The honesty rules moved INTO @mondaily/shared/baseline (executed tests in
+    // baseline-engine.test.ts); surfaces must consume it, not re-derive.
     const t = app("routes/dashboard/team-oversight.tsx");
-    const trend = t.slice(t.indexOf("function Trend("), t.indexOf("function teamHealth"));
-    expect(trend).toContain("const MIN_BASE = 5");
-    expect(trend).toMatch(/prev === 0 \? "new"/);
-    expect(trend).toMatch(/prev < MIN_BASE \? `\$\{now\} vs \$\{prev\}`/);
-    // the tooltip keeps the raw comparison in every case
-    expect(trend).toMatch(/title=\{`\$\{now\} this period vs \$\{prev\} previous`\}/);
+    expect(t).toMatch(/compareWindows\(now, prev\)/);
+    expect(t).toMatch(/title=\{c\.detail\}/);
+    const fr = app("routes/dashboard/finance/reports.tsx");
+    expect(fr).toMatch(/compareWindows\(/);
+    expect(fr).toMatch(/First collections this month/);       // "new" branch is honest words, not a %
+    expect(fr).toMatch(/baseline too small for a %/);         // "raw" branch discloses itself
   });
 });

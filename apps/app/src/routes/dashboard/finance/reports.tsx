@@ -5,6 +5,7 @@ import { useAskContextStore } from "../../../lib/ask-context-store";
 import { useCurrency, formatMoney } from "../../../hooks/useCurrency";
 import { FieldSelect } from "../../../components/ui/controls";
 import { PeriodSelector } from "../../../components/ui/period-selector";
+import { compareWindows } from "@mondaily/shared/baseline";
 import { KPIGrid, KPITile } from "../../../components/ui/kpi";
 import { FinanceHeader } from "../../../components/finance/finance-toolbar";
 import { usePeriod, periodRange, previousRange, inRange, deltaPct, periodLabel, type DateRange, type CustomRange } from "../../../lib/period";
@@ -92,6 +93,8 @@ const REASON_LABELS: Record<string, string> = {
 // Period-over-period delta pill. `goodUp` flips the colour for cost-type metrics (where a
 // rise is bad). Neutral grey when there's no comparable prior period.
 function Delta({ pct, goodUp = true }: { pct: number | null; goodUp?: boolean }) {
+  // pct arrives pre-computed from real window sums; the >999 display cap matches the shared
+  // baseline engine's maxPct so every surface caps identically.
   if (pct == null) return null;
   const positive = pct >= 0;
   const good = positive === goodUp;
@@ -224,11 +227,16 @@ export function FinanceReportsPage() {
   const coldQuotes = quotes.filter(q => q.status === "sent" && (Date.now() - Date.parse(q.created_at)) > COLD_DAYS * 86_400_000);
   // Cash trend on the SAME paid-date basis as the KPI cards (revenue actually collected this
   // calendar month vs last), so the digest never contradicts the Revenue delta above it.
-  const cashDelta = deltaPct(revenueIn(periodRange("month")), (() => { const p = previousRange("month"); return p ? revenueIn(p) : 0; })());
+  const cashCmp = compareWindows(Math.round(revenueIn(periodRange("month"))), Math.round((() => { const p = previousRange("month"); return p ? revenueIn(p) : 0; })()), { minBase: 100 });
   const digestSignals = [
     overdueInvoices.length > 0 ? { tone: "#d1524a", text: `${overdueInvoices.length} invoice${overdueInvoices.length === 1 ? "" : "s"} overdue`, sub: fmt(overdueTotal, currency), to: "/finance/invoices" } : null,
     coldQuotes.length > 0 ? { tone: "#c6892e", text: `${coldQuotes.length} quote${coldQuotes.length === 1 ? "" : "s"} gone cold`, sub: `sent > ${COLD_DAYS}d ago`, to: "/finance/quotes" } : null,
-    cashDelta != null ? { tone: cashDelta >= 0 ? "#2f9e6b" : "#c6892e", text: `Cash ${cashDelta >= 0 ? "up" : "down"} ${Math.abs(cashDelta)}% MoM`, sub: "vs same point last month", to: undefined } : null,
+    // Honest memo line via the baseline engine: a % only against a real baseline; otherwise the
+    // truthful words ("first collections this month" / raw comparison), never a wild MoM figure.
+    cashCmp.kind === "pct" ? { tone: cashCmp.direction >= 0 ? "#2f9e6b" : "#c6892e", text: `Cash ${cashCmp.direction >= 0 ? "up" : "down"} ${cashCmp.label} MoM`, sub: "vs same point last month", to: undefined }
+      : cashCmp.kind === "new" ? { tone: "#2f9e6b", text: "First collections this month", sub: "no baseline last month", to: undefined }
+      : cashCmp.kind === "raw" ? { tone: cashCmp.direction >= 0 ? "#2f9e6b" : "#c6892e", text: `Cash ${cashCmp.now.toLocaleString()} vs ${cashCmp.prev.toLocaleString()} last month`, sub: "baseline too small for a %", to: undefined }
+      : null,
   ].filter(Boolean) as { tone: string; text: string; sub: string; to?: string }[];
 
   return (
