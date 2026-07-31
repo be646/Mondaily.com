@@ -217,7 +217,7 @@ router.get("/readiness/inference-shadow", async (c) => {
   const q = await supabase.from("inference_shadow_runs")
     .select("task_class, shadow_ok, primary_latency_ms, shadow_latency_ms, similarity_pct, primary_tokens, shadow_tokens, created_at")
     .eq("workspace_id", ws).order("created_at", { ascending: false }).limit(2000);
-  if (q.error && (q.error.code === "42P01" || /does not exist/i.test(q.error.message ?? ""))) {
+  if (q.error && (q.error.code === "42P01" || q.error.code === "PGRST205" || /does not exist|could not find the table/i.test(q.error.message ?? ""))) {
     return c.json({ enabled: false, reason: "migration_not_applied" });
   }
   const rows = q.data ?? [];

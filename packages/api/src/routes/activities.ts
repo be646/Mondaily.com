@@ -913,7 +913,7 @@ router.get("/brain", requireAuth, requireAdminRole, async (c) => {
   const ws = c.get("workspaceId");
   const runQ = await supabase.from("brain_runs").select("id, mode, started_at, finished_at, status, signals_count, proof, error")
     .eq("workspace_id", ws).order("started_at", { ascending: false }).limit(1).maybeSingle();
-  if (runQ.error && (runQ.error.code === "42P01" || /does not exist/i.test(runQ.error.message ?? ""))) {
+  if (runQ.error && (runQ.error.code === "42P01" || runQ.error.code === "PGRST205" || /does not exist|could not find the table/i.test(runQ.error.message ?? ""))) {
     return c.json({ enabled: false, reason: "migration_not_applied" });
   }
   const run = runQ.data;

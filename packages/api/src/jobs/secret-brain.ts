@@ -16,7 +16,7 @@ import { dealStage, dealValue, isOpen as stageIsOpen } from "../lib/money";
  */
 
 const TABLE_MISSING = (e: { code?: string; message?: string } | null) =>
-  !!e && (e.code === "42P01" || /does not exist/i.test(e.message ?? ""));
+  !!e && (e.code === "42P01" || e.code === "PGRST205" || /does not exist|could not find the table/i.test(e.message ?? ""));
 
 interface Signal { kind: string; severity: "info" | "watch" | "risk"; title: string; detail: string; evidence: Record<string, unknown> }
 
