@@ -118,9 +118,16 @@ export async function runSecretBrain(now: Date = new Date()): Promise<{ enabled:
         const advisor = !!(wsRow?.settings as { brain_advisor?: boolean } | null)?.brain_advisor;
         if (advisor && signals.length > 0) {
           const keyOf = (sg: Signal) => `brain:${sg.kind}:${String((sg.evidence.node_id ?? sg.evidence.assignee_id ?? sg.evidence.count ?? "team"))}`;
-          const { data: existing } = await supabase.from("decision_queue").select("source_id")
-            .eq("workspace_id", ws).eq("source_type", "brain_signal").in("status", ["pending", "snoozed"]).limit(500);
-          const seen = new Set((existing ?? []).map(e => String(e.source_id)));
+          // Dedup: anything currently OPEN, plus anything RESOLVED in the last 14 days — a
+          // rejection means "stop proposing this" for two weeks, not "ask me again tomorrow".
+          const since14 = new Date(Date.now() - 14 * 86_400_000).toISOString();
+          const [{ data: open }, { data: recent }] = await Promise.all([
+            supabase.from("decision_queue").select("source_id")
+              .eq("workspace_id", ws).eq("source_type", "brain_signal").in("status", ["pending", "snoozed"]).limit(500),
+            supabase.from("decision_queue").select("source_id")
+              .eq("workspace_id", ws).eq("source_type", "brain_signal").gte("resolved_at", since14).limit(500),
+          ]);
+          const seen = new Set([...(open ?? []), ...(recent ?? [])].map(e => String(e.source_id)));
           const ACTION: Record<string, string> = {
             stalled_deal: "Re-engage this deal — assign an owner follow-up within 2 business days.",
             overdue_pileup: "Rebalance this member's overdue tasks — reassign or re-date the oldest ones.",

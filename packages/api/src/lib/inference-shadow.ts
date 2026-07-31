@@ -48,6 +48,7 @@ export function jaccardPct(a: string, b: string): number {
 export async function maybeShadowMirror(input: ShadowInput): Promise<void> {
   try {
     if (!shadowEnabled()) return;
+    if (!input.primary.text.trim()) return;   // nothing to compare against — skip, don't skew stats
     if (Math.random() * 100 >= shadowPct()) return;
     const cfg = sovereignBackendConfig();
     const base = cfg.baseURL.replace(/\/$/, "");

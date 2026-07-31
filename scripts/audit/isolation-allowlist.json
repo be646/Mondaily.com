@@ -123,16 +123,6 @@
       "reason": "ownership-chain: assertTaskOwnership() binds commentId/attachment/view/activity to the workspace-verified task"
     },
     {
-      "file": "packages/api/src/routes/task-details.ts",
-      "sig": ".from(\"task_views\").select(\"user_id, viewed_at\")",
-      "reason": "ownership-chain: assertTaskOwnership() binds commentId/attachment/view/activity to the workspace-verified task"
-    },
-    {
-      "file": "packages/api/src/routes/task-details.ts",
-      "sig": ".from(\"task_activity\").select(\"*\")",
-      "reason": "ownership-chain: assertTaskOwnership() binds commentId/attachment/view/activity to the workspace-verified task"
-    },
-    {
       "file": "packages/api/src/routes/task-reviews.ts",
       "sig": ".from(\"task_reviews\")",
       "reason": "ownership-chain: reviewId/counts/inserts scoped to the workspace-verified task_id"

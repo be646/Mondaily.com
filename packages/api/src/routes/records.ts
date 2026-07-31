@@ -3,6 +3,7 @@ import { supabase } from "@mondaily/db/client";
 import { Hono } from "hono";
 import { z } from "zod";
 import { requireAuth } from "../middleware/auth";
+import { denyViewerWrites } from "../middleware/rbac";
 import { aiGateway } from "../lib/ai-gateway";
 import { evaluateFormula, formulaFields } from "@mondaily/shared/formula";
 import { loadRates, userDisplayCurrency, workspaceBaseCurrency } from "../lib/currency-store";
@@ -153,7 +154,7 @@ router.get("/sheet-config/:objectType", async (c) => {
   return c.json({ columns: (data?.data as { columns?: unknown[] } | null)?.columns ?? [], exists: !!data });
 });
 
-router.post("/sheet-config/:objectType", async (c) => {
+router.post("/sheet-config/:objectType", denyViewerWrites, async (c) => {
   const ws = c.get("workspaceId");
   const userId = c.get("userId");
   const objectType = c.req.param("objectType");
@@ -184,7 +185,7 @@ router.post("/sheet-config/:objectType", async (c) => {
  *   • the client shows the preview and the user APPROVES before anything is saved
  * Nothing is saved here — this endpoint proposes and proves, it never mutates.
  */
-router.post("/formula-builder", async (c) => {
+router.post("/formula-builder", denyViewerWrites, async (c) => {
   const ws = c.get("workspaceId");
   const body = await c.req.json<{ object_type?: string; description?: string }>().catch(() => ({} as never));
   const objectType = String(body.object_type ?? "").trim();
