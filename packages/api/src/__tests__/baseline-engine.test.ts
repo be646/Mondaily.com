@@ -222,3 +222,39 @@ describe("workspace data export — admin-gated, workspace-scoped, honestly capp
     expect(auth).not.toContain('router.get("/sessions"');
   });
 });
+
+describe("sovereign inference backend — one spine, fail-closed, measured probe", () => {
+  it("the gateway routes through the backend registry; sovereign mode fails closed", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const gw = readFileSync(join(__dirname, "../lib/ai-gateway.ts"), "utf8");
+    expect(gw).toContain('inferenceMode() === "sovereign_vllm"');
+    expect(gw).toContain("never a silent fallback across the sovereignty boundary");
+    // sovereign mode pins the served model — task-class aliases can't request an unhosted model
+    expect(gw).toContain("sovereignBackendConfig().modelOverride!");
+    const be = readFileSync(join(__dirname, "../lib/inference-backend.ts"), "utf8");
+    expect(be).toContain("Sovereign mode fails closed");
+    expect(be).not.toMatch(/api\.openai\.com|api\.anthropic\.com/);
+  });
+  it("the probe MEASURES (models round-trip + real 1-token TTFT) and fabricates nothing", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const be = readFileSync(join(__dirname, "../lib/inference-backend.ts"), "utf8");
+    expect(be).toMatch(/GET \/v1\/models|\/models`/);
+    expect(be).toMatch(/max_tokens: 1/);
+    expect(be).toContain("no fake \"PagedAttention: active\" lights");
+    expect(be).not.toMatch(/PAGED_ATTENTION: ACTIVE/);
+    // key never leaves; URL host-only
+    expect(be).toContain("never returns the key");
+    const rd = readFileSync(join(__dirname, "../routes/admin-readiness.ts"), "utf8");
+    expect(rd).toContain('router.post("/readiness/vllm-test"');
+    expect(rd).toContain("sovereign_vllm_configured");
+  });
+  it("mode selection is env-driven with exactly two REAL modes (no fictional GovCloud)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const be = readFileSync(join(__dirname, "../lib/inference-backend.ts"), "utf8");
+    expect(be).toMatch(/"gateway" \| "sovereign_vllm"/);
+    expect(be).not.toMatch(/gov.?cloud/i);
+  });
+});

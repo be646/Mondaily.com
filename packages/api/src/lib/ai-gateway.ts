@@ -29,7 +29,13 @@
 import OpenAI from "openai";
 import { recordAiUsage } from "./ai-usage";
 import { assertCreditsOk, CreditsExhaustedError } from "./credits";
-import { modelForClass, backendLabel, type TaskClass } from "./ai-router";
+import { modelForClass, backendLabel as routerBackendLabel, type TaskClass } from "./ai-router";
+import { inferenceMode, sovereignBackendConfig } from "./inference-backend";
+
+/** Observability label for the ACTIVE backend — "sovereign-vllm" when the local engine serves. */
+function backendLabel(): string {
+  return inferenceMode() === "sovereign_vllm" ? "sovereign-vllm" : routerBackendLabel();
+}
 
 /**
  * Derive a cache status from the completion's usage, when the backend exposes prompt caching.
@@ -107,6 +113,11 @@ type ResolvedModel = { type: "openai-compat"; modelId: string };
 export const DEFAULT_MODEL_SPEC = "openai-compat/gpt-oss-120b";
 
 function resolveModel(spec?: string): ResolvedModel {
+  // Sovereign mode serves ONE declared model — the engine's served id overrides every spec so a
+  // task-class alias can never request a model the local engine doesn't host.
+  if (inferenceMode() === "sovereign_vllm") {
+    return { type: "openai-compat", modelId: sovereignBackendConfig().modelOverride! };
+  }
   const s = spec ?? process.env.AI_PROVIDER_MODEL ?? DEFAULT_MODEL_SPEC;
   const modelId = s.startsWith("openai-compat/") ? s.slice("openai-compat/".length) : s;
   return { type: "openai-compat", modelId: modelId || "gpt-oss-120b" };
@@ -208,6 +219,12 @@ export function gatewayEnv(): { baseURL?: string; apiKey?: string } {
 }
 
 function openAIClient(): OpenAI {
+  // Backend registry: sovereign vLLM mode routes to the self-hosted engine and FAILS CLOSED when
+  // it's unconfigured/unreachable — never a silent fallback across the sovereignty boundary.
+  if (inferenceMode() === "sovereign_vllm") {
+    const cfg = sovereignBackendConfig();   // throws honestly when unconfigured
+    return new OpenAI({ baseURL: cfg.baseURL, apiKey: cfg.apiKey, timeout: 22000, maxRetries: 1 });
+  }
   const { baseURL, apiKey } = gatewayEnv();
 
   // Sovereignty guard: never silently fall back to api.openai.com. If the

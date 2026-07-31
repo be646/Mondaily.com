@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth";
 import { requireAdminRole } from "../middleware/rbac";
 import { liveKitEnabled, recordingEnabled, transcriptionEnabled, livekitSelfTest } from "../lib/livekit";
 import { isEmbeddingsEnabled } from "../lib/embeddings";
+import { inferenceMode, sovereignVllmConfigured, sovereignVllmProbe } from "../lib/inference-backend";
 import { sendTransactionalEmail, sovereignRelayStatus, recordingsStorageUsage } from "../lib/mail";
 import { RECORDINGS_BUCKET } from "../jobs/meeting-memory";
 
@@ -53,6 +54,8 @@ router.get("/readiness", async (c) => {
   const search_configured = has("SOVEREIGN_SEARCH_URL");
   const scrape_configured = has("SOVEREIGN_SCRAPE_URL");
   const embeddings_configured = isEmbeddingsEnabled();
+  const inference_mode = inferenceMode();
+  const sovereign_vllm_configured = sovereignVllmConfigured();
   const cron_configured = has("CRON_SECRET");
   const auth_secret_configured = has("AUTH_JWT_SECRET");
 
@@ -96,7 +99,12 @@ router.get("/readiness", async (c) => {
     // is confirmed by the readiness smoke test (env presence is the honest thing this endpoint checks).
     realtime: supabase_realtime_token_configured ? "ready" : "missing",
     search: search_configured && scrape_configured ? "ready" : (search_configured || scrape_configured ? "partial" : "missing"),
-    private_inference: embeddings_configured ? "ready" : "missing",
+    // Sovereign vLLM: selected+configured → ready (reachability via the POST self-test, like
+    // LiveKit); selected but unconfigured → partial (the gateway is FAILING CLOSED right now);
+    // not selected → embeddings-only status as before.
+    private_inference: inference_mode === "sovereign_vllm"
+      ? (sovereign_vllm_configured ? "ready" : "partial")
+      : embeddings_configured ? "ready" : "missing",
   };
 
   return c.json({
@@ -130,6 +138,8 @@ router.get("/readiness", async (c) => {
       search_configured,
       scrape_configured,
       embeddings_configured,
+      inference_mode,
+      sovereign_vllm_configured,
       cron_configured,
       auth_secret_configured,
     },
@@ -183,6 +193,17 @@ router.post("/readiness/mail-test", async (c) => {
  */
 router.post("/readiness/livekit-test", async (c) => {
   const r = await livekitSelfTest();
+  return c.json(r);
+});
+
+/**
+ * POST /api/v1/admin/readiness/vllm-test — MEASURED handshake against the sovereign vLLM engine.
+ * Reports served models, GET /models round-trip, and a real 1-token TTFT. Booleans + measurements
+ * only — never the key; URL host-only. No fabricated engine internals (vLLM does not report
+ * PagedAttention state per request, so we do not display one).
+ */
+router.post("/readiness/vllm-test", async (c) => {
+  const r = await sovereignVllmProbe();
   return c.json(r);
 });
 
