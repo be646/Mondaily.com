@@ -676,9 +676,6 @@ export function TeamOversightPage() {
         primaryAction={<PeriodSelector value={period} onChange={setPeriod} />}
       />
 
-      {/* ── Slim AI ask bar, pinned right under the header ── */}
-      {operators.length > 0 && <OversightAsk />}
-
       {/* ── ZONE 1 · Team Health hero — one synthesized read + inputs + evaluation distribution ── */}
       {operators.length > 0 && <div className="mt-3"><TeamHealthHero operators={operators} adv={advancedQ.data} /></div>}
 
@@ -697,10 +694,12 @@ export function TeamOversightPage() {
       {advancedQ.data && operators.length > 0 && <VelocityStrip adv={advancedQ.data} />}
       {operators.length > 1 && <WorkloadAttention operators={operators} onSelect={select} />}
       {advancedQ.data && operators.length > 1 && <CollaborationGraph edges={advancedQ.data.collaboration} operators={operators} onSelect={select} />}
-      {operators.length > 0 && <GoalsPanel operators={operators} />}
 
       {/* ── Team distributions — only meaningful with 2+ members (hidden for a solo workspace) ── */}
       {operators.length > 1 && <TeamCharts operators={operators} onSelect={select} windowLabel={`${days}d`} />}
+
+      {/* ── Ask — after every KPI zone, before the roster (user-ordered 2026-07-30) ── */}
+      {operators.length > 0 && <OversightAsk />}
 
       {/* ── Full-width roster table ── */}
       <div className="mb-2 flex items-center justify-between">
@@ -723,6 +722,9 @@ export function TeamOversightPage() {
         <RosterTable operators={operators} selectedId={selectedId} onSelect={select} compareBy={compareBy}
           detailFor={(op) => <MemberDetail op={op} adv={advancedQ.data} />} />
       )}
+
+      {/* ── Goals & targets — below the members roster (user-ordered 2026-07-30) ── */}
+      {operators.length > 0 && <div className="mt-6"><GoalsPanel operators={operators} /></div>}
     </div>
   );
 }
