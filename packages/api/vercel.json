@@ -8,6 +8,7 @@
   ],
   "crons": [
     { "path": "/api/cron/daily", "schedule": "0 6 * * *" },
-    { "path": "/api/cron/monitors", "schedule": "0 */4 * * *" }
+    { "path": "/api/cron/monitors", "schedule": "0 */4 * * *" },
+    { "path": "/api/cron/executive-brief", "schedule": "0 7 1 * *" }
   ]
 }

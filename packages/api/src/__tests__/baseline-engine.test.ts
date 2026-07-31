@@ -37,13 +37,15 @@ describe("business-outcomes engine (source-read guards)", () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
     const a = readFileSync(join(__dirname, "../routes/activities.ts"), "utf8");
+    // Re-pointed same-day: the engine moved into lib/outcomes.ts (shared by route + brief).
     const r = a.slice(a.indexOf('router.get("/outcomes"'));
     expect(r).toContain("requireAuth, requireAdminRole");
-    expect(r).toContain("makeBaseConverter(ws)");
-    expect(r).toMatch(/unconverted/);                          // disclosed, not silently face-valued
-    expect(r).toMatch(/compareWindows\(Math\.round\(teamNow\.won\)/);
+    const lib = readFileSync(join(__dirname, "../lib/outcomes.ts"), "utf8");
+    expect(lib).toContain("makeBaseConverter(ws)");
+    expect(lib).toMatch(/unconverted/);                        // disclosed, not silently face-valued
+    expect(lib).toMatch(/compareWindows\(Math\.round\(teamNow\.won\)/);
     // pipeline is a balance as-of-now, never a windowed flow
-    expect(r).toContain("a BALANCE (as of now), not a windowed flow");
+    expect(lib).toContain("a BALANCE (as of now), not a windowed flow");
   });
   it("Team Oversight windows are calendar-anchored (no rolling 30d) and Sales strip mounts", async () => {
     const { readFileSync } = await import("node:fs");
@@ -53,5 +55,30 @@ describe("business-outcomes engine (source-read guards)", () => {
     expect(t).toMatch(/function calendarDays/);
     expect(t).toMatch(/<SalesStrip period=\{period\} \/>/);
     expect(t).toMatch(/useOutcomes\(period\)/);
+  });
+});
+
+describe("executive brief — autonomous, safe, honest (source-read guards)", () => {
+  it("cron is fail-closed on CRON_SECRET; job resolves recipients server-side and skips quiet workspaces", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const appTs = readFileSync(join(__dirname, "../app.ts"), "utf8");
+    const cron = appTs.slice(appTs.indexOf('app.get("/api/cron/executive-brief"'));
+    expect(cron).toContain("Cron disabled — CRON_SECRET is not configured.");
+    const job = readFileSync(join(__dirname, "../jobs/executive-brief.ts"), "utf8");
+    expect(job).toMatch(/\.in\("role", \["owner", "admin"\]\)/);   // recipients from DB roles only
+    expect(job).toContain("computeOutcomes(ws, monthStart, monthEnd, prevStart, prevEnd)");
+    expect(job).toMatch(/groundingViolations\(candidate, digest\)\.length === 0/);
+    expect(job).toContain("skipped++");                            // honest skip for quiet workspaces
+    expect(job).toContain("could not be currency-converted and are excluded");
+    const vj = readFileSync(join(__dirname, "../../vercel.json"), "utf8");
+    expect(vj).toContain('"/api/cron/executive-brief", "schedule": "0 7 1 * *"');
+  });
+  it("the outcomes route delegates to lib/outcomes (one engine for route, brief, report)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const a = readFileSync(join(__dirname, "../routes/activities.ts"), "utf8");
+    const r = a.slice(a.indexOf('router.get("/outcomes"'), a.indexOf('router.get("/outcomes"') + 900);
+    expect(r).toContain("computeOutcomes(ws, start, end, prevStart, prevEnd)");
   });
 });

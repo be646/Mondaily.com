@@ -4,6 +4,9 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { Link, useNavigate } from "react-router-dom";
 import { EmptyState, PageSkeletonCards, DelayedLoading, ErrorState } from "../../../components/ui/page-state";
 import { CommandPageHeader } from "../../../components/ui/controls";
+import { KPIGrid, KPITile } from "../../../components/ui/kpi";
+import { periodRange, previousRange } from "../../../lib/period";
+import { apiClient as outcomesClient } from "../../../lib/api-client";
 import { apiClient } from "../../../lib/api-client";
 import { useAskContextStore } from "../../../lib/ask-context-store";
 import { useRecordAggregate, aggScopeNotes, topGroup, type AggResp, type AggOp } from "../../../hooks/useRecordAggregate";
@@ -365,6 +368,37 @@ function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) =>
   );
 }
 
+
+/** Sales outcomes strip — the business layer (deal VALUES) from the shared outcomes engine.
+ *  Admin-only endpoint: non-admins get a 403 and the strip simply doesn't render. */
+function SalesOutcomes() {
+  const r = periodRange("month"); const pr = previousRange("month");
+  const qs = new URLSearchParams({ start: r.start.toISOString(), end: r.end.toISOString() });
+  if (pr) { qs.set("prev_start", pr.start.toISOString()); qs.set("prev_end", pr.end.toISOString()); }
+  const q = useQuery<{ base_currency: string; team: { value_won: number; deals_won: number; value_lost: number; deals_lost: number; pipeline_value: number; pipeline_deals: number; win_rate_pct: number | null; avg_deal_size: number | null; deltas: null | { value_won: { kind: string; label: string; direction: number; detail: string } } } }>({
+    queryKey: ["outcomes", "reports-month"],
+    queryFn: () => outcomesClient.get(`/activities/outcomes?${qs}`),
+    staleTime: 60_000, retry: false,
+  });
+  const t = q.data?.team; if (!t) return null;
+  const cur = q.data!.base_currency;
+  const money = (v: number) => `${cur} ${Math.round(v).toLocaleString()}`;
+  const d = t.deltas?.value_won;
+  return (
+    <div className="mb-6">
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Sales · this month</p>
+      <KPIGrid>
+        <KPITile label="Value won" accent value={money(t.value_won)}
+          delta={d && d.label ? <span className="text-[10px] font-semibold tabular-nums" title={d.detail} style={{ color: d.direction >= 0 ? "var(--status-ok)" : "var(--status-error)" }}>{d.direction >= 0 ? "▲" : "▼"} {d.label}</span> : undefined}
+          sub={`${t.deals_won} deal${t.deals_won === 1 ? "" : "s"} won`} />
+        <KPITile label="Value lost" valueColor={t.value_lost > 0 ? "var(--status-error)" : undefined} value={money(t.value_lost)} sub={`${t.deals_lost} lost`} />
+        <KPITile label="Open pipeline" value={money(t.pipeline_value)} sub={`${t.pipeline_deals} open · as of today`} />
+        <KPITile label="Win rate" value={t.win_rate_pct != null ? `${t.win_rate_pct}%` : "—"} sub={t.win_rate_pct != null ? "of closed deals" : "no closed deals yet"} />
+      </KPIGrid>
+    </div>
+  );
+}
+
 export function ReportsPage() {
   const navigate  = useNavigate();
   const qc        = useQueryClient();
@@ -421,6 +455,9 @@ export function ReportsPage() {
         subtitle="Live analytics computed from your records — AI insight where a run exists."
         status={[{ label: "computed from records", kind: "monitoring" }]}
       />
+
+      {/* ── Sales — business outcomes (admins; hidden otherwise) ── */}
+      <SalesOutcomes />
 
       {/* ── Live Reports ── */}
       <section className="mb-10">

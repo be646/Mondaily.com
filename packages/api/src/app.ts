@@ -227,6 +227,20 @@ app.get("/api/cron/monitors", async (c) => {
   return c.json({ ran: true, at: new Date().toISOString(), result, embeddings });
 });
 
+/**
+ * Executive-brief cron — the AUTONOMOUS monthly report (1st of the month, covering the completed
+ * month). Same fail-closed CRON_SECRET auth as the other crons. Manual trigger: ?secret=…
+ */
+app.get("/api/cron/executive-brief", async (c) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return c.json({ error: "Cron disabled — CRON_SECRET is not configured." }, 503);
+  const provided = c.req.header("Authorization") ?? `Bearer ${c.req.query("secret") ?? ""}`;
+  if (provided !== `Bearer ${secret}`) return c.json({ error: "Unauthorized" }, 401);
+  const { runExecutiveBrief } = await import("./jobs/executive-brief");
+  const result = await runExecutiveBrief().catch((e) => ({ error: String(e) }));
+  return c.json({ ran: true, at: new Date().toISOString(), result });
+});
+
 // `commit` surfaces the actually-deployed git SHA (Vercel injects VERCEL_GIT_COMMIT_SHA at build
 // time) so a deploy can be VERIFIED from outside — if this doesn't match the pushed HEAD, the build
 // didn't ship. `null` locally / where the env isn't set.
