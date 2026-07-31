@@ -106,6 +106,41 @@ export async function runSecretBrain(now: Date = new Date()): Promise<{ enabled:
       if (signals.length > 0) {
         await supabase.from("intelligence_signals").insert(signals.map(s => ({ ...s, workspace_id: ws, run_id: run.id })));
       }
+
+      // ── ADVISOR MODE (opt-in per workspace, default OFF) ────────────────────────────────────
+      // When workspaces.settings.brain_advisor === true, each signal becomes an evidence-backed
+      // PROPOSAL in the existing decision queue. Contract: proposals are deduped by a
+      // deterministic source key (no daily re-spam), risk stays advisory (low/medium), and they
+      // are NEVER auto-approved — a human resolves every one. The brain still mutates nothing
+      // itself; the QUEUE is the only place its judgment can become action, behind your click.
+      try {
+        const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+        const advisor = !!(wsRow?.settings as { brain_advisor?: boolean } | null)?.brain_advisor;
+        if (advisor && signals.length > 0) {
+          const keyOf = (sg: Signal) => `brain:${sg.kind}:${String((sg.evidence.node_id ?? sg.evidence.assignee_id ?? sg.evidence.count ?? "team"))}`;
+          const { data: existing } = await supabase.from("decision_queue").select("source_id")
+            .eq("workspace_id", ws).eq("source_type", "brain_signal").in("status", ["pending", "snoozed"]).limit(500);
+          const seen = new Set((existing ?? []).map(e => String(e.source_id)));
+          const ACTION: Record<string, string> = {
+            stalled_deal: "Re-engage this deal — assign an owner follow-up within 2 business days.",
+            overdue_pileup: "Rebalance this member's overdue tasks — reassign or re-date the oldest ones.",
+            aging_decisions: "Review the waiting decisions — the approval loop is the current bottleneck.",
+            pipeline_concentration: "De-risk the forecast — advance or split reliance on the dominant deal.",
+          };
+          for (const sg of signals) {
+            const key = keyOf(sg);
+            if (seen.has(key)) continue;
+            await supabase.from("decision_queue").insert({
+              workspace_id: ws, source_type: "brain_signal", source_id: key, agent_name: "Signal Agent",
+              title: sg.title, summary: sg.detail,
+              recommended_action: ACTION[sg.kind] ?? "Review this signal.",
+              risk_level: sg.severity === "risk" ? "medium" : "low",   // advisory ceiling — never high
+              evidence: [{ type: "brain_signal", title: sg.title, ...sg.evidence, brain_run_id: run.id }],
+            }).then(() => {}, () => {});
+            // deliberately NO maybeAutoApprove — advisor proposals always wait for a human
+          }
+        }
+      } catch { /* advisor is best-effort — a proposal failure never fails the sweep */ }
       await supabase.from("brain_runs").update({
         finished_at: new Date().toISOString(), status: "completed", signals_count: signals.length,
         proof: {

@@ -921,7 +921,25 @@ router.get("/brain", requireAuth, requireAdminRole, async (c) => {
   const { data: signals } = await supabase.from("intelligence_signals")
     .select("id, kind, severity, title, detail, evidence, created_at")
     .eq("workspace_id", ws).eq("run_id", run.id).order("created_at", { ascending: true }).limit(100);
-  return c.json({ enabled: true, run, signals: signals ?? [] });
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const advisor = !!(wsRow?.settings as { brain_advisor?: boolean } | null)?.brain_advisor;
+  return c.json({ enabled: true, advisor, run, signals: signals ?? [] });
+});
+
+/**
+ * POST /activities/brain/mode — toggle ADVISOR mode (admin-only). Advisor ON means future sweeps
+ * write evidence-backed PROPOSALS into the decision queue (deduped, advisory risk, never
+ * auto-approved). It grants the brain a voice, not hands.
+ */
+router.post("/brain/mode", requireAuth, requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const body = await c.req.json<{ advisor?: boolean }>().catch(() => ({} as never));
+  const advisor = body.advisor === true;
+  const { data: wsRow } = await supabase.from("workspaces").select("settings").eq("id", ws).maybeSingle();
+  const merged = { ...((wsRow?.settings as Record<string, unknown>) ?? {}), brain_advisor: advisor };
+  const { error } = await supabase.from("workspaces").update({ settings: merged }).eq("id", ws);
+  if (error) return c.json({ error: "Could not update brain mode." }, 500);
+  return c.json({ ok: true, advisor });
 });
 
 export { router as activitiesRouter };

@@ -88,14 +88,18 @@ describe("Secret Brain — shadow-mode contract (source-read guards)", () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
     const job = readFileSync(join(__dirname, "../jobs/secret-brain.ts"), "utf8");
-    // every insert/update targets brain_runs or intelligence_signals — nothing else
-    const writes = [...job.matchAll(/\.from\("([^"]+)"\)\s*\.\s*(insert|update|upsert|delete)/g)].map(m => m[1]);
+    // Re-pointed 2026-07-31 (advisor mode): writes may target the brain ledger tables AND — only
+    // behind the opt-in advisor toggle — INSERT proposals into decision_queue. Never anything else,
+    // and never an UPDATE/DELETE of decisions (the queue's human resolution stays untouchable).
+    const writes = [...job.matchAll(/\.from\("([^"]+)"\)\s*\.\s*(insert|update|upsert|delete)/g)].map(m => [m[1], m[2]]);
     expect(writes.length).toBeGreaterThan(0);
-    for (const t of writes) expect(["brain_runs", "intelligence_signals"]).toContain(t);
-    // no AI in the detection path, no mail, no decisions
+    for (const [t, op] of writes) {
+      expect(["brain_runs", "intelligence_signals", "decision_queue"]).toContain(t);
+      if (t === "decision_queue") expect(op).toBe("insert");
+    }
+    // no AI in the detection path, no mail
     expect(job).not.toMatch(/aiGateway/);
     expect(job).not.toMatch(/sendTransactionalEmail/);
-    expect(job).not.toMatch(/decision_queue"\)\s*\.\s*(insert|update)/);
     // honest disable when the migration isn't applied
     expect(job).toContain('return { enabled: false');
     // proof-of-work recorded
@@ -304,5 +308,23 @@ describe("Control Room inference panel — measured-only display, no fake states
     expect(cr).toContain("never automatic");
     expect(cr).not.toMatch(/PAGED_ATTENTION: ACTIVE/);
     expect(cr).toContain("Nothing is simulated.");
+  });
+});
+
+describe("Brain advisor mode — opt-in, deduped, advisory risk, never auto-approved", () => {
+  it("proposals require the workspace toggle, dedupe by source key, and skip auto-approval", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const job = readFileSync(join(__dirname, "../jobs/secret-brain.ts"), "utf8");
+    expect(job).toMatch(/brain_advisor/);
+    expect(job).toMatch(/seen\.has\(key\)\) continue;/);                 // dedup — no daily re-spam
+    expect(job).toMatch(/risk_level: sg\.severity === "risk" \? "medium" : "low"/);  // advisory ceiling
+    expect(job).toContain("deliberately NO maybeAutoApprove");
+    expect(job).not.toMatch(/maybeAutoApprove\(/);          // stated in comment, never CALLED
+    expect(job).toContain('source_type: "brain_signal"');
+    const a = readFileSync(join(__dirname, "../routes/activities.ts"), "utf8");
+    const m = a.slice(a.indexOf('router.post("/brain/mode"'));
+    expect(m).toContain("requireAuth, requireAdminRole");
+    expect(a).toContain("a voice, not hands");   // docblock sits above the route slice
   });
 });
