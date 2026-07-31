@@ -31,3 +31,27 @@ describe("compareWindows — the honest-delta contract", () => {
     expect(compareWindows(300, 150, { minBase: 100 }).kind).toBe("pct");
   });
 });
+
+describe("business-outcomes engine (source-read guards)", () => {
+  it("outcomes endpoint: admin-gated, currency-converted with honest unconverted counts, engine deltas", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const a = readFileSync(join(__dirname, "../routes/activities.ts"), "utf8");
+    const r = a.slice(a.indexOf('router.get("/outcomes"'));
+    expect(r).toContain("requireAuth, requireAdminRole");
+    expect(r).toContain("makeBaseConverter(ws)");
+    expect(r).toMatch(/unconverted/);                          // disclosed, not silently face-valued
+    expect(r).toMatch(/compareWindows\(Math\.round\(teamNow\.won\)/);
+    // pipeline is a balance as-of-now, never a windowed flow
+    expect(r).toContain("a BALANCE (as of now), not a windowed flow");
+  });
+  it("Team Oversight windows are calendar-anchored (no rolling 30d) and Sales strip mounts", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const t = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/team-oversight.tsx"), "utf8");
+    expect(t).not.toContain("PERIOD_TO_DAYS");
+    expect(t).toMatch(/function calendarDays/);
+    expect(t).toMatch(/<SalesStrip period=\{period\} \/>/);
+    expect(t).toMatch(/useOutcomes\(period\)/);
+  });
+});

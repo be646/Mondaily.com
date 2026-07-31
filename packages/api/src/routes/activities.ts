@@ -7,6 +7,7 @@ import { aiGateway, aiGatewayToolUse } from "../lib/ai-gateway";
 import { workQuality, aggregateDeals, dailyTrend, evaluationLabel, dealStageClass, avgTaskLeadDays, avgDecisionCycleHours, collaborationEdges, isGoalMetric, goalAttainmentPct, TEAM_ONLY_GOAL_METRICS, type DealNode, type TaskTiming, type DecisionTiming } from "../lib/oversight-metrics";
 import { groundingViolations } from "../lib/grounding";
 import { sendTransactionalEmail } from "../lib/mail";
+import { compareWindows } from "@mondaily/shared/baseline";
 import { pagedNodes as pagedMoneyNodes, closedWonIn, invoiceMetrics, dealOwner as moneyDealOwner, isWon as moneyIsWon, dealStage as moneyDealStage, wonDate as moneyWonDate, dealValue as moneyDealValue } from "../lib/money";
 import { makeBaseConverter } from "../lib/currency-store";
 import { isOverdue } from "@mondaily/shared/dates";
@@ -782,13 +783,14 @@ router.post("/member-report", requireAuth, requireAdminRole, async (c) => {
   const days = Math.min(365, Math.max(1, Math.round(Number(body.days ?? 30))));
   const sinceIso = new Date(Date.now() - days * 86_400_000).toISOString();
 
-  const [{ data: member }, { data: usage }, { data: tasks }, { data: decisions }, { data: deals }, { data: msgs }] = await Promise.all([
+  const [{ data: member }, { data: usage }, { data: tasks }, { data: decisions }, { data: deals }, { data: msgs }, conv] = await Promise.all([
     supabase.from("workspace_members").select("name, email, role").eq("workspace_id", ws).eq("user_id", actorId).maybeSingle(),
     supabase.from("ai_usage").select("total_tokens").eq("workspace_id", ws).eq("user_id", actorId).gte("created_at", sinceIso).limit(100000),
     supabase.from("tasks").select("completed, due_date, completed_at").eq("workspace_id", ws).eq("assignee_id", actorId).limit(5000),
     supabase.from("decision_queue").select("resolved_at").eq("workspace_id", ws).eq("resolved_by", actorId).gte("resolved_at", sinceIso).limit(10000),
     supabase.from("nodes").select("object_type, data, created_by").eq("workspace_id", ws).or("object_type.ilike.%deal%,object_type.ilike.%opportunit%").limit(10000),
     supabase.from("internal_messages").select("created_at").eq("workspace_id", ws).eq("sender_id", actorId).gte("created_at", sinceIso).limit(10000),
+    makeBaseConverter(ws),
   ]);
   if (!member) return c.json({ error: "Member not found in this workspace." }, 404);
 
@@ -798,23 +800,24 @@ router.post("/member-report", requireAuth, requireAdminRole, async (c) => {
     if (row.completed) t.completed += 1;
     else { t.open += 1; if (row.due_date && new Date(String(row.due_date)).getTime() < now) t.overdue += 1; }
   }
-  const dealRoll = { owned: 0, won: 0, lost: 0, open: 0 };
+  const dealRoll = { owned: 0, won: 0, lost: 0, open: 0, value_won: 0, value_lost: 0, pipeline_value: 0 };
   for (const d of deals ?? []) {
     const data = (d.data ?? {}) as Record<string, unknown>;
     const owner = String(data.owner_id ?? data.owner ?? d.created_by ?? "");
     if (owner !== actorId) continue;
     dealRoll.owned += 1;
     const stage = String(data.stage ?? data.status ?? "").toLowerCase();
-    if (stage.includes("won")) dealRoll.won += 1;
-    else if (stage.includes("lost")) dealRoll.lost += 1;
-    else dealRoll.open += 1;
+    const val = conv.toBase(Number(data.value ?? data.amount ?? 0) || 0, (data.currency as string | undefined) ?? null);
+    if (stage.includes("won")) { dealRoll.won += 1; dealRoll.value_won += val; }
+    else if (stage.includes("lost")) { dealRoll.lost += 1; dealRoll.value_lost += val; }
+    else { dealRoll.open += 1; dealRoll.pipeline_value += val; }
   }
   const credits = (usage ?? []).reduce((sum, u) => sum + Number(u.total_tokens ?? 0), 0);
   const decisionsResolved = (decisions ?? []).length;
   const messagesSent = (msgs ?? []).length;
 
   // ── grounded AI paragraph (optional — the report ships without it if the gateway is down) ──
-  const digest = `Member ${member.name ?? member.email} (${member.role}) over the last ${days} days: tasks completed ${t.completed}, open ${t.open}, overdue ${t.overdue}; decisions resolved ${decisionsResolved}; deals owned ${dealRoll.owned} (won ${dealRoll.won}, lost ${dealRoll.lost}, open ${dealRoll.open}); AI credits used ${credits}; internal messages sent ${messagesSent}.`;
+  const digest = `Member ${member.name ?? member.email} (${member.role}) over the last ${days} days: tasks completed ${t.completed}, open ${t.open}, overdue ${t.overdue}; decisions resolved ${decisionsResolved}; deals owned ${dealRoll.owned} (won ${dealRoll.won} worth ${conv.base} ${Math.round(dealRoll.value_won)}, lost ${dealRoll.lost} worth ${conv.base} ${Math.round(dealRoll.value_lost)}, open ${dealRoll.open} pipeline ${conv.base} ${Math.round(dealRoll.pipeline_value)}); AI credits used ${credits}; internal messages sent ${messagesSent}.`;
   let insight: string | null = null;
   try {
     const { text } = await aiGateway({
@@ -856,6 +859,9 @@ router.post("/member-report", requireAuth, requireAdminRole, async (c) => {
       ${bars([{ label: "Won", value: dealRoll.won, color: "#44bb8f" }, { label: "Open", value: dealRoll.open, color: "#8a8a92" }, { label: "Lost", value: dealRoll.lost, color: "#d1524a" }])}
     </div>
     <table role="presentation" style="width:100%;border-collapse:collapse;border-bottom:1px solid #e8e8e4"><tr>
+      ${kpi("Value won", `${conv.base} ${Math.round(dealRoll.value_won).toLocaleString()}`)}${kpi("Value lost", `${conv.base} ${Math.round(dealRoll.value_lost).toLocaleString()}`)}${kpi("Open pipeline", `${conv.base} ${Math.round(dealRoll.pipeline_value).toLocaleString()}`)}
+    </tr></table>
+    <table role="presentation" style="width:100%;border-collapse:collapse;border-bottom:1px solid #e8e8e4"><tr>
       ${kpi("AI credits", credits.toLocaleString(), periodLabel)}${kpi("Messages sent", messagesSent, periodLabel)}
     </tr></table>
     ${insight ? `<div style="padding:16px 24px;border-bottom:1px solid #e8e8e4"><div style="font:600 11px -apple-system,sans-serif;color:#999;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">AI summary</div><p style="font:13px/1.5 -apple-system,sans-serif;color:#333;margin:0">${esc(insight)}</p><p style="font:10px -apple-system,sans-serif;color:#aaa;margin:6px 0 0">Generated from the recorded numbers above — validated, nothing invented.</p></div>` : ""}
@@ -874,6 +880,101 @@ router.post("/member-report", requireAuth, requireAdminRole, async (c) => {
     if (!emailed) return c.json({ ok: false, html, emailed: false, reason: "mail_not_configured_or_send_failed" });
   }
   return c.json({ ok: true, html, emailed, insight_included: insight != null });
+});
+
+/**
+ * GET /activities/outcomes — THE business-outcomes engine (admin-only). Deal VALUE metrics — won,
+ * lost, open pipeline, win rate, avg deal size — for the workspace and per member, over an explicit
+ * calendar window the CLIENT computes with lib/period (so calendar truth lives in one place).
+ * All amounts convert to the workspace base currency via the shared converter; rows whose currency
+ * can't convert are COUNTED and disclosed, never silently face-valued into the totals. Deltas vs
+ * the previous window come from the shared baseline engine — same honesty rules as every surface.
+ * Query: start,end (ISO, required) · prev_start,prev_end (ISO, optional).
+ */
+router.get("/outcomes", requireAuth, requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const start = Date.parse(String(c.req.query("start") ?? ""));
+  const end = Date.parse(String(c.req.query("end") ?? ""));
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return c.json({ error: "start/end (ISO) required" }, 400);
+  const prevStart = Date.parse(String(c.req.query("prev_start") ?? ""));
+  const prevEnd = Date.parse(String(c.req.query("prev_end") ?? ""));
+  const hasPrev = Number.isFinite(prevStart) && Number.isFinite(prevEnd) && prevEnd > prevStart;
+
+  const [{ data: deals }, { base, toBase }] = await Promise.all([
+    supabase.from("nodes").select("id, object_type, data, created_by, created_at, updated_at").eq("workspace_id", ws)
+      .or("object_type.ilike.%deal%,object_type.ilike.%opportunit%").limit(20000),
+    makeBaseConverter(ws),
+  ]);
+
+  type Win = { won: number; won_n: number; lost: number; lost_n: number; unconverted: number; cycles: number[] };
+  const emptyWin = (): Win => ({ won: 0, won_n: 0, lost: 0, lost_n: 0, unconverted: 0, cycles: [] });
+  const inWin = (ms: number, s0: number, e0: number) => ms >= s0 && ms <= e0;
+
+  const teamNow = emptyWin(); const teamPrev = emptyWin();
+  const byMember = new Map<string, Win>();
+  let pipelineValue = 0, pipelineN = 0, pipelineUnconverted = 0;
+  const pipelineByMember = new Map<string, { value: number; n: number }>();
+
+  for (const row of deals ?? []) {
+    const d = (row.data ?? {}) as Record<string, unknown>;
+    const stage = moneyDealStage(d);
+    const owner = moneyDealOwner(d) || String(row.created_by ?? "");
+    const cur = (d.currency as string | undefined) ?? null;
+    const face = moneyDealValue(d);
+    const val = toBase(face, cur);
+    const convertible = !(face > 0 && val === 0 && cur && cur.toUpperCase() !== base);
+
+    if (moneyIsWon(stage) || /lost/i.test(stage)) {
+      const closedAt = Date.parse(moneyWonDate(row as never) || String(row.updated_at ?? row.created_at ?? ""));
+      const target = inWin(closedAt, start, end) ? "now" : hasPrev && inWin(closedAt, prevStart, prevEnd) ? "prev" : null;
+      if (!target) continue;
+      const bucket = target === "now" ? teamNow : teamPrev;
+      const mine = target === "now" && owner ? (byMember.get(owner) ?? (byMember.set(owner, emptyWin()), byMember.get(owner)!)) : null;
+      if (moneyIsWon(stage)) {
+        bucket.won += convertible ? val : 0; bucket.won_n += 1;
+        if (!convertible) bucket.unconverted += 1;
+        const created = Date.parse(String(row.created_at ?? ""));
+        if (Number.isFinite(created) && closedAt > created) bucket.cycles.push((closedAt - created) / 86_400_000);
+        if (mine) { mine.won += convertible ? val : 0; mine.won_n += 1; if (!convertible) mine.unconverted += 1; }
+      } else {
+        bucket.lost += convertible ? val : 0; bucket.lost_n += 1;
+        if (!convertible) bucket.unconverted += 1;
+        if (mine) { mine.lost += convertible ? val : 0; mine.lost_n += 1; if (!convertible) mine.unconverted += 1; }
+      }
+    } else if (!/closed/i.test(stage)) {
+      // open pipeline — a BALANCE (as of now), not a windowed flow
+      pipelineValue += convertible ? val : 0; pipelineN += 1;
+      if (!convertible) pipelineUnconverted += 1;
+      if (owner) { const pm = pipelineByMember.get(owner) ?? { value: 0, n: 0 }; pm.value += convertible ? val : 0; pm.n += 1; pipelineByMember.set(owner, pm); }
+    }
+  }
+
+  const winRate = (w: Win) => (w.won_n + w.lost_n > 0 ? Math.round((w.won_n / (w.won_n + w.lost_n)) * 100) : null);
+  const avg = (w: Win) => (w.won_n > 0 ? Math.round(w.won / w.won_n) : null);
+  const cycle = (w: Win) => (w.cycles.length > 0 ? Math.round(w.cycles.reduce((a, b) => a + b, 0) / w.cycles.length) : null);
+
+  return c.json({
+    base_currency: base,
+    range: { start: new Date(start).toISOString(), end: new Date(end).toISOString() },
+    team: {
+      value_won: Math.round(teamNow.won), deals_won: teamNow.won_n,
+      value_lost: Math.round(teamNow.lost), deals_lost: teamNow.lost_n,
+      pipeline_value: Math.round(pipelineValue), pipeline_deals: pipelineN,
+      win_rate_pct: winRate(teamNow), avg_deal_size: avg(teamNow), avg_cycle_days: cycle(teamNow),
+      unconverted: teamNow.unconverted, pipeline_unconverted: pipelineUnconverted,
+      // Honest deltas via the shared engine — null-safe when there is no previous window.
+      deltas: hasPrev ? {
+        value_won: compareWindows(Math.round(teamNow.won), Math.round(teamPrev.won)),
+        deals_won: compareWindows(teamNow.won_n, teamPrev.won_n),
+        value_lost: compareWindows(Math.round(teamNow.lost), Math.round(teamPrev.lost)),
+      } : null,
+    },
+    members: [...byMember.entries()].map(([user_id, w]) => ({
+      user_id, value_won: Math.round(w.won), deals_won: w.won_n, value_lost: Math.round(w.lost), deals_lost: w.lost_n,
+      win_rate_pct: winRate(w), unconverted: w.unconverted,
+      pipeline_value: Math.round(pipelineByMember.get(user_id)?.value ?? 0), pipeline_deals: pipelineByMember.get(user_id)?.n ?? 0,
+    })).sort((a, b) => b.value_won - a.value_won),
+  });
 });
 
 export { router as activitiesRouter };

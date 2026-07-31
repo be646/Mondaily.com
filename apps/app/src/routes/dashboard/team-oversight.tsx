@@ -8,11 +8,18 @@ import { FieldSelect, CommandPageHeader, MetricGrid, DossierSection, ActionMenu 
 import { ErrorState } from "../../components/ui/page-state";
 import { SuggestionHints } from "../../components/ui/ai-button";
 import { compareWindows } from "@mondaily/shared/baseline";
+import { KPIGrid, KPITile } from "../../components/ui/kpi";
 import { PeriodSelector } from "../../components/ui/period-selector";
-import { usePeriod, type Period } from "../../lib/period";
+import { usePeriod, periodRange, previousRange, periodLabel, type Period } from "../../lib/period";
 
-// Oversight's backend measures "days back from now", so map the shared period to a day-window.
-const PERIOD_TO_DAYS: Record<Period, number> = { today: 1, week: 7, month: 30, quarter: 90, year: 365, all: 365, custom: 30 };
+// CALENDAR-TRUE windows (2026-07-30): the backend measures "days back from now", so we derive the
+// day count from the CALENDAR period start (1st of the month, Sunday, Jan 1) — "Month" genuinely
+// restarts from zero on the 1st, exactly like Finance. The backend's previous-equal-window compare
+// then reads as "same point last period". History is untouched — this only scopes the window.
+function calendarDays(p: Period): number {
+  const start = periodRange(p).start.getTime();
+  return Math.max(1, Math.ceil((Date.now() - start) / 86_400_000));
+}
 
 /**
  * Team Intelligence — an AI-powered team behaviour & value dashboard for owners/admins.
@@ -344,6 +351,41 @@ function OversightAsk() {
   );
 }
 
+// ── Business outcomes (Sales) — THE money layer: value won/lost, pipeline, win rate ──────────
+interface OutcomesResp {
+  base_currency: string;
+  team: { value_won: number; deals_won: number; value_lost: number; deals_lost: number; pipeline_value: number; pipeline_deals: number; win_rate_pct: number | null; avg_deal_size: number | null; avg_cycle_days: number | null; unconverted: number; pipeline_unconverted: number;
+    deltas: null | { value_won: { kind: string; label: string; direction: number; detail: string } } };
+  members: { user_id: string; value_won: number; deals_won: number; value_lost: number; deals_lost: number; win_rate_pct: number | null; pipeline_value: number; pipeline_deals: number }[];
+}
+function useOutcomes(period: Period) {
+  const r = periodRange(period); const pr = previousRange(period);
+  const qs = new URLSearchParams({ start: r.start.toISOString(), end: r.end.toISOString() });
+  if (pr) { qs.set("prev_start", pr.start.toISOString()); qs.set("prev_end", pr.end.toISOString()); }
+  return useQuery<OutcomesResp>({ queryKey: ["outcomes", period], queryFn: () => apiClient.get(`/activities/outcomes?${qs}`), staleTime: 60_000, retry: false });
+}
+const fmtMoney0 = (v: number, cur: string) => `${cur} ${Math.round(v).toLocaleString()}`;
+function SalesStrip({ period }: { period: Period }) {
+  const q = useOutcomes(period);
+  const t = q.data?.team; if (!t) return null;
+  const cur = q.data!.base_currency;
+  const d = t.deltas?.value_won;
+  return (
+    <div className="mb-6">
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Sales · {periodLabel(period).toLowerCase()}</p>
+      <KPIGrid>
+        <KPITile label="Value won" accent value={fmtMoney0(t.value_won, cur)}
+          delta={d && d.label ? <span className="text-[10px] font-semibold tabular-nums" title={d.detail} style={{ color: d.direction >= 0 ? "var(--status-ok)" : "var(--status-error)" }}>{d.direction >= 0 ? "▲" : "▼"} {d.label}</span> : undefined}
+          sub={<>{t.deals_won} deal{t.deals_won === 1 ? "" : "s"} won{t.unconverted > 0 ? ` · ${t.unconverted} unconverted` : ""}</>} />
+        <KPITile label="Value lost" valueColor={t.value_lost > 0 ? "var(--status-error)" : undefined} value={fmtMoney0(t.value_lost, cur)} sub={<>{t.deals_lost} lost</>} />
+        <KPITile label="Open pipeline" value={fmtMoney0(t.pipeline_value, cur)} sub={<>{t.pipeline_deals} open · as of today{t.pipeline_unconverted > 0 ? ` · ${t.pipeline_unconverted} unconverted` : ""}</>} />
+        <KPITile label="Win rate" value={t.win_rate_pct != null ? `${t.win_rate_pct}%` : "—"} sub={t.win_rate_pct != null ? "of closed deals" : "no closed deals yet"} />
+        <KPITile label="Avg deal" value={t.avg_deal_size != null ? fmtMoney0(t.avg_deal_size, cur) : "—"} sub={t.avg_cycle_days != null ? `${t.avg_cycle_days}d avg cycle` : "won deals only"} />
+      </KPIGrid>
+    </div>
+  );
+}
+
 // A small up/down/flat trend chip from two real counts (this window vs. the previous equal window).
 function Trend({ now, prev }: { now: number; prev: number }) {
   // Delegates to THE shared baseline engine — the honesty rules live in @mondaily/shared/baseline
@@ -618,7 +660,7 @@ export function TeamOversightPage() {
   const selectedId = params.get("member");
   // Shared reporting-period lens (same control as Finance) — every metric + trend recomputes.
   const [period, setPeriod] = usePeriod("mondaily_oversight_period");
-  const days = PERIOD_TO_DAYS[period];
+  const days = period === "all" ? 365 : calendarDays(period);
 
   const { data, isLoading, isError, error, refetch } = useQuery<MatrixResp>({
     queryKey: ["oversight-matrix", days],
@@ -691,6 +733,9 @@ export function TeamOversightPage() {
       {/* ── Unified overview tiles — number + inline sparkline, Home-style ── */}
       {data?.trends && <OverviewTiles trends={data.trends} periodLabel={`${days}d`} />}
 
+      {/* ── Sales — the business-outcomes layer (deal VALUES, from /activities/outcomes) ── */}
+      {operators.length > 0 && <SalesStrip period={period} />}
+
       {/* ── ZONE 2 · Velocity (real cycle times) + workload balance + goals ── */}
       {advancedQ.data && operators.length > 0 && <VelocityStrip adv={advancedQ.data} />}
       {operators.length > 1 && <WorkloadAttention operators={operators} onSelect={select} />}
@@ -748,6 +793,12 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
     retry: false,
   });
   const timeline = useMemo(() => (Array.isArray(timelineQ.data?.activity) ? timelineQ.data!.activity : []), [timelineQ.data]);
+
+  // This member's VALUE outcomes (same engine as the team Sales strip — one source of truth).
+  const [period] = usePeriod("mondaily_oversight_period");
+  const outcomesQ = useOutcomes(period);
+  const myOutcome = outcomesQ.data?.members.find((m) => m.user_id === op.operator_id) ?? null;
+  const outcomesCur = outcomesQ.data?.base_currency ?? "";
 
   // Is live calling configured on this deployment? (fail-closed → buttons hidden if not)
   const callCap = useQuery<{ enabled: boolean; recording?: boolean }>({
@@ -907,6 +958,16 @@ function MemberDetail({ op, adv }: { op: Operator; adv?: AdvancedResp }) {
               { label: "Lost", value: fmt(op.deals_lost ?? 0), tone: "var(--status-error)" },
               { label: "Updated", value: fmt(op.deals_updated ?? 0) },
             ]} />
+            {myOutcome && (
+              <div className="mt-3">
+                <MetricGrid cols={4} items={[
+                  { label: "Value won", value: fmtMoney0(myOutcome.value_won, outcomesCur), tone: myOutcome.value_won > 0 ? "var(--status-ok)" : undefined },
+                  { label: "Value lost", value: fmtMoney0(myOutcome.value_lost, outcomesCur), tone: myOutcome.value_lost > 0 ? "var(--status-error)" : undefined },
+                  { label: "Pipeline", value: fmtMoney0(myOutcome.pipeline_value, outcomesCur) },
+                  { label: "Win rate", value: myOutcome.win_rate_pct != null ? `${myOutcome.win_rate_pct}%` : "—" },
+                ]} />
+              </div>
+            )}
           </div>
         )}
         {/* This member's goals — live attainment against real targets (only their own goals). */}
