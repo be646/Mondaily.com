@@ -67,7 +67,9 @@ export async function listNodes(workspaceId: string, options: { vertical?: strin
   }
   for (const f of options.filters ?? []) {
     if (!SAFE_COL.test(f.col)) continue;         // refuse anything not shaped like a column name
-    const col = `data->>${f.col}`;
+    // last_activity is the row's real updated_at, not a data field — mapping it to
+    // data->>last_activity (which no record has) made every last-activity filter return zero rows.
+    const col = f.col === "last_activity" ? "updated_at" : `data->>${f.col}`;
     const v = String(f.value ?? "");
     if (f.op === "is") query = query.eq(col, v);
     else if (f.op === "is_not") query = query.neq(col, v);

@@ -2662,7 +2662,12 @@ export function RecordTable({ objectType, enrichedIds = [], onColumnsChange }: {
 
   if (query.isLoading) return <div className="mt-4"><PageSkeleton /></div>;
   if (query.isError)   return <div className="mt-4"><ErrorState error={query.error as Error} onRetry={() => query.refetch()} /></div>;
-  if (!records.length) return (
+  // The onboarding empty state ONLY when the type is genuinely empty. `records` is now the
+  // server-FILTERED result, so returning early here whenever it was empty replaced the whole
+  // table — toolbar included — the moment a filter matched nothing, leaving no way to clear the
+  // filter. With a filter or search active, the table renders normally and shows its own
+  // "No results" row instead.
+  if (!records.length && !debouncedSearch && serverConds.length === 0) return (
     <div className="mt-4 mx-6 flex min-h-64 flex-col items-center justify-center rounded-sm border border-dashed px-6 text-center" style={{ borderColor: "var(--border-soft)" }}>
       <Database className="mb-3" size={26} style={{ color: "var(--text-faint)" }}/>
       <h2 className="text-sm font-medium text-[var(--text-secondary)]">No {objectType} yet</h2>
