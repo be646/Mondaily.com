@@ -118,6 +118,51 @@ function StatusDot({ color }: { color: string }) {
   return <span className="inline-flex h-2 w-2 shrink-0 rounded-full" style={{ background: color }} />;
 }
 
+/** Secret Brain — shadow-mode panel. Read-only ledger of the workspace intelligence engine's
+ *  deterministic detectors: what it watched, what it flagged, and the evidence. Honest states:
+ *  hidden until its migration is applied; "looked and found nothing" is shown as exactly that. */
+function SecretBrainPanel() {
+  const q = useQuery<{ enabled: boolean; run: { id: string; started_at: string; status: string; signals_count: number; proof?: { rows_scanned?: Record<string, number>; duration_ms?: number } } | null; signals: { id: string; kind: string; severity: "info" | "watch" | "risk"; title: string; detail: string }[] }>({
+    queryKey: ["secret-brain"],
+    queryFn: () => apiClient.get("/activities/brain"),
+    staleTime: 60_000, retry: false,
+  });
+  if (!q.data?.enabled) return null;   // migration not applied (or non-admin) → no fake panel
+  const { run, signals } = q.data;
+  const tone = (sv: string) => sv === "risk" ? "var(--status-error)" : sv === "watch" ? "var(--status-warn)" : "var(--text-muted)";
+  return (
+    <section className="border-y py-4" style={{ borderColor: "var(--border-soft)" }}>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>Workspace intelligence <span className="ml-1.5 rounded-md px-1.5 py-0.5 align-middle text-[9.5px] font-semibold uppercase tracking-wider" style={{ background: "color-mix(in srgb, var(--text-primary) 6%, transparent)", color: "var(--text-muted)" }}>shadow mode</span></h2>
+        {run && <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>
+          last sweep {new Date(run.started_at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+          {run.proof?.rows_scanned ? ` · scanned ${Object.values(run.proof.rows_scanned).reduce((a, b) => a + b, 0)} rows` : ""}
+          {run.proof?.duration_ms != null ? ` · ${run.proof.duration_ms}ms` : ""}
+        </span>}
+      </div>
+      {!run ? (
+        <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>No sweeps yet — the brain runs with the daily batch. It observes only; it changes nothing.</p>
+      ) : signals.length === 0 ? (
+        <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>Last sweep found nothing to flag — stalled deals, overdue pileups, aging decisions and pipeline concentration all clear.</p>
+      ) : (
+        <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+          {signals.map((sg) => (
+            <div key={sg.id} className="flex items-start gap-2.5 py-2" style={{ borderColor: "var(--border-soft)" }}>
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: tone(sg.severity) }} />
+              <div className="min-w-0">
+                <p className="text-[12.5px] font-medium" style={{ color: "var(--text-primary)" }}>{sg.title}</p>
+                <p className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>{sg.detail}</p>
+              </div>
+              <span className="ml-auto shrink-0 text-[10px] uppercase tracking-wide" style={{ color: tone(sg.severity) }}>{sg.severity}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="mt-2 text-[10.5px]" style={{ color: "var(--text-faint)" }}>Deterministic detectors over recorded data — every signal carries evidence ids. Shadow mode: observes and logs, never acts.</p>
+    </section>
+  );
+}
+
 export function AgentActivityPage() {
   const { t } = useLanguage();
   const [agentFilter, setAgentFilter] = useState<string | null>(null); // by LABEL
@@ -548,6 +593,9 @@ export function AgentActivityPage() {
           )}
         </div>
       </section>
+
+      {/* ── Secret Brain (shadow) — what the intelligence engine noticed ── */}
+      <SecretBrainPanel />
 
       {/* ── 5. Sovereignty / observability note ── */}
       <div className="flex items-start gap-2 text-[11px]" style={{ color: "var(--text-faint)" }}>

@@ -187,12 +187,14 @@ app.get("/api/cron/daily", async (c) => {
     return c.json({ ran: true, only, at: new Date().toISOString(), result: r });
   }
   const results = await runAllDaily();
+  // Secret Brain — shadow mode, read-only detectors; honest no-op until its migration is applied.
+  const brain = await (await import("./jobs/secret-brain")).runSecretBrain().catch((e) => ({ error: String(e) }));
   const workflows = await runAllWorkflows().catch((e) => ({ error: String(e) }));
   const vertical = await runAllVertical().catch((e) => ({ error: String(e) }));
   // Keep the vector-search index fresh: embed any new/edited records (no-op unless the embedding
   // appliance is configured). Non-fatal.
   const embeddings = await (await import("./lib/embed-index")).reconcileAllEmbeddings().catch((e) => ({ error: String(e) }));
-  return c.json({ ran: true, at: new Date().toISOString(), results, workflows, vertical, embeddings });
+  return c.json({ ran: true, at: new Date().toISOString(), results, workflows, vertical, embeddings, brain });
 });
 
 /**

@@ -903,4 +903,25 @@ router.get("/outcomes", requireAuth, requireAdminRole, async (c) => {
   return c.json({ ...result, range: { start: new Date(start).toISOString(), end: new Date(end).toISOString() } });
 });
 
+/**
+ * GET /activities/brain — Secret Brain shadow-mode ledger (admin-only, READ-ONLY).
+ * Returns the latest run + its signals with evidence. Honest states: {enabled:false} until the
+ * migration is applied; an empty signal list means "the brain looked and found nothing" — which
+ * is a real answer, not a failure.
+ */
+router.get("/brain", requireAuth, requireAdminRole, async (c) => {
+  const ws = c.get("workspaceId");
+  const runQ = await supabase.from("brain_runs").select("id, mode, started_at, finished_at, status, signals_count, proof, error")
+    .eq("workspace_id", ws).order("started_at", { ascending: false }).limit(1).maybeSingle();
+  if (runQ.error && (runQ.error.code === "42P01" || /does not exist/i.test(runQ.error.message ?? ""))) {
+    return c.json({ enabled: false, reason: "migration_not_applied" });
+  }
+  const run = runQ.data;
+  if (!run) return c.json({ enabled: true, run: null, signals: [] });
+  const { data: signals } = await supabase.from("intelligence_signals")
+    .select("id, kind, severity, title, detail, evidence, created_at")
+    .eq("workspace_id", ws).eq("run_id", run.id).order("created_at", { ascending: true }).limit(100);
+  return c.json({ enabled: true, run, signals: signals ?? [] });
+});
+
 export { router as activitiesRouter };

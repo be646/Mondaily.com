@@ -82,3 +82,42 @@ describe("executive brief — autonomous, safe, honest (source-read guards)", ()
     expect(r).toContain("computeOutcomes(ws, start, end, prevStart, prevEnd)");
   });
 });
+
+describe("Secret Brain — shadow-mode contract (source-read guards)", () => {
+  it("the job is READ-ONLY over workspace data: writes touch ONLY brain tables", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const job = readFileSync(join(__dirname, "../jobs/secret-brain.ts"), "utf8");
+    // every insert/update targets brain_runs or intelligence_signals — nothing else
+    const writes = [...job.matchAll(/\.from\("([^"]+)"\)\s*\.\s*(insert|update|upsert|delete)/g)].map(m => m[1]);
+    expect(writes.length).toBeGreaterThan(0);
+    for (const t of writes) expect(["brain_runs", "intelligence_signals"]).toContain(t);
+    // no AI in the detection path, no mail, no decisions
+    expect(job).not.toMatch(/aiGateway/);
+    expect(job).not.toMatch(/sendTransactionalEmail/);
+    expect(job).not.toMatch(/decision_queue"\)\s*\.\s*(insert|update)/);
+    // honest disable when the migration isn't applied
+    expect(job).toContain('return { enabled: false');
+    // proof-of-work recorded
+    expect(job).toMatch(/rows_scanned/);
+  });
+  it("signals carry evidence ids; the read endpoint is admin-only and honest about states", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const job = readFileSync(join(__dirname, "../jobs/secret-brain.ts"), "utf8");
+    for (const ev of ["node_id", "task_ids", "decision_ids"]) expect(job).toContain(ev);
+    const a = readFileSync(join(__dirname, "../routes/activities.ts"), "utf8");
+    const r = a.slice(a.indexOf('router.get("/brain"'));
+    expect(r).toContain("requireAuth, requireAdminRole");
+    expect(r).toContain('reason: "migration_not_applied"');
+  });
+  it("the shadow panel hides rather than fakes, and the migration constrains mode to shadow", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const ui = readFileSync(join(__dirname, "../../../../apps/app/src/routes/dashboard/activity.tsx"), "utf8");
+    expect(ui).toContain("if (!q.data?.enabled) return null;");
+    expect(ui).toContain("found nothing to flag");
+    const mig = readFileSync(join(__dirname, "../../../db/migrations/20260731_secret_brain.sql"), "utf8");
+    expect(mig).toContain("check (mode in ('shadow'))");
+  });
+});
