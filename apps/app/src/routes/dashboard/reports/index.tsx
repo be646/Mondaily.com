@@ -371,6 +371,160 @@ function NewDashboardDialog({ onCreate, onClose }: { onCreate: (name: string) =>
 
 /** Sales outcomes strip — the business layer (deal VALUES) from the shared outcomes engine.
  *  Admin-only endpoint: non-admins get a 403 and the strip simply doesn't render. */
+
+// ── Report builder — any sheet → group-by → metric → hairline chart. Saved schema-free
+//    (nodes object_type "saved_report"), powered entirely by the existing /records/aggregate
+//    engine (workspace-scoped, currency-aware, honest truncation notes). ──────────────────────
+interface AggResp2 { op: string; value?: number; currency?: string; unconverted?: number; total_rows?: number; truncated?: boolean; groups?: { label: string; value: number; count: number; unconverted?: number }[] }
+interface SavedReport { id: string; data: { name?: string; object_type?: string; group_by?: string; column?: string; op?: string; currency?: boolean } }
+function ReportBuilder() {
+  const qc = useQueryClient();
+  const objectsQ2 = useQuery<{ slug: string; name_plural?: string }[]>({ queryKey: ["object-defs"], queryFn: () => apiClient.get("/objects"), staleTime: 60_000 });
+  const [objectType, setObjectType] = useState("");
+  const [groupBy, setGroupBy] = useState("none");
+  const [op, setOp] = useState<"count" | "sum" | "avg">("count");
+  const [column, setColumn] = useState("");
+  const [isMoney, setIsMoney] = useState(false);
+  const [result, setResult] = useState<AggResp2 | null>(null);
+  const [running, setRunning] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [name, setName] = useState("");
+
+  // Column inventory from real sample rows (same approach as the AI formula builder).
+  const colsQ = useQuery<string[]>({
+    queryKey: ["report-cols", objectType],
+    enabled: !!objectType,
+    queryFn: async () => {
+      const rows = await apiClient.get<{ data?: Record<string, unknown> }[]>(`/nodes?object_type=${encodeURIComponent(objectType)}&limit=20`);
+      const keys = new Set<string>();
+      for (const r of rows ?? []) for (const k of Object.keys(r.data ?? {})) keys.add(k);
+      return [...keys].sort();
+    },
+  });
+
+  const savedQ = useQuery<SavedReport[]>({
+    queryKey: ["saved-reports"],
+    queryFn: () => apiClient.get(`/nodes?object_type=saved_report&limit=50`),
+    staleTime: 30_000,
+  });
+
+  async function run(cfg?: SavedReport["data"]) {
+    const c2 = cfg ?? { object_type: objectType, group_by: groupBy, column: op === "count" ? (column || "name") : column, op, currency: isMoney };
+    if (!c2.object_type || (!c2.column && c2.op !== "count")) return;
+    setRunning(true); setErr(null);
+    try {
+      const r = await apiClient.post<AggResp2>("/records/aggregate", {
+        object_type: c2.object_type, column: c2.column || "name", op: c2.op ?? "count",
+        group_by: c2.group_by ?? "none", currency: !!c2.currency,
+      });
+      setResult(r);
+      if (cfg) { setObjectType(c2.object_type!); setGroupBy(c2.group_by ?? "none"); setOp((c2.op as never) ?? "count"); setColumn(c2.column ?? ""); setIsMoney(!!c2.currency); }
+    } catch (e) { setErr(e instanceof Error ? e.message : "Report failed."); }
+    finally { setRunning(false); }
+  }
+
+  const save = useMutation({
+    mutationFn: () => apiClient.post("/nodes", { vertical: "shared", object_type: "saved_report", data: { name: name.trim() || `${objectType} by ${groupBy}`, object_type: objectType, group_by: groupBy, column, op, currency: isMoney } }),
+    onSuccess: () => { setName(""); qc.invalidateQueries({ queryKey: ["saved-reports"] }); },
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/nodes/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["saved-reports"] }),
+  });
+
+  const fmtV = (v: number) => result?.currency ? `${result.currency} ${Math.round(v).toLocaleString()}` : (v % 1 === 0 ? v.toLocaleString() : v.toFixed(1));
+  const groups = (result?.groups ?? []).slice(0, 14);
+  const max = groups.length ? Math.max(...groups.map(g => g.value), 1) : 1;
+
+  return (
+    <div className="mb-8">
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-secondary)" }}>Report builder</p>
+      <div className="flex flex-wrap items-end gap-2 border-b pb-3" style={{ borderColor: "var(--border-soft)" }}>
+        <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>Sheet
+          <select value={objectType} onChange={e => { setObjectType(e.target.value); setResult(null); setColumn(""); }} className="key-input mt-1 block h-8 w-40 px-2 text-[12px]">
+            <option value="">Choose…</option>
+            {(objectsQ2.data ?? []).map(o => <option key={o.slug} value={o.slug}>{o.name_plural ?? o.slug}</option>)}
+          </select>
+        </label>
+        <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>Group by
+          <select value={groupBy} onChange={e => setGroupBy(e.target.value)} className="key-input mt-1 block h-8 w-36 px-2 text-[12px]">
+            <option value="none">Total only</option>
+            <option value="date">Month created</option>
+            {(colsQ.data ?? []).map(c2 => <option key={c2} value={c2}>{c2.replace(/_/g, " ")}</option>)}
+          </select>
+        </label>
+        <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>Metric
+          <select value={op} onChange={e => setOp(e.target.value as never)} className="key-input mt-1 block h-8 w-24 px-2 text-[12px]">
+            <option value="count">Count</option><option value="sum">Sum</option><option value="avg">Average</option>
+          </select>
+        </label>
+        {op !== "count" && (
+          <label className="text-[11px]" style={{ color: "var(--text-muted)" }}>Of column
+            <select value={column} onChange={e => setColumn(e.target.value)} className="key-input mt-1 block h-8 w-36 px-2 text-[12px]">
+              <option value="">Choose…</option>
+              {(colsQ.data ?? []).map(c2 => <option key={c2} value={c2}>{c2.replace(/_/g, " ")}</option>)}
+            </select>
+          </label>
+        )}
+        {op !== "count" && (
+          <label className="flex items-center gap-1.5 pb-2 text-[11px]" style={{ color: "var(--text-muted)" }}>
+            <input type="checkbox" checked={isMoney} onChange={e => setIsMoney(e.target.checked)} /> money column
+          </label>
+        )}
+        <button onClick={() => void run()} disabled={running || !objectType || (op !== "count" && !column)} className="btn-primary h-8 px-3 text-[12px] font-semibold">{running ? "Running…" : "Run"}</button>
+        {result && (
+          <span className="flex items-center gap-1.5">
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Save as…" className="key-input h-8 w-32 px-2 text-[12px]" />
+            <button onClick={() => save.mutate()} disabled={save.isPending} className="btn-secondary h-8 px-3 text-[12px] font-medium">Save</button>
+          </span>
+        )}
+      </div>
+      {err && <p className="mt-2 text-[12px]" style={{ color: "var(--status-error)" }}>{err}</p>}
+      {result && (
+        <div className="mt-3">
+          {result.groups ? groups.length === 0 ? (
+            <p className="text-[12px]" style={{ color: "var(--text-muted)" }}>No rows matched — an honest empty, not an error.</p>
+          ) : (
+            <div className="space-y-1">
+              {groups.map(g => (
+                <div key={g.label} className="flex items-center gap-2 text-[11.5px]">
+                  <span className="w-40 truncate" style={{ color: "var(--text-muted)" }}>{g.label || "—"}</span>
+                  <span className="h-2 flex-1 overflow-hidden rounded-full" style={{ background: "var(--surface-hover)" }}>
+                    <span className="block h-full rounded-full" style={{ width: `${Math.max(2, Math.round((g.value / max) * 100))}%`, background: "var(--section-accent)" }} />
+                  </span>
+                  <span className="w-36 text-right tabular-nums" style={{ color: "var(--text-secondary)" }}>{fmtV(g.value)}{g.unconverted ? <span title={`${g.unconverted} unconverted`} style={{ color: "var(--status-warn)" }}> ·{g.unconverted}✗</span> : null}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="font-mono text-[22px] font-semibold tabular-nums" style={{ color: "var(--text-primary)" }}>{fmtV(result.value ?? 0)}</p>
+          )}
+          {(result.truncated || (result.unconverted ?? 0) > 0) && (
+            <p className="mt-1.5 text-[10.5px]" style={{ color: "var(--status-warn)" }}>
+              {result.truncated ? `Computed over the first ${result.total_rows?.toLocaleString()} rows. ` : ""}
+              {(result.unconverted ?? 0) > 0 ? `${result.unconverted} row(s) could not be currency-converted.` : ""}
+            </p>
+          )}
+        </div>
+      )}
+      {(savedQ.data?.length ?? 0) > 0 && (
+        <div className="mt-4">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest" style={{ color: "var(--text-faint)" }}>Saved reports</p>
+          <div className="divide-y" style={{ borderColor: "var(--border-soft)" }}>
+            {savedQ.data!.map(sr => (
+              <div key={sr.id} className="flex items-center gap-2 py-1.5 text-[12px]" style={{ borderColor: "var(--border-soft)" }}>
+                <button onClick={() => void run(sr.data)} className="min-w-0 flex-1 truncate text-left hover:underline" style={{ color: "var(--text-primary)" }}>{sr.data.name ?? "Untitled report"}</button>
+                <span className="text-[10.5px]" style={{ color: "var(--text-faint)" }}>{sr.data.object_type} · {sr.data.op}{sr.data.group_by && sr.data.group_by !== "none" ? ` by ${sr.data.group_by}` : ""}</span>
+                <button onClick={() => remove.mutate(sr.id)} className="btn-icon h-6 w-6" title="Delete saved report"><span aria-hidden>×</span></button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SalesOutcomes() {
   const r = periodRange("month"); const pr = previousRange("month");
   const qs = new URLSearchParams({ start: r.start.toISOString(), end: r.end.toISOString() });
@@ -458,6 +612,9 @@ export function ReportsPage() {
 
       {/* ── Sales — business outcomes (admins; hidden otherwise) ── */}
       <SalesOutcomes />
+
+      {/* ── Report builder — any sheet, grouped, charted, savable ── */}
+      <ReportBuilder />
 
       {/* ── Live Reports ── */}
       <section className="mb-10">
