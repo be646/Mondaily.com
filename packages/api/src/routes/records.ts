@@ -216,9 +216,11 @@ Use ONLY fields from the provided list. If the request cannot be expressed in th
   // ── PROOF: execute against the real samples; check field references ──
   const known = new Set(fields.map(f => f.toLowerCase().replace(/\s+/g, "_")));
   const unknown = formulaFields(formula).filter(f => !known.has(f.toLowerCase().replace(/\s+/g, "_")));
-  const preview = samples.slice(0, 3).map(sm => {
+  const preview = samples.slice(0, 3).map((sm): { name: string; value?: unknown; error?: string } => {
     const res = evaluateFormula(formula, sm);
-    return { name: String(sm.name ?? sm.title ?? "—").slice(0, 60), ...(res.ok ? { value: res.value } : { error: res.error }) };
+    const name = String(sm.name ?? sm.title ?? "—").slice(0, 60);
+    if (res.ok) return { name, value: res.value };
+    return { name, error: res.error };
   });
   const allFailed = preview.length > 0 && preview.every(pv => "error" in pv);
   const warnings = [
